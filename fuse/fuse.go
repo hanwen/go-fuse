@@ -17,12 +17,11 @@ const (
 	bufSize = 65536 + 100 // See the link above for the details
 )
 
-type FileSystem interface {
-}
+type FileSystem interface{}
 
 type MountPoint struct {
 	mountPoint string
-	f *os.File
+	f          *os.File
 }
 
 // Mount create a fuse fs on the specified mount point.
@@ -44,10 +43,10 @@ func Mount(mountPoint string, fs FileSystem) (m *MountPoint, err os.Error) {
 		mountPoint = path.Clean(path.Join(cwd, mountPoint))
 	}
 	pid, err := os.ForkExec("/bin/fusermount",
-			[]string { "/bin/fusermount", mountPoint },
-			[]string { "_FUSE_COMMFD=3" },
-			"",
-			[]*os.File { nil, nil, nil, remote.File() })
+		[]string{"/bin/fusermount", mountPoint},
+		[]string{"_FUSE_COMMFD=3"},
+		"",
+		[]*os.File{nil, nil, nil, remote.File()})
 	if err != nil {
 		return
 	}
@@ -63,7 +62,7 @@ func Mount(mountPoint string, fs FileSystem) (m *MountPoint, err os.Error) {
 	if err != nil {
 		return
 	}
-	m = &MountPoint { mountPoint, f }
+	m = &MountPoint{mountPoint, f}
 	go m.loop()
 	return
 }
@@ -78,7 +77,7 @@ func (m *MountPoint) loop() {
 			fmt.Printf("MountPoint.loop: Read failed, err: %v\n", err)
 			os.Exit(1)
 		}
-		var h fuse_in_header
+		var h In_header
 		err = binary.Read(r, binary.LittleEndian, &h)
 		if err != nil {
 			fmt.Printf("MountPoint.loop: binary.Read of fuse_in_header failed with err: %v\n", err)
@@ -94,10 +93,10 @@ func (m *MountPoint) Unmount() (err os.Error) {
 		return nil
 	}
 	pid, err := os.ForkExec("/bin/fusermount",
-			[]string { "/bin/fusermount", "-u", m.mountPoint },
-			nil,
-			"",
-			[]*os.File { nil, nil, os.Stderr })
+		[]string{"/bin/fusermount", "-u", m.mountPoint},
+		nil,
+		"",
+		[]*os.File{nil, nil, os.Stderr})
 	if err != nil {
 		return
 	}
@@ -127,7 +126,7 @@ func Recvmsg(fd int, msg *syscall.Msghdr, flags int) (n int, err os.Error) {
 	return
 }
 
-func getFuseConn(local net.Conn) (f * os.File, err os.Error) {
+func getFuseConn(local net.Conn) (f *os.File, err os.Error) {
 	var msg syscall.Msghdr
 	var iov syscall.Iovec
 	base := make([]int32, 256)
@@ -157,12 +156,10 @@ func getFuseConn(local net.Conn) (f * os.File, err os.Error) {
 		return
 	}
 
-	if (fd < 0) {
+	if fd < 0 {
 		err = os.NewError(fmt.Sprintf("getFuseConn: fd < 0: %d", fd))
 		return
 	}
 	f = os.NewFile(int(fd), "fuse-conn")
 	return
 }
-
-

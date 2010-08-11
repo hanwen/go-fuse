@@ -12,7 +12,7 @@ const (
 	FUSE_ROOT_ID = 1
 
 	/**
-	 * Bitmasks for fuse_setattr_in.valid
+	 * Bitmasks for Setattr_in.valid
 	 */
 	FATTR_MODE      = (1 << 0)
 	FATTR_UID       = (1 << 1)
@@ -183,330 +183,330 @@ const (
    userspace works under 64bit kernels */
 
 type Attr struct {
-	ino       uint64
-	size      uint64
-	blocks    uint64
-	atime     uint64
-	mtime     uint64
-	ctime     uint64
-	atimensec uint32
-	mtimensec uint32
-	ctimensec uint32
-	mode      uint32
-	nlink     uint32
-	uid       uint32
-	gid       uint32
-	rdev      uint32
-	blksize   uint32
-	padding   uint32
+	Ino       uint64
+	Size      uint64
+	Blocks    uint64
+	Atime     uint64
+	Mtime     uint64
+	Ctime     uint64
+	Atimensec uint32
+	Mtimensec uint32
+	Ctimensec uint32
+	Mode      uint32
+	Nlink     uint32
+	Uid       uint32
+	Gid       uint32
+	Rdev      uint32
+	Blksize   uint32
+	Padding   uint32
 }
 
 type Kstatfs struct {
-	blocks  uint64
-	bfree   uint64
-	bavail  uint64
-	files   uint64
-	ffree   uint64
-	bsize   uint32
-	namelen uint32
-	frsize  uint32
-	padding uint32
-	spare   [6]uint32
+	Blocks  uint64
+	Bfree   uint64
+	Bavail  uint64
+	Files   uint64
+	Ffree   uint64
+	Bsize   uint32
+	Namelen uint32
+	Frsize  uint32
+	Padding uint32
+	Spare   [6]uint32
 }
 
 type File_lock struct {
-	start uint64
-	end   uint64
-	typ   uint32
-	pid   uint32 /* tgid */
+	Start uint64
+	End   uint64
+	Typ   uint32
+	Pid   uint32 /* tgid */
 }
 
 
 type Entry_out struct {
-	nodeid     uint64 /* Inode ID */
-	generation uint64 /* Inode generation: nodeid:gen must
+	Nodeid     uint64 /* Inode ID */
+	Generation uint64 /* Inode generation: nodeid:gen must
 	   be unique for the fs's lifetime */
-	entry_valid      uint64 /* Cache timeout for the name */
-	attr_valid       uint64 /* Cache timeout for the attributes */
-	entry_valid_nsec uint32
-	attr_valid_nsec  uint32
-	attr             fuse_attr
+	Entry_valid      uint64 /* Cache timeout for the name */
+	Attr_valid       uint64 /* Cache timeout for the attributes */
+	Entry_valid_nsec uint32
+	Attr_valid_nsec  uint32
+	Attr             Attr
 }
 
 type Forget_in struct {
-	nlookup uint64
+	Nlookup uint64
 }
 
 type Getattr_in struct {
-	getattr_flags uint32
-	dummy         uint32
-	fh            uint64
+	Getattr_flags uint32
+	Dummy         uint32
+	Fh            uint64
 }
 
 
 type Attr_out struct {
-	attr_valid      uint64 /* Cache timeout for the attributes */
-	attr_valid_nsec uint32
-	dummy           uint32
-	attr            fuse_attr
+	Attr_valid      uint64 /* Cache timeout for the attributes */
+	Attr_valid_nsec uint32
+	Dummy           uint32
+	Attr            Attr
 }
 
 
 type Mknod_in struct {
-	mode    uint32
-	rdev    uint32
-	umask   uint32
-	padding uint32
+	Mode    uint32
+	Rdev    uint32
+	Umask   uint32
+	Padding uint32
 }
 
 type Mkdir_in struct {
-	mode  uint32
-	umask uint32
+	Mode  uint32
+	Umask uint32
 }
 
 type Rename_in struct {
-	newdir uint64
+	Newdir uint64
 }
 
 type Link_in struct {
-	oldnodeid uint64
+	Oldnodeid uint64
 }
 
 type Setattr_in struct {
-	valid      uint32
-	padding    uint32
-	fh         uint64
-	size       uint64
-	lock_owner uint64
-	atime      uint64
-	mtime      uint64
-	unused2    uint64
-	atimensec  uint32
-	mtimensec  uint32
-	unused3    uint32
-	mode       uint32
-	unused4    uint32
-	uid        uint32
-	gid        uint32
-	unused5    uint32
+	Valid      uint32
+	Padding    uint32
+	Fh         uint64
+	Size       uint64
+	Lock_owner uint64
+	Atime      uint64
+	Mtime      uint64
+	Unused2    uint64
+	Atimensec  uint32
+	Mtimensec  uint32
+	Unused3    uint32
+	Mode       uint32
+	Unused4    uint32
+	Uid        uint32
+	Gid        uint32
+	Unused5    uint32
 }
 
 type Open_in struct {
-	flags  uint32
-	unused uint32
+	Flags  uint32
+	Unused uint32
 }
 
 type Create_in struct {
-	flags   uint32
-	mode    uint32
-	umask   uint32
-	padding uint32
+	Flags   uint32
+	Mode    uint32
+	Umask   uint32
+	Padding uint32
 }
 
 type Open_out struct {
-	fh         uint64
-	open_flags uint32
-	padding    uint32
+	Fh         uint64
+	Open_flags uint32
+	Padding    uint32
 }
 
 type Release_in struct {
-	fh            uint64
-	flags         uint32
-	release_flags uint32
-	lock_owner    uint64
+	Fh            uint64
+	Flags         uint32
+	Release_flags uint32
+	Lock_owner    uint64
 }
 
 type Flush_in struct {
-	fh         uint64
-	unused     uint32
-	padding    uint32
-	lock_owner uint64
+	Fh         uint64
+	Unused     uint32
+	Padding    uint32
+	Lock_owner uint64
 }
 
 type Read_in struct {
-	fh         uint64
-	offset     uint64
-	size       uint32
-	read_flags uint32
-	lock_owner uint64
-	flags      uint32
-	padding    uint32
+	Fh         uint64
+	Offset     uint64
+	Size       uint32
+	Read_flags uint32
+	Lock_owner uint64
+	Flags      uint32
+	Padding    uint32
 }
 
 
 type Write_in struct {
-	fh          uint64
-	offset      uint64
-	size        uint32
-	write_flags uint32
-	lock_owner  uint64
-	flags       uint32
-	padding     uint32
+	Fh          uint64
+	Offset      uint64
+	Size        uint32
+	Write_flags uint32
+	Lock_owner  uint64
+	Flags       uint32
+	Padding     uint32
 }
 
 type Write_out struct {
-	size    uint32
-	padding uint32
+	Size    uint32
+	Padding uint32
 }
 
 
 type Statfs_out struct {
-	st fuse_kstatfs
+	St Kstatfs
 }
 
 type Fsync_in struct {
-	fh          uint64
-	fsync_flags uint32
-	padding     uint32
+	Fh          uint64
+	Fsync_flags uint32
+	Padding     uint32
 }
 
 type Setxattr_in struct {
-	size  uint32
-	flags uint32
+	Size  uint32
+	Flags uint32
 }
 
 type Getxattr_in struct {
-	size    uint32
-	padding uint32
+	Size    uint32
+	Padding uint32
 }
 
 type Getxattr_out struct {
-	size    uint32
-	padding uint32
+	Size    uint32
+	Padding uint32
 }
 
 type Lk_in struct {
-	fh       uint64
-	owner    uint64
-	lk       fuse_file_lock
-	lk_flags uint32
-	padding  uint32
+	Fh       uint64
+	Owner    uint64
+	Lk       File_lock
+	Lk_flags uint32
+	Padding  uint32
 }
 
 type Lk_out struct {
-	lk fuse_file_lock
+	Lk File_lock
 }
 
 type Access_in struct {
-	mask    uint32
-	padding uint32
+	Mask    uint32
+	Padding uint32
 }
 
 type Init_in struct {
-	major         uint32
-	minor         uint32
-	max_readahead uint32
-	flags         uint32
+	Major         uint32
+	Minor         uint32
+	Max_readahead uint32
+	Flags         uint32
 }
 
 type Init_out struct {
-	major                uint32
-	minor                uint32
-	max_readahead        uint32
-	flags                uint32
-	max_background       uint16
-	congestion_threshold uint16
-	max_write            uint32
+	Major                uint32
+	Minor                uint32
+	Max_readahead        uint32
+	Flags                uint32
+	Max_background       uint16
+	Congestion_threshold uint16
+	Max_write            uint32
 }
 
 type Cuse_init_in struct {
-	major  uint32
-	minor  uint32
-	unused uint32
-	flags  uint32
+	Major  uint32
+	Minor  uint32
+	Unused uint32
+	Flags  uint32
 }
 
 type Cuse_init_out struct {
-	major     uint32
-	minor     uint32
-	unused    uint32
-	flags     uint32
-	max_read  uint32
-	max_write uint32
-	dev_major uint32 /* chardev major */
-	dev_minor uint32 /* chardev minor */
-	spare     [10]uint32
+	Major     uint32
+	Minor     uint32
+	Unused    uint32
+	Flags     uint32
+	Max_read  uint32
+	Max_write uint32
+	Dev_major uint32 /* chardev major */
+	Dev_minor uint32 /* chardev minor */
+	Spare     [10]uint32
 }
 
 type Interrupt_in struct {
-	unique uint64
+	Unique uint64
 }
 
 type Bmap_in struct {
-	block     uint64
-	blocksize uint32
-	padding   uint32
+	Block     uint64
+	Blocksize uint32
+	Padding   uint32
 }
 
 type Bmap_out struct {
-	block uint64
+	Block uint64
 }
 
 type Ioctl_in struct {
-	fh       uint64
-	flags    uint32
-	cmd      uint32
-	arg      uint64
-	in_size  uint32
-	out_size uint32
+	Fh       uint64
+	Flags    uint32
+	Cmd      uint32
+	Arg      uint64
+	In_size  uint32
+	Out_size uint32
 }
 
 type Ioctl_out struct {
-	result   int32
-	flags    uint32
-	in_iovs  uint32
-	out_iovs uint32
+	Result   int32
+	Flags    uint32
+	In_iovs  uint32
+	Out_iovs uint32
 }
 
 type Poll_in struct {
-	fh      uint64
-	kh      uint64
-	flags   uint32
-	padding uint32
+	Fh      uint64
+	Kh      uint64
+	Flags   uint32
+	Padding uint32
 }
 
 type Poll_out struct {
-	revents uint32
-	padding uint32
+	Revents uint32
+	Padding uint32
 }
 
 type Notify_poll_wakeup_out struct {
-	kh uint64
+	Kh uint64
 }
 
 type In_header struct {
-	length  uint32
-	opcode  uint32
-	unique  uint64
-	nodeid  uint64
-	uid     uint32
-	gid     uint32
-	pid     uint32
-	padding uint32
+	Length  uint32
+	Opcode  uint32
+	Unique  uint64
+	Nodeid  uint64
+	Uid     uint32
+	Gid     uint32
+	Pid     uint32
+	Padding uint32
 }
 
 type Out_header struct {
-	length uint32
-	error  int32
-	unique uint64
+	Length uint32
+	Error  int32
+	Unique uint64
 }
 
 type Dirent struct {
-	ino     uint64
-	off     uint64
-	namelen uint32
-	typ     uint32
+	Ino     uint64
+	Off     uint64
+	Namelen uint32
+	Typ     uint32
 	//	name []byte // char name[0] -- looks like the name is right after this struct.
 }
 
 type Notify_inval_inode_out struct {
-	ino    uint64
-	off    int64
-	length int64
+	Ino    uint64
+	Off    int64
+	Length int64
 }
 
 type Notify_inval_entry_out struct {
-	parent  uint64
-	namelen uint32
-	padding uint32
+	Parent  uint64
+	Namelen uint32
+	Padding uint32
 }
