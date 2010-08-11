@@ -80,6 +80,10 @@ func (m *MountPoint) loop() {
 		if err != nil {
 			errors <- err
 		}
+		if err == os.EOF {
+			break
+		}
+
 		go m.handle(buf[0:n], toW, errors)
 	}
 }
@@ -88,6 +92,9 @@ func (m *MountPoint) handle(in []byte, toW chan [][]byte, errors chan os.Error) 
 	r := bytes.NewBuffer(in)
 	var h InHeader
 	err := binary.Read(r, binary.LittleEndian, &h)
+	if err == os.EOF {
+		err = os.NewError(fmt.Sprintf("MountPoint, handle: can't read a header, in: %v", in))
+	}
 	if err != nil {
 		errors <- err
 		return
@@ -111,6 +118,9 @@ func (m *MountPoint) writer(f *os.File, in chan [][]byte, errors chan os.Error) 
 func (m *MountPoint) errorHandler(errors chan os.Error) {
 	for err := range errors {
 		log.Stderr("MountPoint.errorHandler: ", err)
+		if err == os.EOF {
+			break
+		}
 	}
 }
 
