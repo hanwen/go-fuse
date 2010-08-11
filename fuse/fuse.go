@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"path"
@@ -70,21 +71,46 @@ func Mount(mountPoint string, fs FileSystem) (m *MountPoint, err os.Error) {
 func (m *MountPoint) loop() {
 	buf := make([]byte, bufSize)
 	f := m.f
+	errors := make(chan os.Error, 100)
+	toW := make(chan [][]byte, 100)
+	go m.errorHandler(errors)
+	go m.writer(f, toW, errors)
 	for {
 		n, err := f.Read(buf)
-		r := bytes.NewBuffer(buf[0:n])
 		if err != nil {
-			fmt.Printf("MountPoint.loop: Read failed, err: %v\n", err)
-			os.Exit(1)
+			errors <- err
 		}
-		var h InHeader
-		err = binary.Read(r, binary.LittleEndian, &h)
+		go m.handle(buf[0:n], toW, errors)
+	}
+}
+
+func (m *MountPoint) handle(in []byte, toW chan [][]byte, errors chan os.Error) {
+	r := bytes.NewBuffer(in)
+	var h InHeader
+	err := binary.Read(r, binary.LittleEndian, &h)
+	if err != nil {
+		errors <- err
+		return
+	}
+	fmt.Printf("Here! in = %v, h = %v\n", in, h)
+	os.Exit(0)
+
+}
+
+func (m *MountPoint) writer(f *os.File, in chan [][]byte, errors chan os.Error) {
+	fd := f.Fd()
+	for packet := range in {
+		_, err := Writev(fd, packet)
 		if err != nil {
-			fmt.Printf("MountPoint.loop: binary.Read of fuse_in_header failed with err: %v\n", err)
-			os.Exit(1)
+			errors <- err
+			continue
 		}
-		fmt.Printf("Here! n = %d, buf = %v, h = %v\n", n, buf[0:n], h)
-		os.Exit(0)
+	}
+}
+
+func (m *MountPoint) errorHandler(errors chan os.Error) {
+	for err := range errors {
+		log.Stderr("MountPoint.errorHandler: ", err)
 	}
 }
 
@@ -122,6 +148,33 @@ func Recvmsg(fd int, msg *syscall.Msghdr, flags int) (n int, err os.Error) {
 	n, errno := recvmsg(fd, msg, flags)
 	if errno != 0 {
 		err = os.NewSyscallError("recvmsg", errno)
+	}
+	return
+}
+
+func writev(fd int, iovecs *syscall.Iovec, cnt int) (n int, errno int) {
+	n1, _, e1 := syscall.Syscall(syscall.SYS_WRITEV, uintptr(fd), uintptr(unsafe.Pointer(iovecs)), uintptr(cnt))
+	n = int(n1)
+	errno = int(e1)
+	return
+}
+
+func Writev(fd int, packet [][]byte) (n int, err os.Error) {
+	if len(packet) == 0 {
+		return
+	}
+	iovecs := make([]syscall.Iovec, len(packet))
+	for i, v := range packet {
+		if v == nil {
+			continue
+		}
+		iovecs[i].Base = (*byte)(unsafe.Pointer(&packet[i][0]))
+		iovecs[i].Len = uint64(len(packet[i]))
+	}
+	n, errno := writev(fd, (*syscall.Iovec)(unsafe.Pointer(&iovecs[0])), len(iovecs))
+	if errno != 0 {
+		err = os.NewSyscallError("writev", errno)
+		return
 	}
 	return
 }
