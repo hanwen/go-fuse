@@ -20,11 +20,11 @@ func TestMount(t *testing.T) {
 	defer os.Remove(tempMountDir)
 	m, err := Mount(tempMountDir, fs)
 	if err != nil {
-		t.Fatal("Can't mount a dir, err: %v", err)
+		t.Fatalf("Can't mount a dir, err: %v", err)
 	}
 	err = m.Unmount()
 	if err != nil {
-		t.Fatal("Can't unmount a dir, err: %v", err)
+		t.Fatalf("Can't unmount a dir, err: %v", err)
 	}
 }
 

@@ -70,7 +70,7 @@ func (m *MountPoint) Unmount() (err os.Error) {
 		return nil
 	}
 	pid, err := os.ForkExec("/bin/fusermount",
-			[]string { "/bin/fusermount", "-u", "m", m.mountPoint },
+			[]string { "/bin/fusermount", "-u", m.mountPoint },
 			nil,
 			"",
 			[]*os.File { nil, nil, os.Stderr })
@@ -88,14 +88,29 @@ func (m *MountPoint) Unmount() (err os.Error) {
 	return
 }
 
-func recvmsg(fd int, msg *syscall.Msghdr, flags int) (n int, errno int) {
+func recvmsg(fd int, msg *msghdr, flags int) (n int, errno int) {
 	n1, _, e1 := syscall.Syscall(syscall.SYS_RECVMSG, uintptr(fd), uintptr(unsafe.Pointer(msg)), uintptr(flags))
 	n = int(n1)
 	errno = int(e1)
 	return
 }
 
-func Recvmsg(fd int, msg *syscall.Msghdr, flags int) (n int, err os.Error) {
+type msghdr struct {
+	Name       uintptr
+	Namelen    uintptr
+	Iov        uintptr
+	Iovlen     uintptr
+	Control    uintptr
+	Controllen uintptr
+	Flags      uintptr
+}
+
+type iovec struct {
+	Base uintptr
+	Len  uintptr
+}
+
+func Recvmsg(fd int, msg *msghdr, flags int) (n int, err os.Error) {
 	fmt.Printf("Recvmsg, 0\n")
 	n, errno := recvmsg(fd, msg, flags)
 	fmt.Printf("Recvmsg, 10\n")
@@ -106,17 +121,17 @@ func Recvmsg(fd int, msg *syscall.Msghdr, flags int) (n int, err os.Error) {
 }
 
 func getFuseConn(local net.Conn) (f * os.File, err os.Error) {
-	var msg syscall.Msghdr
-	var iov syscall.Iovec
+	var msg msghdr
+	var iov iovec
 	base := make([]int32, 256)
 	control := make([]int32, 256)
 
-	iov.Base = (*byte)(unsafe.Pointer(&base))
-	iov.Len = uint64(len(base) * 4)
-	msg.Iov = &iov
+	iov.Base = uintptr(unsafe.Pointer(&base[0]))
+	iov.Len = uintptr(len(base) * 4)
+	msg.Iov = uintptr(unsafe.Pointer(&iov))
 	msg.Iovlen = 1
-	msg.Control = (*byte)(unsafe.Pointer(&control))
-	msg.Controllen = uint64(len(control) * 4)
+	msg.Control = uintptr(unsafe.Pointer(&control[0]))
+	msg.Controllen = uintptr(len(control) * 4)
 
 	_, err = Recvmsg(local.File().Fd(), &msg, 0)
 	fmt.Printf("getFuseConn: 100\n")
