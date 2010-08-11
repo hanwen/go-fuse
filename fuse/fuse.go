@@ -3,12 +3,18 @@ package fuse
 // Written with a look to http://ptspts.blogspot.com/2009/11/fuse-protocol-tutorial-for-linux-26.html
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"net"
 	"os"
 	"path"
 	"syscall"
 	"unsafe"
+)
+
+const (
+	bufSize = 65536 + 100 // See the link above for the details
 )
 
 type FileSystem interface {
@@ -58,7 +64,29 @@ func Mount(mountPoint string, fs FileSystem) (m *MountPoint, err os.Error) {
 		return
 	}
 	m = &MountPoint { mountPoint, f }
+	go m.loop()
 	return
+}
+
+func (m *MountPoint) loop() {
+	buf := make([]byte, bufSize)
+	f := m.f
+	for {
+		n, err := f.Read(buf)
+		r := bytes.NewBuffer(buf[0:n])
+		if err != nil {
+			fmt.Printf("MountPoint.loop: Read failed, err: %v\n", err)
+			os.Exit(1)
+		}
+		var h fuse_in_header
+		err = binary.Read(r, binary.LittleEndian, &h)
+		if err != nil {
+			fmt.Printf("MountPoint.loop: binary.Read of fuse_in_header failed with err: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Here! n = %d, buf = %v, h = %v\n", n, buf[0:n], h)
+		os.Exit(0)
+	}
 }
 
 func (m *MountPoint) Unmount() (err os.Error) {
