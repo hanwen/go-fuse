@@ -14,6 +14,7 @@ type FileSystem interface {
 
 type MountPoint struct {
 	mountPoint string
+	f *os.File
 }
 
 // Mount create a fuse fs on the specified mount point.
@@ -48,7 +49,11 @@ func Mount(mountPoint string, fs FileSystem) (m *MountPoint, err os.Error) {
 	if w.ExitStatus() != 0 {
 		return nil, os.NewError(fmt.Sprintf("fusermount exited with code %d\n", w.ExitStatus()))
 	}
-	m = &MountPoint { mountPoint }
+	f, err := getFuseConn(local)
+	if err != nil {
+		return
+	}
+	m = &MountPoint { mountPoint, f }
 	return
 }
 
@@ -68,6 +73,19 @@ func (m *MountPoint) Unmount() (err os.Error) {
 	if w.ExitStatus() != 0 {
 		return os.NewError(fmt.Sprintf("fusermount exited with code %d\n", w.ExitStatus()))
 	}
+	m.f.Close()
 	return
 }
+
+func getFuseConn(local net.Conn) (f * os.File, err os.Error) {
+	var fd int
+	errno := receive_fuse_conn(local.File().Fd(), &fd)
+	if errno != 0 {
+		return nil, os.NewError(fmt.Sprintf("receive_fuse_conn failed with errno: %d", errno))
+	}
+	f = os.NewFile(fd, "fuse-conn")
+	return
+}
+
+func receive_fuse_conn(fd int, fuse_fd *int) int
 
