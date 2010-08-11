@@ -99,8 +99,14 @@ func (m *MountPoint) handle(in []byte, toW chan [][]byte, errors chan os.Error) 
 		errors <- err
 		return
 	}
-	fmt.Printf("Here! in = %v, h = %v\n", in, h)
-	os.Exit(0)
+	switch h.Opcode {
+	//	case FUSE_INIT: // I too want to sleep. Will continue later.
+	default:
+		errors <- os.NewError(fmt.Sprintf("Unsupported OpCode: %d", h.Opcode))
+		fmt.Printf("Unsupported OpCode: %d\n", h.Opcode)
+		// TODO: report an error to the kernel
+		os.Exit(1)
+	}
 
 }
 
