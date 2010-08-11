@@ -123,57 +123,61 @@ FUSE_COMPAT_STATFS_SIZE = 48
 
 CUSE_INIT_INFO_MAX = 4096
 
-enum fuse_opcode {
-	FUSE_LOOKUP	   = 1,
-	FUSE_FORGET	   = 2,  /* no reply */
-	FUSE_GETATTR	   = 3,
-	FUSE_SETATTR	   = 4,
-	FUSE_READLINK	   = 5,
-	FUSE_SYMLINK	   = 6,
-	FUSE_MKNOD	   = 8,
-	FUSE_MKDIR	   = 9,
-	FUSE_UNLINK	   = 10,
-	FUSE_RMDIR	   = 11,
-	FUSE_RENAME	   = 12,
-	FUSE_LINK	   = 13,
-	FUSE_OPEN	   = 14,
-	FUSE_READ	   = 15,
-	FUSE_WRITE	   = 16,
-	FUSE_STATFS	   = 17,
-	FUSE_RELEASE       = 18,
-	FUSE_FSYNC         = 20,
-	FUSE_SETXATTR      = 21,
-	FUSE_GETXATTR      = 22,
-	FUSE_LISTXATTR     = 23,
-	FUSE_REMOVEXATTR   = 24,
-	FUSE_FLUSH         = 25,
-	FUSE_INIT          = 26,
-	FUSE_OPENDIR       = 27,
-	FUSE_READDIR       = 28,
-	FUSE_RELEASEDIR    = 29,
-	FUSE_FSYNCDIR      = 30,
-	FUSE_GETLK         = 31,
-	FUSE_SETLK         = 32,
-	FUSE_SETLKW        = 33,
-	FUSE_ACCESS        = 34,
-	FUSE_CREATE        = 35,
-	FUSE_INTERRUPT     = 36,
-	FUSE_BMAP          = 37,
-	FUSE_DESTROY       = 38,
-	FUSE_IOCTL         = 39,
-	FUSE_POLL          = 40,
+)
+
+type fuse_opcode int
+
+const (
+	FUSE_LOOKUP	   = 1
+	FUSE_FORGET	   = 2  /* no reply */
+	FUSE_GETATTR	   = 3
+	FUSE_SETATTR	   = 4
+	FUSE_READLINK	   = 5
+	FUSE_SYMLINK	   = 6
+	FUSE_MKNOD	   = 8
+	FUSE_MKDIR	   = 9
+	FUSE_UNLINK	   = 10
+	FUSE_RMDIR	   = 11
+	FUSE_RENAME	   = 12
+	FUSE_LINK	   = 13
+	FUSE_OPEN	   = 14
+	FUSE_READ	   = 15
+	FUSE_WRITE	   = 16
+	FUSE_STATFS	   = 17
+	FUSE_RELEASE       = 18
+	FUSE_FSYNC         = 20
+	FUSE_SETXATTR      = 21
+	FUSE_GETXATTR      = 22
+	FUSE_LISTXATTR     = 23
+	FUSE_REMOVEXATTR   = 24
+	FUSE_FLUSH         = 25
+	FUSE_INIT          = 26
+	FUSE_OPENDIR       = 27
+	FUSE_READDIR       = 28
+	FUSE_RELEASEDIR    = 29
+	FUSE_FSYNCDIR      = 30
+	FUSE_GETLK         = 31
+	FUSE_SETLK         = 32
+	FUSE_SETLKW        = 33
+	FUSE_ACCESS        = 34
+	FUSE_CREATE        = 35
+	FUSE_INTERRUPT     = 36
+	FUSE_BMAP          = 37
+	FUSE_DESTROY       = 38
+	FUSE_IOCTL         = 39
+	FUSE_POLL          = 40
 
 	/* CUSE specific operations */
-	CUSE_INIT          = 4096,
-}
+	CUSE_INIT          = 4096
+)
 
-enum fuse_notify_code {
-	FUSE_NOTIFY_POLL   = 1,
-	FUSE_NOTIFY_INVAL_INODE = 2,
-	FUSE_NOTIFY_INVAL_ENTRY = 3,
-	FUSE_NOTIFY_CODE_MAX,
-}
+type fuse_notyfy_code int
 
+const (
+	FUSE_NOTIFY_POLL   = 1
+	FUSE_NOTIFY_INVAL_INODE = 2
+	FUSE_NOTIFY_INVAL_ENTRY = 3
+	FUSE_NOTIFY_CODE_MAX = 4
 )
 
 /* Make sure all structures are padded to 64bit boundary, so 32bit
@@ -450,7 +454,7 @@ type fuse_ioctl_in struct {
 }
 
 type fuse_ioctl_out struct {
-	result __s32
+	result int32
 	flags uint32
 	in_iovs uint32
 	out_iovs uint32
@@ -473,7 +477,7 @@ type fuse_notify_poll_wakeup_out struct {
 }
 
 type fuse_in_header struct {
-	len uint32
+ length uint32
 	opcode uint32
 	unique uint64
 	nodeid uint64
@@ -484,8 +488,8 @@ type fuse_in_header struct {
 }
 
 type fuse_out_header struct {
-	len uint32
-	error __s32
+ length uint32
+	error int32
 	unique uint64
 }
 
@@ -499,8 +503,8 @@ type fuse_dirent struct {
 
 type fuse_notify_inval_inode_out struct {
 	ino uint64
-	off __s64
-	len __s64
+	off int64
+ length int64
 }
 
 type fuse_notify_inval_entry_out struct {
