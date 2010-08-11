@@ -25,9 +25,11 @@ func Mount(mountPoint string, fs FileSystem) (m *MountPoint, err os.Error) {
 	if err != nil {
 		return
 	}
+
 	defer local.Close()
 	defer remote.Close()
 
+	fmt.Printf("Mount: 20\n")
 	mountPoint = path.Clean(mountPoint)
 	if !path.Rooted(mountPoint) {
 		cwd, err := os.Getwd()
@@ -36,6 +38,7 @@ func Mount(mountPoint string, fs FileSystem) (m *MountPoint, err os.Error) {
 		}
 		mountPoint = path.Clean(path.Join(cwd, mountPoint))
 	}
+	fmt.Printf("Mount: 40\n")
 	pid, err := os.ForkExec("/bin/fusermount",
 			[]string { "/bin/fusermount", mountPoint },
 			[]string { "_FUSE_COMMFD=3" },
@@ -51,15 +54,21 @@ func Mount(mountPoint string, fs FileSystem) (m *MountPoint, err os.Error) {
 	if w.ExitStatus() != 0 {
 		return nil, os.NewError(fmt.Sprintf("fusermount exited with code %d\n", w.ExitStatus()))
 	}
+	fmt.Printf("Mount: 100\n")
 	f, err := getFuseConn(local)
+	fmt.Printf("Mount: 110\n")
 	if err != nil {
 		return
 	}
 	m = &MountPoint { mountPoint, f }
+	fmt.Printf("I'm here!!\n")
 	return
 }
 
 func (m *MountPoint) Unmount() (err os.Error) {
+	if m == nil {
+		return nil
+	}
 	pid, err := os.ForkExec("/bin/fusermount",
 			[]string { "/bin/fusermount", "-u", "m", m.mountPoint },
 			nil,
@@ -87,7 +96,9 @@ func recvmsg(fd int, msg *syscall.Msghdr, flags int) (n int, errno int) {
 }
 
 func Recvmsg(fd int, msg *syscall.Msghdr, flags int) (n int, err os.Error) {
+	fmt.Printf("Recvmsg, 0\n")
 	n, errno := recvmsg(fd, msg, flags)
+	fmt.Printf("Recvmsg, 10\n")
 	if errno != 0 {
 		err = os.NewSyscallError("recvmsg", errno)
 	}
@@ -108,13 +119,17 @@ func getFuseConn(local net.Conn) (f * os.File, err os.Error) {
 	msg.Controllen = uint64(len(control) * 4)
 
 	_, err = Recvmsg(local.File().Fd(), &msg, 0)
+	fmt.Printf("getFuseConn: 100\n")
 	if err != nil {
 		return
 	}
+	fmt.Printf("getFuseConn: 110\n")
 
 	length := control[0]
+	fmt.Printf("getFuseConn: 120\n")
 	typ := control[2] // syscall.Cmsghdr.Type
 	fd := control[4]
+	fmt.Printf("getFuseConn: 130\n")
 	if typ != 1 {
 		err = os.NewError(fmt.Sprintf("getFuseConn: recvmsg returned wrong control type: %d", typ))
 		return
@@ -129,6 +144,7 @@ func getFuseConn(local net.Conn) (f * os.File, err os.Error) {
 		return
 	}
 
+	fmt.Printf("getFuseConn: 180\n")
 	f = os.NewFile(int(fd), "fuse-conn")
 	return
 }
