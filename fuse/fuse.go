@@ -77,7 +77,7 @@ func (m *MountPoint) loop() {
 			fmt.Printf("MountPoint.loop: Read failed, err: %v\n", err)
 			os.Exit(1)
 		}
-		var h In_header
+		var h InHeader
 		err = binary.Read(r, binary.LittleEndian, &h)
 		if err != nil {
 			fmt.Printf("MountPoint.loop: binary.Read of fuse_in_header failed with err: %v\n", err)
