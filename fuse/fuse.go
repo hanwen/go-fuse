@@ -105,11 +105,6 @@ type msghdr struct {
 	Flags      uintptr
 }
 
-type iovec struct {
-	Base uintptr
-	Len  uintptr
-}
-
 func Recvmsg(fd int, msg *msghdr, flags int) (n int, err os.Error) {
 	fmt.Printf("Recvmsg, 0\n")
 	n, errno := recvmsg(fd, msg, flags)
@@ -122,12 +117,12 @@ func Recvmsg(fd int, msg *msghdr, flags int) (n int, err os.Error) {
 
 func getFuseConn(local net.Conn) (f * os.File, err os.Error) {
 	var msg msghdr
-	var iov iovec
+	var iov syscall.Iovec
 	base := make([]int32, 256)
 	control := make([]int32, 256)
 
-	iov.Base = uintptr(unsafe.Pointer(&base[0]))
-	iov.Len = uintptr(len(base) * 4)
+	iov.Base = (*byte)(unsafe.Pointer(&base[0]))
+	iov.Len = uint64(len(base) * 4)
 	msg.Iov = uintptr(unsafe.Pointer(&iov))
 	msg.Iovlen = 1
 	msg.Control = uintptr(unsafe.Pointer(&control[0]))
@@ -158,6 +153,7 @@ func getFuseConn(local net.Conn) (f * os.File, err os.Error) {
 		err = os.NewError(fmt.Sprintf("getFuseConn: fd < 0: %d", fd))
 		return
 	}
+	fmt.Printf("fd: %d\n", fd)
 
 	fmt.Printf("getFuseConn: 180\n")
 	f = os.NewFile(int(fd), "fuse-conn")
