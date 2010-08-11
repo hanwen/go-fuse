@@ -129,42 +129,42 @@ CUSE_INIT_INFO_MAX = 4096
    userspace works under 64bit kernels */
 
 type fuse_attr struct {
-	__u64	ino;
-	__u64	size;
-	__u64	blocks;
-	__u64	atime;
-	__u64	mtime;
-	__u64	ctime;
-	__u32	atimensec;
-	__u32	mtimensec;
-	__u32	ctimensec;
-	__u32	mode;
-	__u32	nlink;
-	__u32	uid;
-	__u32	gid;
-	__u32	rdev;
-	__u32	blksize;
-	__u32	padding;
+	ino __u64
+	size __u64
+	blocks __u64
+	atime __u64
+	mtime __u64
+	ctime __u64
+	atimensec __u32
+	mtimensec __u32
+	ctimensec __u32
+	mode __u32
+	nlink __u32
+	uid __u32
+	gid __u32
+	rdev __u32
+	blksize __u32
+	padding __u32
 };
 
 type fuse_kstatfs struct {
-	__u64	blocks;
-	__u64	bfree;
-	__u64	bavail;
-	__u64	files;
-	__u64	ffree;
-	__u32	bsize;
-	__u32	namelen;
-	__u32	frsize;
-	__u32	padding;
+	blocks __u64
+	bfree __u64
+	bavail __u64
+	files __u64
+	ffree __u64
+	bsize __u32
+	namelen __u32
+	frsize __u32
+	padding __u32
 	__u32	spare[6];
 };
 
 type fuse_file_lock struct {
-	__u64	start;
-	__u64	end;
-	__u32	type;
-	__u32	pid; /* tgid */
+	start __u64
+	end __u64
+	type __u32
+	pid __u32 /* tgid */
 };
 
 enum fuse_opcode {
@@ -219,291 +219,291 @@ enum fuse_notify_code {
 };
 
 type fuse_entry_out struct {
-	__u64	nodeid;		/* Inode ID */
-	__u64	generation;	/* Inode generation: nodeid:gen must
+	nodeid __u64		/* Inode ID */
+	generation __u64	/* Inode generation: nodeid:gen must
 				   be unique for the fs's lifetime */
-	__u64	entry_valid;	/* Cache timeout for the name */
-	__u64	attr_valid;	/* Cache timeout for the attributes */
-	__u32	entry_valid_nsec;
-	__u32	attr_valid_nsec;
-	struct fuse_attr attr;
+	entry_valid __u64	/* Cache timeout for the name */
+	attr_valid __u64	/* Cache timeout for the attributes */
+	entry_valid_nsec __u32
+	attr_valid_nsec __u32
+	attr fuse_attr
 };
 
 type fuse_forget_in struct {
-	__u64	nlookup;
+	nlookup __u64
 };
 
 type fuse_getattr_in struct {
-	__u32	getattr_flags;
-	__u32	dummy;
-	__u64	fh;
+	getattr_flags __u32
+	dummy __u32
+	fh __u64
 };
 
 
 type fuse_attr_out struct {
-	__u64	attr_valid;	/* Cache timeout for the attributes */
-	__u32	attr_valid_nsec;
-	__u32	dummy;
-	struct fuse_attr attr;
+	attr_valid __u64	/* Cache timeout for the attributes */
+	attr_valid_nsec __u32
+	dummy __u32
+	attr fuse_attr
 };
 
 
 type fuse_mknod_in struct {
-	__u32	mode;
-	__u32	rdev;
-	__u32	umask;
-	__u32	padding;
+	mode __u32
+	rdev __u32
+	umask __u32
+	padding __u32
 };
 
 type fuse_mkdir_in struct {
-	__u32	mode;
-	__u32	umask;
+	mode __u32
+	umask __u32
 };
 
 type fuse_rename_in struct {
-	__u64	newdir;
+	newdir __u64
 };
 
 type fuse_link_in struct {
-	__u64	oldnodeid;
+	oldnodeid __u64
 };
 
 type fuse_setattr_in struct {
-	__u32	valid;
-	__u32	padding;
-	__u64	fh;
-	__u64	size;
-	__u64	lock_owner;
-	__u64	atime;
-	__u64	mtime;
-	__u64	unused2;
-	__u32	atimensec;
-	__u32	mtimensec;
-	__u32	unused3;
-	__u32	mode;
-	__u32	unused4;
-	__u32	uid;
-	__u32	gid;
-	__u32	unused5;
+	valid __u32
+	padding __u32
+	fh __u64
+	size __u64
+	lock_owner __u64
+	atime __u64
+	mtime __u64
+	unused2 __u64
+	atimensec __u32
+	mtimensec __u32
+	unused3 __u32
+	mode __u32
+	unused4 __u32
+	uid __u32
+	gid __u32
+	unused5 __u32
 };
 
 type fuse_open_in struct {
-	__u32	flags;
-	__u32	unused;
+	flags __u32
+	unused __u32
 };
 
 type fuse_create_in struct {
-	__u32	flags;
-	__u32	mode;
-	__u32	umask;
-	__u32	padding;
+	flags __u32
+	mode __u32
+	umask __u32
+	padding __u32
 };
 
 type fuse_open_out struct {
-	__u64	fh;
-	__u32	open_flags;
-	__u32	padding;
+	fh __u64
+	open_flags __u32
+	padding __u32
 };
 
 type fuse_release_in struct {
-	__u64	fh;
-	__u32	flags;
-	__u32	release_flags;
-	__u64	lock_owner;
+	fh __u64
+	flags __u32
+	release_flags __u32
+	lock_owner __u64
 };
 
 type fuse_flush_in struct {
-	__u64	fh;
-	__u32	unused;
-	__u32	padding;
-	__u64	lock_owner;
+	fh __u64
+	unused __u32
+	padding __u32
+	lock_owner __u64
 };
 
 type fuse_read_in struct {
-	__u64	fh;
-	__u64	offset;
-	__u32	size;
-	__u32	read_flags;
-	__u64	lock_owner;
-	__u32	flags;
-	__u32	padding;
+	fh __u64
+	offset __u64
+	size __u32
+	read_flags __u32
+	lock_owner __u64
+	flags __u32
+	padding __u32
 };
 
 
 type fuse_write_in struct {
-	__u64	fh;
-	__u64	offset;
-	__u32	size;
-	__u32	write_flags;
-	__u64	lock_owner;
-	__u32	flags;
-	__u32	padding;
+	fh __u64
+	offset __u64
+	size __u32
+	write_flags __u32
+	lock_owner __u64
+	flags __u32
+	padding __u32
 };
 
 type fuse_write_out struct {
-	__u32	size;
-	__u32	padding;
+	size __u32
+	padding __u32
 };
 
 
 type fuse_statfs_out struct {
-	struct fuse_kstatfs st;
+	st fuse_kstatfs
 };
 
 type fuse_fsync_in struct {
-	__u64	fh;
-	__u32	fsync_flags;
-	__u32	padding;
+	fh __u64
+	fsync_flags __u32
+	padding __u32
 };
 
 type fuse_setxattr_in struct {
-	__u32	size;
-	__u32	flags;
+	size __u32
+	flags __u32
 };
 
 type fuse_getxattr_in struct {
-	__u32	size;
-	__u32	padding;
+	size __u32
+	padding __u32
 };
 
 type fuse_getxattr_out struct {
-	__u32	size;
-	__u32	padding;
+	size __u32
+	padding __u32
 };
 
 type fuse_lk_in struct {
-	__u64	fh;
-	__u64	owner;
-	struct fuse_file_lock lk;
-	__u32	lk_flags;
-	__u32	padding;
+	fh __u64
+	owner __u64
+	lk fuse_file_lock
+	lk_flags __u32
+	padding __u32
 };
 
 type fuse_lk_out struct {
-	struct fuse_file_lock lk;
+	lk fuse_file_lock
 };
 
 type fuse_access_in struct {
-	__u32	mask;
-	__u32	padding;
+	mask __u32
+	padding __u32
 };
 
 type fuse_init_in struct {
-	__u32	major;
-	__u32	minor;
-	__u32	max_readahead;
-	__u32	flags;
+	major __u32
+	minor __u32
+	max_readahead __u32
+	flags __u32
 };
 
 type fuse_init_out struct {
-	__u32	major;
-	__u32	minor;
-	__u32	max_readahead;
-	__u32	flags;
-	__u16   max_background;
-	__u16   congestion_threshold;
-	__u32	max_write;
+	major __u32
+	minor __u32
+	max_readahead __u32
+	flags __u32
+	__u16  max_background 
+	__u16  congestion_threshold 
+	max_write __u32
 };
 
 type cuse_init_in struct {
-	__u32	major;
-	__u32	minor;
-	__u32	unused;
-	__u32	flags;
+	major __u32
+	minor __u32
+	unused __u32
+	flags __u32
 };
 
 type cuse_init_out struct {
-	__u32	major;
-	__u32	minor;
-	__u32	unused;
-	__u32	flags;
-	__u32	max_read;
-	__u32	max_write;
-	__u32	dev_major;		/* chardev major */
-	__u32	dev_minor;		/* chardev minor */
-	__u32	spare[10];
+	major __u32
+	minor __u32
+	unused __u32
+	flags __u32
+	max_read __u32
+	max_write __u32
+	dev_major __u32		/* chardev major */
+	dev_minor __u32		/* chardev minor */
+	spare [10]__u32
 };
 
 type fuse_interrupt_in struct {
-	__u64	unique;
+	unique __u64
 };
 
 type fuse_bmap_in struct {
-	__u64	block;
-	__u32	blocksize;
-	__u32	padding;
+	block __u64
+	blocksize __u32
+	padding __u32
 };
 
 type fuse_bmap_out struct {
-	__u64	block;
+	block __u64
 };
 
 type fuse_ioctl_in struct {
-	__u64	fh;
-	__u32	flags;
-	__u32	cmd;
-	__u64	arg;
-	__u32	in_size;
-	__u32	out_size;
+	fh __u64
+	flags __u32
+	cmd __u32
+	arg __u64
+	in_size __u32
+	out_size __u32
 };
 
 type fuse_ioctl_out struct {
-	__s32	result;
-	__u32	flags;
-	__u32	in_iovs;
-	__u32	out_iovs;
+	result __s32
+	flags __u32
+	in_iovs __u32
+	out_iovs __u32
 };
 
 type fuse_poll_in struct {
-	__u64	fh;
-	__u64	kh;
-	__u32	flags;
-	__u32   padding;
+	fh __u64
+	kh __u64
+	flags __u32
+	padding __u32
 };
 
 type fuse_poll_out struct {
-	__u32	revents;
-	__u32	padding;
+	revents __u32
+	padding __u32
 };
 
 type fuse_notify_poll_wakeup_out struct {
-	__u64	kh;
+	kh __u64
 };
 
 type fuse_in_header struct {
-	__u32	len;
-	__u32	opcode;
-	__u64	unique;
-	__u64	nodeid;
-	__u32	uid;
-	__u32	gid;
-	__u32	pid;
-	__u32	padding;
+	len __u32
+	opcode __u32
+	unique __u64
+	nodeid __u64
+	uid __u32
+	gid __u32
+	pid __u32
+	padding __u32
 };
 
 type fuse_out_header struct {
-	__u32	len;
-	__s32	error;
-	__u64	unique;
+	len __u32
+	error __s32
+	unique __u64
 };
 
 type fuse_dirent struct {
-	__u64	ino;
-	__u64	off;
-	__u32	namelen;
-	__u32	type;
-	char name[0];
+	ino __u64
+	off __u64
+	namelen __u32
+	typ __u32
+	name []byte // char name[0]; -- looks like the name is right after this struct.
 };
 
 type fuse_notify_inval_inode_out struct {
-	__u64	ino;
-	__s64	off;
-	__s64	len;
+	ino __u64
+	off __s64
+	len __s64
 };
 
 type fuse_notify_inval_entry_out struct {
-	__u64	parent;
-	__u32	namelen;
-	__u32	padding;
+	parent __u64
+	namelen __u32
+	padding __u32
 };
 
