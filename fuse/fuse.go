@@ -145,7 +145,7 @@ type fuse_attr struct {
 	rdev __u32
 	blksize __u32
 	padding __u32
-};
+}
 
 type fuse_kstatfs struct {
 	blocks __u64
@@ -157,15 +157,15 @@ type fuse_kstatfs struct {
 	namelen __u32
 	frsize __u32
 	padding __u32
-	__u32	spare[6];
-};
+	__u32	spare[6]
+}
 
 type fuse_file_lock struct {
 	start __u64
 	end __u64
 	type __u32
 	pid __u32 /* tgid */
-};
+}
 
 enum fuse_opcode {
 	FUSE_LOOKUP	   = 1,
@@ -209,14 +209,14 @@ enum fuse_opcode {
 
 	/* CUSE specific operations */
 	CUSE_INIT          = 4096,
-};
+}
 
 enum fuse_notify_code {
 	FUSE_NOTIFY_POLL   = 1,
 	FUSE_NOTIFY_INVAL_INODE = 2,
 	FUSE_NOTIFY_INVAL_ENTRY = 3,
 	FUSE_NOTIFY_CODE_MAX,
-};
+}
 
 type fuse_entry_out struct {
 	nodeid __u64		/* Inode ID */
@@ -227,17 +227,17 @@ type fuse_entry_out struct {
 	entry_valid_nsec __u32
 	attr_valid_nsec __u32
 	attr fuse_attr
-};
+}
 
 type fuse_forget_in struct {
 	nlookup __u64
-};
+}
 
 type fuse_getattr_in struct {
 	getattr_flags __u32
 	dummy __u32
 	fh __u64
-};
+}
 
 
 type fuse_attr_out struct {
@@ -245,7 +245,7 @@ type fuse_attr_out struct {
 	attr_valid_nsec __u32
 	dummy __u32
 	attr fuse_attr
-};
+}
 
 
 type fuse_mknod_in struct {
@@ -253,20 +253,20 @@ type fuse_mknod_in struct {
 	rdev __u32
 	umask __u32
 	padding __u32
-};
+}
 
 type fuse_mkdir_in struct {
 	mode __u32
 	umask __u32
-};
+}
 
 type fuse_rename_in struct {
 	newdir __u64
-};
+}
 
 type fuse_link_in struct {
 	oldnodeid __u64
-};
+}
 
 type fuse_setattr_in struct {
 	valid __u32
@@ -285,39 +285,39 @@ type fuse_setattr_in struct {
 	uid __u32
 	gid __u32
 	unused5 __u32
-};
+}
 
 type fuse_open_in struct {
 	flags __u32
 	unused __u32
-};
+}
 
 type fuse_create_in struct {
 	flags __u32
 	mode __u32
 	umask __u32
 	padding __u32
-};
+}
 
 type fuse_open_out struct {
 	fh __u64
 	open_flags __u32
 	padding __u32
-};
+}
 
 type fuse_release_in struct {
 	fh __u64
 	flags __u32
 	release_flags __u32
 	lock_owner __u64
-};
+}
 
 type fuse_flush_in struct {
 	fh __u64
 	unused __u32
 	padding __u32
 	lock_owner __u64
-};
+}
 
 type fuse_read_in struct {
 	fh __u64
@@ -327,7 +327,7 @@ type fuse_read_in struct {
 	lock_owner __u64
 	flags __u32
 	padding __u32
-};
+}
 
 
 type fuse_write_in struct {
@@ -338,38 +338,38 @@ type fuse_write_in struct {
 	lock_owner __u64
 	flags __u32
 	padding __u32
-};
+}
 
 type fuse_write_out struct {
 	size __u32
 	padding __u32
-};
+}
 
 
 type fuse_statfs_out struct {
 	st fuse_kstatfs
-};
+}
 
 type fuse_fsync_in struct {
 	fh __u64
 	fsync_flags __u32
 	padding __u32
-};
+}
 
 type fuse_setxattr_in struct {
 	size __u32
 	flags __u32
-};
+}
 
 type fuse_getxattr_in struct {
 	size __u32
 	padding __u32
-};
+}
 
 type fuse_getxattr_out struct {
 	size __u32
 	padding __u32
-};
+}
 
 type fuse_lk_in struct {
 	fh __u64
@@ -377,23 +377,23 @@ type fuse_lk_in struct {
 	lk fuse_file_lock
 	lk_flags __u32
 	padding __u32
-};
+}
 
 type fuse_lk_out struct {
 	lk fuse_file_lock
-};
+}
 
 type fuse_access_in struct {
 	mask __u32
 	padding __u32
-};
+}
 
 type fuse_init_in struct {
 	major __u32
 	minor __u32
 	max_readahead __u32
 	flags __u32
-};
+}
 
 type fuse_init_out struct {
 	major __u32
@@ -403,14 +403,14 @@ type fuse_init_out struct {
 	__u16  max_background 
 	__u16  congestion_threshold 
 	max_write __u32
-};
+}
 
 type cuse_init_in struct {
 	major __u32
 	minor __u32
 	unused __u32
 	flags __u32
-};
+}
 
 type cuse_init_out struct {
 	major __u32
@@ -422,21 +422,21 @@ type cuse_init_out struct {
 	dev_major __u32		/* chardev major */
 	dev_minor __u32		/* chardev minor */
 	spare [10]__u32
-};
+}
 
 type fuse_interrupt_in struct {
 	unique __u64
-};
+}
 
 type fuse_bmap_in struct {
 	block __u64
 	blocksize __u32
 	padding __u32
-};
+}
 
 type fuse_bmap_out struct {
 	block __u64
-};
+}
 
 type fuse_ioctl_in struct {
 	fh __u64
@@ -445,30 +445,30 @@ type fuse_ioctl_in struct {
 	arg __u64
 	in_size __u32
 	out_size __u32
-};
+}
 
 type fuse_ioctl_out struct {
 	result __s32
 	flags __u32
 	in_iovs __u32
 	out_iovs __u32
-};
+}
 
 type fuse_poll_in struct {
 	fh __u64
 	kh __u64
 	flags __u32
 	padding __u32
-};
+}
 
 type fuse_poll_out struct {
 	revents __u32
 	padding __u32
-};
+}
 
 type fuse_notify_poll_wakeup_out struct {
 	kh __u64
-};
+}
 
 type fuse_in_header struct {
 	len __u32
@@ -479,31 +479,31 @@ type fuse_in_header struct {
 	gid __u32
 	pid __u32
 	padding __u32
-};
+}
 
 type fuse_out_header struct {
 	len __u32
 	error __s32
 	unique __u64
-};
+}
 
 type fuse_dirent struct {
 	ino __u64
 	off __u64
 	namelen __u32
 	typ __u32
-	name []byte // char name[0]; -- looks like the name is right after this struct.
-};
+	name []byte // char name[0] -- looks like the name is right after this struct.
+}
 
 type fuse_notify_inval_inode_out struct {
 	ino __u64
 	off __s64
 	len __s64
-};
+}
 
 type fuse_notify_inval_entry_out struct {
 	parent __u64
 	namelen __u32
 	padding __u32
-};
+}
 
