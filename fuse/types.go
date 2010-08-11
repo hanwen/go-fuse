@@ -124,7 +124,7 @@ const (
 	CUSE_INIT_INFO_MAX = 4096
 )
 
-type fuse_opcode int
+type Opcode int
 
 const (
 	FUSE_LOOKUP      = 1
@@ -170,7 +170,7 @@ const (
 	CUSE_INIT = 4096
 )
 
-type fuse_notyfy_code int
+type Notyfy_code int
 
 const (
 	FUSE_NOTIFY_POLL        = 1
@@ -182,7 +182,7 @@ const (
 /* Make sure all structures are padded to 64bit boundary, so 32bit
    userspace works under 64bit kernels */
 
-type fuse_attr struct {
+type Attr struct {
 	ino       uint64
 	size      uint64
 	blocks    uint64
@@ -201,7 +201,7 @@ type fuse_attr struct {
 	padding   uint32
 }
 
-type fuse_kstatfs struct {
+type Kstatfs struct {
 	blocks  uint64
 	bfree   uint64
 	bavail  uint64
@@ -214,7 +214,7 @@ type fuse_kstatfs struct {
 	spare   [6]uint32
 }
 
-type fuse_file_lock struct {
+type File_lock struct {
 	start uint64
 	end   uint64
 	typ   uint32
@@ -222,7 +222,7 @@ type fuse_file_lock struct {
 }
 
 
-type fuse_entry_out struct {
+type Entry_out struct {
 	nodeid     uint64 /* Inode ID */
 	generation uint64 /* Inode generation: nodeid:gen must
 	   be unique for the fs's lifetime */
@@ -233,18 +233,18 @@ type fuse_entry_out struct {
 	attr             fuse_attr
 }
 
-type fuse_forget_in struct {
+type Forget_in struct {
 	nlookup uint64
 }
 
-type fuse_getattr_in struct {
+type Getattr_in struct {
 	getattr_flags uint32
 	dummy         uint32
 	fh            uint64
 }
 
 
-type fuse_attr_out struct {
+type Attr_out struct {
 	attr_valid      uint64 /* Cache timeout for the attributes */
 	attr_valid_nsec uint32
 	dummy           uint32
@@ -252,27 +252,27 @@ type fuse_attr_out struct {
 }
 
 
-type fuse_mknod_in struct {
+type Mknod_in struct {
 	mode    uint32
 	rdev    uint32
 	umask   uint32
 	padding uint32
 }
 
-type fuse_mkdir_in struct {
+type Mkdir_in struct {
 	mode  uint32
 	umask uint32
 }
 
-type fuse_rename_in struct {
+type Rename_in struct {
 	newdir uint64
 }
 
-type fuse_link_in struct {
+type Link_in struct {
 	oldnodeid uint64
 }
 
-type fuse_setattr_in struct {
+type Setattr_in struct {
 	valid      uint32
 	padding    uint32
 	fh         uint64
@@ -291,39 +291,39 @@ type fuse_setattr_in struct {
 	unused5    uint32
 }
 
-type fuse_open_in struct {
+type Open_in struct {
 	flags  uint32
 	unused uint32
 }
 
-type fuse_create_in struct {
+type Create_in struct {
 	flags   uint32
 	mode    uint32
 	umask   uint32
 	padding uint32
 }
 
-type fuse_open_out struct {
+type Open_out struct {
 	fh         uint64
 	open_flags uint32
 	padding    uint32
 }
 
-type fuse_release_in struct {
+type Release_in struct {
 	fh            uint64
 	flags         uint32
 	release_flags uint32
 	lock_owner    uint64
 }
 
-type fuse_flush_in struct {
+type Flush_in struct {
 	fh         uint64
 	unused     uint32
 	padding    uint32
 	lock_owner uint64
 }
 
-type fuse_read_in struct {
+type Read_in struct {
 	fh         uint64
 	offset     uint64
 	size       uint32
@@ -334,7 +334,7 @@ type fuse_read_in struct {
 }
 
 
-type fuse_write_in struct {
+type Write_in struct {
 	fh          uint64
 	offset      uint64
 	size        uint32
@@ -344,38 +344,38 @@ type fuse_write_in struct {
 	padding     uint32
 }
 
-type fuse_write_out struct {
+type Write_out struct {
 	size    uint32
 	padding uint32
 }
 
 
-type fuse_statfs_out struct {
+type Statfs_out struct {
 	st fuse_kstatfs
 }
 
-type fuse_fsync_in struct {
+type Fsync_in struct {
 	fh          uint64
 	fsync_flags uint32
 	padding     uint32
 }
 
-type fuse_setxattr_in struct {
+type Setxattr_in struct {
 	size  uint32
 	flags uint32
 }
 
-type fuse_getxattr_in struct {
+type Getxattr_in struct {
 	size    uint32
 	padding uint32
 }
 
-type fuse_getxattr_out struct {
+type Getxattr_out struct {
 	size    uint32
 	padding uint32
 }
 
-type fuse_lk_in struct {
+type Lk_in struct {
 	fh       uint64
 	owner    uint64
 	lk       fuse_file_lock
@@ -383,23 +383,23 @@ type fuse_lk_in struct {
 	padding  uint32
 }
 
-type fuse_lk_out struct {
+type Lk_out struct {
 	lk fuse_file_lock
 }
 
-type fuse_access_in struct {
+type Access_in struct {
 	mask    uint32
 	padding uint32
 }
 
-type fuse_init_in struct {
+type Init_in struct {
 	major         uint32
 	minor         uint32
 	max_readahead uint32
 	flags         uint32
 }
 
-type fuse_init_out struct {
+type Init_out struct {
 	major                uint32
 	minor                uint32
 	max_readahead        uint32
@@ -409,14 +409,14 @@ type fuse_init_out struct {
 	max_write            uint32
 }
 
-type cuse_init_in struct {
+type Cuse_init_in struct {
 	major  uint32
 	minor  uint32
 	unused uint32
 	flags  uint32
 }
 
-type cuse_init_out struct {
+type Cuse_init_out struct {
 	major     uint32
 	minor     uint32
 	unused    uint32
@@ -428,21 +428,21 @@ type cuse_init_out struct {
 	spare     [10]uint32
 }
 
-type fuse_interrupt_in struct {
+type Interrupt_in struct {
 	unique uint64
 }
 
-type fuse_bmap_in struct {
+type Bmap_in struct {
 	block     uint64
 	blocksize uint32
 	padding   uint32
 }
 
-type fuse_bmap_out struct {
+type Bmap_out struct {
 	block uint64
 }
 
-type fuse_ioctl_in struct {
+type Ioctl_in struct {
 	fh       uint64
 	flags    uint32
 	cmd      uint32
@@ -451,30 +451,30 @@ type fuse_ioctl_in struct {
 	out_size uint32
 }
 
-type fuse_ioctl_out struct {
+type Ioctl_out struct {
 	result   int32
 	flags    uint32
 	in_iovs  uint32
 	out_iovs uint32
 }
 
-type fuse_poll_in struct {
+type Poll_in struct {
 	fh      uint64
 	kh      uint64
 	flags   uint32
 	padding uint32
 }
 
-type fuse_poll_out struct {
+type Poll_out struct {
 	revents uint32
 	padding uint32
 }
 
-type fuse_notify_poll_wakeup_out struct {
+type Notify_poll_wakeup_out struct {
 	kh uint64
 }
 
-type fuse_in_header struct {
+type In_header struct {
 	length  uint32
 	opcode  uint32
 	unique  uint64
@@ -485,13 +485,13 @@ type fuse_in_header struct {
 	padding uint32
 }
 
-type fuse_out_header struct {
+type Out_header struct {
 	length uint32
 	error  int32
 	unique uint64
 }
 
-type fuse_dirent struct {
+type Dirent struct {
 	ino     uint64
 	off     uint64
 	namelen uint32
@@ -499,13 +499,13 @@ type fuse_dirent struct {
 	//	name []byte // char name[0] -- looks like the name is right after this struct.
 }
 
-type fuse_notify_inval_inode_out struct {
+type Notify_inval_inode_out struct {
 	ino    uint64
 	off    int64
 	length int64
 }
 
-type fuse_notify_inval_entry_out struct {
+type Notify_inval_entry_out struct {
 	parent  uint64
 	namelen uint32
 	padding uint32
