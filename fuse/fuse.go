@@ -146,6 +146,9 @@ func recvmsg(fd int, msg *syscall.Msghdr, flags int) (n int, errno int) {
 
 func Recvmsg(fd int, msg *syscall.Msghdr, flags int) (n int, err os.Error) {
 	n, errno := recvmsg(fd, msg, flags)
+	if n == 0 && errno == 0 {
+		return 0, os.EOF
+	}
 	if errno != 0 {
 		err = os.NewSyscallError("recvmsg", errno)
 	}
@@ -172,6 +175,7 @@ func Writev(fd int, packet [][]byte) (n int, err os.Error) {
 		iovecs[i].Len = uint64(len(packet[i]))
 	}
 	n, errno := writev(fd, (*syscall.Iovec)(unsafe.Pointer(&iovecs[0])), len(iovecs))
+
 	if errno != 0 {
 		err = os.NewSyscallError("writev", errno)
 		return
