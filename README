@@ -2,3 +2,6 @@ The goal of this project is to have the same functional as
 http://code.google.com/p/fuse-zip/ but support executing files: 
 fuse-zip does not support posix permissions and thus
 files inside mounted fs are not executable.
+
+This library is developed on Ubuntu 64-bit Lucid and will be tested for GOARCH=amd64/386.
+
