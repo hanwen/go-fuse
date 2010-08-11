@@ -7,6 +7,8 @@ import (
 	"net"
 	"os"
 	"path"
+	"syscall"
+	"unsafe"
 )
 
 type FileSystem interface {
@@ -77,11 +79,58 @@ func (m *MountPoint) Unmount() (err os.Error) {
 	return
 }
 
+func recvmsg(fd int, msg *syscall.Msghdr, flags int) (n int, errno int) {
+	n1, _, e1 := syscall.Syscall(syscall.SYS_RECVMSG, uintptr(fd), uintptr(unsafe.Pointer(msg)), uintptr(flags))
+	n = int(n1)
+	errno = int(e1)
+	return
+}
+
+func Recvmsg(fd int, msg *syscall.Msghdr, flags int) (n int, err os.Error) {
+	n, errno := recvmsg(fd, msg, flags)
+	if errno != 0 {
+		err = os.NewSyscallError("recvmsg", errno)
+	}
+	return
+}
+
 func getFuseConn(local net.Conn) (f * os.File, err os.Error) {
-	var fd int
-	return nil, os.NewError(fmt.Sprintf("receive_fuse_conn failed with errno: %d", errno))
-//	f = os.NewFile(fd, "fuse-conn")
-//	return
+	var msg syscall.Msghdr
+	var iov syscall.Iovec
+	base := make([]int32, 256)
+	control := make([]int32, 256)
+
+	iov.Base = (*byte)(unsafe.Pointer(&base))
+	iov.Len = uint64(len(base) * 4)
+	msg.Iov = &iov
+	msg.Iovlen = 1
+	msg.Control = (*byte)(unsafe.Pointer(&control))
+	msg.Controllen = uint64(len(control) * 4)
+
+	_, err = Recvmsg(local.File().Fd(), &msg, 0)
+	if err != nil {
+		return
+	}
+
+	length := control[0]
+	typ := control[2] // syscall.Cmsghdr.Type
+	fd := control[4]
+	if typ != 1 {
+		err = os.NewError(fmt.Sprintf("getFuseConn: recvmsg returned wrong control type: %d", typ))
+		return
+	}
+	if length < 20 {
+		err = os.NewError(fmt.Sprintf("getFuseConn: too short control message. Length: %d", length))
+		return
+	}
+
+	if (fd < 0) {
+		err = os.NewError(fmt.Sprintf("getFuseConn: fd < 0: %d", fd))
+		return
+	}
+
+	f = os.NewFile(int(fd), "fuse-conn")
+	return
 }
 
 
