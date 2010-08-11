@@ -7,8 +7,5 @@ GOFILES=\
 	fuse.go\
 	types.go\
 
-OFILES=\
-	utils.$O\
-
 include $(GOROOT)/src/Make.pkg
 

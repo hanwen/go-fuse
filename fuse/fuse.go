@@ -79,13 +79,9 @@ func (m *MountPoint) Unmount() (err os.Error) {
 
 func getFuseConn(local net.Conn) (f * os.File, err os.Error) {
 	var fd int
-	errno := receive_fuse_conn(local.File().Fd(), &fd)
-	if errno != 0 {
-		return nil, os.NewError(fmt.Sprintf("receive_fuse_conn failed with errno: %d", errno))
-	}
-	f = os.NewFile(fd, "fuse-conn")
-	return
+	return nil, os.NewError(fmt.Sprintf("receive_fuse_conn failed with errno: %d", errno))
+//	f = os.NewFile(fd, "fuse-conn")
+//	return
 }
 
-func receive_fuse_conn(fd int, fuse_fd *int) int
 
