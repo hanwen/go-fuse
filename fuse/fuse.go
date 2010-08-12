@@ -153,6 +153,16 @@ func handle(fs FileSystem, in_data []byte, toW chan [][]byte, errors chan os.Err
 		open_out.Fh = 1
 		out = open_out
 
+	case FUSE_READDIR:
+		in := new(ReadIn)
+		err = binary.Read(r, binary.LittleEndian, in)
+		if err != nil {
+			break
+		}
+		fmt.Printf("FUSE_READDIR: %v\n", in)
+		// Here I need to stop and to think a bit.
+		os.Exit(1)
+
 	default:
 		errors <- os.NewError(fmt.Sprintf("Unsupported OpCode: %d", h.Opcode))
 		result = EIO
