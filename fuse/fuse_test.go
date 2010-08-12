@@ -32,6 +32,13 @@ func (fs *testFuse) Init(in *InitIn) (out *InitOut, code Error) {
 	return
 }
 
+func (fs *testFuse) GetAttr(h *InHeader, in *GetAttrIn) (out *AttrOut, code Error) {
+	out = new(AttrOut)
+	out.Ino = h.NodeId
+	out.Mode = S_IFDIR
+	return
+}
+
 func errorHandler(errors chan os.Error) {
 	for err := range errors {
 		log.Stderr("MountPoint.errorHandler: ", err)

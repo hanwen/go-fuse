@@ -19,6 +19,7 @@ const (
 
 type FileSystem interface {
 	Init(in *InitIn) (out *InitOut, code Error)
+	GetAttr(h *InHeader, in *GetAttrIn) (out *AttrOut, code Error)
 }
 
 type MountPoint struct {
@@ -123,6 +124,21 @@ func handle(fs FileSystem, in_data []byte, toW chan [][]byte, errors chan os.Err
 		}
 	case FUSE_FORGET:
 		return
+
+	case FUSE_GETATTR:
+		in := new(GetAttrIn)
+		err = binary.Read(r, binary.LittleEndian, in)
+		if err != nil {
+			break
+		}
+		fmt.Printf("FUSE_GETATTR: %v\n", in)
+		var attr_out *AttrOut
+		attr_out, result = fs.GetAttr(h, in)
+		if attr_out != nil {
+			out = attr_out
+		}
+	case FUSE_GETXATTR:
+		result = ENODATA
 
 	default:
 		errors <- os.NewError(fmt.Sprintf("Unsupported OpCode: %d", h.Opcode))

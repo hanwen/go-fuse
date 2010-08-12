@@ -67,7 +67,7 @@ const (
 	FUSE_RELEASE_FLUSH = (1 << 0)
 
 	/**
-	 * Getattr flags
+	 * GetAttr flags
 	 */
 	FUSE_GETATTR_FH = (1 << 0)
 
@@ -126,14 +126,17 @@ const (
 	FUSE_COMPAT_STATFS_SIZE = 48
 
 	CUSE_INIT_INFO_MAX = 4096
+
+	S_IFDIR = syscall.S_IFDIR
 )
 
 type Error int32
 
 const (
-	OK     = Error(0)
-	EIO    = Error(syscall.EIO)
-	ENOSYS = Error(syscall.ENOSYS)
+	OK      = Error(0)
+	EIO     = Error(syscall.EIO)
+	ENOSYS  = Error(syscall.ENOSYS)
+	ENODATA = Error(syscall.ENODATA)
 )
 
 type Opcode int
@@ -233,36 +236,33 @@ type FileLock struct {
 	Pid   uint32 /* tgid */
 }
 
-
 type EntryOut struct {
-	Nodeid     uint64 /* Inode ID */
+	NodeId     uint64 /* Inode ID */
 	Generation uint64 /* Inode generation: nodeid:gen must
 	   be unique for the fs's lifetime */
-	Entry_valid      uint64 /* Cache timeout for the name */
-	Attr_valid       uint64 /* Cache timeout for the attributes */
-	Entry_valid_nsec uint32
-	Attr_valid_nsec  uint32
-	Attr             Attr
+	EntryValid     uint64 /* Cache timeout for the name */
+	AttrValid      uint64 /* Cache timeout for the attributes */
+	EntryValidNsec uint32
+	AttrValidNsec  uint32
+	Attr           Attr
 }
 
 type ForgetIn struct {
 	Nlookup uint64
 }
 
-type GetattrIn struct {
-	Getattr_flags uint32
-	Dummy         uint32
-	Fh            uint64
+type GetAttrIn struct {
+	GetAttrFlags uint32
+	Dummy        uint32
+	Fh           uint64
 }
-
 
 type AttrOut struct {
-	Attr_valid      uint64 /* Cache timeout for the attributes */
-	Attr_valid_nsec uint32
-	Dummy           uint32
-	Attr            Attr
+	AttrValid     uint64 /* Cache timeout for the attributes */
+	AttrValidNsec uint32
+	Dummy         uint32
+	Attr
 }
-
 
 type MknodIn struct {
 	Mode    uint32
@@ -490,7 +490,7 @@ type InHeader struct {
 	Length  uint32
 	Opcode  uint32
 	Unique  uint64
-	Nodeid  uint64
+	NodeId  uint64
 	Uid     uint32
 	Gid     uint32
 	Pid     uint32
