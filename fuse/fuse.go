@@ -87,11 +87,12 @@ func (m *MountPoint) loop() {
 			break
 		}
 
-		go m.handle(buf[0:n], toW, errors)
+		go handle(m.fs, buf[0:n], toW, errors)
 	}
 }
 
-func (m *MountPoint) handle(in_data []byte, toW chan [][]byte, errors chan os.Error) {
+func handle(fs FileSystem, in_data []byte, toW chan [][]byte, errors chan os.Error) {
+	fmt.Printf("in_data: %v\n", in_data)
 	r := bytes.NewBuffer(in_data)
 	h := new(InHeader)
 	err := binary.Read(r, binary.LittleEndian, h)
@@ -113,7 +114,7 @@ func (m *MountPoint) handle(in_data []byte, toW chan [][]byte, errors chan os.Er
 			}
 			fmt.Printf("in: %v\n", in)
 			var init_out *InitOut
-			init_out, result = m.fs.Init(in)
+			init_out, result = fs.Init(in)
 			if init_out != nil {
 				out = init_out
 			}

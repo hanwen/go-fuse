@@ -30,6 +30,13 @@ func (fs *testFuse) Init(in *InitIn) (out *InitOut, code Error) {
 
 func TestMount(t *testing.T) {
 	fs := new(testFuse)
+	toW := make(chan [][]byte, 100)
+	errors := make(chan os.Error, 100)
+
+	in_data := []byte { 56, 0, 0, 0, 26, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 13, 0, 0, 0, 0, 0, 2, 0, 123, 0, 0, 0, }
+	handle(fs, in_data, toW, errors)
+	return
+	
 	err := os.Mkdir(tempMountDir, 0777)
 	if err != nil {
 		t.Fatalf("Can't create temp mount dir at %s, err: %v", tempMountDir, err)
