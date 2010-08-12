@@ -138,7 +138,8 @@ func handle(fs FileSystem, in_data []byte, toW chan [][]byte, errors chan os.Err
 			out = attr_out
 		}
 	case FUSE_GETXATTR:
-		result = ENODATA
+		result = OK
+		out = new(GetXattrOut)
 
 	default:
 		errors <- os.NewError(fmt.Sprintf("Unsupported OpCode: %d", h.Opcode))

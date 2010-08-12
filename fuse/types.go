@@ -372,17 +372,17 @@ type FsyncIn struct {
 	Padding     uint32
 }
 
-type SetxattrIn struct {
+type SetXattrIn struct {
 	Size  uint32
 	Flags uint32
 }
 
-type GetxattrIn struct {
+type GetXattrIn struct {
 	Size    uint32
 	Padding uint32
 }
 
-type GetxattrOut struct {
+type GetXattrOut struct {
 	Size    uint32
 	Padding uint32
 }
