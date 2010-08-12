@@ -1,5 +1,9 @@
 package fuse
 
+import (
+	"syscall"
+)
+
 const (
 
 	/** Version number of this interface */
@@ -122,6 +126,14 @@ const (
 	FUSE_COMPAT_STATFS_SIZE = 48
 
 	CUSE_INIT_INFO_MAX = 4096
+)
+
+type Error int32
+
+const (
+	OK     = Error(0)
+	EIO    = Error(syscall.EIO)
+	ENOSYS = Error(syscall.ENOSYS)
 )
 
 type Opcode int
@@ -273,22 +285,22 @@ type LinkIn struct {
 }
 
 type SetattrIn struct {
-	Valid      uint32
-	Padding    uint32
-	Fh         uint64
-	Size       uint64
+	Valid     uint32
+	Padding   uint32
+	Fh        uint64
+	Size      uint64
 	LockOwner uint64
-	Atime      uint64
-	Mtime      uint64
-	Unused2    uint64
-	Atimensec  uint32
-	Mtimensec  uint32
-	Unused3    uint32
-	Mode       uint32
-	Unused4    uint32
-	Uid        uint32
-	Gid        uint32
-	Unused5    uint32
+	Atime     uint64
+	Mtime     uint64
+	Unused2   uint64
+	Atimensec uint32
+	Mtimensec uint32
+	Unused3   uint32
+	Mode      uint32
+	Unused4   uint32
+	Uid       uint32
+	Gid       uint32
+	Unused5   uint32
 }
 
 type OpenIn struct {
@@ -313,13 +325,13 @@ type ReleaseIn struct {
 	Fh            uint64
 	Flags         uint32
 	Release_flags uint32
-	LockOwner    uint64
+	LockOwner     uint64
 }
 
 type FlushIn struct {
-	Fh         uint64
-	Unused     uint32
-	Padding    uint32
+	Fh        uint64
+	Unused    uint32
+	Padding   uint32
 	LockOwner uint64
 }
 
@@ -328,7 +340,7 @@ type ReadIn struct {
 	Offset     uint64
 	Size       uint32
 	Read_flags uint32
-	LockOwner uint64
+	LockOwner  uint64
 	Flags      uint32
 	Padding    uint32
 }
@@ -339,7 +351,7 @@ type WriteIn struct {
 	Offset      uint64
 	Size        uint32
 	Write_flags uint32
-	LockOwner  uint64
+	LockOwner   uint64
 	Flags       uint32
 	Padding     uint32
 }
@@ -400,12 +412,12 @@ type InitIn struct {
 }
 
 type InitOut struct {
-	Major                uint32
-	Minor                uint32
-	Max_readahead        uint32
-	Flags                uint32
-	Max_background       uint16
-	Congestion_threshold uint16
+	Major               uint32
+	Minor               uint32
+	MaxReadahead        uint32
+	Flags               uint32
+	MaxBackground       uint16
+	CongestionThreshold uint16
 	MaxWrite            uint32
 }
 
@@ -417,15 +429,15 @@ type CuseInitIn struct {
 }
 
 type CuseInitOut struct {
-	Major     uint32
-	Minor     uint32
-	Unused    uint32
-	Flags     uint32
-	Max_read  uint32
+	Major    uint32
+	Minor    uint32
+	Unused   uint32
+	Flags    uint32
+	Max_read uint32
 	MaxWrite uint32
-	Dev_major uint32 /* chardev major */
-	Dev_minor uint32 /* chardev minor */
-	Spare     [10]uint32
+	DevMajor uint32 /* chardev major */
+	DevMinor uint32 /* chardev minor */
+	Spare    [10]uint32
 }
 
 type InterruptIn struct {
@@ -443,17 +455,17 @@ type BmapOut struct {
 }
 
 type IoctlIn struct {
-	Fh       uint64
-	Flags    uint32
-	Cmd      uint32
-	Arg      uint64
-	In_size  uint32
-	Out_size uint32
+	Fh      uint64
+	Flags   uint32
+	Cmd     uint32
+	Arg     uint64
+	InSize  uint32
+	OutSize uint32
 }
 
 type IoctlOut struct {
-	Result   int32
-	Flags    uint32
+	Result  int32
+	Flags   uint32
 	InIovs  uint32
 	OutIovs uint32
 }
@@ -484,6 +496,8 @@ type InHeader struct {
 	Pid     uint32
 	Padding uint32
 }
+
+const SizeOfOutHeader = 16
 
 type OutHeader struct {
 	Length uint32

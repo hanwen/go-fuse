@@ -15,14 +15,17 @@ import (
 )
 
 const (
-	bufSize = 65536 + 100 // See the link above for the details
+	bufSize = 66000
 )
 
-type FileSystem interface{}
+type FileSystem interface{
+	Init(in *InitIn) (out *InitOut, code Error)
+}
 
 type MountPoint struct {
 	mountPoint string
 	f          *os.File
+	fs FileSystem
 }
 
 // Mount create a fuse fs on the specified mount point.
@@ -63,7 +66,7 @@ func Mount(mountPoint string, fs FileSystem) (m *MountPoint, err os.Error) {
 	if err != nil {
 		return
 	}
-	m = &MountPoint{mountPoint, f}
+	m = &MountPoint{mountPoint, f, fs}
 	go m.loop()
 	return
 }
@@ -88,36 +91,76 @@ func (m *MountPoint) loop() {
 	}
 }
 
-func (m *MountPoint) handle(in []byte, toW chan [][]byte, errors chan os.Error) {
-	r := bytes.NewBuffer(in)
-	var h InHeader
-	err := binary.Read(r, binary.LittleEndian, &h)
+func (m *MountPoint) handle(in_data []byte, toW chan [][]byte, errors chan os.Error) {
+	r := bytes.NewBuffer(in_data)
+	h := new(InHeader)
+	err := binary.Read(r, binary.LittleEndian, h)
 	if err == os.EOF {
-		err = os.NewError(fmt.Sprintf("MountPoint, handle: can't read a header, in: %v", in))
+		err = os.NewError(fmt.Sprintf("MountPoint, handle: can't read a header, in_data: %v", in_data))
 	}
 	if err != nil {
 		errors <- err
 		return
 	}
+	var out interface{}
+	var result Error = OK
 	switch h.Opcode {
-	//	case FUSE_INIT: // I too want to sleep. Will continue later.
+		case FUSE_INIT:
+			in := new(InitIn)
+			err = binary.Read(r, binary.LittleEndian, in)
+			if err != nil {
+				break
+			}
+			fmt.Printf("in: %v\n", in)
+			var init_out *InitOut
+			init_out, result = m.fs.Init(in)
+			if init_out != nil {
+				out = init_out
+			}
 	default:
 		errors <- os.NewError(fmt.Sprintf("Unsupported OpCode: %d", h.Opcode))
-		fmt.Printf("Unsupported OpCode: %d\n", h.Opcode)
-		// TODO: report an error to the kernel
-		os.Exit(1)
+		result = EIO
 	}
-
+	if err != nil {
+		errors <- err
+		out = nil
+		result = EIO
+		// Add sending result msg with error
+	}
+	b := new(bytes.Buffer)
+	out_data := make([]byte, 0)
+	if out != nil && result == OK {
+		fmt.Printf("out = %v, out == nil: %v\n", out, out == nil)
+		return
+		err = binary.Write(b, binary.LittleEndian, out)
+		if err == nil {
+			out_data = b.Bytes()
+		} else {
+			errors <- os.NewError(fmt.Sprintf("Can serialize out: %v", err))
+		}
+	}
+	var hout OutHeader
+	hout.Unique = h.Unique
+	hout.Error = int32(result)
+	hout.Length = uint32(len(out_data) + SizeOfOutHeader)
+	b = new(bytes.Buffer)
+	err = binary.Write(b, binary.LittleEndian, &hout)
+	if err != nil {
+		errors <- err
+		return
+	}
+	_, _ = b.Write(out_data)
+	toW <- [][]byte { b.Bytes() }
 }
 
 func (m *MountPoint) writer(f *os.File, in chan [][]byte, errors chan os.Error) {
-	fd := f.Fd()
-	for packet := range in {
-		_, err := Writev(fd, packet)
-		if err != nil {
-			errors <- err
-			continue
-		}
+//	fd := f.Fd()
+	for _ = range in {
+//		_, err := Writev(fd, packet)
+//		if err != nil {
+//			errors <- err
+//			continue
+//		}
 	}
 }
 
