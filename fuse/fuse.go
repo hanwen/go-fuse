@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"path"
@@ -18,18 +17,18 @@ const (
 	bufSize = 66000
 )
 
-type FileSystem interface{
+type FileSystem interface {
 	Init(in *InitIn) (out *InitOut, code Error)
 }
 
 type MountPoint struct {
 	mountPoint string
 	f          *os.File
-	fs FileSystem
+	fs         FileSystem
 }
 
 // Mount create a fuse fs on the specified mount point.
-func Mount(mountPoint string, fs FileSystem) (m *MountPoint, err os.Error) {
+func Mount(mountPoint string, fs FileSystem) (m *MountPoint, err os.Error, errors chan os.Error) {
 	local, remote, err := net.Socketpair("unixgram")
 	if err != nil {
 		return
@@ -59,7 +58,8 @@ func Mount(mountPoint string, fs FileSystem) (m *MountPoint, err os.Error) {
 		return
 	}
 	if w.ExitStatus() != 0 {
-		return nil, os.NewError(fmt.Sprintf("fusermount exited with code %d\n", w.ExitStatus()))
+		err = os.NewError(fmt.Sprintf("fusermount exited with code %d\n", w.ExitStatus()))
+		return
 	}
 
 	f, err := getFuseConn(local)
@@ -67,27 +67,29 @@ func Mount(mountPoint string, fs FileSystem) (m *MountPoint, err os.Error) {
 		return
 	}
 	m = &MountPoint{mountPoint, f, fs}
-	go m.loop()
+	errors = make(chan os.Error, 100)
+	go m.loop(errors)
 	return
 }
 
-func (m *MountPoint) loop() {
+func (m *MountPoint) loop(errors chan os.Error) {
 	buf := make([]byte, bufSize)
 	f := m.f
-	errors := make(chan os.Error, 100)
+	defer close(errors)
 	toW := make(chan [][]byte, 100)
-	go m.errorHandler(errors)
+	defer close(toW)
 	go m.writer(f, toW, errors)
 	for {
 		n, err := f.Read(buf)
-		if err != nil {
-			errors <- err
-		}
 		if err == os.EOF {
 			break
 		}
+		if err != nil {
+			errors <- os.NewError(fmt.Sprintf("Failed to read from fuse conn: %v", err))
+			break
+		}
 
-		go handle(m.fs, buf[0:n], toW, errors)
+		handle(m.fs, buf[0:n], toW, errors)
 	}
 }
 
@@ -105,19 +107,23 @@ func handle(fs FileSystem, in_data []byte, toW chan [][]byte, errors chan os.Err
 	}
 	var out interface{}
 	var result Error = OK
+	fmt.Printf("Opcode: %v\n", h.Opcode)
 	switch h.Opcode {
-		case FUSE_INIT:
-			in := new(InitIn)
-			err = binary.Read(r, binary.LittleEndian, in)
-			if err != nil {
-				break
-			}
-			fmt.Printf("in: %v\n", in)
-			var init_out *InitOut
-			init_out, result = fs.Init(in)
-			if init_out != nil {
-				out = init_out
-			}
+	case FUSE_INIT:
+		in := new(InitIn)
+		err = binary.Read(r, binary.LittleEndian, in)
+		if err != nil {
+			break
+		}
+		fmt.Printf("in: %v\n", in)
+		var init_out *InitOut
+		init_out, result = fs.Init(in)
+		if init_out != nil {
+			out = init_out
+		}
+	case FUSE_FORGET:
+		return
+
 	default:
 		errors <- os.NewError(fmt.Sprintf("Unsupported OpCode: %d", h.Opcode))
 		result = EIO
@@ -130,9 +136,9 @@ func handle(fs FileSystem, in_data []byte, toW chan [][]byte, errors chan os.Err
 	}
 	b := new(bytes.Buffer)
 	out_data := make([]byte, 0)
+	fmt.Printf("OpCode: %v result: %v\n", h.Opcode, result)
 	if out != nil && result == OK {
 		fmt.Printf("out = %v, out == nil: %v\n", out, out == nil)
-		return
 		err = binary.Write(b, binary.LittleEndian, out)
 		if err == nil {
 			out_data = b.Bytes()
@@ -140,6 +146,7 @@ func handle(fs FileSystem, in_data []byte, toW chan [][]byte, errors chan os.Err
 			errors <- os.NewError(fmt.Sprintf("Can serialize out: %v", err))
 		}
 	}
+	fmt.Printf("out_data: %v, len(out_data): %d, SizeOfOutHeader: %d\n", out_data, len(out_data), SizeOfOutHeader)
 	var hout OutHeader
 	hout.Unique = h.Unique
 	hout.Error = int32(result)
@@ -151,26 +158,20 @@ func handle(fs FileSystem, in_data []byte, toW chan [][]byte, errors chan os.Err
 		return
 	}
 	_, _ = b.Write(out_data)
-	toW <- [][]byte { b.Bytes() }
+	fmt.Printf("Sending to writer: %v\n", b.Bytes())
+	toW <- [][]byte{b.Bytes()}
 }
 
 func (m *MountPoint) writer(f *os.File, in chan [][]byte, errors chan os.Error) {
-//	fd := f.Fd()
-	for _ = range in {
-//		_, err := Writev(fd, packet)
-//		if err != nil {
-//			errors <- err
-//			continue
-//		}
-	}
-}
-
-func (m *MountPoint) errorHandler(errors chan os.Error) {
-	for err := range errors {
-		log.Stderr("MountPoint.errorHandler: ", err)
-		if err == os.EOF {
-			break
+	fd := f.Fd()
+	for packet := range in {
+		fmt.Printf("writer, packet: %v\n", packet)
+		_, err := Writev(fd, packet)
+		if err != nil {
+			errors <- os.NewError(fmt.Sprintf("writer: Writev failed, err: %v", err))
+			continue
 		}
+		fmt.Printf("writer: OK\n")
 	}
 }
 

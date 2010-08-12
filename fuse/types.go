@@ -405,16 +405,16 @@ type AccessIn struct {
 }
 
 type InitIn struct {
-	Major         uint32
-	Minor         uint32
-	Max_readahead uint32
-	Flags         uint32
+	Major        uint32
+	Minor        uint32
+	MaxReadAhead uint32
+	Flags        uint32
 }
 
 type InitOut struct {
 	Major               uint32
 	Minor               uint32
-	MaxReadahead        uint32
+	MaxReadAhead        uint32
 	Flags               uint32
 	MaxBackground       uint16
 	CongestionThreshold uint16
