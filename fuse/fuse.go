@@ -141,6 +141,18 @@ func handle(fs FileSystem, in_data []byte, toW chan [][]byte, errors chan os.Err
 		result = OK
 		out = new(GetXattrOut)
 
+	case FUSE_OPENDIR:
+		in := new(OpenIn)
+		err = binary.Read(r, binary.LittleEndian, in)
+		if err != nil {
+			break
+		}
+		fmt.Printf("FUSE_OPENDIR: %v\n", in)
+		var open_out *OpenOut
+		open_out = new(OpenOut)
+		open_out.Fh = 1
+		out = open_out
+
 	default:
 		errors <- os.NewError(fmt.Sprintf("Unsupported OpCode: %d", h.Opcode))
 		result = EIO
