@@ -13,7 +13,6 @@ const (
 )
 
 type FileSystem interface {
-	Init(in *InitIn) (out *InitOut, code Error, err os.Error)
 	GetAttr(h *InHeader, in *GetAttrIn) (out *AttrOut, code Error, err os.Error)
 }
 
@@ -138,13 +137,20 @@ func initFuse(fs FileSystem, h *InHeader, r io.Reader, mr chan *managerRequest) 
 		return
 	}
 	fmt.Printf("in: %v\n", in)
-	var out *InitOut
-	out, res, err := fs.Init(in)
-	if err != nil {
-		return
+	if in.Major != FUSE_KERNEL_VERSION {
+		fmt.Printf("Major versions does not match. Given %d, want %d\n", in.Major, FUSE_KERNEL_VERSION)
+		return serialize(h, EIO, nil)
 	}
-	data, err = serialize(h, res, out)
-	return
+	if in.Minor < FUSE_KERNEL_MINOR_VERSION {
+		fmt.Printf("Minor version is less than we support. Given %d, want at least %d\n", in.Minor, FUSE_KERNEL_MINOR_VERSION)
+		return serialize(h, EIO, nil)
+	}
+	out := new(InitOut)
+	out.Major = FUSE_KERNEL_VERSION
+	out.Minor = FUSE_KERNEL_MINOR_VERSION
+	out.MaxReadAhead = in.MaxReadAhead
+	out.MaxWrite = 65536
+	return serialize(h, OK, out)
 }
 
 func getAttr(fs FileSystem, h *InHeader, r io.Reader, mr chan *managerRequest) (data [][]byte, err os.Error) {
