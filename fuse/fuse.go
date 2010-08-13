@@ -28,6 +28,8 @@ type MountPoint struct {
 	fs         FileSystem
 }
 
+var was bool
+
 // Mount create a fuse fs on the specified mount point.
 func Mount(mountPoint string, fs FileSystem) (m *MountPoint, err os.Error, errors chan os.Error) {
 	local, remote, err := net.Socketpair("unixgram")
@@ -108,7 +110,7 @@ func handle(fs FileSystem, in_data []byte, toW chan [][]byte, errors chan os.Err
 	}
 	var out interface{}
 	var result Error = OK
-	fmt.Printf("Opcode: %v\n", h.Opcode)
+	fmt.Printf("Opcode: %v, NodeId: %v, h: %v\n", h.Opcode, h.NodeId, h)
 	switch h.Opcode {
 	case FUSE_INIT:
 		in := new(InitIn)
@@ -152,16 +154,43 @@ func handle(fs FileSystem, in_data []byte, toW chan [][]byte, errors chan os.Err
 		open_out = new(OpenOut)
 		open_out.Fh = 1
 		out = open_out
+		was = false
 
 	case FUSE_READDIR:
+		if was {
+			break
+		}
 		in := new(ReadIn)
 		err = binary.Read(r, binary.LittleEndian, in)
 		if err != nil {
 			break
 		}
 		fmt.Printf("FUSE_READDIR: %v\n", in)
-		// Here I need to stop and to think a bit.
-		os.Exit(1)
+
+		dirent := new(Dirent)
+		dirent.Off = 1
+		dirent.Ino = h.NodeId
+		dirent.NameLen = 7
+		dirent.Typ = (S_IFDIR & 0170000) >> 12;
+		buf := new(bytes.Buffer)
+		err = binary.Write(buf, binary.LittleEndian, dirent)
+		if err != nil {
+			fmt.Printf("AAA!!! binary.Write failed\n")
+			os.Exit(1)
+		}
+		buf.Write([]byte("hello12"))
+		buf.WriteByte(0)
+		out = buf.Bytes()
+		was = true
+	case FUSE_LOOKUP:
+		filename := string(r.Bytes())
+		fmt.Printf("filename: %s\n", filename)
+		entry_out := new(EntryOut)
+		entry_out.NodeId = h.NodeId + 1
+		entry_out.Mode = S_IFDIR
+		out = entry_out
+	case FUSE_RELEASEDIR:
+		return
 
 	default:
 		errors <- os.NewError(fmt.Sprintf("Unsupported OpCode: %d", h.Opcode))

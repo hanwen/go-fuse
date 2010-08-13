@@ -223,7 +223,7 @@ type Kstatfs struct {
 	Files   uint64
 	Ffree   uint64
 	Bsize   uint32
-	Namelen uint32
+	NameLen uint32
 	Frsize  uint32
 	Padding uint32
 	Spare   [6]uint32
@@ -244,7 +244,7 @@ type EntryOut struct {
 	AttrValid      uint64 /* Cache timeout for the attributes */
 	EntryValidNsec uint32
 	AttrValidNsec  uint32
-	Attr           Attr
+	Attr
 }
 
 type ForgetIn struct {
@@ -508,7 +508,7 @@ type OutHeader struct {
 type Dirent struct {
 	Ino     uint64
 	Off     uint64
-	Namelen uint32
+	NameLen uint32
 	Typ     uint32
 	//	name []byte // char name[0] -- looks like the name is right after this struct.
 }
@@ -521,6 +521,6 @@ type NotifyInvalInodeOut struct {
 
 type NotifyInvalEntryOut struct {
 	Parent  uint64
-	Namelen uint32
+	NameLen uint32
 	Padding uint32
 }
