@@ -139,7 +139,7 @@ func handle(fs FileSystem, in_data []byte, toW chan [][]byte, errors chan os.Err
 		}
 	case FUSE_GETXATTR:
 		result = OK
-		out = new(GetXattrOut)
+		out = new(GetXAttrOut)
 
 	case FUSE_OPENDIR:
 		in := new(OpenIn)

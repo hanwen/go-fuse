@@ -16,7 +16,7 @@ const (
 	FUSE_ROOT_ID = 1
 
 	/**
-	 * Bitmasks for SetattrIn.valid
+	 * Bitmasks for SetAttrIn.valid
 	 */
 	FATTR_MODE      = (1 << 0)
 	FATTR_UID       = (1 << 1)
@@ -284,7 +284,7 @@ type LinkIn struct {
 	Oldnodeid uint64
 }
 
-type SetattrIn struct {
+type SetAttrIn struct {
 	Valid     uint32
 	Padding   uint32
 	Fh        uint64
@@ -317,14 +317,14 @@ type CreateIn struct {
 
 type OpenOut struct {
 	Fh         uint64
-	Open_flags uint32
+	OpenFlags uint32
 	Padding    uint32
 }
 
 type ReleaseIn struct {
 	Fh            uint64
 	Flags         uint32
-	Release_flags uint32
+	ReleaseFlags uint32
 	LockOwner     uint64
 }
 
@@ -339,7 +339,7 @@ type ReadIn struct {
 	Fh         uint64
 	Offset     uint64
 	Size       uint32
-	Read_flags uint32
+	ReadFlags uint32
 	LockOwner  uint64
 	Flags      uint32
 	Padding    uint32
@@ -350,7 +350,7 @@ type WriteIn struct {
 	Fh          uint64
 	Offset      uint64
 	Size        uint32
-	Write_flags uint32
+	WriteFlags uint32
 	LockOwner   uint64
 	Flags       uint32
 	Padding     uint32
@@ -368,21 +368,21 @@ type StatfsOut struct {
 
 type FsyncIn struct {
 	Fh          uint64
-	Fsync_flags uint32
+	FsyncFlags uint32
 	Padding     uint32
 }
 
-type SetXattrIn struct {
+type SetXAttrIn struct {
 	Size  uint32
 	Flags uint32
 }
 
-type GetXattrIn struct {
+type GetXAttrIn struct {
 	Size    uint32
 	Padding uint32
 }
 
-type GetXattrOut struct {
+type GetXAttrOut struct {
 	Size    uint32
 	Padding uint32
 }
@@ -391,7 +391,7 @@ type LkIn struct {
 	Fh       uint64
 	Owner    uint64
 	Lk       FileLock
-	Lk_flags uint32
+	LkFlags uint32
 	Padding  uint32
 }
 
@@ -433,7 +433,7 @@ type CuseInitOut struct {
 	Minor    uint32
 	Unused   uint32
 	Flags    uint32
-	Max_read uint32
+	MaxRead uint32
 	MaxWrite uint32
 	DevMajor uint32 /* chardev major */
 	DevMinor uint32 /* chardev minor */
