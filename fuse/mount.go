@@ -11,10 +11,6 @@ import (
 	"unsafe"
 )
 
-const (
-	bufSize = 66000
-)
-
 type mounted string
 
 // Mount create a fuse fs on the specified mount point.

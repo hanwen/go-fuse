@@ -9,6 +9,10 @@ import (
 	"os"
 )
 
+const (
+	bufSize = 66000
+)
+
 type FileSystem interface {
 	Init(in *InitIn) (out *InitOut, code Error)
 	GetAttr(h *InHeader, in *GetAttrIn) (out *AttrOut, code Error)
