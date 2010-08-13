@@ -13,7 +13,7 @@ const (
 
 type testFuse struct{}
 
-func (fs *testFuse) Init(in *InitIn) (out *InitOut, code Error) {
+func (fs *testFuse) Init(in *InitIn) (out *InitOut, code Error, err os.Error) {
 	if in.Major != FUSE_KERNEL_VERSION {
 		fmt.Printf("Major versions does not match. Given %d, want %d\n", in.Major, FUSE_KERNEL_VERSION)
 		code = EIO
@@ -32,7 +32,7 @@ func (fs *testFuse) Init(in *InitIn) (out *InitOut, code Error) {
 	return
 }
 
-func (fs *testFuse) GetAttr(h *InHeader, in *GetAttrIn) (out *AttrOut, code Error) {
+func (fs *testFuse) GetAttr(h *InHeader, in *GetAttrIn) (out *AttrOut, code Error, err os.Error) {
 	out = new(AttrOut)
 	out.Ino = h.NodeId
 	out.Mode = S_IFDIR

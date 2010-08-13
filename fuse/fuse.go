@@ -1,11 +1,10 @@
 package fuse
 
-// Written with a look to http://ptspts.blogspot.com/2009/11/fuse-protocol-tutorial-for-linux-26.html
-
 import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"os"
 )
 
@@ -14,8 +13,8 @@ const (
 )
 
 type FileSystem interface {
-	Init(in *InitIn) (out *InitOut, code Error)
-	GetAttr(h *InHeader, in *GetAttrIn) (out *AttrOut, code Error)
+	Init(in *InitIn) (out *InitOut, code Error, err os.Error)
+	GetAttr(h *InHeader, in *GetAttrIn) (out *AttrOut, code Error, err os.Error)
 }
 
 var was bool
@@ -50,11 +49,11 @@ func loop(f *os.File, fs FileSystem, errors chan os.Error) {
 			break
 		}
 
-		handle(fs, buf[0:n], toW, errors)
+		dispatch(fs, buf[0:n], toW, errors)
 	}
 }
 
-func handle(fs FileSystem, in_data []byte, toW chan [][]byte, errors chan os.Error) {
+func dispatch(fs FileSystem, in_data []byte, toW chan[][]byte, errors chan os.Error) {
 	fmt.Printf("in_data: %v\n", in_data)
 	r := bytes.NewBuffer(in_data)
 	h := new(InHeader)
@@ -66,62 +65,125 @@ func handle(fs FileSystem, in_data []byte, toW chan [][]byte, errors chan os.Err
 		errors <- err
 		return
 	}
-	var out interface{}
-	var result Error = OK
+	var out [][]byte
 	fmt.Printf("Opcode: %v, NodeId: %v, h: %v\n", h.Opcode, h.NodeId, h)
 	switch h.Opcode {
-	case FUSE_INIT:
+	case FUSE_INIT: out, err = initFuse(fs, h, r)
+	case FUSE_FORGET: return
+	case FUSE_GETATTR: out, err = getAttr(fs, h, r)
+	case FUSE_GETXATTR: out, err = getXAttr(h, r)
+	case FUSE_OPENDIR: out, err = openDir(h, r)
+	case FUSE_READDIR: out, err = readDir(h, r)
+	case FUSE_LOOKUP: out, err = lookup(h, r)
+	case FUSE_RELEASEDIR: out, err = releaseDir(h, r)
+	default:
+		errors <- os.NewError(fmt.Sprintf("Unsupported OpCode: %d", h.Opcode))
+		out, err = serialize(h, EIO, nil)
+	}
+	if err != nil {
+		errors <- err
+		out, err = serialize(h, EIO, nil)
+	}
+	if out == nil || len(out) == 0 {
+		fmt.Printf("out is empty\n")
+		return
+	}
+
+	fmt.Printf("Sending to writer: %v\n", out)
+	toW <- out
+}
+
+func serialize(h *InHeader, res Error, out interface{}) (data [][]byte, err os.Error) {
+	b := new(bytes.Buffer)
+	out_data := make([]byte, 0)
+	fmt.Printf("OpCode: %v result: %v\n", h.Opcode, res)
+	if out != nil && res == OK {
+		fmt.Printf("out = %v, out == nil: %v\n", out, out == nil)
+		err = binary.Write(b, binary.LittleEndian, out)
+		if err == nil {
+			out_data = b.Bytes()
+		} else {
+			err = os.NewError(fmt.Sprintf("Can serialize out: %v", err))
+			return
+		}
+	}
+	fmt.Printf("out_data: %v, len(out_data): %d, SizeOfOutHeader: %d\n", out_data, len(out_data), SizeOfOutHeader)
+	var hout OutHeader
+	hout.Unique = h.Unique
+	hout.Error = int32(res)
+	hout.Length = uint32(len(out_data) + SizeOfOutHeader)
+	b = new(bytes.Buffer)
+	err = binary.Write(b, binary.LittleEndian, &hout)
+	if err != nil {
+		return
+	}
+	_, _ = b.Write(out_data)
+	data = [][]byte { b.Bytes() }
+	return
+}
+
+func initFuse(fs FileSystem, h *InHeader, r io.Reader) (data [][]byte, err os.Error) {
 		in := new(InitIn)
 		err = binary.Read(r, binary.LittleEndian, in)
 		if err != nil {
-			break
+			return
 		}
 		fmt.Printf("in: %v\n", in)
-		var init_out *InitOut
-		init_out, result = fs.Init(in)
-		if init_out != nil {
-			out = init_out
+		var out *InitOut
+		out, res, err := fs.Init(in)
+		if err != nil {
+			return
 		}
-	case FUSE_FORGET:
+		data, err = serialize(h, res, out)
 		return
+}
 
-	case FUSE_GETATTR:
+func getAttr(fs FileSystem, h *InHeader, r io.Reader) (data [][]byte, err os.Error) {
 		in := new(GetAttrIn)
 		err = binary.Read(r, binary.LittleEndian, in)
 		if err != nil {
-			break
+			return
 		}
 		fmt.Printf("FUSE_GETATTR: %v\n", in)
-		var attr_out *AttrOut
-		attr_out, result = fs.GetAttr(h, in)
-		if attr_out != nil {
-			out = attr_out
+		var out *AttrOut
+		out, res, err := fs.GetAttr(h, in)
+		if err != nil {
+			return
 		}
-	case FUSE_GETXATTR:
-		result = OK
-		out = new(GetXAttrOut)
+		data, err = serialize(h, res, out)
+		return
+}
 
-	case FUSE_OPENDIR:
+func getXAttr(h *InHeader, r io.Reader) (data [][]byte, err os.Error) {
+		out := new(GetXAttrOut)
+		data, err = serialize(h, OK, out)
+		return
+}
+
+func openDir(h *InHeader, r io.Reader) (data [][]byte, err os.Error) {
 		in := new(OpenIn)
 		err = binary.Read(r, binary.LittleEndian, in)
 		if err != nil {
-			break
+			return
 		}
 		fmt.Printf("FUSE_OPENDIR: %v\n", in)
-		var open_out *OpenOut
-		open_out = new(OpenOut)
-		open_out.Fh = 1
-		out = open_out
+		out := new(OpenOut)
+		out.Fh = 1
 		was = false
+		res := OK
+		data, err = serialize(h, res, out)
+		return
+}
 
-	case FUSE_READDIR:
+func readDir(h *InHeader, r io.Reader) (data [][]byte, err os.Error) {
 		if was {
-			break
+			data, err = serialize(h, OK, nil)
+			return
 		}
 		in := new(ReadIn)
 		err = binary.Read(r, binary.LittleEndian, in)
 		if err != nil {
-			break
+			return
 		}
 		fmt.Printf("FUSE_READDIR: %v\n", in)
 
@@ -138,54 +200,26 @@ func handle(fs FileSystem, in_data []byte, toW chan [][]byte, errors chan os.Err
 		}
 		buf.Write([]byte("hello12"))
 		buf.WriteByte(0)
-		out = buf.Bytes()
+		out := buf.Bytes()
 		was = true
-	case FUSE_LOOKUP:
+		res := OK
+		data, err = serialize(h, res, out)
+		return
+}
+
+func lookup(h *InHeader, r *bytes.Buffer) (data [][]byte, err os.Error) {
 		filename := string(r.Bytes())
 		fmt.Printf("filename: %s\n", filename)
-		entry_out := new(EntryOut)
-		entry_out.NodeId = h.NodeId + 1
-		entry_out.Mode = S_IFDIR
-		out = entry_out
-	case FUSE_RELEASEDIR:
+		out := new(EntryOut)
+		out.NodeId = h.NodeId + 1
+		out.Mode = S_IFDIR
+		res := OK
+		data, err = serialize(h, res, out)
 		return
+}
 
-	default:
-		errors <- os.NewError(fmt.Sprintf("Unsupported OpCode: %d", h.Opcode))
-		result = EIO
-	}
-	if err != nil {
-		errors <- err
-		out = nil
-		result = EIO
-		// Add sending result msg with error
-	}
-	b := new(bytes.Buffer)
-	out_data := make([]byte, 0)
-	fmt.Printf("OpCode: %v result: %v\n", h.Opcode, result)
-	if out != nil && result == OK {
-		fmt.Printf("out = %v, out == nil: %v\n", out, out == nil)
-		err = binary.Write(b, binary.LittleEndian, out)
-		if err == nil {
-			out_data = b.Bytes()
-		} else {
-			errors <- os.NewError(fmt.Sprintf("Can serialize out: %v", err))
-		}
-	}
-	fmt.Printf("out_data: %v, len(out_data): %d, SizeOfOutHeader: %d\n", out_data, len(out_data), SizeOfOutHeader)
-	var hout OutHeader
-	hout.Unique = h.Unique
-	hout.Error = int32(result)
-	hout.Length = uint32(len(out_data) + SizeOfOutHeader)
-	b = new(bytes.Buffer)
-	err = binary.Write(b, binary.LittleEndian, &hout)
-	if err != nil {
-		errors <- err
-		return
-	}
-	_, _ = b.Write(out_data)
-	fmt.Printf("Sending to writer: %v\n", b.Bytes())
-	toW <- [][]byte{b.Bytes()}
+func releaseDir(h *InHeader, r io.Reader) (data [][]byte, err os.Error) {
+	return
 }
 
 func writer(f *os.File, in chan [][]byte, errors chan os.Error) {
