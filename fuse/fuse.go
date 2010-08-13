@@ -53,7 +53,7 @@ func loop(f *os.File, fs FileSystem, errors chan os.Error) {
 	}
 }
 
-func dispatch(fs FileSystem, in_data []byte, toW chan[][]byte, errors chan os.Error) {
+func dispatch(fs FileSystem, in_data []byte, toW chan [][]byte, errors chan os.Error) {
 	fmt.Printf("in_data: %v\n", in_data)
 	r := bytes.NewBuffer(in_data)
 	h := new(InHeader)
@@ -68,14 +68,22 @@ func dispatch(fs FileSystem, in_data []byte, toW chan[][]byte, errors chan os.Er
 	var out [][]byte
 	fmt.Printf("Opcode: %v, NodeId: %v, h: %v\n", h.Opcode, h.NodeId, h)
 	switch h.Opcode {
-	case FUSE_INIT: out, err = initFuse(fs, h, r)
-	case FUSE_FORGET: return
-	case FUSE_GETATTR: out, err = getAttr(fs, h, r)
-	case FUSE_GETXATTR: out, err = getXAttr(h, r)
-	case FUSE_OPENDIR: out, err = openDir(h, r)
-	case FUSE_READDIR: out, err = readDir(h, r)
-	case FUSE_LOOKUP: out, err = lookup(h, r)
-	case FUSE_RELEASEDIR: out, err = releaseDir(h, r)
+	case FUSE_INIT:
+		out, err = initFuse(fs, h, r)
+	case FUSE_FORGET:
+		return
+	case FUSE_GETATTR:
+		out, err = getAttr(fs, h, r)
+	case FUSE_GETXATTR:
+		out, err = getXAttr(h, r)
+	case FUSE_OPENDIR:
+		out, err = openDir(h, r)
+	case FUSE_READDIR:
+		out, err = readDir(h, r)
+	case FUSE_LOOKUP:
+		out, err = lookup(h, r)
+	case FUSE_RELEASEDIR:
+		out, err = releaseDir(h, r)
 	default:
 		errors <- os.NewError(fmt.Sprintf("Unsupported OpCode: %d", h.Opcode))
 		out, err = serialize(h, EIO, nil)
@@ -118,104 +126,104 @@ func serialize(h *InHeader, res Error, out interface{}) (data [][]byte, err os.E
 		return
 	}
 	_, _ = b.Write(out_data)
-	data = [][]byte { b.Bytes() }
+	data = [][]byte{b.Bytes()}
 	return
 }
 
 func initFuse(fs FileSystem, h *InHeader, r io.Reader) (data [][]byte, err os.Error) {
-		in := new(InitIn)
-		err = binary.Read(r, binary.LittleEndian, in)
-		if err != nil {
-			return
-		}
-		fmt.Printf("in: %v\n", in)
-		var out *InitOut
-		out, res, err := fs.Init(in)
-		if err != nil {
-			return
-		}
-		data, err = serialize(h, res, out)
+	in := new(InitIn)
+	err = binary.Read(r, binary.LittleEndian, in)
+	if err != nil {
 		return
+	}
+	fmt.Printf("in: %v\n", in)
+	var out *InitOut
+	out, res, err := fs.Init(in)
+	if err != nil {
+		return
+	}
+	data, err = serialize(h, res, out)
+	return
 }
 
 func getAttr(fs FileSystem, h *InHeader, r io.Reader) (data [][]byte, err os.Error) {
-		in := new(GetAttrIn)
-		err = binary.Read(r, binary.LittleEndian, in)
-		if err != nil {
-			return
-		}
-		fmt.Printf("FUSE_GETATTR: %v\n", in)
-		var out *AttrOut
-		out, res, err := fs.GetAttr(h, in)
-		if err != nil {
-			return
-		}
-		data, err = serialize(h, res, out)
+	in := new(GetAttrIn)
+	err = binary.Read(r, binary.LittleEndian, in)
+	if err != nil {
 		return
+	}
+	fmt.Printf("FUSE_GETATTR: %v\n", in)
+	var out *AttrOut
+	out, res, err := fs.GetAttr(h, in)
+	if err != nil {
+		return
+	}
+	data, err = serialize(h, res, out)
+	return
 }
 
 func getXAttr(h *InHeader, r io.Reader) (data [][]byte, err os.Error) {
-		out := new(GetXAttrOut)
-		data, err = serialize(h, OK, out)
-		return
+	out := new(GetXAttrOut)
+	data, err = serialize(h, OK, out)
+	return
 }
 
 func openDir(h *InHeader, r io.Reader) (data [][]byte, err os.Error) {
-		in := new(OpenIn)
-		err = binary.Read(r, binary.LittleEndian, in)
-		if err != nil {
-			return
-		}
-		fmt.Printf("FUSE_OPENDIR: %v\n", in)
-		out := new(OpenOut)
-		out.Fh = 1
-		was = false
-		res := OK
-		data, err = serialize(h, res, out)
+	in := new(OpenIn)
+	err = binary.Read(r, binary.LittleEndian, in)
+	if err != nil {
 		return
+	}
+	fmt.Printf("FUSE_OPENDIR: %v\n", in)
+	out := new(OpenOut)
+	out.Fh = 1
+	was = false
+	res := OK
+	data, err = serialize(h, res, out)
+	return
 }
 
 func readDir(h *InHeader, r io.Reader) (data [][]byte, err os.Error) {
-		if was {
-			data, err = serialize(h, OK, nil)
-			return
-		}
-		in := new(ReadIn)
-		err = binary.Read(r, binary.LittleEndian, in)
-		if err != nil {
-			return
-		}
-		fmt.Printf("FUSE_READDIR: %v\n", in)
-
-		dirent := new(Dirent)
-		dirent.Off = 1
-		dirent.Ino = h.NodeId
-		dirent.NameLen = 7
-		dirent.Typ = (S_IFDIR & 0170000) >> 12;
-		buf := new(bytes.Buffer)
-		err = binary.Write(buf, binary.LittleEndian, dirent)
-		if err != nil {
-			fmt.Printf("AAA!!! binary.Write failed\n")
-			os.Exit(1)
-		}
-		buf.Write([]byte("hello12"))
-		buf.WriteByte(0)
-		out := buf.Bytes()
-		was = true
-		res := OK
-		data, err = serialize(h, res, out)
+	if was {
+		data, err = serialize(h, OK, nil)
 		return
+	}
+	in := new(ReadIn)
+	err = binary.Read(r, binary.LittleEndian, in)
+	if err != nil {
+		return
+	}
+	fmt.Printf("FUSE_READDIR: %v\n", in)
+
+	dirent := new(Dirent)
+	dirent.Off = 1
+	dirent.Ino = h.NodeId
+	dirent.NameLen = 7
+	dirent.Typ = (S_IFDIR & 0170000) >> 12
+	buf := new(bytes.Buffer)
+	err = binary.Write(buf, binary.LittleEndian, dirent)
+	if err != nil {
+		fmt.Printf("AAA!!! binary.Write failed\n")
+		os.Exit(1)
+	}
+	buf.Write([]byte("hello12"))
+	buf.WriteByte(0)
+	out := buf.Bytes()
+	was = true
+	res := OK
+	data, err = serialize(h, res, out)
+	return
 }
 
 func lookup(h *InHeader, r *bytes.Buffer) (data [][]byte, err os.Error) {
-		filename := string(r.Bytes())
-		fmt.Printf("filename: %s\n", filename)
-		out := new(EntryOut)
-		out.NodeId = h.NodeId + 1
-		out.Mode = S_IFDIR
-		res := OK
-		data, err = serialize(h, res, out)
-		return
+	filename := string(r.Bytes())
+	fmt.Printf("filename: %s\n", filename)
+	out := new(EntryOut)
+	out.NodeId = h.NodeId + 1
+	out.Mode = S_IFDIR
+	res := OK
+	data, err = serialize(h, res, out)
+	return
 }
 
 func releaseDir(h *InHeader, r io.Reader) (data [][]byte, err os.Error) {
@@ -234,4 +242,3 @@ func writer(f *os.File, in chan [][]byte, errors chan os.Error) {
 		fmt.Printf("writer: OK\n")
 	}
 }
-
