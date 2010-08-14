@@ -51,7 +51,7 @@ func loop(f *os.File, fs FileSystem, errors chan os.Error) {
 			break
 		}
 
-		dispatch(fs, buf[0:n], managerReq, toW, errors)
+		go dispatch(fs, buf[0:n], managerReq, toW, errors)
 	}
 }
 
