@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	tempMountDir = "./.testMountDir"
+	tempMountDir = "testMountDir"
 )
 
 var (
@@ -20,13 +20,13 @@ var (
 
 type testFuse struct{}
 
-func (fs *testFuse) GetAttr(path string, id *Identity, flags uint32) (out *AttrOut, code Error, err os.Error) {
+func (fs *testFuse) GetAttr(path string, id *Identity, flags uint32) (out *AttrOut, code Error) {
 	out = new(AttrOut)
 	out.Mode = S_IFDIR
 	return
 }
 
-func (fs *testFuse) Lookup(parent, filename string) (out *Attr, code Error, err os.Error) {
+func (fs *testFuse) Lookup(parent, filename string) (out *Attr, code Error) {
 	fmt.Printf("testFuse.Lookup: %s\n", path.Join(parent, filename))
 	out = new(Attr)
 	out.Mode = S_IFDIR
@@ -34,7 +34,7 @@ func (fs *testFuse) Lookup(parent, filename string) (out *Attr, code Error, err 
 	return
 }
 
-func (fs *testFuse) List(dir string) (names []string, code Error, err os.Error) {
+func (fs *testFuse) List(dir string) (names []string, code Error) {
 	names = testFileNames
 	return
 }

@@ -14,9 +14,9 @@ const (
 )
 
 type FileSystem interface {
-	List(parent string) (names []string, code Error, err os.Error)
-	Lookup(parent, filename string) (out *Attr, code Error, err os.Error)
-	GetAttr(path string, id *Identity, flags uint32) (out *AttrOut, code Error, err os.Error)
+	List(parent string) (names []string, code Error)
+	Lookup(parent, filename string) (out *Attr, code Error)
+	GetAttr(path string, id *Identity, flags uint32) (out *AttrOut, code Error)
 }
 
 type Mounted interface {
@@ -174,9 +174,9 @@ func getAttr(fs FileSystem, h *InHeader, r io.Reader, c *managerClient) (data []
 	if resp.code != OK {
 		return serialize(h, resp.code, nil)
 	}
-	out, res, err := fs.GetAttr(resp.path, &h.Identity, in.GetAttrFlags)
-	if err != nil {
-		return
+	out, res := fs.GetAttr(resp.path, &h.Identity, in.GetAttrFlags)
+	if res != OK {
+		return serialize(h, res, nil)
 	}
 	if out != nil {
 		out.Ino = h.NodeId
@@ -503,14 +503,11 @@ func (m *manager) lookup(req *managerRequest) (resp *managerResponse) {
 		resp.err = os.NewError(fmt.Sprintf("lookup: can't lookup parent node with id: %d", req.nodeId))
 		return
 	}
-	attr, code, err := m.fs.Lookup(parent, req.filename)
-	if err != nil {
-		resp.err = err
-		return
-	}
+	attr, code := m.fs.Lookup(parent, req.filename)
 	if code != OK {
 		resp.code = code
 	}
+	// TODO: sanitize return values, like checking attr != nil
 	resp.attr = attr
 	fullPath := path.Clean(path.Join(parent, req.filename))
 	nodeId, ok := m.nodesByPath[fullPath]
@@ -544,13 +541,9 @@ func (m *manager) getPath(req *managerRequest) (resp *managerResponse) {
 func readDirRoutine(dir string, fs FileSystem, c *managerClient, requests chan *dirRequest) {
 	defer close(requests)
 	dir = path.Clean(dir)
-	names, code, err := fs.List(dir)
+	names, code := fs.List(dir)
 	i := uint64(0)
 	for req := range requests {
-		if err != nil {
-			req.resp <- &dirResponse{nil, err}
-			return
-		}
 		if code != OK {
 			req.resp <- &dirResponse{nil, os.NewError(fmt.Sprintf("fs.List returned code: %d", code))}
 			return
