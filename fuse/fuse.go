@@ -188,7 +188,7 @@ func openDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.
 		return
 	}
 	fmt.Printf("FUSE_OPENDIR: %v\n", in)
-	resp := c.makeManagerRequest(h.NodeId, 0, openDirOp, "")
+	resp := c.openDir(h.NodeId)
 	err = resp.err
 	if err != nil {
 		data, err = serialize(h, EIO, nil)
@@ -209,7 +209,7 @@ func readDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.
 		return
 	}
 	fmt.Printf("FUSE_READDIR: %v\n", in)
-	resp := c.makeManagerRequest(h.NodeId, in.Fh, getHandleOp, "")
+	resp := c.getDirReader(h.NodeId, in.Fh)
 	err = resp.err
 	if err != nil {
 		data, _ = serialize(h, EIO, nil)
@@ -290,7 +290,7 @@ func releaseDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err 
 		return
 	}
 	fmt.Printf("FUSE_RELEASEDIR: %v\n", in)
-	resp := c.makeManagerRequest(h.NodeId, in.Fh, closeDirOp, "")
+	resp := c.closeDir(h.NodeId, in.Fh)
 	err = resp.err
 	if err != nil {
 		return
@@ -400,6 +400,18 @@ func (c *managerClient) makeManagerRequest(nodeId uint64, fh uint64, op FileOp, 
 
 func (c *managerClient) lookup(nodeId uint64, filename string) (resp *managerResponse) {
 	return c.makeManagerRequest(nodeId, 0, lookupOp, filename)
+}
+
+func (c *managerClient) openDir(nodeId uint64) (resp *managerResponse) {
+	return c.makeManagerRequest(nodeId, 0, openDirOp, "")
+}
+
+func (c *managerClient) getDirReader(nodeId, fh uint64) (resp *managerResponse) {
+	return c.makeManagerRequest(nodeId, fh, getHandleOp, "")
+}
+
+func (c *managerClient) closeDir(nodeId, fh uint64) (resp *managerResponse) {
+	return c.makeManagerRequest(nodeId, fh, closeDirOp, "")
 }
 
 func (m *manager) run(requests chan *managerRequest) {
