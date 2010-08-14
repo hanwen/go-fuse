@@ -216,7 +216,7 @@ func readDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.
 	}
 	dirRespChan := make(chan *dirResponse, 1)
 	fmt.Printf("Sending dir request, in.Offset: %v\n", in.Offset)
-	resp.dirReq <- &dirRequest{false, in.Offset, dirRespChan}
+	resp.dirReq <- &dirRequest{false, h.NodeId, in.Offset, dirRespChan}
 	fmt.Printf("receiving dir response\n")
 	dirResp := <-dirRespChan
 	fmt.Printf("received %v\n", dirResp)
@@ -264,7 +264,7 @@ func readDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.
 func lookup(h *InHeader, r *bytes.Buffer, c *managerClient) (data [][]byte, err os.Error) {
 	filename := string(r.Bytes())
 	fmt.Printf("filename: %s\n", filename)
-	resp := c.makeManagerRequest(h.NodeId, 0, lookupOp, filename)
+	resp := c.lookup(h.NodeId, filename)
 	if resp.err != nil {
 		return serialize(h, EIO, nil)
 	}
@@ -345,6 +345,7 @@ type dirEntry struct {
 
 type dirRequest struct {
 	isClose bool
+	nodeId uint64
 	offset  uint64
 	resp    chan *dirResponse
 }
@@ -362,6 +363,7 @@ type dirHandle struct {
 
 type manager struct {
 	fs          FileSystem
+	client *managerClient
 	dirHandles  map[uint64]*dirHandle
 	cnt         uint64
 	nodes       map[uint64]string
@@ -372,6 +374,7 @@ type manager struct {
 func startManager(fs FileSystem, requests chan *managerRequest) {
 	m := new(manager)
 	m.fs = fs
+	m.client = &managerClient { requests }
 	m.dirHandles = make(map[uint64]*dirHandle)
 	m.nodes = make(map[uint64]string)
 	m.nodes[1] = "" // Root
@@ -392,6 +395,10 @@ func (c *managerClient) makeManagerRequest(nodeId uint64, fh uint64, op FileOp, 
 	resp = <-req.resp
 	fmt.Printf("makeManagerRequest, resp: %v\n", resp)
 	return
+}
+
+func (c *managerClient) lookup(nodeId uint64, filename string) (resp *managerResponse) {
+	return c.makeManagerRequest(nodeId, 0, lookupOp, filename)
 }
 
 func (m *manager) run(requests chan *managerRequest) {
@@ -422,7 +429,7 @@ func (m *manager) openDir(req *managerRequest) (resp *managerResponse) {
 	h.nodeId = req.nodeId
 	h.req = make(chan *dirRequest, 1)
 	m.dirHandles[h.fh] = h
-	go readDirRoutine(h.req)
+	go readDirRoutine(m.client, h.req)
 	resp.fh = h.fh
 	return
 }
@@ -481,7 +488,7 @@ func (m *manager) lookup(req *managerRequest) (resp *managerResponse) {
 	return
 }
 
-func readDirRoutine(requests chan *dirRequest) {
+func readDirRoutine(c *managerClient, requests chan *dirRequest) {
 	defer close(requests)
 	dirs := []string { "lala111", "bb", "ddddd" }
 	i := uint64(0)
@@ -495,9 +502,14 @@ func readDirRoutine(requests chan *dirRequest) {
 		}
 		if i < uint64(len(dirs)) {
 			entry := new(dirEntry)
-			entry.nodeId = 2 + i // hack. Almost always is incorrect
-			entry.mode = S_IFDIR
 			entry.name = dirs[i]
+			lookupResp := c.lookup(req.nodeId, entry.name)
+			if lookupResp.err != nil {
+				req.resp <- &dirResponse { nil, lookupResp.err }
+				return
+			}
+			entry.nodeId = lookupResp.nodeId
+			entry.mode = lookupResp.attr.Mode
 			req.resp <- &dirResponse{[]*dirEntry{entry}, nil}
 			i++
 		} else {
