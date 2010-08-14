@@ -79,7 +79,9 @@ const (
 	OK      = Status(0)
 	EIO     = Status(syscall.EIO)
 	ENOSYS  = Status(syscall.ENOSYS)
-	ENODATA = Status(syscall.ENODATA)
+	ENOENT  = Status(syscall.ENOENT)
+	ENOTDIR = Status(syscall.ENOTDIR)
+	EACCES  = Status(syscall.EACCES)
 )
 
 type Opcode int

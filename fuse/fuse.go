@@ -166,10 +166,6 @@ func getAttr(fs FileSystem, h *InHeader, r io.Reader, c *managerClient) (data []
 	fmt.Printf("FUSE_GETATTR: %v, Fh: %d\n", in, in.Fh)
 	out := new(AttrOut)
 	resp := c.getPath(in.Fh)
-	if resp.err != nil {
-		err = resp.err
-		return
-	}
 	if resp.code != OK {
 		return serialize(h, resp.code, nil)
 	}
@@ -203,15 +199,12 @@ func openDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.
 	}
 	fmt.Printf("FUSE_OPENDIR: %v\n", in)
 	resp := c.openDir(h.NodeId)
-	err = resp.err
-	if err != nil {
-		data, err = serialize(h, EIO, nil)
-		return
+	if resp.code != OK {
+		return serialize(h, resp.code, nil)
 	}
 	out := new(OpenOut)
 	out.Fh = resp.fh
-	res := OK
-	data, err = serialize(h, res, out)
+	data, err = serialize(h, OK, out)
 	return
 }
 
@@ -224,10 +217,8 @@ func readDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.
 	}
 	fmt.Printf("FUSE_READDIR: %v\n", in)
 	resp := c.getDirReader(h.NodeId, in.Fh)
-	err = resp.err
-	if err != nil {
-		data, _ = serialize(h, EIO, nil)
-		return
+	if resp.code != OK {
+		return serialize(h, resp.code, nil)
 	}
 	dirRespChan := make(chan *dirResponse, 1)
 	fmt.Printf("Sending dir request, in.Offset: %v\n", in.Offset)
@@ -235,10 +226,8 @@ func readDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.
 	fmt.Printf("receiving dir response\n")
 	dirResp := <-dirRespChan
 	fmt.Printf("received %v\n", dirResp)
-	err = dirResp.err
-	if err != nil {
-		fmt.Printf("Err!\n")
-		data, _ = serialize(h, EIO, nil)
+	if dirResp.status != OK {
+		data, _ = serialize(h, dirResp.status, nil)
 		return
 	}
 	if dirResp.entries == nil {
@@ -280,9 +269,6 @@ func lookup(h *InHeader, r *bytes.Buffer, c *managerClient) (data [][]byte, err 
 	filename := string(r.Bytes())
 	fmt.Printf("filename: %s\n", filename)
 	resp := c.lookup(h.NodeId, filename)
-	if resp.err != nil {
-		return serialize(h, EIO, nil)
-	}
 	if resp.code != OK {
 		return serialize(h, resp.code, nil)
 	}
@@ -305,9 +291,8 @@ func releaseDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err 
 	}
 	fmt.Printf("FUSE_RELEASEDIR: %v\n", in)
 	resp := c.closeDir(h.NodeId, in.Fh)
-	err = resp.err
-	if err != nil {
-		return
+	if resp.code != OK {
+		return serialize(h, resp.code, nil)
 	}
 	return serialize(h, OK, nil)
 }
@@ -348,7 +333,6 @@ type managerResponse struct {
 	nodeId uint64
 	fh     uint64
 	dirReq chan *dirRequest
-	err    os.Error
 	code   Status
 	attr   *Attr
 	path   string
@@ -369,7 +353,7 @@ type dirRequest struct {
 
 type dirResponse struct {
 	entries []*dirEntry
-	err     os.Error
+	status  Status
 }
 
 type dirHandle struct {
@@ -449,8 +433,7 @@ func (m *manager) run(requests chan *managerRequest) {
 		case getPathOp:
 			resp = m.getPath(req)
 		default:
-			resp := new(managerResponse)
-			resp.err = os.NewError(fmt.Sprintf("Unknown FileOp: %v", req.op))
+			panic(fmt.Sprintf("Unknown FileOp: %v", req.op))
 		}
 		req.resp <- resp
 	}
@@ -466,7 +449,7 @@ func (m *manager) openDir(req *managerRequest) (resp *managerResponse) {
 	m.dirHandles[h.fh] = h
 	dir, ok := m.nodes[req.nodeId]
 	if !ok {
-		resp.err = os.NewError(fmt.Sprintf("Can't find an entry with nodeId = %d", req.nodeId))
+		resp.code = ENOENT
 		return
 	}
 	go readDirRoutine(dir, m.fs, m.client, h.req)
@@ -479,7 +462,7 @@ func (m *manager) getHandle(req *managerRequest) (resp *managerResponse) {
 	resp = new(managerResponse)
 	h, ok := m.dirHandles[req.fh]
 	if !ok {
-		resp.err = os.NewError(fmt.Sprintf("Unknown handle %d", req.fh))
+		resp.code = ENOENT
 		return
 	}
 	fmt.Printf("Handle found\n")
@@ -491,7 +474,7 @@ func (m *manager) closeDir(req *managerRequest) (resp *managerResponse) {
 	resp = new(managerResponse)
 	h, ok := m.dirHandles[req.fh]
 	if !ok {
-		resp.err = os.NewError(fmt.Sprintf("closeDir: unknown handle %d", req.fh))
+		resp.code = ENOENT
 		return
 	}
 	m.dirHandles[h.fh] = nil, false
@@ -503,7 +486,7 @@ func (m *manager) lookup(req *managerRequest) (resp *managerResponse) {
 	resp = new(managerResponse)
 	parent, ok := m.nodes[req.nodeId]
 	if !ok {
-		resp.err = os.NewError(fmt.Sprintf("lookup: can't lookup parent node with id: %d", req.nodeId))
+		resp.code = ENOENT
 		return
 	}
 	attr, code := m.fs.GetAttr(path.Join(parent, req.filename))
@@ -529,12 +512,12 @@ func (m *manager) getPath(req *managerRequest) (resp *managerResponse) {
 	resp = new(managerResponse)
 	h, ok := m.dirHandles[req.fh]
 	if !ok {
-		resp.err = os.NewError(fmt.Sprintf("Can't find fh: %d", req.fh))
+		resp.code = ENOENT
 		return
 	}
 	path, ok := m.nodes[h.nodeId]
 	if !ok {
-		resp.err = os.NewError(fmt.Sprintf("Fh = %d points to unknown nodeId: %d", req.fh, h.nodeId))
+		resp.code = ENOENT
 		return
 	}
 	resp.path = path
@@ -548,7 +531,7 @@ func readDirRoutine(dir string, fs FileSystem, c *managerClient, requests chan *
 	i := uint64(0)
 	for req := range requests {
 		if code != OK {
-			req.resp <- &dirResponse{nil, os.NewError(fmt.Sprintf("fs.List returned code: %d", code))}
+			req.resp <- &dirResponse{nil, code}
 			return
 		}
 		if req.offset != i {
@@ -562,16 +545,16 @@ func readDirRoutine(dir string, fs FileSystem, c *managerClient, requests chan *
 			entry := new(dirEntry)
 			entry.name = names[i]
 			lookupResp := c.lookup(req.nodeId, entry.name)
-			if lookupResp.err != nil {
-				req.resp <- &dirResponse{nil, lookupResp.err}
+			if lookupResp.code != OK {
+				req.resp <- &dirResponse{nil, lookupResp.code}
 				return
 			}
 			entry.nodeId = lookupResp.nodeId
 			entry.mode = lookupResp.attr.Mode
-			req.resp <- &dirResponse{[]*dirEntry{entry}, nil}
+			req.resp <- &dirResponse{[]*dirEntry{entry}, OK}
 			i++
 		} else {
-			req.resp <- &dirResponse{nil, nil}
+			req.resp <- &dirResponse{nil, OK}
 		}
 	}
 }
