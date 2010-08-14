@@ -92,7 +92,8 @@ func dispatch(fs FileSystem, h *InHeader, r *bytes.Buffer, c *managerClient, err
 	case FUSE_READDIR:
 		return parseInvoke(readDir, fs, h, r, c, new(ReadIn))
 	case FUSE_LOOKUP:
-		return lookup(h, r, c)
+		out, status := lookup(h, r, c)
+		return serialize(h, status, out)
 	case FUSE_RELEASEDIR:
 		return parseInvoke(releaseDir, fs, h, r, c, new(ReleaseIn))
 	default:
@@ -113,11 +114,15 @@ func parse(b *bytes.Buffer, data interface{}) bool {
 	panic(fmt.Sprintf("Cannot parse %v", data))
 }
 
-type handler func(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) [][]byte
+type handler func(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (out interface{}, status Status)
 
 func parseInvoke(f handler, fs FileSystem, h *InHeader, b *bytes.Buffer, c *managerClient, ing interface{}) [][]byte {
 	if parse(b, ing) {
-		return f(fs, h, ing, c)
+		out, status := f(fs, h, ing, c)
+		if status != OK {
+			out = nil
+		}
+		return serialize(h, status, out)
 	}
 	return serialize(h, EIO, nil)
 }
@@ -150,16 +155,16 @@ func serialize(h *InHeader, res Status, out interface{}) (data [][]byte) {
 	return
 }
 
-func initFuse(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (data [][]byte) {
+func initFuse(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (interface{}, Status) {
 	in, _ := ing.(*InitIn)
 	fmt.Printf("in: %v\n", in)
 	if in.Major != FUSE_KERNEL_VERSION {
 		fmt.Printf("Major versions does not match. Given %d, want %d\n", in.Major, FUSE_KERNEL_VERSION)
-		return serialize(h, EIO, nil)
+		return nil, EIO
 	}
 	if in.Minor < FUSE_KERNEL_MINOR_VERSION {
 		fmt.Printf("Minor version is less than we support. Given %d, want at least %d\n", in.Minor, FUSE_KERNEL_MINOR_VERSION)
-		return serialize(h, EIO, nil)
+		return nil, EIO
 	}
 	out := new(InitOut)
 	out.Major = FUSE_KERNEL_VERSION
@@ -167,53 +172,53 @@ func initFuse(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (da
 	out.MaxReadAhead = in.MaxReadAhead
 	out.Flags = FUSE_ASYNC_READ | FUSE_POSIX_LOCKS
 	out.MaxWrite = 65536
-	return serialize(h, OK, out)
+	return out, OK
 }
 
-func getAttr(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (data [][]byte) {
+func getAttr(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (interface{}, Status) {
 	in := ing.(*GetAttrIn)
 	fmt.Printf("FUSE_GETATTR: %v, Fh: %d\n", in, in.Fh)
 	out := new(AttrOut)
 	resp := c.getPath(in.Fh)
 	if resp.status != OK {
-		return serialize(h, resp.status, nil)
+		return nil, resp.status
 	}
 	attr, res := fs.GetAttr(resp.path)
 	if res != OK {
-		return serialize(h, res, nil)
+		return nil, res
 	}
 	if attr != nil {
 		out.Attr = *attr
 	} else {
-		return serialize(h, EIO, nil)
+		return nil, EIO
 	}
 	out.Ino = h.NodeId
-	return serialize(h, res, out)
+	return out, OK
 }
 
-func getXAttr(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (data [][]byte) {
+func getXAttr(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (interface{}, Status) {
 	out := new(GetXAttrOut)
-	return serialize(h, OK, out)
+	return out, OK
 }
 
-func openDir(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (data [][]byte) {
+func openDir(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (interface{}, Status) {
 	in := ing.(*OpenIn)
 	fmt.Printf("FUSE_OPENDIR: %v\n", in)
 	resp := c.openDir(h.NodeId)
 	if resp.status != OK {
-		return serialize(h, resp.status, nil)
+		return nil, resp.status
 	}
 	out := new(OpenOut)
 	out.Fh = resp.fh
-	return serialize(h, OK, out)
+	return out, OK
 }
 
-func readDir(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (data [][]byte) {
+func readDir(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (interface{}, Status) {
 	in := ing.(*ReadIn)
 	fmt.Printf("FUSE_READDIR: %v\n", in)
 	resp := c.getDirReader(h.NodeId, in.Fh)
 	if resp.status != OK {
-		return serialize(h, resp.status, nil)
+		return nil, resp.status
 	}
 	dirRespChan := make(chan *dirResponse, 1)
 	fmt.Printf("Sending dir request, in.Offset: %v\n", in.Offset)
@@ -222,10 +227,10 @@ func readDir(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (dat
 	dirResp := <-dirRespChan
 	fmt.Printf("received %v\n", dirResp)
 	if dirResp.status != OK {
-		return serialize(h, dirResp.status, nil)
+		return nil, dirResp.status
 	}
 	if dirResp.entries == nil {
-		return serialize(h, OK, nil)
+		return nil, OK
 	}
 
 	buf := new(bytes.Buffer)
@@ -249,32 +254,32 @@ func readDir(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (dat
 		}
 	}
 	out := buf.Bytes()
-	return serialize(h, OK, out)
+	return out, OK
 }
 
-func lookup(h *InHeader, r *bytes.Buffer, c *managerClient) (data [][]byte) {
+func lookup(h *InHeader, r *bytes.Buffer, c *managerClient) (interface{}, Status) {
 	filename := string(r.Bytes())
 	fmt.Printf("filename: %s\n", filename)
 	resp := c.lookup(h.NodeId, filename)
 	if resp.status != OK {
-		return serialize(h, resp.status, nil)
+		return nil, resp.status
 	}
 	out := new(EntryOut)
 	out.NodeId = resp.nodeId
 	out.Attr = *resp.attr
 	out.AttrValid = 60
 	out.EntryValid = 60
-	return serialize(h, OK, out)
+	return out, OK
 }
 
-func releaseDir(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (data [][]byte) {
+func releaseDir(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (interface{}, Status) {
 	in := ing.(*ReleaseIn)
 	fmt.Printf("FUSE_RELEASEDIR: %v\n", in)
 	resp := c.closeDir(h.NodeId, in.Fh)
 	if resp.status != OK {
-		return serialize(h, resp.status, nil)
+		return nil, resp.status
 	}
-	return serialize(h, OK, nil)
+	return nil, OK
 }
 
 
