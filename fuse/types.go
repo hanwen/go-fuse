@@ -130,13 +130,13 @@ const (
 	S_IFDIR = syscall.S_IFDIR
 )
 
-type Error int32
+type Status int32
 
 const (
-	OK      = Error(0)
-	EIO     = Error(syscall.EIO)
-	ENOSYS  = Error(syscall.ENOSYS)
-	ENODATA = Error(syscall.ENODATA)
+	OK      = Status(0)
+	EIO     = Status(syscall.EIO)
+	ENOSYS  = Status(syscall.ENOSYS)
+	ENODATA = Status(syscall.ENODATA)
 )
 
 type Opcode int
@@ -507,7 +507,7 @@ const SizeOfOutHeader = 16
 
 type OutHeader struct {
 	Length uint32
-	Error  int32
+	Status  Status
 	Unique uint64
 }
 

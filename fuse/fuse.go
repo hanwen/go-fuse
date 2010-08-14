@@ -14,9 +14,9 @@ const (
 )
 
 type FileSystem interface {
-	List(parent string) (names []string, code Error)
-	Lookup(parent, filename string) (out *Attr, code Error)
-	GetAttr(path string, id *Identity, flags uint32) (out *AttrOut, code Error)
+	List(parent string) (names []string, code Status)
+	Lookup(parent, filename string) (out *Attr, code Status)
+	GetAttr(path string, id *Identity, flags uint32) (out *AttrOut, code Status)
 }
 
 type Mounted interface {
@@ -105,7 +105,7 @@ func dispatch(fs FileSystem, in_data []byte, c *managerClient, toW chan [][]byte
 	toW <- out
 }
 
-func serialize(h *InHeader, res Error, out interface{}) (data [][]byte, err os.Error) {
+func serialize(h *InHeader, res Status, out interface{}) (data [][]byte, err os.Error) {
 	b := new(bytes.Buffer)
 	out_data := make([]byte, 0)
 	fmt.Printf("OpCode: %v result: %v\n", h.Opcode, res)
@@ -122,7 +122,7 @@ func serialize(h *InHeader, res Error, out interface{}) (data [][]byte, err os.E
 	fmt.Printf("out_data: %v, len(out_data): %d, SizeOfOutHeader: %d\n", out_data, len(out_data), SizeOfOutHeader)
 	var hout OutHeader
 	hout.Unique = h.Unique
-	hout.Error = int32(res)
+	hout.Status = res
 	hout.Length = uint32(len(out_data) + SizeOfOutHeader)
 	b = new(bytes.Buffer)
 	err = binary.Write(b, binary.LittleEndian, &hout)
@@ -346,7 +346,7 @@ type managerResponse struct {
 	fh     uint64
 	dirReq chan *dirRequest
 	err    os.Error
-	code   Error
+	code   Status
 	attr   *Attr
 	path   string
 }
