@@ -151,6 +151,7 @@ func initFuse(fs FileSystem, h *InHeader, r io.Reader, mr chan *managerRequest) 
 	out.Major = FUSE_KERNEL_VERSION
 	out.Minor = FUSE_KERNEL_MINOR_VERSION
 	out.MaxReadAhead = in.MaxReadAhead
+	out.Flags = FUSE_ASYNC_READ | FUSE_POSIX_LOCKS
 	out.MaxWrite = 65536
 	return serialize(h, OK, out)
 }
@@ -213,8 +214,8 @@ func readDir(h *InHeader, r io.Reader, mr chan *managerRequest) (data [][]byte, 
 		return
 	}
 	dirRespChan := make(chan *dirResponse, 1)
-	fmt.Printf("Sending dir request\n")
-	resp.dirReq <- &dirRequest{false, dirRespChan}
+	fmt.Printf("Sending dir request, in.Offset: %v\n", in.Offset)
+	resp.dirReq <- &dirRequest{false, in.Offset, dirRespChan}
 	fmt.Printf("receiving dir response\n")
 	dirResp := <-dirRespChan
 	fmt.Printf("received %v\n", dirResp)
@@ -232,7 +233,7 @@ func readDir(h *InHeader, r io.Reader, mr chan *managerRequest) (data [][]byte, 
 
 	fmt.Printf("len(dirResp.entries): %v\n", len(dirResp.entries))
 	buf := new(bytes.Buffer)
-	off := uint64(0)
+	off := in.Offset
 	for _, entry := range dirResp.entries {
 		off++
 		dirent := new(Dirent)
@@ -289,7 +290,10 @@ func releaseDir(h *InHeader, r io.Reader, mr chan *managerRequest) (data [][]byt
 	fmt.Printf("FUSE_RELEASEDIR: %v\n", in)
 	resp := makeManagerRequest(mr, h.NodeId, in.Fh, closeDirOp, "")
 	err = resp.err
-	return
+	if err != nil {
+		return
+	}
+	return serialize(h, OK, nil)
 }
 
 
@@ -316,10 +320,10 @@ const (
 )
 
 type managerRequest struct {
-	nodeId uint64
-	fh     uint64
-	op     FileOp
-	resp   chan *managerResponse
+	nodeId   uint64
+	fh       uint64
+	op       FileOp
+	resp     chan *managerResponse
 	filename string
 }
 
@@ -328,8 +332,8 @@ type managerResponse struct {
 	fh     uint64
 	dirReq chan *dirRequest
 	err    os.Error
-	code Error
-	attr *Attr
+	code   Error
+	attr   *Attr
 }
 
 type dirEntry struct {
@@ -339,6 +343,7 @@ type dirEntry struct {
 
 type dirRequest struct {
 	isClose bool
+	offset  uint64
 	resp    chan *dirResponse
 }
 
@@ -354,12 +359,12 @@ type dirHandle struct {
 }
 
 type manager struct {
-	fs FileSystem
-	dirHandles map[uint64]*dirHandle
-	cnt        uint64
-	nodes map[uint64] string
-	nodesByPath map[string] uint64
-	nodeMax uint64
+	fs          FileSystem
+	dirHandles  map[uint64]*dirHandle
+	cnt         uint64
+	nodes       map[uint64]string
+	nodesByPath map[string]uint64
+	nodeMax     uint64
 }
 
 func startManager(fs FileSystem, requests chan *managerRequest) {
@@ -477,12 +482,16 @@ func readDirRoutine(requests chan *dirRequest) {
 		&dirEntry{"bb", S_IFDIR},
 		&dirEntry{"ddddd", S_IFDIR},
 	}
-	i := 0
+	i := uint64(0)
 	for req := range requests {
+		if req.offset != i {
+			fmt.Printf("readDirRoutine: i = %v, changing offset to %v\n", i, req.offset)
+			i = req.offset
+		}
 		if req.isClose {
 			return
 		}
-		if i < len(entries) {
+		if i < uint64(len(entries)) {
 			req.resp <- &dirResponse{[]*dirEntry{entries[i]}, nil}
 			i++
 		} else {
