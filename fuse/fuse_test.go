@@ -1,10 +1,8 @@
 package fuse
 
 import (
-	"fmt"
 	"log"
 	"os"
-	"path"
 	"strings"
 	"testing"
 	"time"
@@ -20,14 +18,7 @@ var (
 
 type testFuse struct{}
 
-func (fs *testFuse) GetAttr(path string, id *Identity) (out *AttrOut, code Status) {
-	out = new(AttrOut)
-	out.Mode = S_IFDIR
-	return
-}
-
-func (fs *testFuse) Lookup(parent, filename string) (out *Attr, code Status) {
-	fmt.Printf("testFuse.Lookup: %s\n", path.Join(parent, filename))
+func (fs *testFuse) GetAttr(path string) (out *Attr, code Status) {
 	out = new(Attr)
 	out.Mode = S_IFDIR
 	out.Mtime = uint64(time.Seconds())

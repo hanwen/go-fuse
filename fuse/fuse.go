@@ -15,8 +15,7 @@ const (
 
 type FileSystem interface {
 	List(parent string) (names []string, code Status)
-	Lookup(parent, filename string) (out *Attr, code Status)
-	GetAttr(path string, id *Identity) (out *AttrOut, code Status)
+	GetAttr(path string) (out *Attr, code Status)
 }
 
 type Mounted interface {
@@ -165,7 +164,7 @@ func getAttr(fs FileSystem, h *InHeader, r io.Reader, c *managerClient) (data []
 		return
 	}
 	fmt.Printf("FUSE_GETATTR: %v, Fh: %d\n", in, in.Fh)
-	var out *AttrOut
+	out := new(AttrOut)
 	resp := c.getPath(in.Fh)
 	if resp.err != nil {
 		err = resp.err
@@ -174,13 +173,17 @@ func getAttr(fs FileSystem, h *InHeader, r io.Reader, c *managerClient) (data []
 	if resp.code != OK {
 		return serialize(h, resp.code, nil)
 	}
-	out, res := fs.GetAttr(resp.path, &h.Identity)
+	attr, res := fs.GetAttr(resp.path)
 	if res != OK {
 		return serialize(h, res, nil)
 	}
-	if out != nil {
-		out.Ino = h.NodeId
+	if attr != nil {
+		out.Attr = *attr
+	} else {
+		err = os.NewError("fs.GetAttr returned nil as an Attr")
+		return
 	}
+	out.Ino = h.NodeId
 	data, err = serialize(h, res, out)
 	return
 }
@@ -503,7 +506,7 @@ func (m *manager) lookup(req *managerRequest) (resp *managerResponse) {
 		resp.err = os.NewError(fmt.Sprintf("lookup: can't lookup parent node with id: %d", req.nodeId))
 		return
 	}
-	attr, code := m.fs.Lookup(parent, req.filename)
+	attr, code := m.fs.GetAttr(path.Join(parent, req.filename))
 	if code != OK {
 		resp.code = code
 	}
