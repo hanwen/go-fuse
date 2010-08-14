@@ -5,19 +5,12 @@ import (
 )
 
 const (
-
-	/** Version number of this interface */
 	FUSE_KERNEL_VERSION = 7
 
-	/** Minor version number of this interface */
 	FUSE_KERNEL_MINOR_VERSION = 13
 
-	/** The node ID of the root inode */
 	FUSE_ROOT_ID = 1
 
-	/**
-	 * Bitmasks for SetAttrIn.valid
-	 */
 	FATTR_MODE      = (1 << 0)
 	FATTR_UID       = (1 << 1)
 	FATTR_GID       = (1 << 2)
@@ -29,23 +22,10 @@ const (
 	FATTR_MTIME_NOW = (1 << 8)
 	FATTR_LOCKOWNER = (1 << 9)
 
-	/**
-	 * Flags returned by the OPEN request
-	 *
-	 * FOPEN_DIRECT_IO: bypass page cache for this open file
-	 * FOPEN_KEEP_CACHE: don't invalidate the data cache on open
-	 * FOPEN_NONSEEKABLE: the file is not seekable
-	 */
 	FOPEN_DIRECT_IO   = (1 << 0)
 	FOPEN_KEEP_CACHE  = (1 << 1)
 	FOPEN_NONSEEKABLE = (1 << 2)
 
-	/**
-	 * INIT request/reply flags
-	 *
-	 * FUSE_EXPORT_SUPPORT: filesystem handles lookups of "." and ".."
-	 * FUSE_DONT_MASK: don't apply umask to file mode on create operations
-	 */
 	FUSE_ASYNC_READ     = (1 << 0)
 	FUSE_POSIX_LOCKS    = (1 << 1)
 	FUSE_FILE_OPS       = (1 << 2)
@@ -54,67 +34,30 @@ const (
 	FUSE_BIG_WRITES     = (1 << 5)
 	FUSE_DONT_MASK      = (1 << 6)
 
-	/**
-	 * CUSE INIT request/reply flags
-	 *
-	 * CUSE_UNRESTRICTED_IOCTL:  use unrestricted ioctl
-	 */
 	CUSE_UNRESTRICTED_IOCTL = (1 << 0)
 
-	/**
-	 * Release flags
-	 */
 	FUSE_RELEASE_FLUSH = (1 << 0)
 
-	/**
-	 * GetAttr flags
-	 */
 	FUSE_GETATTR_FH = (1 << 0)
 
-	/**
-	 * Lock flags
-	 */
 	FUSE_LK_FLOCK = (1 << 0)
 
-	/**
-	 * WRITE flags
-	 *
-	 * FUSE_WRITE_CACHE: delayed write from page cache, file handle is guessed
-	 * FUSE_WRITE_LOCKOWNER: lockOwner field is valid
-	 */
 	FUSE_WRITE_CACHE     = (1 << 0)
 	FUSE_WRITE_LOCKOWNER = (1 << 1)
 
-	/**
-	 * Read flags
-	 */
 	FUSE_READ_LOCKOWNER = (1 << 1)
 
-	/**
-	 * Ioctl flags
-	 *
-	 * FUSE_IOCTL_COMPAT: 32bit compat ioctl on 64bit machine
-	 * FUSE_IOCTL_UNRESTRICTED: not restricted to well-formed ioctls, retry allowed
-	 * FUSE_IOCTL_RETRY: retry with new iovecs
-	 *
-	 * FUSE_IOCTL_MAX_IOV: maximum of in_iovecs + out_iovecs
-	 */
 	FUSE_IOCTL_COMPAT       = (1 << 0)
 	FUSE_IOCTL_UNRESTRICTED = (1 << 1)
 	FUSE_IOCTL_RETRY        = (1 << 2)
 
 	FUSE_IOCTL_MAX_IOV = 256
 
-	/**
-	 * Poll flags
-	 *
-	 * FUSE_POLL_SCHEDULE_NOTIFY: request poll notify
-	 */
 	FUSE_POLL_SCHEDULE_NOTIFY = (1 << 0)
+
 
 	FUSE_COMPAT_WRITE_IN_SIZE = 24
 
-	/* The read buffer is required to be at least 8k, but may be much larger */
 	FUSE_MIN_READ_BUFFER = 8192
 
 	FUSE_COMPAT_ENTRY_OUT_SIZE = 120
@@ -143,7 +86,7 @@ type Opcode int
 
 const (
 	FUSE_LOOKUP      = 1
-	FUSE_FORGET      = 2 /* no reply */
+	FUSE_FORGET      = 2
 	FUSE_GETATTR     = 3
 	FUSE_SETATTR     = 4
 	FUSE_READLINK    = 5
@@ -181,7 +124,6 @@ const (
 	FUSE_IOCTL       = 39
 	FUSE_POLL        = 40
 
-	/* CUSE specific operations */
 	CUSE_INIT = 4096
 )
 
@@ -193,9 +135,6 @@ const (
 	FUSE_NOTIFY_INVAL_ENTRY = 3
 	FUSE_NOTIFY_CODE_MAX    = 4
 )
-
-/* Make sure all structures are padded to 64bit boundary, so 32bit
-   userspace works under 64bit kernels */
 
 type Attr struct {
 	Ino       uint64
@@ -242,15 +181,14 @@ type FileLock struct {
 	Start uint64
 	End   uint64
 	Typ   uint32
-	Pid   uint32 /* tgid */
+	Pid   uint32
 }
 
 type EntryOut struct {
-	NodeId     uint64 /* Inode ID */
-	Generation uint64 /* Inode generation: nodeid:gen must
-	   be unique for the fs's lifetime */
-	EntryValid     uint64 /* Cache timeout for the name */
-	AttrValid      uint64 /* Cache timeout for the attributes */
+	NodeId         uint64
+	Generation     uint64
+	EntryValid     uint64
+	AttrValid      uint64
 	EntryValidNsec uint32
 	AttrValidNsec  uint32
 	Attr
@@ -267,7 +205,7 @@ type GetAttrIn struct {
 }
 
 type AttrOut struct {
-	AttrValid     uint64 /* Cache timeout for the attributes */
+	AttrValid     uint64
 	AttrValidNsec uint32
 	Dummy         uint32
 	Attr
@@ -443,8 +381,8 @@ type CuseInitOut struct {
 	Flags    uint32
 	MaxRead  uint32
 	MaxWrite uint32
-	DevMajor uint32 /* chardev major */
-	DevMinor uint32 /* chardev minor */
+	DevMajor uint32
+	DevMinor uint32
 	Spare    [10]uint32
 }
 
@@ -507,7 +445,7 @@ const SizeOfOutHeader = 16
 
 type OutHeader struct {
 	Length uint32
-	Status  Status
+	Status Status
 	Unique uint64
 }
 
@@ -516,7 +454,6 @@ type Dirent struct {
 	Off     uint64
 	NameLen uint32
 	Typ     uint32
-	//	name []byte // char name[0] -- looks like the name is right after this struct.
 }
 
 type NotifyInvalInodeOut struct {
