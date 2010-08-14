@@ -14,8 +14,8 @@ const (
 )
 
 type FileSystem interface {
-	List(parent string) (names []string, code Status)
-	GetAttr(path string) (out *Attr, code Status)
+	List(parent string) (names []string, status Status)
+	GetAttr(path string) (out *Attr, status Status)
 }
 
 type Mounted interface {
@@ -166,8 +166,8 @@ func getAttr(fs FileSystem, h *InHeader, r io.Reader, c *managerClient) (data []
 	fmt.Printf("FUSE_GETATTR: %v, Fh: %d\n", in, in.Fh)
 	out := new(AttrOut)
 	resp := c.getPath(in.Fh)
-	if resp.code != OK {
-		return serialize(h, resp.code, nil)
+	if resp.status != OK {
+		return serialize(h, resp.status, nil)
 	}
 	attr, res := fs.GetAttr(resp.path)
 	if res != OK {
@@ -199,8 +199,8 @@ func openDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.
 	}
 	fmt.Printf("FUSE_OPENDIR: %v\n", in)
 	resp := c.openDir(h.NodeId)
-	if resp.code != OK {
-		return serialize(h, resp.code, nil)
+	if resp.status != OK {
+		return serialize(h, resp.status, nil)
 	}
 	out := new(OpenOut)
 	out.Fh = resp.fh
@@ -217,8 +217,8 @@ func readDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.
 	}
 	fmt.Printf("FUSE_READDIR: %v\n", in)
 	resp := c.getDirReader(h.NodeId, in.Fh)
-	if resp.code != OK {
-		return serialize(h, resp.code, nil)
+	if resp.status != OK {
+		return serialize(h, resp.status, nil)
 	}
 	dirRespChan := make(chan *dirResponse, 1)
 	fmt.Printf("Sending dir request, in.Offset: %v\n", in.Offset)
@@ -269,8 +269,8 @@ func lookup(h *InHeader, r *bytes.Buffer, c *managerClient) (data [][]byte, err 
 	filename := string(r.Bytes())
 	fmt.Printf("filename: %s\n", filename)
 	resp := c.lookup(h.NodeId, filename)
-	if resp.code != OK {
-		return serialize(h, resp.code, nil)
+	if resp.status != OK {
+		return serialize(h, resp.status, nil)
 	}
 	out := new(EntryOut)
 	out.NodeId = resp.nodeId
@@ -291,8 +291,8 @@ func releaseDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err 
 	}
 	fmt.Printf("FUSE_RELEASEDIR: %v\n", in)
 	resp := c.closeDir(h.NodeId, in.Fh)
-	if resp.code != OK {
-		return serialize(h, resp.code, nil)
+	if resp.status != OK {
+		return serialize(h, resp.status, nil)
 	}
 	return serialize(h, OK, nil)
 }
@@ -333,7 +333,7 @@ type managerResponse struct {
 	nodeId uint64
 	fh     uint64
 	dirReq chan *dirRequest
-	code   Status
+	status   Status
 	attr   *Attr
 	path   string
 }
@@ -449,7 +449,7 @@ func (m *manager) openDir(req *managerRequest) (resp *managerResponse) {
 	m.dirHandles[h.fh] = h
 	dir, ok := m.nodes[req.nodeId]
 	if !ok {
-		resp.code = ENOENT
+		resp.status = ENOENT
 		return
 	}
 	go readDirRoutine(dir, m.fs, m.client, h.req)
@@ -462,7 +462,7 @@ func (m *manager) getHandle(req *managerRequest) (resp *managerResponse) {
 	resp = new(managerResponse)
 	h, ok := m.dirHandles[req.fh]
 	if !ok {
-		resp.code = ENOENT
+		resp.status = ENOENT
 		return
 	}
 	fmt.Printf("Handle found\n")
@@ -474,7 +474,7 @@ func (m *manager) closeDir(req *managerRequest) (resp *managerResponse) {
 	resp = new(managerResponse)
 	h, ok := m.dirHandles[req.fh]
 	if !ok {
-		resp.code = ENOENT
+		resp.status = ENOENT
 		return
 	}
 	m.dirHandles[h.fh] = nil, false
@@ -486,12 +486,12 @@ func (m *manager) lookup(req *managerRequest) (resp *managerResponse) {
 	resp = new(managerResponse)
 	parent, ok := m.nodes[req.nodeId]
 	if !ok {
-		resp.code = ENOENT
+		resp.status = ENOENT
 		return
 	}
-	attr, code := m.fs.GetAttr(path.Join(parent, req.filename))
-	if code != OK {
-		resp.code = code
+	attr, status := m.fs.GetAttr(path.Join(parent, req.filename))
+	if status != OK {
+		resp.status = status
 	}
 	// TODO: sanitize return values, like checking attr != nil
 	resp.attr = attr
@@ -512,12 +512,12 @@ func (m *manager) getPath(req *managerRequest) (resp *managerResponse) {
 	resp = new(managerResponse)
 	h, ok := m.dirHandles[req.fh]
 	if !ok {
-		resp.code = ENOENT
+		resp.status = ENOENT
 		return
 	}
 	path, ok := m.nodes[h.nodeId]
 	if !ok {
-		resp.code = ENOENT
+		resp.status = ENOENT
 		return
 	}
 	resp.path = path
@@ -527,11 +527,11 @@ func (m *manager) getPath(req *managerRequest) (resp *managerResponse) {
 func readDirRoutine(dir string, fs FileSystem, c *managerClient, requests chan *dirRequest) {
 	defer close(requests)
 	dir = path.Clean(dir)
-	names, code := fs.List(dir)
+	names, status := fs.List(dir)
 	i := uint64(0)
 	for req := range requests {
-		if code != OK {
-			req.resp <- &dirResponse{nil, code}
+		if status != OK {
+			req.resp <- &dirResponse{nil, status}
 			return
 		}
 		if req.offset != i {
@@ -545,8 +545,8 @@ func readDirRoutine(dir string, fs FileSystem, c *managerClient, requests chan *
 			entry := new(dirEntry)
 			entry.name = names[i]
 			lookupResp := c.lookup(req.nodeId, entry.name)
-			if lookupResp.code != OK {
-				req.resp <- &dirResponse{nil, lookupResp.code}
+			if lookupResp.status != OK {
+				req.resp <- &dirResponse{nil, lookupResp.status}
 				return
 			}
 			entry.nodeId = lookupResp.nodeId
