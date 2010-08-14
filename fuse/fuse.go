@@ -52,11 +52,11 @@ func loop(f *os.File, fs FileSystem, errors chan os.Error) {
 			break
 		}
 
-		go dispatch(fs, buf[0:n], c, toW, errors)
+		go handle(fs, buf[0:n], c, toW, errors)
 	}
 }
 
-func dispatch(fs FileSystem, in_data []byte, c *managerClient, toW chan [][]byte, errors chan os.Error) {
+func handle(fs FileSystem, in_data []byte, c *managerClient, toW chan [][]byte, errors chan os.Error) {
 	fmt.Printf("in_data: %v\n", in_data)
 	r := bytes.NewBuffer(in_data)
 	h := new(InHeader)
@@ -68,40 +68,39 @@ func dispatch(fs FileSystem, in_data []byte, c *managerClient, toW chan [][]byte
 		errors <- err
 		return
 	}
-	var out [][]byte
+	out := dispatch(fs, h, r, c, errors)
+	if out == nil {
+		fmt.Printf("out is nil")
+		return
+	}
+	fmt.Printf("Sending to writer: %v\n", out)
+	toW <- out
+}
+
+func dispatch(fs FileSystem, h *InHeader, r *bytes.Buffer, c *managerClient, errors chan os.Error) (out [][]byte) {
 	fmt.Printf("Opcode: %v, NodeId: %v, h: %v\n", h.Opcode, h.NodeId, h)
 	switch h.Opcode {
 	case FUSE_INIT:
-		out = initFuse(fs, h, r, c)
+		return initFuse(fs, h, r, c)
 	case FUSE_FORGET:
-		return
+		return nil
 	case FUSE_GETATTR:
-		out = getAttr(fs, h, r, c)
+		return getAttr(fs, h, r, c)
 	case FUSE_GETXATTR:
-		out = getXAttr(h, r, c)
+		return getXAttr(h, r, c)
 	case FUSE_OPENDIR:
-		out = openDir(h, r, c)
+		return openDir(h, r, c)
 	case FUSE_READDIR:
-		out = readDir(h, r, c)
+		return readDir(h, r, c)
 	case FUSE_LOOKUP:
-		out = lookup(h, r, c)
+		return lookup(h, r, c)
 	case FUSE_RELEASEDIR:
-		out = releaseDir(h, r, c)
+		return releaseDir(h, r, c)
 	default:
 		errors <- os.NewError(fmt.Sprintf("Unsupported OpCode: %d", h.Opcode))
-		out = serialize(h, ENOSYS, nil)
+		return serialize(h, ENOSYS, nil)
 	}
-	if err != nil {
-		errors <- err
-		out = serialize(h, EIO, nil)
-	}
-	if out == nil || len(out) == 0 {
-		fmt.Printf("out is empty\n")
-		return
-	}
-
-	fmt.Printf("Sending to writer: %v\n", out)
-	toW <- out
+	return
 }
 
 func serialize(h *InHeader, res Status, out interface{}) (data [][]byte) {
