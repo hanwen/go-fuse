@@ -1,9 +1,12 @@
 package fuse
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"path"
 	"testing"
+	"time"
 )
 
 const (
@@ -16,6 +19,14 @@ func (fs *testFuse) GetAttr(h *InHeader, in *GetAttrIn) (out *AttrOut, code Erro
 	out = new(AttrOut)
 	out.Ino = h.NodeId
 	out.Mode = S_IFDIR
+	return
+}
+
+func (fs *testFuse) Lookup(parent, filename string) (out *Attr, code Error, err os.Error) {
+	fmt.Printf("testFuse.Lookup: %s\n", path.Join(parent, filename))
+	out = new(Attr)
+	out.Mode = S_IFDIR
+	out.Mtime = uint64(time.Seconds())
 	return
 }
 

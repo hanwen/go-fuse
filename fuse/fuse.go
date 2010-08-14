@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 )
 
 const (
@@ -13,6 +14,7 @@ const (
 )
 
 type FileSystem interface {
+	Lookup(parent, filename string) (out *Attr, code Error, err os.Error)
 	GetAttr(h *InHeader, in *GetAttrIn) (out *AttrOut, code Error, err os.Error)
 }
 
@@ -37,7 +39,7 @@ func loop(f *os.File, fs FileSystem, errors chan os.Error) {
 	defer close(toW)
 	go writer(f, toW, errors)
 	managerReq := make(chan *managerRequest, 100)
-	startManager(managerReq)
+	startManager(fs, managerReq)
 	defer close(managerReq)
 	for {
 		n, err := f.Read(buf)
@@ -183,7 +185,7 @@ func openDir(h *InHeader, r io.Reader, mr chan *managerRequest) (data [][]byte, 
 		return
 	}
 	fmt.Printf("FUSE_OPENDIR: %v\n", in)
-	resp := makeManagerRequest(mr, h.NodeId, 0, openDirOp)
+	resp := makeManagerRequest(mr, h.NodeId, 0, openDirOp, "")
 	err = resp.err
 	if err != nil {
 		data, err = serialize(h, EIO, nil)
@@ -204,7 +206,7 @@ func readDir(h *InHeader, r io.Reader, mr chan *managerRequest) (data [][]byte, 
 		return
 	}
 	fmt.Printf("FUSE_READDIR: %v\n", in)
-	resp := makeManagerRequest(mr, h.NodeId, in.Fh, getHandleOp)
+	resp := makeManagerRequest(mr, h.NodeId, in.Fh, getHandleOp, "")
 	err = resp.err
 	if err != nil {
 		data, _ = serialize(h, EIO, nil)
@@ -260,9 +262,18 @@ func readDir(h *InHeader, r io.Reader, mr chan *managerRequest) (data [][]byte, 
 func lookup(h *InHeader, r *bytes.Buffer, mr chan *managerRequest) (data [][]byte, err os.Error) {
 	filename := string(r.Bytes())
 	fmt.Printf("filename: %s\n", filename)
+	resp := makeManagerRequest(mr, h.NodeId, 0, lookupOp, filename)
+	if resp.err != nil {
+		return serialize(h, EIO, nil)
+	}
+	if resp.code != OK {
+		return serialize(h, resp.code, nil)
+	}
 	out := new(EntryOut)
-	out.NodeId = h.NodeId + 1
-	out.Mode = S_IFDIR
+	out.NodeId = resp.nodeId
+	out.Attr = *resp.attr
+	out.AttrValid = 60
+	out.EntryValid = 60
 	res := OK
 	data, err = serialize(h, res, out)
 	return
@@ -276,7 +287,7 @@ func releaseDir(h *InHeader, r io.Reader, mr chan *managerRequest) (data [][]byt
 		return
 	}
 	fmt.Printf("FUSE_RELEASEDIR: %v\n", in)
-	resp := makeManagerRequest(mr, h.NodeId, in.Fh, closeDirOp)
+	resp := makeManagerRequest(mr, h.NodeId, in.Fh, closeDirOp, "")
 	err = resp.err
 	return
 }
@@ -301,6 +312,7 @@ const (
 	openDirOp   = FileOp(1)
 	getHandleOp = FileOp(2)
 	closeDirOp  = FileOp(3)
+	lookupOp    = FileOp(4)
 )
 
 type managerRequest struct {
@@ -308,12 +320,16 @@ type managerRequest struct {
 	fh     uint64
 	op     FileOp
 	resp   chan *managerResponse
+	filename string
 }
 
 type managerResponse struct {
+	nodeId uint64
 	fh     uint64
 	dirReq chan *dirRequest
 	err    os.Error
+	code Error
+	attr *Attr
 }
 
 type dirEntry struct {
@@ -338,19 +354,29 @@ type dirHandle struct {
 }
 
 type manager struct {
+	fs FileSystem
 	dirHandles map[uint64]*dirHandle
 	cnt        uint64
+	nodes map[uint64] string
+	nodesByPath map[string] uint64
+	nodeMax uint64
 }
 
-func startManager(requests chan *managerRequest) {
+func startManager(fs FileSystem, requests chan *managerRequest) {
 	m := new(manager)
+	m.fs = fs
 	m.dirHandles = make(map[uint64]*dirHandle)
+	m.nodes = make(map[uint64]string)
+	m.nodes[1] = "" // Root
+	m.nodeMax = 1
+	m.nodesByPath = make(map[string]uint64)
+	m.nodesByPath[""] = 1
 	go m.run(requests)
 }
 
-func makeManagerRequest(mr chan *managerRequest, nodeId uint64, fh uint64, op FileOp) (resp *managerResponse) {
-	fmt.Printf("makeManagerRequest, nodeId = %d, fh = %d, op = %d\n", nodeId, fh, op)
-	req := &managerRequest{nodeId, fh, op, make(chan *managerResponse, 1)}
+func makeManagerRequest(mr chan *managerRequest, nodeId uint64, fh uint64, op FileOp, filename string) (resp *managerResponse) {
+	fmt.Printf("makeManagerRequest, nodeId = %d, fh = %d, op = %d, filename = %s\n", nodeId, fh, op, filename)
+	req := &managerRequest{nodeId, fh, op, make(chan *managerResponse, 1), filename}
 	mr <- req
 	resp = <-req.resp
 	fmt.Printf("makeManagerRequest, resp: %v\n", resp)
@@ -367,6 +393,8 @@ func (m *manager) run(requests chan *managerRequest) {
 			resp = m.getHandle(req)
 		case closeDirOp:
 			resp = m.closeDir(req)
+		case lookupOp:
+			resp = m.lookup(req)
 		default:
 			resp := new(managerResponse)
 			resp.err = os.NewError(fmt.Sprintf("Unknown FileOp: %v", req.op))
@@ -410,6 +438,35 @@ func (m *manager) closeDir(req *managerRequest) (resp *managerResponse) {
 	}
 	m.dirHandles[h.fh] = nil, false
 	close(h.req)
+	return
+}
+
+func (m *manager) lookup(req *managerRequest) (resp *managerResponse) {
+	resp = new(managerResponse)
+	parent, ok := m.nodes[req.nodeId]
+	if !ok {
+		resp.err = os.NewError(fmt.Sprintf("lookup: can't lookup parent node with id: %d", req.nodeId))
+		return
+	}
+	attr, code, err := m.fs.Lookup(parent, req.filename)
+	if err != nil {
+		resp.err = err
+		return
+	}
+	if code != OK {
+		resp.code = code
+	}
+	resp.attr = attr
+	fullPath := path.Clean(path.Join(parent, req.filename))
+	nodeId, ok := m.nodesByPath[fullPath]
+	if !ok {
+		m.nodeMax++
+		nodeId = m.nodeMax
+		m.nodes[nodeId] = fullPath
+		m.nodesByPath[fullPath] = nodeId
+	}
+
+	resp.nodeId = nodeId
 	return
 }
 
