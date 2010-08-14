@@ -14,6 +14,7 @@ const (
 )
 
 type FileSystem interface {
+	List(parent string) (names []string, code Error, err os.Error)
 	Lookup(parent, filename string) (out *Attr, code Error, err os.Error)
 	GetAttr(h *InHeader, in *GetAttrIn) (out *AttrOut, code Error, err os.Error)
 }
@@ -429,7 +430,12 @@ func (m *manager) openDir(req *managerRequest) (resp *managerResponse) {
 	h.nodeId = req.nodeId
 	h.req = make(chan *dirRequest, 1)
 	m.dirHandles[h.fh] = h
-	go readDirRoutine(m.client, h.req)
+	dir, ok := m.nodes[req.nodeId]
+	if !ok {
+		resp.err = os.NewError(fmt.Sprintf("Can't find an entry with nodeId = %d", req.nodeId))
+		return
+	}
+	go readDirRoutine(dir, m.fs, m.client, h.req)
 	resp.fh = h.fh
 	return
 }
@@ -488,11 +494,20 @@ func (m *manager) lookup(req *managerRequest) (resp *managerResponse) {
 	return
 }
 
-func readDirRoutine(c *managerClient, requests chan *dirRequest) {
+func readDirRoutine(dir string, fs FileSystem, c *managerClient, requests chan *dirRequest) {
 	defer close(requests)
-	dirs := []string { "lala111", "bb", "ddddd" }
+	dir = path.Clean(dir)
+	names, code, err := fs.List(dir)
 	i := uint64(0)
 	for req := range requests {
+		if err != nil {
+			req.resp <- &dirResponse{ nil, err }
+			return
+		}
+		if code != OK {
+			req.resp <- &dirResponse { nil, os.NewError(fmt.Sprintf("fs.List returned code: %d", code))}
+			return
+		}
 		if req.offset != i {
 			fmt.Printf("readDirRoutine: i = %v, changing offset to %v\n", i, req.offset)
 			i = req.offset
@@ -500,9 +515,9 @@ func readDirRoutine(c *managerClient, requests chan *dirRequest) {
 		if req.isClose {
 			return
 		}
-		if i < uint64(len(dirs)) {
+		if i < uint64(len(names)) {
 			entry := new(dirEntry)
-			entry.name = dirs[i]
+			entry.name = names[i]
 			lookupResp := c.lookup(req.nodeId, entry.name)
 			if lookupResp.err != nil {
 				req.resp <- &dirResponse { nil, lookupResp.err }

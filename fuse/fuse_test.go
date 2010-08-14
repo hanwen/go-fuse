@@ -30,6 +30,11 @@ func (fs *testFuse) Lookup(parent, filename string) (out *Attr, code Error, err 
 	return
 }
 
+func (fs *testFuse) List(dir string) (names []string, code Error, err os.Error) {
+	names = []string { "a1", "b2", "caaaaa" }
+	return
+}
+
 func errorHandler(errors chan os.Error) {
 	for err := range errors {
 		log.Stderr("MountPoint.errorHandler: ", err)
