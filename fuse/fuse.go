@@ -40,6 +40,7 @@ func loop(f *os.File, fs FileSystem, errors chan os.Error) {
 	go writer(f, toW, errors)
 	managerReq := make(chan *managerRequest, 100)
 	startManager(fs, managerReq)
+	c := &managerClient{ managerReq }
 	defer close(managerReq)
 	for {
 		n, err := f.Read(buf)
@@ -51,11 +52,11 @@ func loop(f *os.File, fs FileSystem, errors chan os.Error) {
 			break
 		}
 
-		go dispatch(fs, buf[0:n], managerReq, toW, errors)
+		go dispatch(fs, buf[0:n], c, toW, errors)
 	}
 }
 
-func dispatch(fs FileSystem, in_data []byte, mr chan *managerRequest, toW chan [][]byte, errors chan os.Error) {
+func dispatch(fs FileSystem, in_data []byte, c *managerClient, toW chan [][]byte, errors chan os.Error) {
 	fmt.Printf("in_data: %v\n", in_data)
 	r := bytes.NewBuffer(in_data)
 	h := new(InHeader)
@@ -71,21 +72,21 @@ func dispatch(fs FileSystem, in_data []byte, mr chan *managerRequest, toW chan [
 	fmt.Printf("Opcode: %v, NodeId: %v, h: %v\n", h.Opcode, h.NodeId, h)
 	switch h.Opcode {
 	case FUSE_INIT:
-		out, err = initFuse(fs, h, r, mr)
+		out, err = initFuse(fs, h, r, c)
 	case FUSE_FORGET:
 		return
 	case FUSE_GETATTR:
-		out, err = getAttr(fs, h, r, mr)
+		out, err = getAttr(fs, h, r, c)
 	case FUSE_GETXATTR:
-		out, err = getXAttr(h, r, mr)
+		out, err = getXAttr(h, r, c)
 	case FUSE_OPENDIR:
-		out, err = openDir(h, r, mr)
+		out, err = openDir(h, r, c)
 	case FUSE_READDIR:
-		out, err = readDir(h, r, mr)
+		out, err = readDir(h, r, c)
 	case FUSE_LOOKUP:
-		out, err = lookup(h, r, mr)
+		out, err = lookup(h, r, c)
 	case FUSE_RELEASEDIR:
-		out, err = releaseDir(h, r, mr)
+		out, err = releaseDir(h, r, c)
 	default:
 		errors <- os.NewError(fmt.Sprintf("Unsupported OpCode: %d", h.Opcode))
 		out, err = serialize(h, EIO, nil)
@@ -132,7 +133,7 @@ func serialize(h *InHeader, res Error, out interface{}) (data [][]byte, err os.E
 	return
 }
 
-func initFuse(fs FileSystem, h *InHeader, r io.Reader, mr chan *managerRequest) (data [][]byte, err os.Error) {
+func initFuse(fs FileSystem, h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.Error) {
 	in := new(InitIn)
 	err = binary.Read(r, binary.LittleEndian, in)
 	if err != nil {
@@ -156,7 +157,7 @@ func initFuse(fs FileSystem, h *InHeader, r io.Reader, mr chan *managerRequest) 
 	return serialize(h, OK, out)
 }
 
-func getAttr(fs FileSystem, h *InHeader, r io.Reader, mr chan *managerRequest) (data [][]byte, err os.Error) {
+func getAttr(fs FileSystem, h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.Error) {
 	in := new(GetAttrIn)
 	err = binary.Read(r, binary.LittleEndian, in)
 	if err != nil {
@@ -172,13 +173,13 @@ func getAttr(fs FileSystem, h *InHeader, r io.Reader, mr chan *managerRequest) (
 	return
 }
 
-func getXAttr(h *InHeader, r io.Reader, mr chan *managerRequest) (data [][]byte, err os.Error) {
+func getXAttr(h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.Error) {
 	out := new(GetXAttrOut)
 	data, err = serialize(h, OK, out)
 	return
 }
 
-func openDir(h *InHeader, r io.Reader, mr chan *managerRequest) (data [][]byte, err os.Error) {
+func openDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.Error) {
 	in := new(OpenIn)
 	err = binary.Read(r, binary.LittleEndian, in)
 	if err != nil {
@@ -186,7 +187,7 @@ func openDir(h *InHeader, r io.Reader, mr chan *managerRequest) (data [][]byte, 
 		return
 	}
 	fmt.Printf("FUSE_OPENDIR: %v\n", in)
-	resp := makeManagerRequest(mr, h.NodeId, 0, openDirOp, "")
+	resp := c.makeManagerRequest(h.NodeId, 0, openDirOp, "")
 	err = resp.err
 	if err != nil {
 		data, err = serialize(h, EIO, nil)
@@ -199,7 +200,7 @@ func openDir(h *InHeader, r io.Reader, mr chan *managerRequest) (data [][]byte, 
 	return
 }
 
-func readDir(h *InHeader, r io.Reader, mr chan *managerRequest) (data [][]byte, err os.Error) {
+func readDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.Error) {
 	in := new(ReadIn)
 	err = binary.Read(r, binary.LittleEndian, in)
 	if err != nil {
@@ -207,7 +208,7 @@ func readDir(h *InHeader, r io.Reader, mr chan *managerRequest) (data [][]byte, 
 		return
 	}
 	fmt.Printf("FUSE_READDIR: %v\n", in)
-	resp := makeManagerRequest(mr, h.NodeId, in.Fh, getHandleOp, "")
+	resp := c.makeManagerRequest(h.NodeId, in.Fh, getHandleOp, "")
 	err = resp.err
 	if err != nil {
 		data, _ = serialize(h, EIO, nil)
@@ -238,7 +239,7 @@ func readDir(h *InHeader, r io.Reader, mr chan *managerRequest) (data [][]byte, 
 		off++
 		dirent := new(Dirent)
 		dirent.Off = off
-		dirent.Ino = h.NodeId + off
+		dirent.Ino = entry.nodeId
 		dirent.NameLen = uint32(len(entry.name))
 		dirent.Typ = (entry.mode & 0170000) >> 12
 		err = binary.Write(buf, binary.LittleEndian, dirent)
@@ -247,8 +248,8 @@ func readDir(h *InHeader, r io.Reader, mr chan *managerRequest) (data [][]byte, 
 			os.Exit(1)
 		}
 		buf.Write([]byte(entry.name))
-		buf.WriteByte(0) // padding?
-		n := (len(entry.name) + 1) % 8
+		buf.WriteByte(0)
+		n := (len(entry.name) + 1) % 8 // padding
 		if n != 0 {
 			buf.Write(make([]byte, 8-n))
 		}
@@ -260,10 +261,10 @@ func readDir(h *InHeader, r io.Reader, mr chan *managerRequest) (data [][]byte, 
 	return
 }
 
-func lookup(h *InHeader, r *bytes.Buffer, mr chan *managerRequest) (data [][]byte, err os.Error) {
+func lookup(h *InHeader, r *bytes.Buffer, c *managerClient) (data [][]byte, err os.Error) {
 	filename := string(r.Bytes())
 	fmt.Printf("filename: %s\n", filename)
-	resp := makeManagerRequest(mr, h.NodeId, 0, lookupOp, filename)
+	resp := c.makeManagerRequest(h.NodeId, 0, lookupOp, filename)
 	if resp.err != nil {
 		return serialize(h, EIO, nil)
 	}
@@ -280,7 +281,7 @@ func lookup(h *InHeader, r *bytes.Buffer, mr chan *managerRequest) (data [][]byt
 	return
 }
 
-func releaseDir(h *InHeader, r io.Reader, mr chan *managerRequest) (data [][]byte, err os.Error) {
+func releaseDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.Error) {
 	in := new(ReleaseIn)
 	err = binary.Read(r, binary.LittleEndian, in)
 	if err != nil {
@@ -288,7 +289,7 @@ func releaseDir(h *InHeader, r io.Reader, mr chan *managerRequest) (data [][]byt
 		return
 	}
 	fmt.Printf("FUSE_RELEASEDIR: %v\n", in)
-	resp := makeManagerRequest(mr, h.NodeId, in.Fh, closeDirOp, "")
+	resp := c.makeManagerRequest(h.NodeId, in.Fh, closeDirOp, "")
 	err = resp.err
 	if err != nil {
 		return
@@ -337,6 +338,7 @@ type managerResponse struct {
 }
 
 type dirEntry struct {
+	nodeId uint64
 	name string
 	mode uint32
 }
@@ -379,10 +381,14 @@ func startManager(fs FileSystem, requests chan *managerRequest) {
 	go m.run(requests)
 }
 
-func makeManagerRequest(mr chan *managerRequest, nodeId uint64, fh uint64, op FileOp, filename string) (resp *managerResponse) {
+type managerClient struct {
+	requests chan *managerRequest
+}
+
+func (c *managerClient) makeManagerRequest(nodeId uint64, fh uint64, op FileOp, filename string) (resp *managerResponse) {
 	fmt.Printf("makeManagerRequest, nodeId = %d, fh = %d, op = %d, filename = %s\n", nodeId, fh, op, filename)
 	req := &managerRequest{nodeId, fh, op, make(chan *managerResponse, 1), filename}
-	mr <- req
+	c.requests <- req
 	resp = <-req.resp
 	fmt.Printf("makeManagerRequest, resp: %v\n", resp)
 	return
@@ -477,11 +483,7 @@ func (m *manager) lookup(req *managerRequest) (resp *managerResponse) {
 
 func readDirRoutine(requests chan *dirRequest) {
 	defer close(requests)
-	entries := []*dirEntry{
-		&dirEntry{"lala111", S_IFDIR},
-		&dirEntry{"bb", S_IFDIR},
-		&dirEntry{"ddddd", S_IFDIR},
-	}
+	dirs := []string { "lala111", "bb", "ddddd" }
 	i := uint64(0)
 	for req := range requests {
 		if req.offset != i {
@@ -491,8 +493,12 @@ func readDirRoutine(requests chan *dirRequest) {
 		if req.isClose {
 			return
 		}
-		if i < uint64(len(entries)) {
-			req.resp <- &dirResponse{[]*dirEntry{entries[i]}, nil}
+		if i < uint64(len(dirs)) {
+			entry := new(dirEntry)
+			entry.nodeId = 2 + i // hack. Almost always is incorrect
+			entry.mode = S_IFDIR
+			entry.name = dirs[i]
+			req.resp <- &dirResponse{[]*dirEntry{entry}, nil}
 			i++
 		} else {
 			req.resp <- &dirResponse{nil, nil}
