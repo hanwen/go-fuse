@@ -20,7 +20,7 @@ var (
 
 type testFuse struct{}
 
-func (fs *testFuse) GetAttr(path string, id *Identity, flags uint32) (out *AttrOut, code Status) {
+func (fs *testFuse) GetAttr(path string, id *Identity) (out *AttrOut, code Status) {
 	out = new(AttrOut)
 	out.Mode = S_IFDIR
 	return

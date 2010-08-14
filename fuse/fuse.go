@@ -16,7 +16,7 @@ const (
 type FileSystem interface {
 	List(parent string) (names []string, code Status)
 	Lookup(parent, filename string) (out *Attr, code Status)
-	GetAttr(path string, id *Identity, flags uint32) (out *AttrOut, code Status)
+	GetAttr(path string, id *Identity) (out *AttrOut, code Status)
 }
 
 type Mounted interface {
@@ -174,7 +174,7 @@ func getAttr(fs FileSystem, h *InHeader, r io.Reader, c *managerClient) (data []
 	if resp.code != OK {
 		return serialize(h, resp.code, nil)
 	}
-	out, res := fs.GetAttr(resp.path, &h.Identity, in.GetAttrFlags)
+	out, res := fs.GetAttr(resp.path, &h.Identity)
 	if res != OK {
 		return serialize(h, res, nil)
 	}
