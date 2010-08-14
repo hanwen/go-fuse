@@ -5,12 +5,16 @@ import (
 	"log"
 	"os"
 	"path"
+	"strings"
 	"testing"
 	"time"
 )
 
 const (
 	tempMountDir = "./.testMountDir"
+)
+var (
+	testFileNames = []string { "one", "two", "three3" }
 )
 
 type testFuse struct{}
@@ -31,7 +35,7 @@ func (fs *testFuse) Lookup(parent, filename string) (out *Attr, code Error, err 
 }
 
 func (fs *testFuse) List(dir string) (names []string, code Error, err os.Error) {
-	names = []string { "a1", "b2", "caaaaa" }
+	names = testFileNames
 	return
 }
 
@@ -63,9 +67,26 @@ func TestMount(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't mount a dir, err: %v", err)
 	}
-	errorHandler(errors)
-	err = m.Unmount()
+	defer func() {
+		err := m.Unmount()
+		if err != nil {
+			t.Fatalf("Can't unmount a dir, err: %v", err)
+		}
+	}()
+	go errorHandler(errors)
+	f, err := os.Open(tempMountDir, os.O_RDONLY, 0)
 	if err != nil {
-		t.Fatalf("Can't unmount a dir, err: %v", err)
+		t.Fatalf("Can't open a dir: %s, err: %v", tempMountDir, err)
+	}
+	defer f.Close()
+	names, err := f.Readdirnames(10)
+	if err != nil {
+		t.Fatalf("Can't ls a dir: %s, err: %v", tempMountDir, err)
+	}
+	has := strings.Join(names, ", ")
+	wanted := strings.Join(testFileNames, ", ")
+	if has != wanted {
+		t.Errorf("Ls returned wrong results, has: [%s], wanted: [%s]", has, wanted)
+		return
 	}
 }
