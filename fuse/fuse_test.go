@@ -13,15 +13,15 @@ import (
 const (
 	tempMountDir = "./.testMountDir"
 )
+
 var (
-	testFileNames = []string { "one", "two", "three3" }
+	testFileNames = []string{"one", "two", "three3"}
 )
 
 type testFuse struct{}
 
-func (fs *testFuse) GetAttr(h *InHeader, in *GetAttrIn) (out *AttrOut, code Error, err os.Error) {
+func (fs *testFuse) GetAttr(path string, id *Identity, flags uint32) (out *AttrOut, code Error, err os.Error) {
 	out = new(AttrOut)
-	out.Ino = h.NodeId
 	out.Mode = S_IFDIR
 	return
 }

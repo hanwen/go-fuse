@@ -16,7 +16,7 @@ const (
 type FileSystem interface {
 	List(parent string) (names []string, code Error, err os.Error)
 	Lookup(parent, filename string) (out *Attr, code Error, err os.Error)
-	GetAttr(h *InHeader, in *GetAttrIn) (out *AttrOut, code Error, err os.Error)
+	GetAttr(path string, id *Identity, flags uint32) (out *AttrOut, code Error, err os.Error)
 }
 
 type Mounted interface {
@@ -41,7 +41,7 @@ func loop(f *os.File, fs FileSystem, errors chan os.Error) {
 	go writer(f, toW, errors)
 	managerReq := make(chan *managerRequest, 100)
 	startManager(fs, managerReq)
-	c := &managerClient{ managerReq }
+	c := &managerClient{managerReq}
 	defer close(managerReq)
 	for {
 		n, err := f.Read(buf)
@@ -166,9 +166,20 @@ func getAttr(fs FileSystem, h *InHeader, r io.Reader, c *managerClient) (data []
 	}
 	fmt.Printf("FUSE_GETATTR: %v, Fh: %d\n", in, in.Fh)
 	var out *AttrOut
-	out, res, err := fs.GetAttr(h, in)
+	resp := c.getPath(in.Fh)
+	if resp.err != nil {
+		err = resp.err
+		return
+	}
+	if resp.code != OK {
+		return serialize(h, resp.code, nil)
+	}
+	out, res, err := fs.GetAttr(resp.path, &h.Identity, in.GetAttrFlags)
 	if err != nil {
 		return
+	}
+	if out != nil {
+		out.Ino = h.NodeId
 	}
 	data, err = serialize(h, res, out)
 	return
@@ -319,6 +330,7 @@ const (
 	getHandleOp = FileOp(2)
 	closeDirOp  = FileOp(3)
 	lookupOp    = FileOp(4)
+	getPathOp   = FileOp(5)
 )
 
 type managerRequest struct {
@@ -336,17 +348,18 @@ type managerResponse struct {
 	err    os.Error
 	code   Error
 	attr   *Attr
+	path   string
 }
 
 type dirEntry struct {
 	nodeId uint64
-	name string
-	mode uint32
+	name   string
+	mode   uint32
 }
 
 type dirRequest struct {
 	isClose bool
-	nodeId uint64
+	nodeId  uint64
 	offset  uint64
 	resp    chan *dirResponse
 }
@@ -364,7 +377,7 @@ type dirHandle struct {
 
 type manager struct {
 	fs          FileSystem
-	client *managerClient
+	client      *managerClient
 	dirHandles  map[uint64]*dirHandle
 	cnt         uint64
 	nodes       map[uint64]string
@@ -375,7 +388,7 @@ type manager struct {
 func startManager(fs FileSystem, requests chan *managerRequest) {
 	m := new(manager)
 	m.fs = fs
-	m.client = &managerClient { requests }
+	m.client = &managerClient{requests}
 	m.dirHandles = make(map[uint64]*dirHandle)
 	m.nodes = make(map[uint64]string)
 	m.nodes[1] = "" // Root
@@ -410,6 +423,10 @@ func (c *managerClient) getDirReader(nodeId, fh uint64) (resp *managerResponse) 
 	return c.makeManagerRequest(nodeId, fh, getHandleOp, "")
 }
 
+func (c *managerClient) getPath(fh uint64) (resp *managerResponse) {
+	return c.makeManagerRequest(0, fh, getPathOp, "")
+}
+
 func (c *managerClient) closeDir(nodeId, fh uint64) (resp *managerResponse) {
 	return c.makeManagerRequest(nodeId, fh, closeDirOp, "")
 }
@@ -426,6 +443,8 @@ func (m *manager) run(requests chan *managerRequest) {
 			resp = m.closeDir(req)
 		case lookupOp:
 			resp = m.lookup(req)
+		case getPathOp:
+			resp = m.getPath(req)
 		default:
 			resp := new(managerResponse)
 			resp.err = os.NewError(fmt.Sprintf("Unknown FileOp: %v", req.op))
@@ -506,6 +525,22 @@ func (m *manager) lookup(req *managerRequest) (resp *managerResponse) {
 	return
 }
 
+func (m *manager) getPath(req *managerRequest) (resp *managerResponse) {
+	resp = new(managerResponse)
+	h, ok := m.dirHandles[req.fh]
+	if !ok {
+		resp.err = os.NewError(fmt.Sprintf("Can't find fh: %d", req.fh))
+		return
+	}
+	path, ok := m.nodes[h.nodeId]
+	if !ok {
+		resp.err = os.NewError(fmt.Sprintf("Fh = %d points to unknown nodeId: %d", req.fh, h.nodeId))
+		return
+	}
+	resp.path = path
+	return
+}
+
 func readDirRoutine(dir string, fs FileSystem, c *managerClient, requests chan *dirRequest) {
 	defer close(requests)
 	dir = path.Clean(dir)
@@ -513,11 +548,11 @@ func readDirRoutine(dir string, fs FileSystem, c *managerClient, requests chan *
 	i := uint64(0)
 	for req := range requests {
 		if err != nil {
-			req.resp <- &dirResponse{ nil, err }
+			req.resp <- &dirResponse{nil, err}
 			return
 		}
 		if code != OK {
-			req.resp <- &dirResponse { nil, os.NewError(fmt.Sprintf("fs.List returned code: %d", code))}
+			req.resp <- &dirResponse{nil, os.NewError(fmt.Sprintf("fs.List returned code: %d", code))}
 			return
 		}
 		if req.offset != i {
@@ -532,7 +567,7 @@ func readDirRoutine(dir string, fs FileSystem, c *managerClient, requests chan *
 			entry.name = names[i]
 			lookupResp := c.lookup(req.nodeId, entry.name)
 			if lookupResp.err != nil {
-				req.resp <- &dirResponse { nil, lookupResp.err }
+				req.resp <- &dirResponse{nil, lookupResp.err}
 				return
 			}
 			entry.nodeId = lookupResp.nodeId
