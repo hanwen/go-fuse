@@ -159,7 +159,7 @@ func getAttr(fs FileSystem, h *InHeader, r io.Reader, mr chan *managerRequest) (
 	if err != nil {
 		return
 	}
-	fmt.Printf("FUSE_GETATTR: %v\n", in)
+	fmt.Printf("FUSE_GETATTR: %v, Fh: %d\n", in, in.Fh)
 	var out *AttrOut
 	out, res, err := fs.GetAttr(h, in)
 	if err != nil {
