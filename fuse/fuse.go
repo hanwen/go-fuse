@@ -72,28 +72,28 @@ func dispatch(fs FileSystem, in_data []byte, c *managerClient, toW chan [][]byte
 	fmt.Printf("Opcode: %v, NodeId: %v, h: %v\n", h.Opcode, h.NodeId, h)
 	switch h.Opcode {
 	case FUSE_INIT:
-		out, err = initFuse(fs, h, r, c)
+		out = initFuse(fs, h, r, c)
 	case FUSE_FORGET:
 		return
 	case FUSE_GETATTR:
-		out, err = getAttr(fs, h, r, c)
+		out = getAttr(fs, h, r, c)
 	case FUSE_GETXATTR:
-		out, err = getXAttr(h, r, c)
+		out = getXAttr(h, r, c)
 	case FUSE_OPENDIR:
-		out, err = openDir(h, r, c)
+		out = openDir(h, r, c)
 	case FUSE_READDIR:
-		out, err = readDir(h, r, c)
+		out = readDir(h, r, c)
 	case FUSE_LOOKUP:
-		out, err = lookup(h, r, c)
+		out = lookup(h, r, c)
 	case FUSE_RELEASEDIR:
-		out, err = releaseDir(h, r, c)
+		out = releaseDir(h, r, c)
 	default:
 		errors <- os.NewError(fmt.Sprintf("Unsupported OpCode: %d", h.Opcode))
-		out, err = serialize(h, ENOSYS, nil)
+		out = serialize(h, ENOSYS, nil)
 	}
 	if err != nil {
 		errors <- err
-		out, err = serialize(h, EIO, nil)
+		out = serialize(h, EIO, nil)
 	}
 	if out == nil || len(out) == 0 {
 		fmt.Printf("out is empty\n")
@@ -104,18 +104,17 @@ func dispatch(fs FileSystem, in_data []byte, c *managerClient, toW chan [][]byte
 	toW <- out
 }
 
-func serialize(h *InHeader, res Status, out interface{}) (data [][]byte, err os.Error) {
+func serialize(h *InHeader, res Status, out interface{}) (data [][]byte) {
 	b := new(bytes.Buffer)
 	out_data := make([]byte, 0)
 	fmt.Printf("OpCode: %v result: %v\n", h.Opcode, res)
 	if out != nil && res == OK {
 		fmt.Printf("out = %v, out == nil: %v\n", out, out == nil)
-		err = binary.Write(b, binary.LittleEndian, out)
+		err := binary.Write(b, binary.LittleEndian, out)
 		if err == nil {
 			out_data = b.Bytes()
 		} else {
-			err = os.NewError(fmt.Sprintf("Can serialize out: %v", err))
-			return
+			panic(fmt.Sprintf("Can't serialize out: %v, err: %v", out, err))
 		}
 	}
 	fmt.Printf("out_data: %v, len(out_data): %d, SizeOfOutHeader: %d\n", out_data, len(out_data), SizeOfOutHeader)
@@ -124,20 +123,20 @@ func serialize(h *InHeader, res Status, out interface{}) (data [][]byte, err os.
 	hout.Status = res
 	hout.Length = uint32(len(out_data) + SizeOfOutHeader)
 	b = new(bytes.Buffer)
-	err = binary.Write(b, binary.LittleEndian, &hout)
+	err := binary.Write(b, binary.LittleEndian, &hout)
 	if err != nil {
-		return
+		panic("Can't serialize OutHeader")
 	}
 	_, _ = b.Write(out_data)
 	data = [][]byte{b.Bytes()}
 	return
 }
 
-func initFuse(fs FileSystem, h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.Error) {
+func initFuse(fs FileSystem, h *InHeader, r io.Reader, c *managerClient) (data [][]byte) {
 	in := new(InitIn)
-	err = binary.Read(r, binary.LittleEndian, in)
+	err := binary.Read(r, binary.LittleEndian, in)
 	if err != nil {
-		return
+		return serialize(h, EIO, nil)
 	}
 	fmt.Printf("in: %v\n", in)
 	if in.Major != FUSE_KERNEL_VERSION {
@@ -157,11 +156,11 @@ func initFuse(fs FileSystem, h *InHeader, r io.Reader, c *managerClient) (data [
 	return serialize(h, OK, out)
 }
 
-func getAttr(fs FileSystem, h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.Error) {
+func getAttr(fs FileSystem, h *InHeader, r io.Reader, c *managerClient) (data [][]byte) {
 	in := new(GetAttrIn)
-	err = binary.Read(r, binary.LittleEndian, in)
+	err := binary.Read(r, binary.LittleEndian, in)
 	if err != nil {
-		return
+		return serialize(h, EIO, nil)
 	}
 	fmt.Printf("FUSE_GETATTR: %v, Fh: %d\n", in, in.Fh)
 	out := new(AttrOut)
@@ -176,26 +175,22 @@ func getAttr(fs FileSystem, h *InHeader, r io.Reader, c *managerClient) (data []
 	if attr != nil {
 		out.Attr = *attr
 	} else {
-		err = os.NewError("fs.GetAttr returned nil as an Attr")
-		return
+		return serialize(h, EIO, nil)
 	}
 	out.Ino = h.NodeId
-	data, err = serialize(h, res, out)
-	return
+	return serialize(h, res, out)
 }
 
-func getXAttr(h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.Error) {
+func getXAttr(h *InHeader, r io.Reader, c *managerClient) (data [][]byte) {
 	out := new(GetXAttrOut)
-	data, err = serialize(h, OK, out)
-	return
+	return serialize(h, OK, out)
 }
 
-func openDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.Error) {
+func openDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte) {
 	in := new(OpenIn)
-	err = binary.Read(r, binary.LittleEndian, in)
+	err := binary.Read(r, binary.LittleEndian, in)
 	if err != nil {
-		data, _ = serialize(h, EIO, nil)
-		return
+		return serialize(h, EIO, nil)
 	}
 	fmt.Printf("FUSE_OPENDIR: %v\n", in)
 	resp := c.openDir(h.NodeId)
@@ -204,16 +199,14 @@ func openDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.
 	}
 	out := new(OpenOut)
 	out.Fh = resp.fh
-	data, err = serialize(h, OK, out)
-	return
+	return serialize(h, OK, out)
 }
 
-func readDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.Error) {
+func readDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte) {
 	in := new(ReadIn)
-	err = binary.Read(r, binary.LittleEndian, in)
+	err := binary.Read(r, binary.LittleEndian, in)
 	if err != nil {
-		data, _ = serialize(h, EIO, nil)
-		return
+		return serialize(h, EIO, nil)
 	}
 	fmt.Printf("FUSE_READDIR: %v\n", in)
 	resp := c.getDirReader(h.NodeId, in.Fh)
@@ -227,16 +220,12 @@ func readDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.
 	dirResp := <-dirRespChan
 	fmt.Printf("received %v\n", dirResp)
 	if dirResp.status != OK {
-		data, _ = serialize(h, dirResp.status, nil)
-		return
+		return serialize(h, dirResp.status, nil)
 	}
 	if dirResp.entries == nil {
-		fmt.Printf("No entries\n")
-		data, err = serialize(h, OK, nil)
-		return
+		return serialize(h, OK, nil)
 	}
 
-	fmt.Printf("len(dirResp.entries): %v\n", len(dirResp.entries))
 	buf := new(bytes.Buffer)
 	off := in.Offset
 	for _, entry := range dirResp.entries {
@@ -248,8 +237,7 @@ func readDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.
 		dirent.Typ = (entry.mode & 0170000) >> 12
 		err = binary.Write(buf, binary.LittleEndian, dirent)
 		if err != nil {
-			fmt.Printf("AAA!!! binary.Write failed\n")
-			os.Exit(1)
+			panic("Serialization of Dirent failed")
 		}
 		buf.Write([]byte(entry.name))
 		buf.WriteByte(0)
@@ -259,13 +247,10 @@ func readDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.
 		}
 	}
 	out := buf.Bytes()
-	fmt.Printf("out: %v\n", out)
-	res := OK
-	data, err = serialize(h, res, out)
-	return
+	return serialize(h, OK, out)
 }
 
-func lookup(h *InHeader, r *bytes.Buffer, c *managerClient) (data [][]byte, err os.Error) {
+func lookup(h *InHeader, r *bytes.Buffer, c *managerClient) (data [][]byte) {
 	filename := string(r.Bytes())
 	fmt.Printf("filename: %s\n", filename)
 	resp := c.lookup(h.NodeId, filename)
@@ -277,17 +262,14 @@ func lookup(h *InHeader, r *bytes.Buffer, c *managerClient) (data [][]byte, err 
 	out.Attr = *resp.attr
 	out.AttrValid = 60
 	out.EntryValid = 60
-	res := OK
-	data, err = serialize(h, res, out)
-	return
+	return serialize(h, OK, out)
 }
 
-func releaseDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte, err os.Error) {
+func releaseDir(h *InHeader, r io.Reader, c *managerClient) (data [][]byte) {
 	in := new(ReleaseIn)
-	err = binary.Read(r, binary.LittleEndian, in)
+	err := binary.Read(r, binary.LittleEndian, in)
 	if err != nil {
-		data, err = serialize(h, EIO, nil)
-		return
+		return serialize(h, EIO, nil)
 	}
 	fmt.Printf("FUSE_RELEASEDIR: %v\n", in)
 	resp := c.closeDir(h.NodeId, in.Fh)
@@ -333,7 +315,7 @@ type managerResponse struct {
 	nodeId uint64
 	fh     uint64
 	dirReq chan *dirRequest
-	status   Status
+	status Status
 	attr   *Attr
 	path   string
 }
