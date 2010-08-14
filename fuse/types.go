@@ -209,11 +209,20 @@ type Attr struct {
 	Ctimensec uint32
 	Mode      uint32
 	Nlink     uint32
-	Uid       uint32
-	Gid       uint32
-	Rdev      uint32
-	Blksize   uint32
-	Padding   uint32
+	Owner
+	Rdev    uint32
+	Blksize uint32
+	Padding uint32
+}
+
+type Owner struct {
+	Uid uint32
+	Gid uint32
+}
+
+type Identity struct {
+	Owner
+	Pid uint32
 }
 
 type Kstatfs struct {
@@ -298,9 +307,8 @@ type SetAttrIn struct {
 	Unused3   uint32
 	Mode      uint32
 	Unused4   uint32
-	Uid       uint32
-	Gid       uint32
-	Unused5   uint32
+	Owner
+	Unused5 uint32
 }
 
 type OpenIn struct {
@@ -316,16 +324,16 @@ type CreateIn struct {
 }
 
 type OpenOut struct {
-	Fh         uint64
+	Fh        uint64
 	OpenFlags uint32
-	Padding    uint32
+	Padding   uint32
 }
 
 type ReleaseIn struct {
-	Fh            uint64
-	Flags         uint32
+	Fh           uint64
+	Flags        uint32
 	ReleaseFlags uint32
-	LockOwner     uint64
+	LockOwner    uint64
 }
 
 type FlushIn struct {
@@ -336,24 +344,24 @@ type FlushIn struct {
 }
 
 type ReadIn struct {
-	Fh         uint64
-	Offset     uint64
-	Size       uint32
+	Fh        uint64
+	Offset    uint64
+	Size      uint32
 	ReadFlags uint32
-	LockOwner  uint64
-	Flags      uint32
-	Padding    uint32
+	LockOwner uint64
+	Flags     uint32
+	Padding   uint32
 }
 
 
 type WriteIn struct {
-	Fh          uint64
-	Offset      uint64
-	Size        uint32
+	Fh         uint64
+	Offset     uint64
+	Size       uint32
 	WriteFlags uint32
-	LockOwner   uint64
-	Flags       uint32
-	Padding     uint32
+	LockOwner  uint64
+	Flags      uint32
+	Padding    uint32
 }
 
 type WriteOut struct {
@@ -367,9 +375,9 @@ type StatfsOut struct {
 }
 
 type FsyncIn struct {
-	Fh          uint64
+	Fh         uint64
 	FsyncFlags uint32
-	Padding     uint32
+	Padding    uint32
 }
 
 type SetXAttrIn struct {
@@ -388,11 +396,11 @@ type GetXAttrOut struct {
 }
 
 type LkIn struct {
-	Fh       uint64
-	Owner    uint64
-	Lk       FileLock
+	Fh      uint64
+	Owner   uint64
+	Lk      FileLock
 	LkFlags uint32
-	Padding  uint32
+	Padding uint32
 }
 
 type LkOut struct {
@@ -433,7 +441,7 @@ type CuseInitOut struct {
 	Minor    uint32
 	Unused   uint32
 	Flags    uint32
-	MaxRead uint32
+	MaxRead  uint32
 	MaxWrite uint32
 	DevMajor uint32 /* chardev major */
 	DevMinor uint32 /* chardev minor */
@@ -487,13 +495,11 @@ type NotifyPollWakeupOut struct {
 }
 
 type InHeader struct {
-	Length  uint32
-	Opcode  uint32
-	Unique  uint64
-	NodeId  uint64
-	Uid     uint32
-	Gid     uint32
-	Pid     uint32
+	Length uint32
+	Opcode uint32
+	Unique uint64
+	NodeId uint64
+	Identity
 	Padding uint32
 }
 
