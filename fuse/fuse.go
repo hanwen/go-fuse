@@ -89,7 +89,7 @@ func dispatch(fs FileSystem, in_data []byte, c *managerClient, toW chan [][]byte
 		out, err = releaseDir(h, r, c)
 	default:
 		errors <- os.NewError(fmt.Sprintf("Unsupported OpCode: %d", h.Opcode))
-		out, err = serialize(h, EIO, nil)
+		out, err = serialize(h, ENOSYS, nil)
 	}
 	if err != nil {
 		errors <- err
