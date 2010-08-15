@@ -14,7 +14,7 @@ const (
 
 type FileSystem interface {
 	List(parent string) (names []string, status Status)
-	GetAttr(path string) (out *Attr, status Status)
+	GetAttr(path string) (out Attr, status Status)
 }
 
 type Mounted interface {
@@ -187,11 +187,7 @@ func getAttr(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (int
 	if res != OK {
 		return nil, res
 	}
-	if attr != nil {
-		out.Attr = *attr
-	} else {
-		return nil, EIO
-	}
+	out.Attr = attr
 	out.Ino = h.NodeId
 	return out, OK
 }
@@ -266,7 +262,7 @@ func lookup(h *InHeader, r *bytes.Buffer, c *managerClient) (interface{}, Status
 	}
 	out := new(EntryOut)
 	out.NodeId = resp.nodeId
-	out.Attr = *resp.attr
+	out.Attr = resp.attr
 	out.AttrValid = 60
 	out.EntryValid = 60
 	return out, OK
@@ -319,7 +315,7 @@ type managerResponse struct {
 	fh     uint64
 	dirReq chan *dirRequest
 	status Status
-	attr   *Attr
+	attr   Attr
 	path   string
 }
 
@@ -478,7 +474,6 @@ func (m *manager) lookup(req *managerRequest) (resp *managerResponse) {
 	if status != OK {
 		resp.status = status
 	}
-	// TODO: sanitize return values, like checking attr != nil
 	resp.attr = attr
 	fullPath := path.Clean(path.Join(parent, req.filename))
 	nodeId, ok := m.nodesByPath[fullPath]

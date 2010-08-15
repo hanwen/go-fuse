@@ -18,8 +18,7 @@ var (
 
 type testFuse struct{}
 
-func (fs *testFuse) GetAttr(path string) (out *Attr, code Status) {
-	out = new(Attr)
+func (fs *testFuse) GetAttr(path string) (out Attr, code Status) {
 	out.Mode = S_IFDIR
 	out.Mtime = uint64(time.Seconds())
 	return
