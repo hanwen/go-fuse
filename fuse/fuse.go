@@ -179,7 +179,7 @@ func getAttr(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (int
 	in := ing.(*GetAttrIn)
 	fmt.Printf("FUSE_GETATTR: %v, Fh: %d\n", in, in.Fh)
 	out := new(AttrOut)
-	resp := c.getPath(in.Fh)
+	resp := c.getPath(h.NodeId)
 	if resp.status != OK {
 		return nil, resp.status
 	}
@@ -359,6 +359,7 @@ func startManager(fs FileSystem, requests chan *managerRequest) {
 	m.client = &managerClient{requests}
 	m.dirHandles = make(map[uint64]*dirHandle)
 	m.nodes = make(map[uint64]string)
+	m.nodes[0] = ""
 	m.nodes[1] = "" // Root
 	m.nodeMax = 1
 	m.nodesByPath = make(map[string]uint64)
@@ -391,8 +392,8 @@ func (c *managerClient) getDirReader(nodeId, fh uint64) (resp *managerResponse) 
 	return c.makeManagerRequest(nodeId, fh, getHandleOp, "")
 }
 
-func (c *managerClient) getPath(fh uint64) (resp *managerResponse) {
-	return c.makeManagerRequest(0, fh, getPathOp, "")
+func (c *managerClient) getPath(nodeId uint64) (resp *managerResponse) {
+	return c.makeManagerRequest(nodeId, 0, getPathOp, "")
 }
 
 func (c *managerClient) closeDir(nodeId, fh uint64) (resp *managerResponse) {
@@ -490,12 +491,7 @@ func (m *manager) lookup(req *managerRequest) (resp *managerResponse) {
 
 func (m *manager) getPath(req *managerRequest) (resp *managerResponse) {
 	resp = new(managerResponse)
-	h, ok := m.dirHandles[req.fh]
-	if !ok {
-		resp.status = ENOENT
-		return
-	}
-	path, ok := m.nodes[h.nodeId]
+	path, ok := m.nodes[req.nodeId]
 	if !ok {
 		resp.status = ENOENT
 		return
