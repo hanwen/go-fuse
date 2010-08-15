@@ -19,7 +19,11 @@ var (
 type testFuse struct{}
 
 func (fs *testFuse) GetAttr(path string) (out Attr, code Status) {
-	out.Mode = S_IFDIR + 0755
+	if strings.HasSuffix(path, ".txt") {
+		out.Mode = S_IFREG + 0644
+	} else {
+		out.Mode = S_IFDIR + 0755
+	}
 	out.Mtime = uint64(time.Seconds())
 	return
 }

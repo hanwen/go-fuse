@@ -71,6 +71,7 @@ const (
 	CUSE_INIT_INFO_MAX = 4096
 
 	S_IFDIR = syscall.S_IFDIR
+	S_IFREG = syscall.S_IFREG
 )
 
 type Status int32
