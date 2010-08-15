@@ -24,6 +24,7 @@ func (fs *testFuse) GetAttr(path string) (out Attr, code Status) {
 	} else {
 		out.Mode = S_IFDIR + 0755
 	}
+	out.Size = 12
 	out.Mtime = uint64(time.Seconds())
 	return
 }
@@ -61,7 +62,7 @@ func TestMount(t *testing.T) {
 			t.Fatalf("Can't unmount a dir, err: %v", err)
 		}
 	}()
-	go errorHandler(errors)
+	errorHandler(errors)
 	f, err := os.Open(tempMountDir, os.O_RDONLY, 0)
 	if err != nil {
 		t.Fatalf("Can't open a dir: %s, err: %v", tempMountDir, err)

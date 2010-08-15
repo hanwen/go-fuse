@@ -97,6 +97,14 @@ func dispatch(fs FileSystem, h *InHeader, r *bytes.Buffer, c *managerClient, err
 		return serialize(h, status, out)
 	case FUSE_RELEASEDIR:
 		return parseInvoke(releaseDir, fs, h, r, c, new(ReleaseIn))
+	case FUSE_OPEN:
+		return parseInvoke(open, fs, h, r, c, new(OpenIn))
+	case FUSE_READ:
+		return parseInvoke(read, fs, h, r, c, new(ReadIn))
+	case FUSE_FLUSH:
+		return parseInvoke(flush, fs, h, r, c, new(FlushIn))
+	case FUSE_RELEASE:
+		return parseInvoke(release, fs, h, r, c, new(ReleaseIn))
 	default:
 		errors <- os.NewError(fmt.Sprintf("Unsupported OpCode: %d", h.Opcode))
 		return serialize(h, ENOSYS, nil)
@@ -210,6 +218,18 @@ func openDir(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (int
 	return out, OK
 }
 
+func open(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (interface{}, Status) {
+	in := ing.(*OpenIn)
+	fmt.Printf("FUSE_OPEN: %v\n", in)
+	resp := c.open(h.NodeId)
+	if resp.status != OK {
+		return nil, resp.status
+	}
+	out := new(OpenOut)
+	out.Fh = resp.fh
+	return out, OK
+}
+
 func readDir(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (interface{}, Status) {
 	in := ing.(*ReadIn)
 	fmt.Printf("FUSE_READDIR: %v\n", in)
@@ -254,6 +274,31 @@ func readDir(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (int
 	return out, OK
 }
 
+func read(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (interface{}, Status) {
+	in := ing.(*ReadIn)
+	fmt.Printf("FUSE_READ: %v\n", in)
+	resp := c.getFileReader(h.NodeId, in.Fh)
+	if resp.status != OK {
+		return nil, resp.status
+	}
+	fileRespChan := make(chan *fileResponse, 1)
+	fmt.Printf("Sending file request, in.Offset: %v\n", in.Offset)
+	resp.fileReq <- &fileRequest{ h.NodeId, in.Offset, fileRespChan}
+	fmt.Printf("receiving file response\n")
+	fileResp := <-fileRespChan
+	fmt.Printf("received %v\n", fileResp)
+	if fileResp.status != OK {
+		return nil, fileResp.status
+	}
+	return fileResp.data, OK
+}
+
+func flush(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (interface{}, Status) {
+	in := ing.(*FlushIn)
+	fmt.Printf("FUSE_FLUSH: %v\n", in)
+	return nil, OK
+}
+
 func lookup(h *InHeader, r *bytes.Buffer, c *managerClient) (interface{}, Status) {
 	filename := strings.TrimRight(string(r.Bytes()), "\x00")
 	fmt.Printf("filename: %s\n", filename)
@@ -273,6 +318,16 @@ func releaseDir(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (
 	in := ing.(*ReleaseIn)
 	fmt.Printf("FUSE_RELEASEDIR: %v\n", in)
 	resp := c.closeDir(h.NodeId, in.Fh)
+	if resp.status != OK {
+		return nil, resp.status
+	}
+	return nil, OK
+}
+
+func release(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (interface{}, Status) {
+	in := ing.(*ReleaseIn)
+	fmt.Printf("FUSE_RELEASE: %v\n", in)
+	resp := c.closeFile(h.NodeId, in.Fh)
 	if resp.status != OK {
 		return nil, resp.status
 	}
@@ -301,6 +356,9 @@ const (
 	closeDirOp  = FileOp(3)
 	lookupOp    = FileOp(4)
 	getPathOp   = FileOp(5)
+	openOp = FileOp(6)
+	getFileHandleOp = FileOp(7)
+	closeFileOp = FileOp(8)
 )
 
 type managerRequest struct {
@@ -315,6 +373,7 @@ type managerResponse struct {
 	nodeId uint64
 	fh     uint64
 	dirReq chan *dirRequest
+	fileReq chan *fileRequest
 	status Status
 	attr   Attr
 	path   string
@@ -344,10 +403,28 @@ type dirHandle struct {
 	req    chan *dirRequest
 }
 
+type fileRequest struct {
+	nodeId uint64
+	offset uint64
+	resp chan *fileResponse
+}
+
+type fileResponse struct {
+	data []byte
+	status Status
+}
+
+type fileHandle struct {
+	fh uint64
+	nodeId uint64
+	req chan *fileRequest
+}
+
 type manager struct {
 	fs          FileSystem
 	client      *managerClient
 	dirHandles  map[uint64]*dirHandle
+	fileHandles map[uint64]*fileHandle
 	cnt         uint64
 	nodes       map[uint64]string
 	nodesByPath map[string]uint64
@@ -359,6 +436,7 @@ func startManager(fs FileSystem, requests chan *managerRequest) {
 	m.fs = fs
 	m.client = &managerClient{requests}
 	m.dirHandles = make(map[uint64]*dirHandle)
+	m.fileHandles = make(map[uint64]*fileHandle)
 	m.nodes = make(map[uint64]string)
 	m.nodes[0] = ""
 	m.nodes[1] = "" // Root
@@ -389,8 +467,16 @@ func (c *managerClient) openDir(nodeId uint64) (resp *managerResponse) {
 	return c.makeManagerRequest(nodeId, 0, openDirOp, "")
 }
 
+func (c *managerClient) open(nodeId uint64) (resp *managerResponse) {
+	return c.makeManagerRequest(nodeId, 0, openOp, "")
+}
+
 func (c *managerClient) getDirReader(nodeId, fh uint64) (resp *managerResponse) {
 	return c.makeManagerRequest(nodeId, fh, getHandleOp, "")
+}
+
+func (c *managerClient) getFileReader(nodeId, fh uint64) (resp *managerResponse) {
+	return c.makeManagerRequest(nodeId, fh, getFileHandleOp, "")
 }
 
 func (c *managerClient) getPath(nodeId uint64) (resp *managerResponse) {
@@ -399,6 +485,10 @@ func (c *managerClient) getPath(nodeId uint64) (resp *managerResponse) {
 
 func (c *managerClient) closeDir(nodeId, fh uint64) (resp *managerResponse) {
 	return c.makeManagerRequest(nodeId, fh, closeDirOp, "")
+}
+
+func (c *managerClient) closeFile(nodeId, fh uint64) (resp *managerResponse) {
+	return c.makeManagerRequest(nodeId, fh, closeFileOp, "")
 }
 
 func (m *manager) run(requests chan *managerRequest) {
@@ -415,6 +505,12 @@ func (m *manager) run(requests chan *managerRequest) {
 			resp = m.lookup(req)
 		case getPathOp:
 			resp = m.getPath(req)
+		case openOp:
+			resp = m.open(req)
+		case getFileHandleOp:
+			resp = m.getFileHandle(req)
+		case closeFileOp:
+			resp = m.closeFile(req)
 		default:
 			panic(fmt.Sprintf("Unknown FileOp: %v", req.op))
 		}
@@ -440,6 +536,24 @@ func (m *manager) openDir(req *managerRequest) (resp *managerResponse) {
 	return
 }
 
+func (m *manager) open(req *managerRequest) (resp *managerResponse) {
+	resp = new(managerResponse)
+	m.cnt++
+	h := new(fileHandle)
+	h.fh = m.cnt
+	h.nodeId = req.nodeId
+	h.req = make(chan *fileRequest, 1)
+	m.fileHandles[h.fh] = h
+	filepath, ok := m.nodes[req.nodeId]
+	if !ok {
+		resp.status = ENOENT
+		return
+	}
+	go readFileRoutine(filepath, m.fs, m.client, h.req)
+	resp.fh = h.fh
+	return
+}
+
 func (m *manager) getHandle(req *managerRequest) (resp *managerResponse) {
 	fmt.Printf("getHandle, fh: %v\n", req.fh)
 	resp = new(managerResponse)
@@ -453,6 +567,19 @@ func (m *manager) getHandle(req *managerRequest) (resp *managerResponse) {
 	return
 }
 
+func (m *manager) getFileHandle(req *managerRequest) (resp *managerResponse) {
+	fmt.Printf("getFileHandle, fh: %v\n", req.fh)
+	resp = new(managerResponse)
+	h, ok := m.fileHandles[req.fh]
+	if !ok {
+		resp.status = ENOENT
+		return
+	}
+	fmt.Printf("File handle found\n")
+	resp.fileReq = h.req
+	return
+}
+
 func (m *manager) closeDir(req *managerRequest) (resp *managerResponse) {
 	resp = new(managerResponse)
 	h, ok := m.dirHandles[req.fh]
@@ -461,6 +588,18 @@ func (m *manager) closeDir(req *managerRequest) (resp *managerResponse) {
 		return
 	}
 	m.dirHandles[h.fh] = nil, false
+	close(h.req)
+	return
+}
+
+func (m *manager) closeFile(req *managerRequest) (resp *managerResponse) {
+	resp = new(managerResponse)
+	h, ok := m.fileHandles[req.fh]
+	if !ok {
+		resp.status = ENOENT
+		return
+	}
+	m.fileHandles[h.fh] = nil, false
 	close(h.req)
 	return
 }
@@ -533,5 +672,17 @@ func readDirRoutine(dir string, fs FileSystem, c *managerClient, requests chan *
 		} else {
 			req.resp <- &dirResponse{nil, OK}
 		}
+	}
+}
+
+func readFileRoutine(filepath string, fs FileSystem, c *managerClient, requests chan *fileRequest) {
+	defer close(requests)
+	filepath = path.Clean(filepath)
+	offset := uint64(0)
+	for req := range requests {
+		if req.offset != offset {
+			req.resp <- &fileResponse { nil, OK }
+		}
+		req.resp <- &fileResponse { []byte("Hello world!"), OK }
 	}
 }
