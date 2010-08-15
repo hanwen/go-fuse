@@ -9,11 +9,11 @@ import (
 )
 
 const (
-	tempMountDir = "testMountDir"
+	tempMountDir = "testMountDir2"
 )
 
 var (
-	testFileNames = []string{"one", "two", "three3"}
+	testFileNames = []string{"one", "two", "three.txt"}
 )
 
 type testFuse struct{}

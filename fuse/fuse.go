@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 )
 
 const (
@@ -254,7 +255,7 @@ func readDir(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (int
 }
 
 func lookup(h *InHeader, r *bytes.Buffer, c *managerClient) (interface{}, Status) {
-	filename := string(r.Bytes())
+	filename := strings.TrimRight(string(r.Bytes()), "\x00")
 	fmt.Printf("filename: %s\n", filename)
 	resp := c.lookup(h.NodeId, filename)
 	if resp.status != OK {
