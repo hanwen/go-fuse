@@ -21,10 +21,10 @@ type testFuse struct{}
 func (fs *testFuse) GetAttr(path string) (out Attr, code Status) {
 	if strings.HasSuffix(path, ".txt") {
 		out.Mode = S_IFREG + 0644
+		out.Size = 13
 	} else {
 		out.Mode = S_IFDIR + 0755
 	}
-	out.Size = 12
 	out.Mtime = uint64(time.Seconds())
 	return
 }
@@ -32,6 +32,24 @@ func (fs *testFuse) GetAttr(path string) (out Attr, code Status) {
 func (fs *testFuse) List(dir string) (names []string, code Status) {
 	names = testFileNames
 	return
+}
+
+func (fs *testFuse) Open(path string) (file File, code Status) {
+	file = &testFile{}
+	return
+}
+
+type testFile struct {}
+
+func (f *testFile) Read(offset uint64) (data []byte, code Status) {
+	if offset < 13 {
+		return []byte("Hello world!\n"[offset:]), OK
+	}
+	return nil, OK
+}
+
+func (f *testFile) Close() (status Status) {
+	return OK
 }
 
 func errorHandler(errors chan os.Error) {

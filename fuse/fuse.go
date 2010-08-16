@@ -13,9 +13,15 @@ const (
 	bufSize = 66000
 )
 
+type File interface {
+	Read(offset uint64) (data []byte, status Status)
+	Close() (status Status)
+}
+
 type FileSystem interface {
 	List(parent string) (names []string, status Status)
 	GetAttr(path string) (out Attr, status Status)
+	Open(path string) (file File, status Status)
 }
 
 type Mounted interface {
@@ -417,6 +423,7 @@ type fileResponse struct {
 type fileHandle struct {
 	fh uint64
 	nodeId uint64
+	file File
 	req chan *fileRequest
 }
 
@@ -538,18 +545,25 @@ func (m *manager) openDir(req *managerRequest) (resp *managerResponse) {
 
 func (m *manager) open(req *managerRequest) (resp *managerResponse) {
 	resp = new(managerResponse)
-	m.cnt++
-	h := new(fileHandle)
-	h.fh = m.cnt
-	h.nodeId = req.nodeId
-	h.req = make(chan *fileRequest, 1)
-	m.fileHandles[h.fh] = h
-	filepath, ok := m.nodes[req.nodeId]
+	path, ok := m.nodes[req.nodeId]
 	if !ok {
 		resp.status = ENOENT
 		return
 	}
-	go readFileRoutine(filepath, m.fs, m.client, h.req)
+	var file File
+	file, resp.status = m.fs.Open(path)
+	if resp.status != OK {
+		return
+	}
+
+	m.cnt++
+	h := new(fileHandle)
+	h.fh = m.cnt
+	h.nodeId = req.nodeId
+	h.file = file
+	h.req = make(chan *fileRequest, 1)
+	m.fileHandles[h.fh] = h
+	go readFileRoutine(m.fs, m.client, h)
 	resp.fh = h.fh
 	return
 }
@@ -599,8 +613,10 @@ func (m *manager) closeFile(req *managerRequest) (resp *managerResponse) {
 		resp.status = ENOENT
 		return
 	}
+	file := h.file
 	m.fileHandles[h.fh] = nil, false
 	close(h.req)
+	resp.status = file.Close()
 	return
 }
 
@@ -675,14 +691,15 @@ func readDirRoutine(dir string, fs FileSystem, c *managerClient, requests chan *
 	}
 }
 
-func readFileRoutine(filepath string, fs FileSystem, c *managerClient, requests chan *fileRequest) {
-	defer close(requests)
-	filepath = path.Clean(filepath)
+func readFileRoutine(fs FileSystem, c *managerClient, h *fileHandle) {
+	defer close(h.req)
 	offset := uint64(0)
-	for req := range requests {
+	for req := range h.req {
 		if req.offset != offset {
 			req.resp <- &fileResponse { nil, OK }
 		}
-		req.resp <- &fileResponse { []byte("Hello world!"), OK }
+		data, status := h.file.Read(offset)
+		req.resp <- &fileResponse { data, status }
+		offset += uint64(len(data))
 	}
 }
