@@ -14,7 +14,7 @@ const (
 )
 
 type File interface {
-	Read(offset uint64) (data []byte, status Status)
+	ReadAt(p []byte, off int64) (n int, err os.Error)
 	Close() (status Status)
 }
 
@@ -289,7 +289,7 @@ func read(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (interf
 	}
 	fileRespChan := make(chan *fileResponse, 1)
 	fmt.Printf("Sending file request, in.Offset: %v\n", in.Offset)
-	resp.fileReq <- &fileRequest{ h.NodeId, in.Offset, fileRespChan}
+	resp.fileReq <- &fileRequest{ h.NodeId, in.Offset, in.Size, fileRespChan}
 	fmt.Printf("receiving file response\n")
 	fileResp := <-fileRespChan
 	fmt.Printf("received %v\n", fileResp)
@@ -412,6 +412,7 @@ type dirHandle struct {
 type fileRequest struct {
 	nodeId uint64
 	offset uint64
+	size uint32
 	resp chan *fileResponse
 }
 
@@ -695,11 +696,12 @@ func readFileRoutine(fs FileSystem, c *managerClient, h *fileHandle) {
 	defer close(h.req)
 	offset := uint64(0)
 	for req := range h.req {
-		if req.offset != offset {
-			req.resp <- &fileResponse { nil, OK }
+		data := make([]byte, req.size)
+		n, err := h.file.ReadAt(data, int64(offset))
+		if err != nil {
+			req.resp <- &fileResponse { nil, EIO }
+			continue
 		}
-		data, status := h.file.Read(offset)
-		req.resp <- &fileResponse { data, status }
-		offset += uint64(len(data))
+		req.resp <- &fileResponse { data[0:n], OK }
 	}
 }

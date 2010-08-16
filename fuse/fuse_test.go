@@ -41,11 +41,16 @@ func (fs *testFuse) Open(path string) (file File, code Status) {
 
 type testFile struct {}
 
-func (f *testFile) Read(offset uint64) (data []byte, code Status) {
+func (f *testFile) ReadAt(data []byte, offset int64) (n int, err os.Error) {
 	if offset < 13 {
-		return []byte("Hello world!\n"[offset:]), OK
+		our := []byte("Hello world!\n")[offset:]
+		for i, b := range our {
+			data[i] = b
+		}
+		n = len(our)
+		return
 	}
-	return nil, OK
+	return 0, os.EOF
 }
 
 func (f *testFile) Close() (status Status) {
