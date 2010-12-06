@@ -24,7 +24,7 @@ func mount(mountPoint string) (f *os.File, m mounted, err os.Error) {
 	defer remote.Close()
 
 	mountPoint = path.Clean(mountPoint)
-	if !path.Rooted(mountPoint) {
+	if !path.IsAbs(mountPoint) {
 		cwd, err := os.Getwd()
 		if err != nil {
 			return

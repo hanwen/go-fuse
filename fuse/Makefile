@@ -1,5 +1,5 @@
 # Use "gomake install" to build and install this package.
-include $(GOROOT)/src/Make.$(GOARCH)
+include $(GOROOT)/src/Make.inc
 
 TARG=github.com/krasin/go-fuse-zip/fuse
 
