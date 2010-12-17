@@ -4,18 +4,41 @@ package fuse
 
 import (
 	"fmt"
-	"net"
 	"os"
 	"path"
 	"syscall"
 	"unsafe"
 )
 
+// Make a type to attach the Unmount method.
 type mounted string
 
+func Socketpair(network string) (l, r *os.File, err os.Error) {
+	var domain int
+	var typ int
+	switch network {
+	default:
+		panic("unknown network " + network)
+	case "unix":
+		domain = syscall.AF_UNIX
+		typ = syscall.SOCK_STREAM
+	case "unixgram":
+		domain = syscall.AF_UNIX
+		typ = syscall.SOCK_SEQPACKET
+	}
+	fd, errno := syscall.Socketpair(domain, typ, 0)
+	if errno != 0 {
+		return nil, nil, os.NewSyscallError("socketpair", errno)
+	}
+	l = os.NewFile(fd[0], "socketpair-half1")
+	r = os.NewFile(fd[1], "socketpair-half2")
+	return
+}
+
+	
 // Mount create a fuse fs on the specified mount point.
 func mount(mountPoint string) (f *os.File, m mounted, err os.Error) {
-	local, remote, err := net.Socketpair("unixgram")
+	local, remote, err := Socketpair("unixgram")
 	if err != nil {
 		return
 	}
@@ -35,7 +58,7 @@ func mount(mountPoint string) (f *os.File, m mounted, err os.Error) {
 		[]string{"/bin/fusermount", mountPoint},
 		[]string{"_FUSE_COMMFD=3"},
 		"",
-		[]*os.File{nil, nil, nil, remote.File()})
+		[]*os.File{nil, nil, nil, remote})
 	if err != nil {
 		return
 	}
@@ -73,24 +96,6 @@ func (m mounted) Unmount() (err os.Error) {
 	return
 }
 
-func recvmsg(fd int, msg *syscall.Msghdr, flags int) (n int, errno int) {
-	n1, _, e1 := syscall.Syscall(syscall.SYS_RECVMSG, uintptr(fd), uintptr(unsafe.Pointer(msg)), uintptr(flags))
-	n = int(n1)
-	errno = int(e1)
-	return
-}
-
-func Recvmsg(fd int, msg *syscall.Msghdr, flags int) (n int, err os.Error) {
-	n, errno := recvmsg(fd, msg, flags)
-	if n == 0 && errno == 0 {
-		return 0, os.EOF
-	}
-	if errno != 0 {
-		err = os.NewSyscallError("recvmsg", errno)
-	}
-	return
-}
-
 func writev(fd int, iovecs *syscall.Iovec, cnt int) (n int, errno int) {
 	n1, _, e1 := syscall.Syscall(syscall.SYS_WRITEV, uintptr(fd), uintptr(unsafe.Pointer(iovecs)), uintptr(cnt))
 	n = int(n1)
@@ -108,7 +113,7 @@ func Writev(fd int, packet [][]byte) (n int, err os.Error) {
 			continue
 		}
 		iovecs[i].Base = (*byte)(unsafe.Pointer(&packet[i][0]))
-		iovecs[i].Len = uint64(len(packet[i]))
+		iovecs[i].SetLen(len(packet[i]))
 	}
 	n, errno := writev(fd, (*syscall.Iovec)(unsafe.Pointer(&iovecs[0])), len(iovecs))
 
@@ -119,32 +124,35 @@ func Writev(fd int, packet [][]byte) (n int, err os.Error) {
 	return
 }
 
-func getFuseConn(local net.Conn) (f *os.File, err os.Error) {
-	var msg syscall.Msghdr
-	var iov syscall.Iovec
-	base := make([]int32, 256)
-	control := make([]int32, 256)
+func getInt32(b []byte, idx int) int32 {
+	ptr := (*int32)(unsafe.Pointer(&b[idx*4]))
+	return *ptr
+}
 
-	iov.Base = (*byte)(unsafe.Pointer(&base[0]))
-	iov.Len = uint64(len(base) * 4)
-	msg.Iov = (*syscall.Iovec)(unsafe.Pointer(&iov))
-	msg.Iovlen = 1
-	msg.Control = (*byte)(unsafe.Pointer(&control[0]))
-	msg.Controllen = uint64(len(control) * 4)
 
-	_, err = Recvmsg(local.File().Fd(), &msg, 0)
-	if err != nil {
+func getFuseConn(local *os.File) (f *os.File, err os.Error) {
+	var data [4]byte
+	control := make([]byte, 4*256)
+
+	// n, oobn, recvflags - todo: error checking.
+	_, oobn, _,
+	  errno := syscall.Recvmsg(
+		local.Fd(), data[:], control[:], 0)
+	if errno != 0 {
 		return
 	}
+	length := getInt32(control, 0)
+	// 1 = level.
+	typ := getInt32(control, 2) // syscall.Cmsghdr.Type
 
-	length := control[0]
-	typ := control[2] // syscall.Cmsghdr.Type
-	fd := control[4]
+	// Ugh - is this 64-bit proof?
+	fd := getInt32(control, 3)
+	
 	if typ != 1 {
 		err = os.NewError(fmt.Sprintf("getFuseConn: recvmsg returned wrong control type: %d", typ))
 		return
 	}
-	if length < 20 {
+	if oobn < 16 {
 		err = os.NewError(fmt.Sprintf("getFuseConn: too short control message. Length: %d", length))
 		return
 	}

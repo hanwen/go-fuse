@@ -155,7 +155,8 @@ func serialize(h *InHeader, res Status, out interface{}) (data [][]byte) {
 			panic(fmt.Sprintf("Can't serialize out: %v, err: %v", out, err))
 		}
 	}
-	fmt.Printf("out_data: %v, len(out_data): %d, SizeOfOutHeader: %d\n", out_data, len(out_data), SizeOfOutHeader)
+	fmt.Printf("out_data: %v, len(out_data): %d, SizeOfOutHeader: %d\n",
+		out_data, len(out_data), SizeOfOutHeader)
 	var hout OutHeader
 	hout.Unique = h.Unique
 	hout.Status = res
