@@ -1,15 +1,14 @@
 package fuse
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"path"
+	"rand"
 	"strings"
 	"testing"
 	"time"
-)
-
-const (
-	tempMountDir = "testMountDir2"
 )
 
 var (
@@ -39,7 +38,7 @@ func (fs *testFuse) Open(path string) (file File, code Status) {
 	return
 }
 
-type testFile struct {}
+type testFile struct{}
 
 func (f *testFile) ReadAt(data []byte, offset int64) (n int, err os.Error) {
 	if offset < 13 {
@@ -59,21 +58,19 @@ func (f *testFile) Close() (status Status) {
 
 func errorHandler(errors chan os.Error) {
 	for err := range errors {
-		log.Stderr("MountPoint.errorHandler: ", err)
+		log.Println("MountPoint.errorHandler: ", err)
 		if err == os.EOF {
 			break
 		}
 	}
 }
 
-
 func TestMount(t *testing.T) {
 	fs := new(testFuse)
 
-	err := os.Mkdir(tempMountDir, 0777)
-	if err != nil {
-		t.Fatalf("Can't create temp mount dir at %s, err: %v", tempMountDir, err)
-	}
+	tempMountDir := MakeTempDir()
+
+	fmt.Println("Tmpdir is: ", tempMountDir)
 	defer os.Remove(tempMountDir)
 	m, err, errors := Mount(tempMountDir, fs)
 	if err != nil {
@@ -85,7 +82,9 @@ func TestMount(t *testing.T) {
 			t.Fatalf("Can't unmount a dir, err: %v", err)
 		}
 	}()
-	errorHandler(errors)
+
+	// Question: how to neatly do error handling?
+	go errorHandler(errors)
 	f, err := os.Open(tempMountDir, os.O_RDONLY, 0)
 	if err != nil {
 		t.Fatalf("Can't open a dir: %s, err: %v", tempMountDir, err)
@@ -101,4 +100,18 @@ func TestMount(t *testing.T) {
 		t.Errorf("Ls returned wrong results, has: [%s], wanted: [%s]", has, wanted)
 		return
 	}
+}
+
+// Make a temporary directory securely.
+func MakeTempDir() string {
+	source := rand.NewSource(time.Nanoseconds())
+	number := source.Int63() & 0xffff
+	name := fmt.Sprintf("tmp%d", number)
+
+	fullName := path.Join(os.TempDir(), name)
+	err := os.Mkdir(fullName, 0700)
+	if err != nil {
+		panic("Mkdir() should always succeed: " + fullName)
+	}
+	return fullName
 }

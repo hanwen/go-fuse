@@ -155,7 +155,8 @@ func serialize(h *InHeader, res Status, out interface{}) (data [][]byte) {
 			panic(fmt.Sprintf("Can't serialize out: %v, err: %v", out, err))
 		}
 	}
-	fmt.Printf("out_data: %v, len(out_data): %d, SizeOfOutHeader: %d\n", out_data, len(out_data), SizeOfOutHeader)
+	fmt.Printf("out_data: %v, len(out_data): %d, SizeOfOutHeader: %d\n",
+		out_data, len(out_data), SizeOfOutHeader)
 	var hout OutHeader
 	hout.Unique = h.Unique
 	hout.Status = res
@@ -289,7 +290,7 @@ func read(fs FileSystem, h *InHeader, ing interface{}, c *managerClient) (interf
 	}
 	fileRespChan := make(chan *fileResponse, 1)
 	fmt.Printf("Sending file request, in.Offset: %v\n", in.Offset)
-	resp.fileReq <- &fileRequest{ h.NodeId, in.Offset, in.Size, fileRespChan}
+	resp.fileReq <- &fileRequest{h.NodeId, in.Offset, in.Size, fileRespChan}
 	fmt.Printf("receiving file response\n")
 	fileResp := <-fileRespChan
 	fmt.Printf("received %v\n", fileResp)
@@ -357,14 +358,14 @@ func writer(f *os.File, in chan [][]byte, errors chan os.Error) {
 type FileOp int
 
 const (
-	openDirOp   = FileOp(1)
-	getHandleOp = FileOp(2)
-	closeDirOp  = FileOp(3)
-	lookupOp    = FileOp(4)
-	getPathOp   = FileOp(5)
-	openOp = FileOp(6)
+	openDirOp       = FileOp(1)
+	getHandleOp     = FileOp(2)
+	closeDirOp      = FileOp(3)
+	lookupOp        = FileOp(4)
+	getPathOp       = FileOp(5)
+	openOp          = FileOp(6)
 	getFileHandleOp = FileOp(7)
-	closeFileOp = FileOp(8)
+	closeFileOp     = FileOp(8)
 )
 
 type managerRequest struct {
@@ -376,13 +377,13 @@ type managerRequest struct {
 }
 
 type managerResponse struct {
-	nodeId uint64
-	fh     uint64
-	dirReq chan *dirRequest
+	nodeId  uint64
+	fh      uint64
+	dirReq  chan *dirRequest
 	fileReq chan *fileRequest
-	status Status
-	attr   Attr
-	path   string
+	status  Status
+	attr    Attr
+	path    string
 }
 
 type dirEntry struct {
@@ -412,20 +413,20 @@ type dirHandle struct {
 type fileRequest struct {
 	nodeId uint64
 	offset uint64
-	size uint32
-	resp chan *fileResponse
+	size   uint32
+	resp   chan *fileResponse
 }
 
 type fileResponse struct {
-	data []byte
+	data   []byte
 	status Status
 }
 
 type fileHandle struct {
-	fh uint64
+	fh     uint64
 	nodeId uint64
-	file File
-	req chan *fileRequest
+	file   File
+	req    chan *fileRequest
 }
 
 type manager struct {
@@ -699,9 +700,9 @@ func readFileRoutine(fs FileSystem, c *managerClient, h *fileHandle) {
 		data := make([]byte, req.size)
 		n, err := h.file.ReadAt(data, int64(offset))
 		if err != nil {
-			req.resp <- &fileResponse { nil, EIO }
+			req.resp <- &fileResponse{nil, EIO}
 			continue
 		}
-		req.resp <- &fileResponse { data[0:n], OK }
+		req.resp <- &fileResponse{data[0:n], OK}
 	}
 }
