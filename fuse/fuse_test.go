@@ -1,7 +1,6 @@
 package fuse
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -60,12 +59,13 @@ func (f *testFile) Close() (status Status) {
 
 func errorHandler(errors chan os.Error) {
 	for err := range errors {
-		log.Println("MountPoint.errorHandler: ", err)
+		log.Stderr("MountPoint.errorHandler: ", err)
 		if err == os.EOF {
 			break
 		}
 	}
 }
+
 
 func TestMount(t *testing.T) {
 	fs := new(testFuse)
@@ -85,9 +85,7 @@ func TestMount(t *testing.T) {
 			t.Fatalf("Can't unmount a dir, err: %v", err)
 		}
 	}()
-
-	// ugh - error handling should be method of testfuse instead?
-	go errorHandler(errors)
+	errorHandler(errors)
 	f, err := os.Open(tempMountDir, os.O_RDONLY, 0)
 	if err != nil {
 		t.Fatalf("Can't open a dir: %s, err: %v", tempMountDir, err)
