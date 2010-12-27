@@ -8,13 +8,16 @@ import (
 	"strings"
 )
 
+// TODO should rename to dentry?
 type inodeData struct {
 	Parent *inodeData
 	NodeId uint64
 	Name   string
-	Count  int
+	LookupCount  int
+	
+	// Number of inodeData that have this as parent.
+	RefCount int 
 }
-
 
 // Should implement some hash table method instead? 
 func inodeDataKey(parentInode uint64, name string) string {
@@ -44,14 +47,55 @@ func (self *inodeData) GetPath() string {
 	return fullPath
 }
 
+
 type PathFileSystemConnector struct {
 	fileSystem PathFilesystem
 
 	// Protects the hashmap, its contents and the nextFreeInode counter.
 	lock                sync.RWMutex
+	
+	// Invariants
+	// - For all values, (RefCount > 0 || LookupCount > 0).
+	// - For all values, value = inodePathMap[value.Key()]
+	// - For all values, value = inodePathMapByInode[value.NodeId]
+
+	// fuse.c seems to have different lifetimes for the different
+	// hashtables, which could lead to the same directory entry
+	// existing twice with different generated inode numbers, if
+	// we have (FORGET, LOOKUP) on a directory entry with RefCount
+	// > 0.
 	inodePathMap        map[string]*inodeData
 	inodePathMapByInode map[uint64]*inodeData
 	nextFreeInode uint64
+}
+
+// Must be called with lock held.
+func (self *PathFileSystemConnector) setParent(data *inodeData, parentId uint64) {
+	newParent := self.inodePathMapByInode[parentId]
+	if data.Parent == newParent {
+		return
+	}
+	
+	if newParent == nil {
+		panic("Unknown parent")
+	}
+	
+	oldParent := data.Parent
+	if oldParent != nil {
+		self.unrefNode(oldParent)
+	}
+	data.Parent = newParent
+	if newParent != nil {
+		newParent.RefCount++
+	}
+}
+
+// Must be called with lock held.
+func (self *PathFileSystemConnector) unrefNode(data *inodeData) {
+	data.RefCount--
+	if data.RefCount <= 0 && data.LookupCount <= 0{
+		self.inodePathMapByInode[data.NodeId] = nil, false
+	}
 }
 
 func (self *PathFileSystemConnector) lookupUpdate(nodeId uint64, name string) *inodeData {
@@ -62,18 +106,16 @@ func (self *PathFileSystemConnector) lookupUpdate(nodeId uint64, name string) *i
 	data, ok := self.inodePathMap[key]
 	if !ok {
 		data = new(inodeData)
-		data.Parent = parent
+		self.setParent(data, nodeId)
 		data.NodeId = self.nextFreeInode
 		data.Name = name
-		data.Count = 0
-
 		self.nextFreeInode++
 
 		self.inodePathMapByInode[data.NodeId] = data
 		self.inodePathMap[key] = data
 	}
 
-	data.Count++
+	data.LookupCount++
 	return data
 }
 
@@ -90,19 +132,18 @@ func (self *PathFileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int
 
 	data, ok := self.inodePathMapByInode[nodeId]
 	if ok {
-		data.Count -= forgetCount
-		if data.Count <= 0 {
+		data.LookupCount -= forgetCount
+		if data.LookupCount <= 0 && data.RefCount <= 0 {
 			self.inodePathMap[data.Key()] = nil, false
-			self.inodePathMapByInode[h.NodeId] = nil, false
 		}
 	}
 }
 
-func (self *PathFileSystemConnector) renameUpdate(oldNode uint64,  oldName string, newNode uint64, newName string) {	
+func (self *PathFileSystemConnector) renameUpdate(oldParent uint64, oldName string, newParent uint64, newName string) {	
  	self.lock.Lock()
 	defer self.lock.Unlock()
 
-	oldKey = inodeDataKey(oldNode, oldName)
+	oldKey := inodeDataKey(oldParent, oldName)
 	data := self.inodePathMap[oldKey]
 	if data == nil {
 		// This can happen if a rename raced with an unlink or
@@ -116,14 +157,11 @@ func (self *PathFileSystemConnector) renameUpdate(oldNode uint64,  oldName strin
 
 	self.inodePathMap[oldKey] = nil, false
 	
-	data.Parent = self.inodePathMapByInode[input.Newdir]
+	self.setParent(data, newParent)
 	data.Name = newName
+	newKey := data.Key()
 
-	if data.Parent == nil {
-		panic("Moved to unknown node.")
-	}
-	
-	target := self.inodePathMap[data.Key()]
+	target := self.inodePathMap[newKey]
 	if target != nil {
 		// This could happen if some other thread creates a
 		// file in the destination position.
@@ -131,30 +169,30 @@ func (self *PathFileSystemConnector) renameUpdate(oldNode uint64,  oldName strin
 		// TODO - Does the VFS layer allow this?
 		//
 		// fuse.c just removes the node from its internal
-		// tables, which will break things if it is already
-		// referenced as a parent object.
+		// tables, which might lead to paths being both directories
+		// (parents) and normal files?
 		self.inodePathMap[newKey] = nil, false
 
-		target.Parent = self.inodePathMapByInode[FUSE_ROOT_ID]
-		target.Name = fmt.Sprintf("overwrittenByRename%d", nextFreeInode)
-		nextFreeInode++;
+		self.setParent(target, FUSE_ROOT_ID)
+		target.Name = fmt.Sprintf("overwrittenByRename%d", self.nextFreeInode)
+		self.nextFreeInode++;
 
 		self.inodePathMap[target.Key()] = target
 	}
 
-	self.inodePathMap[newKey] = data
+	self.inodePathMap[data.Key()] = data
 }
 
 func (self *PathFileSystemConnector) unlinkUpdate(nodeid uint64, name string) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
-	oldKey = inodeDataKey(nodeid, name)
+	oldKey := inodeDataKey(nodeid, name)
 	data := self.inodePathMap[oldKey]
 
 	if data != nil {
 		self.inodePathMap[oldKey] = nil, false
-		self.inodePathMapByInode[data.NodeId] = nil, false
+		self.unrefNode(data)
 	}
 }
 
@@ -170,7 +208,6 @@ func NewPathFileSystemConnector(fs PathFilesystem) (out *PathFileSystemConnector
 	out.fileSystem = fs
 
 	rootData := new(inodeData)
-	rootData.Count = 1
 	rootData.NodeId = FUSE_ROOT_ID
 
 	out.inodePathMap[rootData.Key()] = rootData
@@ -198,13 +235,17 @@ func (self *PathFileSystemConnector) Lookup(header *InHeader, name string) (out 
 		panic("Parent inode unknown.")
 	}
 
+	// Hmm. - fuse.c has special case code for name == "." and "..".
+	// Should we have it too?
+	
 	fullPath := path.Join(parent.GetPath(), name)
 	attr, err := self.fileSystem.GetAttr(fullPath)
 	if err != OK {
+		// TODO - set a EntryValid timeout on ENOENT.
 		return nil, err
 	}
 
-	data := lookupUpdate(header.NodeId, name)
+	data := self.lookupUpdate(header.NodeId, name)
 
 	out = new(EntryOut)
 	out.NodeId = data.NodeId
