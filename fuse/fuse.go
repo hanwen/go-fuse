@@ -267,7 +267,11 @@ func dispatch(state *MountState, h *InHeader, arg *bytes.Buffer) (outBytes [][]b
 	}
 
 	if state.Debug {
-		log.Printf("Dispatch: %v, NodeId: %v, n: %v\n", operationName(h.Opcode), h.NodeId, filename)
+		nm := ""
+		if filename != "" {
+			nm = "n: '" + filename + "'"
+		}
+		log.Printf("Dispatch: %v, NodeId: %v %s\n", operationName(h.Opcode), h.NodeId, nm)
 	}
 
 	// Follow ordering of fuse_lowlevel.h.
