@@ -129,7 +129,7 @@ func (self *DummyFuseFile) FsyncDir(input *FsyncIn) (code Status) {
 ////////////////////////////////////////////////////////////////
 // DummyPathFuse
 
-type DummyPathFuse struct {}
+type DummyPathFuse struct{}
 
 func (self *DummyPathFuse) GetAttr(name string) (*Attr, Status) {
 	return nil, ENOSYS

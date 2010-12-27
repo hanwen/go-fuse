@@ -264,7 +264,7 @@ func (self *PathFileSystemConnector) Symlink(header *InHeader, pointedTo string,
 }
 
 func (self *PathFileSystemConnector) Rename(header *InHeader, input *RenameIn, oldName string, newName string) (code Status) {
-	// TODO - should also update the path <-> inode mapping?  
+
 	oldPath := path.Join(self.GetPath(header.NodeId), oldName)
 	newPath := path.Join(self.GetPath(input.Newdir), newName)
 	return self.fileSystem.Rename(oldPath, newPath)

@@ -14,4 +14,3 @@ func TestDummy(t *testing.T) {
 
 	NewPathFileSystemConnector(pathFs)
 }
-

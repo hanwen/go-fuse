@@ -15,9 +15,7 @@ const (
 	bufSize = 66000
 )
 
-type Empty interface {
-
-}
+type Empty interface{}
 
 ////////////////////////////////////////////////////////////////
 // State related to this mount point.
@@ -27,23 +25,23 @@ type MountState struct {
 	// otherwise our files may be GCd.  Here, the index is the Fh
 	// field
 
-	openedFiles map[uint64] RawFuseFile
+	openedFiles      map[uint64]RawFuseFile
 	openedFilesMutex sync.RWMutex
-	nextFreeFile uint64
+	nextFreeFile     uint64
 
-	openedDirs map[uint64] RawFuseDir
+	openedDirs      map[uint64]RawFuseDir
 	openedDirsMutex sync.RWMutex
-	nextFreeDir uint64
+	nextFreeDir     uint64
 
 	// Empty if unmounted.
 	mountPoint string
 	fileSystem RawFileSystem
 
 	// I/O with kernel and daemon.
-	mountFile *os.File
-	errorChannel chan os.Error
+	mountFile     *os.File
+	errorChannel  chan os.Error
 	outputChannel chan [][]byte
-	
+
 	// Run each operation in its own Go-routine.
 	threaded bool
 
@@ -109,7 +107,7 @@ func (self *MountState) Mount(mountPoint string, threaded bool) os.Error {
 	self.mountPoint = mp
 	self.mountFile = file
 	self.threaded = threaded
-	
+
 	if self.threaded {
 		self.outputChannel = make(chan [][]byte, 100)
 		self.errorChannel = make(chan os.Error, 100)
@@ -152,9 +150,9 @@ func (self *MountState) Write(packet [][]byte) {
 	if packet == nil {
 		return
 	}
-	
+
 	if self.threaded {
-		self.outputChannel <- packet 
+		self.outputChannel <- packet
 	} else {
 		self.syncWrite(packet)
 	}
@@ -162,8 +160,8 @@ func (self *MountState) Write(packet [][]byte) {
 
 func NewMountState(fs RawFileSystem) *MountState {
 	self := new(MountState)
-	self.openedDirs = make(map[uint64] RawFuseDir)
-	self.openedFiles = make(map[uint64] RawFuseFile)
+	self.openedDirs = make(map[uint64]RawFuseDir)
+	self.openedFiles = make(map[uint64]RawFuseFile)
 	self.mountPoint = ""
 	self.fileSystem = fs
 	return self
@@ -204,14 +202,14 @@ func (self *MountState) loop() {
 
 			// According to fuse_chan_receive()
 			if errNo == syscall.ENODEV {
-				break;
+				break
 			}
 
 			// What I see on linux-x86 2.6.35.10.
 			if errNo == syscall.ENOSYS {
-				break;
+				break
 			}
-			
+
 			readErr := os.NewError(fmt.Sprintf("Failed to read from fuse conn: %v", err))
 			self.Error(readErr)
 			break
@@ -246,8 +244,6 @@ func (self *MountState) handle(in_data []byte) {
 }
 
 
-
-
 func dispatch(state *MountState, h *InHeader, arg *bytes.Buffer) (outBytes [][]byte) {
 	input := newInput(h.Opcode)
 	if input != nil && !parseLittleEndian(arg, input) {
@@ -263,17 +259,17 @@ func dispatch(state *MountState, h *InHeader, arg *bytes.Buffer) (outBytes [][]b
 
 	filename := ""
 	// Perhaps a map is faster?
-	if (h.Opcode == FUSE_UNLINK || h.Opcode == FUSE_RMDIR ||
+	if h.Opcode == FUSE_UNLINK || h.Opcode == FUSE_RMDIR ||
 		h.Opcode == FUSE_LOOKUP || h.Opcode == FUSE_MKDIR ||
 		h.Opcode == FUSE_MKNOD || h.Opcode == FUSE_CREATE ||
-		h.Opcode == FUSE_LINK) {
+		h.Opcode == FUSE_LINK {
 		filename = strings.TrimRight(string(arg.Bytes()), "\x00")
 	}
 
 	if state.Debug {
 		log.Printf("Dispatch: %v, NodeId: %v, n: %v\n", operationName(h.Opcode), h.NodeId, filename)
 	}
-	
+
 	// Follow ordering of fuse_lowlevel.h.
 	switch h.Opcode {
 	case FUSE_INIT:
@@ -296,9 +292,9 @@ func dispatch(state *MountState, h *InHeader, arg *bytes.Buffer) (outBytes [][]b
 	case FUSE_READLINK:
 		out, status = fs.Readlink(h)
 	case FUSE_MKNOD:
- 		out, status = fs.Mknod(h, input.(*MknodIn), filename)
+		out, status = fs.Mknod(h, input.(*MknodIn), filename)
 	case FUSE_MKDIR:
- 		out, status = fs.Mkdir(h, input.(*MkdirIn), filename)
+		out, status = fs.Mkdir(h, input.(*MkdirIn), filename)
 	case FUSE_UNLINK:
 		status = fs.Unlink(h, filename)
 	case FUSE_RMDIR:
@@ -375,7 +371,7 @@ func dispatch(state *MountState, h *InHeader, arg *bytes.Buffer) (outBytes [][]b
 		log.Printf("Serialize: %v code: %v value: %v\n",
 			operationName(h.Opcode), errorString(status), out)
 	}
-	
+
 	return serialize(h, status, out)
 }
 
@@ -390,7 +386,7 @@ func serialize(h *InHeader, res Status, out interface{}) (data [][]byte) {
 			panic(fmt.Sprintf("Can't serialize out: %v, err: %v", out, err))
 		}
 	}
-	
+
 	var hout OutHeader
 	hout.Unique = h.Unique
 	hout.Status = -res
@@ -405,12 +401,12 @@ func serialize(h *InHeader, res Status, out interface{}) (data [][]byte) {
 	return data
 }
 
-func initFuse(state* MountState, h *InHeader, input *InitIn) (Empty, Status) {
+func initFuse(state *MountState, h *InHeader, input *InitIn) (Empty, Status) {
 	out, initStatus := state.fileSystem.Init(h, input)
 	if initStatus != OK {
 		return nil, initStatus
 	}
-	
+
 	if input.Major != FUSE_KERNEL_VERSION {
 		fmt.Printf("Major versions does not match. Given %d, want %d\n", input.Major, FUSE_KERNEL_VERSION)
 		return nil, EIO
@@ -433,7 +429,7 @@ func initFuse(state* MountState, h *InHeader, input *InitIn) (Empty, Status) {
 // Handling files.
 
 func doOpen(state *MountState, header *InHeader, input *OpenIn) (genericOut Empty, code Status) {
-	flags, fuseFile, status := state.fileSystem.Open(header, input);
+	flags, fuseFile, status := state.fileSystem.Open(header, input)
 	if status != OK {
 		return nil, status
 	}
@@ -447,7 +443,7 @@ func doOpen(state *MountState, header *InHeader, input *OpenIn) (genericOut Empt
 }
 
 func doCreate(state *MountState, header *InHeader, input *CreateIn, name string) (genericOut Empty, code Status) {
-	flags, fuseFile, entry, status := state.fileSystem.Create(header, input, name);
+	flags, fuseFile, entry, status := state.fileSystem.Create(header, input, name)
 	if status != OK {
 		return nil, status
 	}
@@ -501,7 +497,7 @@ func doReleaseDir(state *MountState, header *InHeader, input *ReleaseIn) (out Em
 }
 
 func doOpenDir(state *MountState, header *InHeader, input *OpenIn) (genericOut Empty, code Status) {
-	flags, fuseDir, status := state.fileSystem.OpenDir(header, input);
+	flags, fuseDir, status := state.fileSystem.OpenDir(header, input)
 	if status != OK {
 		return nil, status
 	}
