@@ -546,7 +546,7 @@ type DEntryList struct {
 	offset uint64
 }
 
-type PathFuseFilesystem interface {
+type PathFilesystem interface {
 	GetAttr(name string) (*Attr, Status)
 	Readlink(name string) (string, Status)
 	Mknod(name string, mode uint32, dev uint32) Status

@@ -37,7 +37,7 @@ func inodeDataKey(parentInode uint64, name string) string {
 
 
 type PathFileSystemConnector struct {
-	fileSystem PathFuseFilesystem
+	fileSystem PathFilesystem
 
 	// Protects the hashmap and its contents.
 	lock                sync.Mutex
@@ -47,7 +47,7 @@ type PathFileSystemConnector struct {
 	nextFreeInode uint64
 }
 
-func NewPathFileSystemConnector(fs PathFuseFilesystem) (out *PathFileSystemConnector) {
+func NewPathFileSystemConnector(fs PathFilesystem) (out *PathFileSystemConnector) {
 	out = new(PathFileSystemConnector)
 	out.inodePathMap = make(map[string]*inodeData)
 	out.inodePathMapByInode = make(map[uint64]*inodeData)
