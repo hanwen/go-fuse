@@ -2,6 +2,7 @@ package fuse
 
 import (
 	"syscall"
+	"bytes"
 )
 
 const (
@@ -11,6 +12,7 @@ const (
 
 	FUSE_ROOT_ID = 1
 
+	// SetAttrIn.Valid
 	FATTR_MODE      = (1 << 0)
 	FATTR_UID       = (1 << 1)
 	FATTR_GID       = (1 << 2)
@@ -22,10 +24,12 @@ const (
 	FATTR_MTIME_NOW = (1 << 8)
 	FATTR_LOCKOWNER = (1 << 9)
 
+	// OpenIn.Flags
 	FOPEN_DIRECT_IO   = (1 << 0)
 	FOPEN_KEEP_CACHE  = (1 << 1)
 	FOPEN_NONSEEKABLE = (1 << 2)
 
+	// To be set in InitOut.Flags.
 	FUSE_ASYNC_READ     = (1 << 0)
 	FUSE_POSIX_LOCKS    = (1 << 1)
 	FUSE_FILE_OPS       = (1 << 2)
@@ -270,6 +274,11 @@ type OpenOut struct {
 	Padding   uint32
 }
 
+type CreateOut struct {
+	Entry EntryOut
+	Open  OpenOut
+}
+
 type ReleaseIn struct {
 	Fh           uint64
 	Flags        uint32
@@ -293,7 +302,6 @@ type ReadIn struct {
 	Flags     uint32
 	Padding   uint32
 }
-
 
 type WriteIn struct {
 	Fh         uint64
@@ -469,4 +477,104 @@ type NotifyInvalEntryOut struct {
 	Parent  uint64
 	NameLen uint32
 	Padding uint32
+}
+
+
+////////////////////////////////////////////////////////////////
+// Types for users to implement.
+
+// This is the interface to the file system, mirroring the interface from
+//
+//   /usr/include/fuse/fuse_lowlevel.h
+//
+// Typically, each call happens in its own goroutine, so any global data should be
+// made thread-safe.
+type RawFileSystem interface {
+	Init(h *InHeader, input *InitIn) (out *InitOut, code Status)
+	Destroy(h *InHeader, input *InitIn)
+
+	Lookup(header *InHeader, name string) (out *EntryOut, status Status)
+	Forget(header *InHeader, input *ForgetIn)
+
+	GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status)
+	SetAttr(header *InHeader, input *SetAttrIn) (out *AttrOut, code Status)
+
+	Readlink(header *InHeader) (out []byte, code Status)
+	Mknod(header *InHeader, input *MknodIn, name string) (out *EntryOut, code Status)
+	Mkdir(header *InHeader, input *MkdirIn, name string) (out *EntryOut, code Status)
+	Unlink(header *InHeader, name string) (code Status)
+	Rmdir(header *InHeader, name string) (code Status)
+
+	Symlink(header *InHeader, pointedTo string, linkName string) (out *EntryOut, code Status)
+
+	Rename(header *InHeader, input *RenameIn, oldName string, newName string) (code Status)
+	Link(header *InHeader, input *LinkIn, filename string) (out *EntryOut, code Status)
+
+	// Unused:
+	SetXAttr(header *InHeader, input *SetXAttrIn) Status
+	GetXAttr(header *InHeader, input *GetXAttrIn) (out *GetXAttrOut, code Status)
+
+	Access(header *InHeader, input *AccessIn) (code Status)
+	Create(header *InHeader, input *CreateIn, name string) (flags uint32, fuseFile RawFuseFile, out *EntryOut, code Status)
+	Bmap(header *InHeader, input *BmapIn) (out *BmapOut, code Status)
+	Ioctl(header *InHeader, input *IoctlIn) (out *IoctlOut, code Status)
+	Poll(header *InHeader, input *PollIn) (out *PollOut, code Status)
+
+	// The return flags are FOPEN_xx.
+	Open(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseFile, status Status)
+	OpenDir(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseDir, status Status)
+}
+
+type RawFuseFile interface {
+	Read(*ReadIn) ([]byte, Status)
+	// u32 <-> u64 ?
+	Write(*WriteIn, []byte) (uint32, Status)
+	Flush() Status
+	Release()
+	Fsync(*FsyncIn) (code Status)
+}
+
+type RawFuseDir interface {
+	ReadDir(input *ReadIn) (*DEntryList, Status)
+	ReleaseDir()
+	FsyncDir(input *FsyncIn) (code Status)
+}
+
+// Should make interface ?
+type DEntryList struct {
+	buf    bytes.Buffer
+	offset uint64
+}
+
+type PathFuseFilesystem interface {
+	GetAttr(name string) (*Attr, Status)
+	Readlink(name string) (string, Status)
+	Mknod(name string, mode uint32, dev uint32) Status
+	Mkdir(name string, mode uint32) Status
+	Unlink(name string) (code Status)
+	Rmdir(name string) (code Status)
+	Symlink(value string, linkName string) (code Status)
+	Rename(oldName string, newName string) (code Status)
+	Link(oldName string, newName string) (code Status)
+	Chmod(name string, mode uint32) (code Status)
+	Chown(name string, uid uint32, gid uint32) (code Status)
+	Truncate(name string, offset uint64) (code Status)
+	Open(name string, flags uint32) (file RawFuseFile, code Status)
+
+	// Where to hook up statfs?
+	// 
+	// Unimplemented:
+	// RemoveXAttr, SetXAttr, GetXAttr, ListXAttr.
+
+	OpenDir(name string) (dir RawFuseDir, code Status)
+
+	// TODO - what is a good interface? 
+	Init() (*InitOut, Status)
+	Destroy()
+
+	Access(name string, mode uint32) (code Status)
+	Create(name string, flags uint32, mode uint32) (file RawFuseFile, code Status)
+	Utimens(name string, AtimeNs uint64, CtimeNs uint64) (code Status)
+
+	// unimplemented: poll, ioctl, bmap. 
 }

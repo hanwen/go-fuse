@@ -9,9 +9,6 @@ import (
 	"unsafe"
 )
 
-// Make a type to attach the Unmount method.
-type mounted string
-
 func Socketpair(network string) (l, r *os.File, err os.Error) {
 	var domain int
 	var typ int
@@ -36,7 +33,7 @@ func Socketpair(network string) (l, r *os.File, err os.Error) {
 
 // Mount create a fuse fs on the specified mount point.  The returned
 // mount point is always absolute.
-func mount(mountPoint string) (f *os.File, m mounted, err os.Error) {
+func mount(mountPoint string) (f *os.File, finalMountPoint string, err os.Error) {
 	local, remote, err := Socketpair("unixgram")
 	if err != nil {
 		return
@@ -71,12 +68,11 @@ func mount(mountPoint string) (f *os.File, m mounted, err os.Error) {
 	}
 
 	f, err = getFuseConn(local)
-	m = mounted(mountPoint)
+	finalMountPoint = mountPoint
 	return
 }
 
-func (m mounted) Unmount() (err os.Error) {
-	mountPoint := string(m)
+func unmount(mountPoint string) (err os.Error) {
 	dir, _ := path.Split(mountPoint)
 	pid, err := os.ForkExec("/bin/fusermount",
 		[]string{"/bin/fusermount", "-u", mountPoint},
@@ -131,7 +127,7 @@ func getFuseConn(local *os.File) (f *os.File, err os.Error) {
 	// n, oobn, recvflags - todo: error checking.
 	_, oobn, _,
 		errno := syscall.Recvmsg(
-		local.Fd(), data[:], control[:], nil, 0)
+		local.Fd(), data[:], control[:], 0)
 	if errno != 0 {
 		return
 	}
@@ -151,6 +147,6 @@ func getFuseConn(local *os.File) (f *os.File, err os.Error) {
 		err = os.NewError(fmt.Sprintf("getFuseConn: fd < 0: %d", fd))
 		return
 	}
-	f = os.NewFile(int(fd), "fuse-conn")
+	f = os.NewFile(int(fd), "<fuseConnection>")
 	return
 }
