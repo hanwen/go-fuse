@@ -21,6 +21,11 @@ See passthrough_test.go for a test that exercises available
 functionality.
 
 
+CREDITS
+
+Partly inspired by Taru Karttunen's package, https://bitbucket.org/taruti/go-extra.
+
+
 BUGS
 
 Yes, probably.  Report them through golang-nuts@googlegroups.com. 
