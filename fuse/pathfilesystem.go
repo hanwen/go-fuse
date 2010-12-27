@@ -1,6 +1,5 @@
 package fuse
 
-
 import (
 	"bytes"
 	"sync"
@@ -14,6 +13,21 @@ type inodeData struct {
 	NodeId uint64
 	Name   string
 	Count  int
+}
+
+
+// Should implement some hash table method instead? 
+func inodeDataKey(parentInode uint64, name string) string {
+	// TODO - use something more efficient than Sprintf.
+	return fmt.Sprintf("%x:%s", parentInode, name)
+}
+
+func (self *inodeData) Key() string {
+	var p uint64 = 0
+	if self.Parent != nil {
+		p = self.Parent.NodeId
+	}
+	return inodeDataKey(p, self.Name)
 }
 
 func (self *inodeData) GetPath() string {
@@ -30,67 +44,21 @@ func (self *inodeData) GetPath() string {
 	return fullPath
 }
 
-// Should implement some hash table method instead? 
-func inodeDataKey(parentInode uint64, name string) string {
-	return fmt.Sprintf("%x:%s", parentInode, name)
-}
-
-
 type PathFileSystemConnector struct {
 	fileSystem PathFilesystem
 
-	// Protects the hashmap and its contents.
-	lock                sync.Mutex
+	// Protects the hashmap, its contents and the nextFreeInode counter.
+	lock                sync.RWMutex
 	inodePathMap        map[string]*inodeData
 	inodePathMapByInode map[uint64]*inodeData
-
 	nextFreeInode uint64
 }
 
-func NewPathFileSystemConnector(fs PathFilesystem) (out *PathFileSystemConnector) {
-	out = new(PathFileSystemConnector)
-	out.inodePathMap = make(map[string]*inodeData)
-	out.inodePathMapByInode = make(map[uint64]*inodeData)
-
-	out.fileSystem = fs
-
-	rootData := new(inodeData)
-	rootData.Count = 1
-	rootData.NodeId = FUSE_ROOT_ID
-
-	out.inodePathMap[inodeDataKey(0, "")] = rootData
-	out.inodePathMapByInode[FUSE_ROOT_ID] = rootData
-
-	out.nextFreeInode = FUSE_ROOT_ID + 1
-
-	return out
-}
-
-func (self *PathFileSystemConnector) Init(h *InHeader, input *InitIn) (*InitOut, Status) {
-	return self.fileSystem.Init()
-}
-
-func (self *PathFileSystemConnector) Destroy(h *InHeader, input *InitIn) {
-	self.fileSystem.Destroy()
-}
-
-func (self *PathFileSystemConnector) Lookup(header *InHeader, name string) (out *EntryOut, status Status) {
+func (self *PathFileSystemConnector) lookupUpdate(nodeId uint64, name string) *inodeData {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
-	parent, ok := self.inodePathMapByInode[header.NodeId]
-	if !ok {
-		panic("Parent inode unknown.")
-	}
-
-	fullPath := path.Join(parent.GetPath(), name)
-
-	attr, err := self.fileSystem.GetAttr(fullPath)
-	if err != OK {
-		return nil, err
-	}
-
-	key := inodeDataKey(header.NodeId, name)
+	key := inodeDataKey(nodeId, name)
 	data, ok := self.inodePathMap[key]
 	if !ok {
 		data = new(inodeData)
@@ -106,6 +74,137 @@ func (self *PathFileSystemConnector) Lookup(header *InHeader, name string) (out 
 	}
 
 	data.Count++
+	return data
+}
+
+func (self *PathFileSystemConnector) getInodeData(nodeid uint64) *inodeData {
+	self.lock.RLock()
+	defer self.lock.RUnlock()
+
+	return self.inodePathMapByInode[nodeid]
+}
+
+func (self *PathFileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int) {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+
+	data, ok := self.inodePathMapByInode[nodeId]
+	if ok {
+		data.Count -= forgetCount
+		if data.Count <= 0 {
+			self.inodePathMap[data.Key()] = nil, false
+			self.inodePathMapByInode[h.NodeId] = nil, false
+		}
+	}
+}
+
+func (self *PathFileSystemConnector) renameUpdate(oldNode uint64,  oldName string, newNode uint64, newName string) {	
+ 	self.lock.Lock()
+	defer self.lock.Unlock()
+
+	oldKey = inodeDataKey(oldNode, oldName)
+	data := self.inodePathMap[oldKey]
+	if data == nil {
+		// This can happen if a rename raced with an unlink or
+		// another rename.
+		//
+		// TODO - does the VFS layer allow this?
+		//
+		// TODO - is this an error we should signal? 
+		return
+	}
+
+	self.inodePathMap[oldKey] = nil, false
+	
+	data.Parent = self.inodePathMapByInode[input.Newdir]
+	data.Name = newName
+
+	if data.Parent == nil {
+		panic("Moved to unknown node.")
+	}
+	
+	target := self.inodePathMap[data.Key()]
+	if target != nil {
+		// This could happen if some other thread creates a
+		// file in the destination position.
+		//
+		// TODO - Does the VFS layer allow this?
+		//
+		// fuse.c just removes the node from its internal
+		// tables, which will break things if it is already
+		// referenced as a parent object.
+		self.inodePathMap[newKey] = nil, false
+
+		target.Parent = self.inodePathMapByInode[FUSE_ROOT_ID]
+		target.Name = fmt.Sprintf("overwrittenByRename%d", nextFreeInode)
+		nextFreeInode++;
+
+		self.inodePathMap[target.Key()] = target
+	}
+
+	self.inodePathMap[newKey] = data
+}
+
+func (self *PathFileSystemConnector) unlinkUpdate(nodeid uint64, name string) {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+
+	oldKey = inodeDataKey(nodeid, name)
+	data := self.inodePathMap[oldKey]
+
+	if data != nil {
+		self.inodePathMap[oldKey] = nil, false
+		self.inodePathMapByInode[data.NodeId] = nil, false
+	}
+}
+
+////////////////////////////////////////////////////////////////
+// Below routines should not access inodePathMap(ByInode) directly,
+// and there need no locking.
+
+func NewPathFileSystemConnector(fs PathFilesystem) (out *PathFileSystemConnector) {
+	out = new(PathFileSystemConnector)
+	out.inodePathMap = make(map[string]*inodeData)
+	out.inodePathMapByInode = make(map[uint64]*inodeData)
+
+	out.fileSystem = fs
+
+	rootData := new(inodeData)
+	rootData.Count = 1
+	rootData.NodeId = FUSE_ROOT_ID
+
+	out.inodePathMap[rootData.Key()] = rootData
+	out.inodePathMapByInode[FUSE_ROOT_ID] = rootData
+	out.nextFreeInode = FUSE_ROOT_ID + 1
+
+	return out
+}
+
+func (self *PathFileSystemConnector) GetPath(nodeid uint64) string {
+	return self.getInodeData(nodeid).GetPath()
+}
+
+func (self *PathFileSystemConnector) Init(h *InHeader, input *InitIn) (*InitOut, Status) {
+	return self.fileSystem.Init()
+}
+
+func (self *PathFileSystemConnector) Destroy(h *InHeader, input *InitIn) {
+	self.fileSystem.Destroy()
+}
+
+func (self *PathFileSystemConnector) Lookup(header *InHeader, name string) (out *EntryOut, status Status) {
+	parent, ok := self.inodePathMapByInode[header.NodeId]
+	if !ok {
+		panic("Parent inode unknown.")
+	}
+
+	fullPath := path.Join(parent.GetPath(), name)
+	attr, err := self.fileSystem.GetAttr(fullPath)
+	if err != OK {
+		return nil, err
+	}
+
+	data := lookupUpdate(header.NodeId, name)
 
 	out = new(EntryOut)
 	out.NodeId = data.NodeId
@@ -120,35 +219,8 @@ func (self *PathFileSystemConnector) Lookup(header *InHeader, name string) (out 
 	return out, OK
 }
 
-func (self *PathFileSystemConnector) getInodeData(nodeid uint64) *inodeData {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	return self.inodePathMapByInode[nodeid]
-}
-
-func (self *PathFileSystemConnector) GetPath(nodeid uint64) string {
-	return self.getInodeData(nodeid).GetPath()
-}
-
 func (self *PathFileSystemConnector) Forget(h *InHeader, input *ForgetIn) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
-	data, ok := self.inodePathMapByInode[h.NodeId]
-	if ok {
-		data.Count -= int(input.Nlookup)
-		if data.Count <= 0 {
-			self.inodePathMapByInode[h.NodeId] = nil, false
-			var p uint64
-			p = 0
-			if data.Parent != nil {
-				p = data.Parent.NodeId
-			}
-
-			self.inodePathMap[inodeDataKey(p, data.Name)] = nil, false
-		}
-	}
+	self.forgetUpdate(h.NodeId, int(input.Nlookup))
 }
 
 func (self *PathFileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
@@ -190,9 +262,8 @@ func (self *PathFileSystemConnector) Open(header *InHeader, input *OpenIn) (flag
 
 func (self *PathFileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out *AttrOut, code Status) {
 	var err Status = OK
-
+	
 	// TODO - support Fh.   (FSetAttr/FGetAttr/FTruncate.)
-
 	fullPath := self.GetPath(header.NodeId)
 	if input.Valid&FATTR_MODE != 0 {
 		err = self.fileSystem.Chmod(fullPath, input.Mode)
@@ -246,11 +317,18 @@ func (self *PathFileSystemConnector) Mkdir(header *InHeader, input *MkdirIn, nam
 }
 
 func (self *PathFileSystemConnector) Unlink(header *InHeader, name string) (code Status) {
-	return self.fileSystem.Unlink(path.Join(self.GetPath(header.NodeId), name))
+	code = self.fileSystem.Unlink(path.Join(self.GetPath(header.NodeId), name))
+
+	// Like fuse.c, we update our internal tables.
+	self.unlinkUpdate(header.NodeId, name)
+	
+	return code
 }
 
 func (self *PathFileSystemConnector) Rmdir(header *InHeader, name string) (code Status) {
-	return self.fileSystem.Rmdir(path.Join(self.GetPath(header.NodeId), name))
+	code =  self.fileSystem.Rmdir(path.Join(self.GetPath(header.NodeId), name))
+	self.unlinkUpdate(header.NodeId, name)
+	return code
 }
 
 func (self *PathFileSystemConnector) Symlink(header *InHeader, pointedTo string, linkName string) (out *EntryOut, code Status) {
@@ -264,10 +342,23 @@ func (self *PathFileSystemConnector) Symlink(header *InHeader, pointedTo string,
 }
 
 func (self *PathFileSystemConnector) Rename(header *InHeader, input *RenameIn, oldName string, newName string) (code Status) {
-
 	oldPath := path.Join(self.GetPath(header.NodeId), oldName)
 	newPath := path.Join(self.GetPath(input.Newdir), newName)
-	return self.fileSystem.Rename(oldPath, newPath)
+	
+	code = self.fileSystem.Rename(oldPath, newPath)
+	if code != OK {
+		return
+	}
+	
+	// It is conceivable that the kernel module will issue a
+	// forget for the old entry, and a lookup request for the new
+	// one, but the fuse.c updates its client-side tables on its
+	// own, so we do this as well.
+	//
+	// It should not hurt for us to do it here as well, although
+	// it remains unclear how we should update Count.	
+	self.renameUpdate(header.NodeId, oldName, input.Newdir, newName)
+	return code
 }
 
 func (self *PathFileSystemConnector) Link(header *InHeader, input *LinkIn, filename string) (out *EntryOut, code Status) {
@@ -298,7 +389,6 @@ func (self *PathFileSystemConnector) Create(header *InHeader, input *CreateIn, n
 	out, code = self.Lookup(header, name)
 	return 0, f, out, code
 }
-
 
 ////////////////////////////////////////////////////////////////
 // unimplemented.
