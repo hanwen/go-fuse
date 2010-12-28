@@ -247,7 +247,7 @@ func (self *MountState) handle(in_data []byte) {
 func dispatch(state *MountState, h *InHeader, arg *bytes.Buffer) (outBytes [][]byte) {
 	input := newInput(h.Opcode)
 	if input != nil && !parseLittleEndian(arg, input) {
-		return serialize(h, EIO, nil)
+		return serialize(h, EIO, nil, false)
 	}
 
 	var out Empty
@@ -368,24 +368,13 @@ func dispatch(state *MountState, h *InHeader, arg *bytes.Buffer) (outBytes [][]b
 	// case FUSE_INTERRUPT
 	default:
 		state.Error(os.NewError(fmt.Sprintf("Unsupported OpCode: %d", h.Opcode)))
-		return serialize(h, ENOSYS, nil)
+		return serialize(h, ENOSYS, nil, false)
 	}
 
-	if state.Debug {
-		val := fmt.Sprintf("%v", out)
-		max := 1024
-		if len(val) > max {
-			val = val[:max] + fmt.Sprintf(" ...dropped %d bytes", len(val) - max) 
-		}
-		
-		log.Printf("Serialize: %v code: %v value: %v\n",
-			operationName(h.Opcode), errorString(status), val)
-	}
-
-	return serialize(h, status, out)
+	return serialize(h, status, out, state.Debug)
 }
 
-func serialize(h *InHeader, res Status, out interface{}) (data [][]byte) {
+func serialize(h *InHeader, res Status, out interface{}, debug bool) (data [][]byte) {
 	out_data := make([]byte, 0)
 	b := new(bytes.Buffer)
 	if out != nil && res == OK {
@@ -408,6 +397,18 @@ func serialize(h *InHeader, res Status, out interface{}) (data [][]byte) {
 	}
 	_, _ = b.Write(out_data)
 	data = [][]byte{b.Bytes()}
+
+	if debug {
+		val := fmt.Sprintf("%v", out)
+		max := 1024
+		if len(val) > max {
+			val = val[:max] + fmt.Sprintf(" ...trimmed (response size %d)", len(b.Bytes()))
+		}
+		
+		log.Printf("Serialize: %v code: %v value: %v\n",
+			operationName(h.Opcode), errorString(res), val)
+	}
+
 	return data
 }
 
