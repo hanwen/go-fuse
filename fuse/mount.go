@@ -54,7 +54,7 @@ func mount(mountPoint string) (f *os.File, finalMountPoint string, err os.Error)
 		[]string{"/bin/fusermount", mountPoint},
 		[]string{"_FUSE_COMMFD=3"},
 		"",
-		[]*os.File{nil, nil, nil, remote})
+		[]*os.File{os.Stdin, os.Stdout, os.Stderr, remote})
 	if err != nil {
 		return
 	}
