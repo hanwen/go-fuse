@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 	"syscall"
+	"rand"
 )
 
 var _ = strings.Join
@@ -152,7 +153,7 @@ func (self *testCase) testReadThroughFuse() {
 		self.tester.Errorf("Wrong mode %o != %o", fi.Mode, mode)
 	}
 
-	// Open (for read), read. 
+	// Open (for read), read.
 	fmt.Println("Testing open.")
 	f, err := os.Open(self.mountFile, os.O_RDONLY, 0)
 	if err != nil {
@@ -188,7 +189,7 @@ func (self *testCase) testRemove() {
 }
 
 func (self *testCase) testWriteThroughFuse() {
-	// Create (for write), write. 
+	// Create (for write), write.
 	fmt.Println("Testing create.")
 	f, err := os.Open(self.mountFile, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
@@ -450,12 +451,12 @@ func (self *testCase) testLargeRead() {
 	if err != nil {
 		self.tester.Errorf("write err %v %v", err, n)
 	}
-	
+
 	err = f.Close()
 	if err != nil {
 		self.tester.Errorf("close err %v", err)
 	}
-	
+
 	// Read in one go.
 	g, err := os.Open(path.Join(self.mountPoint, "large"), os.O_RDONLY, 0)
 	if err != nil {
@@ -472,7 +473,7 @@ func (self *testCase) testLargeRead() {
 			break
 		}
 	}
-	
+
 	if err != nil {
 		self.tester.Errorf("read mismatch %v", err)
 	}
@@ -484,7 +485,7 @@ func (self *testCase) testLargeRead() {
 		self.tester.Errorf("open err %v", err)
 	}
 	readSlice = make([]byte, 4096)
-	total := 0 
+	total := 0
 	for {
 		m, err := g.Read(readSlice)
 		if m == 0 && err == os.EOF {
@@ -494,29 +495,48 @@ func (self *testCase) testLargeRead() {
 			self.tester.Errorf("read err %v %v", err, m)
 			break
 		}
-		total += m 
+		total += m
 	}
 	if total != len(slice) {
 		self.tester.Errorf("slice error %d", total)
 	}
 	g.Close()
 
-	
+
         os.Remove(name)
+}
+
+func randomLengthString(length int) string {
+	r := rand.Intn(length)
+	j := 0
+
+	b := make([]byte, r)
+	for i := 0; i < r; i++ {
+		j = (j + 1) % 10
+		b[i] = byte(j) + byte('0')
+	}
+	return string(b)
 }
 
 
 func (self *testCase) testLargeDirRead() {
-	count := 100
+	created := 100
 
-	names := make([]string, count) 
+	names := make([]string, created)
 
 	subdir := path.Join(self.origDir, "readdirSubdir")
 	os.Mkdir(subdir, 0700)
+	longname := "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
-	for i := 0; i < count; i++ {
+	nameSet := make(map[string]bool)
+	for i := 0; i < created; i++ {
 		// Should vary file name length.
-		name := path.Join(subdir, fmt.Sprintf("file%d", i))
+		base := fmt.Sprintf("file%d%s", i,
+			randomLengthString(len(longname)))
+		name := path.Join(subdir, base)
+
+		nameSet[base] = true
+
 		f, err := os.Open(name, os.O_WRONLY | os.O_CREATE, 0777)
 		if err != nil {
 			self.tester.Errorf("open write err %v", err)
@@ -534,21 +554,33 @@ func (self *testCase) testLargeDirRead() {
 	}
 	// Chunked read.
 	total := 0
+	readSet := make(map[string] bool)
 	for {
 		namesRead, err := dir.Readdirnames(20)
 		if err != nil {
 			self.tester.Errorf("readdir err %v %v", err, namesRead)
 		}
-		
+
 		if len(namesRead) == 0 {
 			break
+		}
+		for _, v := range(namesRead) {
+			readSet[v] = true
 		}
 		total += len(namesRead)
 	}
 
-	if total != count {
-		self.tester.Errorf("readdir mismatch %v %v", total, count)
+	if total != created {
+		self.tester.Errorf("readdir mismatch got %v wanted %v", total, created)
 	}
+
+	for k, _ := range(nameSet) {
+		_, ok := readSet[k]
+		if !ok {
+			self.tester.Errorf("Name %v not found", k)
+		}
+	}
+
 
 	dir.Close()
 

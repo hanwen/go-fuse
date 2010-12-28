@@ -45,7 +45,7 @@ type MountState struct {
 	// Run each operation in its own Go-routine.
 	threaded bool
 
-	// Dump debug info onto stdout. 
+	// Dump debug info onto stdout.
 	Debug bool
 }
 
@@ -97,7 +97,7 @@ func (self *MountState) UnregisterDir(handle uint64) {
 // If threaded is set, each filesystem operation executes in a
 // separate goroutine, and errors and writes are done asynchronously
 // using channels.
-// 
+//
 // TODO - error handling should perhaps be user-serviceable.
 func (self *MountState) Mount(mountPoint string, threaded bool) os.Error {
 	file, mp, err := mount(mountPoint)
@@ -355,7 +355,7 @@ func dispatch(state *MountState, h *InHeader, arg *bytes.Buffer) (outBytes [][]b
 	case FUSE_CREATE:
 		out, status = doCreate(state, h, input.(*CreateIn), filename)
 
-	// TODO - implement file locking. 
+	// TODO - implement file locking.
 	// case FUSE_SETLK
 	// case FUSE_SETLKW
 	case FUSE_BMAP:
@@ -404,7 +404,7 @@ func serialize(h *InHeader, res Status, out interface{}, debug bool) (data [][]b
 		if len(val) > max {
 			val = val[:max] + fmt.Sprintf(" ...trimmed (response size %d)", len(b.Bytes()))
 		}
-		
+
 		log.Printf("Serialize: %v code: %v value: %v\n",
 			operationName(h.Opcode), errorString(res), val)
 	}
@@ -542,7 +542,6 @@ func (de *DEntryList) AddString(name string, inode uint64, mode uint32) {
 
 func (de *DEntryList) Add(name []byte, inode uint64, mode uint32) {
 	de.offset++
-
 	dirent := new(Dirent)
 	dirent.Off = de.offset
 	dirent.Ino = inode
@@ -553,11 +552,11 @@ func (de *DEntryList) Add(name []byte, inode uint64, mode uint32) {
 	if err != nil {
 		panic("Serialization of Dirent failed")
 	}
-	de.buf.Write([]byte(name))
-	de.buf.WriteByte(0)
-	n := (len(name) + 1) % 8 // padding
-	if n != 0 {
-		de.buf.Write(make([]byte, 8-n))
+	de.buf.Write(name)
+
+	padding := 8 - len(name)&7
+	if padding < 8 {
+		de.buf.Write(make([]byte, padding))
 	}
 }
 
