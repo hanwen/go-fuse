@@ -87,6 +87,7 @@ const (
 	ENOENT  = Status(syscall.ENOENT)
 	ENOTDIR = Status(syscall.ENOTDIR)
 	EACCES  = Status(syscall.EACCES)
+	EPERM  = Status(syscall.EPERM)
 )
 
 type Opcode int
