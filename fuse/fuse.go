@@ -372,8 +372,14 @@ func dispatch(state *MountState, h *InHeader, arg *bytes.Buffer) (outBytes [][]b
 	}
 
 	if state.Debug {
+		val := fmt.Sprintf("%v", out)
+		max := 1024
+		if len(val) > max {
+			val = val[:max] + fmt.Sprintf(" ...dropped %d bytes", len(val) - max) 
+		}
+		
 		log.Printf("Serialize: %v code: %v value: %v\n",
-			operationName(h.Opcode), errorString(status), out)
+			operationName(h.Opcode), errorString(status), val)
 	}
 
 	return serialize(h, status, out)
