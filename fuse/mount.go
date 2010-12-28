@@ -127,7 +127,7 @@ func getFuseConn(local *os.File) (f *os.File, err os.Error) {
 	// n, oobn, recvflags - todo: error checking.
 	_, oobn, _,
 		errno := syscall.Recvmsg(
-		local.Fd(), data[:], control[:], 0)
+		local.Fd(), data[:], control[:], nil, 0)
 	if errno != 0 {
 		return
 	}
