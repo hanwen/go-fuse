@@ -22,8 +22,8 @@ functionality.
 
 Tested on:
 
-- x86 32bits.
-
+- x86 32bits (Fedora 14). 
+- x86 64bits (Ubuntu Lucid).
 
 CREDITS
 

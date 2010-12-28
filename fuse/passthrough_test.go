@@ -390,11 +390,18 @@ func (self *testCase) testReaddir() {
 		self.tester.Errorf("readdir err %v", err)
 	}
 
-	if len(infos) != 2 {
-		self.tester.Errorf("infos mismatch %v", infos)
+	wanted := map[string] bool{
+		"hello.txt": true,
+		"subdir": true,
+	}
+	if len(wanted) != len(infos) {
+		self.tester.Errorf("Length mismatch %v", infos)
 	} else {
-		if infos[0].Name != "hello.txt" || infos[1].Name != "subdir" {
-			self.tester.Errorf("names incorrect %v", infos)
+		for _, v := range infos {
+			_, ok := wanted[v.Name]
+			if !ok {
+				self.tester.Errorf("Unexpected name %v", v.Name)
+			}
 		}
 	}
 
