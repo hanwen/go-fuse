@@ -187,9 +187,11 @@ func (self *PassThroughFile) Fsync(*FsyncIn) (code Status) {
 func (self *PassThroughFile) ReadDir(input *ReadIn) (*DEntryList, Status) {
 	list := new(DEntryList)
 
-	// TODO - should we try to accomodate the requested Size?
+	// TODO - How to try accomodating the requested Size?
 	// (typically: 4096.)
-	fis, err := self.file.Readdir(-1)
+
+	// To test chunked reads, just return fetch 20 at a time.
+	fis, err := self.file.Readdir(20)
 	if err != nil {
 		return nil, OsErrorToFuseError(err)
 	}

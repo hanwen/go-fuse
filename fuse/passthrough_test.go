@@ -1,6 +1,7 @@
 package fuse
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os"
@@ -429,6 +430,132 @@ func (self *testCase) testFSync() {
 	f.Close()
 }
 
+func (self *testCase) testLargeRead() {
+	name := path.Join(self.origDir, "large")
+	f, err := os.Open(name, os.O_WRONLY | os.O_CREATE, 0777)
+	if err != nil {
+		self.tester.Errorf("open write err %v", err)
+	}
+
+	b := bytes.NewBuffer(nil)
+
+	for i := 0; i < 20*1024; i++ {
+		b.WriteString("bla")
+	}
+	b.WriteString("something extra to not be round")
+
+	slice := b.Bytes()
+	fmt.Println("len : ", len(slice))
+	n, err := f.Write(slice)
+	if err != nil {
+		self.tester.Errorf("write err %v %v", err, n)
+	}
+	
+	err = f.Close()
+	if err != nil {
+		self.tester.Errorf("close err %v", err)
+	}
+	
+	// Read in one go.
+	g, err := os.Open(path.Join(self.mountPoint, "large"), os.O_RDONLY, 0)
+	if err != nil {
+		self.tester.Errorf("open err %v", err)
+	}
+	readSlice := make([]byte, len(slice))
+	m, err := g.Read(readSlice)
+	if m != n {
+		self.tester.Errorf("read mismatch %v %v", m, n )
+	}
+	for i, v := range(readSlice) {
+		if (slice[i] != v) {
+			self.tester.Errorf("char mismatch %v %v %v", i, slice[i], v)
+			break
+		}
+	}
+	
+	if err != nil {
+		self.tester.Errorf("read mismatch %v", err)
+	}
+	g.Close()
+
+	// Read in chunks
+	g, err = os.Open(path.Join(self.mountPoint, "large"), os.O_RDONLY, 0)
+	if err != nil {
+		self.tester.Errorf("open err %v", err)
+	}
+	readSlice = make([]byte, 4096)
+	total := 0 
+	for {
+		m, err := g.Read(readSlice)
+		if m == 0 && err == os.EOF {
+			break
+		}
+		if err != nil {
+			self.tester.Errorf("read err %v %v", err, m)
+			break
+		}
+		total += m 
+	}
+	if total != len(slice) {
+		self.tester.Errorf("slice error %d", total)
+	}
+	g.Close()
+
+	
+        os.Remove(name)
+}
+
+
+func (self *testCase) testLargeDirRead() {
+	count := 100
+
+	names := make([]string, count) 
+
+	subdir := path.Join(self.origDir, "readdirSubdir")
+	os.Mkdir(subdir, 0700)
+
+	for i := 0; i < count; i++ {
+		// Should vary file name length.
+		name := path.Join(subdir, fmt.Sprintf("file%d", i))
+		f, err := os.Open(name, os.O_WRONLY | os.O_CREATE, 0777)
+		if err != nil {
+			self.tester.Errorf("open write err %v", err)
+			break
+		}
+		f.WriteString("bla")
+		f.Close()
+
+		names[i] = name
+	}
+
+        dir, err := os.Open(path.Join(self.mountPoint, "readdirSubdir"), os.O_RDONLY, 0)
+	if err != nil {
+		self.tester.Errorf("dirread %v", err)
+	}
+	// Chunked read.
+	total := 0
+	for {
+		namesRead, err := dir.Readdirnames(20)
+		if err != nil {
+			self.tester.Errorf("readdir err %v %v", err, namesRead)
+		}
+		
+		if len(namesRead) == 0 {
+			break
+		}
+		total += len(namesRead)
+	}
+
+	if total != count {
+		self.tester.Errorf("readdir mismatch %v %v", total, count)
+	}
+
+	dir.Close()
+
+	os.RemoveAll(subdir)
+}
+
+
 
 // Test driver.
 func TestMount(t *testing.T) {
@@ -446,6 +573,7 @@ func TestMount(t *testing.T) {
 	ts.testMknod()
 	ts.testReaddir()
 	ts.testFSync()
-
+	ts.testLargeRead()
+	ts.testLargeDirRead()
 	ts.Cleanup()
 }
