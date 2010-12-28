@@ -20,6 +20,10 @@ SUPPORTED
 See passthrough_test.go for a test that exercises available
 functionality.
 
+Tested on:
+
+- x86 32bits.
+
 
 CREDITS
 
