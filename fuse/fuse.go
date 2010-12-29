@@ -196,10 +196,9 @@ func (self *MountState) syncWrite(packet [][]byte) {
 // Logic for the control loop.
 
 func (self *MountState) loop() {
-	buf := make([]byte, bufSize)
-
 	// See fuse_kern_chan_receive()
 	for {
+		buf := make([]byte, bufSize)
 		n, err := self.mountFile.Read(buf)
 		if err != nil {
 			errNo := OsErrorToFuseError(err)
@@ -224,7 +223,7 @@ func (self *MountState) loop() {
 			break
 		}
 
-		if self.threaded && !self.Debug {
+		if self.threaded {
 			go self.handle(buf[0:n])
 		} else {
 			self.handle(buf[0:n])
@@ -372,7 +371,7 @@ func dispatch(state *MountState, h *InHeader, arg *bytes.Buffer) (outBytes [][]b
 	// TODO - figure out how to support this
 	// case FUSE_INTERRUPT
 	default:
-		state.Error(os.NewError(fmt.Sprintf("Unsupported OpCode: %d", h.Opcode)))
+		state.Error(os.NewError(fmt.Sprintf("Unsupported OpCode: %d=%v", h.Opcode, operationName(h.Opcode))))
 		return serialize(h, ENOSYS, nil, false)
 	}
 
