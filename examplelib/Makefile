@@ -1,14 +1,12 @@
 # Use "gomake install" to build and install this package.
 include $(GOROOT)/src/Make.inc
 
-TARG=github.com/hanwen/go-fuse/fuse
-#TARG=fuse
+TARG=github.com/hanwen/go-fuse/examplelib
 
-GOFILES=misc.go\
-	fuse.go\
-	mount.go\
-	types.go\
-	pathfilesystem.go \
+DEPS=../fuse
+
+GOFILES=dummyfuse.go\
+	passthrough.go\
 
 include $(GOROOT)/src/Make.pkg
 

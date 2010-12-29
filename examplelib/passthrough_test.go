@@ -1,6 +1,7 @@
-package fuse
+package examplelib
 
 import (
+	"github.com/hanwen/go-fuse/fuse"
 	"bytes"
 	"fmt"
 	"log"
@@ -48,7 +49,7 @@ type testCase struct {
 	origSubdir   string
 	origSubfile  string
 	tester       *testing.T
-	state        *MountState
+	state        *fuse.MountState
 }
 
 // Create and mount filesystem.
@@ -58,8 +59,8 @@ func (self *testCase) Setup(t *testing.T) {
 	const name string = "hello.txt"
 	const subdir string = "subdir"
 
-	self.origDir = MakeTempDir()
-	self.mountPoint = MakeTempDir()
+	self.origDir = fuse.MakeTempDir()
+	self.mountPoint = fuse.MakeTempDir()
 
 	self.mountFile = path.Join(self.mountPoint, name)
 	self.mountSubdir = path.Join(self.mountPoint, subdir)
@@ -68,9 +69,9 @@ func (self *testCase) Setup(t *testing.T) {
 	self.origSubdir = path.Join(self.origDir, subdir)
 	self.origSubfile = path.Join(self.origSubdir, "subfile")
 
-	fs := NewPathFileSystemConnector(NewPassThroughFuse(self.origDir))
+	fs := fuse.NewPathFileSystemConnector(NewPassThroughFuse(self.origDir))
 
-	self.state = NewMountState(fs)
+	self.state = fuse.NewMountState(fs)
 	self.state.Mount(self.mountPoint, false)
 
 	//self.state.Debug = false
