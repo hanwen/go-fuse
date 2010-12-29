@@ -99,15 +99,20 @@ func (self *MountState) UnregisterDir(handle uint64) {
 // using channels.
 //
 // TODO - error handling should perhaps be user-serviceable.
-func (self *MountState) Mount(mountPoint string, threaded bool) os.Error {
+func (self *MountState) Mount(mountPoint string) os.Error {
 	file, mp, err := mount(mountPoint)
 	if err != nil {
 		return err
 	}
 	self.mountPoint = mp
 	self.mountFile = file
+	return nil
+}
+	
+// Normally, callers should run loop() and wait for FUSE to exit, but
+// tests will want to run this in a goroutine. 
+func (self *MountState) Loop(threaded bool) {
 	self.threaded = threaded
-
 	if self.threaded {
 		self.outputChannel = make(chan [][]byte, 100)
 		self.errorChannel = make(chan os.Error, 100)
@@ -115,8 +120,12 @@ func (self *MountState) Mount(mountPoint string, threaded bool) os.Error {
 		go self.DefaultErrorHandler()
 	}
 
-	go self.loop()
-	return nil
+	self.loop()
+
+	if self.threaded {
+		close(self.outputChannel)
+		close(self.errorChannel)
+	}
 }
 
 func (self *MountState) Unmount() os.Error {
@@ -130,7 +139,7 @@ func (self *MountState) Unmount() os.Error {
 
 func (self *MountState) DefaultErrorHandler() {
 	for err := range self.errorChannel {
-		if err == os.EOF {
+		if err == os.EOF || err == nil {
 			break
 		}
 		log.Println("error: ", err)
@@ -223,10 +232,6 @@ func (self *MountState) loop() {
 	}
 
 	self.mountFile.Close()
-	if self.threaded {
-		close(self.outputChannel)
-		close(self.errorChannel)
-	}
 }
 
 func (self *MountState) handle(in_data []byte) {

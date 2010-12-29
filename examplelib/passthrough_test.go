@@ -72,12 +72,15 @@ func (self *testCase) Setup(t *testing.T) {
 	fs := fuse.NewPathFileSystemConnector(NewPassThroughFuse(self.origDir))
 
 	self.state = fuse.NewMountState(fs)
-	self.state.Mount(self.mountPoint, false)
+	self.state.Mount(self.mountPoint)
 
 	//self.state.Debug = false
 	self.state.Debug = true
 
 	fmt.Println("Orig ", self.origDir, " mount ", self.mountPoint)
+
+	// Unthreaded, but in background.
+	go self.state.Loop(false)
 }
 
 // Unmount and del.

@@ -26,9 +26,9 @@ func main() {
 	state.Debug = *debug
 
 	mountPoint := flag.Arg(1)
-	state.Mount(mountPoint, *threaded)
+	state.Mount(mountPoint)
 
 	fmt.Printf("Mounted %s on %s (threaded=%v, debug=%v)\n", orig, mountPoint, *threaded, *debug)
-	
+	state.Loop(*threaded)
 }
 
