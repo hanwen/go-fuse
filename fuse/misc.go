@@ -10,6 +10,7 @@ import (
 	"time"
 	"fmt"
 	"path"
+	"math"
 )
 
 // Make a temporary directory securely.
@@ -205,4 +206,9 @@ func parseLittleEndian(b *bytes.Buffer, data interface{}) bool {
 		return false
 	}
 	panic(fmt.Sprintf("Cannot parse %v", data))
+}
+
+func SplitNs(time float64, secs *uint64, nsecs *uint32) {
+	*nsecs = uint32(1e9 * (time - math.Trunc(time)))
+	*secs = uint64(math.Trunc(time))
 }

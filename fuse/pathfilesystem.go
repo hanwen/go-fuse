@@ -47,6 +47,11 @@ func (self *inodeData) GetPath() string {
 	return fullPath
 }
 
+type PathFileSystemConnectorOptions struct {
+	EntryTimeout float64
+	AttrTimeout float64
+	NegativeTimeout float64
+}
 
 type PathFileSystemConnector struct {
 	fileSystem PathFilesystem
@@ -67,6 +72,8 @@ type PathFileSystemConnector struct {
 	inodePathMap        map[string]*inodeData
 	inodePathMapByInode map[uint64]*inodeData
 	nextFreeInode uint64
+
+	options PathFileSystemConnectorOptions
 }
 
 // Must be called with lock held.
@@ -204,7 +211,6 @@ func NewPathFileSystemConnector(fs PathFilesystem) (out *PathFileSystemConnector
 	out = new(PathFileSystemConnector)
 	out.inodePathMap = make(map[string]*inodeData)
 	out.inodePathMapByInode = make(map[uint64]*inodeData)
-
 	out.fileSystem = fs
 
 	rootData := new(inodeData)
@@ -214,6 +220,12 @@ func NewPathFileSystemConnector(fs PathFilesystem) (out *PathFileSystemConnector
 	out.inodePathMapByInode[FUSE_ROOT_ID] = rootData
 	out.nextFreeInode = FUSE_ROOT_ID + 1
 
+	out.options.NegativeTimeout = 0.0
+	out.options.AttrTimeout = 1.0
+	out.options.EntryTimeout = 1.0
+
+	fs.SetOptions(&out.options)
+	
 	return out
 }
 
@@ -240,8 +252,14 @@ func (self *PathFileSystemConnector) Lookup(header *InHeader, name string) (out 
 	
 	fullPath := path.Join(parent.GetPath(), name)
 	attr, err := self.fileSystem.GetAttr(fullPath)
+	if err == ENOENT && self.options.NegativeTimeout > 0.0 {
+		out = new(EntryOut)
+		out.NodeId = 0
+		SplitNs(self.options.NegativeTimeout, &out.EntryValid, &out.EntryValidNsec)
+		return out, OK
+	}
+
 	if err != OK {
-		// TODO - set a EntryValid timeout on ENOENT.
 		return nil, err
 	}
 
@@ -250,11 +268,9 @@ func (self *PathFileSystemConnector) Lookup(header *InHeader, name string) (out 
 	out = new(EntryOut)
 	out.NodeId = data.NodeId
 	out.Generation = 1 // where to get the generation?
-	out.EntryValid = 0
-	out.AttrValid = 0
 
-	out.EntryValidNsec = 0
-	out.AttrValidNsec = 0
+	SplitNs(self.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
+	SplitNs(self.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	out.Attr = *attr
 
 	return out, OK

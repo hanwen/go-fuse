@@ -198,3 +198,7 @@ func (self *DummyPathFuse) Create(name string, flags uint32, mode uint32) (file 
 func (self *DummyPathFuse) Utimens(name string, AtimeNs uint64, CtimeNs uint64) (code fuse.Status) {
 	return fuse.ENOSYS
 }
+
+func (self *DummyPathFuse) SetOptions(*fuse.PathFileSystemConnectorOptions) {
+	
+}

@@ -150,6 +150,12 @@ func (self *PassThroughFuse) Create(path string, flags uint32, mode uint32) (fus
 	return &PassThroughFile{file: f}, fuse.OsErrorToFuseError(err)
 }
 
+func (self *PassThroughFuse) SetOptions(options *fuse.PathFileSystemConnectorOptions) {
+	options.NegativeTimeout = 100.0
+	options.AttrTimeout = 100.0
+	options.EntryTimeout = 100.0
+}
+
 ////////////////////////////////////////////////////////////////
 
 type PassThroughFile struct {
@@ -251,3 +257,4 @@ func (self *PassThroughDir) ReleaseDir() {
 func (self *PassThroughDir) FsyncDir(input *fuse.FsyncIn) (code fuse.Status) {
 	return fuse.ENOSYS
 }
+

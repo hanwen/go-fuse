@@ -580,5 +580,7 @@ type PathFilesystem interface {
 	Create(name string, flags uint32, mode uint32) (file RawFuseFile, code Status)
 	Utimens(name string, AtimeNs uint64, CtimeNs uint64) (code Status)
 
-	// unimplemented: poll, ioctl, bmap. 
+	// unimplemented: poll, ioctl, bmap.
+
+	SetOptions(*PathFileSystemConnectorOptions)
 }
