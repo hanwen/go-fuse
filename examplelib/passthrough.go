@@ -25,28 +25,6 @@ func NewPassThroughFuse(root string) (out *PassThroughFuse) {
 	return out
 }
 
-func CopyFileInfo(fi *os.FileInfo, attr *fuse.Attr) {
-	attr.Ino = uint64(fi.Ino)
-	attr.Size = uint64(fi.Size)
-	attr.Blocks = uint64(fi.Blocks)
-
-	attr.Atime = uint64(fi.Atime_ns / 1e9)
-	attr.Atimensec = uint32(fi.Atime_ns % 1e9)
-
-	attr.Mtime = uint64(fi.Mtime_ns / 1e9)
-	attr.Mtimensec = uint32(fi.Mtime_ns % 1e9)
-
-	attr.Ctime = uint64(fi.Ctime_ns / 1e9)
-	attr.Ctimensec = uint32(fi.Ctime_ns % 1e9)
-
-	attr.Mode = fi.Mode
-	attr.Nlink = uint32(fi.Nlink)
-	attr.Uid = uint32(fi.Uid)
-	attr.Gid = uint32(fi.Gid)
-	attr.Rdev = uint32(fi.Rdev)
-	attr.Blksize = uint32(fi.Blksize)
-}
-
 func (self *PassThroughFuse) Init() (*fuse.InitOut, fuse.Status) {
 	return new(fuse.InitOut), fuse.OK
 }
@@ -66,7 +44,7 @@ func (self *PassThroughFuse) GetAttr(name string) (*fuse.Attr, fuse.Status) {
 		return nil, fuse.ENOENT
 	}
 	out := new(fuse.Attr)
-	CopyFileInfo(fi, out)
+	fuse.CopyFileInfo(fi, out)
 
 	return out, fuse.OK
 }

@@ -212,3 +212,25 @@ func SplitNs(time float64, secs *uint64, nsecs *uint32) {
 	*nsecs = uint32(1e9 * (time - math.Trunc(time)))
 	*secs = uint64(math.Trunc(time))
 }
+
+func CopyFileInfo(fi *os.FileInfo, attr *Attr) {
+	attr.Ino = uint64(fi.Ino)
+	attr.Size = uint64(fi.Size)
+	attr.Blocks = uint64(fi.Blocks)
+
+	attr.Atime = uint64(fi.Atime_ns / 1e9)
+	attr.Atimensec = uint32(fi.Atime_ns % 1e9)
+
+	attr.Mtime = uint64(fi.Mtime_ns / 1e9)
+	attr.Mtimensec = uint32(fi.Mtime_ns % 1e9)
+
+	attr.Ctime = uint64(fi.Ctime_ns / 1e9)
+	attr.Ctimensec = uint32(fi.Ctime_ns % 1e9)
+
+	attr.Mode = fi.Mode
+	attr.Nlink = uint32(fi.Nlink)
+	attr.Uid = uint32(fi.Uid)
+	attr.Gid = uint32(fi.Gid)
+	attr.Rdev = uint32(fi.Rdev)
+	attr.Blksize = uint32(fi.Blksize)
+}
