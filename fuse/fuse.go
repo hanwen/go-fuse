@@ -20,6 +20,7 @@ type Empty interface{}
 ////////////////////////////////////////////////////////////////
 // State related to this mount point.
 
+// TODO - should gather stats and expose those for performance tuning.
 type MountState struct {
 	// We should store the RawFuseFile/Dirs on the Go side,
 	// otherwise our files may be GCd.  Here, the index is the Fh
