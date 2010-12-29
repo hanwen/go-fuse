@@ -38,6 +38,8 @@ const (
 	FUSE_BIG_WRITES     = (1 << 5)
 	FUSE_DONT_MASK      = (1 << 6)
 
+	FUSE_UNKNOWN_INO    = 0xffffffff
+	
 	CUSE_UNRESTRICTED_IOCTL = (1 << 0)
 
 	FUSE_RELEASE_FLUSH = (1 << 0)

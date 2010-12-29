@@ -223,7 +223,7 @@ func (self *PassThroughDir) ReadDir(input *fuse.ReadIn) (*fuse.DirEntryList, fus
 	list := fuse.NewDirEntryList(int(input.Size))
 
 	if self.leftOver != nil {
-		success := list.AddString(self.leftOver.Name, self.leftOver.Ino, self.leftOver.Mode)
+		success := list.AddString(self.leftOver.Name, fuse.FUSE_UNKNOWN_INO, self.leftOver.Mode)
 		self.exported++
 		if !success {
 			panic("No space for single entry.")
@@ -236,7 +236,7 @@ func (self *PassThroughDir) ReadDir(input *fuse.ReadIn) (*fuse.DirEntryList, fus
 		if fi == nil {
 			break
 		}
-		if !list.AddString(fi.Name, fi.Ino, fi.Mode) {
+		if !list.AddString(fi.Name, fuse.FUSE_UNKNOWN_INO, fi.Mode) {
 			self.leftOver = fi
 			break
 		} 
