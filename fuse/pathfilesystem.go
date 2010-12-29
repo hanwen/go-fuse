@@ -289,11 +289,7 @@ func (self *PathFileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn)
 	out = new(AttrOut)
 	out.Attr = *attr
 
-	// TODO - how to configure Valid timespans?
-	out.AttrValid = 0
-
-	// 0.1 second
-	out.AttrValidNsec = 100e3
+	SplitNs(self.options.AttrTimeout, &out.AttrValid, &AttrValidNsec = 100e3
 
 	return out, OK
 }
