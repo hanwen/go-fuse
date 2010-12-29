@@ -289,7 +289,7 @@ func (self *PathFileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn)
 	out = new(AttrOut)
 	out.Attr = *attr
 
-	SplitNs(self.options.AttrTimeout, &out.AttrValid, &AttrValidNsec = 100e3
+	SplitNs(self.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 
 	return out, OK
 }
