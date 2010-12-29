@@ -7,7 +7,7 @@ directory as a loopback:
 
   (cd example ; gomake)
   mkdir mountpoint
-  ./example/main -debug -threaded=false mountpoint /some/other/directory
+  ./example/main -debug -threaded=false mountpoint /some/other/directory &
   (cd mountpoint ; ls)
 
 on my machine, compiles over loopback (threaded, without debug) are
@@ -21,10 +21,7 @@ Tested on:
 
 LICENSE
 
-This library is distributed under the license governing the Go source
-code, see
-
-  http://code.google.com/p/go/source/browse/LICENSE
+Like Go, this library is distributed under the new BSD.  See accompanying LICENSE file.
 
 
 CREDITS
