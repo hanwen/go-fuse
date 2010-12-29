@@ -556,7 +556,7 @@ func (self *testCase) testLargeDirRead() {
 	total := 0
 	readSet := make(map[string] bool)
 	for {
-		namesRead, err := dir.Readdirnames(20)
+		namesRead, err := dir.Readdirnames(200)
 		if err != nil {
 			self.tester.Errorf("readdir err %v %v", err, namesRead)
 		}
@@ -573,14 +573,12 @@ func (self *testCase) testLargeDirRead() {
 	if total != created {
 		self.tester.Errorf("readdir mismatch got %v wanted %v", total, created)
 	}
-
 	for k, _ := range(nameSet) {
 		_, ok := readSet[k]
 		if !ok {
-			self.tester.Errorf("Name %v not found", k)
+			self.tester.Errorf("Name %v not found in output", k)
 		}
 	}
-
 
 	dir.Close()
 

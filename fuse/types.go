@@ -536,15 +536,16 @@ type RawFuseFile interface {
 }
 
 type RawFuseDir interface {
-	ReadDir(input *ReadIn) (*DEntryList, Status)
+	ReadDir(input *ReadIn) (*DirEntryList, Status)
 	ReleaseDir()
 	FsyncDir(input *FsyncIn) (code Status)
 }
 
 // Should make interface ?
-type DEntryList struct {
+type DirEntryList struct {
 	buf    bytes.Buffer
 	offset uint64
+	maxSize int
 }
 
 type PathFilesystem interface {

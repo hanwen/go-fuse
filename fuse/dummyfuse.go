@@ -116,7 +116,7 @@ func (self *DummyFuseFile) Release() {
 func (self *DummyFuseFile) Fsync(*FsyncIn) (code Status) {
 	return ENOSYS
 }
-func (self *DummyFuseFile) ReadDir(input *ReadIn) (*DEntryList, Status) {
+func (self *DummyFuseFile) ReadDir(input *ReadIn) (*DirEntryList, Status) {
 	return nil, ENOSYS
 }
 

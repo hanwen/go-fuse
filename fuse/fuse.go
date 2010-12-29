@@ -536,12 +536,18 @@ func doFsyncDir(state *MountState, header *InHeader, input *FsyncIn) (code Statu
 ////////////////////////////////////////////////////////////////
 // DentryList.
 
-func (de *DEntryList) AddString(name string, inode uint64, mode uint32) {
-	de.Add([]byte(name), inode, mode)
+func NewDirEntryList(max int) *DirEntryList {
+	return &DirEntryList{maxSize: max}
 }
 
-func (de *DEntryList) Add(name []byte, inode uint64, mode uint32) {
+func (de *DirEntryList) AddString(name string, inode uint64, mode uint32) bool {
+	return de.Add([]byte(name), inode, mode)
+}
+
+func (de *DirEntryList) Add(name []byte, inode uint64, mode uint32) bool {
+	lastLen := de.buf.Len()
 	de.offset++
+
 	dirent := new(Dirent)
 	dirent.Off = de.offset
 	dirent.Ino = inode
@@ -558,8 +564,15 @@ func (de *DEntryList) Add(name []byte, inode uint64, mode uint32) {
 	if padding < 8 {
 		de.buf.Write(make([]byte, padding))
 	}
+
+	if de.buf.Len() > de.maxSize {
+		de.buf.Truncate(lastLen)
+		de.offset--
+		return false
+	}
+	return true
 }
 
-func (de *DEntryList) Bytes() []byte {
+func (de *DirEntryList) Bytes() []byte {
 	return de.buf.Bytes()
 }

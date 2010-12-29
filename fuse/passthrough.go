@@ -77,8 +77,8 @@ func (self *PassThroughFuse) OpenDir(name string) (fuseFile RawFuseDir, status S
 	if err != nil {
 		return nil, OsErrorToFuseError(err)
 	}
-
-	return &PassThroughFile{file: f}, OK
+	p := NewPassThroughDir(f)
+	return p, OK
 }
 
 func (self *PassThroughFuse) Open(name string, flags uint32) (fuseFile RawFuseFile, status Status) {
@@ -184,28 +184,69 @@ func (self *PassThroughFile) Fsync(*FsyncIn) (code Status) {
 	return Status(syscall.Fsync(self.file.Fd()))
 }
 
-func (self *PassThroughFile) ReadDir(input *ReadIn) (*DEntryList, Status) {
-	list := new(DEntryList)
+////////////////////////////////////////////////////////////////
 
-	// TODO - How to try accomodating the requested Size?
-	// (typically: 4096.)
-
-	// To test chunked reads, just return fetch 20 at a time.
-	fis, err := self.file.Readdir(20)
-	if err != nil {
-		return nil, OsErrorToFuseError(err)
-	}
-	for _, val := range fis {
-		list.AddString(val.Name, val.Ino, val.Mode)
-	}
-
-	return list, OK
+type PassThroughDir struct {
+	directoryChannel chan *os.FileInfo
+	directoryError os.Error
+	shipped int 
+	exported int
+	leftOver *os.FileInfo
 }
 
-func (self *PassThroughFile) ReleaseDir() {
-	self.file.Close()
+func NewPassThroughDir(file *os.File) *PassThroughDir {
+	self := new(PassThroughDir)
+	self.directoryChannel = make(chan *os.FileInfo, 500)
+	go func() {
+		for {
+			want := 500
+			infos, err := file.Readdir(want)
+			for i, _ := range infos {
+				self.directoryChannel <- &infos[i]
+			}
+			if len(infos) < want {
+				break
+			}
+			if err != nil {
+				self.directoryError = err
+				break
+			}
+		}
+		close(self.directoryChannel)
+		file.Close()
+	}()
+	return self
 }
 
-func (self *PassThroughFile) FsyncDir(input *FsyncIn) (code Status) {
+func (self *PassThroughDir) ReadDir(input *ReadIn) (*DirEntryList, Status) {
+	list := NewDirEntryList(int(input.Size))
+
+	if self.leftOver != nil {
+		success := list.AddString(self.leftOver.Name, self.leftOver.Ino, self.leftOver.Mode)
+		self.exported++
+		if !success {
+			panic("No space for single entry.")
+		}
+		self.leftOver = nil
+	}
+	
+	for {
+		fi := <-self.directoryChannel
+		if fi == nil {
+			break
+		}
+		if !list.AddString(fi.Name, fi.Ino, fi.Mode) {
+			self.leftOver = fi
+			break
+		} 
+	}
+	return list, OsErrorToFuseError(self.directoryError)
+}
+
+func (self *PassThroughDir) ReleaseDir() {
+	close(self.directoryChannel)
+}
+
+func (self *PassThroughDir) FsyncDir(input *FsyncIn) (code Status) {
 	return ENOSYS
 }
