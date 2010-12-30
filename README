@@ -26,7 +26,9 @@ Like Go, this library is distributed under the new BSD.  See accompanying LICENS
 
 CREDITS
 
-Partly inspired by Taru Karttunen's package, https://bitbucket.org/taruti/go-extra.
+* Inspired by Taru Karttunen's package, https://bitbucket.org/taruti/go-extra.
+
+* Originally based on Ivan Krasin's https://github.com/krasin/go-fuse-zip 
 
 
 BUGS
