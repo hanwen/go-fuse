@@ -11,8 +11,11 @@ import (
 	"syscall"
 )
 
+
+// TODO make generic option setting.
 const (
-	bufSize = 66000
+	maxRead = (1 << 16) 
+	bufSize = maxRead + 1024
 )
 
 type Empty interface{}
@@ -436,7 +439,7 @@ func initFuse(state *MountState, h *InHeader, input *InitIn) (Empty, Status) {
 	out.Minor = FUSE_KERNEL_MINOR_VERSION
 	out.MaxReadAhead = input.MaxReadAhead
 	out.Flags = FUSE_ASYNC_READ | FUSE_POSIX_LOCKS
-	out.MaxWrite = 65536
+	out.MaxWrite = maxRead
 
 	return out, OK
 }
