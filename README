@@ -11,7 +11,7 @@ directory as a loopback:
   (cd mountpoint ; ls)
 
 on my machine, compiles over loopback (threaded, without debug) are
-about 10x slower compared to normal compiles.
+about 2x slower compared to normal compiles.
 
 Tested on:
 
