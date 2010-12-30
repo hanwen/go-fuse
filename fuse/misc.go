@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"path"
 	"math"
+	"regexp"
 	"syscall"
 	"unsafe"
 )
@@ -267,4 +268,18 @@ func Writev(fd int, packet [][]byte) (n int, err os.Error) {
 		return
 	}
 	return
+}
+
+func CountCpus() int {
+	var contents [10240]byte
+	
+	f, err := os.Open("/proc/stat", os.O_RDONLY, 0)
+	defer f.Close()
+	if err != nil {
+		return 1 
+	}
+	n, _ := f.Read(contents[:])
+	re, _ := regexp.Compile("\ncpu[0-9]")
+	
+	return len(re.FindAllString(string(contents[:n]), 100))
 }

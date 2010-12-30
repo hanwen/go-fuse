@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 	"flag"
+	"runtime"
 )
-
 func main() {
 	// Scans the arg list and sets up flags
 	debug := flag.Bool("debug", false, "print debugging messages.")
@@ -27,7 +27,11 @@ func main() {
 
 	mountPoint := flag.Arg(1)
 	state.Mount(mountPoint)
-
-	fmt.Printf("Mounted %s on %s (threaded=%v, debug=%v)\n", orig, mountPoint, *threaded, *debug)
+	cpus := fuse.CountCpus()
+	if cpus > 1 {
+		runtime.GOMAXPROCS(cpus)
+	}
+	
+	fmt.Printf("Mounted %s on %s (threaded=%v, debug=%v, cpus=%v)\n", orig, mountPoint, *threaded, *debug, cpus)
 	state.Loop(*threaded)
 }
