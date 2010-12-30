@@ -92,34 +92,6 @@ func unmount(mountPoint string) (err os.Error) {
 	return
 }
 
-func writev(fd int, iovecs *syscall.Iovec, cnt int) (n int, errno int) {
-	n1, _, e1 := syscall.Syscall(syscall.SYS_WRITEV, uintptr(fd), uintptr(unsafe.Pointer(iovecs)), uintptr(cnt))
-	n = int(n1)
-	errno = int(e1)
-	return
-}
-
-func Writev(fd int, packet [][]byte) (n int, err os.Error) {
-	if len(packet) == 0 {
-		return
-	}
-	iovecs := make([]syscall.Iovec, len(packet))
-	for i, v := range packet {
-		if v == nil {
-			continue
-		}
-		iovecs[i].Base = (*byte)(unsafe.Pointer(&packet[i][0]))
-		iovecs[i].SetLen(len(packet[i]))
-	}
-	n, errno := writev(fd, (*syscall.Iovec)(unsafe.Pointer(&iovecs[0])), len(iovecs))
-
-	if errno != 0 {
-		err = os.NewSyscallError("writev", errno)
-		return
-	}
-	return
-}
-
 func getFuseConn(local *os.File) (f *os.File, err os.Error) {
 	var data [4]byte
 	control := make([]byte, 4*256)

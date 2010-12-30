@@ -252,16 +252,18 @@ func (self *MountState) handle(in_data []byte) {
 func dispatch(state *MountState, h *InHeader, arg *bytes.Buffer) (outBytes [][]byte) {
 	input := newInput(h.Opcode)
 	if input != nil && !parseLittleEndian(arg, input) {
-		return serialize(h, EIO, nil, false)
+		return serialize(h, EIO, nil, nil, false)
 	}
 
 	var out Empty
 	var status Status
+	var flatData []byte
 
 	out = nil
 	status = OK
 	fs := state.fileSystem
 
+	
 	filename := ""
 	// Perhaps a map is faster?
 	if h.Opcode == FUSE_UNLINK || h.Opcode == FUSE_RMDIR ||
@@ -327,7 +329,7 @@ func dispatch(state *MountState, h *InHeader, arg *bytes.Buffer) (outBytes [][]b
 	case FUSE_OPEN:
 		out, status = doOpen(state, h, input.(*OpenIn))
 	case FUSE_READ:
-		out, status = doRead(state, h, input.(*ReadIn))
+		flatData, status = doRead(state, h, input.(*ReadIn))
 	case FUSE_WRITE:
 		out, status = doWrite(state, h, input.(*WriteIn), arg.Bytes())
 	case FUSE_FLUSH:
@@ -336,7 +338,6 @@ func dispatch(state *MountState, h *InHeader, arg *bytes.Buffer) (outBytes [][]b
 		out, status = doRelease(state, h, input.(*ReleaseIn))
 	case FUSE_FSYNC:
 		status = doFsync(state, h, input.(*FsyncIn))
-
 	case FUSE_OPENDIR:
 		out, status = doOpenDir(state, h, input.(*OpenIn))
 	case FUSE_READDIR:
@@ -373,13 +374,13 @@ func dispatch(state *MountState, h *InHeader, arg *bytes.Buffer) (outBytes [][]b
 	// case FUSE_INTERRUPT
 	default:
 		state.Error(os.NewError(fmt.Sprintf("Unsupported OpCode: %d=%v", h.Opcode, operationName(h.Opcode))))
-		return serialize(h, ENOSYS, nil, false)
+		return serialize(h, ENOSYS, nil, nil, false)
 	}
 
-	return serialize(h, status, out, state.Debug)
+	return serialize(h, status, out, flatData, state.Debug)
 }
 
-func serialize(h *InHeader, res Status, out interface{}, debug bool) (data [][]byte) {
+func serialize(h *InHeader, res Status, out interface{}, flatData []byte, debug bool) ([][]byte) {
 	out_data := make([]byte, 0)
 	b := new(bytes.Buffer)
 	if out != nil && res == OK {
@@ -394,24 +395,24 @@ func serialize(h *InHeader, res Status, out interface{}, debug bool) (data [][]b
 	var hout OutHeader
 	hout.Unique = h.Unique
 	hout.Status = -res
-	hout.Length = uint32(len(out_data) + SizeOfOutHeader)
+	hout.Length = uint32(len(out_data) + SizeOfOutHeader  + len(flatData))
 	b = new(bytes.Buffer)
 	err := binary.Write(b, binary.LittleEndian, &hout)
 	if err != nil {
 		panic("Can't serialize OutHeader")
 	}
-	_, _ = b.Write(out_data)
-	data = [][]byte{b.Bytes()}
+
+	data := [][]byte{b.Bytes(), out_data, flatData}
 
 	if debug {
 		val := fmt.Sprintf("%v", out)
 		max := 1024
 		if len(val) > max {
-			val = val[:max] + fmt.Sprintf(" ...trimmed (response size %d)", len(b.Bytes()))
+			val = val[:max] + fmt.Sprintf(" ...trimmed (response size %d)", hout.Length)
 		}
 
-		log.Printf("Serialize: %v code: %v value: %v\n",
-			operationName(h.Opcode), errorString(res), val)
+		log.Printf("Serialize: %v code: %v value: %v flat: %d\n",
+			operationName(h.Opcode), errorString(res), val, len(flatData))
 	}
 
 	return data
@@ -479,7 +480,7 @@ func doRelease(state *MountState, header *InHeader, input *ReleaseIn) (out Empty
 	return nil, OK
 }
 
-func doRead(state *MountState, header *InHeader, input *ReadIn) (out Empty, code Status) {
+func doRead(state *MountState, header *InHeader, input *ReadIn) (out []byte, code Status) {
 	output, code := state.FindFile(input.Fh).Read(input)
 	return output, code
 }
