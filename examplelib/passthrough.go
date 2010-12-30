@@ -173,10 +173,10 @@ func (self *PassThroughFile) Fsync(*fuse.FsyncIn) (code fuse.Status) {
 
 type PassThroughDir struct {
 	directoryChannel chan *os.FileInfo
-	directoryError os.Error
-	shipped int 
-	exported int
-	leftOver *os.FileInfo
+	directoryError   os.Error
+	shipped          int
+	exported         int
+	leftOver         *os.FileInfo
 }
 
 func NewPassThroughDir(file *os.File) *PassThroughDir {
@@ -214,7 +214,7 @@ func (self *PassThroughDir) ReadDir(input *fuse.ReadIn) (*fuse.DirEntryList, fus
 		}
 		self.leftOver = nil
 	}
-	
+
 	for {
 		fi := <-self.directoryChannel
 		if fi == nil {
@@ -223,7 +223,7 @@ func (self *PassThroughDir) ReadDir(input *fuse.ReadIn) (*fuse.DirEntryList, fus
 		if !list.AddString(fi.Name, fuse.FUSE_UNKNOWN_INO, fi.Mode) {
 			self.leftOver = fi
 			break
-		} 
+		}
 	}
 	return list, fuse.OsErrorToFuseError(self.directoryError)
 }
@@ -235,4 +235,3 @@ func (self *PassThroughDir) ReleaseDir() {
 func (self *PassThroughDir) FsyncDir(input *fuse.FsyncIn) (code fuse.Status) {
 	return fuse.ENOSYS
 }
-

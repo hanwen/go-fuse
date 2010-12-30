@@ -396,9 +396,9 @@ func (self *testCase) testReaddir() {
 		self.tester.Errorf("readdir err %v", err)
 	}
 
-	wanted := map[string] bool{
+	wanted := map[string]bool{
 		"hello.txt": true,
-		"subdir": true,
+		"subdir":    true,
 	}
 	if len(wanted) != len(infos) {
 		self.tester.Errorf("Length mismatch %v", infos)
@@ -437,7 +437,7 @@ func (self *testCase) testFSync() {
 
 func (self *testCase) testLargeRead() {
 	name := path.Join(self.origDir, "large")
-	f, err := os.Open(name, os.O_WRONLY | os.O_CREATE, 0777)
+	f, err := os.Open(name, os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
 		self.tester.Errorf("open write err %v", err)
 	}
@@ -469,10 +469,10 @@ func (self *testCase) testLargeRead() {
 	readSlice := make([]byte, len(slice))
 	m, err := g.Read(readSlice)
 	if m != n {
-		self.tester.Errorf("read mismatch %v %v", m, n )
+		self.tester.Errorf("read mismatch %v %v", m, n)
 	}
-	for i, v := range(readSlice) {
-		if (slice[i] != v) {
+	for i, v := range readSlice {
+		if slice[i] != v {
 			self.tester.Errorf("char mismatch %v %v %v", i, slice[i], v)
 			break
 		}
@@ -506,8 +506,7 @@ func (self *testCase) testLargeRead() {
 	}
 	g.Close()
 
-
-        os.Remove(name)
+	os.Remove(name)
 }
 
 func randomLengthString(length int) string {
@@ -541,7 +540,7 @@ func (self *testCase) testLargeDirRead() {
 
 		nameSet[base] = true
 
-		f, err := os.Open(name, os.O_WRONLY | os.O_CREATE, 0777)
+		f, err := os.Open(name, os.O_WRONLY|os.O_CREATE, 0777)
 		if err != nil {
 			self.tester.Errorf("open write err %v", err)
 			break
@@ -552,13 +551,13 @@ func (self *testCase) testLargeDirRead() {
 		names[i] = name
 	}
 
-        dir, err := os.Open(path.Join(self.mountPoint, "readdirSubdir"), os.O_RDONLY, 0)
+	dir, err := os.Open(path.Join(self.mountPoint, "readdirSubdir"), os.O_RDONLY, 0)
 	if err != nil {
 		self.tester.Errorf("dirread %v", err)
 	}
 	// Chunked read.
 	total := 0
-	readSet := make(map[string] bool)
+	readSet := make(map[string]bool)
 	for {
 		namesRead, err := dir.Readdirnames(200)
 		if err != nil {
@@ -568,7 +567,7 @@ func (self *testCase) testLargeDirRead() {
 		if len(namesRead) == 0 {
 			break
 		}
-		for _, v := range(namesRead) {
+		for _, v := range namesRead {
 			readSet[v] = true
 		}
 		total += len(namesRead)
@@ -577,7 +576,7 @@ func (self *testCase) testLargeDirRead() {
 	if total != created {
 		self.tester.Errorf("readdir mismatch got %v wanted %v", total, created)
 	}
-	for k, _ := range(nameSet) {
+	for k, _ := range nameSet {
 		_, ok := readSet[k]
 		if !ok {
 			self.tester.Errorf("Name %v not found in output", k)
@@ -588,7 +587,6 @@ func (self *testCase) testLargeDirRead() {
 
 	os.RemoveAll(subdir)
 }
-
 
 
 // Test driver.

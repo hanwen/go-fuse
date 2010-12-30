@@ -251,7 +251,7 @@ func Writev(fd int, packet [][]byte) (n int, err os.Error) {
 	}
 	iovecs := make([]syscall.Iovec, len(packet))
 
-	j := 0 
+	j := 0
 	for i, v := range packet {
 		if v == nil || len(v) == 0 {
 			continue

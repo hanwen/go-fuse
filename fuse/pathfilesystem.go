@@ -10,13 +10,13 @@ import (
 
 // TODO should rename to dentry?
 type inodeData struct {
-	Parent *inodeData
-	NodeId uint64
-	Name   string
-	LookupCount  int
-	
+	Parent      *inodeData
+	NodeId      uint64
+	Name        string
+	LookupCount int
+
 	// Number of inodeData that have this as parent.
-	RefCount int 
+	RefCount int
 }
 
 // Should implement some hash table method instead? 
@@ -48,8 +48,8 @@ func (self *inodeData) GetPath() string {
 }
 
 type PathFileSystemConnectorOptions struct {
-	EntryTimeout float64
-	AttrTimeout float64
+	EntryTimeout    float64
+	AttrTimeout     float64
 	NegativeTimeout float64
 }
 
@@ -57,8 +57,8 @@ type PathFileSystemConnector struct {
 	fileSystem PathFilesystem
 
 	// Protects the hashmap, its contents and the nextFreeInode counter.
-	lock                sync.RWMutex
-	
+	lock sync.RWMutex
+
 	// Invariants
 	// - For all values, (RefCount > 0 || LookupCount > 0).
 	// - For all values, value = inodePathMap[value.Key()]
@@ -71,7 +71,7 @@ type PathFileSystemConnector struct {
 	// > 0.
 	inodePathMap        map[string]*inodeData
 	inodePathMapByInode map[uint64]*inodeData
-	nextFreeInode uint64
+	nextFreeInode       uint64
 
 	options PathFileSystemConnectorOptions
 }
@@ -82,11 +82,11 @@ func (self *PathFileSystemConnector) setParent(data *inodeData, parentId uint64)
 	if data.Parent == newParent {
 		return
 	}
-	
+
 	if newParent == nil {
 		panic("Unknown parent")
 	}
-	
+
 	oldParent := data.Parent
 	if oldParent != nil {
 		self.unrefNode(oldParent)
@@ -100,7 +100,7 @@ func (self *PathFileSystemConnector) setParent(data *inodeData, parentId uint64)
 // Must be called with lock held.
 func (self *PathFileSystemConnector) unrefNode(data *inodeData) {
 	data.RefCount--
-	if data.RefCount <= 0 && data.LookupCount <= 0{
+	if data.RefCount <= 0 && data.LookupCount <= 0 {
 		self.inodePathMapByInode[data.NodeId] = nil, false
 	}
 }
@@ -146,8 +146,8 @@ func (self *PathFileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int
 	}
 }
 
-func (self *PathFileSystemConnector) renameUpdate(oldParent uint64, oldName string, newParent uint64, newName string) {	
- 	self.lock.Lock()
+func (self *PathFileSystemConnector) renameUpdate(oldParent uint64, oldName string, newParent uint64, newName string) {
+	self.lock.Lock()
 	defer self.lock.Unlock()
 
 	oldKey := inodeDataKey(oldParent, oldName)
@@ -163,7 +163,7 @@ func (self *PathFileSystemConnector) renameUpdate(oldParent uint64, oldName stri
 	}
 
 	self.inodePathMap[oldKey] = nil, false
-	
+
 	self.setParent(data, newParent)
 	data.Name = newName
 	newKey := data.Key()
@@ -182,7 +182,7 @@ func (self *PathFileSystemConnector) renameUpdate(oldParent uint64, oldName stri
 
 		self.setParent(target, FUSE_ROOT_ID)
 		target.Name = fmt.Sprintf("overwrittenByRename%d", self.nextFreeInode)
-		self.nextFreeInode++;
+		self.nextFreeInode++
 
 		self.inodePathMap[target.Key()] = target
 	}
@@ -225,7 +225,7 @@ func NewPathFileSystemConnector(fs PathFilesystem) (out *PathFileSystemConnector
 	out.options.EntryTimeout = 1.0
 
 	fs.SetOptions(&out.options)
-	
+
 	return out
 }
 
@@ -249,7 +249,7 @@ func (self *PathFileSystemConnector) Lookup(header *InHeader, name string) (out 
 
 	// Hmm. - fuse.c has special case code for name == "." and "..".
 	// Should we have it too?
-	
+
 	fullPath := path.Join(parent.GetPath(), name)
 	attr, err := self.fileSystem.GetAttr(fullPath)
 	if err == ENOENT && self.options.NegativeTimeout > 0.0 {
@@ -315,7 +315,7 @@ func (self *PathFileSystemConnector) Open(header *InHeader, input *OpenIn) (flag
 
 func (self *PathFileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out *AttrOut, code Status) {
 	var err Status = OK
-	
+
 	// TODO - support Fh.   (FSetAttr/FGetAttr/FTruncate.)
 	fullPath := self.GetPath(header.NodeId)
 	if input.Valid&FATTR_MODE != 0 {
@@ -374,12 +374,12 @@ func (self *PathFileSystemConnector) Unlink(header *InHeader, name string) (code
 
 	// Like fuse.c, we update our internal tables.
 	self.unlinkUpdate(header.NodeId, name)
-	
+
 	return code
 }
 
 func (self *PathFileSystemConnector) Rmdir(header *InHeader, name string) (code Status) {
-	code =  self.fileSystem.Rmdir(path.Join(self.GetPath(header.NodeId), name))
+	code = self.fileSystem.Rmdir(path.Join(self.GetPath(header.NodeId), name))
 	self.unlinkUpdate(header.NodeId, name)
 	return code
 }
@@ -397,12 +397,12 @@ func (self *PathFileSystemConnector) Symlink(header *InHeader, pointedTo string,
 func (self *PathFileSystemConnector) Rename(header *InHeader, input *RenameIn, oldName string, newName string) (code Status) {
 	oldPath := path.Join(self.GetPath(header.NodeId), oldName)
 	newPath := path.Join(self.GetPath(input.Newdir), newName)
-	
+
 	code = self.fileSystem.Rename(oldPath, newPath)
 	if code != OK {
 		return
 	}
-	
+
 	// It is conceivable that the kernel module will issue a
 	// forget for the old entry, and a lookup request for the new
 	// one, but the fuse.c updates its client-side tables on its

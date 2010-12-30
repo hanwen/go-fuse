@@ -1,7 +1,8 @@
 package examplelib
+
 import (
 	"github.com/hanwen/go-fuse/fuse"
-	)
+)
 // Declare dummy methods, for cut & paste convenience.
 type DummyFuse struct{}
 
@@ -200,5 +201,5 @@ func (self *DummyPathFuse) Utimens(name string, AtimeNs uint64, CtimeNs uint64) 
 }
 
 func (self *DummyPathFuse) SetOptions(*fuse.PathFileSystemConnectorOptions) {
-	
+
 }

@@ -13,12 +13,12 @@ func main() {
 	debug := flag.Bool("debug", false, "print debugging messages.")
 	threaded := flag.Bool("threaded", true, "switch off threading; print debugging messages.")
 	flag.Parse()
-        if flag.NArg() < 2 {
+	if flag.NArg() < 2 {
 		// TODO - where to get program name? 
 		fmt.Println("usage: main ORIGINAL MOUNTPOINT")
 		os.Exit(2)
 	}
-	
+
 	orig := flag.Arg(0)
 	pt := examplelib.NewPassThroughFuse(orig)
 	fs := fuse.NewPathFileSystemConnector(pt)
@@ -31,4 +31,3 @@ func main() {
 	fmt.Printf("Mounted %s on %s (threaded=%v, debug=%v)\n", orig, mountPoint, *threaded, *debug)
 	state.Loop(*threaded)
 }
-

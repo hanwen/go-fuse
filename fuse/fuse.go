@@ -109,7 +109,7 @@ func (self *MountState) Mount(mountPoint string) os.Error {
 	self.mountFile = file
 	return nil
 }
-	
+
 // Normally, callers should run loop() and wait for FUSE to exit, but
 // tests will want to run this in a goroutine. 
 func (self *MountState) Loop(threaded bool) {
@@ -263,7 +263,6 @@ func dispatch(state *MountState, h *InHeader, arg *bytes.Buffer) (outBytes [][]b
 	status = OK
 	fs := state.fileSystem
 
-	
 	filename := ""
 	// Perhaps a map is faster?
 	if h.Opcode == FUSE_UNLINK || h.Opcode == FUSE_RMDIR ||
@@ -380,7 +379,7 @@ func dispatch(state *MountState, h *InHeader, arg *bytes.Buffer) (outBytes [][]b
 	return serialize(h, status, out, flatData, state.Debug)
 }
 
-func serialize(h *InHeader, res Status, out interface{}, flatData []byte, debug bool) ([][]byte) {
+func serialize(h *InHeader, res Status, out interface{}, flatData []byte, debug bool) [][]byte {
 	out_data := make([]byte, 0)
 	b := new(bytes.Buffer)
 	if out != nil && res == OK {
@@ -395,7 +394,7 @@ func serialize(h *InHeader, res Status, out interface{}, flatData []byte, debug 
 	var hout OutHeader
 	hout.Unique = h.Unique
 	hout.Status = -res
-	hout.Length = uint32(len(out_data) + SizeOfOutHeader  + len(flatData))
+	hout.Length = uint32(len(out_data) + SizeOfOutHeader + len(flatData))
 	b = new(bytes.Buffer)
 	err := binary.Write(b, binary.LittleEndian, &hout)
 	if err != nil {
