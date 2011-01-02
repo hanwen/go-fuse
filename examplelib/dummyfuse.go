@@ -6,26 +6,26 @@ import (
 // Declare dummy methods, for cut & paste convenience.
 type DummyFuse struct{}
 
-func (fs *DummyFuse) Init(h *fuse.InHeader, input *fuse.InitIn) (*fuse.InitOut, fuse.Status) {
+func (self *DummyFuse) Init(h *fuse.InHeader, input *fuse.InitIn) (*fuse.InitOut, fuse.Status) {
 	return new(fuse.InitOut), fuse.OK
 }
 
-func (fs *DummyFuse) Destroy(h *fuse.InHeader, input *fuse.InitIn) {
+func (self *DummyFuse) Destroy(h *fuse.InHeader, input *fuse.InitIn) {
 
 }
 
-func (fs *DummyFuse) Lookup(h *fuse.InHeader, name string) (out *fuse.EntryOut, code fuse.Status) {
+func (self *DummyFuse) Lookup(h *fuse.InHeader, name string) (out *fuse.EntryOut, code fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
-func (fs *DummyFuse) Forget(h *fuse.InHeader, input *fuse.ForgetIn) {
+func (self *DummyFuse) Forget(h *fuse.InHeader, input *fuse.ForgetIn) {
 }
 
-func (fs *DummyFuse) GetAttr(header *fuse.InHeader, input *fuse.GetAttrIn) (out *fuse.AttrOut, code fuse.Status) {
+func (self *DummyFuse) GetAttr(header *fuse.InHeader, input *fuse.GetAttrIn) (out *fuse.AttrOut, code fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
-func (fs *DummyFuse) Open(header *fuse.InHeader, input *fuse.OpenIn) (flags uint32, fuseFile fuse.RawFuseFile, status fuse.Status) {
+func (self *DummyFuse) Open(header *fuse.InHeader, input *fuse.OpenIn) (flags uint32, fuseFile fuse.RawFuseFile, status fuse.Status) {
 	return 0, nil, fuse.OK
 }
 
@@ -110,21 +110,24 @@ func (self *DummyFuseFile) Write(*fuse.WriteIn, []byte) (uint32, fuse.Status) {
 	return 0, fuse.ENOSYS
 }
 
-
 func (self *DummyFuseFile) Flush() {
 }
+
 func (self *DummyFuseFile) Release() {
 
 }
+
 func (self *DummyFuseFile) Fsync(*fuse.FsyncIn) (code fuse.Status) {
 	return fuse.ENOSYS
 }
+
 func (self *DummyFuseFile) ReadDir(input *fuse.ReadIn) (*fuse.DirEntryList, fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
 func (self *DummyFuseFile) ReleaseDir() {
 }
+
 func (self *DummyFuseFile) FsyncDir(input *fuse.FsyncIn) (code fuse.Status) {
 	return fuse.ENOSYS
 }
@@ -145,54 +148,64 @@ func (self *DummyPathFuse) Readlink(name string) (string, fuse.Status) {
 func (self *DummyPathFuse) Mknod(name string, mode uint32, dev uint32) fuse.Status {
 	return fuse.ENOSYS
 }
+
 func (self *DummyPathFuse) Mkdir(name string, mode uint32) fuse.Status {
 	return fuse.ENOSYS
 }
+
 func (self *DummyPathFuse) Unlink(name string) (code fuse.Status) {
 	return fuse.ENOSYS
 }
+
 func (self *DummyPathFuse) Rmdir(name string) (code fuse.Status) {
 	return fuse.ENOSYS
 }
+
 func (self *DummyPathFuse) Symlink(value string, linkName string) (code fuse.Status) {
 	return fuse.ENOSYS
 }
+
 func (self *DummyPathFuse) Rename(oldName string, newName string) (code fuse.Status) {
 	return fuse.ENOSYS
 }
+
 func (self *DummyPathFuse) Link(oldName string, newName string) (code fuse.Status) {
 	return fuse.ENOSYS
 }
+
 func (self *DummyPathFuse) Chmod(name string, mode uint32) (code fuse.Status) {
 	return fuse.ENOSYS
 }
+
 func (self *DummyPathFuse) Chown(name string, uid uint32, gid uint32) (code fuse.Status) {
 	return fuse.ENOSYS
 }
+
 func (self *DummyPathFuse) Truncate(name string, offset uint64) (code fuse.Status) {
 	return fuse.ENOSYS
 }
+
 func (self *DummyPathFuse) Open(name string, flags uint32) (file fuse.RawFuseFile, code fuse.Status) {
 	return nil, fuse.ENOSYS
 }
-
 
 func (self *DummyPathFuse) OpenDir(name string) (dir fuse.RawFuseDir, code fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
-
 func (self *DummyPathFuse) Init() (*fuse.InitOut, fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
-
 func (self *DummyPathFuse) Destroy() {
 }
+
 func (self *DummyPathFuse) Access(name string, mode uint32) (code fuse.Status) {
 	return fuse.ENOSYS
 }
-func (self *DummyPathFuse) Create(name string, flags uint32, mode uint32) (file fuse.RawFuseFile, code fuse.Status) {
+
+func (self *DummyPathFuse) Create(name string, flags uint32, mode uint32) (file
+fuse.RawFuseFile, code fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
