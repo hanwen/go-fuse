@@ -247,9 +247,9 @@ func (self *PathFileSystemConnector) Lookup(header *InHeader, name string) (out 
 		panic("Parent inode unknown.")
 	}
 
-	// Hmm. - fuse.c has special case code for name == "." and "..".
-	// Should we have it too?
-
+	// TODO - fuse.c has special case code for name == "." and
+	// "..", those lookups happen if FUSE_EXPORT_SUPPORT is set in
+	// Init.
 	fullPath := path.Join(parent.GetPath(), name)
 	attr, err := self.fileSystem.GetAttr(fullPath)
 	if err == ENOENT && self.options.NegativeTimeout > 0.0 {
