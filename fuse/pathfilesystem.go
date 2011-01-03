@@ -47,10 +47,22 @@ func (self *inodeData) GetPath() string {
 	return fullPath
 }
 
-type PathFileSystemConnectorOptions struct {
+type TimeoutOptions struct {
 	EntryTimeout    float64
 	AttrTimeout     float64
 	NegativeTimeout float64
+}
+
+func MakeTimeoutOptions() TimeoutOptions {
+	return TimeoutOptions{
+	NegativeTimeout: 0.0,
+	AttrTimeout: 1.0,
+	EntryTimeout: 1.0,
+	}
+}
+
+type PathFileSystemConnectorOptions struct {
+	TimeoutOptions
 }
 
 type PathFileSystemConnector struct {
