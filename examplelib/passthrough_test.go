@@ -194,13 +194,13 @@ func (self *testCase) testRemove() {
 
 func (self *testCase) testWriteThroughFuse() {
 	// Create (for write), write.
-	fmt.Println("Testing create.")
+	self.tester.Log("Testing create.")
 	f, err := os.Open(self.mountFile, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		self.tester.Errorf("Fuse create/open %v", err)
 	}
 
-	fmt.Println("Testing write.")
+	self.tester.Log("Testing write.")
 	n, err := f.WriteString(contents)
 	if err != nil {
 		self.tester.Errorf("fuse write %v", err)
@@ -224,7 +224,7 @@ func (self *testCase) testWriteThroughFuse() {
 	if err != nil {
 		self.tester.Errorf("orig read %v", err)
 	}
-	fmt.Println("Orig contents", slice[:n])
+	self.tester.Log("Orig contents", slice[:n])
 	if string(slice[:n]) != contents {
 		self.tester.Errorf("write contents error %v", slice[:n])
 	}
@@ -250,7 +250,7 @@ func (self *testCase) testMkdirRmdir() {
 }
 
 func (self *testCase) testLink() {
-	fmt.Println("Testing hard links.")
+	self.tester.Log("Testing hard links.")
 	self.writeOrigFile()
 	err := os.Mkdir(self.origSubdir, 0777)
 	if err != nil {
@@ -284,7 +284,7 @@ func (self *testCase) testLink() {
 }
 
 func (self *testCase) testSymlink() {
-	fmt.Println("testing symlink/readlink.")
+	self.tester.Log("testing symlink/readlink.")
 	self.writeOrigFile()
 
 	linkFile := "symlink-file"
@@ -321,7 +321,7 @@ func (self *testCase) testSymlink() {
 }
 
 func (self *testCase) testRename() {
-	fmt.Println("Testing rename.")
+	self.tester.Log("Testing rename.")
 	self.writeOrigFile()
 	self.makeOrigSubdir()
 
@@ -368,7 +368,7 @@ func (self *testCase) testAccess() {
 }
 
 func (self *testCase) testMknod() {
-	fmt.Println("Testing mknod.")
+	self.tester.Log("Testing mknod.")
 	errNo := syscall.Mknod(self.mountFile, syscall.S_IFIFO|0777, 0)
 	if errNo != 0 {
 		self.tester.Errorf("Mknod %v", errNo)
@@ -382,7 +382,7 @@ func (self *testCase) testMknod() {
 }
 
 func (self *testCase) testReaddir() {
-	fmt.Println("Testing rename.")
+	self.tester.Log("Testing readdir.")
 	self.writeOrigFile()
 	self.makeOrigSubdir()
 
@@ -418,7 +418,7 @@ func (self *testCase) testReaddir() {
 }
 
 func (self *testCase) testFSync() {
-	fmt.Println("Testing rename.")
+	self.tester.Log("Testing fsync.")
 	self.writeOrigFile()
 
 	f, err := os.Open(self.mountFile, os.O_WRONLY, 0)
@@ -436,6 +436,7 @@ func (self *testCase) testFSync() {
 }
 
 func (self *testCase) testLargeRead() {
+	self.tester.Log("Testing large read.")
 	name := path.Join(self.origDir, "large")
 	f, err := os.Open(name, os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
@@ -450,7 +451,6 @@ func (self *testCase) testLargeRead() {
 	b.WriteString("something extra to not be round")
 
 	slice := b.Bytes()
-	fmt.Println("len : ", len(slice))
 	n, err := f.Write(slice)
 	if err != nil {
 		self.tester.Errorf("write err %v %v", err, n)
@@ -523,6 +523,7 @@ func randomLengthString(length int) string {
 
 
 func (self *testCase) testLargeDirRead() {
+	self.tester.Log("Testing large readdir.")
 	created := 100
 
 	names := make([]string, created)
