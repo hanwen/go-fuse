@@ -53,7 +53,6 @@ type subInodeData struct {
 	// NodeId in the sub filesystem.
 	NodeId uint64
 
-	// If not empty, this is a toplevel FS
 	LookupCount int
 }
 
