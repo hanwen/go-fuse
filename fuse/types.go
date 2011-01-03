@@ -2,7 +2,6 @@ package fuse
 
 import (
 	"syscall"
-	"bytes"
 )
 
 const (
@@ -541,13 +540,6 @@ type RawFuseDir interface {
 	ReadDir(input *ReadIn) (*DirEntryList, Status)
 	ReleaseDir()
 	FsyncDir(input *FsyncIn) (code Status)
-}
-
-// Should make interface ?
-type DirEntryList struct {
-	buf     bytes.Buffer
-	offset  uint64
-	maxSize int
 }
 
 type PathFilesystem interface {

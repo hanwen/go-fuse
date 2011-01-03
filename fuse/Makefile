@@ -6,6 +6,7 @@ TARG=github.com/hanwen/go-fuse/fuse
 
 GOFILES=misc.go\
 	fuse.go\
+	direntry.go\
 	mount.go\
 	types.go\
 	pathfilesystem.go \
