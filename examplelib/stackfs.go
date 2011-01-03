@@ -11,17 +11,17 @@ var _ = fmt.Println
 type subFsInfo struct {
 	// Entry within global FS.
 	Name string
-	Fs fuse.RawFileSystem
+	Fs   fuse.RawFileSystem
 
 	// Inode in global namespace.
 	GlobalNodeId uint64
 
 	// Maps Fs's Inodes back to the parent inode.
-	ParentNodeIds map[uint64] uint64
-	
+	ParentNodeIds map[uint64]uint64
+
 	// This must always be the inner lock in the locking order.
 	ParentNodeIdsLock sync.RWMutex
-	
+
 	Attr fuse.Attr
 }
 
@@ -35,7 +35,7 @@ func (self *subFsInfo) getGlobalNode(node uint64) (uint64, bool) {
 func (self *subFsInfo) dropGlobalNode(node uint64) {
 	self.ParentNodeIdsLock.Lock()
 	defer self.ParentNodeIdsLock.Unlock()
-	self.ParentNodeIds[node] = 0, false 
+	self.ParentNodeIds[node] = 0, false
 }
 
 func (self *subFsInfo) addGlobalNode(local uint64, global uint64) {
@@ -47,7 +47,7 @@ func (self *subFsInfo) addGlobalNode(local uint64, global uint64) {
 
 ////////////////////////////////////////////////////////////////
 
-type subInodeData struct {	
+type subInodeData struct {
 	SubFs *subFsInfo
 
 	// NodeId in the sub filesystem.
@@ -80,11 +80,11 @@ func (self *subInodeData) Deletable() bool {
 // /config directory.
 type SubmountFileSystem struct {
 	toplevelEntriesLock sync.RWMutex
-	toplevelEntries map[string] *subFsInfo
+	toplevelEntries     map[string]*subFsInfo
 
 	// Mutex protects map and nextFreeInode.
-	nodeMapLock sync.RWMutex
-	nodeMap map[uint64] *subInodeData
+	nodeMapLock   sync.RWMutex
+	nodeMap       map[uint64]*subInodeData
 	nextFreeInode uint64
 
 	Options SubmountFileSystemOptions
@@ -99,9 +99,9 @@ type SubmountFileSystemOptions struct {
 
 func (self *SubmountFileSystem) registerLookup(subInode uint64, subfs *subFsInfo) (globalNodeId uint64) {
 	globalNodeId, ok := subfs.getGlobalNode(subInode)
-	
+
 	var globalNode *subInodeData = nil
-	
+
 	self.nodeMapLock.Lock()
 	defer self.nodeMapLock.Unlock()
 	if ok {
@@ -111,10 +111,10 @@ func (self *SubmountFileSystem) registerLookup(subInode uint64, subfs *subFsInfo
 		self.nextFreeInode++
 
 		globalNode = &subInodeData{
-		SubFs: subfs,
-		NodeId: subInode,
+			SubFs:  subfs,
+			NodeId: subInode,
 		}
-		
+
 		self.nodeMap[globalNodeId] = globalNode
 		subfs.addGlobalNode(subInode, globalNodeId)
 	}
@@ -138,27 +138,27 @@ func (self *SubmountFileSystem) addFileSystem(name string, fs fuse.RawFileSystem
 	}
 
 	subfs := &subFsInfo{
-	Name: name,
-	Fs: fs,
-	Attr: attr,
+		Name: name,
+		Fs:   fs,
+		Attr: attr,
 	}
-	
+
 	self.toplevelEntries[name] = subfs
-	
+
 	self.nodeMapLock.Lock()
 	defer self.nodeMapLock.Unlock()
 
 	self.nodeMap[self.nextFreeInode] = &subInodeData{
-	SubFs: subfs,
-	NodeId: fuse.FUSE_ROOT_ID,
-	LookupCount: 0,
+		SubFs:       subfs,
+		NodeId:      fuse.FUSE_ROOT_ID,
+		LookupCount: 0,
 	}
-	subfs.ParentNodeIds = map[uint64]uint64{ fuse.FUSE_ROOT_ID: self.nextFreeInode }
+	subfs.ParentNodeIds = map[uint64]uint64{fuse.FUSE_ROOT_ID: self.nextFreeInode}
 	subfs.GlobalNodeId = self.nextFreeInode
 
 	subfs.Attr.Mode |= fuse.S_IFDIR
 	subfs.Attr.Ino = self.nextFreeInode
-	
+
 	self.nextFreeInode++
 
 	return true
@@ -167,25 +167,25 @@ func (self *SubmountFileSystem) addFileSystem(name string, fs fuse.RawFileSystem
 func (self *SubmountFileSystem) removeFileSystem(name string) *subFsInfo {
 	self.toplevelEntriesLock.Lock()
 	defer self.toplevelEntriesLock.Unlock()
-	
+
 	subfs, ok := self.toplevelEntries[name]
 	if !ok {
 		return nil
 	}
 
-	self.toplevelEntries[name] = nil, false	
+	self.toplevelEntries[name] = nil, false
 
 	// We leave the keys of node map as is, since the kernel may
 	// still issue requests with nodeids in it.
 	self.nodeMapLock.Lock()
 	defer self.nodeMapLock.Unlock()
-	
-	for _, v := range(self.nodeMap) {
+
+	for _, v := range self.nodeMap {
 		if v.SubFs == subfs {
 			v.SubFs = nil
 		}
 	}
-	
+
 	return subfs
 }
 
@@ -197,7 +197,7 @@ func (self *SubmountFileSystem) listFileSystems() ([]string, []uint32) {
 	modes := make([]uint32, len(self.toplevelEntries))
 
 	j := 0
-	for name, entry := range (self.toplevelEntries) {
+	for name, entry := range self.toplevelEntries {
 		names[j] = name
 		modes[j] = entry.Attr.Mode
 		j++
@@ -216,21 +216,21 @@ func (self *SubmountFileSystem) lookupRoot(name string) (out *fuse.EntryOut, cod
 		fuse.SplitNs(self.Options.NegativeTimeout, &out.EntryValid, &out.EntryValidNsec)
 		return nil, fuse.ENOENT
 	}
-	
+
 	self.nodeMapLock.RLock()
 	dentry, ok := self.nodeMap[subfs.GlobalNodeId]
 	self.nodeMapLock.RUnlock()
-	
+
 	if !ok {
 		panic(fmt.Sprintf("unknown toplevel node %d", subfs.GlobalNodeId))
 	}
 
 	dentry.LookupCount++
-	
+
 	out = new(fuse.EntryOut)
 	out.NodeId = subfs.GlobalNodeId
 	out.Attr = subfs.Attr
-	
+
 	fuse.SplitNs(self.Options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
 	fuse.SplitNs(self.Options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 
@@ -240,7 +240,7 @@ func (self *SubmountFileSystem) lookupRoot(name string) (out *fuse.EntryOut, cod
 func (self *SubmountFileSystem) forget(h *fuse.InHeader, input *fuse.ForgetIn) *subInodeData {
 	self.nodeMapLock.Lock()
 	defer self.nodeMapLock.Unlock()
-	
+
 	subNodeData := self.nodeMap[h.NodeId]
 	globalNodeId := h.NodeId
 
@@ -254,7 +254,7 @@ func (self *SubmountFileSystem) forget(h *fuse.InHeader, input *fuse.ForgetIn) *
 	return subNodeData
 }
 
-	
+
 ////////////////////////////////////////////////////////////////
 // Functions below should not need locking primitives. 
 
@@ -306,11 +306,11 @@ func (self *SubmountFileSystem) Forget(h *fuse.InHeader, input *fuse.ForgetIn) {
 	}
 }
 
-func NewSubmountFileSystem() (*SubmountFileSystem) {
+func NewSubmountFileSystem() *SubmountFileSystem {
 	out := new(SubmountFileSystem)
 	out.nextFreeInode = fuse.FUSE_ROOT_ID + 1
-	out.nodeMap = make(map[uint64] *subInodeData)
-	out.toplevelEntries = make(map[string] *subFsInfo)
+	out.nodeMap = make(map[uint64]*subInodeData)
+	out.toplevelEntries = make(map[string]*subFsInfo)
 	out.Options.TimeoutOptions = fuse.MakeTimeoutOptions()
 	return out
 }
@@ -321,7 +321,7 @@ func (self *SubmountFileSystem) Init(h *fuse.InHeader, input *fuse.InitIn) (*fus
 }
 
 func (self *SubmountFileSystem) Destroy(h *fuse.InHeader, input *fuse.InitIn) {
-	for _, v := range(self.toplevelEntries) {
+	for _, v := range self.toplevelEntries {
 		v.Fs.Destroy(h, input)
 	}
 }
@@ -333,7 +333,7 @@ func (self *SubmountFileSystem) GetAttr(header *fuse.InHeader, input *fuse.GetAt
 		// TODO - what to answer for this?
 		out.Attr.Mode = fuse.S_IFDIR | 0755
 		return out, fuse.OK
-	}	
+	}
 	subId, subfs := self.getSubFs(header.NodeId)
 	if subfs == nil {
 		return nil, fuse.ENOENT
@@ -345,12 +345,12 @@ func (self *SubmountFileSystem) GetAttr(header *fuse.InHeader, input *fuse.GetAt
 		out.Attr = subfs.Attr
 		return out, fuse.OK
 	}
-	
+
 	header.NodeId = subId
-	
+
 	out, code = subfs.Fs.GetAttr(header, input)
 	if out != nil {
-		out.Attr.Ino, _  = subfs.getGlobalNode(out.Ino)
+		out.Attr.Ino, _ = subfs.getGlobalNode(out.Ino)
 	}
 	return out, code
 }
@@ -361,7 +361,7 @@ func (self *SubmountFileSystem) Open(header *fuse.InHeader, input *fuse.OpenIn) 
 	if subfs == nil {
 		return 0, nil, fuse.ENOENT
 	}
-	
+
 	return subfs.Fs.Open(header, input)
 }
 
@@ -371,7 +371,7 @@ func (self *SubmountFileSystem) SetAttr(header *fuse.InHeader, input *fuse.SetAt
 	if subfs == nil {
 		return nil, fuse.ENOENT
 	}
-	
+
 	out, code = subfs.Fs.SetAttr(header, input)
 	if out != nil {
 		out.Attr.Ino, _ = subfs.getGlobalNode(out.Ino)
@@ -409,7 +409,7 @@ func (self *SubmountFileSystem) Mkdir(header *fuse.InHeader, input *fuse.MkdirIn
 		// ENOSYS ?
 		return nil, fuse.EPERM
 	}
-	
+
 	var subfs *subFsInfo
 	header.NodeId, subfs = self.getSubFs(header.NodeId)
 	if subfs == nil {
@@ -430,7 +430,7 @@ func (self *SubmountFileSystem) Unlink(header *fuse.InHeader, name string) (code
 		// ENOSYS ?
 		return fuse.EPERM
 	}
-	
+
 	var subfs *subFsInfo
 	header.NodeId, subfs = self.getSubFs(header.NodeId)
 	if subfs == nil {
@@ -445,7 +445,7 @@ func (self *SubmountFileSystem) Rmdir(header *fuse.InHeader, name string) (code 
 		// ENOSYS ?
 		return fuse.EPERM
 	}
-	
+
 	var subfs *subFsInfo
 	header.NodeId, subfs = self.getSubFs(header.NodeId)
 	if subfs == nil {
@@ -459,13 +459,13 @@ func (self *SubmountFileSystem) Symlink(header *fuse.InHeader, pointedTo string,
 		// ENOSYS ?
 		return nil, fuse.EPERM
 	}
-	
+
 	var subfs *subFsInfo
 	header.NodeId, subfs = self.getSubFs(header.NodeId)
 	if subfs == nil {
 		return nil, fuse.ENOENT
 	}
-	
+
 	out, code = subfs.Fs.Symlink(header, pointedTo, linkName)
 	if out != nil {
 		out.NodeId = self.registerLookup(out.NodeId, subfs)
@@ -475,7 +475,7 @@ func (self *SubmountFileSystem) Symlink(header *fuse.InHeader, pointedTo string,
 }
 
 func (self *SubmountFileSystem) Rename(header *fuse.InHeader, input *fuse.RenameIn, oldName string, newName string) (code fuse.Status) {
-	if header.NodeId == fuse.FUSE_ROOT_ID  || input.Newdir == fuse.FUSE_ROOT_ID {
+	if header.NodeId == fuse.FUSE_ROOT_ID || input.Newdir == fuse.FUSE_ROOT_ID {
 		// ENOSYS ?
 		return fuse.EPERM
 	}
@@ -485,7 +485,7 @@ func (self *SubmountFileSystem) Rename(header *fuse.InHeader, input *fuse.Rename
 	if subfs == nil {
 		return fuse.ENOENT
 	}
-	
+
 	return subfs.Fs.Rename(header, input, oldName, newName)
 }
 
@@ -495,7 +495,7 @@ func (self *SubmountFileSystem) Link(header *fuse.InHeader, input *fuse.LinkIn, 
 	if subfs == nil {
 		return nil, fuse.ENOENT
 	}
-	
+
 	out, code = subfs.Fs.Link(header, input, name)
 	if out != nil {
 		out.NodeId = self.registerLookup(out.NodeId, subfs)
@@ -510,13 +510,13 @@ func (self *SubmountFileSystem) SetXAttr(header *fuse.InHeader, input *fuse.SetX
 	if subfs == nil {
 		return fuse.ENOENT
 	}
-	
+
 	return subfs.Fs.SetXAttr(header, input)
 }
 
 func (self *SubmountFileSystem) GetXAttr(header *fuse.InHeader, input *fuse.GetXAttrIn) (out *fuse.GetXAttrOut, code fuse.Status) {
 	var subfs *subFsInfo
-	header.NodeId, subfs = self.getSubFs(header.NodeId)	
+	header.NodeId, subfs = self.getSubFs(header.NodeId)
 	if subfs == nil {
 		return nil, fuse.ENOENT
 	}
@@ -535,7 +535,7 @@ func (self *SubmountFileSystem) Create(header *fuse.InHeader, input *fuse.Create
 		// ENOSYS ?
 		return 0, nil, nil, fuse.EPERM
 	}
-	
+
 	var subfs *subFsInfo
 	header.NodeId, subfs = self.getSubFs(header.NodeId)
 	if subfs == nil {
@@ -546,7 +546,7 @@ func (self *SubmountFileSystem) Create(header *fuse.InHeader, input *fuse.Create
 		out.NodeId = self.registerLookup(out.NodeId, subfs)
 		out.Attr.Ino = out.NodeId
 	}
-	
+
 	return flags, fuseFile, out, code
 }
 
@@ -579,12 +579,12 @@ func (self *SubmountFileSystem) Poll(header *fuse.InHeader, input *fuse.PollIn) 
 }
 
 func (self *SubmountFileSystem) OpenDir(header *fuse.InHeader, input *fuse.OpenIn) (flags uint32, fuseFile fuse.RawFuseDir, status fuse.Status) {
-	if (header.NodeId == fuse.FUSE_ROOT_ID) {
+	if header.NodeId == fuse.FUSE_ROOT_ID {
 		return 0, NewSubmountFileSystemTopDir(self), fuse.OK
 	}
 
 	// TODO - we have to parse and unparse the readdir results, to substitute inodes.
-	
+
 	var subfs *subFsInfo
 	header.NodeId, subfs = self.getSubFs(header.NodeId)
 	if subfs == nil {
@@ -596,14 +596,14 @@ func (self *SubmountFileSystem) OpenDir(header *fuse.InHeader, input *fuse.OpenI
 ////////////////////////////////////////////////////////////////
 
 type SubmountFileSystemTopDir struct {
-	names []string
-	modes []uint32
+	names    []string
+	modes    []uint32
 	nextRead int
 }
 
 func NewSubmountFileSystemTopDir(fs *SubmountFileSystem) *SubmountFileSystemTopDir {
 	out := new(SubmountFileSystemTopDir)
-	
+
 	out.names, out.modes = fs.listFileSystems()
 	return out
 }
@@ -613,7 +613,7 @@ func (self *SubmountFileSystemTopDir) ReadDir(input *fuse.ReadIn) (*fuse.DirEntr
 
 	for self.nextRead < len(self.names) {
 		i := self.nextRead
-		if (de.AddString(self.names[i], fuse.FUSE_UNKNOWN_INO, self.modes[i])) {
+		if de.AddString(self.names[i], fuse.FUSE_UNKNOWN_INO, self.modes[i]) {
 			self.nextRead++
 		} else {
 			break
@@ -629,5 +629,3 @@ func (self *SubmountFileSystemTopDir) ReleaseDir() {
 func (self *SubmountFileSystemTopDir) FsyncDir(input *fuse.FsyncIn) (code fuse.Status) {
 	return fuse.ENOENT
 }
-
-

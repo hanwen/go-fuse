@@ -55,9 +55,9 @@ type TimeoutOptions struct {
 
 func MakeTimeoutOptions() TimeoutOptions {
 	return TimeoutOptions{
-	NegativeTimeout: 0.0,
-	AttrTimeout: 1.0,
-	EntryTimeout: 1.0,
+		NegativeTimeout: 0.0,
+		AttrTimeout:     1.0,
+		EntryTimeout:    1.0,
 	}
 }
 

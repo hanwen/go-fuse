@@ -34,14 +34,14 @@ func FileExists(name string) bool {
 const magicMode uint32 = 0753
 
 type testCase struct {
-	origDir1      string
-	origDir2      string
-	mountDir      string
-	testDir      string
-	tester *testing.T
+	origDir1 string
+	origDir2 string
+	mountDir string
+	testDir  string
+	tester   *testing.T
 
-	fs           *SubmountFileSystem	
-	state        *fuse.MountState
+	fs    *SubmountFileSystem
+	state *fuse.MountState
 }
 
 func (self *testCase) Setup(t *testing.T) {
@@ -55,19 +55,19 @@ func (self *testCase) Setup(t *testing.T) {
 	os.Mkdir(self.origDir1, 0700)
 	os.Mkdir(self.origDir2, 0700)
 	os.Mkdir(self.mountDir, 0700)
-	
+
 	fs1 := fuse.NewPathFileSystemConnector(NewPassThroughFuse(self.origDir1))
 	fs2 := fuse.NewPathFileSystemConnector(NewPassThroughFuse(self.origDir2))
 
 	self.fs = NewSubmountFileSystem()
 
 	attr := fuse.Attr{
-	Mode: uint32(magicMode),
+		Mode: uint32(magicMode),
 	}
 
 	self.fs.AddFileSystem("sub1", fs1, attr)
 	self.fs.AddFileSystem("sub2", fs2, attr)
-	
+
 	self.state = fuse.NewMountState(self.fs)
 	self.state.Mount(self.mountDir)
 
@@ -102,7 +102,7 @@ func (self *testCase) testReaddir() {
 	if err != nil {
 		self.tester.Errorf("readdir err %v", err)
 	}
-	
+
 	wanted := map[string]bool{
 		"sub1": true,
 		"sub2": true,
@@ -116,7 +116,7 @@ func (self *testCase) testReaddir() {
 				self.tester.Errorf("Unexpected name %v", v.Name)
 			}
 
-			if v.Mode & 0777 != magicMode {
+			if v.Mode&0777 != magicMode {
 				self.tester.Errorf("Unexpected mode %o, %v", v.Mode, v)
 			}
 		}
@@ -133,7 +133,7 @@ func (self *testCase) testSubFs() {
 		mount := path.Join(self.mountDir, fmt.Sprintf("sub%d", i))
 
 		name := "testFile"
-		
+
 		mountFile := path.Join(mount, name)
 
 		f, err := os.Open(mountFile, os.O_WRONLY, 0)
@@ -142,9 +142,9 @@ func (self *testCase) testSubFs() {
 			continue
 		}
 		content1 := "booh!"
-		f, err = os.Open(mountFile, os.O_WRONLY | os.O_CREATE, magicMode)
+		f, err = os.Open(mountFile, os.O_WRONLY|os.O_CREATE, magicMode)
 		if err != nil {
-			self.tester.Errorf("Create %v", err)	
+			self.tester.Errorf("Create %v", err)
 		}
 
 		f.Write([]byte(content1))
@@ -152,21 +152,21 @@ func (self *testCase) testSubFs() {
 
 		err = os.Chmod(mountFile, magicMode)
 		if err != nil {
-			self.tester.Errorf("chmod %v", err)	
+			self.tester.Errorf("chmod %v", err)
 		}
-		
+
 		fi, err := os.Lstat(mountFile)
 		if err != nil {
-			self.tester.Errorf("Lstat %v", err)	
+			self.tester.Errorf("Lstat %v", err)
 		} else {
-			if fi.Mode & 0777 != magicMode {
-				self.tester.Errorf("Mode %o", fi.Mode)	
+			if fi.Mode&0777 != magicMode {
+				self.tester.Errorf("Mode %o", fi.Mode)
 			}
 		}
-		
+
 		g, err := os.Open(mountFile, os.O_RDONLY, 0)
 		if err != nil {
-			self.tester.Errorf("Open %v", err)	
+			self.tester.Errorf("Open %v", err)
 		} else {
 			buf := make([]byte, 1024)
 			n, err := g.Read(buf)
@@ -184,7 +184,7 @@ func (self *testCase) testSubFs() {
 func (self *testCase) testAddRemove() {
 	self.tester.Log("testAddRemove")
 	attr := fuse.Attr{
-	Mode:0755,
+		Mode: 0755,
 	}
 
 	conn := fuse.NewPathFileSystemConnector(NewPassThroughFuse(self.origDir1))
@@ -197,8 +197,8 @@ func (self *testCase) testAddRemove() {
 	if !ok {
 		self.tester.Errorf("AddFileSystem fail")
 	}
-	conn.Init(new(fuse.InHeader), new(fuse.InitIn)) 
-	
+	conn.Init(new(fuse.InHeader), new(fuse.InitIn))
+
 	fi, err := os.Lstat(path.Join(self.mountDir, "third"))
 	if err != nil {
 		self.tester.Errorf("third lstat err %v", err)

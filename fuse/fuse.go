@@ -14,7 +14,7 @@ import (
 
 // TODO make generic option setting.
 const (
-	maxRead = (1 << 16) 
+	maxRead = (1 << 16)
 	bufSize = maxRead + 1024
 )
 
