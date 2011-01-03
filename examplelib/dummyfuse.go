@@ -110,7 +110,8 @@ func (self *DummyFuseFile) Write(*fuse.WriteIn, []byte) (uint32, fuse.Status) {
 	return 0, fuse.ENOSYS
 }
 
-func (self *DummyFuseFile) Flush() {
+func (self *DummyFuseFile) Flush() fuse.Status {
+	return fuse.ENOSYS
 }
 
 func (self *DummyFuseFile) Release() {
@@ -204,8 +205,7 @@ func (self *DummyPathFuse) Access(name string, mode uint32) (code fuse.Status) {
 	return fuse.ENOSYS
 }
 
-func (self *DummyPathFuse) Create(name string, flags uint32, mode uint32) (file
-fuse.RawFuseFile, code fuse.Status) {
+func (self *DummyPathFuse) Create(name string, flags uint32, mode uint32) (file fuse.RawFuseFile, code fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 

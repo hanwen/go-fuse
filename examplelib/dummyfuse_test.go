@@ -15,3 +15,11 @@ func TestDummy(t *testing.T) {
 
 	fuse.NewPathFileSystemConnector(pathFs)
 }
+
+func TestDummyFile(t *testing.T) {
+	d := new(DummyFuseFile)
+	var filePtr fuse.RawFuseFile = d
+	var fileDir fuse.RawFuseDir = d
+	_ = fileDir
+	_ = filePtr
+}
