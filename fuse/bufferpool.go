@@ -17,7 +17,7 @@ type BufferPool struct {
 	buffersByExponent [][][]byte
 }
 
-// TODO: use table ?
+// Returns the smallest E such that 2^E >= Z.
 func IntToExponent(z int) uint {
 	x := z
 	var exp uint = 0
