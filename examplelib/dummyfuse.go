@@ -102,7 +102,7 @@ func (self *DummyFuse) OpenDir(header *fuse.InHeader, input *fuse.OpenIn) (flags
 
 type DummyFuseFile struct{}
 
-func (self *DummyFuseFile) Read(*fuse.ReadIn) ([]byte, fuse.Status) {
+func (self *DummyFuseFile) Read(*fuse.ReadIn, *fuse.BufferPool) ([]byte, fuse.Status) {
 	return []byte(""), fuse.ENOSYS
 }
 

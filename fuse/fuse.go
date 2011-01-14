@@ -51,6 +51,9 @@ type MountState struct {
 
 	// Dump debug info onto stdout.
 	Debug bool
+
+	// For efficient reads.
+	buffers *BufferPool
 }
 
 func (self *MountState) RegisterFile(file RawFuseFile) uint64 {
@@ -114,7 +117,7 @@ func (self *MountState) Mount(mountPoint string) os.Error {
 }
 
 // Normally, callers should run loop() and wait for FUSE to exit, but
-// tests will want to run this in a goroutine. 
+// tests will want to run this in a goroutine.
 func (self *MountState) Loop(threaded bool) {
 	self.threaded = threaded
 	if self.threaded {
@@ -177,7 +180,13 @@ func NewMountState(fs RawFileSystem) *MountState {
 	self.openedFiles = make(map[uint64]RawFuseFile)
 	self.mountPoint = ""
 	self.fileSystem = fs
+	self.buffers = NewBufferPool()
 	return self
+}
+
+// TODO - more of them.
+func (self *MountState) Stats() string {
+	return "buffers: " + self.buffers.String()
 }
 
 ////////////////
@@ -194,7 +203,11 @@ func (self *MountState) syncWrite(packet [][]byte) {
 	if err != nil {
 		self.Error(os.NewError(fmt.Sprintf("writer: Writev %v failed, err: %v", packet, err)))
 	}
+	for _, v := range(packet) {
+		self.buffers.addBuffer(v)
+	}
 }
+
 
 ////////////////////////////////////////////////////////////////
 // Logic for the control loop.
@@ -331,7 +344,7 @@ func dispatch(state *MountState, h *InHeader, arg *bytes.Buffer) (outBytes [][]b
 	case FUSE_OPEN:
 		out, status = doOpen(state, h, input.(*OpenIn))
 	case FUSE_READ:
-		flatData, status = doRead(state, h, input.(*ReadIn))
+		flatData, status = doRead(state, h, input.(*ReadIn), state.buffers)
 	case FUSE_WRITE:
 		out, status = doWrite(state, h, input.(*WriteIn), arg.Bytes())
 	case FUSE_FLUSH:
@@ -482,8 +495,8 @@ func doRelease(state *MountState, header *InHeader, input *ReleaseIn) (out Empty
 	return nil, OK
 }
 
-func doRead(state *MountState, header *InHeader, input *ReadIn) (out []byte, code Status) {
-	output, code := state.FindFile(input.Fh).Read(input)
+func doRead(state *MountState, header *InHeader, input *ReadIn, buffers *BufferPool) (out []byte, code Status) {
+	output, code := state.FindFile(input.Fh).Read(input, buffers)
 	return output, code
 }
 

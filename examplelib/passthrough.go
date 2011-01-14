@@ -140,9 +140,8 @@ type PassThroughFile struct {
 	file *os.File
 }
 
-func (self *PassThroughFile) Read(input *fuse.ReadIn) ([]byte, fuse.Status) {
-	buf := make([]byte, input.Size)
-	slice := buf[:]
+func (self *PassThroughFile) Read(input *fuse.ReadIn, buffers *fuse.BufferPool) ([]byte, fuse.Status) {
+	slice := buffers.GetBuffer(input.Size)
 
 	n, err := self.file.ReadAt(slice, int64(input.Offset))
 	if err == os.EOF {

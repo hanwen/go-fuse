@@ -528,7 +528,7 @@ type RawFileSystem interface {
 }
 
 type RawFuseFile interface {
-	Read(*ReadIn) ([]byte, Status)
+	Read(*ReadIn, *BufferPool) ([]byte, Status)
 	// u32 <-> u64 ?
 	Write(*WriteIn, []byte) (uint32, Status)
 	Flush() Status
@@ -558,13 +558,13 @@ type PathFilesystem interface {
 	Open(name string, flags uint32) (file RawFuseFile, code Status)
 
 	// Where to hook up statfs?
-	// 
+	//
 	// Unimplemented:
 	// RemoveXAttr, SetXAttr, GetXAttr, ListXAttr.
 
 	OpenDir(name string) (dir RawFuseDir, code Status)
 
-	// TODO - what is a good interface? 
+	// TODO - what is a good interface?
 	Init() (*InitOut, Status)
 	Destroy()
 

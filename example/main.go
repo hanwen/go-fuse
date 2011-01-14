@@ -15,7 +15,7 @@ func main() {
 	threaded := flag.Bool("threaded", true, "switch off threading; print debugging messages.")
 	flag.Parse()
 	if flag.NArg() < 2 {
-		// TODO - where to get program name? 
+		// TODO - where to get program name?
 		fmt.Println("usage: main ORIGINAL MOUNTPOINT")
 		os.Exit(2)
 	}
@@ -35,4 +35,5 @@ func main() {
 
 	fmt.Printf("Mounted %s on %s (threaded=%v, debug=%v, cpus=%v)\n", orig, mountPoint, *threaded, *debug, cpus)
 	state.Loop(*threaded)
+	fmt.Println("Finished", state.Stats())
 }
