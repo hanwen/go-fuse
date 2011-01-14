@@ -15,25 +15,10 @@ var _ = log.Println
 
 ////////////////
 
-func IsDir(name string) bool {
-	fi, _ := os.Lstat(name)
-	return fi != nil && fi.IsDirectory()
-}
-
-func IsFile(name string) bool {
-	fi, _ := os.Lstat(name)
-	return fi != nil && fi.IsRegular()
-}
-
-func FileExists(name string) bool {
-	_, err := os.Lstat(name)
-	return err == nil
-}
-
 // Create and mount filesystem.
 const magicMode uint32 = 0753
 
-type testCase struct {
+type stackFsTestCase struct {
 	origDir1 string
 	origDir2 string
 	mountDir string
@@ -44,7 +29,7 @@ type testCase struct {
 	state *fuse.MountState
 }
 
-func (self *testCase) Setup(t *testing.T) {
+func (self *stackFsTestCase) Setup(t *testing.T) {
 	self.tester = t
 
 	self.testDir = fuse.MakeTempDir()
@@ -80,7 +65,7 @@ func (self *testCase) Setup(t *testing.T) {
 }
 
 // Unmount and del.
-func (self *testCase) Cleanup() {
+func (self *stackFsTestCase) Cleanup() {
 	fmt.Println("Unmounting.")
 	err := self.state.Unmount()
 	if err != nil {
@@ -91,7 +76,7 @@ func (self *testCase) Cleanup() {
 
 ////////////////
 
-func (self *testCase) testReaddir() {
+func (self *stackFsTestCase) testReaddir() {
 	fmt.Println("testReaddir... ")
 	dir, err := os.Open(self.mountDir, os.O_RDONLY, 0)
 	if err != nil {
@@ -126,7 +111,7 @@ func (self *testCase) testReaddir() {
 }
 
 
-func (self *testCase) testSubFs() {
+func (self *stackFsTestCase) testSubFs() {
 	fmt.Println("testSubFs... ")
 	for i := 1; i <= 2; i++ {
 		// orig := path.Join(self.testDir, fmt.Sprintf("orig%d", i))
@@ -181,7 +166,7 @@ func (self *testCase) testSubFs() {
 	}
 }
 
-func (self *testCase) testAddRemove() {
+func (self *stackFsTestCase) testAddRemove() {
 	self.tester.Log("testAddRemove")
 	attr := fuse.Attr{
 		Mode: 0755,
@@ -229,10 +214,8 @@ func (self *testCase) testAddRemove() {
 	}
 }
 
-
-// Test driver.
-func TestMount(t *testing.T) {
-	ts := new(testCase)
+func TestStackFS(t *testing.T) {
+	ts := new(stackFsTestCase)
 	ts.Setup(t)
 
 	ts.testReaddir()
