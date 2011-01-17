@@ -142,7 +142,11 @@ func (self *PathFileSystemConnector) getInodeData(nodeid uint64) *inodeData {
 	self.lock.RLock()
 	defer self.lock.RUnlock()
 
-	return self.inodePathMapByInode[nodeid]
+	val := self.inodePathMapByInode[nodeid]
+	if val == nil {
+		panic(fmt.Sprintf("inode %v unknown", nodeid))
+	}
+	return val
 }
 
 func (self *PathFileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int) {
@@ -254,12 +258,7 @@ func (self *PathFileSystemConnector) Destroy(h *InHeader, input *InitIn) {
 }
 
 func (self *PathFileSystemConnector) Lookup(header *InHeader, name string) (out *EntryOut, status Status) {
-	parent, ok := self.inodePathMapByInode[header.NodeId]
-	if !ok {
-		msg := fmt.Sprintf("node %v, header %v, name %v",
-			header.NodeId, header, name)
-		panic("Parent inode unknown. " + msg)
-	}
+	parent := self.getInodeData(header.NodeId)
 
 	// TODO - fuse.c has special case code for name == "." and
 	// "..", those lookups happen if FUSE_EXPORT_SUPPORT is set in
