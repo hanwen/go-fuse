@@ -155,7 +155,7 @@ func (self *MountState) DefaultErrorHandler() {
 
 func (self *MountState) Error(err os.Error) {
 	// It is safe to do errors unthreaded, since the logger is thread-safe.
-	if self.Debug || self.threaded {
+	if !self.threaded || self.Debug {
 		log.Println("error: ", err)
 	} else {
 		self.errorChannel <- err
