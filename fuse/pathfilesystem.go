@@ -19,7 +19,7 @@ type inodeData struct {
 	RefCount int
 }
 
-// Should implement some hash table method instead? 
+// Should implement some hash table method instead?
 func inodeDataKey(parentInode uint64, name string) string {
 	// TODO - use something more efficient than Sprintf.
 	return fmt.Sprintf("%x:%s", parentInode, name)
@@ -170,7 +170,7 @@ func (self *PathFileSystemConnector) renameUpdate(oldParent uint64, oldName stri
 		//
 		// TODO - does the VFS layer allow this?
 		//
-		// TODO - is this an error we should signal? 
+		// TODO - is this an error we should signal?
 		return
 	}
 
@@ -256,7 +256,9 @@ func (self *PathFileSystemConnector) Destroy(h *InHeader, input *InitIn) {
 func (self *PathFileSystemConnector) Lookup(header *InHeader, name string) (out *EntryOut, status Status) {
 	parent, ok := self.inodePathMapByInode[header.NodeId]
 	if !ok {
-		panic("Parent inode unknown.")
+		msg := fmt.Sprintf("node %v, header %v, name %v",
+			header.NodeId, header, name)
+		panic("Parent inode unknown. " + msg)
 	}
 
 	// TODO - fuse.c has special case code for name == "." and
@@ -353,7 +355,7 @@ func (self *PathFileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn)
 		return nil, err
 	}
 
-	// TODO - where to get GetAttrIn.Flags / Fh ? 
+	// TODO - where to get GetAttrIn.Flags / Fh ?
 	return self.GetAttr(header, new(GetAttrIn))
 }
 
@@ -421,7 +423,7 @@ func (self *PathFileSystemConnector) Rename(header *InHeader, input *RenameIn, o
 	// own, so we do this as well.
 	//
 	// It should not hurt for us to do it here as well, although
-	// it remains unclear how we should update Count.	
+	// it remains unclear how we should update Count.
 	self.renameUpdate(header.NodeId, oldName, input.Newdir, newName)
 	return code
 }
