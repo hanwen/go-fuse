@@ -5,8 +5,10 @@ import (
 	"github.com/hanwen/go-fuse/examplelib"
 	"fmt"
 	"os"
+	"expvar"
 	"flag"
 	"runtime"
+	"strings"
 )
 
 func main() {
@@ -36,4 +38,10 @@ func main() {
 	fmt.Printf("Mounted %s on %s (threaded=%v, debug=%v, cpus=%v)\n", orig, mountPoint, *threaded, *debug, cpus)
 	state.Loop(*threaded)
 	fmt.Println("Finished", state.Stats())
+
+	for v := range(expvar.Iter()) {
+		if strings.HasPrefix(v.Key, "mount") {
+			fmt.Printf("%v: %v\n", v.Key, v.Value)
+		}
+	}
 }

@@ -3,6 +3,7 @@ package fuse
 import (
 	"bytes"
 	"encoding/binary"
+	"expvar"
 	"fmt"
 	"log"
 	"os"
@@ -10,7 +11,6 @@ import (
 	"sync"
 	"syscall"
 )
-
 
 // TODO make generic option setting.
 const (
@@ -56,6 +56,8 @@ type MountState struct {
 
 	// For efficient reads.
 	buffers *BufferPool
+
+	operationCounts *expvar.Map
 }
 
 func (self *MountState) RegisterFile(file RawFuseFile) uint64 {
@@ -115,6 +117,8 @@ func (self *MountState) Mount(mountPoint string) os.Error {
 	}
 	self.mountPoint = mp
 	self.mountFile = file
+
+	self.operationCounts = expvar.NewMap(fmt.Sprintf("mount(%v)", mountPoint))
 	return nil
 }
 
@@ -184,6 +188,7 @@ func NewMountState(fs RawFileSystem) *MountState {
 	self.fileSystem = fs
 	self.buffers = NewBufferPool()
 	return self
+
 }
 
 // TODO - more of them.
@@ -269,6 +274,9 @@ func (self *MountState) handle(in_data []byte) {
 
 
 func dispatch(state *MountState, h *InHeader, arg *bytes.Buffer) (outBytes [][]byte) {
+	// TODO - would be nice to remove this logging from the critical path.
+	state.operationCounts.Add(operationName(h.Opcode), 1)
+
 	input := newInput(h.Opcode)
 	if input != nil && !parseLittleEndian(arg, input) {
 		return serialize(h, EIO, nil, nil, false)
