@@ -266,10 +266,7 @@ func (self *PathFileSystemConnector) Lookup(header *InHeader, name string) (out 
 	fullPath := path.Join(parent.GetPath(), name)
 	attr, err := self.fileSystem.GetAttr(fullPath)
 	if err == ENOENT && self.options.NegativeTimeout > 0.0 {
-		out = new(EntryOut)
-		out.NodeId = 0
-		SplitNs(self.options.NegativeTimeout, &out.EntryValid, &out.EntryValidNsec)
-		return out, OK
+		return NegativeEntry(self.options.NegativeTimeout), OK
 	}
 
 	if err != OK {

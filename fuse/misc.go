@@ -1,4 +1,4 @@
-// Random odds and ends. 
+// Random odds and ends.
 
 package fuse
 
@@ -282,4 +282,12 @@ func CountCpus() int {
 	re, _ := regexp.Compile("\ncpu[0-9]")
 
 	return len(re.FindAllString(string(contents[:n]), 100))
+}
+
+// Creates a return entry for a non-existent path.
+func NegativeEntry(time float64) *EntryOut {
+	out := new(EntryOut)
+	out.NodeId = 0
+	SplitNs(time, &out.EntryValid, &out.EntryValidNsec)
+	return out
 }
