@@ -14,8 +14,10 @@ import (
 
 // TODO make generic option setting.
 const (
-	maxRead = (1 << 16)
-	bufSize = maxRead + 1024
+	// bufSize should be a power of two to minimize lossage in
+	// BufferPool.
+	bufSize = (1 << 16)
+	maxRead = bufSize - PAGESIZE
 )
 
 type Empty interface{}

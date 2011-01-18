@@ -77,6 +77,9 @@ const (
 
 	S_IFDIR = syscall.S_IFDIR
 	S_IFREG = syscall.S_IFREG
+
+	// TODO - get this from a canonical place.
+	PAGESIZE = 4096
 )
 
 type Status int32

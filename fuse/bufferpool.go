@@ -5,8 +5,6 @@ import (
 	"fmt"
 )
 
-const PAGESIZE int = 4096
-
 // This implements a pool of buffers that returns slices with capacity
 // (2^e * PAGESIZE) for e=0,1,...  which have possibly been used, and
 // may contain random contents.
