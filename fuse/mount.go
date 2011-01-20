@@ -96,10 +96,10 @@ func getFuseConn(local *os.File) (f *os.File, err os.Error) {
 	var data [4]byte
 	control := make([]byte, 4*256)
 
-	// n, oobn, recvflags - todo: error checking.
-	_, oobn, _,
+	// n, oobn, recvflags, from, errno  - todo: error checking.
+	_, oobn, _, _,
 		errno := syscall.Recvmsg(
-		local.Fd(), data[:], control[:], nil, 0)
+		local.Fd(), data[:], control[:], 0)
 	if errno != 0 {
 		return
 	}
