@@ -17,23 +17,6 @@ var _ = strings.Join
 var _ = log.Println
 
 ////////////////
-
-func IsDir(name string) bool {
-	fi, _ := os.Lstat(name)
-	return fi != nil && fi.IsDirectory()
-}
-
-func IsFile(name string) bool {
-	fi, _ := os.Lstat(name)
-	return fi != nil && fi.IsRegular()
-}
-
-func FileExists(name string) bool {
-	_, err := os.Lstat(name)
-	return err == nil
-}
-
-////////////////
 // state for our testcase, mostly constants
 
 const contents string = "ABC"
@@ -50,6 +33,7 @@ type testCase struct {
 	origSubfile  string
 	tester       *testing.T
 	state        *fuse.MountState
+	connector    *fuse.PathFileSystemConnector
 }
 
 // Create and mount filesystem.
@@ -68,10 +52,11 @@ func (self *testCase) Setup(t *testing.T) {
 	self.origFile = path.Join(self.origDir, name)
 	self.origSubdir = path.Join(self.origDir, subdir)
 	self.origSubfile = path.Join(self.origSubdir, "subfile")
-
-	fs := fuse.NewPathFileSystemConnector(NewPassThroughFuse(self.origDir))
-
-	self.state = fuse.NewMountState(fs)
+	
+	pfs := NewPassThroughFuse(self.origDir)
+	self.connector = fuse.NewPathFileSystemConnector(pfs)
+	self.connector.Debug = true
+	self.state = fuse.NewMountState(self.connector)
 	self.state.Mount(self.mountPoint)
 
 	//self.state.Debug = false
@@ -608,5 +593,46 @@ func TestMount(t *testing.T) {
 	ts.testFSync()
 	ts.testLargeRead()
 	ts.testLargeDirRead()
+	ts.Cleanup()
+}
+
+func TestRecursiveMount(t *testing.T) {
+	ts := new(testCase)
+	ts.Setup(t)
+
+	f, err := os.Open(path.Join(ts.mountPoint, "hello.txt"),
+		os.O_WRONLY|os.O_CREATE, 0777)
+	
+	if err != nil {
+		t.Errorf("open write err %v", err)
+	}
+	f.WriteString("bla")
+	f.Close()
+	
+	pfs2 := NewPassThroughFuse(ts.origDir)
+	code := ts.connector.Mount("/hello.txt", pfs2)
+	if code != fuse.EINVAL {
+		t.Error("expect EINVAL", code)
+	}
+
+	submnt := path.Join(ts.mountPoint, "mnt")
+	err = os.Mkdir(submnt, 0777)
+	if err != nil {
+		t.Errorf("mkdir")
+	}
+	
+	code = ts.connector.Mount("/mnt", pfs2)
+	if code != fuse.OK {
+		t.Errorf("mkdir")
+	}
+	
+	_, err = os.Lstat(submnt)
+	if err != nil {
+		t.Error("lstat submount", err)
+	}
+	_, err = os.Lstat(path.Join(submnt, "hello.txt"))
+	if err != nil {
+		t.Error("lstat submount/file", err)
+	}
 	ts.Cleanup()
 }

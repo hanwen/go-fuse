@@ -25,11 +25,11 @@ func NewPassThroughFuse(root string) (out *PassThroughFuse) {
 	return out
 }
 
-func (self *PassThroughFuse) Init() (*fuse.InitOut, fuse.Status) {
-	return new(fuse.InitOut), fuse.OK
+func (self *PassThroughFuse) Mount(conn *fuse.PathFileSystemConnector) (fuse.Status) {
+	return fuse.OK
 }
 
-func (self *PassThroughFuse) Destroy() {
+func (self *PassThroughFuse) Unmount() {
 
 }
 

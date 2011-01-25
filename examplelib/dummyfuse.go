@@ -194,11 +194,11 @@ func (self *DummyPathFuse) OpenDir(name string) (dir fuse.RawFuseDir, code fuse.
 	return nil, fuse.ENOSYS
 }
 
-func (self *DummyPathFuse) Init() (*fuse.InitOut, fuse.Status) {
-	return nil, fuse.ENOSYS
+func (self *DummyPathFuse) Mount(conn *fuse.PathFileSystemConnector) (fuse.Status) {
+	return fuse.OK
 }
 
-func (self *DummyPathFuse) Destroy() {
+func (self *DummyPathFuse) Unmount() {
 }
 
 func (self *DummyPathFuse) Access(name string, mode uint32) (code fuse.Status) {
@@ -213,6 +213,3 @@ func (self *DummyPathFuse) Utimens(name string, AtimeNs uint64, CtimeNs uint64) 
 	return fuse.ENOSYS
 }
 
-func (self *DummyPathFuse) SetOptions(*fuse.PathFileSystemConnectorOptions) {
-
-}

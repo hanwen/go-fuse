@@ -92,6 +92,9 @@ const (
 	ENOTDIR = Status(syscall.ENOTDIR)
 	EACCES  = Status(syscall.EACCES)
 	EPERM   = Status(syscall.EPERM)
+	EBUSY   = Status(syscall.EBUSY)
+	EINVAL  = Status(syscall.EINVAL)
+	EXDEV   = Status(syscall.EXDEV)
 )
 
 type Opcode int
@@ -568,14 +571,12 @@ type PathFilesystem interface {
 	OpenDir(name string) (dir RawFuseDir, code Status)
 
 	// TODO - what is a good interface?
-	Init() (*InitOut, Status)
-	Destroy()
+	Mount(connector *PathFileSystemConnector) Status
+	Unmount()
 
 	Access(name string, mode uint32) (code Status)
 	Create(name string, flags uint32, mode uint32) (file RawFuseFile, code Status)
 	Utimens(name string, AtimeNs uint64, CtimeNs uint64) (code Status)
 
 	// unimplemented: poll, ioctl, bmap.
-
-	SetOptions(*PathFileSystemConnectorOptions)
 }

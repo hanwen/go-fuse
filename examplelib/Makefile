@@ -7,7 +7,8 @@ DEPS=../fuse
 
 GOFILES=dummyfuse.go\
 	passthrough.go\
-	stackfs.go
+	stackfs.go\
+	misc.go
 
 include $(GOROOT)/src/Make.pkg
 

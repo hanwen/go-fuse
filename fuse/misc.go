@@ -291,3 +291,7 @@ func NegativeEntry(time float64) *EntryOut {
 	SplitNs(time, &out.EntryValid, &out.EntryValidNsec)
 	return out
 }
+
+func ModeToType(mode uint32) uint32 {
+	return (mode & 0170000) >> 12
+}

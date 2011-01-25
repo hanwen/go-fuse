@@ -31,7 +31,7 @@ func (de *DirEntryList) Add(name []byte, inode uint64, mode uint32) bool {
 	dirent.Off = de.offset
 	dirent.Ino = inode
 	dirent.NameLen = uint32(len(name))
-	dirent.Typ = (mode & 0170000) >> 12
+	dirent.Typ = ModeToType(mode)
 
 	err := binary.Write(&de.buf, binary.LittleEndian, dirent)
 	if err != nil {
