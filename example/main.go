@@ -23,9 +23,9 @@ func main() {
 	}
 
 	orig := flag.Arg(0)
-	pt := examplelib.NewPassThroughFuse(orig)
-	fs := fuse.NewPathFileSystemConnector(pt)
-	state := fuse.NewMountState(fs)
+	fs := examplelib.NewPassThroughFuse(orig)
+	conn := fuse.NewPathFileSystemConnector(fs)
+	state := fuse.NewMountState(conn)
 	state.Debug = *debug
 
 	mountPoint := flag.Arg(1)

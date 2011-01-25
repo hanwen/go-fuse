@@ -10,9 +10,6 @@ directory as a loopback:
   ./example/main -debug -threaded=false mountpoint /some/other/directory &
   (cd mountpoint ; ls)
 
-on my machine, compiles over loopback (threaded, without debug) are
-about 2x slower compared to normal compiles.
-
 Tested on:
 
 - x86 32bits (Fedora 14). 
@@ -21,7 +18,22 @@ Tested on:
 
 LICENSE
 
-Like Go, this library is distributed under the new BSD.  See accompanying LICENSE file.
+Like Go, this library is distributed under the new BSD license.  See
+accompanying LICENSE file.
+
+
+BENCHMARKS
+
+The speed of go-fuse is close to libfuse's speed (measurements on my
+lenovo T60 laptop):
+
+* 'find' in tree with 14k files. fs access: 0.06s, go-fuse: 3.5s, bbfs: 3.9
+* 'ls -lR' in same tree:  fs access: 0.5s, go-fuse: 9.5s, bbfs: 8.8s
+* copying a 100 mb file: fs access: 200mb/s, go-fuse: 182mb/s, bbfs: 190mb/s
+
+bbfs is a loopback filesystem written in C, see
+http://www.cs.nmsu.edu/~pfeiffer/fuse-tutorial.tgz
+
 
 
 CREDITS
