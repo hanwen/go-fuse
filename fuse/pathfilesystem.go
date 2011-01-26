@@ -9,6 +9,22 @@ import (
 	"strings"
 )
 
+type mountData struct {
+	// If non-nil the file system mounted here.
+	fs     PathFilesystem
+
+	// If yes, we are looking to unmount the mounted fs.
+	unmountPending bool
+
+	openFiles	int
+	openDirs	int
+	subMounts	int
+}
+
+func newMount(fs PathFilesystem) *mountData {
+	return &mountData{fs: fs}
+}
+	
 // TODO should rename to dentry?
 type inodeData struct {
 	Parent      *inodeData
@@ -20,11 +36,7 @@ type inodeData struct {
 	// Number of inodeData that have this as parent.
 	RefCount int
 
-	// If non-nil the file system mounted here.
-	Mounted     PathFilesystem
-
-	// If yes, we are looking to unmount the mounted fs.
-	unmountPending bool
+	mount *mountData
 }
 
 // Should implement some hash table method instead?
@@ -41,22 +53,26 @@ func (self *inodeData) Key() string {
 	return inodeDataKey(p, self.Name)
 }
 
-func (self *inodeData) GetPath() (path string, fs PathFilesystem) {
+func (self *inodeData) GetPath() (path string, mount *mountData) {
 	// TODO - softcode this.
 	var components [100]string
 
 	j := len(components)
 	inode := self
-	for ; inode != nil && inode.Mounted == nil; inode = inode.Parent {
+	for ; inode != nil && inode.mount == nil; inode = inode.Parent {
 		j--
 		components[j] = inode.Name
 	}
-
-	fullPath := strings.Join(components[j:], "/")
-	if !inode.unmountPending {
-		fs = inode.Mounted
+	if inode == nil {
+		panic("did not find parent with mount")
 	}
-	return fullPath, fs
+	
+	fullPath := strings.Join(components[j:], "/")
+	mount = inode.mount
+	if mount.unmountPending {
+		mount = nil
+	}
+	return fullPath, mount
 }
 
 type TimeoutOptions struct {
@@ -167,7 +183,7 @@ func (self *PathFileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int
 	data, ok := self.inodePathMapByInode[nodeId]
 	if ok {
 		data.LookupCount -= forgetCount
-		if data.LookupCount <= 0 && data.RefCount <= 0 && (data.Mounted == nil || data.unmountPending) {
+		if data.LookupCount <= 0 && data.RefCount <= 0 && (data.mount == nil || data.mount.unmountPending) {
 			self.inodePathMap[data.Key()] = nil, false
 		}
 	}
@@ -309,34 +325,51 @@ func (self *PathFileSystemConnector) Mount(path string, fs PathFilesystem) Statu
 		log.Println("Mount: ", fs, "on", path, node)
 	}
 
-	// TODO - this is technically a race-condition.
-	node.Mounted = fs
-	node.unmountPending = false
-
+	// TODO - this is technically a race-condition?
+	node.mount = newMount(fs)
+	if node.Parent != nil {
+		_, parentMount := node.Parent.GetPath()
+		parentMount.subMounts++
+	}
+	
 	return OK
 }
 
 func (self *PathFileSystemConnector) Unmount(path string) Status {
 	node := self.findInode(path)
-	if node == nil || node.Mounted == nil {
+	if node == nil {
 		panic(path)
 	}
-	// TODO - check if we have open files.
+
+	mount := node.mount
+	if mount == nil {
+		panic(path)
+	}
+
+	if mount.openFiles + mount.openDirs + mount.subMounts > 0 {
+		log.Println("busy: ", mount)
+		return EBUSY
+	}
 
 	if self.Debug {
-		log.Println("Unmount: ", node)
+		log.Println("Unmount: ", mount)
 	}
 	// node manipulations are racy?
 	if node.RefCount > 0 {
-		node.Mounted.Unmount()
-		node.unmountPending = true
+		mount.fs.Unmount()
+		mount.unmountPending = true
 	} else {
-		node.Mounted = nil
+		node.mount = nil
+	}
+
+	if node.Parent != nil {
+		_, parentMount := node.Parent.GetPath()
+		parentMount.subMounts--
 	}
 	return OK
 }
 
-func (self *PathFileSystemConnector) GetPath(nodeid uint64) (path string, fs PathFilesystem) {
+func (self *PathFileSystemConnector) GetPath(nodeid uint64) (path string, mount *mountData) {
 	return self.getInodeData(nodeid).GetPath()
 }
 
@@ -355,13 +388,13 @@ func (self *PathFileSystemConnector) Lookup(header *InHeader, name string) (out 
 	// TODO - fuse.c has special case code for name == "." and
 	// "..", those lookups happen if FUSE_EXPORT_SUPPORT is set in
 	// Init.
-	fullPath, fs := parent.GetPath()
-	if fs == nil {
+	fullPath, mount := parent.GetPath()
+	if mount == nil {
 		return NegativeEntry(self.options.NegativeTimeout), OK
 	}
 	fullPath = path.Join(fullPath, name)
 
-	attr, err := fs.GetAttr(fullPath)
+	attr, err := mount.fs.GetAttr(fullPath)
 	
 	if err == ENOENT && self.options.NegativeTimeout > 0.0 {
 		return NegativeEntry(self.options.NegativeTimeout), OK
@@ -390,11 +423,11 @@ func (self *PathFileSystemConnector) Forget(h *InHeader, input *ForgetIn) {
 
 func (self *PathFileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
 	// TODO - should we update inodeData.Type?
-	fullPath, fs := self.GetPath(header.NodeId)
-	if fs == nil {
+	fullPath, mount := self.GetPath(header.NodeId)
+	if mount == nil {
 		return nil, ENOENT
 	}
-	attr, err := fs.GetAttr(fullPath)
+	attr, err := mount.fs.GetAttr(fullPath)
 	if err != OK {
 		return nil, err
 	}
@@ -408,29 +441,34 @@ func (self *PathFileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn)
 }
 
 func (self *PathFileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseDir, status Status) {
-	fullPath, fs := self.GetPath(header.NodeId)
-	if fs == nil {
+	fullPath, mount := self.GetPath(header.NodeId)
+	if mount == nil {
 		return 0, nil, ENOENT
 	}
 	// TODO - how to handle return flags, the FUSE open flags?
-	f, err := fs.OpenDir(fullPath)
+	f, err := mount.fs.OpenDir(fullPath)
 	if err != OK {
 		return 0, nil, err
 	}
 
+	// TODO - racy?
+	mount.openDirs++
 	return 0, f, OK
 }
 
 func (self *PathFileSystemConnector) Open(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseFile, status Status) {
-	fullPath, fs := self.GetPath(header.NodeId)
-	if fs == nil {
+	fullPath, mount := self.GetPath(header.NodeId)
+	if mount == nil {
 		return 0, nil, ENOENT
 	}
 	// TODO - how to handle return flags, the FUSE open flags?
-	f, err := fs.Open(fullPath, input.Flags)
+	f, err := mount.fs.Open(fullPath, input.Flags)
 	if err != OK {
 		return 0, nil, err
 	}
+
+	// TODO - racy?
+	mount.openFiles++
 	return 0, f, OK
 }
 
@@ -438,23 +476,23 @@ func (self *PathFileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn)
 	var err Status = OK
 
 	// TODO - support Fh.   (FSetAttr/FGetAttr/FTruncate.)
-	fullPath, fs := self.GetPath(header.NodeId)
-	if fs == nil {
+	fullPath, mount := self.GetPath(header.NodeId)
+	if mount == nil {
 		return nil, ENOENT
 	}
 
 	if input.Valid&FATTR_MODE != 0 {
-		err = fs.Chmod(fullPath, input.Mode)
+		err = mount.fs.Chmod(fullPath, input.Mode)
 	}
 	if err != OK && (input.Valid&FATTR_UID != 0 || input.Valid&FATTR_GID != 0) {
 		// TODO - can we get just FATTR_GID but not FATTR_UID ?
-		err = fs.Chown(fullPath, uint32(input.Uid), uint32(input.Gid))
+		err = mount.fs.Chown(fullPath, uint32(input.Uid), uint32(input.Gid))
 	}
 	if input.Valid&FATTR_SIZE != 0 {
-		fs.Truncate(fullPath, input.Size)
+		mount.fs.Truncate(fullPath, input.Size)
 	}
 	if err != OK && (input.Valid&FATTR_ATIME != 0 || input.Valid&FATTR_MTIME != 0) {
-		err = fs.Utimens(fullPath,
+		err = mount.fs.Utimens(fullPath,
 			uint64(input.Atime*1e9)+uint64(input.Atimensec),
 			uint64(input.Mtime*1e9)+uint64(input.Mtimensec))
 	}
@@ -471,21 +509,21 @@ func (self *PathFileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn)
 }
 
 func (self *PathFileSystemConnector) Readlink(header *InHeader) (out []byte, code Status) {
-	fullPath, fs := self.GetPath(header.NodeId)
-	if fs == nil {
+	fullPath, mount := self.GetPath(header.NodeId)
+	if mount == nil {
 		return nil, ENOENT
 	}
-	val, err := fs.Readlink(fullPath)
+	val, err := mount.fs.Readlink(fullPath)
 	return bytes.NewBufferString(val).Bytes(), err
 }
 
 func (self *PathFileSystemConnector) Mknod(header *InHeader, input *MknodIn, name string) (out *EntryOut, code Status) {
-	fullPath, fs := self.GetPath(header.NodeId)
-	if fs == nil {
+	fullPath, mount := self.GetPath(header.NodeId)
+	if mount == nil {
 		return nil, ENOENT
 	}	
 	fullPath = path.Join(fullPath, name)
-	err := fs.Mknod(fullPath, input.Mode, uint32(input.Rdev))
+	err := mount.fs.Mknod(fullPath, input.Mode, uint32(input.Rdev))
 	if err != OK {
 		return nil, err
 	}
@@ -493,11 +531,11 @@ func (self *PathFileSystemConnector) Mknod(header *InHeader, input *MknodIn, nam
 }
 
 func (self *PathFileSystemConnector) Mkdir(header *InHeader, input *MkdirIn, name string) (out *EntryOut, code Status) {
-	fullPath, fs := self.GetPath(header.NodeId)
-	if fs == nil {
+	fullPath, mount := self.GetPath(header.NodeId)
+	if mount == nil {
 		return nil, ENOENT
 	}	
-	err := fs.Mkdir(path.Join(fullPath, name), input.Mode)
+	err := mount.fs.Mkdir(path.Join(fullPath, name), input.Mode)
 	if err != OK {
 		return nil, err
 	}
@@ -506,11 +544,11 @@ func (self *PathFileSystemConnector) Mkdir(header *InHeader, input *MkdirIn, nam
 }
 
 func (self *PathFileSystemConnector) Unlink(header *InHeader, name string) (code Status) {
-	fullPath, fs := self.GetPath(header.NodeId)
-	if fs == nil {
+	fullPath, mount := self.GetPath(header.NodeId)
+	if mount == nil {
 		return ENOENT
 	}	
-	code = fs.Unlink(path.Join(fullPath, name))
+	code = mount.fs.Unlink(path.Join(fullPath, name))
 
 	// Like fuse.c, we update our internal tables.
 	self.unlinkUpdate(header.NodeId, name)
@@ -519,21 +557,21 @@ func (self *PathFileSystemConnector) Unlink(header *InHeader, name string) (code
 }
 
 func (self *PathFileSystemConnector) Rmdir(header *InHeader, name string) (code Status) {
-	fullPath, fs := self.GetPath(header.NodeId)
-	if fs == nil {
+	fullPath, mount := self.GetPath(header.NodeId)
+	if mount == nil {
 		return ENOENT
 	}
-	code = fs.Rmdir(path.Join(fullPath, name))
+	code = mount.fs.Rmdir(path.Join(fullPath, name))
 	self.unlinkUpdate(header.NodeId, name)
 	return code
 }
 
 func (self *PathFileSystemConnector) Symlink(header *InHeader, pointedTo string, linkName string) (out *EntryOut, code Status) {
-	fullPath, fs := self.GetPath(header.NodeId)
-	if fs == nil {
+	fullPath, mount := self.GetPath(header.NodeId)
+	if mount == nil {
 		return nil, ENOENT
 	}	
-	err := fs.Symlink(pointedTo, path.Join(fullPath, linkName))
+	err := mount.fs.Symlink(pointedTo, path.Join(fullPath, linkName))
 	if err != OK {
 		return nil, err
 	}
@@ -543,18 +581,18 @@ func (self *PathFileSystemConnector) Symlink(header *InHeader, pointedTo string,
 }
 
 func (self *PathFileSystemConnector) Rename(header *InHeader, input *RenameIn, oldName string, newName string) (code Status) {
-	oldPath, oldFs := self.GetPath(header.NodeId)
-	newPath, fs := self.GetPath(input.Newdir)
-	if fs == nil || oldFs == nil {
+	oldPath, oldMount := self.GetPath(header.NodeId)
+	newPath, mount := self.GetPath(input.Newdir)
+	if mount == nil || oldMount == nil {
 		return ENOENT
 	}
-	if fs != oldFs {
+	if mount != oldMount {
 		return EXDEV
 	}
 	
 	oldPath = path.Join(oldPath, oldName)
 	newPath = path.Join(newPath, newName)
-	code = fs.Rename(oldPath, newPath)
+	code = mount.fs.Rename(oldPath, newPath)
 	if code != OK {
 		return
 	}
@@ -571,18 +609,17 @@ func (self *PathFileSystemConnector) Rename(header *InHeader, input *RenameIn, o
 }
 
 func (self *PathFileSystemConnector) Link(header *InHeader, input *LinkIn, filename string) (out *EntryOut, code Status) {
-	orig, fs := self.GetPath(input.Oldnodeid)
-	newName, newFs := self.GetPath(header.NodeId)
+	orig, mount := self.GetPath(input.Oldnodeid)
+	newName, newMount := self.GetPath(header.NodeId)
 
-	if fs == nil || newFs == nil {
+	if mount == nil || newMount == nil {
 		return nil, ENOENT
 	}
-	
-	if newFs != fs {
+	if mount != newMount {
 		return nil, EXDEV
 	}
 	newName = path.Join(newName, filename)
-	err := fs.Link(orig, newName)
+	err := mount.fs.Link(orig, newName)
 
 	if err != OK {
 		return nil, err
@@ -592,27 +629,38 @@ func (self *PathFileSystemConnector) Link(header *InHeader, input *LinkIn, filen
 }
 
 func (self *PathFileSystemConnector) Access(header *InHeader, input *AccessIn) (code Status) {
-	p, fs := self.GetPath(header.NodeId)
-	if fs == nil {
+	p, mount := self.GetPath(header.NodeId)
+	if mount == nil {
 		return ENOENT
 	}	
-	return fs.Access(p, input.Mask)
+	return mount.fs.Access(p, input.Mask)
 }
 
 func (self *PathFileSystemConnector) Create(header *InHeader, input *CreateIn, name string) (flags uint32, fuseFile RawFuseFile, out *EntryOut, code Status) {
-	directory, fs := self.GetPath(header.NodeId)
-	if fs == nil {
+	directory, mount := self.GetPath(header.NodeId)
+	if mount == nil {
 		return 0, nil, nil, ENOENT
 	}
 	fullPath := path.Join(directory, name)
 
-	f, err := fs.Create(fullPath, uint32(input.Flags), input.Mode)
+	f, err := mount.fs.Create(fullPath, uint32(input.Flags), input.Mode)
 	if err != OK {
 		return 0, nil, nil, err
 	}
 
+	mount.openFiles++
 	out, code = self.Lookup(header, name)
 	return 0, f, out, code
+}
+
+func (self *PathFileSystemConnector) Release(header *InHeader, f RawFuseFile) {
+	_, mount := self.GetPath(header.NodeId)
+	mount.openFiles--
+}
+
+func (self *PathFileSystemConnector) ReleaseDir(header *InHeader, f RawFuseDir) {
+	_, mount := self.GetPath(header.NodeId)
+	mount.openDirs--
 }
 
 ////////////////////////////////////////////////////////////////

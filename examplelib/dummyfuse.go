@@ -97,6 +97,13 @@ func (self *DummyFuse) OpenDir(header *fuse.InHeader, input *fuse.OpenIn) (flags
 	return 0, nil, fuse.ENOSYS
 }
 
+func (self *DummyFuse) Release(header *fuse.InHeader, f fuse.RawFuseFile) {
+}
+
+func (self *DummyFuse) ReleaseDir(header *fuse.InHeader, f fuse.RawFuseDir) {
+}
+
+
 ////////////////////////////////////////////////////////////////
 //  DummyFuseFile
 

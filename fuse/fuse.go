@@ -501,7 +501,9 @@ func doCreate(state *MountState, header *InHeader, input *CreateIn, name string)
 }
 
 func doRelease(state *MountState, header *InHeader, input *ReleaseIn) (out Empty, code Status) {
-	state.FindFile(input.Fh).Release()
+	f := state.FindFile(input.Fh)
+	state.fileSystem.Release(header, f)
+	f.Release()
 	state.UnregisterFile(input.Fh)
 	return nil, OK
 }
@@ -534,7 +536,9 @@ func doSetattr(state *MountState, header *InHeader, input *SetAttrIn) (out *Attr
 // Handling directories
 
 func doReleaseDir(state *MountState, header *InHeader, input *ReleaseIn) (out Empty, code Status) {
-	state.FindDir(input.Fh).ReleaseDir()
+	d := state.FindDir(input.Fh)
+	state.fileSystem.ReleaseDir(header, d)
+	d.ReleaseDir()
 	state.UnregisterDir(input.Fh)
 	return nil, OK
 }

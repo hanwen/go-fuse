@@ -592,6 +592,16 @@ func (self *SubmountFileSystem) OpenDir(header *fuse.InHeader, input *fuse.OpenI
 	return subfs.Fs.OpenDir(header, input)
 }
 
+func (self *SubmountFileSystem) Release(header *fuse.InHeader, f fuse.RawFuseFile) {
+	// TODO - should run release on subfs too.
+}
+
+func (self *SubmountFileSystem) ReleaseDir(header *fuse.InHeader, f fuse.RawFuseDir) {
+	// TODO - should run releasedir on subfs too.
+}
+
+
+
 ////////////////////////////////////////////////////////////////
 
 type SubmountFileSystemTopDir struct {
@@ -628,3 +638,4 @@ func (self *SubmountFileSystemTopDir) ReleaseDir() {
 func (self *SubmountFileSystemTopDir) FsyncDir(input *fuse.FsyncIn) (code fuse.Status) {
 	return fuse.ENOENT
 }
+

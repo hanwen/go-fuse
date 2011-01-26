@@ -11,6 +11,7 @@ import (
 	"testing"
 	"syscall"
 	"rand"
+	"time"
 )
 
 var _ = strings.Join
@@ -634,5 +635,25 @@ func TestRecursiveMount(t *testing.T) {
 	if err != nil {
 		t.Error("lstat submount/file", err)
 	}
+	
+	f, err = os.Open(path.Join(submnt, "hello.txt"), os.O_RDONLY, 0)
+	if err != nil {
+		t.Error("open submount/file", err)
+	}
+	code = ts.connector.Unmount("/mnt")
+	if code != fuse.EBUSY {
+		t.Error("expect EBUSY")
+	}
+
+	f.Close()
+
+	// The close takes some time to propagate through FUSE.
+	time.Sleep(1e9)
+	
+	code = ts.connector.Unmount("/mnt")
+	if code != fuse.OK {
+		t.Error("umount failed.", code)
+	}
+
 	ts.Cleanup()
 }

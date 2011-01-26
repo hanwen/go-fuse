@@ -531,6 +531,9 @@ type RawFileSystem interface {
 	// The return flags are FOPEN_xx.
 	Open(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseFile, status Status)
 	OpenDir(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseDir, status Status)
+
+	Release(header *InHeader, f RawFuseFile)
+	ReleaseDir(header *InHeader, f RawFuseDir)
 }
 
 type RawFuseFile interface {
