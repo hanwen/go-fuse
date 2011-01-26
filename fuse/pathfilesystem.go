@@ -41,8 +41,7 @@ type inodeData struct {
 
 // Should implement some hash table method instead?
 func inodeDataKey(parentInode uint64, name string) string {
-	// TODO - use something more efficient than Sprintf.
-	return fmt.Sprintf("%x:%s", parentInode, name)
+	return string(parentInode) + ":" + name
 }
 
 func (self *inodeData) Key() string {
