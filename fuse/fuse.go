@@ -473,7 +473,8 @@ func initFuse(state *MountState, h *InHeader, input *InitIn) (Empty, Status) {
 	out.Major = FUSE_KERNEL_VERSION
 	out.Minor = FUSE_KERNEL_MINOR_VERSION
 	out.MaxReadAhead = input.MaxReadAhead
-	out.Flags = FUSE_ASYNC_READ | FUSE_POSIX_LOCKS
+	out.Flags = FUSE_ASYNC_READ | FUSE_POSIX_LOCKS | FUSE_BIG_WRITES
+
 	out.MaxWrite = maxRead
 
 	return out, OK
