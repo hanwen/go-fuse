@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"bytes"
 )
-
+var _ = fmt.Print
 // For PathFileSystemConnector.  The connector determines inodes.
 type DirEntry struct {
 	Mode uint32

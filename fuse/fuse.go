@@ -191,9 +191,20 @@ func NewMountState(fs RawFileSystem) *MountState {
 
 }
 
-// TODO - more of them.
+// TODO - have more statistics.
 func (self *MountState) Stats() string {
-	return "buffers: " + self.buffers.String()
+	var lines []string
+
+	// TODO - bufferpool should use expvar.
+	lines = append(lines, 
+		fmt.Sprintf("buffers: %v", self.buffers.String()))
+	
+	for v := range(expvar.Iter()) {
+		if strings.HasPrefix(v.Key, "mount") {
+			lines = append(lines, fmt.Sprintf("%v: %v\n", v.Key, v.Value))
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 ////////////////
