@@ -53,7 +53,7 @@ func (self *testCase) Setup(t *testing.T) {
 	self.origFile = path.Join(self.origDir, name)
 	self.origSubdir = path.Join(self.origDir, subdir)
 	self.origSubfile = path.Join(self.origSubdir, "subfile")
-	
+
 	pfs := NewPassThroughFuse(self.origDir)
 	self.connector = fuse.NewPathFileSystemConnector(pfs)
 	self.connector.Debug = true
@@ -603,13 +603,13 @@ func TestRecursiveMount(t *testing.T) {
 
 	f, err := os.Open(path.Join(ts.mountPoint, "hello.txt"),
 		os.O_WRONLY|os.O_CREATE, 0777)
-	
+
 	if err != nil {
 		t.Errorf("open write err %v", err)
 	}
 	f.WriteString("bla")
 	f.Close()
-	
+
 	pfs2 := NewPassThroughFuse(ts.origDir)
 	code := ts.connector.Mount("/hello.txt", pfs2)
 	if code != fuse.EINVAL {
@@ -621,12 +621,12 @@ func TestRecursiveMount(t *testing.T) {
 	if err != nil {
 		t.Errorf("mkdir")
 	}
-	
+
 	code = ts.connector.Mount("/mnt", pfs2)
 	if code != fuse.OK {
 		t.Errorf("mkdir")
 	}
-	
+
 	_, err = os.Lstat(submnt)
 	if err != nil {
 		t.Error("lstat submount", err)
@@ -635,7 +635,7 @@ func TestRecursiveMount(t *testing.T) {
 	if err != nil {
 		t.Error("lstat submount/file", err)
 	}
-	
+
 	f, err = os.Open(path.Join(submnt, "hello.txt"), os.O_RDONLY, 0)
 	if err != nil {
 		t.Error("open submount/file", err)
@@ -649,7 +649,7 @@ func TestRecursiveMount(t *testing.T) {
 
 	// The close takes some time to propagate through FUSE.
 	time.Sleep(1e9)
-	
+
 	code = ts.connector.Unmount("/mnt")
 	if code != fuse.OK {
 		t.Error("umount failed.", code)

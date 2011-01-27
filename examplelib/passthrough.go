@@ -25,7 +25,7 @@ func NewPassThroughFuse(root string) (out *PassThroughFuse) {
 	return out
 }
 
-func (self *PassThroughFuse) Mount(conn *fuse.PathFileSystemConnector) (fuse.Status) {
+func (self *PassThroughFuse) Mount(conn *fuse.PathFileSystemConnector) fuse.Status {
 	return fuse.OK
 }
 
@@ -77,8 +77,8 @@ func (self *PassThroughFuse) OpenDir(name string) (stream chan fuse.DirEntry, st
 		}
 		close(output)
 		f.Close()
-	}()	
-	
+	}()
+
 	return output, fuse.OK
 }
 

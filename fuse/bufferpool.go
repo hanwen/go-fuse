@@ -25,7 +25,7 @@ func IntToExponent(z int) uint {
 	}
 
 	if z > (1 << exp) {
-		exp ++
+		exp++
 	}
 	return exp
 }
@@ -38,7 +38,7 @@ func NewBufferPool() *BufferPool {
 
 func (self *BufferPool) String() string {
 	s := ""
-	for exp, bufs := range(self.buffersByExponent) {
+	for exp, bufs := range self.buffersByExponent {
 		s = s + fmt.Sprintf("%d = %d\n", exp, len(bufs))
 	}
 	return s
@@ -50,11 +50,11 @@ func (self *BufferPool) getBuffer(sz int) []byte {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
-	if (len(self.buffersByExponent) <= int(exponent)) {
+	if len(self.buffersByExponent) <= int(exponent) {
 		return nil
 	}
 	bufferList := self.buffersByExponent[exponent]
-	if (len(bufferList) == 0) {
+	if len(bufferList) == 0 {
 		return nil
 	}
 
@@ -69,7 +69,7 @@ func (self *BufferPool) getBuffer(sz int) []byte {
 }
 
 func (self *BufferPool) addBuffer(slice []byte) {
-	if cap(slice) & (PAGESIZE -1) != 0 {
+	if cap(slice)&(PAGESIZE-1) != 0 {
 		return
 	}
 
@@ -106,4 +106,3 @@ func (self *BufferPool) GetBuffer(size uint32) []byte {
 
 	return make([]byte, size, rounded)
 }
-

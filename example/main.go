@@ -39,7 +39,7 @@ func main() {
 	state.Loop(*threaded)
 	fmt.Println("Finished", state.Stats())
 
-	for v := range(expvar.Iter()) {
+	for v := range expvar.Iter() {
 		if strings.HasPrefix(v.Key, "mount") {
 			fmt.Printf("%v: %v\n", v.Key, v.Value)
 		}

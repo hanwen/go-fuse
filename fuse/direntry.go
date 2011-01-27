@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"bytes"
 )
+
 var _ = fmt.Print
 // For PathFileSystemConnector.  The connector determines inodes.
 type DirEntry struct {
@@ -64,8 +65,8 @@ func (de *DirEntryList) Bytes() []byte {
 ////////////////////////////////////////////////////////////////
 
 type FuseDir struct {
-	stream chan DirEntry
-	leftOver DirEntry
+	stream    chan DirEntry
+	leftOver  DirEntry
 	connector *PathFileSystemConnector
 	parentIno uint64
 }

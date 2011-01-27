@@ -11,20 +11,20 @@ import (
 
 type mountData struct {
 	// If non-nil the file system mounted here.
-	fs     PathFilesystem
+	fs PathFilesystem
 
 	// If yes, we are looking to unmount the mounted fs.
 	unmountPending bool
 
-	openFiles	int
-	openDirs	int
-	subMounts	int
+	openFiles int
+	openDirs  int
+	subMounts int
 }
 
 func newMount(fs PathFilesystem) *mountData {
 	return &mountData{fs: fs}
 }
-	
+
 // TODO should rename to dentry?
 type inodeData struct {
 	Parent      *inodeData
@@ -32,7 +32,7 @@ type inodeData struct {
 	Name        string
 	LookupCount int
 
-	Type     uint32 
+	Type uint32
 	// Number of inodeData that have this as parent.
 	RefCount int
 
@@ -65,7 +65,7 @@ func (self *inodeData) GetPath() (path string, mount *mountData) {
 	if inode == nil {
 		panic("did not find parent with mount")
 	}
-	
+
 	fullPath := strings.Join(components[j:], "/")
 	mount = inode.mount
 	if mount.unmountPending {
@@ -109,9 +109,9 @@ type PathFileSystemConnector struct {
 	inodePathMap        map[string]*inodeData
 	inodePathMapByInode map[uint64]*inodeData
 	nextFreeInode       uint64
-	
+
 	options PathFileSystemConnectorOptions
-	Debug		    bool
+	Debug   bool
 }
 
 // Must be called with lock held.
@@ -148,7 +148,7 @@ func (self *PathFileSystemConnector) lookup(key string) *inodeData {
 	defer self.lock.RUnlock()
 	return self.inodePathMap[key]
 }
-	
+
 func (self *PathFileSystemConnector) lookupUpdate(nodeId uint64, name string) *inodeData {
 	key := inodeDataKey(nodeId, name)
 	data := self.lookup(key)
@@ -259,16 +259,16 @@ func (self *PathFileSystemConnector) unlinkUpdate(nodeid uint64, name string) {
 func (self *PathFileSystemConnector) findInode(fullPath string) *inodeData {
 	fullPath = strings.TrimLeft(path.Clean(fullPath), "/")
 	comps := strings.Split(fullPath, "/", -1)
-	
+
 	self.lock.RLock()
 	defer self.lock.RUnlock()
 
 	node := self.inodePathMapByInode[FUSE_ROOT_ID]
-	for i, component := range(comps) {
+	for i, component := range comps {
 		if len(component) == 0 {
 			continue
 		}
-		
+
 		key := inodeDataKey(node.NodeId, component)
 		node = self.inodePathMap[key]
 		if node == nil {
@@ -290,7 +290,7 @@ func NewPathFileSystemConnector(fs PathFilesystem) (out *PathFileSystemConnector
 	rootData := new(inodeData)
 	rootData.NodeId = FUSE_ROOT_ID
 	rootData.Type = ModeToType(S_IFDIR)
-	
+
 	out.inodePathMap[rootData.Key()] = rootData
 	out.inodePathMapByInode[FUSE_ROOT_ID] = rootData
 	out.nextFreeInode = FUSE_ROOT_ID + 1
@@ -318,10 +318,10 @@ func (self *PathFileSystemConnector) Mount(path string, fs PathFilesystem) Statu
 		return EBUSY
 	}
 
-	if node.Type & ModeToType(S_IFDIR) == 0 {
+	if node.Type&ModeToType(S_IFDIR) == 0 {
 		return EINVAL
 	}
-	
+
 	code := fs.Mount(self)
 	if code != OK {
 		if self.Debug {
@@ -329,7 +329,7 @@ func (self *PathFileSystemConnector) Mount(path string, fs PathFilesystem) Statu
 		}
 		return code
 	}
-	
+
 	if self.Debug {
 		log.Println("Mount: ", fs, "on", path, node)
 	}
@@ -340,7 +340,7 @@ func (self *PathFileSystemConnector) Mount(path string, fs PathFilesystem) Statu
 		_, parentMount := node.Parent.GetPath()
 		parentMount.subMounts++
 	}
-	
+
 	return OK
 }
 
@@ -355,7 +355,7 @@ func (self *PathFileSystemConnector) Unmount(path string) Status {
 		panic(path)
 	}
 
-	if mount.openFiles + mount.openDirs + mount.subMounts > 0 {
+	if mount.openFiles+mount.openDirs+mount.subMounts > 0 {
 		log.Println("busy: ", mount)
 		return EBUSY
 	}
@@ -404,7 +404,7 @@ func (self *PathFileSystemConnector) Lookup(header *InHeader, name string) (out 
 	fullPath = path.Join(fullPath, name)
 
 	attr, err := mount.fs.GetAttr(fullPath)
-	
+
 	if err == ENOENT && self.options.NegativeTimeout > 0.0 {
 		return NegativeEntry(self.options.NegativeTimeout), OK
 	}
@@ -416,7 +416,7 @@ func (self *PathFileSystemConnector) Lookup(header *InHeader, name string) (out 
 	data := self.lookupUpdate(header.NodeId, name)
 	data.LookupCount++
 	data.Type = ModeToType(attr.Mode)
-	
+
 	out = new(EntryOut)
 	out.NodeId = data.NodeId
 	out.Generation = 1 // where to get the generation?
@@ -537,7 +537,7 @@ func (self *PathFileSystemConnector) Mknod(header *InHeader, input *MknodIn, nam
 	fullPath, mount := self.GetPath(header.NodeId)
 	if mount == nil {
 		return nil, ENOENT
-	}	
+	}
 	fullPath = path.Join(fullPath, name)
 	err := mount.fs.Mknod(fullPath, input.Mode, uint32(input.Rdev))
 	if err != OK {
@@ -550,7 +550,7 @@ func (self *PathFileSystemConnector) Mkdir(header *InHeader, input *MkdirIn, nam
 	fullPath, mount := self.GetPath(header.NodeId)
 	if mount == nil {
 		return nil, ENOENT
-	}	
+	}
 	err := mount.fs.Mkdir(path.Join(fullPath, name), input.Mode)
 	if err != OK {
 		return nil, err
@@ -563,7 +563,7 @@ func (self *PathFileSystemConnector) Unlink(header *InHeader, name string) (code
 	fullPath, mount := self.GetPath(header.NodeId)
 	if mount == nil {
 		return ENOENT
-	}	
+	}
 	code = mount.fs.Unlink(path.Join(fullPath, name))
 
 	// Like fuse.c, we update our internal tables.
@@ -586,7 +586,7 @@ func (self *PathFileSystemConnector) Symlink(header *InHeader, pointedTo string,
 	fullPath, mount := self.GetPath(header.NodeId)
 	if mount == nil {
 		return nil, ENOENT
-	}	
+	}
 	err := mount.fs.Symlink(pointedTo, path.Join(fullPath, linkName))
 	if err != OK {
 		return nil, err
@@ -605,7 +605,7 @@ func (self *PathFileSystemConnector) Rename(header *InHeader, input *RenameIn, o
 	if mount != oldMount {
 		return EXDEV
 	}
-	
+
 	oldPath = path.Join(oldPath, oldName)
 	newPath = path.Join(newPath, newName)
 	code = mount.fs.Rename(oldPath, newPath)
@@ -648,7 +648,7 @@ func (self *PathFileSystemConnector) Access(header *InHeader, input *AccessIn) (
 	p, mount := self.GetPath(header.NodeId)
 	if mount == nil {
 		return ENOENT
-	}	
+	}
 	return mount.fs.Access(p, input.Mask)
 }
 

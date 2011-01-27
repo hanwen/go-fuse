@@ -601,7 +601,6 @@ func (self *SubmountFileSystem) ReleaseDir(header *fuse.InHeader, f fuse.RawFuse
 }
 
 
-
 ////////////////////////////////////////////////////////////////
 
 type SubmountFileSystemTopDir struct {
@@ -638,4 +637,3 @@ func (self *SubmountFileSystemTopDir) ReleaseDir() {
 func (self *SubmountFileSystemTopDir) FsyncDir(input *fuse.FsyncIn) (code fuse.Status) {
 	return fuse.ENOENT
 }
-

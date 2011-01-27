@@ -43,7 +43,7 @@ func (self *stackFsTestCase) Setup(t *testing.T) {
 
 	fs1 := fuse.NewPathFileSystemConnector(NewPassThroughFuse(self.origDir1))
 	fs2 := fuse.NewPathFileSystemConnector(NewPassThroughFuse(self.origDir2))
-	
+
 	self.fs = NewSubmountFileSystem()
 
 	attr := fuse.Attr{

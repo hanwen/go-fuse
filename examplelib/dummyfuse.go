@@ -201,7 +201,7 @@ func (self *DummyPathFuse) OpenDir(name string) (stream chan fuse.DirEntry, stat
 	return nil, fuse.ENOSYS
 }
 
-func (self *DummyPathFuse) Mount(conn *fuse.PathFileSystemConnector) (fuse.Status) {
+func (self *DummyPathFuse) Mount(conn *fuse.PathFileSystemConnector) fuse.Status {
 	return fuse.OK
 }
 
@@ -219,4 +219,3 @@ func (self *DummyPathFuse) Create(name string, flags uint32, mode uint32) (file 
 func (self *DummyPathFuse) Utimens(name string, AtimeNs uint64, CtimeNs uint64) (code fuse.Status) {
 	return fuse.ENOSYS
 }
-

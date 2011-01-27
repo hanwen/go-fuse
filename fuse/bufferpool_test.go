@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-func TestIntToExponent(t *testing.T)  {
+func TestIntToExponent(t *testing.T) {
 	e := IntToExponent(1)
 	if e != 0 {
 		t.Error("1", e)
@@ -24,10 +24,10 @@ func TestIntToExponent(t *testing.T)  {
 	}
 }
 
-func TestBufferPool(t *testing.T)  {
+func TestBufferPool(t *testing.T) {
 	bp := NewBufferPool()
 
-	b := bp.getBuffer(PAGESIZE-1)
+	b := bp.getBuffer(PAGESIZE - 1)
 	if b != nil {
 		t.Error("bp 0")
 	}
@@ -36,10 +36,10 @@ func TestBufferPool(t *testing.T)  {
 		t.Error("bp 1")
 	}
 
-	s := make([]byte, PAGESIZE - 1)
+	s := make([]byte, PAGESIZE-1)
 
 	bp.addBuffer(s)
-	b = bp.getBuffer(PAGESIZE -1)
+	b = bp.getBuffer(PAGESIZE - 1)
 	if b != nil {
 		t.Error("bp 3")
 	}
@@ -57,21 +57,21 @@ func TestBufferPool(t *testing.T)  {
 	}
 
 	bp.addBuffer(make([]byte, 3*PAGESIZE))
-	b = bp.getBuffer(2*PAGESIZE)
+	b = bp.getBuffer(2 * PAGESIZE)
 	if b != nil {
 		t.Error("should fail.")
 	}
-	b = bp.getBuffer(4*PAGESIZE)
+	b = bp.getBuffer(4 * PAGESIZE)
 	if b != nil {
 		t.Error("should fail.")
 	}
 	bp.addBuffer(make([]byte, 4*PAGESIZE))
 	fmt.Println(bp)
-	b = bp.getBuffer(2*PAGESIZE)
+	b = bp.getBuffer(2 * PAGESIZE)
 	if b != nil {
 		t.Error("should fail.")
 	}
-	b = bp.getBuffer(4*PAGESIZE)
+	b = bp.getBuffer(4 * PAGESIZE)
 	if b == nil {
 		t.Error("4*ps should succeed.")
 	}

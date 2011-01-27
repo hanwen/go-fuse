@@ -196,10 +196,10 @@ func (self *MountState) Stats() string {
 	var lines []string
 
 	// TODO - bufferpool should use expvar.
-	lines = append(lines, 
+	lines = append(lines,
 		fmt.Sprintf("buffers: %v", self.buffers.String()))
-	
-	for v := range(expvar.Iter()) {
+
+	for v := range expvar.Iter() {
 		if strings.HasPrefix(v.Key, "mount") {
 			lines = append(lines, fmt.Sprintf("%v: %v\n", v.Key, v.Value))
 		}
@@ -221,7 +221,7 @@ func (self *MountState) syncWrite(packet [][]byte) {
 	if err != nil {
 		self.Error(os.NewError(fmt.Sprintf("writer: Writev %v failed, err: %v", packet, err)))
 	}
-	for _, v := range(packet) {
+	for _, v := range packet {
 		self.buffers.addBuffer(v)
 	}
 }
