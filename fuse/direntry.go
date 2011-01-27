@@ -103,7 +103,6 @@ func (me *FuseDir) ReadDir(input *ReadIn) (*DirEntryList, Status) {
 			break
 		}
 	}
-	fmt.Println("OFF", list.offset)
 	return list, OK
 }
 
