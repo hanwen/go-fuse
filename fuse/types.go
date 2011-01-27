@@ -571,7 +571,7 @@ type PathFilesystem interface {
 	// Unimplemented:
 	// RemoveXAttr, SetXAttr, GetXAttr, ListXAttr.
 
-	OpenDir(name string) (dir RawFuseDir, code Status)
+	OpenDir(name string) (stream chan DirEntry, code Status)
 
 	// TODO - what is a good interface?
 	Mount(connector *PathFileSystemConnector) Status

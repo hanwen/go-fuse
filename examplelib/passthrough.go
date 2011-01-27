@@ -49,15 +49,37 @@ func (self *PassThroughFuse) GetAttr(name string) (*fuse.Attr, fuse.Status) {
 	return out, fuse.OK
 }
 
-func (self *PassThroughFuse) OpenDir(name string) (fuseFile fuse.RawFuseDir, status fuse.Status) {
+func (self *PassThroughFuse) OpenDir(name string) (stream chan fuse.DirEntry, status fuse.Status) {
 	// What other ways beyond O_RDONLY are there to open
 	// directories?
 	f, err := os.Open(self.GetPath(name), os.O_RDONLY, 0)
 	if err != nil {
 		return nil, fuse.OsErrorToFuseError(err)
 	}
-	p := NewPassThroughDir(f)
-	return p, fuse.OK
+	output := make(chan fuse.DirEntry, 500)
+	go func() {
+		for {
+			want := 500
+			infos, err := f.Readdir(want)
+			for i, _ := range infos {
+				output <- fuse.DirEntry{
+					Name: infos[i].Name,
+					Mode: infos[i].Mode,
+				}
+			}
+			if len(infos) < want {
+				break
+			}
+			if err != nil {
+				// TODO - how to signal error
+				break
+			}
+		}
+		close(output)
+		f.Close()
+	}()	
+	
+	return output, fuse.OK
 }
 
 func (self *PassThroughFuse) Open(name string, flags uint32) (fuseFile fuse.RawFuseFile, status fuse.Status) {
@@ -200,37 +222,4 @@ func NewPassThroughDir(file *os.File) *PassThroughDir {
 		file.Close()
 	}()
 	return self
-}
-
-func (self *PassThroughDir) ReadDir(input *fuse.ReadIn) (*fuse.DirEntryList, fuse.Status) {
-	list := fuse.NewDirEntryList(int(input.Size))
-
-	if self.leftOver != nil {
-		success := list.AddString(self.leftOver.Name, fuse.FUSE_UNKNOWN_INO, self.leftOver.Mode)
-		self.exported++
-		if !success {
-			panic("No space for single entry.")
-		}
-		self.leftOver = nil
-	}
-
-	for {
-		fi := <-self.directoryChannel
-		if fi == nil {
-			break
-		}
-		if !list.AddString(fi.Name, fuse.FUSE_UNKNOWN_INO, fi.Mode) {
-			self.leftOver = fi
-			break
-		}
-	}
-	return list, fuse.OsErrorToFuseError(self.directoryError)
-}
-
-func (self *PassThroughDir) ReleaseDir() {
-	close(self.directoryChannel)
-}
-
-func (self *PassThroughDir) FsyncDir(input *fuse.FsyncIn) (code fuse.Status) {
-	return fuse.ENOSYS
 }

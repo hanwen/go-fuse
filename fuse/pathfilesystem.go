@@ -143,11 +143,22 @@ func (self *PathFileSystemConnector) unrefNode(data *inodeData) {
 	}
 }
 
+func (self *PathFileSystemConnector) lookup(key string) *inodeData {
+	self.lock.RLock()
+	defer self.lock.RUnlock()
+	return self.inodePathMap[key]
+}
+	
 func (self *PathFileSystemConnector) lookupUpdate(nodeId uint64, name string) *inodeData {
+	key := inodeDataKey(nodeId, name)
+	data := self.lookup(key)
+	if data != nil {
+		return data
+	}
+
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
-	key := inodeDataKey(nodeId, name)
 	data, ok := self.inodePathMap[key]
 	if !ok {
 		data = new(inodeData)
@@ -160,7 +171,6 @@ func (self *PathFileSystemConnector) lookupUpdate(nodeId uint64, name string) *i
 		self.inodePathMap[key] = data
 	}
 
-	data.LookupCount++
 	return data
 }
 
@@ -404,6 +414,7 @@ func (self *PathFileSystemConnector) Lookup(header *InHeader, name string) (out 
 	}
 
 	data := self.lookupUpdate(header.NodeId, name)
+	data.LookupCount++
 	data.Type = ModeToType(attr.Mode)
 	
 	out = new(EntryOut)
@@ -413,6 +424,7 @@ func (self *PathFileSystemConnector) Lookup(header *InHeader, name string) (out 
 	SplitNs(self.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
 	SplitNs(self.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	out.Attr = *attr
+	out.Attr.Ino = data.NodeId
 	return out, OK
 }
 
@@ -433,7 +445,7 @@ func (self *PathFileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn)
 
 	out = new(AttrOut)
 	out.Attr = *attr
-
+	out.Attr.Ino = header.NodeId
 	SplitNs(self.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 
 	return out, OK
@@ -445,14 +457,19 @@ func (self *PathFileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (f
 		return 0, nil, ENOENT
 	}
 	// TODO - how to handle return flags, the FUSE open flags?
-	f, err := mount.fs.OpenDir(fullPath)
+	stream, err := mount.fs.OpenDir(fullPath)
 	if err != OK {
 		return 0, nil, err
 	}
 
 	// TODO - racy?
 	mount.openDirs++
-	return 0, f, OK
+
+	de := new(FuseDir)
+	de.connector = self
+	de.parentIno = header.NodeId
+	de.stream = stream
+	return 0, de, OK
 }
 
 func (self *PathFileSystemConnector) Open(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseFile, status Status) {

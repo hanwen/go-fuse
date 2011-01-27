@@ -197,7 +197,7 @@ func (self *DummyPathFuse) Open(name string, flags uint32) (file fuse.RawFuseFil
 	return nil, fuse.ENOSYS
 }
 
-func (self *DummyPathFuse) OpenDir(name string) (dir fuse.RawFuseDir, code fuse.Status) {
+func (self *DummyPathFuse) OpenDir(name string) (stream chan fuse.DirEntry, status fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
