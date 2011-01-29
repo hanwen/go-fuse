@@ -10,7 +10,8 @@ GOFILES=misc.go\
 	mount.go\
 	types.go\
 	pathfilesystem.go \
-	bufferpool.go
+	bufferpool.go \
+	default.go
 
 include $(GOROOT)/src/Make.pkg
 

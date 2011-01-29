@@ -583,3 +583,12 @@ type PathFilesystem interface {
 
 	// unimplemented: poll, ioctl, bmap.
 }
+
+// Include this method in your implementation to inherit default nop
+// implementations.
+
+type DefaultRawFuseDir struct {}
+type DefaultPathFilesystem struct {}
+type DefaultRawFuseFile struct {}
+type DefaultRawFuseFileSystem struct{}
+

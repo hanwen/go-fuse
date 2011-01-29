@@ -16,6 +16,8 @@ var _ = fmt.Println
 
 type PassThroughFuse struct {
 	root string
+
+	fuse.DefaultPathFilesystem
 }
 
 func NewPassThroughFuse(root string) (out *PassThroughFuse) {
@@ -23,14 +25,6 @@ func NewPassThroughFuse(root string) (out *PassThroughFuse) {
 	out.root = root
 
 	return out
-}
-
-func (self *PassThroughFuse) Mount(conn *fuse.PathFileSystemConnector) fuse.Status {
-	return fuse.OK
-}
-
-func (self *PassThroughFuse) Unmount() {
-
 }
 
 func (self *PassThroughFuse) GetPath(relPath string) string {
@@ -160,6 +154,8 @@ func (self *PassThroughFuse) SetOptions(options *fuse.PathFileSystemConnectorOpt
 
 type PassThroughFile struct {
 	file *os.File
+
+	fuse.DefaultRawFuseFile
 }
 
 func (self *PassThroughFile) Read(input *fuse.ReadIn, buffers *fuse.BufferPool) ([]byte, fuse.Status) {
@@ -176,10 +172,6 @@ func (self *PassThroughFile) Read(input *fuse.ReadIn, buffers *fuse.BufferPool) 
 func (self *PassThroughFile) Write(input *fuse.WriteIn, data []byte) (uint32, fuse.Status) {
 	n, err := self.file.WriteAt(data, int64(input.Offset))
 	return uint32(n), fuse.OsErrorToFuseError(err)
-}
-
-func (self *PassThroughFile) Flush() fuse.Status {
-	return fuse.OK
 }
 
 func (self *PassThroughFile) Release() {

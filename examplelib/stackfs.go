@@ -253,10 +253,8 @@ func (self *SubmountFileSystem) forget(h *fuse.InHeader, input *fuse.ForgetIn) *
 	return subNodeData
 }
 
-
 ////////////////////////////////////////////////////////////////
 // Functions below should not need locking primitives. 
-
 
 // Caller should init after this returns successfully.
 func (self *SubmountFileSystem) AddFileSystem(name string, fs fuse.RawFileSystem, attr fuse.Attr) bool {
@@ -607,6 +605,8 @@ type SubmountFileSystemTopDir struct {
 	names    []string
 	modes    []uint32
 	nextRead int
+
+	fuse.DefaultRawFuseDir
 }
 
 func NewSubmountFileSystemTopDir(fs *SubmountFileSystem) *SubmountFileSystemTopDir {
@@ -628,12 +628,4 @@ func (self *SubmountFileSystemTopDir) ReadDir(input *fuse.ReadIn) (*fuse.DirEntr
 		}
 	}
 	return de, fuse.OK
-}
-
-func (self *SubmountFileSystemTopDir) ReleaseDir() {
-
-}
-
-func (self *SubmountFileSystemTopDir) FsyncDir(input *fuse.FsyncIn) (code fuse.Status) {
-	return fuse.ENOENT
 }

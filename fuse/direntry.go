@@ -69,6 +69,8 @@ type FuseDir struct {
 	leftOver  DirEntry
 	connector *PathFileSystemConnector
 	parentIno uint64
+
+	DefaultRawFuseDir
 }
 
 func (me *FuseDir) inode(name string) uint64 {
@@ -111,6 +113,3 @@ func (me *FuseDir) ReleaseDir() {
 	close(me.stream)
 }
 
-func (me *FuseDir) FsyncDir(input *FsyncIn) (code Status) {
-	return ENOSYS
-}
