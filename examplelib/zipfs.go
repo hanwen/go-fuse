@@ -175,10 +175,8 @@ type ZipFile struct {
 	fuse.DefaultRawFuseFile
 }
 
-func NewZipFile(f *zip.File) *ZipFile {
-	z := ZipFile{
-		data: make([]byte, f.UncompressedSize),
-	}
+func NewZipFile(f *zip.File) fuse.RawFuseFile {
+	data := make([]byte, f.UncompressedSize)
 	rc, err := f.Open()
 	if err != nil {
 		panic("zip open")
@@ -186,25 +184,14 @@ func NewZipFile(f *zip.File) *ZipFile {
 
 	start := 0
 	for {
-		n, err := rc.Read(z.data[start:])
+		n, err := rc.Read(data[start:])
 		start += n
 		if err == os.EOF {
 			break
 		}
 		if err != nil && err != os.EOF {
-			panic(fmt.Sprintf("read err: %v, n %v, sz %v", err, n, len(z.data)))
+			panic(fmt.Sprintf("read err: %v, n %v, sz %v", err, n, len(data)))
 		}
 	}
-	return &z
+	return fuse.NewReadOnlyFile(data)
 }
-
-func (self *ZipFile) Read(input *fuse.ReadIn, bp *fuse.BufferPool) ([]byte, fuse.Status) {
-	end := int(input.Offset) + int(input.Size)
-	if end > len(self.data) {
-		end = len(self.data)
-	}
-
-	return self.data[input.Offset:end], fuse.OK
-}
-
-
