@@ -110,6 +110,6 @@ func (me *FuseDir) ReadDir(input *ReadIn) (*DirEntryList, Status) {
 }
 
 func (me *FuseDir) ReleaseDir() {
-	close(me.stream)
+	// TODO - should close ?
 }
 

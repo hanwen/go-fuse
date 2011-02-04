@@ -4,6 +4,7 @@ import (
 	"testing"
 	"fmt"
 )
+var _ = fmt.Println
 
 func TestIntToExponent(t *testing.T) {
 	e := IntToExponent(1)
@@ -27,53 +28,13 @@ func TestIntToExponent(t *testing.T) {
 func TestBufferPool(t *testing.T) {
 	bp := NewBufferPool()
 
-	b := bp.getBuffer(PAGESIZE - 1)
-	if b != nil {
+	b1 := bp.AllocBuffer(PAGESIZE)
+	_ = bp.AllocBuffer(2*PAGESIZE)
+	bp.FreeBuffer(b1)
+
+	b1_2 := bp.AllocBuffer(PAGESIZE)
+	if &b1[0] != &b1_2[0] {
 		t.Error("bp 0")
-	}
-	b = bp.getBuffer(PAGESIZE)
-	if b != nil {
-		t.Error("bp 1")
-	}
-
-	s := make([]byte, PAGESIZE-1)
-
-	bp.addBuffer(s)
-	b = bp.getBuffer(PAGESIZE - 1)
-	if b != nil {
-		t.Error("bp 3")
-	}
-
-	s = make([]byte, PAGESIZE)
-	bp.addBuffer(s)
-	b = bp.getBuffer(PAGESIZE)
-	if b == nil {
-		t.Error("not found.")
-	}
-
-	b = bp.getBuffer(PAGESIZE)
-	if b != nil {
-		t.Error("should fail.")
-	}
-
-	bp.addBuffer(make([]byte, 3*PAGESIZE))
-	b = bp.getBuffer(2 * PAGESIZE)
-	if b != nil {
-		t.Error("should fail.")
-	}
-	b = bp.getBuffer(4 * PAGESIZE)
-	if b != nil {
-		t.Error("should fail.")
-	}
-	bp.addBuffer(make([]byte, 4*PAGESIZE))
-	fmt.Println(bp)
-	b = bp.getBuffer(2 * PAGESIZE)
-	if b != nil {
-		t.Error("should fail.")
-	}
-	b = bp.getBuffer(4 * PAGESIZE)
-	if b == nil {
-		t.Error("4*ps should succeed.")
 	}
 
 }

@@ -3,6 +3,7 @@ package fuse
 import (
 	"sync"
 	"fmt"
+	"unsafe"
 )
 
 // This implements a pool of buffers that returns slices with capacity
@@ -13,6 +14,9 @@ type BufferPool struct {
 
 	// For each exponent a list of slice pointers.
 	buffersByExponent [][][]byte
+
+	// start of slice -> exponent.
+	outstandingBuffers map[uintptr]uint
 }
 
 // Returns the smallest E such that 2^E >= Z.
@@ -33,6 +37,7 @@ func IntToExponent(z int) uint {
 func NewBufferPool() *BufferPool {
 	bp := new(BufferPool)
 	bp.buffersByExponent = make([][][]byte, 0, 8)
+	bp.outstandingBuffers = make(map[uintptr]uint)
 	return bp
 }
 
@@ -44,12 +49,7 @@ func (self *BufferPool) String() string {
 	return s
 }
 
-
-func (self *BufferPool) getBuffer(sz int) []byte {
-	exponent := int(IntToExponent(sz) - IntToExponent(PAGESIZE))
-	self.lock.Lock()
-	defer self.lock.Unlock()
-
+func (self *BufferPool) getBuffer(exponent uint) []byte {
 	if len(self.buffersByExponent) <= int(exponent) {
 		return nil
 	}
@@ -60,30 +60,10 @@ func (self *BufferPool) getBuffer(sz int) []byte {
 
 	result := bufferList[len(bufferList)-1]
 	self.buffersByExponent[exponent] = self.buffersByExponent[exponent][:len(bufferList)-1]
-
-	if cap(result) < sz {
-		panic("returning incorrect buffer.")
-	}
-
 	return result
 }
 
-func (self *BufferPool) addBuffer(slice []byte) {
-	if cap(slice)&(PAGESIZE-1) != 0 {
-		return
-	}
-
-	pages := cap(slice) / PAGESIZE
-	if pages == 0 {
-		return
-	}
-	exp := IntToExponent(pages)
-	if (1 << exp) != pages {
-		return
-	}
-
-	self.lock.Lock()
-	defer self.lock.Unlock()
+func (self *BufferPool) addBuffer(slice []byte, exp uint) {
 	for len(self.buffersByExponent) <= int(exp) {
 		self.buffersByExponent = append(self.buffersByExponent, make([][]byte, 0))
 	}
@@ -91,18 +71,46 @@ func (self *BufferPool) addBuffer(slice []byte) {
 }
 
 
-func (self *BufferPool) GetBuffer(size uint32) []byte {
+func (self *BufferPool) AllocBuffer(size uint32) []byte {
 	sz := int(size)
 	if sz < PAGESIZE {
 		sz = PAGESIZE
 	}
-	rounded := 1 << IntToExponent(sz)
-	b := self.getBuffer(rounded)
+
+	exp := IntToExponent(sz)
+	rounded := 1 << exp
+
+	exp -= IntToExponent(PAGESIZE)
+
+	self.lock.Lock()
+	defer self.lock.Unlock()
+
+	b := self.getBuffer(exp)
 
 	if b != nil {
 		b = b[:size]
 		return b
 	}
 
-	return make([]byte, size, rounded)
+	b = make([]byte, size, rounded)
+	self.outstandingBuffers[uintptr(unsafe.Pointer(&b[0]))] = exp
+	return b
+}
+
+// Takes back a buffer if it was allocated through AllocBuffer.  It is
+// not an error to call FreeBuffer() on a slice obtained elsewhere.
+func (self *BufferPool) FreeBuffer(slice []byte) {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+
+	if cap(slice) < PAGESIZE {
+		return
+	}
+
+	key := uintptr(unsafe.Pointer(&slice[0]))
+	exp, ok := self.outstandingBuffers[key]
+	if ok {
+		self.addBuffer(slice, exp)
+		self.outstandingBuffers[key] = 0, false
+	}
 }

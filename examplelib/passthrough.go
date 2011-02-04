@@ -159,7 +159,7 @@ type PassThroughFile struct {
 }
 
 func (self *PassThroughFile) Read(input *fuse.ReadIn, buffers *fuse.BufferPool) ([]byte, fuse.Status) {
-	slice := buffers.GetBuffer(input.Size)
+	slice := buffers.AllocBuffer(input.Size)
 
 	n, err := self.file.ReadAt(slice, int64(input.Offset))
 	if err == os.EOF {

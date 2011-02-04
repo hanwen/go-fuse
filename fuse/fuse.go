@@ -222,7 +222,7 @@ func (self *MountState) syncWrite(packet [][]byte) {
 		self.Error(os.NewError(fmt.Sprintf("writer: Writev %v failed, err: %v", packet, err)))
 	}
 	for _, v := range packet {
-		self.buffers.addBuffer(v)
+		self.buffers.FreeBuffer(v)
 	}
 }
 
@@ -233,7 +233,7 @@ func (self *MountState) syncWrite(packet [][]byte) {
 func (self *MountState) loop() {
 	// See fuse_kern_chan_receive()
 	for {
-		buf := self.buffers.GetBuffer(bufSize)
+		buf := self.buffers.AllocBuffer(bufSize)
 		n, err := self.mountFile.Read(buf)
 		if err != nil {
 			errNo := OsErrorToFuseError(err)
@@ -280,7 +280,7 @@ func (self *MountState) handle(in_data []byte) {
 		return
 	}
 	self.Write(dispatch(self, header, r))
-	self.buffers.addBuffer(in_data)
+	self.buffers.FreeBuffer(in_data)
 }
 
 

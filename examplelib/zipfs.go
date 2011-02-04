@@ -73,7 +73,7 @@ func (me *ZipDirTree) FindDir(name string) *ZipDirTree {
 type ZipFileFuse struct {
 	zipReader *zip.Reader
 	tree      *ZipDirTree
-	
+
 	fuse.DefaultPathFilesystem
 }
 
@@ -204,7 +204,6 @@ func (self *ZipFile) Read(input *fuse.ReadIn, bp *fuse.BufferPool) ([]byte, fuse
 		end = len(self.data)
 	}
 
-	// TODO - robustify bufferpool
 	return self.data[input.Offset:end], fuse.OK
 }
 
