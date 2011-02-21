@@ -1,5 +1,11 @@
 package fuse
 
+import (
+	"log"
+)
+
+var _ = log.Println
+
 func (self *DefaultRawFuseFileSystem) Init(h *InHeader, input *InitIn) (*InitOut, Status) {
 	return new(InitOut), OK
 }

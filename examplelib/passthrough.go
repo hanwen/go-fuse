@@ -69,7 +69,7 @@ func (self *PassThroughFuse) OpenDir(name string) (stream chan fuse.DirEntry, st
 				break
 			}
 		}
-		close(output)
+		output <- fuse.DirEntry{}
 		f.Close()
 	}()
 

@@ -33,6 +33,7 @@ type inodeData struct {
 	LookupCount int
 
 	Type uint32
+
 	// Number of inodeData that have this as parent.
 	RefCount int
 
@@ -310,14 +311,23 @@ func (self *PathFileSystemConnector) SetOptions(opts PathFileSystemConnectorOpti
 }
 
 
-func (self *PathFileSystemConnector) Mount(path string, fs PathFilesystem) Status {
-	node := self.findInode(path)
+func (self *PathFileSystemConnector) Mount(mountPoint string, fs PathFilesystem) Status {
+	var node *inodeData
+
+	if mountPoint != "/" {
+		dirParent, base := path.Split(mountPoint)
+		dirParentNode := self.findInode(dirParent)
+
+		// Make sure we know the mount point.
+		attr, _ := self.internalLookup(dirParentNode.NodeId, base, 0)
+	}
+
+	node = self.findInode(mountPoint)
 
 	// TODO - check that fs was not mounted elsewhere.
 	if node.RefCount > 0 {
 		return EBUSY
 	}
-
 	if node.Type&ModeToType(S_IFDIR) == 0 {
 		return EINVAL
 	}
@@ -325,13 +335,13 @@ func (self *PathFileSystemConnector) Mount(path string, fs PathFilesystem) Statu
 	code := fs.Mount(self)
 	if code != OK {
 		if self.Debug {
-			log.Println("Mount error: ", path, code)
+			log.Println("Mount error: ", mountPoint, code)
 		}
 		return code
 	}
 
 	if self.Debug {
-		log.Println("Mount: ", fs, "on", path, node)
+		log.Println("Mount: ", fs, "on", mountPoint, node)
 	}
 
 	// TODO - this is technically a race-condition?
@@ -392,7 +402,11 @@ func (self *PathFileSystemConnector) Destroy(h *InHeader, input *InitIn) {
 }
 
 func (self *PathFileSystemConnector) Lookup(header *InHeader, name string) (out *EntryOut, status Status) {
-	parent := self.getInodeData(header.NodeId)
+	return self.internalLookup(header.NodeId, name, 1)
+}
+
+func (self *PathFileSystemConnector) internalLookup(nodeid uint64, name string, lookupCount int) (out *EntryOut, status Status) {
+	parent := self.getInodeData(nodeid)
 
 	// TODO - fuse.c has special case code for name == "." and
 	// "..", those lookups happen if FUSE_EXPORT_SUPPORT is set in
@@ -413,8 +427,8 @@ func (self *PathFileSystemConnector) Lookup(header *InHeader, name string) (out 
 		return nil, err
 	}
 
-	data := self.lookupUpdate(header.NodeId, name)
-	data.LookupCount++
+	data := self.lookupUpdate(nodeid, name)
+	data.LookupCount += lookupCount
 	data.Type = ModeToType(attr.Mode)
 
 	out = new(EntryOut)

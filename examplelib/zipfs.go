@@ -73,6 +73,7 @@ func (me *ZipDirTree) FindDir(name string) *ZipDirTree {
 type ZipFileFuse struct {
 	zipReader *zip.Reader
 	tree      *ZipDirTree
+	ZipFileName    string
 
 	fuse.DefaultPathFilesystem
 }
@@ -99,16 +100,22 @@ func zipFilesToTree(files []*zip.File) *ZipDirTree {
 	return t
 }
 
+
+
 func NewZipFileFuse(name string) *ZipFileFuse {
 	z := new(ZipFileFuse)
 	r, err := zip.OpenReader(name)
 	if err != nil {
-		panic("zip open error")
+		// TODO - return os.Error instead.
+		log.Println("NewZipFileFuse(): " + err.String())
+		return nil
 	}
+	z.ZipFileName = name
 	z.zipReader = r
 	z.tree = zipFilesToTree(r.File)
 	return z
 }
+
 
 const zip_DIRMODE uint32 = fuse.S_IFDIR | 0700
 const zip_FILEMODE uint32 = fuse.S_IFREG | 0600
@@ -160,8 +167,7 @@ func (self *ZipFileFuse) OpenDir(name string) (stream chan fuse.DirEntry, code f
 				Mode: zip_DIRMODE,
 			}
 		}
-
-		close(stream)
+		stream <- fuse.DirEntry{}
 	}()
 	return stream, fuse.OK
 }

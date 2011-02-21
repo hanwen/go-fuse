@@ -82,6 +82,10 @@ func (me *FuseDir) inode(name string) uint64 {
 }
 
 func (me *FuseDir) ReadDir(input *ReadIn) (*DirEntryList, Status) {
+	if me.stream == nil {
+		return nil, OK
+	}
+
 	list := NewDirEntryList(int(input.Size))
 
 	if me.leftOver.Name != "" {
@@ -97,6 +101,8 @@ func (me *FuseDir) ReadDir(input *ReadIn) (*DirEntryList, Status) {
 	for {
 		d := <-me.stream
 		if d.Name == "" {
+			close(me.stream)
+			me.stream = nil
 			break
 		}
 		i := me.inode(d.Name)
@@ -110,6 +116,5 @@ func (me *FuseDir) ReadDir(input *ReadIn) (*DirEntryList, Status) {
 }
 
 func (me *FuseDir) ReleaseDir() {
-	// TODO - should close ?
 }
 

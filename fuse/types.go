@@ -539,7 +539,7 @@ type RawFileSystem interface {
 type RawFuseFile interface {
 	Read(*ReadIn, *BufferPool) ([]byte, Status)
 	// u32 <-> u64 ?
-	Write(*WriteIn, []byte) (uint32, Status)
+	Write(*WriteIn, []byte) (written uint32, code Status)
 	Flush() Status
 	Release()
 	Fsync(*FsyncIn) (code Status)
