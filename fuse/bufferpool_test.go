@@ -4,6 +4,7 @@ import (
 	"testing"
 	"fmt"
 )
+
 var _ = fmt.Println
 
 func TestIntToExponent(t *testing.T) {
@@ -29,7 +30,7 @@ func TestBufferPool(t *testing.T) {
 	bp := NewBufferPool()
 
 	b1 := bp.AllocBuffer(PAGESIZE)
-	_ = bp.AllocBuffer(2*PAGESIZE)
+	_ = bp.AllocBuffer(2 * PAGESIZE)
 	bp.FreeBuffer(b1)
 
 	b1_2 := bp.AllocBuffer(PAGESIZE)
