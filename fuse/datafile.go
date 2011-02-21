@@ -14,11 +14,11 @@ func NewReadOnlyFile(data []byte) *ReadOnlyFile {
 	return f
 }
 
-func (self *ReadOnlyFile) Read(input *ReadIn, bp *BufferPool) ([]byte, Status) {
+func (me *ReadOnlyFile) Read(input *ReadIn, bp *BufferPool) ([]byte, Status) {
 	end := int(input.Offset) + int(input.Size)
-	if end > len(self.data) {
-		end = len(self.data)
+	if end > len(me.data) {
+		end = len(me.data)
 	}
 
-	return self.data[input.Offset:end], OK
+	return me.data[input.Offset:end], OK
 }

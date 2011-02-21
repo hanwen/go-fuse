@@ -119,8 +119,8 @@ func NewZipFileFuse(name string) *ZipFileFuse {
 const zip_DIRMODE uint32 = fuse.S_IFDIR | 0700
 const zip_FILEMODE uint32 = fuse.S_IFREG | 0600
 
-func (self *ZipFileFuse) GetAttr(name string) (*fuse.Attr, fuse.Status) {
-	dir, file := self.tree.Lookup(name)
+func (me *ZipFileFuse) GetAttr(name string) (*fuse.Attr, fuse.Status) {
+	dir, file := me.tree.Lookup(name)
 	if dir == nil {
 		return nil, fuse.ENOENT
 	}
@@ -136,16 +136,16 @@ func (self *ZipFileFuse) GetAttr(name string) (*fuse.Attr, fuse.Status) {
 	return a, fuse.OK
 }
 
-func (self *ZipFileFuse) Open(name string, flags uint32) (file fuse.RawFuseFile, code fuse.Status) {
-	_, zfile := self.tree.Lookup(name)
+func (me *ZipFileFuse) Open(name string, flags uint32) (file fuse.RawFuseFile, code fuse.Status) {
+	_, zfile := me.tree.Lookup(name)
 	if zfile == nil {
 		return nil, fuse.ENOENT
 	}
 	return NewZipFile(zfile), fuse.OK
 }
 
-func (self *ZipFileFuse) OpenDir(name string) (stream chan fuse.DirEntry, code fuse.Status) {
-	zdir, file := self.tree.Lookup(name)
+func (me *ZipFileFuse) OpenDir(name string) (stream chan fuse.DirEntry, code fuse.Status) {
+	zdir, file := me.tree.Lookup(name)
 	if file != nil {
 		return nil, fuse.ENOSYS
 	}

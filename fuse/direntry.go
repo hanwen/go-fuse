@@ -25,41 +25,41 @@ func NewDirEntryList(max int) *DirEntryList {
 	return &DirEntryList{maxSize: max}
 }
 
-func (de *DirEntryList) AddString(name string, inode uint64, mode uint32) bool {
-	return de.Add([]byte(name), inode, mode)
+func (me *DirEntryList) AddString(name string, inode uint64, mode uint32) bool {
+	return me.Add([]byte(name), inode, mode)
 }
 
-func (de *DirEntryList) Add(name []byte, inode uint64, mode uint32) bool {
-	lastLen := de.buf.Len()
-	de.offset++
+func (me *DirEntryList) Add(name []byte, inode uint64, mode uint32) bool {
+	lastLen := me.buf.Len()
+	me.offset++
 
 	dirent := new(Dirent)
-	dirent.Off = de.offset
+	dirent.Off = me.offset
 	dirent.Ino = inode
 	dirent.NameLen = uint32(len(name))
 	dirent.Typ = ModeToType(mode)
 
-	err := binary.Write(&de.buf, binary.LittleEndian, dirent)
+	err := binary.Write(&me.buf, binary.LittleEndian, dirent)
 	if err != nil {
 		panic("Serialization of Dirent failed")
 	}
-	de.buf.Write(name)
+	me.buf.Write(name)
 
 	padding := 8 - len(name)&7
 	if padding < 8 {
-		de.buf.Write(make([]byte, padding))
+		me.buf.Write(make([]byte, padding))
 	}
 
-	if de.buf.Len() > de.maxSize {
-		de.buf.Truncate(lastLen)
-		de.offset--
+	if me.buf.Len() > me.maxSize {
+		me.buf.Truncate(lastLen)
+		me.offset--
 		return false
 	}
 	return true
 }
 
-func (de *DirEntryList) Bytes() []byte {
-	return de.buf.Bytes()
+func (me *DirEntryList) Bytes() []byte {
+	return me.buf.Bytes()
 }
 
 ////////////////////////////////////////////////////////////////

@@ -38,79 +38,79 @@ type testCase struct {
 }
 
 // Create and mount filesystem.
-func (self *testCase) Setup(t *testing.T) {
-	self.tester = t
+func (me *testCase) Setup(t *testing.T) {
+	me.tester = t
 
 	const name string = "hello.txt"
 	const subdir string = "subdir"
 
-	self.origDir = fuse.MakeTempDir()
-	self.mountPoint = fuse.MakeTempDir()
+	me.origDir = fuse.MakeTempDir()
+	me.mountPoint = fuse.MakeTempDir()
 
-	self.mountFile = path.Join(self.mountPoint, name)
-	self.mountSubdir = path.Join(self.mountPoint, subdir)
-	self.mountSubfile = path.Join(self.mountSubdir, "subfile")
-	self.origFile = path.Join(self.origDir, name)
-	self.origSubdir = path.Join(self.origDir, subdir)
-	self.origSubfile = path.Join(self.origSubdir, "subfile")
+	me.mountFile = path.Join(me.mountPoint, name)
+	me.mountSubdir = path.Join(me.mountPoint, subdir)
+	me.mountSubfile = path.Join(me.mountSubdir, "subfile")
+	me.origFile = path.Join(me.origDir, name)
+	me.origSubdir = path.Join(me.origDir, subdir)
+	me.origSubfile = path.Join(me.origSubdir, "subfile")
 
-	pfs := NewPassThroughFuse(self.origDir)
-	self.connector = fuse.NewPathFileSystemConnector(pfs)
-	self.connector.Debug = true
-	self.state = fuse.NewMountState(self.connector)
-	self.state.Mount(self.mountPoint)
+	pfs := NewPassThroughFuse(me.origDir)
+	me.connector = fuse.NewPathFileSystemConnector(pfs)
+	me.connector.Debug = true
+	me.state = fuse.NewMountState(me.connector)
+	me.state.Mount(me.mountPoint)
 
-	//self.state.Debug = false
-	self.state.Debug = true
+	//me.state.Debug = false
+	me.state.Debug = true
 
-	fmt.Println("Orig ", self.origDir, " mount ", self.mountPoint)
+	fmt.Println("Orig ", me.origDir, " mount ", me.mountPoint)
 
 	// Unthreaded, but in background.
-	go self.state.Loop(false)
+	go me.state.Loop(false)
 }
 
 // Unmount and del.
-func (self *testCase) Cleanup() {
+func (me *testCase) Cleanup() {
 	fmt.Println("Unmounting.")
-	err := self.state.Unmount()
+	err := me.state.Unmount()
 	if err != nil {
-		self.tester.Errorf("Can't unmount a dir, err: %v", err)
+		me.tester.Errorf("Can't unmount a dir, err: %v", err)
 	}
-	os.Remove(self.mountPoint)
-	os.RemoveAll(self.origDir)
+	os.Remove(me.mountPoint)
+	os.RemoveAll(me.origDir)
 }
 
 ////////////////
 // Utilities.
 
-func (self *testCase) makeOrigSubdir() {
-	err := os.Mkdir(self.origSubdir, 0777)
+func (me *testCase) makeOrigSubdir() {
+	err := os.Mkdir(me.origSubdir, 0777)
 	if err != nil {
-		self.tester.Errorf("orig mkdir subdir %v", err)
+		me.tester.Errorf("orig mkdir subdir %v", err)
 	}
 }
 
 
-func (self *testCase) removeMountSubdir() {
-	err := os.RemoveAll(self.mountSubdir)
+func (me *testCase) removeMountSubdir() {
+	err := os.RemoveAll(me.mountSubdir)
 	if err != nil {
-		self.tester.Errorf("orig rmdir subdir %v", err)
+		me.tester.Errorf("orig rmdir subdir %v", err)
 	}
 }
 
-func (self *testCase) removeMountFile() {
-	os.Remove(self.mountFile)
+func (me *testCase) removeMountFile() {
+	os.Remove(me.mountFile)
 	// ignore errors.
 }
 
-func (self *testCase) writeOrigFile() {
-	f, err := os.Open(self.origFile, os.O_WRONLY|os.O_CREAT, 0700)
+func (me *testCase) writeOrigFile() {
+	f, err := os.Open(me.origFile, os.O_WRONLY|os.O_CREAT, 0700)
 	if err != nil {
-		self.tester.Errorf("Error orig open: %v", err)
+		me.tester.Errorf("Error orig open: %v", err)
 	}
 	_, err = f.Write([]byte(contents))
 	if err != nil {
-		self.tester.Errorf("Write %v", err)
+		me.tester.Errorf("Write %v", err)
 	}
 	f.Close()
 }
@@ -118,36 +118,36 @@ func (self *testCase) writeOrigFile() {
 ////////////////
 // Tests.
 
-func (self *testCase) testOpenUnreadable() {
-	_, err := os.Open(path.Join(self.mountPoint, "doesnotexist"), os.O_RDONLY, 0)
+func (me *testCase) testOpenUnreadable() {
+	_, err := os.Open(path.Join(me.mountPoint, "doesnotexist"), os.O_RDONLY, 0)
 	if err == nil {
-		self.tester.Errorf("open non-existent should raise error")
+		me.tester.Errorf("open non-existent should raise error")
 	}
 }
 
-func (self *testCase) testReadThroughFuse() {
-	self.writeOrigFile()
+func (me *testCase) testReadThroughFuse() {
+	me.writeOrigFile()
 
 	fmt.Println("Testing chmod.")
-	err := os.Chmod(self.mountFile, mode)
+	err := os.Chmod(me.mountFile, mode)
 	if err != nil {
-		self.tester.Errorf("Chmod %v", err)
+		me.tester.Errorf("Chmod %v", err)
 	}
 
 	fmt.Println("Testing Lstat.")
-	fi, err := os.Lstat(self.mountFile)
+	fi, err := os.Lstat(me.mountFile)
 	if err != nil {
-		self.tester.Errorf("Lstat %v", err)
+		me.tester.Errorf("Lstat %v", err)
 	}
 	if (fi.Mode & 0777) != mode {
-		self.tester.Errorf("Wrong mode %o != %o", fi.Mode, mode)
+		me.tester.Errorf("Wrong mode %o != %o", fi.Mode, mode)
 	}
 
 	// Open (for read), read.
 	fmt.Println("Testing open.")
-	f, err := os.Open(self.mountFile, os.O_RDONLY, 0)
+	f, err := os.Open(me.mountFile, os.O_RDONLY, 0)
 	if err != nil {
-		self.tester.Errorf("Fuse open %v", err)
+		me.tester.Errorf("Fuse open %v", err)
 	}
 
 	fmt.Println("Testing read.")
@@ -156,105 +156,105 @@ func (self *testCase) testReadThroughFuse() {
 	n, err := f.Read(slice)
 
 	if len(slice[:n]) != len(contents) {
-		self.tester.Errorf("Content error %v", slice)
+		me.tester.Errorf("Content error %v", slice)
 	}
 	fmt.Println("Testing close.")
 	f.Close()
 
-	self.removeMountFile()
+	me.removeMountFile()
 }
 
-func (self *testCase) testRemove() {
-	self.writeOrigFile()
+func (me *testCase) testRemove() {
+	me.writeOrigFile()
 
 	fmt.Println("Testing remove.")
-	err := os.Remove(self.mountFile)
+	err := os.Remove(me.mountFile)
 	if err != nil {
-		self.tester.Errorf("Remove %v", err)
+		me.tester.Errorf("Remove %v", err)
 	}
-	_, err = os.Lstat(self.origFile)
+	_, err = os.Lstat(me.origFile)
 	if err == nil {
-		self.tester.Errorf("Lstat() after delete should have generated error.")
+		me.tester.Errorf("Lstat() after delete should have generated error.")
 	}
 }
 
-func (self *testCase) testWriteThroughFuse() {
+func (me *testCase) testWriteThroughFuse() {
 	// Create (for write), write.
-	self.tester.Log("Testing create.")
-	f, err := os.Open(self.mountFile, os.O_WRONLY|os.O_CREATE, 0644)
+	me.tester.Log("Testing create.")
+	f, err := os.Open(me.mountFile, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
-		self.tester.Errorf("Fuse create/open %v", err)
+		me.tester.Errorf("Fuse create/open %v", err)
 	}
 
-	self.tester.Log("Testing write.")
+	me.tester.Log("Testing write.")
 	n, err := f.WriteString(contents)
 	if err != nil {
-		self.tester.Errorf("fuse write %v", err)
+		me.tester.Errorf("fuse write %v", err)
 	}
 	if n != len(contents) {
-		self.tester.Errorf("Write mismatch: %v of %v", n, len(contents))
+		me.tester.Errorf("Write mismatch: %v of %v", n, len(contents))
 	}
 
-	fi, err := os.Lstat(self.origFile)
+	fi, err := os.Lstat(me.origFile)
 	if fi.Mode&0777 != 0644 {
-		self.tester.Errorf("create mode error %o", fi.Mode&0777)
+		me.tester.Errorf("create mode error %o", fi.Mode&0777)
 	}
 
-	f, err = os.Open(self.origFile, os.O_RDONLY, 0)
+	f, err = os.Open(me.origFile, os.O_RDONLY, 0)
 	if err != nil {
-		self.tester.Errorf("orig open %v", err)
+		me.tester.Errorf("orig open %v", err)
 	}
 	var buf [1024]byte
 	slice := buf[:]
 	n, err = f.Read(slice)
 	if err != nil {
-		self.tester.Errorf("orig read %v", err)
+		me.tester.Errorf("orig read %v", err)
 	}
-	self.tester.Log("Orig contents", slice[:n])
+	me.tester.Log("Orig contents", slice[:n])
 	if string(slice[:n]) != contents {
-		self.tester.Errorf("write contents error %v", slice[:n])
+		me.tester.Errorf("write contents error %v", slice[:n])
 	}
 	f.Close()
-	self.removeMountFile()
+	me.removeMountFile()
 }
 
-func (self *testCase) testMkdirRmdir() {
+func (me *testCase) testMkdirRmdir() {
 	// Mkdir/Rmdir.
-	err := os.Mkdir(self.mountSubdir, 0777)
+	err := os.Mkdir(me.mountSubdir, 0777)
 	if err != nil {
-		self.tester.Errorf("mount mkdir", err)
+		me.tester.Errorf("mount mkdir", err)
 	}
-	fi, err := os.Lstat(self.origSubdir)
+	fi, err := os.Lstat(me.origSubdir)
 	if !fi.IsDirectory() {
-		self.tester.Errorf("Not a directory: %o", fi.Mode)
+		me.tester.Errorf("Not a directory: %o", fi.Mode)
 	}
 
-	err = os.Remove(self.mountSubdir)
+	err = os.Remove(me.mountSubdir)
 	if err != nil {
-		self.tester.Errorf("rmdir %v", err)
+		me.tester.Errorf("rmdir %v", err)
 	}
 }
 
-func (self *testCase) testLink() {
-	self.tester.Log("Testing hard links.")
-	self.writeOrigFile()
-	err := os.Mkdir(self.origSubdir, 0777)
+func (me *testCase) testLink() {
+	me.tester.Log("Testing hard links.")
+	me.writeOrigFile()
+	err := os.Mkdir(me.origSubdir, 0777)
 	if err != nil {
-		self.tester.Errorf("mount mkdir", err)
+		me.tester.Errorf("mount mkdir", err)
 	}
 
 	// Link.
-	err = os.Link(self.mountFile, self.mountSubfile)
+	err = os.Link(me.mountFile, me.mountSubfile)
 	if err != nil {
-		self.tester.Errorf("mount link %v", err)
+		me.tester.Errorf("mount link %v", err)
 	}
 
-	fi, err := os.Lstat(self.mountFile)
+	fi, err := os.Lstat(me.mountFile)
 	if fi.Nlink != 2 {
-		self.tester.Errorf("Expect 2 links: %v", fi)
+		me.tester.Errorf("Expect 2 links: %v", fi)
 	}
 
-	f, err := os.Open(self.mountSubfile, os.O_RDONLY, 0)
+	f, err := os.Open(me.mountSubfile, os.O_RDONLY, 0)
 
 	var buf [1024]byte
 	slice := buf[:]
@@ -263,123 +263,123 @@ func (self *testCase) testLink() {
 
 	strContents := string(slice[:n])
 	if strContents != contents {
-		self.tester.Errorf("Content error: %v", slice[:n])
+		me.tester.Errorf("Content error: %v", slice[:n])
 	}
-	self.removeMountSubdir()
-	self.removeMountFile()
+	me.removeMountSubdir()
+	me.removeMountFile()
 }
 
-func (self *testCase) testSymlink() {
-	self.tester.Log("testing symlink/readlink.")
-	self.writeOrigFile()
+func (me *testCase) testSymlink() {
+	me.tester.Log("testing symlink/readlink.")
+	me.writeOrigFile()
 
 	linkFile := "symlink-file"
 	orig := "hello.txt"
-	err := os.Symlink(orig, path.Join(self.mountPoint, linkFile))
-	defer os.Remove(path.Join(self.mountPoint, linkFile))
-	defer self.removeMountFile()
+	err := os.Symlink(orig, path.Join(me.mountPoint, linkFile))
+	defer os.Remove(path.Join(me.mountPoint, linkFile))
+	defer me.removeMountFile()
 
 	if err != nil {
-		self.tester.Errorf("symlink %v", err)
+		me.tester.Errorf("symlink %v", err)
 	}
 
-	origLink := path.Join(self.origDir, linkFile)
+	origLink := path.Join(me.origDir, linkFile)
 	fi, err := os.Lstat(origLink)
 	if err != nil {
-		self.tester.Errorf("link lstat %v", err)
+		me.tester.Errorf("link lstat %v", err)
 		return
 	}
 
 	if !fi.IsSymlink() {
-		self.tester.Errorf("not a symlink: %o", fi.Mode)
+		me.tester.Errorf("not a symlink: %o", fi.Mode)
 		return
 	}
 
-	read, err := os.Readlink(path.Join(self.mountPoint, linkFile))
+	read, err := os.Readlink(path.Join(me.mountPoint, linkFile))
 	if err != nil {
-		self.tester.Errorf("orig readlink %v", err)
+		me.tester.Errorf("orig readlink %v", err)
 		return
 	}
 
 	if read != orig {
-		self.tester.Errorf("unexpected symlink value '%v'", read)
+		me.tester.Errorf("unexpected symlink value '%v'", read)
 	}
 }
 
-func (self *testCase) testRename() {
-	self.tester.Log("Testing rename.")
-	self.writeOrigFile()
-	self.makeOrigSubdir()
+func (me *testCase) testRename() {
+	me.tester.Log("Testing rename.")
+	me.writeOrigFile()
+	me.makeOrigSubdir()
 
-	err := os.Rename(self.mountFile, self.mountSubfile)
+	err := os.Rename(me.mountFile, me.mountSubfile)
 	if err != nil {
-		self.tester.Errorf("rename %v", err)
+		me.tester.Errorf("rename %v", err)
 	}
-	if FileExists(self.origFile) {
-		self.tester.Errorf("original %v still exists.", self.origFile)
+	if FileExists(me.origFile) {
+		me.tester.Errorf("original %v still exists.", me.origFile)
 	}
-	if !FileExists(self.origSubfile) {
-		self.tester.Errorf("destination %v does not exist.", self.origSubfile)
+	if !FileExists(me.origSubfile) {
+		me.tester.Errorf("destination %v does not exist.", me.origSubfile)
 	}
 
-	self.removeMountSubdir()
+	me.removeMountSubdir()
 }
 
 
-func (self *testCase) testAccess() {
-	self.writeOrigFile()
-	err := os.Chmod(self.origFile, 0)
+func (me *testCase) testAccess() {
+	me.writeOrigFile()
+	err := os.Chmod(me.origFile, 0)
 	if err != nil {
-		self.tester.Errorf("chmod %v", err)
+		me.tester.Errorf("chmod %v", err)
 	}
 
 	// Ugh - copied from unistd.h
 	const W_OK uint32 = 2
 
-	errCode := syscall.Access(self.mountFile, W_OK)
+	errCode := syscall.Access(me.mountFile, W_OK)
 	if errCode != syscall.EACCES {
-		self.tester.Errorf("Expected EACCES for non-writable, %v %v", errCode, syscall.EACCES)
+		me.tester.Errorf("Expected EACCES for non-writable, %v %v", errCode, syscall.EACCES)
 	}
-	err = os.Chmod(self.origFile, 0222)
+	err = os.Chmod(me.origFile, 0222)
 	if err != nil {
-		self.tester.Errorf("chmod %v", err)
+		me.tester.Errorf("chmod %v", err)
 	}
 
-	errCode = syscall.Access(self.mountFile, W_OK)
+	errCode = syscall.Access(me.mountFile, W_OK)
 	if errCode != 0 {
-		self.tester.Errorf("Expected no error code for writable. %v", errCode)
+		me.tester.Errorf("Expected no error code for writable. %v", errCode)
 	}
-	self.removeMountFile()
-	self.removeMountFile()
+	me.removeMountFile()
+	me.removeMountFile()
 }
 
-func (self *testCase) testMknod() {
-	self.tester.Log("Testing mknod.")
-	errNo := syscall.Mknod(self.mountFile, syscall.S_IFIFO|0777, 0)
+func (me *testCase) testMknod() {
+	me.tester.Log("Testing mknod.")
+	errNo := syscall.Mknod(me.mountFile, syscall.S_IFIFO|0777, 0)
 	if errNo != 0 {
-		self.tester.Errorf("Mknod %v", errNo)
+		me.tester.Errorf("Mknod %v", errNo)
 	}
-	fi, _ := os.Lstat(self.origFile)
+	fi, _ := os.Lstat(me.origFile)
 	if fi == nil || !fi.IsFifo() {
-		self.tester.Errorf("Expected FIFO filetype.")
+		me.tester.Errorf("Expected FIFO filetype.")
 	}
 
-	self.removeMountFile()
+	me.removeMountFile()
 }
 
-func (self *testCase) testReaddir() {
-	self.tester.Log("Testing readdir.")
-	self.writeOrigFile()
-	self.makeOrigSubdir()
+func (me *testCase) testReaddir() {
+	me.tester.Log("Testing readdir.")
+	me.writeOrigFile()
+	me.makeOrigSubdir()
 
-	dir, err := os.Open(self.mountPoint, os.O_RDONLY, 0)
+	dir, err := os.Open(me.mountPoint, os.O_RDONLY, 0)
 	if err != nil {
-		self.tester.Errorf("opendir err %v", err)
+		me.tester.Errorf("opendir err %v", err)
 		return
 	}
 	infos, err := dir.Readdir(10)
 	if err != nil {
-		self.tester.Errorf("readdir err %v", err)
+		me.tester.Errorf("readdir err %v", err)
 	}
 
 	wanted := map[string]bool{
@@ -387,46 +387,46 @@ func (self *testCase) testReaddir() {
 		"subdir":    true,
 	}
 	if len(wanted) != len(infos) {
-		self.tester.Errorf("Length mismatch %v", infos)
+		me.tester.Errorf("Length mismatch %v", infos)
 	} else {
 		for _, v := range infos {
 			_, ok := wanted[v.Name]
 			if !ok {
-				self.tester.Errorf("Unexpected name %v", v.Name)
+				me.tester.Errorf("Unexpected name %v", v.Name)
 			}
 		}
 	}
 
 	dir.Close()
 
-	self.removeMountSubdir()
-	self.removeMountFile()
+	me.removeMountSubdir()
+	me.removeMountFile()
 }
 
-func (self *testCase) testFSync() {
-	self.tester.Log("Testing fsync.")
-	self.writeOrigFile()
+func (me *testCase) testFSync() {
+	me.tester.Log("Testing fsync.")
+	me.writeOrigFile()
 
-	f, err := os.Open(self.mountFile, os.O_WRONLY, 0)
+	f, err := os.Open(me.mountFile, os.O_WRONLY, 0)
 	_, err = f.WriteString("hello there")
 	if err != nil {
-		self.tester.Errorf("writestring %v", err)
+		me.tester.Errorf("writestring %v", err)
 	}
 
 	// How to really test fsync ?
 	errNo := syscall.Fsync(f.Fd())
 	if errNo != 0 {
-		self.tester.Errorf("fsync returned %v", errNo)
+		me.tester.Errorf("fsync returned %v", errNo)
 	}
 	f.Close()
 }
 
-func (self *testCase) testLargeRead() {
-	self.tester.Log("Testing large read.")
-	name := path.Join(self.origDir, "large")
+func (me *testCase) testLargeRead() {
+	me.tester.Log("Testing large read.")
+	name := path.Join(me.origDir, "large")
 	f, err := os.Open(name, os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
-		self.tester.Errorf("open write err %v", err)
+		me.tester.Errorf("open write err %v", err)
 	}
 
 	b := bytes.NewBuffer(nil)
@@ -439,40 +439,40 @@ func (self *testCase) testLargeRead() {
 	slice := b.Bytes()
 	n, err := f.Write(slice)
 	if err != nil {
-		self.tester.Errorf("write err %v %v", err, n)
+		me.tester.Errorf("write err %v %v", err, n)
 	}
 
 	err = f.Close()
 	if err != nil {
-		self.tester.Errorf("close err %v", err)
+		me.tester.Errorf("close err %v", err)
 	}
 
 	// Read in one go.
-	g, err := os.Open(path.Join(self.mountPoint, "large"), os.O_RDONLY, 0)
+	g, err := os.Open(path.Join(me.mountPoint, "large"), os.O_RDONLY, 0)
 	if err != nil {
-		self.tester.Errorf("open err %v", err)
+		me.tester.Errorf("open err %v", err)
 	}
 	readSlice := make([]byte, len(slice))
 	m, err := g.Read(readSlice)
 	if m != n {
-		self.tester.Errorf("read mismatch %v %v", m, n)
+		me.tester.Errorf("read mismatch %v %v", m, n)
 	}
 	for i, v := range readSlice {
 		if slice[i] != v {
-			self.tester.Errorf("char mismatch %v %v %v", i, slice[i], v)
+			me.tester.Errorf("char mismatch %v %v %v", i, slice[i], v)
 			break
 		}
 	}
 
 	if err != nil {
-		self.tester.Errorf("read mismatch %v", err)
+		me.tester.Errorf("read mismatch %v", err)
 	}
 	g.Close()
 
 	// Read in chunks
-	g, err = os.Open(path.Join(self.mountPoint, "large"), os.O_RDONLY, 0)
+	g, err = os.Open(path.Join(me.mountPoint, "large"), os.O_RDONLY, 0)
 	if err != nil {
-		self.tester.Errorf("open err %v", err)
+		me.tester.Errorf("open err %v", err)
 	}
 	readSlice = make([]byte, 4096)
 	total := 0
@@ -482,13 +482,13 @@ func (self *testCase) testLargeRead() {
 			break
 		}
 		if err != nil {
-			self.tester.Errorf("read err %v %v", err, m)
+			me.tester.Errorf("read err %v %v", err, m)
 			break
 		}
 		total += m
 	}
 	if total != len(slice) {
-		self.tester.Errorf("slice error %d", total)
+		me.tester.Errorf("slice error %d", total)
 	}
 	g.Close()
 
@@ -508,13 +508,13 @@ func randomLengthString(length int) string {
 }
 
 
-func (self *testCase) testLargeDirRead() {
-	self.tester.Log("Testing large readdir.")
+func (me *testCase) testLargeDirRead() {
+	me.tester.Log("Testing large readdir.")
 	created := 100
 
 	names := make([]string, created)
 
-	subdir := path.Join(self.origDir, "readdirSubdir")
+	subdir := path.Join(me.origDir, "readdirSubdir")
 	os.Mkdir(subdir, 0700)
 	longname := "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
@@ -529,7 +529,7 @@ func (self *testCase) testLargeDirRead() {
 
 		f, err := os.Open(name, os.O_WRONLY|os.O_CREATE, 0777)
 		if err != nil {
-			self.tester.Errorf("open write err %v", err)
+			me.tester.Errorf("open write err %v", err)
 			break
 		}
 		f.WriteString("bla")
@@ -538,9 +538,9 @@ func (self *testCase) testLargeDirRead() {
 		names[i] = name
 	}
 
-	dir, err := os.Open(path.Join(self.mountPoint, "readdirSubdir"), os.O_RDONLY, 0)
+	dir, err := os.Open(path.Join(me.mountPoint, "readdirSubdir"), os.O_RDONLY, 0)
 	if err != nil {
-		self.tester.Errorf("dirread %v", err)
+		me.tester.Errorf("dirread %v", err)
 	}
 	// Chunked read.
 	total := 0
@@ -548,7 +548,7 @@ func (self *testCase) testLargeDirRead() {
 	for {
 		namesRead, err := dir.Readdirnames(200)
 		if err != nil {
-			self.tester.Errorf("readdir err %v %v", err, namesRead)
+			me.tester.Errorf("readdir err %v %v", err, namesRead)
 		}
 
 		if len(namesRead) == 0 {
@@ -561,12 +561,12 @@ func (self *testCase) testLargeDirRead() {
 	}
 
 	if total != created {
-		self.tester.Errorf("readdir mismatch got %v wanted %v", total, created)
+		me.tester.Errorf("readdir mismatch got %v wanted %v", total, created)
 	}
 	for k, _ := range nameSet {
 		_, ok := readSet[k]
 		if !ok {
-			self.tester.Errorf("Name %v not found in output", k)
+			me.tester.Errorf("Name %v not found in output", k)
 		}
 	}
 

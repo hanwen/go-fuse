@@ -29,63 +29,63 @@ type stackFsTestCase struct {
 	state *fuse.MountState
 }
 
-func (self *stackFsTestCase) Setup(t *testing.T) {
-	self.tester = t
+func (me *stackFsTestCase) Setup(t *testing.T) {
+	me.tester = t
 
-	self.testDir = fuse.MakeTempDir()
-	self.origDir1 = path.Join(self.testDir, "orig1")
-	self.origDir2 = path.Join(self.testDir, "orig2")
-	self.mountDir = path.Join(self.testDir, "mount")
+	me.testDir = fuse.MakeTempDir()
+	me.origDir1 = path.Join(me.testDir, "orig1")
+	me.origDir2 = path.Join(me.testDir, "orig2")
+	me.mountDir = path.Join(me.testDir, "mount")
 
-	os.Mkdir(self.origDir1, 0700)
-	os.Mkdir(self.origDir2, 0700)
-	os.Mkdir(self.mountDir, 0700)
+	os.Mkdir(me.origDir1, 0700)
+	os.Mkdir(me.origDir2, 0700)
+	os.Mkdir(me.mountDir, 0700)
 
-	fs1 := fuse.NewPathFileSystemConnector(NewPassThroughFuse(self.origDir1))
-	fs2 := fuse.NewPathFileSystemConnector(NewPassThroughFuse(self.origDir2))
+	fs1 := fuse.NewPathFileSystemConnector(NewPassThroughFuse(me.origDir1))
+	fs2 := fuse.NewPathFileSystemConnector(NewPassThroughFuse(me.origDir2))
 
-	self.fs = NewSubmountFileSystem()
+	me.fs = NewSubmountFileSystem()
 
 	attr := fuse.Attr{
 		Mode: uint32(magicMode),
 	}
 
-	self.fs.AddFileSystem("sub1", fs1, attr)
-	self.fs.AddFileSystem("sub2", fs2, attr)
+	me.fs.AddFileSystem("sub1", fs1, attr)
+	me.fs.AddFileSystem("sub2", fs2, attr)
 
-	self.state = fuse.NewMountState(self.fs)
-	self.state.Mount(self.mountDir)
+	me.state = fuse.NewMountState(me.fs)
+	me.state.Mount(me.mountDir)
 
-	self.state.Debug = true
+	me.state.Debug = true
 
-	fmt.Println("tempdir: ", self.testDir)
+	fmt.Println("tempdir: ", me.testDir)
 
 	// Unthreaded, but in background.
-	go self.state.Loop(false)
+	go me.state.Loop(false)
 }
 
 // Unmount and del.
-func (self *stackFsTestCase) Cleanup() {
+func (me *stackFsTestCase) Cleanup() {
 	fmt.Println("Unmounting.")
-	err := self.state.Unmount()
+	err := me.state.Unmount()
 	if err != nil {
-		self.tester.Errorf("Can't unmount a dir, err: %v", err)
+		me.tester.Errorf("Can't unmount a dir, err: %v", err)
 	}
-	os.RemoveAll(self.testDir)
+	os.RemoveAll(me.testDir)
 }
 
 ////////////////
 
-func (self *stackFsTestCase) testReaddir() {
+func (me *stackFsTestCase) testReaddir() {
 	fmt.Println("testReaddir... ")
-	dir, err := os.Open(self.mountDir, os.O_RDONLY, 0)
+	dir, err := os.Open(me.mountDir, os.O_RDONLY, 0)
 	if err != nil {
-		self.tester.Errorf("opendir err %v", err)
+		me.tester.Errorf("opendir err %v", err)
 		return
 	}
 	infos, err := dir.Readdir(10)
 	if err != nil {
-		self.tester.Errorf("readdir err %v", err)
+		me.tester.Errorf("readdir err %v", err)
 	}
 
 	wanted := map[string]bool{
@@ -93,16 +93,16 @@ func (self *stackFsTestCase) testReaddir() {
 		"sub2": true,
 	}
 	if len(wanted) != len(infos) {
-		self.tester.Errorf("Length mismatch %v", infos)
+		me.tester.Errorf("Length mismatch %v", infos)
 	} else {
 		for _, v := range infos {
 			_, ok := wanted[v.Name]
 			if !ok {
-				self.tester.Errorf("Unexpected name %v", v.Name)
+				me.tester.Errorf("Unexpected name %v", v.Name)
 			}
 
 			if v.Mode&0777 != magicMode {
-				self.tester.Errorf("Unexpected mode %o, %v", v.Mode, v)
+				me.tester.Errorf("Unexpected mode %o, %v", v.Mode, v)
 			}
 		}
 	}
@@ -111,11 +111,11 @@ func (self *stackFsTestCase) testReaddir() {
 }
 
 
-func (self *stackFsTestCase) testSubFs() {
+func (me *stackFsTestCase) testSubFs() {
 	fmt.Println("testSubFs... ")
 	for i := 1; i <= 2; i++ {
-		// orig := path.Join(self.testDir, fmt.Sprintf("orig%d", i))
-		mount := path.Join(self.mountDir, fmt.Sprintf("sub%d", i))
+		// orig := path.Join(me.testDir, fmt.Sprintf("orig%d", i))
+		mount := path.Join(me.mountDir, fmt.Sprintf("sub%d", i))
 
 		name := "testFile"
 
@@ -123,13 +123,13 @@ func (self *stackFsTestCase) testSubFs() {
 
 		f, err := os.Open(mountFile, os.O_WRONLY, 0)
 		if err == nil {
-			self.tester.Errorf("Expected error for open write %v", name)
+			me.tester.Errorf("Expected error for open write %v", name)
 			continue
 		}
 		content1 := "booh!"
 		f, err = os.Open(mountFile, os.O_WRONLY|os.O_CREATE, magicMode)
 		if err != nil {
-			self.tester.Errorf("Create %v", err)
+			me.tester.Errorf("Create %v", err)
 		}
 
 		f.Write([]byte(content1))
@@ -137,80 +137,80 @@ func (self *stackFsTestCase) testSubFs() {
 
 		err = os.Chmod(mountFile, magicMode)
 		if err != nil {
-			self.tester.Errorf("chmod %v", err)
+			me.tester.Errorf("chmod %v", err)
 		}
 
 		fi, err := os.Lstat(mountFile)
 		if err != nil {
-			self.tester.Errorf("Lstat %v", err)
+			me.tester.Errorf("Lstat %v", err)
 		} else {
 			if fi.Mode&0777 != magicMode {
-				self.tester.Errorf("Mode %o", fi.Mode)
+				me.tester.Errorf("Mode %o", fi.Mode)
 			}
 		}
 
 		g, err := os.Open(mountFile, os.O_RDONLY, 0)
 		if err != nil {
-			self.tester.Errorf("Open %v", err)
+			me.tester.Errorf("Open %v", err)
 		} else {
 			buf := make([]byte, 1024)
 			n, err := g.Read(buf)
 			if err != nil {
-				self.tester.Errorf("read err %v", err)
+				me.tester.Errorf("read err %v", err)
 			}
 			if string(buf[:n]) != content1 {
-				self.tester.Errorf("content %v", buf[:n])
+				me.tester.Errorf("content %v", buf[:n])
 			}
 			g.Close()
 		}
 	}
 }
 
-func (self *stackFsTestCase) testAddRemove() {
-	self.tester.Log("testAddRemove")
+func (me *stackFsTestCase) testAddRemove() {
+	me.tester.Log("testAddRemove")
 	attr := fuse.Attr{
 		Mode: 0755,
 	}
 
-	conn := fuse.NewPathFileSystemConnector(NewPassThroughFuse(self.origDir1))
-	ok := self.fs.AddFileSystem("sub1", conn, attr)
+	conn := fuse.NewPathFileSystemConnector(NewPassThroughFuse(me.origDir1))
+	ok := me.fs.AddFileSystem("sub1", conn, attr)
 	if ok {
-		self.tester.Errorf("AddFileSystem should fail")
+		me.tester.Errorf("AddFileSystem should fail")
 		return
 	}
-	ok = self.fs.AddFileSystem("third", conn, attr)
+	ok = me.fs.AddFileSystem("third", conn, attr)
 	if !ok {
-		self.tester.Errorf("AddFileSystem fail")
+		me.tester.Errorf("AddFileSystem fail")
 	}
 	conn.Init(new(fuse.InHeader), new(fuse.InitIn))
 
-	fi, err := os.Lstat(path.Join(self.mountDir, "third"))
+	fi, err := os.Lstat(path.Join(me.mountDir, "third"))
 	if err != nil {
-		self.tester.Errorf("third lstat err %v", err)
+		me.tester.Errorf("third lstat err %v", err)
 	} else {
 		if !fi.IsDirectory() {
-			self.tester.Errorf("not a directory %v", fi)
+			me.tester.Errorf("not a directory %v", fi)
 		}
 	}
 
-	fs := self.fs.RemoveFileSystem("third")
+	fs := me.fs.RemoveFileSystem("third")
 	if fs == nil {
-		self.tester.Errorf("remove fail")
+		me.tester.Errorf("remove fail")
 	}
-	dir, err := os.Open(self.mountDir, os.O_RDONLY, 0)
+	dir, err := os.Open(me.mountDir, os.O_RDONLY, 0)
 	if err != nil {
-		self.tester.Errorf("opendir err %v", err)
+		me.tester.Errorf("opendir err %v", err)
 		return
 	}
 	infos, err := dir.Readdir(10)
 	if len(infos) != 2 {
-		self.tester.Errorf("lstat expect 2 infos %v", infos)
+		me.tester.Errorf("lstat expect 2 infos %v", infos)
 	}
 	dir.Close()
 
-	_, err = os.Open(path.Join(self.mountDir, "third"), os.O_RDONLY, 0)
+	_, err = os.Open(path.Join(me.mountDir, "third"), os.O_RDONLY, 0)
 	if err == nil {
-		self.tester.Errorf("expect enoent %v", err)
+		me.tester.Errorf("expect enoent %v", err)
 	}
 }
 

@@ -41,37 +41,37 @@ func NewBufferPool() *BufferPool {
 	return bp
 }
 
-func (self *BufferPool) String() string {
+func (me *BufferPool) String() string {
 	s := ""
-	for exp, bufs := range self.buffersByExponent {
+	for exp, bufs := range me.buffersByExponent {
 		s = s + fmt.Sprintf("%d = %d\n", exp, len(bufs))
 	}
 	return s
 }
 
-func (self *BufferPool) getBuffer(exponent uint) []byte {
-	if len(self.buffersByExponent) <= int(exponent) {
+func (me *BufferPool) getBuffer(exponent uint) []byte {
+	if len(me.buffersByExponent) <= int(exponent) {
 		return nil
 	}
-	bufferList := self.buffersByExponent[exponent]
+	bufferList := me.buffersByExponent[exponent]
 	if len(bufferList) == 0 {
 		return nil
 	}
 
 	result := bufferList[len(bufferList)-1]
-	self.buffersByExponent[exponent] = self.buffersByExponent[exponent][:len(bufferList)-1]
+	me.buffersByExponent[exponent] = me.buffersByExponent[exponent][:len(bufferList)-1]
 	return result
 }
 
-func (self *BufferPool) addBuffer(slice []byte, exp uint) {
-	for len(self.buffersByExponent) <= int(exp) {
-		self.buffersByExponent = append(self.buffersByExponent, make([][]byte, 0))
+func (me *BufferPool) addBuffer(slice []byte, exp uint) {
+	for len(me.buffersByExponent) <= int(exp) {
+		me.buffersByExponent = append(me.buffersByExponent, make([][]byte, 0))
 	}
-	self.buffersByExponent[exp] = append(self.buffersByExponent[exp], slice)
+	me.buffersByExponent[exp] = append(me.buffersByExponent[exp], slice)
 }
 
 
-func (self *BufferPool) AllocBuffer(size uint32) []byte {
+func (me *BufferPool) AllocBuffer(size uint32) []byte {
 	sz := int(size)
 	if sz < PAGESIZE {
 		sz = PAGESIZE
@@ -82,10 +82,10 @@ func (self *BufferPool) AllocBuffer(size uint32) []byte {
 
 	exp -= IntToExponent(PAGESIZE)
 
-	self.lock.Lock()
-	defer self.lock.Unlock()
+	me.lock.Lock()
+	defer me.lock.Unlock()
 
-	b := self.getBuffer(exp)
+	b := me.getBuffer(exp)
 
 	if b != nil {
 		b = b[:size]
@@ -93,24 +93,24 @@ func (self *BufferPool) AllocBuffer(size uint32) []byte {
 	}
 
 	b = make([]byte, size, rounded)
-	self.outstandingBuffers[uintptr(unsafe.Pointer(&b[0]))] = exp
+	me.outstandingBuffers[uintptr(unsafe.Pointer(&b[0]))] = exp
 	return b
 }
 
 // Takes back a buffer if it was allocated through AllocBuffer.  It is
 // not an error to call FreeBuffer() on a slice obtained elsewhere.
-func (self *BufferPool) FreeBuffer(slice []byte) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
+func (me *BufferPool) FreeBuffer(slice []byte) {
+	me.lock.Lock()
+	defer me.lock.Unlock()
 
 	if cap(slice) < PAGESIZE {
 		return
 	}
 
 	key := uintptr(unsafe.Pointer(&slice[0]))
-	exp, ok := self.outstandingBuffers[key]
+	exp, ok := me.outstandingBuffers[key]
 	if ok {
-		self.addBuffer(slice, exp)
-		self.outstandingBuffers[key] = 0, false
+		me.addBuffer(slice, exp)
+		me.outstandingBuffers[key] = 0, false
 	}
 }

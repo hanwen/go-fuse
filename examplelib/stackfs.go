@@ -25,23 +25,23 @@ type subFsInfo struct {
 	Attr fuse.Attr
 }
 
-func (self *subFsInfo) getGlobalNode(node uint64) (uint64, bool) {
-	self.ParentNodeIdsLock.RLock()
-	defer self.ParentNodeIdsLock.RUnlock()
-	global, ok := self.ParentNodeIds[node]
+func (me *subFsInfo) getGlobalNode(node uint64) (uint64, bool) {
+	me.ParentNodeIdsLock.RLock()
+	defer me.ParentNodeIdsLock.RUnlock()
+	global, ok := me.ParentNodeIds[node]
 	return global, ok
 }
 
-func (self *subFsInfo) dropGlobalNode(node uint64) {
-	self.ParentNodeIdsLock.Lock()
-	defer self.ParentNodeIdsLock.Unlock()
-	self.ParentNodeIds[node] = 0, false
+func (me *subFsInfo) dropGlobalNode(node uint64) {
+	me.ParentNodeIdsLock.Lock()
+	defer me.ParentNodeIdsLock.Unlock()
+	me.ParentNodeIds[node] = 0, false
 }
 
-func (self *subFsInfo) addGlobalNode(local uint64, global uint64) {
-	self.ParentNodeIdsLock.Lock()
-	defer self.ParentNodeIdsLock.Unlock()
-	self.ParentNodeIds[local] = global
+func (me *subFsInfo) addGlobalNode(local uint64, global uint64) {
+	me.ParentNodeIdsLock.Lock()
+	defer me.ParentNodeIdsLock.Unlock()
+	me.ParentNodeIds[local] = global
 }
 
 
@@ -56,8 +56,8 @@ type subInodeData struct {
 	LookupCount int
 }
 
-func (self *subInodeData) Deletable() bool {
-	return self.LookupCount <= 0 && (self.NodeId != fuse.FUSE_ROOT_ID || self.SubFs == nil)
+func (me *subInodeData) Deletable() bool {
+	return me.LookupCount <= 0 && (me.NodeId != fuse.FUSE_ROOT_ID || me.SubFs == nil)
 }
 
 ////////////////////////////////////////////////////////////////
@@ -72,7 +72,7 @@ func (self *subInodeData) Deletable() bool {
 // Each of these directories should be RawFileSystem instances.  This
 // class takes care of the mapping between global inode ids and inode ids
 // of each sub-FUSE filesystem.
-// 
+//
 // No files or directories may be created in the toplevel dir. Instead,
 // the daemon should issue AddFileSystem() and RemoveFileSystem()
 // methods internally.  This could be done in response to writes in a
@@ -94,44 +94,44 @@ type SubmountFileSystemOptions struct {
 }
 
 ////////////////
-// Routines that do locking. 
+// Routines that do locking.
 
-func (self *SubmountFileSystem) registerLookup(subInode uint64, subfs *subFsInfo) (globalNodeId uint64) {
+func (me *SubmountFileSystem) registerLookup(subInode uint64, subfs *subFsInfo) (globalNodeId uint64) {
 	globalNodeId, ok := subfs.getGlobalNode(subInode)
 
 	var globalNode *subInodeData = nil
 
-	self.nodeMapLock.Lock()
-	defer self.nodeMapLock.Unlock()
+	me.nodeMapLock.Lock()
+	defer me.nodeMapLock.Unlock()
 	if ok {
-		globalNode = self.nodeMap[globalNodeId]
+		globalNode = me.nodeMap[globalNodeId]
 	} else {
-		globalNodeId = self.nextFreeInode
-		self.nextFreeInode++
+		globalNodeId = me.nextFreeInode
+		me.nextFreeInode++
 
 		globalNode = &subInodeData{
 			SubFs:  subfs,
 			NodeId: subInode,
 		}
 
-		self.nodeMap[globalNodeId] = globalNode
+		me.nodeMap[globalNodeId] = globalNode
 		subfs.addGlobalNode(subInode, globalNodeId)
 	}
 	globalNode.LookupCount++
 	return globalNodeId
 }
 
-func (self *SubmountFileSystem) getSubFs(local uint64) (nodeid uint64, subfs *subFsInfo) {
-	self.nodeMapLock.RLock()
-	defer self.nodeMapLock.RUnlock()
-	data := self.nodeMap[local]
+func (me *SubmountFileSystem) getSubFs(local uint64) (nodeid uint64, subfs *subFsInfo) {
+	me.nodeMapLock.RLock()
+	defer me.nodeMapLock.RUnlock()
+	data := me.nodeMap[local]
 	return data.NodeId, data.SubFs
 }
 
-func (self *SubmountFileSystem) addFileSystem(name string, fs fuse.RawFileSystem, attr fuse.Attr) bool {
-	self.toplevelEntriesLock.Lock()
-	defer self.toplevelEntriesLock.Unlock()
-	_, ok := self.toplevelEntries[name]
+func (me *SubmountFileSystem) addFileSystem(name string, fs fuse.RawFileSystem, attr fuse.Attr) bool {
+	me.toplevelEntriesLock.Lock()
+	defer me.toplevelEntriesLock.Unlock()
+	_, ok := me.toplevelEntries[name]
 	if ok {
 		return false
 	}
@@ -142,44 +142,44 @@ func (self *SubmountFileSystem) addFileSystem(name string, fs fuse.RawFileSystem
 		Attr: attr,
 	}
 
-	self.toplevelEntries[name] = subfs
+	me.toplevelEntries[name] = subfs
 
-	self.nodeMapLock.Lock()
-	defer self.nodeMapLock.Unlock()
+	me.nodeMapLock.Lock()
+	defer me.nodeMapLock.Unlock()
 
-	self.nodeMap[self.nextFreeInode] = &subInodeData{
+	me.nodeMap[me.nextFreeInode] = &subInodeData{
 		SubFs:       subfs,
 		NodeId:      fuse.FUSE_ROOT_ID,
 		LookupCount: 0,
 	}
-	subfs.ParentNodeIds = map[uint64]uint64{fuse.FUSE_ROOT_ID: self.nextFreeInode}
-	subfs.GlobalNodeId = self.nextFreeInode
+	subfs.ParentNodeIds = map[uint64]uint64{fuse.FUSE_ROOT_ID: me.nextFreeInode}
+	subfs.GlobalNodeId = me.nextFreeInode
 
 	subfs.Attr.Mode |= fuse.S_IFDIR
-	subfs.Attr.Ino = self.nextFreeInode
+	subfs.Attr.Ino = me.nextFreeInode
 
-	self.nextFreeInode++
+	me.nextFreeInode++
 
 	return true
 }
 
-func (self *SubmountFileSystem) removeFileSystem(name string) *subFsInfo {
-	self.toplevelEntriesLock.Lock()
-	defer self.toplevelEntriesLock.Unlock()
+func (me *SubmountFileSystem) removeFileSystem(name string) *subFsInfo {
+	me.toplevelEntriesLock.Lock()
+	defer me.toplevelEntriesLock.Unlock()
 
-	subfs, ok := self.toplevelEntries[name]
+	subfs, ok := me.toplevelEntries[name]
 	if !ok {
 		return nil
 	}
 
-	self.toplevelEntries[name] = nil, false
+	me.toplevelEntries[name] = nil, false
 
 	// We leave the keys of node map as is, since the kernel may
 	// still issue requests with nodeids in it.
-	self.nodeMapLock.Lock()
-	defer self.nodeMapLock.Unlock()
+	me.nodeMapLock.Lock()
+	defer me.nodeMapLock.Unlock()
 
-	for _, v := range self.nodeMap {
+	for _, v := range me.nodeMap {
 		if v.SubFs == subfs {
 			v.SubFs = nil
 		}
@@ -188,15 +188,15 @@ func (self *SubmountFileSystem) removeFileSystem(name string) *subFsInfo {
 	return subfs
 }
 
-func (self *SubmountFileSystem) listFileSystems() ([]string, []uint32) {
-	self.toplevelEntriesLock.RLock()
-	defer self.toplevelEntriesLock.RUnlock()
+func (me *SubmountFileSystem) listFileSystems() ([]string, []uint32) {
+	me.toplevelEntriesLock.RLock()
+	defer me.toplevelEntriesLock.RUnlock()
 
-	names := make([]string, len(self.toplevelEntries))
-	modes := make([]uint32, len(self.toplevelEntries))
+	names := make([]string, len(me.toplevelEntries))
+	modes := make([]uint32, len(me.toplevelEntries))
 
 	j := 0
-	for name, entry := range self.toplevelEntries {
+	for name, entry := range me.toplevelEntries {
 		names[j] = name
 		modes[j] = entry.Attr.Mode
 		j++
@@ -204,21 +204,21 @@ func (self *SubmountFileSystem) listFileSystems() ([]string, []uint32) {
 	return names, modes
 }
 
-func (self *SubmountFileSystem) lookupRoot(name string) (out *fuse.EntryOut, code fuse.Status) {
-	self.toplevelEntriesLock.RLock()
-	subfs, ok := self.toplevelEntries[name]
-	self.toplevelEntriesLock.RUnlock()
+func (me *SubmountFileSystem) lookupRoot(name string) (out *fuse.EntryOut, code fuse.Status) {
+	me.toplevelEntriesLock.RLock()
+	subfs, ok := me.toplevelEntries[name]
+	me.toplevelEntriesLock.RUnlock()
 
 	if !ok {
 		out = new(fuse.EntryOut)
 		out.NodeId = 0
-		fuse.SplitNs(self.Options.NegativeTimeout, &out.EntryValid, &out.EntryValidNsec)
+		fuse.SplitNs(me.Options.NegativeTimeout, &out.EntryValid, &out.EntryValidNsec)
 		return nil, fuse.ENOENT
 	}
 
-	self.nodeMapLock.RLock()
-	dentry, ok := self.nodeMap[subfs.GlobalNodeId]
-	self.nodeMapLock.RUnlock()
+	me.nodeMapLock.RLock()
+	dentry, ok := me.nodeMap[subfs.GlobalNodeId]
+	me.nodeMapLock.RUnlock()
 
 	if !ok {
 		panic(fmt.Sprintf("unknown toplevel node %d", subfs.GlobalNodeId))
@@ -230,22 +230,22 @@ func (self *SubmountFileSystem) lookupRoot(name string) (out *fuse.EntryOut, cod
 	out.NodeId = subfs.GlobalNodeId
 	out.Attr = subfs.Attr
 
-	fuse.SplitNs(self.Options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
-	fuse.SplitNs(self.Options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
+	fuse.SplitNs(me.Options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
+	fuse.SplitNs(me.Options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 
 	return out, fuse.OK
 }
 
-func (self *SubmountFileSystem) forget(h *fuse.InHeader, input *fuse.ForgetIn) *subInodeData {
-	self.nodeMapLock.Lock()
-	defer self.nodeMapLock.Unlock()
+func (me *SubmountFileSystem) forget(h *fuse.InHeader, input *fuse.ForgetIn) *subInodeData {
+	me.nodeMapLock.Lock()
+	defer me.nodeMapLock.Unlock()
 
-	subNodeData := self.nodeMap[h.NodeId]
+	subNodeData := me.nodeMap[h.NodeId]
 	globalNodeId := h.NodeId
 
 	subNodeData.LookupCount -= int(input.Nlookup)
 	if subNodeData.Deletable() {
-		self.nodeMap[globalNodeId] = nil, false
+		me.nodeMap[globalNodeId] = nil, false
 		if subNodeData.SubFs != nil {
 			subNodeData.SubFs.dropGlobalNode(subNodeData.NodeId)
 		}
@@ -254,29 +254,29 @@ func (self *SubmountFileSystem) forget(h *fuse.InHeader, input *fuse.ForgetIn) *
 }
 
 ////////////////////////////////////////////////////////////////
-// Functions below should not need locking primitives. 
+// Functions below should not need locking primitives.
 
 // Caller should init after this returns successfully.
-func (self *SubmountFileSystem) AddFileSystem(name string, fs fuse.RawFileSystem, attr fuse.Attr) bool {
-	ok := self.addFileSystem(name, fs, attr)
+func (me *SubmountFileSystem) AddFileSystem(name string, fs fuse.RawFileSystem, attr fuse.Attr) bool {
+	ok := me.addFileSystem(name, fs, attr)
 	return ok
 }
 
 // Caller should call destroy.
-func (self *SubmountFileSystem) RemoveFileSystem(name string) fuse.RawFileSystem {
-	subfs := self.removeFileSystem(name)
+func (me *SubmountFileSystem) RemoveFileSystem(name string) fuse.RawFileSystem {
+	subfs := me.removeFileSystem(name)
 	if subfs != nil {
 		return subfs.Fs
 	}
 	return nil
 }
 
-func (self *SubmountFileSystem) Lookup(h *fuse.InHeader, name string) (out *fuse.EntryOut, code fuse.Status) {
+func (me *SubmountFileSystem) Lookup(h *fuse.InHeader, name string) (out *fuse.EntryOut, code fuse.Status) {
 	if h.NodeId == fuse.FUSE_ROOT_ID {
-		return self.lookupRoot(name)
+		return me.lookupRoot(name)
 	}
 
-	subInode, subfs := self.getSubFs(h.NodeId)
+	subInode, subfs := me.getSubFs(h.NodeId)
 	if subInode == 0 {
 		panic("parent unknown")
 	}
@@ -289,13 +289,13 @@ func (self *SubmountFileSystem) Lookup(h *fuse.InHeader, name string) (out *fuse
 		return out, code
 	}
 
-	out.NodeId = self.registerLookup(out.NodeId, subfs)
+	out.NodeId = me.registerLookup(out.NodeId, subfs)
 	return out, code
 }
 
-func (self *SubmountFileSystem) Forget(h *fuse.InHeader, input *fuse.ForgetIn) {
+func (me *SubmountFileSystem) Forget(h *fuse.InHeader, input *fuse.ForgetIn) {
 	if h.NodeId != fuse.FUSE_ROOT_ID {
-		subNodeData := self.forget(h, input)
+		subNodeData := me.forget(h, input)
 		if subNodeData != nil && subNodeData.SubFs != nil {
 			h.NodeId = subNodeData.NodeId
 			subNodeData.SubFs.Fs.Forget(h, input)
@@ -313,25 +313,25 @@ func NewSubmountFileSystem() *SubmountFileSystem {
 }
 
 // What to do about sub fs init's ?
-func (self *SubmountFileSystem) Init(h *fuse.InHeader, input *fuse.InitIn) (*fuse.InitOut, fuse.Status) {
+func (me *SubmountFileSystem) Init(h *fuse.InHeader, input *fuse.InitIn) (*fuse.InitOut, fuse.Status) {
 	return new(fuse.InitOut), fuse.OK
 }
 
-func (self *SubmountFileSystem) Destroy(h *fuse.InHeader, input *fuse.InitIn) {
-	for _, v := range self.toplevelEntries {
+func (me *SubmountFileSystem) Destroy(h *fuse.InHeader, input *fuse.InitIn) {
+	for _, v := range me.toplevelEntries {
 		v.Fs.Destroy(h, input)
 	}
 }
 
 
-func (self *SubmountFileSystem) GetAttr(header *fuse.InHeader, input *fuse.GetAttrIn) (out *fuse.AttrOut, code fuse.Status) {
+func (me *SubmountFileSystem) GetAttr(header *fuse.InHeader, input *fuse.GetAttrIn) (out *fuse.AttrOut, code fuse.Status) {
 	if header.NodeId == fuse.FUSE_ROOT_ID {
 		out := new(fuse.AttrOut)
 		// TODO - what to answer for this?
 		out.Attr.Mode = fuse.S_IFDIR | 0755
 		return out, fuse.OK
 	}
-	subId, subfs := self.getSubFs(header.NodeId)
+	subId, subfs := me.getSubFs(header.NodeId)
 	if subfs == nil {
 		return nil, fuse.ENOENT
 	}
@@ -352,9 +352,9 @@ func (self *SubmountFileSystem) GetAttr(header *fuse.InHeader, input *fuse.GetAt
 	return out, code
 }
 
-func (self *SubmountFileSystem) Open(header *fuse.InHeader, input *fuse.OpenIn) (flags uint32, fuseFile fuse.RawFuseFile, status fuse.Status) {
+func (me *SubmountFileSystem) Open(header *fuse.InHeader, input *fuse.OpenIn) (flags uint32, fuseFile fuse.RawFuseFile, status fuse.Status) {
 	var subfs *subFsInfo
-	header.NodeId, subfs = self.getSubFs(header.NodeId)
+	header.NodeId, subfs = me.getSubFs(header.NodeId)
 	if subfs == nil {
 		return 0, nil, fuse.ENOENT
 	}
@@ -362,9 +362,9 @@ func (self *SubmountFileSystem) Open(header *fuse.InHeader, input *fuse.OpenIn) 
 	return subfs.Fs.Open(header, input)
 }
 
-func (self *SubmountFileSystem) SetAttr(header *fuse.InHeader, input *fuse.SetAttrIn) (out *fuse.AttrOut, code fuse.Status) {
+func (me *SubmountFileSystem) SetAttr(header *fuse.InHeader, input *fuse.SetAttrIn) (out *fuse.AttrOut, code fuse.Status) {
 	var subfs *subFsInfo
-	header.NodeId, subfs = self.getSubFs(header.NodeId)
+	header.NodeId, subfs = me.getSubFs(header.NodeId)
 	if subfs == nil {
 		return nil, fuse.ENOENT
 	}
@@ -376,18 +376,18 @@ func (self *SubmountFileSystem) SetAttr(header *fuse.InHeader, input *fuse.SetAt
 	return out, code
 }
 
-func (self *SubmountFileSystem) Readlink(header *fuse.InHeader) (out []byte, code fuse.Status) {
+func (me *SubmountFileSystem) Readlink(header *fuse.InHeader) (out []byte, code fuse.Status) {
 	var subfs *subFsInfo
-	header.NodeId, subfs = self.getSubFs(header.NodeId)
+	header.NodeId, subfs = me.getSubFs(header.NodeId)
 	if subfs == nil {
 		return nil, fuse.ENOENT
 	}
 	return subfs.Fs.Readlink(header)
 }
 
-func (self *SubmountFileSystem) Mknod(header *fuse.InHeader, input *fuse.MknodIn, name string) (out *fuse.EntryOut, code fuse.Status) {
+func (me *SubmountFileSystem) Mknod(header *fuse.InHeader, input *fuse.MknodIn, name string) (out *fuse.EntryOut, code fuse.Status) {
 	var subfs *subFsInfo
-	header.NodeId, subfs = self.getSubFs(header.NodeId)
+	header.NodeId, subfs = me.getSubFs(header.NodeId)
 	if subfs == nil {
 		return nil, fuse.ENOENT
 	}
@@ -395,20 +395,20 @@ func (self *SubmountFileSystem) Mknod(header *fuse.InHeader, input *fuse.MknodIn
 	out, code = subfs.Fs.Mknod(header, input, name)
 
 	if out != nil {
-		out.NodeId = self.registerLookup(out.NodeId, subfs)
+		out.NodeId = me.registerLookup(out.NodeId, subfs)
 		out.Attr.Ino = out.NodeId
 	}
 	return out, code
 }
 
-func (self *SubmountFileSystem) Mkdir(header *fuse.InHeader, input *fuse.MkdirIn, name string) (out *fuse.EntryOut, code fuse.Status) {
+func (me *SubmountFileSystem) Mkdir(header *fuse.InHeader, input *fuse.MkdirIn, name string) (out *fuse.EntryOut, code fuse.Status) {
 	if header.NodeId == fuse.FUSE_ROOT_ID {
 		// ENOSYS ?
 		return nil, fuse.EPERM
 	}
 
 	var subfs *subFsInfo
-	header.NodeId, subfs = self.getSubFs(header.NodeId)
+	header.NodeId, subfs = me.getSubFs(header.NodeId)
 	if subfs == nil {
 		return nil, fuse.ENOENT
 	}
@@ -416,20 +416,20 @@ func (self *SubmountFileSystem) Mkdir(header *fuse.InHeader, input *fuse.MkdirIn
 	out, code = subfs.Fs.Mkdir(header, input, name)
 
 	if out != nil {
-		out.NodeId = self.registerLookup(out.NodeId, subfs)
+		out.NodeId = me.registerLookup(out.NodeId, subfs)
 		out.Attr.Ino = out.NodeId
 	}
 	return out, code
 }
 
-func (self *SubmountFileSystem) Unlink(header *fuse.InHeader, name string) (code fuse.Status) {
+func (me *SubmountFileSystem) Unlink(header *fuse.InHeader, name string) (code fuse.Status) {
 	if header.NodeId == fuse.FUSE_ROOT_ID {
 		// ENOSYS ?
 		return fuse.EPERM
 	}
 
 	var subfs *subFsInfo
-	header.NodeId, subfs = self.getSubFs(header.NodeId)
+	header.NodeId, subfs = me.getSubFs(header.NodeId)
 	if subfs == nil {
 		return fuse.ENOENT
 	}
@@ -437,48 +437,48 @@ func (self *SubmountFileSystem) Unlink(header *fuse.InHeader, name string) (code
 	return subfs.Fs.Unlink(header, name)
 }
 
-func (self *SubmountFileSystem) Rmdir(header *fuse.InHeader, name string) (code fuse.Status) {
+func (me *SubmountFileSystem) Rmdir(header *fuse.InHeader, name string) (code fuse.Status) {
 	if header.NodeId == fuse.FUSE_ROOT_ID {
 		// ENOSYS ?
 		return fuse.EPERM
 	}
 
 	var subfs *subFsInfo
-	header.NodeId, subfs = self.getSubFs(header.NodeId)
+	header.NodeId, subfs = me.getSubFs(header.NodeId)
 	if subfs == nil {
 		return fuse.ENOENT
 	}
 	return subfs.Fs.Rmdir(header, name)
 }
 
-func (self *SubmountFileSystem) Symlink(header *fuse.InHeader, pointedTo string, linkName string) (out *fuse.EntryOut, code fuse.Status) {
+func (me *SubmountFileSystem) Symlink(header *fuse.InHeader, pointedTo string, linkName string) (out *fuse.EntryOut, code fuse.Status) {
 	if header.NodeId == fuse.FUSE_ROOT_ID {
 		// ENOSYS ?
 		return nil, fuse.EPERM
 	}
 
 	var subfs *subFsInfo
-	header.NodeId, subfs = self.getSubFs(header.NodeId)
+	header.NodeId, subfs = me.getSubFs(header.NodeId)
 	if subfs == nil {
 		return nil, fuse.ENOENT
 	}
 
 	out, code = subfs.Fs.Symlink(header, pointedTo, linkName)
 	if out != nil {
-		out.NodeId = self.registerLookup(out.NodeId, subfs)
+		out.NodeId = me.registerLookup(out.NodeId, subfs)
 		out.Attr.Ino = out.NodeId
 	}
 	return out, code
 }
 
-func (self *SubmountFileSystem) Rename(header *fuse.InHeader, input *fuse.RenameIn, oldName string, newName string) (code fuse.Status) {
+func (me *SubmountFileSystem) Rename(header *fuse.InHeader, input *fuse.RenameIn, oldName string, newName string) (code fuse.Status) {
 	if header.NodeId == fuse.FUSE_ROOT_ID || input.Newdir == fuse.FUSE_ROOT_ID {
 		// ENOSYS ?
 		return fuse.EPERM
 	}
 
 	var subfs *subFsInfo
-	header.NodeId, subfs = self.getSubFs(header.NodeId)
+	header.NodeId, subfs = me.getSubFs(header.NodeId)
 	if subfs == nil {
 		return fuse.ENOENT
 	}
@@ -486,24 +486,24 @@ func (self *SubmountFileSystem) Rename(header *fuse.InHeader, input *fuse.Rename
 	return subfs.Fs.Rename(header, input, oldName, newName)
 }
 
-func (self *SubmountFileSystem) Link(header *fuse.InHeader, input *fuse.LinkIn, name string) (out *fuse.EntryOut, code fuse.Status) {
+func (me *SubmountFileSystem) Link(header *fuse.InHeader, input *fuse.LinkIn, name string) (out *fuse.EntryOut, code fuse.Status) {
 	var subfs *subFsInfo
-	header.NodeId, subfs = self.getSubFs(header.NodeId)
+	header.NodeId, subfs = me.getSubFs(header.NodeId)
 	if subfs == nil {
 		return nil, fuse.ENOENT
 	}
 
 	out, code = subfs.Fs.Link(header, input, name)
 	if out != nil {
-		out.NodeId = self.registerLookup(out.NodeId, subfs)
+		out.NodeId = me.registerLookup(out.NodeId, subfs)
 		out.Attr.Ino = out.NodeId
 	}
 	return out, code
 }
 
-func (self *SubmountFileSystem) SetXAttr(header *fuse.InHeader, input *fuse.SetXAttrIn) fuse.Status {
+func (me *SubmountFileSystem) SetXAttr(header *fuse.InHeader, input *fuse.SetXAttrIn) fuse.Status {
 	var subfs *subFsInfo
-	header.NodeId, subfs = self.getSubFs(header.NodeId)
+	header.NodeId, subfs = me.getSubFs(header.NodeId)
 	if subfs == nil {
 		return fuse.ENOENT
 	}
@@ -511,9 +511,9 @@ func (self *SubmountFileSystem) SetXAttr(header *fuse.InHeader, input *fuse.SetX
 	return subfs.Fs.SetXAttr(header, input)
 }
 
-func (self *SubmountFileSystem) GetXAttr(header *fuse.InHeader, input *fuse.GetXAttrIn) (out *fuse.GetXAttrOut, code fuse.Status) {
+func (me *SubmountFileSystem) GetXAttr(header *fuse.InHeader, input *fuse.GetXAttrIn) (out *fuse.GetXAttrOut, code fuse.Status) {
 	var subfs *subFsInfo
-	header.NodeId, subfs = self.getSubFs(header.NodeId)
+	header.NodeId, subfs = me.getSubFs(header.NodeId)
 	if subfs == nil {
 		return nil, fuse.ENOENT
 	}
@@ -521,53 +521,53 @@ func (self *SubmountFileSystem) GetXAttr(header *fuse.InHeader, input *fuse.GetX
 	return out, code
 }
 
-func (self *SubmountFileSystem) Access(header *fuse.InHeader, input *fuse.AccessIn) (code fuse.Status) {
+func (me *SubmountFileSystem) Access(header *fuse.InHeader, input *fuse.AccessIn) (code fuse.Status) {
 	var subfs *subFsInfo
-	header.NodeId, subfs = self.getSubFs(header.NodeId)
+	header.NodeId, subfs = me.getSubFs(header.NodeId)
 	return subfs.Fs.Access(header, input)
 }
 
-func (self *SubmountFileSystem) Create(header *fuse.InHeader, input *fuse.CreateIn, name string) (flags uint32, fuseFile fuse.RawFuseFile, out *fuse.EntryOut, code fuse.Status) {
+func (me *SubmountFileSystem) Create(header *fuse.InHeader, input *fuse.CreateIn, name string) (flags uint32, fuseFile fuse.RawFuseFile, out *fuse.EntryOut, code fuse.Status) {
 	if header.NodeId == fuse.FUSE_ROOT_ID {
 		// ENOSYS ?
 		return 0, nil, nil, fuse.EPERM
 	}
 
 	var subfs *subFsInfo
-	header.NodeId, subfs = self.getSubFs(header.NodeId)
+	header.NodeId, subfs = me.getSubFs(header.NodeId)
 	if subfs == nil {
 		return 0, nil, nil, fuse.ENOENT
 	}
 	flags, fuseFile, out, code = subfs.Fs.Create(header, input, name)
 	if out != nil {
-		out.NodeId = self.registerLookup(out.NodeId, subfs)
+		out.NodeId = me.registerLookup(out.NodeId, subfs)
 		out.Attr.Ino = out.NodeId
 	}
 
 	return flags, fuseFile, out, code
 }
 
-func (self *SubmountFileSystem) Bmap(header *fuse.InHeader, input *fuse.BmapIn) (out *fuse.BmapOut, code fuse.Status) {
+func (me *SubmountFileSystem) Bmap(header *fuse.InHeader, input *fuse.BmapIn) (out *fuse.BmapOut, code fuse.Status) {
 	var subfs *subFsInfo
 	if subfs == nil {
 		return nil, fuse.ENOENT
 	}
-	header.NodeId, subfs = self.getSubFs(header.NodeId)
+	header.NodeId, subfs = me.getSubFs(header.NodeId)
 	return subfs.Fs.Bmap(header, input)
 }
 
-func (self *SubmountFileSystem) Ioctl(header *fuse.InHeader, input *fuse.IoctlIn) (out *fuse.IoctlOut, code fuse.Status) {
+func (me *SubmountFileSystem) Ioctl(header *fuse.InHeader, input *fuse.IoctlIn) (out *fuse.IoctlOut, code fuse.Status) {
 	var subfs *subFsInfo
-	header.NodeId, subfs = self.getSubFs(header.NodeId)
+	header.NodeId, subfs = me.getSubFs(header.NodeId)
 	if subfs == nil {
 		return nil, fuse.ENOENT
 	}
 	return subfs.Fs.Ioctl(header, input)
 }
 
-func (self *SubmountFileSystem) Poll(header *fuse.InHeader, input *fuse.PollIn) (out *fuse.PollOut, code fuse.Status) {
+func (me *SubmountFileSystem) Poll(header *fuse.InHeader, input *fuse.PollIn) (out *fuse.PollOut, code fuse.Status) {
 	var subfs *subFsInfo
-	header.NodeId, subfs = self.getSubFs(header.NodeId)
+	header.NodeId, subfs = me.getSubFs(header.NodeId)
 	if subfs == nil {
 		return nil, fuse.ENOENT
 	}
@@ -575,26 +575,26 @@ func (self *SubmountFileSystem) Poll(header *fuse.InHeader, input *fuse.PollIn) 
 	return subfs.Fs.Poll(header, input)
 }
 
-func (self *SubmountFileSystem) OpenDir(header *fuse.InHeader, input *fuse.OpenIn) (flags uint32, fuseFile fuse.RawFuseDir, status fuse.Status) {
+func (me *SubmountFileSystem) OpenDir(header *fuse.InHeader, input *fuse.OpenIn) (flags uint32, fuseFile fuse.RawFuseDir, status fuse.Status) {
 	if header.NodeId == fuse.FUSE_ROOT_ID {
-		return 0, NewSubmountFileSystemTopDir(self), fuse.OK
+		return 0, NewSubmountFileSystemTopDir(me), fuse.OK
 	}
 
 	// TODO - we have to parse and unparse the readdir results, to substitute inodes.
 
 	var subfs *subFsInfo
-	header.NodeId, subfs = self.getSubFs(header.NodeId)
+	header.NodeId, subfs = me.getSubFs(header.NodeId)
 	if subfs == nil {
 		return 0, nil, fuse.ENOENT
 	}
 	return subfs.Fs.OpenDir(header, input)
 }
 
-func (self *SubmountFileSystem) Release(header *fuse.InHeader, f fuse.RawFuseFile) {
+func (me *SubmountFileSystem) Release(header *fuse.InHeader, f fuse.RawFuseFile) {
 	// TODO - should run release on subfs too.
 }
 
-func (self *SubmountFileSystem) ReleaseDir(header *fuse.InHeader, f fuse.RawFuseDir) {
+func (me *SubmountFileSystem) ReleaseDir(header *fuse.InHeader, f fuse.RawFuseDir) {
 	// TODO - should run releasedir on subfs too.
 }
 
@@ -616,13 +616,13 @@ func NewSubmountFileSystemTopDir(fs *SubmountFileSystem) *SubmountFileSystemTopD
 	return out
 }
 
-func (self *SubmountFileSystemTopDir) ReadDir(input *fuse.ReadIn) (*fuse.DirEntryList, fuse.Status) {
+func (me *SubmountFileSystemTopDir) ReadDir(input *fuse.ReadIn) (*fuse.DirEntryList, fuse.Status) {
 	de := fuse.NewDirEntryList(int(input.Size))
 
-	for self.nextRead < len(self.names) {
-		i := self.nextRead
-		if de.AddString(self.names[i], fuse.FUSE_UNKNOWN_INO, self.modes[i]) {
-			self.nextRead++
+	for me.nextRead < len(me.names) {
+		i := me.nextRead
+		if de.AddString(me.names[i], fuse.FUSE_UNKNOWN_INO, me.modes[i]) {
+			me.nextRead++
 		} else {
 			break
 		}

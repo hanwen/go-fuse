@@ -60,47 +60,47 @@ type MountState struct {
 	operationCounts *expvar.Map
 }
 
-func (self *MountState) RegisterFile(file RawFuseFile) uint64 {
-	self.openedFilesMutex.Lock()
-	defer self.openedFilesMutex.Unlock()
+func (me *MountState) RegisterFile(file RawFuseFile) uint64 {
+	me.openedFilesMutex.Lock()
+	defer me.openedFilesMutex.Unlock()
 	// We will be screwed if nextFree ever wraps.
-	self.nextFreeFile++
-	index := self.nextFreeFile
-	self.openedFiles[index] = file
+	me.nextFreeFile++
+	index := me.nextFreeFile
+	me.openedFiles[index] = file
 	return index
 }
 
-func (self *MountState) FindFile(index uint64) RawFuseFile {
-	self.openedFilesMutex.RLock()
-	defer self.openedFilesMutex.RUnlock()
-	return self.openedFiles[index]
+func (me *MountState) FindFile(index uint64) RawFuseFile {
+	me.openedFilesMutex.RLock()
+	defer me.openedFilesMutex.RUnlock()
+	return me.openedFiles[index]
 }
 
-func (self *MountState) UnregisterFile(handle uint64) {
-	self.openedFilesMutex.Lock()
-	defer self.openedFilesMutex.Unlock()
-	self.openedFiles[handle] = nil, false
+func (me *MountState) UnregisterFile(handle uint64) {
+	me.openedFilesMutex.Lock()
+	defer me.openedFilesMutex.Unlock()
+	me.openedFiles[handle] = nil, false
 }
 
-func (self *MountState) RegisterDir(dir RawFuseDir) uint64 {
-	self.openedDirsMutex.Lock()
-	defer self.openedDirsMutex.Unlock()
-	self.nextFreeDir++
-	index := self.nextFreeDir
-	self.openedDirs[index] = dir
+func (me *MountState) RegisterDir(dir RawFuseDir) uint64 {
+	me.openedDirsMutex.Lock()
+	defer me.openedDirsMutex.Unlock()
+	me.nextFreeDir++
+	index := me.nextFreeDir
+	me.openedDirs[index] = dir
 	return index
 }
 
-func (self *MountState) FindDir(index uint64) RawFuseDir {
-	self.openedDirsMutex.RLock()
-	defer self.openedDirsMutex.RUnlock()
-	return self.openedDirs[index]
+func (me *MountState) FindDir(index uint64) RawFuseDir {
+	me.openedDirsMutex.RLock()
+	defer me.openedDirsMutex.RUnlock()
+	return me.openedDirs[index]
 }
 
-func (self *MountState) UnregisterDir(handle uint64) {
-	self.openedDirsMutex.Lock()
-	defer self.openedDirsMutex.Unlock()
-	self.openedDirs[handle] = nil, false
+func (me *MountState) UnregisterDir(handle uint64) {
+	me.openedDirsMutex.Lock()
+	defer me.openedDirsMutex.Unlock()
+	me.openedDirs[handle] = nil, false
 }
 
 // Mount filesystem on mountPoint.
@@ -110,48 +110,48 @@ func (self *MountState) UnregisterDir(handle uint64) {
 // using channels.
 //
 // TODO - error handling should perhaps be user-serviceable.
-func (self *MountState) Mount(mountPoint string) os.Error {
+func (me *MountState) Mount(mountPoint string) os.Error {
 	file, mp, err := mount(mountPoint)
 	if err != nil {
 		return err
 	}
-	self.mountPoint = mp
-	self.mountFile = file
+	me.mountPoint = mp
+	me.mountFile = file
 
-	self.operationCounts = expvar.NewMap(fmt.Sprintf("mount(%v)", mountPoint))
+	me.operationCounts = expvar.NewMap(fmt.Sprintf("mount(%v)", mountPoint))
 	return nil
 }
 
 // Normally, callers should run loop() and wait for FUSE to exit, but
 // tests will want to run this in a goroutine.
-func (self *MountState) Loop(threaded bool) {
-	self.threaded = threaded
-	if self.threaded {
-		self.outputChannel = make(chan [][]byte, 100)
-		self.errorChannel = make(chan os.Error, 100)
-		go self.asyncWriterThread()
-		go self.DefaultErrorHandler()
+func (me *MountState) Loop(threaded bool) {
+	me.threaded = threaded
+	if me.threaded {
+		me.outputChannel = make(chan [][]byte, 100)
+		me.errorChannel = make(chan os.Error, 100)
+		go me.asyncWriterThread()
+		go me.DefaultErrorHandler()
 	}
 
-	self.loop()
+	me.loop()
 
-	if self.threaded {
-		close(self.outputChannel)
-		close(self.errorChannel)
+	if me.threaded {
+		close(me.outputChannel)
+		close(me.errorChannel)
 	}
 }
 
-func (self *MountState) Unmount() os.Error {
+func (me *MountState) Unmount() os.Error {
 	// Todo: flush/release all files/dirs?
-	result := unmount(self.mountPoint)
+	result := unmount(me.mountPoint)
 	if result == nil {
-		self.mountPoint = ""
+		me.mountPoint = ""
 	}
 	return result
 }
 
-func (self *MountState) DefaultErrorHandler() {
-	for err := range self.errorChannel {
+func (me *MountState) DefaultErrorHandler() {
+	for err := range me.errorChannel {
 		if err == os.EOF || err == nil {
 			break
 		}
@@ -159,45 +159,45 @@ func (self *MountState) DefaultErrorHandler() {
 	}
 }
 
-func (self *MountState) Error(err os.Error) {
+func (me *MountState) Error(err os.Error) {
 	// It is safe to do errors unthreaded, since the logger is thread-safe.
-	if !self.threaded || self.Debug {
+	if !me.threaded || me.Debug {
 		log.Println("error: ", err)
 	} else {
-		self.errorChannel <- err
+		me.errorChannel <- err
 	}
 }
 
-func (self *MountState) Write(packet [][]byte) {
+func (me *MountState) Write(packet [][]byte) {
 	if packet == nil {
 		return
 	}
 
-	if self.threaded {
-		self.outputChannel <- packet
+	if me.threaded {
+		me.outputChannel <- packet
 	} else {
-		self.syncWrite(packet)
+		me.syncWrite(packet)
 	}
 }
 
 func NewMountState(fs RawFileSystem) *MountState {
-	self := new(MountState)
-	self.openedDirs = make(map[uint64]RawFuseDir)
-	self.openedFiles = make(map[uint64]RawFuseFile)
-	self.mountPoint = ""
-	self.fileSystem = fs
-	self.buffers = NewBufferPool()
-	return self
+	me := new(MountState)
+	me.openedDirs = make(map[uint64]RawFuseDir)
+	me.openedFiles = make(map[uint64]RawFuseFile)
+	me.mountPoint = ""
+	me.fileSystem = fs
+	me.buffers = NewBufferPool()
+	return me
 
 }
 
 // TODO - have more statistics.
-func (self *MountState) Stats() string {
+func (me *MountState) Stats() string {
 	var lines []string
 
 	// TODO - bufferpool should use expvar.
 	lines = append(lines,
-		fmt.Sprintf("buffers: %v", self.buffers.String()))
+		fmt.Sprintf("buffers: %v", me.buffers.String()))
 
 	for v := range expvar.Iter() {
 		if strings.HasPrefix(v.Key, "mount") {
@@ -210,19 +210,19 @@ func (self *MountState) Stats() string {
 ////////////////
 // Private routines.
 
-func (self *MountState) asyncWriterThread() {
-	for packet := range self.outputChannel {
-		self.syncWrite(packet)
+func (me *MountState) asyncWriterThread() {
+	for packet := range me.outputChannel {
+		me.syncWrite(packet)
 	}
 }
 
-func (self *MountState) syncWrite(packet [][]byte) {
-	_, err := Writev(self.mountFile.Fd(), packet)
+func (me *MountState) syncWrite(packet [][]byte) {
+	_, err := Writev(me.mountFile.Fd(), packet)
 	if err != nil {
-		self.Error(os.NewError(fmt.Sprintf("writer: Writev %v failed, err: %v", packet, err)))
+		me.Error(os.NewError(fmt.Sprintf("writer: Writev %v failed, err: %v", packet, err)))
 	}
 	for _, v := range packet {
-		self.buffers.FreeBuffer(v)
+		me.buffers.FreeBuffer(v)
 	}
 }
 
@@ -230,11 +230,11 @@ func (self *MountState) syncWrite(packet [][]byte) {
 ////////////////////////////////////////////////////////////////
 // Logic for the control loop.
 
-func (self *MountState) loop() {
+func (me *MountState) loop() {
 	// See fuse_kern_chan_receive()
 	for {
-		buf := self.buffers.AllocBuffer(bufSize)
-		n, err := self.mountFile.Read(buf)
+		buf := me.buffers.AllocBuffer(bufSize)
+		n, err := me.mountFile.Read(buf)
 		if err != nil {
 			errNo := OsErrorToFuseError(err)
 
@@ -254,21 +254,21 @@ func (self *MountState) loop() {
 			}
 
 			readErr := os.NewError(fmt.Sprintf("Failed to read from fuse conn: %v", err))
-			self.Error(readErr)
+			me.Error(readErr)
 			break
 		}
 
-		if self.threaded {
-			go self.handle(buf[0:n])
+		if me.threaded {
+			go me.handle(buf[0:n])
 		} else {
-			self.handle(buf[0:n])
+			me.handle(buf[0:n])
 		}
 	}
 
-	self.mountFile.Close()
+	me.mountFile.Close()
 }
 
-func (self *MountState) handle(in_data []byte) {
+func (me *MountState) handle(in_data []byte) {
 	r := bytes.NewBuffer(in_data)
 	header := new(InHeader)
 	err := binary.Read(r, binary.LittleEndian, header)
@@ -276,11 +276,11 @@ func (self *MountState) handle(in_data []byte) {
 		err = os.NewError(fmt.Sprintf("MountPoint, handle: can't read a header, in_data: %v", in_data))
 	}
 	if err != nil {
-		self.Error(err)
+		me.Error(err)
 		return
 	}
-	self.Write(dispatch(self, header, r))
-	self.buffers.FreeBuffer(in_data)
+	me.Write(dispatch(me, header, r))
+	me.buffers.FreeBuffer(in_data)
 }
 
 
