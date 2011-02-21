@@ -50,7 +50,7 @@ func mount(mountPoint string) (f *os.File, finalMountPoint string, err os.Error)
 		}
 		mountPoint = path.Clean(path.Join(cwd, mountPoint))
 	}
-	pid, err := os.ForkExec("/bin/fusermount",
+	proc, err := os.StartProcess("/bin/fusermount",
 		[]string{"/bin/fusermount", mountPoint},
 		[]string{"_FUSE_COMMFD=3"},
 		"",
@@ -58,7 +58,7 @@ func mount(mountPoint string) (f *os.File, finalMountPoint string, err os.Error)
 	if err != nil {
 		return
 	}
-	w, err := os.Wait(pid, 0)
+	w, err := os.Wait(proc.Pid, 0)
 	if err != nil {
 		return
 	}
@@ -74,7 +74,7 @@ func mount(mountPoint string) (f *os.File, finalMountPoint string, err os.Error)
 
 func unmount(mountPoint string) (err os.Error) {
 	dir, _ := path.Split(mountPoint)
-	pid, err := os.ForkExec("/bin/fusermount",
+	proc, err := os.StartProcess("/bin/fusermount",
 		[]string{"/bin/fusermount", "-u", mountPoint},
 		nil,
 		dir,
@@ -82,7 +82,7 @@ func unmount(mountPoint string) (err os.Error) {
 	if err != nil {
 		return
 	}
-	w, err := os.Wait(pid, 0)
+	w, err := os.Wait(proc.Pid, 0)
 	if err != nil {
 		return
 	}
