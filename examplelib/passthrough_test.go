@@ -73,9 +73,7 @@ func (me *testCase) Setup(t *testing.T) {
 func (me *testCase) Cleanup() {
 	fmt.Println("Unmounting.")
 	err := me.state.Unmount()
-	if err != nil {
-		me.tester.Errorf("Can't unmount a dir, err: %v", err)
-	}
+	CheckSuccess(err)
 	os.Remove(me.mountPoint)
 	os.RemoveAll(me.origDir)
 }
@@ -85,17 +83,13 @@ func (me *testCase) Cleanup() {
 
 func (me *testCase) makeOrigSubdir() {
 	err := os.Mkdir(me.origSubdir, 0777)
-	if err != nil {
-		me.tester.Errorf("orig mkdir subdir %v", err)
-	}
+	CheckSuccess(err)
 }
 
 
 func (me *testCase) removeMountSubdir() {
 	err := os.RemoveAll(me.mountSubdir)
-	if err != nil {
-		me.tester.Errorf("orig rmdir subdir %v", err)
-	}
+	CheckSuccess(err)
 }
 
 func (me *testCase) removeMountFile() {
@@ -105,13 +99,9 @@ func (me *testCase) removeMountFile() {
 
 func (me *testCase) writeOrigFile() {
 	f, err := os.Open(me.origFile, os.O_WRONLY|os.O_CREAT, 0700)
-	if err != nil {
-		me.tester.Errorf("Error orig open: %v", err)
-	}
+	CheckSuccess(err)
 	_, err = f.Write([]byte(contents))
-	if err != nil {
-		me.tester.Errorf("Write %v", err)
-	}
+	CheckSuccess(err)
 	f.Close()
 }
 
@@ -130,15 +120,11 @@ func (me *testCase) testReadThroughFuse() {
 
 	fmt.Println("Testing chmod.")
 	err := os.Chmod(me.mountFile, mode)
-	if err != nil {
-		me.tester.Errorf("Chmod %v", err)
-	}
+	CheckSuccess(err)
 
 	fmt.Println("Testing Lstat.")
 	fi, err := os.Lstat(me.mountFile)
-	if err != nil {
-		me.tester.Errorf("Lstat %v", err)
-	}
+	CheckSuccess(err)
 	if (fi.Mode & 0777) != mode {
 		me.tester.Errorf("Wrong mode %o != %o", fi.Mode, mode)
 	}
@@ -146,9 +132,7 @@ func (me *testCase) testReadThroughFuse() {
 	// Open (for read), read.
 	fmt.Println("Testing open.")
 	f, err := os.Open(me.mountFile, os.O_RDONLY, 0)
-	if err != nil {
-		me.tester.Errorf("Fuse open %v", err)
-	}
+	CheckSuccess(err)
 
 	fmt.Println("Testing read.")
 	var buf [1024]byte
@@ -169,9 +153,7 @@ func (me *testCase) testRemove() {
 
 	fmt.Println("Testing remove.")
 	err := os.Remove(me.mountFile)
-	if err != nil {
-		me.tester.Errorf("Remove %v", err)
-	}
+	CheckSuccess(err)
 	_, err = os.Lstat(me.origFile)
 	if err == nil {
 		me.tester.Errorf("Lstat() after delete should have generated error.")
@@ -182,15 +164,11 @@ func (me *testCase) testWriteThroughFuse() {
 	// Create (for write), write.
 	me.tester.Log("Testing create.")
 	f, err := os.Open(me.mountFile, os.O_WRONLY|os.O_CREATE, 0644)
-	if err != nil {
-		me.tester.Errorf("Fuse create/open %v", err)
-	}
+	CheckSuccess(err)
 
 	me.tester.Log("Testing write.")
 	n, err := f.WriteString(contents)
-	if err != nil {
-		me.tester.Errorf("fuse write %v", err)
-	}
+	CheckSuccess(err)
 	if n != len(contents) {
 		me.tester.Errorf("Write mismatch: %v of %v", n, len(contents))
 	}
@@ -201,15 +179,11 @@ func (me *testCase) testWriteThroughFuse() {
 	}
 
 	f, err = os.Open(me.origFile, os.O_RDONLY, 0)
-	if err != nil {
-		me.tester.Errorf("orig open %v", err)
-	}
+	CheckSuccess(err)
 	var buf [1024]byte
 	slice := buf[:]
 	n, err = f.Read(slice)
-	if err != nil {
-		me.tester.Errorf("orig read %v", err)
-	}
+	CheckSuccess(err)
 	me.tester.Log("Orig contents", slice[:n])
 	if string(slice[:n]) != contents {
 		me.tester.Errorf("write contents error %v", slice[:n])
@@ -221,33 +195,26 @@ func (me *testCase) testWriteThroughFuse() {
 func (me *testCase) testMkdirRmdir() {
 	// Mkdir/Rmdir.
 	err := os.Mkdir(me.mountSubdir, 0777)
-	if err != nil {
-		me.tester.Errorf("mount mkdir", err)
-	}
+	CheckSuccess(err)
 	fi, err := os.Lstat(me.origSubdir)
 	if !fi.IsDirectory() {
 		me.tester.Errorf("Not a directory: %o", fi.Mode)
 	}
 
 	err = os.Remove(me.mountSubdir)
-	if err != nil {
-		me.tester.Errorf("rmdir %v", err)
-	}
+	CheckSuccess(err)
+	CheckSuccess(err)
 }
 
 func (me *testCase) testLink() {
 	me.tester.Log("Testing hard links.")
 	me.writeOrigFile()
 	err := os.Mkdir(me.origSubdir, 0777)
-	if err != nil {
-		me.tester.Errorf("mount mkdir", err)
-	}
+	CheckSuccess(err)
 
 	// Link.
 	err = os.Link(me.mountFile, me.mountSubfile)
-	if err != nil {
-		me.tester.Errorf("mount link %v", err)
-	}
+	CheckSuccess(err)
 
 	fi, err := os.Lstat(me.mountFile)
 	if fi.Nlink != 2 {
@@ -279,16 +246,11 @@ func (me *testCase) testSymlink() {
 	defer os.Remove(path.Join(me.mountPoint, linkFile))
 	defer me.removeMountFile()
 
-	if err != nil {
-		me.tester.Errorf("symlink %v", err)
-	}
+	CheckSuccess(err)
 
 	origLink := path.Join(me.origDir, linkFile)
 	fi, err := os.Lstat(origLink)
-	if err != nil {
-		me.tester.Errorf("link lstat %v", err)
-		return
-	}
+	CheckSuccess(err)
 
 	if !fi.IsSymlink() {
 		me.tester.Errorf("not a symlink: %o", fi.Mode)
@@ -296,10 +258,7 @@ func (me *testCase) testSymlink() {
 	}
 
 	read, err := os.Readlink(path.Join(me.mountPoint, linkFile))
-	if err != nil {
-		me.tester.Errorf("orig readlink %v", err)
-		return
-	}
+	CheckSuccess(err)
 
 	if read != orig {
 		me.tester.Errorf("unexpected symlink value '%v'", read)
@@ -312,9 +271,7 @@ func (me *testCase) testRename() {
 	me.makeOrigSubdir()
 
 	err := os.Rename(me.mountFile, me.mountSubfile)
-	if err != nil {
-		me.tester.Errorf("rename %v", err)
-	}
+	CheckSuccess(err)
 	if FileExists(me.origFile) {
 		me.tester.Errorf("original %v still exists.", me.origFile)
 	}
@@ -329,10 +286,7 @@ func (me *testCase) testRename() {
 func (me *testCase) testAccess() {
 	me.writeOrigFile()
 	err := os.Chmod(me.origFile, 0)
-	if err != nil {
-		me.tester.Errorf("chmod %v", err)
-	}
-
+	CheckSuccess(err)
 	// Ugh - copied from unistd.h
 	const W_OK uint32 = 2
 
@@ -341,10 +295,7 @@ func (me *testCase) testAccess() {
 		me.tester.Errorf("Expected EACCES for non-writable, %v %v", errCode, syscall.EACCES)
 	}
 	err = os.Chmod(me.origFile, 0222)
-	if err != nil {
-		me.tester.Errorf("chmod %v", err)
-	}
-
+	CheckSuccess(err)
 	errCode = syscall.Access(me.mountFile, W_OK)
 	if errCode != 0 {
 		me.tester.Errorf("Expected no error code for writable. %v", errCode)
@@ -373,14 +324,9 @@ func (me *testCase) testReaddir() {
 	me.makeOrigSubdir()
 
 	dir, err := os.Open(me.mountPoint, os.O_RDONLY, 0)
-	if err != nil {
-		me.tester.Errorf("opendir err %v", err)
-		return
-	}
+	CheckSuccess(err)
 	infos, err := dir.Readdir(10)
-	if err != nil {
-		me.tester.Errorf("readdir err %v", err)
-	}
+	CheckSuccess(err)
 
 	wanted := map[string]bool{
 		"hello.txt": true,
@@ -409,9 +355,7 @@ func (me *testCase) testFSync() {
 
 	f, err := os.Open(me.mountFile, os.O_WRONLY, 0)
 	_, err = f.WriteString("hello there")
-	if err != nil {
-		me.tester.Errorf("writestring %v", err)
-	}
+	CheckSuccess(err)
 
 	// How to really test fsync ?
 	errNo := syscall.Fsync(f.Fd())
@@ -425,9 +369,7 @@ func (me *testCase) testLargeRead() {
 	me.tester.Log("Testing large read.")
 	name := path.Join(me.origDir, "large")
 	f, err := os.Open(name, os.O_WRONLY|os.O_CREATE, 0777)
-	if err != nil {
-		me.tester.Errorf("open write err %v", err)
-	}
+	CheckSuccess(err)
 
 	b := bytes.NewBuffer(nil)
 
@@ -438,20 +380,14 @@ func (me *testCase) testLargeRead() {
 
 	slice := b.Bytes()
 	n, err := f.Write(slice)
-	if err != nil {
-		me.tester.Errorf("write err %v %v", err, n)
-	}
+	CheckSuccess(err)
 
 	err = f.Close()
-	if err != nil {
-		me.tester.Errorf("close err %v", err)
-	}
+	CheckSuccess(err)
 
 	// Read in one go.
 	g, err := os.Open(path.Join(me.mountPoint, "large"), os.O_RDONLY, 0)
-	if err != nil {
-		me.tester.Errorf("open err %v", err)
-	}
+	CheckSuccess(err)
 	readSlice := make([]byte, len(slice))
 	m, err := g.Read(readSlice)
 	if m != n {
@@ -464,16 +400,12 @@ func (me *testCase) testLargeRead() {
 		}
 	}
 
-	if err != nil {
-		me.tester.Errorf("read mismatch %v", err)
-	}
+	CheckSuccess(err)
 	g.Close()
 
 	// Read in chunks
 	g, err = os.Open(path.Join(me.mountPoint, "large"), os.O_RDONLY, 0)
-	if err != nil {
-		me.tester.Errorf("open err %v", err)
-	}
+	CheckSuccess(err)
 	readSlice = make([]byte, 4096)
 	total := 0
 	for {
@@ -481,10 +413,7 @@ func (me *testCase) testLargeRead() {
 		if m == 0 && err == os.EOF {
 			break
 		}
-		if err != nil {
-			me.tester.Errorf("read err %v %v", err, m)
-			break
-		}
+		CheckSuccess(err)
 		total += m
 	}
 	if total != len(slice) {
@@ -528,10 +457,7 @@ func (me *testCase) testLargeDirRead() {
 		nameSet[base] = true
 
 		f, err := os.Open(name, os.O_WRONLY|os.O_CREATE, 0777)
-		if err != nil {
-			me.tester.Errorf("open write err %v", err)
-			break
-		}
+		CheckSuccess(err)
 		f.WriteString("bla")
 		f.Close()
 
@@ -539,17 +465,13 @@ func (me *testCase) testLargeDirRead() {
 	}
 
 	dir, err := os.Open(path.Join(me.mountPoint, "readdirSubdir"), os.O_RDONLY, 0)
-	if err != nil {
-		me.tester.Errorf("dirread %v", err)
-	}
+	CheckSuccess(err)
 	// Chunked read.
 	total := 0
 	readSet := make(map[string]bool)
 	for {
 		namesRead, err := dir.Readdirnames(200)
-		if err != nil {
-			me.tester.Errorf("readdir err %v %v", err, namesRead)
-		}
+		CheckSuccess(err)
 
 		if len(namesRead) == 0 {
 			break
@@ -604,9 +526,7 @@ func TestRecursiveMount(t *testing.T) {
 	f, err := os.Open(path.Join(ts.mountPoint, "hello.txt"),
 		os.O_WRONLY|os.O_CREATE, 0777)
 
-	if err != nil {
-		t.Errorf("open write err %v", err)
-	}
+	CheckSuccess(err)
 	f.WriteString("bla")
 	f.Close()
 
@@ -618,28 +538,19 @@ func TestRecursiveMount(t *testing.T) {
 
 	submnt := path.Join(ts.mountPoint, "mnt")
 	err = os.Mkdir(submnt, 0777)
-	if err != nil {
-		t.Errorf("mkdir")
-	}
-
+	CheckSuccess(err)
 	code = ts.connector.Mount("/mnt", pfs2)
 	if code != fuse.OK {
 		t.Errorf("mkdir")
 	}
 
 	_, err = os.Lstat(submnt)
-	if err != nil {
-		t.Error("lstat submount", err)
-	}
+	CheckSuccess(err)
 	_, err = os.Lstat(path.Join(submnt, "hello.txt"))
-	if err != nil {
-		t.Error("lstat submount/file", err)
-	}
+	CheckSuccess(err)
 
 	f, err = os.Open(path.Join(submnt, "hello.txt"), os.O_RDONLY, 0)
-	if err != nil {
-		t.Error("open submount/file", err)
-	}
+	CheckSuccess(err)
 	code = ts.connector.Unmount("/mnt")
 	if code != fuse.EBUSY {
 		t.Error("expect EBUSY")

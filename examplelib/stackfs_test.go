@@ -68,9 +68,7 @@ func (me *stackFsTestCase) Setup(t *testing.T) {
 func (me *stackFsTestCase) Cleanup() {
 	fmt.Println("Unmounting.")
 	err := me.state.Unmount()
-	if err != nil {
-		me.tester.Errorf("Can't unmount a dir, err: %v", err)
-	}
+	CheckSuccess(err)
 	os.RemoveAll(me.testDir)
 }
 
@@ -79,14 +77,9 @@ func (me *stackFsTestCase) Cleanup() {
 func (me *stackFsTestCase) testReaddir() {
 	fmt.Println("testReaddir... ")
 	dir, err := os.Open(me.mountDir, os.O_RDONLY, 0)
-	if err != nil {
-		me.tester.Errorf("opendir err %v", err)
-		return
-	}
+	CheckSuccess(err)
 	infos, err := dir.Readdir(10)
-	if err != nil {
-		me.tester.Errorf("readdir err %v", err)
-	}
+	CheckSuccess(err)
 
 	wanted := map[string]bool{
 		"sub1": true,
@@ -128,41 +121,30 @@ func (me *stackFsTestCase) testSubFs() {
 		}
 		content1 := "booh!"
 		f, err = os.Open(mountFile, os.O_WRONLY|os.O_CREATE, magicMode)
-		if err != nil {
-			me.tester.Errorf("Create %v", err)
-		}
+		CheckSuccess(err)
 
 		f.Write([]byte(content1))
 		f.Close()
 
 		err = os.Chmod(mountFile, magicMode)
-		if err != nil {
-			me.tester.Errorf("chmod %v", err)
-		}
+		CheckSuccess(err)
 
 		fi, err := os.Lstat(mountFile)
-		if err != nil {
-			me.tester.Errorf("Lstat %v", err)
-		} else {
-			if fi.Mode&0777 != magicMode {
-				me.tester.Errorf("Mode %o", fi.Mode)
-			}
+		CheckSuccess(err) 
+		if fi.Mode&0777 != magicMode {
+			me.tester.Errorf("Mode %o", fi.Mode)
 		}
 
 		g, err := os.Open(mountFile, os.O_RDONLY, 0)
-		if err != nil {
-			me.tester.Errorf("Open %v", err)
-		} else {
-			buf := make([]byte, 1024)
-			n, err := g.Read(buf)
-			if err != nil {
-				me.tester.Errorf("read err %v", err)
-			}
-			if string(buf[:n]) != content1 {
-				me.tester.Errorf("content %v", buf[:n])
-			}
-			g.Close()
+		CheckSuccess(err)
+
+		buf := make([]byte, 1024)
+		n, err := g.Read(buf)
+		CheckSuccess(err)
+		if string(buf[:n]) != content1 {
+			me.tester.Errorf("content %v", buf[:n])
 		}
+		g.Close()
 	}
 }
 
@@ -185,12 +167,10 @@ func (me *stackFsTestCase) testAddRemove() {
 	conn.Init(new(fuse.InHeader), new(fuse.InitIn))
 
 	fi, err := os.Lstat(path.Join(me.mountDir, "third"))
-	if err != nil {
-		me.tester.Errorf("third lstat err %v", err)
-	} else {
-		if !fi.IsDirectory() {
-			me.tester.Errorf("not a directory %v", fi)
-		}
+	CheckSuccess(err)
+
+	if !fi.IsDirectory() {
+		me.tester.Errorf("not a directory %v", fi)
 	}
 
 	fs := me.fs.RemoveFileSystem("third")
@@ -198,11 +178,9 @@ func (me *stackFsTestCase) testAddRemove() {
 		me.tester.Errorf("remove fail")
 	}
 	dir, err := os.Open(me.mountDir, os.O_RDONLY, 0)
-	if err != nil {
-		me.tester.Errorf("opendir err %v", err)
-		return
-	}
+	CheckSuccess(err)
 	infos, err := dir.Readdir(10)
+	CheckSuccess(err)
 	if len(infos) != 2 {
 		me.tester.Errorf("lstat expect 2 infos %v", infos)
 	}

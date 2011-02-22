@@ -319,7 +319,7 @@ func (me *PathFileSystemConnector) Mount(mountPoint string, fs PathFilesystem) S
 		dirParentNode := me.findInode(dirParent)
 
 		// Make sure we know the mount point.
-		attr, _ := me.internalLookup(dirParentNode.NodeId, base, 0)
+		_, _ = me.internalLookup(dirParentNode.NodeId, base, 0)
 	}
 
 	node = me.findInode(mountPoint)

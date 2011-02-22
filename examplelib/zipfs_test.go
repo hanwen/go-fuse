@@ -4,14 +4,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"os"
 	"testing"
-	"fmt"
 )
-
-func CheckSuccess(e os.Error) {
-	if e != nil {
-		panic(fmt.Sprintf("Unexpected error: %v", e))
-	}
-}
 
 func TestZipFs(t *testing.T) {
 	wd, err := os.Getwd()
