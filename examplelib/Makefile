@@ -5,9 +5,10 @@ TARG=github.com/hanwen/go-fuse/examplelib
 
 DEPS=../fuse
 
-GOFILES=passthrough.go\
-	stackfs.go\
-	zipfs.go\
+GOFILES=passthrough.go \
+	stackfs.go \
+	zipfs.go \
+	multizip.go \
 	misc.go
 
 include $(GOROOT)/src/Make.pkg
