@@ -449,7 +449,7 @@ func serialize(h *InHeader, res Status, out interface{}, flatData []byte, debug 
 		}
 
 		log.Printf("Serialize: %v code: %v value: %v flat: %d\n",
-			operationName(h.Opcode), errorString(res), val, len(flatData))
+			operationName(h.Opcode), res, val, len(flatData))
 	}
 
 	return data

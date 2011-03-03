@@ -133,11 +133,11 @@ func operationName(opcode uint32) string {
 	return "UNKNOWN"
 }
 
-func errorString(code Status) string {
+func (code Status) String() string {
 	if code == OK {
 		return "OK"
 	}
-	return fmt.Sprintf("%d=%v", code, os.Errno(code))
+	return fmt.Sprintf("%d=%v", int(code), os.Errno(code))
 }
 
 func newInput(opcode uint32) Empty {
