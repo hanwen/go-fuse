@@ -39,3 +39,9 @@ func TestBufferPool(t *testing.T) {
 	}
 
 }
+
+func TestFreeBufferEmpty(t *testing.T) {
+	bp := NewBufferPool()
+	c := make([]byte, 0, 2*PAGESIZE)
+	bp.FreeBuffer(c)
+}

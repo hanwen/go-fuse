@@ -106,7 +106,7 @@ func (me *BufferPool) FreeBuffer(slice []byte) {
 	if cap(slice) < PAGESIZE {
 		return
 	}
-
+	slice = slice[:cap(slice)] 
 	key := uintptr(unsafe.Pointer(&slice[0]))
 	exp, ok := me.outstandingBuffers[key]
 	if ok {
