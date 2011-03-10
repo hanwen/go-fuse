@@ -1,3 +1,6 @@
+// Mounts another directory as loopback for testing and benchmarking
+// purposes.
+
 package main
 
 import (
