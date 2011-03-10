@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/examplelib"
 	"fmt"
 	"os"
 	"expvar"
@@ -23,7 +22,7 @@ func main() {
 	}
 
 	orig := flag.Arg(0)
-	fs := examplelib.NewLoopbackFileSystem(orig)
+	fs := fuse.NewLoopbackFileSystem(orig)
 	conn := fuse.NewPathFileSystemConnector(fs)
 	state := fuse.NewMountState(conn)
 	state.Debug = *debug

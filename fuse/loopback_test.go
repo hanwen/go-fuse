@@ -1,7 +1,6 @@
-package examplelib
+package fuse
 
 import (
-	"github.com/hanwen/go-fuse/fuse"
 	"bytes"
 	"fmt"
 	"log"
@@ -33,8 +32,8 @@ type testCase struct {
 	origSubdir   string
 	origSubfile  string
 	tester       *testing.T
-	state        *fuse.MountState
-	connector    *fuse.PathFileSystemConnector
+	state        *MountState
+	connector    *PathFileSystemConnector
 }
 
 // Create and mount filesystem.
@@ -44,8 +43,8 @@ func (me *testCase) Setup(t *testing.T) {
 	const name string = "hello.txt"
 	const subdir string = "subdir"
 
-	me.origDir = fuse.MakeTempDir()
-	me.mountPoint = fuse.MakeTempDir()
+	me.origDir = MakeTempDir()
+	me.mountPoint = MakeTempDir()
 
 	me.mountFile = path.Join(me.mountPoint, name)
 	me.mountSubdir = path.Join(me.mountPoint, subdir)
@@ -55,9 +54,9 @@ func (me *testCase) Setup(t *testing.T) {
 	me.origSubfile = path.Join(me.origSubdir, "subfile")
 
 	pfs := NewLoopbackFileSystem(me.origDir)
-	me.connector = fuse.NewPathFileSystemConnector(pfs)
+	me.connector = NewPathFileSystemConnector(pfs)
 	me.connector.Debug = true
-	me.state = fuse.NewMountState(me.connector)
+	me.state = NewMountState(me.connector)
 	me.state.Mount(me.mountPoint)
 
 	//me.state.Debug = false
@@ -272,10 +271,12 @@ func (me *testCase) testRename() {
 
 	err := os.Rename(me.mountFile, me.mountSubfile)
 	CheckSuccess(err)
-	if FileExists(me.origFile) {
+	f, _ := os.Lstat(me.origFile)
+	if f != nil {
 		me.tester.Errorf("original %v still exists.", me.origFile)
 	}
-	if !FileExists(me.origSubfile) {
+	f, _ = os.Lstat(me.origSubfile)
+	if f == nil {
 		me.tester.Errorf("destination %v does not exist.", me.origSubfile)
 	}
 
@@ -532,7 +533,7 @@ func TestRecursiveMount(t *testing.T) {
 
 	pfs2 := NewLoopbackFileSystem(ts.origDir)
 	code := ts.connector.Mount("/hello.txt", pfs2)
-	if code != fuse.EINVAL {
+	if code != EINVAL {
 		t.Error("expect EINVAL", code)
 	}
 
@@ -540,7 +541,7 @@ func TestRecursiveMount(t *testing.T) {
 	err = os.Mkdir(submnt, 0777)
 	CheckSuccess(err)
 	code = ts.connector.Mount("/mnt", pfs2)
-	if code != fuse.OK {
+	if code != OK {
 		t.Errorf("mkdir")
 	}
 
@@ -552,17 +553,17 @@ func TestRecursiveMount(t *testing.T) {
 	f, err = os.Open(path.Join(submnt, "hello.txt"), os.O_RDONLY, 0)
 	CheckSuccess(err)
 	code = ts.connector.Unmount("/mnt")
-	if code != fuse.EBUSY {
+	if code != EBUSY {
 		t.Error("expect EBUSY")
 	}
 
 	f.Close()
 
-	// The close takes some time to propagate through FUSE.
+	// The close takes some time to propagate through 
 	time.Sleep(1e9)
 
 	code = ts.connector.Unmount("/mnt")
-	if code != fuse.OK {
+	if code != OK {
 		t.Error("umount failed.", code)
 	}
 

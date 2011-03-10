@@ -295,3 +295,11 @@ func NegativeEntry(time float64) *EntryOut {
 func ModeToType(mode uint32) uint32 {
 	return (mode & 0170000) >> 12
 }
+
+
+func CheckSuccess(e os.Error) {
+	if e != nil {
+		panic(fmt.Sprintf("Unexpected error: %v", e))
+	}
+}
+

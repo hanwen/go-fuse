@@ -12,7 +12,8 @@ GOFILES=misc.go\
 	pathfilesystem.go \
 	bufferpool.go \
 	default.go \
-	datafile.go
+	datafile.go \
+	loopback.go
 
 include $(GOROOT)/src/Make.pkg
 

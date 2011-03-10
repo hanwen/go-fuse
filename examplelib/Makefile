@@ -5,8 +5,7 @@ TARG=github.com/hanwen/go-fuse/examplelib
 
 DEPS=../fuse
 
-GOFILES=loopback.go \
-	stackfs.go \
+GOFILES=stackfs.go \
 	zipfs.go \
 	multizip.go \
 	misc.go
