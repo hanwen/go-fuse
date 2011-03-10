@@ -45,6 +45,11 @@ func OsErrorToFuseError(err os.Error) Status {
 			return Status(asSyscallErr.Errno)
 		}
 
+		asPathErr, ok := err.(*os.PathError)
+		if ok {
+			return OsErrorToFuseError(asPathErr.Error)
+		}
+		
 		// Should not happen.  Should we log an error somewhere?
 		return ENOSYS
 	}

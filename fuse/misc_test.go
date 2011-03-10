@@ -18,4 +18,10 @@ func TestOsErrorToFuseError(t *testing.T) {
 	if errNo != syscall.EPERM {
 		t.Errorf("Wrong conversion %v != %v", errNo, syscall.EPERM)
 	}
+
+	e = os.Remove("this-file-surely-does-not-exist")
+	errNo = OsErrorToFuseError(e)
+	if errNo != syscall.ENOENT {
+		t.Errorf("Wrong conversion %v != %v", errNo, syscall.ENOENT)
+	}
 }
