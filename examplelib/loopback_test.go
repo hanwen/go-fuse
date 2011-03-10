@@ -54,7 +54,7 @@ func (me *testCase) Setup(t *testing.T) {
 	me.origSubdir = path.Join(me.origDir, subdir)
 	me.origSubfile = path.Join(me.origSubdir, "subfile")
 
-	pfs := NewPassThroughFuse(me.origDir)
+	pfs := NewLoopbackFileSystem(me.origDir)
 	me.connector = fuse.NewPathFileSystemConnector(pfs)
 	me.connector.Debug = true
 	me.state = fuse.NewMountState(me.connector)
@@ -530,7 +530,7 @@ func TestRecursiveMount(t *testing.T) {
 	f.WriteString("bla")
 	f.Close()
 
-	pfs2 := NewPassThroughFuse(ts.origDir)
+	pfs2 := NewLoopbackFileSystem(ts.origDir)
 	code := ts.connector.Mount("/hello.txt", pfs2)
 	if code != fuse.EINVAL {
 		t.Error("expect EINVAL", code)

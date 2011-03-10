@@ -41,8 +41,8 @@ func (me *stackFsTestCase) Setup(t *testing.T) {
 	os.Mkdir(me.origDir2, 0700)
 	os.Mkdir(me.mountDir, 0700)
 
-	fs1 := fuse.NewPathFileSystemConnector(NewPassThroughFuse(me.origDir1))
-	fs2 := fuse.NewPathFileSystemConnector(NewPassThroughFuse(me.origDir2))
+	fs1 := fuse.NewPathFileSystemConnector(NewLoopbackFileSystem(me.origDir1))
+	fs2 := fuse.NewPathFileSystemConnector(NewLoopbackFileSystem(me.origDir2))
 
 	me.fs = NewSubmountFileSystem()
 
@@ -154,7 +154,7 @@ func (me *stackFsTestCase) testAddRemove() {
 		Mode: 0755,
 	}
 
-	conn := fuse.NewPathFileSystemConnector(NewPassThroughFuse(me.origDir1))
+	conn := fuse.NewPathFileSystemConnector(NewLoopbackFileSystem(me.origDir1))
 	ok := me.fs.AddFileSystem("sub1", conn, attr)
 	if ok {
 		me.tester.Errorf("AddFileSystem should fail")

@@ -23,7 +23,7 @@ func main() {
 	}
 
 	orig := flag.Arg(0)
-	fs := examplelib.NewPassThroughFuse(orig)
+	fs := examplelib.NewLoopbackFileSystem(orig)
 	conn := fuse.NewPathFileSystemConnector(fs)
 	state := fuse.NewMountState(conn)
 	state.Debug = *debug
