@@ -559,7 +559,7 @@ func TestRecursiveMount(t *testing.T) {
 
 	f.Close()
 
-	// The close takes some time to propagate through 
+	log.Println("Waiting for kernel to flush file-close to fuse...")
 	time.Sleep(1e9)
 
 	code = ts.connector.Unmount("/mnt")

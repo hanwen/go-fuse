@@ -2,23 +2,33 @@ package fuse
 
 import (
 	"bytes"
-	"sync"
 	"fmt"
 	"log"
 	"path"
 	"strings"
+	"sync"
 )
 
 type mountData struct {
 	// If non-nil the file system mounted here.
 	fs PathFilesystem
 
+	// Protects the variables below.
+	mutex sync.RWMutex
+	
 	// If yes, we are looking to unmount the mounted fs.
 	unmountPending bool
 
-	openFiles int
-	openDirs  int
-	subMounts int
+	// Count files, dirs and mounts.
+	openCount int
+}
+
+// TODO - should we call async or not? what is the goroutine creation
+// overhead vs. lock acquisition.
+func (me *mountData) incOpenCount(delta int) {
+	me.mutex.Lock()
+	defer me.mutex.Unlock()
+	me.openCount += delta
 }
 
 func newMount(fs PathFilesystem) *mountData {
@@ -66,12 +76,15 @@ func (me *inodeData) GetPath() (path string, mount *mountData) {
 	if inode == nil {
 		panic("did not find parent with mount")
 	}
+	mount = inode.mount
+
+	mount.mutex.RLock()
+	defer mount.mutex.RUnlock()
+	if mount.unmountPending {
+		return "", nil
+	}
 
 	fullPath := strings.Join(components[j:], "/")
-	mount = inode.mount
-	if mount.unmountPending {
-		mount = nil
-	}
 	return fullPath, mount
 }
 
@@ -193,6 +206,12 @@ func (me *PathFileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int) 
 	data, ok := me.inodePathMapByInode[nodeId]
 	if ok {
 		data.LookupCount -= forgetCount
+
+		if data.mount != nil {
+			data.mount.mutex.RLock()
+			defer data.mount.mutex.RUnlock()
+		}
+
 		if data.LookupCount <= 0 && data.RefCount <= 0 && (data.mount == nil || data.mount.unmountPending) {
 			me.inodePathMap[data.Key()] = nil, false
 		}
@@ -344,11 +363,10 @@ func (me *PathFileSystemConnector) Mount(mountPoint string, fs PathFilesystem) S
 		log.Println("Mount: ", fs, "on", mountPoint, node)
 	}
 
-	// TODO - this is technically a race-condition?
 	node.mount = newMount(fs)
 	if node.Parent != nil {
 		_, parentMount := node.Parent.GetPath()
-		parentMount.subMounts++
+		parentMount.incOpenCount(1)
 	}
 
 	return OK
@@ -365,7 +383,9 @@ func (me *PathFileSystemConnector) Unmount(path string) Status {
 		panic(path)
 	}
 
-	if mount.openFiles+mount.openDirs+mount.subMounts > 0 {
+	mount.mutex.Lock()
+	defer mount.mutex.Unlock()
+	if mount.openCount > 0 {
 		log.Println("busy: ", mount)
 		return EBUSY
 	}
@@ -373,7 +393,7 @@ func (me *PathFileSystemConnector) Unmount(path string) Status {
 	if me.Debug {
 		log.Println("Unmount: ", mount)
 	}
-	// node manipulations are racy?
+	
 	if node.RefCount > 0 {
 		mount.fs.Unmount()
 		mount.unmountPending = true
@@ -383,7 +403,7 @@ func (me *PathFileSystemConnector) Unmount(path string) Status {
 
 	if node.Parent != nil {
 		_, parentMount := node.Parent.GetPath()
-		parentMount.subMounts--
+		parentMount.incOpenCount(-1)
 	}
 	return OK
 }
@@ -476,8 +496,7 @@ func (me *PathFileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (fla
 		return 0, nil, err
 	}
 
-	// TODO - racy?
-	mount.openDirs++
+	mount.incOpenCount(1)
 
 	de := new(FuseDir)
 	de.connector = me
@@ -497,8 +516,7 @@ func (me *PathFileSystemConnector) Open(header *InHeader, input *OpenIn) (flags 
 		return 0, nil, err
 	}
 
-	// TODO - racy?
-	mount.openFiles++
+	mount.incOpenCount(1)
 	return 0, f, OK
 }
 
@@ -678,19 +696,24 @@ func (me *PathFileSystemConnector) Create(header *InHeader, input *CreateIn, nam
 		return 0, nil, nil, err
 	}
 
-	mount.openFiles++
+	mount.incOpenCount(1)
+
 	out, code = me.Lookup(header, name)
 	return 0, f, out, code
 }
 
 func (me *PathFileSystemConnector) Release(header *InHeader, f RawFuseFile) {
 	_, mount := me.GetPath(header.NodeId)
-	mount.openFiles--
+	if mount != nil {
+		mount.incOpenCount(-1)
+	}
 }
 
 func (me *PathFileSystemConnector) ReleaseDir(header *InHeader, f RawFuseDir) {
 	_, mount := me.GetPath(header.NodeId)
-	mount.openDirs--
+	if mount != nil {
+		mount.incOpenCount(-1)
+	}
 }
 
 ////////////////////////////////////////////////////////////////
