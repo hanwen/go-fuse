@@ -7,7 +7,7 @@ directory as a loopback:
 
   (cd example ; gomake)
   mkdir mountpoint
-  ./example/main -debug -threaded=false mountpoint /some/other/directory &
+  ./example/loopback -debug -threaded=false mountpoint /some/other/directory &
   (cd mountpoint ; ls)
 
 Tested on:
