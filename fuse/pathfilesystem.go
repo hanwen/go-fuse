@@ -1,5 +1,23 @@
 package fuse
 
+/*
+
+ PathFilesystemConnector is a lowlevel FUSE filesystem that translates
+ from inode numbers (as delivered by the kernel) to traditional path
+ names.  The paths are then used as arguments for methods of
+ PathFilesystem instances.  
+
+ PathFilesystemConnector supports mounts of different PathFilesystem
+ on top of each other's directories.
+
+ General todos:
+
+ - We are doing lookups (incurring GetAttr() costs) for internal
+ lookups (eg. after doing a symlink).  We could probably do without
+ the GetAttr calls.
+ 
+ */
+
 import (
 	"fmt"
 	"log"
