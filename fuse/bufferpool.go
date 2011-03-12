@@ -100,14 +100,14 @@ func (me *BufferPool) AllocBuffer(size uint32) []byte {
 // Takes back a buffer if it was allocated through AllocBuffer.  It is
 // not an error to call FreeBuffer() on a slice obtained elsewhere.
 func (me *BufferPool) FreeBuffer(slice []byte) {
-	me.lock.Lock()
-	defer me.lock.Unlock()
-
 	if cap(slice) < PAGESIZE {
 		return
 	}
 	slice = slice[:cap(slice)] 
 	key := uintptr(unsafe.Pointer(&slice[0]))
+	
+	me.lock.Lock()
+	defer me.lock.Unlock()
 	exp, ok := me.outstandingBuffers[key]
 	if ok {
 		me.addBuffer(slice, exp)
