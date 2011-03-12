@@ -9,7 +9,6 @@ import (
 	"os"
 	"expvar"
 	"flag"
-	"runtime"
 	"strings"
 )
 
@@ -31,8 +30,14 @@ func main() {
 	state.Debug = *debug
 
 	mountPoint := flag.Arg(1)
-	state.Mount(mountPoint)
-	cpus := fuse.CountCpus()
+	err := state.Mount(mountPoint)
+	if err != nil {
+		fmt.Printf("MountFuse fail: %v\n", err)
+		os.Exit(1)
+	}
+	// TODO - figure out what a good value is.
+	cpus := 1
+	// 	cpus := fuse.CountCpus()
 	if cpus > 1 {
 		runtime.GOMAXPROCS(cpus)
 	}
