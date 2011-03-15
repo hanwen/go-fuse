@@ -5,31 +5,22 @@ package fuse
 import (
 	"bytes"
 	"encoding/binary"
-	"rand"
 	"os"
-	"time"
 	"fmt"
-	"path/filepath"
 	"math"
 	"regexp"
 	"syscall"
 	"unsafe"
+	"io/ioutil"
 )
 
 // Make a temporary directory securely.
-//
-// Should move somewhere into Go library?
 func MakeTempDir() string {
-	source := rand.NewSource(time.Nanoseconds())
-	number := source.Int63() & 0xffff
-	name := fmt.Sprintf("tmp%d", number)
-
-	fullName := filepath.Join(os.TempDir(), name)
-	err := os.Mkdir(fullName, 0700)
+	nm, err := ioutil.TempDir("", "go-fuse");
 	if err != nil {
-		panic("Mkdir() should always succeed: " + fullName)
+		panic("TempDir() failed: " + err.String())
 	}
-	return fullName
+	return nm
 }
 
 // Convert os.Error back to Errno based errors.
