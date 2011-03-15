@@ -6,12 +6,14 @@ package fuse
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"syscall"
 )
 
 var _ = fmt.Println
+var _ = log.Println
 
 type LoopbackFileSystem struct {
 	root string
