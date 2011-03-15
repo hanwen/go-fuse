@@ -10,6 +10,7 @@ import (
 	"expvar"
 	"flag"
 	"strings"
+	"runtime"
 )
 
 func main() {
@@ -25,6 +26,15 @@ func main() {
 
 	orig := flag.Arg(0)
 	fs := fuse.NewLoopbackFileSystem(orig)
+
+	var opts fuse.PathFileSystemConnectorOptions
+
+	opts.AttrTimeout = 1.0
+	opts.EntryTimeout = 1.0
+	opts.NegativeTimeout = 1.0
+
+	fs.SetOptions(&opts)
+
 	conn := fuse.NewPathFileSystemConnector(fs)
 	state := fuse.NewMountState(conn)
 	state.Debug = *debug
