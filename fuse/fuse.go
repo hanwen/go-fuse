@@ -78,6 +78,7 @@ type MountState struct {
 	buffers *BufferPool
 
 	operationCounts *expvar.Map
+	operationLatencies *expvar.Map
 }
 
 func (me *MountState) RegisterFile(file RawFuseFile) uint64 {
@@ -138,7 +139,8 @@ func (me *MountState) Mount(mountPoint string) os.Error {
 	me.mountPoint = mp
 	me.mountFile = file
 
-	me.operationCounts = expvar.NewMap(fmt.Sprintf("mount(%v)", mountPoint))
+	me.operationCounts = expvar.NewMap(fmt.Sprintf("fuse_op_count(%v)", mountPoint))
+	me.operationLatencies = expvar.NewMap(fmt.Sprintf("fuse_op_latency_ms(%v)", mountPoint))
 	return nil
 }
 
@@ -260,6 +262,10 @@ func (me *MountState) newFuseRequest() (*fuseRequest, os.Error) {
 }
 
 func (me *MountState) discardFuseRequest(req *fuseRequest) {
+	dt := time.Nanoseconds() - req.startNs
+	me.operationLatencies.Add(operationName(req.inHeader.Opcode),
+		dt / 1e6)
+
 	me.buffers.FreeBuffer(req.inputBuf)
 	me.buffers.FreeBuffer(req.flatData)
 }
@@ -340,7 +346,6 @@ func (me *MountState) dispatch(req *fuseRequest) {
 		h.Opcode == FUSE_LINK {
 		filename = strings.TrimRight(string(req.arg.Bytes()), "\x00")
 	}
-
 	if me.Debug {
 		nm := ""
 		if filename != "" {

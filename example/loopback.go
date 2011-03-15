@@ -57,7 +57,7 @@ func main() {
 	fmt.Println("Finished", state.Stats())
 
 	for v := range expvar.Iter() {
-		if strings.HasPrefix(v.Key, "mount") {
+		if strings.HasPrefix(v.Key, "fuse_") {
 			fmt.Printf("%v: %v\n", v.Key, v.Value)
 		}
 	}
