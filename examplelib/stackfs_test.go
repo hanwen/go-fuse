@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -33,9 +33,9 @@ func (me *stackFsTestCase) Setup(t *testing.T) {
 	me.tester = t
 
 	me.testDir = fuse.MakeTempDir()
-	me.origDir1 = path.Join(me.testDir, "orig1")
-	me.origDir2 = path.Join(me.testDir, "orig2")
-	me.mountDir = path.Join(me.testDir, "mount")
+	me.origDir1 = filepath.Join(me.testDir, "orig1")
+	me.origDir2 = filepath.Join(me.testDir, "orig2")
+	me.mountDir = filepath.Join(me.testDir, "mount")
 
 	os.Mkdir(me.origDir1, 0700)
 	os.Mkdir(me.origDir2, 0700)
@@ -107,12 +107,12 @@ func (me *stackFsTestCase) testReaddir() {
 func (me *stackFsTestCase) testSubFs() {
 	fmt.Println("testSubFs... ")
 	for i := 1; i <= 2; i++ {
-		// orig := path.Join(me.testDir, fmt.Sprintf("orig%d", i))
-		mount := path.Join(me.mountDir, fmt.Sprintf("sub%d", i))
+		// orig := filepath.Join(me.testDir, fmt.Sprintf("orig%d", i))
+		mount := filepath.Join(me.mountDir, fmt.Sprintf("sub%d", i))
 
 		name := "testFile"
 
-		mountFile := path.Join(mount, name)
+		mountFile := filepath.Join(mount, name)
 
 		f, err := os.Open(mountFile, os.O_WRONLY, 0)
 		if err == nil {
@@ -130,7 +130,7 @@ func (me *stackFsTestCase) testSubFs() {
 		CheckSuccess(err)
 
 		fi, err := os.Lstat(mountFile)
-		CheckSuccess(err) 
+		CheckSuccess(err)
 		if fi.Mode&0777 != magicMode {
 			me.tester.Errorf("Mode %o", fi.Mode)
 		}
@@ -166,7 +166,7 @@ func (me *stackFsTestCase) testAddRemove() {
 	}
 	conn.Init(new(fuse.InHeader), new(fuse.InitIn))
 
-	fi, err := os.Lstat(path.Join(me.mountDir, "third"))
+	fi, err := os.Lstat(filepath.Join(me.mountDir, "third"))
 	CheckSuccess(err)
 
 	if !fi.IsDirectory() {
@@ -186,7 +186,7 @@ func (me *stackFsTestCase) testAddRemove() {
 	}
 	dir.Close()
 
-	_, err = os.Open(path.Join(me.mountDir, "third"), os.O_RDONLY, 0)
+	_, err = os.Open(filepath.Join(me.mountDir, "third"), os.O_RDONLY, 0)
 	if err == nil {
 		me.tester.Errorf("expect enoent %v", err)
 	}

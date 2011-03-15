@@ -4,7 +4,7 @@ package fuse
 import (
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 	"syscall"
 	"unsafe"
 )
@@ -42,13 +42,13 @@ func mount(mountPoint string) (f *os.File, finalMountPoint string, err os.Error)
 	defer local.Close()
 	defer remote.Close()
 
-	mountPoint = path.Clean(mountPoint)
-	if !path.IsAbs(mountPoint) {
+	mountPoint = filepath.Clean(mountPoint)
+	if !filepath.IsAbs(mountPoint) {
 		cwd, err := os.Getwd()
 		if err != nil {
 			return
 		}
-		mountPoint = path.Clean(path.Join(cwd, mountPoint))
+		mountPoint = filepath.Clean(filepath.Join(cwd, mountPoint))
 	}
 	proc, err := os.StartProcess("/bin/fusermount",
 		[]string{"/bin/fusermount", mountPoint},
@@ -73,7 +73,7 @@ func mount(mountPoint string) (f *os.File, finalMountPoint string, err os.Error)
 }
 
 func unmount(mountPoint string) (err os.Error) {
-	dir, _ := path.Split(mountPoint)
+	dir, _ := filepath.Split(mountPoint)
 	proc, err := os.StartProcess("/bin/fusermount",
 		[]string{"/bin/fusermount", "-u", mountPoint},
 		nil,

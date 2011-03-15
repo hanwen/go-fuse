@@ -14,7 +14,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"log"
 	"os"
-	"path"
+	"path/filepath"
 	"sync"
 	"strings"
 )
@@ -51,7 +51,7 @@ func (me *zipCreateFile) Write(input *fuse.WriteIn, nameBytes []byte) (uint32, f
 		return 0, fuse.ENOSYS
 	}
 
-	code := me.zfs.Connector.Mount("/"+path.Base(me.Basename), fs)
+	code := me.zfs.Connector.Mount("/"+filepath.Base(me.Basename), fs)
 	if code != fuse.OK {
 		return 0, code
 
@@ -142,7 +142,7 @@ func (me *MultiZipFs) GetAttr(name string) (*fuse.Attr, fuse.Status) {
 		return a, fuse.OK
 	}
 
-	dir, base := path.Split(name)
+	dir, base := filepath.Split(name)
 	if dir != "" && dir != CONFIG_PREFIX {
 		return nil, fuse.ENOENT
 	}
@@ -169,7 +169,7 @@ func (me *MultiZipFs) GetAttr(name string) (*fuse.Attr, fuse.Status) {
 }
 
 func (me *MultiZipFs) Unlink(name string) (code fuse.Status) {
-	dir, basename := path.Split(name)
+	dir, basename := filepath.Split(name)
 	if dir == CONFIG_PREFIX {
 		me.lock.Lock()
 		defer me.lock.Unlock()
@@ -190,7 +190,7 @@ func (me *MultiZipFs) Open(name string, flags uint32) (file fuse.RawFuseFile, co
 		return nil, fuse.EPERM
 	}
 
-	dir, basename := path.Split(name)
+	dir, basename := filepath.Split(name)
 	if dir == CONFIG_PREFIX {
 		me.lock.RLock()
 		defer me.lock.RUnlock()
@@ -207,7 +207,7 @@ func (me *MultiZipFs) Open(name string, flags uint32) (file fuse.RawFuseFile, co
 }
 
 func (me *MultiZipFs) Create(name string, flags uint32, mode uint32) (file fuse.RawFuseFile, code fuse.Status) {
-	dir, base := path.Split(name)
+	dir, base := filepath.Split(name)
 	if dir != CONFIG_PREFIX {
 		return nil, fuse.EPERM
 	}

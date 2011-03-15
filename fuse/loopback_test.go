@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 	"syscall"
@@ -46,12 +46,12 @@ func (me *testCase) Setup(t *testing.T) {
 	me.origDir = MakeTempDir()
 	me.mountPoint = MakeTempDir()
 
-	me.mountFile = path.Join(me.mountPoint, name)
-	me.mountSubdir = path.Join(me.mountPoint, subdir)
-	me.mountSubfile = path.Join(me.mountSubdir, "subfile")
-	me.origFile = path.Join(me.origDir, name)
-	me.origSubdir = path.Join(me.origDir, subdir)
-	me.origSubfile = path.Join(me.origSubdir, "subfile")
+	me.mountFile = filepath.Join(me.mountPoint, name)
+	me.mountSubdir = filepath.Join(me.mountPoint, subdir)
+	me.mountSubfile = filepath.Join(me.mountSubdir, "subfile")
+	me.origFile = filepath.Join(me.origDir, name)
+	me.origSubdir = filepath.Join(me.origDir, subdir)
+	me.origSubfile = filepath.Join(me.origSubdir, "subfile")
 
 	pfs := NewLoopbackFileSystem(me.origDir)
 	me.connector = NewPathFileSystemConnector(pfs)
@@ -108,7 +108,7 @@ func (me *testCase) writeOrigFile() {
 // Tests.
 
 func (me *testCase) testOpenUnreadable() {
-	_, err := os.Open(path.Join(me.mountPoint, "doesnotexist"), os.O_RDONLY, 0)
+	_, err := os.Open(filepath.Join(me.mountPoint, "doesnotexist"), os.O_RDONLY, 0)
 	if err == nil {
 		me.tester.Errorf("open non-existent should raise error")
 	}
@@ -241,13 +241,13 @@ func (me *testCase) testSymlink() {
 
 	linkFile := "symlink-file"
 	orig := "hello.txt"
-	err := os.Symlink(orig, path.Join(me.mountPoint, linkFile))
-	defer os.Remove(path.Join(me.mountPoint, linkFile))
+	err := os.Symlink(orig, filepath.Join(me.mountPoint, linkFile))
+	defer os.Remove(filepath.Join(me.mountPoint, linkFile))
 	defer me.removeMountFile()
 
 	CheckSuccess(err)
 
-	origLink := path.Join(me.origDir, linkFile)
+	origLink := filepath.Join(me.origDir, linkFile)
 	fi, err := os.Lstat(origLink)
 	CheckSuccess(err)
 
@@ -256,7 +256,7 @@ func (me *testCase) testSymlink() {
 		return
 	}
 
-	read, err := os.Readlink(path.Join(me.mountPoint, linkFile))
+	read, err := os.Readlink(filepath.Join(me.mountPoint, linkFile))
 	CheckSuccess(err)
 
 	if read != orig {
@@ -368,7 +368,7 @@ func (me *testCase) testFSync() {
 
 func (me *testCase) testLargeRead() {
 	me.tester.Log("Testing large read.")
-	name := path.Join(me.origDir, "large")
+	name := filepath.Join(me.origDir, "large")
 	f, err := os.Open(name, os.O_WRONLY|os.O_CREATE, 0777)
 	CheckSuccess(err)
 
@@ -387,7 +387,7 @@ func (me *testCase) testLargeRead() {
 	CheckSuccess(err)
 
 	// Read in one go.
-	g, err := os.Open(path.Join(me.mountPoint, "large"), os.O_RDONLY, 0)
+	g, err := os.Open(filepath.Join(me.mountPoint, "large"), os.O_RDONLY, 0)
 	CheckSuccess(err)
 	readSlice := make([]byte, len(slice))
 	m, err := g.Read(readSlice)
@@ -405,7 +405,7 @@ func (me *testCase) testLargeRead() {
 	g.Close()
 
 	// Read in chunks
-	g, err = os.Open(path.Join(me.mountPoint, "large"), os.O_RDONLY, 0)
+	g, err = os.Open(filepath.Join(me.mountPoint, "large"), os.O_RDONLY, 0)
 	CheckSuccess(err)
 	readSlice = make([]byte, 4096)
 	total := 0
@@ -444,7 +444,7 @@ func (me *testCase) testLargeDirRead() {
 
 	names := make([]string, created)
 
-	subdir := path.Join(me.origDir, "readdirSubdir")
+	subdir := filepath.Join(me.origDir, "readdirSubdir")
 	os.Mkdir(subdir, 0700)
 	longname := "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
@@ -453,7 +453,7 @@ func (me *testCase) testLargeDirRead() {
 		// Should vary file name length.
 		base := fmt.Sprintf("file%d%s", i,
 			randomLengthString(len(longname)))
-		name := path.Join(subdir, base)
+		name := filepath.Join(subdir, base)
 
 		nameSet[base] = true
 
@@ -465,7 +465,7 @@ func (me *testCase) testLargeDirRead() {
 		names[i] = name
 	}
 
-	dir, err := os.Open(path.Join(me.mountPoint, "readdirSubdir"), os.O_RDONLY, 0)
+	dir, err := os.Open(filepath.Join(me.mountPoint, "readdirSubdir"), os.O_RDONLY, 0)
 	CheckSuccess(err)
 	// Chunked read.
 	total := 0
@@ -524,7 +524,7 @@ func TestRecursiveMount(t *testing.T) {
 	ts := new(testCase)
 	ts.Setup(t)
 
-	f, err := os.Open(path.Join(ts.mountPoint, "hello.txt"),
+	f, err := os.Open(filepath.Join(ts.mountPoint, "hello.txt"),
 		os.O_WRONLY|os.O_CREATE, 0777)
 
 	CheckSuccess(err)
@@ -537,7 +537,7 @@ func TestRecursiveMount(t *testing.T) {
 		t.Error("expect EINVAL", code)
 	}
 
-	submnt := path.Join(ts.mountPoint, "mnt")
+	submnt := filepath.Join(ts.mountPoint, "mnt")
 	err = os.Mkdir(submnt, 0777)
 	CheckSuccess(err)
 	code = ts.connector.Mount("/mnt", pfs2)
@@ -547,10 +547,10 @@ func TestRecursiveMount(t *testing.T) {
 
 	_, err = os.Lstat(submnt)
 	CheckSuccess(err)
-	_, err = os.Lstat(path.Join(submnt, "hello.txt"))
+	_, err = os.Lstat(filepath.Join(submnt, "hello.txt"))
 	CheckSuccess(err)
 
-	f, err = os.Open(path.Join(submnt, "hello.txt"), os.O_RDONLY, 0)
+	f, err = os.Open(filepath.Join(submnt, "hello.txt"), os.O_RDONLY, 0)
 	CheckSuccess(err)
 	code = ts.connector.Unmount("/mnt")
 	if code != EBUSY {

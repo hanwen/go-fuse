@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"path"
+	"path/filepath"
 	"log"
 )
 
@@ -44,7 +44,7 @@ func (me *ZipDirTree) Lookup(name string) (*ZipDirTree, *zip.File) {
 		return me, nil
 	}
 	parent := me
-	comps := strings.Split(path.Clean(name), "/", -1)
+	comps := strings.Split(filepath.Clean(name), "/", -1)
 	for _, c := range comps[:len(comps)-1] {
 		parent = parent.subdirs[c]
 		if parent == nil {
@@ -82,7 +82,7 @@ func zipFilesToTree(files []*zip.File) *ZipDirTree {
 	t := NewZipDirTree()
 	for _, f := range files {
 		parent := t
-		comps := strings.Split(path.Clean(f.Name), "/", -1)
+		comps := strings.Split(filepath.Clean(f.Name), "/", -1)
 		base := ""
 
 		// Ugh - zip files have directories separate.

@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 	"fmt"
-	"path"
+	"path/filepath"
 	"math"
 	"regexp"
 	"syscall"
@@ -24,7 +24,7 @@ func MakeTempDir() string {
 	number := source.Int63() & 0xffff
 	name := fmt.Sprintf("tmp%d", number)
 
-	fullName := path.Join(os.TempDir(), name)
+	fullName := filepath.Join(os.TempDir(), name)
 	err := os.Mkdir(fullName, 0700)
 	if err != nil {
 		panic("Mkdir() should always succeed: " + fullName)
@@ -49,7 +49,7 @@ func OsErrorToFuseError(err os.Error) Status {
 		if ok {
 			return OsErrorToFuseError(asPathErr.Error)
 		}
-		
+
 		// Should not happen.  Should we log an error somewhere?
 		return ENOSYS
 	}
@@ -270,7 +270,6 @@ func Writev(fd int, packet [][]byte) (n int, err os.Error) {
 
 	if errno != 0 {
 		err = os.NewSyscallError("writev", errno)
-		return
 	}
 	return
 }

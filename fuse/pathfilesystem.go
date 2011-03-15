@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 )
@@ -15,7 +15,7 @@ type mountData struct {
 
 	// Protects the variables below.
 	mutex sync.RWMutex
-	
+
 	// If yes, we are looking to unmount the mounted fs.
 	unmountPending bool
 
@@ -277,7 +277,7 @@ func (me *PathFileSystemConnector) unlinkUpdate(nodeid uint64, name string) {
 
 // Walk the file system starting from the root.
 func (me *PathFileSystemConnector) findInode(fullPath string) *inodeData {
-	fullPath = strings.TrimLeft(path.Clean(fullPath), "/")
+	fullPath = strings.TrimLeft(filepath.Clean(fullPath), "/")
 	comps := strings.Split(fullPath, "/", -1)
 
 	me.lock.RLock()
@@ -334,7 +334,7 @@ func (me *PathFileSystemConnector) Mount(mountPoint string, fs PathFilesystem) S
 	var node *inodeData
 
 	if mountPoint != "/" {
-		dirParent, base := path.Split(mountPoint)
+		dirParent, base := filepath.Split(mountPoint)
 		dirParentNode := me.findInode(dirParent)
 
 		// Make sure we know the mount point.
@@ -393,7 +393,7 @@ func (me *PathFileSystemConnector) Unmount(path string) Status {
 	if me.Debug {
 		log.Println("Unmount: ", mount)
 	}
-	
+
 	if node.RefCount > 0 {
 		mount.fs.Unmount()
 		mount.unmountPending = true
@@ -435,7 +435,7 @@ func (me *PathFileSystemConnector) internalLookup(nodeid uint64, name string, lo
 	if mount == nil {
 		return NegativeEntry(me.options.NegativeTimeout), OK
 	}
-	fullPath = path.Join(fullPath, name)
+	fullPath = filepath.Join(fullPath, name)
 
 	attr, err := mount.fs.GetAttr(fullPath)
 
@@ -570,7 +570,7 @@ func (me *PathFileSystemConnector) Mknod(header *InHeader, input *MknodIn, name 
 	if mount == nil {
 		return nil, ENOENT
 	}
-	fullPath = path.Join(fullPath, name)
+	fullPath = filepath.Join(fullPath, name)
 	err := mount.fs.Mknod(fullPath, input.Mode, uint32(input.Rdev))
 	if err != OK {
 		return nil, err
@@ -583,7 +583,7 @@ func (me *PathFileSystemConnector) Mkdir(header *InHeader, input *MkdirIn, name 
 	if mount == nil {
 		return nil, ENOENT
 	}
-	err := mount.fs.Mkdir(path.Join(fullPath, name), input.Mode)
+	err := mount.fs.Mkdir(filepath.Join(fullPath, name), input.Mode)
 	if err != OK {
 		return nil, err
 	}
@@ -596,7 +596,7 @@ func (me *PathFileSystemConnector) Unlink(header *InHeader, name string) (code S
 	if mount == nil {
 		return ENOENT
 	}
-	code = mount.fs.Unlink(path.Join(fullPath, name))
+	code = mount.fs.Unlink(filepath.Join(fullPath, name))
 
 	// Like fuse.c, we update our internal tables.
 	me.unlinkUpdate(header.NodeId, name)
@@ -609,7 +609,7 @@ func (me *PathFileSystemConnector) Rmdir(header *InHeader, name string) (code St
 	if mount == nil {
 		return ENOENT
 	}
-	code = mount.fs.Rmdir(path.Join(fullPath, name))
+	code = mount.fs.Rmdir(filepath.Join(fullPath, name))
 	me.unlinkUpdate(header.NodeId, name)
 	return code
 }
@@ -619,7 +619,7 @@ func (me *PathFileSystemConnector) Symlink(header *InHeader, pointedTo string, l
 	if mount == nil {
 		return nil, ENOENT
 	}
-	err := mount.fs.Symlink(pointedTo, path.Join(fullPath, linkName))
+	err := mount.fs.Symlink(pointedTo, filepath.Join(fullPath, linkName))
 	if err != OK {
 		return nil, err
 	}
@@ -638,8 +638,8 @@ func (me *PathFileSystemConnector) Rename(header *InHeader, input *RenameIn, old
 		return EXDEV
 	}
 
-	oldPath = path.Join(oldPath, oldName)
-	newPath = path.Join(newPath, newName)
+	oldPath = filepath.Join(oldPath, oldName)
+	newPath = filepath.Join(newPath, newName)
 	code = mount.fs.Rename(oldPath, newPath)
 	if code != OK {
 		return
@@ -666,7 +666,7 @@ func (me *PathFileSystemConnector) Link(header *InHeader, input *LinkIn, filenam
 	if mount != newMount {
 		return nil, EXDEV
 	}
-	newName = path.Join(newName, filename)
+	newName = filepath.Join(newName, filename)
 	err := mount.fs.Link(orig, newName)
 
 	if err != OK {
@@ -689,7 +689,7 @@ func (me *PathFileSystemConnector) Create(header *InHeader, input *CreateIn, nam
 	if mount == nil {
 		return 0, nil, nil, ENOENT
 	}
-	fullPath := path.Join(directory, name)
+	fullPath := filepath.Join(directory, name)
 
 	f, err := mount.fs.Create(fullPath, uint32(input.Flags), input.Mode)
 	if err != OK {

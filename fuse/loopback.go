@@ -7,7 +7,7 @@ package fuse
 import (
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 	"syscall"
 )
 
@@ -27,7 +27,7 @@ func NewLoopbackFileSystem(root string) (out *LoopbackFileSystem) {
 }
 
 func (me *LoopbackFileSystem) GetPath(relPath string) string {
-	return path.Join(me.root, relPath)
+	return filepath.Join(me.root, relPath)
 }
 
 func (me *LoopbackFileSystem) GetAttr(name string) (*Attr, Status) {

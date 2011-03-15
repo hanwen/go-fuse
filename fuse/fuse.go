@@ -16,7 +16,7 @@ import (
 const (
 	// bufSize should be a power of two to minimize lossage in
 	// BufferPool.
-	bufSize = (1 << 16)
+	bufSize = (1 << 18)
 	maxRead = bufSize - PAGESIZE
 )
 
