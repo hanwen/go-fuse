@@ -113,12 +113,13 @@ func (me *LoopbackFileSystem) Mkdir(path string, mode uint32) (code Status) {
 	return OsErrorToFuseError(os.Mkdir(me.GetPath(path), mode))
 }
 
+// Don't use os.Remove, it removes twice (unlink followed by rmdir).
 func (me *LoopbackFileSystem) Unlink(name string) (code Status) {
-	return OsErrorToFuseError(os.Remove(me.GetPath(name)))
+	return Status(syscall.Unlink(me.GetPath(name)))
 }
 
 func (me *LoopbackFileSystem) Rmdir(name string) (code Status) {
-	return OsErrorToFuseError(os.Remove(me.GetPath(name)))
+	return Status(syscall.Rmdir(me.GetPath(name)))
 }
 
 func (me *LoopbackFileSystem) Symlink(pointedTo string, linkName string) (code Status) {
