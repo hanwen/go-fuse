@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"os"
 	"fmt"
+	"log"
 	"math"
 	"regexp"
 	"syscall"
@@ -41,7 +42,13 @@ func OsErrorToFuseError(err os.Error) Status {
 			return OsErrorToFuseError(asPathErr.Error)
 		}
 
+		asLinkErr, ok := err.(*os.LinkError)
+		if ok {
+			return OsErrorToFuseError(asLinkErr.Error)
+		}
+
 		// Should not happen.  Should we log an error somewhere?
+		log.Println("can't convert error type:", err)
 		return ENOSYS
 	}
 	return OK
