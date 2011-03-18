@@ -9,7 +9,22 @@ import (
 	"os"
 	"flag"
 	"runtime"
+	"sort"
 )
+
+func PrintMap(m map[string]float64)  {
+	keys := make([]string, len(m))
+	for k, _ := range m {
+		keys = append(keys, k)
+	}
+
+	sort.SortStrings(keys)
+	for _, k := range keys {
+		if m[k] > 0 {
+			fmt.Println(k, m[k])
+		}
+	}
+}
 
 func main() {
 	// Scans the arg list and sets up flags
@@ -35,7 +50,9 @@ func main() {
 	fs.SetOptions(&opts)
 
 	conn := fuse.NewPathFileSystemConnector(timing)
-	state := fuse.NewMountState(conn)
+	rawTiming := fuse.NewTimingRawFilesystem(conn)
+	
+	state := fuse.NewMountState(rawTiming)
 	state.Debug = *debug
 
 	mountPoint := flag.Arg(1)
@@ -56,12 +73,15 @@ func main() {
 	fmt.Println("Finished", state.Stats())
 
 	counts := state.OperationCounts()
-
 	fmt.Println("Counts: ", counts)
 
 	latency := state.Latencies()
-	fmt.Println("Latency (ms):", latency)
+	fmt.Println("MountState latency (ms):")
+	PrintMap(latency)
 
 	latency = timing.Latencies()
 	fmt.Println("Path ops (ms):", latency)
+
+	latency = rawTiming.Latencies()
+	fmt.Println("Raw FS (ms):", latency)
 }
