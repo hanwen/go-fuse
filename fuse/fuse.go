@@ -17,7 +17,7 @@ import (
 const (
 	// bufSize should be a power of two to minimize lossage in
 	// BufferPool.
-	bufSize = (1 << 18)
+	bufSize = (1 << 16)
 	maxRead = bufSize - PAGESIZE
 )
 
@@ -43,6 +43,8 @@ type fuseRequest struct {
 
 	// Start timestamp for timing info.
 	startNs int64
+	dispatchNs int64
+	preWriteNs int64
 }
 
 // TODO - should gather stats and expose those for performance tuning.
@@ -65,8 +67,8 @@ type MountState struct {
 
 	// I/O with kernel and daemon.
 	mountFile     *os.File
+	
 	errorChannel  chan os.Error
-	outputChannel chan *fuseRequest
 
 	// Run each operation in its own Go-routine.
 	threaded bool
@@ -150,16 +152,13 @@ func (me *MountState) Mount(mountPoint string) os.Error {
 func (me *MountState) Loop(threaded bool) {
 	me.threaded = threaded
 	if me.threaded {
-		me.outputChannel = make(chan *fuseRequest, 100)
 		me.errorChannel = make(chan os.Error, 100)
-		go me.asyncWriterThread()
 		go me.DefaultErrorHandler()
 	}
 
 	me.loop()
 
 	if me.threaded {
-		close(me.outputChannel)
 		close(me.errorChannel)
 	}
 }
@@ -196,11 +195,12 @@ func (me *MountState) Write(req *fuseRequest) {
 		return
 	}
 
-	if me.threaded {
-		me.outputChannel <- req
-	} else {
-		me.syncWrite(req)
+	_, err := Writev(me.mountFile.Fd(), req.serialized)
+	if err != nil {
+		me.Error(os.NewError(fmt.Sprintf("writer: Writev %v failed, err: %v", req.serialized, err)))
 	}
+
+	me.discardFuseRequest(req)
 }
 
 func NewMountState(fs RawFileSystem) *MountState {
@@ -253,47 +253,44 @@ func (me *MountState) Stats() string {
 	return strings.Join(lines, "\n")
 }
 
-////////////////
-// Private routines.
-
-func (me *MountState) asyncWriterThread() {
-	for packet := range me.outputChannel {
-		me.syncWrite(packet)
-	}
-}
-
-func (me *MountState) syncWrite(req *fuseRequest) {
-	_, err := Writev(me.mountFile.Fd(), req.serialized)
-	if err != nil {
-		me.Error(os.NewError(fmt.Sprintf("writer: Writev %v failed, err: %v", req.serialized, err)))
-	}
-
-	me.discardFuseRequest(req)
-}
-
 ////////////////////////////////////////////////////////////////
 // Logic for the control loop.
 
-func (me *MountState) newFuseRequest() (*fuseRequest, os.Error) {
+func (me *MountState) newFuseRequest() (*fuseRequest) {
 	req := new(fuseRequest)
 	req.status = OK
-	req.startNs = time.Nanoseconds()
 	req.inputBuf = me.buffers.AllocBuffer(bufSize)
-	n, err := me.mountFile.Read(req.inputBuf)
-	req.inputBuf = req.inputBuf[0:n]
+	return req
+}
 
-	return req, err
+func (me *MountState) readRequest(req *fuseRequest) os.Error {
+	n, err := me.mountFile.Read(req.inputBuf)
+	// If we start timing before the read, we may take into
+	// account waiting for input into the timing.
+	req.startNs = time.Nanoseconds()
+	req.inputBuf = req.inputBuf[0:n]
+	return err
 }
 
 func (me *MountState) discardFuseRequest(req *fuseRequest) {
-	dt := time.Nanoseconds() - req.startNs
+	endNs := time.Nanoseconds() 
+	dt := endNs - req.startNs
 
 	me.statisticsMutex.Lock()
 	defer me.statisticsMutex.Unlock()
 
-	key := operationName(req.inHeader.Opcode)
+	opname := operationName(req.inHeader.Opcode)
+	key := opname
 	me.operationCounts[key] += 1
 	me.operationLatencies[key] += dt / 1e6
+
+	key += "-dispatch" 
+	me.operationLatencies[key] += (req.dispatchNs - req.startNs) / 1e6	
+	me.operationCounts[key] += 1 
+
+	key = opname + "-write" 
+	me.operationLatencies[key] += (endNs - req.preWriteNs) / 1e6	
+	me.operationCounts[key] += 1 
 
 	me.buffers.FreeBuffer(req.inputBuf)
 	me.buffers.FreeBuffer(req.flatData)
@@ -302,7 +299,9 @@ func (me *MountState) discardFuseRequest(req *fuseRequest) {
 func (me *MountState) loop() {
 	// See fuse_kern_chan_receive()
 	for {
-		req, err := me.newFuseRequest()
+		req := me.newFuseRequest()
+
+		err := me.readRequest(req)
 		if err != nil {
 			errNo := OsErrorToFuseError(err)
 
@@ -337,6 +336,7 @@ func (me *MountState) loop() {
 }
 
 func (me *MountState) handle(req *fuseRequest) {
+	req.dispatchNs = time.Nanoseconds()
 	req.arg = bytes.NewBuffer(req.inputBuf)
 	err := binary.Read(req.arg, binary.LittleEndian, &req.inHeader)
 	if err == os.EOF {
@@ -347,6 +347,7 @@ func (me *MountState) handle(req *fuseRequest) {
 		return
 	}
 	me.dispatch(req)
+	req.preWriteNs = time.Nanoseconds()
 	me.Write(req)
 }
 
