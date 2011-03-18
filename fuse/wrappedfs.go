@@ -81,3 +81,113 @@ func (me *WrappingPathFilesystem) Utimens(name string, AtimeNs uint64, CtimeNs u
 }
 
 
+////////////////////////////////////////////////////////////////
+// Wrapping raw FS.
+
+type WrappingRawFilesystem struct {
+	original RawFileSystem
+}
+
+
+func (me *WrappingRawFilesystem) Init(h *InHeader, input *InitIn) (*InitOut, Status) {
+	return me.original.Init(h, input)
+}
+
+func (me *WrappingRawFilesystem) Destroy(h *InHeader, input *InitIn) {
+	me.original.Destroy(h, input)
+}
+
+func (me *WrappingRawFilesystem) Lookup(h *InHeader, name string) (out *EntryOut, code Status) {
+	return me.original.Lookup(h, name)
+}
+
+func (me *WrappingRawFilesystem) Forget(h *InHeader, input *ForgetIn) {
+	me.original.Forget(h, input)
+}
+
+func (me *WrappingRawFilesystem) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
+	return me.original.GetAttr(header, input)
+}
+
+func (me *WrappingRawFilesystem) Open(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseFile, status Status) {
+	return me.original.Open(header, input)
+}
+
+func (me *WrappingRawFilesystem) SetAttr(header *InHeader, input *SetAttrIn) (out *AttrOut, code Status) {
+	return me.original.SetAttr(header, input)
+}
+
+func (me *WrappingRawFilesystem) Readlink(header *InHeader) (out []byte, code Status) {
+	return me.original.Readlink(header)
+}
+
+func (me *WrappingRawFilesystem) Mknod(header *InHeader, input *MknodIn, name string) (out *EntryOut, code Status) {
+	return me.original.Mknod(header, input, name)
+}
+
+func (me *WrappingRawFilesystem) Mkdir(header *InHeader, input *MkdirIn, name string) (out *EntryOut, code Status) {
+	return me.original.Mkdir(header, input, name)
+}
+
+func (me *WrappingRawFilesystem) Unlink(header *InHeader, name string) (code Status) {
+	return me.original.Unlink(header, name)
+}
+
+func (me *WrappingRawFilesystem) Rmdir(header *InHeader, name string) (code Status) {
+	return me.original.Rmdir(header, name)
+}
+
+func (me *WrappingRawFilesystem) Symlink(header *InHeader, pointedTo string, linkName string) (out *EntryOut, code Status) {
+	return me.original.Symlink(header, pointedTo, linkName)
+}
+
+func (me *WrappingRawFilesystem) Rename(header *InHeader, input *RenameIn, oldName string, newName string) (code Status) {
+	return me.original.Rename(header, input, oldName, newName)
+}
+
+func (me *WrappingRawFilesystem) Link(header *InHeader, input *LinkIn, name string) (out *EntryOut, code Status) {
+	return me.original.Link(header, input, name)
+}
+
+func (me *WrappingRawFilesystem) SetXAttr(header *InHeader, input *SetXAttrIn) Status {
+	return me.original.SetXAttr(header, input)
+}
+
+func (me *WrappingRawFilesystem) GetXAttr(header *InHeader, input *GetXAttrIn) (out *GetXAttrOut, code Status) {
+	return me.original.GetXAttr(header, input)
+}
+
+func (me *WrappingRawFilesystem) Access(header *InHeader, input *AccessIn) (code Status) {
+	return me.original.Access(header, input)
+}
+
+func (me *WrappingRawFilesystem) Create(header *InHeader, input *CreateIn, name string) (flags uint32, fuseFile RawFuseFile, out *EntryOut, code Status) {
+	return me.original.Create(header, input, name)
+}
+
+func (me *WrappingRawFilesystem) Bmap(header *InHeader, input *BmapIn) (out *BmapOut, code Status) {
+	return me.original.Bmap(header, input)
+}
+
+func (me *WrappingRawFilesystem) Ioctl(header *InHeader, input *IoctlIn) (out *IoctlOut, code Status) {
+	return me.original.Ioctl(header, input)
+}
+
+func (me *WrappingRawFilesystem) Poll(header *InHeader, input *PollIn) (out *PollOut, code Status) {
+	return me.original.Poll(header, input)
+}
+
+func (me *WrappingRawFilesystem) OpenDir(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseDir, status Status) {
+	return me.original.OpenDir(header, input)
+}
+
+func (me *WrappingRawFilesystem) Release(header *InHeader, f RawFuseFile) {
+	me.original.Release(header, f)
+}
+
+func (me *WrappingRawFilesystem) ReleaseDir(header *InHeader, f RawFuseDir) {
+	me.original.ReleaseDir(header, f)
+}
+
+
+

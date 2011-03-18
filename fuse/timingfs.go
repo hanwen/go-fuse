@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-
+// TimingPathFilesystem is a wrapper to collect timings for a PathFilesystem
 type TimingPathFilesystem struct {
 	original PathFilesystem
 
