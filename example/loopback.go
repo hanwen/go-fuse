@@ -7,9 +7,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"fmt"
 	"os"
-	"expvar"
 	"flag"
-	"strings"
 	"runtime"
 )
 
@@ -26,6 +24,7 @@ func main() {
 
 	orig := flag.Arg(0)
 	fs := fuse.NewLoopbackFileSystem(orig)
+	timing := fuse.NewTimingPathFilesystem(fs)
 
 	var opts fuse.PathFileSystemConnectorOptions
 
@@ -35,7 +34,7 @@ func main() {
 
 	fs.SetOptions(&opts)
 
-	conn := fuse.NewPathFileSystemConnector(fs)
+	conn := fuse.NewPathFileSystemConnector(timing)
 	state := fuse.NewMountState(conn)
 	state.Debug = *debug
 
@@ -56,9 +55,13 @@ func main() {
 	state.Loop(*threaded)
 	fmt.Println("Finished", state.Stats())
 
-	for v := range expvar.Iter() {
-		if strings.HasPrefix(v.Key, "fuse_") {
-			fmt.Printf("%v: %v\n", v.Key, v.Value)
-		}
-	}
+	counts := state.OperationCounts()
+
+	fmt.Println("Counts: ", counts)
+
+	latency := state.Latencies()
+	fmt.Println("Latency (ms):", latency)
+
+	latency = timing.Latencies()
+	fmt.Println("Path ops (ms):", latency)
 }

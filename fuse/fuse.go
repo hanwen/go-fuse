@@ -31,11 +31,11 @@ type fuseRequest struct {
 
 	// These split up inputBuf.
 	inHeader InHeader
-	arg *bytes.Buffer
+	arg      *bytes.Buffer
 
 	// Data for the output.
-	data interface{}
-	status Status
+	data     interface{}
+	status   Status
 	flatData []byte
 
 	// The stuff we send back to the kernel.
@@ -77,8 +77,9 @@ type MountState struct {
 	// For efficient reads.
 	buffers *BufferPool
 
-	operationCounts *expvar.Map
-	operationLatencies *expvar.Map
+	statisticsMutex    sync.Mutex
+	operationCounts    map[string]int64
+	operationLatencies map[string]int64
 }
 
 func (me *MountState) RegisterFile(file RawFuseFile) uint64 {
@@ -139,8 +140,8 @@ func (me *MountState) Mount(mountPoint string) os.Error {
 	me.mountPoint = mp
 	me.mountFile = file
 
-	me.operationCounts = expvar.NewMap(fmt.Sprintf("fuse_op_count(%v)", mountPoint))
-	me.operationLatencies = expvar.NewMap(fmt.Sprintf("fuse_op_latency_ms(%v)", mountPoint))
+	me.operationCounts = make(map[string]int64)
+	me.operationLatencies = make(map[string]int64)
 	return nil
 }
 
@@ -214,6 +215,29 @@ func NewMountState(fs RawFileSystem) *MountState {
 }
 
 // TODO - have more statistics.
+func (me *MountState) Latencies() map[string]float64 {
+	me.statisticsMutex.Lock()
+	defer me.statisticsMutex.Unlock()
+
+	r := make(map[string]float64)
+	for k, v := range me.operationCounts {
+		r[k] = float64(me.operationLatencies[k]) / float64(v)
+	}
+
+	return r
+}
+
+func (me *MountState) OperationCounts() map[string]int64 {
+	me.statisticsMutex.Lock()
+	defer me.statisticsMutex.Unlock()
+
+	r := make(map[string]int64)
+	for k, v := range me.operationCounts {
+		r[k] = v
+	}
+	return r
+}
+
 func (me *MountState) Stats() string {
 	var lines []string
 
@@ -263,8 +287,13 @@ func (me *MountState) newFuseRequest() (*fuseRequest, os.Error) {
 
 func (me *MountState) discardFuseRequest(req *fuseRequest) {
 	dt := time.Nanoseconds() - req.startNs
-	me.operationLatencies.Add(operationName(req.inHeader.Opcode),
-		dt / 1e6)
+
+	me.statisticsMutex.Lock()
+	defer me.statisticsMutex.Unlock()
+
+	key := operationName(req.inHeader.Opcode)
+	me.operationCounts[key] += 1
+	me.operationLatencies[key] += dt / 1e6
 
 	me.buffers.FreeBuffer(req.inputBuf)
 	me.buffers.FreeBuffer(req.flatData)
@@ -325,7 +354,6 @@ func (me *MountState) handle(req *fuseRequest) {
 func (me *MountState) dispatch(req *fuseRequest) {
 	// TODO - would be nice to remove this logging from the critical path.
 	h := &req.inHeader
-	me.operationCounts.Add(operationName(h.Opcode), 1)
 
 	input := newInput(h.Opcode)
 	if input != nil && !parseLittleEndian(req.arg, input) {
