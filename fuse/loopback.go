@@ -146,6 +146,12 @@ func (me *LoopbackFileSystem) Create(path string, flags uint32, mode uint32) (fu
 	return &LoopbackFile{file: f}, OsErrorToFuseError(err)
 }
 
+func (me *LoopbackFileSystem) GetXAttr(name string, attr string) ([]byte, Status) {
+	data, errNo := GetXAttr(me.GetPath(name), attr)
+
+	return data, Status(errNo)
+}
+
 func (me *LoopbackFileSystem) SetOptions(options *PathFileSystemConnectorOptions) {
 	options.NegativeTimeout = 100.0
 	options.AttrTimeout = 100.0

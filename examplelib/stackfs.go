@@ -511,14 +511,13 @@ func (me *SubmountFileSystem) SetXAttr(header *fuse.InHeader, input *fuse.SetXAt
 	return subfs.Fs.SetXAttr(header, input)
 }
 
-func (me *SubmountFileSystem) GetXAttr(header *fuse.InHeader, input *fuse.GetXAttrIn) (out *fuse.GetXAttrOut, code fuse.Status) {
+func (me *SubmountFileSystem) GetXAttr(header *fuse.InHeader, attr string) (data []byte, code fuse.Status) {
 	var subfs *subFsInfo
 	header.NodeId, subfs = me.getSubFs(header.NodeId)
 	if subfs == nil {
 		return nil, fuse.ENOENT
 	}
-	out, code = subfs.Fs.GetXAttr(header, input)
-	return out, code
+	return subfs.Fs.GetXAttr(header, attr)
 }
 
 func (me *SubmountFileSystem) Access(header *fuse.InHeader, input *fuse.AccessIn) (code fuse.Status) {

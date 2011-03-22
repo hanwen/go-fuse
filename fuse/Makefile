@@ -16,7 +16,8 @@ GOFILES=misc.go\
 	loopback.go \
 	wrappedfs.go \
 	timingfs.go \
-	timingrawfs.go
+	timingrawfs.go \
+	xattr.go
 
 include $(GOROOT)/src/Make.pkg
 

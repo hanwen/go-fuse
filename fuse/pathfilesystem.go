@@ -716,15 +716,21 @@ func (me *PathFileSystemConnector) ReleaseDir(header *InHeader, f RawFuseDir) {
 	}
 }
 
+func (me *PathFileSystemConnector) GetXAttr(header *InHeader, attribute string) (data []byte, code Status) {
+	path, mount := me.GetPath(header.NodeId)
+	if mount == nil {
+		return nil, ENOENT
+	}
+
+	data, code = mount.fs.GetXAttr(path, attribute)
+	return data, code
+}
+
 ////////////////////////////////////////////////////////////////
 // unimplemented.
 
 func (me *PathFileSystemConnector) SetXAttr(header *InHeader, input *SetXAttrIn) Status {
 	return ENOSYS
-}
-
-func (me *PathFileSystemConnector) GetXAttr(header *InHeader, input *GetXAttrIn) (out *GetXAttrOut, code Status) {
-	return nil, ENOSYS
 }
 
 func (me *PathFileSystemConnector) Bmap(header *InHeader, input *BmapIn) (out *BmapOut, code Status) {

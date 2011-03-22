@@ -3,7 +3,10 @@ package fuse
 import (
 	"sync"
 	"time"
+	"log"
 )
+
+var _ = log.Print
 
 // TimingPathFilesystem is a wrapper to collect timings for a PathFilesystem
 type TimingPathFilesystem struct {
@@ -49,6 +52,12 @@ func (me *TimingPathFilesystem) Latencies() map[string]float64 {
 func (me *TimingPathFilesystem) GetAttr(name string) (*Attr, Status) {
 	defer me.startTimer("GetAttr")()
 	return me.original.GetAttr(name)
+}
+
+
+func (me *TimingPathFilesystem) GetXAttr(name string, attr string) ([]byte, Status) {
+	defer me.startTimer("GetXAttr")()
+	return me.original.GetXAttr(name, attr)
 }
 
 func (me *TimingPathFilesystem) Readlink(name string) (string, Status) {

@@ -260,9 +260,9 @@ func Writev(fd int, packet [][]byte) (n int, err os.Error) {
 		Base: &v[0],
 		}
 		vec.SetLen(len(v))
-		iovecs = append(iovecs, vec) 
+		iovecs = append(iovecs, vec)
 	}
-	
+
 	if len(iovecs) == 0 {
 		return 0, nil
 	}

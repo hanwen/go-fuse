@@ -67,7 +67,7 @@ type MountState struct {
 
 	// I/O with kernel and daemon.
 	mountFile     *os.File
-	
+
 	errorChannel  chan os.Error
 
 	// Run each operation in its own Go-routine.
@@ -81,6 +81,8 @@ type MountState struct {
 
 	statisticsMutex    sync.Mutex
 	operationCounts    map[string]int64
+
+	// In nanoseconds.
 	operationLatencies map[string]int64
 }
 
@@ -197,10 +199,9 @@ func (me *MountState) Write(req *fuseRequest) {
 
 	_, err := Writev(me.mountFile.Fd(), req.serialized)
 	if err != nil {
-		me.Error(os.NewError(fmt.Sprintf("writer: Writev %v failed, err: %v", req.serialized, err)))
+		me.Error(os.NewError(fmt.Sprintf("writer: Writev %v failed, err: %v. Opcode: %v",
+			req.serialized, err, operationName(req.inHeader.Opcode))))
 	}
-
-	me.discardFuseRequest(req)
 }
 
 func NewMountState(fs RawFileSystem) *MountState {
@@ -221,7 +222,7 @@ func (me *MountState) Latencies() map[string]float64 {
 
 	r := make(map[string]float64)
 	for k, v := range me.operationCounts {
-		r[k] = float64(me.operationLatencies[k]) / float64(v)
+		r[k] = 1e-6 * float64(me.operationLatencies[k]) / float64(v)
 	}
 
 	return r
@@ -273,7 +274,7 @@ func (me *MountState) readRequest(req *fuseRequest) os.Error {
 }
 
 func (me *MountState) discardFuseRequest(req *fuseRequest) {
-	endNs := time.Nanoseconds() 
+	endNs := time.Nanoseconds()
 	dt := endNs - req.startNs
 
 	me.statisticsMutex.Lock()
@@ -282,15 +283,15 @@ func (me *MountState) discardFuseRequest(req *fuseRequest) {
 	opname := operationName(req.inHeader.Opcode)
 	key := opname
 	me.operationCounts[key] += 1
-	me.operationLatencies[key] += dt / 1e6
+	me.operationLatencies[key] += dt
 
-	key += "-dispatch" 
-	me.operationLatencies[key] += (req.dispatchNs - req.startNs) / 1e6	
-	me.operationCounts[key] += 1 
+	key += "-dispatch"
+	me.operationLatencies[key] += (req.dispatchNs - req.startNs)
+	me.operationCounts[key] += 1
 
-	key = opname + "-write" 
-	me.operationLatencies[key] += (endNs - req.preWriteNs) / 1e6	
-	me.operationCounts[key] += 1 
+	key = opname + "-write"
+	me.operationLatencies[key] += (endNs - req.preWriteNs)
+	me.operationCounts[key] += 1
 
 	me.buffers.FreeBuffer(req.inputBuf)
 	me.buffers.FreeBuffer(req.flatData)
@@ -347,8 +348,12 @@ func (me *MountState) handle(req *fuseRequest) {
 		return
 	}
 	me.dispatch(req)
-	req.preWriteNs = time.Nanoseconds()
-	me.Write(req)
+	if req.inHeader.Opcode != FUSE_FORGET {
+		serialize(req, me.Debug)
+		req.preWriteNs = time.Nanoseconds()
+		me.Write(req)
+	}
+	me.discardFuseRequest(req)
 }
 
 
@@ -359,7 +364,6 @@ func (me *MountState) dispatch(req *fuseRequest) {
 	input := newInput(h.Opcode)
 	if input != nil && !parseLittleEndian(req.arg, input) {
 		req.status = EIO
-		serialize(req, me.Debug)
 		return
 	}
 
@@ -372,7 +376,7 @@ func (me *MountState) dispatch(req *fuseRequest) {
 	if h.Opcode == FUSE_UNLINK || h.Opcode == FUSE_RMDIR ||
 		h.Opcode == FUSE_LOOKUP || h.Opcode == FUSE_MKDIR ||
 		h.Opcode == FUSE_MKNOD || h.Opcode == FUSE_CREATE ||
-		h.Opcode == FUSE_LINK {
+		h.Opcode == FUSE_LINK || h.Opcode == FUSE_GETXATTR {
 		filename = strings.TrimRight(string(req.arg.Bytes()), "\x00")
 	}
 	if me.Debug {
@@ -396,7 +400,6 @@ func (me *MountState) dispatch(req *fuseRequest) {
 		// If we try to write OK, nil, we will get
 		// error:  writer: Writev [[16 0 0 0 0 0 0 0 17 0 0 0 0 0 0 0]]
 		// failed, err: writev: no such file or directory
-		me.discardFuseRequest(req)
 		return
 	case FUSE_GETATTR:
 		// TODO - if input.Fh is set, do file.GetAttr
@@ -454,8 +457,9 @@ func (me *MountState) dispatch(req *fuseRequest) {
 	// TODO - implement XAttr routines.
 	// case FUSE_SETXATTR:
 	//	status = fs.SetXAttr(h, input.(*SetXAttrIn))
-	// case FUSE_GETXATTR:
-	//	out, status = fs.GetXAttr(h, input.(*GetXAttrIn))
+	case FUSE_GETXATTR:
+		out, req.flatData, status = doGetXAttr(me, h, input.(*GetXAttrIn), filename)
+
 	// case FUSE_LISTXATTR:
 	// case FUSE_REMOVEXATTR
 
@@ -478,14 +482,11 @@ func (me *MountState) dispatch(req *fuseRequest) {
 	default:
 		me.Error(os.NewError(fmt.Sprintf("Unsupported OpCode: %d=%v", h.Opcode, operationName(h.Opcode))))
 		req.status = ENOSYS
-		serialize(req, me.Debug)
 		return
 	}
 
 	req.status = status
 	req.data = out
-
-	serialize(req, me.Debug)
 }
 
 func serialize(req *fuseRequest, debug bool) {
@@ -611,6 +612,26 @@ func doFlush(state *MountState, header *InHeader, input *FlushIn) (out Empty, co
 func doSetattr(state *MountState, header *InHeader, input *SetAttrIn) (out *AttrOut, code Status) {
 	// TODO - if Fh != 0, we should do a FSetAttr instead.
 	return state.fileSystem.SetAttr(header, input)
+}
+
+func doGetXAttr(state *MountState, header *InHeader, input *GetXAttrIn, attr string) (out Empty, data []byte, code Status) {
+	data, code = state.fileSystem.GetXAttr(header, attr)
+	if code != OK {
+		return nil, nil, code
+	}
+
+	size := uint32(len(data))
+	if input.Size == 0 {
+		out := new(GetXAttrOut)
+		out.Size = size
+		return out, nil, OK
+	}
+
+	if size > input.Size {
+		return nil, nil, ERANGE
+	}
+
+	return nil, data, OK
 }
 
 ////////////////////////////////////////////////////////////////
