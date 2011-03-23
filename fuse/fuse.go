@@ -356,9 +356,7 @@ func (me *MountState) handle(req *fuseRequest) {
 	me.discardFuseRequest(req)
 }
 
-
 func (me *MountState) dispatch(req *fuseRequest) {
-	// TODO - would be nice to remove this logging from the critical path.
 	h := &req.inHeader
 
 	input := newInput(h.Opcode)

@@ -467,6 +467,8 @@ func (me *PathFileSystemConnector) Forget(h *InHeader, input *ForgetIn) {
 }
 
 func (me *PathFileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
+	// TODO - do something intelligent with input.Fh.
+
 	// TODO - should we update inodeData.Type?
 	fullPath, mount := me.GetPath(header.NodeId)
 	if mount == nil {
