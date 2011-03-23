@@ -43,7 +43,7 @@ func (me *zipCreateFile) Write(input *fuse.WriteIn, nameBytes []byte) (uint32, f
 	zipFile := string(nameBytes)
 
 	zipFile = strings.Trim(zipFile, "\n ")
-	fs := NewZipFileFuse(zipFile)
+	fs := NewZipArchiveFileSystem(zipFile)
 	if fs == nil {
 		// TODO
 		log.Println("NewZipFileFuse returned nil")

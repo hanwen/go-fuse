@@ -101,7 +101,7 @@ func zipFilesToTree(files []*zip.File) *ZipDirTree {
 }
 
 
-func NewZipFileFuse(name string) *ZipFileFuse {
+func NewZipArchiveFileSystem(name string) *ZipFileFuse {
 	z := new(ZipFileFuse)
 	r, err := zip.OpenReader(name)
 	if err != nil {
@@ -129,6 +129,7 @@ func (me *ZipFileFuse) GetAttr(name string) (*fuse.Attr, fuse.Status) {
 	if file == nil {
 		a.Mode = zip_DIRMODE
 	} else {
+		// TODO - do something intelligent with timestamps.
 		a.Mode = zip_FILEMODE
 		a.Size = uint64(file.UncompressedSize)
 	}
