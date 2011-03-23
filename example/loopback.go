@@ -89,7 +89,7 @@ func main() {
 	fmt.Println("Operation counts:", timing.OperationCounts())
 
 	hot, unique := timing.HotPaths("GetAttr")
-	top := 200
+	top := 20
 	start := len(hot)-top
 	if start < 0 {
 		start = 0
