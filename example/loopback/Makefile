@@ -3,7 +3,7 @@ include $(GOROOT)/src/Make.inc
 
 TARG=loopback
 GOFILES=loopback.go
-DEPS=../examplelib ../fuse
+DEPS=../../fuse
 
 include $(GOROOT)/src/Make.cmd
 

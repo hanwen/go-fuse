@@ -36,6 +36,7 @@ func main() {
 	todo := make(chan string, len(files))
 	dts := make(chan int64, parallel)
 
+	fmt.Printf("Statting %d files with %d threads\n", len(files), parallel)
 	for i := 0 ; i < parallel; i++ {
 		go func() {
 			for {
