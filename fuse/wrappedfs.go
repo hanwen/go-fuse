@@ -188,6 +188,3 @@ func (me *WrappingRawFilesystem) Release(header *InHeader, f RawFuseFile) {
 func (me *WrappingRawFilesystem) ReleaseDir(header *InHeader, f RawFuseDir) {
 	me.original.ReleaseDir(header, f)
 }
-
-
-

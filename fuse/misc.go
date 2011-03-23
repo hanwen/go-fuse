@@ -18,7 +18,7 @@ import (
 
 // Make a temporary directory securely.
 func MakeTempDir() string {
-	nm, err := ioutil.TempDir("", "go-fuse");
+	nm, err := ioutil.TempDir("", "go-fuse")
 	if err != nil {
 		panic("TempDir() failed: " + err.String())
 	}
@@ -258,7 +258,7 @@ func Writev(fd int, packet [][]byte) (n int, err os.Error) {
 			continue
 		}
 		vec := syscall.Iovec{
-		Base: &v[0],
+			Base: &v[0],
 		}
 		vec.SetLen(len(v))
 		iovecs = append(iovecs, vec)
@@ -309,7 +309,7 @@ func CheckSuccess(e os.Error) {
 }
 
 // For printing latency data.
-func PrintMap(m map[string]float64)  {
+func PrintMap(m map[string]float64) {
 	keys := make([]string, len(m))
 	for k, _ := range m {
 		keys = append(keys, k)

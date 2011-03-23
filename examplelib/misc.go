@@ -27,4 +27,3 @@ func CheckSuccess(e os.Error) {
 		panic(fmt.Sprintf("Unexpected error: %v", e))
 	}
 }
-

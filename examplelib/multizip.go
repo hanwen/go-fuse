@@ -223,5 +223,3 @@ func (me *MultiZipFs) Create(name string, flags uint32, mode uint32) (file fuse.
 
 	return z, fuse.OK
 }
-
-

@@ -23,7 +23,7 @@ func TestMultiZipFs(t *testing.T) {
 
 	go state.Loop(true)
 
-	f, err := os.Open(mountPoint + "", os.O_RDONLY, 0)
+	f, err := os.Open(mountPoint+"", os.O_RDONLY, 0)
 	CheckSuccess(err)
 
 	names, err := f.Readdirnames(-1)
@@ -35,16 +35,16 @@ func TestMultiZipFs(t *testing.T) {
 	err = f.Close()
 	CheckSuccess(err)
 
-	f, err = os.Open(mountPoint + "/random", os.O_WRONLY | os.O_CREATE, 0)
+	f, err = os.Open(mountPoint+"/random", os.O_WRONLY|os.O_CREATE, 0)
 	if err == nil {
 		t.Error("Must fail writing in root.")
 	}
 
-	f, err = os.Open(mountPoint + "/config/zipmount", os.O_WRONLY, 0)
+	f, err = os.Open(mountPoint+"/config/zipmount", os.O_WRONLY, 0)
 	if err == nil {
 		t.Error("Must fail without O_CREATE")
 	}
-	f, err = os.Open(mountPoint + "/config/zipmount", os.O_WRONLY | os.O_CREATE, 0)
+	f, err = os.Open(mountPoint+"/config/zipmount", os.O_WRONLY|os.O_CREATE, 0)
 	CheckSuccess(err)
 
 	// Directory exists, but is empty.

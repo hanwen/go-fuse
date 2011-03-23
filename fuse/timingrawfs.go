@@ -170,4 +170,3 @@ func (me *TimingRawFilesystem) ReleaseDir(header *InHeader, f RawFuseDir) {
 	defer me.startTimer("ReleaseDir")()
 	me.original.ReleaseDir(header, f)
 }
-

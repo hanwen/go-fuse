@@ -17,7 +17,7 @@ func main() {
 	filename := flag.Args()[0]
 	f, err := os.Open(filename, os.O_RDONLY, 0)
 	if err != nil {
-		panic("err"+err.String())
+		panic("err" + err.String())
 	}
 
 	linelen := 1000
@@ -25,7 +25,7 @@ func main() {
 
 	files := make([]string, 0)
 	for {
-		l, _, err :=  reader.ReadLine()
+		l, _, err := reader.ReadLine()
 		if err != nil {
 			break
 		}
@@ -37,7 +37,7 @@ func main() {
 	dts := make(chan int64, parallel)
 
 	fmt.Printf("Statting %d files with %d threads\n", len(files), parallel)
-	for i := 0 ; i < parallel; i++ {
+	for i := 0; i < parallel; i++ {
 		go func() {
 			for {
 				fn := <-todo
@@ -57,7 +57,7 @@ func main() {
 	}
 
 	total := 0.0
-	for i := 0 ; i < len(files); i++ {
+	for i := 0; i < len(files); i++ {
 		total += float64(<-dts) * 1e-6
 	}
 

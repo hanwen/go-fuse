@@ -71,7 +71,7 @@ func main() {
 
 	hot, unique := timing.HotPaths("GetAttr")
 	top := 20
-	start := len(hot)-top
+	start := len(hot) - top
 	if start < 0 {
 		start = 0
 	}

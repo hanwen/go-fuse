@@ -42,7 +42,7 @@ type fuseRequest struct {
 	output []byte
 
 	// Start timestamp for timing info.
-	startNs int64
+	startNs    int64
 	dispatchNs int64
 	preWriteNs int64
 }
@@ -66,9 +66,9 @@ type MountState struct {
 	fileSystem RawFileSystem
 
 	// I/O with kernel and daemon.
-	mountFile     *os.File
+	mountFile *os.File
 
-	errorChannel  chan os.Error
+	errorChannel chan os.Error
 
 	// Run each operation in its own Go-routine.
 	threaded bool
@@ -79,8 +79,8 @@ type MountState struct {
 	// For efficient reads.
 	buffers *BufferPool
 
-	statisticsMutex    sync.Mutex
-	operationCounts    map[string]int64
+	statisticsMutex sync.Mutex
+	operationCounts map[string]int64
 
 	// In nanoseconds.
 	operationLatencies map[string]int64
@@ -254,7 +254,7 @@ func (me *MountState) Stats() string {
 ////////////////////////////////////////////////////////////////
 // Logic for the control loop.
 
-func (me *MountState) newFuseRequest() (*fuseRequest) {
+func (me *MountState) newFuseRequest() *fuseRequest {
 	req := new(fuseRequest)
 	req.status = OK
 	req.inputBuf = me.buffers.AllocBuffer(bufSize)
