@@ -124,7 +124,7 @@ func (me *MultiZipFs) OpenDir(name string) (stream chan fuse.DirEntry, code fuse
 		stream <- fuse.DirEntry(d)
 	}
 
-	stream <- fuse.DirEntry{Name: ""}
+	close(stream)
 	return stream, fuse.OK
 }
 

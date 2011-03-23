@@ -167,7 +167,7 @@ func (me *ZipFileFuse) OpenDir(name string) (stream chan fuse.DirEntry, code fus
 				Mode: zip_DIRMODE,
 			}
 		}
-		stream <- fuse.DirEntry{}
+		close(stream)
 	}()
 	return stream, fuse.OK
 }

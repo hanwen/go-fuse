@@ -70,7 +70,7 @@ func (me *LoopbackFileSystem) OpenDir(name string) (stream chan DirEntry, status
 				break
 			}
 		}
-		output <- DirEntry{}
+		close(output)
 		f.Close()
 	}()
 
