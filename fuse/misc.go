@@ -10,6 +10,7 @@ import (
 	"log"
 	"math"
 	"regexp"
+	"sort"
 	"syscall"
 	"unsafe"
 	"io/ioutil"
@@ -307,3 +308,22 @@ func CheckSuccess(e os.Error) {
 	}
 }
 
+// For printing latency data.
+func PrintMap(m map[string]float64)  {
+	keys := make([]string, len(m))
+	for k, _ := range m {
+		keys = append(keys, k)
+	}
+
+	sort.SortStrings(keys)
+	for _, k := range keys {
+		if m[k] > 0 {
+			fmt.Println(k, m[k])
+		}
+	}
+}
+
+func MyPID() string {
+	v, _ := os.Readlink("/proc/self")
+	return v
+}
