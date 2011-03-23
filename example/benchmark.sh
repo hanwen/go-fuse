@@ -36,8 +36,6 @@ ${BULKSTAT} /tmp/zipfiles.txt
 # C++ binaries can do this ~0.1ms/stat.
 ${BULKSTAT} /tmp/zipfiles.txt
 
-
 fusermount -u /tmp/zipbench
-
 
 cat zipfs.log
