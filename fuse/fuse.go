@@ -37,8 +37,9 @@ type fuseRequest struct {
 	status   Status
 	flatData []byte
 
-	// The stuff we send back to the kernel.
-	serialized [][]byte
+	// Header+data for what we send back to the kernel.
+	// May be followed by flatData.
+	output []byte
 
 	// Start timestamp for timing info.
 	startNs int64
@@ -192,14 +193,21 @@ func (me *MountState) Error(err os.Error) {
 }
 
 func (me *MountState) Write(req *fuseRequest) {
-	if req.serialized == nil {
+	if req.output == nil {
 		return
 	}
 
-	_, err := Writev(me.mountFile.Fd(), req.serialized)
+	var err os.Error
+	if req.flatData == nil {
+		_, err = me.mountFile.Write(req.output)
+	} else {
+		_, err = Writev(me.mountFile.Fd(),
+			[][]byte{req.output, req.flatData})
+	}
+
 	if err != nil {
 		me.Error(os.NewError(fmt.Sprintf("writer: Writev %v failed, err: %v. Opcode: %v",
-			req.serialized, err, operationName(req.inHeader.Opcode))))
+			req.output, err, operationName(req.inHeader.Opcode))))
 	}
 }
 
@@ -477,13 +485,11 @@ func (me *MountState) dispatch(req *fuseRequest) {
 }
 
 func serialize(req *fuseRequest, debug bool) {
-	out_data := make([]byte, 0)
-	b := new(bytes.Buffer)
+	headerBytes := make([]byte, SizeOfOutHeader)
+	buf := bytes.NewBuffer(headerBytes)
 	if req.data != nil && req.status == OK {
-		err := binary.Write(b, binary.LittleEndian, req.data)
-		if err == nil {
-			out_data = b.Bytes()
-		} else {
+		err := binary.Write(buf, binary.LittleEndian, req.data)
+		if err != nil {
 			panic(fmt.Sprintf("Can't serialize out: %v, err: %v", req.data, err))
 		}
 	}
@@ -491,15 +497,17 @@ func serialize(req *fuseRequest, debug bool) {
 	var hOut OutHeader
 	hOut.Unique = req.inHeader.Unique
 	hOut.Status = -req.status
-	hOut.Length = uint32(len(out_data) + SizeOfOutHeader + len(req.flatData))
+	hOut.Length = uint32(buf.Len() + len(req.flatData))
 
-	b = new(bytes.Buffer)
-	err := binary.Write(b, binary.LittleEndian, &hOut)
+	data := buf.Bytes()
+
+	buf = bytes.NewBuffer(data[:0])
+	err := binary.Write(buf, binary.LittleEndian, &hOut)
 	if err != nil {
 		panic("Can't serialize OutHeader")
 	}
 
-	req.serialized = [][]byte{b.Bytes(), out_data, req.flatData}
+	req.output = data
 	if debug {
 		val := fmt.Sprintf("%v", req.data)
 		max := 1024
