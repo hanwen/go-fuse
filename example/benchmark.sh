@@ -21,6 +21,9 @@ BULKSTAT=$PWD/bulkstat/bulkstat
 cd /tmp
 
 ${ZIPFS} ${MP} ${ZIPFILE} >& zipfs.log &
+
+# Wait for FS to mount.
+sleep 1
 find ${MP} > /tmp/zipfiles.txt
 fusermount -u /tmp/zipbench
 
