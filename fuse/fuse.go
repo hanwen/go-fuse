@@ -3,7 +3,6 @@ package fuse
 import (
 	"bytes"
 	"encoding/binary"
-	"expvar"
 	"fmt"
 	"log"
 	"os"
@@ -240,18 +239,8 @@ func (me *MountState) OperationCounts() map[string]int64 {
 }
 
 func (me *MountState) Stats() string {
-	var lines []string
-
-	// TODO - bufferpool should use expvar.
-	lines = append(lines,
-		fmt.Sprintf("buffers: %v", me.buffers.String()))
-
-	for v := range expvar.Iter() {
-		if strings.HasPrefix(v.Key, "mount") {
-			lines = append(lines, fmt.Sprintf("%v: %v\n", v.Key, v.Value))
-		}
-	}
-	return strings.Join(lines, "\n")
+	return fmt.Sprintf("buffer alloc count %d\nbuffers %v",
+		me.buffers.AllocCount(), me.buffers.String())
 }
 
 ////////////////////////////////////////////////////////////////
