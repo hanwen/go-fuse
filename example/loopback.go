@@ -10,7 +10,11 @@ import (
 	"flag"
 	"runtime"
 	"sort"
+	"log"
 )
+
+var _ = runtime.GOMAXPROCS
+var _ = log.Print
 
 func PrintMap(m map[string]float64)  {
 	keys := make([]string, len(m))
@@ -43,15 +47,16 @@ func main() {
 
 	var opts fuse.PathFileSystemConnectorOptions
 
-	opts.AttrTimeout = 1.0
-	opts.EntryTimeout = 1.0
-	opts.NegativeTimeout = 1.0
+	opts.AttrTimeout = 0.0
+	opts.EntryTimeout = 0.0
+	opts.NegativeTimeout = 0.0
 
-	fs.SetOptions(&opts)
+	fs.FillOptions(&opts)
 
 	conn := fuse.NewPathFileSystemConnector(timing)
 	rawTiming := fuse.NewTimingRawFilesystem(conn)
-	
+	conn.SetOptions(opts)
+
 	state := fuse.NewMountState(rawTiming)
 	state.Debug = *debug
 
@@ -61,27 +66,34 @@ func main() {
 		fmt.Printf("MountFuse fail: %v\n", err)
 		os.Exit(1)
 	}
-	// TODO - figure out what a good value is.
-	cpus := 1
-	// 	cpus := fuse.CountCpus()
-	if cpus > 1 {
-		runtime.GOMAXPROCS(cpus)
-	}
 
-	fmt.Printf("Mounted %s on %s (threaded=%v, debug=%v, cpus=%v)\n", orig, mountPoint, *threaded, *debug, cpus)
+	fmt.Printf("Mounted %s on %s (threaded=%v, debug=%v)\n", orig, mountPoint, *threaded, *debug)
 	state.Loop(*threaded)
 	fmt.Println("Finished", state.Stats())
 
+	fmt.Println("\n\nMountState statistics\n")
 	counts := state.OperationCounts()
 	fmt.Println("Counts: ", counts)
 
 	latency := state.Latencies()
-	fmt.Println("MountState latency (ms):")
+	fmt.Println("Operation latency (ms):")
 	PrintMap(latency)
 
-	latency = timing.Latencies()
-	fmt.Println("Path ops (ms):", latency)
-
 	latency = rawTiming.Latencies()
-	fmt.Println("Raw FS (ms):", latency)
+	fmt.Println("\n\nRaw FS (ms):", latency)
+
+	fmt.Println("\n\nLoopback FS statistics\n")
+	latency = timing.Latencies()
+	fmt.Println("Latency (ms):", latency)
+
+	fmt.Println("Operation counts:", timing.OperationCounts())
+
+	hot, unique := timing.HotPaths("GetAttr")
+	top := 200
+	start := len(hot)-top
+	if start < 0 {
+		start = 0
+	}
+	fmt.Printf("Unique GetAttr paths: %d\n", unique)
+	fmt.Printf("Top %d GetAttr paths: %v", top, hot[start:])
 }
