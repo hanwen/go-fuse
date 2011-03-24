@@ -40,7 +40,10 @@ ${BULKSTAT} /tmp/zipfiles.txt
 sleep 0.1
 
 # C++ binaries can do this ~0.1ms/stat.
+echo -e "\n\n"
 ${BULKSTAT} /tmp/zipfiles.txt
+echo -e "\n\n"
+
 
 fusermount -u /tmp/zipbench
 
