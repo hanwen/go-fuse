@@ -206,7 +206,7 @@ func (me *MountState) Write(req *fuseRequest) {
 	}
 
 	if err != nil {
-		me.Error(os.NewError(fmt.Sprintf("writer: Writev %v failed, err: %v. Opcode: %v",
+		me.Error(os.NewError(fmt.Sprintf("writer: Write/Writev %v failed, err: %v. Opcode: %v",
 			req.outHeaderBytes, err, operationName(req.inHeader.Opcode))))
 	}
 }
