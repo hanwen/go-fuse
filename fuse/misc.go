@@ -3,8 +3,6 @@
 package fuse
 
 import (
-	"bytes"
-	"encoding/binary"
 	"os"
 	"fmt"
 	"log"
@@ -144,77 +142,6 @@ func (code Status) String() string {
 	return fmt.Sprintf("%d=%v", int(code), os.Errno(code))
 }
 
-func newInput(opcode uint32) Empty {
-	switch opcode {
-	case FUSE_FORGET:
-		return new(ForgetIn)
-	case FUSE_GETATTR:
-		return new(GetAttrIn)
-	case FUSE_MKNOD:
-		return new(MknodIn)
-	case FUSE_MKDIR:
-		return new(MkdirIn)
-	case FUSE_RENAME:
-		return new(RenameIn)
-	case FUSE_LINK:
-		return new(LinkIn)
-	case FUSE_SETATTR:
-		return new(SetAttrIn)
-	case FUSE_OPEN:
-		return new(OpenIn)
-	case FUSE_CREATE:
-		return new(CreateIn)
-	case FUSE_FLUSH:
-		return new(FlushIn)
-	case FUSE_RELEASE:
-		return new(ReleaseIn)
-	case FUSE_READ:
-		return new(ReadIn)
-	case FUSE_WRITE:
-		return new(WriteIn)
-	case FUSE_FSYNC:
-		return new(FsyncIn)
-	// case FUSE_GET/SETLK(W)
-	case FUSE_ACCESS:
-		return new(AccessIn)
-	case FUSE_INIT:
-		return new(InitIn)
-	case FUSE_BMAP:
-		return new(BmapIn)
-	case FUSE_INTERRUPT:
-		return new(InterruptIn)
-	case FUSE_IOCTL:
-		return new(IoctlIn)
-	case FUSE_POLL:
-		return new(PollIn)
-	case FUSE_SETXATTR:
-		return new(SetXAttrIn)
-	case FUSE_GETXATTR:
-		return new(GetXAttrIn)
-	case FUSE_OPENDIR:
-		return new(OpenIn)
-	case FUSE_FSYNCDIR:
-		return new(FsyncIn)
-	case FUSE_READDIR:
-		return new(ReadIn)
-	case FUSE_RELEASEDIR:
-		return new(ReleaseIn)
-
-	}
-	return nil
-}
-
-func parseLittleEndian(b *bytes.Buffer, data interface{}) bool {
-	err := binary.Read(b, binary.LittleEndian, data)
-	if err == nil {
-		return true
-	}
-	if err == os.EOF {
-		return false
-	}
-	panic(fmt.Sprintf("Cannot parse %v", data))
-}
-
 func SplitNs(time float64, secs *uint64, nsecs *uint32) {
 	*nsecs = uint32(1e9 * (time - math.Trunc(time)))
 	*secs = uint64(math.Trunc(time))
@@ -326,4 +253,92 @@ func PrintMap(m map[string]float64) {
 func MyPID() string {
 	v, _ := os.Readlink("/proc/self")
 	return v
+}
+
+
+var inputSizeMap map[int]int
+var outputSizeMap map[int]int
+func init() {
+	inputSizeMap = map[int]int{
+	FUSE_LOOKUP: 0,
+	FUSE_FORGET: unsafe.Sizeof(ForgetIn{}),
+	FUSE_GETATTR: unsafe.Sizeof(GetAttrIn{}),
+	FUSE_SETATTR: unsafe.Sizeof(SetAttrIn{}),
+	FUSE_READLINK: 0,
+	FUSE_SYMLINK: 0,
+	FUSE_MKNOD: unsafe.Sizeof(MknodIn{}),
+	FUSE_MKDIR: unsafe.Sizeof(MkdirIn{}),
+	FUSE_UNLINK: 0,
+	FUSE_RMDIR: 0,
+	FUSE_RENAME: unsafe.Sizeof(RenameIn{}),
+	FUSE_LINK: unsafe.Sizeof(LinkIn{}),
+	FUSE_OPEN: unsafe.Sizeof(OpenIn{}),
+	FUSE_READ: unsafe.Sizeof(ReadIn{}),
+	FUSE_WRITE: unsafe.Sizeof(WriteIn{}),
+	FUSE_STATFS: 0,
+	FUSE_RELEASE: unsafe.Sizeof(ReleaseIn{}),
+	FUSE_FSYNC: unsafe.Sizeof(FsyncIn{}),
+	FUSE_SETXATTR: unsafe.Sizeof(SetXAttrIn{}),
+	FUSE_GETXATTR: unsafe.Sizeof(GetXAttrIn{}),
+	FUSE_LISTXATTR: 0,
+	FUSE_REMOVEXATTR: 0,
+	FUSE_FLUSH: unsafe.Sizeof(FlushIn{}),
+	FUSE_INIT: unsafe.Sizeof(InitIn{}),
+	FUSE_OPENDIR: unsafe.Sizeof(OpenIn{}),
+	FUSE_READDIR: unsafe.Sizeof(ReadIn{}),
+	FUSE_RELEASEDIR: unsafe.Sizeof(ReleaseIn{}),
+	FUSE_FSYNCDIR: unsafe.Sizeof(FsyncIn{}),
+	FUSE_GETLK: 0,
+	FUSE_SETLK: 0,
+	FUSE_SETLKW: 0,
+	FUSE_ACCESS: unsafe.Sizeof(AccessIn{}),
+	FUSE_CREATE: unsafe.Sizeof(CreateIn{}),
+	FUSE_INTERRUPT: unsafe.Sizeof(InterruptIn{}),
+	FUSE_BMAP: unsafe.Sizeof(BmapIn{}),
+	FUSE_DESTROY: 0,
+	FUSE_IOCTL: unsafe.Sizeof(IoctlIn{}),
+	FUSE_POLL: unsafe.Sizeof(PollIn{}),
+	}
+
+	outputSizeMap = map[int]int {
+	FUSE_LOOKUP: unsafe.Sizeof(EntryOut{}),
+	FUSE_FORGET: 0,
+	FUSE_GETATTR: unsafe.Sizeof(AttrOut{}),
+	FUSE_SETATTR: unsafe.Sizeof(AttrOut{}),
+	FUSE_READLINK: 0,
+	FUSE_SYMLINK: unsafe.Sizeof(EntryOut{}),
+	FUSE_MKNOD: unsafe.Sizeof(EntryOut{}),
+	FUSE_MKDIR: unsafe.Sizeof(EntryOut{}),
+	FUSE_UNLINK: 0,
+	FUSE_RMDIR: 0,
+	FUSE_RENAME: 0,
+	FUSE_LINK: unsafe.Sizeof(EntryOut{}),
+	FUSE_OPEN: unsafe.Sizeof(OpenOut{}),
+	FUSE_READ: 0,
+	FUSE_WRITE: unsafe.Sizeof(WriteOut{}),
+	FUSE_STATFS: unsafe.Sizeof(StatfsOut{}),
+	FUSE_RELEASE: 0,
+	FUSE_FSYNC: 0,
+	FUSE_SETXATTR: 0,
+	FUSE_GETXATTR: unsafe.Sizeof(GetXAttrOut{}),
+	FUSE_LISTXATTR: 0,
+	FUSE_REMOVEXATTR: 0,
+	FUSE_FLUSH: 0,
+	FUSE_INIT: unsafe.Sizeof(InitOut{}),
+	FUSE_OPENDIR: unsafe.Sizeof(OpenOut{}),
+	FUSE_READDIR: 0,
+	FUSE_RELEASEDIR: 0,
+	FUSE_FSYNCDIR: 0,
+	// TODO
+	FUSE_GETLK: 0,
+	FUSE_SETLK: 0,
+	FUSE_SETLKW: 0,
+	FUSE_ACCESS: 0,
+	FUSE_CREATE: unsafe.Sizeof(CreateOut{}),
+	FUSE_INTERRUPT: 0,
+	FUSE_BMAP: unsafe.Sizeof(BmapOut{}),
+	FUSE_DESTROY: 0,
+	FUSE_IOCTL: unsafe.Sizeof(IoctlOut{}),
+	FUSE_POLL: unsafe.Sizeof(PollOut{}),
+	}
 }

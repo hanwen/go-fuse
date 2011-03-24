@@ -3,9 +3,9 @@ package fuse
 // all of the code for DirEntryList.
 
 import (
-	"encoding/binary"
-	"fmt"
 	"bytes"
+	"fmt"
+	"unsafe"
 )
 
 var _ = fmt.Print
@@ -33,13 +33,14 @@ func (me *DirEntryList) Add(name []byte, inode uint64, mode uint32) bool {
 	lastLen := me.buf.Len()
 	me.offset++
 
-	dirent := new(Dirent)
-	dirent.Off = me.offset
-	dirent.Ino = inode
-	dirent.NameLen = uint32(len(name))
-	dirent.Typ = ModeToType(mode)
+	dirent := Dirent{
+	Off: me.offset,
+	Ino: inode,
+	NameLen: uint32(len(name)),
+	Typ: ModeToType(mode),
+	}
 
-	err := binary.Write(&me.buf, binary.LittleEndian, dirent)
+	_, err := me.buf.Write(asSlice(unsafe.Pointer(&dirent), unsafe.Sizeof(Dirent{})))
 	if err != nil {
 		panic("Serialization of Dirent failed")
 	}

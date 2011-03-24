@@ -327,7 +327,6 @@ type WriteOut struct {
 	Padding uint32
 }
 
-
 type StatfsOut struct {
 	St Kstatfs
 }
@@ -460,8 +459,6 @@ type InHeader struct {
 	Identity
 	Padding uint32
 }
-
-const SizeOfOutHeader = 16
 
 type OutHeader struct {
 	Length uint32

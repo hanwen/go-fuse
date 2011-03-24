@@ -1,15 +1,15 @@
 package fuse
 
 import (
-	"bytes"
-	"encoding/binary"
 	"fmt"
 	"log"
 	"os"
+	"reflect"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
+	"unsafe"
 )
 
 // TODO make generic option setting.
@@ -29,17 +29,17 @@ type fuseRequest struct {
 	inputBuf []byte
 
 	// These split up inputBuf.
-	inHeader InHeader
-	arg      *bytes.Buffer
+	inHeader *InHeader
+	arg      []byte
 
-	// Data for the output.
-	data     interface{}
+	// Unstructured data, a pointer to the relevant XxxxOut struct.
 	status   Status
+	data     unsafe.Pointer
 	flatData []byte
 
-	// Header+data for what we send back to the kernel.
+	// Header + structured data for what we send back to the kernel.
 	// May be followed by flatData.
-	output []byte
+	outHeaderBytes []byte
 
 	// Start timestamp for timing info.
 	startNs    int64
@@ -193,21 +193,21 @@ func (me *MountState) Error(err os.Error) {
 }
 
 func (me *MountState) Write(req *fuseRequest) {
-	if req.output == nil {
+	if req.outHeaderBytes == nil {
 		return
 	}
 
 	var err os.Error
 	if req.flatData == nil {
-		_, err = me.mountFile.Write(req.output)
+		_, err = me.mountFile.Write(req.outHeaderBytes)
 	} else {
 		_, err = Writev(me.mountFile.Fd(),
-			[][]byte{req.output, req.flatData})
+			[][]byte{req.outHeaderBytes, req.flatData})
 	}
 
 	if err != nil {
 		me.Error(os.NewError(fmt.Sprintf("writer: Writev %v failed, err: %v. Opcode: %v",
-			req.output, err, operationName(req.inHeader.Opcode))))
+			req.outHeaderBytes, err, operationName(req.inHeader.Opcode))))
 	}
 }
 
@@ -334,35 +334,45 @@ func (me *MountState) loop() {
 }
 
 func (me *MountState) handle(req *fuseRequest) {
+	defer me.discardFuseRequest(req)
 	req.dispatchNs = time.Nanoseconds()
-	req.arg = bytes.NewBuffer(req.inputBuf)
-	err := binary.Read(req.arg, binary.LittleEndian, &req.inHeader)
-	if err == os.EOF {
-		err = os.NewError(fmt.Sprintf("MountPoint, handle: can't read a header, in_data: %v", req.inputBuf))
-	}
-	if err != nil {
-		me.Error(err)
+
+	inHSize := unsafe.Sizeof(InHeader{})
+	if len(req.inputBuf) < inHSize {
+		me.Error(os.NewError(fmt.Sprintf("Short read for input header: %v", req.inputBuf)))
 		return
 	}
+
+	req.inHeader = (*InHeader)(unsafe.Pointer(&req.inputBuf[0]))
+	req.arg = req.inputBuf[inHSize:]
 	me.dispatch(req)
 	if req.inHeader.Opcode != FUSE_FORGET {
 		serialize(req, me.Debug)
 		req.preWriteNs = time.Nanoseconds()
 		me.Write(req)
 	}
-	me.discardFuseRequest(req)
 }
 
 func (me *MountState) dispatch(req *fuseRequest) {
-	h := &req.inHeader
-
-	input := newInput(h.Opcode)
-	if input != nil && !parseLittleEndian(req.arg, input) {
+	h := req.inHeader
+	argumentSize, ok := inputSizeMap[int(h.Opcode)]
+	if !ok {
+		log.Println("Unknown opcode %d (input)", h.Opcode)
+		req.status = ENOSYS
+		return
+	}
+	if len(req.arg) < argumentSize {
+		log.Println("Short read for %v: %v", h.Opcode, req.arg)
 		req.status = EIO
 		return
 	}
 
-	var out Empty
+	var inData unsafe.Pointer
+	if argumentSize > 0 {
+		inData = unsafe.Pointer(&req.arg[0])
+	}
+	data := req.arg[argumentSize:]
+
 	var status Status = OK
 	fs := me.fileSystem
 
@@ -372,7 +382,7 @@ func (me *MountState) dispatch(req *fuseRequest) {
 		h.Opcode == FUSE_LOOKUP || h.Opcode == FUSE_MKDIR ||
 		h.Opcode == FUSE_MKNOD || h.Opcode == FUSE_CREATE ||
 		h.Opcode == FUSE_LINK || h.Opcode == FUSE_GETXATTR {
-		filename = strings.TrimRight(string(req.arg.Bytes()), "\x00")
+		filename = strings.TrimRight(string(data), "\x00")
 	}
 	if me.Debug {
 		nm := ""
@@ -385,93 +395,112 @@ func (me *MountState) dispatch(req *fuseRequest) {
 	// Follow ordering of fuse_lowlevel.h.
 	switch h.Opcode {
 	case FUSE_INIT:
-		out, status = initFuse(me, h, input.(*InitIn))
+		req.data, status = initFuse(me, h, (*InitIn)(inData))
 	case FUSE_DESTROY:
-		fs.Destroy(h, input.(*InitIn))
+		fs.Destroy(h, (*InitIn)(inData))
 	case FUSE_LOOKUP:
-		out, status = fs.Lookup(h, filename)
+		lookupOut, s := fs.Lookup(h, filename)
+		status = s
+		req.data = unsafe.Pointer(lookupOut)
 	case FUSE_FORGET:
-		fs.Forget(h, input.(*ForgetIn))
+		fs.Forget(h, (*ForgetIn)(inData))
 		// If we try to write OK, nil, we will get
 		// error:  writer: Writev [[16 0 0 0 0 0 0 0 17 0 0 0 0 0 0 0]]
 		// failed, err: writev: no such file or directory
 		return
 	case FUSE_GETATTR:
-		// TODO - if input.Fh is set, do file.GetAttr
-		out, status = fs.GetAttr(h, input.(*GetAttrIn))
+		// TODO - if inData.Fh is set, do file.GetAttr
+		attrOut, s := fs.GetAttr(h, (*GetAttrIn)(inData))
+		status = s
+		req.data = unsafe.Pointer(attrOut)
 	case FUSE_SETATTR:
-		out, status = doSetattr(me, h, input.(*SetAttrIn))
+		req.data, status = doSetattr(me, h, (*SetAttrIn)(inData))
 	case FUSE_READLINK:
-		out, status = fs.Readlink(h)
+		req.flatData, status = fs.Readlink(h)
 	case FUSE_MKNOD:
-		out, status = fs.Mknod(h, input.(*MknodIn), filename)
+		entryOut, s := fs.Mknod(h, (*MknodIn)(inData), filename)
+		status = s
+		req.data = unsafe.Pointer(entryOut)
 	case FUSE_MKDIR:
-		out, status = fs.Mkdir(h, input.(*MkdirIn), filename)
+		entryOut, s := fs.Mkdir(h, (*MkdirIn)(inData), filename)
+		status = s
+		req.data = unsafe.Pointer(entryOut)
 	case FUSE_UNLINK:
 		status = fs.Unlink(h, filename)
 	case FUSE_RMDIR:
 		status = fs.Rmdir(h, filename)
 	case FUSE_SYMLINK:
-		filenames := strings.Split(string(req.arg.Bytes()), "\x00", 3)
+		filenames := strings.Split(string(data), "\x00", 3)
 		if len(filenames) >= 2 {
-			out, status = fs.Symlink(h, filenames[1], filenames[0])
+			entryOut, s := fs.Symlink(h, filenames[1], filenames[0])
+			status = s
+			req.data = unsafe.Pointer(entryOut)
 		} else {
 			status = EIO
 		}
 	case FUSE_RENAME:
-		filenames := strings.Split(string(req.arg.Bytes()), "\x00", 3)
+		filenames := strings.Split(string(data), "\x00", 3)
 		if len(filenames) >= 2 {
-			status = fs.Rename(h, input.(*RenameIn), filenames[0], filenames[1])
+			status = fs.Rename(h, (*RenameIn)(inData), filenames[0], filenames[1])
 		} else {
 			status = EIO
 		}
 	case FUSE_LINK:
-		out, status = fs.Link(h, input.(*LinkIn), filename)
+		entryOut, s := fs.Link(h, (*LinkIn)(inData), filename)
+		status = s
+		req.data = unsafe.Pointer(entryOut)
 	case FUSE_OPEN:
-		out, status = doOpen(me, h, input.(*OpenIn))
+		req.data, status = doOpen(me, h, (*OpenIn)(inData))
 	case FUSE_READ:
-		req.flatData, status = doRead(me, h, input.(*ReadIn), me.buffers)
+		req.flatData, status = doRead(me, h, (*ReadIn)(inData), me.buffers)
 	case FUSE_WRITE:
-		out, status = doWrite(me, h, input.(*WriteIn), req.arg.Bytes())
+		req.data, status = doWrite(me, h, (*WriteIn)(inData), data)
 	case FUSE_FLUSH:
-		out, status = doFlush(me, h, input.(*FlushIn))
+		status = doFlush(me, h, (*FlushIn)(inData))
 	case FUSE_RELEASE:
-		out, status = doRelease(me, h, input.(*ReleaseIn))
+		status = doRelease(me, h, (*ReleaseIn)(inData))
 	case FUSE_FSYNC:
-		status = doFsync(me, h, input.(*FsyncIn))
+		status = doFsync(me, h, (*FsyncIn)(inData))
 	case FUSE_OPENDIR:
-		out, status = doOpenDir(me, h, input.(*OpenIn))
+		req.data, status = doOpenDir(me, h, (*OpenIn)(inData))
 	case FUSE_READDIR:
-		out, status = doReadDir(me, h, input.(*ReadIn))
+		req.flatData, status = doReadDir(me, h, (*ReadIn)(inData))
 	case FUSE_RELEASEDIR:
-		out, status = doReleaseDir(me, h, input.(*ReleaseIn))
+		status = doReleaseDir(me, h, (*ReleaseIn)(inData))
 	case FUSE_FSYNCDIR:
-		// todo- check input type.
-		status = doFsyncDir(me, h, input.(*FsyncIn))
+		// todo- check inData type.
+		status = doFsyncDir(me, h, (*FsyncIn)(inData))
 
 	// TODO - implement XAttr routines.
 	// case FUSE_SETXATTR:
-	//	status = fs.SetXAttr(h, input.(*SetXAttrIn))
+	//	status = fs.SetXAttr(h, (*SetXAttrIn)(inData))
 	case FUSE_GETXATTR:
-		out, req.flatData, status = doGetXAttr(me, h, input.(*GetXAttrIn), filename)
+		req.data, req.flatData, status = doGetXAttr(me, h, (*GetXAttrIn)(inData), filename)
 
 	// case FUSE_LISTXATTR:
 	// case FUSE_REMOVEXATTR
 
 	case FUSE_ACCESS:
-		status = fs.Access(h, input.(*AccessIn))
+		status = fs.Access(h, (*AccessIn)(inData))
 	case FUSE_CREATE:
-		out, status = doCreate(me, h, input.(*CreateIn), filename)
+		req.data, status = doCreate(me, h, (*CreateIn)(inData), filename)
 
 	// TODO - implement file locking.
 	// case FUSE_SETLK
 	// case FUSE_SETLKW
 	case FUSE_BMAP:
-		out, status = fs.Bmap(h, input.(*BmapIn))
+		bmapOut, s := fs.Bmap(h, (*BmapIn)(inData))
+		status = s
+		req.data = unsafe.Pointer(bmapOut)
 	case FUSE_IOCTL:
-		out, status = fs.Ioctl(h, input.(*IoctlIn))
+		ioctlOut, s := fs.Ioctl(h, (*IoctlIn)(inData))
+		status = s
+		req.data = unsafe.Pointer(ioctlOut)
 	case FUSE_POLL:
-		out, status = fs.Poll(h, input.(*PollIn))
+		pollOut, s := fs.Poll(h, (*PollIn)(inData))
+		status = s
+		req.data = unsafe.Pointer(pollOut)
+
 	// TODO - figure out how to support this
 	// case FUSE_INTERRUPT
 	default:
@@ -481,38 +510,39 @@ func (me *MountState) dispatch(req *fuseRequest) {
 	}
 
 	req.status = status
-	req.data = out
+}
+
+// Thanks to Andrew Gerrand for this hack.
+func asSlice(ptr unsafe.Pointer, byteCount int) []byte {
+	h := &reflect.SliceHeader{uintptr(ptr), byteCount, byteCount}
+	return *(*[]byte)(unsafe.Pointer(h))
 }
 
 func serialize(req *fuseRequest, debug bool) {
-	headerBytes := make([]byte, SizeOfOutHeader)
-	buf := bytes.NewBuffer(headerBytes)
-	if req.data != nil && req.status == OK {
-		err := binary.Write(buf, binary.LittleEndian, req.data)
-		if err != nil {
-			panic(fmt.Sprintf("Can't serialize out: %v, err: %v", req.data, err))
-		}
+	dataLength, ok := outputSizeMap[int(req.inHeader.Opcode)]
+	if !ok {
+		log.Println("Unknown opcode %d (output)", req.inHeader.Opcode)
+		req.status = ENOSYS
+		return
+	}
+	if req.data == nil || req.status != OK {
+		dataLength = 0
 	}
 
-	var hOut OutHeader
-	hOut.Unique = req.inHeader.Unique
-	hOut.Status = -req.status
-	hOut.Length = uint32(buf.Len() + len(req.flatData))
+	sizeOfOutHeader := unsafe.Sizeof(OutHeader{})
 
-	data := buf.Bytes()
+	req.outHeaderBytes = make([]byte, sizeOfOutHeader + dataLength)
+	outHeader := (*OutHeader)(unsafe.Pointer(&req.outHeaderBytes[0]))
+	outHeader.Unique = req.inHeader.Unique
+	outHeader.Status = -req.status
+	outHeader.Length = uint32(sizeOfOutHeader + dataLength + len(req.flatData))
 
-	buf = bytes.NewBuffer(data[:0])
-	err := binary.Write(buf, binary.LittleEndian, &hOut)
-	if err != nil {
-		panic("Can't serialize OutHeader")
-	}
-
-	req.output = data
+	copy(req.outHeaderBytes[sizeOfOutHeader:], asSlice(req.data, dataLength))
 	if debug {
-		val := fmt.Sprintf("%v", req.data)
+		val := fmt.Sprintf("%v", req.outHeaderBytes)
 		max := 1024
 		if len(val) > max {
-			val = val[:max] + fmt.Sprintf(" ...trimmed (response size %d)", hOut.Length)
+			val = val[:max] + fmt.Sprintf(" ...trimmed (response size %d)", outHeader.Length)
 		}
 
 		log.Printf("Serialize: %v code: %v value: %v flat: %d\n",
@@ -520,7 +550,7 @@ func serialize(req *fuseRequest, debug bool) {
 	}
 }
 
-func initFuse(state *MountState, h *InHeader, input *InitIn) (Empty, Status) {
+func initFuse(state *MountState, h *InHeader, input *InitIn) (unsafe.Pointer, Status) {
 	out, initStatus := state.fileSystem.Init(h, input)
 	if initStatus != OK {
 		return nil, initStatus
@@ -542,13 +572,13 @@ func initFuse(state *MountState, h *InHeader, input *InitIn) (Empty, Status) {
 
 	out.MaxWrite = maxRead
 
-	return out, OK
+	return unsafe.Pointer(out), OK
 }
 
 ////////////////////////////////////////////////////////////////
 // Handling files.
 
-func doOpen(state *MountState, header *InHeader, input *OpenIn) (genericOut Empty, code Status) {
+func doOpen(state *MountState, header *InHeader, input *OpenIn) (unsafe.Pointer, Status) {
 	flags, fuseFile, status := state.fileSystem.Open(header, input)
 	if status != OK {
 		return nil, status
@@ -559,10 +589,10 @@ func doOpen(state *MountState, header *InHeader, input *OpenIn) (genericOut Empt
 	out := new(OpenOut)
 	out.Fh = state.RegisterFile(fuseFile)
 	out.OpenFlags = flags
-	return out, status
+	return unsafe.Pointer(out), status
 }
 
-func doCreate(state *MountState, header *InHeader, input *CreateIn, name string) (genericOut Empty, code Status) {
+func doCreate(state *MountState, header *InHeader, input *CreateIn, name string) (unsafe.Pointer, Status) {
 	flags, fuseFile, entry, status := state.fileSystem.Create(header, input, name)
 	if status != OK {
 		return nil, status
@@ -574,15 +604,16 @@ func doCreate(state *MountState, header *InHeader, input *CreateIn, name string)
 	out.Entry = *entry
 	out.Open.Fh = state.RegisterFile(fuseFile)
 	out.Open.OpenFlags = flags
-	return out, status
+
+	return unsafe.Pointer(out), status
 }
 
-func doRelease(state *MountState, header *InHeader, input *ReleaseIn) (out Empty, code Status) {
+func doRelease(state *MountState, header *InHeader, input *ReleaseIn) (code Status) {
 	f := state.FindFile(input.Fh)
 	state.fileSystem.Release(header, f)
 	f.Release()
 	state.UnregisterFile(input.Fh)
-	return nil, OK
+	return OK
 }
 
 func doRead(state *MountState, header *InHeader, input *ReadIn, buffers *BufferPool) (out []byte, code Status) {
@@ -590,26 +621,28 @@ func doRead(state *MountState, header *InHeader, input *ReadIn, buffers *BufferP
 	return output, code
 }
 
-func doWrite(state *MountState, header *InHeader, input *WriteIn, data []byte) (out WriteOut, code Status) {
+func doWrite(state *MountState, header *InHeader, input *WriteIn, data []byte) (out unsafe.Pointer, code Status) {
 	n, status := state.FindFile(input.Fh).Write(input, data)
-	out.Size = n
-	return out, status
+	o := new(WriteOut)
+	o.Size = n
+	return unsafe.Pointer(o), status
 }
 
 func doFsync(state *MountState, header *InHeader, input *FsyncIn) (code Status) {
 	return state.FindFile(input.Fh).Fsync(input)
 }
 
-func doFlush(state *MountState, header *InHeader, input *FlushIn) (out Empty, code Status) {
-	return nil, state.FindFile(input.Fh).Flush()
+func doFlush(state *MountState, header *InHeader, input *FlushIn) (code Status) {
+	return state.FindFile(input.Fh).Flush()
 }
 
-func doSetattr(state *MountState, header *InHeader, input *SetAttrIn) (out *AttrOut, code Status) {
+func doSetattr(state *MountState, header *InHeader, input *SetAttrIn) (out unsafe.Pointer, code Status) {
 	// TODO - if Fh != 0, we should do a FSetAttr instead.
-	return state.fileSystem.SetAttr(header, input)
+	o, s := state.fileSystem.SetAttr(header, input)
+	return unsafe.Pointer(o), s
 }
 
-func doGetXAttr(state *MountState, header *InHeader, input *GetXAttrIn, attr string) (out Empty, data []byte, code Status) {
+func doGetXAttr(state *MountState, header *InHeader, input *GetXAttrIn, attr string) (out unsafe.Pointer, data []byte, code Status) {
 	data, code = state.fileSystem.GetXAttr(header, attr)
 	if code != OK {
 		return nil, nil, code
@@ -619,7 +652,7 @@ func doGetXAttr(state *MountState, header *InHeader, input *GetXAttrIn, attr str
 	if input.Size == 0 {
 		out := new(GetXAttrOut)
 		out.Size = size
-		return out, nil, OK
+		return unsafe.Pointer(out), nil, OK
 	}
 
 	if size > input.Size {
@@ -632,15 +665,15 @@ func doGetXAttr(state *MountState, header *InHeader, input *GetXAttrIn, attr str
 ////////////////////////////////////////////////////////////////
 // Handling directories
 
-func doReleaseDir(state *MountState, header *InHeader, input *ReleaseIn) (out Empty, code Status) {
+func doReleaseDir(state *MountState, header *InHeader, input *ReleaseIn) (code Status) {
 	d := state.FindDir(input.Fh)
 	state.fileSystem.ReleaseDir(header, d)
 	d.ReleaseDir()
 	state.UnregisterDir(input.Fh)
-	return nil, OK
+	return OK
 }
 
-func doOpenDir(state *MountState, header *InHeader, input *OpenIn) (genericOut Empty, code Status) {
+func doOpenDir(state *MountState, header *InHeader, input *OpenIn) (unsafe.Pointer, Status) {
 	flags, fuseDir, status := state.fileSystem.OpenDir(header, input)
 	if status != OK {
 		return nil, status
@@ -649,15 +682,14 @@ func doOpenDir(state *MountState, header *InHeader, input *OpenIn) (genericOut E
 	out := new(OpenOut)
 	out.Fh = state.RegisterDir(fuseDir)
 	out.OpenFlags = flags
-	return out, status
+	return unsafe.Pointer(out), status
 }
 
-func doReadDir(state *MountState, header *InHeader, input *ReadIn) (out Empty, code Status) {
+func doReadDir(state *MountState, header *InHeader, input *ReadIn) (out []byte, code Status) {
 	dir := state.FindDir(input.Fh)
 	entries, code := dir.ReadDir(input)
 	if entries == nil {
-		var emptyBytes []byte
-		return emptyBytes, code
+		return nil, code
 	}
 	return entries.Bytes(), code
 }
