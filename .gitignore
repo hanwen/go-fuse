@@ -3,3 +3,8 @@
 8.out
 .nfs*
 _*
+6.out
+example/loopback/loopback
+example/multizip/multizip
+example/bulkstat/bulkstat
+example/zipfs/zipfs
