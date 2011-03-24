@@ -30,10 +30,10 @@ Tested on:
 
 BENCHMARKS
 
-In benchmarks, Go-fuse's loopback system is about 10 times slower than
-equivalent C++ based FUSE filesystem.  In practical applications, the
-the file system client processing may mask some of these performance
-gaps.
+In benchmarks, Go-fuse's loopback system is less than 2 times slower
+than equivalent C++ based FUSE filesystems.  In practical applications,
+the the file system client processing may mask some of these
+performance gaps.
 
 
 CREDITS
