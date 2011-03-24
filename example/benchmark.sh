@@ -36,6 +36,9 @@ sleep 1
 # Warm caches.
 ${BULKSTAT} /tmp/zipfiles.txt
 
+6prof -p $! -d 20 -t 3 -hs -l -h -f >& /tmp/zipfs.6prof &
+sleep 0.1
+
 # C++ binaries can do this ~0.1ms/stat.
 ${BULKSTAT} /tmp/zipfiles.txt
 
