@@ -12,12 +12,12 @@ var _ = fmt.Print
 // TODO - move this into the Go distribution.
 
 func getxattr(path string, attr string, dest []byte) (sz int, errno int) {
-	pathBs := []byte(path)
-	attrBs := []byte(attr)
+	pathBs := syscall.StringBytePtr(path)
+	attrBs := syscall.StringBytePtr(attr)
 	size, _, errNo := syscall.Syscall6(
 		syscall.SYS_GETXATTR,
-		uintptr(unsafe.Pointer(&pathBs[0])),
-		uintptr(unsafe.Pointer(&attrBs[0])),
+		uintptr(unsafe.Pointer(pathBs)),
+		uintptr(unsafe.Pointer(attrBs)),
 		uintptr(unsafe.Pointer(&dest[0])),
 		uintptr(len(dest)),
 		0, 0)
@@ -41,10 +41,10 @@ func GetXAttr(path string, attr string) (value []byte, errno int) {
 }
 
 func listxattr(path string, dest []byte) (sz int, errno int) {
-	pathbs := []byte(path)
+	pathbs := syscall.StringBytePtr(path)
 	size, _, errNo := syscall.Syscall(
 		syscall.SYS_LISTXATTR,
-		uintptr(unsafe.Pointer(&pathbs[0])),
+		uintptr(unsafe.Pointer(pathbs)),
 		uintptr(unsafe.Pointer(&dest[0])),
 		uintptr(len(dest)))
 
