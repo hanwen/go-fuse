@@ -10,13 +10,15 @@ GETTING STARTED
     mkdir /tmp/mountpoint
     example/zipfs/zipfs /tmp/mountpoint file.zip &
     ls /tmp/mountpoint
+    fusermount -u /tmp/mountpoint
 
 * fuse/loopback.go supports all the implemented functionality.  A
   binary to run is in example/loopback/ . For example
 
-  mkdir /tmp/mountpoint
-  example/loopback/loopback -debug /tmp/mountpoint /some/other/directory &
-  ls /tmp/mountpoint
+    mkdir /tmp/mountpoint
+    example/loopback/loopback -debug /tmp/mountpoint /some/other/directory &
+    ls /tmp/mountpoint
+    fusermount -u /tmp/mountpoint
 
 
 Tested on:
