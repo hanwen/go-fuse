@@ -1,14 +1,23 @@
 
 GO-FUSE: native bindings for the FUSE kernel module.
 
-See passthrough.go for a file system that exercises all available
-functionality.  To test it, a tool is provided to mount a local
-directory as a loopback:
+GETTING STARTED
 
-  (cd example ; gomake)
-  mkdir mountpoint
-  ./example/loopback -debug -threaded=false mountpoint /some/other/directory &
-  (cd mountpoint ; ls)
+* examplelib/zipfs.go contains a small and simple read-only filesystem
+  for zip files. The corresponding command is in example/zipfs/ . For
+  example,
+
+    mkdir /tmp/mountpoint
+    example/zipfs/zipfs /tmp/mountpoint file.zip &
+    ls /tmp/mountpoint
+
+* fuse/loopback.go supports all the implemented functionality.  A
+  binary to run is in example/loopback/ . For example
+
+  mkdir /tmp/mountpoint
+  example/loopback/loopback -debug /tmp/mountpoint /some/other/directory &
+  ls /tmp/mountpoint
+
 
 Tested on:
 
@@ -16,18 +25,13 @@ Tested on:
 - x86 64bits (Ubuntu Lucid).
 
 
-LICENSE
-
-Like Go, this library is distributed under the new BSD license.  See
-accompanying LICENSE file.
-
 
 BENCHMARKS
 
 In benchmarks, Go-fuse's loopback system is about 10 times slower than
 equivalent C++ based FUSE filesystem.  In practical applications, the
-the file system client processing may mask some of these performance gaps.
-
+the file system client processing may mask some of these performance
+gaps.
 
 
 CREDITS
@@ -53,3 +57,9 @@ Grep source code for TODO.  Major topics:
 * Missing support for FUSE_INTERRUPT, FUSE_NOTIFY, CUSE, BMAP, POLL, IOCTL
 
 * Missing support for doing GetAttr/SetAttr on opened files.
+
+
+LICENSE
+
+Like Go, this library is distributed under the new BSD license.  See
+accompanying LICENSE file.
