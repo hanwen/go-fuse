@@ -531,7 +531,7 @@ func serialize(req *fuseRequest, debug bool) {
 
 	sizeOfOutHeader := unsafe.Sizeof(OutHeader{})
 
-	req.outHeaderBytes = make([]byte, sizeOfOutHeader + dataLength)
+	req.outHeaderBytes = make([]byte, sizeOfOutHeader+dataLength)
 	outHeader := (*OutHeader)(unsafe.Pointer(&req.outHeaderBytes[0]))
 	outHeader.Unique = req.inHeader.Unique
 	outHeader.Status = -req.status

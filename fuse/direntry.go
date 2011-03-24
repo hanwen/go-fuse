@@ -34,10 +34,10 @@ func (me *DirEntryList) Add(name []byte, inode uint64, mode uint32) bool {
 	me.offset++
 
 	dirent := Dirent{
-	Off: me.offset,
-	Ino: inode,
-	NameLen: uint32(len(name)),
-	Typ: ModeToType(mode),
+		Off:     me.offset,
+		Ino:     inode,
+		NameLen: uint32(len(name)),
+		Typ:     ModeToType(mode),
 	}
 
 	_, err := me.buf.Write(asSlice(unsafe.Pointer(&dirent), unsafe.Sizeof(Dirent{})))
