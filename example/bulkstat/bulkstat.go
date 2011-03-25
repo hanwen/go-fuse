@@ -32,9 +32,24 @@ func main() {
 		files = append(files, string(l))
 	}
 
+	runs := 10
+	tot := 0.0
+	sleeptime := 4.0
+	for j := 0; j < runs; j++ {
+		tot += BulkStat(10, files)
+		fmt.Printf("Sleeping %.2f seconds\n", sleeptime)
+		time.Sleep(int64(sleeptime * 1e9))
+	}
+
+	fmt.Printf("Average of %d runs: %f ms\n", runs, tot/float64(runs))
+}
+
+func BulkStat(parallelism int, files []string) float64 {
 	parallel := 10
 	todo := make(chan string, len(files))
 	dts := make(chan int64, parallel)
+
+	allStart := time.Nanoseconds()
 
 	fmt.Printf("Statting %d files with %d threads\n", len(files), parallel)
 	for i := 0; i < parallel; i++ {
@@ -61,5 +76,11 @@ func main() {
 		total += float64(<-dts) * 1e-6
 	}
 
-	fmt.Println("Average stat time (ms):", total/float64(len(files)))
+	allEnd := time.Nanoseconds()
+	avg := total/float64(len(files))
+
+	fmt.Printf("Elapsed: %f sec. Average stat %f ms\n",
+		float64(allEnd-allStart)*1e-9, avg)
+
+	return avg
 }
