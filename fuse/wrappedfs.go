@@ -1,209 +1,211 @@
 package fuse
 
 type WrappingPathFilesystem struct {
-	original PathFilesystem
+	// Should be public so people reusing can access the wrapped
+	// FS.
+	Original PathFilesystem
 }
 
 func (me *WrappingPathFilesystem) GetAttr(name string) (*Attr, Status) {
-	return me.original.GetAttr(name)
+	return me.Original.GetAttr(name)
 }
 
 func (me *WrappingPathFilesystem) Readlink(name string) (string, Status) {
-	return me.original.Readlink(name)
+	return me.Original.Readlink(name)
 }
 
 func (me *WrappingPathFilesystem) Mknod(name string, mode uint32, dev uint32) Status {
-	return me.original.Mknod(name, mode, dev)
+	return me.Original.Mknod(name, mode, dev)
 }
 
 func (me *WrappingPathFilesystem) Mkdir(name string, mode uint32) Status {
-	return me.original.Mkdir(name, mode)
+	return me.Original.Mkdir(name, mode)
 }
 
 func (me *WrappingPathFilesystem) Unlink(name string) (code Status) {
-	return me.original.Unlink(name)
+	return me.Original.Unlink(name)
 }
 
 func (me *WrappingPathFilesystem) Rmdir(name string) (code Status) {
-	return me.original.Rmdir(name)
+	return me.Original.Rmdir(name)
 }
 
 func (me *WrappingPathFilesystem) Symlink(value string, linkName string) (code Status) {
-	return me.original.Symlink(value, linkName)
+	return me.Original.Symlink(value, linkName)
 }
 
 func (me *WrappingPathFilesystem) Rename(oldName string, newName string) (code Status) {
-	return me.original.Rename(oldName, newName)
+	return me.Original.Rename(oldName, newName)
 }
 
 func (me *WrappingPathFilesystem) Link(oldName string, newName string) (code Status) {
-	return me.original.Link(oldName, newName)
+	return me.Original.Link(oldName, newName)
 }
 
 func (me *WrappingPathFilesystem) Chmod(name string, mode uint32) (code Status) {
-	return me.original.Chmod(name, mode)
+	return me.Original.Chmod(name, mode)
 }
 
 func (me *WrappingPathFilesystem) Chown(name string, uid uint32, gid uint32) (code Status) {
-	return me.original.Chown(name, uid, gid)
+	return me.Original.Chown(name, uid, gid)
 }
 
 func (me *WrappingPathFilesystem) Truncate(name string, offset uint64) (code Status) {
-	return me.original.Truncate(name, offset)
+	return me.Original.Truncate(name, offset)
 }
 
 func (me *WrappingPathFilesystem) Open(name string, flags uint32) (file RawFuseFile, code Status) {
-	return me.original.Open(name, flags)
+	return me.Original.Open(name, flags)
 }
 
 func (me *WrappingPathFilesystem) OpenDir(name string) (stream chan DirEntry, status Status) {
-	return me.original.OpenDir(name)
+	return me.Original.OpenDir(name)
 }
 
 func (me *WrappingPathFilesystem) Mount(conn *PathFileSystemConnector) Status {
-	return me.original.Mount(conn)
+	return me.Original.Mount(conn)
 }
 
 func (me *WrappingPathFilesystem) Unmount() {
-	me.original.Unmount()
+	me.Original.Unmount()
 }
 
 func (me *WrappingPathFilesystem) Access(name string, mode uint32) (code Status) {
-	return me.original.Access(name, mode)
+	return me.Original.Access(name, mode)
 }
 
 func (me *WrappingPathFilesystem) Create(name string, flags uint32, mode uint32) (file RawFuseFile, code Status) {
-	return me.original.Create(name, flags, mode)
+	return me.Original.Create(name, flags, mode)
 }
 
 func (me *WrappingPathFilesystem) Utimens(name string, AtimeNs uint64, CtimeNs uint64) (code Status) {
-	return me.original.Utimens(name, AtimeNs, CtimeNs)
+	return me.Original.Utimens(name, AtimeNs, CtimeNs)
 }
 
 func (me *WrappingPathFilesystem) GetXAttr(name string, attr string) ([]byte, Status) {
-	return me.original.GetXAttr(name, attr)
+	return me.Original.GetXAttr(name, attr)
 }
 
 func (me *WrappingPathFilesystem) ListXAttr(name string) ([]string, Status) {
-	return me.original.ListXAttr(name)
+	return me.Original.ListXAttr(name)
 }
 
 func (me *WrappingPathFilesystem) RemoveXAttr(name string, attr string) Status {
-	return me.original.RemoveXAttr(name, attr)
+	return me.Original.RemoveXAttr(name, attr)
 }
 
 ////////////////////////////////////////////////////////////////
 // Wrapping raw FS.
 
 type WrappingRawFilesystem struct {
-	original RawFileSystem
+	Original RawFileSystem
 }
 
 
 func (me *WrappingRawFilesystem) Init(h *InHeader, input *InitIn) (*InitOut, Status) {
-	return me.original.Init(h, input)
+	return me.Original.Init(h, input)
 }
 
 func (me *WrappingRawFilesystem) Destroy(h *InHeader, input *InitIn) {
-	me.original.Destroy(h, input)
+	me.Original.Destroy(h, input)
 }
 
 func (me *WrappingRawFilesystem) Lookup(h *InHeader, name string) (out *EntryOut, code Status) {
-	return me.original.Lookup(h, name)
+	return me.Original.Lookup(h, name)
 }
 
 func (me *WrappingRawFilesystem) Forget(h *InHeader, input *ForgetIn) {
-	me.original.Forget(h, input)
+	me.Original.Forget(h, input)
 }
 
 func (me *WrappingRawFilesystem) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
-	return me.original.GetAttr(header, input)
+	return me.Original.GetAttr(header, input)
 }
 
 func (me *WrappingRawFilesystem) Open(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseFile, status Status) {
-	return me.original.Open(header, input)
+	return me.Original.Open(header, input)
 }
 
 func (me *WrappingRawFilesystem) SetAttr(header *InHeader, input *SetAttrIn) (out *AttrOut, code Status) {
-	return me.original.SetAttr(header, input)
+	return me.Original.SetAttr(header, input)
 }
 
 func (me *WrappingRawFilesystem) Readlink(header *InHeader) (out []byte, code Status) {
-	return me.original.Readlink(header)
+	return me.Original.Readlink(header)
 }
 
 func (me *WrappingRawFilesystem) Mknod(header *InHeader, input *MknodIn, name string) (out *EntryOut, code Status) {
-	return me.original.Mknod(header, input, name)
+	return me.Original.Mknod(header, input, name)
 }
 
 func (me *WrappingRawFilesystem) Mkdir(header *InHeader, input *MkdirIn, name string) (out *EntryOut, code Status) {
-	return me.original.Mkdir(header, input, name)
+	return me.Original.Mkdir(header, input, name)
 }
 
 func (me *WrappingRawFilesystem) Unlink(header *InHeader, name string) (code Status) {
-	return me.original.Unlink(header, name)
+	return me.Original.Unlink(header, name)
 }
 
 func (me *WrappingRawFilesystem) Rmdir(header *InHeader, name string) (code Status) {
-	return me.original.Rmdir(header, name)
+	return me.Original.Rmdir(header, name)
 }
 
 func (me *WrappingRawFilesystem) Symlink(header *InHeader, pointedTo string, linkName string) (out *EntryOut, code Status) {
-	return me.original.Symlink(header, pointedTo, linkName)
+	return me.Original.Symlink(header, pointedTo, linkName)
 }
 
 func (me *WrappingRawFilesystem) Rename(header *InHeader, input *RenameIn, oldName string, newName string) (code Status) {
-	return me.original.Rename(header, input, oldName, newName)
+	return me.Original.Rename(header, input, oldName, newName)
 }
 
 func (me *WrappingRawFilesystem) Link(header *InHeader, input *LinkIn, name string) (out *EntryOut, code Status) {
-	return me.original.Link(header, input, name)
+	return me.Original.Link(header, input, name)
 }
 
 func (me *WrappingRawFilesystem) SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) Status {
-	return me.original.SetXAttr(header, input, attr, data)
+	return me.Original.SetXAttr(header, input, attr, data)
 }
 
 func (me *WrappingRawFilesystem) GetXAttr(header *InHeader, attr string) (data []byte, code Status) {
-	return me.original.GetXAttr(header, attr)
+	return me.Original.GetXAttr(header, attr)
 }
 
 func (me *WrappingRawFilesystem) ListXAttr(header *InHeader) (data []byte, code Status) {
-	return me.original.ListXAttr(header)
+	return me.Original.ListXAttr(header)
 }
 
 func (me *WrappingRawFilesystem) RemoveXAttr(header *InHeader, attr string) Status {
-	return me.original.RemoveXAttr(header, attr)
+	return me.Original.RemoveXAttr(header, attr)
 }
 
 func (me *WrappingRawFilesystem) Access(header *InHeader, input *AccessIn) (code Status) {
-	return me.original.Access(header, input)
+	return me.Original.Access(header, input)
 }
 
 func (me *WrappingRawFilesystem) Create(header *InHeader, input *CreateIn, name string) (flags uint32, fuseFile RawFuseFile, out *EntryOut, code Status) {
-	return me.original.Create(header, input, name)
+	return me.Original.Create(header, input, name)
 }
 
 func (me *WrappingRawFilesystem) Bmap(header *InHeader, input *BmapIn) (out *BmapOut, code Status) {
-	return me.original.Bmap(header, input)
+	return me.Original.Bmap(header, input)
 }
 
 func (me *WrappingRawFilesystem) Ioctl(header *InHeader, input *IoctlIn) (out *IoctlOut, code Status) {
-	return me.original.Ioctl(header, input)
+	return me.Original.Ioctl(header, input)
 }
 
 func (me *WrappingRawFilesystem) Poll(header *InHeader, input *PollIn) (out *PollOut, code Status) {
-	return me.original.Poll(header, input)
+	return me.Original.Poll(header, input)
 }
 
 func (me *WrappingRawFilesystem) OpenDir(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseDir, status Status) {
-	return me.original.OpenDir(header, input)
+	return me.Original.OpenDir(header, input)
 }
 
 func (me *WrappingRawFilesystem) Release(header *InHeader, f RawFuseFile) {
-	me.original.Release(header, f)
+	me.Original.Release(header, f)
 }
 
 func (me *WrappingRawFilesystem) ReleaseDir(header *InHeader, f RawFuseDir) {
-	me.original.ReleaseDir(header, f)
+	me.Original.ReleaseDir(header, f)
 }
