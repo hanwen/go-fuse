@@ -88,6 +88,10 @@ func (me *WrappingPathFilesystem) ListXAttr(name string) ([]string, Status) {
 	return me.original.ListXAttr(name)
 }
 
+func (me *WrappingPathFilesystem) RemoveXAttr(name string, attr string) (Status) {
+	return me.original.RemoveXAttr(name, attr)
+}
+
 ////////////////////////////////////////////////////////////////
 // Wrapping raw FS.
 
@@ -166,6 +170,10 @@ func (me *WrappingRawFilesystem) GetXAttr(header *InHeader, attr string) (data [
 
 func (me *WrappingRawFilesystem) ListXAttr(header *InHeader) (data []byte, code Status) {
 	return me.original.ListXAttr(header)
+}
+
+func (me *WrappingRawFilesystem) RemoveXAttr(header *InHeader, attr string) (Status) {
+	return me.original.RemoveXAttr(header, attr)
 }
 
 func (me *WrappingRawFilesystem) Access(header *InHeader, input *AccessIn) (code Status) {

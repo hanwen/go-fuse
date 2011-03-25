@@ -522,6 +522,15 @@ func (me *SubmountFileSystem) GetXAttr(header *fuse.InHeader, attr string) (data
 	return subfs.Fs.GetXAttr(header, attr)
 }
 
+func (me *SubmountFileSystem) RemoveXAttr(header *fuse.InHeader, attr string) (code fuse.Status) {
+	var subfs *subFsInfo
+	header.NodeId, subfs = me.getSubFs(header.NodeId)
+	if subfs == nil {
+		return fuse.ENOENT
+	}
+	return subfs.Fs.RemoveXAttr(header, attr)
+}
+
 func (me *SubmountFileSystem) Access(header *fuse.InHeader, input *fuse.AccessIn) (code fuse.Status) {
 	var subfs *subFsInfo
 	header.NodeId, subfs = me.getSubFs(header.NodeId)

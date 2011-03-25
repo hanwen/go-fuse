@@ -158,6 +158,10 @@ func (me *LoopbackFileSystem) ListXAttr(name string) ([]string, Status) {
 	return data, Status(errNo)
 }
 
+func (me *LoopbackFileSystem) RemoveXAttr(name string, attr string) (Status) {
+	return Status(Removexattr(me.GetPath(name), attr))
+}
+
 func (me *LoopbackFileSystem) FillOptions(options *PathFileSystemConnectorOptions) {
 	options.NegativeTimeout = 3.0
 	options.AttrTimeout = 3.0

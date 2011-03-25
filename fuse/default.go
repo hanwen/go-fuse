@@ -77,6 +77,10 @@ func (me *DefaultRawFuseFileSystem) ListXAttr(header *InHeader) (data []byte, co
 	return nil, ENOSYS	
 }
 
+func (me *DefaultRawFuseFileSystem) RemoveXAttr(header *InHeader, attr string) (Status) {
+	return ENOSYS
+}
+
 func (me *DefaultRawFuseFileSystem) Access(header *InHeader, input *AccessIn) (code Status) {
 	return ENOSYS
 }
@@ -164,6 +168,10 @@ func (me *DefaultPathFilesystem) SetXAttr(name string, attr string, data []byte,
 
 func (me *DefaultPathFilesystem) ListXAttr(name string) ([]string, Status) {
 	return nil, ENOSYS
+}
+
+func (me *DefaultPathFilesystem) RemoveXAttr(name string, attr string) (Status) {
+	return ENOSYS
 }
 
 func (me *DefaultPathFilesystem) Readlink(name string) (string, Status) {

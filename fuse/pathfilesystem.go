@@ -728,6 +728,15 @@ func (me *PathFileSystemConnector) GetXAttr(header *InHeader, attribute string) 
 	return data, code
 }
 
+func (me *PathFileSystemConnector) RemoveXAttr(header *InHeader, attr string) (Status) {
+	path, mount := me.GetPath(header.NodeId)
+	if mount == nil {
+		return ENOENT
+	}
+
+	return mount.fs.RemoveXAttr(path, attr)	
+}
+
 func (me *PathFileSystemConnector) SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) (Status) {
 	path, mount := me.GetPath(header.NodeId)
 	if mount == nil {

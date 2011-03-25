@@ -136,6 +136,11 @@ func (me *TimingRawFilesystem) ListXAttr(header *InHeader) (data []byte, code St
 	return me.original.ListXAttr(header)
 }
 
+func (me *TimingRawFilesystem) RemoveXAttr(header *InHeader, attr string) (Status) {
+	defer me.startTimer("RemoveXAttr")()
+	return me.original.RemoveXAttr(header, attr)
+}
+
 func (me *TimingRawFilesystem) Access(header *InHeader, input *AccessIn) (code Status) {
 	defer me.startTimer("Access")()
 	return me.original.Access(header, input)

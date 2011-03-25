@@ -382,7 +382,8 @@ func (me *MountState) dispatch(req *fuseRequest) {
 	if h.Opcode == FUSE_UNLINK || h.Opcode == FUSE_RMDIR ||
 		h.Opcode == FUSE_LOOKUP || h.Opcode == FUSE_MKDIR ||
 		h.Opcode == FUSE_MKNOD || h.Opcode == FUSE_CREATE ||
-		h.Opcode == FUSE_LINK || h.Opcode == FUSE_GETXATTR {
+		h.Opcode == FUSE_LINK || h.Opcode == FUSE_GETXATTR ||
+		h.Opcode == FUSE_REMOVEXATTR {
 		filename = strings.TrimRight(string(data), "\x00")
 	}
 	if me.Debug {
@@ -478,8 +479,8 @@ func (me *MountState) dispatch(req *fuseRequest) {
 		req.data, req.flatData, status = doGetXAttr(me, h, (*GetXAttrIn)(inData), filename, h.Opcode)
 	case FUSE_LISTXATTR:
 		req.data, req.flatData, status = doGetXAttr(me, h, (*GetXAttrIn)(inData), filename, h.Opcode)
-	// case FUSE_REMOVEXATTR
-
+	case FUSE_REMOVEXATTR:
+		status = fs.RemoveXAttr(h, filename)
 	case FUSE_ACCESS:
 		status = fs.Access(h, (*AccessIn)(inData))
 	case FUSE_CREATE:

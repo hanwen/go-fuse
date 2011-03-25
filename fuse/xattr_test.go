@@ -3,10 +3,12 @@ package fuse
 import (
 	"bytes"
 	"testing"
+	"log"
 	"path/filepath"
 	"os"
 	"syscall"
 )
+var _ = log.Print
 
 type XAttrTestFs struct {
 	filename string
@@ -66,6 +68,19 @@ func (me *XAttrTestFs) ListXAttr(name string) (data []string, code Status) {
 	return data, OK
 }
 
+func (me *XAttrTestFs) RemoveXAttr(name string, attr string) (Status) {
+	if name != me.filename {
+		return ENOENT
+	}
+	_, ok := me.attrs[attr]
+	log.Println(name, attr, ok)
+	if !ok {
+		return syscall.ENODATA
+	}
+	me.attrs[attr] = nil, false
+	return OK
+}
+
 func TestXAttrRead(t *testing.T) {
 	nm := "filename"
 
@@ -123,7 +138,13 @@ func TestXAttrRead(t *testing.T) {
 	Setxattr(mounted, "third", []byte("value"), 0)
 	val, errno = GetXAttr(mounted, "third")
 	if errno != 0 || string(val) != "value" {
-		t.Error("Read back set xattr:", err, val)
+		t.Error("Read back set xattr:", errno, val)
+	}
+
+	Removexattr(mounted, "third")
+	val, errno = GetXAttr(mounted, "third")
+	if errno != syscall.ENODATA {
+		t.Error("Data not removed?", errno, val)
 	}
 }
 
