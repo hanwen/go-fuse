@@ -158,7 +158,7 @@ func (me *LoopbackFileSystem) ListXAttr(name string) ([]string, Status) {
 	return data, Status(errNo)
 }
 
-func (me *LoopbackFileSystem) RemoveXAttr(name string, attr string) (Status) {
+func (me *LoopbackFileSystem) RemoveXAttr(name string, attr string) Status {
 	return Status(Removexattr(me.GetPath(name), attr))
 }
 

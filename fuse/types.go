@@ -518,7 +518,7 @@ type RawFileSystem interface {
 
 	GetXAttr(header *InHeader, attr string) (data []byte, code Status)
 	ListXAttr(header *InHeader) (attributes []byte, code Status)
-	SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) (Status)
+	SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) Status
 	RemoveXAttr(header *InHeader, attr string) (code Status)
 	Access(header *InHeader, input *AccessIn) (code Status)
 	Create(header *InHeader, input *CreateIn, name string) (flags uint32, fuseFile RawFuseFile, out *EntryOut, code Status)
@@ -567,10 +567,10 @@ type PathFilesystem interface {
 	GetXAttr(name string, attribute string) (data []byte, code Status)
 	SetXAttr(name string, attr string, data []byte, flags int) Status
 	ListXAttr(name string) (attributes []string, code Status)
-	RemoveXAttr(name string, attr string) (Status)
+	RemoveXAttr(name string, attr string) Status
 
 	// Where to hook up statfs?
-	 
+
 	OpenDir(name string) (stream chan DirEntry, code Status)
 
 	// TODO - what is a good interface?

@@ -726,16 +726,16 @@ func (me *PathFileSystemConnector) GetXAttr(header *InHeader, attribute string) 
 	return data, code
 }
 
-func (me *PathFileSystemConnector) RemoveXAttr(header *InHeader, attr string) (Status) {
+func (me *PathFileSystemConnector) RemoveXAttr(header *InHeader, attr string) Status {
 	path, mount := me.GetPath(header.NodeId)
 	if mount == nil {
 		return ENOENT
 	}
 
-	return mount.fs.RemoveXAttr(path, attr)	
+	return mount.fs.RemoveXAttr(path, attr)
 }
 
-func (me *PathFileSystemConnector) SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) (Status) {
+func (me *PathFileSystemConnector) SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) Status {
 	path, mount := me.GetPath(header.NodeId)
 	if mount == nil {
 		return ENOENT
@@ -743,7 +743,7 @@ func (me *PathFileSystemConnector) SetXAttr(header *InHeader, input *SetXAttrIn,
 
 	return mount.fs.SetXAttr(path, attr, data, int(input.Flags))
 }
-	
+
 func (me *PathFileSystemConnector) ListXAttr(header *InHeader) (data []byte, code Status) {
 	path, mount := me.GetPath(header.NodeId)
 	if mount == nil {
@@ -760,7 +760,7 @@ func (me *PathFileSystemConnector) ListXAttr(header *InHeader) (data []byte, cod
 		b.Write([]byte(v))
 		b.WriteByte(0)
 	}
-	
+
 	return b.Bytes(), code
 }
 

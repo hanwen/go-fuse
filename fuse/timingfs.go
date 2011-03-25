@@ -106,7 +106,7 @@ func (me *TimingPathFilesystem) ListXAttr(name string) ([]string, Status) {
 	return me.original.ListXAttr(name)
 }
 
-func (me *TimingPathFilesystem) RemoveXAttr(name string, attr string) (Status) {
+func (me *TimingPathFilesystem) RemoveXAttr(name string, attr string) Status {
 	defer me.startTimer("RemoveXAttr", name)()
 	return me.original.RemoveXAttr(name, attr)
 }
@@ -200,4 +200,3 @@ func (me *TimingPathFilesystem) Utimens(name string, AtimeNs uint64, CtimeNs uin
 	defer me.startTimer("Utimens", name)()
 	return me.original.Utimens(name, AtimeNs, CtimeNs)
 }
-

@@ -136,7 +136,7 @@ func (me *TimingRawFilesystem) ListXAttr(header *InHeader) (data []byte, code St
 	return me.original.ListXAttr(header)
 }
 
-func (me *TimingRawFilesystem) RemoveXAttr(header *InHeader, attr string) (Status) {
+func (me *TimingRawFilesystem) RemoveXAttr(header *InHeader, attr string) Status {
 	defer me.startTimer("RemoveXAttr")()
 	return me.original.RemoveXAttr(header, attr)
 }
@@ -180,4 +180,3 @@ func (me *TimingRawFilesystem) ReleaseDir(header *InHeader, f RawFuseDir) {
 	defer me.startTimer("ReleaseDir")()
 	me.original.ReleaseDir(header, f)
 }
-

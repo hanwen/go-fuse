@@ -8,11 +8,12 @@ import (
 	"os"
 	"syscall"
 )
+
 var _ = log.Print
 
 type XAttrTestFs struct {
 	filename string
-	attrs map[string][]byte
+	attrs    map[string][]byte
 
 	DefaultPathFilesystem
 }
@@ -37,7 +38,7 @@ func (me *XAttrTestFs) GetAttr(name string) (*Attr, Status) {
 	return nil, ENOENT
 }
 
-func (me *XAttrTestFs) SetXAttr(name string, attr string, data []byte, flags int) (Status) {
+func (me *XAttrTestFs) SetXAttr(name string, attr string, data []byte, flags int) Status {
 	if name != me.filename {
 		return ENOENT
 	}
@@ -68,7 +69,7 @@ func (me *XAttrTestFs) ListXAttr(name string) (data []string, code Status) {
 	return data, OK
 }
 
-func (me *XAttrTestFs) RemoveXAttr(name string, attr string) (Status) {
+func (me *XAttrTestFs) RemoveXAttr(name string, attr string) Status {
 	if name != me.filename {
 		return ENOENT
 	}
@@ -128,7 +129,7 @@ func TestXAttrRead(t *testing.T) {
 	if len(readback) != len(golden) {
 		t.Error("length mismatch", golden, readback)
 	} else {
-		for k, v := range(readback) {
+		for k, v := range readback {
 			if bytes.Compare(golden[k], v) != 0 {
 				t.Error("val mismatch", k, v, golden[k])
 			}
@@ -147,4 +148,3 @@ func TestXAttrRead(t *testing.T) {
 		t.Error("Data not removed?", errno, val)
 	}
 }
-
