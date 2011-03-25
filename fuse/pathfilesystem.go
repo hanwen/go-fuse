@@ -728,6 +728,26 @@ func (me *PathFileSystemConnector) GetXAttr(header *InHeader, attribute string) 
 	return data, code
 }
 
+func (me *PathFileSystemConnector) ListXAttr(header *InHeader) (data []byte, code Status) {
+	path, mount := me.GetPath(header.NodeId)
+	if mount == nil {
+		return nil, ENOENT
+	}
+
+	attrs, code := mount.fs.ListXAttr(path)
+	if code != OK {
+		return nil, code
+	}
+
+	b := bytes.NewBuffer([]byte{})
+	for _, v := range attrs {
+		b.Write([]byte(v))
+		b.WriteByte(0)
+	}
+	
+	return b.Bytes(), code
+}
+
 ////////////////////////////////////////////////////////////////
 // unimplemented.
 

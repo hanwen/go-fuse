@@ -475,9 +475,9 @@ func (me *MountState) dispatch(req *fuseRequest) {
 	// case FUSE_SETXATTR:
 	//	status = fs.SetXAttr(h, (*SetXAttrIn)(inData))
 	case FUSE_GETXATTR:
-		req.data, req.flatData, status = doGetXAttr(me, h, (*GetXAttrIn)(inData), filename)
-
-	// case FUSE_LISTXATTR:
+		req.data, req.flatData, status = doGetXAttr(me, h, (*GetXAttrIn)(inData), filename, h.Opcode)
+	case FUSE_LISTXATTR:
+		req.data, req.flatData, status = doGetXAttr(me, h, (*GetXAttrIn)(inData), filename, h.Opcode)
 	// case FUSE_REMOVEXATTR
 
 	case FUSE_ACCESS:
@@ -642,8 +642,12 @@ func doSetattr(state *MountState, header *InHeader, input *SetAttrIn) (out unsaf
 	return unsafe.Pointer(o), s
 }
 
-func doGetXAttr(state *MountState, header *InHeader, input *GetXAttrIn, attr string) (out unsafe.Pointer, data []byte, code Status) {
-	data, code = state.fileSystem.GetXAttr(header, attr)
+func doGetXAttr(state *MountState, header *InHeader, input *GetXAttrIn, attr string, opcode uint32) (out unsafe.Pointer, data []byte, code Status) {
+	if opcode == FUSE_GETXATTR {
+		data, code = state.fileSystem.GetXAttr(header, attr)
+	} else {
+		data, code = state.fileSystem.ListXAttr(header)
+	}
 	if code != OK {
 		return nil, nil, code
 	}

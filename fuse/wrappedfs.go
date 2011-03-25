@@ -80,6 +80,13 @@ func (me *WrappingPathFilesystem) Utimens(name string, AtimeNs uint64, CtimeNs u
 	return me.original.Utimens(name, AtimeNs, CtimeNs)
 }
 
+func (me *WrappingPathFilesystem) GetXAttr(name string, attr string) ([]byte, Status) {
+	return me.original.GetXAttr(name, attr)
+}
+
+func (me *WrappingPathFilesystem) ListXAttr(name string) ([]string, Status) {
+	return me.original.ListXAttr(name)
+}
 
 ////////////////////////////////////////////////////////////////
 // Wrapping raw FS.
@@ -155,6 +162,10 @@ func (me *WrappingRawFilesystem) SetXAttr(header *InHeader, input *SetXAttrIn) S
 
 func (me *WrappingRawFilesystem) GetXAttr(header *InHeader, attr string) (data []byte, code Status) {
 	return me.original.GetXAttr(header, attr)
+}
+
+func (me *WrappingRawFilesystem) ListXAttr(header *InHeader) (data []byte, code Status) {
+	return me.original.ListXAttr(header)
 }
 
 func (me *WrappingRawFilesystem) Access(header *InHeader, input *AccessIn) (code Status) {

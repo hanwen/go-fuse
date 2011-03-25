@@ -73,6 +73,10 @@ func (me *DefaultRawFuseFileSystem) GetXAttr(header *InHeader, attr string) (dat
 	return nil, ENOSYS
 }
 
+func (me *DefaultRawFuseFileSystem) ListXAttr(header *InHeader) (data []byte, code Status) {
+	return nil, ENOSYS	
+}
+
 func (me *DefaultRawFuseFileSystem) Access(header *InHeader, input *AccessIn) (code Status) {
 	return ENOSYS
 }
@@ -150,6 +154,10 @@ func (me *DefaultPathFilesystem) GetAttr(name string) (*Attr, Status) {
 }
 
 func (me *DefaultPathFilesystem) GetXAttr(name string, attr string) ([]byte, Status) {
+	return nil, ENOSYS
+}
+
+func (me *DefaultPathFilesystem) ListXAttr(name string) ([]string, Status) {
 	return nil, ENOSYS
 }
 

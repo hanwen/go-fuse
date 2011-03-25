@@ -517,7 +517,8 @@ type RawFileSystem interface {
 	Link(header *InHeader, input *LinkIn, filename string) (out *EntryOut, code Status)
 
 	GetXAttr(header *InHeader, attr string) (data []byte, code Status)
-
+	ListXAttr(header *InHeader) (attributes []byte, code Status)
+	
 	// Unused:
 	SetXAttr(header *InHeader, input *SetXAttrIn) Status
 
@@ -570,7 +571,8 @@ type PathFilesystem interface {
 	// Where to hook up statfs?
 	//
 	// Unimplemented:
-	// RemoveXAttr, SetXAttr, GetXAttr, ListXAttr.
+	// RemoveXAttr, SetXAttr,
+	ListXAttr(name string) (attributes []string, code Status)
 
 	OpenDir(name string) (stream chan DirEntry, code Status)
 

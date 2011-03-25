@@ -96,6 +96,11 @@ func (me *TimingPathFilesystem) GetXAttr(name string, attr string) ([]byte, Stat
 	return me.original.GetXAttr(name, attr)
 }
 
+func (me *TimingPathFilesystem) ListXAttr(name string) ([]string, Status) {
+	defer me.startTimer("ListXAttr", name)()
+	return me.original.ListXAttr(name)
+}
+
 func (me *TimingPathFilesystem) Readlink(name string) (string, Status) {
 	defer me.startTimer("Readlink", name)()
 	return me.original.Readlink(name)
@@ -185,3 +190,4 @@ func (me *TimingPathFilesystem) Utimens(name string, AtimeNs uint64, CtimeNs uin
 	defer me.startTimer("Utimens", name)()
 	return me.original.Utimens(name, AtimeNs, CtimeNs)
 }
+

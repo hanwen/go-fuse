@@ -1,5 +1,7 @@
 package fuse
+
 import (
+	"bytes"
 	"testing"
 	"path/filepath"
 	"os"
@@ -33,6 +35,7 @@ func (me *XAttrTestFs) GetAttr(name string) (*Attr, Status) {
 	return nil, ENOENT
 }
 
+
 func (me *XAttrTestFs) GetXAttr(name string, attr string) ([]byte, Status) {
 	if name != me.filename {
 		return nil, ENOENT
@@ -44,19 +47,31 @@ func (me *XAttrTestFs) GetXAttr(name string, attr string) ([]byte, Status) {
 
 	return v, OK
 }
+func (me *XAttrTestFs) ListXAttr(name string) (data []string, code Status) {
+	if name != me.filename {
+		return nil, ENOENT
+	}
 
-func TestXAttr(t *testing.T) {
+	for k, _ := range me.attrs {
+		data = append(data, k)
+	}
+	return data, OK
+}
+
+func TestXAttrRead(t *testing.T) {
 	nm := "filename"
-	xfs := NewXAttrFs(nm,
-		map[string][]byte{
+
+	golden := map[string][]byte{
 		"user.attr1": []byte("val1"),
-		"user.attr2": []byte("val2")})
+		"user.attr2": []byte("val2")}
+	xfs := NewXAttrFs(nm, golden)
 
 	connector := NewPathFileSystemConnector(xfs)
 	mountPoint := MakeTempDir()
 
 	state := NewMountState(connector)
 	state.Mount(mountPoint)
+	state.Debug = true
 	defer state.Unmount()
 
 	go state.Loop(false)
@@ -69,16 +84,32 @@ func TestXAttr(t *testing.T) {
 
 	val, errno := GetXAttr(mounted, "noexist")
 	if errno == 0 {
-		t.Error("Expected GetXAttr error")
+		t.Error("Expected GetXAttr error", val)
 	}
 
-	val, errno = GetXAttr(mounted, "user.attr1")
-	if err != nil {
-		t.Error("Unexpected GetXAttr error", errno)
+	attrs, errno := ListXAttr(mounted)
+
+	readback := make(map[string][]byte)
+	if errno != 0 {
+		t.Error("Unexpected ListXAttr error", errno)
+	} else {
+		for _, a := range attrs {
+			val, errno = GetXAttr(mounted, a)
+			if errno != 0 {
+				t.Error("Unexpected GetXAttr error", errno)
+			}
+			readback[a] = val
+		}
 	}
 
-	if string(val) != "val1" {
-		t.Error("Unexpected value", val)
+	if len(readback) != len(golden) {
+		t.Error("length mismatch", golden, readback)
+	} else {
+		for k, v := range(readback) {
+			if bytes.Compare(golden[k], v) != 0 {
+				t.Error("val mismatch", k, v, golden[k])
+			}
+		}
 	}
 }
 

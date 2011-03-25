@@ -87,6 +87,8 @@ type SubmountFileSystem struct {
 	nextFreeInode uint64
 
 	Options SubmountFileSystemOptions
+
+	fuse.DefaultRawFuseFileSystem
 }
 
 type SubmountFileSystemOptions struct {

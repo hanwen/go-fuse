@@ -131,6 +131,11 @@ func (me *TimingRawFilesystem) GetXAttr(header *InHeader, attr string) (data []b
 	return me.original.GetXAttr(header, attr)
 }
 
+func (me *TimingRawFilesystem) ListXAttr(header *InHeader) (data []byte, code Status) {
+	defer me.startTimer("ListXAttr")()
+	return me.original.ListXAttr(header)
+}
+
 func (me *TimingRawFilesystem) Access(header *InHeader, input *AccessIn) (code Status) {
 	defer me.startTimer("Access")()
 	return me.original.Access(header, input)
@@ -170,3 +175,4 @@ func (me *TimingRawFilesystem) ReleaseDir(header *InHeader, f RawFuseDir) {
 	defer me.startTimer("ReleaseDir")()
 	me.original.ReleaseDir(header, f)
 }
+
