@@ -23,8 +23,6 @@ type mountData struct {
 	openCount int
 }
 
-// TODO - should we call async or not? what is the goroutine creation
-// overhead vs. lock acquisition.
 func (me *mountData) incOpenCount(delta int) {
 	me.mutex.Lock()
 	defer me.mutex.Unlock()

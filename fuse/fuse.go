@@ -77,7 +77,7 @@ type MountState struct {
 	// Dump debug info onto stdout.
 	Debug bool
 
-	// For efficient reads.
+	// For efficient reads and writes.
 	buffers *BufferPool
 
 	statisticsMutex sync.Mutex
@@ -133,8 +133,7 @@ func (me *MountState) UnregisterDir(handle uint64) {
 // Mount filesystem on mountPoint.
 //
 // If threaded is set, each filesystem operation executes in a
-// separate goroutine, and errors and writes are done asynchronously
-// using channels.
+// separate goroutine.
 //
 // TODO - error handling should perhaps be user-serviceable.
 func (me *MountState) Mount(mountPoint string) os.Error {
