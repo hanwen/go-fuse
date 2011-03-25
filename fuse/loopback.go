@@ -163,9 +163,11 @@ func (me *LoopbackFileSystem) RemoveXAttr(name string, attr string) Status {
 }
 
 func (me *LoopbackFileSystem) FillOptions(options *PathFileSystemConnectorOptions) {
-	options.NegativeTimeout = 3.0
-	options.AttrTimeout = 3.0
-	options.EntryTimeout = 3.0
+	// These options are to be compatible with libfuse defaults,
+	// making benchmarking easier.
+	options.NegativeTimeout = 1.0
+	options.AttrTimeout = 1.0
+	options.EntryTimeout = 1.0
 }
 
 ////////////////////////////////////////////////////////////////
