@@ -96,6 +96,11 @@ func (me *TimingPathFilesystem) GetXAttr(name string, attr string) ([]byte, Stat
 	return me.original.GetXAttr(name, attr)
 }
 
+func (me *TimingPathFilesystem) SetXAttr(name string, attr string, data []byte, flags int) Status {
+	defer me.startTimer("SetXAttr", name)()
+	return me.original.SetXAttr(name, attr, data, flags)
+}
+
 func (me *TimingPathFilesystem) ListXAttr(name string) ([]string, Status) {
 	defer me.startTimer("ListXAttr", name)()
 	return me.original.ListXAttr(name)

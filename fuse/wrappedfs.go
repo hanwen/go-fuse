@@ -156,8 +156,8 @@ func (me *WrappingRawFilesystem) Link(header *InHeader, input *LinkIn, name stri
 	return me.original.Link(header, input, name)
 }
 
-func (me *WrappingRawFilesystem) SetXAttr(header *InHeader, input *SetXAttrIn) Status {
-	return me.original.SetXAttr(header, input)
+func (me *WrappingRawFilesystem) SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) Status {
+	return me.original.SetXAttr(header, input, attr, data)
 }
 
 func (me *WrappingRawFilesystem) GetXAttr(header *InHeader, attr string) (data []byte, code Status) {

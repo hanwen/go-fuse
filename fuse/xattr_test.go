@@ -35,6 +35,13 @@ func (me *XAttrTestFs) GetAttr(name string) (*Attr, Status) {
 	return nil, ENOENT
 }
 
+func (me *XAttrTestFs) SetXAttr(name string, attr string, data []byte, flags int) (Status) {
+	if name != me.filename {
+		return ENOENT
+	}
+	me.attrs[attr] = data
+	return OK
+}
 
 func (me *XAttrTestFs) GetXAttr(name string, attr string) ([]byte, Status) {
 	if name != me.filename {
@@ -47,6 +54,7 @@ func (me *XAttrTestFs) GetXAttr(name string, attr string) ([]byte, Status) {
 
 	return v, OK
 }
+
 func (me *XAttrTestFs) ListXAttr(name string) (data []string, code Status) {
 	if name != me.filename {
 		return nil, ENOENT
@@ -110,6 +118,12 @@ func TestXAttrRead(t *testing.T) {
 				t.Error("val mismatch", k, v, golden[k])
 			}
 		}
+	}
+
+	Setxattr(mounted, "third", []byte("value"), 0)
+	val, errno = GetXAttr(mounted, "third")
+	if errno != 0 || string(val) != "value" {
+		t.Error("Read back set xattr:", err, val)
 	}
 }
 

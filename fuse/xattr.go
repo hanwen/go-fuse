@@ -72,3 +72,17 @@ func ListXAttr(path string) (attributes []string, errno int) {
 	}
 	return attributes, errno
 }
+
+func Setxattr(path string, attr string, data []byte, flags int) (errno int) {
+	pathbs := syscall.StringBytePtr(path)
+	attrbs := syscall.StringBytePtr(attr)
+	_, _, errNo := syscall.Syscall6(
+		syscall.SYS_SETXATTR,
+		uintptr(unsafe.Pointer(pathbs)),
+		uintptr(unsafe.Pointer(attrbs)),
+		uintptr(unsafe.Pointer(&data[0])),
+		uintptr(len(data)),
+		uintptr(flags), 0)
+
+	return int(errNo)
+}

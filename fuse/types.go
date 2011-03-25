@@ -518,9 +518,7 @@ type RawFileSystem interface {
 
 	GetXAttr(header *InHeader, attr string) (data []byte, code Status)
 	ListXAttr(header *InHeader) (attributes []byte, code Status)
-	
-	// Unused:
-	SetXAttr(header *InHeader, input *SetXAttrIn) Status
+	SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) (Status)
 
 	Access(header *InHeader, input *AccessIn) (code Status)
 	Create(header *InHeader, input *CreateIn, name string) (flags uint32, fuseFile RawFuseFile, out *EntryOut, code Status)
@@ -571,7 +569,8 @@ type PathFilesystem interface {
 	// Where to hook up statfs?
 	//
 	// Unimplemented:
-	// RemoveXAttr, SetXAttr,
+	// RemoveXAttr, 
+	SetXAttr(name string, attr string, data []byte, flags int) Status
 	ListXAttr(name string) (attributes []string, code Status)
 
 	OpenDir(name string) (stream chan DirEntry, code Status)

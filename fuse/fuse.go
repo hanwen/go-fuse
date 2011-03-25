@@ -1,6 +1,7 @@
 package fuse
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os"
@@ -470,10 +471,9 @@ func (me *MountState) dispatch(req *fuseRequest) {
 	case FUSE_FSYNCDIR:
 		// todo- check inData type.
 		status = doFsyncDir(me, h, (*FsyncIn)(inData))
-
-	// TODO - implement XAttr routines.
-	// case FUSE_SETXATTR:
-	//	status = fs.SetXAttr(h, (*SetXAttrIn)(inData))
+	case FUSE_SETXATTR:
+		splits := bytes.Split(data, []byte{0}, 2)
+		status = fs.SetXAttr(h, (*SetXAttrIn)(inData), string(splits[0]), splits[1])
 	case FUSE_GETXATTR:
 		req.data, req.flatData, status = doGetXAttr(me, h, (*GetXAttrIn)(inData), filename, h.Opcode)
 	case FUSE_LISTXATTR:

@@ -503,14 +503,14 @@ func (me *SubmountFileSystem) Link(header *fuse.InHeader, input *fuse.LinkIn, na
 	return out, code
 }
 
-func (me *SubmountFileSystem) SetXAttr(header *fuse.InHeader, input *fuse.SetXAttrIn) fuse.Status {
+func (me *SubmountFileSystem) SetXAttr(header *fuse.InHeader, input *fuse.SetXAttrIn, attr string, data []byte) fuse.Status {
 	var subfs *subFsInfo
 	header.NodeId, subfs = me.getSubFs(header.NodeId)
 	if subfs == nil {
 		return fuse.ENOENT
 	}
 
-	return subfs.Fs.SetXAttr(header, input)
+	return subfs.Fs.SetXAttr(header, input, attr, data)
 }
 
 func (me *SubmountFileSystem) GetXAttr(header *fuse.InHeader, attr string) (data []byte, code fuse.Status) {

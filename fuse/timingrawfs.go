@@ -121,9 +121,9 @@ func (me *TimingRawFilesystem) Link(header *InHeader, input *LinkIn, name string
 	return me.original.Link(header, input, name)
 }
 
-func (me *TimingRawFilesystem) SetXAttr(header *InHeader, input *SetXAttrIn) Status {
+func (me *TimingRawFilesystem) SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) Status {
 	defer me.startTimer("SetXAttr")()
-	return me.original.SetXAttr(header, input)
+	return me.original.SetXAttr(header, input, attr, data)
 }
 
 func (me *TimingRawFilesystem) GetXAttr(header *InHeader, attr string) (data []byte, code Status) {

@@ -65,12 +65,12 @@ func (me *DefaultRawFuseFileSystem) Link(header *InHeader, input *LinkIn, name s
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) SetXAttr(header *InHeader, input *SetXAttrIn) Status {
-	return ENOSYS
-}
-
 func (me *DefaultRawFuseFileSystem) GetXAttr(header *InHeader, attr string) (data []byte, code Status) {
 	return nil, ENOSYS
+}
+
+func (me *DefaultRawFuseFileSystem) SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) (Status) {
+	return ENOSYS
 }
 
 func (me *DefaultRawFuseFileSystem) ListXAttr(header *InHeader) (data []byte, code Status) {
@@ -106,6 +106,7 @@ func (me *DefaultRawFuseFileSystem) Release(header *InHeader, f RawFuseFile) {
 
 func (me *DefaultRawFuseFileSystem) ReleaseDir(header *InHeader, f RawFuseDir) {
 }
+
 
 
 ////////////////////////////////////////////////////////////////
@@ -155,6 +156,10 @@ func (me *DefaultPathFilesystem) GetAttr(name string) (*Attr, Status) {
 
 func (me *DefaultPathFilesystem) GetXAttr(name string, attr string) ([]byte, Status) {
 	return nil, ENOSYS
+}
+
+func (me *DefaultPathFilesystem) SetXAttr(name string, attr string, data []byte, flags int) (Status) {
+	return ENOSYS
 }
 
 func (me *DefaultPathFilesystem) ListXAttr(name string) ([]string, Status) {
