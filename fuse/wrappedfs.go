@@ -86,6 +86,10 @@ func (me *WrappingPathFilesystem) GetXAttr(name string, attr string) ([]byte, St
 	return me.Original.GetXAttr(name, attr)
 }
 
+func (me *WrappingPathFilesystem) SetXAttr(name string, attr string, data []byte, flags int) Status {
+	return me.Original.SetXAttr(name, attr, data, flags)
+}
+
 func (me *WrappingPathFilesystem) ListXAttr(name string) ([]string, Status) {
 	return me.Original.ListXAttr(name)
 }
