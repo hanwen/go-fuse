@@ -586,11 +586,10 @@ func (me *PathFileSystemConnector) Mkdir(header *InHeader, input *MkdirIn, name 
 	if mount == nil {
 		return nil, ENOENT
 	}
-	err := mount.fs.Mkdir(filepath.Join(fullPath, name), input.Mode)
-	if err != OK {
-		return nil, err
+	code = mount.fs.Mkdir(filepath.Join(fullPath, name), input.Mode)
+	if code == OK {
+		out, code = me.Lookup(header, name)
 	}
-	out, code = me.Lookup(header, name)
 	return out, code
 }
 
@@ -600,10 +599,10 @@ func (me *PathFileSystemConnector) Unlink(header *InHeader, name string) (code S
 		return ENOENT
 	}
 	code = mount.fs.Unlink(filepath.Join(fullPath, name))
-
-	// Like fuse.c, we update our internal tables.
-	me.unlinkUpdate(header.NodeId, name)
-
+	if code == OK {
+		// Like fuse.c, we update our internal tables.
+		me.unlinkUpdate(header.NodeId, name)
+	}
 	return code
 }
 
@@ -613,7 +612,9 @@ func (me *PathFileSystemConnector) Rmdir(header *InHeader, name string) (code St
 		return ENOENT
 	}
 	code = mount.fs.Rmdir(filepath.Join(fullPath, name))
-	me.unlinkUpdate(header.NodeId, name)
+	if code == OK {
+		me.unlinkUpdate(header.NodeId, name)
+	}
 	return code
 }
 
