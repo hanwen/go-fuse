@@ -106,6 +106,8 @@ type PathFileSystemConnectorOptions struct {
 }
 
 type PathFileSystemConnector struct {
+	DefaultRawFuseFileSystem
+	
 	// Protects the hashmap, its contents and the nextFreeInode counter.
 	lock sync.RWMutex
 
@@ -763,19 +765,4 @@ func (me *PathFileSystemConnector) ListXAttr(header *InHeader) (data []byte, cod
 	}
 
 	return b.Bytes(), code
-}
-
-////////////////////////////////////////////////////////////////
-// unimplemented.
-
-func (me *PathFileSystemConnector) Bmap(header *InHeader, input *BmapIn) (out *BmapOut, code Status) {
-	return nil, ENOSYS
-}
-
-func (me *PathFileSystemConnector) Ioctl(header *InHeader, input *IoctlIn) (out *IoctlOut, code Status) {
-	return nil, ENOSYS
-}
-
-func (me *PathFileSystemConnector) Poll(header *InHeader, input *PollIn) (out *PollOut, code Status) {
-	return nil, ENOSYS
 }
