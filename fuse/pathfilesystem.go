@@ -78,7 +78,6 @@ func (me *inodeData) Key() string {
 }
 
 func (me *inodeData) GetPath() (path string, mount *mountData) {
-	// TODO - softcode this.
 	rev_components := make([]string, 0, 10)
 	inode := me
 
@@ -158,8 +157,7 @@ func (me *PathFileSystemConnector) verify() {
 }
 
 // Must be called with lock held.
-func (me *PathFileSystemConnector) setParent(data *inodeData, parentId uint64) {
-	newParent := me.inodePathMapByInode[parentId]
+func (me *PathFileSystemConnector) setParent(data *inodeData, newParent *inodeData) {
 	if data.Parent == newParent {
 		return
 	}
@@ -192,10 +190,10 @@ func (me *PathFileSystemConnector) lookup(key string) *inodeData {
 	return me.inodePathMap[key]
 }
 
-func (me *PathFileSystemConnector) lookupUpdate(nodeId uint64, name string) *inodeData {
+func (me *PathFileSystemConnector) lookupUpdate(parent *inodeData, name string) *inodeData {
 	defer me.verify()
 	
-	key := inodeDataKey(nodeId, name)
+	key := inodeDataKey(parent.NodeId, name)
 	data := me.lookup(key)
 	if data != nil {
 		return data
@@ -207,7 +205,7 @@ func (me *PathFileSystemConnector) lookupUpdate(nodeId uint64, name string) *ino
 	data, ok := me.inodePathMap[key]
 	if !ok {
 		data = new(inodeData)
-		me.setParent(data, nodeId)
+		me.setParent(data, parent)
 		data.NodeId = me.nextFreeInode
 		data.Name = name
 		me.nextFreeInode++
@@ -251,12 +249,12 @@ func (me *PathFileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int) 
 	}
 }
 
-func (me *PathFileSystemConnector) renameUpdate(oldParent uint64, oldName string, newParent uint64, newName string) {
+func (me *PathFileSystemConnector) renameUpdate(oldParent *inodeData, oldName string, newParent *inodeData, newName string) {
 	defer me.verify()
 	me.lock.Lock()
 	defer me.lock.Unlock()
 
-	oldKey := inodeDataKey(oldParent, oldName)
+	oldKey := inodeDataKey(oldParent.NodeId, oldName)
 	data := me.inodePathMap[oldKey]
 	if data == nil {
 		// This can happen if a rename raced with an unlink or
@@ -276,31 +274,17 @@ func (me *PathFileSystemConnector) renameUpdate(oldParent uint64, oldName string
 
 	target := me.inodePathMap[newKey]
 	if target != nil {
-		// This could happen if some other thread creates a
-		// file in the destination position.
-		//
-		// TODO - Does the VFS layer allow this?
-		//
-		// fuse.c just removes the node from its internal
-		// tables, which might lead to paths being both directories
-		// (parents) and normal files?
-		me.inodePathMap[newKey] = nil, false
-
-		me.setParent(target, FUSE_ROOT_ID)
-		target.Name = fmt.Sprintf("overwrittenByRename%d", me.nextFreeInode)
-		me.nextFreeInode++
-
-		me.inodePathMap[target.Key()] = target
+		panic("file moved into target place.")
 	}
-	me.inodePathMap[data.Key()] = data
+	me.inodePathMap[newKey] = data
 }
 
-func (me *PathFileSystemConnector) unlinkUpdate(nodeid uint64, name string) {
+func (me *PathFileSystemConnector) unlinkUpdate(parent *inodeData, name string) {
 	defer me.verify()
 	me.lock.Lock()
 	defer me.lock.Unlock()
 
-	oldKey := inodeDataKey(nodeid, name)
+	oldKey := inodeDataKey(parent.NodeId, name)
 	data := me.inodePathMap[oldKey]
 
 	if data != nil {
@@ -373,7 +357,7 @@ func (me *PathFileSystemConnector) Mount(mountPoint string, fs PathFilesystem) S
 		dirParentNode := me.findInode(dirParent)
 
 		// Make sure we know the mount point.
-		_, _ = me.internalLookup(dirParentNode.NodeId, base, 0)
+		_, _ = me.internalLookup(dirParentNode, base, 0)
 	}
 
 	node = me.findInode(mountPoint)
@@ -443,8 +427,10 @@ func (me *PathFileSystemConnector) Unmount(path string) Status {
 	return OK
 }
 
-func (me *PathFileSystemConnector) GetPath(nodeid uint64) (path string, mount *mountData) {
-	return me.getInodeData(nodeid).GetPath()
+func (me *PathFileSystemConnector) GetPath(nodeid uint64) (path string, mount *mountData, node *inodeData) {
+	n := me.getInodeData(nodeid)
+	p, m := n.GetPath()
+	return p, m, n
 }
 
 func (me *PathFileSystemConnector) Init(h *InHeader, input *InitIn) (*InitOut, Status) {
@@ -457,12 +443,11 @@ func (me *PathFileSystemConnector) Destroy(h *InHeader, input *InitIn) {
 }
 
 func (me *PathFileSystemConnector) Lookup(header *InHeader, name string) (out *EntryOut, status Status) {
-	return me.internalLookup(header.NodeId, name, 1)
+	parent := me.getInodeData(header.NodeId)
+	return me.internalLookup(parent, name, 1)
 }
 
-func (me *PathFileSystemConnector) internalLookup(nodeid uint64, name string, lookupCount int) (out *EntryOut, status Status) {
-	parent := me.getInodeData(nodeid)
-
+func (me *PathFileSystemConnector) internalLookup(parent *inodeData, name string, lookupCount int) (out *EntryOut, status Status) {
 	// TODO - fuse.c has special case code for name == "." and
 	// "..", those lookups happen if FUSE_EXPORT_SUPPORT is set in
 	// Init.
@@ -482,7 +467,7 @@ func (me *PathFileSystemConnector) internalLookup(nodeid uint64, name string, lo
 		return nil, err
 	}
 
-	data := me.lookupUpdate(nodeid, name)
+	data := me.lookupUpdate(parent, name)
 	data.LookupCount += lookupCount
 	data.Type = ModeToType(attr.Mode)
 
@@ -505,7 +490,7 @@ func (me *PathFileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (
 	// TODO - do something intelligent with input.Fh.
 
 	// TODO - should we update inodeData.Type?
-	fullPath, mount := me.GetPath(header.NodeId)
+	fullPath, mount, _ := me.GetPath(header.NodeId)
 	if mount == nil {
 		return nil, ENOENT
 	}
@@ -523,7 +508,7 @@ func (me *PathFileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (
 }
 
 func (me *PathFileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseDir, status Status) {
-	fullPath, mount := me.GetPath(header.NodeId)
+	fullPath, mount, _ := me.GetPath(header.NodeId)
 	if mount == nil {
 		return 0, nil, ENOENT
 	}
@@ -543,7 +528,7 @@ func (me *PathFileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (fla
 }
 
 func (me *PathFileSystemConnector) Open(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseFile, status Status) {
-	fullPath, mount := me.GetPath(header.NodeId)
+	fullPath, mount, _ := me.GetPath(header.NodeId)
 	if mount == nil {
 		return 0, nil, ENOENT
 	}
@@ -561,7 +546,7 @@ func (me *PathFileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (
 	var err Status = OK
 
 	// TODO - support Fh.   (FSetAttr/FGetAttr/FTruncate.)
-	fullPath, mount := me.GetPath(header.NodeId)
+	fullPath, mount, _ := me.GetPath(header.NodeId)
 	if mount == nil {
 		return nil, ENOENT
 	}
@@ -594,7 +579,7 @@ func (me *PathFileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (
 }
 
 func (me *PathFileSystemConnector) Readlink(header *InHeader) (out []byte, code Status) {
-	fullPath, mount := me.GetPath(header.NodeId)
+	fullPath, mount, _ := me.GetPath(header.NodeId)
 	if mount == nil {
 		return nil, ENOENT
 	}
@@ -603,7 +588,7 @@ func (me *PathFileSystemConnector) Readlink(header *InHeader) (out []byte, code 
 }
 
 func (me *PathFileSystemConnector) Mknod(header *InHeader, input *MknodIn, name string) (out *EntryOut, code Status) {
-	fullPath, mount := me.GetPath(header.NodeId)
+	fullPath, mount, node := me.GetPath(header.NodeId)
 	if mount == nil {
 		return nil, ENOENT
 	}
@@ -612,48 +597,48 @@ func (me *PathFileSystemConnector) Mknod(header *InHeader, input *MknodIn, name 
 	if err != OK {
 		return nil, err
 	}
-	return me.Lookup(header, name)
+	return me.internalLookup(node, name, 1)
 }
 
 func (me *PathFileSystemConnector) Mkdir(header *InHeader, input *MkdirIn, name string) (out *EntryOut, code Status) {
-	fullPath, mount := me.GetPath(header.NodeId)
+	fullPath, mount, parent := me.GetPath(header.NodeId)
 	if mount == nil {
 		return nil, ENOENT
 	}
 	code = mount.fs.Mkdir(filepath.Join(fullPath, name), input.Mode)
 	if code == OK {
-		out, code = me.Lookup(header, name)
+		out, code = me.internalLookup(parent, name, 1)
 	}
 	return out, code
 }
 
 func (me *PathFileSystemConnector) Unlink(header *InHeader, name string) (code Status) {
-	fullPath, mount := me.GetPath(header.NodeId)
+	fullPath, mount, parent := me.GetPath(header.NodeId)
 	if mount == nil {
 		return ENOENT
 	}
 	code = mount.fs.Unlink(filepath.Join(fullPath, name))
 	if code == OK {
 		// Like fuse.c, we update our internal tables.
-		me.unlinkUpdate(header.NodeId, name)
+		me.unlinkUpdate(parent, name)
 	}
 	return code
 }
 
 func (me *PathFileSystemConnector) Rmdir(header *InHeader, name string) (code Status) {
-	fullPath, mount := me.GetPath(header.NodeId)
+	fullPath, mount, parent := me.GetPath(header.NodeId)
 	if mount == nil {
 		return ENOENT
 	}
 	code = mount.fs.Rmdir(filepath.Join(fullPath, name))
 	if code == OK {
-		me.unlinkUpdate(header.NodeId, name)
+		me.unlinkUpdate(parent, name)
 	}
 	return code
 }
 
 func (me *PathFileSystemConnector) Symlink(header *InHeader, pointedTo string, linkName string) (out *EntryOut, code Status) {
-	fullPath, mount := me.GetPath(header.NodeId)
+	fullPath, mount, parent := me.GetPath(header.NodeId)
 	if mount == nil {
 		return nil, ENOENT
 	}
@@ -662,13 +647,13 @@ func (me *PathFileSystemConnector) Symlink(header *InHeader, pointedTo string, l
 		return nil, err
 	}
 
-	out, code = me.Lookup(header, linkName)
+	out, code = me.internalLookup(parent, linkName, 1)
 	return out, code
 }
 
 func (me *PathFileSystemConnector) Rename(header *InHeader, input *RenameIn, oldName string, newName string) (code Status) {
-	oldPath, oldMount := me.GetPath(header.NodeId)
-	newPath, mount := me.GetPath(input.Newdir)
+	oldPath, oldMount, oldParent := me.GetPath(header.NodeId)
+	newPath, mount, newParent := me.GetPath(input.Newdir)
 	if mount == nil || oldMount == nil {
 		return ENOENT
 	}
@@ -679,24 +664,22 @@ func (me *PathFileSystemConnector) Rename(header *InHeader, input *RenameIn, old
 	oldPath = filepath.Join(oldPath, oldName)
 	newPath = filepath.Join(newPath, newName)
 	code = mount.fs.Rename(oldPath, newPath)
-	if code != OK {
-		return
+	if code == OK {
+		// It is conceivable that the kernel module will issue a
+		// forget for the old entry, and a lookup request for the new
+		// one, but the fuse.c updates its client-side tables on its
+		// own, so we do this as well.
+		//
+		// It should not hurt for us to do it here as well, although
+		// it remains unclear how we should update Count.
+		me.renameUpdate(oldParent, oldName, newParent, newName)
 	}
-
-	// It is conceivable that the kernel module will issue a
-	// forget for the old entry, and a lookup request for the new
-	// one, but the fuse.c updates its client-side tables on its
-	// own, so we do this as well.
-	//
-	// It should not hurt for us to do it here as well, although
-	// it remains unclear how we should update Count.
-	me.renameUpdate(header.NodeId, oldName, input.Newdir, newName)
 	return code
 }
 
 func (me *PathFileSystemConnector) Link(header *InHeader, input *LinkIn, filename string) (out *EntryOut, code Status) {
-	orig, mount := me.GetPath(input.Oldnodeid)
-	newName, newMount := me.GetPath(header.NodeId)
+	orig, mount, _ := me.GetPath(input.Oldnodeid)
+	newName, newMount, newParent := me.GetPath(header.NodeId)
 
 	if mount == nil || newMount == nil {
 		return nil, ENOENT
@@ -711,11 +694,11 @@ func (me *PathFileSystemConnector) Link(header *InHeader, input *LinkIn, filenam
 		return nil, err
 	}
 
-	return me.Lookup(header, filename)
+	return me.internalLookup(newParent, filename, 1)
 }
 
 func (me *PathFileSystemConnector) Access(header *InHeader, input *AccessIn) (code Status) {
-	p, mount := me.GetPath(header.NodeId)
+	p, mount, _ := me.GetPath(header.NodeId)
 	if mount == nil {
 		return ENOENT
 	}
@@ -723,7 +706,7 @@ func (me *PathFileSystemConnector) Access(header *InHeader, input *AccessIn) (co
 }
 
 func (me *PathFileSystemConnector) Create(header *InHeader, input *CreateIn, name string) (flags uint32, fuseFile RawFuseFile, out *EntryOut, code Status) {
-	directory, mount := me.GetPath(header.NodeId)
+	directory, mount, parent := me.GetPath(header.NodeId)
 	if mount == nil {
 		return 0, nil, nil, ENOENT
 	}
@@ -736,26 +719,26 @@ func (me *PathFileSystemConnector) Create(header *InHeader, input *CreateIn, nam
 
 	mount.incOpenCount(1)
 
-	out, code = me.Lookup(header, name)
+	out, code = me.internalLookup(parent, name, 1)
 	return 0, f, out, code
 }
 
 func (me *PathFileSystemConnector) Release(header *InHeader, f RawFuseFile) {
-	_, mount := me.GetPath(header.NodeId)
+	_, mount, _ := me.GetPath(header.NodeId)
 	if mount != nil {
 		mount.incOpenCount(-1)
 	}
 }
 
 func (me *PathFileSystemConnector) ReleaseDir(header *InHeader, f RawFuseDir) {
-	_, mount := me.GetPath(header.NodeId)
+	_, mount, _ := me.GetPath(header.NodeId)
 	if mount != nil {
 		mount.incOpenCount(-1)
 	}
 }
 
 func (me *PathFileSystemConnector) GetXAttr(header *InHeader, attribute string) (data []byte, code Status) {
-	path, mount := me.GetPath(header.NodeId)
+	path, mount, _ := me.GetPath(header.NodeId)
 	if mount == nil {
 		return nil, ENOENT
 	}
@@ -765,7 +748,7 @@ func (me *PathFileSystemConnector) GetXAttr(header *InHeader, attribute string) 
 }
 
 func (me *PathFileSystemConnector) RemoveXAttr(header *InHeader, attr string) Status {
-	path, mount := me.GetPath(header.NodeId)
+	path, mount, _ := me.GetPath(header.NodeId)
 	if mount == nil {
 		return ENOENT
 	}
@@ -774,7 +757,7 @@ func (me *PathFileSystemConnector) RemoveXAttr(header *InHeader, attr string) St
 }
 
 func (me *PathFileSystemConnector) SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) Status {
-	path, mount := me.GetPath(header.NodeId)
+	path, mount, _ := me.GetPath(header.NodeId)
 	if mount == nil {
 		return ENOENT
 	}
@@ -783,7 +766,7 @@ func (me *PathFileSystemConnector) SetXAttr(header *InHeader, input *SetXAttrIn,
 }
 
 func (me *PathFileSystemConnector) ListXAttr(header *InHeader) (data []byte, code Status) {
-	path, mount := me.GetPath(header.NodeId)
+	path, mount, _ := me.GetPath(header.NodeId)
 	if mount == nil {
 		return nil, ENOENT
 	}
