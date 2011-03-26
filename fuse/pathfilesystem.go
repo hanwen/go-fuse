@@ -63,13 +63,11 @@ func (me *inodeData) Key() string {
 
 func (me *inodeData) GetPath() (path string, mount *mountData) {
 	// TODO - softcode this.
-	var components [100]string
-
-	j := len(components)
+	rev_components := make([]string, 0, 10)
 	inode := me
+
 	for ; inode != nil && inode.mount == nil; inode = inode.Parent {
-		j--
-		components[j] = inode.Name
+		rev_components = append(rev_components, inode.Name)
 	}
 	if inode == nil {
 		panic("did not find parent with mount")
@@ -81,8 +79,11 @@ func (me *inodeData) GetPath() (path string, mount *mountData) {
 	if mount.unmountPending {
 		return "", nil
 	}
-
-	fullPath := strings.Join(components[j:], "/")
+	components := make([]string, len(rev_components))
+	for i, v := range rev_components {
+		components[len(rev_components) - i -1] = v
+	}
+	fullPath := strings.Join(components, "/")
 	return fullPath, mount
 }
 
