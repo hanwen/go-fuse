@@ -39,7 +39,8 @@ type testCase struct {
 // Create and mount filesystem.
 func (me *testCase) Setup(t *testing.T) {
 	me.tester = t
-
+	paranoia = true
+	
 	const name string = "hello.txt"
 	const subdir string = "subdir"
 

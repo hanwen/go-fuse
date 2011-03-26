@@ -33,6 +33,9 @@ func newMount(fs PathFilesystem) *mountData {
 	return &mountData{fs: fs}
 }
 
+// Tests should set to true.
+var paranoia = false
+
 // TODO should rename to dentry?
 type inodeData struct {
 	Parent      *inodeData
@@ -46,6 +49,19 @@ type inodeData struct {
 	RefCount int
 
 	mount *mountData
+}
+
+func (me *inodeData) verify(c *PathFileSystemConnector) {
+	if me.Parent != nil {
+		k := inodeDataKey(me.Parent.NodeId, me.Name)
+		n := c.lookup(k)
+		if n != me {
+			panic(fmt.Sprintf("parent/child relation corrupted %v %v %v",
+				k, n, me))
+		}
+	} else {
+		// may both happen for deleted and root node.
+	}
 }
 
 // Should implement some hash table method instead?
@@ -129,6 +145,18 @@ type PathFileSystemConnector struct {
 	Debug   bool
 }
 
+func (me *PathFileSystemConnector) verify() {
+	if !paranoia {
+		return
+	}
+	for k, v := range me.inodePathMapByInode {
+		if v.NodeId != k {
+			panic(fmt.Sprintf("Nodeid mismatch", k, v.NodeId, v))
+		}
+		v.verify(me)
+	}
+}
+
 // Must be called with lock held.
 func (me *PathFileSystemConnector) setParent(data *inodeData, parentId uint64) {
 	newParent := me.inodePathMapByInode[parentId]
@@ -165,6 +193,8 @@ func (me *PathFileSystemConnector) lookup(key string) *inodeData {
 }
 
 func (me *PathFileSystemConnector) lookupUpdate(nodeId uint64, name string) *inodeData {
+	defer me.verify()
+	
 	key := inodeDataKey(nodeId, name)
 	data := me.lookup(key)
 	if data != nil {
@@ -201,6 +231,7 @@ func (me *PathFileSystemConnector) getInodeData(nodeid uint64) *inodeData {
 }
 
 func (me *PathFileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int) {
+	defer me.verify()
 	me.lock.Lock()
 	defer me.lock.Unlock()
 
@@ -214,12 +245,14 @@ func (me *PathFileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int) 
 		}
 
 		if data.LookupCount <= 0 && data.RefCount <= 0 && (data.mount == nil || data.mount.unmountPending) {
+			me.inodePathMapByInode[nodeId] = nil, false
 			me.inodePathMap[data.Key()] = nil, false
 		}
 	}
 }
 
 func (me *PathFileSystemConnector) renameUpdate(oldParent uint64, oldName string, newParent uint64, newName string) {
+	defer me.verify()
 	me.lock.Lock()
 	defer me.lock.Unlock()
 
@@ -259,11 +292,11 @@ func (me *PathFileSystemConnector) renameUpdate(oldParent uint64, oldName string
 
 		me.inodePathMap[target.Key()] = target
 	}
-
 	me.inodePathMap[data.Key()] = data
 }
 
 func (me *PathFileSystemConnector) unlinkUpdate(nodeid uint64, name string) {
+	defer me.verify()
 	me.lock.Lock()
 	defer me.lock.Unlock()
 
@@ -272,6 +305,7 @@ func (me *PathFileSystemConnector) unlinkUpdate(nodeid uint64, name string) {
 
 	if data != nil {
 		me.inodePathMap[oldKey] = nil, false
+		data.Parent = nil
 		me.unrefNode(data)
 	}
 }
