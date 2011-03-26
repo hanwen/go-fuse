@@ -53,6 +53,14 @@ func OsErrorToFuseError(err os.Error) Status {
 	return OK
 }
 
+func replyString(opcode uint32, ptr unsafe.Pointer) string {
+	switch opcode {
+	case FUSE_LOOKUP:
+		return fmt.Sprintf("%v", (*EntryOut)(ptr))
+	}
+	return ""
+}
+
 func operationName(opcode uint32) string {
 	switch opcode {
 	case FUSE_LOOKUP:

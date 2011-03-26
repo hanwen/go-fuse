@@ -390,6 +390,10 @@ func (me *MountState) dispatch(req *fuseRequest) {
 		if filename != "" {
 			nm = "n: '" + filename + "'"
 		}
+		if h.Opcode == FUSE_RENAME {
+			nm = "n: '" + string(data) + "'"
+		}
+		
 		log.Printf("Dispatch: %v, NodeId: %v %s\n", operationName(h.Opcode), h.NodeId, nm)
 	}
 
@@ -539,14 +543,18 @@ func serialize(req *fuseRequest, debug bool) {
 
 	copy(req.outHeaderBytes[sizeOfOutHeader:], asSlice(req.data, dataLength))
 	if debug {
-		val := fmt.Sprintf("%v", req.outHeaderBytes)
+		val := fmt.Sprintf("%v", replyString(req.inHeader.Opcode, req.data))
 		max := 1024
 		if len(val) > max {
 			val = val[:max] + fmt.Sprintf(" ...trimmed (response size %d)", outHeader.Length)
 		}
 
-		log.Printf("Serialize: %v code: %v value: %v flat: %d\n",
-			operationName(req.inHeader.Opcode), req.status, val, len(req.flatData))
+		msg := ""
+		if len(req.flatData) > 0 {
+			msg = fmt.Sprintf(" flat: %d\n", len(req.flatData))
+		}
+		log.Printf("Serialize: %v code: %v value: %v%v",
+			operationName(req.inHeader.Opcode), req.status, val, msg)
 	}
 }
 
