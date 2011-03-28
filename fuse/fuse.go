@@ -32,8 +32,8 @@ type fuseRequest struct {
 	arg      []byte
 
 	// Unstructured data, a pointer to the relevant XxxxOut struct.
-	status   Status
 	data     unsafe.Pointer
+	status   Status
 	flatData []byte
 
 	// Header + structured data for what we send back to the kernel.
@@ -46,7 +46,6 @@ type fuseRequest struct {
 	preWriteNs int64
 }
 
-// TODO - should gather stats and expose those for performance tuning.
 type MountState struct {
 	// We should store the RawFuseFile/Dirs on the Go side,
 	// otherwise our files may be GCd.  Here, the index is the Fh
