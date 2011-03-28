@@ -21,8 +21,6 @@ const (
 	maxRead = bufSize - PAGESIZE
 )
 
-type Empty interface{}
-
 ////////////////////////////////////////////////////////////////
 // State related to this mount point.
 
