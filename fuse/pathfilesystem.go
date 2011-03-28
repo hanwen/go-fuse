@@ -37,47 +37,40 @@ func newMount(fs PathFilesystem) *mountData {
 var paranoia = false
 
 // TODO should rename to dentry?
-type inodeData struct {
-	Parent      *inodeData
+type inode struct {
+	Parent      *inode
+	Children    map[string]*inode
 	NodeId      uint64
 	Name        string
 	LookupCount int
 
 	Type uint32
 
-	// Number of inodeData that have this as parent.
-	RefCount int
-
 	mount *mountData
 }
 
-func (me *inodeData) verify(c *PathFileSystemConnector) {
-	if me.Parent != nil {
-		k := inodeDataKey(me.Parent.NodeId, me.Name)
-		n := c.lookup(k)
-		if n != me {
-			panic(fmt.Sprintf("parent/child relation corrupted %v %v %v",
-				k, n, me))
+const initDirSize = 20
+
+func (me *inode) verify() {
+	if !(me.NodeId == FUSE_ROOT_ID || me.LookupCount > 0 || len(me.Children) > 0) {
+		panic(fmt.Sprintf("node should be dead: %v",me))
+	}
+	for n, ch := range me.Children {
+		if ch == nil {
+			panic("Found nil child.")
 		}
-	} else {
-		// may both happen for deleted and root node.
+		if ch.Name != n {
+			panic(fmt.Sprintf("parent/child name corrupted %v %v",
+				ch.Name, n))
+		}
+		if ch.Parent != me {
+			panic(fmt.Sprintf("parent/child relation corrupted %v %v %v",
+				ch.Parent, me, ch))
+		}
 	}
 }
 
-// Should implement some hash table method instead?
-func inodeDataKey(parentInode uint64, name string) string {
-	return string(parentInode) + ":" + name
-}
-
-func (me *inodeData) Key() string {
-	var p uint64 = 0
-	if me.Parent != nil {
-		p = me.Parent.NodeId
-	}
-	return inodeDataKey(p, me.Name)
-}
-
-func (me *inodeData) GetPath() (path string, mount *mountData) {
+func (me *inode) GetPath() (path string, mount *mountData) {
 	rev_components := make([]string, 0, 10)
 	inode := me
 
@@ -100,6 +93,27 @@ func (me *inodeData) GetPath() (path string, mount *mountData) {
 	}
 	fullPath := strings.Join(components, "/")
 	return fullPath, mount
+}
+
+// Must be called with lock held.
+func (me *inode) setParent(newParent *inode) {
+	if me.Parent == newParent {
+		return
+	}
+
+	if me.Parent != nil {
+		me.Parent.Children[me.Name] = nil, false
+		me.Parent = nil
+	}
+	if newParent != nil {
+		me.Parent = newParent
+		ch := me.Parent.Children[me.Name]
+		if ch != nil {
+			panic(fmt.Sprintf("Already have an inode with same name: %v.", me.Name))
+		}
+
+		me.Parent.Children[me.Name] = me
+	}
 }
 
 type TimeoutOptions struct {
@@ -126,18 +140,8 @@ type PathFileSystemConnector struct {
 	// Protects the hashmap, its contents and the nextFreeInode counter.
 	lock sync.RWMutex
 
-	// Invariants
-	// - For all values, (RefCount > 0 || LookupCount > 0).
-	// - For all values, value = inodePathMap[value.Key()]
-	// - For all values, value = inodePathMapByInode[value.NodeId]
-
-	// fuse.c seems to have different lifetimes for the different
-	// hashtables, which could lead to the same directory entry
-	// existing twice with different generated inode numbers, if
-	// we have (FORGET, LOOKUP) on a directory entry with RefCount
-	// > 0.
-	inodePathMap        map[string]*inodeData
-	inodePathMapByInode map[uint64]*inodeData
+	// Invariants: see the verify() method.
+	inodeMap            map[uint64]*inode
 	nextFreeInode       uint64
 
 	options PathFileSystemConnectorOptions
@@ -148,80 +152,48 @@ func (me *PathFileSystemConnector) verify() {
 	if !paranoia {
 		return
 	}
-	for k, v := range me.inodePathMapByInode {
+	for k, v := range me.inodeMap {
 		if v.NodeId != k {
-			panic(fmt.Sprintf("Nodeid mismatch", k, v.NodeId, v))
+			panic(fmt.Sprintf("nodeid mismatch %v %v", v, k))
 		}
-		v.verify(me)
 	}
+	me.inodeMap[FUSE_ROOT_ID].verify()
 }
 
-// Must be called with lock held.
-func (me *PathFileSystemConnector) setParent(data *inodeData, newParent *inodeData) {
-	if data.Parent == newParent {
-		return
-	}
-
-	if newParent == nil {
-		panic("Unknown parent")
-	}
-
-	oldParent := data.Parent
-	if oldParent != nil {
-		me.unrefNode(oldParent)
-	}
-	data.Parent = newParent
-	if newParent != nil {
-		newParent.RefCount++
-	}
+func (me *PathFileSystemConnector) newInode() *inode {
+	data := new(inode)
+	data.NodeId = me.nextFreeInode
+	me.nextFreeInode++
+	
+	me.inodeMap[data.NodeId] = data
+	
+	return data
 }
 
-// Must be called with lock held.
-func (me *PathFileSystemConnector) unrefNode(data *inodeData) {
-	data.RefCount--
-	if data.RefCount <= 0 && data.LookupCount <= 0 {
-		me.inodePathMapByInode[data.NodeId] = nil, false
-	}
-}
-
-func (me *PathFileSystemConnector) lookup(key string) *inodeData {
-	me.lock.RLock()
-	defer me.lock.RUnlock()
-	return me.inodePathMap[key]
-}
-
-func (me *PathFileSystemConnector) lookupUpdate(parent *inodeData, name string) *inodeData {
+func (me *PathFileSystemConnector) lookupUpdate(parent *inode, name string, isDir bool) *inode {
 	defer me.verify()
 	
-	key := inodeDataKey(parent.NodeId, name)
-	data := me.lookup(key)
-	if data != nil {
-		return data
-	}
-
 	me.lock.Lock()
 	defer me.lock.Unlock()
 
-	data, ok := me.inodePathMap[key]
+	data, ok := parent.Children[name]
 	if !ok {
-		data = new(inodeData)
-		me.setParent(data, parent)
-		data.NodeId = me.nextFreeInode
+		data = me.newInode()
 		data.Name = name
-		me.nextFreeInode++
-
-		me.inodePathMapByInode[data.NodeId] = data
-		me.inodePathMap[key] = data
+		data.setParent(parent)
+		if isDir {
+			data.Children = make(map[string]*inode, initDirSize)
+		}
 	}
 
 	return data
 }
 
-func (me *PathFileSystemConnector) getInodeData(nodeid uint64) *inodeData {
+func (me *PathFileSystemConnector) getInodeData(nodeid uint64) *inode {
 	me.lock.RLock()
 	defer me.lock.RUnlock()
 
-	val := me.inodePathMapByInode[nodeid]
+	val := me.inodeMap[nodeid]
 	if val == nil {
 		panic(fmt.Sprintf("inode %v unknown", nodeid))
 	}
@@ -233,7 +205,7 @@ func (me *PathFileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int) 
 	me.lock.Lock()
 	defer me.lock.Unlock()
 
-	data, ok := me.inodePathMapByInode[nodeId]
+	data, ok := me.inodeMap[nodeId]
 	if ok {
 		data.LookupCount -= forgetCount
 
@@ -242,74 +214,53 @@ func (me *PathFileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int) 
 			defer data.mount.mutex.RUnlock()
 		}
 
-		if data.LookupCount <= 0 && data.RefCount <= 0 && (data.mount == nil || data.mount.unmountPending) {
-			me.inodePathMapByInode[nodeId] = nil, false
-			me.inodePathMap[data.Key()] = nil, false
+		// TODO - this should probably not happen at all.
+		if data.LookupCount <= 0 && len(data.Children) == 0 && (data.mount == nil || data.mount.unmountPending) {
+			data.setParent(nil)
+			me.inodeMap[nodeId] = nil, false
 		}
 	}
 }
 
-func (me *PathFileSystemConnector) renameUpdate(oldParent *inodeData, oldName string, newParent *inodeData, newName string) {
+func (me *PathFileSystemConnector) renameUpdate(oldParent *inode, oldName string, newParent *inode, newName string) {
 	defer me.verify()
 	me.lock.Lock()
 	defer me.lock.Unlock()
 
-	oldKey := inodeDataKey(oldParent.NodeId, oldName)
-	data := me.inodePathMap[oldKey]
-	if data == nil {
-		// This can happen if a rename raced with an unlink or
-		// another rename.
-		//
-		// TODO - does the VFS layer allow this?
-		//
-		// TODO - is this an error we should signal?
-		return
+	node := oldParent.Children[oldName]
+	if node == nil {
+		panic("Source of rename does not exist")
 	}
 
-	me.inodePathMap[oldKey] = nil, false
-
-	me.setParent(data, newParent)
-	data.Name = newName
-	newKey := data.Key()
-
-	target := me.inodePathMap[newKey]
-	if target != nil {
-		panic("file moved into target place.")
-	}
-	me.inodePathMap[newKey] = data
+	node.setParent(nil)
+	node.Name = newName
+	node.setParent(newParent)
 }
 
-func (me *PathFileSystemConnector) unlinkUpdate(parent *inodeData, name string) {
+func (me *PathFileSystemConnector) unlinkUpdate(parent *inode, name string) {
 	defer me.verify()
 	me.lock.Lock()
 	defer me.lock.Unlock()
 
-	oldKey := inodeDataKey(parent.NodeId, name)
-	data := me.inodePathMap[oldKey]
-
-	if data != nil {
-		me.inodePathMap[oldKey] = nil, false
-		data.Parent = nil
-		me.unrefNode(data)
-	}
+	node := parent.Children[name]
+	node.setParent(nil)
 }
 
 // Walk the file system starting from the root.
-func (me *PathFileSystemConnector) findInode(fullPath string) *inodeData {
+func (me *PathFileSystemConnector) findInode(fullPath string) *inode {
 	fullPath = strings.TrimLeft(filepath.Clean(fullPath), "/")
 	comps := strings.Split(fullPath, "/", -1)
 
 	me.lock.RLock()
 	defer me.lock.RUnlock()
 
-	node := me.inodePathMapByInode[FUSE_ROOT_ID]
+	node := me.inodeMap[FUSE_ROOT_ID]
 	for i, component := range comps {
 		if len(component) == 0 {
 			continue
 		}
 
-		key := inodeDataKey(node.NodeId, component)
-		node = me.inodePathMap[key]
+		node = node.Children[component]
 		if node == nil {
 			panic(fmt.Sprintf("findInode: %v %v", i, fullPath))
 		}
@@ -323,17 +274,14 @@ func (me *PathFileSystemConnector) findInode(fullPath string) *inodeData {
 
 func NewPathFileSystemConnector(fs PathFilesystem) (out *PathFileSystemConnector) {
 	out = new(PathFileSystemConnector)
-	out.inodePathMap = make(map[string]*inodeData)
-	out.inodePathMapByInode = make(map[uint64]*inodeData)
+	out.inodeMap = make(map[uint64]*inode)
 
-	rootData := new(inodeData)
+	out.nextFreeInode = FUSE_ROOT_ID
+	rootData := out.newInode()
 	rootData.NodeId = FUSE_ROOT_ID
 	rootData.Type = ModeToType(S_IFDIR)
-
-	out.inodePathMap[rootData.Key()] = rootData
-	out.inodePathMapByInode[FUSE_ROOT_ID] = rootData
-	out.nextFreeInode = FUSE_ROOT_ID + 1
-
+	rootData.Children = make(map[string]*inode, initDirSize)
+	
 	out.options.NegativeTimeout = 0.0
 	out.options.AttrTimeout = 1.0
 	out.options.EntryTimeout = 1.0
@@ -341,6 +289,9 @@ func NewPathFileSystemConnector(fs PathFilesystem) (out *PathFileSystemConnector
 	if code := out.Mount("/", fs); code != OK {
 		panic("root mount failed.")
 	}
+
+	out.verify()
+	
 	return out
 }
 
@@ -350,7 +301,7 @@ func (me *PathFileSystemConnector) SetOptions(opts PathFileSystemConnectorOption
 
 
 func (me *PathFileSystemConnector) Mount(mountPoint string, fs PathFilesystem) Status {
-	var node *inodeData
+	var node *inode
 
 	if mountPoint != "/" {
 		dirParent, base := filepath.Split(mountPoint)
@@ -363,7 +314,7 @@ func (me *PathFileSystemConnector) Mount(mountPoint string, fs PathFilesystem) S
 	node = me.findInode(mountPoint)
 
 	// TODO - check that fs was not mounted elsewhere.
-	if node.RefCount > 0 {
+	if len(node.Children) > 0 {
 		return EBUSY
 	}
 	if node.Type&ModeToType(S_IFDIR) == 0 {
@@ -413,7 +364,7 @@ func (me *PathFileSystemConnector) Unmount(path string) Status {
 		log.Println("Unmount: ", mount)
 	}
 
-	if node.RefCount > 0 {
+	if len(node.Children) > 0 {
 		mount.fs.Unmount()
 		mount.unmountPending = true
 	} else {
@@ -427,7 +378,7 @@ func (me *PathFileSystemConnector) Unmount(path string) Status {
 	return OK
 }
 
-func (me *PathFileSystemConnector) GetPath(nodeid uint64) (path string, mount *mountData, node *inodeData) {
+func (me *PathFileSystemConnector) GetPath(nodeid uint64) (path string, mount *mountData, node *inode) {
 	n := me.getInodeData(nodeid)
 	p, m := n.GetPath()
 	return p, m, n
@@ -447,7 +398,7 @@ func (me *PathFileSystemConnector) Lookup(header *InHeader, name string) (out *E
 	return me.internalLookup(parent, name, 1)
 }
 
-func (me *PathFileSystemConnector) internalLookup(parent *inodeData, name string, lookupCount int) (out *EntryOut, status Status) {
+func (me *PathFileSystemConnector) internalLookup(parent *inode, name string, lookupCount int) (out *EntryOut, status Status) {
 	// TODO - fuse.c has special case code for name == "." and
 	// "..", those lookups happen if FUSE_EXPORT_SUPPORT is set in
 	// Init.
@@ -467,10 +418,10 @@ func (me *PathFileSystemConnector) internalLookup(parent *inodeData, name string
 		return nil, err
 	}
 
-	data := me.lookupUpdate(parent, name)
+	data := me.lookupUpdate(parent, name, attr.Mode & S_IFDIR != 0)
 	data.LookupCount += lookupCount
 	data.Type = ModeToType(attr.Mode)
-
+	
 	out = new(EntryOut)
 	out.NodeId = data.NodeId
 	out.Generation = 1 // where to get the generation?
@@ -488,8 +439,6 @@ func (me *PathFileSystemConnector) Forget(h *InHeader, input *ForgetIn) {
 
 func (me *PathFileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
 	// TODO - do something intelligent with input.Fh.
-
-	// TODO - should we update inodeData.Type?
 	fullPath, mount, _ := me.GetPath(header.NodeId)
 	if mount == nil {
 		return nil, ENOENT
