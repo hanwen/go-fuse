@@ -37,6 +37,6 @@ func main() {
 	fuse.PrintMap(latency)
 	counts := state.OperationCounts()
 	fmt.Println("Counts: ", counts)
-	
+
 	fmt.Println("Memory stats", state.Stats())
 }

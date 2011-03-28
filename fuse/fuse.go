@@ -390,7 +390,7 @@ func (me *MountState) dispatch(req *fuseRequest) {
 		if h.Opcode == FUSE_RENAME {
 			nm = "n: '" + string(data) + "'"
 		}
-		
+
 		log.Printf("Dispatch: %v, NodeId: %v %s\n", operationName(h.Opcode), h.NodeId, nm)
 	}
 

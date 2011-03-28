@@ -77,7 +77,7 @@ func BulkStat(parallelism int, files []string) float64 {
 	}
 
 	allEnd := time.Nanoseconds()
-	avg := total/float64(len(files))
+	avg := total / float64(len(files))
 
 	fmt.Printf("Elapsed: %f sec. Average stat %f ms\n",
 		float64(allEnd-allStart)*1e-9, avg)

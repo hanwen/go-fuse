@@ -53,7 +53,7 @@ const initDirSize = 20
 
 func (me *inode) verify() {
 	if !(me.NodeId == FUSE_ROOT_ID || me.LookupCount > 0 || len(me.Children) > 0) {
-		panic(fmt.Sprintf("node should be dead: %v",me))
+		panic(fmt.Sprintf("node should be dead: %v", me))
 	}
 	for n, ch := range me.Children {
 		if ch == nil {
@@ -89,7 +89,7 @@ func (me *inode) GetPath() (path string, mount *mountData) {
 	}
 	components := make([]string, len(rev_components))
 	for i, v := range rev_components {
-		components[len(rev_components) - i -1] = v
+		components[len(rev_components)-i-1] = v
 	}
 	fullPath := strings.Join(components, "/")
 	return fullPath, mount
@@ -136,13 +136,13 @@ type PathFileSystemConnectorOptions struct {
 
 type PathFileSystemConnector struct {
 	DefaultRawFuseFileSystem
-	
+
 	// Protects the hashmap, its contents and the nextFreeInode counter.
 	lock sync.RWMutex
 
 	// Invariants: see the verify() method.
-	inodeMap            map[uint64]*inode
-	nextFreeInode       uint64
+	inodeMap      map[uint64]*inode
+	nextFreeInode uint64
 
 	options PathFileSystemConnectorOptions
 	Debug   bool
@@ -164,15 +164,15 @@ func (me *PathFileSystemConnector) newInode() *inode {
 	data := new(inode)
 	data.NodeId = me.nextFreeInode
 	me.nextFreeInode++
-	
+
 	me.inodeMap[data.NodeId] = data
-	
+
 	return data
 }
 
 func (me *PathFileSystemConnector) lookupUpdate(parent *inode, name string, isDir bool) *inode {
 	defer me.verify()
-	
+
 	me.lock.Lock()
 	defer me.lock.Unlock()
 
@@ -281,7 +281,7 @@ func NewPathFileSystemConnector(fs PathFilesystem) (out *PathFileSystemConnector
 	rootData.NodeId = FUSE_ROOT_ID
 	rootData.Type = ModeToType(S_IFDIR)
 	rootData.Children = make(map[string]*inode, initDirSize)
-	
+
 	out.options.NegativeTimeout = 0.0
 	out.options.AttrTimeout = 1.0
 	out.options.EntryTimeout = 1.0
@@ -291,7 +291,7 @@ func NewPathFileSystemConnector(fs PathFilesystem) (out *PathFileSystemConnector
 	}
 
 	out.verify()
-	
+
 	return out
 }
 
@@ -418,10 +418,10 @@ func (me *PathFileSystemConnector) internalLookup(parent *inode, name string, lo
 		return nil, err
 	}
 
-	data := me.lookupUpdate(parent, name, attr.Mode & S_IFDIR != 0)
+	data := me.lookupUpdate(parent, name, attr.Mode&S_IFDIR != 0)
 	data.LookupCount += lookupCount
 	data.Type = ModeToType(attr.Mode)
-	
+
 	out = new(EntryOut)
 	out.NodeId = data.NodeId
 	out.Generation = 1 // where to get the generation?
