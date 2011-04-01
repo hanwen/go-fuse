@@ -183,7 +183,6 @@ func (me *LoopbackFile) Read(input *ReadIn, buffers *BufferPool) ([]byte, Status
 
 	n, err := me.file.ReadAt(slice, int64(input.Offset))
 	if err == os.EOF {
-		// TODO - how to signal EOF?
 		return slice[:n], OK
 	}
 	return slice[:n], OsErrorToFuseError(err)

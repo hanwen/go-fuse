@@ -219,7 +219,6 @@ func NewMountState(fs RawFileSystem) *MountState {
 
 }
 
-// TODO - have more statistics.
 func (me *MountState) Latencies() map[string]float64 {
 	me.statisticsMutex.Lock()
 	defer me.statisticsMutex.Unlock()
