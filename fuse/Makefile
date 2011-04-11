@@ -13,6 +13,7 @@ GOFILES=misc.go\
 	bufferpool.go \
 	default.go \
 	datafile.go \
+	lockingfs.go \
 	loopback.go \
 	wrappedfs.go \
 	timingfs.go \
