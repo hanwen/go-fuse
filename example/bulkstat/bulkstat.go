@@ -19,7 +19,7 @@ func main() {
 	flag.Parse()
 
 	filename := flag.Args()[0]
-	f, err := os.Open(filename, os.O_RDONLY, 0)
+	f, err := os.Open(filename)
 	if err != nil {
 		panic("err" + err.String())
 	}

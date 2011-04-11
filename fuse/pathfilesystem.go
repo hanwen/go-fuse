@@ -356,7 +356,7 @@ func (me *PathFileSystemConnector) Unmount(path string) Status {
 	mount.mutex.Lock()
 	defer mount.mutex.Unlock()
 	if mount.openCount > 0 {
-		log.Println("busy: ", mount)
+		log.Println("Umount - busy: ", mount)
 		return EBUSY
 	}
 
