@@ -39,10 +39,13 @@ func (me *XAttrTestFs) GetAttr(name string) (*Attr, Status) {
 }
 
 func (me *XAttrTestFs) SetXAttr(name string, attr string, data []byte, flags int) Status {
+	log.Println("SetXAttr", name, attr, string(data), flags)
 	if name != me.filename {
 		return ENOENT
 	}
-	me.attrs[attr] = data
+	dest := make([]byte, len(data))
+	copy(dest, data)
+	me.attrs[attr] = dest
 	return OK
 }
 
@@ -54,7 +57,7 @@ func (me *XAttrTestFs) GetXAttr(name string, attr string) ([]byte, Status) {
 	if !ok {
 		return nil, syscall.ENODATA
 	}
-
+	log.Println("GetXAttr", string(v))
 	return v, OK
 }
 
@@ -74,7 +77,7 @@ func (me *XAttrTestFs) RemoveXAttr(name string, attr string) Status {
 		return ENOENT
 	}
 	_, ok := me.attrs[attr]
-	log.Println(name, attr, ok)
+	log.Println("RemoveXAttr", name, attr, ok)
 	if !ok {
 		return syscall.ENODATA
 	}
@@ -90,7 +93,7 @@ func TestXAttrRead(t *testing.T) {
 		"user.attr2": []byte("val2")}
 	xfs := NewXAttrFs(nm, golden)
 
-	connector := NewPathFileSystemConnector(xfs)
+	connector := NewPathFileSystemConnector(NewLockingPathFilesystem(xfs))
 	mountPoint := MakeTempDir()
 
 	state := NewMountState(connector)
@@ -136,10 +139,13 @@ func TestXAttrRead(t *testing.T) {
 		}
 	}
 
-	Setxattr(mounted, "third", []byte("value"), 0)
+	errno = Setxattr(mounted, "third", []byte("value"), 0)
+	if errno != 0 {
+		t.Error("Setxattr error", errno)
+	}
 	val, errno = GetXAttr(mounted, "third")
 	if errno != 0 || string(val) != "value" {
-		t.Error("Read back set xattr:", errno, val)
+		t.Error("Read back set xattr:", errno, string(val))
 	}
 
 	Removexattr(mounted, "third")
