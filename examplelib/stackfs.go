@@ -126,7 +126,11 @@ func (me *SubmountFileSystem) registerLookup(subInode uint64, subfs *subFsInfo) 
 func (me *SubmountFileSystem) getSubFs(local uint64) (nodeid uint64, subfs *subFsInfo) {
 	me.nodeMapLock.RLock()
 	defer me.nodeMapLock.RUnlock()
-	data := me.nodeMap[local]
+	data, ok := me.nodeMap[local]
+	if !ok {
+		return 0, nil
+	}
+
 	return data.NodeId, data.SubFs
 }
 
