@@ -76,7 +76,7 @@ func (me *stackFsTestCase) Cleanup() {
 
 func (me *stackFsTestCase) testReaddir() {
 	fmt.Println("testReaddir... ")
-	dir, err := os.Open(me.mountDir, os.O_RDONLY, 0)
+	dir, err := os.Open(me.mountDir)
 	CheckSuccess(err)
 	infos, err := dir.Readdir(10)
 	CheckSuccess(err)
@@ -114,13 +114,13 @@ func (me *stackFsTestCase) testSubFs() {
 
 		mountFile := filepath.Join(mount, name)
 
-		f, err := os.Open(mountFile, os.O_WRONLY, 0)
+		f, err := os.OpenFile(mountFile, os.O_WRONLY, 0)
 		if err == nil {
 			me.tester.Errorf("Expected error for open write %v", name)
 			continue
 		}
 		content1 := "booh!"
-		f, err = os.Open(mountFile, os.O_WRONLY|os.O_CREATE, magicMode)
+		f, err = os.Create(mountFile)
 		CheckSuccess(err)
 
 		f.Write([]byte(content1))
@@ -135,7 +135,7 @@ func (me *stackFsTestCase) testSubFs() {
 			me.tester.Errorf("Mode %o", fi.Mode)
 		}
 
-		g, err := os.Open(mountFile, os.O_RDONLY, 0)
+		g, err := os.Open(mountFile)
 		CheckSuccess(err)
 
 		buf := make([]byte, 1024)
@@ -177,7 +177,7 @@ func (me *stackFsTestCase) testAddRemove() {
 	if fs == nil {
 		me.tester.Errorf("remove fail")
 	}
-	dir, err := os.Open(me.mountDir, os.O_RDONLY, 0)
+	dir, err := os.Open(me.mountDir)
 	CheckSuccess(err)
 	infos, err := dir.Readdir(10)
 	CheckSuccess(err)
@@ -186,7 +186,7 @@ func (me *stackFsTestCase) testAddRemove() {
 	}
 	dir.Close()
 
-	_, err = os.Open(filepath.Join(me.mountDir, "third"), os.O_RDONLY, 0)
+	_, err = os.Open(filepath.Join(me.mountDir, "third"))
 	if err == nil {
 		me.tester.Errorf("expect enoent %v", err)
 	}

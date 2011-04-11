@@ -19,7 +19,7 @@ func TestZipFs(t *testing.T) {
 
 	go state.Loop(false)
 
-	d, err := os.Open(mountPoint, os.O_RDONLY, 0)
+	d, err := os.Open(mountPoint)
 	CheckSuccess(err)
 
 	names, err := d.Readdirnames(-1)
@@ -43,7 +43,7 @@ func TestZipFs(t *testing.T) {
 		t.Error("file type", fi)
 	}
 
-	f, err := os.Open(mountPoint+"/file.txt", os.O_RDONLY, 0)
+	f, err := os.Open(mountPoint + "/file.txt")
 	CheckSuccess(err)
 
 	b := make([]byte, 1024)
