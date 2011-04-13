@@ -26,29 +26,19 @@ func MakeTempDir() string {
 // Convert os.Error back to Errno based errors.
 func OsErrorToFuseError(err os.Error) Status {
 	if err != nil {
-		asErrno, ok := err.(os.Errno)
-		if ok {
-			return Status(asErrno)
+		switch t := err.(type) {
+		case os.Errno:
+			return Status(t)
+		case *os.SyscallError:
+			return Status(t.Errno)
+		case *os.PathError:
+			return OsErrorToFuseError(t.Error)
+		case *os.LinkError:
+			return OsErrorToFuseError(t.Error)
+		default:
+			log.Println("can't convert error type:", err)
+			return ENOSYS
 		}
-
-		asSyscallErr, ok := err.(*os.SyscallError)
-		if ok {
-			return Status(asSyscallErr.Errno)
-		}
-
-		asPathErr, ok := err.(*os.PathError)
-		if ok {
-			return OsErrorToFuseError(asPathErr.Error)
-		}
-
-		asLinkErr, ok := err.(*os.LinkError)
-		if ok {
-			return OsErrorToFuseError(asLinkErr.Error)
-		}
-
-		// Should not happen.  Should we log an error somewhere?
-		log.Println("can't convert error type:", err)
-		return ENOSYS
 	}
 	return OK
 }
