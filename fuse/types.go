@@ -1,6 +1,7 @@
 package fuse
 
 import (
+	"os"
 	"syscall"
 )
 
@@ -80,6 +81,8 @@ const (
 
 	// TODO - get this from a canonical place.
 	PAGESIZE = 4096
+
+	O_ANYWRITE = uint32(os.O_WRONLY|os.O_RDWR|os.O_APPEND|os.O_CREATE|os.O_TRUNC)
 )
 
 type Status int32

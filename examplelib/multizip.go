@@ -13,7 +13,6 @@ path/to/zipfile to /config/zipmount
 import (
 	"github.com/hanwen/go-fuse/fuse"
 	"log"
-	"os"
 	"path/filepath"
 	"sync"
 	"strings"
@@ -186,7 +185,7 @@ func (me *MultiZipFs) Unlink(name string) (code fuse.Status) {
 }
 
 func (me *MultiZipFs) Open(name string, flags uint32) (file fuse.RawFuseFile, code fuse.Status) {
-	if 0 != flags&uint32(os.O_WRONLY|os.O_RDWR|os.O_APPEND) {
+	if 0 != flags&uint32(fuse.O_ANYWRITE) {
 		return nil, fuse.EPERM
 	}
 
