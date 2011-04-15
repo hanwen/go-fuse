@@ -71,7 +71,7 @@ func (me *ZipDirTree) FindDir(name string) *ZipDirTree {
 }
 
 type ZipFileFuse struct {
-	zipReader   *zip.Reader
+	zipReader   *zip.ReadCloser
 	tree        *ZipDirTree
 	ZipFileName string
 
