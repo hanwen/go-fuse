@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/hanwen/go-fuse/fuse"
-	zipfs "github.com/hanwen/go-fuse/zipfs"
+	"github.com/hanwen/go-fuse/zipfs"
 	"fmt"
 	"flag"
 	"log"

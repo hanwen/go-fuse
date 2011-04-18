@@ -1,4 +1,4 @@
-package examplelib
+package zipfs
 
 import (
 	"github.com/hanwen/go-fuse/fuse"

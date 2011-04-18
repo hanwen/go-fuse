@@ -1,4 +1,4 @@
-package examplelib
+package zipfs
 
 /*
 

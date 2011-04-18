@@ -18,7 +18,7 @@ func main() {
 	flag.Parse()
 
 	if len(flag.Args()) < 2 {
-		fmt.Println("Usage:\n  main MOUNTPOINT BASEDIR")
+		fmt.Println("Usage:\n  main MOUNTPOINT RW-DIRECTORY RO-DIRECTORY ...")
 		os.Exit(2)
 	}
 	mountpoint := flag.Arg(0)
@@ -28,12 +28,9 @@ func main() {
 		BranchCacheTTLSecs:   *branchcache_ttl,
 		DeletionDirName:      *deldirname,
 	}
-	options := unionfs.AutoUnionFsOptions{
-		UnionFsOptions: ufsOptions,
-	}
 
-	gofs := unionfs.NewAutoUnionFs(flag.Arg(1), options)
-	conn := fuse.NewPathFileSystemConnector(gofs)
+	ufs := unionfs.NewUnionFs(flag.Args()[1:], ufsOptions)
+	conn := fuse.NewPathFileSystemConnector(ufs)
 	mountState := fuse.NewMountState(conn)
 	mountState.Debug = *debug
 	fmt.Printf("Mounting...\n")
