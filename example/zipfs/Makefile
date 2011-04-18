@@ -2,8 +2,9 @@
 include $(GOROOT)/src/Make.inc
 
 TARG=zipfs
-GOFILES=zipfs.go
-DEPS=../../fuse ../../examplelib
+GOFILES=main.go
+
+DEPS=../../fuse ../../zipfs
 
 include $(GOROOT)/src/Make.cmd
 

@@ -2,7 +2,6 @@
 include $(GOROOT)/src/Make.inc
 
 TARG=github.com/hanwen/go-fuse/fuse
-#TARG=fuse
 
 GOFILES=misc.go\
 	fuse.go\

@@ -2,10 +2,18 @@ package examplelib
 
 import (
 	"github.com/hanwen/go-fuse/fuse"
+	"log"
 	"os"
 	"testing"
 	"time"
 )
+
+func CheckSuccess(err os.Error) {
+	if err != nil {
+		log.Println(err)
+		panic("error")
+	}
+}
 
 func TestMultiZipFs(t *testing.T) {
 	var err os.Error
@@ -48,7 +56,9 @@ func TestMultiZipFs(t *testing.T) {
 	CheckSuccess(err)
 
 	// Directory exists, but is empty.
-	if !IsDir(mountPoint + "/zipmount") {
+	fi, err := os.Lstat(mountPoint + "/zipmount")
+	CheckSuccess(err)
+	if !fi.IsDirectory() {
 		t.Errorf("Expect directory at /zipmount")
 	}
 
@@ -63,13 +73,13 @@ func TestMultiZipFs(t *testing.T) {
 
 	err = f.Close()
 	CheckSuccess(err)
-
-	if !IsDir(mountPoint + "/zipmount") {
+	fi, err = os.Lstat(mountPoint + "/zipmount") 
+	if !fi.IsDirectory() {
 		t.Errorf("Expect directory at /zipmount")
 	}
 
 	// Check that zipfs itself works.
-	fi, err := os.Stat(mountPoint + "/zipmount/subdir")
+	fi, err = os.Stat(mountPoint + "/zipmount/subdir")
 	CheckSuccess(err)
 	if !fi.IsDirectory() {
 		t.Error("directory type", fi)

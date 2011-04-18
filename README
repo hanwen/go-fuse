@@ -1,7 +1,19 @@
 
 GO-FUSE: native bindings for the FUSE kernel module.
 
-GETTING STARTED
+HIGHLIGHTS
+
+* High speed: within a factor 2 of C/C++ based filesystems on
+filesystem benchmarks, using the gc compiler.  For many real world
+applications, the difference will be negligible.
+
+* Supports in-process mounting of different PathFileSystems onto each
+other.
+
+* Includes two fleshed out examples, zipfs and unionfs.
+
+
+EXAMPLES
 
 * examplelib/zipfs.go contains a small and simple read-only filesystem
   for zip files. The corresponding command is in example/zipfs/ . For
@@ -12,6 +24,9 @@ GETTING STARTED
     ls /tmp/mountpoint
     fusermount -u /tmp/mountpoint
 
+* examplelib/multizipfs.go shows how to use in-process mounts to
+  combine multiple Go-FUSE filesystems into a larger filesystem.
+    
 * fuse/loopback.go supports all the implemented functionality.  A
   binary to run is in example/loopback/ . For example
 
@@ -20,20 +35,26 @@ GETTING STARTED
     ls /tmp/mountpoint
     fusermount -u /tmp/mountpoint
 
+* unionfs/unionfs.go: implements a union mount using 1 R/W branch, and
+  multiple R/O branches.
 
+    mkdir -p  /tmp/mountpoint /tmp/writable
+    example/unionfs/unionfs /tmp/mountpoint /tmp/writable /usr &
+    ls /tmp/mountpoint
+    ls -l /tmp/mountpoint/bin/vi
+    rm /tmp/mountpoint/bin/vi
+    ls -l /tmp/mountpoint/bin/vi
+    cat /tmp/writable/*DELETION*/* 
+
+* union/autounionfs.go: creates UnionFs mounts automatically based on
+  existence of READONLY symlinks.
+
+    
 Tested on:
 
 - x86 32bits (Fedora 14).
 - x86 64bits (Ubuntu Lucid).
 
-
-
-BENCHMARKS
-
-In benchmarks, Go-fuse's loopback system is less than 2 times slower
-than equivalent C++ based FUSE filesystems.  In practical applications,
-the the file system client processing may mask some of these
-performance gaps.
 
 
 CREDITS

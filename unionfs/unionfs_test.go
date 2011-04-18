@@ -38,7 +38,7 @@ func setup(t *testing.T) (workdir string, state *fuse.MountState) {
 	var roots []string
 	roots = append(roots, wd+"/rw")
 	roots = append(roots, wd+"/ro")
-	ufs := NewUnionfs(roots, testOpts)
+	ufs := NewUnionFs(roots, testOpts)
 
 	connector := fuse.NewPathFileSystemConnector(ufs)
 	state = fuse.NewMountState(connector)

@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/examplelib"
+	zipfs "github.com/hanwen/go-fuse/zipfs"
 	"fmt"
 	"flag"
 	"log"
@@ -20,7 +20,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	fs := examplelib.NewMultiZipFs()
+	fs := zipfs.NewMultiZipFs()
 	state := fuse.NewMountState(fs.Connector)
 
 	mountPoint := flag.Arg(0)

@@ -1,9 +1,9 @@
 # Use "gomake install" to build and install this package.
 include $(GOROOT)/src/Make.inc
 
-TARG=multizip
-GOFILES=multizip.go
-DEPS=../../fuse ../../zipfs
+TARG=autounionfs
+GOFILES=main.go
+DEPS=../../fuse ../../unionfs
 
 include $(GOROOT)/src/Make.cmd
 

@@ -78,7 +78,7 @@ type UnionFsOptions struct {
 	DeletionDirName      string
 }
 
-func NewUnionfs(roots []string, options UnionFsOptions) *UnionFs {
+func NewUnionFs(roots []string, options UnionFsOptions) *UnionFs {
 	g := new(UnionFs)
 
 	g.options = &options

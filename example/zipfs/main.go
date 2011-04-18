@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/examplelib"
+	zipfs "github.com/hanwen/go-fuse/zipfs"
 	"fmt"
 	"flag"
 	"log"
@@ -21,7 +21,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	fs := examplelib.NewZipArchiveFileSystem(flag.Arg(1))
+	fs := zipfs.NewZipArchiveFileSystem(flag.Arg(1))
 	conn := fuse.NewPathFileSystemConnector(fs)
 	state := fuse.NewMountState(conn)
 

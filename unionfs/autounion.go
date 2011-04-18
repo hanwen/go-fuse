@@ -60,7 +60,7 @@ func (me *AutoUnionFs) addFs(roots []string) {
 	var gofs *UnionFs
 	if me.knownFilesystems[name] == nil {
 		log.Println("Adding UnionFs for roots", roots)
-		gofs = NewUnionfs(roots, me.options.UnionFsOptions)
+		gofs = NewUnionFs(roots, me.options.UnionFsOptions)
 		me.knownFilesystems[name] = gofs
 	}
 	me.lock.Unlock()
