@@ -73,7 +73,7 @@ func TestMultiZipFs(t *testing.T) {
 
 	err = f.Close()
 	CheckSuccess(err)
-	fi, err = os.Lstat(mountPoint + "/zipmount") 
+	fi, err = os.Lstat(mountPoint + "/zipmount")
 	if !fi.IsDirectory() {
 		t.Errorf("Expect directory at /zipmount")
 	}

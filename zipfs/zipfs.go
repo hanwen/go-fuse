@@ -136,7 +136,7 @@ func (me *ZipFileFuse) GetAttr(name string) (*fuse.Attr, fuse.Status) {
 }
 
 func (me *ZipFileFuse) Open(name string, flags uint32) (file fuse.RawFuseFile, code fuse.Status) {
-	if flags & fuse.O_ANYWRITE != 0 {
+	if flags&fuse.O_ANYWRITE != 0 {
 		return nil, fuse.EPERM
 	}
 

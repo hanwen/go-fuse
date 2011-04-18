@@ -35,4 +35,3 @@ func TestDummyFile(t *testing.T) {
 	_ = fileDir
 	_ = filePtr
 }
-

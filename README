@@ -7,8 +7,8 @@ HIGHLIGHTS
 filesystem benchmarks, using the gc compiler.  For many real world
 applications, the difference will be negligible.
 
-* Supports in-process mounting of different PathFileSystems onto each
-other.
+* Supports in-process mounting of different PathFileSystems onto
+subdirectories of the FUSE mount.
 
 * Includes two fleshed out examples, zipfs and unionfs.
 
@@ -49,7 +49,7 @@ EXAMPLES
 * union/autounionfs.go: creates UnionFs mounts automatically based on
   existence of READONLY symlinks.
 
-    
+
 Tested on:
 
 - x86 32bits (Fedora 14).
