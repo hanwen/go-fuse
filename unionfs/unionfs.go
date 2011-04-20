@@ -16,12 +16,14 @@ import (
 
 // TODO(hanwen): is md5 sufficiently fast?
 func filePathHash(path string) string {
+	dir, base := filepath.Split(path)
+
 	h := md5.New()
-	h.Write([]byte(path))
+	h.Write([]byte(dir))
 
 	// TODO(hanwen): should use a tighter format, so we can pack
 	// more results in a readdir() roundtrip.
-	return fmt.Sprintf("%x", h.Sum())
+	return fmt.Sprintf("%x-%s", h.Sum()[:8], base)
 }
 
 /*

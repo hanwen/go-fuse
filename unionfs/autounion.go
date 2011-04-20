@@ -93,6 +93,10 @@ func (me *AutoUnionFs) updateKnownFses() {
 
 func (me *AutoUnionFs) Readlink(path string) (out string, code fuse.Status) {
 	comps := strings.Split(path, filepath.SeparatorString, -1)
+	if comps[0] == "status" && comps[1] == "autobase" {
+		return me.root, fuse.OK
+	}
+
 	if comps[0] != "config" {
 		return "", fuse.ENOENT
 	}
@@ -117,6 +121,13 @@ func (me *AutoUnionFs) GetAttr(path string) (*fuse.Attr, fuse.Status) {
 	if path == "status/gounionfs_version" {
 		a := &fuse.Attr{
 			Mode: fuse.S_IFREG | 0644,
+		}
+		return a, fuse.OK
+	}
+
+	if path == "status/autobase" {
+		a := &fuse.Attr{
+			Mode: syscall.S_IFLNK | 0644,
 		}
 		return a, fuse.OK
 	}
@@ -148,11 +159,16 @@ func (me *AutoUnionFs) GetAttr(path string) (*fuse.Attr, fuse.Status) {
 }
 
 func (me *AutoUnionFs) StatusDir() (stream chan fuse.DirEntry, status fuse.Status) {
-	stream = make(chan fuse.DirEntry, 1)
+	stream = make(chan fuse.DirEntry, 10)
 	stream <- fuse.DirEntry{
 		Name: "gounionfs_version",
 		Mode: fuse.S_IFREG | 0644,
 	}
+	stream <- fuse.DirEntry{
+		Name: "autobase",
+		Mode: syscall.S_IFLNK | 0644,
+	}
+
 	close(stream)
 	return stream, fuse.OK
 }
