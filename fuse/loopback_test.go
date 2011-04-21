@@ -64,7 +64,7 @@ func (me *testCase) Setup(t *testing.T) {
 	rfs = me.connector
 	rfs = NewTimingRawFilesystem(rfs)
 	rfs = NewLockingRawFilesystem(rfs)
-	
+
 	me.connector.Debug = true
 	me.state = NewMountState(rfs)
 	me.state.Mount(me.mountPoint)

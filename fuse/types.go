@@ -541,7 +541,7 @@ type RawFileSystem interface {
 	OpenDir(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status)
 	ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status)
 	ReleaseDir(header *InHeader, input *ReleaseIn)
-	FsyncDir(header *InHeader, input *FsyncIn) (code Status)	
+	FsyncDir(header *InHeader, input *FsyncIn) (code Status)
 }
 
 type FuseFile interface {

@@ -529,7 +529,7 @@ func doOpen(state *MountState, header *InHeader, input *OpenIn) (unsafe.Pointer,
 	if status != OK {
 		return nil, status
 	}
-	
+
 	out := new(OpenOut)
 	out.Fh = handle
 	out.OpenFlags = flags
@@ -609,4 +609,3 @@ func doReadDir(state *MountState, header *InHeader, input *ReadIn) (out []byte, 
 	}
 	return entries.Bytes(), code
 }
-

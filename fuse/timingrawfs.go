@@ -207,6 +207,6 @@ func (me *TimingRawFilesystem) ReleaseDir(header *InHeader, input *ReleaseIn) {
 }
 
 func (me *TimingRawFilesystem) FsyncDir(header *InHeader, input *FsyncIn) (code Status) {
-	defer me.startTimer("FsyncDir")()	
+	defer me.startTimer("FsyncDir")()
 	return me.Original.FsyncDir(header, input)
 }

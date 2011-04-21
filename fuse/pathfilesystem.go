@@ -36,7 +36,7 @@ type inode struct {
 	Name        string
 	LookupCount int
 	OpenCount   int
-	Type uint32		// dirent type, used to check if mounts are valid.
+	Type        uint32 // dirent type, used to check if mounts are valid.
 
 	mount *mountData
 }
@@ -143,7 +143,7 @@ type PathFileSystemConnector struct {
 	Debug   bool
 
 	////////////////
-	
+
 	// Protects the inode hashmap, its contents and the nextFreeInode counter.
 	lock sync.RWMutex
 
@@ -152,8 +152,8 @@ type PathFileSystemConnector struct {
 	nextFreeInode uint64
 
 	// Open files/directories.
-	fileLock    sync.RWMutex
-	openFiles   map[uint64]interface{}
+	fileLock       sync.RWMutex
+	openFiles      map[uint64]interface{}
 	nextFreeHandle uint64
 }
 
@@ -179,7 +179,7 @@ func (me *PathFileSystemConnector) registerFile(node *inode, f interface{}) uint
 	if ok {
 		panic("handle counter wrapped")
 	}
-	
+
 	node.OpenCount++
 	me.openFiles[h] = f
 	return h
@@ -190,7 +190,7 @@ func (me *PathFileSystemConnector) getDir(h uint64) RawFuseDir {
 	defer me.fileLock.RUnlock()
 	return me.openFiles[h].(RawFuseDir)
 }
-	
+
 func (me *PathFileSystemConnector) getFile(h uint64) FuseFile {
 	me.fileLock.RLock()
 	defer me.fileLock.RUnlock()
@@ -215,7 +215,7 @@ func (me *PathFileSystemConnector) newInode() *inode {
 	me.nextFreeInode++
 
 	me.inodeMap[data.NodeId] = data
-	
+
 	return data
 }
 
@@ -325,7 +325,7 @@ func NewPathFileSystemConnector(fs PathFilesystem) (out *PathFileSystemConnector
 	out = new(PathFileSystemConnector)
 	out.inodeMap = make(map[uint64]*inode)
 	out.openFiles = make(map[uint64]interface{})
-	
+
 	out.nextFreeInode = FUSE_ROOT_ID
 	rootData := out.newInode()
 	rootData.NodeId = FUSE_ROOT_ID
@@ -374,7 +374,7 @@ func (me *PathFileSystemConnector) Mount(mountPoint string, fs PathFilesystem) S
 	if hasChildren {
 		return EBUSY
 	}
-	
+
 	code := fs.Mount(me)
 	if code != OK {
 		if me.Debug {
@@ -538,7 +538,7 @@ func (me *PathFileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (fla
 	de.stream = stream
 
 	h := me.registerFile(node, de)
-	
+
 	return 0, h, OK
 }
 
@@ -556,14 +556,14 @@ func (me *PathFileSystemConnector) Open(header *InHeader, input *OpenIn) (flags 
 	if mount == nil {
 		return 0, 0, ENOENT
 	}
-	
+
 	// TODO - how to handle return flags, the FUSE open flags?
 	f, err := mount.fs.Open(fullPath, input.Flags)
 	if err != OK {
 		return 0, 0, err
 	}
 	h := me.registerFile(node, f)
-	
+
 	return 0, h, OK
 }
 
@@ -741,7 +741,7 @@ func (me *PathFileSystemConnector) Create(header *InHeader, input *CreateIn, nam
 	if err != OK {
 		return 0, 0, nil, err
 	}
-		
+
 	out, code, inode := me.internalLookupWithNode(parent, name, 1)
 	return 0, me.registerFile(inode, f), out, code
 }

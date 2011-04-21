@@ -66,8 +66,8 @@ func (me *DirEntryList) Bytes() []byte {
 ////////////////////////////////////////////////////////////////
 
 type FuseDir struct {
-	stream    chan DirEntry
-	leftOver  DirEntry
+	stream   chan DirEntry
+	leftOver DirEntry
 
 	DefaultRawFuseDir
 }
@@ -116,7 +116,7 @@ func (me *FuseDir) ReadDir(input *ReadIn) (*DirEntryList, Status) {
 // Read everything so we make goroutines exit.
 func (me *FuseDir) Release() {
 	for ok := true; ok && me.stream != nil; {
- 		_, ok = <-me.stream
+		_, ok = <-me.stream
 		if !ok {
 			break
 		}
