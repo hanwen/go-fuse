@@ -164,6 +164,12 @@ type LockingRawFilesystem struct {
 	lock sync.Mutex
 }
 
+func NewLockingRawFilesystem(rfs RawFileSystem) *LockingRawFilesystem {
+	l := &LockingRawFilesystem{}
+	l.Original = rfs
+	return l
+}
+
 func (me *LockingRawFilesystem) Init(h *InHeader, input *InitIn) (*InitOut, Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
@@ -194,7 +200,7 @@ func (me *LockingRawFilesystem) GetAttr(header *InHeader, input *GetAttrIn) (out
 	return me.Original.GetAttr(header, input)
 }
 
-func (me *LockingRawFilesystem) Open(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseFile, status Status) {
+func (me *LockingRawFilesystem) Open(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.Open(header, input)
@@ -284,7 +290,7 @@ func (me *LockingRawFilesystem) Access(header *InHeader, input *AccessIn) (code 
 	return me.Original.Access(header, input)
 }
 
-func (me *LockingRawFilesystem) Create(header *InHeader, input *CreateIn, name string) (flags uint32, fuseFile RawFuseFile, out *EntryOut, code Status) {
+func (me *LockingRawFilesystem) Create(header *InHeader, input *CreateIn, name string) (flags uint32, handle uint64, out *EntryOut, code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.Create(header, input, name)
@@ -314,14 +320,30 @@ func (me *LockingRawFilesystem) OpenDir(header *InHeader, input *OpenIn) (flags 
 	return me.Original.OpenDir(header, input)
 }
 
-func (me *LockingRawFilesystem) Release(header *InHeader, f RawFuseFile) {
+func (me *LockingRawFilesystem) Release(header *InHeader, input *ReleaseIn) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	me.Original.Release(header, f)
+	me.Original.Release(header, input)
 }
 
 func (me *LockingRawFilesystem) ReleaseDir(header *InHeader, f RawFuseDir) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	me.Original.ReleaseDir(header, f)
+}
+
+func (me *LockingRawFilesystem) Read(input *ReadIn, bp *BufferPool) ([]byte, Status) {
+	return me.Original.Read(input, bp)
+}
+
+func (me *LockingRawFilesystem) Write(input *WriteIn, data []byte) (written uint32, code Status) {
+	return me.Original.Write(input, data)
+}
+
+func (me *LockingRawFilesystem) Flush(input *FlushIn) Status {
+	return me.Original.Flush(input)
+}
+
+func (me *LockingRawFilesystem) Fsync(input *FsyncIn) (code Status) {
+	return me.Original.Fsync(input)
 }

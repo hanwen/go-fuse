@@ -43,7 +43,8 @@ type inode struct {
 	NodeId      uint64
 	Name        string
 	LookupCount int
-
+	OpenCount   int
+	// ?
 	Type uint32
 
 	mount *mountData
@@ -137,15 +138,56 @@ type PathFileSystemConnectorOptions struct {
 type PathFileSystemConnector struct {
 	DefaultRawFuseFileSystem
 
-	// Protects the hashmap, its contents and the nextFreeInode counter.
+	options PathFileSystemConnectorOptions
+	Debug   bool
+
+	////////////////
+	
+	// Protects the inode hashmap, its contents and the nextFreeInode counter.
 	lock sync.RWMutex
 
 	// Invariants: see the verify() method.
 	inodeMap      map[uint64]*inode
 	nextFreeInode uint64
 
-	options PathFileSystemConnectorOptions
-	Debug   bool
+	// Open files/directories.
+	fileLock    sync.RWMutex
+	openFiles   map[uint64]RawFuseFile
+	nextFreeHandle uint64
+}
+
+func (me *PathFileSystemConnector) unregisterFile(node *inode, handle uint64) RawFuseFile {
+	me.fileLock.Lock()
+	defer me.fileLock.Unlock()
+	f, ok := me.openFiles[handle]
+	if !ok {
+		panic("invalid handle")
+	}
+	me.openFiles[handle] = nil, false
+	node.OpenCount--
+	return f
+}
+
+func (me *PathFileSystemConnector) getFile(h uint64) RawFuseFile {
+	me.fileLock.RLock()
+	defer me.fileLock.RUnlock()
+	return me.openFiles[h]
+}
+	
+func (me *PathFileSystemConnector) registerFile(node *inode, f RawFuseFile) uint64 {
+	me.fileLock.Lock()
+	defer me.fileLock.Unlock()
+
+	h := me.nextFreeHandle
+	me.nextFreeHandle++
+	_, ok := me.openFiles[h]
+	if ok {
+		panic("handle counter wrapped")
+	}
+	
+	node.OpenCount++
+	me.openFiles[h] = f
+	return h
 }
 
 func (me *PathFileSystemConnector) verify() {
@@ -166,7 +208,7 @@ func (me *PathFileSystemConnector) newInode() *inode {
 	me.nextFreeInode++
 
 	me.inodeMap[data.NodeId] = data
-
+	
 	return data
 }
 
@@ -275,7 +317,8 @@ func (me *PathFileSystemConnector) findInode(fullPath string) *inode {
 func NewPathFileSystemConnector(fs PathFilesystem) (out *PathFileSystemConnector) {
 	out = new(PathFileSystemConnector)
 	out.inodeMap = make(map[uint64]*inode)
-
+	out.openFiles = make(map[uint64]RawFuseFile)
+	
 	out.nextFreeInode = FUSE_ROOT_ID
 	rootData := out.newInode()
 	rootData.NodeId = FUSE_ROOT_ID
@@ -298,7 +341,6 @@ func NewPathFileSystemConnector(fs PathFilesystem) (out *PathFileSystemConnector
 func (me *PathFileSystemConnector) SetOptions(opts PathFileSystemConnectorOptions) {
 	me.options = opts
 }
-
 
 func (me *PathFileSystemConnector) Mount(mountPoint string, fs PathFilesystem) Status {
 	var node *inode
@@ -399,23 +441,28 @@ func (me *PathFileSystemConnector) Lookup(header *InHeader, name string) (out *E
 }
 
 func (me *PathFileSystemConnector) internalLookup(parent *inode, name string, lookupCount int) (out *EntryOut, status Status) {
+	out, status, _ = me.internalLookupWithNode(parent, name, lookupCount)
+	return out, status
+}
+
+func (me *PathFileSystemConnector) internalLookupWithNode(parent *inode, name string, lookupCount int) (out *EntryOut, status Status, node *inode) {
 	// TODO - fuse.c has special case code for name == "." and
 	// "..", those lookups happen if FUSE_EXPORT_SUPPORT is set in
 	// Init.
 	fullPath, mount := parent.GetPath()
 	if mount == nil {
-		return NegativeEntry(me.options.NegativeTimeout), OK
+		return NegativeEntry(me.options.NegativeTimeout), OK, nil
 	}
 	fullPath = filepath.Join(fullPath, name)
 
 	attr, err := mount.fs.GetAttr(fullPath)
 
 	if err == ENOENT && me.options.NegativeTimeout > 0.0 {
-		return NegativeEntry(me.options.NegativeTimeout), OK
+		return NegativeEntry(me.options.NegativeTimeout), OK, nil
 	}
 
 	if err != OK {
-		return nil, err
+		return nil, err, nil
 	}
 
 	data := me.lookupUpdate(parent, name, attr.Mode&S_IFDIR != 0)
@@ -430,7 +477,7 @@ func (me *PathFileSystemConnector) internalLookup(parent *inode, name string, lo
 	SplitNs(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	out.Attr = *attr
 	out.Attr.Ino = data.NodeId
-	return out, OK
+	return out, OK, data
 }
 
 func (me *PathFileSystemConnector) Forget(h *InHeader, input *ForgetIn) {
@@ -476,19 +523,21 @@ func (me *PathFileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (fla
 	return 0, de, OK
 }
 
-func (me *PathFileSystemConnector) Open(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseFile, status Status) {
-	fullPath, mount, _ := me.GetPath(header.NodeId)
+func (me *PathFileSystemConnector) Open(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
+	fullPath, mount, node := me.GetPath(header.NodeId)
 	if mount == nil {
-		return 0, nil, ENOENT
+		return 0, 0, ENOENT
 	}
+	
 	// TODO - how to handle return flags, the FUSE open flags?
 	f, err := mount.fs.Open(fullPath, input.Flags)
 	if err != OK {
-		return 0, nil, err
+		return 0, 0, err
 	}
-
+	h := me.registerFile(node, f)
+	
 	mount.incOpenCount(1)
-	return 0, f, OK
+	return 0, h, OK
 }
 
 func (me *PathFileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out *AttrOut, code Status) {
@@ -654,26 +703,27 @@ func (me *PathFileSystemConnector) Access(header *InHeader, input *AccessIn) (co
 	return mount.fs.Access(p, input.Mask)
 }
 
-func (me *PathFileSystemConnector) Create(header *InHeader, input *CreateIn, name string) (flags uint32, fuseFile RawFuseFile, out *EntryOut, code Status) {
+func (me *PathFileSystemConnector) Create(header *InHeader, input *CreateIn, name string) (flags uint32, h uint64, out *EntryOut, code Status) {
 	directory, mount, parent := me.GetPath(header.NodeId)
 	if mount == nil {
-		return 0, nil, nil, ENOENT
+		return 0, 0, nil, ENOENT
 	}
 	fullPath := filepath.Join(directory, name)
 
 	f, err := mount.fs.Create(fullPath, uint32(input.Flags), input.Mode)
 	if err != OK {
-		return 0, nil, nil, err
+		return 0, 0, nil, err
 	}
-
+		
+	out, code, inode := me.internalLookupWithNode(parent, name, 1)
 	mount.incOpenCount(1)
-
-	out, code = me.internalLookup(parent, name, 1)
-	return 0, f, out, code
+	return 0, me.registerFile(inode, f), out, code
 }
 
-func (me *PathFileSystemConnector) Release(header *InHeader, f RawFuseFile) {
-	_, mount, _ := me.GetPath(header.NodeId)
+func (me *PathFileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
+	_, mount, node := me.GetPath(header.NodeId)
+	f := me.unregisterFile(node, input.Fh)
+	f.Release()
 	if mount != nil {
 		mount.incOpenCount(-1)
 	}
@@ -732,4 +782,14 @@ func (me *PathFileSystemConnector) ListXAttr(header *InHeader) (data []byte, cod
 	}
 
 	return b.Bytes(), code
+}
+
+func (me *PathFileSystemConnector) Write(input *WriteIn, data []byte) (written uint32, code Status) {
+	f := me.getFile(input.Fh)
+	return f.Write(input, data)
+}
+
+func (me *PathFileSystemConnector) Read(input *ReadIn, bp *BufferPool) ([]byte, Status) {
+	f := me.getFile(input.Fh)
+	return f.Read(input, bp)
 }

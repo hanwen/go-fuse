@@ -54,8 +54,16 @@ func (me *testCase) Setup(t *testing.T) {
 	me.origSubdir = filepath.Join(me.origDir, subdir)
 	me.origSubfile = filepath.Join(me.origSubdir, "subfile")
 
-	pfs := NewLoopbackFileSystem(me.origDir)
+	var pfs PathFilesystem
+	pfs = NewLoopbackFileSystem(me.origDir)
+	pfs = NewTimingPathFilesystem(pfs)
+	pfs = NewLockingPathFilesystem(pfs)
+
+	var rfs RawFileSystem
 	me.connector = NewPathFileSystemConnector(pfs)
+	rfs = NewTimingRawFilesystem(me.connector)
+	rfs = NewLockingRawFilesystem(rfs)
+	
 	me.connector.Debug = true
 	me.state = NewMountState(me.connector)
 	me.state.Mount(me.mountPoint)

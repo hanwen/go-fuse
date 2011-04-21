@@ -71,7 +71,7 @@ func (me *TimingRawFilesystem) GetAttr(header *InHeader, input *GetAttrIn) (out 
 	return me.Original.GetAttr(header, input)
 }
 
-func (me *TimingRawFilesystem) Open(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseFile, status Status) {
+func (me *TimingRawFilesystem) Open(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
 	defer me.startTimer("Open")()
 	return me.Original.Open(header, input)
 }
@@ -146,7 +146,7 @@ func (me *TimingRawFilesystem) Access(header *InHeader, input *AccessIn) (code S
 	return me.Original.Access(header, input)
 }
 
-func (me *TimingRawFilesystem) Create(header *InHeader, input *CreateIn, name string) (flags uint32, fuseFile RawFuseFile, out *EntryOut, code Status) {
+func (me *TimingRawFilesystem) Create(header *InHeader, input *CreateIn, name string) (flags uint32, handle uint64, out *EntryOut, code Status) {
 	defer me.startTimer("Create")()
 	return me.Original.Create(header, input, name)
 }
@@ -171,12 +171,32 @@ func (me *TimingRawFilesystem) OpenDir(header *InHeader, input *OpenIn) (flags u
 	return me.Original.OpenDir(header, input)
 }
 
-func (me *TimingRawFilesystem) Release(header *InHeader, f RawFuseFile) {
+func (me *TimingRawFilesystem) Release(header *InHeader, input *ReleaseIn) {
 	defer me.startTimer("Release")()
-	me.Original.Release(header, f)
+	me.Original.Release(header, input)
 }
 
 func (me *TimingRawFilesystem) ReleaseDir(header *InHeader, f RawFuseDir) {
 	defer me.startTimer("ReleaseDir")()
 	me.Original.ReleaseDir(header, f)
+}
+
+func (me *TimingRawFilesystem) Read(input *ReadIn, bp *BufferPool) ([]byte, Status) {
+	defer me.startTimer("Read")()
+	return me.Original.Read(input, bp)
+}
+
+func (me *TimingRawFilesystem) Write(input *WriteIn, data []byte) (written uint32, code Status) {
+	defer me.startTimer("Write")()
+	return me.Original.Write(input, data)
+}
+
+func (me *TimingRawFilesystem) Flush(input *FlushIn) Status {
+	defer me.startTimer("Flush")()
+	return me.Original.Flush(input)
+}
+
+func (me *TimingRawFilesystem) Fsync(input *FsyncIn) (code Status) {
+	defer me.startTimer("Fsync")()
+	return me.Original.Fsync(input)
 }

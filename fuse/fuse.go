@@ -453,15 +453,15 @@ func (me *MountState) dispatch(req *fuseRequest) {
 	case FUSE_OPEN:
 		req.data, status = doOpen(me, h, (*OpenIn)(inData))
 	case FUSE_READ:
-		req.flatData, status = doRead(me, h, (*ReadIn)(inData), me.buffers)
+		req.flatData, status = me.fileSystem.Read((*ReadIn)(inData), me.buffers)
 	case FUSE_WRITE:
 		req.data, status = doWrite(me, h, (*WriteIn)(inData), data)
 	case FUSE_FLUSH:
-		status = doFlush(me, h, (*FlushIn)(inData))
+		status = me.fileSystem.Flush((*FlushIn)(inData))
 	case FUSE_RELEASE:
-		status = doRelease(me, h, (*ReleaseIn)(inData))
+		me.fileSystem.Release(h, (*ReleaseIn)(inData))
 	case FUSE_FSYNC:
-		status = doFsync(me, h, (*FsyncIn)(inData))
+		status = me.fileSystem.Fsync((*FsyncIn)(inData))
 	case FUSE_OPENDIR:
 		req.data, status = doOpenDir(me, h, (*OpenIn)(inData))
 	case FUSE_READDIR:
@@ -583,61 +583,36 @@ func initFuse(state *MountState, h *InHeader, input *InitIn) (unsafe.Pointer, St
 // Handling files.
 
 func doOpen(state *MountState, header *InHeader, input *OpenIn) (unsafe.Pointer, Status) {
-	flags, fuseFile, status := state.fileSystem.Open(header, input)
+	flags, handle, status := state.fileSystem.Open(header, input)
 	if status != OK {
 		return nil, status
 	}
-	if fuseFile == nil {
-		fmt.Println("fuseFile should not be nil.")
-	}
+	
 	out := new(OpenOut)
-	out.Fh = state.RegisterFile(fuseFile)
+	out.Fh = handle
 	out.OpenFlags = flags
 	return unsafe.Pointer(out), status
 }
 
 func doCreate(state *MountState, header *InHeader, input *CreateIn, name string) (unsafe.Pointer, Status) {
-	flags, fuseFile, entry, status := state.fileSystem.Create(header, input, name)
+	flags, handle, entry, status := state.fileSystem.Create(header, input, name)
 	if status != OK {
 		return nil, status
 	}
-	if fuseFile == nil {
-		fmt.Println("fuseFile should not be nil.")
-	}
 	out := new(CreateOut)
 	out.Entry = *entry
-	out.Open.Fh = state.RegisterFile(fuseFile)
+	out.Open.Fh = handle
 	out.Open.OpenFlags = flags
 
 	return unsafe.Pointer(out), status
 }
 
-func doRelease(state *MountState, header *InHeader, input *ReleaseIn) (code Status) {
-	f := state.FindFile(input.Fh)
-	state.fileSystem.Release(header, f)
-	f.Release()
-	state.UnregisterFile(input.Fh)
-	return OK
-}
-
-func doRead(state *MountState, header *InHeader, input *ReadIn, buffers *BufferPool) (out []byte, code Status) {
-	output, code := state.FindFile(input.Fh).Read(input, buffers)
-	return output, code
-}
-
 func doWrite(state *MountState, header *InHeader, input *WriteIn, data []byte) (out unsafe.Pointer, code Status) {
-	n, status := state.FindFile(input.Fh).Write(input, data)
-	o := new(WriteOut)
-	o.Size = n
+	n, status := state.fileSystem.Write(input, data)
+	o := &WriteOut{
+		Size: n,
+	}
 	return unsafe.Pointer(o), status
-}
-
-func doFsync(state *MountState, header *InHeader, input *FsyncIn) (code Status) {
-	return state.FindFile(input.Fh).Fsync(input)
-}
-
-func doFlush(state *MountState, header *InHeader, input *FlushIn) (code Status) {
-	return state.FindFile(input.Fh).Flush()
 }
 
 func doSetattr(state *MountState, header *InHeader, input *SetAttrIn) (out unsafe.Pointer, code Status) {

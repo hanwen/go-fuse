@@ -524,17 +524,23 @@ type RawFileSystem interface {
 	SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) Status
 	RemoveXAttr(header *InHeader, attr string) (code Status)
 	Access(header *InHeader, input *AccessIn) (code Status)
-	Create(header *InHeader, input *CreateIn, name string) (flags uint32, fuseFile RawFuseFile, out *EntryOut, code Status)
+	Create(header *InHeader, input *CreateIn, name string) (flags uint32, handle uint64, out *EntryOut, code Status)
 	Bmap(header *InHeader, input *BmapIn) (out *BmapOut, code Status)
 	Ioctl(header *InHeader, input *IoctlIn) (out *IoctlOut, code Status)
 	Poll(header *InHeader, input *PollIn) (out *PollOut, code Status)
 
 	// The return flags are FOPEN_xx.
-	Open(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseFile, status Status)
+	Open(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status)
 	OpenDir(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseDir, status Status)
 
-	Release(header *InHeader, f RawFuseFile)
 	ReleaseDir(header *InHeader, f RawFuseDir)
+
+	// File handling.
+	Read(*ReadIn, *BufferPool) ([]byte, Status)
+	Release(header *InHeader, input *ReleaseIn)
+	Write(*WriteIn, []byte) (written uint32, code Status)
+	Flush(*FlushIn) Status
+	Fsync(*FsyncIn) (code Status)
 }
 
 type RawFuseFile interface {

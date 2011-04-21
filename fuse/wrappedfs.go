@@ -105,7 +105,6 @@ type WrappingRawFilesystem struct {
 	Original RawFileSystem
 }
 
-
 func (me *WrappingRawFilesystem) Init(h *InHeader, input *InitIn) (*InitOut, Status) {
 	return me.Original.Init(h, input)
 }
@@ -126,7 +125,7 @@ func (me *WrappingRawFilesystem) GetAttr(header *InHeader, input *GetAttrIn) (ou
 	return me.Original.GetAttr(header, input)
 }
 
-func (me *WrappingRawFilesystem) Open(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseFile, status Status) {
+func (me *WrappingRawFilesystem) Open(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
 	return me.Original.Open(header, input)
 }
 
@@ -186,7 +185,7 @@ func (me *WrappingRawFilesystem) Access(header *InHeader, input *AccessIn) (code
 	return me.Original.Access(header, input)
 }
 
-func (me *WrappingRawFilesystem) Create(header *InHeader, input *CreateIn, name string) (flags uint32, fuseFile RawFuseFile, out *EntryOut, code Status) {
+func (me *WrappingRawFilesystem) Create(header *InHeader, input *CreateIn, name string) (flags uint32, handle uint64, out *EntryOut, code Status) {
 	return me.Original.Create(header, input, name)
 }
 
@@ -206,10 +205,26 @@ func (me *WrappingRawFilesystem) OpenDir(header *InHeader, input *OpenIn) (flags
 	return me.Original.OpenDir(header, input)
 }
 
-func (me *WrappingRawFilesystem) Release(header *InHeader, f RawFuseFile) {
-	me.Original.Release(header, f)
+func (me *WrappingRawFilesystem) Release(header *InHeader, input *ReleaseIn) {
+	me.Original.Release(header, input)
 }
 
 func (me *WrappingRawFilesystem) ReleaseDir(header *InHeader, f RawFuseDir) {
 	me.Original.ReleaseDir(header, f)
+}
+
+func (me *WrappingRawFilesystem) Read(input *ReadIn, bp *BufferPool) ([]byte, Status) {
+	return me.Original.Read(input, bp)
+}
+
+func (me *WrappingRawFilesystem) Write(input *WriteIn, data []byte) (written uint32, code Status) {
+	return me.Original.Write(input, data)
+}
+
+func (me *WrappingRawFilesystem) Flush(input *FlushIn) Status {
+	return me.Original.Flush(input)
+}
+
+func (me *WrappingRawFilesystem) Fsync(input *FsyncIn) (code Status) {
+	return me.Original.Fsync(input)
 }

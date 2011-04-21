@@ -25,8 +25,8 @@ func (me *DefaultRawFuseFileSystem) GetAttr(header *InHeader, input *GetAttrIn) 
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) Open(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseFile, status Status) {
-	return 0, nil, OK
+func (me *DefaultRawFuseFileSystem) Open(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
+	return 0, 0, OK
 }
 
 func (me *DefaultRawFuseFileSystem) SetAttr(header *InHeader, input *SetAttrIn) (out *AttrOut, code Status) {
@@ -85,8 +85,8 @@ func (me *DefaultRawFuseFileSystem) Access(header *InHeader, input *AccessIn) (c
 	return ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) Create(header *InHeader, input *CreateIn, name string) (flags uint32, fuseFile RawFuseFile, out *EntryOut, code Status) {
-	return 0, nil, nil, ENOSYS
+func (me *DefaultRawFuseFileSystem) Create(header *InHeader, input *CreateIn, name string) (flags uint32, handle uint64, out *EntryOut, code Status) {
+	return 0, 0, nil, ENOSYS
 }
 
 func (me *DefaultRawFuseFileSystem) Bmap(header *InHeader, input *BmapIn) (out *BmapOut, code Status) {
@@ -105,12 +105,27 @@ func (me *DefaultRawFuseFileSystem) OpenDir(header *InHeader, input *OpenIn) (fl
 	return 0, nil, ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) Release(header *InHeader, f RawFuseFile) {
-}
-
 func (me *DefaultRawFuseFileSystem) ReleaseDir(header *InHeader, f RawFuseDir) {
 }
 
+func (me *DefaultRawFuseFileSystem) Read(*ReadIn, *BufferPool) ([]byte, Status) {
+	return nil, ENOSYS
+}
+
+func (me *DefaultRawFuseFileSystem) Release(header *InHeader, input *ReleaseIn) {
+}
+
+func (me *DefaultRawFuseFileSystem) Write(input *WriteIn, data []byte) (written uint32, code Status) {
+	return 0, ENOSYS
+}
+
+func (me *DefaultRawFuseFileSystem) Flush(input *FlushIn) Status {
+	return OK
+}
+
+func (me *DefaultRawFuseFileSystem) Fsync(input *FsyncIn) (code Status) {
+	return ENOSYS
+}
 
 ////////////////////////////////////////////////////////////////
 //  DefaultRawFuseFile
