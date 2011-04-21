@@ -77,7 +77,7 @@ func (me *LoopbackFileSystem) OpenDir(name string) (stream chan DirEntry, status
 	return output, OK
 }
 
-func (me *LoopbackFileSystem) Open(name string, flags uint32) (fuseFile FuseFile, status Status) {
+func (me *LoopbackFileSystem) Open(name string, flags uint32) (fuseFile File, status Status) {
 	f, err := os.OpenFile(me.GetPath(name), int(flags), 0)
 	if err != nil {
 		return nil, OsErrorToErrno(err)
@@ -141,7 +141,7 @@ func (me *LoopbackFileSystem) Access(name string, mode uint32) (code Status) {
 	return Status(syscall.Access(me.GetPath(name), mode))
 }
 
-func (me *LoopbackFileSystem) Create(path string, flags uint32, mode uint32) (fuseFile FuseFile, code Status) {
+func (me *LoopbackFileSystem) Create(path string, flags uint32, mode uint32) (fuseFile File, code Status) {
 	f, err := os.OpenFile(me.GetPath(path), int(flags)|os.O_CREATE, mode)
 	return &LoopbackFile{file: f}, OsErrorToErrno(err)
 }
@@ -175,7 +175,7 @@ func (me *LoopbackFileSystem) FillOptions(options *PathFileSystemConnectorOption
 type LoopbackFile struct {
 	file *os.File
 
-	DefaultFuseFile
+	DefaultFile
 }
 
 func (me *LoopbackFile) Read(input *ReadIn, buffers *BufferPool) ([]byte, Status) {

@@ -54,7 +54,7 @@ func (me *WrappingPathFileSystem) Truncate(name string, offset uint64) (code Sta
 	return me.Original.Truncate(name, offset)
 }
 
-func (me *WrappingPathFileSystem) Open(name string, flags uint32) (file FuseFile, code Status) {
+func (me *WrappingPathFileSystem) Open(name string, flags uint32) (file File, code Status) {
 	return me.Original.Open(name, flags)
 }
 
@@ -74,7 +74,7 @@ func (me *WrappingPathFileSystem) Access(name string, mode uint32) (code Status)
 	return me.Original.Access(name, mode)
 }
 
-func (me *WrappingPathFileSystem) Create(name string, flags uint32, mode uint32) (file FuseFile, code Status) {
+func (me *WrappingPathFileSystem) Create(name string, flags uint32, mode uint32) (file File, code Status) {
 	return me.Original.Create(name, flags, mode)
 }
 

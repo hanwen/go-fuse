@@ -146,7 +146,7 @@ type PathFileSystemConnectorOptions struct {
 }
 
 type PathFileSystemConnector struct {
-	DefaultRawFuseFileSystem
+	DefaultRawFileSystem
 
 	options PathFileSystemConnectorOptions
 	Debug   bool
@@ -207,16 +207,16 @@ func (me *PathFileSystemConnector) registerFile(node *inode, f interface{}) uint
 	return h
 }
 
-func (me *PathFileSystemConnector) getDir(h uint64) RawFuseDir {
+func (me *PathFileSystemConnector) getDir(h uint64) RawDir {
 	me.fileLock.RLock()
 	defer me.fileLock.RUnlock()
-	return me.openFiles[h].(RawFuseDir)
+	return me.openFiles[h].(RawDir)
 }
 
-func (me *PathFileSystemConnector) getFile(h uint64) FuseFile {
+func (me *PathFileSystemConnector) getFile(h uint64) File {
 	me.fileLock.RLock()
 	defer me.fileLock.RUnlock()
-	return me.openFiles[h].(FuseFile)
+	return me.openFiles[h].(File)
 }
 
 func (me *PathFileSystemConnector) verify() {
@@ -583,7 +583,7 @@ func (me *PathFileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (fla
 		return 0, 0, err
 	}
 
-	de := new(FuseDir)
+	de := new(Dir)
 	de.stream = stream
 
 	h := me.registerFile(node, de)
@@ -797,14 +797,14 @@ func (me *PathFileSystemConnector) Create(header *InHeader, input *CreateIn, nam
 
 func (me *PathFileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
 	node := me.getInodeData(header.NodeId)
-	f := me.unregisterFile(node, input.Fh).(FuseFile)
+	f := me.unregisterFile(node, input.Fh).(File)
 	f.Release()
 	me.considerDropInode(node)
 }
 
 func (me *PathFileSystemConnector) ReleaseDir(header *InHeader, input *ReleaseIn) {
 	node := me.getInodeData(header.NodeId)
-	d := me.unregisterFile(node, input.Fh).(RawFuseDir)
+	d := me.unregisterFile(node, input.Fh).(RawDir)
 	d.Release()
 	me.considerDropInode(node)
 }
@@ -863,7 +863,7 @@ func (me *PathFileSystemConnector) ListXAttr(header *InHeader) (data []byte, cod
 }
 
 func (me *PathFileSystemConnector) Write(input *WriteIn, data []byte) (written uint32, code Status) {
-	f := me.getFile(input.Fh).(FuseFile)
+	f := me.getFile(input.Fh).(File)
 	return f.Write(input, data)
 }
 

@@ -65,12 +65,12 @@ func (me *DirEntryList) Bytes() []byte {
 
 ////////////////////////////////////////////////////////////////
 
-type FuseDir struct {
+type Dir struct {
 	stream   chan DirEntry
 	leftOver DirEntry
 }
 
-func (me *FuseDir) inode(name string) uint64 {
+func (me *Dir) inode(name string) uint64 {
 	// We could also return
 	// me.connector.lookupUpdate(me.parentIno, name).NodeId but it
 	// appears FUSE will issue a LOOKUP afterwards for the entry
@@ -78,7 +78,7 @@ func (me *FuseDir) inode(name string) uint64 {
 	return FUSE_UNKNOWN_INO
 }
 
-func (me *FuseDir) ReadDir(input *ReadIn) (*DirEntryList, Status) {
+func (me *Dir) ReadDir(input *ReadIn) (*DirEntryList, Status) {
 	if me.stream == nil {
 		return nil, OK
 	}
@@ -112,7 +112,7 @@ func (me *FuseDir) ReadDir(input *ReadIn) (*DirEntryList, Status) {
 }
 
 // Read everything so we make goroutines exit.
-func (me *FuseDir) Release() {
+func (me *Dir) Release() {
 	for ok := true; ok && me.stream != nil; {
 		_, ok = <-me.stream
 		if !ok {

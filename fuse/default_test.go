@@ -10,7 +10,7 @@ import (
 func TestRawFs(t *testing.T) {
 	var iface RawFileSystem
 
-	iface = new(DefaultRawFuseFileSystem)
+	iface = new(DefaultRawFileSystem)
 	iface = new(WrappingRawFileSystem)
 	iface = new(TimingRawFileSystem)
 
@@ -27,7 +27,7 @@ func TestPathFs(t *testing.T) {
 }
 
 func TestDummyFile(t *testing.T) {
-	d := new(DefaultFuseFile)
-	var filePtr FuseFile = d
+	d := new(DefaultFile)
+	var filePtr File = d
 	_ = filePtr
 }

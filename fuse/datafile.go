@@ -5,7 +5,7 @@ package fuse
 type ReadOnlyFile struct {
 	data []byte
 
-	DefaultFuseFile
+	DefaultFile
 }
 
 func NewReadOnlyFile(data []byte) *ReadOnlyFile {

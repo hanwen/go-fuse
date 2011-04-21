@@ -92,7 +92,7 @@ func (me *LockingPathFileSystem) Truncate(name string, offset uint64) (code Stat
 	return me.Original.Truncate(name, offset)
 }
 
-func (me *LockingPathFileSystem) Open(name string, flags uint32) (file FuseFile, code Status) {
+func (me *LockingPathFileSystem) Open(name string, flags uint32) (file File, code Status) {
 	return me.Original.Open(name, flags)
 }
 
@@ -120,7 +120,7 @@ func (me *LockingPathFileSystem) Access(name string, mode uint32) (code Status) 
 	return me.Original.Access(name, mode)
 }
 
-func (me *LockingPathFileSystem) Create(name string, flags uint32, mode uint32) (file FuseFile, code Status) {
+func (me *LockingPathFileSystem) Create(name string, flags uint32, mode uint32) (file File, code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.Create(name, flags, mode)

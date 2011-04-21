@@ -62,7 +62,7 @@ func main() {
 	mountPoint := flag.Arg(0)
 	err := state.Mount(mountPoint)
 	if err != nil {
-		fmt.Printf("MountFuse fail: %v\n", err)
+		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)
 	}
 

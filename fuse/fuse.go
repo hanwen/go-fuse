@@ -193,7 +193,7 @@ func (me *MountState) Stats() string {
 ////////////////////////////////////////////////////////////////
 // Logic for the control loop.
 
-func (me *MountState) newFuseRequest() *fuseRequest {
+func (me *MountState) newRequest() *fuseRequest {
 	req := new(fuseRequest)
 	req.status = OK
 	req.inputBuf = me.buffers.AllocBuffer(bufSize)
@@ -209,7 +209,7 @@ func (me *MountState) readRequest(req *fuseRequest) os.Error {
 	return err
 }
 
-func (me *MountState) discardFuseRequest(req *fuseRequest) {
+func (me *MountState) discardRequest(req *fuseRequest) {
 	endNs := time.Nanoseconds()
 	dt := endNs - req.startNs
 
@@ -236,7 +236,7 @@ func (me *MountState) discardFuseRequest(req *fuseRequest) {
 func (me *MountState) loop() {
 	// See fuse_kern_chan_receive()
 	for {
-		req := me.newFuseRequest()
+		req := me.newRequest()
 
 		err := me.readRequest(req)
 		if err != nil {
@@ -244,7 +244,7 @@ func (me *MountState) loop() {
 
 			// Retry.
 			if errNo == syscall.ENOENT {
-				me.discardFuseRequest(req)
+				me.discardRequest(req)
 				continue
 			}
 
@@ -273,7 +273,7 @@ func (me *MountState) loop() {
 }
 
 func (me *MountState) handle(req *fuseRequest) {
-	defer me.discardFuseRequest(req)
+	defer me.discardRequest(req)
 	req.dispatchNs = time.Nanoseconds()
 
 	inHSize := unsafe.Sizeof(InHeader{})
@@ -339,7 +339,7 @@ func (me *MountState) dispatch(req *fuseRequest) {
 	// Follow ordering of fuse_lowlevel.h.
 	switch h.Opcode {
 	case FUSE_INIT:
-		req.data, status = initFuse(me, h, (*InitIn)(inData))
+		req.data, status = me.init(h, (*InitIn)(inData))
 	case FUSE_DESTROY:
 		fs.Destroy(h, (*InitIn)(inData))
 	case FUSE_LOOKUP:
@@ -496,8 +496,8 @@ func serialize(req *fuseRequest, debug bool) {
 	}
 }
 
-func initFuse(state *MountState, h *InHeader, input *InitIn) (unsafe.Pointer, Status) {
-	out, initStatus := state.fileSystem.Init(h, input)
+func (me *MountState) init(h *InHeader, input *InitIn) (unsafe.Pointer, Status) {
+	out, initStatus := me.fileSystem.Init(h, input)
 	if initStatus != OK {
 		return nil, initStatus
 	}

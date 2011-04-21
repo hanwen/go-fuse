@@ -6,155 +6,155 @@ import (
 
 var _ = log.Println
 
-func (me *DefaultRawFuseFileSystem) Init(h *InHeader, input *InitIn) (*InitOut, Status) {
+func (me *DefaultRawFileSystem) Init(h *InHeader, input *InitIn) (*InitOut, Status) {
 	return new(InitOut), OK
 }
 
-func (me *DefaultRawFuseFileSystem) Destroy(h *InHeader, input *InitIn) {
+func (me *DefaultRawFileSystem) Destroy(h *InHeader, input *InitIn) {
 
 }
 
-func (me *DefaultRawFuseFileSystem) Lookup(h *InHeader, name string) (out *EntryOut, code Status) {
+func (me *DefaultRawFileSystem) Lookup(h *InHeader, name string) (out *EntryOut, code Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) Forget(h *InHeader, input *ForgetIn) {
+func (me *DefaultRawFileSystem) Forget(h *InHeader, input *ForgetIn) {
 }
 
-func (me *DefaultRawFuseFileSystem) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
+func (me *DefaultRawFileSystem) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) Open(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
+func (me *DefaultRawFileSystem) Open(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
 	return 0, 0, OK
 }
 
-func (me *DefaultRawFuseFileSystem) SetAttr(header *InHeader, input *SetAttrIn) (out *AttrOut, code Status) {
+func (me *DefaultRawFileSystem) SetAttr(header *InHeader, input *SetAttrIn) (out *AttrOut, code Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) Readlink(header *InHeader) (out []byte, code Status) {
+func (me *DefaultRawFileSystem) Readlink(header *InHeader) (out []byte, code Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) Mknod(header *InHeader, input *MknodIn, name string) (out *EntryOut, code Status) {
+func (me *DefaultRawFileSystem) Mknod(header *InHeader, input *MknodIn, name string) (out *EntryOut, code Status) {
 	return new(EntryOut), ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) Mkdir(header *InHeader, input *MkdirIn, name string) (out *EntryOut, code Status) {
+func (me *DefaultRawFileSystem) Mkdir(header *InHeader, input *MkdirIn, name string) (out *EntryOut, code Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) Unlink(header *InHeader, name string) (code Status) {
+func (me *DefaultRawFileSystem) Unlink(header *InHeader, name string) (code Status) {
 	return ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) Rmdir(header *InHeader, name string) (code Status) {
+func (me *DefaultRawFileSystem) Rmdir(header *InHeader, name string) (code Status) {
 	return ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) Symlink(header *InHeader, pointedTo string, linkName string) (out *EntryOut, code Status) {
+func (me *DefaultRawFileSystem) Symlink(header *InHeader, pointedTo string, linkName string) (out *EntryOut, code Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) Rename(header *InHeader, input *RenameIn, oldName string, newName string) (code Status) {
+func (me *DefaultRawFileSystem) Rename(header *InHeader, input *RenameIn, oldName string, newName string) (code Status) {
 	return ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) Link(header *InHeader, input *LinkIn, name string) (out *EntryOut, code Status) {
+func (me *DefaultRawFileSystem) Link(header *InHeader, input *LinkIn, name string) (out *EntryOut, code Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) GetXAttr(header *InHeader, attr string) (data []byte, code Status) {
+func (me *DefaultRawFileSystem) GetXAttr(header *InHeader, attr string) (data []byte, code Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) Status {
+func (me *DefaultRawFileSystem) SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) Status {
 	return ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) ListXAttr(header *InHeader) (data []byte, code Status) {
+func (me *DefaultRawFileSystem) ListXAttr(header *InHeader) (data []byte, code Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) RemoveXAttr(header *InHeader, attr string) Status {
+func (me *DefaultRawFileSystem) RemoveXAttr(header *InHeader, attr string) Status {
 	return ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) Access(header *InHeader, input *AccessIn) (code Status) {
+func (me *DefaultRawFileSystem) Access(header *InHeader, input *AccessIn) (code Status) {
 	return ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) Create(header *InHeader, input *CreateIn, name string) (flags uint32, handle uint64, out *EntryOut, code Status) {
+func (me *DefaultRawFileSystem) Create(header *InHeader, input *CreateIn, name string) (flags uint32, handle uint64, out *EntryOut, code Status) {
 	return 0, 0, nil, ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) Bmap(header *InHeader, input *BmapIn) (out *BmapOut, code Status) {
+func (me *DefaultRawFileSystem) Bmap(header *InHeader, input *BmapIn) (out *BmapOut, code Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) Ioctl(header *InHeader, input *IoctlIn) (out *IoctlOut, code Status) {
+func (me *DefaultRawFileSystem) Ioctl(header *InHeader, input *IoctlIn) (out *IoctlOut, code Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) Poll(header *InHeader, input *PollIn) (out *PollOut, code Status) {
+func (me *DefaultRawFileSystem) Poll(header *InHeader, input *PollIn) (out *PollOut, code Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) OpenDir(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
+func (me *DefaultRawFileSystem) OpenDir(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
 	return 0, 0, ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) Read(*ReadIn, *BufferPool) ([]byte, Status) {
+func (me *DefaultRawFileSystem) Read(*ReadIn, *BufferPool) ([]byte, Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) Release(header *InHeader, input *ReleaseIn) {
+func (me *DefaultRawFileSystem) Release(header *InHeader, input *ReleaseIn) {
 }
 
-func (me *DefaultRawFuseFileSystem) Write(input *WriteIn, data []byte) (written uint32, code Status) {
+func (me *DefaultRawFileSystem) Write(input *WriteIn, data []byte) (written uint32, code Status) {
 	return 0, ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) Flush(input *FlushIn) Status {
+func (me *DefaultRawFileSystem) Flush(input *FlushIn) Status {
 	return OK
 }
 
-func (me *DefaultRawFuseFileSystem) Fsync(input *FsyncIn) (code Status) {
+func (me *DefaultRawFileSystem) Fsync(input *FsyncIn) (code Status) {
 	return ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status) {
+func (me *DefaultRawFileSystem) ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) ReleaseDir(header *InHeader, input *ReleaseIn) {
+func (me *DefaultRawFileSystem) ReleaseDir(header *InHeader, input *ReleaseIn) {
 }
 
-func (me *DefaultRawFuseFileSystem) FsyncDir(header *InHeader, input *FsyncIn) (code Status) {
+func (me *DefaultRawFileSystem) FsyncDir(header *InHeader, input *FsyncIn) (code Status) {
 	return ENOSYS
 }
 
 ////////////////////////////////////////////////////////////////
-//  DefaultFuseFile
+//  DefaultFile
 
-func (me *DefaultFuseFile) Read(*ReadIn, *BufferPool) ([]byte, Status) {
+func (me *DefaultFile) Read(*ReadIn, *BufferPool) ([]byte, Status) {
 	return []byte(""), ENOSYS
 }
 
-func (me *DefaultFuseFile) Write(*WriteIn, []byte) (uint32, Status) {
+func (me *DefaultFile) Write(*WriteIn, []byte) (uint32, Status) {
 	return 0, ENOSYS
 }
 
-func (me *DefaultFuseFile) Flush() Status {
+func (me *DefaultFile) Flush() Status {
 	return ENOSYS
 }
 
-func (me *DefaultFuseFile) Release() {
+func (me *DefaultFile) Release() {
 
 }
 
-func (me *DefaultFuseFile) Fsync(*FsyncIn) (code Status) {
+func (me *DefaultFile) Fsync(*FsyncIn) (code Status) {
 	return ENOSYS
 }
 
@@ -225,7 +225,7 @@ func (me *DefaultPathFileSystem) Truncate(name string, offset uint64) (code Stat
 	return ENOSYS
 }
 
-func (me *DefaultPathFileSystem) Open(name string, flags uint32) (file FuseFile, code Status) {
+func (me *DefaultPathFileSystem) Open(name string, flags uint32) (file File, code Status) {
 	return nil, ENOSYS
 }
 
@@ -244,7 +244,7 @@ func (me *DefaultPathFileSystem) Access(name string, mode uint32) (code Status) 
 	return ENOSYS
 }
 
-func (me *DefaultPathFileSystem) Create(name string, flags uint32, mode uint32) (file FuseFile, code Status) {
+func (me *DefaultPathFileSystem) Create(name string, flags uint32, mode uint32) (file File, code Status) {
 	return nil, ENOSYS
 }
 

@@ -36,7 +36,7 @@ func main() {
 	fmt.Printf("Mounting...\n")
 	err := mountState.Mount(mountpoint)
 	if err != nil {
-		fmt.Printf("MountFuse fail: %v\n", err)
+		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)
 	}
 	fmt.Printf("Mounted!\n")

@@ -31,7 +31,7 @@ type zipCreateFile struct {
 	Basename string
 	zfs      *MultiZipFs
 
-	fuse.DefaultFuseFile
+	fuse.DefaultFile
 }
 
 func (me *zipCreateFile) Write(input *fuse.WriteIn, nameBytes []byte) (uint32, fuse.Status) {
@@ -184,7 +184,7 @@ func (me *MultiZipFs) Unlink(name string) (code fuse.Status) {
 	return fuse.EPERM
 }
 
-func (me *MultiZipFs) Open(name string, flags uint32) (file fuse.FuseFile, code fuse.Status) {
+func (me *MultiZipFs) Open(name string, flags uint32) (file fuse.File, code fuse.Status) {
 	if 0 != flags&uint32(fuse.O_ANYWRITE) {
 		return nil, fuse.EPERM
 	}
@@ -205,7 +205,7 @@ func (me *MultiZipFs) Open(name string, flags uint32) (file fuse.FuseFile, code 
 	return nil, fuse.ENOENT
 }
 
-func (me *MultiZipFs) Create(name string, flags uint32, mode uint32) (file fuse.FuseFile, code fuse.Status) {
+func (me *MultiZipFs) Create(name string, flags uint32, mode uint32) (file fuse.File, code fuse.Status) {
 	dir, base := filepath.Split(name)
 	if dir != CONFIG_PREFIX {
 		return nil, fuse.EPERM

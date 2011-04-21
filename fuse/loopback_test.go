@@ -122,7 +122,7 @@ func (me *testCase) testOpenUnreadable() {
 	}
 }
 
-func (me *testCase) testReadThroughFuse() {
+func (me *testCase) testReadThrough() {
 	me.writeOrigFile()
 
 	fmt.Println("Testing chmod.")
@@ -167,7 +167,7 @@ func (me *testCase) testRemove() {
 	}
 }
 
-func (me *testCase) testWriteThroughFuse() {
+func (me *testCase) testWriteThrough() {
 	// Create (for write), write.
 	me.tester.Log("Testing create.")
 	f, err := os.OpenFile(me.mountFile, os.O_WRONLY|os.O_CREATE, 0644)
@@ -562,7 +562,7 @@ func TestMount(t *testing.T) {
 	ts.testOverwriteRename()
 	ts.testDelRename()
 	ts.testOpenUnreadable()
-	ts.testReadThroughFuse()
+	ts.testReadThrough()
 	ts.testRemove()
 	ts.testMkdirRmdir()
 	ts.testLink()

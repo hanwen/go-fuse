@@ -547,7 +547,7 @@ type RawFileSystem interface {
 	FsyncDir(header *InHeader, input *FsyncIn) (code Status)
 }
 
-type FuseFile interface {
+type File interface {
 	Read(*ReadIn, *BufferPool) ([]byte, Status)
 	// u32 <-> u64 ?
 	Write(*WriteIn, []byte) (written uint32, code Status)
@@ -556,7 +556,7 @@ type FuseFile interface {
 	Fsync(*FsyncIn) (code Status)
 }
 
-type RawFuseDir interface {
+type RawDir interface {
 	ReadDir(input *ReadIn) (*DirEntryList, Status)
 	Release()
 }
@@ -574,7 +574,7 @@ type PathFileSystem interface {
 	Chmod(name string, mode uint32) (code Status)
 	Chown(name string, uid uint32, gid uint32) (code Status)
 	Truncate(name string, offset uint64) (code Status)
-	Open(name string, flags uint32) (file FuseFile, code Status)
+	Open(name string, flags uint32) (file File, code Status)
 
 	GetXAttr(name string, attribute string) (data []byte, code Status)
 	SetXAttr(name string, attr string, data []byte, flags int) Status
@@ -590,7 +590,7 @@ type PathFileSystem interface {
 	Unmount()
 
 	Access(name string, mode uint32) (code Status)
-	Create(name string, flags uint32, mode uint32) (file FuseFile, code Status)
+	Create(name string, flags uint32, mode uint32) (file File, code Status)
 	Utimens(name string, AtimeNs uint64, CtimeNs uint64) (code Status)
 
 	// unimplemented: poll, ioctl, bmap.
@@ -600,5 +600,5 @@ type PathFileSystem interface {
 // implementations.
 
 type DefaultPathFileSystem struct{}
-type DefaultFuseFile struct{}
-type DefaultRawFuseFileSystem struct{}
+type DefaultFile struct{}
+type DefaultRawFileSystem struct{}

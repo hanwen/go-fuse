@@ -135,7 +135,7 @@ func (me *ZipArchiveFileSystem) GetAttr(name string) (*fuse.Attr, fuse.Status) {
 	return a, fuse.OK
 }
 
-func (me *ZipArchiveFileSystem) Open(name string, flags uint32) (file fuse.FuseFile, code fuse.Status) {
+func (me *ZipArchiveFileSystem) Open(name string, flags uint32) (file fuse.File, code fuse.Status) {
 	if flags&fuse.O_ANYWRITE != 0 {
 		return nil, fuse.EPERM
 	}
@@ -180,10 +180,10 @@ func (me *ZipArchiveFileSystem) OpenDir(name string) (stream chan fuse.DirEntry,
 type ZipFile struct {
 	data []byte
 
-	fuse.DefaultFuseFile
+	fuse.DefaultFile
 }
 
-func NewZipFile(f *zip.File) fuse.FuseFile {
+func NewZipFile(f *zip.File) fuse.File {
 	data := make([]byte, f.UncompressedSize)
 	rc, err := f.Open()
 	if err != nil {

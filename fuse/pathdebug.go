@@ -12,7 +12,7 @@ type PathFileSystemDebug struct {
 	WrappingPathFileSystem
 }
 
-func (me *PathFileSystemDebug) Open(path string, flags uint32) (fuseFile FuseFile, status Status)  {
+func (me *PathFileSystemDebug) Open(path string, flags uint32) (fuseFile File, status Status)  {
 	if path == ".debug" && me.Connector != nil {
 		return NewReadOnlyFile([]byte(me.Connector.DebugString())), OK
 	}
