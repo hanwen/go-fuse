@@ -16,7 +16,7 @@ var _ = runtime.GOMAXPROCS
 var _ = log.Print
 
 type PathPrintingFs struct {
-	fuse.WrappingPathFilesystem
+	fuse.WrappingPathFileSystem
 }
 
 func (me *PathPrintingFs) GetAttr(name string) (*fuse.Attr, fuse.Status) {
@@ -35,15 +35,15 @@ func main() {
 		os.Exit(2)
 	}
 
-	var fs fuse.PathFilesystem
+	var fs fuse.PathFileSystem
 	orig := flag.Arg(1)
 	loopbackfs := fuse.NewLoopbackFileSystem(orig)
 	fs = loopbackfs
-	debugFs := new(fuse.PathFilesystemDebug)
+	debugFs := new(fuse.PathFileSystemDebug)
 	debugFs.Original = fs
 	fs = debugFs
 	
-	timing := fuse.NewTimingPathFilesystem(fs)
+	timing := fuse.NewTimingPathFileSystem(fs)
 	fs = timing
 
 	var opts fuse.PathFileSystemConnectorOptions
@@ -53,7 +53,7 @@ func main() {
 	conn := fuse.NewPathFileSystemConnector(fs)
 	debugFs.Connector = conn
 	
-	rawTiming := fuse.NewTimingRawFilesystem(conn)
+	rawTiming := fuse.NewTimingRawFileSystem(conn)
 	conn.SetOptions(opts)
 
 	state := fuse.NewMountState(rawTiming)
