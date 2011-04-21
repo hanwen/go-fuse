@@ -135,7 +135,6 @@ func (me *DefaultRawFuseFileSystem) FsyncDir(header *InHeader, input *FsyncIn) (
 	return ENOSYS
 }
 
-
 ////////////////////////////////////////////////////////////////
 //  DefaultFuseFile
 
@@ -158,7 +157,6 @@ func (me *DefaultFuseFile) Release() {
 func (me *DefaultFuseFile) Fsync(*FsyncIn) (code Status) {
 	return ENOSYS
 }
-
 
 ////////////////////////////////////////////////////////////////
 // DefaultPathFilesystem
