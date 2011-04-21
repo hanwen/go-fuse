@@ -19,6 +19,7 @@ GOFILES=misc.go\
 	timingrawfs.go \
 	xattr.go \
 	devnull.go \
+	pathdebug.go
 
 include $(GOROOT)/src/Make.pkg
 

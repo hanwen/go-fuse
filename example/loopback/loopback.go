@@ -39,20 +39,20 @@ func main() {
 	orig := flag.Arg(1)
 	loopbackfs := fuse.NewLoopbackFileSystem(orig)
 	fs = loopbackfs
+	debugFs := new(fuse.PathFilesystemDebug)
+	debugFs.Original = fs
+	fs = debugFs
+	
 	timing := fuse.NewTimingPathFilesystem(fs)
 	fs = timing
-
-	if *debug {
-		pp := new(PathPrintingFs)
-		pp.Original = fs
-		fs = pp
-	}
 
 	var opts fuse.PathFileSystemConnectorOptions
 
 	loopbackfs.FillOptions(&opts)
 
 	conn := fuse.NewPathFileSystemConnector(fs)
+	debugFs.Connector = conn
+	
 	rawTiming := fuse.NewTimingRawFilesystem(conn)
 	conn.SetOptions(opts)
 

@@ -89,7 +89,7 @@ func (me *inode) GetPath() (path string, mount *mountData) {
 		rev_components = append(rev_components, inode.Name)
 	}
 	if inode == nil {
-		panic("did not find parent with mount")
+		panic(fmt.Sprintf("did not find parent with mount: %v", rev_components))
 	}
 	mount = inode.mount
 
@@ -164,6 +164,19 @@ type PathFileSystemConnector struct {
 	fileLock       sync.RWMutex
 	openFiles      map[uint64]interface{}
 	nextFreeHandle uint64
+}
+
+func (me *PathFileSystemConnector) DebugString() string {
+	me.lock.RLock()
+	defer me.lock.RUnlock()
+	
+	me.fileLock.RLock()
+	defer me.fileLock.RUnlock()
+
+	root := me.inodeMap[FUSE_ROOT_ID]
+	return fmt.Sprintf("Mounts %20d\nFiles %20d\nInodes %20d\n",
+		root.totalMountCount(),
+		len(me.openFiles), len(me.inodeMap))
 }
 
 func (me *PathFileSystemConnector) unregisterFile(node *inode, handle uint64) interface{} {
@@ -347,7 +360,7 @@ func (me *PathFileSystemConnector) findInode(fullPath string) *inode {
 // Below routines should not access inodePathMap(ByInode) directly,
 // and there need no locking.
 
-func NewPathFileSystemConnector(fs PathFilesystem) (out *PathFileSystemConnector) {
+func EmptyPathFileSystemConnector() (out *PathFileSystemConnector) {
 	out = new(PathFileSystemConnector)
 	out.inodeMap = make(map[uint64]*inode)
 	out.openFiles = make(map[uint64]interface{})
@@ -361,11 +374,15 @@ func NewPathFileSystemConnector(fs PathFilesystem) (out *PathFileSystemConnector
 	out.options.NegativeTimeout = 0.0
 	out.options.AttrTimeout = 1.0
 	out.options.EntryTimeout = 1.0
+	out.verify()
+	return out;
+}
 
+func NewPathFileSystemConnector(fs PathFilesystem) (out *PathFileSystemConnector) {
+	out = EmptyPathFileSystemConnector()
 	if code := out.Mount("/", fs); code != OK {
 		panic("root mount failed.")
 	}
-
 	out.verify()
 
 	return out
@@ -770,14 +787,14 @@ func (me *PathFileSystemConnector) Create(header *InHeader, input *CreateIn, nam
 }
 
 func (me *PathFileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
-	_, _, node := me.GetPath(header.NodeId)
+	node := me.getInodeData(header.NodeId)
 	f := me.unregisterFile(node, input.Fh).(FuseFile)
 	f.Release()
 	me.considerDropInode(node)
 }
 
 func (me *PathFileSystemConnector) ReleaseDir(header *InHeader, input *ReleaseIn) {
-	_, _, node := me.GetPath(header.NodeId)
+	node := me.getInodeData(header.NodeId)
 	d := me.unregisterFile(node, input.Fh).(RawFuseDir)
 	d.Release()
 	me.considerDropInode(node)
