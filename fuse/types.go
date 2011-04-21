@@ -496,8 +496,11 @@ type NotifyInvalEntryOut struct {
 //
 //   /usr/include/fuse/fuse_lowlevel.h
 //
-// Typically, each call happens in its own goroutine, so any global data should be
-// made thread-safe.
+// Typically, each call happens in its own goroutine, so any global
+// data should be made thread-safe.  Unless you really know what you
+// are doing, you should not implement this, but PathFileSystem below;
+// the details of getting interactions with open files, renames, and
+// threading right etc. are somewhat tricky and not very interesting.
 type RawFileSystem interface {
 	Init(h *InHeader, input *InitIn) (out *InitOut, code Status)
 	Destroy(h *InHeader, input *InitIn)
