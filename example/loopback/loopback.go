@@ -31,12 +31,12 @@ func main() {
 	flag.Parse()
 	if flag.NArg() < 2 {
 		// TODO - where to get program name?
-		fmt.Println("usage: main ORIGINAL MOUNTPOINT")
+		fmt.Println("usage: main MOUNTPOINT ORIGINAL")
 		os.Exit(2)
 	}
 
 	var fs fuse.PathFilesystem
-	orig := flag.Arg(0)
+	orig := flag.Arg(1)
 	loopbackfs := fuse.NewLoopbackFileSystem(orig)
 	fs = loopbackfs
 	timing := fuse.NewTimingPathFilesystem(fs)
@@ -59,7 +59,7 @@ func main() {
 	state := fuse.NewMountState(rawTiming)
 	state.Debug = *debug
 
-	mountPoint := flag.Arg(1)
+	mountPoint := flag.Arg(0)
 	err := state.Mount(mountPoint)
 	if err != nil {
 		fmt.Printf("MountFuse fail: %v\n", err)
