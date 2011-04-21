@@ -544,7 +544,7 @@ type RawFileSystem interface {
 	FsyncDir(header *InHeader, input *FsyncIn) (code Status)	
 }
 
-type RawFuseFile interface {
+type FuseFile interface {
 	Read(*ReadIn, *BufferPool) ([]byte, Status)
 	// u32 <-> u64 ?
 	Write(*WriteIn, []byte) (written uint32, code Status)
@@ -571,7 +571,7 @@ type PathFilesystem interface {
 	Chmod(name string, mode uint32) (code Status)
 	Chown(name string, uid uint32, gid uint32) (code Status)
 	Truncate(name string, offset uint64) (code Status)
-	Open(name string, flags uint32) (file RawFuseFile, code Status)
+	Open(name string, flags uint32) (file FuseFile, code Status)
 
 	GetXAttr(name string, attribute string) (data []byte, code Status)
 	SetXAttr(name string, attr string, data []byte, flags int) Status
@@ -587,7 +587,7 @@ type PathFilesystem interface {
 	Unmount()
 
 	Access(name string, mode uint32) (code Status)
-	Create(name string, flags uint32, mode uint32) (file RawFuseFile, code Status)
+	Create(name string, flags uint32, mode uint32) (file FuseFile, code Status)
 	Utimens(name string, AtimeNs uint64, CtimeNs uint64) (code Status)
 
 	// unimplemented: poll, ioctl, bmap.

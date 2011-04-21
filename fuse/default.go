@@ -240,7 +240,7 @@ func (me *DefaultPathFilesystem) Truncate(name string, offset uint64) (code Stat
 	return ENOSYS
 }
 
-func (me *DefaultPathFilesystem) Open(name string, flags uint32) (file RawFuseFile, code Status) {
+func (me *DefaultPathFilesystem) Open(name string, flags uint32) (file FuseFile, code Status) {
 	return nil, ENOSYS
 }
 
@@ -259,7 +259,7 @@ func (me *DefaultPathFilesystem) Access(name string, mode uint32) (code Status) 
 	return ENOSYS
 }
 
-func (me *DefaultPathFilesystem) Create(name string, flags uint32, mode uint32) (file RawFuseFile, code Status) {
+func (me *DefaultPathFilesystem) Create(name string, flags uint32, mode uint32) (file FuseFile, code Status) {
 	return nil, ENOSYS
 }
 

@@ -166,7 +166,7 @@ func (me *TimingPathFilesystem) Truncate(name string, offset uint64) (code Statu
 	return me.Original.Truncate(name, offset)
 }
 
-func (me *TimingPathFilesystem) Open(name string, flags uint32) (file RawFuseFile, code Status) {
+func (me *TimingPathFilesystem) Open(name string, flags uint32) (file FuseFile, code Status) {
 	defer me.startTimer("Open", name)()
 	return me.Original.Open(name, flags)
 }
@@ -191,7 +191,7 @@ func (me *TimingPathFilesystem) Access(name string, mode uint32) (code Status) {
 	return me.Original.Access(name, mode)
 }
 
-func (me *TimingPathFilesystem) Create(name string, flags uint32, mode uint32) (file RawFuseFile, code Status) {
+func (me *TimingPathFilesystem) Create(name string, flags uint32, mode uint32) (file FuseFile, code Status) {
 	defer me.startTimer("Create", name)()
 	return me.Original.Create(name, flags, mode)
 }

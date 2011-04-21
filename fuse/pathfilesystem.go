@@ -191,10 +191,10 @@ func (me *PathFileSystemConnector) getDir(h uint64) RawFuseDir {
 	return me.openFiles[h].(RawFuseDir)
 }
 	
-func (me *PathFileSystemConnector) getFile(h uint64) RawFuseFile {
+func (me *PathFileSystemConnector) getFile(h uint64) FuseFile {
 	me.fileLock.RLock()
 	defer me.fileLock.RUnlock()
-	return me.openFiles[h].(RawFuseFile)
+	return me.openFiles[h].(FuseFile)
 }
 
 func (me *PathFileSystemConnector) verify() {
@@ -748,7 +748,7 @@ func (me *PathFileSystemConnector) Create(header *InHeader, input *CreateIn, nam
 
 func (me *PathFileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
 	_, _, node := me.GetPath(header.NodeId)
-	f := me.unregisterFile(node, input.Fh).(RawFuseFile)
+	f := me.unregisterFile(node, input.Fh).(FuseFile)
 	f.Release()
 }
 
@@ -812,7 +812,7 @@ func (me *PathFileSystemConnector) ListXAttr(header *InHeader) (data []byte, cod
 }
 
 func (me *PathFileSystemConnector) Write(input *WriteIn, data []byte) (written uint32, code Status) {
-	f := me.getFile(input.Fh).(RawFuseFile)
+	f := me.getFile(input.Fh).(FuseFile)
 	return f.Write(input, data)
 }
 

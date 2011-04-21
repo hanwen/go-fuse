@@ -135,7 +135,7 @@ func (me *ZipFileFuse) GetAttr(name string) (*fuse.Attr, fuse.Status) {
 	return a, fuse.OK
 }
 
-func (me *ZipFileFuse) Open(name string, flags uint32) (file fuse.RawFuseFile, code fuse.Status) {
+func (me *ZipFileFuse) Open(name string, flags uint32) (file fuse.FuseFile, code fuse.Status) {
 	if flags&fuse.O_ANYWRITE != 0 {
 		return nil, fuse.EPERM
 	}
@@ -183,7 +183,7 @@ type ZipFile struct {
 	fuse.DefaultFuseFile
 }
 
-func NewZipFile(f *zip.File) fuse.RawFuseFile {
+func NewZipFile(f *zip.File) fuse.FuseFile {
 	data := make([]byte, f.UncompressedSize)
 	rc, err := f.Open()
 	if err != nil {

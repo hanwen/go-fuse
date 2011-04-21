@@ -28,6 +28,6 @@ func TestPathFs(t *testing.T) {
 
 func TestDummyFile(t *testing.T) {
 	d := new(DefaultFuseFile)
-	var filePtr RawFuseFile = d
+	var filePtr FuseFile = d
 	_ = filePtr
 }

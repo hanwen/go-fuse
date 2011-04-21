@@ -287,7 +287,7 @@ func (me *UnionFs) Readlink(name string) (out string, code fuse.Status) {
 	return "", fuse.ENOENT
 }
 
-func (me *UnionFs) Create(name string, flags uint32, mode uint32) (fuseFile fuse.RawFuseFile, code fuse.Status) {
+func (me *UnionFs) Create(name string, flags uint32, mode uint32) (fuseFile fuse.FuseFile, code fuse.Status) {
 	// TODO(hanwen) - we should check that the name is not a
 	// directory in another branch.
 	writable := me.fileSystems[0]
@@ -406,7 +406,7 @@ func (me *UnionFs) OpenDir(directory string) (stream chan fuse.DirEntry, status 
 	return stream, fuse.OK
 }
 
-func (me *UnionFs) Open(name string, flags uint32) (fuseFile fuse.RawFuseFile, status fuse.Status) {
+func (me *UnionFs) Open(name string, flags uint32) (fuseFile fuse.FuseFile, status fuse.Status) {
 	branch := me.getBranch(name)
 	if flags&fuse.O_ANYWRITE != 0 && branch > 0 {
 		err := me.Promote(name, me.branches[branch])
