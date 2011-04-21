@@ -77,7 +77,7 @@ type MultiZipFs struct {
 	pendingZips  map[string]bool
 	zipFileNames map[string]string
 
-	fuse.DefaultPathFilesystem
+	fuse.DefaultPathFileSystem
 }
 
 func NewMultiZipFs() *MultiZipFs {

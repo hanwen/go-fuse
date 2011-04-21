@@ -558,7 +558,7 @@ type RawFuseDir interface {
 	Release()
 }
 
-type PathFilesystem interface {
+type PathFileSystem interface {
 	GetAttr(name string) (*Attr, Status)
 	Readlink(name string) (string, Status)
 	Mknod(name string, mode uint32, dev uint32) Status
@@ -596,6 +596,6 @@ type PathFilesystem interface {
 // Include this struct in your implementation to inherit default nop
 // implementations.
 
-type DefaultPathFilesystem struct{}
+type DefaultPathFileSystem struct{}
 type DefaultFuseFile struct{}
 type DefaultRawFuseFileSystem struct{}

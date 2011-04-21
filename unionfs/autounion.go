@@ -18,10 +18,10 @@ import (
 //
 // A union for A/B/C will placed under directory A-B-C.
 type AutoUnionFs struct {
-	fuse.DefaultPathFilesystem
+	fuse.DefaultPathFileSystem
 
 	lock             sync.RWMutex
-	knownFilesystems map[string]*UnionFs
+	knownFileSystems map[string]*UnionFs
 	root             string
 
 	connector *fuse.PathFileSystemConnector
@@ -35,7 +35,7 @@ type AutoUnionFsOptions struct {
 
 func NewAutoUnionFs(directory string, options AutoUnionFsOptions) *AutoUnionFs {
 	a := new(AutoUnionFs)
-	a.knownFilesystems = make(map[string]*UnionFs)
+	a.knownFileSystems = make(map[string]*UnionFs)
 	a.options = &options
 	a.root = directory
 	return a
@@ -58,10 +58,10 @@ func (me *AutoUnionFs) addFs(roots []string) {
 
 	me.lock.Lock()
 	var gofs *UnionFs
-	if me.knownFilesystems[name] == nil {
+	if me.knownFileSystems[name] == nil {
 		log.Println("Adding UnionFs for roots", roots)
 		gofs = NewUnionFs(roots, me.options.UnionFsOptions)
-		me.knownFilesystems[name] = gofs
+		me.knownFileSystems[name] = gofs
 	}
 	me.lock.Unlock()
 
@@ -103,7 +103,7 @@ func (me *AutoUnionFs) Readlink(path string) (out string, code fuse.Status) {
 	name := comps[1]
 	me.lock.RLock()
 	defer me.lock.RUnlock()
-	fs := me.knownFilesystems[name]
+	fs := me.knownFileSystems[name]
 	if fs == nil {
 		return "", fuse.ENOENT
 	}
@@ -137,7 +137,7 @@ func (me *AutoUnionFs) GetAttr(path string) (*fuse.Attr, fuse.Status) {
 	me.lock.RLock()
 	defer me.lock.RUnlock()
 	if len(comps) > 1 && comps[0] == "config" {
-		fs := me.knownFilesystems[comps[1]]
+		fs := me.knownFileSystems[comps[1]]
 
 		if fs == nil {
 			return nil, fuse.ENOENT
@@ -149,7 +149,7 @@ func (me *AutoUnionFs) GetAttr(path string) (*fuse.Attr, fuse.Status) {
 		return a, fuse.OK
 	}
 
-	if me.knownFilesystems[path] != nil {
+	if me.knownFileSystems[path] != nil {
 		return &fuse.Attr{
 			Mode: fuse.S_IFDIR | 0755,
 		},fuse.OK
@@ -189,8 +189,8 @@ func (me *AutoUnionFs) OpenDir(name string) (stream chan fuse.DirEntry, status f
 	me.lock.RLock()
 	defer me.lock.RUnlock()
 
-	stream = make(chan fuse.DirEntry, len(me.knownFilesystems)+5)
-	for k, _ := range me.knownFilesystems {
+	stream = make(chan fuse.DirEntry, len(me.knownFileSystems)+5)
+	for k, _ := range me.knownFileSystems {
 		mode := fuse.S_IFDIR | 0755
 		if name == "config" {
 			mode = syscall.S_IFLNK | 0644

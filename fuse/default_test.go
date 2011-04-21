@@ -1,6 +1,6 @@
 package fuse
 
-// Make sure library supplied Filesystems support the
+// Make sure library supplied FileSystems support the
 // required interface.
 
 import (
@@ -11,17 +11,17 @@ func TestRawFs(t *testing.T) {
 	var iface RawFileSystem
 
 	iface = new(DefaultRawFuseFileSystem)
-	iface = new(WrappingRawFilesystem)
-	iface = new(TimingRawFilesystem)
+	iface = new(WrappingRawFileSystem)
+	iface = new(TimingRawFileSystem)
 
 	_ = iface
 }
 
 func TestPathFs(t *testing.T) {
-	var iface PathFilesystem
-	iface = new(DefaultPathFilesystem)
-	iface = new(WrappingPathFilesystem)
-	iface = new(TimingPathFilesystem)
+	var iface PathFileSystem
+	iface = new(DefaultPathFileSystem)
+	iface = new(WrappingPathFileSystem)
+	iface = new(TimingPathFileSystem)
 
 	_ = iface
 }

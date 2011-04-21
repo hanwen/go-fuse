@@ -11,7 +11,7 @@ import (
 
 type mountData struct {
 	// If non-nil the file system mounted here.
-	fs PathFilesystem
+	fs PathFileSystem
 
 	// Protects the variables below.
 	mutex sync.RWMutex
@@ -20,7 +20,7 @@ type mountData struct {
 	unmountPending bool
 }
 
-func newMount(fs PathFilesystem) *mountData {
+func newMount(fs PathFileSystem) *mountData {
 	return &mountData{fs: fs}
 }
 
@@ -378,7 +378,7 @@ func EmptyPathFileSystemConnector() (out *PathFileSystemConnector) {
 	return out;
 }
 
-func NewPathFileSystemConnector(fs PathFilesystem) (out *PathFileSystemConnector) {
+func NewPathFileSystemConnector(fs PathFileSystem) (out *PathFileSystemConnector) {
 	out = EmptyPathFileSystemConnector()
 	if code := out.Mount("/", fs); code != OK {
 		panic("root mount failed.")
@@ -392,7 +392,7 @@ func (me *PathFileSystemConnector) SetOptions(opts PathFileSystemConnectorOption
 	me.options = opts
 }
 
-func (me *PathFileSystemConnector) Mount(mountPoint string, fs PathFilesystem) Status {
+func (me *PathFileSystemConnector) Mount(mountPoint string, fs PathFileSystem) Status {
 	var node *inode
 
 	if mountPoint != "/" {

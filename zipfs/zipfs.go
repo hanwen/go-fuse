@@ -75,7 +75,7 @@ type ZipFileFuse struct {
 	tree        *ZipDirTree
 	ZipFileName string
 
-	fuse.DefaultPathFilesystem
+	fuse.DefaultPathFileSystem
 }
 
 func zipFilesToTree(files []*zip.File) *ZipDirTree {

@@ -18,7 +18,7 @@ var _ = log.Println
 type LoopbackFileSystem struct {
 	root string
 
-	DefaultPathFilesystem
+	DefaultPathFileSystem
 }
 
 func NewLoopbackFileSystem(root string) (out *LoopbackFileSystem) {
