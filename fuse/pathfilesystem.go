@@ -20,7 +20,6 @@ type mountData struct {
 	unmountPending bool
 }
 
-
 func newMount(fs PathFilesystem) *mountData {
 	return &mountData{fs: fs}
 }
@@ -50,6 +49,16 @@ func (me *inode) totalOpenCount() int {
 	return o
 }
 
+func (me *inode) totalMountCount() int {
+	o := 0
+	if me.mount != nil && !me.mount.unmountPending {
+		o++
+	}
+	for _, v := range me.Children {
+		o += v.totalMountCount()
+	}
+	return o
+}
 
 const initDirSize = 20
 
@@ -201,12 +210,25 @@ func (me *PathFileSystemConnector) verify() {
 	if !paranoia {
 		return
 	}
+	me.lock.Lock()
+	defer me.lock.Unlock()
+	me.fileLock.Lock()
+	defer me.fileLock.Unlock()
+	
 	for k, v := range me.inodeMap {
 		if v.NodeId != k {
 			panic(fmt.Sprintf("nodeid mismatch %v %v", v, k))
 		}
 	}
-	me.inodeMap[FUSE_ROOT_ID].verify()
+	root := me.inodeMap[FUSE_ROOT_ID]
+	root.verify()
+
+	open := root.totalOpenCount()
+	openFiles := len(me.openFiles)
+	mounted := root.totalMountCount()
+	if open != openFiles + mounted {
+		panic(fmt.Sprintf("opencount mismatch %v %v %v", open, openFiles, mounted))
+	}
 }
 
 func (me *PathFileSystemConnector) newInode() *inode {
@@ -391,9 +413,7 @@ func (me *PathFileSystemConnector) Mount(mountPoint string, fs PathFilesystem) S
 
 	me.fileLock.Lock()
 	defer me.fileLock.Unlock()
-	if node.Parent != nil {
-		node.Parent.OpenCount++
-	}
+	node.OpenCount++
 
 	return OK
 }
@@ -416,7 +436,8 @@ func (me *PathFileSystemConnector) Unmount(path string) Status {
 	me.fileLock.Lock()
 	defer me.fileLock.Unlock()
 
-	if node.totalOpenCount() > 0 {
+	// 1 = our own mount.
+	if node.totalOpenCount() > 1 {
 		log.Println("Umount - busy: ", mount)
 		return EBUSY
 	}
@@ -434,9 +455,7 @@ func (me *PathFileSystemConnector) Unmount(path string) Status {
 		node.mount = nil
 	}
 
-	if node.Parent != nil {
-		node.Parent.OpenCount--
-	}
+	node.OpenCount--
 	return OK
 }
 
