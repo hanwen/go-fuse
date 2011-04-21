@@ -279,17 +279,21 @@ func (me *PathFileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int) 
 	data, ok := me.inodeMap[nodeId]
 	if ok {
 		data.LookupCount -= forgetCount
+		me.considerDropInode(data)
+	}
+}
 
-		if data.mount != nil {
-			data.mount.mutex.RLock()
-			defer data.mount.mutex.RUnlock()
-		}
-
-		// TODO - this should probably not happen at all.
-		if data.LookupCount <= 0 && len(data.Children) == 0 && (data.mount == nil || data.mount.unmountPending) {
-			data.setParent(nil)
-			me.inodeMap[nodeId] = nil, false
-		}
+func (me *PathFileSystemConnector) considerDropInode(n *inode) {
+	if n.mount != nil {
+		n.mount.mutex.RLock()
+		defer n.mount.mutex.RUnlock()
+	}
+	
+	// TODO - this should probably not happen at all.
+	if (n.LookupCount <= 0 && len(n.Children) == 0 && (n.mount == nil || n.mount.unmountPending) &&
+		n.OpenCount <= 0) {
+		n.setParent(nil)
+		me.inodeMap[n.NodeId] = nil, false
 	}
 }
 
@@ -769,12 +773,14 @@ func (me *PathFileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
 	_, _, node := me.GetPath(header.NodeId)
 	f := me.unregisterFile(node, input.Fh).(FuseFile)
 	f.Release()
+	me.considerDropInode(node)
 }
 
 func (me *PathFileSystemConnector) ReleaseDir(header *InHeader, input *ReleaseIn) {
 	_, _, node := me.GetPath(header.NodeId)
 	d := me.unregisterFile(node, input.Fh).(RawFuseDir)
 	d.Release()
+	me.considerDropInode(node)
 }
 
 func (me *PathFileSystemConnector) FsyncDir(header *InHeader, input *FsyncIn) (code Status) {
