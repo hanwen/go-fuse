@@ -1,100 +1,100 @@
 package fuse
 
-type WrappingPathFileSystem struct {
+type WrappingFileSystem struct {
 	// Should be public so people reusing can access the wrapped
 	// FS.
-	Original PathFileSystem
+	Original FileSystem
 }
 
-func (me *WrappingPathFileSystem) GetAttr(name string) (*Attr, Status) {
+func (me *WrappingFileSystem) GetAttr(name string) (*Attr, Status) {
 	return me.Original.GetAttr(name)
 }
 
-func (me *WrappingPathFileSystem) Readlink(name string) (string, Status) {
+func (me *WrappingFileSystem) Readlink(name string) (string, Status) {
 	return me.Original.Readlink(name)
 }
 
-func (me *WrappingPathFileSystem) Mknod(name string, mode uint32, dev uint32) Status {
+func (me *WrappingFileSystem) Mknod(name string, mode uint32, dev uint32) Status {
 	return me.Original.Mknod(name, mode, dev)
 }
 
-func (me *WrappingPathFileSystem) Mkdir(name string, mode uint32) Status {
+func (me *WrappingFileSystem) Mkdir(name string, mode uint32) Status {
 	return me.Original.Mkdir(name, mode)
 }
 
-func (me *WrappingPathFileSystem) Unlink(name string) (code Status) {
+func (me *WrappingFileSystem) Unlink(name string) (code Status) {
 	return me.Original.Unlink(name)
 }
 
-func (me *WrappingPathFileSystem) Rmdir(name string) (code Status) {
+func (me *WrappingFileSystem) Rmdir(name string) (code Status) {
 	return me.Original.Rmdir(name)
 }
 
-func (me *WrappingPathFileSystem) Symlink(value string, linkName string) (code Status) {
+func (me *WrappingFileSystem) Symlink(value string, linkName string) (code Status) {
 	return me.Original.Symlink(value, linkName)
 }
 
-func (me *WrappingPathFileSystem) Rename(oldName string, newName string) (code Status) {
+func (me *WrappingFileSystem) Rename(oldName string, newName string) (code Status) {
 	return me.Original.Rename(oldName, newName)
 }
 
-func (me *WrappingPathFileSystem) Link(oldName string, newName string) (code Status) {
+func (me *WrappingFileSystem) Link(oldName string, newName string) (code Status) {
 	return me.Original.Link(oldName, newName)
 }
 
-func (me *WrappingPathFileSystem) Chmod(name string, mode uint32) (code Status) {
+func (me *WrappingFileSystem) Chmod(name string, mode uint32) (code Status) {
 	return me.Original.Chmod(name, mode)
 }
 
-func (me *WrappingPathFileSystem) Chown(name string, uid uint32, gid uint32) (code Status) {
+func (me *WrappingFileSystem) Chown(name string, uid uint32, gid uint32) (code Status) {
 	return me.Original.Chown(name, uid, gid)
 }
 
-func (me *WrappingPathFileSystem) Truncate(name string, offset uint64) (code Status) {
+func (me *WrappingFileSystem) Truncate(name string, offset uint64) (code Status) {
 	return me.Original.Truncate(name, offset)
 }
 
-func (me *WrappingPathFileSystem) Open(name string, flags uint32) (file File, code Status) {
+func (me *WrappingFileSystem) Open(name string, flags uint32) (file File, code Status) {
 	return me.Original.Open(name, flags)
 }
 
-func (me *WrappingPathFileSystem) OpenDir(name string) (stream chan DirEntry, status Status) {
+func (me *WrappingFileSystem) OpenDir(name string) (stream chan DirEntry, status Status) {
 	return me.Original.OpenDir(name)
 }
 
-func (me *WrappingPathFileSystem) Mount(conn *PathFileSystemConnector) Status {
+func (me *WrappingFileSystem) Mount(conn *FileSystemConnector) Status {
 	return me.Original.Mount(conn)
 }
 
-func (me *WrappingPathFileSystem) Unmount() {
+func (me *WrappingFileSystem) Unmount() {
 	me.Original.Unmount()
 }
 
-func (me *WrappingPathFileSystem) Access(name string, mode uint32) (code Status) {
+func (me *WrappingFileSystem) Access(name string, mode uint32) (code Status) {
 	return me.Original.Access(name, mode)
 }
 
-func (me *WrappingPathFileSystem) Create(name string, flags uint32, mode uint32) (file File, code Status) {
+func (me *WrappingFileSystem) Create(name string, flags uint32, mode uint32) (file File, code Status) {
 	return me.Original.Create(name, flags, mode)
 }
 
-func (me *WrappingPathFileSystem) Utimens(name string, AtimeNs uint64, CtimeNs uint64) (code Status) {
+func (me *WrappingFileSystem) Utimens(name string, AtimeNs uint64, CtimeNs uint64) (code Status) {
 	return me.Original.Utimens(name, AtimeNs, CtimeNs)
 }
 
-func (me *WrappingPathFileSystem) GetXAttr(name string, attr string) ([]byte, Status) {
+func (me *WrappingFileSystem) GetXAttr(name string, attr string) ([]byte, Status) {
 	return me.Original.GetXAttr(name, attr)
 }
 
-func (me *WrappingPathFileSystem) SetXAttr(name string, attr string, data []byte, flags int) Status {
+func (me *WrappingFileSystem) SetXAttr(name string, attr string, data []byte, flags int) Status {
 	return me.Original.SetXAttr(name, attr, data, flags)
 }
 
-func (me *WrappingPathFileSystem) ListXAttr(name string) ([]string, Status) {
+func (me *WrappingFileSystem) ListXAttr(name string) ([]string, Status) {
 	return me.Original.ListXAttr(name)
 }
 
-func (me *WrappingPathFileSystem) RemoveXAttr(name string, attr string) Status {
+func (me *WrappingFileSystem) RemoveXAttr(name string, attr string) Status {
 	return me.Original.RemoveXAttr(name, attr)
 }
 

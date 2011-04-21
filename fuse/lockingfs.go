@@ -4,153 +4,153 @@ import (
 	"sync"
 )
 
-// This is a wrapper that makes a PathFileSystem threadsafe by
+// This is a wrapper that makes a FileSystem threadsafe by
 // trivially locking all operations.  For improved performance, you
 // should probably invent do your own locking inside the file system.
-type LockingPathFileSystem struct {
+type LockingFileSystem struct {
 	// Should be public so people reusing can access the wrapped
 	// FS.
-	WrappingPathFileSystem
+	WrappingFileSystem
 	lock sync.Mutex
 }
 
-func NewLockingPathFileSystem(pfs PathFileSystem) *LockingPathFileSystem {
-	l := new(LockingPathFileSystem)
+func NewLockingFileSystem(pfs FileSystem) *LockingFileSystem {
+	l := new(LockingFileSystem)
 	l.Original = pfs
 	return l
 }
 
-func (me *LockingPathFileSystem) GetAttr(name string) (*Attr, Status) {
+func (me *LockingFileSystem) GetAttr(name string) (*Attr, Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.GetAttr(name)
 }
 
-func (me *LockingPathFileSystem) Readlink(name string) (string, Status) {
+func (me *LockingFileSystem) Readlink(name string) (string, Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.Readlink(name)
 }
 
-func (me *LockingPathFileSystem) Mknod(name string, mode uint32, dev uint32) Status {
+func (me *LockingFileSystem) Mknod(name string, mode uint32, dev uint32) Status {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.Mknod(name, mode, dev)
 }
 
-func (me *LockingPathFileSystem) Mkdir(name string, mode uint32) Status {
+func (me *LockingFileSystem) Mkdir(name string, mode uint32) Status {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.Mkdir(name, mode)
 }
 
-func (me *LockingPathFileSystem) Unlink(name string) (code Status) {
+func (me *LockingFileSystem) Unlink(name string) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.Unlink(name)
 }
 
-func (me *LockingPathFileSystem) Rmdir(name string) (code Status) {
+func (me *LockingFileSystem) Rmdir(name string) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.Rmdir(name)
 }
 
-func (me *LockingPathFileSystem) Symlink(value string, linkName string) (code Status) {
+func (me *LockingFileSystem) Symlink(value string, linkName string) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.Symlink(value, linkName)
 }
 
-func (me *LockingPathFileSystem) Rename(oldName string, newName string) (code Status) {
+func (me *LockingFileSystem) Rename(oldName string, newName string) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.Rename(oldName, newName)
 }
 
-func (me *LockingPathFileSystem) Link(oldName string, newName string) (code Status) {
+func (me *LockingFileSystem) Link(oldName string, newName string) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.Link(oldName, newName)
 }
 
-func (me *LockingPathFileSystem) Chmod(name string, mode uint32) (code Status) {
+func (me *LockingFileSystem) Chmod(name string, mode uint32) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.Chmod(name, mode)
 }
 
-func (me *LockingPathFileSystem) Chown(name string, uid uint32, gid uint32) (code Status) {
+func (me *LockingFileSystem) Chown(name string, uid uint32, gid uint32) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.Chown(name, uid, gid)
 }
 
-func (me *LockingPathFileSystem) Truncate(name string, offset uint64) (code Status) {
+func (me *LockingFileSystem) Truncate(name string, offset uint64) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.Truncate(name, offset)
 }
 
-func (me *LockingPathFileSystem) Open(name string, flags uint32) (file File, code Status) {
+func (me *LockingFileSystem) Open(name string, flags uint32) (file File, code Status) {
 	return me.Original.Open(name, flags)
 }
 
-func (me *LockingPathFileSystem) OpenDir(name string) (stream chan DirEntry, status Status) {
+func (me *LockingFileSystem) OpenDir(name string) (stream chan DirEntry, status Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.OpenDir(name)
 }
 
-func (me *LockingPathFileSystem) Mount(conn *PathFileSystemConnector) Status {
+func (me *LockingFileSystem) Mount(conn *FileSystemConnector) Status {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.Mount(conn)
 }
 
-func (me *LockingPathFileSystem) Unmount() {
+func (me *LockingFileSystem) Unmount() {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	me.Original.Unmount()
 }
 
-func (me *LockingPathFileSystem) Access(name string, mode uint32) (code Status) {
+func (me *LockingFileSystem) Access(name string, mode uint32) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.Access(name, mode)
 }
 
-func (me *LockingPathFileSystem) Create(name string, flags uint32, mode uint32) (file File, code Status) {
+func (me *LockingFileSystem) Create(name string, flags uint32, mode uint32) (file File, code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.Create(name, flags, mode)
 }
 
-func (me *LockingPathFileSystem) Utimens(name string, AtimeNs uint64, CtimeNs uint64) (code Status) {
+func (me *LockingFileSystem) Utimens(name string, AtimeNs uint64, CtimeNs uint64) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.Utimens(name, AtimeNs, CtimeNs)
 }
 
-func (me *LockingPathFileSystem) GetXAttr(name string, attr string) ([]byte, Status) {
+func (me *LockingFileSystem) GetXAttr(name string, attr string) ([]byte, Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.GetXAttr(name, attr)
 }
 
-func (me *LockingPathFileSystem) SetXAttr(name string, attr string, data []byte, flags int) Status {
+func (me *LockingFileSystem) SetXAttr(name string, attr string, data []byte, flags int) Status {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.SetXAttr(name, attr, data, flags)
 }
 
-func (me *LockingPathFileSystem) ListXAttr(name string) ([]string, Status) {
+func (me *LockingFileSystem) ListXAttr(name string) ([]string, Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.ListXAttr(name)
 }
 
-func (me *LockingPathFileSystem) RemoveXAttr(name string, attr string) Status {
+func (me *LockingFileSystem) RemoveXAttr(name string, attr string) Status {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.RemoveXAttr(name, attr)

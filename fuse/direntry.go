@@ -9,7 +9,7 @@ import (
 )
 
 var _ = fmt.Print
-// For PathFileSystemConnector.  The connector determines inodes.
+// For FileSystemConnector.  The connector determines inodes.
 type DirEntry struct {
 	Mode uint32
 	Name string

@@ -18,13 +18,13 @@ import (
 //
 // A union for A/B/C will placed under directory A-B-C.
 type AutoUnionFs struct {
-	fuse.DefaultPathFileSystem
+	fuse.DefaultFileSystem
 
 	lock             sync.RWMutex
 	knownFileSystems map[string]*UnionFs
 	root             string
 
-	connector *fuse.PathFileSystemConnector
+	connector *fuse.FileSystemConnector
 
 	options *AutoUnionFsOptions
 }
@@ -41,7 +41,7 @@ func NewAutoUnionFs(directory string, options AutoUnionFsOptions) *AutoUnionFs {
 	return a
 }
 
-func (me *AutoUnionFs) Mount(connector *fuse.PathFileSystemConnector) fuse.Status {
+func (me *AutoUnionFs) Mount(connector *fuse.FileSystemConnector) fuse.Status {
 	me.connector = connector
 	time.AfterFunc(0.1e9, func() { me.updateKnownFses() })
 	return fuse.OK

@@ -40,7 +40,7 @@ func setup(t *testing.T) (workdir string, state *fuse.MountState) {
 	roots = append(roots, wd+"/ro")
 	ufs := NewUnionFs(roots, testOpts)
 
-	connector := fuse.NewPathFileSystemConnector(ufs)
+	connector := fuse.NewFileSystemConnector(ufs)
 	state = fuse.NewMountState(connector)
 	state.Mount(wd + "/mount")
 

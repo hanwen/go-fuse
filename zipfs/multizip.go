@@ -68,16 +68,16 @@ func (me *zipCreateFile) Write(input *fuse.WriteIn, nameBytes []byte) (uint32, f
 ////////////////////////////////////////////////////////////////
 
 // MultiZipFs is a path filesystem that mounts zipfiles.  It needs a
-// reference to the PathFileSystemConnector to be able to execute
+// reference to the FileSystemConnector to be able to execute
 // mounts.
 type MultiZipFs struct {
-	Connector    *fuse.PathFileSystemConnector
+	Connector    *fuse.FileSystemConnector
 	lock         sync.RWMutex
 	zips         map[string]*ZipArchiveFileSystem
 	pendingZips  map[string]bool
 	zipFileNames map[string]string
 
-	fuse.DefaultPathFileSystem
+	fuse.DefaultFileSystem
 }
 
 func NewMultiZipFs() *MultiZipFs {
@@ -85,7 +85,7 @@ func NewMultiZipFs() *MultiZipFs {
 	m.zips = make(map[string]*ZipArchiveFileSystem)
 	m.pendingZips = make(map[string]bool)
 	m.zipFileNames = make(map[string]string)
-	m.Connector = fuse.NewPathFileSystemConnector(m)
+	m.Connector = fuse.NewFileSystemConnector(m)
 	return m
 }
 

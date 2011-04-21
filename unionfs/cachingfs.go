@@ -22,7 +22,7 @@ type linkResponse struct {
 
 // Caches readdir and getattr()
 type CachingFileSystem struct {
-	fuse.WrappingPathFileSystem
+	fuse.WrappingFileSystem
 
 	attributesLock sync.RWMutex
 	attributes     map[string]attrResponse
@@ -34,7 +34,7 @@ type CachingFileSystem struct {
 	links     map[string]linkResponse
 }
 
-func NewCachingFileSystem(pfs fuse.PathFileSystem) *CachingFileSystem {
+func NewCachingFileSystem(pfs fuse.FileSystem) *CachingFileSystem {
 	c := new(CachingFileSystem)
 	c.Original = pfs
 	c.attributes = make(map[string]attrResponse)

@@ -15,7 +15,7 @@ type XAttrTestFs struct {
 	filename string
 	attrs    map[string][]byte
 
-	DefaultPathFileSystem
+	DefaultFileSystem
 }
 
 func NewXAttrFs(nm string, m map[string][]byte) *XAttrTestFs {
@@ -93,7 +93,7 @@ func TestXAttrRead(t *testing.T) {
 		"user.attr2": []byte("val2")}
 	xfs := NewXAttrFs(nm, golden)
 
-	connector := NewPathFileSystemConnector(NewLockingPathFileSystem(xfs))
+	connector := NewFileSystemConnector(NewLockingFileSystem(xfs))
 	mountPoint := MakeTempDir()
 
 	state := NewMountState(connector)

@@ -33,7 +33,7 @@ func main() {
 	}
 
 	gofs := unionfs.NewAutoUnionFs(flag.Arg(1), options)
-	conn := fuse.NewPathFileSystemConnector(gofs)
+	conn := fuse.NewFileSystemConnector(gofs)
 	mountState := fuse.NewMountState(conn)
 	mountState.Debug = *debug
 	fmt.Printf("Mounting...\n")

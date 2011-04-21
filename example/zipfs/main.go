@@ -22,7 +22,7 @@ func main() {
 	}
 
 	fs := zipfs.NewZipArchiveFileSystem(flag.Arg(1))
-	conn := fuse.NewPathFileSystemConnector(fs)
+	conn := fuse.NewFileSystemConnector(fs)
 	state := fuse.NewMountState(conn)
 
 	mountPoint := flag.Arg(0)

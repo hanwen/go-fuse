@@ -5,21 +5,21 @@ import (
 
 var _ = fmt.Println
 
-type PathFileSystemDebug struct {
+type FileSystemDebug struct {
 	// TODO - use a generic callback system instead.
-	Connector *PathFileSystemConnector
+	Connector *FileSystemConnector
 
-	WrappingPathFileSystem
+	WrappingFileSystem
 }
 
-func (me *PathFileSystemDebug) Open(path string, flags uint32) (fuseFile File, status Status)  {
+func (me *FileSystemDebug) Open(path string, flags uint32) (fuseFile File, status Status)  {
 	if path == ".debug" && me.Connector != nil {
 		return NewReadOnlyFile([]byte(me.Connector.DebugString())), OK
 	}
 	return me.Original.Open(path, flags)
 }
 
-func (me *PathFileSystemDebug) GetAttr(path string) (*Attr, Status) {
+func (me *FileSystemDebug) GetAttr(path string) (*Attr, Status) {
 	if path == ".debug" && me.Connector != nil {
 		return &Attr{
 			Mode: S_IFREG,

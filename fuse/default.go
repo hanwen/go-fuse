@@ -159,95 +159,95 @@ func (me *DefaultFile) Fsync(*FsyncIn) (code Status) {
 }
 
 ////////////////////////////////////////////////////////////////
-// DefaultPathFileSystem
+// DefaultFileSystem
 
-func (me *DefaultPathFileSystem) GetAttr(name string) (*Attr, Status) {
+func (me *DefaultFileSystem) GetAttr(name string) (*Attr, Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultPathFileSystem) GetXAttr(name string, attr string) ([]byte, Status) {
+func (me *DefaultFileSystem) GetXAttr(name string, attr string) ([]byte, Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultPathFileSystem) SetXAttr(name string, attr string, data []byte, flags int) Status {
+func (me *DefaultFileSystem) SetXAttr(name string, attr string, data []byte, flags int) Status {
 	return ENOSYS
 }
 
-func (me *DefaultPathFileSystem) ListXAttr(name string) ([]string, Status) {
+func (me *DefaultFileSystem) ListXAttr(name string) ([]string, Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultPathFileSystem) RemoveXAttr(name string, attr string) Status {
+func (me *DefaultFileSystem) RemoveXAttr(name string, attr string) Status {
 	return ENOSYS
 }
 
-func (me *DefaultPathFileSystem) Readlink(name string) (string, Status) {
+func (me *DefaultFileSystem) Readlink(name string) (string, Status) {
 	return "", ENOSYS
 }
 
-func (me *DefaultPathFileSystem) Mknod(name string, mode uint32, dev uint32) Status {
+func (me *DefaultFileSystem) Mknod(name string, mode uint32, dev uint32) Status {
 	return ENOSYS
 }
 
-func (me *DefaultPathFileSystem) Mkdir(name string, mode uint32) Status {
+func (me *DefaultFileSystem) Mkdir(name string, mode uint32) Status {
 	return ENOSYS
 }
 
-func (me *DefaultPathFileSystem) Unlink(name string) (code Status) {
+func (me *DefaultFileSystem) Unlink(name string) (code Status) {
 	return ENOSYS
 }
 
-func (me *DefaultPathFileSystem) Rmdir(name string) (code Status) {
+func (me *DefaultFileSystem) Rmdir(name string) (code Status) {
 	return ENOSYS
 }
 
-func (me *DefaultPathFileSystem) Symlink(value string, linkName string) (code Status) {
+func (me *DefaultFileSystem) Symlink(value string, linkName string) (code Status) {
 	return ENOSYS
 }
 
-func (me *DefaultPathFileSystem) Rename(oldName string, newName string) (code Status) {
+func (me *DefaultFileSystem) Rename(oldName string, newName string) (code Status) {
 	return ENOSYS
 }
 
-func (me *DefaultPathFileSystem) Link(oldName string, newName string) (code Status) {
+func (me *DefaultFileSystem) Link(oldName string, newName string) (code Status) {
 	return ENOSYS
 }
 
-func (me *DefaultPathFileSystem) Chmod(name string, mode uint32) (code Status) {
+func (me *DefaultFileSystem) Chmod(name string, mode uint32) (code Status) {
 	return ENOSYS
 }
 
-func (me *DefaultPathFileSystem) Chown(name string, uid uint32, gid uint32) (code Status) {
+func (me *DefaultFileSystem) Chown(name string, uid uint32, gid uint32) (code Status) {
 	return ENOSYS
 }
 
-func (me *DefaultPathFileSystem) Truncate(name string, offset uint64) (code Status) {
+func (me *DefaultFileSystem) Truncate(name string, offset uint64) (code Status) {
 	return ENOSYS
 }
 
-func (me *DefaultPathFileSystem) Open(name string, flags uint32) (file File, code Status) {
+func (me *DefaultFileSystem) Open(name string, flags uint32) (file File, code Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultPathFileSystem) OpenDir(name string) (stream chan DirEntry, status Status) {
+func (me *DefaultFileSystem) OpenDir(name string) (stream chan DirEntry, status Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultPathFileSystem) Mount(conn *PathFileSystemConnector) Status {
+func (me *DefaultFileSystem) Mount(conn *FileSystemConnector) Status {
 	return OK
 }
 
-func (me *DefaultPathFileSystem) Unmount() {
+func (me *DefaultFileSystem) Unmount() {
 }
 
-func (me *DefaultPathFileSystem) Access(name string, mode uint32) (code Status) {
+func (me *DefaultFileSystem) Access(name string, mode uint32) (code Status) {
 	return ENOSYS
 }
 
-func (me *DefaultPathFileSystem) Create(name string, flags uint32, mode uint32) (file File, code Status) {
+func (me *DefaultFileSystem) Create(name string, flags uint32, mode uint32) (file File, code Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultPathFileSystem) Utimens(name string, AtimeNs uint64, CtimeNs uint64) (code Status) {
+func (me *DefaultFileSystem) Utimens(name string, AtimeNs uint64, CtimeNs uint64) (code Status) {
 	return ENOSYS
 }

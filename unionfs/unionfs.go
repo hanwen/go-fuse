@@ -58,12 +58,12 @@ func filePathHash(path string) string {
 
 */
 type UnionFs struct {
-	fuse.DefaultPathFileSystem
+	fuse.DefaultFileSystem
 
 	branches []*fuse.LoopbackFileSystem
 
 	// The same, but as interfaces.
-	fileSystems []fuse.PathFileSystem
+	fileSystems []fuse.FileSystem
 
 	// A file-existence cache.
 	deletionCache *DirCache
@@ -89,7 +89,7 @@ func NewUnionFs(roots []string, options UnionFsOptions) *UnionFs {
 		g.branches = append(g.branches, pt)
 
 		// We could use some sort of caching file system here.
-		g.fileSystems = append(g.fileSystems, fuse.PathFileSystem(pt))
+		g.fileSystems = append(g.fileSystems, fuse.FileSystem(pt))
 	}
 
 	deletionDir := g.deletionDir()
@@ -232,7 +232,7 @@ src *fuse.LoopbackFileSystem) os.Error {
 }
 
 ////////////////////////////////////////////////////////////////
-// Below: implement interface for a PathFileSystem.
+// Below: implement interface for a FileSystem.
 
 func (me *UnionFs) Mkdir(path string, mode uint32) (code fuse.Status) {
 	code = me.fileSystems[0].Mkdir(path, mode)
@@ -344,7 +344,7 @@ func (me *UnionFs) OpenDir(directory string) (stream chan fuse.DirEntry, status 
 	for i, l := range me.fileSystems {
 		if i >= dirBranch {
 			wg.Add(1)
-			go func(j int, pfs fuse.PathFileSystem) {
+			go func(j int, pfs fuse.FileSystem) {
 				ch, s := pfs.OpenDir(directory)
 				statuses[j] = s
 				for s == fuse.OK {

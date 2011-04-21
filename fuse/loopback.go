@@ -18,7 +18,7 @@ var _ = log.Println
 type LoopbackFileSystem struct {
 	root string
 
-	DefaultPathFileSystem
+	DefaultFileSystem
 }
 
 func NewLoopbackFileSystem(root string) (out *LoopbackFileSystem) {
@@ -162,7 +162,7 @@ func (me *LoopbackFileSystem) RemoveXAttr(name string, attr string) Status {
 	return Status(Removexattr(me.GetPath(name), attr))
 }
 
-func (me *LoopbackFileSystem) FillOptions(options *PathFileSystemConnectorOptions) {
+func (me *LoopbackFileSystem) FillOptions(options *FileSystemConnectorOptions) {
 	// These options are to be compatible with libfuse defaults,
 	// making benchmarking easier.
 	options.NegativeTimeout = 1.0

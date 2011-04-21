@@ -11,7 +11,7 @@ import (
 
 type mountData struct {
 	// If non-nil the file system mounted here.
-	fs PathFileSystem
+	fs FileSystem
 
 	// Protects the variables below.
 	mutex sync.RWMutex
@@ -20,7 +20,7 @@ type mountData struct {
 	unmountPending bool
 }
 
-func newMount(fs PathFileSystem) *mountData {
+func newMount(fs FileSystem) *mountData {
 	return &mountData{fs: fs}
 }
 
@@ -141,14 +141,14 @@ func MakeTimeoutOptions() TimeoutOptions {
 	}
 }
 
-type PathFileSystemConnectorOptions struct {
+type FileSystemConnectorOptions struct {
 	TimeoutOptions
 }
 
-type PathFileSystemConnector struct {
+type FileSystemConnector struct {
 	DefaultRawFileSystem
 
-	options PathFileSystemConnectorOptions
+	options FileSystemConnectorOptions
 	Debug   bool
 
 	////////////////
@@ -166,7 +166,7 @@ type PathFileSystemConnector struct {
 	nextFreeHandle uint64
 }
 
-func (me *PathFileSystemConnector) DebugString() string {
+func (me *FileSystemConnector) DebugString() string {
 	me.lock.RLock()
 	defer me.lock.RUnlock()
 	
@@ -179,7 +179,7 @@ func (me *PathFileSystemConnector) DebugString() string {
 		len(me.openFiles), len(me.inodeMap))
 }
 
-func (me *PathFileSystemConnector) unregisterFile(node *inode, handle uint64) interface{} {
+func (me *FileSystemConnector) unregisterFile(node *inode, handle uint64) interface{} {
 	me.fileLock.Lock()
 	defer me.fileLock.Unlock()
 	f, ok := me.openFiles[handle]
@@ -191,7 +191,7 @@ func (me *PathFileSystemConnector) unregisterFile(node *inode, handle uint64) in
 	return f
 }
 
-func (me *PathFileSystemConnector) registerFile(node *inode, f interface{}) uint64 {
+func (me *FileSystemConnector) registerFile(node *inode, f interface{}) uint64 {
 	me.fileLock.Lock()
 	defer me.fileLock.Unlock()
 
@@ -207,19 +207,19 @@ func (me *PathFileSystemConnector) registerFile(node *inode, f interface{}) uint
 	return h
 }
 
-func (me *PathFileSystemConnector) getDir(h uint64) RawDir {
+func (me *FileSystemConnector) getDir(h uint64) RawDir {
 	me.fileLock.RLock()
 	defer me.fileLock.RUnlock()
 	return me.openFiles[h].(RawDir)
 }
 
-func (me *PathFileSystemConnector) getFile(h uint64) File {
+func (me *FileSystemConnector) getFile(h uint64) File {
 	me.fileLock.RLock()
 	defer me.fileLock.RUnlock()
 	return me.openFiles[h].(File)
 }
 
-func (me *PathFileSystemConnector) verify() {
+func (me *FileSystemConnector) verify() {
 	if !paranoia {
 		return
 	}
@@ -249,7 +249,7 @@ func (me *PathFileSystemConnector) verify() {
 	}
 }
 
-func (me *PathFileSystemConnector) newInode() *inode {
+func (me *FileSystemConnector) newInode() *inode {
 	data := new(inode)
 	data.NodeId = me.nextFreeInode
 	me.nextFreeInode++
@@ -259,7 +259,7 @@ func (me *PathFileSystemConnector) newInode() *inode {
 	return data
 }
 
-func (me *PathFileSystemConnector) lookupUpdate(parent *inode, name string, isDir bool) *inode {
+func (me *FileSystemConnector) lookupUpdate(parent *inode, name string, isDir bool) *inode {
 	defer me.verify()
 
 	me.lock.Lock()
@@ -278,7 +278,7 @@ func (me *PathFileSystemConnector) lookupUpdate(parent *inode, name string, isDi
 	return data
 }
 
-func (me *PathFileSystemConnector) getInodeData(nodeid uint64) *inode {
+func (me *FileSystemConnector) getInodeData(nodeid uint64) *inode {
 	me.lock.RLock()
 	defer me.lock.RUnlock()
 
@@ -289,7 +289,7 @@ func (me *PathFileSystemConnector) getInodeData(nodeid uint64) *inode {
 	return val
 }
 
-func (me *PathFileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int) {
+func (me *FileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int) {
 	defer me.verify()
 	me.lock.Lock()
 	defer me.lock.Unlock()
@@ -301,7 +301,7 @@ func (me *PathFileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int) 
 	}
 }
 
-func (me *PathFileSystemConnector) considerDropInode(n *inode) {
+func (me *FileSystemConnector) considerDropInode(n *inode) {
 	if n.mount != nil {
 		n.mount.mutex.RLock()
 		defer n.mount.mutex.RUnlock()
@@ -315,7 +315,7 @@ func (me *PathFileSystemConnector) considerDropInode(n *inode) {
 	}
 }
 
-func (me *PathFileSystemConnector) renameUpdate(oldParent *inode, oldName string, newParent *inode, newName string) {
+func (me *FileSystemConnector) renameUpdate(oldParent *inode, oldName string, newParent *inode, newName string) {
 	defer me.verify()
 	me.lock.Lock()
 	defer me.lock.Unlock()
@@ -334,7 +334,7 @@ func (me *PathFileSystemConnector) renameUpdate(oldParent *inode, oldName string
 	node.setParent(newParent)
 }
 
-func (me *PathFileSystemConnector) unlinkUpdate(parent *inode, name string) {
+func (me *FileSystemConnector) unlinkUpdate(parent *inode, name string) {
 	defer me.verify()
 	me.lock.Lock()
 	defer me.lock.Unlock()
@@ -344,7 +344,7 @@ func (me *PathFileSystemConnector) unlinkUpdate(parent *inode, name string) {
 }
 
 // Walk the file system starting from the root.
-func (me *PathFileSystemConnector) findInode(fullPath string) *inode {
+func (me *FileSystemConnector) findInode(fullPath string) *inode {
 	fullPath = strings.TrimLeft(filepath.Clean(fullPath), "/")
 	comps := strings.Split(fullPath, "/", -1)
 
@@ -369,8 +369,8 @@ func (me *PathFileSystemConnector) findInode(fullPath string) *inode {
 // Below routines should not access inodePathMap(ByInode) directly,
 // and there need no locking.
 
-func EmptyPathFileSystemConnector() (out *PathFileSystemConnector) {
-	out = new(PathFileSystemConnector)
+func EmptyFileSystemConnector() (out *FileSystemConnector) {
+	out = new(FileSystemConnector)
 	out.inodeMap = make(map[uint64]*inode)
 	out.openFiles = make(map[uint64]interface{})
 
@@ -387,8 +387,8 @@ func EmptyPathFileSystemConnector() (out *PathFileSystemConnector) {
 	return out;
 }
 
-func NewPathFileSystemConnector(fs PathFileSystem) (out *PathFileSystemConnector) {
-	out = EmptyPathFileSystemConnector()
+func NewFileSystemConnector(fs FileSystem) (out *FileSystemConnector) {
+	out = EmptyFileSystemConnector()
 	if code := out.Mount("/", fs); code != OK {
 		panic("root mount failed.")
 	}
@@ -397,11 +397,11 @@ func NewPathFileSystemConnector(fs PathFileSystem) (out *PathFileSystemConnector
 	return out
 }
 
-func (me *PathFileSystemConnector) SetOptions(opts PathFileSystemConnectorOptions) {
+func (me *FileSystemConnector) SetOptions(opts FileSystemConnectorOptions) {
 	me.options = opts
 }
 
-func (me *PathFileSystemConnector) Mount(mountPoint string, fs PathFileSystem) Status {
+func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem) Status {
 	var node *inode
 
 	if mountPoint != "/" {
@@ -448,7 +448,7 @@ func (me *PathFileSystemConnector) Mount(mountPoint string, fs PathFileSystem) S
 	return OK
 }
 
-func (me *PathFileSystemConnector) Unmount(path string) Status {
+func (me *FileSystemConnector) Unmount(path string) Status {
 	node := me.findInode(path)
 	if node == nil {
 		panic(path)
@@ -489,32 +489,32 @@ func (me *PathFileSystemConnector) Unmount(path string) Status {
 	return OK
 }
 
-func (me *PathFileSystemConnector) GetPath(nodeid uint64) (path string, mount *mountData, node *inode) {
+func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *mountData, node *inode) {
 	n := me.getInodeData(nodeid)
 	p, m := n.GetPath()
 	return p, m, n
 }
 
-func (me *PathFileSystemConnector) Init(h *InHeader, input *InitIn) (*InitOut, Status) {
+func (me *FileSystemConnector) Init(h *InHeader, input *InitIn) (*InitOut, Status) {
 	// TODO ?
 	return new(InitOut), OK
 }
 
-func (me *PathFileSystemConnector) Destroy(h *InHeader, input *InitIn) {
+func (me *FileSystemConnector) Destroy(h *InHeader, input *InitIn) {
 	// TODO - umount all.
 }
 
-func (me *PathFileSystemConnector) Lookup(header *InHeader, name string) (out *EntryOut, status Status) {
+func (me *FileSystemConnector) Lookup(header *InHeader, name string) (out *EntryOut, status Status) {
 	parent := me.getInodeData(header.NodeId)
 	return me.internalLookup(parent, name, 1)
 }
 
-func (me *PathFileSystemConnector) internalLookup(parent *inode, name string, lookupCount int) (out *EntryOut, status Status) {
+func (me *FileSystemConnector) internalLookup(parent *inode, name string, lookupCount int) (out *EntryOut, status Status) {
 	out, status, _ = me.internalLookupWithNode(parent, name, lookupCount)
 	return out, status
 }
 
-func (me *PathFileSystemConnector) internalLookupWithNode(parent *inode, name string, lookupCount int) (out *EntryOut, status Status, node *inode) {
+func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string, lookupCount int) (out *EntryOut, status Status, node *inode) {
 	// TODO - fuse.c has special case code for name == "." and
 	// "..", those lookups happen if FUSE_EXPORT_SUPPORT is set in
 	// Init.
@@ -549,11 +549,11 @@ func (me *PathFileSystemConnector) internalLookupWithNode(parent *inode, name st
 	return out, OK, data
 }
 
-func (me *PathFileSystemConnector) Forget(h *InHeader, input *ForgetIn) {
+func (me *FileSystemConnector) Forget(h *InHeader, input *ForgetIn) {
 	me.forgetUpdate(h.NodeId, int(input.Nlookup))
 }
 
-func (me *PathFileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
+func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
 	// TODO - do something intelligent with input.Fh.
 	fullPath, mount, _ := me.GetPath(header.NodeId)
 	if mount == nil {
@@ -572,7 +572,7 @@ func (me *PathFileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (
 	return out, OK
 }
 
-func (me *PathFileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
+func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
 	fullPath, mount, node := me.GetPath(header.NodeId)
 	if mount == nil {
 		return 0, 0, ENOENT
@@ -591,7 +591,7 @@ func (me *PathFileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (fla
 	return 0, h, OK
 }
 
-func (me *PathFileSystemConnector) ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status) {
+func (me *FileSystemConnector) ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status) {
 	d := me.getDir(input.Fh)
 	de, code := d.ReadDir(input)
 	if code != OK {
@@ -600,7 +600,7 @@ func (me *PathFileSystemConnector) ReadDir(header *InHeader, input *ReadIn) (*Di
 	return de, OK
 }
 
-func (me *PathFileSystemConnector) Open(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
+func (me *FileSystemConnector) Open(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
 	fullPath, mount, node := me.GetPath(header.NodeId)
 	if mount == nil {
 		return 0, 0, ENOENT
@@ -616,7 +616,7 @@ func (me *PathFileSystemConnector) Open(header *InHeader, input *OpenIn) (flags 
 	return 0, h, OK
 }
 
-func (me *PathFileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out *AttrOut, code Status) {
+func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out *AttrOut, code Status) {
 	var err Status = OK
 
 	// TODO - support Fh.   (FSetAttr/FGetAttr/FTruncate.)
@@ -652,7 +652,7 @@ func (me *PathFileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (
 	return me.GetAttr(header, new(GetAttrIn))
 }
 
-func (me *PathFileSystemConnector) Readlink(header *InHeader) (out []byte, code Status) {
+func (me *FileSystemConnector) Readlink(header *InHeader) (out []byte, code Status) {
 	fullPath, mount, _ := me.GetPath(header.NodeId)
 	if mount == nil {
 		return nil, ENOENT
@@ -661,7 +661,7 @@ func (me *PathFileSystemConnector) Readlink(header *InHeader) (out []byte, code 
 	return bytes.NewBufferString(val).Bytes(), err
 }
 
-func (me *PathFileSystemConnector) Mknod(header *InHeader, input *MknodIn, name string) (out *EntryOut, code Status) {
+func (me *FileSystemConnector) Mknod(header *InHeader, input *MknodIn, name string) (out *EntryOut, code Status) {
 	fullPath, mount, node := me.GetPath(header.NodeId)
 	if mount == nil {
 		return nil, ENOENT
@@ -674,7 +674,7 @@ func (me *PathFileSystemConnector) Mknod(header *InHeader, input *MknodIn, name 
 	return me.internalLookup(node, name, 1)
 }
 
-func (me *PathFileSystemConnector) Mkdir(header *InHeader, input *MkdirIn, name string) (out *EntryOut, code Status) {
+func (me *FileSystemConnector) Mkdir(header *InHeader, input *MkdirIn, name string) (out *EntryOut, code Status) {
 	fullPath, mount, parent := me.GetPath(header.NodeId)
 	if mount == nil {
 		return nil, ENOENT
@@ -686,7 +686,7 @@ func (me *PathFileSystemConnector) Mkdir(header *InHeader, input *MkdirIn, name 
 	return out, code
 }
 
-func (me *PathFileSystemConnector) Unlink(header *InHeader, name string) (code Status) {
+func (me *FileSystemConnector) Unlink(header *InHeader, name string) (code Status) {
 	fullPath, mount, parent := me.GetPath(header.NodeId)
 	if mount == nil {
 		return ENOENT
@@ -699,7 +699,7 @@ func (me *PathFileSystemConnector) Unlink(header *InHeader, name string) (code S
 	return code
 }
 
-func (me *PathFileSystemConnector) Rmdir(header *InHeader, name string) (code Status) {
+func (me *FileSystemConnector) Rmdir(header *InHeader, name string) (code Status) {
 	fullPath, mount, parent := me.GetPath(header.NodeId)
 	if mount == nil {
 		return ENOENT
@@ -711,7 +711,7 @@ func (me *PathFileSystemConnector) Rmdir(header *InHeader, name string) (code St
 	return code
 }
 
-func (me *PathFileSystemConnector) Symlink(header *InHeader, pointedTo string, linkName string) (out *EntryOut, code Status) {
+func (me *FileSystemConnector) Symlink(header *InHeader, pointedTo string, linkName string) (out *EntryOut, code Status) {
 	fullPath, mount, parent := me.GetPath(header.NodeId)
 	if mount == nil {
 		return nil, ENOENT
@@ -725,7 +725,7 @@ func (me *PathFileSystemConnector) Symlink(header *InHeader, pointedTo string, l
 	return out, code
 }
 
-func (me *PathFileSystemConnector) Rename(header *InHeader, input *RenameIn, oldName string, newName string) (code Status) {
+func (me *FileSystemConnector) Rename(header *InHeader, input *RenameIn, oldName string, newName string) (code Status) {
 	oldPath, oldMount, oldParent := me.GetPath(header.NodeId)
 	newPath, mount, newParent := me.GetPath(input.Newdir)
 	if mount == nil || oldMount == nil {
@@ -751,7 +751,7 @@ func (me *PathFileSystemConnector) Rename(header *InHeader, input *RenameIn, old
 	return code
 }
 
-func (me *PathFileSystemConnector) Link(header *InHeader, input *LinkIn, filename string) (out *EntryOut, code Status) {
+func (me *FileSystemConnector) Link(header *InHeader, input *LinkIn, filename string) (out *EntryOut, code Status) {
 	orig, mount, _ := me.GetPath(input.Oldnodeid)
 	newName, newMount, newParent := me.GetPath(header.NodeId)
 
@@ -771,7 +771,7 @@ func (me *PathFileSystemConnector) Link(header *InHeader, input *LinkIn, filenam
 	return me.internalLookup(newParent, filename, 1)
 }
 
-func (me *PathFileSystemConnector) Access(header *InHeader, input *AccessIn) (code Status) {
+func (me *FileSystemConnector) Access(header *InHeader, input *AccessIn) (code Status) {
 	p, mount, _ := me.GetPath(header.NodeId)
 	if mount == nil {
 		return ENOENT
@@ -779,7 +779,7 @@ func (me *PathFileSystemConnector) Access(header *InHeader, input *AccessIn) (co
 	return mount.fs.Access(p, input.Mask)
 }
 
-func (me *PathFileSystemConnector) Create(header *InHeader, input *CreateIn, name string) (flags uint32, h uint64, out *EntryOut, code Status) {
+func (me *FileSystemConnector) Create(header *InHeader, input *CreateIn, name string) (flags uint32, h uint64, out *EntryOut, code Status) {
 	directory, mount, parent := me.GetPath(header.NodeId)
 	if mount == nil {
 		return 0, 0, nil, ENOENT
@@ -795,26 +795,26 @@ func (me *PathFileSystemConnector) Create(header *InHeader, input *CreateIn, nam
 	return 0, me.registerFile(inode, f), out, code
 }
 
-func (me *PathFileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
+func (me *FileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
 	node := me.getInodeData(header.NodeId)
 	f := me.unregisterFile(node, input.Fh).(File)
 	f.Release()
 	me.considerDropInode(node)
 }
 
-func (me *PathFileSystemConnector) ReleaseDir(header *InHeader, input *ReleaseIn) {
+func (me *FileSystemConnector) ReleaseDir(header *InHeader, input *ReleaseIn) {
 	node := me.getInodeData(header.NodeId)
 	d := me.unregisterFile(node, input.Fh).(RawDir)
 	d.Release()
 	me.considerDropInode(node)
 }
 
-func (me *PathFileSystemConnector) FsyncDir(header *InHeader, input *FsyncIn) (code Status) {
+func (me *FileSystemConnector) FsyncDir(header *InHeader, input *FsyncIn) (code Status) {
 	// What the heck is FsyncDir supposed to do?
 	return OK
 }
 
-func (me *PathFileSystemConnector) GetXAttr(header *InHeader, attribute string) (data []byte, code Status) {
+func (me *FileSystemConnector) GetXAttr(header *InHeader, attribute string) (data []byte, code Status) {
 	path, mount, _ := me.GetPath(header.NodeId)
 	if mount == nil {
 		return nil, ENOENT
@@ -824,7 +824,7 @@ func (me *PathFileSystemConnector) GetXAttr(header *InHeader, attribute string) 
 	return data, code
 }
 
-func (me *PathFileSystemConnector) RemoveXAttr(header *InHeader, attr string) Status {
+func (me *FileSystemConnector) RemoveXAttr(header *InHeader, attr string) Status {
 	path, mount, _ := me.GetPath(header.NodeId)
 	if mount == nil {
 		return ENOENT
@@ -833,7 +833,7 @@ func (me *PathFileSystemConnector) RemoveXAttr(header *InHeader, attr string) St
 	return mount.fs.RemoveXAttr(path, attr)
 }
 
-func (me *PathFileSystemConnector) SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) Status {
+func (me *FileSystemConnector) SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) Status {
 	path, mount, _ := me.GetPath(header.NodeId)
 	if mount == nil {
 		return ENOENT
@@ -842,7 +842,7 @@ func (me *PathFileSystemConnector) SetXAttr(header *InHeader, input *SetXAttrIn,
 	return mount.fs.SetXAttr(path, attr, data, int(input.Flags))
 }
 
-func (me *PathFileSystemConnector) ListXAttr(header *InHeader) (data []byte, code Status) {
+func (me *FileSystemConnector) ListXAttr(header *InHeader) (data []byte, code Status) {
 	path, mount, _ := me.GetPath(header.NodeId)
 	if mount == nil {
 		return nil, ENOENT
@@ -862,12 +862,12 @@ func (me *PathFileSystemConnector) ListXAttr(header *InHeader) (data []byte, cod
 	return b.Bytes(), code
 }
 
-func (me *PathFileSystemConnector) Write(input *WriteIn, data []byte) (written uint32, code Status) {
+func (me *FileSystemConnector) Write(input *WriteIn, data []byte) (written uint32, code Status) {
 	f := me.getFile(input.Fh).(File)
 	return f.Write(input, data)
 }
 
-func (me *PathFileSystemConnector) Read(input *ReadIn, bp *BufferPool) ([]byte, Status) {
+func (me *FileSystemConnector) Read(input *ReadIn, bp *BufferPool) ([]byte, Status) {
 	f := me.getFile(input.Fh)
 	return f.Read(input, bp)
 }

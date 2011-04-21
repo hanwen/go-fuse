@@ -498,7 +498,7 @@ type NotifyInvalEntryOut struct {
 //
 // Typically, each call happens in its own goroutine, so any global
 // data should be made thread-safe.  Unless you really know what you
-// are doing, you should not implement this, but PathFileSystem below;
+// are doing, you should not implement this, but FileSystem below;
 // the details of getting interactions with open files, renames, and
 // threading right etc. are somewhat tricky and not very interesting.
 type RawFileSystem interface {
@@ -561,7 +561,7 @@ type RawDir interface {
 	Release()
 }
 
-type PathFileSystem interface {
+type FileSystem interface {
 	GetAttr(name string) (*Attr, Status)
 	Readlink(name string) (string, Status)
 	Mknod(name string, mode uint32, dev uint32) Status
@@ -586,7 +586,7 @@ type PathFileSystem interface {
 	OpenDir(name string) (stream chan DirEntry, code Status)
 
 	// TODO - what is a good interface?
-	Mount(connector *PathFileSystemConnector) Status
+	Mount(connector *FileSystemConnector) Status
 	Unmount()
 
 	Access(name string, mode uint32) (code Status)
@@ -599,6 +599,6 @@ type PathFileSystem interface {
 // Include this struct in your implementation to inherit default nop
 // implementations.
 
-type DefaultPathFileSystem struct{}
+type DefaultFileSystem struct{}
 type DefaultFile struct{}
 type DefaultRawFileSystem struct{}

@@ -34,7 +34,7 @@ type testCase struct {
 	origSubfile  string
 	tester       *testing.T
 	state        *MountState
-	connector    *PathFileSystemConnector
+	connector    *FileSystemConnector
 }
 
 // Create and mount filesystem.
@@ -55,13 +55,13 @@ func (me *testCase) Setup(t *testing.T) {
 	me.origSubdir = filepath.Join(me.origDir, subdir)
 	me.origSubfile = filepath.Join(me.origSubdir, "subfile")
 
-	var pfs PathFileSystem
+	var pfs FileSystem
 	pfs = NewLoopbackFileSystem(me.origDir)
-	pfs = NewTimingPathFileSystem(pfs)
-	pfs = NewLockingPathFileSystem(pfs)
+	pfs = NewTimingFileSystem(pfs)
+	pfs = NewLockingFileSystem(pfs)
 
 	var rfs RawFileSystem
-	me.connector = NewPathFileSystemConnector(pfs)
+	me.connector = NewFileSystemConnector(pfs)
 	rfs = me.connector
 	rfs = NewTimingRawFileSystem(rfs)
 	rfs = NewLockingRawFileSystem(rfs)
