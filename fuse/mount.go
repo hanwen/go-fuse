@@ -68,7 +68,7 @@ func mount(mountPoint string) (f *os.File, finalMountPoint string, err os.Error)
 		return
 	}
 
-	f, err = getFuseConn(local)
+	f, err = getConnection(local)
 	finalMountPoint = mountPoint
 	return
 }
@@ -91,7 +91,7 @@ func unmount(mountPoint string) (err os.Error) {
 	return
 }
 
-func getFuseConn(local *os.File) (f *os.File, err os.Error) {
+func getConnection(local *os.File) (f *os.File, err os.Error) {
 	var data [4]byte
 	control := make([]byte, 4*256)
 
@@ -107,15 +107,15 @@ func getFuseConn(local *os.File) (f *os.File, err os.Error) {
 	fd := *(*int32)(unsafe.Pointer(uintptr(unsafe.Pointer(&control[0])) + syscall.SizeofCmsghdr))
 
 	if message.Type != 1 {
-		err = os.NewError(fmt.Sprintf("getFuseConn: recvmsg returned wrong control type: %d", message.Type))
+		err = os.NewError(fmt.Sprintf("getConnection: recvmsg returned wrong control type: %d", message.Type))
 		return
 	}
 	if oobn <= syscall.SizeofCmsghdr {
-		err = os.NewError(fmt.Sprintf("getFuseConn: too short control message. Length: %d", oobn))
+		err = os.NewError(fmt.Sprintf("getConnection: too short control message. Length: %d", oobn))
 		return
 	}
 	if fd < 0 {
-		err = os.NewError(fmt.Sprintf("getFuseConn: fd < 0: %d", fd))
+		err = os.NewError(fmt.Sprintf("getConnection: fd < 0: %d", fd))
 		return
 	}
 	f = os.NewFile(int(fd), "<fuseConnection>")
