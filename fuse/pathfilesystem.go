@@ -227,20 +227,25 @@ func (me *PathFileSystemConnector) verify() {
 	defer me.lock.Unlock()
 	me.fileLock.Lock()
 	defer me.fileLock.Unlock()
-	
+
+	hiddenOpen := 0
 	for k, v := range me.inodeMap {
 		if v.NodeId != k {
 			panic(fmt.Sprintf("nodeid mismatch %v %v", v, k))
 		}
+		if v.Parent == nil && v.NodeId != FUSE_ROOT_ID {
+			hiddenOpen += v.OpenCount
+		}
 	}
+	
 	root := me.inodeMap[FUSE_ROOT_ID]
 	root.verify()
 
 	open := root.totalOpenCount()
 	openFiles := len(me.openFiles)
 	mounted := root.totalMountCount()
-	if open != openFiles + mounted {
-		panic(fmt.Sprintf("opencount mismatch %v %v %v", open, openFiles, mounted))
+	if open + hiddenOpen != openFiles + mounted {
+		panic(fmt.Sprintf("opencount mismatch totalOpen=%v openFiles=%v mounted=%v hidden=%v", open, openFiles, mounted, hiddenOpen))
 	}
 }
 
@@ -320,6 +325,10 @@ func (me *PathFileSystemConnector) renameUpdate(oldParent *inode, oldName string
 		panic("Source of rename does not exist")
 	}
 
+	dest := newParent.Children[newName]
+	if dest != nil {
+		dest.setParent(nil)
+	}	
 	node.setParent(nil)
 	node.Name = newName
 	node.setParent(newParent)

@@ -3,13 +3,14 @@ package fuse
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
-	"testing"
-	"syscall"
 	"rand"
+	"strings"
+	"syscall"
+	"testing"
 	"time"
 )
 
@@ -277,22 +278,68 @@ func (me *testCase) testSymlink() {
 func (me *testCase) testRename() {
 	me.tester.Log("Testing rename.")
 	me.writeOrigFile()
-	me.makeOrigSubdir()
+	sd := me.mountPoint+"/testRename"
+	err := os.MkdirAll(sd, 0777)
+	defer os.RemoveAll(sd)
 
-	err := os.Rename(me.mountFile, me.mountSubfile)
+	subFile := sd+"/subfile"
+	err = os.Rename(me.mountFile, subFile)
 	CheckSuccess(err)
 	f, _ := os.Lstat(me.origFile)
 	if f != nil {
 		me.tester.Errorf("original %v still exists.", me.origFile)
 	}
-	f, _ = os.Lstat(me.origSubfile)
+	f, _ = os.Lstat(subFile)
 	if f == nil {
 		me.tester.Errorf("destination %v does not exist.", me.origSubfile)
 	}
-
-	me.removeMountSubdir()
 }
 
+func (me *testCase) testDelRename() {
+	me.tester.Log("Testing del+rename.")
+
+	sd := me.mountPoint+"/testDelRename"
+	err := os.MkdirAll(sd, 0755)
+	CheckSuccess(err)
+	
+	d := sd+"/dest"
+	err = ioutil.WriteFile(d, []byte("blabla"), 0644)
+	CheckSuccess(err)
+
+	f, err := os.Open(d)
+	CheckSuccess(err)
+	
+	err = os.Remove(d)
+	CheckSuccess(err)
+
+	s := sd+"/src"
+	err = ioutil.WriteFile(s, []byte("blabla"), 0644)
+	CheckSuccess(err)
+
+	err = os.Rename(s, d)
+	CheckSuccess(err)
+
+	f.Close()
+}
+
+func (me *testCase) testOverwriteRename() {
+	me.tester.Log("Testing rename overwrite.")
+
+	sd := me.mountPoint+"/testOverwriteRename"
+	err := os.MkdirAll(sd, 0755)
+	CheckSuccess(err)
+
+	d := sd+"/dest"
+	err = ioutil.WriteFile(d, []byte("blabla"), 0644)
+	CheckSuccess(err)
+
+	s := sd+"/src"
+	err = ioutil.WriteFile(s, []byte("blabla"), 0644)
+	CheckSuccess(err)
+
+	err = os.Rename(s, d)
+	CheckSuccess(err)
+}
 
 func (me *testCase) testAccess() {
 	me.writeOrigFile()
@@ -513,7 +560,10 @@ func (me *testCase) testLargeDirRead() {
 func TestMount(t *testing.T) {
 	ts := new(testCase)
 	ts.Setup(t)
+	defer ts.Cleanup()
 
+	ts.testOverwriteRename()
+	ts.testDelRename()
 	ts.testOpenUnreadable()
 	ts.testReadThroughFuse()
 	ts.testRemove()
@@ -523,11 +573,17 @@ func TestMount(t *testing.T) {
 	ts.testRename()
 	ts.testAccess()
 	ts.testMknod()
-	ts.testReaddir()
 	ts.testFSync()
 	ts.testLargeRead()
 	ts.testLargeDirRead()
-	ts.Cleanup()
+}
+
+func TestReadOnly(t *testing.T) {
+	ts := new(testCase)
+	ts.Setup(t)
+	defer ts.Cleanup()
+
+	ts.testReaddir()
 }
 
 func TestRecursiveMount(t *testing.T) {
