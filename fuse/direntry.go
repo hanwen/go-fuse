@@ -68,8 +68,6 @@ func (me *DirEntryList) Bytes() []byte {
 type FuseDir struct {
 	stream   chan DirEntry
 	leftOver DirEntry
-
-	DefaultRawFuseDir
 }
 
 func (me *FuseDir) inode(name string) uint64 {

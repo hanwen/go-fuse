@@ -159,19 +159,6 @@ func (me *DefaultFuseFile) Fsync(*FsyncIn) (code Status) {
 	return ENOSYS
 }
 
-////////////////////////////////////////////////////////////////
-//
-
-func (me *DefaultRawFuseDir) ReadDir(input *ReadIn) (*DirEntryList, Status) {
-	return nil, ENOSYS
-}
-
-func (me *DefaultRawFuseDir) ReleaseDir() {
-}
-
-func (me *DefaultRawFuseDir) FsyncDir(input *FsyncIn) (code Status) {
-	return ENOSYS
-}
 
 ////////////////////////////////////////////////////////////////
 // DefaultPathFilesystem

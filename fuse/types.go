@@ -596,7 +596,6 @@ type PathFilesystem interface {
 // Include this struct in your implementation to inherit default nop
 // implementations.
 
-type DefaultRawFuseDir struct{}
 type DefaultPathFilesystem struct{}
 type DefaultFuseFile struct{}
 type DefaultRawFuseFileSystem struct{}
