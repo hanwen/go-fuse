@@ -44,8 +44,7 @@ type inode struct {
 	Name        string
 	LookupCount int
 	OpenCount   int
-	// ?
-	Type uint32
+	Type uint32		// dirent type, used to check if mounts are valid.
 
 	mount *mountData
 }
@@ -152,11 +151,11 @@ type PathFileSystemConnector struct {
 
 	// Open files/directories.
 	fileLock    sync.RWMutex
-	openFiles   map[uint64]RawFuseFile
+	openFiles   map[uint64]interface{}
 	nextFreeHandle uint64
 }
 
-func (me *PathFileSystemConnector) unregisterFile(node *inode, handle uint64) RawFuseFile {
+func (me *PathFileSystemConnector) unregisterFile(node *inode, handle uint64) interface{} {
 	me.fileLock.Lock()
 	defer me.fileLock.Unlock()
 	f, ok := me.openFiles[handle]
@@ -168,13 +167,7 @@ func (me *PathFileSystemConnector) unregisterFile(node *inode, handle uint64) Ra
 	return f
 }
 
-func (me *PathFileSystemConnector) getFile(h uint64) RawFuseFile {
-	me.fileLock.RLock()
-	defer me.fileLock.RUnlock()
-	return me.openFiles[h]
-}
-	
-func (me *PathFileSystemConnector) registerFile(node *inode, f RawFuseFile) uint64 {
+func (me *PathFileSystemConnector) registerFile(node *inode, f interface{}) uint64 {
 	me.fileLock.Lock()
 	defer me.fileLock.Unlock()
 
@@ -188,6 +181,18 @@ func (me *PathFileSystemConnector) registerFile(node *inode, f RawFuseFile) uint
 	node.OpenCount++
 	me.openFiles[h] = f
 	return h
+}
+
+func (me *PathFileSystemConnector) getDir(h uint64) RawFuseDir {
+	me.fileLock.RLock()
+	defer me.fileLock.RUnlock()
+	return me.openFiles[h].(RawFuseDir)
+}
+	
+func (me *PathFileSystemConnector) getFile(h uint64) RawFuseFile {
+	me.fileLock.RLock()
+	defer me.fileLock.RUnlock()
+	return me.openFiles[h].(RawFuseFile)
 }
 
 func (me *PathFileSystemConnector) verify() {
@@ -317,7 +322,7 @@ func (me *PathFileSystemConnector) findInode(fullPath string) *inode {
 func NewPathFileSystemConnector(fs PathFilesystem) (out *PathFileSystemConnector) {
 	out = new(PathFileSystemConnector)
 	out.inodeMap = make(map[uint64]*inode)
-	out.openFiles = make(map[uint64]RawFuseFile)
+	out.openFiles = make(map[uint64]interface{})
 	
 	out.nextFreeInode = FUSE_ROOT_ID
 	rootData := out.newInode()
@@ -503,24 +508,34 @@ func (me *PathFileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (
 	return out, OK
 }
 
-func (me *PathFileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseDir, status Status) {
-	fullPath, mount, _ := me.GetPath(header.NodeId)
+func (me *PathFileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
+	fullPath, mount, node := me.GetPath(header.NodeId)
 	if mount == nil {
-		return 0, nil, ENOENT
+		return 0, 0, ENOENT
 	}
 	// TODO - how to handle return flags, the FUSE open flags?
 	stream, err := mount.fs.OpenDir(fullPath)
 	if err != OK {
-		return 0, nil, err
+		return 0, 0, err
 	}
 
 	mount.incOpenCount(1)
 
 	de := new(FuseDir)
-	de.connector = me
-	de.parentIno = header.NodeId
 	de.stream = stream
-	return 0, de, OK
+
+	h := me.registerFile(node, de)
+	
+	return 0, h, OK
+}
+
+func (me *PathFileSystemConnector) ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status) {
+	d := me.getDir(input.Fh)
+	de, code := d.ReadDir(input)
+	if code != OK {
+		return nil, code
+	}
+	return de, OK
 }
 
 func (me *PathFileSystemConnector) Open(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
@@ -722,18 +737,25 @@ func (me *PathFileSystemConnector) Create(header *InHeader, input *CreateIn, nam
 
 func (me *PathFileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
 	_, mount, node := me.GetPath(header.NodeId)
-	f := me.unregisterFile(node, input.Fh)
+	f := me.unregisterFile(node, input.Fh).(RawFuseFile)
 	f.Release()
 	if mount != nil {
 		mount.incOpenCount(-1)
 	}
 }
 
-func (me *PathFileSystemConnector) ReleaseDir(header *InHeader, f RawFuseDir) {
-	_, mount, _ := me.GetPath(header.NodeId)
+func (me *PathFileSystemConnector) ReleaseDir(header *InHeader, input *ReleaseIn) {
+	_, mount, node := me.GetPath(header.NodeId)
 	if mount != nil {
 		mount.incOpenCount(-1)
 	}
+	d := me.unregisterFile(node, input.Fh).(RawFuseDir)
+	d.Release()
+}
+
+func (me *PathFileSystemConnector) FsyncDir(header *InHeader, input *FsyncIn) (code Status) {
+	// What the heck is FsyncDir supposed to do?
+	return OK
 }
 
 func (me *PathFileSystemConnector) GetXAttr(header *InHeader, attribute string) (data []byte, code Status) {
@@ -785,7 +807,7 @@ func (me *PathFileSystemConnector) ListXAttr(header *InHeader) (data []byte, cod
 }
 
 func (me *PathFileSystemConnector) Write(input *WriteIn, data []byte) (written uint32, code Status) {
-	f := me.getFile(input.Fh)
+	f := me.getFile(input.Fh).(RawFuseFile)
 	return f.Write(input, data)
 }
 

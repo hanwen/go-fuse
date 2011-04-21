@@ -529,18 +529,19 @@ type RawFileSystem interface {
 	Ioctl(header *InHeader, input *IoctlIn) (out *IoctlOut, code Status)
 	Poll(header *InHeader, input *PollIn) (out *PollOut, code Status)
 
-	// The return flags are FOPEN_xx.
-	Open(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status)
-	OpenDir(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseDir, status Status)
-
-	ReleaseDir(header *InHeader, f RawFuseDir)
-
 	// File handling.
+	Open(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status)
 	Read(*ReadIn, *BufferPool) ([]byte, Status)
 	Release(header *InHeader, input *ReleaseIn)
 	Write(*WriteIn, []byte) (written uint32, code Status)
 	Flush(*FlushIn) Status
 	Fsync(*FsyncIn) (code Status)
+
+	// Directory handling
+	OpenDir(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status)
+	ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status)
+	ReleaseDir(header *InHeader, input *ReleaseIn)
+	FsyncDir(header *InHeader, input *FsyncIn) (code Status)	
 }
 
 type RawFuseFile interface {
@@ -554,8 +555,7 @@ type RawFuseFile interface {
 
 type RawFuseDir interface {
 	ReadDir(input *ReadIn) (*DirEntryList, Status)
-	ReleaseDir()
-	FsyncDir(input *FsyncIn) (code Status)
+	Release()
 }
 
 type PathFilesystem interface {
@@ -593,7 +593,7 @@ type PathFilesystem interface {
 	// unimplemented: poll, ioctl, bmap.
 }
 
-// Include this method in your implementation to inherit default nop
+// Include this struct in your implementation to inherit default nop
 // implementations.
 
 type DefaultRawFuseDir struct{}

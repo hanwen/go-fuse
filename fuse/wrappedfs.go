@@ -201,16 +201,12 @@ func (me *WrappingRawFilesystem) Poll(header *InHeader, input *PollIn) (out *Pol
 	return me.Original.Poll(header, input)
 }
 
-func (me *WrappingRawFilesystem) OpenDir(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseDir, status Status) {
+func (me *WrappingRawFilesystem) OpenDir(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
 	return me.Original.OpenDir(header, input)
 }
 
 func (me *WrappingRawFilesystem) Release(header *InHeader, input *ReleaseIn) {
 	me.Original.Release(header, input)
-}
-
-func (me *WrappingRawFilesystem) ReleaseDir(header *InHeader, f RawFuseDir) {
-	me.Original.ReleaseDir(header, f)
 }
 
 func (me *WrappingRawFilesystem) Read(input *ReadIn, bp *BufferPool) ([]byte, Status) {
@@ -227,4 +223,16 @@ func (me *WrappingRawFilesystem) Flush(input *FlushIn) Status {
 
 func (me *WrappingRawFilesystem) Fsync(input *FsyncIn) (code Status) {
 	return me.Original.Fsync(input)
+}
+
+func (me *WrappingRawFilesystem) ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status) {
+	return me.Original.ReadDir(header, input)
+}
+
+func (me *WrappingRawFilesystem) ReleaseDir(header *InHeader, input *ReleaseIn) {
+	me.Original.ReleaseDir(header, input)
+}
+
+func (me *WrappingRawFilesystem) FsyncDir(header *InHeader, input *FsyncIn) (code Status) {
+	return me.Original.FsyncDir(header, input)
 }

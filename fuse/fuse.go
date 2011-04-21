@@ -84,49 +84,6 @@ type MountState struct {
 	operationLatencies map[string]int64
 }
 
-func (me *MountState) RegisterFile(file RawFuseFile) uint64 {
-	me.openedFilesMutex.Lock()
-	defer me.openedFilesMutex.Unlock()
-	// We will be screwed if nextFree ever wraps.
-	me.nextFreeFile++
-	index := me.nextFreeFile
-	me.openedFiles[index] = file
-	return index
-}
-
-func (me *MountState) FindFile(index uint64) RawFuseFile {
-	me.openedFilesMutex.RLock()
-	defer me.openedFilesMutex.RUnlock()
-	return me.openedFiles[index]
-}
-
-func (me *MountState) UnregisterFile(handle uint64) {
-	me.openedFilesMutex.Lock()
-	defer me.openedFilesMutex.Unlock()
-	me.openedFiles[handle] = nil, false
-}
-
-func (me *MountState) RegisterDir(dir RawFuseDir) uint64 {
-	me.openedDirsMutex.Lock()
-	defer me.openedDirsMutex.Unlock()
-	me.nextFreeDir++
-	index := me.nextFreeDir
-	me.openedDirs[index] = dir
-	return index
-}
-
-func (me *MountState) FindDir(index uint64) RawFuseDir {
-	me.openedDirsMutex.RLock()
-	defer me.openedDirsMutex.RUnlock()
-	return me.openedDirs[index]
-}
-
-func (me *MountState) UnregisterDir(handle uint64) {
-	me.openedDirsMutex.Lock()
-	defer me.openedDirsMutex.Unlock()
-	me.openedDirs[handle] = nil, false
-}
-
 // Mount filesystem on mountPoint.
 //
 // If threaded is set, each filesystem operation executes in a
@@ -467,10 +424,9 @@ func (me *MountState) dispatch(req *fuseRequest) {
 	case FUSE_READDIR:
 		req.flatData, status = doReadDir(me, h, (*ReadIn)(inData))
 	case FUSE_RELEASEDIR:
-		status = doReleaseDir(me, h, (*ReleaseIn)(inData))
+		me.fileSystem.ReleaseDir(h, (*ReleaseIn)(inData))
 	case FUSE_FSYNCDIR:
-		// todo- check inData type.
-		status = doFsyncDir(me, h, (*FsyncIn)(inData))
+		status = me.fileSystem.FsyncDir(h, (*FsyncIn)(inData))
 	case FUSE_SETXATTR:
 		splits := bytes.Split(data, []byte{0}, 2)
 		status = fs.SetXAttr(h, (*SetXAttrIn)(inData), string(splits[0]), splits[1])
@@ -648,35 +604,23 @@ func doGetXAttr(state *MountState, header *InHeader, input *GetXAttrIn, attr str
 ////////////////////////////////////////////////////////////////
 // Handling directories
 
-func doReleaseDir(state *MountState, header *InHeader, input *ReleaseIn) (code Status) {
-	d := state.FindDir(input.Fh)
-	state.fileSystem.ReleaseDir(header, d)
-	d.ReleaseDir()
-	state.UnregisterDir(input.Fh)
-	return OK
-}
-
 func doOpenDir(state *MountState, header *InHeader, input *OpenIn) (unsafe.Pointer, Status) {
-	flags, fuseDir, status := state.fileSystem.OpenDir(header, input)
+	flags, handle, status := state.fileSystem.OpenDir(header, input)
 	if status != OK {
 		return nil, status
 	}
 
 	out := new(OpenOut)
-	out.Fh = state.RegisterDir(fuseDir)
+	out.Fh = handle
 	out.OpenFlags = flags
 	return unsafe.Pointer(out), status
 }
 
 func doReadDir(state *MountState, header *InHeader, input *ReadIn) (out []byte, code Status) {
-	dir := state.FindDir(input.Fh)
-	entries, code := dir.ReadDir(input)
+	entries, code := state.fileSystem.ReadDir(header, input)
 	if entries == nil {
 		return nil, code
 	}
 	return entries.Bytes(), code
 }
 
-func doFsyncDir(state *MountState, header *InHeader, input *FsyncIn) (code Status) {
-	return state.FindDir(input.Fh).FsyncDir(input)
-}

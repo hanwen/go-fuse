@@ -101,11 +101,8 @@ func (me *DefaultRawFuseFileSystem) Poll(header *InHeader, input *PollIn) (out *
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFuseFileSystem) OpenDir(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseDir, status Status) {
-	return 0, nil, ENOSYS
-}
-
-func (me *DefaultRawFuseFileSystem) ReleaseDir(header *InHeader, f RawFuseDir) {
+func (me *DefaultRawFuseFileSystem) OpenDir(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
+	return 0, 0, ENOSYS
 }
 
 func (me *DefaultRawFuseFileSystem) Read(*ReadIn, *BufferPool) ([]byte, Status) {
@@ -126,6 +123,18 @@ func (me *DefaultRawFuseFileSystem) Flush(input *FlushIn) Status {
 func (me *DefaultRawFuseFileSystem) Fsync(input *FsyncIn) (code Status) {
 	return ENOSYS
 }
+
+func (me *DefaultRawFuseFileSystem) ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status) {
+	return nil, ENOSYS
+}
+
+func (me *DefaultRawFuseFileSystem) ReleaseDir(header *InHeader, input *ReleaseIn) {
+}
+
+func (me *DefaultRawFuseFileSystem) FsyncDir(header *InHeader, input *FsyncIn) (code Status) {
+	return ENOSYS
+}
+
 
 ////////////////////////////////////////////////////////////////
 //  DefaultRawFuseFile
@@ -149,7 +158,6 @@ func (me *DefaultRawFuseFile) Release() {
 func (me *DefaultRawFuseFile) Fsync(*FsyncIn) (code Status) {
 	return ENOSYS
 }
-
 
 ////////////////////////////////////////////////////////////////
 //

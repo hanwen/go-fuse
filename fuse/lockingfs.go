@@ -314,7 +314,7 @@ func (me *LockingRawFilesystem) Poll(header *InHeader, input *PollIn) (out *Poll
 	return me.Original.Poll(header, input)
 }
 
-func (me *LockingRawFilesystem) OpenDir(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseDir, status Status) {
+func (me *LockingRawFilesystem) OpenDir(header *InHeader, input *OpenIn) (flags uint32, h uint64, status Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	return me.Original.OpenDir(header, input)
@@ -326,24 +326,44 @@ func (me *LockingRawFilesystem) Release(header *InHeader, input *ReleaseIn) {
 	me.Original.Release(header, input)
 }
 
-func (me *LockingRawFilesystem) ReleaseDir(header *InHeader, f RawFuseDir) {
+func (me *LockingRawFilesystem) ReleaseDir(header *InHeader, h *ReleaseIn) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	me.Original.ReleaseDir(header, f)
+	me.Original.ReleaseDir(header, h)
 }
 
 func (me *LockingRawFilesystem) Read(input *ReadIn, bp *BufferPool) ([]byte, Status) {
+	me.lock.Lock()
+	defer me.lock.Unlock()
 	return me.Original.Read(input, bp)
 }
 
 func (me *LockingRawFilesystem) Write(input *WriteIn, data []byte) (written uint32, code Status) {
+	me.lock.Lock()
+	defer me.lock.Unlock()
 	return me.Original.Write(input, data)
 }
 
 func (me *LockingRawFilesystem) Flush(input *FlushIn) Status {
+	me.lock.Lock()
+	defer me.lock.Unlock()
 	return me.Original.Flush(input)
 }
 
 func (me *LockingRawFilesystem) Fsync(input *FsyncIn) (code Status) {
+	me.lock.Lock()
+	defer me.lock.Unlock()
 	return me.Original.Fsync(input)
+}
+
+func (me *LockingRawFilesystem) ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status) {
+	me.lock.Lock()
+	defer me.lock.Unlock()
+	return me.Original.ReadDir(header, input)
+}
+
+func (me *LockingRawFilesystem) FsyncDir(header *InHeader, input *FsyncIn) (code Status) {
+	me.lock.Lock()
+	defer me.lock.Unlock()
+	return me.Original.FsyncDir(header, input)
 }

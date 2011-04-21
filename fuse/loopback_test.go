@@ -61,11 +61,12 @@ func (me *testCase) Setup(t *testing.T) {
 
 	var rfs RawFileSystem
 	me.connector = NewPathFileSystemConnector(pfs)
-	rfs = NewTimingRawFilesystem(me.connector)
+	rfs = me.connector
+	rfs = NewTimingRawFilesystem(rfs)
 	rfs = NewLockingRawFilesystem(rfs)
 	
 	me.connector.Debug = true
-	me.state = NewMountState(me.connector)
+	me.state = NewMountState(rfs)
 	me.state.Mount(me.mountPoint)
 
 	//me.state.Debug = false

@@ -166,7 +166,7 @@ func (me *TimingRawFilesystem) Poll(header *InHeader, input *PollIn) (out *PollO
 	return me.Original.Poll(header, input)
 }
 
-func (me *TimingRawFilesystem) OpenDir(header *InHeader, input *OpenIn) (flags uint32, fuseFile RawFuseDir, status Status) {
+func (me *TimingRawFilesystem) OpenDir(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
 	defer me.startTimer("OpenDir")()
 	return me.Original.OpenDir(header, input)
 }
@@ -174,11 +174,6 @@ func (me *TimingRawFilesystem) OpenDir(header *InHeader, input *OpenIn) (flags u
 func (me *TimingRawFilesystem) Release(header *InHeader, input *ReleaseIn) {
 	defer me.startTimer("Release")()
 	me.Original.Release(header, input)
-}
-
-func (me *TimingRawFilesystem) ReleaseDir(header *InHeader, f RawFuseDir) {
-	defer me.startTimer("ReleaseDir")()
-	me.Original.ReleaseDir(header, f)
 }
 
 func (me *TimingRawFilesystem) Read(input *ReadIn, bp *BufferPool) ([]byte, Status) {
@@ -199,4 +194,19 @@ func (me *TimingRawFilesystem) Flush(input *FlushIn) Status {
 func (me *TimingRawFilesystem) Fsync(input *FsyncIn) (code Status) {
 	defer me.startTimer("Fsync")()
 	return me.Original.Fsync(input)
+}
+
+func (me *TimingRawFilesystem) ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status) {
+	defer me.startTimer("ReadDir")()
+	return me.Original.ReadDir(header, input)
+}
+
+func (me *TimingRawFilesystem) ReleaseDir(header *InHeader, input *ReleaseIn) {
+	defer me.startTimer("ReleaseDir")()
+	me.Original.ReleaseDir(header, input)
+}
+
+func (me *TimingRawFilesystem) FsyncDir(header *InHeader, input *FsyncIn) (code Status) {
+	defer me.startTimer("FsyncDir")()	
+	return me.Original.FsyncDir(header, input)
 }
