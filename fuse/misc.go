@@ -24,7 +24,7 @@ func MakeTempDir() string {
 }
 
 // Convert os.Error back to Errno based errors.
-func OsErrorToFuseError(err os.Error) Status {
+func OsErrorToErrno(err os.Error) Status {
 	if err != nil {
 		switch t := err.(type) {
 		case os.Errno:
@@ -32,9 +32,9 @@ func OsErrorToFuseError(err os.Error) Status {
 		case *os.SyscallError:
 			return Status(t.Errno)
 		case *os.PathError:
-			return OsErrorToFuseError(t.Error)
+			return OsErrorToErrno(t.Error)
 		case *os.LinkError:
-			return OsErrorToFuseError(t.Error)
+			return OsErrorToErrno(t.Error)
 		default:
 			log.Println("can't convert error type:", err)
 			return ENOSYS

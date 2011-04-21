@@ -49,7 +49,7 @@ func (me *LoopbackFileSystem) OpenDir(name string) (stream chan DirEntry, status
 	// directories?
 	f, err := os.Open(me.GetPath(name))
 	if err != nil {
-		return nil, OsErrorToFuseError(err)
+		return nil, OsErrorToErrno(err)
 	}
 	output := make(chan DirEntry, 500)
 	go func() {
@@ -80,31 +80,31 @@ func (me *LoopbackFileSystem) OpenDir(name string) (stream chan DirEntry, status
 func (me *LoopbackFileSystem) Open(name string, flags uint32) (fuseFile FuseFile, status Status) {
 	f, err := os.OpenFile(me.GetPath(name), int(flags), 0)
 	if err != nil {
-		return nil, OsErrorToFuseError(err)
+		return nil, OsErrorToErrno(err)
 	}
 	return &LoopbackFile{file: f}, OK
 }
 
 func (me *LoopbackFileSystem) Chmod(path string, mode uint32) (code Status) {
 	err := os.Chmod(me.GetPath(path), mode)
-	return OsErrorToFuseError(err)
+	return OsErrorToErrno(err)
 }
 
 func (me *LoopbackFileSystem) Chown(path string, uid uint32, gid uint32) (code Status) {
-	return OsErrorToFuseError(os.Chown(me.GetPath(path), int(uid), int(gid)))
+	return OsErrorToErrno(os.Chown(me.GetPath(path), int(uid), int(gid)))
 }
 
 func (me *LoopbackFileSystem) Truncate(path string, offset uint64) (code Status) {
-	return OsErrorToFuseError(os.Truncate(me.GetPath(path), int64(offset)))
+	return OsErrorToErrno(os.Truncate(me.GetPath(path), int64(offset)))
 }
 
 func (me *LoopbackFileSystem) Utimens(path string, AtimeNs uint64, MtimeNs uint64) (code Status) {
-	return OsErrorToFuseError(os.Chtimes(me.GetPath(path), int64(AtimeNs), int64(MtimeNs)))
+	return OsErrorToErrno(os.Chtimes(me.GetPath(path), int64(AtimeNs), int64(MtimeNs)))
 }
 
 func (me *LoopbackFileSystem) Readlink(name string) (out string, code Status) {
 	f, err := os.Readlink(me.GetPath(name))
-	return f, OsErrorToFuseError(err)
+	return f, OsErrorToErrno(err)
 }
 
 func (me *LoopbackFileSystem) Mknod(name string, mode uint32, dev uint32) (code Status) {
@@ -112,7 +112,7 @@ func (me *LoopbackFileSystem) Mknod(name string, mode uint32, dev uint32) (code 
 }
 
 func (me *LoopbackFileSystem) Mkdir(path string, mode uint32) (code Status) {
-	return OsErrorToFuseError(os.Mkdir(me.GetPath(path), mode))
+	return OsErrorToErrno(os.Mkdir(me.GetPath(path), mode))
 }
 
 // Don't use os.Remove, it removes twice (unlink followed by rmdir).
@@ -125,16 +125,16 @@ func (me *LoopbackFileSystem) Rmdir(name string) (code Status) {
 }
 
 func (me *LoopbackFileSystem) Symlink(pointedTo string, linkName string) (code Status) {
-	return OsErrorToFuseError(os.Symlink(pointedTo, me.GetPath(linkName)))
+	return OsErrorToErrno(os.Symlink(pointedTo, me.GetPath(linkName)))
 }
 
 func (me *LoopbackFileSystem) Rename(oldPath string, newPath string) (code Status) {
 	err := os.Rename(me.GetPath(oldPath), me.GetPath(newPath))
-	return OsErrorToFuseError(err)
+	return OsErrorToErrno(err)
 }
 
 func (me *LoopbackFileSystem) Link(orig string, newName string) (code Status) {
-	return OsErrorToFuseError(os.Link(me.GetPath(orig), me.GetPath(newName)))
+	return OsErrorToErrno(os.Link(me.GetPath(orig), me.GetPath(newName)))
 }
 
 func (me *LoopbackFileSystem) Access(name string, mode uint32) (code Status) {
@@ -143,7 +143,7 @@ func (me *LoopbackFileSystem) Access(name string, mode uint32) (code Status) {
 
 func (me *LoopbackFileSystem) Create(path string, flags uint32, mode uint32) (fuseFile FuseFile, code Status) {
 	f, err := os.OpenFile(me.GetPath(path), int(flags)|os.O_CREATE, mode)
-	return &LoopbackFile{file: f}, OsErrorToFuseError(err)
+	return &LoopbackFile{file: f}, OsErrorToErrno(err)
 }
 
 func (me *LoopbackFileSystem) GetXAttr(name string, attr string) ([]byte, Status) {
@@ -185,12 +185,12 @@ func (me *LoopbackFile) Read(input *ReadIn, buffers *BufferPool) ([]byte, Status
 	if err == os.EOF {
 		return slice[:n], OK
 	}
-	return slice[:n], OsErrorToFuseError(err)
+	return slice[:n], OsErrorToErrno(err)
 }
 
 func (me *LoopbackFile) Write(input *WriteIn, data []byte) (uint32, Status) {
 	n, err := me.file.WriteAt(data, int64(input.Offset))
-	return uint32(n), OsErrorToFuseError(err)
+	return uint32(n), OsErrorToErrno(err)
 }
 
 func (me *LoopbackFile) Release() {

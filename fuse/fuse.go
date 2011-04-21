@@ -240,7 +240,7 @@ func (me *MountState) loop() {
 
 		err := me.readRequest(req)
 		if err != nil {
-			errNo := OsErrorToFuseError(err)
+			errNo := OsErrorToErrno(err)
 
 			// Retry.
 			if errNo == syscall.ENOENT {
