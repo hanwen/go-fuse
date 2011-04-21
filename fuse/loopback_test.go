@@ -108,7 +108,7 @@ func (me *testCase) removeMountFile() {
 }
 
 func (me *testCase) writeOrigFile() {
-	err = ioutil.WriteFile(me.origFile, []byte(contents), 0700)
+	err := ioutil.WriteFile(me.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
 }
 
