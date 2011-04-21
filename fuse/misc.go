@@ -44,9 +44,15 @@ func OsErrorToFuseError(err os.Error) Status {
 }
 
 func replyString(opcode uint32, ptr unsafe.Pointer) string {
+	var val interface{} 
 	switch opcode {
 	case FUSE_LOOKUP:
-		return fmt.Sprintf("%v", (*EntryOut)(ptr))
+		val = (*EntryOut)(ptr)
+	case FUSE_OPEN:
+		val = (*OpenOut)(ptr)
+	}
+	if val != nil {
+		return fmt.Sprintf("%v", val)
 	}
 	return ""
 }
