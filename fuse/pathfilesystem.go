@@ -18,16 +18,8 @@ type mountData struct {
 
 	// If yes, we are looking to unmount the mounted fs.
 	unmountPending bool
-
-	// Count files, dirs and mounts.
-	openCount int
 }
 
-func (me *mountData) incOpenCount(delta int) {
-	me.mutex.Lock()
-	defer me.mutex.Unlock()
-	me.openCount += delta
-}
 
 func newMount(fs PathFilesystem) *mountData {
 	return &mountData{fs: fs}
@@ -48,6 +40,16 @@ type inode struct {
 
 	mount *mountData
 }
+
+// Should be called with lock held.
+func (me *inode) totalOpenCount() int {
+	o := me.OpenCount
+	for _, v := range me.Children {
+		o += v.totalOpenCount()
+	}
+	return o
+}
+
 
 const initDirSize = 20
 
@@ -359,15 +361,20 @@ func (me *PathFileSystemConnector) Mount(mountPoint string, fs PathFilesystem) S
 	}
 
 	node = me.findInode(mountPoint)
-
-	// TODO - check that fs was not mounted elsewhere.
-	if len(node.Children) > 0 {
-		return EBUSY
-	}
 	if node.Type&ModeToType(S_IFDIR) == 0 {
 		return EINVAL
 	}
 
+	me.lock.Lock()
+	hasChildren := len(node.Children) > 0
+	// don't use defer, as we dont want to hold the lock during
+	// fs.Mount().
+	me.lock.Unlock()
+
+	if hasChildren {
+		return EBUSY
+	}
+	
 	code := fs.Mount(me)
 	if code != OK {
 		if me.Debug {
@@ -381,9 +388,11 @@ func (me *PathFileSystemConnector) Mount(mountPoint string, fs PathFilesystem) S
 	}
 
 	node.mount = newMount(fs)
+
+	me.fileLock.Lock()
+	defer me.fileLock.Unlock()
 	if node.Parent != nil {
-		_, parentMount := node.Parent.GetPath()
-		parentMount.incOpenCount(1)
+		node.Parent.OpenCount++
 	}
 
 	return OK
@@ -400,9 +409,14 @@ func (me *PathFileSystemConnector) Unmount(path string) Status {
 		panic(path)
 	}
 
-	mount.mutex.Lock()
-	defer mount.mutex.Unlock()
-	if mount.openCount > 0 {
+	// Need to lock to look at node.Children
+	me.lock.RLock()
+	defer me.lock.RUnlock()
+
+	me.fileLock.Lock()
+	defer me.fileLock.Unlock()
+
+	if node.totalOpenCount() > 0 {
 		log.Println("Umount - busy: ", mount)
 		return EBUSY
 	}
@@ -411,6 +425,8 @@ func (me *PathFileSystemConnector) Unmount(path string) Status {
 		log.Println("Unmount: ", mount)
 	}
 
+	mount.mutex.Lock()
+	defer mount.mutex.Unlock()
 	if len(node.Children) > 0 {
 		mount.fs.Unmount()
 		mount.unmountPending = true
@@ -419,8 +435,7 @@ func (me *PathFileSystemConnector) Unmount(path string) Status {
 	}
 
 	if node.Parent != nil {
-		_, parentMount := node.Parent.GetPath()
-		parentMount.incOpenCount(-1)
+		node.Parent.OpenCount--
 	}
 	return OK
 }
@@ -519,8 +534,6 @@ func (me *PathFileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (fla
 		return 0, 0, err
 	}
 
-	mount.incOpenCount(1)
-
 	de := new(FuseDir)
 	de.stream = stream
 
@@ -551,7 +564,6 @@ func (me *PathFileSystemConnector) Open(header *InHeader, input *OpenIn) (flags 
 	}
 	h := me.registerFile(node, f)
 	
-	mount.incOpenCount(1)
 	return 0, h, OK
 }
 
@@ -731,24 +743,17 @@ func (me *PathFileSystemConnector) Create(header *InHeader, input *CreateIn, nam
 	}
 		
 	out, code, inode := me.internalLookupWithNode(parent, name, 1)
-	mount.incOpenCount(1)
 	return 0, me.registerFile(inode, f), out, code
 }
 
 func (me *PathFileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
-	_, mount, node := me.GetPath(header.NodeId)
+	_, _, node := me.GetPath(header.NodeId)
 	f := me.unregisterFile(node, input.Fh).(RawFuseFile)
 	f.Release()
-	if mount != nil {
-		mount.incOpenCount(-1)
-	}
 }
 
 func (me *PathFileSystemConnector) ReleaseDir(header *InHeader, input *ReleaseIn) {
-	_, mount, node := me.GetPath(header.NodeId)
-	if mount != nil {
-		mount.incOpenCount(-1)
-	}
+	_, _, node := me.GetPath(header.NodeId)
 	d := me.unregisterFile(node, input.Fh).(RawFuseDir)
 	d.Release()
 }
