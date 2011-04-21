@@ -70,7 +70,7 @@ func (me *ZipDirTree) FindDir(name string) *ZipDirTree {
 	return s
 }
 
-type ZipFileFuse struct {
+type ZipArchiveFileSystem struct {
 	zipReader   *zip.ReadCloser
 	tree        *ZipDirTree
 	ZipFileName string
@@ -100,12 +100,12 @@ func zipFilesToTree(files []*zip.File) *ZipDirTree {
 	return t
 }
 
-func NewZipArchiveFileSystem(name string) *ZipFileFuse {
-	z := new(ZipFileFuse)
+func NewZipArchiveFileSystem(name string) *ZipArchiveFileSystem {
+	z := new(ZipArchiveFileSystem)
 	r, err := zip.OpenReader(name)
 	if err != nil {
 		// TODO - return os.Error instead.
-		log.Println("NewZipFileFuse(): " + err.String())
+		log.Println("NewZipArchiveFileSystem(): " + err.String())
 		return nil
 	}
 	z.ZipFileName = name
@@ -117,7 +117,7 @@ func NewZipArchiveFileSystem(name string) *ZipFileFuse {
 const zip_DIRMODE uint32 = fuse.S_IFDIR | 0700
 const zip_FILEMODE uint32 = fuse.S_IFREG | 0600
 
-func (me *ZipFileFuse) GetAttr(name string) (*fuse.Attr, fuse.Status) {
+func (me *ZipArchiveFileSystem) GetAttr(name string) (*fuse.Attr, fuse.Status) {
 	dir, file := me.tree.Lookup(name)
 	if dir == nil {
 		return nil, fuse.ENOENT
@@ -135,7 +135,7 @@ func (me *ZipFileFuse) GetAttr(name string) (*fuse.Attr, fuse.Status) {
 	return a, fuse.OK
 }
 
-func (me *ZipFileFuse) Open(name string, flags uint32) (file fuse.FuseFile, code fuse.Status) {
+func (me *ZipArchiveFileSystem) Open(name string, flags uint32) (file fuse.FuseFile, code fuse.Status) {
 	if flags&fuse.O_ANYWRITE != 0 {
 		return nil, fuse.EPERM
 	}
@@ -147,7 +147,7 @@ func (me *ZipFileFuse) Open(name string, flags uint32) (file fuse.FuseFile, code
 	return NewZipFile(zfile), fuse.OK
 }
 
-func (me *ZipFileFuse) OpenDir(name string) (stream chan fuse.DirEntry, code fuse.Status) {
+func (me *ZipArchiveFileSystem) OpenDir(name string) (stream chan fuse.DirEntry, code fuse.Status) {
 	zdir, file := me.tree.Lookup(name)
 	if file != nil {
 		return nil, fuse.ENOSYS

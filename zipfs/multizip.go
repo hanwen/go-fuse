@@ -45,7 +45,7 @@ func (me *zipCreateFile) Write(input *fuse.WriteIn, nameBytes []byte) (uint32, f
 	fs := NewZipArchiveFileSystem(zipFile)
 	if fs == nil {
 		// TODO
-		log.Println("NewZipFileFuse returned nil")
+		log.Println("NewZipArchiveFileSystem returned nil")
 		me.zfs.pendingZips[me.Basename] = false, false
 		return 0, fuse.ENOSYS
 	}
@@ -73,7 +73,7 @@ func (me *zipCreateFile) Write(input *fuse.WriteIn, nameBytes []byte) (uint32, f
 type MultiZipFs struct {
 	Connector    *fuse.PathFileSystemConnector
 	lock         sync.RWMutex
-	zips         map[string]*ZipFileFuse
+	zips         map[string]*ZipArchiveFileSystem
 	pendingZips  map[string]bool
 	zipFileNames map[string]string
 
@@ -82,7 +82,7 @@ type MultiZipFs struct {
 
 func NewMultiZipFs() *MultiZipFs {
 	m := new(MultiZipFs)
-	m.zips = make(map[string]*ZipFileFuse)
+	m.zips = make(map[string]*ZipArchiveFileSystem)
 	m.pendingZips = make(map[string]bool)
 	m.zipFileNames = make(map[string]string)
 	m.Connector = fuse.NewPathFileSystemConnector(m)
