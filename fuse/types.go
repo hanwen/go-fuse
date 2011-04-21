@@ -598,5 +598,5 @@ type PathFilesystem interface {
 
 type DefaultRawFuseDir struct{}
 type DefaultPathFilesystem struct{}
-type DefaultRawFuseFile struct{}
+type DefaultFuseFile struct{}
 type DefaultRawFuseFileSystem struct{}

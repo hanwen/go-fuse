@@ -2,7 +2,7 @@ package fuse
 
 // A FUSE file that accepts any write, and always returns EOF.
 type DevNullFile struct {
-	DefaultRawFuseFile
+	DefaultFuseFile
 }
 
 func NewDevNullFile() *DevNullFile {

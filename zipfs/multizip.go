@@ -31,7 +31,7 @@ type zipCreateFile struct {
 	Basename string
 	zfs      *MultiZipFs
 
-	fuse.DefaultRawFuseFile
+	fuse.DefaultFuseFile
 }
 
 func (me *zipCreateFile) Write(input *fuse.WriteIn, nameBytes []byte) (uint32, fuse.Status) {

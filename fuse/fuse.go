@@ -47,18 +47,6 @@ type fuseRequest struct {
 }
 
 type MountState struct {
-	// We should store the RawFuseFile/Dirs on the Go side,
-	// otherwise our files may be GCd.  Here, the index is the Fh
-	// field
-
-	openedFiles      map[uint64]RawFuseFile
-	openedFilesMutex sync.RWMutex
-	nextFreeFile     uint64
-
-	openedDirs      map[uint64]RawFuseDir
-	openedDirsMutex sync.RWMutex
-	nextFreeDir     uint64
-
 	// Empty if unmounted.
 	mountPoint string
 	fileSystem RawFileSystem
@@ -167,8 +155,6 @@ func (me *MountState) Write(req *fuseRequest) {
 
 func NewMountState(fs RawFileSystem) *MountState {
 	me := new(MountState)
-	me.openedDirs = make(map[uint64]RawFuseDir)
-	me.openedFiles = make(map[uint64]RawFuseFile)
 	me.mountPoint = ""
 	me.fileSystem = fs
 	me.buffers = NewBufferPool()

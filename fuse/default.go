@@ -137,25 +137,25 @@ func (me *DefaultRawFuseFileSystem) FsyncDir(header *InHeader, input *FsyncIn) (
 
 
 ////////////////////////////////////////////////////////////////
-//  DefaultRawFuseFile
+//  DefaultFuseFile
 
-func (me *DefaultRawFuseFile) Read(*ReadIn, *BufferPool) ([]byte, Status) {
+func (me *DefaultFuseFile) Read(*ReadIn, *BufferPool) ([]byte, Status) {
 	return []byte(""), ENOSYS
 }
 
-func (me *DefaultRawFuseFile) Write(*WriteIn, []byte) (uint32, Status) {
+func (me *DefaultFuseFile) Write(*WriteIn, []byte) (uint32, Status) {
 	return 0, ENOSYS
 }
 
-func (me *DefaultRawFuseFile) Flush() Status {
+func (me *DefaultFuseFile) Flush() Status {
 	return ENOSYS
 }
 
-func (me *DefaultRawFuseFile) Release() {
+func (me *DefaultFuseFile) Release() {
 
 }
 
-func (me *DefaultRawFuseFile) Fsync(*FsyncIn) (code Status) {
+func (me *DefaultFuseFile) Fsync(*FsyncIn) (code Status) {
 	return ENOSYS
 }
 

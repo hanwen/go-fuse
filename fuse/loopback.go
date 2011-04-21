@@ -175,7 +175,7 @@ func (me *LoopbackFileSystem) FillOptions(options *PathFileSystemConnectorOption
 type LoopbackFile struct {
 	file *os.File
 
-	DefaultRawFuseFile
+	DefaultFuseFile
 }
 
 func (me *LoopbackFile) Read(input *ReadIn, buffers *BufferPool) ([]byte, Status) {

@@ -180,7 +180,7 @@ func (me *ZipFileFuse) OpenDir(name string) (stream chan fuse.DirEntry, code fus
 type ZipFile struct {
 	data []byte
 
-	fuse.DefaultRawFuseFile
+	fuse.DefaultFuseFile
 }
 
 func NewZipFile(f *zip.File) fuse.RawFuseFile {
