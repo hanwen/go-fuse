@@ -231,138 +231,94 @@ func doRename(state *MountState, req *request) {
 
 ////////////////////////////////////////////////////////////////
 
-var operationNames []string
-var inputSizes []int
-var outputSizes []int
+type operationFunc func(*MountState, *request)
 
-type operation func(*MountState, *request)
+type operationHandler struct {
+	Name     string
+	Func operationFunc
+	InputSize int
+	OutputSize int
+}
 
-var operationFuncs []operation
+var operationHandlers []*operationHandler
 
 func operationName(opcode Opcode) string {
-	if opcode > OPCODE_COUNT {
+	h := getHandler(opcode)
+	if h == nil {
 		return "unknown"
 	}
-	return operationNames[opcode]
+	return h.Name
 }
 
-func inputSize(o Opcode) (int, bool) {
-	return lookupSize(o, inputSizes)
-}
-
-func outputSize(o Opcode) (int, bool) {
-	return lookupSize(o, outputSizes)
-}
-
-func lookupSize(o Opcode, sMap []int) (int, bool) {
+func getHandler(o Opcode) *operationHandler {
 	if o >= OPCODE_COUNT {
-		return -1, false
+		return nil
 	}
-	return sMap[int(o)], true
-}
-
-func lookupOperation(o Opcode) operation {
-	return operationFuncs[o]
-}
-
-func makeSizes(dict map[int]int) []int {
-	out := make([]int, OPCODE_COUNT)
-	for i, _ := range out {
-		out[i] = -1
-	}
-
-	for code, val := range dict {
-		out[code] = val
-	}
-	return out
+	return operationHandlers[o]
 }
 
 func init() {
-	inputSizes = makeSizes(map[int]int{
-		FUSE_LOOKUP:      0,
+	operationHandlers = make([]*operationHandler, OPCODE_COUNT)
+	for i, _ := range operationHandlers {
+		operationHandlers[i] = &operationHandler{Name: "UNKNOWN"}
+	}
+	
+	for op, sz := range map[int]int{
 		FUSE_FORGET:      unsafe.Sizeof(ForgetIn{}),
 		FUSE_GETATTR:     unsafe.Sizeof(GetAttrIn{}),
 		FUSE_SETATTR:     unsafe.Sizeof(SetAttrIn{}),
-		FUSE_READLINK:    0,
-		FUSE_SYMLINK:     0,
 		FUSE_MKNOD:       unsafe.Sizeof(MknodIn{}),
 		FUSE_MKDIR:       unsafe.Sizeof(MkdirIn{}),
-		FUSE_UNLINK:      0,
-		FUSE_RMDIR:       0,
 		FUSE_RENAME:      unsafe.Sizeof(RenameIn{}),
 		FUSE_LINK:        unsafe.Sizeof(LinkIn{}),
 		FUSE_OPEN:        unsafe.Sizeof(OpenIn{}),
 		FUSE_READ:        unsafe.Sizeof(ReadIn{}),
 		FUSE_WRITE:       unsafe.Sizeof(WriteIn{}),
-		FUSE_STATFS:      0,
 		FUSE_RELEASE:     unsafe.Sizeof(ReleaseIn{}),
 		FUSE_FSYNC:       unsafe.Sizeof(FsyncIn{}),
 		FUSE_SETXATTR:    unsafe.Sizeof(SetXAttrIn{}),
 		FUSE_GETXATTR:    unsafe.Sizeof(GetXAttrIn{}),
 		FUSE_LISTXATTR:   unsafe.Sizeof(GetXAttrIn{}),
-		FUSE_REMOVEXATTR: 0,
 		FUSE_FLUSH:       unsafe.Sizeof(FlushIn{}),
 		FUSE_INIT:        unsafe.Sizeof(InitIn{}),
 		FUSE_OPENDIR:     unsafe.Sizeof(OpenIn{}),
 		FUSE_READDIR:     unsafe.Sizeof(ReadIn{}),
 		FUSE_RELEASEDIR:  unsafe.Sizeof(ReleaseIn{}),
 		FUSE_FSYNCDIR:    unsafe.Sizeof(FsyncIn{}),
-		FUSE_GETLK:       0,
-		FUSE_SETLK:       0,
-		FUSE_SETLKW:      0,
 		FUSE_ACCESS:      unsafe.Sizeof(AccessIn{}),
 		FUSE_CREATE:      unsafe.Sizeof(CreateIn{}),
 		FUSE_INTERRUPT:   unsafe.Sizeof(InterruptIn{}),
 		FUSE_BMAP:        unsafe.Sizeof(BmapIn{}),
-		FUSE_DESTROY:     0,
 		FUSE_IOCTL:       unsafe.Sizeof(IoctlIn{}),
 		FUSE_POLL:        unsafe.Sizeof(PollIn{}),
-	})
+		} {
+		operationHandlers[op].InputSize = sz
+	}
 
-	outputSizes = makeSizes(map[int]int{
+	for op, sz := range map[int]int{
 		FUSE_LOOKUP:      unsafe.Sizeof(EntryOut{}),
-		FUSE_FORGET:      0,
 		FUSE_GETATTR:     unsafe.Sizeof(AttrOut{}),
 		FUSE_SETATTR:     unsafe.Sizeof(AttrOut{}),
-		FUSE_READLINK:    0,
 		FUSE_SYMLINK:     unsafe.Sizeof(EntryOut{}),
 		FUSE_MKNOD:       unsafe.Sizeof(EntryOut{}),
 		FUSE_MKDIR:       unsafe.Sizeof(EntryOut{}),
-		FUSE_UNLINK:      0,
-		FUSE_RMDIR:       0,
-		FUSE_RENAME:      0,
 		FUSE_LINK:        unsafe.Sizeof(EntryOut{}),
 		FUSE_OPEN:        unsafe.Sizeof(OpenOut{}),
-		FUSE_READ:        0,
 		FUSE_WRITE:       unsafe.Sizeof(WriteOut{}),
 		FUSE_STATFS:      unsafe.Sizeof(StatfsOut{}),
-		FUSE_RELEASE:     0,
-		FUSE_FSYNC:       0,
-		FUSE_SETXATTR:    0,
 		FUSE_GETXATTR:    unsafe.Sizeof(GetXAttrOut{}),
 		FUSE_LISTXATTR:   unsafe.Sizeof(GetXAttrOut{}),
-		FUSE_REMOVEXATTR: 0,
-		FUSE_FLUSH:       0,
 		FUSE_INIT:        unsafe.Sizeof(InitOut{}),
 		FUSE_OPENDIR:     unsafe.Sizeof(OpenOut{}),
-		FUSE_READDIR:     0,
-		FUSE_RELEASEDIR:  0,
-		FUSE_FSYNCDIR:    0,
-		// TODO
-		FUSE_GETLK:     0,
-		FUSE_SETLK:     0,
-		FUSE_SETLKW:    0,
-		FUSE_ACCESS:    0,
 		FUSE_CREATE:    unsafe.Sizeof(CreateOut{}),
-		FUSE_INTERRUPT: 0,
 		FUSE_BMAP:      unsafe.Sizeof(BmapOut{}),
-		FUSE_DESTROY:   0,
 		FUSE_IOCTL:     unsafe.Sizeof(IoctlOut{}),
 		FUSE_POLL:      unsafe.Sizeof(PollOut{}),
-	})
-
-	operationNames = make([]string, OPCODE_COUNT)
-	for k, v := range map[int]string{
+		} {
+		operationHandlers[op].OutputSize = sz
+	}
+	
+	for op, v := range map[int]string{
 		FUSE_LOOKUP:      "FUSE_LOOKUP",
 		FUSE_FORGET:      "FUSE_FORGET",
 		FUSE_GETATTR:     "FUSE_GETATTR",
@@ -401,11 +357,10 @@ func init() {
 		FUSE_DESTROY:     "FUSE_DESTROY",
 		FUSE_IOCTL:       "FUSE_IOCTL",
 		FUSE_POLL:        "FUSE_POLL"} {
-		operationNames[k] = v
+		operationHandlers[op].Name = v
 	}
 
-	operationFuncs = make([]operation, OPCODE_COUNT)
-	for k, v := range map[Opcode]operation{
+	for op, v := range map[Opcode]operationFunc{
 		FUSE_OPEN:        doOpen,
 		FUSE_READDIR:     doReadDir,
 		FUSE_WRITE:       doWrite,
@@ -437,6 +392,6 @@ func init() {
 		FUSE_SYMLINK:     doSymlink,
 		FUSE_RENAME:      doRename,
 	} {
-		operationFuncs[k] = v
+		operationHandlers[op].Func = v
 	}
 }

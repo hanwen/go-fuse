@@ -254,66 +254,60 @@ func (me *MountState) Loop(threaded bool) {
 }
 
 
-func (me *MountState) chopMessage(req *request) bool {
+func (me *MountState) chopMessage(req *request) *operationHandler {
 	inHSize := unsafe.Sizeof(InHeader{})
 	if len(req.inputBuf) < inHSize {
 		me.Error(os.NewError(fmt.Sprintf("Short read for input header: %v", req.inputBuf)))
-		return false
+		return nil
 	}
 	
 	req.inHeader = (*InHeader)(unsafe.Pointer(&req.inputBuf[0]))
 	req.arg = req.inputBuf[inHSize:]
 
-	argSize, ok := inputSize(req.inHeader.Opcode)
-	if !ok {
+	handler := getHandler(req.inHeader.Opcode)
+	if handler == nil || handler.Func == nil {
 		log.Println("Unknown opcode %d (input)", req.inHeader.Opcode)
 		req.status = ENOSYS
-		return true
+		return handler
 	}
 
-	if len(req.arg) < argSize {
+	if len(req.arg) < handler.InputSize {
 		log.Println("Short read for %v: %v", req.inHeader.Opcode, req.arg)
 		req.status = EIO
-		return true
+		return handler
 	}
 
-	if argSize > 0 {
+	if handler.InputSize > 0 {
 		req.inData = unsafe.Pointer(&req.arg[0])
-		req.arg = req.arg[argSize:]
+		req.arg = req.arg[handler.InputSize:]
 	}
-	return true
+	return handler
 }
 
 func (me *MountState) handle(req *request) {
 	defer me.discardRequest(req)
-	if !me.chopMessage(req) {
+	handler := me.chopMessage(req)
+
+	if handler == nil {
 		return
 	}
+
 	if req.status == OK {
-		me.dispatch(req)
+		me.dispatch(req, handler)
 	}
 	
 	// If we try to write OK, nil, we will get
 	// error:  writer: Writev [[16 0 0 0 0 0 0 0 17 0 0 0 0 0 0 0]]
 	// failed, err: writev: no such file or directory
 	if req.inHeader.Opcode != FUSE_FORGET {
-		serialize(req, me.Debug)
+		serialize(req, handler, me.Debug)
 		req.preWriteNs = time.Nanoseconds()
 		me.Write(req)
 	}
 }
 
-func (me *MountState) dispatch(req *request) {
+func (me *MountState) dispatch(req *request, handler *operationHandler) {
 	req.dispatchNs = time.Nanoseconds()
-
-	f := lookupOperation(req.inHeader.Opcode)
-	if f == nil {
-		msg := fmt.Sprintf("Unsupported OpCode: %d=%v",
-			req.inHeader.Opcode, operationName(req.inHeader.Opcode))
-		me.Error(os.NewError(msg))
-		req.status = ENOSYS
-		return
-	}
 
 	if me.Debug {
 		nm := ""
@@ -321,7 +315,7 @@ func (me *MountState) dispatch(req *request) {
 		log.Printf("Dispatch: %v, NodeId: %v %s\n",
 			operationName(req.inHeader.Opcode), req.inHeader.NodeId, nm)
 	}
-	f(me, req)
+	handler.Func(me, req)
 }
 
 // Thanks to Andrew Gerrand for this hack.
@@ -330,13 +324,8 @@ func asSlice(ptr unsafe.Pointer, byteCount int) []byte {
 	return *(*[]byte)(unsafe.Pointer(h))
 }
 
-func serialize(req *request, debug bool) {
-	dataLength, ok := outputSize(req.inHeader.Opcode)
-	if !ok {
-		log.Println("Unknown opcode %d (output)", req.inHeader.Opcode)
-		req.status = ENOSYS
-		return
-	}
+func serialize(req *request, handler *operationHandler, debug bool) {
+	dataLength := handler.OutputSize
 	if req.outData == nil || req.status != OK {
 		dataLength = 0
 	}
