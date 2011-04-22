@@ -143,6 +143,8 @@ const (
 	FUSE_IOCTL       = 39
 	FUSE_POLL        = 40
 
+	OPCODE_COUNT = 41
+
 	CUSE_INIT = 4096
 )
 
@@ -287,8 +289,8 @@ type OpenOut struct {
 }
 
 type CreateOut struct {
-	Entry EntryOut
-	Open  OpenOut
+	EntryOut
+	OpenOut
 }
 
 type ReleaseIn struct {
@@ -456,7 +458,7 @@ type NotifyPollWakeupOut struct {
 
 type InHeader struct {
 	Length uint32
-	Opcode uint32
+	Opcode
 	Unique uint64
 	NodeId uint64
 	Identity
@@ -528,9 +530,13 @@ type RawFileSystem interface {
 	RemoveXAttr(header *InHeader, attr string) (code Status)
 	Access(header *InHeader, input *AccessIn) (code Status)
 	Create(header *InHeader, input *CreateIn, name string) (flags uint32, handle uint64, out *EntryOut, code Status)
-	Bmap(header *InHeader, input *BmapIn) (out *BmapOut, code Status)
-	Ioctl(header *InHeader, input *IoctlIn) (out *IoctlOut, code Status)
-	Poll(header *InHeader, input *PollIn) (out *PollOut, code Status)
+
+	/*
+	 	// unimplemented.
+		Bmap(header *InHeader, input *BmapIn) (out *BmapOut, code Status)
+		Ioctl(header *InHeader, input *IoctlIn) (out *IoctlOut, code Status)
+		Poll(header *InHeader, input *PollIn) (out *PollOut, code Status)
+	*/
 
 	// File handling.
 	Open(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status)

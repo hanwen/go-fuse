@@ -1,7 +1,9 @@
+// Code that handles the control loop, and en/decoding messages
+// to/from the kernel.  Dispatches calls into RawFileSystem.
+
 package fuse
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"os"
@@ -28,8 +30,9 @@ type request struct {
 	inputBuf []byte
 
 	// These split up inputBuf.
-	inHeader *InHeader
-	arg      []byte
+	inHeader *InHeader      // generic header
+	inData   unsafe.Pointer // per op data
+	arg      []byte         // flat data.
 
 	// Unstructured data, a pointer to the relevant XxxxOut struct.
 	data     unsafe.Pointer
@@ -44,6 +47,14 @@ type request struct {
 	startNs    int64
 	dispatchNs int64
 	preWriteNs int64
+}
+
+func (me *request) filename() string {
+	return strings.TrimRight(string(me.arg), "\x00")
+}
+
+func (me *request) filenames(count int) []string {
+	return strings.Split(string(me.arg), "\x00", count)
 }
 
 type MountState struct {
@@ -252,6 +263,10 @@ func (me *MountState) handle(req *request) {
 	req.inHeader = (*InHeader)(unsafe.Pointer(&req.inputBuf[0]))
 	req.arg = req.inputBuf[inHSize:]
 	me.dispatch(req)
+
+	// If we try to write OK, nil, we will get
+	// error:  writer: Writev [[16 0 0 0 0 0 0 0 17 0 0 0 0 0 0 0]]
+	// failed, err: writev: no such file or directory
 	if req.inHeader.Opcode != FUSE_FORGET {
 		serialize(req, me.Debug)
 		req.preWriteNs = time.Nanoseconds()
@@ -260,165 +275,40 @@ func (me *MountState) handle(req *request) {
 }
 
 func (me *MountState) dispatch(req *request) {
-	h := req.inHeader
-	argumentSize, ok := inputSizeMap[int(h.Opcode)]
+	argSize, ok := inputSize(req.inHeader.Opcode)
 	if !ok {
-		log.Println("Unknown opcode %d (input)", h.Opcode)
+		log.Println("Unknown opcode %d (input)", req.inHeader.Opcode)
 		req.status = ENOSYS
 		return
 	}
-	if len(req.arg) < argumentSize {
-		log.Println("Short read for %v: %v", h.Opcode, req.arg)
+
+	if len(req.arg) < argSize {
+		log.Println("Short read for %v: %v", req.inHeader.Opcode, req.arg)
 		req.status = EIO
 		return
 	}
 
-	var inData unsafe.Pointer
-	if argumentSize > 0 {
-		inData = unsafe.Pointer(&req.arg[0])
-	}
-	data := req.arg[argumentSize:]
-
-	var status Status = OK
-	fs := me.fileSystem
-
-	filename := ""
-	// Perhaps a map is faster?
-	if h.Opcode == FUSE_UNLINK || h.Opcode == FUSE_RMDIR ||
-		h.Opcode == FUSE_LOOKUP || h.Opcode == FUSE_MKDIR ||
-		h.Opcode == FUSE_MKNOD || h.Opcode == FUSE_CREATE ||
-		h.Opcode == FUSE_LINK || h.Opcode == FUSE_GETXATTR ||
-		h.Opcode == FUSE_REMOVEXATTR {
-		filename = strings.TrimRight(string(data), "\x00")
-	}
-	if me.Debug {
-		nm := ""
-		if filename != "" {
-			nm = "n: '" + filename + "'"
-		}
-		if h.Opcode == FUSE_RENAME {
-			nm = "n: '" + string(data) + "'"
-		}
-
-		log.Printf("Dispatch: %v, NodeId: %v %s\n", operationName(h.Opcode), h.NodeId, nm)
+	if argSize > 0 {
+		req.inData = unsafe.Pointer(&req.arg[0])
+		req.arg = req.arg[argSize:]
 	}
 
-	// Follow ordering of fuse_lowlevel.h.
-	switch h.Opcode {
-	case FUSE_INIT:
-		req.data, status = me.init(h, (*InitIn)(inData))
-	case FUSE_DESTROY:
-		fs.Destroy(h, (*InitIn)(inData))
-	case FUSE_LOOKUP:
-		lookupOut, s := fs.Lookup(h, filename)
-		status = s
-		req.data = unsafe.Pointer(lookupOut)
-	case FUSE_FORGET:
-		fs.Forget(h, (*ForgetIn)(inData))
-		// If we try to write OK, nil, we will get
-		// error:  writer: Writev [[16 0 0 0 0 0 0 0 17 0 0 0 0 0 0 0]]
-		// failed, err: writev: no such file or directory
-		return
-	case FUSE_GETATTR:
-		// TODO - if inData.Fh is set, do file.GetAttr
-		attrOut, s := fs.GetAttr(h, (*GetAttrIn)(inData))
-		status = s
-		req.data = unsafe.Pointer(attrOut)
-	case FUSE_SETATTR:
-		req.data, status = doSetattr(me, h, (*SetAttrIn)(inData))
-	case FUSE_READLINK:
-		req.flatData, status = fs.Readlink(h)
-	case FUSE_MKNOD:
-		entryOut, s := fs.Mknod(h, (*MknodIn)(inData), filename)
-		status = s
-		req.data = unsafe.Pointer(entryOut)
-	case FUSE_MKDIR:
-		entryOut, s := fs.Mkdir(h, (*MkdirIn)(inData), filename)
-		status = s
-		req.data = unsafe.Pointer(entryOut)
-	case FUSE_UNLINK:
-		status = fs.Unlink(h, filename)
-	case FUSE_RMDIR:
-		status = fs.Rmdir(h, filename)
-	case FUSE_SYMLINK:
-		filenames := strings.Split(string(data), "\x00", 3)
-		if len(filenames) >= 2 {
-			entryOut, s := fs.Symlink(h, filenames[1], filenames[0])
-			status = s
-			req.data = unsafe.Pointer(entryOut)
-		} else {
-			status = EIO
-		}
-	case FUSE_RENAME:
-		filenames := strings.Split(string(data), "\x00", 3)
-		if len(filenames) >= 2 {
-			status = fs.Rename(h, (*RenameIn)(inData), filenames[0], filenames[1])
-		} else {
-			status = EIO
-		}
-	case FUSE_LINK:
-		entryOut, s := fs.Link(h, (*LinkIn)(inData), filename)
-		status = s
-		req.data = unsafe.Pointer(entryOut)
-	case FUSE_OPEN:
-		req.data, status = doOpen(me, h, (*OpenIn)(inData))
-	case FUSE_READ:
-		req.flatData, status = me.fileSystem.Read((*ReadIn)(inData), me.buffers)
-	case FUSE_WRITE:
-		req.data, status = doWrite(me, h, (*WriteIn)(inData), data)
-	case FUSE_FLUSH:
-		status = me.fileSystem.Flush((*FlushIn)(inData))
-	case FUSE_RELEASE:
-		me.fileSystem.Release(h, (*ReleaseIn)(inData))
-	case FUSE_FSYNC:
-		status = me.fileSystem.Fsync((*FsyncIn)(inData))
-	case FUSE_OPENDIR:
-		req.data, status = doOpenDir(me, h, (*OpenIn)(inData))
-	case FUSE_READDIR:
-		req.flatData, status = doReadDir(me, h, (*ReadIn)(inData))
-	case FUSE_RELEASEDIR:
-		me.fileSystem.ReleaseDir(h, (*ReleaseIn)(inData))
-	case FUSE_FSYNCDIR:
-		status = me.fileSystem.FsyncDir(h, (*FsyncIn)(inData))
-	case FUSE_SETXATTR:
-		splits := bytes.Split(data, []byte{0}, 2)
-		status = fs.SetXAttr(h, (*SetXAttrIn)(inData), string(splits[0]), splits[1])
-	case FUSE_GETXATTR:
-		req.data, req.flatData, status = doGetXAttr(me, h, (*GetXAttrIn)(inData), filename, h.Opcode)
-	case FUSE_LISTXATTR:
-		req.data, req.flatData, status = doGetXAttr(me, h, (*GetXAttrIn)(inData), filename, h.Opcode)
-	case FUSE_REMOVEXATTR:
-		status = fs.RemoveXAttr(h, filename)
-	case FUSE_ACCESS:
-		status = fs.Access(h, (*AccessIn)(inData))
-	case FUSE_CREATE:
-		req.data, status = doCreate(me, h, (*CreateIn)(inData), filename)
-
-	// TODO - implement file locking.
-	// case FUSE_SETLK
-	// case FUSE_SETLKW
-	case FUSE_BMAP:
-		bmapOut, s := fs.Bmap(h, (*BmapIn)(inData))
-		status = s
-		req.data = unsafe.Pointer(bmapOut)
-	case FUSE_IOCTL:
-		ioctlOut, s := fs.Ioctl(h, (*IoctlIn)(inData))
-		status = s
-		req.data = unsafe.Pointer(ioctlOut)
-	case FUSE_POLL:
-		pollOut, s := fs.Poll(h, (*PollIn)(inData))
-		status = s
-		req.data = unsafe.Pointer(pollOut)
-
-	// TODO - figure out how to support this
-	// case FUSE_INTERRUPT
-	default:
-		me.Error(os.NewError(fmt.Sprintf("Unsupported OpCode: %d=%v", h.Opcode, operationName(h.Opcode))))
+	f := lookupOperation(req.inHeader.Opcode)
+	if f == nil {
+		msg := fmt.Sprintf("Unsupported OpCode: %d=%v",
+			req.inHeader.Opcode, operationName(req.inHeader.Opcode))
+		me.Error(os.NewError(msg))
 		req.status = ENOSYS
 		return
 	}
 
-	req.status = status
+	if me.Debug {
+		nm := ""
+		// TODO - reinstate filename printing.
+		log.Printf("Dispatch: %v, NodeId: %v %s\n",
+			operationName(req.inHeader.Opcode), req.inHeader.NodeId, nm)
+	}
+	f(me, req)
 }
 
 // Thanks to Andrew Gerrand for this hack.
@@ -428,7 +318,7 @@ func asSlice(ptr unsafe.Pointer, byteCount int) []byte {
 }
 
 func serialize(req *request, debug bool) {
-	dataLength, ok := outputSizeMap[int(req.inHeader.Opcode)]
+	dataLength, ok := outputSize(req.inHeader.Opcode)
 	if !ok {
 		log.Println("Unknown opcode %d (output)", req.inHeader.Opcode)
 		req.status = ENOSYS
@@ -486,93 +376,4 @@ func (me *MountState) init(h *InHeader, input *InitIn) (unsafe.Pointer, Status) 
 	out.MaxWrite = maxRead
 
 	return unsafe.Pointer(out), OK
-}
-
-////////////////////////////////////////////////////////////////
-// Handling files.
-
-func doOpen(state *MountState, header *InHeader, input *OpenIn) (unsafe.Pointer, Status) {
-	flags, handle, status := state.fileSystem.Open(header, input)
-	if status != OK {
-		return nil, status
-	}
-
-	out := new(OpenOut)
-	out.Fh = handle
-	out.OpenFlags = flags
-	return unsafe.Pointer(out), status
-}
-
-func doCreate(state *MountState, header *InHeader, input *CreateIn, name string) (unsafe.Pointer, Status) {
-	flags, handle, entry, status := state.fileSystem.Create(header, input, name)
-	if status != OK {
-		return nil, status
-	}
-	out := new(CreateOut)
-	out.Entry = *entry
-	out.Open.Fh = handle
-	out.Open.OpenFlags = flags
-
-	return unsafe.Pointer(out), status
-}
-
-func doWrite(state *MountState, header *InHeader, input *WriteIn, data []byte) (out unsafe.Pointer, code Status) {
-	n, status := state.fileSystem.Write(input, data)
-	o := &WriteOut{
-		Size: n,
-	}
-	return unsafe.Pointer(o), status
-}
-
-func doSetattr(state *MountState, header *InHeader, input *SetAttrIn) (out unsafe.Pointer, code Status) {
-	// TODO - if Fh != 0, we should do a FSetAttr instead.
-	o, s := state.fileSystem.SetAttr(header, input)
-	return unsafe.Pointer(o), s
-}
-
-func doGetXAttr(state *MountState, header *InHeader, input *GetXAttrIn, attr string, opcode uint32) (out unsafe.Pointer, data []byte, code Status) {
-	if opcode == FUSE_GETXATTR {
-		data, code = state.fileSystem.GetXAttr(header, attr)
-	} else {
-		data, code = state.fileSystem.ListXAttr(header)
-	}
-	if code != OK {
-		return nil, nil, code
-	}
-
-	size := uint32(len(data))
-	if input.Size == 0 {
-		out := new(GetXAttrOut)
-		out.Size = size
-		return unsafe.Pointer(out), nil, OK
-	}
-
-	if size > input.Size {
-		return nil, nil, ERANGE
-	}
-
-	return nil, data, OK
-}
-
-////////////////////////////////////////////////////////////////
-// Handling directories
-
-func doOpenDir(state *MountState, header *InHeader, input *OpenIn) (unsafe.Pointer, Status) {
-	flags, handle, status := state.fileSystem.OpenDir(header, input)
-	if status != OK {
-		return nil, status
-	}
-
-	out := new(OpenOut)
-	out.Fh = handle
-	out.OpenFlags = flags
-	return unsafe.Pointer(out), status
-}
-
-func doReadDir(state *MountState, header *InHeader, input *ReadIn) (out []byte, code Status) {
-	entries, code := state.fileSystem.ReadDir(header, input)
-	if entries == nil {
-		return nil, code
-	}
-	return entries.Bytes(), code
 }

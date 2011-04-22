@@ -1,6 +1,7 @@
 package fuse
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"unsafe"
@@ -13,7 +14,7 @@ func (code Status) String() string {
 	return fmt.Sprintf("%d=%v", int(code), os.Errno(code))
 }
 
-func replyString(opcode uint32, ptr unsafe.Pointer) string {
+func replyString(opcode Opcode, ptr unsafe.Pointer) string {
 	var val interface{}
 	switch opcode {
 	case FUSE_LOOKUP:
@@ -27,95 +28,257 @@ func replyString(opcode uint32, ptr unsafe.Pointer) string {
 	return ""
 }
 
-func operationName(opcode uint32) string {
-	switch opcode {
-	case FUSE_LOOKUP:
-		return "FUSE_LOOKUP"
-	case FUSE_FORGET:
-		return "FUSE_FORGET"
-	case FUSE_GETATTR:
-		return "FUSE_GETATTR"
-	case FUSE_SETATTR:
-		return "FUSE_SETATTR"
-	case FUSE_READLINK:
-		return "FUSE_READLINK"
-	case FUSE_SYMLINK:
-		return "FUSE_SYMLINK"
-	case FUSE_MKNOD:
-		return "FUSE_MKNOD"
-	case FUSE_MKDIR:
-		return "FUSE_MKDIR"
-	case FUSE_UNLINK:
-		return "FUSE_UNLINK"
-	case FUSE_RMDIR:
-		return "FUSE_RMDIR"
-	case FUSE_RENAME:
-		return "FUSE_RENAME"
-	case FUSE_LINK:
-		return "FUSE_LINK"
-	case FUSE_OPEN:
-		return "FUSE_OPEN"
-	case FUSE_READ:
-		return "FUSE_READ"
-	case FUSE_WRITE:
-		return "FUSE_WRITE"
-	case FUSE_STATFS:
-		return "FUSE_STATFS"
-	case FUSE_RELEASE:
-		return "FUSE_RELEASE"
-	case FUSE_FSYNC:
-		return "FUSE_FSYNC"
-	case FUSE_SETXATTR:
-		return "FUSE_SETXATTR"
-	case FUSE_GETXATTR:
-		return "FUSE_GETXATTR"
-	case FUSE_LISTXATTR:
-		return "FUSE_LISTXATTR"
-	case FUSE_REMOVEXATTR:
-		return "FUSE_REMOVEXATTR"
-	case FUSE_FLUSH:
-		return "FUSE_FLUSH"
-	case FUSE_INIT:
-		return "FUSE_INIT"
-	case FUSE_OPENDIR:
-		return "FUSE_OPENDIR"
-	case FUSE_READDIR:
-		return "FUSE_READDIR"
-	case FUSE_RELEASEDIR:
-		return "FUSE_RELEASEDIR"
-	case FUSE_FSYNCDIR:
-		return "FUSE_FSYNCDIR"
-	case FUSE_GETLK:
-		return "FUSE_GETLK"
-	case FUSE_SETLK:
-		return "FUSE_SETLK"
-	case FUSE_SETLKW:
-		return "FUSE_SETLKW"
-	case FUSE_ACCESS:
-		return "FUSE_ACCESS"
-	case FUSE_CREATE:
-		return "FUSE_CREATE"
-	case FUSE_INTERRUPT:
-		return "FUSE_INTERRUPT"
-	case FUSE_BMAP:
-		return "FUSE_BMAP"
-	case FUSE_DESTROY:
-		return "FUSE_DESTROY"
-	case FUSE_IOCTL:
-		return "FUSE_IOCTL"
-	case FUSE_POLL:
-		return "FUSE_POLL"
+////////////////////////////////////////////////////////////////
+
+func doOpen(state *MountState, req *request) {
+	flags, handle, status := state.fileSystem.Open(req.inHeader, (*OpenIn)(req.inData))
+	req.status = status
+	if status != OK {
+		return
 	}
-	return "UNKNOWN"
+
+	out := &OpenOut{
+		Fh:        handle,
+		OpenFlags: flags,
+	}
+
+	req.data = unsafe.Pointer(out)
 }
 
 
+func doCreate(state *MountState, req *request) {
+	flags, handle, entry, status := state.fileSystem.Create(req.inHeader, (*CreateIn)(req.inData), req.filename())
+	req.status = status
+	if status == OK {
+		req.data = unsafe.Pointer(&CreateOut{
+			EntryOut: *entry,
+			OpenOut: OpenOut{
+				Fh:        handle,
+				OpenFlags: flags,
+			},
+		})
+	}
+}
 
-var inputSizeMap map[int]int
-var outputSizeMap map[int]int
+
+func doReadDir(state *MountState, req *request) {
+	entries, code := state.fileSystem.ReadDir(req.inHeader, (*ReadIn)(req.inData))
+	if entries != nil {
+		req.flatData = entries.Bytes()
+	}
+	req.status = code
+}
+
+
+func doOpenDir(state *MountState, req *request) {
+	flags, handle, status := state.fileSystem.OpenDir(req.inHeader, (*OpenIn)(req.inData))
+	req.status = status
+	if status == OK {
+		req.data = unsafe.Pointer(&OpenOut{
+			Fh:        handle,
+			OpenFlags: flags,
+		})
+	}
+}
+
+func doSetattr(state *MountState, req *request) {
+	// TODO - if Fh != 0, we should do a FSetAttr instead.
+	o, s := state.fileSystem.SetAttr(req.inHeader, (*SetAttrIn)(req.inData))
+	req.data = unsafe.Pointer(o)
+	req.status = s
+}
+
+func doWrite(state *MountState, req *request) {
+	n, status := state.fileSystem.Write((*WriteIn)(req.inData), req.arg)
+	o := &WriteOut{
+		Size: n,
+	}
+	req.data = unsafe.Pointer(o)
+	req.status = status
+}
+
+
+func doGetXAttr(state *MountState, req *request) {
+	input := (*GetXAttrIn)(req.inData)
+	var data []byte
+	if req.inHeader.Opcode == FUSE_GETXATTR {
+		data, req.status = state.fileSystem.GetXAttr(req.inHeader, req.filename())
+	} else {
+		data, req.status = state.fileSystem.ListXAttr(req.inHeader)
+	}
+
+	if req.status != OK {
+		return
+	}
+
+	size := uint32(len(data))
+	if input.Size == 0 {
+		out := &GetXAttrOut{
+			Size: size,
+		}
+		req.data = unsafe.Pointer(out)
+	}
+
+	if size > input.Size {
+		req.status = ERANGE
+	}
+
+	req.flatData = data
+}
+
+func doGetAttr(state *MountState, req *request) {
+	// TODO - if req.inData.Fh is set, do file.GetAttr
+	attrOut, s := state.fileSystem.GetAttr(req.inHeader, (*GetAttrIn)(req.inData))
+	req.status = s
+	req.data = unsafe.Pointer(attrOut)
+}
+
+func doForget(state *MountState, req *request) {
+	state.fileSystem.Forget(req.inHeader, (*ForgetIn)(req.inData))
+}
+
+func doReadlink(state *MountState, req *request) {
+	req.flatData, req.status = state.fileSystem.Readlink(req.inHeader)
+}
+func doInit(state *MountState, req *request) {
+	req.data, req.status = state.init(req.inHeader, (*InitIn)(req.inData))
+}
+func doDestroy(state *MountState, req *request) {
+	state.fileSystem.Destroy(req.inHeader, (*InitIn)(req.inData))
+}
+
+func doLookup(state *MountState, req *request) {
+	lookupOut, s := state.fileSystem.Lookup(req.inHeader, req.filename())
+	req.status = s
+	req.data = unsafe.Pointer(lookupOut)
+}
+
+func doMknod(state *MountState, req *request) {
+	entryOut, s := state.fileSystem.Mknod(req.inHeader, (*MknodIn)(req.inData), req.filename())
+	req.status = s
+	req.data = unsafe.Pointer(entryOut)
+}
+
+func doMkdir(state *MountState, req *request) {
+	entryOut, s := state.fileSystem.Mkdir(req.inHeader, (*MkdirIn)(req.inData), req.filename())
+	req.status = s
+	req.data = unsafe.Pointer(entryOut)
+}
+
+func doUnlink(state *MountState, req *request) {
+	req.status = state.fileSystem.Unlink(req.inHeader, req.filename())
+}
+
+func doRmdir(state *MountState, req *request) {
+	req.status = state.fileSystem.Rmdir(req.inHeader, req.filename())
+}
+
+func doLink(state *MountState, req *request) {
+	entryOut, s := state.fileSystem.Link(req.inHeader, (*LinkIn)(req.inData), req.filename())
+	req.status = s
+	req.data = unsafe.Pointer(entryOut)
+}
+func doRead(state *MountState, req *request) {
+	req.flatData, req.status = state.fileSystem.Read((*ReadIn)(req.inData), state.buffers)
+}
+func doFlush(state *MountState, req *request) {
+	req.status = state.fileSystem.Flush((*FlushIn)(req.inData))
+}
+func doRelease(state *MountState, req *request) {
+	state.fileSystem.Release(req.inHeader, (*ReleaseIn)(req.inData))
+}
+func doFsync(state *MountState, req *request) {
+	req.status = state.fileSystem.Fsync((*FsyncIn)(req.inData))
+}
+func doReleaseDir(state *MountState, req *request) {
+	state.fileSystem.ReleaseDir(req.inHeader, (*ReleaseIn)(req.inData))
+}
+func doFsyncDir(state *MountState, req *request) {
+	req.status = state.fileSystem.FsyncDir(req.inHeader, (*FsyncIn)(req.inData))
+}
+func doSetXAttr(state *MountState, req *request) {
+	splits := bytes.Split(req.arg, []byte{0}, 2)
+	req.status = state.fileSystem.SetXAttr(req.inHeader, (*SetXAttrIn)(req.inData), string(splits[0]), splits[1])
+}
+
+func doRemoveXAttr(state *MountState, req *request) {
+	req.status = state.fileSystem.RemoveXAttr(req.inHeader, req.filename())
+}
+
+func doAccess(state *MountState, req *request) {
+	req.status = state.fileSystem.Access(req.inHeader, (*AccessIn)(req.inData))
+}
+
+func doSymlink(state *MountState, req *request) {
+	filenames := req.filenames(3)
+	if len(filenames) >= 2 {
+		entryOut, s := state.fileSystem.Symlink(req.inHeader, filenames[1], filenames[0])
+		req.status = s
+		req.data = unsafe.Pointer(entryOut)
+	} else {
+		req.status = EIO
+	}
+}
+
+func doRename(state *MountState, req *request) {
+	filenames := req.filenames(3)
+	if len(filenames) >= 2 {
+		req.status = state.fileSystem.Rename(req.inHeader, (*RenameIn)(req.inData), filenames[0], filenames[1])
+	} else {
+		req.status = EIO
+	}
+}
+
+////////////////////////////////////////////////////////////////
+
+var operationNames []string
+var inputSizes []int
+var outputSizes []int
+
+type operation func(*MountState, *request)
+
+var operationFuncs []operation
+
+func operationName(opcode Opcode) string {
+	if opcode > OPCODE_COUNT {
+		return "unknown"
+	}
+	return operationNames[opcode]
+}
+
+func inputSize(o Opcode) (int, bool) {
+	return lookupSize(o, inputSizes)
+}
+
+func outputSize(o Opcode) (int, bool) {
+	return lookupSize(o, outputSizes)
+}
+
+func lookupSize(o Opcode, sMap []int) (int, bool) {
+	if o >= OPCODE_COUNT {
+		return -1, false
+	}
+	return sMap[int(o)], true
+}
+
+func lookupOperation(o Opcode) operation {
+	return operationFuncs[o]
+}
+
+func makeSizes(dict map[int]int) []int {
+	out := make([]int, OPCODE_COUNT)
+	for i, _ := range out {
+		out[i] = -1
+	}
+
+	for code, val := range dict {
+		out[code] = val
+	}
+	return out
+}
 
 func init() {
-	inputSizeMap = map[int]int{
+	inputSizes = makeSizes(map[int]int{
 		FUSE_LOOKUP:      0,
 		FUSE_FORGET:      unsafe.Sizeof(ForgetIn{}),
 		FUSE_GETATTR:     unsafe.Sizeof(GetAttrIn{}),
@@ -154,9 +317,9 @@ func init() {
 		FUSE_DESTROY:     0,
 		FUSE_IOCTL:       unsafe.Sizeof(IoctlIn{}),
 		FUSE_POLL:        unsafe.Sizeof(PollIn{}),
-	}
+	})
 
-	outputSizeMap = map[int]int{
+	outputSizes = makeSizes(map[int]int{
 		FUSE_LOOKUP:      unsafe.Sizeof(EntryOut{}),
 		FUSE_FORGET:      0,
 		FUSE_GETATTR:     unsafe.Sizeof(AttrOut{}),
@@ -196,5 +359,84 @@ func init() {
 		FUSE_DESTROY:   0,
 		FUSE_IOCTL:     unsafe.Sizeof(IoctlOut{}),
 		FUSE_POLL:      unsafe.Sizeof(PollOut{}),
+	})
+
+	operationNames = make([]string, OPCODE_COUNT)
+	for k, v := range map[int]string{
+		FUSE_LOOKUP:      "FUSE_LOOKUP",
+		FUSE_FORGET:      "FUSE_FORGET",
+		FUSE_GETATTR:     "FUSE_GETATTR",
+		FUSE_SETATTR:     "FUSE_SETATTR",
+		FUSE_READLINK:    "FUSE_READLINK",
+		FUSE_SYMLINK:     "FUSE_SYMLINK",
+		FUSE_MKNOD:       "FUSE_MKNOD",
+		FUSE_MKDIR:       "FUSE_MKDIR",
+		FUSE_UNLINK:      "FUSE_UNLINK",
+		FUSE_RMDIR:       "FUSE_RMDIR",
+		FUSE_RENAME:      "FUSE_RENAME",
+		FUSE_LINK:        "FUSE_LINK",
+		FUSE_OPEN:        "FUSE_OPEN",
+		FUSE_READ:        "FUSE_READ",
+		FUSE_WRITE:       "FUSE_WRITE",
+		FUSE_STATFS:      "FUSE_STATFS",
+		FUSE_RELEASE:     "FUSE_RELEASE",
+		FUSE_FSYNC:       "FUSE_FSYNC",
+		FUSE_SETXATTR:    "FUSE_SETXATTR",
+		FUSE_GETXATTR:    "FUSE_GETXATTR",
+		FUSE_LISTXATTR:   "FUSE_LISTXATTR",
+		FUSE_REMOVEXATTR: "FUSE_REMOVEXATTR",
+		FUSE_FLUSH:       "FUSE_FLUSH",
+		FUSE_INIT:        "FUSE_INIT",
+		FUSE_OPENDIR:     "FUSE_OPENDIR",
+		FUSE_READDIR:     "FUSE_READDIR",
+		FUSE_RELEASEDIR:  "FUSE_RELEASEDIR",
+		FUSE_FSYNCDIR:    "FUSE_FSYNCDIR",
+		FUSE_GETLK:       "FUSE_GETLK",
+		FUSE_SETLK:       "FUSE_SETLK",
+		FUSE_SETLKW:      "FUSE_SETLKW",
+		FUSE_ACCESS:      "FUSE_ACCESS",
+		FUSE_CREATE:      "FUSE_CREATE",
+		FUSE_INTERRUPT:   "FUSE_INTERRUPT",
+		FUSE_BMAP:        "FUSE_BMAP",
+		FUSE_DESTROY:     "FUSE_DESTROY",
+		FUSE_IOCTL:       "FUSE_IOCTL",
+		FUSE_POLL:        "FUSE_POLL"} {
+		operationNames[k] = v
+	}
+
+	operationFuncs = make([]operation, OPCODE_COUNT)
+	for k, v := range map[Opcode]operation{
+		FUSE_OPEN:        doOpen,
+		FUSE_READDIR:     doReadDir,
+		FUSE_WRITE:       doWrite,
+		FUSE_OPENDIR:     doOpenDir,
+		FUSE_CREATE:      doCreate,
+		FUSE_SETATTR:     doSetattr,
+		FUSE_GETXATTR:    doGetXAttr,
+		FUSE_LISTXATTR:   doGetXAttr,
+		FUSE_GETATTR:     doGetAttr,
+		FUSE_FORGET:      doForget,
+		FUSE_READLINK:    doReadlink,
+		FUSE_INIT:        doInit,
+		FUSE_DESTROY:     doDestroy,
+		FUSE_LOOKUP:      doLookup,
+		FUSE_MKNOD:       doMknod,
+		FUSE_MKDIR:       doMkdir,
+		FUSE_UNLINK:      doUnlink,
+		FUSE_RMDIR:       doRmdir,
+		FUSE_LINK:        doLink,
+		FUSE_READ:        doRead,
+		FUSE_FLUSH:       doFlush,
+		FUSE_RELEASE:     doRelease,
+		FUSE_FSYNC:       doFsync,
+		FUSE_RELEASEDIR:  doReleaseDir,
+		FUSE_FSYNCDIR:    doFsyncDir,
+		FUSE_SETXATTR:    doSetXAttr,
+		FUSE_REMOVEXATTR: doRemoveXAttr,
+		FUSE_ACCESS:      doAccess,
+		FUSE_SYMLINK:     doSymlink,
+		FUSE_RENAME:      doRename,
+	} {
+		operationFuncs[k] = v
 	}
 }

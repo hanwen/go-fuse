@@ -151,21 +151,6 @@ func (me *TimingRawFileSystem) Create(header *InHeader, input *CreateIn, name st
 	return me.Original.Create(header, input, name)
 }
 
-func (me *TimingRawFileSystem) Bmap(header *InHeader, input *BmapIn) (out *BmapOut, code Status) {
-	defer me.startTimer("Bmap")()
-	return me.Original.Bmap(header, input)
-}
-
-func (me *TimingRawFileSystem) Ioctl(header *InHeader, input *IoctlIn) (out *IoctlOut, code Status) {
-	defer me.startTimer("Ioctl")()
-	return me.Original.Ioctl(header, input)
-}
-
-func (me *TimingRawFileSystem) Poll(header *InHeader, input *PollIn) (out *PollOut, code Status) {
-	defer me.startTimer("Poll")()
-	return me.Original.Poll(header, input)
-}
-
 func (me *TimingRawFileSystem) OpenDir(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
 	defer me.startTimer("OpenDir")()
 	return me.Original.OpenDir(header, input)

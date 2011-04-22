@@ -275,11 +275,11 @@ func (me *testCase) testSymlink() {
 func (me *testCase) testRename() {
 	me.tester.Log("Testing rename.")
 	me.writeOrigFile()
-	sd := me.mountPoint+"/testRename"
+	sd := me.mountPoint + "/testRename"
 	err := os.MkdirAll(sd, 0777)
 	defer os.RemoveAll(sd)
 
-	subFile := sd+"/subfile"
+	subFile := sd + "/subfile"
 	err = os.Rename(me.mountFile, subFile)
 	CheckSuccess(err)
 	f, _ := os.Lstat(me.origFile)
@@ -295,21 +295,21 @@ func (me *testCase) testRename() {
 func (me *testCase) testDelRename() {
 	me.tester.Log("Testing del+rename.")
 
-	sd := me.mountPoint+"/testDelRename"
+	sd := me.mountPoint + "/testDelRename"
 	err := os.MkdirAll(sd, 0755)
 	CheckSuccess(err)
-	
-	d := sd+"/dest"
+
+	d := sd + "/dest"
 	err = ioutil.WriteFile(d, []byte("blabla"), 0644)
 	CheckSuccess(err)
 
 	f, err := os.Open(d)
 	CheckSuccess(err)
-	
+
 	err = os.Remove(d)
 	CheckSuccess(err)
 
-	s := sd+"/src"
+	s := sd + "/src"
 	err = ioutil.WriteFile(s, []byte("blabla"), 0644)
 	CheckSuccess(err)
 
@@ -322,15 +322,15 @@ func (me *testCase) testDelRename() {
 func (me *testCase) testOverwriteRename() {
 	me.tester.Log("Testing rename overwrite.")
 
-	sd := me.mountPoint+"/testOverwriteRename"
+	sd := me.mountPoint + "/testOverwriteRename"
 	err := os.MkdirAll(sd, 0755)
 	CheckSuccess(err)
 
-	d := sd+"/dest"
+	d := sd + "/dest"
 	err = ioutil.WriteFile(d, []byte("blabla"), 0644)
 	CheckSuccess(err)
 
-	s := sd+"/src"
+	s := sd + "/src"
 	err = ioutil.WriteFile(s, []byte("blabla"), 0644)
 	CheckSuccess(err)
 

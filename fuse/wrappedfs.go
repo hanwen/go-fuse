@@ -189,18 +189,6 @@ func (me *WrappingRawFileSystem) Create(header *InHeader, input *CreateIn, name 
 	return me.Original.Create(header, input, name)
 }
 
-func (me *WrappingRawFileSystem) Bmap(header *InHeader, input *BmapIn) (out *BmapOut, code Status) {
-	return me.Original.Bmap(header, input)
-}
-
-func (me *WrappingRawFileSystem) Ioctl(header *InHeader, input *IoctlIn) (out *IoctlOut, code Status) {
-	return me.Original.Ioctl(header, input)
-}
-
-func (me *WrappingRawFileSystem) Poll(header *InHeader, input *PollIn) (out *PollOut, code Status) {
-	return me.Original.Poll(header, input)
-}
-
 func (me *WrappingRawFileSystem) OpenDir(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
 	return me.Original.OpenDir(header, input)
 }

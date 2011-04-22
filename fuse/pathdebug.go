@@ -1,4 +1,5 @@
 package fuse
+
 import (
 	"fmt"
 )
@@ -12,7 +13,7 @@ type FileSystemDebug struct {
 	WrappingFileSystem
 }
 
-func (me *FileSystemDebug) Open(path string, flags uint32) (fuseFile File, status Status)  {
+func (me *FileSystemDebug) Open(path string, flags uint32) (fuseFile File, status Status) {
 	if path == ".debug" && me.Connector != nil {
 		return NewReadOnlyFile([]byte(me.Connector.DebugString())), OK
 	}
@@ -24,8 +25,7 @@ func (me *FileSystemDebug) GetAttr(path string) (*Attr, Status) {
 		return &Attr{
 			Mode: S_IFREG,
 			Size: uint64(len(me.Connector.DebugString())),
-		}, OK 
+		},OK
 	}
 	return me.Original.GetAttr(path)
 }
-	

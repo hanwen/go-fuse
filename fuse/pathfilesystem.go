@@ -169,7 +169,7 @@ type FileSystemConnector struct {
 func (me *FileSystemConnector) DebugString() string {
 	me.lock.RLock()
 	defer me.lock.RUnlock()
-	
+
 	me.fileLock.RLock()
 	defer me.fileLock.RUnlock()
 
@@ -237,14 +237,14 @@ func (me *FileSystemConnector) verify() {
 			hiddenOpen += v.OpenCount
 		}
 	}
-	
+
 	root := me.inodeMap[FUSE_ROOT_ID]
 	root.verify()
 
 	open := root.totalOpenCount()
 	openFiles := len(me.openFiles)
 	mounted := root.totalMountCount()
-	if open + hiddenOpen != openFiles + mounted {
+	if open+hiddenOpen != openFiles+mounted {
 		panic(fmt.Sprintf("opencount mismatch totalOpen=%v openFiles=%v mounted=%v hidden=%v", open, openFiles, mounted, hiddenOpen))
 	}
 }
@@ -306,10 +306,10 @@ func (me *FileSystemConnector) considerDropInode(n *inode) {
 		n.mount.mutex.RLock()
 		defer n.mount.mutex.RUnlock()
 	}
-	
+
 	// TODO - this should probably not happen at all.
-	if (n.LookupCount <= 0 && len(n.Children) == 0 && (n.mount == nil || n.mount.unmountPending) &&
-		n.OpenCount <= 0) {
+	if n.LookupCount <= 0 && len(n.Children) == 0 && (n.mount == nil || n.mount.unmountPending) &&
+		n.OpenCount <= 0 {
 		n.setParent(nil)
 		me.inodeMap[n.NodeId] = nil, false
 	}
@@ -328,7 +328,7 @@ func (me *FileSystemConnector) renameUpdate(oldParent *inode, oldName string, ne
 	dest := newParent.Children[newName]
 	if dest != nil {
 		dest.setParent(nil)
-	}	
+	}
 	node.setParent(nil)
 	node.Name = newName
 	node.setParent(newParent)
@@ -384,7 +384,7 @@ func EmptyFileSystemConnector() (out *FileSystemConnector) {
 	out.options.AttrTimeout = 1.0
 	out.options.EntryTimeout = 1.0
 	out.verify()
-	return out;
+	return out
 }
 
 func NewFileSystemConnector(fs FileSystem) (out *FileSystemConnector) {

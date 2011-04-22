@@ -296,24 +296,6 @@ func (me *LockingRawFileSystem) Create(header *InHeader, input *CreateIn, name s
 	return me.Original.Create(header, input, name)
 }
 
-func (me *LockingRawFileSystem) Bmap(header *InHeader, input *BmapIn) (out *BmapOut, code Status) {
-	me.lock.Lock()
-	defer me.lock.Unlock()
-	return me.Original.Bmap(header, input)
-}
-
-func (me *LockingRawFileSystem) Ioctl(header *InHeader, input *IoctlIn) (out *IoctlOut, code Status) {
-	me.lock.Lock()
-	defer me.lock.Unlock()
-	return me.Original.Ioctl(header, input)
-}
-
-func (me *LockingRawFileSystem) Poll(header *InHeader, input *PollIn) (out *PollOut, code Status) {
-	me.lock.Lock()
-	defer me.lock.Unlock()
-	return me.Original.Poll(header, input)
-}
-
 func (me *LockingRawFileSystem) OpenDir(header *InHeader, input *OpenIn) (flags uint32, h uint64, status Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
