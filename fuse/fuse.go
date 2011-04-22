@@ -80,8 +80,6 @@ type MountState struct {
 }
 
 // Mount filesystem on mountPoint.
-//
-// TODO - error handling should perhaps be user-serviceable.
 func (me *MountState) Mount(mountPoint string) os.Error {
 	file, mp, err := mount(mountPoint)
 	if err != nil {
@@ -104,10 +102,6 @@ func (me *MountState) Unmount() os.Error {
 	return result
 }
 
-func (me *MountState) Error(err os.Error) {
-	log.Println("error: ", err)
-}
-
 func (me *MountState) Write(req *request) {
 	if req.outHeaderBytes == nil {
 		return
@@ -122,8 +116,8 @@ func (me *MountState) Write(req *request) {
 	}
 
 	if err != nil {
-		me.Error(os.NewError(fmt.Sprintf("writer: Write/Writev %v failed, err: %v. Opcode: %v",
-			req.outHeaderBytes, err, operationName(req.inHeader.Opcode))))
+		log.Printf("writer: Write/Writev %v failed, err: %v. Opcode: %v",
+			req.outHeaderBytes, err, operationName(req.inHeader.Opcode))
 	}
 }
 
@@ -239,8 +233,7 @@ func (me *MountState) Loop(threaded bool) {
 				break
 			}
 
-			readErr := os.NewError(fmt.Sprintf("Failed to read from fuse conn: %v", err))
-			me.Error(readErr)
+			log.Printf("Failed to read from fuse conn: %v", err)
 			break
 		}
 
@@ -257,7 +250,7 @@ func (me *MountState) Loop(threaded bool) {
 func (me *MountState) chopMessage(req *request) *operationHandler {
 	inHSize := unsafe.Sizeof(InHeader{})
 	if len(req.inputBuf) < inHSize {
-		me.Error(os.NewError(fmt.Sprintf("Short read for input header: %v", req.inputBuf)))
+		log.Printf("Short read for input header: %v", req.inputBuf)
 		return nil
 	}
 	
@@ -266,13 +259,13 @@ func (me *MountState) chopMessage(req *request) *operationHandler {
 
 	handler := getHandler(req.inHeader.Opcode)
 	if handler == nil || handler.Func == nil {
-		log.Println("Unknown opcode %d (input)", req.inHeader.Opcode)
+		log.Printf("Unknown opcode %d (input)", req.inHeader.Opcode)
 		req.status = ENOSYS
 		return handler
 	}
 
 	if len(req.arg) < handler.InputSize {
-		log.Println("Short read for %v: %v", req.inHeader.Opcode, req.arg)
+		log.Printf("Short read for %v: %v", req.inHeader.Opcode, req.arg)
 		req.status = EIO
 		return handler
 	}
