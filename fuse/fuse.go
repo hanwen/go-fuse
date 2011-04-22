@@ -54,11 +54,6 @@ type MountState struct {
 	// I/O with kernel and daemon.
 	mountFile *os.File
 
-	errorChannel chan os.Error
-
-	// Run each operation in its own Go-routine.
-	threaded bool
-
 	// Dump debug info onto stdout.
 	Debug bool
 
@@ -74,9 +69,6 @@ type MountState struct {
 
 // Mount filesystem on mountPoint.
 //
-// If threaded is set, each filesystem operation executes in a
-// separate goroutine.
-//
 // TODO - error handling should perhaps be user-serviceable.
 func (me *MountState) Mount(mountPoint string) os.Error {
 	file, mp, err := mount(mountPoint)
@@ -91,22 +83,6 @@ func (me *MountState) Mount(mountPoint string) os.Error {
 	return nil
 }
 
-// Normally, callers should run loop() and wait for FUSE to exit, but
-// tests will want to run this in a goroutine.
-func (me *MountState) Loop(threaded bool) {
-	me.threaded = threaded
-	if me.threaded {
-		me.errorChannel = make(chan os.Error, 100)
-		go me.DefaultErrorHandler()
-	}
-
-	me.loop()
-
-	if me.threaded {
-		close(me.errorChannel)
-	}
-}
-
 func (me *MountState) Unmount() os.Error {
 	// Todo: flush/release all files/dirs?
 	result := unmount(me.mountPoint)
@@ -116,22 +92,8 @@ func (me *MountState) Unmount() os.Error {
 	return result
 }
 
-func (me *MountState) DefaultErrorHandler() {
-	for err := range me.errorChannel {
-		if err == os.EOF || err == nil {
-			break
-		}
-		log.Println("error: ", err)
-	}
-}
-
 func (me *MountState) Error(err os.Error) {
-	// It is safe to do errors unthreaded, since the logger is thread-safe.
-	if !me.threaded || me.Debug {
-		log.Println("error: ", err)
-	} else {
-		me.errorChannel <- err
-	}
+	log.Println("error: ", err)
 }
 
 func (me *MountState) Write(req *request) {
@@ -233,7 +195,12 @@ func (me *MountState) discardRequest(req *request) {
 	me.buffers.FreeBuffer(req.flatData)
 }
 
-func (me *MountState) loop() {
+// Normally, callers should run Loop() and wait for FUSE to exit, but
+// tests will want to run this in a goroutine.
+//
+// If threaded is set, each filesystem operation executes in a
+// separate goroutine.
+func (me *MountState) Loop(threaded bool) {
 	// See fuse_kern_chan_receive()
 	for {
 		req := me.newRequest()
@@ -263,7 +230,7 @@ func (me *MountState) loop() {
 			break
 		}
 
-		if me.threaded {
+		if threaded {
 			go me.handle(req)
 		} else {
 			me.handle(req)
