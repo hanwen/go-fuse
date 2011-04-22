@@ -14,10 +14,15 @@ type mountData struct {
 	// If non-nil the file system mounted here.
 	fs FileSystem
 
-	// Protects the variables below.
-	mutex sync.RWMutex
-
 	// If yes, we are looking to unmount the mounted fs.
+	//
+	// To be technically correct, we'd have to have a mutex
+	// protecting this.  We don't, keeping the following in mind:
+	//
+	//  * eventual consistency is OK here
+	//
+	//  * the kernel controls when to ask for updates,
+	//  so we can't make entries directly anyway.
 	unmountPending bool
 }
 
@@ -94,8 +99,6 @@ func (me *inode) GetPath() (path string, mount *mountData) {
 	}
 	mount = inode.mount
 
-	mount.mutex.RLock()
-	defer mount.mutex.RUnlock()
 	if mount.unmountPending {
 		return "", nil
 	}
@@ -306,11 +309,6 @@ func (me *FileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int) {
 }
 
 func (me *FileSystemConnector) considerDropInode(n *inode) {
-	if n.mount != nil {
-		n.mount.mutex.RLock()
-		defer n.mount.mutex.RUnlock()
-	}
-
 	// TODO - this should probably not happen at all.
 	if n.LookupCount <= 0 && len(n.Children) == 0 && (n.mount == nil || n.mount.unmountPending) &&
 		n.OpenCount <= 0 {
@@ -478,8 +476,6 @@ func (me *FileSystemConnector) Unmount(path string) Status {
 		log.Println("Unmount: ", mount)
 	}
 
-	mount.mutex.Lock()
-	defer mount.mutex.Unlock()
 	if len(node.Children) > 0 {
 		mount.fs.Unmount()
 		mount.unmountPending = true
