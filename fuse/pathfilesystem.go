@@ -43,7 +43,7 @@ type inode struct {
 	mount *mountData
 }
 
-// Should be called with lock held.
+// Should be called with treeLock and fileLock held.
 func (me *inode) totalOpenCount() int {
 	o := me.OpenCount
 	for _, v := range me.Children {
@@ -52,6 +52,7 @@ func (me *inode) totalOpenCount() int {
 	return o
 }
 
+// Should be called with treeLock held.
 func (me *inode) totalMountCount() int {
 	o := 0
 	if me.mount != nil && !me.mount.unmountPending {
@@ -111,7 +112,7 @@ func (me *inode) GetPath() (path string, mount *mountData) {
 	return fullPath, mount
 }
 
-// Must be called with lock held.
+// Must be called with treeLock held.
 func (me *inode) setParent(newParent *inode) {
 	if me.Parent == newParent {
 		return
@@ -159,7 +160,7 @@ type FileSystemConnector struct {
 	////////////////
 
 	// Protects the inodeMap and each node's Children map.
-	lock sync.RWMutex
+	treeLock sync.RWMutex
 
 	// Invariants: see the verify() method.
 	inodeMap      map[uint64]*inode
@@ -175,8 +176,8 @@ type interfaceBridge struct {
 }
 
 func (me *FileSystemConnector) DebugString() string {
-	me.lock.RLock()
-	defer me.lock.RUnlock()
+	me.treeLock.RLock()
+	defer me.treeLock.RUnlock()
 
 	me.fileLock.RLock()
 	defer me.fileLock.RUnlock()
@@ -231,8 +232,8 @@ func (me *FileSystemConnector) verify() {
 	if !paranoia {
 		return
 	}
-	me.lock.Lock()
-	defer me.lock.Unlock()
+	me.treeLock.Lock()
+	defer me.treeLock.Unlock()
 	me.fileLock.Lock()
 	defer me.fileLock.Unlock()
 
@@ -276,8 +277,8 @@ func (me *FileSystemConnector) newInode(root bool, isDir bool) *inode {
 func (me *FileSystemConnector) lookupUpdate(parent *inode, name string, isDir bool) *inode {
 	defer me.verify()
 
-	me.lock.Lock()
-	defer me.lock.Unlock()
+	me.treeLock.Lock()
+	defer me.treeLock.Unlock()
 
 	data, ok := parent.Children[name]
 	if !ok {
@@ -299,8 +300,8 @@ func (me *FileSystemConnector) getInodeData(nodeid uint64) *inode {
 
 func (me *FileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int) {
 	defer me.verify()
-	me.lock.Lock()
-	defer me.lock.Unlock()
+	me.treeLock.Lock()
+	defer me.treeLock.Unlock()
 
 	data, ok := me.inodeMap[nodeId]
 	if ok {
@@ -319,8 +320,8 @@ func (me *FileSystemConnector) considerDropInode(n *inode) {
 
 func (me *FileSystemConnector) renameUpdate(oldParent *inode, oldName string, newParent *inode, newName string) {
 	defer me.verify()
-	me.lock.Lock()
-	defer me.lock.Unlock()
+	me.treeLock.Lock()
+	defer me.treeLock.Unlock()
 
 	node := oldParent.Children[oldName]
 	if node == nil {
@@ -338,8 +339,8 @@ func (me *FileSystemConnector) renameUpdate(oldParent *inode, oldName string, ne
 
 func (me *FileSystemConnector) unlinkUpdate(parent *inode, name string) {
 	defer me.verify()
-	me.lock.Lock()
-	defer me.lock.Unlock()
+	me.treeLock.Lock()
+	defer me.treeLock.Unlock()
 
 	node := parent.Children[name]
 	node.setParent(nil)
@@ -350,8 +351,8 @@ func (me *FileSystemConnector) findInode(fullPath string) *inode {
 	fullPath = strings.TrimLeft(filepath.Clean(fullPath), "/")
 	comps := strings.Split(fullPath, "/", -1)
 
-	me.lock.RLock()
-	defer me.lock.RUnlock()
+	me.treeLock.RLock()
+	defer me.treeLock.RUnlock()
 
 	node := me.rootNode
 	for i, component := range comps {
@@ -368,8 +369,6 @@ func (me *FileSystemConnector) findInode(fullPath string) *inode {
 }
 
 ////////////////////////////////////////////////////////////////
-// Below routines should not access inodePathMap(ByInode) directly,
-// and there need no locking.
 
 func EmptyFileSystemConnector() (out *FileSystemConnector) {
 	out = new(FileSystemConnector)

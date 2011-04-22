@@ -39,11 +39,11 @@ func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem) Status {
 		return EINVAL
 	}
 
-	me.lock.Lock()
+	me.treeLock.RLock()
 	hasChildren := len(node.Children) > 0
 	// don't use defer, as we dont want to hold the lock during
 	// fs.Mount().
-	me.lock.Unlock()
+	me.treeLock.RUnlock()
 
 	if hasChildren {
 		return EBUSY
@@ -76,42 +76,42 @@ func (me *FileSystemConnector) Unmount(path string) Status {
 		panic(path)
 	}
 
-	mount := node.mount
-	if mount == nil {
-		panic(path)
-	}
-
 	// Need to lock to look at node.Children
-	me.lock.RLock()
-	defer me.lock.RUnlock()
-
+	me.treeLock.RLock()
 	me.fileLock.Lock()
+
+	unmountError := OK
+	
+	mount := node.mount
+	if mount == nil || mount.unmountPending {
+		unmountError = EINVAL
+	}
+	
 	// don't use defer: we don't want to call out to
 	// mount.fs.Unmount() with lock held.
 	ownMount := 1
-	isBusy := node.totalOpenCount() > ownMount
-	if !isBusy {
+	isBusy := unmountError == OK && node.totalOpenCount() > ownMount
+	if isBusy {
+		unmountError = EBUSY
+	}
+
+	if unmountError == OK {
 		node.OpenCount--
+
+		// We settle for eventual consistency.
+		mount.unmountPending = true
 	}
 	me.fileLock.Unlock()
+	me.treeLock.RUnlock()
 
-	if isBusy {
-		log.Println("Umount - busy: ", mount)
-		return EBUSY
-	}
+	if unmountError == OK {
+		if me.Debug {
+			log.Println("Unmount: ", mount)
+		}
 	
-	if me.Debug {
-		log.Println("Unmount: ", mount)
-	}
-
-	if len(node.Children) > 0 {
 		mount.fs.Unmount()
-		mount.unmountPending = true
-	} else {
-		node.mount = nil
 	}
-
-	return OK
+	return unmountError
 }
 
 func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *mountData, node *inode) {
