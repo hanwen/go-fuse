@@ -40,16 +40,19 @@ sleep ${DELAY}
 # Warm caches.
 ${BULKSTAT} -runs 1 /tmp/zipfiles.txt
 
-6prof -p $! -d 20 -t 3 -hs -l -h -f >& /tmp/zipfs.6prof &
-sleep 0.1
-
-# C++ binaries can do this ~0.2ms/stat.
-echo -e "\n\n"
-
+# Performance number without 6prof running
 ${BULKSTAT} -runs 5 /tmp/zipfiles.txt
 
 echo -e "\n\n"
 
+# Run 6prof
+6prof -p $! -d 20 -t 3 -hs -l -h -f >& /tmp/zipfs.6prof &
+sleep 0.1
+
+# Feed data to 6prof
+${BULKSTAT} -runs 3 /tmp/zipfiles.txt
+
+echo -e "\n\n"
 
 fusermount -u /tmp/zipbench
 
