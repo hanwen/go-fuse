@@ -90,8 +90,7 @@ func (me *FileSystemConnector) Unmount(path string) Status {
 	// don't use defer: we don't want to call out to
 	// mount.fs.Unmount() with lock held.
 	ownMount := 1
-	isBusy := unmountError == OK && node.totalOpenCount() > ownMount
-	if isBusy {
+	if unmountError == OK && node.totalOpenCount() > ownMount {
 		unmountError = EBUSY
 	}
 
