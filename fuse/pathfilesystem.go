@@ -2,6 +2,7 @@ package fuse
 
 import (
 	"fmt"
+	"log"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -252,9 +253,8 @@ func (me *FileSystemConnector) verify() {
 
 	open := root.totalOpenCount()
 	openFiles := len(me.openFiles)
-	mounted := root.totalMountCount()
-	if open+hiddenOpen != openFiles+mounted {
-		panic(fmt.Sprintf("opencount mismatch totalOpen=%v openFiles=%v mounted=%v hidden=%v", open, openFiles, mounted, hiddenOpen))
+	if open+hiddenOpen != openFiles {
+		panic(fmt.Sprintf("opencount mismatch totalOpen=%v openFiles=%v mounted=%v hidden=%v", open, openFiles, hiddenOpen))
 	}
 }
 
@@ -383,4 +383,88 @@ func EmptyFileSystemConnector() (out *FileSystemConnector) {
 	out.options.EntryTimeout = 1.0
 	out.verify()
 	return out
+}
+
+
+func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem) Status {
+	var node *inode
+
+	if mountPoint != "/" {
+		dirParent, base := filepath.Split(mountPoint)
+		dirParentNode := me.findInode(dirParent)
+
+		// Make sure we know the mount point.
+		_, _ = me.internalLookup(dirParentNode, base, 0)
+	}
+
+	node = me.findInode(mountPoint)
+	if !node.IsDir() {
+		return EINVAL
+	}
+
+	me.treeLock.RLock()
+	hasChildren := len(node.Children) > 0
+	// don't use defer, as we dont want to hold the lock during
+	// fs.Mount().
+	me.treeLock.RUnlock()
+
+	if hasChildren {
+		return EBUSY
+	}
+
+	code := fs.Mount(me)
+	if code != OK {
+		if me.Debug {
+			log.Println("Mount error: ", mountPoint, code)
+		}
+		return code
+	}
+
+	if me.Debug {
+		log.Println("Mount: ", fs, "on", mountPoint, node)
+	}
+
+	node.mount = newMount(fs)
+
+	return OK
+}
+
+func (me *FileSystemConnector) Unmount(path string) Status {
+	node := me.findInode(path)
+	if node == nil {
+		panic(path)
+	}
+
+	// Need to lock to look at node.Children
+	me.treeLock.RLock()
+	me.fileLock.Lock()
+
+	unmountError := OK
+	
+	mount := node.mount
+	if mount == nil || mount.unmountPending {
+		unmountError = EINVAL
+	}
+	
+	// don't use defer: we don't want to call out to
+	// mount.fs.Unmount() with lock held.
+	if unmountError == OK && (node.totalOpenCount() > 0 || node.totalMountCount() > 1) {
+		unmountError = EBUSY
+	}
+
+	if unmountError == OK {
+		// We settle for eventual consistency.
+		mount.unmountPending = true
+	}
+	me.fileLock.Unlock()
+	me.treeLock.RUnlock()
+
+	if unmountError == OK {
+		if me.Debug {
+			log.Println("Unmount: ", mount)
+		}
+	
+		mount.fs.Unmount()
+	}
+	return unmountError
 }

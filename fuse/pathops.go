@@ -3,7 +3,6 @@
 package fuse
 
 import (
-	"log"
 	"bytes"
 	"path/filepath"
 	"time"
@@ -22,96 +21,6 @@ func NewFileSystemConnector(fs FileSystem) (out *FileSystemConnector) {
 
 func (me *FileSystemConnector) SetOptions(opts FileSystemConnectorOptions) {
 	me.options = opts
-}
-
-func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem) Status {
-	var node *inode
-
-	if mountPoint != "/" {
-		dirParent, base := filepath.Split(mountPoint)
-		dirParentNode := me.findInode(dirParent)
-
-		// Make sure we know the mount point.
-		_, _ = me.internalLookup(dirParentNode, base, 0)
-	}
-
-	node = me.findInode(mountPoint)
-	if !node.IsDir() {
-		return EINVAL
-	}
-
-	me.treeLock.RLock()
-	hasChildren := len(node.Children) > 0
-	// don't use defer, as we dont want to hold the lock during
-	// fs.Mount().
-	me.treeLock.RUnlock()
-
-	if hasChildren {
-		return EBUSY
-	}
-
-	code := fs.Mount(me)
-	if code != OK {
-		if me.Debug {
-			log.Println("Mount error: ", mountPoint, code)
-		}
-		return code
-	}
-
-	if me.Debug {
-		log.Println("Mount: ", fs, "on", mountPoint, node)
-	}
-
-	node.mount = newMount(fs)
-
-	me.fileLock.Lock()
-	defer me.fileLock.Unlock()
-	node.OpenCount++
-
-	return OK
-}
-
-func (me *FileSystemConnector) Unmount(path string) Status {
-	node := me.findInode(path)
-	if node == nil {
-		panic(path)
-	}
-
-	// Need to lock to look at node.Children
-	me.treeLock.RLock()
-	me.fileLock.Lock()
-
-	unmountError := OK
-	
-	mount := node.mount
-	if mount == nil || mount.unmountPending {
-		unmountError = EINVAL
-	}
-	
-	// don't use defer: we don't want to call out to
-	// mount.fs.Unmount() with lock held.
-	ownMount := 1
-	if unmountError == OK && node.totalOpenCount() > ownMount {
-		unmountError = EBUSY
-	}
-
-	if unmountError == OK {
-		node.OpenCount--
-
-		// We settle for eventual consistency.
-		mount.unmountPending = true
-	}
-	me.fileLock.Unlock()
-	me.treeLock.RUnlock()
-
-	if unmountError == OK {
-		if me.Debug {
-			log.Println("Unmount: ", mount)
-		}
-	
-		mount.fs.Unmount()
-	}
-	return unmountError
 }
 
 func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *mountData, node *inode) {
