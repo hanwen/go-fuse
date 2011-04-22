@@ -71,6 +71,7 @@ type MountState struct {
 	// For efficient reads and writes.
 	buffers *BufferPool
 
+	RecordStatistics bool
 	statisticsMutex sync.Mutex
 	operationCounts map[string]int64
 
@@ -186,21 +187,23 @@ func (me *MountState) discardRequest(req *request) {
 	endNs := time.Nanoseconds()
 	dt := endNs - req.startNs
 
-	me.statisticsMutex.Lock()
-	defer me.statisticsMutex.Unlock()
+	if me.RecordStatistics {
+		me.statisticsMutex.Lock()
+		defer me.statisticsMutex.Unlock()
 
-	opname := operationName(req.inHeader.Opcode)
-	key := opname
-	me.operationCounts[key] += 1
-	me.operationLatencies[key] += dt
+		opname := operationName(req.inHeader.Opcode)
+		key := opname
+		me.operationCounts[key] += 1
+		me.operationLatencies[key] += dt
 
-	key += "-dispatch"
-	me.operationLatencies[key] += (req.dispatchNs - req.startNs)
-	me.operationCounts[key] += 1
+		key += "-dispatch"
+		me.operationLatencies[key] += (req.dispatchNs - req.startNs)
+		me.operationCounts[key] += 1
 
-	key = opname + "-write"
-	me.operationLatencies[key] += (endNs - req.preWriteNs)
-	me.operationCounts[key] += 1
+		key = opname + "-write"
+		me.operationLatencies[key] += (endNs - req.preWriteNs)
+		me.operationCounts[key] += 1
+	}
 
 	me.buffers.FreeBuffer(req.inputBuf)
 	me.buffers.FreeBuffer(req.flatData)
