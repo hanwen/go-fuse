@@ -20,7 +20,8 @@ GOFILES=misc.go\
 	xattr.go \
 	devnull.go \
 	pathdebug.go \
-	opcode.go
+	opcode.go \
+	pathops.go \
 
 include $(GOROOT)/src/Make.pkg
 
