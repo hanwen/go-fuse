@@ -22,7 +22,7 @@ type mountData struct {
 	//  * eventual consistency is OK here
 	//
 	//  * the kernel controls when to ask for updates,
-	//  so we can't make entries directly anyway.
+	//  so we can't make entries disappear directly anyway.
 	unmountPending bool
 }
 
@@ -41,7 +41,6 @@ type inode struct {
 	Name        string
 	LookupCount int
 	OpenCount   int
-	Type        uint32 // dirent type, used to check if mounts are valid.
 
 	mount *mountData
 }
@@ -64,6 +63,10 @@ func (me *inode) totalMountCount() int {
 		o += v.totalMountCount()
 	}
 	return o
+}
+
+func (me *inode) IsDir() bool {
+	return me.Children != nil
 }
 
 const initDirSize = 20
@@ -256,7 +259,7 @@ func (me *FileSystemConnector) verify() {
 	}
 }
 
-func (me *FileSystemConnector) newInode(root bool) *inode {
+func (me *FileSystemConnector) newInode(root bool, isDir bool) *inode {
 	data := new(inode)
 	if root {
 		data.NodeId = FUSE_ROOT_ID
@@ -265,7 +268,10 @@ func (me *FileSystemConnector) newInode(root bool) *inode {
 		data.NodeId = uint64(uintptr(unsafe.Pointer(data)))
 	}
 	me.inodeMap[data.NodeId] = data
-
+	if isDir {
+		data.Children = make(map[string]*inode, initDirSize)
+	}
+	
 	return data
 }
 
@@ -277,12 +283,9 @@ func (me *FileSystemConnector) lookupUpdate(parent *inode, name string, isDir bo
 
 	data, ok := parent.Children[name]
 	if !ok {
-		data = me.newInode(false)
+		data = me.newInode(false, isDir)
 		data.Name = name
 		data.setParent(parent)
-		if isDir {
-			data.Children = make(map[string]*inode, initDirSize)
-		}
 	}
 
 	return data
@@ -376,8 +379,7 @@ func EmptyFileSystemConnector() (out *FileSystemConnector) {
 	out.inodeMap = make(map[uint64]*inode)
 	out.openFiles = make(map[uint64]*interfaceBridge)
 
-	rootData := out.newInode(true)
-	rootData.Type = ModeToType(S_IFDIR)
+	rootData := out.newInode(true, true)
 	rootData.Children = make(map[string]*inode, initDirSize)
 
 	out.options.NegativeTimeout = 0.0
@@ -413,7 +415,7 @@ func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem) Status {
 	}
 
 	node = me.findInode(mountPoint)
-	if node.Type&ModeToType(S_IFDIR) == 0 {
+	if !node.IsDir() {
 		return EINVAL
 	}
 
@@ -534,7 +536,6 @@ func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string
 
 	data := me.lookupUpdate(parent, name, attr.Mode&S_IFDIR != 0)
 	data.LookupCount += lookupCount
-	data.Type = ModeToType(attr.Mode)
 
 	out = &EntryOut{
 		NodeId: data.NodeId,
