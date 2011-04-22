@@ -15,6 +15,7 @@ gomake -C zipfs
 gomake -C bulkstat
 
 MP=/tmp/zipbench
+fusermount -u ${MP} || true
 mkdir -p ${MP}
 
 ZIPFS=$PWD/zipfs/zipfs
@@ -37,14 +38,16 @@ ${ZIPFS} ${MP} ${ZIPFILE} >& zipfs.log &
 sleep ${DELAY}
 
 # Warm caches.
-${BULKSTAT} /tmp/zipfiles.txt
+${BULKSTAT} -runs 1 /tmp/zipfiles.txt
 
 6prof -p $! -d 20 -t 3 -hs -l -h -f >& /tmp/zipfs.6prof &
 sleep 0.1
 
 # C++ binaries can do this ~0.2ms/stat.
 echo -e "\n\n"
-${BULKSTAT} /tmp/zipfiles.txt
+
+${BULKSTAT} -runs 5 /tmp/zipfiles.txt
+
 echo -e "\n\n"
 
 
