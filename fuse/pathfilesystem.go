@@ -23,6 +23,10 @@ type mountData struct {
 	//  * the kernel controls when to ask for updates,
 	//  so we can't make entries disappear directly anyway.
 	unmountPending bool
+
+	// We could have separate treeLocks per mount; something to
+	// consider if we can measure significant contention for
+	// multi-mount filesystems.
 }
 
 func newMount(fs FileSystem) *mountData {
@@ -118,7 +122,6 @@ func (me *inode) setParent(newParent *inode) {
 	if me.Parent == newParent {
 		return
 	}
-
 	if me.Parent != nil {
 		me.Parent.Children[me.Name] = nil, false
 		me.Parent = nil
