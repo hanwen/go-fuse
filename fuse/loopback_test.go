@@ -122,6 +122,18 @@ func (me *testCase) testOpenUnreadable() {
 	}
 }
 
+func (me *testCase) testTouch() {
+	log.Println("testTouch")
+	me.writeOrigFile()
+	err := os.Chtimes(me.mountFile, 42e9, 43e9)
+	CheckSuccess(err)
+	fi, err := os.Lstat(me.mountFile)
+	CheckSuccess(err)
+	if fi.Atime_ns != 42e9 || fi.Mtime_ns != 43e9 {
+		me.tester.Errorf("Got wrong timestamps %v", fi)
+	}
+}
+
 func (me *testCase) testReadThrough() {
 	me.writeOrigFile()
 
@@ -558,7 +570,6 @@ func TestMount(t *testing.T) {
 	ts := new(testCase)
 	ts.Setup(t)
 	defer ts.Cleanup()
-
 	ts.testOverwriteRename()
 	ts.testDelRename()
 	ts.testOpenUnreadable()
@@ -573,6 +584,7 @@ func TestMount(t *testing.T) {
 	ts.testFSync()
 	ts.testLargeRead()
 	ts.testLargeDirRead()
+	ts.testTouch()
 }
 
 func TestReadOnly(t *testing.T) {

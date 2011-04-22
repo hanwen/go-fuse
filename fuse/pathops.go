@@ -6,6 +6,7 @@ import (
 	"log"
 	"bytes"
 	"path/filepath"
+	"time"
 )
 	
 
@@ -257,21 +258,22 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 	if input.Valid&FATTR_MODE != 0 {
 		err = mount.fs.Chmod(fullPath, input.Mode)
 	}
-	if err != OK && (input.Valid&FATTR_UID != 0 || input.Valid&FATTR_GID != 0) {
+	if err == OK && (input.Valid&FATTR_UID != 0 || input.Valid&FATTR_GID != 0) {
 		// TODO - can we get just FATTR_GID but not FATTR_UID ?
 		err = mount.fs.Chown(fullPath, uint32(input.Uid), uint32(input.Gid))
 	}
 	if input.Valid&FATTR_SIZE != 0 {
 		mount.fs.Truncate(fullPath, input.Size)
 	}
-	if err != OK && (input.Valid&FATTR_ATIME != 0 || input.Valid&FATTR_MTIME != 0) {
+	if err == OK && (input.Valid&FATTR_ATIME != 0 || input.Valid&FATTR_MTIME != 0) {
+		
 		err = mount.fs.Utimens(fullPath,
 			uint64(input.Atime*1e9)+uint64(input.Atimensec),
 			uint64(input.Mtime*1e9)+uint64(input.Mtimensec))
 	}
-	if err != OK && (input.Valid&FATTR_ATIME_NOW != 0 || input.Valid&FATTR_MTIME_NOW != 0) {
-		// TODO - should set time to now. Maybe just reuse
-		// Utimens() ?  Go has no UTIME_NOW unfortunately.
+	if err == OK && (input.Valid&FATTR_ATIME_NOW != 0 || input.Valid&FATTR_MTIME_NOW != 0) {
+		ns := time.Nanoseconds()
+		err = mount.fs.Utimens(fullPath, uint64(ns), uint64(ns))
 	}
 	if err != OK {
 		return nil, err
