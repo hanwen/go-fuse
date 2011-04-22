@@ -163,7 +163,8 @@ type FileSystemConnector struct {
 
 	////////////////
 
-	// Protects the inodeMap and each node's Children map.
+	// Protects the inodeMap and each node's Children/Parent
+	// relations.
 	treeLock sync.RWMutex
 
 	// Invariants: see the verify() method.
@@ -171,8 +172,10 @@ type FileSystemConnector struct {
 	rootNode      *inode
 
 	// Open files/directories.
-	fileLock       sync.RWMutex
 	openFiles      map[uint64]*interfaceBridge
+
+	// Protects openFiles and OpenCount in all of the nodes.
+	fileLock       sync.RWMutex
 }
 
 type interfaceBridge struct {
