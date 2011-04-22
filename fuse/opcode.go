@@ -13,7 +13,7 @@ func (code Status) String() string {
 	return fmt.Sprintf("%d=%v", int(code), os.Errno(code))
 }
 
-func replyString(opcode uint32, ptr unsafe.Pointer) string {
+func replyString(opcode Opcode, ptr unsafe.Pointer) string {
 	var val interface{}
 	switch opcode {
 	case FUSE_LOOKUP:
@@ -27,95 +27,153 @@ func replyString(opcode uint32, ptr unsafe.Pointer) string {
 	return ""
 }
 
-func operationName(opcode uint32) string {
-	switch opcode {
-	case FUSE_LOOKUP:
-		return "FUSE_LOOKUP"
-	case FUSE_FORGET:
-		return "FUSE_FORGET"
-	case FUSE_GETATTR:
-		return "FUSE_GETATTR"
-	case FUSE_SETATTR:
-		return "FUSE_SETATTR"
-	case FUSE_READLINK:
-		return "FUSE_READLINK"
-	case FUSE_SYMLINK:
-		return "FUSE_SYMLINK"
-	case FUSE_MKNOD:
-		return "FUSE_MKNOD"
-	case FUSE_MKDIR:
-		return "FUSE_MKDIR"
-	case FUSE_UNLINK:
-		return "FUSE_UNLINK"
-	case FUSE_RMDIR:
-		return "FUSE_RMDIR"
-	case FUSE_RENAME:
-		return "FUSE_RENAME"
-	case FUSE_LINK:
-		return "FUSE_LINK"
-	case FUSE_OPEN:
-		return "FUSE_OPEN"
-	case FUSE_READ:
-		return "FUSE_READ"
-	case FUSE_WRITE:
-		return "FUSE_WRITE"
-	case FUSE_STATFS:
-		return "FUSE_STATFS"
-	case FUSE_RELEASE:
-		return "FUSE_RELEASE"
-	case FUSE_FSYNC:
-		return "FUSE_FSYNC"
-	case FUSE_SETXATTR:
-		return "FUSE_SETXATTR"
-	case FUSE_GETXATTR:
-		return "FUSE_GETXATTR"
-	case FUSE_LISTXATTR:
-		return "FUSE_LISTXATTR"
-	case FUSE_REMOVEXATTR:
-		return "FUSE_REMOVEXATTR"
-	case FUSE_FLUSH:
-		return "FUSE_FLUSH"
-	case FUSE_INIT:
-		return "FUSE_INIT"
-	case FUSE_OPENDIR:
-		return "FUSE_OPENDIR"
-	case FUSE_READDIR:
-		return "FUSE_READDIR"
-	case FUSE_RELEASEDIR:
-		return "FUSE_RELEASEDIR"
-	case FUSE_FSYNCDIR:
-		return "FUSE_FSYNCDIR"
-	case FUSE_GETLK:
-		return "FUSE_GETLK"
-	case FUSE_SETLK:
-		return "FUSE_SETLK"
-	case FUSE_SETLKW:
-		return "FUSE_SETLKW"
-	case FUSE_ACCESS:
-		return "FUSE_ACCESS"
-	case FUSE_CREATE:
-		return "FUSE_CREATE"
-	case FUSE_INTERRUPT:
-		return "FUSE_INTERRUPT"
-	case FUSE_BMAP:
-		return "FUSE_BMAP"
-	case FUSE_DESTROY:
-		return "FUSE_DESTROY"
-	case FUSE_IOCTL:
-		return "FUSE_IOCTL"
-	case FUSE_POLL:
-		return "FUSE_POLL"
+////////////////////////////////////////////////////////////////
+
+func doOpen(state *MountState, req *request) {
+	flags, handle, status := state.fileSystem.Open(req.inHeader, (*OpenIn)(req.inData))
+	req.status = status
+	if status != OK {
+		return 
 	}
-	return "UNKNOWN"
+
+	out := &OpenOut{
+		Fh: handle,
+		OpenFlags: flags,
+	}
+
+	req.data = unsafe.Pointer(out)
 }
 
 
+func doCreate(state *MountState, req *request) {
+	flags, handle, entry, status := state.fileSystem.Create(req.inHeader, (*CreateIn)(req.inData), req.filename())
+	req.status = status 
+	if status == OK {
+		req.data = unsafe.Pointer(&CreateOut{
+			EntryOut: *entry,
+			OpenOut: OpenOut{
+				Fh: handle,
+				OpenFlags: flags,
+			},
+		})
+	}
+}
 
-var inputSizeMap map[int]int
-var outputSizeMap map[int]int
+
+func doReadDir(state *MountState, req *request) {
+	entries, code := state.fileSystem.ReadDir(req.inHeader, (*ReadIn)(req.inData))
+	if entries != nil {
+		req.flatData = entries.Bytes()
+	}
+	req.status = code
+}
+
+
+func doOpenDir(state *MountState, req *request) {
+	flags, handle, status := state.fileSystem.OpenDir(req.inHeader, (*OpenIn)(req.inData))
+	req.status = status
+	if status == OK {
+		req.data = unsafe.Pointer(&OpenOut{
+			Fh: handle,
+			OpenFlags: flags,
+		})
+	}
+}
+
+func doSetattr(state *MountState, req *request) {
+	// TODO - if Fh != 0, we should do a FSetAttr instead.
+	o, s := state.fileSystem.SetAttr(req.inHeader, (*SetAttrIn)(req.inData))
+	req.data = unsafe.Pointer(o)
+	req.status = s
+}
+
+func doWrite(state *MountState, req *request) {
+	n, status := state.fileSystem.Write((*WriteIn)(req.inData), req.arg)
+	o := &WriteOut{
+		Size: n,
+	}
+	req.data = unsafe.Pointer(o)
+	req.status = status
+}
+
+
+func doGetXAttr(state *MountState, req *request) {
+	input := (*GetXAttrIn)(req.inData)
+	var data []byte
+	if req.inHeader.Opcode == FUSE_GETXATTR {
+		data, req.status = state.fileSystem.GetXAttr(req.inHeader, req.filename())
+	} else {
+		data, req.status = state.fileSystem.ListXAttr(req.inHeader)
+	}
+	
+	if req.status != OK {
+		return
+	}
+
+	size := uint32(len(data))
+	if input.Size == 0 {
+		out := &GetXAttrOut{
+			Size: size,
+		}
+		req.data = unsafe.Pointer(out)
+	}
+
+	if size > input.Size {
+		req.status = ERANGE
+	}
+
+	req.flatData = data
+}
+
+////////////////////////////////////////////////////////////////
+
+var operationNames []string
+var inputSizeMap []int
+var outputSizeMap []int
+
+type operation func(*MountState, *request)
+var operationFuncs []operation
+
+func operationName(opcode Opcode) string {
+	if opcode > OPCODE_COUNT {
+		return "unknown"
+	}
+	return operationNames[opcode]
+}
+
+func inputSize(o Opcode) (int, bool) {
+	return lookupSize(o, inputSizeMap)
+}
+
+func outputSize(o Opcode) (int, bool) {
+	return lookupSize(o, outputSizeMap)
+}
+
+func lookupSize(o Opcode, sMap []int) (int, bool) {
+	if o >= OPCODE_COUNT {
+		return -1, false
+	}
+	return sMap[int(o)], true
+}
+
+func lookupOperation(o Opcode) operation {
+	return operationFuncs[o]
+}
+
+func makeSizeMap(dict map[int]int) []int {
+	out := make([]int, OPCODE_COUNT)
+	for i, _ := range out {
+		out[i] = -1
+	}
+
+	for code, val := range dict {
+		out[code] = val
+	}
+	return out
+}
 
 func init() {
-	inputSizeMap = map[int]int{
+	inputSizeMap = makeSizeMap(map[int]int{
 		FUSE_LOOKUP:      0,
 		FUSE_FORGET:      unsafe.Sizeof(ForgetIn{}),
 		FUSE_GETATTR:     unsafe.Sizeof(GetAttrIn{}),
@@ -154,9 +212,9 @@ func init() {
 		FUSE_DESTROY:     0,
 		FUSE_IOCTL:       unsafe.Sizeof(IoctlIn{}),
 		FUSE_POLL:        unsafe.Sizeof(PollIn{}),
-	}
+	})
 
-	outputSizeMap = map[int]int{
+	outputSizeMap = makeSizeMap(map[int]int{
 		FUSE_LOOKUP:      unsafe.Sizeof(EntryOut{}),
 		FUSE_FORGET:      0,
 		FUSE_GETATTR:     unsafe.Sizeof(AttrOut{}),
@@ -196,5 +254,62 @@ func init() {
 		FUSE_DESTROY:   0,
 		FUSE_IOCTL:     unsafe.Sizeof(IoctlOut{}),
 		FUSE_POLL:      unsafe.Sizeof(PollOut{}),
+	})
+
+	operationNames = make([]string, OPCODE_COUNT)
+	for k, v := range map[int]string{
+		FUSE_LOOKUP:"FUSE_LOOKUP",
+		FUSE_FORGET:"FUSE_FORGET",
+		FUSE_GETATTR:"FUSE_GETATTR",
+		FUSE_SETATTR:"FUSE_SETATTR",
+		FUSE_READLINK:"FUSE_READLINK",
+		FUSE_SYMLINK:"FUSE_SYMLINK",
+		FUSE_MKNOD:"FUSE_MKNOD",
+		FUSE_MKDIR:"FUSE_MKDIR",
+		FUSE_UNLINK:"FUSE_UNLINK",
+		FUSE_RMDIR:"FUSE_RMDIR",
+		FUSE_RENAME:"FUSE_RENAME",
+		FUSE_LINK:"FUSE_LINK",
+		FUSE_OPEN:"FUSE_OPEN",
+		FUSE_READ:"FUSE_READ",
+		FUSE_WRITE:"FUSE_WRITE",
+		FUSE_STATFS:"FUSE_STATFS",
+		FUSE_RELEASE:"FUSE_RELEASE",
+		FUSE_FSYNC:"FUSE_FSYNC",
+		FUSE_SETXATTR:"FUSE_SETXATTR",
+		FUSE_GETXATTR:"FUSE_GETXATTR",
+		FUSE_LISTXATTR:"FUSE_LISTXATTR",
+		FUSE_REMOVEXATTR:"FUSE_REMOVEXATTR",
+		FUSE_FLUSH:"FUSE_FLUSH",
+		FUSE_INIT:"FUSE_INIT",
+		FUSE_OPENDIR:"FUSE_OPENDIR",
+		FUSE_READDIR:"FUSE_READDIR",
+		FUSE_RELEASEDIR:"FUSE_RELEASEDIR",
+		FUSE_FSYNCDIR:"FUSE_FSYNCDIR",
+		FUSE_GETLK:"FUSE_GETLK",
+		FUSE_SETLK:"FUSE_SETLK",
+		FUSE_SETLKW:"FUSE_SETLKW",
+		FUSE_ACCESS:"FUSE_ACCESS",
+		FUSE_CREATE:"FUSE_CREATE",
+		FUSE_INTERRUPT:"FUSE_INTERRUPT",
+		FUSE_BMAP:"FUSE_BMAP",
+		FUSE_DESTROY:"FUSE_DESTROY",
+		FUSE_IOCTL:"FUSE_IOCTL",
+		FUSE_POLL:"FUSE_POLL"} {
+		operationNames[k] = v
+	}
+
+	operationFuncs = make([]operation, OPCODE_COUNT)
+	for k, v := range map[Opcode]operation{
+	FUSE_OPEN: doOpen,
+	FUSE_READDIR: doReadDir,
+	FUSE_WRITE: doWrite,
+	FUSE_OPENDIR: doOpenDir,
+	FUSE_CREATE: doCreate,
+	FUSE_SETATTR: doSetattr,
+	FUSE_GETXATTR: doGetXAttr,
+	FUSE_LISTXATTR:  doGetXAttr,
+	} {
+		operationFuncs[k] = v
 	}
 }

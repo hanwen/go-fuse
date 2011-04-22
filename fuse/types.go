@@ -143,6 +143,8 @@ const (
 	FUSE_IOCTL       = 39
 	FUSE_POLL        = 40
 
+	OPCODE_COUNT   = 41
+	
 	CUSE_INIT = 4096
 )
 
@@ -287,8 +289,8 @@ type OpenOut struct {
 }
 
 type CreateOut struct {
-	Entry EntryOut
-	Open  OpenOut
+	EntryOut
+	OpenOut
 }
 
 type ReleaseIn struct {
@@ -456,7 +458,7 @@ type NotifyPollWakeupOut struct {
 
 type InHeader struct {
 	Length uint32
-	Opcode uint32
+	Opcode
 	Unique uint64
 	NodeId uint64
 	Identity
