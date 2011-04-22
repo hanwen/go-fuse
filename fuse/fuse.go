@@ -23,9 +23,6 @@ const (
 	maxRead = bufSize - PAGESIZE
 )
 
-////////////////////////////////////////////////////////////////
-// State related to this mount point.
-
 type request struct {
 	inputBuf []byte
 
@@ -35,7 +32,7 @@ type request struct {
 	arg      []byte         // flat data.
 
 	// Unstructured data, a pointer to the relevant XxxxOut struct.
-	data     unsafe.Pointer
+	outData     unsafe.Pointer
 	status   Status
 	flatData []byte
 
@@ -57,6 +54,9 @@ func (me *request) filenames(count int) []string {
 	return strings.Split(string(me.arg), "\x00", count)
 }
 
+
+////////////////////////////////////////////////////////////////
+// State related to this mount point.
 type MountState struct {
 	// Empty if unmounted.
 	mountPoint string
@@ -337,7 +337,7 @@ func serialize(req *request, debug bool) {
 		req.status = ENOSYS
 		return
 	}
-	if req.data == nil || req.status != OK {
+	if req.outData == nil || req.status != OK {
 		dataLength = 0
 	}
 
@@ -349,9 +349,9 @@ func serialize(req *request, debug bool) {
 	outHeader.Status = -req.status
 	outHeader.Length = uint32(sizeOfOutHeader + dataLength + len(req.flatData))
 
-	copy(req.outHeaderBytes[sizeOfOutHeader:], asSlice(req.data, dataLength))
+	copy(req.outHeaderBytes[sizeOfOutHeader:], asSlice(req.outData, dataLength))
 	if debug {
-		val := fmt.Sprintf("%v", replyString(req.inHeader.Opcode, req.data))
+		val := fmt.Sprintf("%v", replyString(req.inHeader.Opcode, req.outData))
 		max := 1024
 		if len(val) > max {
 			val = val[:max] + fmt.Sprintf(" ...trimmed (response size %d)", outHeader.Length)

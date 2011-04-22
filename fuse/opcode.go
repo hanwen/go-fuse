@@ -42,7 +42,7 @@ func doOpen(state *MountState, req *request) {
 		OpenFlags: flags,
 	}
 
-	req.data = unsafe.Pointer(out)
+	req.outData = unsafe.Pointer(out)
 }
 
 
@@ -50,7 +50,7 @@ func doCreate(state *MountState, req *request) {
 	flags, handle, entry, status := state.fileSystem.Create(req.inHeader, (*CreateIn)(req.inData), req.filename())
 	req.status = status
 	if status == OK {
-		req.data = unsafe.Pointer(&CreateOut{
+		req.outData = unsafe.Pointer(&CreateOut{
 			EntryOut: *entry,
 			OpenOut: OpenOut{
 				Fh:        handle,
@@ -74,7 +74,7 @@ func doOpenDir(state *MountState, req *request) {
 	flags, handle, status := state.fileSystem.OpenDir(req.inHeader, (*OpenIn)(req.inData))
 	req.status = status
 	if status == OK {
-		req.data = unsafe.Pointer(&OpenOut{
+		req.outData = unsafe.Pointer(&OpenOut{
 			Fh:        handle,
 			OpenFlags: flags,
 		})
@@ -84,7 +84,7 @@ func doOpenDir(state *MountState, req *request) {
 func doSetattr(state *MountState, req *request) {
 	// TODO - if Fh != 0, we should do a FSetAttr instead.
 	o, s := state.fileSystem.SetAttr(req.inHeader, (*SetAttrIn)(req.inData))
-	req.data = unsafe.Pointer(o)
+	req.outData = unsafe.Pointer(o)
 	req.status = s
 }
 
@@ -93,7 +93,7 @@ func doWrite(state *MountState, req *request) {
 	o := &WriteOut{
 		Size: n,
 	}
-	req.data = unsafe.Pointer(o)
+	req.outData = unsafe.Pointer(o)
 	req.status = status
 }
 
@@ -116,7 +116,7 @@ func doGetXAttr(state *MountState, req *request) {
 		out := &GetXAttrOut{
 			Size: size,
 		}
-		req.data = unsafe.Pointer(out)
+		req.outData = unsafe.Pointer(out)
 	}
 
 	if size > input.Size {
@@ -130,7 +130,7 @@ func doGetAttr(state *MountState, req *request) {
 	// TODO - if req.inData.Fh is set, do file.GetAttr
 	attrOut, s := state.fileSystem.GetAttr(req.inHeader, (*GetAttrIn)(req.inData))
 	req.status = s
-	req.data = unsafe.Pointer(attrOut)
+	req.outData = unsafe.Pointer(attrOut)
 }
 
 func doForget(state *MountState, req *request) {
@@ -141,7 +141,7 @@ func doReadlink(state *MountState, req *request) {
 	req.flatData, req.status = state.fileSystem.Readlink(req.inHeader)
 }
 func doInit(state *MountState, req *request) {
-	req.data, req.status = state.init(req.inHeader, (*InitIn)(req.inData))
+	req.outData, req.status = state.init(req.inHeader, (*InitIn)(req.inData))
 }
 func doDestroy(state *MountState, req *request) {
 	state.fileSystem.Destroy(req.inHeader, (*InitIn)(req.inData))
@@ -150,19 +150,19 @@ func doDestroy(state *MountState, req *request) {
 func doLookup(state *MountState, req *request) {
 	lookupOut, s := state.fileSystem.Lookup(req.inHeader, req.filename())
 	req.status = s
-	req.data = unsafe.Pointer(lookupOut)
+	req.outData = unsafe.Pointer(lookupOut)
 }
 
 func doMknod(state *MountState, req *request) {
 	entryOut, s := state.fileSystem.Mknod(req.inHeader, (*MknodIn)(req.inData), req.filename())
 	req.status = s
-	req.data = unsafe.Pointer(entryOut)
+	req.outData = unsafe.Pointer(entryOut)
 }
 
 func doMkdir(state *MountState, req *request) {
 	entryOut, s := state.fileSystem.Mkdir(req.inHeader, (*MkdirIn)(req.inData), req.filename())
 	req.status = s
-	req.data = unsafe.Pointer(entryOut)
+	req.outData = unsafe.Pointer(entryOut)
 }
 
 func doUnlink(state *MountState, req *request) {
@@ -176,7 +176,7 @@ func doRmdir(state *MountState, req *request) {
 func doLink(state *MountState, req *request) {
 	entryOut, s := state.fileSystem.Link(req.inHeader, (*LinkIn)(req.inData), req.filename())
 	req.status = s
-	req.data = unsafe.Pointer(entryOut)
+	req.outData = unsafe.Pointer(entryOut)
 }
 func doRead(state *MountState, req *request) {
 	req.flatData, req.status = state.fileSystem.Read((*ReadIn)(req.inData), state.buffers)
@@ -214,7 +214,7 @@ func doSymlink(state *MountState, req *request) {
 	if len(filenames) >= 2 {
 		entryOut, s := state.fileSystem.Symlink(req.inHeader, filenames[1], filenames[0])
 		req.status = s
-		req.data = unsafe.Pointer(entryOut)
+		req.outData = unsafe.Pointer(entryOut)
 	} else {
 		req.status = EIO
 	}
