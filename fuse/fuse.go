@@ -250,20 +250,46 @@ func (me *MountState) Loop(threaded bool) {
 	me.mountFile.Close()
 }
 
-func (me *MountState) handle(req *request) {
-	defer me.discardRequest(req)
-	req.dispatchNs = time.Nanoseconds()
 
+func (me *MountState) chopMessage(req *request) bool {
 	inHSize := unsafe.Sizeof(InHeader{})
 	if len(req.inputBuf) < inHSize {
 		me.Error(os.NewError(fmt.Sprintf("Short read for input header: %v", req.inputBuf)))
-		return
+		return false
 	}
-
+	
 	req.inHeader = (*InHeader)(unsafe.Pointer(&req.inputBuf[0]))
 	req.arg = req.inputBuf[inHSize:]
-	me.dispatch(req)
 
+	argSize, ok := inputSize(req.inHeader.Opcode)
+	if !ok {
+		log.Println("Unknown opcode %d (input)", req.inHeader.Opcode)
+		req.status = ENOSYS
+		return true
+	}
+
+	if len(req.arg) < argSize {
+		log.Println("Short read for %v: %v", req.inHeader.Opcode, req.arg)
+		req.status = EIO
+		return true
+	}
+
+	if argSize > 0 {
+		req.inData = unsafe.Pointer(&req.arg[0])
+		req.arg = req.arg[argSize:]
+	}
+	return true
+}
+
+func (me *MountState) handle(req *request) {
+	defer me.discardRequest(req)
+	if !me.chopMessage(req) {
+		return
+	}
+	if req.status == OK {
+		me.dispatch(req)
+	}
+	
 	// If we try to write OK, nil, we will get
 	// error:  writer: Writev [[16 0 0 0 0 0 0 0 17 0 0 0 0 0 0 0]]
 	// failed, err: writev: no such file or directory
@@ -275,23 +301,7 @@ func (me *MountState) handle(req *request) {
 }
 
 func (me *MountState) dispatch(req *request) {
-	argSize, ok := inputSize(req.inHeader.Opcode)
-	if !ok {
-		log.Println("Unknown opcode %d (input)", req.inHeader.Opcode)
-		req.status = ENOSYS
-		return
-	}
-
-	if len(req.arg) < argSize {
-		log.Println("Short read for %v: %v", req.inHeader.Opcode, req.arg)
-		req.status = EIO
-		return
-	}
-
-	if argSize > 0 {
-		req.inData = unsafe.Pointer(&req.arg[0])
-		req.arg = req.arg[argSize:]
-	}
+	req.dispatchNs = time.Nanoseconds()
 
 	f := lookupOperation(req.inHeader.Opcode)
 	if f == nil {
