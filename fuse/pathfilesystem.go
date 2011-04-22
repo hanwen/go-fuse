@@ -499,7 +499,7 @@ func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *mount
 
 func (me *FileSystemConnector) Init(h *InHeader, input *InitIn) (*InitOut, Status) {
 	// TODO ?
-	return new(InitOut), OK
+	return &InitOut{}, OK
 }
 
 func (me *FileSystemConnector) Destroy(h *InHeader, input *InitIn) {
@@ -540,10 +540,10 @@ func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string
 	data.LookupCount += lookupCount
 	data.Type = ModeToType(attr.Mode)
 
-	out = new(EntryOut)
-	out.NodeId = data.NodeId
-	out.Generation = 1 // where to get the generation?
-
+	out = &EntryOut{
+		NodeId: data.NodeId,
+		Generation: 1, // where to get the generation?
+	}
 	SplitNs(me.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
 	SplitNs(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	out.Attr = *attr
@@ -566,8 +566,9 @@ func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out 
 		return nil, err
 	}
 
-	out = new(AttrOut)
-	out.Attr = *attr
+	out = &AttrOut{
+	Attr: *attr,
+	}
 	out.Attr.Ino = header.NodeId
 	SplitNs(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 
@@ -585,9 +586,9 @@ func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags u
 		return 0, 0, err
 	}
 
-	de := new(Dir)
-	de.stream = stream
-
+	de := &Dir{
+	stream: stream,
+	}
 	h := me.registerFile(node, de)
 
 	return 0, h, OK
@@ -651,7 +652,7 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 	}
 
 	// TODO - where to get GetAttrIn.Flags / Fh ?
-	return me.GetAttr(header, new(GetAttrIn))
+	return me.GetAttr(header, &GetAttrIn{})
 }
 
 func (me *FileSystemConnector) Readlink(header *InHeader) (out []byte, code Status) {
