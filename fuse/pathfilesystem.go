@@ -154,7 +154,7 @@ type FileSystemConnector struct {
 
 	////////////////
 
-	// Protects the inode hashmap, its contents and the nextFreeInode counter.
+	// Protects the inodeMap and each node's Children map.
 	lock sync.RWMutex
 
 	// Invariants: see the verify() method.
@@ -163,8 +163,11 @@ type FileSystemConnector struct {
 
 	// Open files/directories.
 	fileLock       sync.RWMutex
-	openFiles      map[uint64]interface{}
-	nextFreeHandle uint64
+	openFiles      map[uint64]*interfaceBridge
+}
+
+type interfaceBridge struct {
+	Iface interface{}
 }
 
 func (me *FileSystemConnector) DebugString() string {
@@ -183,41 +186,41 @@ func (me *FileSystemConnector) DebugString() string {
 func (me *FileSystemConnector) unregisterFile(node *inode, handle uint64) interface{} {
 	me.fileLock.Lock()
 	defer me.fileLock.Unlock()
-	f, ok := me.openFiles[handle]
+	b, ok := me.openFiles[handle]
 	if !ok {
 		panic("invalid handle")
 	}
 	me.openFiles[handle] = nil, false
 	node.OpenCount--
-	return f
+	return b.Iface
 }
 
 func (me *FileSystemConnector) registerFile(node *inode, f interface{}) uint64 {
 	me.fileLock.Lock()
 	defer me.fileLock.Unlock()
 
-	h := me.nextFreeHandle
-	me.nextFreeHandle++
+	b := &interfaceBridge{
+	Iface: f,
+	}
+	h := uint64(uintptr(unsafe.Pointer(b)))
 	_, ok := me.openFiles[h]
 	if ok {
 		panic("handle counter wrapped")
 	}
 
 	node.OpenCount++
-	me.openFiles[h] = f
+	me.openFiles[h] = b
 	return h
 }
 
 func (me *FileSystemConnector) getDir(h uint64) RawDir {
-	me.fileLock.RLock()
-	defer me.fileLock.RUnlock()
-	return me.openFiles[h].(RawDir)
+	b := (*interfaceBridge)(unsafe.Pointer(uintptr(h)))
+	return b.Iface.(RawDir)
 }
 
 func (me *FileSystemConnector) getFile(h uint64) File {
-	me.fileLock.RLock()
-	defer me.fileLock.RUnlock()
-	return me.openFiles[h].(File)
+	b := (*interfaceBridge)(unsafe.Pointer(uintptr(h)))
+	return b.Iface.(File)
 }
 
 func (me *FileSystemConnector) verify() {
@@ -373,7 +376,7 @@ func (me *FileSystemConnector) findInode(fullPath string) *inode {
 func EmptyFileSystemConnector() (out *FileSystemConnector) {
 	out = new(FileSystemConnector)
 	out.inodeMap = make(map[uint64]*inode)
-	out.openFiles = make(map[uint64]interface{})
+	out.openFiles = make(map[uint64]*interfaceBridge)
 
 	rootData := out.newInode(true)
 	rootData.Type = ModeToType(S_IFDIR)
