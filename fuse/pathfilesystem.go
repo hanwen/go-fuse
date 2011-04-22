@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"unsafe"
 )
 
 type mountData struct {
@@ -158,7 +159,7 @@ type FileSystemConnector struct {
 
 	// Invariants: see the verify() method.
 	inodeMap      map[uint64]*inode
-	nextFreeInode uint64
+	rootNode      *inode
 
 	// Open files/directories.
 	fileLock       sync.RWMutex
@@ -173,7 +174,7 @@ func (me *FileSystemConnector) DebugString() string {
 	me.fileLock.RLock()
 	defer me.fileLock.RUnlock()
 
-	root := me.inodeMap[FUSE_ROOT_ID]
+	root := me.rootNode
 	return fmt.Sprintf("Mounts %20d\nFiles %20d\nInodes %20d\n",
 		root.totalMountCount(),
 		len(me.openFiles), len(me.inodeMap))
@@ -233,12 +234,12 @@ func (me *FileSystemConnector) verify() {
 		if v.NodeId != k {
 			panic(fmt.Sprintf("nodeid mismatch %v %v", v, k))
 		}
-		if v.Parent == nil && v.NodeId != FUSE_ROOT_ID {
+		if v.Parent == nil && v != me.rootNode {
 			hiddenOpen += v.OpenCount
 		}
 	}
 
-	root := me.inodeMap[FUSE_ROOT_ID]
+	root := me.rootNode
 	root.verify()
 
 	open := root.totalOpenCount()
@@ -249,11 +250,14 @@ func (me *FileSystemConnector) verify() {
 	}
 }
 
-func (me *FileSystemConnector) newInode() *inode {
+func (me *FileSystemConnector) newInode(root bool) *inode {
 	data := new(inode)
-	data.NodeId = me.nextFreeInode
-	me.nextFreeInode++
-
+	if root {
+		data.NodeId = FUSE_ROOT_ID
+		me.rootNode = data
+	} else {
+		data.NodeId = uint64(uintptr(unsafe.Pointer(data)))
+	}
 	me.inodeMap[data.NodeId] = data
 
 	return data
@@ -267,7 +271,7 @@ func (me *FileSystemConnector) lookupUpdate(parent *inode, name string, isDir bo
 
 	data, ok := parent.Children[name]
 	if !ok {
-		data = me.newInode()
+		data = me.newInode(false)
 		data.Name = name
 		data.setParent(parent)
 		if isDir {
@@ -279,14 +283,11 @@ func (me *FileSystemConnector) lookupUpdate(parent *inode, name string, isDir bo
 }
 
 func (me *FileSystemConnector) getInodeData(nodeid uint64) *inode {
-	me.lock.RLock()
-	defer me.lock.RUnlock()
-
-	val := me.inodeMap[nodeid]
-	if val == nil {
-		panic(fmt.Sprintf("inode %v unknown", nodeid))
+	if nodeid == FUSE_ROOT_ID {
+		return me.rootNode
 	}
-	return val
+
+	return (*inode)(unsafe.Pointer(uintptr(nodeid)))
 }
 
 func (me *FileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int) {
@@ -351,7 +352,7 @@ func (me *FileSystemConnector) findInode(fullPath string) *inode {
 	me.lock.RLock()
 	defer me.lock.RUnlock()
 
-	node := me.inodeMap[FUSE_ROOT_ID]
+	node := me.rootNode
 	for i, component := range comps {
 		if len(component) == 0 {
 			continue
@@ -374,9 +375,7 @@ func EmptyFileSystemConnector() (out *FileSystemConnector) {
 	out.inodeMap = make(map[uint64]*inode)
 	out.openFiles = make(map[uint64]interface{})
 
-	out.nextFreeInode = FUSE_ROOT_ID
-	rootData := out.newInode()
-	rootData.NodeId = FUSE_ROOT_ID
+	rootData := out.newInode(true)
 	rootData.Type = ModeToType(S_IFDIR)
 	rootData.Children = make(map[string]*inode, initDirSize)
 
