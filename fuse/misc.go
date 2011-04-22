@@ -14,6 +14,14 @@ import (
 	"io/ioutil"
 )
 
+
+func (code Status) String() string {
+	if code == OK {
+		return "OK"
+	}
+	return fmt.Sprintf("%d=%v", int(code), os.Errno(code))
+}
+
 // Make a temporary directory securely.
 func MakeTempDir() string {
 	nm, err := ioutil.TempDir("", "go-fuse")

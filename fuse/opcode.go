@@ -3,24 +3,14 @@ package fuse
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"unsafe"
 )
 
-func (code Status) String() string {
-	if code == OK {
-		return "OK"
-	}
-	return fmt.Sprintf("%d=%v", int(code), os.Errno(code))
-}
-
 func replyString(opcode Opcode, ptr unsafe.Pointer) string {
+	h := getHandler(opcode)
 	var val interface{}
-	switch opcode {
-	case FUSE_LOOKUP:
-		val = (*EntryOut)(ptr)
-	case FUSE_OPEN:
-		val = (*OpenOut)(ptr)
+	if h.DecodeOut != nil {
+		val = h.DecodeOut(ptr)
 	}
 	if val != nil {
 		return fmt.Sprintf("%v", val)
@@ -44,7 +34,6 @@ func doOpen(state *MountState, req *request) {
 
 	req.outData = unsafe.Pointer(out)
 }
-
 
 func doCreate(state *MountState, req *request) {
 	flags, handle, entry, status := state.fileSystem.Create(req.inHeader, (*CreateIn)(req.inData), req.filename())
@@ -234,10 +223,12 @@ func doRename(state *MountState, req *request) {
 type operationFunc func(*MountState, *request)
 
 type operationHandler struct {
-	Name     string
-	Func operationFunc
-	InputSize int
+	Name       string
+	Func       operationFunc
+	InputSize  int
 	OutputSize int
+	DecodeIn   func(unsafe.Pointer) interface{}
+	DecodeOut  func(unsafe.Pointer) interface{}
 }
 
 var operationHandlers []*operationHandler
@@ -394,4 +385,12 @@ func init() {
 	} {
 		operationHandlers[op].Func = v
 	}
+
+	operationHandlers[FUSE_LOOKUP].DecodeOut = func(ptr unsafe.Pointer) interface{} {
+		return (*EntryOut)(ptr)
+	}
+	operationHandlers[FUSE_OPEN].DecodeOut = func(ptr unsafe.Pointer) interface{} {
+		return (*EntryOut)(ptr)
+	}
+
 }

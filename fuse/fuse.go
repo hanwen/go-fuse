@@ -178,10 +178,10 @@ func (me *MountState) readRequest(req *request) os.Error {
 }
 
 func (me *MountState) discardRequest(req *request) {
-	endNs := time.Nanoseconds()
-	dt := endNs - req.startNs
-
 	if me.RecordStatistics {
+		endNs := time.Nanoseconds()
+		dt := endNs - req.startNs
+
 		me.statisticsMutex.Lock()
 		defer me.statisticsMutex.Unlock()
 
