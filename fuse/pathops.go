@@ -23,17 +23,6 @@ func (me *FileSystemConnector) SetOptions(opts FileSystemConnectorOptions) {
 	me.options = opts
 }
 
-func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *mountData, node *inode) {
-	n := me.getInodeData(nodeid)
-
-	// Need to lock because renames create invalid states.
-	me.treeLock.RLock()
-	defer me.treeLock.RUnlock()
-	
-	p, m := n.GetPath()
-	return p, m, n
-}
-
 func (me *FileSystemConnector) Init(h *InHeader, input *InitIn) (*InitOut, Status) {
 	// TODO ?
 	return &InitOut{}, OK
