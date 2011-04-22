@@ -13,14 +13,14 @@ func Socketpair(network string) (l, r *os.File, err os.Error) {
 	var domain int
 	var typ int
 	switch network {
-	default:
-		panic("unknown network " + network)
 	case "unix":
 		domain = syscall.AF_UNIX
 		typ = syscall.SOCK_STREAM
 	case "unixgram":
 		domain = syscall.AF_UNIX
 		typ = syscall.SOCK_SEQPACKET
+	default:
+		panic("unknown network " + network)
 	}
 	fd, errno := syscall.Socketpair(domain, typ, 0)
 	if errno != 0 {
@@ -31,7 +31,7 @@ func Socketpair(network string) (l, r *os.File, err os.Error) {
 	return
 }
 
-// Mount create a fuse fs on the specified mount point.  The returned
+// Create a FUSE FS on the specified mount point.  The returned
 // mount point is always absolute.
 func mount(mountPoint string) (f *os.File, finalMountPoint string, err os.Error) {
 	local, remote, err := Socketpair("unixgram")
