@@ -24,7 +24,7 @@ const (
 ////////////////////////////////////////////////////////////////
 // State related to this mount point.
 
-type fuseRequest struct {
+type request struct {
 	inputBuf []byte
 
 	// These split up inputBuf.
@@ -134,7 +134,7 @@ func (me *MountState) Error(err os.Error) {
 	}
 }
 
-func (me *MountState) Write(req *fuseRequest) {
+func (me *MountState) Write(req *request) {
 	if req.outHeaderBytes == nil {
 		return
 	}
@@ -193,14 +193,14 @@ func (me *MountState) Stats() string {
 ////////////////////////////////////////////////////////////////
 // Logic for the control loop.
 
-func (me *MountState) newRequest() *fuseRequest {
-	req := new(fuseRequest)
+func (me *MountState) newRequest() *request {
+	req := new(request)
 	req.status = OK
 	req.inputBuf = me.buffers.AllocBuffer(bufSize)
 	return req
 }
 
-func (me *MountState) readRequest(req *fuseRequest) os.Error {
+func (me *MountState) readRequest(req *request) os.Error {
 	n, err := me.mountFile.Read(req.inputBuf)
 	// If we start timing before the read, we may take into
 	// account waiting for input into the timing.
@@ -209,7 +209,7 @@ func (me *MountState) readRequest(req *fuseRequest) os.Error {
 	return err
 }
 
-func (me *MountState) discardRequest(req *fuseRequest) {
+func (me *MountState) discardRequest(req *request) {
 	endNs := time.Nanoseconds()
 	dt := endNs - req.startNs
 
@@ -272,7 +272,7 @@ func (me *MountState) loop() {
 	me.mountFile.Close()
 }
 
-func (me *MountState) handle(req *fuseRequest) {
+func (me *MountState) handle(req *request) {
 	defer me.discardRequest(req)
 	req.dispatchNs = time.Nanoseconds()
 
@@ -292,7 +292,7 @@ func (me *MountState) handle(req *fuseRequest) {
 	}
 }
 
-func (me *MountState) dispatch(req *fuseRequest) {
+func (me *MountState) dispatch(req *request) {
 	h := req.inHeader
 	argumentSize, ok := inputSizeMap[int(h.Opcode)]
 	if !ok {
@@ -460,7 +460,7 @@ func asSlice(ptr unsafe.Pointer, byteCount int) []byte {
 	return *(*[]byte)(unsafe.Pointer(h))
 }
 
-func serialize(req *fuseRequest, debug bool) {
+func serialize(req *request, debug bool) {
 	dataLength, ok := outputSizeMap[int(req.inHeader.Opcode)]
 	if !ok {
 		log.Println("Unknown opcode %d (output)", req.inHeader.Opcode)
