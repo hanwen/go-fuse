@@ -9,9 +9,9 @@ import (
 
 var _ = log.Println
 
-// This implements a pool of buffers that returns slices with capacity
-// (2^e * PAGESIZE) for e=0,1,...  which have possibly been used, and
-// may contain random contents.
+// BufferPool implements a pool of buffers that returns slices with
+// capacity (2^e * PAGESIZE) for e=0,1,...  which have possibly been
+// used, and may contain random contents.
 type BufferPool struct {
 	lock sync.Mutex
 
@@ -26,7 +26,7 @@ type BufferPool struct {
 	createdBuffers int
 }
 
-// Returns the smallest E such that 2^E >= Z.
+// IntToExponent the smallest E such that 2^E >= Z.
 func IntToExponent(z int) uint {
 	x := z
 	var exp uint = 0
@@ -80,6 +80,8 @@ func (me *BufferPool) addBuffer(slice []byte, exp uint) {
 	me.buffersByExponent[exp] = append(me.buffersByExponent[exp], slice)
 }
 
+// AllocBuffer creates a buffer of at least the given size. After use,
+// it should be deallocated with FreeBuffer().
 func (me *BufferPool) AllocBuffer(size uint32) []byte {
 	sz := int(size)
 	if sz < PAGESIZE {
@@ -114,8 +116,9 @@ func (me *BufferPool) AllocBuffer(size uint32) []byte {
 	return b
 }
 
-// Takes back a buffer if it was allocated through AllocBuffer.  It is
-// not an error to call FreeBuffer() on a slice obtained elsewhere.
+// FreeBuffer takes back a buffer if it was allocated through
+// AllocBuffer.  It is not an error to call FreeBuffer() on a slice
+// obtained elsewhere.
 func (me *BufferPool) FreeBuffer(slice []byte) {
 	if cap(slice) < PAGESIZE {
 		return
