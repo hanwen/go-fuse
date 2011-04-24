@@ -22,6 +22,7 @@ GOFILES=misc.go\
 	pathdebug.go \
 	opcode.go \
 	pathops.go \
+	latencymap.go
 
 include $(GOROOT)/src/Make.pkg
 

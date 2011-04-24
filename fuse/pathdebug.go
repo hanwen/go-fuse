@@ -104,7 +104,7 @@ func FloatMapToBytes(m map[string]float64) []byte {
 }
 
 // Ugh - generics.
-func IntMapToBytes(m map[string]int64) []byte {
+func IntMapToBytes(m map[string]int) []byte {
 	keys := make([]string, 0, len(m))
 	for k, _ := range m {
 		keys = append(keys, k)
@@ -153,7 +153,8 @@ func (me *FileSystemDebug) AddFileSystemConnector(conn *FileSystemConnector) {
 }
 
 func hotPaths(timing *TimingFileSystem) []byte {
-	hot, unique := timing.HotPaths("GetAttr")
+	hot := timing.HotPaths("GetAttr")
+	unique := len(hot)
 	top := 20
 	start := len(hot) - top
 	if start < 0 {

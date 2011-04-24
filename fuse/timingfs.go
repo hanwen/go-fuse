@@ -1,11 +1,9 @@
 package fuse
 
 import (
-	"sync"
 	"time"
 	"log"
 	"fmt"
-	"sort"
 )
 
 var _ = log.Print
@@ -15,18 +13,13 @@ var _ = fmt.Print
 type TimingFileSystem struct {
 	WrappingFileSystem
 
-	statisticsLock sync.Mutex
-	latencies      map[string]int64
-	counts         map[string]int64
-	pathCounts     map[string]map[string]int64
+	*LatencyMap
 }
 
 func NewTimingFileSystem(fs FileSystem) *TimingFileSystem {
 	t := new(TimingFileSystem)
+	t.LatencyMap = NewLatencyMap()
 	t.Original = fs
-	t.latencies = make(map[string]int64)
-	t.counts = make(map[string]int64)
-	t.pathCounts = make(map[string]map[string]int64)
 	return t
 }
 
@@ -35,56 +28,20 @@ func (me *TimingFileSystem) startTimer(name string, arg string) (closure func())
 
 	return func() {
 		dt := (time.Nanoseconds() - start) / 1e6
-		me.statisticsLock.Lock()
-		defer me.statisticsLock.Unlock()
-
-		me.counts[name] += 1
-		me.latencies[name] += dt
-
-		m, ok := me.pathCounts[name]
-		if !ok {
-			m = make(map[string]int64)
-			me.pathCounts[name] = m
-		}
-		m[arg] += 1
+		me.LatencyMap.Add(name, arg, dt)
 	}
 }
 
-func (me *TimingFileSystem) OperationCounts() map[string]int64 {
-	me.statisticsLock.Lock()
-	defer me.statisticsLock.Unlock()
-
-	r := make(map[string]int64)
-	for k, v := range me.counts {
-		r[k] = v
-	}
-	return r
+func (me *TimingFileSystem) OperationCounts() map[string]int {
+	return me.LatencyMap.Counts()
 }
 
 func (me *TimingFileSystem) Latencies() map[string]float64 {
-	me.statisticsLock.Lock()
-	defer me.statisticsLock.Unlock()
-
-	r := make(map[string]float64)
-	for k, v := range me.counts {
-		lat := float64(me.latencies[k]) / float64(v)
-		r[k] = lat
-	}
-	return r
+	return me.LatencyMap.Latencies(1e-3)
 }
 
-func (me *TimingFileSystem) HotPaths(operation string) (paths []string, uniquePaths int) {
-	me.statisticsLock.Lock()
-	defer me.statisticsLock.Unlock()
-
-	counts := me.pathCounts[operation]
-	results := make([]string, 0, len(counts))
-	for k, v := range counts {
-		results = append(results, fmt.Sprintf("% 9d %s", v, k))
-
-	}
-	sort.SortStrings(results)
-	return results, len(counts)
+func (me *TimingFileSystem) HotPaths(operation string) (paths []string) {
+	return me.LatencyMap.TopArgs(operation)
 }
 
 func (me *TimingFileSystem) GetAttr(name string) (*Attr, Status) {

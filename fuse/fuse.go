@@ -9,7 +9,6 @@ import (
 	"os"
 	"reflect"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 	"unsafe"
@@ -72,11 +71,7 @@ type MountState struct {
 	buffers *BufferPool
 
 	RecordStatistics bool
-	statisticsMutex sync.Mutex
-	operationCounts map[string]int64
-
-	// In nanoseconds.
-	operationLatencies map[string]int64
+	*LatencyMap
 }
 
 // Mount filesystem on mountPoint.
@@ -87,9 +82,7 @@ func (me *MountState) Mount(mountPoint string) os.Error {
 	}
 	me.mountPoint = mp
 	me.mountFile = file
-
-	me.operationCounts = make(map[string]int64)
-	me.operationLatencies = make(map[string]int64)
+	me.LatencyMap = NewLatencyMap()
 	return nil
 }
 
@@ -135,26 +128,11 @@ func NewMountState(fs RawFileSystem) *MountState {
 }
 
 func (me *MountState) Latencies() map[string]float64 {
-	me.statisticsMutex.Lock()
-	defer me.statisticsMutex.Unlock()
-
-	r := make(map[string]float64)
-	for k, v := range me.operationCounts {
-		r[k] = 1e-6 * float64(me.operationLatencies[k]) / float64(v)
-	}
-
-	return r
+	return me.LatencyMap.Latencies(1e-3)
 }
 
-func (me *MountState) OperationCounts() map[string]int64 {
-	me.statisticsMutex.Lock()
-	defer me.statisticsMutex.Unlock()
-
-	r := make(map[string]int64)
-	for k, v := range me.operationCounts {
-		r[k] = v
-	}
-	return r
+func (me *MountState) OperationCounts() map[string]int {
+	return me.LatencyMap.Counts()
 }
 
 func (me *MountState) BufferPoolStats() string {
@@ -188,26 +166,12 @@ func (me *MountState) discardRequest(req *request) {
 		endNs := time.Nanoseconds()
 		dt := endNs - req.startNs
 
-		me.statisticsMutex.Lock()
-		defer me.statisticsMutex.Unlock()
-
 		opname := operationName(req.inHeader.Opcode)
-		key := opname
-		me.operationCounts[key] += 1
-		me.operationLatencies[key] += dt
-
-		key += "-dispatch"
-		me.operationLatencies[key] += (req.dispatchNs - req.startNs)
-		me.operationCounts[key] += 1
-
-		key = opname + "-write"
-		me.operationLatencies[key] += (endNs - req.preWriteNs)
-		me.operationCounts[key] += 1
-
-		recDt := time.Nanoseconds() - endNs
-		key = "measurement"
-		me.operationCounts[key] += 1
-		me.operationLatencies[key] += recDt
+		me.LatencyMap.AddMany(
+			[]LatencyArg{
+			{opname, "", dt},
+			{opname + "-dispatch", "", req.dispatchNs - req.startNs},
+			{opname + "-write", "", endNs - req.preWriteNs}})
 	}
 
 	me.buffers.FreeBuffer(req.inputBuf)
