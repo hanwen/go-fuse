@@ -112,7 +112,7 @@ func (me *BufferPool) AllocBuffer(size uint32) []byte {
 
 	// FUSE throttles to ~10 outstanding requests, no normally,
 	// should not have more than 20 buffers outstanding.
-	if len(me.outstandingBuffers) > 200 {
+	if paranoia && len(me.outstandingBuffers) > 50 {
 		panic("Leaking buffers")
 	}
 
