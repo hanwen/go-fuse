@@ -10,7 +10,7 @@ import (
 func TestPathDebug(t *testing.T) {
 	debugFs := NewFileSystemDebug()
 	debugFs.Original = &DefaultFileSystem{}
-	debugFs.Add("test-entry", func()[]byte { return []byte("test-content"); })
+	debugFs.Add("test-entry", func() []byte { return []byte("test-content") })
 
 	connector := NewFileSystemConnector(debugFs)
 	mountPoint := MakeTempDir()
@@ -30,7 +30,7 @@ func TestPathDebug(t *testing.T) {
 	CheckSuccess(err)
 
 	if len(names) != 1 || names[0].Name != "test-entry" {
-		t.Error("unexpected readdir out:", names) 
+		t.Error("unexpected readdir out:", names)
 	}
 
 	c, err := ioutil.ReadFile(filepath.Join(dir, "test-entry"))

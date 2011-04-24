@@ -532,10 +532,10 @@ type RawFileSystem interface {
 	Create(header *InHeader, input *CreateIn, name string) (flags uint32, handle uint64, out *EntryOut, code Status)
 
 	/*
-	 	// unimplemented.
-		Bmap(header *InHeader, input *BmapIn) (out *BmapOut, code Status)
-		Ioctl(header *InHeader, input *IoctlIn) (out *IoctlOut, code Status)
-		Poll(header *InHeader, input *PollIn) (out *PollOut, code Status)
+		 	// unimplemented.
+			Bmap(header *InHeader, input *BmapIn) (out *BmapOut, code Status)
+			Ioctl(header *InHeader, input *IoctlIn) (out *IoctlOut, code Status)
+			Poll(header *InHeader, input *PollIn) (out *PollOut, code Status)
 	*/
 
 	// File handling.

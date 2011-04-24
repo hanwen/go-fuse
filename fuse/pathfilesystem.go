@@ -135,7 +135,7 @@ func (me *inode) setParent(newParent *inode) {
 				panic(fmt.Sprintf("Already have an inode with same name: %v: %v", me.Name, ch))
 			}
 		}
-		
+
 		me.Parent.Children[me.Name] = me
 	}
 }
@@ -171,14 +171,14 @@ type FileSystemConnector struct {
 	treeLock sync.RWMutex
 
 	// Invariants: see the verify() method.
-	inodeMap      map[uint64]*inode
-	rootNode      *inode
+	inodeMap map[uint64]*inode
+	rootNode *inode
 
 	// Open files/directories.
-	openFiles      map[uint64]*interfaceBridge
+	openFiles map[uint64]*interfaceBridge
 
 	// Protects openFiles and OpenCount in all of the nodes.
-	fileLock       sync.RWMutex
+	fileLock sync.RWMutex
 }
 
 type interfaceBridge struct {
@@ -215,7 +215,7 @@ func (me *FileSystemConnector) registerFile(node *inode, f interface{}) uint64 {
 	defer me.fileLock.Unlock()
 
 	b := &interfaceBridge{
-	Iface: f,
+		Iface: f,
 	}
 	h := uint64(uintptr(unsafe.Pointer(b)))
 	_, ok := me.openFiles[h]
@@ -279,7 +279,7 @@ func (me *FileSystemConnector) newInode(root bool, isDir bool) *inode {
 	if isDir {
 		data.Children = make(map[string]*inode, initDirSize)
 	}
-	
+
 	return data
 }
 
@@ -449,12 +449,12 @@ func (me *FileSystemConnector) Unmount(path string) Status {
 	me.fileLock.Lock()
 
 	unmountError := OK
-	
+
 	mount := node.mount
 	if mount == nil || mount.unmountPending {
 		unmountError = EINVAL
 	}
-	
+
 	// don't use defer: we don't want to call out to
 	// mount.fs.Unmount() with lock held.
 	if unmountError == OK && (node.totalOpenCount() > 0 || node.totalMountCount() > 1) {
@@ -472,7 +472,7 @@ func (me *FileSystemConnector) Unmount(path string) Status {
 		if me.Debug {
 			log.Println("Unmount: ", mount)
 		}
-	
+
 		mount.fs.Unmount()
 	}
 	return unmountError
@@ -484,7 +484,7 @@ func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *mount
 	// Need to lock because renames create invalid states.
 	me.treeLock.RLock()
 	defer me.treeLock.RUnlock()
-	
+
 	p, m := n.GetPath()
 	return p, m, n
 }

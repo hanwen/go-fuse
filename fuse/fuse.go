@@ -31,7 +31,7 @@ type request struct {
 	arg      []byte         // flat data.
 
 	// Unstructured data, a pointer to the relevant XxxxOut struct.
-	outData     unsafe.Pointer
+	outData  unsafe.Pointer
 	status   Status
 	flatData []byte
 
@@ -99,7 +99,7 @@ func (me *MountState) Write(req *request) {
 	if me.RecordStatistics {
 		req.preWriteNs = time.Nanoseconds()
 	}
-	
+
 	if req.outHeaderBytes == nil {
 		return
 	}
@@ -169,9 +169,9 @@ func (me *MountState) discardRequest(req *request) {
 		opname := operationName(req.inHeader.Opcode)
 		me.LatencyMap.AddMany(
 			[]LatencyArg{
-			{opname, "", dt},
-			{opname + "-dispatch", "", req.dispatchNs - req.startNs},
-			{opname + "-write", "", endNs - req.preWriteNs}})
+				{opname, "", dt},
+				{opname + "-dispatch", "", req.dispatchNs - req.startNs},
+				{opname + "-write", "", endNs - req.preWriteNs}})
 	}
 
 	me.buffers.FreeBuffer(req.inputBuf)
@@ -228,7 +228,7 @@ func (me *MountState) chopMessage(req *request) *operationHandler {
 		log.Printf("Short read for input header: %v", req.inputBuf)
 		return nil
 	}
-	
+
 	req.inHeader = (*InHeader)(unsafe.Pointer(&req.inputBuf[0]))
 	req.arg = req.inputBuf[inHSize:]
 
@@ -263,7 +263,7 @@ func (me *MountState) handle(req *request) {
 	if req.status == OK {
 		me.dispatch(req, handler)
 	}
-	
+
 	// If we try to write OK, nil, we will get
 	// error:  writer: Writev [[16 0 0 0 0 0 0 0 17 0 0 0 0 0 0 0]]
 	// failed, err: writev: no such file or directory
@@ -277,7 +277,7 @@ func (me *MountState) dispatch(req *request, handler *operationHandler) {
 	if me.RecordStatistics {
 		req.dispatchNs = time.Nanoseconds()
 	}
-	
+
 	if me.Debug {
 		nm := ""
 		// TODO - reinstate filename printing.

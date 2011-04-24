@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 )
-	
+
 
 func NewFileSystemConnector(fs FileSystem) (out *FileSystemConnector) {
 	out = EmptyFileSystemConnector()
@@ -66,7 +66,7 @@ func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string
 	data.LookupCount += lookupCount
 
 	out = &EntryOut{
-		NodeId: data.NodeId,
+		NodeId:     data.NodeId,
 		Generation: 1, // where to get the generation?
 	}
 	SplitNs(me.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
@@ -92,7 +92,7 @@ func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out 
 	}
 
 	out = &AttrOut{
-	Attr: *attr,
+		Attr: *attr,
 	}
 	out.Attr.Ino = header.NodeId
 	SplitNs(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
@@ -112,7 +112,7 @@ func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags u
 	}
 
 	de := &Dir{
-	stream: stream,
+		stream: stream,
 	}
 	h := me.registerFile(node, de)
 
@@ -164,7 +164,7 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 		mount.fs.Truncate(fullPath, input.Size)
 	}
 	if err == OK && (input.Valid&FATTR_ATIME != 0 || input.Valid&FATTR_MTIME != 0) {
-		
+
 		err = mount.fs.Utimens(fullPath,
 			uint64(input.Atime*1e9)+uint64(input.Atimensec),
 			uint64(input.Mtime*1e9)+uint64(input.Mtimensec))
@@ -393,4 +393,3 @@ func (me *FileSystemConnector) Read(input *ReadIn, bp *BufferPool) ([]byte, Stat
 	f := me.getFile(input.Fh)
 	return f.Read(input, bp)
 }
-

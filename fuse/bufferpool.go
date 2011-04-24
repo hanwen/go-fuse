@@ -115,7 +115,7 @@ func (me *BufferPool) AllocBuffer(size uint32) []byte {
 	if len(me.outstandingBuffers) > 200 {
 		panic("Leaking buffers")
 	}
-	
+
 	return b
 }
 

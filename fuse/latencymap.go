@@ -8,18 +8,18 @@ import (
 
 type latencyMapEntry struct {
 	count int
-	ns int64
+	ns    int64
 }
 
 type LatencyArg struct {
 	Name string
-	Arg string
-	DtNs  int64
+	Arg  string
+	DtNs int64
 }
 
 type LatencyMap struct {
 	sync.Mutex
-	stats map[string]*latencyMapEntry
+	stats          map[string]*latencyMapEntry
 	secondaryStats map[string]map[string]int64
 }
 
@@ -50,7 +50,7 @@ func (me *LatencyMap) add(name string, arg string, dtNs int64) {
 		me.stats[name] = e
 	}
 
-	e.count ++
+	e.count++
 	e.ns += dtNs
 	if arg != "" {
 		m, ok := me.secondaryStats[name]

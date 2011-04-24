@@ -41,7 +41,7 @@ func (me *FileSystemDebug) Add(name string, callback getter) {
 }
 
 func (me *FileSystemDebug) Open(path string, flags uint32) (fuseFile File, status Status) {
-	
+
 	content := me.getContent(path)
 	if content != nil {
 		return NewReadOnlyFile(content), OK
@@ -72,11 +72,11 @@ func (me *FileSystemDebug) GetXAttr(name string, attr string) ([]byte, Status) {
 func (me *FileSystemDebug) GetAttr(path string) (*Attr, Status) {
 	if !strings.HasPrefix(path, DebugDir) {
 		return me.Original.GetAttr(path)
-	}		
+	}
 	if path == DebugDir {
 		return &Attr{
 			Mode: S_IFDIR | 0755,
-		}, OK
+		},OK
 	}
 	c := me.getContent(path)
 	if c != nil {
@@ -123,17 +123,16 @@ func (me *FileSystemDebug) OpenDir(name string) (stream chan DirEntry, status St
 	if name == DebugDir {
 		me.RWMutex.RLock()
 		defer me.RWMutex.RUnlock()
-	
+
 		stream = make(chan DirEntry, len(me.callbacks))
 		for k, _ := range me.callbacks {
-			stream <- DirEntry {
+			stream <- DirEntry{
 				Name: k,
 				Mode: S_IFREG,
 			}
 		}
 		close(stream)
 		return stream, OK
-		
 	}
 	return me.Original.OpenDir(name)
 }
