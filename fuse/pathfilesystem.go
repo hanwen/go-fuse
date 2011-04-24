@@ -128,11 +128,14 @@ func (me *inode) setParent(newParent *inode) {
 	}
 	if newParent != nil {
 		me.Parent = newParent
-		ch := me.Parent.Children[me.Name]
-		if ch != nil {
-			panic(fmt.Sprintf("Already have an inode with same name: %v: %v", me.Name, ch))
-		}
 
+		if paranoia {
+			ch := me.Parent.Children[me.Name]
+			if ch != nil {
+				panic(fmt.Sprintf("Already have an inode with same name: %v: %v", me.Name, ch))
+			}
+		}
+		
 		me.Parent.Children[me.Name] = me
 	}
 }
