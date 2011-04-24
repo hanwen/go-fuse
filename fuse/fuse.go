@@ -136,8 +136,8 @@ func (me *MountState) OperationCounts() map[string]int {
 }
 
 func (me *MountState) BufferPoolStats() string {
-	return fmt.Sprintf("buffer alloc count %d\nbuffers %v",
-		me.buffers.AllocCount(), me.buffers.String())
+	return fmt.Sprintf("buffers %v",
+		me.buffers.String())
 }
 
 ////////////////////////////////////////////////////////////////

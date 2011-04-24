@@ -49,7 +49,10 @@ func NewBufferPool() *BufferPool {
 }
 
 func (me *BufferPool) String() string {
-	s := ""
+	me.lock.Lock()
+	defer me.lock.Unlock()
+	s := fmt.Sprintf("created: %v\noutstanding %v\n",
+		me.createdBuffers, len(me.outstandingBuffers))
 	for exp, bufs := range me.buffersByExponent {
 		s = s + fmt.Sprintf("%d = %d\n", exp, len(bufs))
 	}
@@ -78,13 +81,6 @@ func (me *BufferPool) addBuffer(slice []byte, exp uint) {
 }
 
 
-func (me *BufferPool) AllocCount() int {
-	me.lock.Lock()
-	defer me.lock.Unlock()
-
-	return me.createdBuffers
-}
-
 func (me *BufferPool) AllocBuffer(size uint32) []byte {
 	sz := int(size)
 	if sz < PAGESIZE {
@@ -112,7 +108,7 @@ func (me *BufferPool) AllocBuffer(size uint32) []byte {
 
 	// FUSE throttles to ~10 outstanding requests, no normally,
 	// should not have more than 20 buffers outstanding.
-	if paranoia && len(me.outstandingBuffers) > 50 {
+	if paranoia && (me.createdBuffers > 50 || len(me.outstandingBuffers) > 50) {
 		panic("Leaking buffers")
 	}
 
