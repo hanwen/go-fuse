@@ -16,12 +16,15 @@ func main() {
 	debug := flag.Bool("debug", false, "print debugging messages.")
 	flag.Parse()
 	if flag.NArg() < 2 {
-		// TODO - where to get program name?
-		fmt.Println("usage: main MOUNTPOINT ZIP-FILE")
+		fmt.Fprintf(os.Stderr, "usage: %s MOUNTPOINT ZIP-FILE\n", os.Args[0])
 		os.Exit(2)
 	}
 
-	fs := zipfs.NewZipArchiveFileSystem(flag.Arg(1))
+	fs, err := zipfs.NewZipArchiveFileSystem(flag.Arg(1))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "NewZipArchiveFileSystem failed: %v\n", err)
+		os.Exit(1)
+	}
 	conn := fuse.NewFileSystemConnector(fs)
 	state := fuse.NewMountState(conn)
 

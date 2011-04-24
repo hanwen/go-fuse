@@ -100,18 +100,18 @@ func zipFilesToTree(files []*zip.File) *ZipDirTree {
 	return t
 }
 
-func NewZipArchiveFileSystem(name string) *ZipArchiveFileSystem {
+// NewZipArchiveFileSystem creates a new file-system for the
+// zip file named name.
+func NewZipArchiveFileSystem(name string) (*ZipArchiveFileSystem, os.Error) {
 	z := new(ZipArchiveFileSystem)
 	r, err := zip.OpenReader(name)
 	if err != nil {
-		// TODO - return os.Error instead.
-		log.Println("NewZipArchiveFileSystem(): " + err.String())
-		return nil
+		return nil, err
 	}
 	z.ZipFileName = name
 	z.zipReader = r
 	z.tree = zipFilesToTree(r.File)
-	return z
+	return z, nil
 }
 
 const zip_DIRMODE uint32 = fuse.S_IFDIR | 0700
