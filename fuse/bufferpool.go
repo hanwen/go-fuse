@@ -80,7 +80,6 @@ func (me *BufferPool) addBuffer(slice []byte, exp uint) {
 	me.buffersByExponent[exp] = append(me.buffersByExponent[exp], slice)
 }
 
-
 func (me *BufferPool) AllocBuffer(size uint32) []byte {
 	sz := int(size)
 	if sz < PAGESIZE {
