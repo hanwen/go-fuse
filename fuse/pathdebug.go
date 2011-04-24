@@ -22,6 +22,8 @@ type getter func() []byte
 // FileSystemDebug exposes a .debug directory, exposing files for
 // which a read hooks into a callback.  This is useful for exporting
 // metrics and debug information from the daemon.
+//
+// TODO - should use in-process mount instead?
 type FileSystemDebug struct {
 	sync.RWMutex
 	callbacks map[string]getter
