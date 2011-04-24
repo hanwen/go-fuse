@@ -185,7 +185,7 @@ type interfaceBridge struct {
 	Iface interface{}
 }
 
-func (me *FileSystemConnector) DebugString() string {
+func (me *FileSystemConnector) Statistics() string {
 	me.treeLock.RLock()
 	defer me.treeLock.RUnlock()
 

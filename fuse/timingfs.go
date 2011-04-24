@@ -67,7 +67,8 @@ func (me *TimingFileSystem) Latencies() map[string]float64 {
 
 	r := make(map[string]float64)
 	for k, v := range me.counts {
-		r[k] = float64(me.latencies[k]) / float64(v)
+		lat := float64(me.latencies[k]) / float64(v)
+		r[k] = lat
 	}
 	return r
 }

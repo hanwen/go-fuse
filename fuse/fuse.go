@@ -103,6 +103,10 @@ func (me *MountState) Unmount() os.Error {
 }
 
 func (me *MountState) Write(req *request) {
+	if me.RecordStatistics {
+		req.preWriteNs = time.Nanoseconds()
+	}
+	
 	if req.outHeaderBytes == nil {
 		return
 	}
@@ -153,7 +157,7 @@ func (me *MountState) OperationCounts() map[string]int64 {
 	return r
 }
 
-func (me *MountState) Stats() string {
+func (me *MountState) BufferPoolStats() string {
 	return fmt.Sprintf("buffer alloc count %d\nbuffers %v",
 		me.buffers.AllocCount(), me.buffers.String())
 }
@@ -172,7 +176,9 @@ func (me *MountState) readRequest(req *request) os.Error {
 	n, err := me.mountFile.Read(req.inputBuf)
 	// If we start timing before the read, we may take into
 	// account waiting for input into the timing.
-	req.startNs = time.Nanoseconds()
+	if me.RecordStatistics {
+		req.startNs = time.Nanoseconds()
+	}
 	req.inputBuf = req.inputBuf[0:n]
 	return err
 }
@@ -197,6 +203,11 @@ func (me *MountState) discardRequest(req *request) {
 		key = opname + "-write"
 		me.operationLatencies[key] += (endNs - req.preWriteNs)
 		me.operationCounts[key] += 1
+
+		recDt := time.Nanoseconds() - endNs
+		key = "measurement"
+		me.operationCounts[key] += 1
+		me.operationLatencies[key] += recDt
 	}
 
 	me.buffers.FreeBuffer(req.inputBuf)
@@ -294,14 +305,15 @@ func (me *MountState) handle(req *request) {
 	// failed, err: writev: no such file or directory
 	if req.inHeader.Opcode != FUSE_FORGET {
 		serialize(req, handler, me.Debug)
-		req.preWriteNs = time.Nanoseconds()
 		me.Write(req)
 	}
 }
 
 func (me *MountState) dispatch(req *request, handler *operationHandler) {
-	req.dispatchNs = time.Nanoseconds()
-
+	if me.RecordStatistics {
+		req.dispatchNs = time.Nanoseconds()
+	}
+	
 	if me.Debug {
 		nm := ""
 		// TODO - reinstate filename printing.
