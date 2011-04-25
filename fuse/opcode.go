@@ -221,14 +221,15 @@ func doRename(state *MountState, req *request) {
 ////////////////////////////////////////////////////////////////
 
 type operationFunc func(*MountState, *request)
+type castPointerFunc func(unsafe.Pointer) interface{}
 
 type operationHandler struct {
 	Name       string
 	Func       operationFunc
 	InputSize  int
 	OutputSize int
-	DecodeIn   func(unsafe.Pointer) interface{}
-	DecodeOut  func(unsafe.Pointer) interface{}
+	DecodeIn   castPointerFunc
+	DecodeOut  castPointerFunc
 }
 
 var operationHandlers []*operationHandler
@@ -386,11 +387,12 @@ func init() {
 		operationHandlers[op].Func = v
 	}
 
-	operationHandlers[FUSE_LOOKUP].DecodeOut = func(ptr unsafe.Pointer) interface{} {
-		return (*EntryOut)(ptr)
-	}
-	operationHandlers[FUSE_OPEN].DecodeOut = func(ptr unsafe.Pointer) interface{} {
-		return (*EntryOut)(ptr)
+	for op, f := range map[Opcode]castPointerFunc{
+		FUSE_LOOKUP: func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
+		FUSE_OPEN: func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
+		FUSE_GETATTR: func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
+	} {
+		operationHandlers[op].DecodeOut = f
 	}
 
 }
