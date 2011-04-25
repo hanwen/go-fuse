@@ -42,10 +42,10 @@ func (me *zipCreateFile) Write(input *fuse.WriteIn, nameBytes []byte) (uint32, f
 	zipFile := string(nameBytes)
 
 	zipFile = strings.Trim(zipFile, "\n ")
-	fs := NewZipArchiveFileSystem(zipFile)
-	if fs == nil {
+	fs, err := NewZipArchiveFileSystem(zipFile)
+	if err != nil {
 		// TODO
-		log.Println("NewZipArchiveFileSystem returned nil")
+		log.Println("NewZipArchiveFileSystem failed:", err)
 		me.zfs.pendingZips[me.Basename] = false, false
 		return 0, fuse.ENOSYS
 	}

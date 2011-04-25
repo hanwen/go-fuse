@@ -9,7 +9,10 @@ import (
 func TestZipFs(t *testing.T) {
 	wd, err := os.Getwd()
 	CheckSuccess(err)
-	zfs := NewZipArchiveFileSystem(wd + "/test.zip")
+	zfs, err := NewZipArchiveFileSystem(wd + "/test.zip")
+	if err != nil {
+		t.Error("NewZipArchiveFileSystem failed:", err)
+	}
 
 	connector := fuse.NewFileSystemConnector(zfs)
 	mountPoint := fuse.MakeTempDir()
