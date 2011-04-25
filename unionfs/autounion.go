@@ -33,6 +33,14 @@ type AutoUnionFsOptions struct {
 	UnionFsOptions
 }
 
+const (
+	_READONLY = "READONLY"
+	_STATUS   = "status"
+	_CONFIG   = "config"
+	_ROOT     = "root"
+	_VERSION  = "gounionfs_version"
+)
+
 func NewAutoUnionFs(directory string, options AutoUnionFsOptions) *AutoUnionFs {
 	a := new(AutoUnionFs)
 	a.knownFileSystems = make(map[string]*UnionFs)
@@ -51,7 +59,7 @@ func (me *AutoUnionFs) addFs(roots []string) {
 	relative := strings.TrimLeft(strings.Replace(roots[0], me.root, "", -1), "/")
 	name := strings.Replace(relative, "/", "-", -1)
 
-	if name == "config" || name == "status" {
+	if name == _CONFIG || name == _STATUS {
 		log.Println("Illegal name for overlay", roots)
 		return
 	}
@@ -72,7 +80,7 @@ func (me *AutoUnionFs) addFs(roots []string) {
 
 // TODO - should hide these methods.
 func (me *AutoUnionFs) VisitDir(path string, f *os.FileInfo) bool {
-	ro := filepath.Join(path, "READONLY")
+	ro := filepath.Join(path, _READONLY)
 	fi, err := os.Lstat(ro)
 	if err == nil && fi.IsSymlink() {
 		// TODO - should recurse and chain all READONLYs
@@ -93,11 +101,11 @@ func (me *AutoUnionFs) updateKnownFses() {
 
 func (me *AutoUnionFs) Readlink(path string) (out string, code fuse.Status) {
 	comps := strings.Split(path, filepath.SeparatorString, -1)
-	if comps[0] == "status" && comps[1] == "autobase" {
+	if comps[0] == _STATUS && comps[1] == _ROOT {
 		return me.root, fuse.OK
 	}
 
-	if comps[0] != "config" {
+	if comps[0] != _CONFIG {
 		return "", fuse.ENOENT
 	}
 	name := comps[1]
@@ -111,21 +119,21 @@ func (me *AutoUnionFs) Readlink(path string) (out string, code fuse.Status) {
 }
 
 func (me *AutoUnionFs) GetAttr(path string) (*fuse.Attr, fuse.Status) {
-	if path == "" || path == "config" || path == "status" {
+	if path == "" || path == _CONFIG || path == _STATUS {
 		a := &fuse.Attr{
 			Mode: fuse.S_IFDIR | 0755,
 		}
 		return a, fuse.OK
 	}
 
-	if path == "status/gounionfs_version" {
+	if path == filepath.Join(_STATUS, _VERSION) {
 		a := &fuse.Attr{
 			Mode: fuse.S_IFREG | 0644,
 		}
 		return a, fuse.OK
 	}
 
-	if path == "status/autobase" {
+	if path == filepath.Join(_STATUS, _ROOT) {
 		a := &fuse.Attr{
 			Mode: syscall.S_IFLNK | 0644,
 		}
@@ -136,7 +144,7 @@ func (me *AutoUnionFs) GetAttr(path string) (*fuse.Attr, fuse.Status) {
 
 	me.lock.RLock()
 	defer me.lock.RUnlock()
-	if len(comps) > 1 && comps[0] == "config" {
+	if len(comps) > 1 && comps[0] == _CONFIG {
 		fs := me.knownFileSystems[comps[1]]
 
 		if fs == nil {
@@ -161,11 +169,11 @@ func (me *AutoUnionFs) GetAttr(path string) (*fuse.Attr, fuse.Status) {
 func (me *AutoUnionFs) StatusDir() (stream chan fuse.DirEntry, status fuse.Status) {
 	stream = make(chan fuse.DirEntry, 10)
 	stream <- fuse.DirEntry{
-		Name: "gounionfs_version",
+		Name: _VERSION,
 		Mode: fuse.S_IFREG | 0644,
 	}
 	stream <- fuse.DirEntry{
-		Name: "autobase",
+		Name: _ROOT,
 		Mode: syscall.S_IFLNK | 0644,
 	}
 
@@ -175,9 +183,9 @@ func (me *AutoUnionFs) StatusDir() (stream chan fuse.DirEntry, status fuse.Statu
 
 func (me *AutoUnionFs) OpenDir(name string) (stream chan fuse.DirEntry, status fuse.Status) {
 	switch name {
-	case "status":
+	case _STATUS:
 		return me.StatusDir()
-	case "config":
+	case _CONFIG:
 		me.updateKnownFses()
 	case "/":
 		name = ""
@@ -192,7 +200,7 @@ func (me *AutoUnionFs) OpenDir(name string) (stream chan fuse.DirEntry, status f
 	stream = make(chan fuse.DirEntry, len(me.knownFileSystems)+5)
 	for k, _ := range me.knownFileSystems {
 		mode := fuse.S_IFDIR | 0755
-		if name == "config" {
+		if name == _CONFIG {
 			mode = syscall.S_IFLNK | 0644
 		}
 
@@ -204,11 +212,11 @@ func (me *AutoUnionFs) OpenDir(name string) (stream chan fuse.DirEntry, status f
 
 	if name == "" {
 		stream <- fuse.DirEntry{
-			Name: "config",
+			Name: _CONFIG,
 			Mode: uint32(fuse.S_IFDIR | 0755),
 		}
 		stream <- fuse.DirEntry{
-			Name: "status",
+			Name: _STATUS,
 			Mode: uint32(fuse.S_IFDIR | 0755),
 		}
 	}
