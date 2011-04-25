@@ -1,7 +1,6 @@
 package fuse
 
 import (
-	"sync"
 	"time"
 )
 
@@ -9,16 +8,13 @@ import (
 type TimingRawFileSystem struct {
 	WrappingRawFileSystem
 
-	statisticsLock sync.Mutex
-	latencies      map[string]int64
-	counts         map[string]int64
+	*LatencyMap
 }
 
 func NewTimingRawFileSystem(fs RawFileSystem) *TimingRawFileSystem {
 	t := new(TimingRawFileSystem)
 	t.Original = fs
-	t.latencies = make(map[string]int64)
-	t.counts = make(map[string]int64)
+	t.LatencyMap = NewLatencyMap()
 	return t
 }
 
@@ -27,23 +23,12 @@ func (me *TimingRawFileSystem) startTimer(name string) (closure func()) {
 
 	return func() {
 		dt := (time.Nanoseconds() - start) / 1e6
-		me.statisticsLock.Lock()
-		defer me.statisticsLock.Unlock()
-
-		me.counts[name] += 1
-		me.latencies[name] += dt
+		me.LatencyMap.Add(name, "", dt)
 	}
 }
 
 func (me *TimingRawFileSystem) Latencies() map[string]float64 {
-	me.statisticsLock.Lock()
-	defer me.statisticsLock.Unlock()
-
-	r := make(map[string]float64)
-	for k, v := range me.counts {
-		r[k] = float64(me.latencies[k]) / float64(v)
-	}
-	return r
+	return me.LatencyMap.Latencies(1e-3)
 }
 
 func (me *TimingRawFileSystem) Init(h *InHeader, input *InitIn) (*InitOut, Status) {

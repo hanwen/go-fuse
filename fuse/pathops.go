@@ -3,11 +3,11 @@
 package fuse
 
 import (
-	"log"
 	"bytes"
 	"path/filepath"
+	"time"
 )
-	
+
 
 func NewFileSystemConnector(fs FileSystem) (out *FileSystemConnector) {
 	out = EmptyFileSystemConnector()
@@ -21,107 +21,6 @@ func NewFileSystemConnector(fs FileSystem) (out *FileSystemConnector) {
 
 func (me *FileSystemConnector) SetOptions(opts FileSystemConnectorOptions) {
 	me.options = opts
-}
-
-func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem) Status {
-	var node *inode
-
-	if mountPoint != "/" {
-		dirParent, base := filepath.Split(mountPoint)
-		dirParentNode := me.findInode(dirParent)
-
-		// Make sure we know the mount point.
-		_, _ = me.internalLookup(dirParentNode, base, 0)
-	}
-
-	node = me.findInode(mountPoint)
-	if !node.IsDir() {
-		return EINVAL
-	}
-
-	me.treeLock.RLock()
-	hasChildren := len(node.Children) > 0
-	// don't use defer, as we dont want to hold the lock during
-	// fs.Mount().
-	me.treeLock.RUnlock()
-
-	if hasChildren {
-		return EBUSY
-	}
-
-	code := fs.Mount(me)
-	if code != OK {
-		if me.Debug {
-			log.Println("Mount error: ", mountPoint, code)
-		}
-		return code
-	}
-
-	if me.Debug {
-		log.Println("Mount: ", fs, "on", mountPoint, node)
-	}
-
-	node.mount = newMount(fs)
-
-	me.fileLock.Lock()
-	defer me.fileLock.Unlock()
-	node.OpenCount++
-
-	return OK
-}
-
-func (me *FileSystemConnector) Unmount(path string) Status {
-	node := me.findInode(path)
-	if node == nil {
-		panic(path)
-	}
-
-	// Need to lock to look at node.Children
-	me.treeLock.RLock()
-	me.fileLock.Lock()
-
-	unmountError := OK
-	
-	mount := node.mount
-	if mount == nil || mount.unmountPending {
-		unmountError = EINVAL
-	}
-	
-	// don't use defer: we don't want to call out to
-	// mount.fs.Unmount() with lock held.
-	ownMount := 1
-	if unmountError == OK && node.totalOpenCount() > ownMount {
-		unmountError = EBUSY
-	}
-
-	if unmountError == OK {
-		node.OpenCount--
-
-		// We settle for eventual consistency.
-		mount.unmountPending = true
-	}
-	me.fileLock.Unlock()
-	me.treeLock.RUnlock()
-
-	if unmountError == OK {
-		if me.Debug {
-			log.Println("Unmount: ", mount)
-		}
-	
-		mount.fs.Unmount()
-	}
-	return unmountError
-}
-
-func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *mountData, node *inode) {
-	n := me.getInodeData(nodeid)
-
-	// Need to lock because renames create invalid states.
-	me.treeLock.RLock()
-	defer me.treeLock.RUnlock()
-	
-	p, m := n.GetPath()
-	return p, m, n
 }
 
 func (me *FileSystemConnector) Init(h *InHeader, input *InitIn) (*InitOut, Status) {
@@ -167,7 +66,7 @@ func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string
 	data.LookupCount += lookupCount
 
 	out = &EntryOut{
-		NodeId: data.NodeId,
+		NodeId:     data.NodeId,
 		Generation: 1, // where to get the generation?
 	}
 	SplitNs(me.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
@@ -193,7 +92,7 @@ func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out 
 	}
 
 	out = &AttrOut{
-	Attr: *attr,
+		Attr: *attr,
 	}
 	out.Attr.Ino = header.NodeId
 	SplitNs(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
@@ -213,7 +112,7 @@ func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags u
 	}
 
 	de := &Dir{
-	stream: stream,
+		stream: stream,
 	}
 	h := me.registerFile(node, de)
 
@@ -257,21 +156,22 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 	if input.Valid&FATTR_MODE != 0 {
 		err = mount.fs.Chmod(fullPath, input.Mode)
 	}
-	if err != OK && (input.Valid&FATTR_UID != 0 || input.Valid&FATTR_GID != 0) {
+	if err == OK && (input.Valid&FATTR_UID != 0 || input.Valid&FATTR_GID != 0) {
 		// TODO - can we get just FATTR_GID but not FATTR_UID ?
 		err = mount.fs.Chown(fullPath, uint32(input.Uid), uint32(input.Gid))
 	}
 	if input.Valid&FATTR_SIZE != 0 {
 		mount.fs.Truncate(fullPath, input.Size)
 	}
-	if err != OK && (input.Valid&FATTR_ATIME != 0 || input.Valid&FATTR_MTIME != 0) {
+	if err == OK && (input.Valid&FATTR_ATIME != 0 || input.Valid&FATTR_MTIME != 0) {
+
 		err = mount.fs.Utimens(fullPath,
 			uint64(input.Atime*1e9)+uint64(input.Atimensec),
 			uint64(input.Mtime*1e9)+uint64(input.Mtimensec))
 	}
-	if err != OK && (input.Valid&FATTR_ATIME_NOW != 0 || input.Valid&FATTR_MTIME_NOW != 0) {
-		// TODO - should set time to now. Maybe just reuse
-		// Utimens() ?  Go has no UTIME_NOW unfortunately.
+	if err == OK && (input.Valid&FATTR_ATIME_NOW != 0 || input.Valid&FATTR_MTIME_NOW != 0) {
+		ns := time.Nanoseconds()
+		err = mount.fs.Utimens(fullPath, uint64(ns), uint64(ns))
 	}
 	if err != OK {
 		return nil, err
@@ -493,4 +393,3 @@ func (me *FileSystemConnector) Read(input *ReadIn, bp *BufferPool) ([]byte, Stat
 	f := me.getFile(input.Fh)
 	return f.Read(input, bp)
 }
-

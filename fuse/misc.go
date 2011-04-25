@@ -8,7 +8,6 @@ import (
 	"log"
 	"math"
 	"regexp"
-	"sort"
 	"syscall"
 	"unsafe"
 	"io/ioutil"
@@ -141,21 +140,6 @@ func ModeToType(mode uint32) uint32 {
 func CheckSuccess(e os.Error) {
 	if e != nil {
 		panic(fmt.Sprintf("Unexpected error: %v", e))
-	}
-}
-
-// For printing latency data.
-func PrintMap(m map[string]float64) {
-	keys := make([]string, len(m))
-	for k, _ := range m {
-		keys = append(keys, k)
-	}
-
-	sort.SortStrings(keys)
-	for _, k := range keys {
-		if m[k] > 0 {
-			fmt.Println(k, m[k])
-		}
 	}
 }
 

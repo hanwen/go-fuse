@@ -2,6 +2,7 @@ package fuse
 
 import (
 	"fmt"
+	"log"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -22,6 +23,10 @@ type mountData struct {
 	//  * the kernel controls when to ask for updates,
 	//  so we can't make entries disappear directly anyway.
 	unmountPending bool
+
+	// We could have separate treeLocks per mount; something to
+	// consider if we can measure significant contention for
+	// multi-mount filesystems.
 }
 
 func newMount(fs FileSystem) *mountData {
@@ -117,16 +122,18 @@ func (me *inode) setParent(newParent *inode) {
 	if me.Parent == newParent {
 		return
 	}
-
 	if me.Parent != nil {
 		me.Parent.Children[me.Name] = nil, false
 		me.Parent = nil
 	}
 	if newParent != nil {
 		me.Parent = newParent
-		ch := me.Parent.Children[me.Name]
-		if ch != nil {
-			panic(fmt.Sprintf("Already have an inode with same name: %v: %v", me.Name, ch))
+
+		if paranoia {
+			ch := me.Parent.Children[me.Name]
+			if ch != nil {
+				panic(fmt.Sprintf("Already have an inode with same name: %v: %v", me.Name, ch))
+			}
 		}
 
 		me.Parent.Children[me.Name] = me
@@ -159,23 +166,26 @@ type FileSystemConnector struct {
 
 	////////////////
 
-	// Protects the inodeMap and each node's Children map.
+	// Protects the inodeMap and each node's Children/Parent
+	// relations.
 	treeLock sync.RWMutex
 
 	// Invariants: see the verify() method.
-	inodeMap      map[uint64]*inode
-	rootNode      *inode
+	inodeMap map[uint64]*inode
+	rootNode *inode
 
 	// Open files/directories.
-	fileLock       sync.RWMutex
-	openFiles      map[uint64]*interfaceBridge
+	openFiles map[uint64]*interfaceBridge
+
+	// Protects openFiles and OpenCount in all of the nodes.
+	fileLock sync.RWMutex
 }
 
 type interfaceBridge struct {
 	Iface interface{}
 }
 
-func (me *FileSystemConnector) DebugString() string {
+func (me *FileSystemConnector) Statistics() string {
 	me.treeLock.RLock()
 	defer me.treeLock.RUnlock()
 
@@ -205,7 +215,7 @@ func (me *FileSystemConnector) registerFile(node *inode, f interface{}) uint64 {
 	defer me.fileLock.Unlock()
 
 	b := &interfaceBridge{
-	Iface: f,
+		Iface: f,
 	}
 	h := uint64(uintptr(unsafe.Pointer(b)))
 	_, ok := me.openFiles[h]
@@ -252,9 +262,8 @@ func (me *FileSystemConnector) verify() {
 
 	open := root.totalOpenCount()
 	openFiles := len(me.openFiles)
-	mounted := root.totalMountCount()
-	if open+hiddenOpen != openFiles+mounted {
-		panic(fmt.Sprintf("opencount mismatch totalOpen=%v openFiles=%v mounted=%v hidden=%v", open, openFiles, mounted, hiddenOpen))
+	if open+hiddenOpen != openFiles {
+		panic(fmt.Sprintf("opencount mismatch totalOpen=%v openFiles=%v mounted=%v hidden=%v", open, openFiles, hiddenOpen))
 	}
 }
 
@@ -270,7 +279,7 @@ func (me *FileSystemConnector) newInode(root bool, isDir bool) *inode {
 	if isDir {
 		data.Children = make(map[string]*inode, initDirSize)
 	}
-	
+
 	return data
 }
 
@@ -383,4 +392,99 @@ func EmptyFileSystemConnector() (out *FileSystemConnector) {
 	out.options.EntryTimeout = 1.0
 	out.verify()
 	return out
+}
+
+
+func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem) Status {
+	var node *inode
+
+	if mountPoint != "/" {
+		dirParent, base := filepath.Split(mountPoint)
+		dirParentNode := me.findInode(dirParent)
+
+		// Make sure we know the mount point.
+		_, _ = me.internalLookup(dirParentNode, base, 0)
+	}
+
+	node = me.findInode(mountPoint)
+	if !node.IsDir() {
+		return EINVAL
+	}
+
+	me.treeLock.RLock()
+	hasChildren := len(node.Children) > 0
+	// don't use defer, as we dont want to hold the lock during
+	// fs.Mount().
+	me.treeLock.RUnlock()
+
+	if hasChildren {
+		return EBUSY
+	}
+
+	code := fs.Mount(me)
+	if code != OK {
+		if me.Debug {
+			log.Println("Mount error: ", mountPoint, code)
+		}
+		return code
+	}
+
+	if me.Debug {
+		log.Println("Mount: ", fs, "on", mountPoint, node)
+	}
+
+	node.mount = newMount(fs)
+
+	return OK
+}
+
+func (me *FileSystemConnector) Unmount(path string) Status {
+	node := me.findInode(path)
+	if node == nil {
+		panic(path)
+	}
+
+	// Need to lock to look at node.Children
+	me.treeLock.RLock()
+	me.fileLock.Lock()
+
+	unmountError := OK
+
+	mount := node.mount
+	if mount == nil || mount.unmountPending {
+		unmountError = EINVAL
+	}
+
+	// don't use defer: we don't want to call out to
+	// mount.fs.Unmount() with lock held.
+	if unmountError == OK && (node.totalOpenCount() > 0 || node.totalMountCount() > 1) {
+		unmountError = EBUSY
+	}
+
+	if unmountError == OK {
+		// We settle for eventual consistency.
+		mount.unmountPending = true
+	}
+	me.fileLock.Unlock()
+	me.treeLock.RUnlock()
+
+	if unmountError == OK {
+		if me.Debug {
+			log.Println("Unmount: ", mount)
+		}
+
+		mount.fs.Unmount()
+	}
+	return unmountError
+}
+
+func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *mountData, node *inode) {
+	n := me.getInodeData(nodeid)
+
+	// Need to lock because renames create invalid states.
+	me.treeLock.RLock()
+	defer me.treeLock.RUnlock()
+
+	p, m := n.GetPath()
+	return p, m, n
 }

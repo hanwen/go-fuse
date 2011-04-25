@@ -27,6 +27,7 @@ func (me *PathPrintingFs) GetAttr(name string) (*fuse.Attr, fuse.Status) {
 func main() {
 	// Scans the arg list and sets up flags
 	debug := flag.Bool("debug", false, "print debugging messages.")
+	latencies := flag.Bool("latencies", false, "record latencies.")
 	threaded := flag.Bool("threaded", true, "switch off threading; print debugging messages.")
 	flag.Parse()
 	if flag.NArg() < 2 {
@@ -35,30 +36,44 @@ func main() {
 		os.Exit(2)
 	}
 
-	var fs fuse.FileSystem
+	var finalFs fuse.FileSystem
 	orig := flag.Arg(1)
 	loopbackfs := fuse.NewLoopbackFileSystem(orig)
-	fs = loopbackfs
-	debugFs := new(fuse.FileSystemDebug)
-	debugFs.Original = fs
-	fs = debugFs
+	finalFs = loopbackfs
 	
-	timing := fuse.NewTimingFileSystem(fs)
-	fs = timing
+	debugFs := fuse.NewFileSystemDebug()
+	if *latencies {
+		timing := fuse.NewTimingFileSystem(finalFs)
+		debugFs.AddTimingFileSystem(timing)
+		finalFs = timing
+	}
 
 	var opts fuse.FileSystemConnectorOptions
 
 	loopbackfs.FillOptions(&opts)
 
-	conn := fuse.NewFileSystemConnector(fs)
-	debugFs.Connector = conn
-	
-	rawTiming := fuse.NewTimingRawFileSystem(conn)
+	if *latencies {
+		debugFs.Original = finalFs
+		finalFs = debugFs
+	}
+
+	conn := fuse.NewFileSystemConnector(finalFs)
+	var finalRawFs fuse.RawFileSystem = conn
+	if *latencies {
+		rawTiming := fuse.NewTimingRawFileSystem(conn)
+		debugFs.AddRawTimingFileSystem(rawTiming)
+		finalRawFs = rawTiming
+	}
 	conn.SetOptions(opts)
 
-	state := fuse.NewMountState(rawTiming)
+	state := fuse.NewMountState(finalRawFs)
 	state.Debug = *debug
 
+	if *latencies {
+		state.RecordStatistics = true
+		debugFs.AddMountState(state)
+		debugFs.AddFileSystemConnector(conn)
+	}
 	mountPoint := flag.Arg(0)
 	err := state.Mount(mountPoint)
 	if err != nil {
@@ -66,33 +81,5 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("Mounted %s on %s (threaded=%v, debug=%v)\n", orig, mountPoint, *threaded, *debug)
 	state.Loop(*threaded)
-	fmt.Println("Finished", state.Stats())
-
-	fmt.Println("\n\nMountState statistics\n")
-	counts := state.OperationCounts()
-	fmt.Println("Counts: ", counts)
-
-	latency := state.Latencies()
-	fmt.Println("Operation latency (ms):")
-	fuse.PrintMap(latency)
-
-	latency = rawTiming.Latencies()
-	fmt.Println("\n\nRaw FS (ms):", latency)
-
-	fmt.Println("\n\nLoopback FS statistics\n")
-	latency = timing.Latencies()
-	fmt.Println("Latency (ms):", latency)
-
-	fmt.Println("Operation counts:", timing.OperationCounts())
-
-	hot, unique := timing.HotPaths("GetAttr")
-	top := 20
-	start := len(hot) - top
-	if start < 0 {
-		start = 0
-	}
-	fmt.Printf("Unique GetAttr paths: %d\n", unique)
-	fmt.Printf("Top %d GetAttr paths: %v", top, hot[start:])
 }

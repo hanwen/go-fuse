@@ -29,5 +29,4 @@ func main() {
 
 	fmt.Printf("Mounted %s\n", mountPoint)
 	state.Loop(true)
-	fmt.Println(state.Stats())
 }

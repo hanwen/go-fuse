@@ -31,7 +31,7 @@ sleep ${DELAY}
 find ${MP} > /tmp/zipfiles.txt
 fusermount -u ${MP}
 
-# The command below should be profiled.
+# Run vanilla: block box measurement.
 ${ZIPFS} ${MP} ${ZIPFILE} >& zipfs.log &
 
 # Wait for zipfs to unpack and serve the file.
@@ -41,8 +41,8 @@ sleep ${DELAY}
 ${BULKSTAT} -runs 1 /tmp/zipfiles.txt
 
 # Performance number without 6prof running
+echo -e "\n\n"
 ${BULKSTAT} -runs 5 /tmp/zipfiles.txt
-
 echo -e "\n\n"
 
 # Run 6prof
@@ -54,6 +54,21 @@ ${BULKSTAT} -runs 3 /tmp/zipfiles.txt
 
 echo -e "\n\n"
 
-fusermount -u /tmp/zipbench
+fusermount -u ${MP}
 
-cat zipfs.log
+# Now run with internal monitoring.
+${ZIPFS} -latencies ${MP} ${ZIPFILE} >& zipfs.log &
+
+sleep ${DELAY}
+
+# Warm caches.
+${BULKSTAT} -runs 1 /tmp/zipfiles.txt
+
+# Measurements.
+${BULKSTAT} -runs 5 /tmp/zipfiles.txt
+
+# Dump internal measurements.
+cat ${MP}/.debug/*
+
+
+
