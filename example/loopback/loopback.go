@@ -75,11 +75,14 @@ func main() {
 		debugFs.AddFileSystemConnector(conn)
 	}
 	mountPoint := flag.Arg(0)
+
+	fmt.Println("Mounting")
 	err := state.Mount(mountPoint)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)
 	}
 
+	fmt.Println("Mounted!")
 	state.Loop(*threaded)
 }
