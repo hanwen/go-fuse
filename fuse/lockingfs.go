@@ -170,12 +170,6 @@ func NewLockingRawFileSystem(rfs RawFileSystem) *LockingRawFileSystem {
 	return l
 }
 
-func (me *LockingRawFileSystem) Init(h *InHeader, input *InitIn) (*InitOut, Status) {
-	me.lock.Lock()
-	defer me.lock.Unlock()
-	return me.Original.Init(h, input)
-}
-
 func (me *LockingRawFileSystem) Destroy(h *InHeader, input *InitIn) {
 	me.lock.Lock()
 	defer me.lock.Unlock()

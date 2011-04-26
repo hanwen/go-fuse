@@ -6,10 +6,6 @@ import (
 
 var _ = log.Println
 
-func (me *DefaultRawFileSystem) Init(h *InHeader, input *InitIn) (*InitOut, Status) {
-	return new(InitOut), OK
-}
-
 func (me *DefaultRawFileSystem) Destroy(h *InHeader, input *InitIn) {
 
 }

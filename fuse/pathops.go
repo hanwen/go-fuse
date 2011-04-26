@@ -23,11 +23,6 @@ func (me *FileSystemConnector) SetOptions(opts FileSystemConnectorOptions) {
 	me.options = opts
 }
 
-func (me *FileSystemConnector) Init(h *InHeader, input *InitIn) (*InitOut, Status) {
-	// TODO ?
-	return &InitOut{}, OK
-}
-
 func (me *FileSystemConnector) Destroy(h *InHeader, input *InitIn) {
 	// TODO - umount all.
 }

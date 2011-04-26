@@ -20,6 +20,33 @@ func replyString(opcode Opcode, ptr unsafe.Pointer) string {
 
 ////////////////////////////////////////////////////////////////
 
+
+func doInit(state *MountState, req *request) {
+	input := (*InitIn)(req.inData)
+
+	if input.Major != FUSE_KERNEL_VERSION {
+		fmt.Printf("Major versions does not match. Given %d, want %d\n", input.Major, FUSE_KERNEL_VERSION)
+		req.status = EIO
+		return
+	}
+	if input.Minor < FUSE_KERNEL_MINOR_VERSION {
+		fmt.Printf("Minor version is less than we support. Given %d, want at least %d\n", input.Minor, FUSE_KERNEL_MINOR_VERSION)
+		req.status = EIO
+		return
+	}
+
+	out := &InitOut{
+	Major: FUSE_KERNEL_VERSION,
+	Minor: FUSE_KERNEL_MINOR_VERSION,
+	MaxReadAhead: input.MaxReadAhead,
+	Flags: FUSE_ASYNC_READ | FUSE_POSIX_LOCKS | FUSE_BIG_WRITES,
+	MaxWrite: maxRead,
+	}
+
+	req.outData = unsafe.Pointer(out)
+	req.status = OK
+}
+
 func doOpen(state *MountState, req *request) {
 	flags, handle, status := state.fileSystem.Open(req.inHeader, (*OpenIn)(req.inData))
 	req.status = status
@@ -129,9 +156,7 @@ func doForget(state *MountState, req *request) {
 func doReadlink(state *MountState, req *request) {
 	req.flatData, req.status = state.fileSystem.Readlink(req.inHeader)
 }
-func doInit(state *MountState, req *request) {
-	req.outData, req.status = state.init(req.inHeader, (*InitIn)(req.inData))
-}
+
 func doDestroy(state *MountState, req *request) {
 	state.fileSystem.Destroy(req.inHeader, (*InitIn)(req.inData))
 }

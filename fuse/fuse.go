@@ -233,7 +233,7 @@ func (me *MountState) chopMessage(req *request) *operationHandler {
 
 	handler := getHandler(req.inHeader.Opcode)
 	if handler == nil || handler.Func == nil {
-		log.Printf("Unknown opcode %d (input)", req.inHeader.Opcode)
+		log.Printf("Unknown opcode %v", req.inHeader.Opcode)
 		req.status = ENOSYS
 		return handler
 	}
@@ -321,29 +321,4 @@ func serialize(req *request, handler *operationHandler, debug bool) {
 		log.Printf("Serialize: %v code: %v value: %v%v",
 			operationName(req.inHeader.Opcode), req.status, val, msg)
 	}
-}
-
-func (me *MountState) init(h *InHeader, input *InitIn) (unsafe.Pointer, Status) {
-	out, initStatus := me.fileSystem.Init(h, input)
-	if initStatus != OK {
-		return nil, initStatus
-	}
-
-	if input.Major != FUSE_KERNEL_VERSION {
-		fmt.Printf("Major versions does not match. Given %d, want %d\n", input.Major, FUSE_KERNEL_VERSION)
-		return nil, EIO
-	}
-	if input.Minor < FUSE_KERNEL_MINOR_VERSION {
-		fmt.Printf("Minor version is less than we support. Given %d, want at least %d\n", input.Minor, FUSE_KERNEL_MINOR_VERSION)
-		return nil, EIO
-	}
-
-	out.Major = FUSE_KERNEL_VERSION
-	out.Minor = FUSE_KERNEL_MINOR_VERSION
-	out.MaxReadAhead = input.MaxReadAhead
-	out.Flags = FUSE_ASYNC_READ | FUSE_POSIX_LOCKS | FUSE_BIG_WRITES
-
-	out.MaxWrite = maxRead
-
-	return unsafe.Pointer(out), OK
 }

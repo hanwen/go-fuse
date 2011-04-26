@@ -105,10 +105,6 @@ type WrappingRawFileSystem struct {
 	Original RawFileSystem
 }
 
-func (me *WrappingRawFileSystem) Init(h *InHeader, input *InitIn) (*InitOut, Status) {
-	return me.Original.Init(h, input)
-}
-
 func (me *WrappingRawFileSystem) Destroy(h *InHeader, input *InitIn) {
 	me.Original.Destroy(h, input)
 }

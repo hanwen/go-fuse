@@ -504,7 +504,6 @@ type NotifyInvalEntryOut struct {
 // the details of getting interactions with open files, renames, and
 // threading right etc. are somewhat tricky and not very interesting.
 type RawFileSystem interface {
-	Init(h *InHeader, input *InitIn) (out *InitOut, code Status)
 	Destroy(h *InHeader, input *InitIn)
 
 	Lookup(header *InHeader, name string) (out *EntryOut, status Status)
