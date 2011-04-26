@@ -73,7 +73,7 @@ func main() {
 	state.Debug = *debug
 
 	if *latencies {
-		state.RecordStatistics = true
+		state.SetRecordStatistics(true)
 		debugFs.AddMountState(state)
 		debugFs.AddFileSystemConnector(conn)
 	}

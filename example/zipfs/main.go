@@ -44,7 +44,7 @@ func main() {
 	}
 	
 	mountPoint := flag.Arg(0)
-	state.RecordStatistics = *latencies
+	state.SetRecordStatistics(*latencies)
 	state.Debug = *debug
 	state.Mount(mountPoint)
 

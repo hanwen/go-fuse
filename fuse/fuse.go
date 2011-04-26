@@ -70,7 +70,6 @@ type MountState struct {
 	// For efficient reads and writes.
 	buffers *BufferPool
 
-	RecordStatistics bool
 	*LatencyMap
 }
 
@@ -82,8 +81,15 @@ func (me *MountState) Mount(mountPoint string) os.Error {
 	}
 	me.mountPoint = mp
 	me.mountFile = file
-	me.LatencyMap = NewLatencyMap()
 	return nil
+}
+
+func (me *MountState) SetRecordStatistics(record bool) {
+	if record {
+		me.LatencyMap = NewLatencyMap()
+	} else {
+		me.LatencyMap = nil
+	}
 }
 
 func (me *MountState) Unmount() os.Error {
@@ -96,7 +102,7 @@ func (me *MountState) Unmount() os.Error {
 }
 
 func (me *MountState) Write(req *request) {
-	if me.RecordStatistics {
+	if me.LatencyMap != nil {
 		req.preWriteNs = time.Nanoseconds()
 	}
 
@@ -153,7 +159,7 @@ func (me *MountState) readRequest(req *request) os.Error {
 	n, err := me.mountFile.Read(req.inputBuf)
 	// If we start timing before the read, we may take into
 	// account waiting for input into the timing.
-	if me.RecordStatistics {
+	if me.LatencyMap != nil {
 		req.startNs = time.Nanoseconds()
 	}
 	req.inputBuf = req.inputBuf[0:n]
@@ -161,7 +167,7 @@ func (me *MountState) readRequest(req *request) os.Error {
 }
 
 func (me *MountState) discardRequest(req *request) {
-	if me.RecordStatistics {
+	if me.LatencyMap != nil {
 		endNs := time.Nanoseconds()
 		dt := endNs - req.startNs
 
@@ -273,7 +279,7 @@ func (me *MountState) handle(req *request) {
 }
 
 func (me *MountState) dispatch(req *request, handler *operationHandler) {
-	if me.RecordStatistics {
+	if me.LatencyMap != nil {
 		req.dispatchNs = time.Nanoseconds()
 	}
 
