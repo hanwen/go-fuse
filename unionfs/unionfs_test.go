@@ -145,6 +145,27 @@ func TestSymlink(t *testing.T) {
 	}
 }
 
+func TestChmod(t *testing.T) {
+	wd, state := setup(t)
+	defer state.Unmount()
+
+	ro_fn := wd+"/ro/file"
+	m_fn := wd+"/mount/file"
+	writeToFile(ro_fn, "a", true)
+	err := os.Chmod(m_fn, 07070)
+	CheckSuccess(err)
+
+	fi, err := os.Lstat(m_fn)
+	CheckSuccess(err)
+	if fi.Mode & 07777 != 07070 {
+		t.Errorf("Unexpected mode found: %v", fi.Mode)
+	}
+	_, err = os.Lstat(wd+"/rw/file")
+	if err != nil {
+		t.Errorf("File not promoted")
+	}
+}
+
 func TestBasic(t *testing.T) {
 	wd, state := setup(t)
 	defer state.Unmount()

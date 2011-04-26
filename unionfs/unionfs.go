@@ -254,6 +254,31 @@ func (me *UnionFs) Symlink(pointedTo string, linkName string) (code fuse.Status)
 	return code
 }
 
+func (me *UnionFs) Chmod(name string, mode uint32) (code fuse.Status) {
+	r := me.branchCache.Get(name).(getBranchResult)
+	if r.attr == nil || r.code != fuse.OK {
+		return r.code
+	}
+
+	if r.attr.Mode & fuse.S_IFREG == 0 {
+		return fuse.EPERM
+	}
+
+	permMask := uint32(07777)
+	oldMode := r.attr.Mode & permMask
+
+	if oldMode != mode {
+		if r.branch > 0 {
+			err := me.Promote(name, me.branches[r.branch])
+			if err != nil {
+				panic("copy: " + err.String())
+			}
+		}
+		me.fileSystems[0].Chmod(name, mode)
+	}
+	return fuse.OK
+}
+
 func (me *UnionFs) Access(name string, mode uint32) (code fuse.Status) {
 	i := me.getBranch(name)
 	if i >= 0 {
