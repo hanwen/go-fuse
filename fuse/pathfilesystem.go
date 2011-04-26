@@ -27,6 +27,8 @@ type mountData struct {
 	// We could have separate treeLocks per mount; something to
 	// consider if we can measure significant contention for
 	// multi-mount filesystems.
+
+	options *MountOptions
 }
 
 func newMount(fs FileSystem) *mountData {
@@ -139,28 +141,24 @@ func (me *inode) setParent(newParent *inode) {
 	}
 }
 
-type TimeoutOptions struct {
+type MountOptions struct {
 	EntryTimeout    float64
 	AttrTimeout     float64
 	NegativeTimeout float64
 }
 
-func MakeTimeoutOptions() TimeoutOptions {
-	return TimeoutOptions{
+
+func MakeMountOptions() *MountOptions {
+	return &MountOptions{
 		NegativeTimeout: 0.0,
 		AttrTimeout:     1.0,
 		EntryTimeout:    1.0,
 	}
 }
 
-type FileSystemConnectorOptions struct {
-	TimeoutOptions
-}
-
 type FileSystemConnector struct {
 	DefaultRawFileSystem
 
-	options FileSystemConnectorOptions
 	Debug   bool
 
 	////////////////
@@ -386,14 +384,11 @@ func EmptyFileSystemConnector() (out *FileSystemConnector) {
 	rootData := out.newInode(true, true)
 	rootData.Children = make(map[string]*inode, initDirSize)
 
-	out.options.NegativeTimeout = 0.0
-	out.options.AttrTimeout = 1.0
-	out.options.EntryTimeout = 1.0
 	out.verify()
 	return out
 }
 
-func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem) Status {
+func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *MountOptions) Status {
 	var node *inode
 
 	if mountPoint != "/" {
@@ -433,7 +428,10 @@ func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem) Status {
 	}
 
 	node.mount = newMount(fs)
-
+	if opts == nil {
+		opts = MakeMountOptions()
+	}
+	node.mount.options = opts
 	return OK
 }
 

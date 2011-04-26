@@ -9,18 +9,14 @@ import (
 )
 
 
-func NewFileSystemConnector(fs FileSystem) (out *FileSystemConnector) {
+func NewFileSystemConnector(fs FileSystem, opts *MountOptions) (out *FileSystemConnector) {
 	out = EmptyFileSystemConnector()
-	if code := out.Mount("/", fs); code != OK {
+	if code := out.Mount("/", fs, opts); code != OK {
 		panic("root mount failed.")
 	}
 	out.verify()
 
 	return out
-}
-
-func (me *FileSystemConnector) SetOptions(opts FileSystemConnectorOptions) {
-	me.options = opts
 }
 
 func (me *FileSystemConnector) Destroy(h *InHeader, input *InitIn) {
@@ -43,14 +39,14 @@ func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string
 	// Init.
 	fullPath, mount := parent.GetPath()
 	if mount == nil {
-		return NegativeEntry(me.options.NegativeTimeout), OK, nil
+		return NegativeEntry(mount.options.NegativeTimeout), OK, nil
 	}
 	fullPath = filepath.Join(fullPath, name)
 
 	attr, err := mount.fs.GetAttr(fullPath)
 
-	if err == ENOENT && me.options.NegativeTimeout > 0.0 {
-		return NegativeEntry(me.options.NegativeTimeout), OK, nil
+	if err == ENOENT && mount.options.NegativeTimeout > 0.0 {
+		return NegativeEntry(mount.options.NegativeTimeout), OK, nil
 	}
 
 	if err != OK {
@@ -64,8 +60,8 @@ func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string
 		NodeId:     data.NodeId,
 		Generation: 1, // where to get the generation?
 	}
-	SplitNs(me.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
-	SplitNs(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
+	SplitNs(mount.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
+	SplitNs(mount.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	out.Attr = *attr
 	out.Attr.Ino = data.NodeId
 	return out, OK, data
@@ -90,7 +86,7 @@ func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out 
 		Attr: *attr,
 	}
 	out.Attr.Ino = header.NodeId
-	SplitNs(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
+	SplitNs(mount.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 
 	return out, OK
 }

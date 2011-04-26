@@ -93,7 +93,7 @@ func TestXAttrRead(t *testing.T) {
 		"user.attr2": []byte("val2")}
 	xfs := NewXAttrFs(nm, golden)
 
-	connector := NewFileSystemConnector(NewLockingFileSystem(xfs))
+	connector := NewFileSystemConnector(xfs, nil)
 	mountPoint := MakeTempDir()
 
 	state := NewMountState(connector)

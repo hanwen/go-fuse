@@ -162,14 +162,6 @@ func (me *LoopbackFileSystem) RemoveXAttr(name string, attr string) Status {
 	return Status(Removexattr(me.GetPath(name), attr))
 }
 
-func (me *LoopbackFileSystem) FillOptions(options *FileSystemConnectorOptions) {
-	// These options are to be compatible with libfuse defaults,
-	// making benchmarking easier.
-	options.NegativeTimeout = 1.0
-	options.AttrTimeout = 1.0
-	options.EntryTimeout = 1.0
-}
-
 ////////////////////////////////////////////////////////////////
 
 type LoopbackFile struct {

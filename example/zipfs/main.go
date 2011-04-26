@@ -35,7 +35,7 @@ func main() {
 		fs = debugFs
 	}
 	
-	conn := fuse.NewFileSystemConnector(fs)
+	conn := fuse.NewFileSystemConnector(fs, nil)
 	state := fuse.NewMountState(conn)
 
 	if *latencies {

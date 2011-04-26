@@ -61,7 +61,7 @@ func (me *testCase) Setup(t *testing.T) {
 	pfs = NewLockingFileSystem(pfs)
 
 	var rfs RawFileSystem
-	me.connector = NewFileSystemConnector(pfs)
+	me.connector = NewFileSystemConnector(pfs, nil)
 	rfs = me.connector
 	rfs = NewTimingRawFileSystem(rfs)
 	rfs = NewLockingRawFileSystem(rfs)
@@ -607,7 +607,7 @@ func TestRecursiveMount(t *testing.T) {
 	f.Close()
 
 	pfs2 := NewLoopbackFileSystem(ts.origDir)
-	code := ts.connector.Mount("/hello.txt", pfs2)
+	code := ts.connector.Mount("/hello.txt", pfs2, nil)
 	if code != EINVAL {
 		t.Error("expect EINVAL", code)
 	}
@@ -615,7 +615,7 @@ func TestRecursiveMount(t *testing.T) {
 	submnt := filepath.Join(ts.mountPoint, "mnt")
 	err = os.Mkdir(submnt, 0777)
 	CheckSuccess(err)
-	code = ts.connector.Mount("/mnt", pfs2)
+	code = ts.connector.Mount("/mnt", pfs2, nil)
 	if code != OK {
 		t.Errorf("mkdir")
 	}

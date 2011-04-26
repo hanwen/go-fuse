@@ -48,23 +48,26 @@ func main() {
 		finalFs = timing
 	}
 
-	var opts fuse.FileSystemConnectorOptions
-
-	loopbackfs.FillOptions(&opts)
+	opts := &fuse.MountOptions{
+		// These options are to be compatible with libfuse defaults,
+		// making benchmarking easier.
+		NegativeTimeout: 1.0,
+		AttrTimeout: 1.0,
+		EntryTimeout: 1.0,
+	}
 
 	if *latencies {
 		debugFs.Original = finalFs
 		finalFs = debugFs
 	}
 
-	conn := fuse.NewFileSystemConnector(finalFs)
+	conn := fuse.NewFileSystemConnector(finalFs, opts)
 	var finalRawFs fuse.RawFileSystem = conn
 	if *latencies {
 		rawTiming := fuse.NewTimingRawFileSystem(conn)
 		debugFs.AddRawTimingFileSystem(rawTiming)
 		finalRawFs = rawTiming
 	}
-	conn.SetOptions(opts)
 
 	state := fuse.NewMountState(finalRawFs)
 	state.Debug = *debug

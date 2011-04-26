@@ -50,7 +50,7 @@ func (me *zipCreateFile) Write(input *fuse.WriteIn, nameBytes []byte) (uint32, f
 		return 0, fuse.ENOSYS
 	}
 
-	code := me.zfs.Connector.Mount("/"+filepath.Base(me.Basename), fs)
+	code := me.zfs.Connector.Mount("/"+filepath.Base(me.Basename), fs, nil)
 	if code != fuse.OK {
 		return 0, code
 
@@ -85,7 +85,7 @@ func NewMultiZipFs() *MultiZipFs {
 	m.zips = make(map[string]*ZipArchiveFileSystem)
 	m.pendingZips = make(map[string]bool)
 	m.zipFileNames = make(map[string]string)
-	m.Connector = fuse.NewFileSystemConnector(m)
+	m.Connector = fuse.NewFileSystemConnector(m, nil)
 	return m
 }
 
