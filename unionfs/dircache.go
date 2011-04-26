@@ -57,11 +57,13 @@ func (me *DirCache) setMap(newMap map[string]bool) {
 	me.names = newMap
 	me.updateRunning = false
 	_ = time.AfterFunc(me.ttlNs,
-		func() {
-			me.lock.Lock()
-			me.names = nil
-			me.lock.Unlock()
-		})
+		func() { me.DropCache() })
+}
+
+func (me *DirCache) DropCache() {		
+	me.lock.Lock()
+	me.names = nil
+	me.lock.Unlock()
 }
 
 // Try to refresh: if another update is already running, do nothing,

@@ -26,6 +26,7 @@ func filePathHash(path string) string {
 	return fmt.Sprintf("%x-%s", h.Sum()[:8], base)
 }
 
+
 /*
 
  UnionFs implements a user-space union file system, which is
@@ -103,6 +104,7 @@ func NewUnionFs(roots []string, options UnionFsOptions) *UnionFs {
 	g.branchCache = NewTimedCache(
 		func(n string) interface{} { return g.getBranchAttrNoCache(n) },
 		int64(options.BranchCacheTTLSecs*1e9))
+	g.branchCache.RecurringPurge()
 	return g
 }
 
@@ -300,7 +302,12 @@ func (me *UnionFs) Create(name string, flags uint32, mode uint32) (fuseFile fuse
 }
 
 func (me *UnionFs) GetAttr(name string) (a *fuse.Attr, s fuse.Status) {
-	if name == "READONLY" {
+	if name == _READONLY {
+		return nil, fuse.ENOENT
+	}
+	if name == ".drop_cache" {
+		me.branchCache.Purge()
+		me.deletionCache.DropCache()
 		return nil, fuse.ENOENT
 	}
 	if name == me.options.DeletionDirName {

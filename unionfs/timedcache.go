@@ -82,3 +82,9 @@ func (me *TimedCache) Purge() {
 		me.cacheMap[k] = nil, false
 	}
 }
+
+func (me *TimedCache) RecurringPurge() {
+	me.Purge()
+	time.AfterFunc(5*me.ttlNs,
+		func() { me.RecurringPurge() })
+}
