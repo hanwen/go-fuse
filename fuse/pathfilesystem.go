@@ -44,7 +44,6 @@ type inode struct {
 	Name        string
 	LookupCount int
 	OpenCount   int
-
 	mount *mountData
 }
 
@@ -394,7 +393,6 @@ func EmptyFileSystemConnector() (out *FileSystemConnector) {
 	return out
 }
 
-
 func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem) Status {
 	var node *inode
 
@@ -403,10 +401,11 @@ func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem) Status {
 		dirParentNode := me.findInode(dirParent)
 
 		// Make sure we know the mount point.
-		_, _ = me.internalLookup(dirParentNode, base, 0)
+		_, _, node = me.internalLookupWithNode(dirParentNode, base, 0)
+	} else {
+		node = me.rootNode
 	}
 
-	node = me.findInode(mountPoint)
 	if !node.IsDir() {
 		return EINVAL
 	}
