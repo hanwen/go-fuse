@@ -130,7 +130,6 @@ func NewMountState(fs RawFileSystem) *MountState {
 	me.fileSystem = fs
 	me.buffers = NewBufferPool()
 	return me
-
 }
 
 func (me *MountState) Latencies() map[string]float64 {
@@ -186,13 +185,25 @@ func (me *MountState) discardRequest(req *request) {
 // Normally, callers should run Loop() and wait for FUSE to exit, but
 // tests will want to run this in a goroutine.
 //
-// If threaded is set, each filesystem operation executes in a
+// If threaded is given, each filesystem operation executes in a
 // separate goroutine.
 func (me *MountState) Loop(threaded bool) {
+	// To limit scheduling overhead, we spawn multiple read loops.
+	// This means that the request once read does not need to be
+	// assigned to another thread, so it avoids a context switch.
+	if threaded {
+		for i := 0; i < _BACKGROUND_TASKS; i++ {
+			go me.loop()
+		}
+	}
+	me.loop()
+	me.mountFile.Close()
+}
+
+func (me *MountState) loop() {
 	// See fuse_kern_chan_receive()
 	for {
 		req := me.newRequest()
-
 		err := me.readRequest(req)
 		if err != nil {
 			errNo := OsErrorToErrno(err)
@@ -216,14 +227,8 @@ func (me *MountState) Loop(threaded bool) {
 			log.Printf("Failed to read from fuse conn: %v", err)
 			break
 		}
-
-		if threaded {
-			go me.handle(req)
-		} else {
-			me.handle(req)
-		}
+		me.handle(req)
 	}
-	me.mountFile.Close()
 }
 
 
