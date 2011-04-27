@@ -118,6 +118,11 @@ func (me *AutoUnionFs) Readlink(path string) (out string, code fuse.Status) {
 	return fs.Roots()[0], fuse.OK
 }
 
+// Must define this, because ENOSYS will suspend all GetXAttr calls.
+func (me *AutoUnionFs) GetXAttr(name string, attr string) ([]byte, fuse.Status) {
+	return nil, syscall.ENODATA
+}
+
 func (me *AutoUnionFs) GetAttr(path string) (*fuse.Attr, fuse.Status) {
 	if path == "" || path == _CONFIG || path == _STATUS {
 		a := &fuse.Attr{

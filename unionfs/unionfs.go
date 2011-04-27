@@ -356,6 +356,14 @@ func (me *UnionFs) GetAttr(name string) (a *fuse.Attr, s fuse.Status) {
 	return r.attr, r.code
 }
 
+func (me *UnionFs) GetXAttr(name string, attr string) ([]byte, fuse.Status) {
+	branch := me.getBranch(name)
+	if branch >= 0 {
+		return me.fileSystems[branch].GetXAttr(name, attr)
+	}
+	return nil, fuse.ENOENT
+}
+
 func (me *UnionFs) OpenDir(directory string) (stream chan fuse.DirEntry, status fuse.Status) {
 	dirBranch := me.getBranch(directory)
 	if dirBranch < 0 {
