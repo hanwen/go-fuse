@@ -14,7 +14,6 @@ GOFILES=misc.go\
 	datafile.go \
 	lockingfs.go \
 	loopback.go \
-	wrappedfs.go \
 	timingfs.go \
 	timingrawfs.go \
 	xattr.go \

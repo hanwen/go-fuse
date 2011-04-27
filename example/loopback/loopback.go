@@ -16,12 +16,12 @@ var _ = runtime.GOMAXPROCS
 var _ = log.Print
 
 type PathPrintingFs struct {
-	fuse.WrappingFileSystem
+	fuse.FileSystem
 }
 
 func (me *PathPrintingFs) GetAttr(name string) (*fuse.Attr, fuse.Status) {
 	log.Println(name)
-	return me.Original.GetAttr(name)
+	return me.FileSystem.GetAttr(name)
 }
 
 func main() {
@@ -57,7 +57,7 @@ func main() {
 	}
 
 	if *latencies {
-		debugFs.Original = finalFs
+		debugFs.FileSystem = finalFs
 		finalFs = debugFs
 	}
 

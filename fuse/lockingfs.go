@@ -10,336 +10,336 @@ import (
 type LockingFileSystem struct {
 	// Should be public so people reusing can access the wrapped
 	// FS.
-	WrappingFileSystem
+	FileSystem
 	lock sync.Mutex
 }
 
 func NewLockingFileSystem(pfs FileSystem) *LockingFileSystem {
 	l := new(LockingFileSystem)
-	l.Original = pfs
+	l.FileSystem = pfs
 	return l
 }
 
 func (me *LockingFileSystem) GetAttr(name string) (*Attr, Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.GetAttr(name)
+	return me.FileSystem.GetAttr(name)
 }
 
 func (me *LockingFileSystem) Readlink(name string) (string, Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Readlink(name)
+	return me.FileSystem.Readlink(name)
 }
 
 func (me *LockingFileSystem) Mknod(name string, mode uint32, dev uint32) Status {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Mknod(name, mode, dev)
+	return me.FileSystem.Mknod(name, mode, dev)
 }
 
 func (me *LockingFileSystem) Mkdir(name string, mode uint32) Status {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Mkdir(name, mode)
+	return me.FileSystem.Mkdir(name, mode)
 }
 
 func (me *LockingFileSystem) Unlink(name string) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Unlink(name)
+	return me.FileSystem.Unlink(name)
 }
 
 func (me *LockingFileSystem) Rmdir(name string) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Rmdir(name)
+	return me.FileSystem.Rmdir(name)
 }
 
 func (me *LockingFileSystem) Symlink(value string, linkName string) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Symlink(value, linkName)
+	return me.FileSystem.Symlink(value, linkName)
 }
 
 func (me *LockingFileSystem) Rename(oldName string, newName string) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Rename(oldName, newName)
+	return me.FileSystem.Rename(oldName, newName)
 }
 
 func (me *LockingFileSystem) Link(oldName string, newName string) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Link(oldName, newName)
+	return me.FileSystem.Link(oldName, newName)
 }
 
 func (me *LockingFileSystem) Chmod(name string, mode uint32) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Chmod(name, mode)
+	return me.FileSystem.Chmod(name, mode)
 }
 
 func (me *LockingFileSystem) Chown(name string, uid uint32, gid uint32) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Chown(name, uid, gid)
+	return me.FileSystem.Chown(name, uid, gid)
 }
 
 func (me *LockingFileSystem) Truncate(name string, offset uint64) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Truncate(name, offset)
+	return me.FileSystem.Truncate(name, offset)
 }
 
 func (me *LockingFileSystem) Open(name string, flags uint32) (file File, code Status) {
-	return me.Original.Open(name, flags)
+	return me.FileSystem.Open(name, flags)
 }
 
 func (me *LockingFileSystem) OpenDir(name string) (stream chan DirEntry, status Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.OpenDir(name)
+	return me.FileSystem.OpenDir(name)
 }
 
 func (me *LockingFileSystem) Mount(conn *FileSystemConnector) Status {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Mount(conn)
+	return me.FileSystem.Mount(conn)
 }
 
 func (me *LockingFileSystem) Unmount() {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	me.Original.Unmount()
+	me.FileSystem.Unmount()
 }
 
 func (me *LockingFileSystem) Access(name string, mode uint32) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Access(name, mode)
+	return me.FileSystem.Access(name, mode)
 }
 
 func (me *LockingFileSystem) Create(name string, flags uint32, mode uint32) (file File, code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Create(name, flags, mode)
+	return me.FileSystem.Create(name, flags, mode)
 }
 
 func (me *LockingFileSystem) Utimens(name string, AtimeNs uint64, CtimeNs uint64) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Utimens(name, AtimeNs, CtimeNs)
+	return me.FileSystem.Utimens(name, AtimeNs, CtimeNs)
 }
 
 func (me *LockingFileSystem) GetXAttr(name string, attr string) ([]byte, Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.GetXAttr(name, attr)
+	return me.FileSystem.GetXAttr(name, attr)
 }
 
 func (me *LockingFileSystem) SetXAttr(name string, attr string, data []byte, flags int) Status {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.SetXAttr(name, attr, data, flags)
+	return me.FileSystem.SetXAttr(name, attr, data, flags)
 }
 
 func (me *LockingFileSystem) ListXAttr(name string) ([]string, Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.ListXAttr(name)
+	return me.FileSystem.ListXAttr(name)
 }
 
 func (me *LockingFileSystem) RemoveXAttr(name string, attr string) Status {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.RemoveXAttr(name, attr)
+	return me.FileSystem.RemoveXAttr(name, attr)
 }
 
 ////////////////////////////////////////////////////////////////
 // Locking raw FS.
 
 type LockingRawFileSystem struct {
-	WrappingRawFileSystem
+	RawFileSystem
 	lock sync.Mutex
 }
 
 func NewLockingRawFileSystem(rfs RawFileSystem) *LockingRawFileSystem {
 	l := &LockingRawFileSystem{}
-	l.Original = rfs
+	l.RawFileSystem = rfs
 	return l
 }
 
 func (me *LockingRawFileSystem) Destroy(h *InHeader, input *InitIn) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	me.Original.Destroy(h, input)
+	me.RawFileSystem.Destroy(h, input)
 }
 
 func (me *LockingRawFileSystem) Lookup(h *InHeader, name string) (out *EntryOut, code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Lookup(h, name)
+	return me.RawFileSystem.Lookup(h, name)
 }
 
 func (me *LockingRawFileSystem) Forget(h *InHeader, input *ForgetIn) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	me.Original.Forget(h, input)
+	me.RawFileSystem.Forget(h, input)
 }
 
 func (me *LockingRawFileSystem) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.GetAttr(header, input)
+	return me.RawFileSystem.GetAttr(header, input)
 }
 
 func (me *LockingRawFileSystem) Open(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Open(header, input)
+	return me.RawFileSystem.Open(header, input)
 }
 
 func (me *LockingRawFileSystem) SetAttr(header *InHeader, input *SetAttrIn) (out *AttrOut, code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.SetAttr(header, input)
+	return me.RawFileSystem.SetAttr(header, input)
 }
 
 func (me *LockingRawFileSystem) Readlink(header *InHeader) (out []byte, code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Readlink(header)
+	return me.RawFileSystem.Readlink(header)
 }
 
 func (me *LockingRawFileSystem) Mknod(header *InHeader, input *MknodIn, name string) (out *EntryOut, code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Mknod(header, input, name)
+	return me.RawFileSystem.Mknod(header, input, name)
 }
 
 func (me *LockingRawFileSystem) Mkdir(header *InHeader, input *MkdirIn, name string) (out *EntryOut, code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Mkdir(header, input, name)
+	return me.RawFileSystem.Mkdir(header, input, name)
 }
 
 func (me *LockingRawFileSystem) Unlink(header *InHeader, name string) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Unlink(header, name)
+	return me.RawFileSystem.Unlink(header, name)
 }
 
 func (me *LockingRawFileSystem) Rmdir(header *InHeader, name string) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Rmdir(header, name)
+	return me.RawFileSystem.Rmdir(header, name)
 }
 
 func (me *LockingRawFileSystem) Symlink(header *InHeader, pointedTo string, linkName string) (out *EntryOut, code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Symlink(header, pointedTo, linkName)
+	return me.RawFileSystem.Symlink(header, pointedTo, linkName)
 }
 
 func (me *LockingRawFileSystem) Rename(header *InHeader, input *RenameIn, oldName string, newName string) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Rename(header, input, oldName, newName)
+	return me.RawFileSystem.Rename(header, input, oldName, newName)
 }
 
 func (me *LockingRawFileSystem) Link(header *InHeader, input *LinkIn, name string) (out *EntryOut, code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Link(header, input, name)
+	return me.RawFileSystem.Link(header, input, name)
 }
 
 func (me *LockingRawFileSystem) SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) Status {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.SetXAttr(header, input, attr, data)
+	return me.RawFileSystem.SetXAttr(header, input, attr, data)
 }
 
 func (me *LockingRawFileSystem) GetXAttr(header *InHeader, attr string) (data []byte, code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.GetXAttr(header, attr)
+	return me.RawFileSystem.GetXAttr(header, attr)
 }
 
 func (me *LockingRawFileSystem) ListXAttr(header *InHeader) (data []byte, code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.ListXAttr(header)
+	return me.RawFileSystem.ListXAttr(header)
 }
 
 func (me *LockingRawFileSystem) RemoveXAttr(header *InHeader, attr string) Status {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.RemoveXAttr(header, attr)
+	return me.RawFileSystem.RemoveXAttr(header, attr)
 }
 
 func (me *LockingRawFileSystem) Access(header *InHeader, input *AccessIn) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Access(header, input)
+	return me.RawFileSystem.Access(header, input)
 }
 
 func (me *LockingRawFileSystem) Create(header *InHeader, input *CreateIn, name string) (flags uint32, handle uint64, out *EntryOut, code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Create(header, input, name)
+	return me.RawFileSystem.Create(header, input, name)
 }
 
 func (me *LockingRawFileSystem) OpenDir(header *InHeader, input *OpenIn) (flags uint32, h uint64, status Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.OpenDir(header, input)
+	return me.RawFileSystem.OpenDir(header, input)
 }
 
 func (me *LockingRawFileSystem) Release(header *InHeader, input *ReleaseIn) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	me.Original.Release(header, input)
+	me.RawFileSystem.Release(header, input)
 }
 
 func (me *LockingRawFileSystem) ReleaseDir(header *InHeader, h *ReleaseIn) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	me.Original.ReleaseDir(header, h)
+	me.RawFileSystem.ReleaseDir(header, h)
 }
 
 func (me *LockingRawFileSystem) Read(input *ReadIn, bp *BufferPool) ([]byte, Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Read(input, bp)
+	return me.RawFileSystem.Read(input, bp)
 }
 
 func (me *LockingRawFileSystem) Write(input *WriteIn, data []byte) (written uint32, code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Write(input, data)
+	return me.RawFileSystem.Write(input, data)
 }
 
 func (me *LockingRawFileSystem) Flush(input *FlushIn) Status {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Flush(input)
+	return me.RawFileSystem.Flush(input)
 }
 
 func (me *LockingRawFileSystem) Fsync(input *FsyncIn) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.Fsync(input)
+	return me.RawFileSystem.Fsync(input)
 }
 
 func (me *LockingRawFileSystem) ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.ReadDir(header, input)
+	return me.RawFileSystem.ReadDir(header, input)
 }
 
 func (me *LockingRawFileSystem) FsyncDir(header *InHeader, input *FsyncIn) (code Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	return me.Original.FsyncDir(header, input)
+	return me.RawFileSystem.FsyncDir(header, input)
 }

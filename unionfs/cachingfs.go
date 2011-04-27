@@ -22,7 +22,7 @@ type linkResponse struct {
 
 // Caches readdir and getattr()
 type CachingFileSystem struct {
-	fuse.WrappingFileSystem
+	fuse.FileSystem
 
 	attributesLock sync.RWMutex
 	attributes     map[string]attrResponse
@@ -36,7 +36,7 @@ type CachingFileSystem struct {
 
 func NewCachingFileSystem(pfs fuse.FileSystem) *CachingFileSystem {
 	c := new(CachingFileSystem)
-	c.Original = pfs
+	c.FileSystem = pfs
 	c.attributes = make(map[string]attrResponse)
 	c.dirs = make(map[string]dirResponse)
 	c.links = make(map[string]linkResponse)
@@ -53,7 +53,7 @@ func (me *CachingFileSystem) GetAttr(name string) (*fuse.Attr, fuse.Status) {
 	}
 
 	var r attrResponse
-	r.attr, r.code = me.Original.GetAttr(name)
+	r.attr, r.code = me.FileSystem.GetAttr(name)
 
 	// TODO - could do async.
 	me.attributesLock.Lock()
@@ -72,7 +72,7 @@ func (me *CachingFileSystem) Readlink(name string) (string, fuse.Status) {
 		return v.linkContent, v.code
 	}
 
-	v.linkContent, v.code = me.Original.Readlink(name)
+	v.linkContent, v.code = me.FileSystem.Readlink(name)
 
 	// TODO - could do async.
 	me.linksLock.Lock()
@@ -88,7 +88,7 @@ func (me *CachingFileSystem) OpenDir(name string) (stream chan fuse.DirEntry, st
 	me.dirsLock.RUnlock()
 
 	if !ok {
-		origStream, code := me.Original.OpenDir(name)
+		origStream, code := me.FileSystem.OpenDir(name)
 		if code != fuse.OK {
 			return nil, code
 		}

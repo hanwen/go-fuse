@@ -9,7 +9,7 @@ import (
 
 func TestPathDebug(t *testing.T) {
 	debugFs := NewFileSystemDebug()
-	debugFs.Original = &DefaultFileSystem{}
+	debugFs.FileSystem = &DefaultFileSystem{}
 	debugFs.Add("test-entry", func() []byte { return []byte("test-content") })
 
 	connector := NewFileSystemConnector(debugFs, nil)

@@ -27,7 +27,7 @@ type getter func() []byte
 type FileSystemDebug struct {
 	sync.RWMutex
 	callbacks map[string]getter
-	WrappingFileSystem
+	FileSystem
 }
 
 func NewFileSystemDebug() *FileSystemDebug {
@@ -48,7 +48,7 @@ func (me *FileSystemDebug) Open(path string, flags uint32) (fuseFile File, statu
 	if content != nil {
 		return NewReadOnlyFile(content), OK
 	}
-	return me.Original.Open(path, flags)
+	return me.FileSystem.Open(path, flags)
 }
 
 func (me *FileSystemDebug) getContent(path string) []byte {
@@ -68,12 +68,12 @@ func (me *FileSystemDebug) GetXAttr(name string, attr string) ([]byte, Status) {
 	if strings.HasPrefix(name, DebugDir) {
 		return nil, syscall.ENODATA
 	}
-	return me.Original.GetXAttr(name, attr)
+	return me.FileSystem.GetXAttr(name, attr)
 }
 
 func (me *FileSystemDebug) GetAttr(path string) (*Attr, Status) {
 	if !strings.HasPrefix(path, DebugDir) {
-		return me.Original.GetAttr(path)
+		return me.FileSystem.GetAttr(path)
 	}
 	if path == DebugDir {
 		return &Attr{
@@ -136,7 +136,7 @@ func (me *FileSystemDebug) OpenDir(name string) (stream chan DirEntry, status St
 		close(stream)
 		return stream, OK
 	}
-	return me.Original.OpenDir(name)
+	return me.FileSystem.OpenDir(name)
 }
 
 func (me *FileSystemDebug) AddMountState(state *MountState) {

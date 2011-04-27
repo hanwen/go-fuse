@@ -11,7 +11,6 @@ func TestRawFs(t *testing.T) {
 	var iface RawFileSystem
 
 	iface = new(DefaultRawFileSystem)
-	iface = new(WrappingRawFileSystem)
 	iface = new(TimingRawFileSystem)
 
 	_ = iface
@@ -20,7 +19,6 @@ func TestRawFs(t *testing.T) {
 func TestPathFs(t *testing.T) {
 	var iface FileSystem
 	iface = new(DefaultFileSystem)
-	iface = new(WrappingFileSystem)
 	iface = new(TimingFileSystem)
 
 	_ = iface

@@ -31,7 +31,7 @@ func main() {
 	debugFs := fuse.NewFileSystemDebug()
 
 	if *latencies {
-		debugFs.Original = fs
+		debugFs.FileSystem = fs
 		fs = debugFs
 	}
 	
