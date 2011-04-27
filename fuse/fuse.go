@@ -147,11 +147,21 @@ func (me *MountState) BufferPoolStats() string {
 ////////////////////////////////////////////////////////////////
 // Logic for the control loop.
 
-func (me *MountState) newRequest() *request {
-	req := new(request)
-	req.status = OK
-	req.inputBuf = me.buffers.AllocBuffer(bufSize)
-	return req
+func (me *MountState) newRequest(oldReq *request) *request {
+	if oldReq != nil {
+		me.buffers.FreeBuffer(oldReq.flatData)
+
+		*oldReq = request{
+		status: OK,
+		inputBuf: oldReq.inputBuf[0:bufSize],
+		}
+		return oldReq
+	} 
+		
+	return &request{
+		status: OK,
+		inputBuf: me.buffers.AllocBuffer(bufSize),
+	}
 }
 
 func (me *MountState) readRequest(req *request) os.Error {
@@ -177,9 +187,6 @@ func (me *MountState) discardRequest(req *request) {
 				{opname + "-dispatch", "", req.dispatchNs - req.startNs},
 				{opname + "-write", "", endNs - req.preWriteNs}})
 	}
-
-	me.buffers.FreeBuffer(req.inputBuf)
-	me.buffers.FreeBuffer(req.flatData)
 }
 
 // Normally, callers should run Loop() and wait for FUSE to exit, but
@@ -202,12 +209,14 @@ func (me *MountState) Loop(threaded bool) {
 
 func (me *MountState) loop() {
 	// See fuse_kern_chan_receive()
+	var lastReq *request
 	for {
-		req := me.newRequest()
+		req := me.newRequest(lastReq)
+		lastReq = req
 		err := me.readRequest(req)
 		if err != nil {
 			errNo := OsErrorToErrno(err)
-
+ 
 			// Retry.
 			if errNo == syscall.ENOENT {
 				me.discardRequest(req)
