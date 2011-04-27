@@ -41,7 +41,6 @@ type request struct {
 
 	// Start timestamp for timing info.
 	startNs    int64
-	dispatchNs int64
 	preWriteNs int64
 }
 
@@ -184,7 +183,6 @@ func (me *MountState) discardRequest(req *request) {
 		me.LatencyMap.AddMany(
 			[]LatencyArg{
 				{opname, "", dt},
-				{opname + "-dispatch", "", req.dispatchNs - req.startNs},
 				{opname + "-write", "", endNs - req.preWriteNs}})
 	}
 }
@@ -293,10 +291,6 @@ func (me *MountState) handle(req *request) {
 }
 
 func (me *MountState) dispatch(req *request, handler *operationHandler) {
-	if me.LatencyMap != nil {
-		req.dispatchNs = time.Nanoseconds()
-	}
-
 	if me.Debug {
 		nm := ""
 		// TODO - reinstate filename printing.
