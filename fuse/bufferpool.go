@@ -120,6 +120,9 @@ func (me *BufferPool) AllocBuffer(size uint32) []byte {
 // AllocBuffer.  It is not an error to call FreeBuffer() on a slice
 // obtained elsewhere.
 func (me *BufferPool) FreeBuffer(slice []byte) {
+	if slice == nil {
+		return
+	}
 	sz := cap(slice)
 	if sz < PAGESIZE {
 		return
