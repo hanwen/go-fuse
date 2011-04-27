@@ -233,6 +233,7 @@ func doSymlink(state *MountState, req *request) {
 		req.status = s
 		req.outData = unsafe.Pointer(entryOut)
 	} else {
+		log.Println("Symlink: missing arguments", filenames)
 		req.status = EIO
 	}
 }
@@ -242,6 +243,7 @@ func doRename(state *MountState, req *request) {
 	if len(filenames) >= 2 {
 		req.status = state.fileSystem.Rename(req.inHeader, (*RenameIn)(req.inData), filenames[0], filenames[1])
 	} else {
+		log.Println("Rename: missing arguments", filenames)
 		req.status = EIO
 	}
 }
