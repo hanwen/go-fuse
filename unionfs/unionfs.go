@@ -219,6 +219,20 @@ func CopyFile(dstName, srcName string) (written int64, err os.Error) {
 	}
 	defer src.Close()
 
+	dir, _ := filepath.Split(dstName)
+	fi, err := os.Stat(dir)
+	if fi != nil && !fi.IsDirectory() {
+		return 0, os.NewError("Destination is not a directory.")
+	}
+
+	if err != nil {
+		// TODO - umask support.
+		err = os.MkdirAll(dir, 0755)
+	}
+	if err != nil {
+		return 0, err
+	}
+
 	dst, err := os.Create(dstName)
 	if err != nil {
 		return
@@ -228,13 +242,16 @@ func CopyFile(dstName, srcName string) (written int64, err os.Error) {
 	return io.Copy(dst, src)
 }
 
-func (me *UnionFs) Promote(name string,
-src *fuse.LoopbackFileSystem) os.Error {
+func (me *UnionFs) Promote(name string, src *fuse.LoopbackFileSystem) fuse.Status {
 	writable := me.branches[0]
 	_, err := CopyFile(writable.GetPath(name), src.GetPath(name))
 	me.branchCache.Set(name, getBranchResult{nil, fuse.OK, 0})
+	if err != nil {
+		log.Println("promote error: ", name, err.String())
+		return fuse.EPERM
+	}
 
-	return err
+	return fuse.OK
 }
 
 ////////////////////////////////////////////////////////////////
@@ -273,9 +290,9 @@ func (me *UnionFs) Chmod(name string, mode uint32) (code fuse.Status) {
 
 	if oldMode != mode {
 		if r.branch > 0 {
-			err := me.Promote(name, me.branches[r.branch])
-			if err != nil {
-				panic("copy: " + err.String())
+			code := me.Promote(name, me.branches[r.branch])
+			if code != fuse.OK {
+				return code
 			}
 		}
 		me.fileSystems[0].Chmod(name, mode)
@@ -454,9 +471,9 @@ func (me *UnionFs) OpenDir(directory string) (stream chan fuse.DirEntry, status 
 func (me *UnionFs) Open(name string, flags uint32) (fuseFile fuse.File, status fuse.Status) {
 	branch := me.getBranch(name)
 	if flags&fuse.O_ANYWRITE != 0 && branch > 0 {
-		err := me.Promote(name, me.branches[branch])
-		if err != nil {
-			panic("copy: " + err.String())
+		code := me.Promote(name, me.branches[branch])
+		if code != fuse.OK {
+			return nil, code
 		}
 		branch = 0
 	}

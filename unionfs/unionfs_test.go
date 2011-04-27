@@ -226,3 +226,13 @@ func TestBasic(t *testing.T) {
 		t.Errorf("Expected 1 entry in %v", names)
 	}
 }
+
+func TestPromote(t *testing.T) {
+	wd, state := setup(t)
+	defer state.Unmount()
+
+	err := os.Mkdir(wd + "/ro/subdir", 0755)
+	CheckSuccess(err)
+	writeToFile(wd + "/ro/subdir/file", "content", true)
+	writeToFile(wd + "/mount/subdir/file", "other-content", false)
+}
