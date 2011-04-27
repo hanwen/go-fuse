@@ -4,10 +4,11 @@ package fuse
 
 import (
 	"bytes"
+	"fmt"
 	"path/filepath"
 	"time"
 )
-
+var _ = fmt.Println
 
 func NewFileSystemConnector(fs FileSystem, opts *MountOptions) (out *FileSystemConnector) {
 	out = EmptyFileSystemConnector()
