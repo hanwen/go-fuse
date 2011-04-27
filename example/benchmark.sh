@@ -8,6 +8,8 @@ set -eux
 
 ZIPFILE=$1
 shift
+CPU_COUNT=$(ls /sys/class/cpuid/ | wc -l)
+export GOMAXPROCS=${CPU_COUNT}
 
 DELAY=5
 
@@ -19,7 +21,7 @@ fusermount -u ${MP} || true
 mkdir -p ${MP}
 
 ZIPFS=$PWD/zipfs/zipfs
-BULKSTAT=$PWD/bulkstat/bulkstat
+BULKSTAT="$PWD/bulkstat/bulkstat -threads ${CPU_COUNT}"
 
 cd /tmp
 
@@ -39,6 +41,9 @@ sleep ${DELAY}
 
 # Warm caches.
 ${BULKSTAT} -runs 1 /tmp/zipfiles.txt
+
+# Wait for dentry cache to expire.
+sleep 2
 
 # Performance number without 6prof running
 echo -e "\n\n"
@@ -63,6 +68,9 @@ sleep ${DELAY}
 
 # Warm caches.
 ${BULKSTAT} -runs 1 /tmp/zipfiles.txt
+
+# Expire dentry cache.
+sleep 2
 
 # Measurements.
 ${BULKSTAT} -runs 5 /tmp/zipfiles.txt
