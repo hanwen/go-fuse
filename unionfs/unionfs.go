@@ -81,6 +81,10 @@ type UnionFsOptions struct {
 	DeletionDirName      string
 }
 
+const (
+	_DROP_CACHE = ".drop_cache"
+)
+
 func NewUnionFs(roots []string, options UnionFsOptions) *UnionFs {
 	g := new(UnionFs)
 
@@ -330,7 +334,8 @@ func (me *UnionFs) GetAttr(name string) (a *fuse.Attr, s fuse.Status) {
 	if name == _READONLY {
 		return nil, fuse.ENOENT
 	}
-	if name == ".drop_cache" {
+	if name == _DROP_CACHE {
+		log.Println("Forced cache drop")
 		me.branchCache.Purge()
 		me.deletionCache.DropCache()
 		return nil, fuse.ENOENT
