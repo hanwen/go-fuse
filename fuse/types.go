@@ -23,6 +23,7 @@ const (
 	FATTR_ATIME_NOW = (1 << 7)
 	FATTR_MTIME_NOW = (1 << 8)
 	FATTR_LOCKOWNER = (1 << 9)
+	
 
 	// OpenIn.Flags
 	FOPEN_DIRECT_IO   = (1 << 0)
@@ -30,14 +31,17 @@ const (
 	FOPEN_NONSEEKABLE = (1 << 2)
 
 	// To be set in InitOut.Flags.
-	FUSE_ASYNC_READ     = (1 << 0)
-	FUSE_POSIX_LOCKS    = (1 << 1)
-	FUSE_FILE_OPS       = (1 << 2)
-	FUSE_ATOMIC_O_TRUNC = (1 << 3)
-	FUSE_EXPORT_SUPPORT = (1 << 4)
-	FUSE_BIG_WRITES     = (1 << 5)
-	FUSE_DONT_MASK      = (1 << 6)
-
+	CAP_ASYNC_READ     = (1 << 0)
+	CAP_POSIX_LOCKS    = (1 << 1)
+	CAP_FILE_OPS       = (1 << 2)
+	CAP_ATOMIC_O_TRUNC = (1 << 3)
+	CAP_EXPORT_SUPPORT = (1 << 4)
+	CAP_BIG_WRITES     = (1 << 5)
+	CAP_DONT_MASK      = (1 << 6)
+	CAP_SPLICE_WRITE   = (1 << 7)
+	CAP_SPLICE_MOVE	   = (1 << 8)
+	CAP_SPLICE_READ	   = (1 << 9)
+	
 	FUSE_UNKNOWN_INO = 0xffffffff
 
 	CUSE_UNRESTRICTED_IOCTL = (1 << 0)
@@ -61,19 +65,7 @@ const (
 
 	FUSE_POLL_SCHEDULE_NOTIFY = (1 << 0)
 
-
-	FUSE_COMPAT_WRITE_IN_SIZE = 24
-
 	FUSE_MIN_READ_BUFFER = 8192
-
-	FUSE_COMPAT_ENTRY_OUT_SIZE = 120
-
-	FUSE_COMPAT_ATTR_OUT_SIZE = 96
-
-	FUSE_COMPAT_MKNOD_IN_SIZE = 8
-
-	FUSE_COMPAT_STATFS_SIZE = 48
-
 	CUSE_INIT_INFO_MAX = 4096
 
 	S_IFDIR = syscall.S_IFDIR
@@ -83,6 +75,11 @@ const (
 	PAGESIZE = 4096
 
 	O_ANYWRITE = uint32(os.O_WRONLY | os.O_RDWR | os.O_APPEND | os.O_CREATE | os.O_TRUNC)
+)
+
+const (
+	// TODO - we should read this from /sys/fs/fuse/ , dynamically.
+	_BACKGROUND_TASKS = 12
 )
 
 type Status int32

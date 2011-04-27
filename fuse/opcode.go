@@ -3,8 +3,11 @@ package fuse
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"unsafe"
 )
+
+var _ = log.Printf
 
 func replyString(opcode Opcode, ptr unsafe.Pointer) string {
 	h := getHandler(opcode)
@@ -20,17 +23,15 @@ func replyString(opcode Opcode, ptr unsafe.Pointer) string {
 
 ////////////////////////////////////////////////////////////////
 
-
 func doInit(state *MountState, req *request) {
 	input := (*InitIn)(req.inData)
-
 	if input.Major != FUSE_KERNEL_VERSION {
-		fmt.Printf("Major versions does not match. Given %d, want %d\n", input.Major, FUSE_KERNEL_VERSION)
+		log.Printf("Major versions does not match. Given %d, want %d\n", input.Major, FUSE_KERNEL_VERSION)
 		req.status = EIO
 		return
 	}
 	if input.Minor < FUSE_KERNEL_MINOR_VERSION {
-		fmt.Printf("Minor version is less than we support. Given %d, want at least %d\n", input.Minor, FUSE_KERNEL_MINOR_VERSION)
+		log.Printf("Minor version is less than we support. Given %d, want at least %d\n", input.Minor, FUSE_KERNEL_MINOR_VERSION)
 		req.status = EIO
 		return
 	}
@@ -39,8 +40,10 @@ func doInit(state *MountState, req *request) {
 	Major: FUSE_KERNEL_VERSION,
 	Minor: FUSE_KERNEL_MINOR_VERSION,
 	MaxReadAhead: input.MaxReadAhead,
-	Flags: FUSE_ASYNC_READ | FUSE_POSIX_LOCKS | FUSE_BIG_WRITES,
+	Flags: CAP_ASYNC_READ | CAP_POSIX_LOCKS | CAP_BIG_WRITES,
 	MaxWrite: maxRead,
+	CongestionThreshold: _BACKGROUND_TASKS * 3 / 4,
+	MaxBackground: _BACKGROUND_TASKS,
 	}
 
 	req.outData = unsafe.Pointer(out)
