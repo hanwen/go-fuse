@@ -141,14 +141,7 @@ func (me *inode) setParent(newParent *inode) {
 	}
 }
 
-type MountOptions struct {
-	EntryTimeout    float64
-	AttrTimeout     float64
-	NegativeTimeout float64
-}
-
-
-func MakeMountOptions() *MountOptions {
+func NewMountOptions() *MountOptions {
 	return &MountOptions{
 		NegativeTimeout: 0.0,
 		AttrTimeout:     1.0,
@@ -429,7 +422,7 @@ func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *Mou
 
 	node.mount = newMount(fs)
 	if opts == nil {
-		opts = MakeMountOptions()
+		opts = NewMountOptions()
 	}
 	node.mount.options = opts
 	return OK

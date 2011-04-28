@@ -23,7 +23,7 @@ const (
 	FATTR_ATIME_NOW = (1 << 7)
 	FATTR_MTIME_NOW = (1 << 8)
 	FATTR_LOCKOWNER = (1 << 9)
-	
+
 
 	// OpenIn.Flags
 	FOPEN_DIRECT_IO   = (1 << 0)
@@ -41,7 +41,7 @@ const (
 	CAP_SPLICE_WRITE   = (1 << 7)
 	CAP_SPLICE_MOVE	   = (1 << 8)
 	CAP_SPLICE_READ	   = (1 << 9)
-	
+
 	FUSE_UNKNOWN_INO = 0xffffffff
 
 	CUSE_UNRESTRICTED_IOCTL = (1 << 0)
@@ -598,7 +598,16 @@ type FileSystem interface {
 	// unimplemented: poll, ioctl, bmap.
 }
 
-// Include this struct in your implementation to inherit default nop
+// MountOptions contains time out options for a FileSystem.  The
+// default copied from libfuse and set in NewMountOptions() is
+// (1s,1s,0s).
+type MountOptions struct {
+	EntryTimeout    float64
+	AttrTimeout     float64
+	NegativeTimeout float64
+}
+
+// Include these structs in your implementation to inherit default nop
 // implementations.
 
 type DefaultFileSystem struct{}
