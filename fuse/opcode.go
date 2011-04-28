@@ -260,6 +260,7 @@ type operationHandler struct {
 	OutputSize int
 	DecodeIn   castPointerFunc
 	DecodeOut  castPointerFunc
+	FileNames  int
 }
 
 var operationHandlers []*operationHandler
@@ -425,4 +426,18 @@ func init() {
 		operationHandlers[op].DecodeOut = f
 	}
 
+	for op, count := range map[Opcode]int {
+		FUSE_LOOKUP: 1,
+		FUSE_RENAME: 2,
+		FUSE_SYMLINK: 2,
+		FUSE_GETXATTR: 1,
+		FUSE_CREATE: 1,
+		FUSE_MKNOD: 1,
+		FUSE_MKDIR: 1,
+		FUSE_UNLINK: 1,
+		FUSE_RMDIR: 1,
+		FUSE_REMOVEXATTR: 1,
+	} {
+		operationHandlers[op].FileNames = count
+	}
 }

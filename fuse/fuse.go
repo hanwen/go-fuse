@@ -292,10 +292,15 @@ func (me *MountState) handle(req *request) {
 
 func (me *MountState) dispatch(req *request, handler *operationHandler) {
 	if me.Debug {
-		nm := ""
-		// TODO - reinstate filename printing.
-		log.Printf("Dispatch: %v, NodeId: %v %s\n",
-			operationName(req.inHeader.Opcode), req.inHeader.NodeId, nm)
+		handler := getHandler(req.inHeader.Opcode)
+		var names interface{}
+		if handler.FileNames > 0 {
+			names = req.filenames(handler.FileNames)
+		} else {
+			names = ""
+		}
+		log.Printf("Dispatch: %v, NodeId: %v %v\n",
+			operationName(req.inHeader.Opcode), req.inHeader.NodeId, names)
 	}
 	handler.Func(me, req)
 }
