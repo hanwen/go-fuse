@@ -1,9 +1,10 @@
 
 GO-FUSE: native bindings for the FUSE kernel module.
 
+
 HIGHLIGHTS
 
-* High speed: within a factor 2 of C/C++ based filesystems on
+* High speed: within a factor 1.5 of C/C++ based filesystems on
 filesystem benchmarks, using the gc compiler.  For many real world
 applications, the difference will be negligible.
 
@@ -27,8 +28,9 @@ EXAMPLES
 * examplelib/multizipfs.go shows how to use in-process mounts to
   combine multiple Go-FUSE filesystems into a larger filesystem.
     
-* fuse/loopback.go supports all the implemented functionality.  A
-  binary to run is in example/loopback/ . For example
+* fuse/loopback.go mounts another piece of the filesystem.
+  Functionally, it is similar to a symlink.  A binary to run is in
+  example/loopback/ . For example
 
     mkdir /tmp/mountpoint
     example/loopback/loopback -debug /tmp/mountpoint /some/other/directory &
