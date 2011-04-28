@@ -31,6 +31,7 @@ type AutoUnionFs struct {
 
 type AutoUnionFsOptions struct {
 	UnionFsOptions
+	fuse.MountOptions
 }
 
 const (
@@ -74,7 +75,7 @@ func (me *AutoUnionFs) addFs(roots []string) {
 	me.lock.Unlock()
 
 	if gofs != nil {
-		me.connector.Mount("/"+name, gofs, nil)
+		me.connector.Mount("/"+name, gofs, &me.options.MountOptions)
 	}
 }
 
