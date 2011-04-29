@@ -56,13 +56,16 @@ func (me *AutoUnionFs) Mount(connector *fuse.FileSystemConnector) fuse.Status {
 	return fuse.OK
 }
 
-func (me *AutoUnionFs) addFs(roots []string) {
+func (me *AutoUnionFs) addAutomaticFs(roots []string) {
 	relative := strings.TrimLeft(strings.Replace(roots[0], me.root, "", -1), "/")
 	name := strings.Replace(relative, "/", "-", -1)
+	me.addFs(name, roots)
+}
 
+func (me *AutoUnionFs) addFs(name string, roots []string) bool {
 	if name == _CONFIG || name == _STATUS {
 		log.Println("Illegal name for overlay", roots)
-		return
+		return false
 	}
 
 	me.lock.Lock()
@@ -77,18 +80,28 @@ func (me *AutoUnionFs) addFs(roots []string) {
 	if gofs != nil {
 		me.connector.Mount("/"+name, gofs, &me.options.MountOptions)
 	}
+	return true
 }
 
 // TODO - should hide these methods.
 func (me *AutoUnionFs) VisitDir(path string, f *os.FileInfo) bool {
-	ro := filepath.Join(path, _READONLY)
-	fi, err := os.Lstat(ro)
-	if err == nil && fi.IsSymlink() {
-		// TODO - should recurse and chain all READONLYs
-		// together.
-		me.addFs([]string{path, ro})
+	roots := me.getRoots(path)
+	if roots != nil {
+		me.addAutomaticFs(roots)
 	}
 	return true
+}
+
+func (me *AutoUnionFs) getRoots(path string) []string {
+	ro := filepath.Join(path, _READONLY)
+	fi, err := os.Lstat(ro)
+	fiDir, errDir := os.Stat(ro)
+	if err == nil && errDir == nil && fi.IsSymlink() && fiDir.IsDirectory() {
+		// TODO - should recurse and chain all READONLYs
+		// together.
+		return []string{path, ro}
+	}
+	return nil
 }
 
 func (me *AutoUnionFs) VisitFile(path string, f *os.FileInfo) {
@@ -98,6 +111,7 @@ func (me *AutoUnionFs) VisitFile(path string, f *os.FileInfo) {
 func (me *AutoUnionFs) updateKnownFses() {
 	log.Println("Looking for new filesystems")
 	filepath.Walk(me.root, me, nil)
+	log.Println("Done looking")
 }
 
 func (me *AutoUnionFs) Readlink(path string) (out string, code fuse.Status) {
@@ -118,6 +132,34 @@ func (me *AutoUnionFs) Readlink(path string) (out string, code fuse.Status) {
 	}
 	return fs.Roots()[0], fuse.OK
 }
+
+func (me *AutoUnionFs) getUnionFs(name string) *UnionFs {
+	me.lock.RLock()
+	defer me.lock.RUnlock()
+	return me.knownFileSystems[name]
+}
+
+func (me *AutoUnionFs) Symlink(pointedTo string, linkName string) (code fuse.Status) {
+	comps := strings.Split(linkName, "/", -1)
+	if len(comps) != 2 {
+		return fuse.EPERM
+	}
+
+	if comps[0] == _CONFIG {
+		roots := me.getRoots(pointedTo)
+		if roots == nil {
+			return syscall.ENOTDIR
+		}
+
+		name := comps[1]
+		if !me.addFs(name, roots) {
+			return fuse.EPERM
+		}
+		return fuse.OK
+	}
+	return fuse.EPERM
+}
+
 
 // Must define this, because ENOSYS will suspend all GetXAttr calls.
 func (me *AutoUnionFs) GetXAttr(name string, attr string) ([]byte, fuse.Status) {
@@ -148,10 +190,8 @@ func (me *AutoUnionFs) GetAttr(path string) (*fuse.Attr, fuse.Status) {
 
 	comps := strings.Split(path, filepath.SeparatorString, -1)
 
-	me.lock.RLock()
-	defer me.lock.RUnlock()
 	if len(comps) > 1 && comps[0] == _CONFIG {
-		fs := me.knownFileSystems[comps[1]]
+		fs := me.getUnionFs(comps[1])
 
 		if fs == nil {
 			return nil, fuse.ENOENT
@@ -163,7 +203,7 @@ func (me *AutoUnionFs) GetAttr(path string) (*fuse.Attr, fuse.Status) {
 		return a, fuse.OK
 	}
 
-	if me.knownFileSystems[path] != nil {
+	if me.getUnionFs(path) != nil {
 		return &fuse.Attr{
 			Mode: fuse.S_IFDIR | 0755,
 		},fuse.OK
