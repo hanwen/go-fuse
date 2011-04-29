@@ -43,7 +43,7 @@ func setup(t *testing.T) (workdir string, state *fuse.MountState) {
 	connector := fuse.NewFileSystemConnector(ufs, nil)
 	state = fuse.NewMountState(connector)
 	state.Mount(wd + "/mount")
-	// state.Debug = true
+	state.Debug = true
 	go state.Loop(false)
 
 	return wd, state
@@ -235,6 +235,18 @@ func TestPromote(t *testing.T) {
 	CheckSuccess(err)
 	writeToFile(wd + "/ro/subdir/file", "content", true)
 	writeToFile(wd + "/mount/subdir/file", "other-content", false)
+}
+
+func TestMkdir(t *testing.T) {
+	wd, state := setup(t)
+	defer state.Unmount()
+
+	dirname := wd + "/mount/subdir"
+	err := os.Mkdir(dirname, 0755)
+	CheckSuccess(err)
+	
+	err = os.Remove(dirname)
+	CheckSuccess(err)
 }
 
 func TestRename(t *testing.T) {

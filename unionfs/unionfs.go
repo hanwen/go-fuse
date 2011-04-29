@@ -257,11 +257,51 @@ func (me *UnionFs) Promote(name string, src *fuse.LoopbackFileSystem) fuse.Statu
 ////////////////////////////////////////////////////////////////
 // Below: implement interface for a FileSystem.
 
+func (me *UnionFs) Rmdir(path string) (code fuse.Status) {
+	r := me.branchCache.Get(path).(getBranchResult)
+	if r.code != fuse.OK {
+		return r.code
+	}
+	if r.attr.Mode & fuse.S_IFDIR == 0 {
+		return syscall.ENOTDIR
+	}
+	if r.branch > 0 {
+		stream, code := me.fileSystems[r.branch].OpenDir(path)
+		if code == fuse.OK {
+			_, ok := <-stream
+			if ok {
+				// TODO - should consume stream.
+				return syscall.ENOTEMPTY
+			}
+		}
+		me.putDeletion(path)
+		return fuse.OK
+	}
+
+	code = me.fileSystems[0].Rmdir(path)
+	if code != fuse.OK {
+		return code
+	}
+
+	r = me.branchCache.getDataNoCache(path).(getBranchResult)
+	if r.branch > 0 {
+		code = me.putDeletion(path)
+	}
+	return code
+}
+	
 func (me *UnionFs) Mkdir(path string, mode uint32) (code fuse.Status) {
+	r := me.branchCache.Get(path).(getBranchResult)
+	if r.code != fuse.ENOENT {
+		return syscall.EEXIST
+	}
 	code = me.fileSystems[0].Mkdir(path, mode)
 	if code == fuse.OK {
-		go me.removeDeletion(path)
-		me.branchCache.Set(path, getBranchResult{nil, fuse.OK, 0})
+		me.removeDeletion(path)
+		attr := &fuse.Attr{
+			Mode: fuse.S_IFDIR | mode,
+		}
+		me.branchCache.Set(path, getBranchResult{attr, fuse.OK, 0})
 	}
 	return code
 }
@@ -269,7 +309,7 @@ func (me *UnionFs) Mkdir(path string, mode uint32) (code fuse.Status) {
 func (me *UnionFs) Symlink(pointedTo string, linkName string) (code fuse.Status) {
 	code = me.fileSystems[0].Symlink(pointedTo, linkName)
 	if code == fuse.OK {
-		go me.removeDeletion(linkName)
+		me.removeDeletion(linkName)
 		me.branchCache.Set(linkName, getBranchResult{nil, fuse.OK, 0})
 	}
 	return code
