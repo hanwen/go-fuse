@@ -138,18 +138,18 @@ func TestChmod(t *testing.T) {
 	wd, state := setup(t)
 	defer state.Unmount()
 
-	ro_fn := wd+"/ro/file"
-	m_fn := wd+"/mount/file"
+	ro_fn := wd + "/ro/file"
+	m_fn := wd + "/mount/file"
 	writeToFile(ro_fn, "a")
 	err := os.Chmod(m_fn, 07070)
 	CheckSuccess(err)
 
 	fi, err := os.Lstat(m_fn)
 	CheckSuccess(err)
-	if fi.Mode & 07777 != 07070 {
+	if fi.Mode&07777 != 07070 {
 		t.Errorf("Unexpected mode found: %v", fi.Mode)
 	}
-	_, err = os.Lstat(wd+"/rw/file")
+	_, err = os.Lstat(wd + "/rw/file")
 	if err != nil {
 		t.Errorf("File not promoted")
 	}
@@ -220,19 +220,19 @@ func TestPromote(t *testing.T) {
 	wd, state := setup(t)
 	defer state.Unmount()
 
-	err := os.Mkdir(wd + "/ro/subdir", 0755)
+	err := os.Mkdir(wd+"/ro/subdir", 0755)
 	CheckSuccess(err)
-	writeToFile(wd + "/ro/subdir/file", "content")
-	writeToFile(wd + "/mount/subdir/file", "other-content")
+	writeToFile(wd+"/ro/subdir/file", "content")
+	writeToFile(wd+"/mount/subdir/file", "other-content")
 }
 
 func TestCreate(t *testing.T) {
 	wd, state := setup(t)
 	defer state.Unmount()
 
-	err := os.MkdirAll(wd + "/ro/subdir/sub2", 0755)
+	err := os.MkdirAll(wd+"/ro/subdir/sub2", 0755)
 	CheckSuccess(err)
-	writeToFile(wd + "/mount/subdir/sub2/file", "other-content")
+	writeToFile(wd+"/mount/subdir/sub2/file", "other-content")
 	_, err = os.Lstat(wd + "/mount/subdir/sub2/file")
 	CheckSuccess(err)
 }
@@ -241,10 +241,10 @@ func TestOpenUndeletes(t *testing.T) {
 	wd, state := setup(t)
 	defer state.Unmount()
 
-	writeToFile(wd + "/ro/file", "X")
+	writeToFile(wd+"/ro/file", "X")
 	err := os.Remove(wd + "/mount/file")
 	CheckSuccess(err)
-	writeToFile(wd + "/mount/file", "X")
+	writeToFile(wd+"/mount/file", "X")
 	_, err = os.Lstat(wd + "/mount/file")
 	CheckSuccess(err)
 }
@@ -282,19 +282,19 @@ func TestRename(t *testing.T) {
 		t.Log("Config", i, c)
 		wd, state := setup(t)
 		if c.f1_ro {
-			writeToFile(wd + "/ro/file1", "c1")
+			writeToFile(wd+"/ro/file1", "c1")
 		}
 		if c.f1_rw {
-			writeToFile(wd + "/rw/file1", "c2")
+			writeToFile(wd+"/rw/file1", "c2")
 		}
 		if c.f2_ro {
-			writeToFile(wd + "/ro/file2", "c3")
+			writeToFile(wd+"/ro/file2", "c3")
 		}
 		if c.f2_rw {
-			writeToFile(wd + "/rw/file2", "c4")
+			writeToFile(wd+"/rw/file2", "c4")
 		}
 
-		err := os.Rename(wd + "/mount/file1", wd + "/mount/file2")
+		err := os.Rename(wd+"/mount/file1", wd+"/mount/file2")
 		CheckSuccess(err)
 
 		_, err = os.Lstat(wd + "/mount/file1")
@@ -304,7 +304,7 @@ func TestRename(t *testing.T) {
 		_, err = os.Lstat(wd + "/mount/file2")
 		CheckSuccess(err)
 
-		err = os.Rename(wd + "/mount/file2", wd + "/mount/file1")
+		err = os.Rename(wd+"/mount/file2", wd+"/mount/file1")
 		CheckSuccess(err)
 
 		_, err = os.Lstat(wd + "/mount/file2")
@@ -327,9 +327,9 @@ func TestWritableDir(t *testing.T) {
 	err := os.Mkdir(dirname, 0555)
 	CheckSuccess(err)
 
-	fi, err := os.Lstat(wd+"/mount/subdir")
+	fi, err := os.Lstat(wd + "/mount/subdir")
 	CheckSuccess(err)
-	if fi.Permission() & 0222  == 0 {
+	if fi.Permission()&0222 == 0 {
 		t.Errorf("unexpected permission %o", fi.Permission())
 	}
 }

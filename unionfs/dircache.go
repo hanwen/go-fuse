@@ -60,7 +60,7 @@ func (me *DirCache) setMap(newMap map[string]bool) {
 		func() { me.DropCache() })
 }
 
-func (me *DirCache) DropCache() {		
+func (me *DirCache) DropCache() {
 	me.lock.Lock()
 	me.names = nil
 	me.lock.Unlock()

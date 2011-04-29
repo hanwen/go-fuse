@@ -154,7 +154,7 @@ func (me *UnionFs) getBranchAttrNoCache(name string) getBranchResult {
 
 		a, s := fs.GetAttr(name)
 		if s == fuse.OK {
-			if a.Mode & fuse.S_IFDIR != 0 {
+			if a.Mode&fuse.S_IFDIR != 0 {
 				// Make all directories appear writable
 				a.Mode |= 0200
 			}
@@ -383,7 +383,7 @@ func (me *UnionFs) Readlink(name string) (out string, code fuse.Status) {
 
 func IsDir(fs fuse.FileSystem, name string) bool {
 	a, code := fs.GetAttr(name)
-	return code == fuse.OK && a.Mode & fuse.S_IFDIR != 0
+	return code == fuse.OK && a.Mode&fuse.S_IFDIR != 0
 }
 
 func (me *UnionFs) makeDirTo(name string) fuse.Status {

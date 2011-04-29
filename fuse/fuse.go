@@ -151,14 +151,14 @@ func (me *MountState) newRequest(oldReq *request) *request {
 		me.buffers.FreeBuffer(oldReq.flatData)
 
 		*oldReq = request{
-		status: OK,
-		inputBuf: oldReq.inputBuf[0:bufSize],
+			status:   OK,
+			inputBuf: oldReq.inputBuf[0:bufSize],
 		}
 		return oldReq
-	} 
-		
+	}
+
 	return &request{
-		status: OK,
+		status:   OK,
 		inputBuf: me.buffers.AllocBuffer(bufSize),
 	}
 }
@@ -214,7 +214,7 @@ func (me *MountState) loop() {
 		err := me.readRequest(req)
 		if err != nil {
 			errNo := OsErrorToErrno(err)
- 
+
 			// Retry.
 			if errNo == syscall.ENOENT {
 				me.discardRequest(req)

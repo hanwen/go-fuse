@@ -31,8 +31,8 @@ func main() {
 	options := unionfs.AutoUnionFsOptions{
 		UnionFsOptions: ufsOptions,
 		MountOptions: fuse.MountOptions{
-			EntryTimeout: 1.0,
-			AttrTimeout: 1.0,
+			EntryTimeout:    1.0,
+			AttrTimeout:     1.0,
 			NegativeTimeout: 1.0,
 		},
 	}

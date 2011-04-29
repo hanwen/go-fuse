@@ -40,7 +40,7 @@ func main() {
 	orig := flag.Arg(1)
 	loopbackfs := fuse.NewLoopbackFileSystem(orig)
 	finalFs = loopbackfs
-	
+
 	debugFs := fuse.NewFileSystemDebug()
 	if *latencies {
 		timing := fuse.NewTimingFileSystem(finalFs)
@@ -52,8 +52,8 @@ func main() {
 		// These options are to be compatible with libfuse defaults,
 		// making benchmarking easier.
 		NegativeTimeout: 1.0,
-		AttrTimeout: 1.0,
-		EntryTimeout: 1.0,
+		AttrTimeout:     1.0,
+		EntryTimeout:    1.0,
 	}
 
 	if *latencies {

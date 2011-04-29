@@ -39,8 +39,8 @@ const (
 	CAP_BIG_WRITES     = (1 << 5)
 	CAP_DONT_MASK      = (1 << 6)
 	CAP_SPLICE_WRITE   = (1 << 7)
-	CAP_SPLICE_MOVE	   = (1 << 8)
-	CAP_SPLICE_READ	   = (1 << 9)
+	CAP_SPLICE_MOVE    = (1 << 8)
+	CAP_SPLICE_READ    = (1 << 9)
 
 	FUSE_UNKNOWN_INO = 0xffffffff
 
@@ -66,7 +66,7 @@ const (
 	FUSE_POLL_SCHEDULE_NOTIFY = (1 << 0)
 
 	FUSE_MIN_READ_BUFFER = 8192
-	CUSE_INIT_INFO_MAX = 4096
+	CUSE_INIT_INFO_MAX   = 4096
 
 	S_IFDIR = syscall.S_IFDIR
 	S_IFREG = syscall.S_IFREG

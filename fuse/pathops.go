@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 )
+
 var _ = fmt.Println
 
 func NewFileSystemConnector(fs FileSystem, opts *MountOptions) (out *FileSystemConnector) {
@@ -147,7 +148,7 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 
 	if input.Valid&FATTR_MODE != 0 {
 		permissionMask := uint32(07777)
-		err = mount.fs.Chmod(fullPath, input.Mode & permissionMask)
+		err = mount.fs.Chmod(fullPath, input.Mode&permissionMask)
 	}
 	if err == OK && (input.Valid&FATTR_UID != 0 || input.Valid&FATTR_GID != 0) {
 		// TODO - can we get just FATTR_GID but not FATTR_UID ?

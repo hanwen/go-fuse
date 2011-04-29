@@ -39,7 +39,7 @@ func main() {
 	tot := 0.0
 	totalRuns := *runs + 1
 
-	for j := 0 ; j < totalRuns; j++ {
+	for j := 0; j < totalRuns; j++ {
 		result := BulkStat(*threads, files)
 		if j > 0 {
 			tot += result

@@ -27,7 +27,7 @@ type TimedCache struct {
 	cacheMapMutex sync.RWMutex
 	cacheMap      map[string]*cacheEntry
 
-	PurgeTimer    *time.Timer
+	PurgeTimer *time.Timer
 }
 
 const layerCacheTimeoutNs = 1e9

@@ -37,13 +37,13 @@ func doInit(state *MountState, req *request) {
 	}
 
 	out := &InitOut{
-	Major: FUSE_KERNEL_VERSION,
-	Minor: FUSE_KERNEL_MINOR_VERSION,
-	MaxReadAhead: input.MaxReadAhead,
-	Flags: CAP_ASYNC_READ | CAP_POSIX_LOCKS | CAP_BIG_WRITES,
-	MaxWrite: maxRead,
-	CongestionThreshold: _BACKGROUND_TASKS * 3 / 4,
-	MaxBackground: _BACKGROUND_TASKS,
+		Major:               FUSE_KERNEL_VERSION,
+		Minor:               FUSE_KERNEL_MINOR_VERSION,
+		MaxReadAhead:        input.MaxReadAhead,
+		Flags:               CAP_ASYNC_READ | CAP_POSIX_LOCKS | CAP_BIG_WRITES,
+		MaxWrite:            maxRead,
+		CongestionThreshold: _BACKGROUND_TASKS * 3 / 4,
+		MaxBackground:       _BACKGROUND_TASKS,
 	}
 
 	req.outData = unsafe.Pointer(out)
@@ -423,23 +423,23 @@ func init() {
 	}
 
 	for op, f := range map[opcode]castPointerFunc{
-		FUSE_LOOKUP: func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
-		FUSE_OPEN: func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
+		FUSE_LOOKUP:  func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
+		FUSE_OPEN:    func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
 		FUSE_GETATTR: func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
 	} {
 		operationHandlers[op].DecodeOut = f
 	}
 
-	for op, count := range map[opcode]int {
-		FUSE_LOOKUP: 1,
-		FUSE_RENAME: 2,
-		FUSE_SYMLINK: 2,
-		FUSE_GETXATTR: 1,
-		FUSE_CREATE: 1,
-		FUSE_MKNOD: 1,
-		FUSE_MKDIR: 1,
-		FUSE_UNLINK: 1,
-		FUSE_RMDIR: 1,
+	for op, count := range map[opcode]int{
+		FUSE_LOOKUP:      1,
+		FUSE_RENAME:      2,
+		FUSE_SYMLINK:     2,
+		FUSE_GETXATTR:    1,
+		FUSE_CREATE:      1,
+		FUSE_MKNOD:       1,
+		FUSE_MKDIR:       1,
+		FUSE_UNLINK:      1,
+		FUSE_RMDIR:       1,
 		FUSE_REMOVEXATTR: 1,
 	} {
 		operationHandlers[op].FileNames = count

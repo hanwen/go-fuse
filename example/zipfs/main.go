@@ -15,7 +15,7 @@ func main() {
 	// Scans the arg list and sets up flags
 	debug := flag.Bool("debug", false, "print debugging messages.")
 	latencies := flag.Bool("latencies", false, "record operation latencies.")
-	
+
 	flag.Parse()
 	if flag.NArg() < 2 {
 		fmt.Fprintf(os.Stderr, "usage: %s MOUNTPOINT ZIP-FILE\n", os.Args[0])
@@ -34,7 +34,7 @@ func main() {
 		debugFs.FileSystem = fs
 		fs = debugFs
 	}
-	
+
 	conn := fuse.NewFileSystemConnector(fs, nil)
 	state := fuse.NewMountState(conn)
 
@@ -42,7 +42,7 @@ func main() {
 		debugFs.AddFileSystemConnector(conn)
 		debugFs.AddMountState(state)
 	}
-	
+
 	mountPoint := flag.Arg(0)
 	state.SetRecordStatistics(*latencies)
 	state.Debug = *debug

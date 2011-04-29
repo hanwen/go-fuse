@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"github.com/hanwen/go-fuse/fuse"
 )
+
 var _ = fmt.Println
+
 type attrResponse struct {
 	*fuse.Attr
 	fuse.Status

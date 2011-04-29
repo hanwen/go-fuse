@@ -46,7 +46,7 @@ type inode struct {
 	Name        string
 	LookupCount int
 	OpenCount   int
-	mount *mountData
+	mount       *mountData
 }
 
 // Should be called with treeLock and fileLock held.
@@ -152,7 +152,7 @@ func NewMountOptions() *MountOptions {
 type FileSystemConnector struct {
 	DefaultRawFileSystem
 
-	Debug   bool
+	Debug bool
 
 	////////////////
 
