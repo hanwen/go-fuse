@@ -262,7 +262,7 @@ func (me *UnionFs) Rmdir(path string) (code fuse.Status) {
 	if r.code != fuse.OK {
 		return r.code
 	}
-	if r.attr.Mode & fuse.S_IFDIR == 0 {
+	if r.attr.Mode&fuse.S_IFDIR == 0 {
 		return syscall.ENOTDIR
 	}
 	if r.branch > 0 {
@@ -289,7 +289,7 @@ func (me *UnionFs) Rmdir(path string) (code fuse.Status) {
 	}
 	return code
 }
-	
+
 func (me *UnionFs) Mkdir(path string, mode uint32) (code fuse.Status) {
 	r := me.branchCache.Get(path).(getBranchResult)
 	if r.code != fuse.ENOENT {
@@ -321,7 +321,7 @@ func (me *UnionFs) Chmod(name string, mode uint32) (code fuse.Status) {
 		return r.code
 	}
 
-	if r.attr.Mode & fuse.S_IFREG == 0 {
+	if r.attr.Mode&fuse.S_IFREG == 0 {
 		return fuse.EPERM
 	}
 
@@ -375,10 +375,30 @@ func (me *UnionFs) Readlink(name string) (out string, code fuse.Status) {
 	return "", fuse.ENOENT
 }
 
+func IsDir(fs fuse.FileSystem, name string) bool {
+	a, code := fs.GetAttr(name)
+	return code == fuse.OK && a.Mode & fuse.S_IFDIR != 0
+}
+
+func (me *UnionFs) makeDirTo(name string) fuse.Status {
+	dir, base := filepath.Split(name)
+	if base != "" && !IsDir(me.fileSystems[0], dir) {
+		err := os.MkdirAll(me.branches[0].GetPath(dir), 0755)
+		if err != nil {
+			log.Println("Error creating dir leading to path", name, err)
+			return fuse.EPERM
+		}
+	}
+	return fuse.OK
+}
+
 func (me *UnionFs) Create(name string, flags uint32, mode uint32) (fuseFile fuse.File, code fuse.Status) {
-	// TODO(hanwen) - we should check that the name is not a
-	// directory in another branch.
 	writable := me.fileSystems[0]
+
+	code = me.makeDirTo(name)
+	if code != fuse.OK {
+		return nil, code
+	}
 	fuseFile, code = writable.Create(name, flags, mode)
 	if code == fuse.OK {
 		me.removeDeletion(name)
@@ -528,7 +548,7 @@ func (me *UnionFs) Rename(src string, dst string) (status fuse.Status) {
 	me.removeDeletion(dst)
 	srcResult.branch = 0
 	me.branchCache.Set(dst, srcResult)
-	
+
 	if srcResult.branch == 0 {
 		srcResult := me.branchCache.getDataNoCache(src)
 		if srcResult.(getBranchResult).branch > 0 {

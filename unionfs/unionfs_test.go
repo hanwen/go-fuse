@@ -17,7 +17,6 @@ func TestFilePathHash(t *testing.T) {
 	t.Log(filePathHash("xyz/abc"))
 }
 
-
 var testOpts = UnionFsOptions{
 	DeletionCacheTTLSecs: 0.01,
 	DeletionDirName:      "DELETIONS",
@@ -236,6 +235,19 @@ func TestPromote(t *testing.T) {
 	writeToFile(wd + "/ro/subdir/file", "content", true)
 	writeToFile(wd + "/mount/subdir/file", "other-content", false)
 }
+
+func TestCreate(t *testing.T) {
+	wd, state := setup(t)
+	defer state.Unmount()
+
+	err := os.MkdirAll(wd + "/ro/subdir/sub2", 0755)
+	CheckSuccess(err)
+	writeToFile(wd + "/mount/subdir/sub2/file", "other-content", true)
+	_, err = os.Lstat(wd + "/mount/subdir/sub2/file")
+	CheckSuccess(err)
+}
+
+
 
 func TestMkdir(t *testing.T) {
 	wd, state := setup(t)
