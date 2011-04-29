@@ -2,118 +2,96 @@ package unionfs
 
 import (
 	"github.com/hanwen/go-fuse/fuse"
-	"sync"
 )
 
 type attrResponse struct {
-	attr *fuse.Attr
-	code fuse.Status
+	*fuse.Attr
+	fuse.Status
 }
 
 type dirResponse struct {
 	entries []fuse.DirEntry
-	code    fuse.Status
+	fuse.Status
 }
 
 type linkResponse struct {
 	linkContent string
-	code        fuse.Status
+	fuse.Status
 }
 
 // Caches readdir and getattr()
 type CachingFileSystem struct {
 	fuse.FileSystem
 
-	attributesLock sync.RWMutex
-	attributes     map[string]attrResponse
-
-	dirsLock sync.RWMutex
-	dirs     map[string]dirResponse
-
-	linksLock sync.RWMutex
-	links     map[string]linkResponse
+	attributes *TimedCache
+	dirs       *TimedCache
+	links      *TimedCache
 }
 
-func NewCachingFileSystem(pfs fuse.FileSystem) *CachingFileSystem {
+func readDir(fs fuse.FileSystem, name string) *dirResponse {
+	origStream, code := fs.OpenDir(name)
+
+	r := &dirResponse{nil, code}
+	if code != fuse.OK {
+		return r
+	}
+
+	for {
+		d, ok := <-origStream
+		if !ok {
+			break
+		}
+		r.entries = append(r.entries, d)
+	}
+
+	return r
+}
+
+func getAttr(fs fuse.FileSystem, name string) *attrResponse {
+	a, code := fs.GetAttr(name)
+	return &attrResponse{
+		Attr:   a,
+		Status: code,
+	}
+}
+
+func readLink(fs fuse.FileSystem, name string) *linkResponse {
+	a, code := fs.Readlink(name)
+	return &linkResponse{
+		linkContent: a,
+		Status:      code,
+	}
+}
+
+func NewCachingFileSystem(fs fuse.FileSystem, ttlNs int64) *CachingFileSystem {
 	c := new(CachingFileSystem)
-	c.FileSystem = pfs
-	c.attributes = make(map[string]attrResponse)
-	c.dirs = make(map[string]dirResponse)
-	c.links = make(map[string]linkResponse)
+	c.FileSystem = fs
+	c.attributes = NewTimedCache(func(n string) interface{} { return getAttr(fs, n) }, ttlNs)
+	c.dirs = NewTimedCache(func(n string) interface{} { return readDir(fs, n) }, ttlNs)
+	c.links = NewTimedCache(func(n string) interface{} { return readLink(fs, n) }, ttlNs)
 	return c
 }
 
 func (me *CachingFileSystem) GetAttr(name string) (*fuse.Attr, fuse.Status) {
-	me.attributesLock.RLock()
-	v, ok := me.attributes[name]
-	me.attributesLock.RUnlock()
-
-	if ok {
-		return v.attr, v.code
-	}
-
-	var r attrResponse
-	r.attr, r.code = me.FileSystem.GetAttr(name)
-
-	// TODO - could do async.
-	me.attributesLock.Lock()
-	me.attributes[name] = r
-	me.attributesLock.Unlock()
-
-	return r.attr, r.code
+	r := me.attributes.Get(name).(attrResponse)
+	return r.Attr, r.Status
 }
 
 func (me *CachingFileSystem) Readlink(name string) (string, fuse.Status) {
-	me.linksLock.RLock()
-	v, ok := me.links[name]
-	me.linksLock.RUnlock()
-
-	if ok {
-		return v.linkContent, v.code
-	}
-
-	v.linkContent, v.code = me.FileSystem.Readlink(name)
-
-	// TODO - could do async.
-	me.linksLock.Lock()
-	me.links[name] = v
-	me.linksLock.Unlock()
-
-	return v.linkContent, v.code
+	r := me.attributes.Get(name).(linkResponse)
+	return r.linkContent, r.Status
 }
 
 func (me *CachingFileSystem) OpenDir(name string) (stream chan fuse.DirEntry, status fuse.Status) {
-	me.dirsLock.RLock()
-	v, ok := me.dirs[name]
-	me.dirsLock.RUnlock()
-
-	if !ok {
-		origStream, code := me.FileSystem.OpenDir(name)
-		if code != fuse.OK {
-			return nil, code
-		}
-
-		v.code = code
-		for {
-			d := <-origStream
-			if d.Name == "" {
-				break
-			}
-			v.entries = append(v.entries, d)
-		}
-
-		me.dirsLock.Lock()
-		me.dirs[name] = v
-		me.dirsLock.Unlock()
-	}
-
-	stream = make(chan fuse.DirEntry)
-	go func() {
-		for _, d := range v.entries {
+	r := me.dirs.Get(name).(dirResponse)
+	if r.Status == fuse.OK {
+		stream = make(chan fuse.DirEntry, len(r.entries))
+		for _, d := range r.entries {
 			stream <- d
 		}
-		stream <- fuse.DirEntry{}
-	}()
+		close(stream)
+		return stream, r.Status
+	}
 
-	return stream, v.code
+	return nil, r.Status
 }
