@@ -181,15 +181,15 @@ func (me *UnionFs) deletionPath(name string) string {
 }
 
 func (me *UnionFs) removeDeletion(name string) {
-	fileName := me.deletionPath(name)
-	me.deletionCache.RemoveEntry(path.Base(fileName))
+	marker := me.deletionPath(name)
+	me.deletionCache.RemoveEntry(path.Base(marker))
 
 	// os.Remove tries to be smart and issues a Remove() and
 	// Rmdir() sequentially.  We want to skip the 2nd system call,
 	// so use syscall.Unlink() directly.
-	errno := syscall.Unlink(name)
+	errno := syscall.Unlink(marker)
 	if errno != 0 && errno != syscall.ENOENT {
-		log.Printf("error unlinking %s: %v", fileName, errno)
+		log.Printf("error unlinking %s: %v", marker, errno)
 	}
 }
 
@@ -570,7 +570,6 @@ func (me *UnionFs) Open(name string, flags uint32) (fuseFile fuse.File, status f
 		}
 		branch = 0
 	}
-
 	return me.fileSystems[branch].Open(name, uint32(flags))
 }
 

@@ -247,8 +247,17 @@ func TestCreate(t *testing.T) {
 	CheckSuccess(err)
 }
 
+func TestOpenUndeletes(t *testing.T) {
+	wd, state := setup(t)
+	defer state.Unmount()
 
-
+	writeToFile(wd + "/ro/file", "X", true)
+	err := os.Remove(wd + "/mount/file")
+	CheckSuccess(err)
+	writeToFile(wd + "/mount/file", "X", true)
+	_, err = os.Lstat(wd + "/mount/file")
+	CheckSuccess(err)
+}
 func TestMkdir(t *testing.T) {
 	wd, state := setup(t)
 	defer state.Unmount()
