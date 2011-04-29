@@ -9,8 +9,8 @@ import (
 
 var _ = log.Printf
 
-func replyString(opcode Opcode, ptr unsafe.Pointer) string {
-	h := getHandler(opcode)
+func replyString(op opcode, ptr unsafe.Pointer) string {
+	h := getHandler(op)
 	var val interface{}
 	if h.DecodeOut != nil {
 		val = h.DecodeOut(ptr)
@@ -120,7 +120,7 @@ func doWrite(state *MountState, req *request) {
 func doGetXAttr(state *MountState, req *request) {
 	input := (*GetXAttrIn)(req.inData)
 	var data []byte
-	if req.inHeader.Opcode == FUSE_GETXATTR {
+	if req.inHeader.opcode == FUSE_GETXATTR {
 		data, req.status = state.fileSystem.GetXAttr(req.inHeader, req.filename())
 	} else {
 		data, req.status = state.fileSystem.ListXAttr(req.inHeader)
@@ -265,19 +265,19 @@ type operationHandler struct {
 
 var operationHandlers []*operationHandler
 
-func operationName(opcode Opcode) string {
-	h := getHandler(opcode)
+func operationName(op opcode) string {
+	h := getHandler(op)
 	if h == nil {
 		return "unknown"
 	}
 	return h.Name
 }
 
-func (op Opcode) String() string {
+func (op opcode) String() string {
 	return operationName(op)
 }
 
-func getHandler(o Opcode) *operationHandler {
+func getHandler(o opcode) *operationHandler {
 	if o >= OPCODE_COUNT {
 		return nil
 	}
@@ -387,7 +387,7 @@ func init() {
 		operationHandlers[op].Name = v
 	}
 
-	for op, v := range map[Opcode]operationFunc{
+	for op, v := range map[opcode]operationFunc{
 		FUSE_OPEN:        doOpen,
 		FUSE_READDIR:     doReadDir,
 		FUSE_WRITE:       doWrite,
@@ -422,7 +422,7 @@ func init() {
 		operationHandlers[op].Func = v
 	}
 
-	for op, f := range map[Opcode]castPointerFunc{
+	for op, f := range map[opcode]castPointerFunc{
 		FUSE_LOOKUP: func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
 		FUSE_OPEN: func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
 		FUSE_GETATTR: func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
@@ -430,7 +430,7 @@ func init() {
 		operationHandlers[op].DecodeOut = f
 	}
 
-	for op, count := range map[Opcode]int {
+	for op, count := range map[opcode]int {
 		FUSE_LOOKUP: 1,
 		FUSE_RENAME: 2,
 		FUSE_SYMLINK: 2,

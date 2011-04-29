@@ -98,7 +98,7 @@ const (
 	EXDEV   = Status(syscall.EXDEV)
 )
 
-type Opcode int
+type opcode int
 
 const (
 	FUSE_LOOKUP      = 1
@@ -455,7 +455,7 @@ type NotifyPollWakeupOut struct {
 
 type InHeader struct {
 	Length uint32
-	Opcode
+	opcode
 	Unique uint64
 	NodeId uint64
 	Identity

@@ -118,8 +118,8 @@ func (me *MountState) Write(req *request) {
 	}
 
 	if err != nil {
-		log.Printf("writer: Write/Writev %v failed, err: %v. Opcode: %v",
-			req.outHeaderBytes, err, operationName(req.inHeader.Opcode))
+		log.Printf("writer: Write/Writev %v failed, err: %v. opcode: %v",
+			req.outHeaderBytes, err, operationName(req.inHeader.opcode))
 	}
 }
 
@@ -179,7 +179,7 @@ func (me *MountState) discardRequest(req *request) {
 		endNs := time.Nanoseconds()
 		dt := endNs - req.startNs
 
-		opname := operationName(req.inHeader.Opcode)
+		opname := operationName(req.inHeader.opcode)
 		me.LatencyMap.AddMany(
 			[]LatencyArg{
 				{opname, "", dt},
@@ -249,19 +249,19 @@ func (me *MountState) chopMessage(req *request) *operationHandler {
 	req.inHeader = (*InHeader)(unsafe.Pointer(&req.inputBuf[0]))
 	req.arg = req.inputBuf[inHSize:]
 
-	handler := getHandler(req.inHeader.Opcode)
+	handler := getHandler(req.inHeader.opcode)
 	if handler == nil || handler.Func == nil {
 		msg := "Unimplemented"
 		if handler == nil {
 			msg = "Unknown"
 		}
-		log.Printf("%s opcode %v", msg, req.inHeader.Opcode)
+		log.Printf("%s opcode %v", msg, req.inHeader.opcode)
 		req.status = ENOSYS
 		return handler
 	}
 
 	if len(req.arg) < handler.InputSize {
-		log.Printf("Short read for %v: %v", req.inHeader.Opcode, req.arg)
+		log.Printf("Short read for %v: %v", req.inHeader.opcode, req.arg)
 		req.status = EIO
 		return handler
 	}
@@ -288,7 +288,7 @@ func (me *MountState) handle(req *request) {
 	// If we try to write OK, nil, we will get
 	// error:  writer: Writev [[16 0 0 0 0 0 0 0 17 0 0 0 0 0 0 0]]
 	// failed, err: writev: no such file or directory
-	if req.inHeader.Opcode != FUSE_FORGET {
+	if req.inHeader.opcode != FUSE_FORGET {
 		serialize(req, handler, me.Debug)
 		me.Write(req)
 	}
@@ -296,7 +296,7 @@ func (me *MountState) handle(req *request) {
 
 func (me *MountState) dispatch(req *request, handler *operationHandler) {
 	if me.Debug {
-		handler := getHandler(req.inHeader.Opcode)
+		handler := getHandler(req.inHeader.opcode)
 		var names interface{}
 		if handler.FileNames > 0 {
 			names = req.filenames(handler.FileNames)
@@ -304,7 +304,7 @@ func (me *MountState) dispatch(req *request, handler *operationHandler) {
 			names = ""
 		}
 		log.Printf("Dispatch: %v, NodeId: %v %v\n",
-			operationName(req.inHeader.Opcode), req.inHeader.NodeId, names)
+			operationName(req.inHeader.opcode), req.inHeader.NodeId, names)
 	}
 	handler.Func(me, req)
 }
@@ -331,7 +331,7 @@ func serialize(req *request, handler *operationHandler, debug bool) {
 
 	copy(req.outHeaderBytes[sizeOfOutHeader:], asSlice(req.outData, dataLength))
 	if debug {
-		val := fmt.Sprintf("%v", replyString(req.inHeader.Opcode, req.outData))
+		val := fmt.Sprintf("%v", replyString(req.inHeader.opcode, req.outData))
 		max := 1024
 		if len(val) > max {
 			val = val[:max] + fmt.Sprintf(" ...trimmed (response size %d)", outHeader.Length)
@@ -342,6 +342,6 @@ func serialize(req *request, handler *operationHandler, debug bool) {
 			msg = fmt.Sprintf(" flat: %d\n", len(req.flatData))
 		}
 		log.Printf("Serialize: %v code: %v value: %v%v",
-			operationName(req.inHeader.Opcode), req.status, val, msg)
+			operationName(req.inHeader.opcode), req.status, val, msg)
 	}
 }
