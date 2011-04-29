@@ -3,6 +3,7 @@ package unionfs
 import (
 	"os"
 	"github.com/hanwen/go-fuse/fuse"
+	"io/ioutil"
 	"fmt"
 	"log"
 	"testing"
@@ -48,20 +49,9 @@ func setup(t *testing.T) (workdir string, state *fuse.MountState) {
 	return wd, state
 }
 
-func writeToFile(path string, contents string, create bool) {
-	var flags int = os.O_WRONLY
-	if create {
-		flags |= os.O_CREATE
-	}
-
-	f, err := os.OpenFile(path, flags, 0644)
-	fuse.CheckSuccess(err)
-
-	_, err = f.Write([]byte(contents))
-	fuse.CheckSuccess(err)
-
-	err = f.Close()
-	fuse.CheckSuccess(err)
+func writeToFile(path string, contents string) {
+	err := ioutil.WriteFile(path, []byte(contents), 0644)
+	CheckSuccess(err)
 }
 
 func readFromFile(path string) string {
@@ -150,7 +140,7 @@ func TestChmod(t *testing.T) {
 
 	ro_fn := wd+"/ro/file"
 	m_fn := wd+"/mount/file"
-	writeToFile(ro_fn, "a", true)
+	writeToFile(ro_fn, "a")
 	err := os.Chmod(m_fn, 07070)
 	CheckSuccess(err)
 
@@ -169,9 +159,9 @@ func TestBasic(t *testing.T) {
 	wd, state := setup(t)
 	defer state.Unmount()
 
-	writeToFile(wd+"/rw/rw", "a", true)
-	writeToFile(wd+"/ro/ro1", "a", true)
-	writeToFile(wd+"/ro/ro2", "b", true)
+	writeToFile(wd+"/rw/rw", "a")
+	writeToFile(wd+"/ro/ro1", "a")
+	writeToFile(wd+"/ro/ro2", "b")
 
 	names := dirNames(wd + "/mount")
 	expected := map[string]bool{
@@ -179,7 +169,7 @@ func TestBasic(t *testing.T) {
 	}
 	checkMapEq(t, names, expected)
 
-	writeToFile(wd+"/mount/new", "new contents", true)
+	writeToFile(wd+"/mount/new", "new contents")
 	if !fileExists(wd + "/rw/new") {
 		t.Errorf("missing file in rw layer", names)
 	}
@@ -188,7 +178,7 @@ func TestBasic(t *testing.T) {
 		t.Errorf("read mismatch.")
 	}
 
-	writeToFile(wd+"/mount/ro1", "promote me", false)
+	writeToFile(wd+"/mount/ro1", "promote me")
 	if !fileExists(wd + "/rw/ro1") {
 		t.Errorf("missing file in rw layer", names)
 	}
@@ -232,8 +222,8 @@ func TestPromote(t *testing.T) {
 
 	err := os.Mkdir(wd + "/ro/subdir", 0755)
 	CheckSuccess(err)
-	writeToFile(wd + "/ro/subdir/file", "content", true)
-	writeToFile(wd + "/mount/subdir/file", "other-content", false)
+	writeToFile(wd + "/ro/subdir/file", "content")
+	writeToFile(wd + "/mount/subdir/file", "other-content")
 }
 
 func TestCreate(t *testing.T) {
@@ -242,7 +232,7 @@ func TestCreate(t *testing.T) {
 
 	err := os.MkdirAll(wd + "/ro/subdir/sub2", 0755)
 	CheckSuccess(err)
-	writeToFile(wd + "/mount/subdir/sub2/file", "other-content", true)
+	writeToFile(wd + "/mount/subdir/sub2/file", "other-content")
 	_, err = os.Lstat(wd + "/mount/subdir/sub2/file")
 	CheckSuccess(err)
 }
@@ -251,10 +241,10 @@ func TestOpenUndeletes(t *testing.T) {
 	wd, state := setup(t)
 	defer state.Unmount()
 
-	writeToFile(wd + "/ro/file", "X", true)
+	writeToFile(wd + "/ro/file", "X")
 	err := os.Remove(wd + "/mount/file")
 	CheckSuccess(err)
-	writeToFile(wd + "/mount/file", "X", true)
+	writeToFile(wd + "/mount/file", "X")
 	_, err = os.Lstat(wd + "/mount/file")
 	CheckSuccess(err)
 }
@@ -292,16 +282,16 @@ func TestRename(t *testing.T) {
 		t.Log("Config", i, c)
 		wd, state := setup(t)
 		if c.f1_ro {
-			writeToFile(wd + "/ro/file1", "c1", true)
+			writeToFile(wd + "/ro/file1", "c1")
 		}
 		if c.f1_rw {
-			writeToFile(wd + "/rw/file1", "c2", true)
+			writeToFile(wd + "/rw/file1", "c2")
 		}
 		if c.f2_ro {
-			writeToFile(wd + "/ro/file2", "c3", true)
+			writeToFile(wd + "/ro/file2", "c3")
 		}
 		if c.f2_rw {
-			writeToFile(wd + "/rw/file2", "c4", true)
+			writeToFile(wd + "/rw/file2", "c4")
 		}
 
 		err := os.Rename(wd + "/mount/file1", wd + "/mount/file2")

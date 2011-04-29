@@ -44,7 +44,7 @@ func filePathHash(path string) string {
 
  Implementation notes.
 
- * It piggybacks on the existing LoopbackFileSystem in Go-fuse, so we
+ * It piggybacks on the existing LoopbackFileSystem in Go-FUSE, so we
  don't have to translate back and forth between Go's and FUSE's API.
 
  * Deleting a file will put a file named
