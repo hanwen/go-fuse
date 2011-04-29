@@ -26,6 +26,8 @@ type TimedCache struct {
 
 	cacheMapMutex sync.RWMutex
 	cacheMap      map[string]*cacheEntry
+
+	PurgeTimer    *time.Timer
 }
 
 const layerCacheTimeoutNs = 1e9
@@ -85,6 +87,6 @@ func (me *TimedCache) Purge() {
 
 func (me *TimedCache) RecurringPurge() {
 	me.Purge()
-	time.AfterFunc(5*me.ttlNs,
+	me.PurgeTimer = time.AfterFunc(5*me.ttlNs,
 		func() { me.RecurringPurge() })
 }
