@@ -468,6 +468,39 @@ func (me *UnionFs) OpenDir(directory string) (stream chan fuse.DirEntry, status 
 	return stream, fuse.OK
 }
 
+func (me *UnionFs) Rename(src string, dst string) (status fuse.Status) {
+	srcResult := me.branchCache.Get(src).(getBranchResult)
+	if srcResult.code != fuse.OK {
+		return srcResult.code
+	}
+
+	if srcResult.branch > 0 {
+		code := me.Promote(src, me.branches[srcResult.branch])
+		if code != fuse.OK {
+			return code
+		}
+	}
+	code := me.fileSystems[0].Rename(src, dst)
+	if code != fuse.OK {
+		return code
+	}
+
+	me.removeDeletion(dst)
+	srcResult.branch = 0
+	me.branchCache.Set(dst, srcResult)
+	
+	if srcResult.branch == 0 {
+		srcResult := me.branchCache.getDataNoCache(src)
+		if srcResult.(getBranchResult).branch > 0 {
+			code = me.putDeletion(src)
+		}
+	} else {
+		code = me.putDeletion(src)
+	}
+
+	return code
+}
+
 func (me *UnionFs) Open(name string, flags uint32) (fuseFile fuse.File, status fuse.Status) {
 	branch := me.getBranch(name)
 	if flags&fuse.O_ANYWRITE != 0 && branch > 0 {
