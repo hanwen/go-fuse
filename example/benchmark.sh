@@ -39,12 +39,6 @@ ${ZIPFS} ${MP} ${ZIPFILE} >& zipfs.log &
 # Wait for zipfs to unpack and serve the file.
 sleep ${DELAY}
 
-# Warm caches.
-${BULKSTAT} -runs 1 /tmp/zipfiles.txt
-
-# Wait for dentry cache to expire.
-sleep 2
-
 # Performance number without 6prof running
 echo -e "\n\n"
 ${BULKSTAT} -runs 5 /tmp/zipfiles.txt
@@ -65,12 +59,6 @@ fusermount -u ${MP}
 ${ZIPFS} -latencies ${MP} ${ZIPFILE} >& zipfs.log &
 
 sleep ${DELAY}
-
-# Warm caches.
-${BULKSTAT} -runs 1 /tmp/zipfiles.txt
-
-# Expire dentry cache.
-sleep 2
 
 # Measurements.
 ${BULKSTAT} -runs 5 /tmp/zipfiles.txt

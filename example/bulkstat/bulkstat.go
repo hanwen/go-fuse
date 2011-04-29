@@ -37,9 +37,16 @@ func main() {
 	}
 
 	tot := 0.0
-	for j := *runs; j > 0; j-- {
-		tot += BulkStat(*threads, files)
-		if j > 1 {
+	totalRuns := *runs + 1
+
+	for j := 0 ; j < totalRuns; j++ {
+		result := BulkStat(*threads, files)
+		if j > 0 {
+			tot += result
+		} else {
+			fmt.Println("Ignoring first run to preheat caches.")
+		}
+		if j < totalRuns-1 {
 			fmt.Printf("Sleeping %.2f seconds\n", *sleepTime)
 			time.Sleep(int64(*sleepTime * 1e9))
 		}
