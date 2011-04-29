@@ -61,6 +61,7 @@ func filePathHash(path string) string {
 type UnionFs struct {
 	fuse.DefaultFileSystem
 
+	roots    []string
 	branches []*fuse.LoopbackFileSystem
 
 	// The same, but as interfaces.
@@ -87,7 +88,8 @@ const (
 
 func NewUnionFs(roots []string, options UnionFsOptions) *UnionFs {
 	g := new(UnionFs)
-
+	g.roots = make([]string, len(roots))
+	copy(g.roots, roots)
 	g.options = &options
 	for _, r := range roots {
 		pt := fuse.NewLoopbackFileSystem(r)
@@ -412,7 +414,7 @@ func (me *UnionFs) GetAttr(name string) (a *fuse.Attr, s fuse.Status) {
 		return nil, fuse.ENOENT
 	}
 	if name == _DROP_CACHE {
-		log.Println("Forced cache drop")
+		log.Println("Forced cache drop on", me.roots)
 		me.branchCache.Purge()
 		me.deletionCache.DropCache()
 		return nil, fuse.ENOENT
