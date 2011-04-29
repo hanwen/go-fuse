@@ -273,6 +273,10 @@ func operationName(opcode Opcode) string {
 	return h.Name
 }
 
+func (op Opcode) String() string {
+	return operationName(op)
+}
+
 func getHandler(o Opcode) *operationHandler {
 	if o >= OPCODE_COUNT {
 		return nil

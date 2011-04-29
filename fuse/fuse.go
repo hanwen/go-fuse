@@ -251,7 +251,11 @@ func (me *MountState) chopMessage(req *request) *operationHandler {
 
 	handler := getHandler(req.inHeader.Opcode)
 	if handler == nil || handler.Func == nil {
-		log.Printf("Unknown opcode %v", req.inHeader.Opcode)
+		msg := "Unimplemented"
+		if handler == nil {
+			msg = "Unknown"
+		}
+		log.Printf("%s opcode %v", msg, req.inHeader.Opcode)
 		req.status = ENOSYS
 		return handler
 	}
