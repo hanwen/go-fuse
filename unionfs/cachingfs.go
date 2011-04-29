@@ -1,9 +1,10 @@
 package unionfs
 
 import (
+	"fmt"
 	"github.com/hanwen/go-fuse/fuse"
 )
-
+var _ = fmt.Println
 type attrResponse struct {
 	*fuse.Attr
 	fuse.Status
@@ -43,7 +44,6 @@ func readDir(fs fuse.FileSystem, name string) *dirResponse {
 		}
 		r.entries = append(r.entries, d)
 	}
-
 	return r
 }
 
@@ -73,17 +73,17 @@ func NewCachingFileSystem(fs fuse.FileSystem, ttlNs int64) *CachingFileSystem {
 }
 
 func (me *CachingFileSystem) GetAttr(name string) (*fuse.Attr, fuse.Status) {
-	r := me.attributes.Get(name).(attrResponse)
+	r := me.attributes.Get(name).(*attrResponse)
 	return r.Attr, r.Status
 }
 
 func (me *CachingFileSystem) Readlink(name string) (string, fuse.Status) {
-	r := me.attributes.Get(name).(linkResponse)
+	r := me.attributes.Get(name).(*linkResponse)
 	return r.linkContent, r.Status
 }
 
 func (me *CachingFileSystem) OpenDir(name string) (stream chan fuse.DirEntry, status fuse.Status) {
-	r := me.dirs.Get(name).(dirResponse)
+	r := me.dirs.Get(name).(*dirResponse)
 	if r.Status == fuse.OK {
 		stream = make(chan fuse.DirEntry, len(r.entries))
 		for _, d := range r.entries {
