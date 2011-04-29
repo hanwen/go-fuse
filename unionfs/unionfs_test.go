@@ -255,7 +255,7 @@ func TestMkdir(t *testing.T) {
 	dirname := wd + "/mount/subdir"
 	err := os.Mkdir(dirname, 0755)
 	CheckSuccess(err)
-	
+
 	err = os.Remove(dirname)
 	CheckSuccess(err)
 }
@@ -318,3 +318,18 @@ func TestRename(t *testing.T) {
 	}
 }
 
+func TestWritableDir(t *testing.T) {
+	t.Log("TestWritableDir")
+	wd, state := setup(t)
+	defer state.Unmount()
+
+	dirname := wd + "/ro/subdir"
+	err := os.Mkdir(dirname, 0555)
+	CheckSuccess(err)
+
+	fi, err := os.Lstat(wd+"/mount/subdir")
+	CheckSuccess(err)
+	if fi.Permission() & 0222  == 0 {
+		t.Errorf("unexpected permission %o", fi.Permission())
+	}
+}

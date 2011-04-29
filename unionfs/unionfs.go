@@ -154,6 +154,10 @@ func (me *UnionFs) getBranchAttrNoCache(name string) getBranchResult {
 
 		a, s := fs.GetAttr(name)
 		if s == fuse.OK {
+			if a.Mode & fuse.S_IFDIR != 0 {
+				// Make all directories appear writable
+				a.Mode |= 0200
+			}
 			return getBranchResult{
 				attr:   a,
 				code:   s,
