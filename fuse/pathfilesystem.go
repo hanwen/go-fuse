@@ -410,9 +410,7 @@ func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *Mou
 
 	code := fs.Mount(me)
 	if code != OK {
-		if me.Debug {
-			log.Println("Mount error: ", mountPoint, code)
-		}
+		log.Println("Mount error: ", mountPoint, code)
 		return code
 	}
 
@@ -476,5 +474,9 @@ func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *mount
 	defer me.treeLock.RUnlock()
 
 	p, m := n.GetPath()
+	if me.Debug {
+		log.Printf("Node %v = '%s'", nodeid, p)
+	}
+
 	return p, m, n
 }
