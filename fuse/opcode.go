@@ -9,6 +9,51 @@ import (
 
 var _ = log.Printf
 
+type opcode int
+
+const (
+	_OP_LOOKUP      = opcode(1)
+	_OP_FORGET      = opcode(2)
+	_OP_GETATTR     = opcode(3)
+	_OP_SETATTR     = opcode(4)
+	_OP_READLINK    = opcode(5)
+	_OP_SYMLINK     = opcode(6)
+	_OP_MKNOD       = opcode(8)
+	_OP_MKDIR       = opcode(9)
+	_OP_UNLINK      = opcode(10)
+	_OP_RMDIR       = opcode(11)
+	_OP_RENAME      = opcode(12)
+	_OP_LINK        = opcode(13)
+	_OP_OPEN        = opcode(14)
+	_OP_READ        = opcode(15)
+	_OP_WRITE       = opcode(16)
+	_OP_STATFS      = opcode(17)
+	_OP_RELEASE     = opcode(18)
+	_OP_FSYNC       = opcode(20)
+	_OP_SETXATTR    = opcode(21)
+	_OP_GETXATTR    = opcode(22)
+	_OP_LISTXATTR   = opcode(23)
+	_OP_REMOVEXATTR = opcode(24)
+	_OP_FLUSH       = opcode(25)
+	_OP_INIT        = opcode(26)
+	_OP_OPENDIR     = opcode(27)
+	_OP_READDIR     = opcode(28)
+	_OP_RELEASEDIR  = opcode(29)
+	_OP_FSYNCDIR    = opcode(30)
+	_OP_GETLK       = opcode(31)
+	_OP_SETLK       = opcode(32)
+	_OP_SETLKW      = opcode(33)
+	_OP_ACCESS      = opcode(34)
+	_OP_CREATE      = opcode(35)
+	_OP_INTERRUPT   = opcode(36)
+	_OP_BMAP        = opcode(37)
+	_OP_DESTROY     = opcode(38)
+	_OP_IOCTL       = opcode(39)
+	_OP_POLL        = opcode(40)
+
+	OPCODE_COUNT = opcode(41)
+)
+
 func replyString(op opcode, ptr unsafe.Pointer) string {
 	h := getHandler(op)
 	var val interface{}
@@ -120,7 +165,7 @@ func doWrite(state *MountState, req *request) {
 func doGetXAttr(state *MountState, req *request) {
 	input := (*GetXAttrIn)(req.inData)
 	var data []byte
-	if req.inHeader.opcode == FUSE_GETXATTR {
+	if req.inHeader.opcode == _OP_GETXATTR {
 		data, req.status = state.fileSystem.GetXAttr(req.inHeader, req.filename())
 	} else {
 		data, req.status = state.fileSystem.ListXAttr(req.inHeader)
@@ -290,157 +335,157 @@ func init() {
 		operationHandlers[i] = &operationHandler{Name: "UNKNOWN"}
 	}
 
-	for op, sz := range map[int]int{
-		FUSE_FORGET:     unsafe.Sizeof(ForgetIn{}),
-		FUSE_GETATTR:    unsafe.Sizeof(GetAttrIn{}),
-		FUSE_SETATTR:    unsafe.Sizeof(SetAttrIn{}),
-		FUSE_MKNOD:      unsafe.Sizeof(MknodIn{}),
-		FUSE_MKDIR:      unsafe.Sizeof(MkdirIn{}),
-		FUSE_RENAME:     unsafe.Sizeof(RenameIn{}),
-		FUSE_LINK:       unsafe.Sizeof(LinkIn{}),
-		FUSE_OPEN:       unsafe.Sizeof(OpenIn{}),
-		FUSE_READ:       unsafe.Sizeof(ReadIn{}),
-		FUSE_WRITE:      unsafe.Sizeof(WriteIn{}),
-		FUSE_RELEASE:    unsafe.Sizeof(ReleaseIn{}),
-		FUSE_FSYNC:      unsafe.Sizeof(FsyncIn{}),
-		FUSE_SETXATTR:   unsafe.Sizeof(SetXAttrIn{}),
-		FUSE_GETXATTR:   unsafe.Sizeof(GetXAttrIn{}),
-		FUSE_LISTXATTR:  unsafe.Sizeof(GetXAttrIn{}),
-		FUSE_FLUSH:      unsafe.Sizeof(FlushIn{}),
-		FUSE_INIT:       unsafe.Sizeof(InitIn{}),
-		FUSE_OPENDIR:    unsafe.Sizeof(OpenIn{}),
-		FUSE_READDIR:    unsafe.Sizeof(ReadIn{}),
-		FUSE_RELEASEDIR: unsafe.Sizeof(ReleaseIn{}),
-		FUSE_FSYNCDIR:   unsafe.Sizeof(FsyncIn{}),
-		FUSE_ACCESS:     unsafe.Sizeof(AccessIn{}),
-		FUSE_CREATE:     unsafe.Sizeof(CreateIn{}),
-		FUSE_INTERRUPT:  unsafe.Sizeof(InterruptIn{}),
-		FUSE_BMAP:       unsafe.Sizeof(BmapIn{}),
-		FUSE_IOCTL:      unsafe.Sizeof(IoctlIn{}),
-		FUSE_POLL:       unsafe.Sizeof(PollIn{}),
+	for op, sz := range map[opcode]int{
+		_OP_FORGET:     unsafe.Sizeof(ForgetIn{}),
+		_OP_GETATTR:    unsafe.Sizeof(GetAttrIn{}),
+		_OP_SETATTR:    unsafe.Sizeof(SetAttrIn{}),
+		_OP_MKNOD:      unsafe.Sizeof(MknodIn{}),
+		_OP_MKDIR:      unsafe.Sizeof(MkdirIn{}),
+		_OP_RENAME:     unsafe.Sizeof(RenameIn{}),
+		_OP_LINK:       unsafe.Sizeof(LinkIn{}),
+		_OP_OPEN:       unsafe.Sizeof(OpenIn{}),
+		_OP_READ:       unsafe.Sizeof(ReadIn{}),
+		_OP_WRITE:      unsafe.Sizeof(WriteIn{}),
+		_OP_RELEASE:    unsafe.Sizeof(ReleaseIn{}),
+		_OP_FSYNC:      unsafe.Sizeof(FsyncIn{}),
+		_OP_SETXATTR:   unsafe.Sizeof(SetXAttrIn{}),
+		_OP_GETXATTR:   unsafe.Sizeof(GetXAttrIn{}),
+		_OP_LISTXATTR:  unsafe.Sizeof(GetXAttrIn{}),
+		_OP_FLUSH:      unsafe.Sizeof(FlushIn{}),
+		_OP_INIT:       unsafe.Sizeof(InitIn{}),
+		_OP_OPENDIR:    unsafe.Sizeof(OpenIn{}),
+		_OP_READDIR:    unsafe.Sizeof(ReadIn{}),
+		_OP_RELEASEDIR: unsafe.Sizeof(ReleaseIn{}),
+		_OP_FSYNCDIR:   unsafe.Sizeof(FsyncIn{}),
+		_OP_ACCESS:     unsafe.Sizeof(AccessIn{}),
+		_OP_CREATE:     unsafe.Sizeof(CreateIn{}),
+		_OP_INTERRUPT:  unsafe.Sizeof(InterruptIn{}),
+		_OP_BMAP:       unsafe.Sizeof(BmapIn{}),
+		_OP_IOCTL:      unsafe.Sizeof(IoctlIn{}),
+		_OP_POLL:       unsafe.Sizeof(PollIn{}),
 	} {
 		operationHandlers[op].InputSize = sz
 	}
 
-	for op, sz := range map[int]int{
-		FUSE_LOOKUP:    unsafe.Sizeof(EntryOut{}),
-		FUSE_GETATTR:   unsafe.Sizeof(AttrOut{}),
-		FUSE_SETATTR:   unsafe.Sizeof(AttrOut{}),
-		FUSE_SYMLINK:   unsafe.Sizeof(EntryOut{}),
-		FUSE_MKNOD:     unsafe.Sizeof(EntryOut{}),
-		FUSE_MKDIR:     unsafe.Sizeof(EntryOut{}),
-		FUSE_LINK:      unsafe.Sizeof(EntryOut{}),
-		FUSE_OPEN:      unsafe.Sizeof(OpenOut{}),
-		FUSE_WRITE:     unsafe.Sizeof(WriteOut{}),
-		FUSE_STATFS:    unsafe.Sizeof(StatfsOut{}),
-		FUSE_GETXATTR:  unsafe.Sizeof(GetXAttrOut{}),
-		FUSE_LISTXATTR: unsafe.Sizeof(GetXAttrOut{}),
-		FUSE_INIT:      unsafe.Sizeof(InitOut{}),
-		FUSE_OPENDIR:   unsafe.Sizeof(OpenOut{}),
-		FUSE_CREATE:    unsafe.Sizeof(CreateOut{}),
-		FUSE_BMAP:      unsafe.Sizeof(BmapOut{}),
-		FUSE_IOCTL:     unsafe.Sizeof(IoctlOut{}),
-		FUSE_POLL:      unsafe.Sizeof(PollOut{}),
+	for op, sz := range map[opcode]int{
+		_OP_LOOKUP:    unsafe.Sizeof(EntryOut{}),
+		_OP_GETATTR:   unsafe.Sizeof(AttrOut{}),
+		_OP_SETATTR:   unsafe.Sizeof(AttrOut{}),
+		_OP_SYMLINK:   unsafe.Sizeof(EntryOut{}),
+		_OP_MKNOD:     unsafe.Sizeof(EntryOut{}),
+		_OP_MKDIR:     unsafe.Sizeof(EntryOut{}),
+		_OP_LINK:      unsafe.Sizeof(EntryOut{}),
+		_OP_OPEN:      unsafe.Sizeof(OpenOut{}),
+		_OP_WRITE:     unsafe.Sizeof(WriteOut{}),
+		_OP_STATFS:    unsafe.Sizeof(StatfsOut{}),
+		_OP_GETXATTR:  unsafe.Sizeof(GetXAttrOut{}),
+		_OP_LISTXATTR: unsafe.Sizeof(GetXAttrOut{}),
+		_OP_INIT:      unsafe.Sizeof(InitOut{}),
+		_OP_OPENDIR:   unsafe.Sizeof(OpenOut{}),
+		_OP_CREATE:    unsafe.Sizeof(CreateOut{}),
+		_OP_BMAP:      unsafe.Sizeof(BmapOut{}),
+		_OP_IOCTL:     unsafe.Sizeof(IoctlOut{}),
+		_OP_POLL:      unsafe.Sizeof(PollOut{}),
 	} {
 		operationHandlers[op].OutputSize = sz
 	}
 
-	for op, v := range map[int]string{
-		FUSE_LOOKUP:      "FUSE_LOOKUP",
-		FUSE_FORGET:      "FUSE_FORGET",
-		FUSE_GETATTR:     "FUSE_GETATTR",
-		FUSE_SETATTR:     "FUSE_SETATTR",
-		FUSE_READLINK:    "FUSE_READLINK",
-		FUSE_SYMLINK:     "FUSE_SYMLINK",
-		FUSE_MKNOD:       "FUSE_MKNOD",
-		FUSE_MKDIR:       "FUSE_MKDIR",
-		FUSE_UNLINK:      "FUSE_UNLINK",
-		FUSE_RMDIR:       "FUSE_RMDIR",
-		FUSE_RENAME:      "FUSE_RENAME",
-		FUSE_LINK:        "FUSE_LINK",
-		FUSE_OPEN:        "FUSE_OPEN",
-		FUSE_READ:        "FUSE_READ",
-		FUSE_WRITE:       "FUSE_WRITE",
-		FUSE_STATFS:      "FUSE_STATFS",
-		FUSE_RELEASE:     "FUSE_RELEASE",
-		FUSE_FSYNC:       "FUSE_FSYNC",
-		FUSE_SETXATTR:    "FUSE_SETXATTR",
-		FUSE_GETXATTR:    "FUSE_GETXATTR",
-		FUSE_LISTXATTR:   "FUSE_LISTXATTR",
-		FUSE_REMOVEXATTR: "FUSE_REMOVEXATTR",
-		FUSE_FLUSH:       "FUSE_FLUSH",
-		FUSE_INIT:        "FUSE_INIT",
-		FUSE_OPENDIR:     "FUSE_OPENDIR",
-		FUSE_READDIR:     "FUSE_READDIR",
-		FUSE_RELEASEDIR:  "FUSE_RELEASEDIR",
-		FUSE_FSYNCDIR:    "FUSE_FSYNCDIR",
-		FUSE_GETLK:       "FUSE_GETLK",
-		FUSE_SETLK:       "FUSE_SETLK",
-		FUSE_SETLKW:      "FUSE_SETLKW",
-		FUSE_ACCESS:      "FUSE_ACCESS",
-		FUSE_CREATE:      "FUSE_CREATE",
-		FUSE_INTERRUPT:   "FUSE_INTERRUPT",
-		FUSE_BMAP:        "FUSE_BMAP",
-		FUSE_DESTROY:     "FUSE_DESTROY",
-		FUSE_IOCTL:       "FUSE_IOCTL",
-		FUSE_POLL:        "FUSE_POLL"} {
+	for op, v := range map[opcode]string{
+		_OP_LOOKUP:      "LOOKUP",
+		_OP_FORGET:      "FORGET",
+		_OP_GETATTR:     "GETATTR",
+		_OP_SETATTR:     "SETATTR",
+		_OP_READLINK:    "READLINK",
+		_OP_SYMLINK:     "SYMLINK",
+		_OP_MKNOD:       "MKNOD",
+		_OP_MKDIR:       "MKDIR",
+		_OP_UNLINK:      "UNLINK",
+		_OP_RMDIR:       "RMDIR",
+		_OP_RENAME:      "RENAME",
+		_OP_LINK:        "LINK",
+		_OP_OPEN:        "OPEN",
+		_OP_READ:        "READ",
+		_OP_WRITE:       "WRITE",
+		_OP_STATFS:      "STATFS",
+		_OP_RELEASE:     "RELEASE",
+		_OP_FSYNC:       "FSYNC",
+		_OP_SETXATTR:    "SETXATTR",
+		_OP_GETXATTR:    "GETXATTR",
+		_OP_LISTXATTR:   "LISTXATTR",
+		_OP_REMOVEXATTR: "REMOVEXATTR",
+		_OP_FLUSH:       "FLUSH",
+		_OP_INIT:        "INIT",
+		_OP_OPENDIR:     "OPENDIR",
+		_OP_READDIR:     "READDIR",
+		_OP_RELEASEDIR:  "RELEASEDIR",
+		_OP_FSYNCDIR:    "FSYNCDIR",
+		_OP_GETLK:       "GETLK",
+		_OP_SETLK:       "SETLK",
+		_OP_SETLKW:      "SETLKW",
+		_OP_ACCESS:      "ACCESS",
+		_OP_CREATE:      "CREATE",
+		_OP_INTERRUPT:   "INTERRUPT",
+		_OP_BMAP:        "BMAP",
+		_OP_DESTROY:     "DESTROY",
+		_OP_IOCTL:       "IOCTL",
+		_OP_POLL:        "POLL"} {
 		operationHandlers[op].Name = v
 	}
 
 	for op, v := range map[opcode]operationFunc{
-		FUSE_OPEN:        doOpen,
-		FUSE_READDIR:     doReadDir,
-		FUSE_WRITE:       doWrite,
-		FUSE_OPENDIR:     doOpenDir,
-		FUSE_CREATE:      doCreate,
-		FUSE_SETATTR:     doSetattr,
-		FUSE_GETXATTR:    doGetXAttr,
-		FUSE_LISTXATTR:   doGetXAttr,
-		FUSE_GETATTR:     doGetAttr,
-		FUSE_FORGET:      doForget,
-		FUSE_READLINK:    doReadlink,
-		FUSE_INIT:        doInit,
-		FUSE_DESTROY:     doDestroy,
-		FUSE_LOOKUP:      doLookup,
-		FUSE_MKNOD:       doMknod,
-		FUSE_MKDIR:       doMkdir,
-		FUSE_UNLINK:      doUnlink,
-		FUSE_RMDIR:       doRmdir,
-		FUSE_LINK:        doLink,
-		FUSE_READ:        doRead,
-		FUSE_FLUSH:       doFlush,
-		FUSE_RELEASE:     doRelease,
-		FUSE_FSYNC:       doFsync,
-		FUSE_RELEASEDIR:  doReleaseDir,
-		FUSE_FSYNCDIR:    doFsyncDir,
-		FUSE_SETXATTR:    doSetXAttr,
-		FUSE_REMOVEXATTR: doRemoveXAttr,
-		FUSE_ACCESS:      doAccess,
-		FUSE_SYMLINK:     doSymlink,
-		FUSE_RENAME:      doRename,
+		_OP_OPEN:        doOpen,
+		_OP_READDIR:     doReadDir,
+		_OP_WRITE:       doWrite,
+		_OP_OPENDIR:     doOpenDir,
+		_OP_CREATE:      doCreate,
+		_OP_SETATTR:     doSetattr,
+		_OP_GETXATTR:    doGetXAttr,
+		_OP_LISTXATTR:   doGetXAttr,
+		_OP_GETATTR:     doGetAttr,
+		_OP_FORGET:      doForget,
+		_OP_READLINK:    doReadlink,
+		_OP_INIT:        doInit,
+		_OP_DESTROY:     doDestroy,
+		_OP_LOOKUP:      doLookup,
+		_OP_MKNOD:       doMknod,
+		_OP_MKDIR:       doMkdir,
+		_OP_UNLINK:      doUnlink,
+		_OP_RMDIR:       doRmdir,
+		_OP_LINK:        doLink,
+		_OP_READ:        doRead,
+		_OP_FLUSH:       doFlush,
+		_OP_RELEASE:     doRelease,
+		_OP_FSYNC:       doFsync,
+		_OP_RELEASEDIR:  doReleaseDir,
+		_OP_FSYNCDIR:    doFsyncDir,
+		_OP_SETXATTR:    doSetXAttr,
+		_OP_REMOVEXATTR: doRemoveXAttr,
+		_OP_ACCESS:      doAccess,
+		_OP_SYMLINK:     doSymlink,
+		_OP_RENAME:      doRename,
 	} {
 		operationHandlers[op].Func = v
 	}
 
 	for op, f := range map[opcode]castPointerFunc{
-		FUSE_LOOKUP:  func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
-		FUSE_OPEN:    func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
-		FUSE_GETATTR: func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
+		_OP_LOOKUP:  func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
+		_OP_OPEN:    func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
+		_OP_GETATTR: func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
 	} {
 		operationHandlers[op].DecodeOut = f
 	}
 
 	for op, count := range map[opcode]int{
-		FUSE_LOOKUP:      1,
-		FUSE_RENAME:      2,
-		FUSE_SYMLINK:     2,
-		FUSE_GETXATTR:    1,
-		FUSE_CREATE:      1,
-		FUSE_MKNOD:       1,
-		FUSE_MKDIR:       1,
-		FUSE_UNLINK:      1,
-		FUSE_RMDIR:       1,
-		FUSE_REMOVEXATTR: 1,
+		_OP_LOOKUP:      1,
+		_OP_RENAME:      2,
+		_OP_SYMLINK:     2,
+		_OP_GETXATTR:    1,
+		_OP_CREATE:      1,
+		_OP_MKNOD:       1,
+		_OP_MKDIR:       1,
+		_OP_UNLINK:      1,
+		_OP_RMDIR:       1,
+		_OP_REMOVEXATTR: 1,
 	} {
 		operationHandlers[op].FileNames = count
 	}

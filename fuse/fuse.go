@@ -288,7 +288,7 @@ func (me *MountState) handle(req *request) {
 	// If we try to write OK, nil, we will get
 	// error:  writer: Writev [[16 0 0 0 0 0 0 0 17 0 0 0 0 0 0 0]]
 	// failed, err: writev: no such file or directory
-	if req.inHeader.opcode != FUSE_FORGET {
+	if req.inHeader.opcode != _OP_FORGET {
 		serialize(req, handler, me.Debug)
 		me.Write(req)
 	}
