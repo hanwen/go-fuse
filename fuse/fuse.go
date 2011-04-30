@@ -4,11 +4,11 @@
 package fuse
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os"
 	"reflect"
-	"strings"
 	"syscall"
 	"time"
 	"unsafe"
@@ -45,13 +45,17 @@ type request struct {
 }
 
 func (me *request) filename() string {
-	return strings.TrimRight(string(me.arg), "\x00")
+	return string(me.arg[:len(me.arg)-1])
 }
 
 func (me *request) filenames(count int) []string {
-	return strings.Split(string(me.arg), "\x00", count)
+	names := bytes.Split(me.arg[:len(me.arg)-1], []byte{0}, count)
+	nameStrings := make([]string, len(names))
+	for i, n := range names {
+		nameStrings[i] = string(n)
+	}
+	return nameStrings
 }
-
 
 ////////////////////////////////////////////////////////////////
 // State related to this mount point.
