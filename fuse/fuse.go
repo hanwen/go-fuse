@@ -57,6 +57,50 @@ func (me *request) filenames(count int) []string {
 	return nameStrings
 }
 
+func (me *request) InputDebug(h *operationHandler) string {
+	var val interface{}
+	if h.DecodeIn != nil {
+		val = h.DecodeIn(me.inData)
+	} else {
+		val = ""
+	}
+
+	var names interface{}
+	if h.FileNames > 0 {
+		names = me.filenames(h.FileNames)
+	} else {
+		names = ""
+	}
+
+	return fmt.Sprintf("Dispatch: %v, NodeId: %v. Data: %v Names: %v",
+		me.inHeader.opcode, me.inHeader.NodeId, val, names)
+}
+
+func (me *request) OutputDebug(h *operationHandler) string {
+	var val interface{}
+	if h.DecodeOut != nil {
+		val = h.DecodeOut(me.outData)
+	}
+
+	dataStr := ""
+	if val != nil {
+		dataStr = fmt.Sprintf("%v", val)
+	}
+
+	max := 1024
+	if len(dataStr) > max {
+		dataStr = dataStr[:max] + fmt.Sprintf(" ...trimmed (response size %d)", len(me.outHeaderBytes))
+	}
+
+	flatStr := ""
+	if len(me.flatData) > 0 {
+		flatStr = fmt.Sprintf(" %d bytes data\n", len(me.flatData))
+	}
+
+	return fmt.Sprintf("Serialize: %v code: %v value: %v%v",
+		me.inHeader.opcode, me.status, dataStr, flatStr)
+}
+
 ////////////////////////////////////////////////////////////////
 // State related to this mount point.
 type MountState struct {
@@ -300,15 +344,7 @@ func (me *MountState) handle(req *request) {
 
 func (me *MountState) dispatch(req *request, handler *operationHandler) {
 	if me.Debug {
-		handler := getHandler(req.inHeader.opcode)
-		var names interface{}
-		if handler.FileNames > 0 {
-			names = req.filenames(handler.FileNames)
-		} else {
-			names = ""
-		}
-		log.Printf("Dispatch: %v, NodeId: %v %v\n",
-			operationName(req.inHeader.opcode), req.inHeader.NodeId, names)
+		log.Println(req.InputDebug(handler))
 	}
 	handler.Func(me, req)
 }
@@ -335,17 +371,6 @@ func serialize(req *request, handler *operationHandler, debug bool) {
 
 	copy(req.outHeaderBytes[sizeOfOutHeader:], asSlice(req.outData, dataLength))
 	if debug {
-		val := fmt.Sprintf("%v", replyString(req.inHeader.opcode, req.outData))
-		max := 1024
-		if len(val) > max {
-			val = val[:max] + fmt.Sprintf(" ...trimmed (response size %d)", outHeader.Length)
-		}
-
-		msg := ""
-		if len(req.flatData) > 0 {
-			msg = fmt.Sprintf(" flat: %d\n", len(req.flatData))
-		}
-		log.Printf("Serialize: %v code: %v value: %v%v",
-			operationName(req.inHeader.opcode), req.status, val, msg)
+		log.Println(req.OutputDebug(handler))
 	}
 }

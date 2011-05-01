@@ -8,6 +8,7 @@ import (
 )
 
 var _ = log.Printf
+var _ = fmt.Printf
 
 type opcode int
 
@@ -54,17 +55,6 @@ const (
 	OPCODE_COUNT = opcode(41)
 )
 
-func replyString(op opcode, ptr unsafe.Pointer) string {
-	h := getHandler(op)
-	var val interface{}
-	if h.DecodeOut != nil {
-		val = h.DecodeOut(ptr)
-	}
-	if val != nil {
-		return fmt.Sprintf("%v", val)
-	}
-	return ""
-}
 
 ////////////////////////////////////////////////////////////////
 
@@ -474,7 +464,12 @@ func init() {
 	} {
 		operationHandlers[op].DecodeOut = f
 	}
-
+	for op, f := range map[opcode]castPointerFunc{
+		_OP_GETATTR: func(ptr unsafe.Pointer) interface{} { return (*GetAttrIn)(ptr) },
+		_OP_SETATTR: func(ptr unsafe.Pointer) interface{} { return (*SetAttrIn)(ptr) },
+	} {
+		operationHandlers[op].DecodeIn = f
+	}
 	for op, count := range map[opcode]int{
 		_OP_LOOKUP:      1,
 		_OP_RENAME:      2,
