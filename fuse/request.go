@@ -73,69 +73,69 @@ func (me *request) OutputDebug() string {
 		me.inHeader.opcode, me.status, dataStr, flatStr)
 }
 
-func (req *request) parse() {
+func (me *request) parse() {
 	inHSize := unsafe.Sizeof(InHeader{})
-	if len(req.inputBuf) < inHSize {
-		log.Printf("Short read for input header: %v", req.inputBuf)
+	if len(me.inputBuf) < inHSize {
+		log.Printf("Short read for input header: %v", me.inputBuf)
 		return
 	}
 
-	req.inHeader = (*InHeader)(unsafe.Pointer(&req.inputBuf[0]))
-	req.arg = req.inputBuf[inHSize:]
+	me.inHeader = (*InHeader)(unsafe.Pointer(&me.inputBuf[0]))
+	me.arg = me.inputBuf[inHSize:]
 
-	req.handler = getHandler(req.inHeader.opcode)
-	if req.handler == nil || req.handler.Func == nil {
+	me.handler = getHandler(me.inHeader.opcode)
+	if me.handler == nil || me.handler.Func == nil {
 		msg := "Unimplemented"
-		if req.handler == nil {
+		if me.handler == nil {
 			msg = "Unknown"
 		}
-		log.Printf("%s opcode %v", msg, req.inHeader.opcode)
-		req.status = ENOSYS
+		log.Printf("%s opcode %v", msg, me.inHeader.opcode)
+		me.status = ENOSYS
 		return
 	}
 
-	if len(req.arg) < req.handler.InputSize {
-		log.Printf("Short read for %v: %v", req.inHeader.opcode, req.arg)
-		req.status = EIO
+	if len(me.arg) < me.handler.InputSize {
+		log.Printf("Short read for %v: %v", me.inHeader.opcode, me.arg)
+		me.status = EIO
 		return
 	}
 
-	if req.handler.InputSize > 0 {
-		req.inData = unsafe.Pointer(&req.arg[0])
-		req.arg = req.arg[req.handler.InputSize:]
+	if me.handler.InputSize > 0 {
+		me.inData = unsafe.Pointer(&me.arg[0])
+		me.arg = me.arg[me.handler.InputSize:]
 	}
 
-	count := req.handler.FileNames
+	count := me.handler.FileNames
 	if count  > 0 {
 		if count == 1 {
-			req.filenames = []string{string(req.arg[:len(req.arg)-1])}
+			me.filenames = []string{string(me.arg[:len(me.arg)-1])}
 		} else {
-			names := bytes.Split(req.arg[:len(req.arg)-1], []byte{0}, count)
-			req.filenames = make([]string, len(names))
+			names := bytes.Split(me.arg[:len(me.arg)-1], []byte{0}, count)
+			me.filenames = make([]string, len(names))
 			for i, n := range names {
-				req.filenames[i] = string(n)
+				me.filenames[i] = string(n)
 			}
 			if len(names) != count {
 				log.Println("filename argument mismatch", names, count)
-				req.status = EIO
+				me.status = EIO
 			}
 		}
 	}
 }
 
-func (req *request) serialize() {
-	dataLength := req.handler.OutputSize
-	if req.outData == nil || req.status != OK {
+func (me *request) serialize() {
+	dataLength := me.handler.OutputSize
+	if me.outData == nil || me.status != OK {
 		dataLength = 0
 	}
 
 	sizeOfOutHeader := unsafe.Sizeof(OutHeader{})
 
-	req.outHeaderBytes = make([]byte, sizeOfOutHeader+dataLength)
-	outHeader := (*OutHeader)(unsafe.Pointer(&req.outHeaderBytes[0]))
-	outHeader.Unique = req.inHeader.Unique
-	outHeader.Status = -req.status
-	outHeader.Length = uint32(sizeOfOutHeader + dataLength + len(req.flatData))
+	me.outHeaderBytes = make([]byte, sizeOfOutHeader+dataLength)
+	outHeader := (*OutHeader)(unsafe.Pointer(&me.outHeaderBytes[0]))
+	outHeader.Unique = me.inHeader.Unique
+	outHeader.Status = -me.status
+	outHeader.Length = uint32(sizeOfOutHeader + dataLength + len(me.flatData))
 
-	copy(req.outHeaderBytes[sizeOfOutHeader:], asSlice(req.outData, dataLength))
+	copy(me.outHeaderBytes[sizeOfOutHeader:], asSlice(me.outData, dataLength))
 }
