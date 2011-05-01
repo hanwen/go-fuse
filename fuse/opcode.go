@@ -187,7 +187,6 @@ func doGetXAttr(state *MountState, req *request) {
 }
 
 func doGetAttr(state *MountState, req *request) {
-	// TODO - if req.inData.Fh is set, do file.GetAttr
 	attrOut, s := state.fileSystem.GetAttr(req.inHeader, (*GetAttrIn)(req.inData))
 	req.status = s
 	req.outData = unsafe.Pointer(attrOut)
