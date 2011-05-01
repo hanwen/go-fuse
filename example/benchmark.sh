@@ -4,6 +4,12 @@
 # so let's time that.  We use zipfs which runs from memory to minimize
 # noise due to the filesystem itself.
 
+if [ "$1" == "" ] ; then
+  echo "Usage: benchmark.sh ZIPFILE"
+  echo "The zipfile should be large (> 10000 files)."
+  exit 2
+fi
+
 set -eux
 
 ZIPFILE=$1
