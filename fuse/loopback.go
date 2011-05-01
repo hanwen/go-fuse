@@ -193,6 +193,27 @@ func (me *LoopbackFile) Fsync(*FsyncIn) (code Status) {
 	return Status(syscall.Fsync(me.file.Fd()))
 }
 
+
 func (me *LoopbackFile) Truncate(size uint64) Status {
 	return Status(syscall.Ftruncate(me.file.Fd(), int64(size)))
+}
+
+// futimens missing from 6g runtime.
+
+func (me *LoopbackFile) Chmod(mode uint32) Status {
+	return OsErrorToErrno(me.file.Chmod(mode))
+}
+
+func (me *LoopbackFile) Chown(uid uint32, gid uint32) Status {
+	return OsErrorToErrno(me.file.Chown(int(uid), int(gid)))
+}
+
+func (me *LoopbackFile) GetAttr() *Attr {
+	fi, err := me.file.Stat()
+	if err != nil {
+		return nil
+	}
+	a := &Attr{}
+	CopyFileInfo(fi, a)
+	return a
 }
