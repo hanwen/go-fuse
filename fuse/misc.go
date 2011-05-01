@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"reflect"
 	"regexp"
 	"syscall"
 	"unsafe"
@@ -146,4 +147,10 @@ func CheckSuccess(e os.Error) {
 func MyPID() string {
 	v, _ := os.Readlink("/proc/self")
 	return v
+}
+
+// Thanks to Andrew Gerrand for this hack.
+func asSlice(ptr unsafe.Pointer, byteCount int) []byte {
+	h := &reflect.SliceHeader{uintptr(ptr), byteCount, byteCount}
+	return *(*[]byte)(unsafe.Pointer(h))
 }
