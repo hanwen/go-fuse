@@ -249,9 +249,14 @@ func (me *FileSystemConnector) decodeFileHandle(h uint64) (interface{}, *mountDa
 	return b.Iface, b.mountData
 }
 
-func (me *FileSystemConnector) getDir(h uint64) (RawDir, *mountData) {
+type rawDir interface {
+	ReadDir(input *ReadIn) (*DirEntryList, Status)
+	Release()
+}
+
+func (me *FileSystemConnector) getDir(h uint64) (rawDir, *mountData) {
 	f, m := me.decodeFileHandle(h)
-	return f.(RawDir), m
+	return f.(rawDir), m
 }
 
 func (me *FileSystemConnector) getFile(h uint64) (File, *mountData) {

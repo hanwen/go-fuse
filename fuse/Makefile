@@ -3,7 +3,8 @@ include $(GOROOT)/src/Make.inc
 
 TARG=github.com/hanwen/go-fuse/fuse
 
-GOFILES=misc.go\
+GOFILES=api.go \
+	misc.go\
 	request.go \
 	fuse.go\
 	direntry.go\

@@ -381,7 +381,7 @@ func (me *FileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
 
 func (me *FileSystemConnector) ReleaseDir(header *InHeader, input *ReleaseIn) {
 	node := me.getInodeData(header.NodeId)
-	d := me.unregisterFile(node, input.Fh).(RawDir)
+	d := me.unregisterFile(node, input.Fh).(rawDir)
 	d.Release()
 	me.considerDropInode(node)
 }
