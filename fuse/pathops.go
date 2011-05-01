@@ -74,13 +74,13 @@ func (me *FileSystemConnector) Forget(h *InHeader, input *ForgetIn) {
 }
 
 func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
-	if input.Flags & FUSE_GETATTR_FH != 0 {
+	if input.Flags&FUSE_GETATTR_FH != 0 {
 		f, mount := me.getFile(input.Fh)
 		attr := f.GetAttr()
 		if attr != nil {
 
 			out = &AttrOut{
-			Attr: *attr,
+				Attr: *attr,
 			}
 			out.Attr.Ino = header.NodeId
 			SplitNs(mount.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
@@ -88,7 +88,7 @@ func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out 
 			return out, OK
 		}
 	}
-	
+
 	fullPath, mount, _ := me.GetPath(header.NodeId)
 	if mount == nil {
 		return nil, ENOENT
@@ -205,17 +205,17 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 			fileResult = ENOSYS
 		}
 	}
-	if err == OK && (input.Valid& (FATTR_ATIME|FATTR_MTIME|FATTR_ATIME_NOW|FATTR_MTIME_NOW) != 0) {
-		atime := uint64(input.Atime*1e9)+uint64(input.Atimensec)
-		if input.Valid & FATTR_ATIME_NOW != 0 {
+	if err == OK && (input.Valid&(FATTR_ATIME|FATTR_MTIME|FATTR_ATIME_NOW|FATTR_MTIME_NOW) != 0) {
+		atime := uint64(input.Atime*1e9) + uint64(input.Atimensec)
+		if input.Valid&FATTR_ATIME_NOW != 0 {
 			atime = uint64(time.Nanoseconds())
 		}
-		
-		mtime := uint64(input.Mtime*1e9)+uint64(input.Mtimensec)
-		if input.Valid & FATTR_MTIME_NOW != 0 {
+
+		mtime := uint64(input.Mtime*1e9) + uint64(input.Mtimensec)
+		if input.Valid&FATTR_MTIME_NOW != 0 {
 			mtime = uint64(time.Nanoseconds())
 		}
-		
+
 		if f != nil {
 			fileResult = f.Utimens(atime, mtime)
 		}

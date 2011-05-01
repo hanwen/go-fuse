@@ -54,7 +54,7 @@ func (me *request) InputDebug() string {
 	names := ""
 	if me.handler.FileNames > 0 {
 		names = fmt.Sprintf("names: %v", me.filenames(me.handler.FileNames))
-	} 
+	}
 
 	return fmt.Sprintf("Dispatch: %v, NodeId: %v.%v%v",
 		me.inHeader.opcode, me.inHeader.NodeId, val, names)
@@ -89,7 +89,7 @@ func (req *request) parse() {
 	inHSize := unsafe.Sizeof(InHeader{})
 	if len(req.inputBuf) < inHSize {
 		log.Printf("Short read for input header: %v", req.inputBuf)
-		return 
+		return
 	}
 
 	req.inHeader = (*InHeader)(unsafe.Pointer(&req.inputBuf[0]))

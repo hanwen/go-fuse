@@ -15,8 +15,8 @@ package fuse
  - We are doing lookups (incurring GetAttr() costs) for internal
  lookups (eg. after doing a symlink).  We could probably do without
  the GetAttr calls.
- 
- */
+
+*/
 
 import (
 	"fmt"
@@ -230,7 +230,7 @@ func (me *FileSystemConnector) registerFile(node *inode, mount *mountData, f int
 	defer me.fileLock.Unlock()
 
 	b := &interfaceBridge{
-		Iface: f,
+		Iface:     f,
 		mountData: mount,
 	}
 	h := uint64(uintptr(unsafe.Pointer(b)))
@@ -525,6 +525,6 @@ func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64) (f File
 		p, m = node.GetPath()
 	}
 
-	return	
+	return
 
 }

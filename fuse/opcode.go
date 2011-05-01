@@ -60,10 +60,10 @@ const (
 
 func doInit(state *MountState, req *request) {
 	const (
-		FUSE_KERNEL_VERSION = 7
+		FUSE_KERNEL_VERSION       = 7
 		FUSE_KERNEL_MINOR_VERSION = 13
 	)
-	
+
 	input := (*InitIn)(req.inData)
 	if input.Major != FUSE_KERNEL_VERSION {
 		log.Printf("Major versions does not match. Given %d, want %d\n", input.Major, FUSE_KERNEL_VERSION)
@@ -82,7 +82,7 @@ func doInit(state *MountState, req *request) {
 		Major:               FUSE_KERNEL_VERSION,
 		Minor:               FUSE_KERNEL_MINOR_VERSION,
 		MaxReadAhead:        input.MaxReadAhead,
-		Flags:               state.kernelSettings.Flags,      
+		Flags:               state.kernelSettings.Flags,
 		MaxWrite:            maxRead,
 		CongestionThreshold: _BACKGROUND_TASKS * 3 / 4,
 		MaxBackground:       _BACKGROUND_TASKS,
@@ -467,14 +467,14 @@ func init() {
 		_OP_LOOKUP:  func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
 		_OP_OPEN:    func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
 		_OP_GETATTR: func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
-		_OP_CREATE: func(ptr unsafe.Pointer) interface{} { return (*CreateOut)(ptr) },
+		_OP_CREATE:  func(ptr unsafe.Pointer) interface{} { return (*CreateOut)(ptr) },
 	} {
 		operationHandlers[op].DecodeOut = f
 	}
 	for op, f := range map[opcode]castPointerFunc{
 		_OP_GETATTR: func(ptr unsafe.Pointer) interface{} { return (*GetAttrIn)(ptr) },
 		_OP_SETATTR: func(ptr unsafe.Pointer) interface{} { return (*SetAttrIn)(ptr) },
-		_OP_INIT: func(ptr unsafe.Pointer) interface{} { return (*InitIn)(ptr) },
+		_OP_INIT:    func(ptr unsafe.Pointer) interface{} { return (*InitIn)(ptr) },
 	} {
 		operationHandlers[op].DecodeIn = f
 	}

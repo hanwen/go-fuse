@@ -20,7 +20,7 @@ const (
 
 	FUSE_POLL_SCHEDULE_NOTIFY = (1 << 0)
 
-	CUSE_INIT_INFO_MAX   = 4096
+	CUSE_INIT_INFO_MAX = 4096
 
 	S_IFDIR = syscall.S_IFDIR
 	S_IFREG = syscall.S_IFREG
@@ -132,9 +132,9 @@ const (
 )
 
 type GetAttrIn struct {
-	Flags        uint32
-	Dummy        uint32
-	Fh           uint64
+	Flags uint32
+	Dummy uint32
+	Fh    uint64
 }
 
 type AttrOut struct {
@@ -165,7 +165,7 @@ type LinkIn struct {
 }
 
 
-const (	// SetAttrIn.Valid
+const ( // SetAttrIn.Valid
 	FATTR_MODE      = (1 << 0)
 	FATTR_UID       = (1 << 1)
 	FATTR_GID       = (1 << 2)
@@ -243,6 +243,7 @@ type FlushIn struct {
 const (
 	FUSE_READ_LOCKOWNER = (1 << 1)
 )
+
 type ReadIn struct {
 	Fh        uint64
 	Offset    uint64
@@ -258,6 +259,7 @@ const (
 	FUSE_WRITE_CACHE     = (1 << 0)
 	FUSE_WRITE_LOCKOWNER = (1 << 1)
 )
+
 type WriteIn struct {
 	Fh         uint64
 	Offset     uint64
@@ -384,6 +386,7 @@ const (
 	FUSE_IOCTL_UNRESTRICTED = (1 << 1)
 	FUSE_IOCTL_RETRY        = (1 << 2)
 )
+
 type IoctlIn struct {
 	Fh      uint64
 	Flags   uint32

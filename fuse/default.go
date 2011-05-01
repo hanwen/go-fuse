@@ -163,7 +163,7 @@ func (me *DefaultFile) Fsync(*FsyncIn) (code Status) {
 func (me *DefaultFile) Utimens(atimeNs uint64, mtimeNs uint64) Status {
 	return ENOSYS
 }
-	
+
 func (me *DefaultFile) Truncate(size uint64) Status {
 	return ENOSYS
 }
@@ -171,7 +171,7 @@ func (me *DefaultFile) Truncate(size uint64) Status {
 func (me *DefaultFile) Chown(uid uint32, gid uint32) Status {
 	return ENOSYS
 }
-	
+
 func (me *DefaultFile) Chmod(perms uint32) Status {
 	return ENOSYS
 }

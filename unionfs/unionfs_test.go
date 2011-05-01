@@ -330,11 +330,11 @@ func TestTruncate(t *testing.T) {
 
 	writeToFile(wd+"/ro/file", "hello")
 	os.Truncate(wd+"/mount/file", 2)
-	content := readFromFile(wd+"/mount/file")
+	content := readFromFile(wd + "/mount/file")
 	if content != "he" {
 		t.Errorf("unexpected content %v", content)
 	}
-	content2 := readFromFile(wd+"/rw/file")
+	content2 := readFromFile(wd + "/rw/file")
 	if content2 != content {
 		t.Errorf("unexpected rw content %v", content2)
 	}

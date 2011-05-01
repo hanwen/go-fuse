@@ -329,7 +329,7 @@ func (me *UnionFs) Truncate(path string, offset uint64) (code fuse.Status) {
 			return code
 		}
 	}
-	
+
 	return me.fileSystems[0].Truncate(path, offset)
 }
 
