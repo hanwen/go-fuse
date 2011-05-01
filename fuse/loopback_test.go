@@ -571,7 +571,6 @@ func TestMount(t *testing.T) {
 	ts.Setup(t)
 	defer ts.Cleanup()
 	ts.testOverwriteRename()
-	ts.testDelRename()
 	ts.testOpenUnreadable()
 	ts.testReadThrough()
 	ts.testRemove()
@@ -585,6 +584,13 @@ func TestMount(t *testing.T) {
 	ts.testLargeRead()
 	ts.testLargeDirRead()
 	ts.testTouch()
+}
+
+func TestDelRename(t *testing.T) {
+	ts := new(testCase)
+	ts.Setup(t)
+	defer ts.Cleanup()
+	ts.testDelRename()
 }
 
 func TestReadOnly(t *testing.T) {
