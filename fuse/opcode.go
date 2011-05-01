@@ -236,24 +236,31 @@ func doLink(state *MountState, req *request) {
 	req.status = s
 	req.outData = unsafe.Pointer(entryOut)
 }
+
 func doRead(state *MountState, req *request) {
 	req.flatData, req.status = state.fileSystem.Read((*ReadIn)(req.inData), state.buffers)
 }
+
 func doFlush(state *MountState, req *request) {
 	req.status = state.fileSystem.Flush((*FlushIn)(req.inData))
 }
+
 func doRelease(state *MountState, req *request) {
 	state.fileSystem.Release(req.inHeader, (*ReleaseIn)(req.inData))
 }
+
 func doFsync(state *MountState, req *request) {
 	req.status = state.fileSystem.Fsync((*FsyncIn)(req.inData))
 }
+
 func doReleaseDir(state *MountState, req *request) {
 	state.fileSystem.ReleaseDir(req.inHeader, (*ReleaseIn)(req.inData))
 }
+
 func doFsyncDir(state *MountState, req *request) {
 	req.status = state.fileSystem.FsyncDir(req.inHeader, (*FsyncIn)(req.inData))
 }
+
 func doSetXAttr(state *MountState, req *request) {
 	splits := bytes.Split(req.arg, []byte{0}, 2)
 	req.status = state.fileSystem.SetXAttr(req.inHeader, (*SetXAttrIn)(req.inData), string(splits[0]), splits[1])
