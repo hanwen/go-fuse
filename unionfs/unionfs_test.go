@@ -55,20 +55,9 @@ func writeToFile(path string, contents string) {
 }
 
 func readFromFile(path string) string {
-	f, err := os.Open(path)
-	fuse.CheckSuccess(err)
-
-	fi, err := os.Stat(path)
-	content := make([]byte, fi.Size)
-	n, err := f.Read(content)
-	fuse.CheckSuccess(err)
-	if n < int(fi.Size) {
-		panic("short read.")
-	}
-
-	err = f.Close()
-	fuse.CheckSuccess(err)
-	return string(content)
+	b, err := ioutil.ReadFile(path)
+	CheckSuccess(err)
+	return string(b)
 }
 
 func dirNames(path string) map[string]bool {
