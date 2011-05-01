@@ -14,7 +14,7 @@ set -eux
 
 ZIPFILE=$1
 shift
-CPU_COUNT=$(ls /sys/class/cpuid/ | wc -l)
+CPU_COUNT=$(grep '^processor'  /proc/cpuinfo | wc -l)
 export GOMAXPROCS=${CPU_COUNT}
 
 DELAY=5
