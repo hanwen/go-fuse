@@ -58,21 +58,17 @@ func (me *request) filenames(count int) []string {
 }
 
 func (me *request) InputDebug(h *operationHandler) string {
-	var val interface{}
+	val := " "
 	if h.DecodeIn != nil {
-		val = h.DecodeIn(me.inData)
-	} else {
-		val = ""
+		val = fmt.Sprintf(" data: %v ", h.DecodeIn(me.inData))
 	}
 
-	var names interface{}
+	names := ""
 	if h.FileNames > 0 {
-		names = me.filenames(h.FileNames)
-	} else {
-		names = ""
-	}
+		names = fmt.Sprintf("names: %v", me.filenames(h.FileNames))
+	} 
 
-	return fmt.Sprintf("Dispatch: %v, NodeId: %v. Data: %v Names: %v",
+	return fmt.Sprintf("Dispatch: %v, NodeId: %v.%v%v",
 		me.inHeader.opcode, me.inHeader.NodeId, val, names)
 }
 
@@ -118,6 +114,12 @@ type MountState struct {
 	buffers *BufferPool
 
 	*LatencyMap
+	
+	kernelSettings InitIn
+}
+
+func (me *MountState) KernelSettings() InitIn {
+	return me.kernelSettings
 }
 
 // Mount filesystem on mountPoint.

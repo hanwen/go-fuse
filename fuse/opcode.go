@@ -71,11 +71,13 @@ func doInit(state *MountState, req *request) {
 		return
 	}
 
+	state.kernelSettings = *input
+	state.kernelSettings.Flags = input.Flags & (CAP_ASYNC_READ | CAP_BIG_WRITES)
 	out := &InitOut{
 		Major:               FUSE_KERNEL_VERSION,
 		Minor:               FUSE_KERNEL_MINOR_VERSION,
 		MaxReadAhead:        input.MaxReadAhead,
-		Flags:               CAP_ASYNC_READ | CAP_POSIX_LOCKS | CAP_BIG_WRITES,
+		Flags:         state.kernelSettings.Flags,      
 		MaxWrite:            maxRead,
 		CongestionThreshold: _BACKGROUND_TASKS * 3 / 4,
 		MaxBackground:       _BACKGROUND_TASKS,
@@ -136,7 +138,6 @@ func doOpenDir(state *MountState, req *request) {
 }
 
 func doSetattr(state *MountState, req *request) {
-	// TODO - if Fh != 0, we should do a FSetAttr instead.
 	o, s := state.fileSystem.SetAttr(req.inHeader, (*SetAttrIn)(req.inData))
 	req.outData = unsafe.Pointer(o)
 	req.status = s
@@ -461,12 +462,14 @@ func init() {
 		_OP_LOOKUP:  func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
 		_OP_OPEN:    func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
 		_OP_GETATTR: func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
+		_OP_CREATE: func(ptr unsafe.Pointer) interface{} { return (*CreateOut)(ptr) },
 	} {
 		operationHandlers[op].DecodeOut = f
 	}
 	for op, f := range map[opcode]castPointerFunc{
 		_OP_GETATTR: func(ptr unsafe.Pointer) interface{} { return (*GetAttrIn)(ptr) },
 		_OP_SETATTR: func(ptr unsafe.Pointer) interface{} { return (*SetAttrIn)(ptr) },
+		_OP_INIT: func(ptr unsafe.Pointer) interface{} { return (*InitIn)(ptr) },
 	} {
 		operationHandlers[op].DecodeIn = f
 	}
