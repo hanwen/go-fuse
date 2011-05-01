@@ -192,3 +192,7 @@ func (me *LoopbackFile) Release() {
 func (me *LoopbackFile) Fsync(*FsyncIn) (code Status) {
 	return Status(syscall.Fsync(me.file.Fd()))
 }
+
+func (me *LoopbackFile) Truncate(size uint64) Status {
+	return Status(syscall.Ftruncate(me.file.Fd(), int64(size)))
+}
