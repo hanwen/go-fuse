@@ -152,8 +152,8 @@ func (me *DefaultFile) Release() {
 
 }
 
-func (me *DefaultFile) GetAttr() *Attr {
-	return nil
+func (me *DefaultFile) GetAttr() (*Attr, Status) {
+	return nil, ENOSYS
 }
 
 func (me *DefaultFile) Fsync(*FsyncIn) (code Status) {

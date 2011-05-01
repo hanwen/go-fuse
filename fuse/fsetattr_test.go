@@ -46,9 +46,9 @@ func (me *MutableDataFile) getAttr() *Attr {
 	return a
 }
 
-func (me *MutableDataFile) GetAttr() *Attr {
+func (me *MutableDataFile) GetAttr() (*Attr, Status) {
 	me.GetAttrCalled = true
-	return me.getAttr()
+	return me.getAttr(), OK
 }
 
 func (me *MutableDataFile) Fsync(*FsyncIn) (code Status) {

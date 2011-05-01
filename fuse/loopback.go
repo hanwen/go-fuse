@@ -208,12 +208,12 @@ func (me *LoopbackFile) Chown(uid uint32, gid uint32) Status {
 	return OsErrorToErrno(me.file.Chown(int(uid), int(gid)))
 }
 
-func (me *LoopbackFile) GetAttr() *Attr {
+func (me *LoopbackFile) GetAttr() (*Attr, Status) {
 	fi, err := me.file.Stat()
 	if err != nil {
-		return nil
+		return nil, OsErrorToErrno(err)
 	}
 	a := &Attr{}
 	CopyFileInfo(fi, a)
-	return a
+	return a, OK
 }

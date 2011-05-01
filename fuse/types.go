@@ -522,11 +522,12 @@ type File interface {
 	Release()
 	Fsync(*FsyncIn) (code Status)
 
-	GetAttr() *Attr
-	Utimens(atimeNs uint64, mtimeNs uint64) Status
-	Truncate(size uint64) Status
+	GetAttr() (*Attr, Status)
+
 	Chown(uid uint32, gid uint32) Status
 	Chmod(perms uint32) Status
+	Utimens(atimeNs uint64, mtimeNs uint64) Status
+	Truncate(size uint64) Status
 }
 
 type RawDir interface {

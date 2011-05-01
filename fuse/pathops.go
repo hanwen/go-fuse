@@ -76,9 +76,12 @@ func (me *FileSystemConnector) Forget(h *InHeader, input *ForgetIn) {
 func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
 	if input.Flags&FUSE_GETATTR_FH != 0 {
 		f, mount := me.getFile(input.Fh)
-		attr := f.GetAttr()
+		attr, err := f.GetAttr()
+		if err != OK && err != ENOSYS {
+			return nil, err
+		}
+		
 		if attr != nil {
-
 			out = &AttrOut{
 				Attr: *attr,
 			}
