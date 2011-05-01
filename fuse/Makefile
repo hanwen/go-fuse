@@ -12,13 +12,12 @@ GOFILES=misc.go\
 	pathfilesystem.go \
 	bufferpool.go \
 	default.go \
-	datafile.go \
+	files.go \
 	lockingfs.go \
 	loopback.go \
 	timingfs.go \
 	timingrawfs.go \
 	xattr.go \
-	devnull.go \
 	pathdebug.go \
 	opcode.go \
 	pathops.go \
