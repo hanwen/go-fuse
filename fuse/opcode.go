@@ -108,7 +108,7 @@ func doOpen(state *MountState, req *request) {
 }
 
 func doCreate(state *MountState, req *request) {
-	flags, handle, entry, status := state.fileSystem.Create(req.inHeader, (*CreateIn)(req.inData), req.filename())
+	flags, handle, entry, status := state.fileSystem.Create(req.inHeader, (*CreateIn)(req.inData), req.filenames[0])
 	req.status = status
 	if status == OK {
 		req.outData = unsafe.Pointer(&CreateOut{
@@ -162,7 +162,7 @@ func doGetXAttr(state *MountState, req *request) {
 	input := (*GetXAttrIn)(req.inData)
 	var data []byte
 	if req.inHeader.opcode == _OP_GETXATTR {
-		data, req.status = state.fileSystem.GetXAttr(req.inHeader, req.filename())
+		data, req.status = state.fileSystem.GetXAttr(req.inHeader, req.filenames[0])
 	} else {
 		data, req.status = state.fileSystem.ListXAttr(req.inHeader)
 	}
@@ -206,33 +206,33 @@ func doDestroy(state *MountState, req *request) {
 }
 
 func doLookup(state *MountState, req *request) {
-	lookupOut, s := state.fileSystem.Lookup(req.inHeader, req.filename())
+	lookupOut, s := state.fileSystem.Lookup(req.inHeader, req.filenames[0])
 	req.status = s
 	req.outData = unsafe.Pointer(lookupOut)
 }
 
 func doMknod(state *MountState, req *request) {
-	entryOut, s := state.fileSystem.Mknod(req.inHeader, (*MknodIn)(req.inData), req.filename())
+	entryOut, s := state.fileSystem.Mknod(req.inHeader, (*MknodIn)(req.inData), req.filenames[0])
 	req.status = s
 	req.outData = unsafe.Pointer(entryOut)
 }
 
 func doMkdir(state *MountState, req *request) {
-	entryOut, s := state.fileSystem.Mkdir(req.inHeader, (*MkdirIn)(req.inData), req.filename())
+	entryOut, s := state.fileSystem.Mkdir(req.inHeader, (*MkdirIn)(req.inData), req.filenames[0])
 	req.status = s
 	req.outData = unsafe.Pointer(entryOut)
 }
 
 func doUnlink(state *MountState, req *request) {
-	req.status = state.fileSystem.Unlink(req.inHeader, req.filename())
+	req.status = state.fileSystem.Unlink(req.inHeader, req.filenames[0])
 }
 
 func doRmdir(state *MountState, req *request) {
-	req.status = state.fileSystem.Rmdir(req.inHeader, req.filename())
+	req.status = state.fileSystem.Rmdir(req.inHeader, req.filenames[0])
 }
 
 func doLink(state *MountState, req *request) {
-	entryOut, s := state.fileSystem.Link(req.inHeader, (*LinkIn)(req.inData), req.filename())
+	entryOut, s := state.fileSystem.Link(req.inHeader, (*LinkIn)(req.inData), req.filenames[0])
 	req.status = s
 	req.outData = unsafe.Pointer(entryOut)
 }
@@ -260,7 +260,7 @@ func doSetXAttr(state *MountState, req *request) {
 }
 
 func doRemoveXAttr(state *MountState, req *request) {
-	req.status = state.fileSystem.RemoveXAttr(req.inHeader, req.filename())
+	req.status = state.fileSystem.RemoveXAttr(req.inHeader, req.filenames[0])
 }
 
 func doAccess(state *MountState, req *request) {
@@ -268,25 +268,13 @@ func doAccess(state *MountState, req *request) {
 }
 
 func doSymlink(state *MountState, req *request) {
-	filenames := req.filenames(3)
-	if len(filenames) >= 2 {
-		entryOut, s := state.fileSystem.Symlink(req.inHeader, filenames[1], filenames[0])
-		req.status = s
-		req.outData = unsafe.Pointer(entryOut)
-	} else {
-		log.Println("Symlink: missing arguments", filenames)
-		req.status = EIO
-	}
+	entryOut, s := state.fileSystem.Symlink(req.inHeader, req.filenames[1], req.filenames[0])
+	req.status = s
+	req.outData = unsafe.Pointer(entryOut)
 }
 
 func doRename(state *MountState, req *request) {
-	filenames := req.filenames(3)
-	if len(filenames) >= 2 {
-		req.status = state.fileSystem.Rename(req.inHeader, (*RenameIn)(req.inData), filenames[0], filenames[1])
-	} else {
-		log.Println("Rename: missing arguments", filenames)
-		req.status = EIO
-	}
+	req.status = state.fileSystem.Rename(req.inHeader, (*RenameIn)(req.inData), req.filenames[0], req.filenames[1])
 }
 
 ////////////////////////////////////////////////////////////////
@@ -479,16 +467,17 @@ func init() {
 		operationHandlers[op].DecodeIn = f
 	}
 	for op, count := range map[opcode]int{
-		_OP_LOOKUP:      1,
-		_OP_RENAME:      2,
-		_OP_SYMLINK:     2,
-		_OP_GETXATTR:    1,
 		_OP_CREATE:      1,
-		_OP_MKNOD:       1,
+		_OP_GETXATTR:    1,
+		_OP_LINK:        1,
+		_OP_LOOKUP:      1,
 		_OP_MKDIR:       1,
-		_OP_UNLINK:      1,
-		_OP_RMDIR:       1,
+		_OP_MKNOD:       1,
 		_OP_REMOVEXATTR: 1,
+		_OP_RENAME:      2,
+		_OP_RMDIR:       1,
+		_OP_SYMLINK:     2,
+		_OP_UNLINK:      1,
 	} {
 		operationHandlers[op].FileNames = count
 	}

@@ -14,12 +14,13 @@ type request struct {
 	inHeader *InHeader      // generic header
 	inData   unsafe.Pointer // per op data
 	arg      []byte         // flat data.
-
+	filenames []string     // filename arguments
+	
 	// Unstructured data, a pointer to the relevant XxxxOut struct.
 	outData  unsafe.Pointer
 	status   Status
 	flatData []byte
-
+	
 	// Header + structured data for what we send back to the kernel.
 	// May be followed by flatData.
 	outHeaderBytes []byte
@@ -32,19 +33,6 @@ type request struct {
 	handler *operationHandler
 }
 
-func (me *request) filename() string {
-	return string(me.arg[:len(me.arg)-1])
-}
-
-func (me *request) filenames(count int) []string {
-	names := bytes.Split(me.arg[:len(me.arg)-1], []byte{0}, count)
-	nameStrings := make([]string, len(names))
-	for i, n := range names {
-		nameStrings[i] = string(n)
-	}
-	return nameStrings
-}
-
 func (me *request) InputDebug() string {
 	val := " "
 	if me.handler.DecodeIn != nil {
@@ -52,8 +40,8 @@ func (me *request) InputDebug() string {
 	}
 
 	names := ""
-	if me.handler.FileNames > 0 {
-		names = fmt.Sprintf("names: %v", me.filenames(me.handler.FileNames))
+	if me.filenames != nil {
+		names = fmt.Sprintf("names: %v", me.filenames)
 	}
 
 	return fmt.Sprintf("Dispatch: %v, NodeId: %v.%v%v",
@@ -115,6 +103,23 @@ func (req *request) parse() {
 	if req.handler.InputSize > 0 {
 		req.inData = unsafe.Pointer(&req.arg[0])
 		req.arg = req.arg[req.handler.InputSize:]
+	}
+
+	count := req.handler.FileNames
+	if count  > 0 {
+		if count == 1 {
+			req.filenames = []string{string(req.arg[:len(req.arg)-1])}
+		} else {
+			names := bytes.Split(req.arg[:len(req.arg)-1], []byte{0}, count)
+			req.filenames = make([]string, len(names))
+			for i, n := range names {
+				req.filenames[i] = string(n)
+			}
+			if len(names) != count {
+				log.Println("filename argument mismatch", names, count)
+				req.status = EIO
+			}
+		}
 	}
 }
 
