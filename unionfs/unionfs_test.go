@@ -333,3 +333,20 @@ func TestWritableDir(t *testing.T) {
 		t.Errorf("unexpected permission %o", fi.Permission())
 	}
 }
+
+func TestTruncate(t *testing.T) {
+	t.Log("TestTruncate")
+	wd, state := setup(t)
+	defer state.Unmount()
+
+	writeToFile(wd+"/ro/file", "hello")
+	os.Truncate(wd+"/mount/file", 2)
+	content := readFromFile(wd+"/mount/file")
+	if content != "he" {
+		t.Errorf("unexpected content %v", content)
+	}
+	content2 := readFromFile(wd+"/rw/file")
+	if content2 != content {
+		t.Errorf("unexpected rw content %v", content2)
+	}
+}

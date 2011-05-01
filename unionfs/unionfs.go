@@ -321,6 +321,18 @@ func (me *UnionFs) Symlink(pointedTo string, linkName string) (code fuse.Status)
 	return code
 }
 
+func (me *UnionFs) Truncate(path string, offset uint64) (code fuse.Status) {
+	branch := me.getBranch(path)
+	if branch > 0 {
+		code := me.Promote(path, me.branches[branch])
+		if code != fuse.OK {
+			return code
+		}
+	}
+	
+	return me.fileSystems[0].Truncate(path, offset)
+}
+
 func (me *UnionFs) Chmod(name string, mode uint32) (code fuse.Status) {
 	r := me.branchCache.Get(name).(getBranchResult)
 	if r.attr == nil || r.code != fuse.OK {
