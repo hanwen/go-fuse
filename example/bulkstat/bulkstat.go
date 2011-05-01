@@ -4,20 +4,25 @@ package main
 // in parallel.  This is useful for benchmarking purposes.
 
 import (
+	"github.com/hanwen/go-fuse/fuse"
 	"os"
 	"flag"
 	"time"
 	"fmt"
 	"encoding/line"
+	"runtime"
 )
 
 func main() {
-	threads := flag.Int("threads", 12, "number of parallel threads in a run.")
+	threads := flag.Int("threads", 0, "number of parallel threads in a run. If 0, use CPU count.")
 	sleepTime := flag.Float64("sleep", 4.0, "amount of sleep between runs.")
 	runs := flag.Int("runs", 10, "number of runs.")
 
 	flag.Parse()
-
+	if *threads == 0 {
+		*threads = fuse.CountCpus()
+		runtime.GOMAXPROCS(*threads)
+	}
 	filename := flag.Args()[0]
 	f, err := os.Open(filename)
 	if err != nil {
