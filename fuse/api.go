@@ -1,3 +1,5 @@
+// The fuse package provides APIs to implement filesystems in
+// userspace, using libfuse on Linux.
 package fuse
 
 // Types for users to implement.
