@@ -4,9 +4,9 @@ GO-FUSE: native bindings for the FUSE kernel module.
 
 HIGHLIGHTS
 
-* High speed: less than 25% slower than libfuse, using the gc
-compiler.  For almost all real world applications, the difference will
-be negligible.
+* High speed: less than 50% slower than libfuse, using the gc
+compiler.  Most real world applications, the difference will be
+negligible.
 
 * Supports in-process mounting of different FileSystems onto
 subdirectories of the FUSE mount.
@@ -25,14 +25,6 @@ EXAMPLES
     ls /tmp/mountpoint
     fusermount -u /tmp/mountpoint
 
-* Zipfs is also used for benchmarking: a script to measures threaded
-  stat performance is in example/benchmark.sh.  A libfuse baseline is
-  given by running the same test against archivemount 
-  (http://www.cybernoia.de/software/archivemount/).
-
-  Currently, zipfs/Go-FUSE is about 20% slower than
-  archivemount/libfuse..
-  
 * examplelib/multizipfs.go shows how to use in-process mounts to
   combine multiple Go-FUSE filesystems into a larger filesystem.
     
@@ -64,6 +56,29 @@ Tested on:
 
 - x86 32bits (Fedora 14).
 - x86 64bits (Ubuntu Lucid).
+
+
+BENCHMARKS
+
+We use threaded stats over a read-only filesystem for benchmarking. A
+script to do this is in example/benchmark.sh.  A libfuse baseline is
+given by running the same test against archivemount
+(http://www.cybernoia.de/software/archivemount/), with the locks in
+its GetAttr implementation removed.
+
+Data points (time per stat, Go-FUSE version May 1), using java 1.6
+src.zip (7000 files).
+
+platform               libfuse      Go-FUSE     difference (%)
+
+lenovo T60   (2cpu)    83us         99us        19%
+Lenovo T400  (2cpu)    38us         58us        52%
+DellT3500/Lucid (2cpu) 34us(*)      35us         3%
+DellT3500/Lucid (6cpu) 59us         76us        28%
+
+(*) libfuse does not limit the number worker threads.  In the
+T3500/2cpu case, the daemon may still run on 6 CPUs (with associated
+scaling overhead.)
 
 
 CREDITS
