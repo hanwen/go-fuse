@@ -6,17 +6,7 @@ import (
 )
 
 const (
-	FUSE_KERNEL_VERSION = 7
-
-	FUSE_KERNEL_MINOR_VERSION = 13
-
 	FUSE_ROOT_ID = 1
-
-
-	// OpenIn.Flags
-	FOPEN_DIRECT_IO   = (1 << 0)
-	FOPEN_KEEP_CACHE  = (1 << 1)
-	FOPEN_NONSEEKABLE = (1 << 2)
 
 	FUSE_UNKNOWN_INO = 0xffffffff
 
@@ -24,25 +14,12 @@ const (
 
 	FUSE_RELEASE_FLUSH = (1 << 0)
 
-	// If set, GetAttrIn has a file handle set.
-	FUSE_GETATTR_FH = (1 << 0)
-
 	FUSE_LK_FLOCK = (1 << 0)
-
-	FUSE_WRITE_CACHE     = (1 << 0)
-	FUSE_WRITE_LOCKOWNER = (1 << 1)
-
-	FUSE_READ_LOCKOWNER = (1 << 1)
-
-	FUSE_IOCTL_COMPAT       = (1 << 0)
-	FUSE_IOCTL_UNRESTRICTED = (1 << 1)
-	FUSE_IOCTL_RETRY        = (1 << 2)
 
 	FUSE_IOCTL_MAX_IOV = 256
 
 	FUSE_POLL_SCHEDULE_NOTIFY = (1 << 0)
 
-	FUSE_MIN_READ_BUFFER = 8192
 	CUSE_INIT_INFO_MAX   = 4096
 
 	S_IFDIR = syscall.S_IFDIR
@@ -149,6 +126,11 @@ type ForgetIn struct {
 	Nlookup uint64
 }
 
+const (
+	// Mask for GetAttrIn.Flags. If set, GetAttrIn has a file handle set.
+	FUSE_GETATTR_FH = (1 << 0)
+)
+
 type GetAttrIn struct {
 	Flags        uint32
 	Dummy        uint32
@@ -214,6 +196,13 @@ type SetAttrIn struct {
 	Unused5 uint32
 }
 
+const (
+	// OpenIn.Flags
+	FOPEN_DIRECT_IO   = (1 << 0)
+	FOPEN_KEEP_CACHE  = (1 << 1)
+	FOPEN_NONSEEKABLE = (1 << 2)
+)
+
 type OpenIn struct {
 	Flags  uint32
 	Unused uint32
@@ -251,6 +240,9 @@ type FlushIn struct {
 	LockOwner uint64
 }
 
+const (
+	FUSE_READ_LOCKOWNER = (1 << 1)
+)
 type ReadIn struct {
 	Fh        uint64
 	Offset    uint64
@@ -261,6 +253,11 @@ type ReadIn struct {
 	Padding   uint32
 }
 
+
+const (
+	FUSE_WRITE_CACHE     = (1 << 0)
+	FUSE_WRITE_LOCKOWNER = (1 << 1)
+)
 type WriteIn struct {
 	Fh         uint64
 	Offset     uint64
@@ -277,7 +274,7 @@ type WriteOut struct {
 }
 
 type StatfsOut struct {
-	St Kstatfs
+	Kstatfs
 }
 
 type FsyncIn struct {
@@ -382,6 +379,11 @@ type BmapOut struct {
 	Block uint64
 }
 
+const (
+	FUSE_IOCTL_COMPAT       = (1 << 0)
+	FUSE_IOCTL_UNRESTRICTED = (1 << 1)
+	FUSE_IOCTL_RETRY        = (1 << 2)
+)
 type IoctlIn struct {
 	Fh      uint64
 	Flags   uint32

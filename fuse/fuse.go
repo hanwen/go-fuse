@@ -9,7 +9,8 @@ import (
 
 const (
 	// bufSize should be a power of two to minimize lossage in
-	// BufferPool.
+	// BufferPool.  The minimum is 8k, but it doesn't cost anything to
+	// use a much larger buffer.
 	bufSize = (1 << 16)
 	maxRead = bufSize - PAGESIZE
 )

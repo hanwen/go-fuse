@@ -59,6 +59,11 @@ const (
 ////////////////////////////////////////////////////////////////
 
 func doInit(state *MountState, req *request) {
+	const (
+		FUSE_KERNEL_VERSION = 7
+		FUSE_KERNEL_MINOR_VERSION = 13
+	)
+	
 	input := (*InitIn)(req.inData)
 	if input.Major != FUSE_KERNEL_VERSION {
 		log.Printf("Major versions does not match. Given %d, want %d\n", input.Major, FUSE_KERNEL_VERSION)

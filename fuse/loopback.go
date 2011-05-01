@@ -51,10 +51,10 @@ func (me *LoopbackFileSystem) OpenDir(name string) (stream chan DirEntry, status
 	if err != nil {
 		return nil, OsErrorToErrno(err)
 	}
-	output := make(chan DirEntry, 500)
+	want := 500
+	output := make(chan DirEntry, want)
 	go func() {
 		for {
-			want := 500
 			infos, err := f.Readdir(want)
 			for i, _ := range infos {
 				output <- DirEntry{
