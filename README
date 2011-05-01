@@ -79,8 +79,6 @@ Grep source code for TODO.  Major topics:
 
 * Missing support for FUSE_INTERRUPT, FUSE_NOTIFY, CUSE, BMAP, POLL, IOCTL
 
-* Missing support for doing GetAttr/SetAttr on opened files.
-
 
 LICENSE
 
