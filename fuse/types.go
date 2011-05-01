@@ -12,35 +12,11 @@ const (
 
 	FUSE_ROOT_ID = 1
 
-	// SetAttrIn.Valid
-	FATTR_MODE      = (1 << 0)
-	FATTR_UID       = (1 << 1)
-	FATTR_GID       = (1 << 2)
-	FATTR_SIZE      = (1 << 3)
-	FATTR_ATIME     = (1 << 4)
-	FATTR_MTIME     = (1 << 5)
-	FATTR_FH        = (1 << 6)
-	FATTR_ATIME_NOW = (1 << 7)
-	FATTR_MTIME_NOW = (1 << 8)
-	FATTR_LOCKOWNER = (1 << 9)
-
 
 	// OpenIn.Flags
 	FOPEN_DIRECT_IO   = (1 << 0)
 	FOPEN_KEEP_CACHE  = (1 << 1)
 	FOPEN_NONSEEKABLE = (1 << 2)
-
-	// To be set in InitOut.Flags.
-	CAP_ASYNC_READ     = (1 << 0)
-	CAP_POSIX_LOCKS    = (1 << 1)
-	CAP_FILE_OPS       = (1 << 2)
-	CAP_ATOMIC_O_TRUNC = (1 << 3)
-	CAP_EXPORT_SUPPORT = (1 << 4)
-	CAP_BIG_WRITES     = (1 << 5)
-	CAP_DONT_MASK      = (1 << 6)
-	CAP_SPLICE_WRITE   = (1 << 7)
-	CAP_SPLICE_MOVE    = (1 << 8)
-	CAP_SPLICE_READ    = (1 << 9)
 
 	FUSE_UNKNOWN_INO = 0xffffffff
 
@@ -48,6 +24,7 @@ const (
 
 	FUSE_RELEASE_FLUSH = (1 << 0)
 
+	// If set, GetAttrIn has a file handle set.
 	FUSE_GETATTR_FH = (1 << 0)
 
 	FUSE_LK_FLOCK = (1 << 0)
@@ -173,7 +150,7 @@ type ForgetIn struct {
 }
 
 type GetAttrIn struct {
-	GetAttrFlags uint32
+	Flags        uint32
 	Dummy        uint32
 	Fh           uint64
 }
@@ -204,6 +181,20 @@ type RenameIn struct {
 type LinkIn struct {
 	Oldnodeid uint64
 }
+
+
+const (	// SetAttrIn.Valid
+	FATTR_MODE      = (1 << 0)
+	FATTR_UID       = (1 << 1)
+	FATTR_GID       = (1 << 2)
+	FATTR_SIZE      = (1 << 3)
+	FATTR_ATIME     = (1 << 4)
+	FATTR_MTIME     = (1 << 5)
+	FATTR_FH        = (1 << 6)
+	FATTR_ATIME_NOW = (1 << 7)
+	FATTR_MTIME_NOW = (1 << 8)
+	FATTR_LOCKOWNER = (1 << 9)
+)
 
 type SetAttrIn struct {
 	Valid     uint32
@@ -326,6 +317,20 @@ type AccessIn struct {
 	Mask    uint32
 	Padding uint32
 }
+
+// To be set in InitIn/InitOut.Flags.
+const (
+	CAP_ASYNC_READ     = (1 << 0)
+	CAP_POSIX_LOCKS    = (1 << 1)
+	CAP_FILE_OPS       = (1 << 2)
+	CAP_ATOMIC_O_TRUNC = (1 << 3)
+	CAP_EXPORT_SUPPORT = (1 << 4)
+	CAP_BIG_WRITES     = (1 << 5)
+	CAP_DONT_MASK      = (1 << 6)
+	CAP_SPLICE_WRITE   = (1 << 7)
+	CAP_SPLICE_MOVE    = (1 << 8)
+	CAP_SPLICE_READ    = (1 << 9)
+)
 
 type InitIn struct {
 	Major        uint32
@@ -458,7 +463,6 @@ type NotifyInvalEntryOut struct {
 // threading right etc. are somewhat tricky and not very interesting.
 type RawFileSystem interface {
 	Destroy(h *InHeader, input *InitIn)
-
 	Lookup(header *InHeader, name string) (out *EntryOut, status Status)
 	Forget(header *InHeader, input *ForgetIn)
 
@@ -512,6 +516,12 @@ type File interface {
 	Flush() Status
 	Release()
 	Fsync(*FsyncIn) (code Status)
+
+	GetAttr() *Attr
+	Utimens(atimeNs uint64, mtimeNs uint64) Status
+	Truncate(size uint64) Status
+	Chown(uid uint32, gid uint32) Status
+	Chmod(perms uint32) Status
 }
 
 type RawDir interface {

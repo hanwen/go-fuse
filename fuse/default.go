@@ -1,10 +1,12 @@
 package fuse
 
 import (
+	"fmt"
 	"log"
 )
 
 var _ = log.Println
+var _ = fmt.Println
 
 func (me *DefaultRawFileSystem) Destroy(h *InHeader, input *InitIn) {
 
@@ -150,7 +152,27 @@ func (me *DefaultFile) Release() {
 
 }
 
+func (me *DefaultFile) GetAttr() *Attr {
+	return nil
+}
+
 func (me *DefaultFile) Fsync(*FsyncIn) (code Status) {
+	return ENOSYS
+}
+
+func (me *DefaultFile) Utimens(atimeNs uint64, mtimeNs uint64) Status {
+	return ENOSYS
+}
+	
+func (me *DefaultFile) Truncate(size uint64) Status {
+	return ENOSYS
+}
+
+func (me *DefaultFile) Chown(uid uint32, gid uint32) Status {
+	return ENOSYS
+}
+	
+func (me *DefaultFile) Chmod(perms uint32) Status {
 	return ENOSYS
 }
 

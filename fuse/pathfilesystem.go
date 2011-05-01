@@ -142,6 +142,12 @@ func (me *inode) setParent(newParent *inode) {
 		return
 	}
 	if me.Parent != nil {
+		if paranoia {
+			ch := me.Parent.Children[me.Name]
+			if ch == nil {
+				panic(fmt.Sprintf("parent has no child named %v", me.Name))
+			}
+		}
 		me.Parent.Children[me.Name] = nil, false
 		me.Parent = nil
 	}
@@ -190,6 +196,7 @@ type FileSystemConnector struct {
 }
 
 type interfaceBridge struct {
+	*mountData
 	Iface interface{}
 }
 
@@ -218,12 +225,13 @@ func (me *FileSystemConnector) unregisterFile(node *inode, handle uint64) interf
 	return b.Iface
 }
 
-func (me *FileSystemConnector) registerFile(node *inode, f interface{}) uint64 {
+func (me *FileSystemConnector) registerFile(node *inode, mount *mountData, f interface{}) uint64 {
 	me.fileLock.Lock()
 	defer me.fileLock.Unlock()
 
 	b := &interfaceBridge{
 		Iface: f,
+		mountData: mount,
 	}
 	h := uint64(uintptr(unsafe.Pointer(b)))
 	_, ok := me.openFiles[h]
@@ -236,14 +244,19 @@ func (me *FileSystemConnector) registerFile(node *inode, f interface{}) uint64 {
 	return h
 }
 
-func (me *FileSystemConnector) getDir(h uint64) RawDir {
+func (me *FileSystemConnector) decodeFileHandle(h uint64) (interface{}, *mountData) {
 	b := (*interfaceBridge)(unsafe.Pointer(uintptr(h)))
-	return b.Iface.(RawDir)
+	return b.Iface, b.mountData
 }
 
-func (me *FileSystemConnector) getFile(h uint64) File {
-	b := (*interfaceBridge)(unsafe.Pointer(uintptr(h)))
-	return b.Iface.(File)
+func (me *FileSystemConnector) getDir(h uint64) (RawDir, *mountData) {
+	f, m := me.decodeFileHandle(h)
+	return f.(RawDir), m
+}
+
+func (me *FileSystemConnector) getFile(h uint64) (File, *mountData) {
+	f, m := me.decodeFileHandle(h)
+	return f.(File), m
 }
 
 func (me *FileSystemConnector) verify() {
@@ -271,7 +284,7 @@ func (me *FileSystemConnector) verify() {
 	open := root.totalOpenCount()
 	openFiles := len(me.openFiles)
 	if open+hiddenOpen != openFiles {
-		panic(fmt.Sprintf("opencount mismatch totalOpen=%v openFiles=%v mounted=%v hidden=%v", open, openFiles, hiddenOpen))
+		panic(fmt.Sprintf("opencount mismatch totalOpen=%v openFiles=%v hiddenOpen=%v", open, openFiles, hiddenOpen))
 	}
 }
 
@@ -361,6 +374,7 @@ func (me *FileSystemConnector) unlinkUpdate(parent *inode, name string) {
 
 	node := parent.Children[name]
 	node.setParent(nil)
+	node.Name = ".deleted"
 }
 
 // Walk the file system starting from the root.
@@ -497,4 +511,20 @@ func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *mount
 	}
 
 	return p, m, n
+}
+
+func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64) (f File, m *mountData, p string) {
+	if fh != 0 {
+		f, m = me.getFile(fh)
+	}
+	me.treeLock.RLock()
+	defer me.treeLock.RUnlock()
+
+	node := me.getInodeData(nodeid)
+	if node.Parent != nil {
+		p, m = node.GetPath()
+	}
+
+	return	
+
 }

@@ -74,11 +74,26 @@ func (me *FileSystemConnector) Forget(h *InHeader, input *ForgetIn) {
 }
 
 func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
-	// TODO - do something intelligent with input.Fh.
+	if input.Flags & FUSE_GETATTR_FH != 0 {
+		f, mount := me.getFile(input.Fh)
+		attr := f.GetAttr()
+		if attr != nil {
+
+			out = &AttrOut{
+			Attr: *attr,
+			}
+			out.Attr.Ino = header.NodeId
+			SplitNs(mount.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
+
+			return out, OK
+		}
+	}
+	
 	fullPath, mount, _ := me.GetPath(header.NodeId)
 	if mount == nil {
 		return nil, ENOENT
 	}
+
 	attr, err := mount.fs.GetAttr(fullPath)
 	if err != OK {
 		return nil, err
@@ -107,13 +122,13 @@ func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags u
 	de := &Dir{
 		stream: stream,
 	}
-	h := me.registerFile(node, de)
+	h := me.registerFile(node, mount, de)
 
 	return 0, h, OK
 }
 
 func (me *FileSystemConnector) ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status) {
-	d := me.getDir(input.Fh)
+	d, _ := me.getDir(input.Fh)
 	de, code := d.ReadDir(input)
 	if code != OK {
 		return nil, code
@@ -132,47 +147,90 @@ func (me *FileSystemConnector) Open(header *InHeader, input *OpenIn) (flags uint
 	if err != OK {
 		return 0, 0, err
 	}
-	h := me.registerFile(node, f)
+	h := me.registerFile(node, mount, f)
 
 	return 0, h, OK
 }
 
 func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out *AttrOut, code Status) {
-	var err Status = OK
 
-	// TODO - support Fh.   (FSetAttr/FGetAttr/FTruncate.)
-	fullPath, mount, _ := me.GetPath(header.NodeId)
+	var err Status = OK
+	var getAttrIn GetAttrIn
+	fh := uint64(0)
+	if input.Valid&FATTR_FH != 0 {
+		fh = input.Fh
+		getAttrIn.Fh = fh
+		getAttrIn.Flags |= FUSE_GETATTR_FH
+	}
+
+	f, mount, fullPath := me.getOpenFileData(header.NodeId, fh)
 	if mount == nil {
 		return nil, ENOENT
 	}
 
-	if input.Valid&FATTR_MODE != 0 {
-		permissionMask := uint32(07777)
-		err = mount.fs.Chmod(fullPath, input.Mode&permissionMask)
+	fileResult := ENOSYS
+	if err == OK && input.Valid&FATTR_MODE != 0 {
+		permissions := uint32(07777) & input.Mode
+		if f != nil {
+			fileResult = f.Chmod(permissions)
+		}
+		if fileResult == ENOSYS {
+			err = mount.fs.Chmod(fullPath, permissions)
+		} else {
+			err = fileResult
+			fileResult = ENOSYS
+		}
 	}
-	if err == OK && (input.Valid&FATTR_UID != 0 || input.Valid&FATTR_GID != 0) {
-		// TODO - can we get just FATTR_GID but not FATTR_UID ?
-		err = mount.fs.Chown(fullPath, uint32(input.Uid), uint32(input.Gid))
-	}
-	if input.Valid&FATTR_SIZE != 0 {
-		mount.fs.Truncate(fullPath, input.Size)
-	}
-	if err == OK && (input.Valid&FATTR_ATIME != 0 || input.Valid&FATTR_MTIME != 0) {
+	if err == OK && (input.Valid&(FATTR_UID|FATTR_GID) != 0) {
+		if f != nil {
+			fileResult = f.Chown(uint32(input.Uid), uint32(input.Gid))
+		}
 
-		err = mount.fs.Utimens(fullPath,
-			uint64(input.Atime*1e9)+uint64(input.Atimensec),
-			uint64(input.Mtime*1e9)+uint64(input.Mtimensec))
+		if fileResult == ENOSYS {
+			// TODO - can we get just FATTR_GID but not FATTR_UID ?
+			err = mount.fs.Chown(fullPath, uint32(input.Uid), uint32(input.Gid))
+		} else {
+			err = fileResult
+			fileResult = ENOSYS
+		}
 	}
-	if err == OK && (input.Valid&FATTR_ATIME_NOW != 0 || input.Valid&FATTR_MTIME_NOW != 0) {
-		ns := time.Nanoseconds()
-		err = mount.fs.Utimens(fullPath, uint64(ns), uint64(ns))
+	if err == OK && input.Valid&FATTR_SIZE != 0 {
+		if f != nil {
+			fileResult = f.Truncate(input.Size)
+		}
+		if fileResult == ENOSYS {
+			err = mount.fs.Truncate(fullPath, input.Size)
+		} else {
+			err = fileResult
+			fileResult = ENOSYS
+		}
+	}
+	if err == OK && (input.Valid& (FATTR_ATIME|FATTR_MTIME|FATTR_ATIME_NOW|FATTR_MTIME_NOW) != 0) {
+		atime := uint64(input.Atime*1e9)+uint64(input.Atimensec)
+		if input.Valid & FATTR_ATIME_NOW != 0 {
+			atime = uint64(time.Nanoseconds())
+		}
+		
+		mtime := uint64(input.Mtime*1e9)+uint64(input.Mtimensec)
+		if input.Valid & FATTR_MTIME_NOW != 0 {
+			mtime = uint64(time.Nanoseconds())
+		}
+		
+		if f != nil {
+			fileResult = f.Utimens(atime, mtime)
+		}
+		if fileResult == ENOSYS {
+			err = mount.fs.Utimens(fullPath, atime, mtime)
+		} else {
+			err = fileResult
+			fileResult = ENOSYS
+		}
 	}
 	if err != OK {
 		return nil, err
 	}
 
-	// TODO - where to get GetAttrIn.Flags / Fh ?
-	return me.GetAttr(header, &GetAttrIn{})
+	return me.GetAttr(header, &getAttrIn)
 }
 
 func (me *FileSystemConnector) Readlink(header *InHeader) (out []byte, code Status) {
@@ -308,7 +366,7 @@ func (me *FileSystemConnector) Create(header *InHeader, input *CreateIn, name st
 	}
 
 	out, code, inode := me.internalLookupWithNode(parent, name, 1)
-	return 0, me.registerFile(inode, f), out, code
+	return 0, me.registerFile(inode, mount, f), out, code
 }
 
 func (me *FileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
@@ -379,11 +437,11 @@ func (me *FileSystemConnector) ListXAttr(header *InHeader) (data []byte, code St
 }
 
 func (me *FileSystemConnector) Write(input *WriteIn, data []byte) (written uint32, code Status) {
-	f := me.getFile(input.Fh).(File)
+	f, _ := me.getFile(input.Fh)
 	return f.Write(input, data)
 }
 
 func (me *FileSystemConnector) Read(input *ReadIn, bp *BufferPool) ([]byte, Status) {
-	f := me.getFile(input.Fh)
+	f, _ := me.getFile(input.Fh)
 	return f.Read(input, bp)
 }

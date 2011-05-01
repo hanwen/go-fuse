@@ -52,7 +52,7 @@ const (
 	_OP_IOCTL       = opcode(39)
 	_OP_POLL        = opcode(40)
 
-	OPCODE_COUNT = opcode(41)
+	_OPCODE_COUNT = opcode(41)
 )
 
 
@@ -72,12 +72,12 @@ func doInit(state *MountState, req *request) {
 	}
 
 	state.kernelSettings = *input
-	state.kernelSettings.Flags = input.Flags & (CAP_ASYNC_READ | CAP_BIG_WRITES)
+	state.kernelSettings.Flags = input.Flags & (CAP_ASYNC_READ | CAP_BIG_WRITES | CAP_FILE_OPS)
 	out := &InitOut{
 		Major:               FUSE_KERNEL_VERSION,
 		Minor:               FUSE_KERNEL_MINOR_VERSION,
 		MaxReadAhead:        input.MaxReadAhead,
-		Flags:         state.kernelSettings.Flags,      
+		Flags:               state.kernelSettings.Flags,      
 		MaxWrite:            maxRead,
 		CongestionThreshold: _BACKGROUND_TASKS * 3 / 4,
 		MaxBackground:       _BACKGROUND_TASKS,
@@ -314,14 +314,14 @@ func (op opcode) String() string {
 }
 
 func getHandler(o opcode) *operationHandler {
-	if o >= OPCODE_COUNT {
+	if o >= _OPCODE_COUNT {
 		return nil
 	}
 	return operationHandlers[o]
 }
 
 func init() {
-	operationHandlers = make([]*operationHandler, OPCODE_COUNT)
+	operationHandlers = make([]*operationHandler, _OPCODE_COUNT)
 	for i, _ := range operationHandlers {
 		operationHandlers[i] = &operationHandler{Name: "UNKNOWN"}
 	}
