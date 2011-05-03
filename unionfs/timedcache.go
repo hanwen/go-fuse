@@ -49,7 +49,7 @@ func (me *TimedCache) Get(name string) interface{} {
 	if ok && info.expiryNs > now {
 		return info.data
 	}
-	return me.getDataNoCache(name)
+	return me.GetFresh(name)
 }
 
 func (me *TimedCache) Set(name string, val interface{}) {
@@ -69,7 +69,7 @@ func (me *TimedCache) DropEntry(name string) {
 	me.cacheMap[name] = nil, false
 }
 
-func (me *TimedCache) getDataNoCache(name string) interface{} {
+func (me *TimedCache) GetFresh(name string) interface{} {
 	data := me.fetch(name)
 	me.Set(name, data)
 	return data
