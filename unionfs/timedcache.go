@@ -62,6 +62,13 @@ func (me *TimedCache) Set(name string, val interface{}) {
 	}
 }
 
+func (me *TimedCache) DropEntry(name string) {
+	me.cacheMapMutex.Lock()
+	defer me.cacheMapMutex.Unlock()
+
+	me.cacheMap[name] = nil, false
+}
+
 func (me *TimedCache) getDataNoCache(name string) interface{} {
 	data := me.fetch(name)
 	me.Set(name, data)
