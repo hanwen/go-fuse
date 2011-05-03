@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"testing"
+	"time"
 )
 
 var _ = fmt.Print
@@ -18,10 +19,12 @@ func TestFilePathHash(t *testing.T) {
 	t.Log(filePathHash("xyz/abc"))
 }
 
+const entryTtl = 1
+
 var testOpts = UnionFsOptions{
-	DeletionCacheTTLSecs: 0.01,
+	DeletionCacheTTLSecs: entryTtl,
 	DeletionDirName:      "DELETIONS",
-	BranchCacheTTLSecs:   0.01,
+	BranchCacheTTLSecs:   entryTtl,
 }
 
 func setup(t *testing.T) (workdir string, state *fuse.MountState) {
@@ -40,7 +43,13 @@ func setup(t *testing.T) (workdir string, state *fuse.MountState) {
 	roots = append(roots, wd+"/ro")
 	ufs := NewUnionFs(roots, testOpts)
 
-	connector := fuse.NewFileSystemConnector(ufs, nil)
+	opts := &fuse.MountOptions{
+		EntryTimeout: entryTtl,
+		AttrTimeout: entryTtl,
+		NegativeTimeout: entryTtl,
+	}
+	
+	connector := fuse.NewFileSystemConnector(ufs, opts)
 	state = fuse.NewMountState(connector)
 	state.Mount(wd + "/mount")
 	state.Debug = true
@@ -56,6 +65,7 @@ func writeToFile(path string, contents string) {
 
 func readFromFile(path string) string {
 	b, err := ioutil.ReadFile(path)
+	fmt.Println(b)
 	CheckSuccess(err)
 	return string(b)
 }
@@ -136,7 +146,7 @@ func TestChmod(t *testing.T) {
 	fi, err := os.Lstat(m_fn)
 	CheckSuccess(err)
 	if fi.Mode&07777 != 07070 {
-		t.Errorf("Unexpected mode found: %v", fi.Mode)
+		t.Errorf("Unexpected mode found: %o", fi.Mode)
 	}
 	_, err = os.Lstat(wd + "/rw/file")
 	if err != nil {
@@ -158,15 +168,17 @@ func TestBasic(t *testing.T) {
 	}
 	checkMapEq(t, names, expected)
 
+	log.Println("new contents")
 	writeToFile(wd+"/mount/new", "new contents")
 	if !fileExists(wd + "/rw/new") {
 		t.Errorf("missing file in rw layer", names)
 	}
 
-	if readFromFile(wd+"/mount/new") != "new contents" {
-		t.Errorf("read mismatch.")
+	contents := readFromFile(wd+"/mount/new")
+	if contents != "new contents" {
+		t.Errorf("read mismatch: '%v'", contents)
 	}
-
+	return
 	writeToFile(wd+"/mount/ro1", "promote me")
 	if !fileExists(wd + "/rw/ro1") {
 		t.Errorf("missing file in rw layer", names)
@@ -337,5 +349,31 @@ func TestTruncate(t *testing.T) {
 	content2 := readFromFile(wd + "/rw/file")
 	if content2 != content {
 		t.Errorf("unexpected rw content %v", content2)
+	}
+}
+
+func TestCopyChmod(t *testing.T) {
+	t.Log("TestCopyChmod")
+	wd, state := setup(t)
+	defer state.Unmount()
+
+	contents := "hello"
+	fn := wd + "/mount/y"
+	err := ioutil.WriteFile(fn, []byte(contents), 0644)
+	CheckSuccess(err)
+
+	err = os.Chmod(fn, 0755)
+	CheckSuccess(err)
+
+	fi, err := os.Lstat(fn)
+	CheckSuccess(err)
+	if fi.Mode & 0111 == 0 {
+		t.Errorf("1st attr error %o", fi.Mode)
+	}
+	time.Sleep(entryTtl * 1.1e9)
+	fi, err = os.Lstat(fn)
+	CheckSuccess(err)
+	if fi.Mode & 0111 == 0 {
+		t.Errorf("uncached attr error %o", fi.Mode)
 	}
 }
