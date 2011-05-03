@@ -133,6 +133,23 @@ func TestSymlink(t *testing.T) {
 	}
 }
 
+func TestChtimes(t *testing.T) {
+	wd, state := setup(t)
+	defer state.Unmount()
+	
+	writeToFile(wd+"/ro/file", "a")
+	err := os.Chtimes(wd + "/ro/file", 42e9, 43e9)
+	CheckSuccess(err)
+
+	err = os.Chtimes(wd + "/mount/file", 82e9, 83e9)
+	CheckSuccess(err)
+
+	fi, err := os.Lstat(wd +"/mount/file")
+	if fi.Atime_ns != 82e9 || fi.Ctime_ns != 83e9 {
+		t.Error("Incorrect timestamp", fi)
+	}
+}
+
 func TestChmod(t *testing.T) {
 	wd, state := setup(t)
 	defer state.Unmount()

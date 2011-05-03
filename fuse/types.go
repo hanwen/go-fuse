@@ -64,6 +64,7 @@ const (
 	FUSE_NOTIFY_CODE_MAX    = 4
 )
 
+// Ugh - we should fold ns and secs together here.
 type Attr struct {
 	Ino       uint64
 	Size      uint64

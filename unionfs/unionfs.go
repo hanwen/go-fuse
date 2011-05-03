@@ -342,6 +342,28 @@ func (me *UnionFs) Truncate(path string, offset uint64) (code fuse.Status) {
 	return me.fileSystems[0].Truncate(path, offset)
 }
 
+func (me *UnionFs) Utimens(name string, atime uint64, ctime uint64) (code fuse.Status) { 
+	name = stripSlash(name)
+	r := me.getBranch(name)
+
+	code = r.code
+	if code == fuse.OK && r.branch > 0 {
+		code = me.Promote(name, r)
+		r.branch = 0
+	}
+	if code == fuse.OK {
+ 		code = me.fileSystems[0].Utimens(name, atime, ctime)
+	}
+	if code == fuse.OK {
+		r.attr.Atime = uint64(atime / 1e9)
+		r.attr.Atimensec = uint32(atime % 1e9)
+		r.attr.Ctime = uint64(ctime / 1e9)
+		r.attr.Ctimensec = uint32(ctime % 1e9)
+		me.branchCache.Set(name, r)
+	}
+	return code
+}
+
 func (me *UnionFs) Chmod(name string, mode uint32) (code fuse.Status) {
 	name = stripSlash(name)
 	r := me.getBranch(name)
