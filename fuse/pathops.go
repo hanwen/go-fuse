@@ -376,6 +376,22 @@ func (me *FileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
 	node := me.getInodeData(header.NodeId)
 	f := me.unregisterFile(node, input.Fh).(File)
 	f.Release()
+
+	if input.Flags & O_ANYWRITE != 0 {
+		// We only signal releases to the FS if the
+		// open could have changed things.
+		var path string
+		var mount *mountData
+		me.treeLock.RLock()
+		if node.Parent != nil {
+			path, mount = node.GetPath()
+		}
+		me.treeLock.RUnlock()
+
+		if mount != nil {
+			mount.fs.Release(path)
+		}
+	}
 	me.considerDropInode(node)
 }
 

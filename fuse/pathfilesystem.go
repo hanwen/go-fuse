@@ -213,7 +213,7 @@ func (me *FileSystemConnector) Statistics() string {
 		len(me.openFiles), len(me.inodeMap))
 }
 
-func (me *FileSystemConnector) unregisterFile(node *inode, handle uint64) interface{} {
+func (me *FileSystemConnector) unregisterFile(node *inode, handle uint64) (interface{}) {
 	me.fileLock.Lock()
 	defer me.fileLock.Unlock()
 	b, ok := me.openFiles[handle]

@@ -43,7 +43,10 @@ type FileSystem interface {
 	// File handling
 	Open(name string, flags uint32) (file File, code Status)
 	Create(name string, flags uint32, mode uint32) (file File, code Status)
-
+	// Release() gets called after File.Release() on a file opened
+	// as writable.
+	Release(name string)
+	
 	// Directory handling
 	OpenDir(name string) (stream chan DirEntry, code Status)
 	
@@ -128,6 +131,7 @@ type RawFileSystem interface {
 	Create(header *InHeader, input *CreateIn, name string) (flags uint32, handle uint64, out *EntryOut, code Status)
 	Open(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status)
 	Read(*ReadIn, *BufferPool) ([]byte, Status)
+
 	Release(header *InHeader, input *ReleaseIn)
 	Write(*WriteIn, []byte) (written uint32, code Status)
 	Flush(*FlushIn) Status
