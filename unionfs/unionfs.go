@@ -310,7 +310,11 @@ func (me *UnionFs) Mkdir(path string, mode uint32) (code fuse.Status) {
 	if r.code != fuse.ENOENT {
 		return syscall.EEXIST
 	}
-	code = me.fileSystems[0].Mkdir(path, mode)
+	
+	code = me.promoteDirsTo(path)
+	if code == fuse.OK {
+		code = me.fileSystems[0].Mkdir(path, mode)
+	}
 	if code == fuse.OK {
 		me.removeDeletion(path)
 		attr := &fuse.Attr{
@@ -619,36 +623,36 @@ func (me *UnionFs) OpenDir(directory string) (stream chan fuse.DirEntry, status 
 	return stream, fuse.OK
 }
 
-func (me *UnionFs) Rename(src string, dst string) (status fuse.Status) {
+func (me *UnionFs) Rename(src string, dst string) (code fuse.Status) {
 	srcResult := me.getBranch(src)
-	if srcResult.code != fuse.OK {
-		return srcResult.code
+	code = srcResult.code
+	if code == fuse.OK {
+		code = srcResult.code
 	}
-
-	if srcResult.branch > 0 {
-		code := me.Promote(src, srcResult)
-		if code != fuse.OK {
-			return code
-		}
+	if code == fuse.OK && srcResult.branch > 0 {
+		code = me.Promote(src, srcResult)
 	}
-	code := me.fileSystems[0].Rename(src, dst)
-	if code != fuse.OK {
-		return code
+	if code == fuse.OK {
+		code = me.promoteDirsTo(dst)
 	}
+	if code == fuse.OK {
+		code = me.fileSystems[0].Rename(src, dst)
+	}
+	
+	if code == fuse.OK {
+		me.removeDeletion(dst)
+		srcResult.branch = 0
+		me.branchCache.Set(dst, srcResult)
 
-	me.removeDeletion(dst)
-	srcResult.branch = 0
-	me.branchCache.Set(dst, srcResult)
-
-	if srcResult.branch == 0 {
-		srcResult := me.branchCache.GetFresh(src)
-		if srcResult.(branchResult).branch > 0 {
+		if srcResult.branch == 0 {
+			srcResult := me.branchCache.GetFresh(src)
+			if srcResult.(branchResult).branch > 0 {
+				code = me.putDeletion(src)
+			}
+		} else {
 			code = me.putDeletion(src)
 		}
-	} else {
-		code = me.putDeletion(src)
 	}
-
 	return code
 }
 

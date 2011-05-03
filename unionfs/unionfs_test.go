@@ -266,6 +266,7 @@ func TestOpenUndeletes(t *testing.T) {
 	_, err = os.Lstat(wd + "/mount/file")
 	CheckSuccess(err)
 }
+
 func TestMkdir(t *testing.T) {
 	wd, state := setup(t)
 	defer state.Unmount()
@@ -278,6 +279,22 @@ func TestMkdir(t *testing.T) {
 	CheckSuccess(err)
 }
 
+func TestMkdirPromote(t *testing.T) {
+	wd, state := setup(t)
+	defer state.Unmount()
+
+	dirname := wd + "/ro/subdir/subdir2"
+	err := os.MkdirAll(dirname, 0755)
+	CheckSuccess(err)
+
+	err = os.Mkdir(wd+"/mount/subdir/subdir2/dir3", 0755)
+	CheckSuccess(err)
+	fi, _ := os.Lstat(wd+"/rw/subdir/subdir2/dir3")
+	CheckSuccess(err)
+	if fi == nil || !fi.IsDirectory() {
+		t.Error("is not a directory: ", fi)
+	}
+}
 func TestRename(t *testing.T) {
 	type Config struct {
 		f1_ro bool
