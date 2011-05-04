@@ -160,6 +160,12 @@ func TestChmod(t *testing.T) {
 	err := os.Chmod(m_fn, 07070)
 	CheckSuccess(err)
 
+	err = os.Chown(m_fn, 0, 0)
+	code := fuse.OsErrorToErrno(err)
+	if code != fuse.EPERM {
+		t.Error("Unexpected error code", code, err)
+	}
+	
 	fi, err := os.Lstat(m_fn)
 	CheckSuccess(err)
 	if fi.Mode&07777 != 07070 {

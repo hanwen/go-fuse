@@ -368,6 +368,33 @@ func (me *UnionFs) Utimens(name string, atime uint64, ctime uint64) (code fuse.S
 	return code
 }
 
+func (me *UnionFs) Chown(name string, uid uint32, gid uint32) (code fuse.Status) {
+	name = stripSlash(name)
+	r := me.getBranch(name)
+	if r.attr == nil || r.code != fuse.OK {
+		return r.code
+	}
+	
+	if os.Geteuid() != 0 {
+		return fuse.EPERM
+	}
+	
+	if r.attr.Owner.Uid != uid || r.attr.Owner.Gid != gid {
+		if r.branch > 0 {
+			code := me.Promote(name, r)
+			if code != fuse.OK {
+				return code
+			}
+			r.branch = 0
+		}
+		me.fileSystems[0].Chown(name, uid, gid)
+	}
+	r.attr.Owner.Uid = uid
+	r.attr.Owner.Gid = gid
+	me.branchCache.Set(name, r)
+	return fuse.OK
+}
+
 func (me *UnionFs) Chmod(name string, mode uint32) (code fuse.Status) {
 	name = stripSlash(name)
 	r := me.getBranch(name)
