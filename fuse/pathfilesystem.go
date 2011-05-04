@@ -430,7 +430,11 @@ func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *Mou
 	} else {
 		node = me.rootNode
 	}
-
+	if node == nil {
+		log.Println("Could not find mountpoint?", mountpoint)
+		return ENOENT
+	}
+	
 	if !node.IsDir() {
 		return EINVAL
 	}
