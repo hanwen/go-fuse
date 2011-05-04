@@ -110,7 +110,7 @@ func doOpen(state *MountState, req *request) {
 func doCreate(state *MountState, req *request) {
 	flags, handle, entry, status := state.fileSystem.Create(req.inHeader, (*CreateIn)(req.inData), req.filenames[0])
 	req.status = status
-	if status == OK {
+	if status.Ok() {
 		req.outData = unsafe.Pointer(&CreateOut{
 			EntryOut: *entry,
 			OpenOut: OpenOut{
@@ -134,7 +134,7 @@ func doReadDir(state *MountState, req *request) {
 func doOpenDir(state *MountState, req *request) {
 	flags, handle, status := state.fileSystem.OpenDir(req.inHeader, (*OpenIn)(req.inData))
 	req.status = status
-	if status == OK {
+	if status.Ok() {
 		req.outData = unsafe.Pointer(&OpenOut{
 			Fh:        handle,
 			OpenFlags: flags,

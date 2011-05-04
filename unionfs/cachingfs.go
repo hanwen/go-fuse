@@ -86,7 +86,7 @@ func (me *CachingFileSystem) Readlink(name string) (string, fuse.Status) {
 
 func (me *CachingFileSystem) OpenDir(name string) (stream chan fuse.DirEntry, status fuse.Status) {
 	r := me.dirs.Get(name).(*dirResponse)
-	if r.Status == fuse.OK {
+	if r.Status.Ok() {
 		stream = make(chan fuse.DirEntry, len(r.entries))
 		for _, d := range r.entries {
 			stream <- d

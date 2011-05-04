@@ -16,7 +16,7 @@ import (
 
 
 func (code Status) String() string {
-	if code == OK {
+	if code.Ok() {
 		return "OK"
 	}
 	return fmt.Sprintf("%d=%v", int(code), os.Errno(code))

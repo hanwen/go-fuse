@@ -157,7 +157,7 @@ func (me *UnionFs) getBranchAttrNoCache(name string) branchResult {
 		}
 
 		a, s := fs.GetAttr(name)
-		if s == fuse.OK {
+		if s.Ok() {
 			if a.Mode&fuse.S_IFDIR != 0 {
 				// Make all directories appear writable
 				a.Mode |= 0200
@@ -282,7 +282,7 @@ func (me *UnionFs) Rmdir(path string) (code fuse.Status) {
 	}
 	if r.branch > 0 {
 		stream, code := me.fileSystems[r.branch].OpenDir(path)
-		if code == fuse.OK {
+		if code.Ok() {
 			_, ok := <-stream
 			if ok {
 				// TODO - should consume stream.
@@ -312,10 +312,10 @@ func (me *UnionFs) Mkdir(path string, mode uint32) (code fuse.Status) {
 	}
 	
 	code = me.promoteDirsTo(path)
-	if code == fuse.OK {
+	if code.Ok() {
 		code = me.fileSystems[0].Mkdir(path, mode)
 	}
-	if code == fuse.OK {
+	if code.Ok() {
 		me.removeDeletion(path)
 		attr := &fuse.Attr{
 			Mode: fuse.S_IFDIR | mode,
@@ -327,7 +327,7 @@ func (me *UnionFs) Mkdir(path string, mode uint32) (code fuse.Status) {
 
 func (me *UnionFs) Symlink(pointedTo string, linkName string) (code fuse.Status) {
 	code = me.fileSystems[0].Symlink(pointedTo, linkName)
-	if code == fuse.OK {
+	if code.Ok() {
 		me.removeDeletion(linkName)
 		me.branchCache.Set(linkName, branchResult{nil, fuse.OK, 0})
 	}
@@ -351,14 +351,14 @@ func (me *UnionFs) Utimens(name string, atime uint64, ctime uint64) (code fuse.S
 	r := me.getBranch(name)
 
 	code = r.code
-	if code == fuse.OK && r.branch > 0 {
+	if code.Ok() && r.branch > 0 {
 		code = me.Promote(name, r)
 		r.branch = 0
 	}
-	if code == fuse.OK {
+	if code.Ok() {
  		code = me.fileSystems[0].Utimens(name, atime, ctime)
 	}
-	if code == fuse.OK {
+	if code.Ok() {
 		r.attr.Atime = uint64(atime / 1e9)
 		r.attr.Atimensec = uint32(atime % 1e9)
 		r.attr.Ctime = uint64(ctime / 1e9)
@@ -462,7 +462,7 @@ func (me *UnionFs) Readlink(name string) (out string, code fuse.Status) {
 
 func IsDir(fs fuse.FileSystem, name string) bool {
 	a, code := fs.GetAttr(name)
-	return code == fuse.OK && a.Mode&fuse.S_IFDIR != 0
+	return code.Ok() && a.Mode&fuse.S_IFDIR != 0
 }
 
 func stripSlash(fn string) string {
@@ -518,7 +518,7 @@ func (me *UnionFs) Create(name string, flags uint32, mode uint32) (fuseFile fuse
 		return nil, code
 	}
 	fuseFile, code = writable.Create(name, flags, mode)
-	if code == fuse.OK {
+	if code.Ok() {
 		me.removeDeletion(name)
 
 		a := fuse.Attr{
@@ -591,7 +591,7 @@ func (me *UnionFs) OpenDir(directory string) (stream chan fuse.DirEntry, status 
 			go func(j int, pfs fuse.FileSystem) {
 				ch, s := pfs.OpenDir(directory)
 				statuses[j] = s
-				for s == fuse.OK {
+				for s.Ok() {
 					v := <-ch
 					if v.Name == "" {
 						break
@@ -653,20 +653,20 @@ func (me *UnionFs) OpenDir(directory string) (stream chan fuse.DirEntry, status 
 func (me *UnionFs) Rename(src string, dst string) (code fuse.Status) {
 	srcResult := me.getBranch(src)
 	code = srcResult.code
-	if code == fuse.OK {
+	if code.Ok() {
 		code = srcResult.code
 	}
-	if code == fuse.OK && srcResult.branch > 0 {
+	if code.Ok() && srcResult.branch > 0 {
 		code = me.Promote(src, srcResult)
 	}
-	if code == fuse.OK {
+	if code.Ok() {
 		code = me.promoteDirsTo(dst)
 	}
-	if code == fuse.OK {
+	if code.Ok() {
 		code = me.fileSystems[0].Rename(src, dst)
 	}
 	
-	if code == fuse.OK {
+	if code.Ok() {
 		me.removeDeletion(dst)
 		srcResult.branch = 0
 		me.branchCache.Set(dst, srcResult)

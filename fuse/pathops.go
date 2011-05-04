@@ -172,7 +172,7 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 	}
 
 	fileResult := ENOSYS
-	if err == OK && input.Valid&FATTR_MODE != 0 {
+	if err.Ok() && input.Valid&FATTR_MODE != 0 {
 		permissions := uint32(07777) & input.Mode
 		if f != nil {
 			fileResult = f.Chmod(permissions)
@@ -184,7 +184,7 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 			fileResult = ENOSYS
 		}
 	}
-	if err == OK && (input.Valid&(FATTR_UID|FATTR_GID) != 0) {
+	if err.Ok() && (input.Valid&(FATTR_UID|FATTR_GID) != 0) {
 		if f != nil {
 			fileResult = f.Chown(uint32(input.Uid), uint32(input.Gid))
 		}
@@ -197,7 +197,7 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 			fileResult = ENOSYS
 		}
 	}
-	if err == OK && input.Valid&FATTR_SIZE != 0 {
+	if err.Ok() && input.Valid&FATTR_SIZE != 0 {
 		if f != nil {
 			fileResult = f.Truncate(input.Size)
 		}
@@ -208,7 +208,7 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 			fileResult = ENOSYS
 		}
 	}
-	if err == OK && (input.Valid&(FATTR_ATIME|FATTR_MTIME|FATTR_ATIME_NOW|FATTR_MTIME_NOW) != 0) {
+	if err.Ok() && (input.Valid&(FATTR_ATIME|FATTR_MTIME|FATTR_ATIME_NOW|FATTR_MTIME_NOW) != 0) {
 		atime := uint64(input.Atime*1e9) + uint64(input.Atimensec)
 		if input.Valid&FATTR_ATIME_NOW != 0 {
 			atime = uint64(time.Nanoseconds())
@@ -264,7 +264,7 @@ func (me *FileSystemConnector) Mkdir(header *InHeader, input *MkdirIn, name stri
 		return nil, ENOENT
 	}
 	code = mount.fs.Mkdir(filepath.Join(fullPath, name), input.Mode)
-	if code == OK {
+	if code.Ok() {
 		out, code = me.internalLookup(parent, name, 1)
 	}
 	return out, code
@@ -276,7 +276,7 @@ func (me *FileSystemConnector) Unlink(header *InHeader, name string) (code Statu
 		return ENOENT
 	}
 	code = mount.fs.Unlink(filepath.Join(fullPath, name))
-	if code == OK {
+	if code.Ok() {
 		// Like fuse.c, we update our internal tables.
 		me.unlinkUpdate(parent, name)
 	}
@@ -289,7 +289,7 @@ func (me *FileSystemConnector) Rmdir(header *InHeader, name string) (code Status
 		return ENOENT
 	}
 	code = mount.fs.Rmdir(filepath.Join(fullPath, name))
-	if code == OK {
+	if code.Ok() {
 		me.unlinkUpdate(parent, name)
 	}
 	return code
@@ -322,7 +322,7 @@ func (me *FileSystemConnector) Rename(header *InHeader, input *RenameIn, oldName
 	oldPath = filepath.Join(oldPath, oldName)
 	newPath = filepath.Join(newPath, newName)
 	code = mount.fs.Rename(oldPath, newPath)
-	if code == OK {
+	if code.Ok() {
 		me.renameUpdate(oldParent, oldName, newParent, newName)
 	}
 	return code

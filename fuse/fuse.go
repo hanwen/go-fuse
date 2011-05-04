@@ -218,7 +218,7 @@ func (me *MountState) handleRequest(req *request) {
 		return
 	}
 	
-	if req.status == OK {
+	if req.status.Ok() {
 		req.handler.Func(me, req)
 	}
 

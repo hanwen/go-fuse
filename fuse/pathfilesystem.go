@@ -486,18 +486,18 @@ func (me *FileSystemConnector) Unmount(path string) Status {
 
 	// don't use defer: we don't want to call out to
 	// mount.fs.Unmount() with lock held.
-	if unmountError == OK && (node.totalOpenCount() > 0 || node.totalMountCount() > 1) {
+	if unmountError.Ok() && (node.totalOpenCount() > 0 || node.totalMountCount() > 1) {
 		unmountError = EBUSY
 	}
 
-	if unmountError == OK {
+	if unmountError.Ok() {
 		// We settle for eventual consistency.
 		mount.unmountPending = true
 	}
 	me.fileLock.Unlock()
 	me.treeLock.RUnlock()
 
-	if unmountError == OK {
+	if unmountError.Ok() {
 		if me.Debug {
 			log.Println("Unmount: ", mount)
 		}
