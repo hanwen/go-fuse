@@ -431,7 +431,7 @@ func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *Mou
 		node = me.rootNode
 	}
 	if node == nil {
-		log.Println("Could not find mountpoint?", mountpoint)
+		log.Println("Could not find mountpoint?", mountPoint)
 		return ENOENT
 	}
 	

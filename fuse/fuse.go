@@ -209,11 +209,16 @@ func (me *MountState) handleRequest(req *request) {
 	if req.handler == nil {
 		return
 	}
-
+	if me.Debug {
+		log.Println(req.InputDebug())
+	}
+	if req.handler.Func == nil {
+		log.Printf("Unimplemented opcode %v", req.inHeader.opcode)
+		req.status = ENOSYS
+		return
+	}
+	
 	if req.status == OK {
-		if me.Debug {
-			log.Println(req.InputDebug())
-		}
 		req.handler.Func(me, req)
 	}
 

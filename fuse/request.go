@@ -84,12 +84,8 @@ func (me *request) parse() {
 	me.arg = me.inputBuf[inHSize:]
 
 	me.handler = getHandler(me.inHeader.opcode)
-	if me.handler == nil || me.handler.Func == nil {
-		msg := "Unimplemented"
-		if me.handler == nil {
-			msg = "Unknown"
-		}
-		log.Printf("%s opcode %v", msg, me.inHeader.opcode)
+	if me.handler == nil {
+		log.Printf("Unknown opcode %v", me.inHeader.opcode)
 		me.status = ENOSYS
 		return
 	}
