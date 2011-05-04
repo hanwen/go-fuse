@@ -5,7 +5,7 @@ package fuse
  PathFilesystemConnector is a lowlevel FUSE filesystem that translates
  from inode numbers (as delivered by the kernel) to traditional path
  names.  The paths are then used as arguments for methods of
- PathFilesystem instances.  
+ PathFilesystem instances.
 
  PathFilesystemConnector supports mounts of different PathFilesystem
  on top of each other's directories.
@@ -535,5 +535,4 @@ func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64) (f File
 	}
 
 	return
-
 }

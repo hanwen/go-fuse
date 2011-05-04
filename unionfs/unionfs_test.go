@@ -12,6 +12,7 @@ import (
 
 var _ = fmt.Print
 var _ = log.Print
+
 var CheckSuccess = fuse.CheckSuccess
 
 func TestFilePathHash(t *testing.T) {
@@ -19,15 +20,13 @@ func TestFilePathHash(t *testing.T) {
 	t.Log(filePathHash("xyz/abc"))
 }
 
-const entryTtl = 1
-
 var testOpts = UnionFsOptions{
 	DeletionCacheTTLSecs: entryTtl,
 	DeletionDirName:      "DELETIONS",
 	BranchCacheTTLSecs:   entryTtl,
 }
 
-func setup(t *testing.T) (workdir string, state *fuse.MountState) {
+func setupUfs(t *testing.T) (workdir string, state *fuse.MountState) {
 	wd := fuse.MakeTempDir()
 	err := os.Mkdir(wd+"/mount", 0700)
 	fuse.CheckSuccess(err)
@@ -48,7 +47,7 @@ func setup(t *testing.T) (workdir string, state *fuse.MountState) {
 		AttrTimeout: entryTtl,
 		NegativeTimeout: entryTtl,
 	}
-	
+
 	connector := fuse.NewFileSystemConnector(ufs, opts)
 	state = fuse.NewMountState(connector)
 	state.Mount(wd + "/mount")
@@ -119,7 +118,7 @@ func remove(path string) {
 }
 
 func TestSymlink(t *testing.T) {
-	wd, state := setup(t)
+	wd, state := setupUfs(t)
 	defer state.Unmount()
 
 	err := os.Symlink("/foobar", wd+"/mount/link")
@@ -134,9 +133,9 @@ func TestSymlink(t *testing.T) {
 }
 
 func TestChtimes(t *testing.T) {
-	wd, state := setup(t)
+	wd, state := setupUfs(t)
 	defer state.Unmount()
-	
+
 	writeToFile(wd+"/ro/file", "a")
 	err := os.Chtimes(wd + "/ro/file", 42e9, 43e9)
 	CheckSuccess(err)
@@ -151,7 +150,7 @@ func TestChtimes(t *testing.T) {
 }
 
 func TestChmod(t *testing.T) {
-	wd, state := setup(t)
+	wd, state := setupUfs(t)
 	defer state.Unmount()
 
 	ro_fn := wd + "/ro/file"
@@ -165,7 +164,7 @@ func TestChmod(t *testing.T) {
 	if code != fuse.EPERM {
 		t.Error("Unexpected error code", code, err)
 	}
-	
+
 	fi, err := os.Lstat(m_fn)
 	CheckSuccess(err)
 	if fi.Mode&07777 != 07070 {
@@ -178,7 +177,7 @@ func TestChmod(t *testing.T) {
 }
 
 func TestBasic(t *testing.T) {
-	wd, state := setup(t)
+	wd, state := setupUfs(t)
 	defer state.Unmount()
 
 	writeToFile(wd+"/rw/rw", "a")
@@ -241,7 +240,7 @@ func TestBasic(t *testing.T) {
 }
 
 func TestPromote(t *testing.T) {
-	wd, state := setup(t)
+	wd, state := setupUfs(t)
 	defer state.Unmount()
 
 	err := os.Mkdir(wd+"/ro/subdir", 0755)
@@ -251,7 +250,7 @@ func TestPromote(t *testing.T) {
 }
 
 func TestCreate(t *testing.T) {
-	wd, state := setup(t)
+	wd, state := setupUfs(t)
 	defer state.Unmount()
 
 	err := os.MkdirAll(wd+"/ro/subdir/sub2", 0755)
@@ -262,7 +261,7 @@ func TestCreate(t *testing.T) {
 }
 
 func TestOpenUndeletes(t *testing.T) {
-	wd, state := setup(t)
+	wd, state := setupUfs(t)
 	defer state.Unmount()
 
 	writeToFile(wd+"/ro/file", "X")
@@ -274,7 +273,7 @@ func TestOpenUndeletes(t *testing.T) {
 }
 
 func TestMkdir(t *testing.T) {
-	wd, state := setup(t)
+	wd, state := setupUfs(t)
 	defer state.Unmount()
 
 	dirname := wd + "/mount/subdir"
@@ -286,7 +285,7 @@ func TestMkdir(t *testing.T) {
 }
 
 func TestMkdirPromote(t *testing.T) {
-	wd, state := setup(t)
+	wd, state := setupUfs(t)
 	defer state.Unmount()
 
 	dirname := wd + "/ro/subdir/subdir2"
@@ -321,7 +320,7 @@ func TestRename(t *testing.T) {
 
 	for i, c := range configs {
 		t.Log("Config", i, c)
-		wd, state := setup(t)
+		wd, state := setupUfs(t)
 		if c.f1_ro {
 			writeToFile(wd+"/ro/file1", "c1")
 		}
@@ -361,7 +360,7 @@ func TestRename(t *testing.T) {
 
 func TestWritableDir(t *testing.T) {
 	t.Log("TestWritableDir")
-	wd, state := setup(t)
+	wd, state := setupUfs(t)
 	defer state.Unmount()
 
 	dirname := wd + "/ro/subdir"
@@ -377,7 +376,7 @@ func TestWritableDir(t *testing.T) {
 
 func TestTruncate(t *testing.T) {
 	t.Log("TestTruncate")
-	wd, state := setup(t)
+	wd, state := setupUfs(t)
 	defer state.Unmount()
 
 	writeToFile(wd+"/ro/file", "hello")
@@ -394,7 +393,7 @@ func TestTruncate(t *testing.T) {
 
 func TestCopyChmod(t *testing.T) {
 	t.Log("TestCopyChmod")
-	wd, state := setup(t)
+	wd, state := setupUfs(t)
 	defer state.Unmount()
 
 	contents := "hello"

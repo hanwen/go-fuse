@@ -35,6 +35,7 @@ func main() {
 			AttrTimeout:     1.0,
 			NegativeTimeout: 1.0,
 		},
+		UpdateOnMount: true,
 	}
 
 	gofs := unionfs.NewAutoUnionFs(flag.Arg(1), options)

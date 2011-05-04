@@ -32,6 +32,9 @@ type AutoUnionFs struct {
 type AutoUnionFsOptions struct {
 	UnionFsOptions
 	fuse.MountOptions
+
+	// If set, run updateKnownFses() after mounting.
+	UpdateOnMount bool
 }
 
 const (
@@ -52,7 +55,9 @@ func NewAutoUnionFs(directory string, options AutoUnionFsOptions) *AutoUnionFs {
 
 func (me *AutoUnionFs) Mount(connector *fuse.FileSystemConnector) fuse.Status {
 	me.connector = connector
-	time.AfterFunc(0.1e9, func() { me.updateKnownFses() })
+	if me.options.UpdateOnMount {
+		time.AfterFunc(0.1e9, func() { me.updateKnownFses() })
+	}
 	return fuse.OK
 }
 
@@ -62,25 +67,61 @@ func (me *AutoUnionFs) addAutomaticFs(roots []string) {
 	me.addFs(name, roots)
 }
 
-func (me *AutoUnionFs) addFs(name string, roots []string) bool {
+func (me *AutoUnionFs) createFs(name string, roots []string) (*UnionFs, fuse.Status)  {
+        me.lock.Lock()
+        defer me.lock.Unlock()
+
+        used := make(map[string]string)
+        for workspace, v := range me.knownFileSystems {
+                used[v.Roots()[0]] = workspace
+        }
+
+        workspace, ok := used[roots[0]]
+        if ok {
+                log.Printf("Already have a union FS for directory %s in workspace %s",
+                        roots[0], workspace)
+                return nil, fuse.EBUSY
+        }
+
+        var gofs *UnionFs
+        if me.knownFileSystems[name] == nil {
+                log.Println("Adding UnionFs for roots", roots)
+                gofs = NewUnionFs(roots, me.options.UnionFsOptions)
+                me.knownFileSystems[name] = gofs
+        }
+
+        return gofs, fuse.OK
+}
+
+func (me *AutoUnionFs) rmFs(name string) (code fuse.Status) {
+	me.lock.Lock()
+	defer me.lock.Unlock()
+
+	fs := me.knownFileSystems[name]
+	if fs == nil {
+		return fuse.ENOENT
+	}
+
+	code = me.connector.Unmount(name)
+	if code.Ok() {
+		me.knownFileSystems[name] = nil, false
+	} else {
+		log.Println("Unmount failed for %s.  Code %v", name, code)
+	}
+
+	return code
+}
+
+func (me *AutoUnionFs) addFs(name string, roots []string) (code fuse.Status) {
 	if name == _CONFIG || name == _STATUS {
 		log.Println("Illegal name for overlay", roots)
-		return false
+		return fuse.EINVAL
 	}
-
-	me.lock.Lock()
-	var gofs *UnionFs
-	if me.knownFileSystems[name] == nil {
-		log.Println("Adding UnionFs for roots", roots)
-		gofs = NewUnionFs(roots, me.options.UnionFsOptions)
-		me.knownFileSystems[name] = gofs
-	}
-	me.lock.Unlock()
-
+        gofs, code := me.createFs(name, roots)
 	if gofs != nil {
 		me.connector.Mount("/"+name, gofs, &me.options.MountOptions)
 	}
-	return true
+	return code
 }
 
 // TODO - should hide these methods.
@@ -152,14 +193,25 @@ func (me *AutoUnionFs) Symlink(pointedTo string, linkName string) (code fuse.Sta
 		}
 
 		name := comps[1]
-		if !me.addFs(name, roots) {
-			return fuse.EPERM
-		}
-		return fuse.OK
+		return me.addFs(name, roots)
 	}
 	return fuse.EPERM
 }
 
+
+func (me *AutoUnionFs) Unlink(path string) (code fuse.Status) {
+	comps := strings.Split(path, "/", -1)
+	if len(comps) != 2 {
+		return fuse.EPERM
+	}
+
+	if comps[0] == _CONFIG {
+		code = me.rmFs(comps[1])
+	} else {
+		code = fuse.ENOENT
+	}
+	return code
+}
 
 // Must define this, because ENOSYS will suspend all GetXAttr calls.
 func (me *AutoUnionFs) GetXAttr(name string, attr string) ([]byte, fuse.Status) {
