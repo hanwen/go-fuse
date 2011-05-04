@@ -22,6 +22,10 @@ func (code Status) String() string {
 	return fmt.Sprintf("%d=%v", int(code), os.Errno(code))
 }
 
+func (code Status) Ok() bool {
+	return code == OK
+}
+
 // Make a temporary directory securely.
 func MakeTempDir() string {
 	nm, err := ioutil.TempDir("", "go-fuse")
