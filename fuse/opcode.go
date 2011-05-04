@@ -469,6 +469,7 @@ func init() {
 		_OP_GETATTR: func(ptr unsafe.Pointer) interface{} { return (*GetAttrIn)(ptr) },
 		_OP_SETATTR: func(ptr unsafe.Pointer) interface{} { return (*SetAttrIn)(ptr) },
 		_OP_INIT:    func(ptr unsafe.Pointer) interface{} { return (*InitIn)(ptr) },
+		_OP_IOCTL:   func(ptr unsafe.Pointer) interface{} { return (*IoctlIn)(ptr) },
 	} {
 		operationHandlers[op].DecodeIn = f
 	}
