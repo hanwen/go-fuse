@@ -44,6 +44,10 @@ func (me *request) InputDebug() string {
 		names = fmt.Sprintf("names: %v", me.filenames)
 	}
 
+	if len(me.arg) > 0 {
+		names += fmt.Sprintf(" %d bytes", len(me.arg))
+	}
+
 	return fmt.Sprintf("Dispatch: %v, NodeId: %v.%v%v",
 		me.inHeader.opcode, me.inHeader.NodeId, val, names)
 }
