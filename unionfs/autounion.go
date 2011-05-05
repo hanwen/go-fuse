@@ -49,6 +49,10 @@ func NewAutoUnionFs(directory string, options AutoUnionFsOptions) *AutoUnionFs {
 	a := new(AutoUnionFs)
 	a.knownFileSystems = make(map[string]*UnionFs)
 	a.options = &options
+	directory, err := filepath.Abs(directory)
+	if err != nil {
+		panic("filepath.Abs returned err")
+	}
 	a.root = directory
 	return a
 }
@@ -64,7 +68,10 @@ func (me *AutoUnionFs) Mount(connector *fuse.FileSystemConnector) fuse.Status {
 func (me *AutoUnionFs) addAutomaticFs(roots []string) {
 	relative := strings.TrimLeft(strings.Replace(roots[0], me.root, "", -1), "/")
 	name := strings.Replace(relative, "/", "-", -1)
-	me.addFs(name, roots)
+	
+	if me.getUnionFs(name) == nil {
+		me.addFs(name, roots)
+	}
 }
 
 func (me *AutoUnionFs) createFs(name string, roots []string) (*UnionFs, fuse.Status)  {
