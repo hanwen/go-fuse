@@ -68,29 +68,6 @@ func (me *MountState) Unmount() os.Error {
 	return result
 }
 
-func (me *MountState) Write(req *request) {
-	if me.LatencyMap != nil {
-		req.preWriteNs = time.Nanoseconds()
-	}
-
-	if req.outHeaderBytes == nil {
-		return
-	}
-
-	var err os.Error
-	if req.flatData == nil {
-		_, err = me.mountFile.Write(req.outHeaderBytes)
-	} else {
-		_, err = Writev(me.mountFile.Fd(),
-			[][]byte{req.outHeaderBytes, req.flatData})
-	}
-
-	if err != nil {
-		log.Printf("writer: Write/Writev %v failed, err: %v. opcode: %v",
-			req.outHeaderBytes, err, operationName(req.inHeader.opcode))
-	}
-}
-
 func NewMountState(fs RawFileSystem) *MountState {
 	me := new(MountState)
 	me.mountPoint = ""
@@ -207,29 +184,56 @@ func (me *MountState) handleRequest(req *request) {
 
 	req.parse()
 	if req.handler == nil {
-		return
+		req.status = ENOSYS
 	}
-	if me.Debug {
+
+	if req.status.Ok() && me.Debug {
 		log.Println(req.InputDebug())
 	}
-	if req.handler.Func == nil {
+	
+	if req.status.Ok() && req.handler.Func == nil {
 		log.Printf("Unimplemented opcode %v", req.inHeader.opcode)
 		req.status = ENOSYS
-		return
 	}
 	
 	if req.status.Ok() {
 		req.handler.Func(me, req)
 	}
 
+	me.write(req)
+}
+
+func (me *MountState) write(req *request) {
 	// If we try to write OK, nil, we will get
 	// error:  writer: Writev [[16 0 0 0 0 0 0 0 17 0 0 0 0 0 0 0]]
 	// failed, err: writev: no such file or directory
-	if req.inHeader.opcode != _OP_FORGET {
-		req.serialize()
-		if me.Debug {
-			log.Println(req.OutputDebug())
-		}
-		me.Write(req)
+	if req.inHeader.opcode == _OP_FORGET {
+		return
+	}
+
+	req.serialize()
+	if me.Debug {
+		log.Println(req.OutputDebug())
+	}
+	
+	if me.LatencyMap != nil {
+		req.preWriteNs = time.Nanoseconds()
+	}
+
+	if req.outHeaderBytes == nil {
+		return
+	}
+
+	var err os.Error
+	if req.flatData == nil {
+		_, err = me.mountFile.Write(req.outHeaderBytes)
+	} else {
+		_, err = Writev(me.mountFile.Fd(),
+			[][]byte{req.outHeaderBytes, req.flatData})
+	}
+
+	if err != nil {
+		log.Printf("writer: Write/Writev %v failed, err: %v. opcode: %v",
+			req.outHeaderBytes, err, operationName(req.inHeader.opcode))
 	}
 }
