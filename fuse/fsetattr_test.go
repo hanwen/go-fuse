@@ -10,6 +10,8 @@ import (
 )
 
 type MutableDataFile struct {
+	DefaultFile
+	
 	data []byte
 	os.FileInfo
 	GetAttrCalled bool
