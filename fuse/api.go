@@ -74,6 +74,7 @@ type File interface {
 	Chmod(perms uint32) Status
 	Utimens(atimeNs uint64, mtimeNs uint64) Status
 	Truncate(size uint64) Status
+	Ioctl(input *IoctlIn) (output *IoctlOut, data []byte, code Status)
 }
 
 // MountOptions contains time out options for a FileSystem.  The
@@ -142,6 +143,9 @@ type RawFileSystem interface {
 	ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status)
 	ReleaseDir(header *InHeader, input *ReleaseIn)
 	FsyncDir(header *InHeader, input *FsyncIn) (code Status)
+
+	//
+	Ioctl(header *InHeader, input *IoctlIn) (output *IoctlOut, data []byte, code Status)
 }
 
 // DefaultRawFileSystem returns ENOSYS for every operation.

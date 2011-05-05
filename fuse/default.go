@@ -91,10 +91,6 @@ func (me *DefaultRawFileSystem) Bmap(header *InHeader, input *BmapIn) (out *Bmap
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFileSystem) Ioctl(header *InHeader, input *IoctlIn) (out *IoctlOut, code Status) {
-	return nil, ENOSYS
-}
-
 func (me *DefaultRawFileSystem) Poll(header *InHeader, input *PollIn) (out *PollOut, code Status) {
 	return nil, ENOSYS
 }
@@ -131,6 +127,10 @@ func (me *DefaultRawFileSystem) ReleaseDir(header *InHeader, input *ReleaseIn) {
 
 func (me *DefaultRawFileSystem) FsyncDir(header *InHeader, input *FsyncIn) (code Status) {
 	return ENOSYS
+}
+
+func (me *DefaultRawFileSystem) Ioctl(header *InHeader, input *IoctlIn) (output *IoctlOut, data []byte, code Status) {
+	return nil, nil, ENOSYS
 }
 
 ////////////////////////////////////////////////////////////////
@@ -174,6 +174,10 @@ func (me *DefaultFile) Chown(uid uint32, gid uint32) Status {
 
 func (me *DefaultFile) Chmod(perms uint32) Status {
 	return ENOSYS
+}
+
+func (me *DefaultFile) Ioctl(input *IoctlIn) (output *IoctlOut, data []byte, code Status) {
+	return nil, nil, ENOSYS
 }
 
 ////////////////////////////////////////////////////////////////

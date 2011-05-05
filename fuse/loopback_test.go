@@ -601,6 +601,20 @@ func TestReadOnly(t *testing.T) {
 	ts.testReaddir()
 }
 
+func TestIoctl(t *testing.T) {
+	ts := new(testCase)
+	ts.Setup(t)
+	defer ts.Cleanup()
+
+	f, err := os.OpenFile(filepath.Join(ts.mountPoint, "hello.txt"),
+		os.O_WRONLY|os.O_CREATE, 0777)
+	defer f.Close()
+	CheckSuccess(err)
+	v, e := ioctl(f.Fd(), 0x5401, 42)
+	fmt.Println("ioctl", v, e)
+}
+
+
 func TestRecursiveMount(t *testing.T) {
 	ts := new(testCase)
 	ts.Setup(t)
@@ -650,3 +664,4 @@ func TestRecursiveMount(t *testing.T) {
 
 	ts.Cleanup()
 }
+

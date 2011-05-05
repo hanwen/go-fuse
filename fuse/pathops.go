@@ -464,3 +464,9 @@ func (me *FileSystemConnector) Read(input *ReadIn, bp *BufferPool) ([]byte, Stat
 	f, _ := me.getFile(input.Fh)
 	return f.Read(input, bp)
 }
+
+func (me *FileSystemConnector) Ioctl(header *InHeader, input *IoctlIn) (out *IoctlOut, data []byte, code Status) {
+	f, _ := me.getFile(input.Fh)
+	return f.Ioctl(input)
+}
+

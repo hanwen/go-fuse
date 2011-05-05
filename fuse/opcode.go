@@ -283,6 +283,13 @@ func doRename(state *MountState, req *request) {
 	req.status = state.fileSystem.Rename(req.inHeader, (*RenameIn)(req.inData), req.filenames[0], req.filenames[1])
 }
 
+func doIoctl(state *MountState, req *request) {
+	out, data, stat := state.fileSystem.Ioctl(req.inHeader, (*IoctlIn)(req.inData))
+	req.outData = unsafe.Pointer(out)
+	req.flatData = data
+	req.status = stat
+}
+
 ////////////////////////////////////////////////////////////////
 
 type operationFunc func(*MountState, *request)
