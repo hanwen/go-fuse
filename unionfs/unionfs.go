@@ -346,7 +346,7 @@ func (me *UnionFs) Truncate(path string, offset uint64) (code fuse.Status) {
 	return me.fileSystems[0].Truncate(path, offset)
 }
 
-func (me *UnionFs) Utimens(name string, atime uint64, ctime uint64) (code fuse.Status) { 
+func (me *UnionFs) Utimens(name string, atime uint64, mtime uint64) (code fuse.Status) { 
 	name = stripSlash(name)
 	r := me.getBranch(name)
 
@@ -356,13 +356,13 @@ func (me *UnionFs) Utimens(name string, atime uint64, ctime uint64) (code fuse.S
 		r.branch = 0
 	}
 	if code.Ok() {
- 		code = me.fileSystems[0].Utimens(name, atime, ctime)
+ 		code = me.fileSystems[0].Utimens(name, atime, mtime)
 	}
 	if code.Ok() {
 		r.attr.Atime = uint64(atime / 1e9)
 		r.attr.Atimensec = uint32(atime % 1e9)
-		r.attr.Ctime = uint64(ctime / 1e9)
-		r.attr.Ctimensec = uint32(ctime % 1e9)
+		r.attr.Mtime = uint64(mtime / 1e9)
+		r.attr.Mtimensec = uint32(mtime % 1e9)
 		me.branchCache.Set(name, r)
 	}
 	return code

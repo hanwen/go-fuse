@@ -144,7 +144,7 @@ func TestChtimes(t *testing.T) {
 	CheckSuccess(err)
 
 	fi, err := os.Lstat(wd +"/mount/file")
-	if fi.Atime_ns != 82e9 || fi.Ctime_ns != 83e9 {
+	if fi.Atime_ns != 82e9 || fi.Mtime_ns != 83e9 {
 		t.Error("Incorrect timestamp", fi)
 	}
 }
