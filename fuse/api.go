@@ -17,7 +17,7 @@ type FileSystem interface {
 	GetAttr(name string) (*Attr, Status)
 	Chmod(name string, mode uint32) (code Status)
 	Chown(name string, uid uint32, gid uint32) (code Status)
-	Utimens(name string, AtimeNs uint64, CtimeNs uint64) (code Status)
+	Utimens(name string, AtimeNs uint64, MtimeNs uint64) (code Status)
 	Truncate(name string, offset uint64) (code Status)
 
 	Access(name string, mode uint32) (code Status)
