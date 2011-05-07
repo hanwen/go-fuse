@@ -464,14 +464,18 @@ func init() {
 		operationHandlers[op].Func = v
 	}
 
+	// Outputs.
 	for op, f := range map[opcode]castPointerFunc{
 		_OP_LOOKUP:  func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
 		_OP_OPEN:    func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
 		_OP_GETATTR: func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
 		_OP_CREATE:  func(ptr unsafe.Pointer) interface{} { return (*CreateOut)(ptr) },
+		_OP_SETATTR: func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
 	} {
 		operationHandlers[op].DecodeOut = f
 	}
+
+	// Inputs.
 	for op, f := range map[opcode]castPointerFunc{
 		_OP_GETATTR: func(ptr unsafe.Pointer) interface{} { return (*GetAttrIn)(ptr) },
 		_OP_SETATTR: func(ptr unsafe.Pointer) interface{} { return (*SetAttrIn)(ptr) },
@@ -480,6 +484,8 @@ func init() {
 	} {
 		operationHandlers[op].DecodeIn = f
 	}
+
+	// File name args.
 	for op, count := range map[opcode]int{
 		_OP_CREATE:      1,
 		_OP_GETXATTR:    1,
