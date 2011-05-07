@@ -337,13 +337,18 @@ func (me *UnionFs) Symlink(pointedTo string, linkName string) (code fuse.Status)
 func (me *UnionFs) Truncate(path string, offset uint64) (code fuse.Status) {
 	r := me.getBranch(path)
 	if r.branch > 0 {
-		code := me.Promote(path, r) 
-		if code != fuse.OK {
-			return code
-		}
+		code = me.Promote(path, r)
+		r.branch = 0
 	}
 
-	return me.fileSystems[0].Truncate(path, offset)
+	if code.Ok() {
+		code = me.fileSystems[0].Truncate(path, offset)
+	}
+	if code.Ok() { 
+		r.attr.Size = offset
+		me.branchCache.Set(path, r)
+	}
+	return code
 }
 
 func (me *UnionFs) Utimens(name string, atime uint64, mtime uint64) (code fuse.Status) { 
@@ -698,7 +703,7 @@ func (me *UnionFs) Open(name string, flags uint32) (fuseFile fuse.File, status f
 
 func (me *UnionFs) Release(name string) {
 	me.branchCache.DropEntry(name)
-	// Refresh to pick up the new size.
+	// Refresh.
 	me.getBranch(name)
 }
 
