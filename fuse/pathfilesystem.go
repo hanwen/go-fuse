@@ -189,14 +189,15 @@ type FileSystemConnector struct {
 	rootNode *inode
 
 	// Open files/directories.
-	openFiles map[uint64]*interfaceBridge
+	openFiles map[uint64]*fileBridge
 
 	// Protects openFiles and OpenCount in all of the nodes.
 	fileLock sync.RWMutex
 }
 
-type interfaceBridge struct {
+type fileBridge struct {
 	*mountData
+	*inode
 	Iface interface{}
 }
 
@@ -229,8 +230,9 @@ func (me *FileSystemConnector) registerFile(node *inode, mount *mountData, f int
 	me.fileLock.Lock()
 	defer me.fileLock.Unlock()
 
-	b := &interfaceBridge{
+	b := &fileBridge{
 		Iface:     f,
+		inode: node,
 		mountData: mount,
 	}
 	h := uint64(uintptr(unsafe.Pointer(b)))
@@ -244,9 +246,9 @@ func (me *FileSystemConnector) registerFile(node *inode, mount *mountData, f int
 	return h
 }
 
-func (me *FileSystemConnector) decodeFileHandle(h uint64) (interface{}, *mountData) {
-	b := (*interfaceBridge)(unsafe.Pointer(uintptr(h)))
-	return b.Iface, b.mountData
+func (me *FileSystemConnector) decodeFileHandle(h uint64) (interface{}, *mountData, *inode) {
+	b := (*fileBridge)(unsafe.Pointer(uintptr(h)))
+	return b.Iface, b.mountData, b.inode
 }
 
 type rawDir interface {
@@ -254,14 +256,14 @@ type rawDir interface {
 	Release()
 }
 
-func (me *FileSystemConnector) getDir(h uint64) (rawDir, *mountData) {
-	f, m := me.decodeFileHandle(h)
-	return f.(rawDir), m
+func (me *FileSystemConnector) getDir(h uint64) (rawDir, *mountData, *inode) {
+	f, m, n := me.decodeFileHandle(h)
+	return f.(rawDir), m, n
 }
 
-func (me *FileSystemConnector) getFile(h uint64) (File, *mountData) {
-	f, m := me.decodeFileHandle(h)
-	return f.(File), m
+func (me *FileSystemConnector) getFile(h uint64) (File, *mountData, *inode) {
+	f, m, n := me.decodeFileHandle(h)
+	return f.(File), m, n
 }
 
 func (me *FileSystemConnector) verify() {
@@ -409,7 +411,7 @@ func (me *FileSystemConnector) findInode(fullPath string) *inode {
 func EmptyFileSystemConnector() (out *FileSystemConnector) {
 	out = new(FileSystemConnector)
 	out.inodeMap = make(map[uint64]*inode)
-	out.openFiles = make(map[uint64]*interfaceBridge)
+	out.openFiles = make(map[uint64]*fileBridge)
 
 	rootData := out.newInode(true, true)
 	rootData.Children = make(map[string]*inode, initDirSize)
@@ -524,7 +526,7 @@ func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *mount
 
 func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64) (f File, m *mountData, p string) {
 	if fh != 0 {
-		f, m = me.getFile(fh)
+		f, m, _ = me.getFile(fh)
 	}
 	me.treeLock.RLock()
 	defer me.treeLock.RUnlock()

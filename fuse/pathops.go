@@ -5,6 +5,7 @@ package fuse
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"path/filepath"
 	"time"
 )
@@ -75,7 +76,7 @@ func (me *FileSystemConnector) Forget(h *InHeader, input *ForgetIn) {
 
 func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
 	if input.Flags&FUSE_GETATTR_FH != 0 {
-		f, mount := me.getFile(input.Fh)
+		f, mount, _ := me.getFile(input.Fh)
 		attr, err := f.GetAttr()
 		if err != OK && err != ENOSYS {
 			return nil, err
@@ -131,7 +132,7 @@ func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags u
 }
 
 func (me *FileSystemConnector) ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status) {
-	d, _ := me.getDir(input.Fh)
+	d, _, _ := me.getDir(input.Fh)
 	de, code := d.ReadDir(input)
 	if code != OK {
 		return nil, code
@@ -156,7 +157,6 @@ func (me *FileSystemConnector) Open(header *InHeader, input *OpenIn) (flags uint
 }
 
 func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out *AttrOut, code Status) {
-
 	var err Status = OK
 	var getAttrIn GetAttrIn
 	fh := uint64(0)
@@ -455,18 +455,32 @@ func (me *FileSystemConnector) ListXAttr(header *InHeader) (data []byte, code St
 	return b.Bytes(), code
 }
 
+func (me *FileSystemConnector) fileDebug(fh uint64, n *inode) {
+	p, _, _ := me.GetPath(n.NodeId)
+	log.Printf("Fh %d = %s", fh, p)
+}
+
 func (me *FileSystemConnector) Write(input *WriteIn, data []byte) (written uint32, code Status) {
-	f, _ := me.getFile(input.Fh)
+	f, _, n  := me.getFile(input.Fh)
+	if me.Debug {
+		me.fileDebug(input.Fh, n)
+	}
 	return f.Write(input, data)
 }
 
 func (me *FileSystemConnector) Read(input *ReadIn, bp *BufferPool) ([]byte, Status) {
-	f, _ := me.getFile(input.Fh)
+	f, _, n := me.getFile(input.Fh)
+	if me.Debug {
+		me.fileDebug(input.Fh, n)
+	}
 	return f.Read(input, bp)
 }
 
 func (me *FileSystemConnector) Ioctl(header *InHeader, input *IoctlIn) (out *IoctlOut, data []byte, code Status) {
-	f, _ := me.getFile(input.Fh)
+	f, _, n := me.getFile(input.Fh)
+	if me.Debug {
+		me.fileDebug(input.Fh, n)
+	}
 	return f.Ioctl(input)
 }
 
