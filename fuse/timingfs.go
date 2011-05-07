@@ -3,6 +3,7 @@ package fuse
 import (
 	"time"
 	"log"
+	"os"
 	"fmt"
 )
 
@@ -44,7 +45,7 @@ func (me *TimingFileSystem) HotPaths(operation string) (paths []string) {
 	return me.LatencyMap.TopArgs(operation)
 }
 
-func (me *TimingFileSystem) GetAttr(name string) (*Attr, Status) {
+func (me *TimingFileSystem) GetAttr(name string) (*os.FileInfo, Status) {
 	defer me.startTimer("GetAttr", name)()
 	return me.FileSystem.GetAttr(name)
 }

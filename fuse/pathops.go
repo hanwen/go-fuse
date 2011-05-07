@@ -46,7 +46,7 @@ func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string
 	}
 	fullPath = filepath.Join(fullPath, name)
 
-	attr, err := mount.fs.GetAttr(fullPath)
+	fi, err := mount.fs.GetAttr(fullPath)
 
 	if err == ENOENT && mount.options.NegativeTimeout > 0.0 {
 		return NegativeEntry(mount.options.NegativeTimeout), OK, nil
@@ -56,7 +56,7 @@ func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string
 		return nil, err, nil
 	}
 
-	data := me.lookupUpdate(parent, name, attr.Mode&S_IFDIR != 0)
+	data := me.lookupUpdate(parent, name, fi.Mode&S_IFDIR != 0)
 	data.LookupCount += lookupCount
 
 	out = &EntryOut{
@@ -65,7 +65,7 @@ func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string
 	}
 	SplitNs(mount.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
 	SplitNs(mount.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
-	out.Attr = *attr
+	CopyFileInfo(fi, &out.Attr)
 	out.Attr.Ino = data.NodeId
 	return out, OK, data
 }
@@ -77,15 +77,14 @@ func (me *FileSystemConnector) Forget(h *InHeader, input *ForgetIn) {
 func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
 	if input.Flags&FUSE_GETATTR_FH != 0 {
 		f, mount, _ := me.getFile(input.Fh)
-		attr, err := f.GetAttr()
+		fi, err := f.GetAttr()
 		if err != OK && err != ENOSYS {
 			return nil, err
 		}
 		
-		if attr != nil {
-			out = &AttrOut{
-				Attr: *attr,
-			}
+		if fi != nil {
+			out = &AttrOut{}
+			CopyFileInfo(fi, &out.Attr)
 			out.Attr.Ino = header.NodeId
 			SplitNs(mount.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 
@@ -98,14 +97,13 @@ func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out 
 		return nil, ENOENT
 	}
 
-	attr, err := mount.fs.GetAttr(fullPath)
+	fi, err := mount.fs.GetAttr(fullPath)
 	if err != OK {
 		return nil, err
 	}
 
-	out = &AttrOut{
-		Attr: *attr,
-	}
+	out = &AttrOut{}
+	CopyFileInfo(fi, &out.Attr)
 	out.Attr.Ino = header.NodeId
 	SplitNs(mount.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 

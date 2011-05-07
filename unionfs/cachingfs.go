@@ -3,12 +3,13 @@ package unionfs
 import (
 	"fmt"
 	"github.com/hanwen/go-fuse/fuse"
+	"os"
 )
 
 var _ = fmt.Println
 
 type attrResponse struct {
-	*fuse.Attr
+	*os.FileInfo
 	fuse.Status
 }
 
@@ -52,7 +53,7 @@ func readDir(fs fuse.FileSystem, name string) *dirResponse {
 func getAttr(fs fuse.FileSystem, name string) *attrResponse {
 	a, code := fs.GetAttr(name)
 	return &attrResponse{
-		Attr:   a,
+		FileInfo:   a,
 		Status: code,
 	}
 }
@@ -74,9 +75,9 @@ func NewCachingFileSystem(fs fuse.FileSystem, ttlNs int64) *CachingFileSystem {
 	return c
 }
 
-func (me *CachingFileSystem) GetAttr(name string) (*fuse.Attr, fuse.Status) {
+func (me *CachingFileSystem) GetAttr(name string) (*os.FileInfo, fuse.Status) {
 	r := me.attributes.Get(name).(*attrResponse)
-	return r.Attr, r.Status
+	return r.FileInfo, r.Status
 }
 
 func (me *CachingFileSystem) Readlink(name string) (string, fuse.Status) {

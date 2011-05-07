@@ -3,6 +3,7 @@ package fuse
 import (
 	"fmt"
 	"log"
+	"os"
 )
 
 var _ = log.Println
@@ -152,7 +153,7 @@ func (me *DefaultFile) Release() {
 
 }
 
-func (me *DefaultFile) GetAttr() (*Attr, Status) {
+func (me *DefaultFile) GetAttr() (*os.FileInfo, Status) {
 	return nil, ENOSYS
 }
 
@@ -183,7 +184,7 @@ func (me *DefaultFile) Ioctl(input *IoctlIn) (output *IoctlOut, data []byte, cod
 ////////////////////////////////////////////////////////////////
 // DefaultFileSystem
 
-func (me *DefaultFileSystem) GetAttr(name string) (*Attr, Status) {
+func (me *DefaultFileSystem) GetAttr(name string) (*os.FileInfo, Status) {
 	return nil, ENOSYS
 }
 

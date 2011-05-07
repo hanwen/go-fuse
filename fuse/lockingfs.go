@@ -1,6 +1,7 @@
 package fuse
 
 import (
+	"os"
 	"sync"
 )
 
@@ -25,7 +26,7 @@ func (me *LockingFileSystem) locked() func() {
 	return func() { me.lock.Unlock() }
 }
 
-func (me *LockingFileSystem) GetAttr(name string) (*Attr, Status) {
+func (me *LockingFileSystem) GetAttr(name string) (*os.FileInfo, Status) {
 	defer me.locked()()
 	return me.FileSystem.GetAttr(name)
 }

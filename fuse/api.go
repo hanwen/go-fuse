@@ -1,6 +1,9 @@
 // The fuse package provides APIs to implement filesystems in
 // userspace, using libfuse on Linux.
 package fuse
+import (
+	"os"
+)
 
 // Types for users to implement.
 
@@ -14,7 +17,7 @@ package fuse
 // required methods.
 type FileSystem interface {
 	// Attributes
-	GetAttr(name string) (*Attr, Status)
+	GetAttr(name string) (*os.FileInfo, Status)
 	Chmod(name string, mode uint32) (code Status)
 	Chown(name string, uid uint32, gid uint32) (code Status)
 	Utimens(name string, AtimeNs uint64, MtimeNs uint64) (code Status)
@@ -68,7 +71,7 @@ type File interface {
 	Release()
 	Fsync(*FsyncIn) (code Status)
 
-	GetAttr() (*Attr, Status)
+	GetAttr() (*os.FileInfo, Status)
 
 	Chown(uid uint32, gid uint32) Status
 	Chmod(perms uint32) Status

@@ -117,19 +117,19 @@ func NewZipArchiveFileSystem(name string) (*ZipArchiveFileSystem, os.Error) {
 const zip_DIRMODE uint32 = fuse.S_IFDIR | 0700
 const zip_FILEMODE uint32 = fuse.S_IFREG | 0600
 
-func (me *ZipArchiveFileSystem) GetAttr(name string) (*fuse.Attr, fuse.Status) {
+func (me *ZipArchiveFileSystem) GetAttr(name string) (*os.FileInfo, fuse.Status) {
 	dir, file := me.tree.Lookup(name)
 	if dir == nil {
 		return nil, fuse.ENOENT
 	}
 
-	a := new(fuse.Attr)
+	a := &os.FileInfo{}
 	if file == nil {
 		a.Mode = zip_DIRMODE
 	} else {
 		// TODO - do something intelligent with timestamps.
 		a.Mode = zip_FILEMODE
-		a.Size = uint64(file.UncompressedSize)
+		a.Size = int64(file.UncompressedSize)
 	}
 
 	return a, fuse.OK

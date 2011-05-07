@@ -3,6 +3,7 @@ package fuse
 import (
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -71,20 +72,20 @@ func (me *FileSystemDebug) GetXAttr(name string, attr string) ([]byte, Status) {
 	return me.FileSystem.GetXAttr(name, attr)
 }
 
-func (me *FileSystemDebug) GetAttr(path string) (*Attr, Status) {
+func (me *FileSystemDebug) GetAttr(path string) (*os.FileInfo, Status) {
 	if !strings.HasPrefix(path, DebugDir) {
 		return me.FileSystem.GetAttr(path)
 	}
 	if path == DebugDir {
-		return &Attr{
+		return &os.FileInfo{
 			Mode: S_IFDIR | 0755,
 		},OK
 	}
 	c := me.getContent(path)
 	if c != nil {
-		return &Attr{
+		return &os.FileInfo{
 			Mode: S_IFREG | 0644,
-			Size: uint64(len(c)),
+			Size: int64(len(c)),
 		},OK
 	}
 	return nil, ENOENT

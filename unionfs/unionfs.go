@@ -136,7 +136,7 @@ func (me *UnionFs) getBranch(name string) branchResult {
 }
 
 type branchResult struct {
-	attr   *fuse.Attr
+	attr   *os.FileInfo
 	code   fuse.Status
 	branch int
 }
@@ -317,7 +317,7 @@ func (me *UnionFs) Mkdir(path string, mode uint32) (code fuse.Status) {
 	}
 	if code.Ok() {
 		me.removeDeletion(path)
-		attr := &fuse.Attr{
+		attr := &os.FileInfo{
 			Mode: fuse.S_IFDIR | mode,
 		}
 		me.branchCache.Set(path, branchResult{attr, fuse.OK, 0})
@@ -345,7 +345,7 @@ func (me *UnionFs) Truncate(path string, offset uint64) (code fuse.Status) {
 		code = me.fileSystems[0].Truncate(path, offset)
 	}
 	if code.Ok() { 
-		r.attr.Size = offset
+		r.attr.Size = int64(offset)
 		me.branchCache.Set(path, r)
 	}
 	return code
@@ -364,10 +364,8 @@ func (me *UnionFs) Utimens(name string, atime uint64, mtime uint64) (code fuse.S
  		code = me.fileSystems[0].Utimens(name, atime, mtime)
 	}
 	if code.Ok() {
-		r.attr.Atime = uint64(atime / 1e9)
-		r.attr.Atimensec = uint32(atime % 1e9)
-		r.attr.Mtime = uint64(mtime / 1e9)
-		r.attr.Mtimensec = uint32(mtime % 1e9)
+		r.attr.Atime_ns = int64(atime)
+		r.attr.Mtime_ns = int64(mtime)
 		me.branchCache.Set(name, r)
 	}
 	return code
@@ -384,7 +382,7 @@ func (me *UnionFs) Chown(name string, uid uint32, gid uint32) (code fuse.Status)
 		return fuse.EPERM
 	}
 	
-	if r.attr.Owner.Uid != uid || r.attr.Owner.Gid != gid {
+	if r.attr.Uid != int(uid) || r.attr.Gid != int(gid) {
 		if r.branch > 0 {
 			code := me.Promote(name, r)
 			if code != fuse.OK {
@@ -394,8 +392,8 @@ func (me *UnionFs) Chown(name string, uid uint32, gid uint32) (code fuse.Status)
 		}
 		me.fileSystems[0].Chown(name, uid, gid)
 	}
-	r.attr.Owner.Uid = uid
-	r.attr.Owner.Gid = gid
+	r.attr.Uid = int(uid)
+	r.attr.Gid = int(gid)
 	me.branchCache.Set(name, r)
 	return fuse.OK
 }
@@ -526,7 +524,7 @@ func (me *UnionFs) Create(name string, flags uint32, mode uint32) (fuseFile fuse
 	if code.Ok() {
 		me.removeDeletion(name)
 
-		a := fuse.Attr{
+		a := os.FileInfo{
 		Mode: fuse.S_IFREG | mode,
 		}
 		me.branchCache.Set(name, branchResult{&a, fuse.OK, 0})
@@ -534,7 +532,7 @@ func (me *UnionFs) Create(name string, flags uint32, mode uint32) (fuseFile fuse
 	return fuseFile, code
 }
 
-func (me *UnionFs) GetAttr(name string) (a *fuse.Attr, s fuse.Status) {
+func (me *UnionFs) GetAttr(name string) (a *os.FileInfo, s fuse.Status) {
 	if name == _READONLY {
 		return nil, fuse.ENOENT
 	}

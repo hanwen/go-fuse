@@ -32,16 +32,13 @@ func (me *LoopbackFileSystem) GetPath(relPath string) string {
 	return filepath.Join(me.root, relPath)
 }
 
-func (me *LoopbackFileSystem) GetAttr(name string) (*Attr, Status) {
+func (me *LoopbackFileSystem) GetAttr(name string) (*os.FileInfo, Status) {
 	fullPath := me.GetPath(name)
 	fi, err := os.Lstat(fullPath)
 	if err != nil {
-		return nil, ENOENT
+		return nil, OsErrorToErrno(err)
 	}
-	out := new(Attr)
-	CopyFileInfo(fi, out)
-
-	return out, OK
+	return fi, OK
 }
 
 func (me *LoopbackFileSystem) OpenDir(name string) (stream chan DirEntry, status Status) {

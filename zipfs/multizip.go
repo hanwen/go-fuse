@@ -13,6 +13,7 @@ path/to/zipfile to /config/zipmount
 import (
 	"github.com/hanwen/go-fuse/fuse"
 	"log"
+	"os"
 	"path/filepath"
 	"sync"
 	"strings"
@@ -127,8 +128,8 @@ func (me *MultiZipFs) OpenDir(name string) (stream chan fuse.DirEntry, code fuse
 	return stream, fuse.OK
 }
 
-func (me *MultiZipFs) GetAttr(name string) (*fuse.Attr, fuse.Status) {
-	a := new(fuse.Attr)
+func (me *MultiZipFs) GetAttr(name string) (*os.FileInfo, fuse.Status) {
+	a := &os.FileInfo{}
 	if name == "" {
 		// Should not write in top dir.
 		a.Mode = fuse.S_IFDIR | 0500
@@ -156,7 +157,7 @@ func (me *MultiZipFs) GetAttr(name string) (*fuse.Attr, fuse.Status) {
 	a.Mode = submode
 	entry, hasDir := me.zips[base]
 	if hasDir {
-		a.Size = uint64(len(entry.ZipFileName))
+		a.Size = int64(len(entry.ZipFileName))
 		return a, fuse.OK
 	}
 	_, hasDir = me.pendingZips[base]

@@ -40,15 +40,13 @@ func (me *MutableDataFile) Release() {
 
 }
 
-func (me *MutableDataFile) getAttr() *Attr {
-	a := &Attr{}
-	CopyFileInfo(&me.FileInfo, a)
-	a.Size = uint64(len(me.data))
-
-	return a
+func (me *MutableDataFile) getAttr() *os.FileInfo {
+	f := me.FileInfo
+	f.Size = int64(len(me.data))
+	return &f
 }
 
-func (me *MutableDataFile) GetAttr() (*Attr, Status) {
+func (me *MutableDataFile) GetAttr() (*os.FileInfo, Status) {
 	me.GetAttrCalled = true
 	return me.getAttr(), OK
 }
@@ -90,9 +88,9 @@ func (me *FSetAttrFs) GetXAttr(name string, attr string) ([]byte, Status) {
 	return nil, syscall.ENODATA
 }
 
-func (me *FSetAttrFs) GetAttr(name string) (*Attr, Status) {
+func (me *FSetAttrFs) GetAttr(name string) (*os.FileInfo, Status) {
 	if name == "" {
-		return &Attr{Mode: S_IFDIR | 0700}, OK
+		return &os.FileInfo{Mode: S_IFDIR | 0700}, OK
 	}
 	if name == "file" && me.file != nil {
 		a := me.file.getAttr()

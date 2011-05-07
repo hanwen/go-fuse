@@ -15,15 +15,6 @@ import (
 var _ = runtime.GOMAXPROCS
 var _ = log.Print
 
-type PathPrintingFs struct {
-	fuse.FileSystem
-}
-
-func (me *PathPrintingFs) GetAttr(name string) (*fuse.Attr, fuse.Status) {
-	log.Println(name)
-	return me.FileSystem.GetAttr(name)
-}
-
 func main() {
 	// Scans the arg list and sets up flags
 	debug := flag.Bool("debug", false, "print debugging messages.")

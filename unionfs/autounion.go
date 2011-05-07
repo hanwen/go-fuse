@@ -225,23 +225,23 @@ func (me *AutoUnionFs) GetXAttr(name string, attr string) ([]byte, fuse.Status) 
 	return nil, syscall.ENODATA
 }
 
-func (me *AutoUnionFs) GetAttr(path string) (*fuse.Attr, fuse.Status) {
+func (me *AutoUnionFs) GetAttr(path string) (*os.FileInfo, fuse.Status) {
 	if path == "" || path == _CONFIG || path == _STATUS {
-		a := &fuse.Attr{
+		a := &os.FileInfo{
 			Mode: fuse.S_IFDIR | 0755,
 		}
 		return a, fuse.OK
 	}
 
 	if path == filepath.Join(_STATUS, _VERSION) {
-		a := &fuse.Attr{
+		a := &os.FileInfo{
 			Mode: fuse.S_IFREG | 0644,
 		}
 		return a, fuse.OK
 	}
 
 	if path == filepath.Join(_STATUS, _ROOT) {
-		a := &fuse.Attr{
+		a := &os.FileInfo{
 			Mode: syscall.S_IFLNK | 0644,
 		}
 		return a, fuse.OK
@@ -256,14 +256,14 @@ func (me *AutoUnionFs) GetAttr(path string) (*fuse.Attr, fuse.Status) {
 			return nil, fuse.ENOENT
 		}
 
-		a := &fuse.Attr{
+		a := &os.FileInfo{
 			Mode: syscall.S_IFLNK | 0644,
 		}
 		return a, fuse.OK
 	}
 
 	if me.getUnionFs(path) != nil {
-		return &fuse.Attr{
+		return &os.FileInfo{
 			Mode: fuse.S_IFDIR | 0755,
 		},fuse.OK
 	}
