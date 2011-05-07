@@ -702,9 +702,10 @@ func (me *UnionFs) Open(name string, flags uint32) (fuseFile fuse.File, status f
 }
 
 func (me *UnionFs) Release(name string) {
-	me.branchCache.DropEntry(name)
-	// Refresh.
-	me.getBranch(name)
+	r := me.getBranch(name)
+	fresh := me.getBranchAttrNoCache(name)
+	r.attr.Size = fresh.attr.Size
+	me.branchCache.Set(name, r)
 }
 
 func (me *UnionFs) Roots() (result []string) {
