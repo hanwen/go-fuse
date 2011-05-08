@@ -396,6 +396,7 @@ func (me *UnionFs) Chown(name string, uid uint32, gid uint32) (code fuse.Status)
 	}
 	r.attr.Uid = int(uid)
 	r.attr.Gid = int(gid)
+	r.attr.Ctime_ns = time.Nanoseconds()
 	me.branchCache.Set(name, r)
 	return fuse.OK
 }
@@ -427,6 +428,7 @@ func (me *UnionFs) Chmod(name string, mode uint32) (code fuse.Status) {
 		me.fileSystems[0].Chmod(name, mode)
 	}
 	r.attr.Mode = (r.attr.Mode &^ 07777) | mode
+	r.attr.Ctime_ns = time.Nanoseconds()
 	me.branchCache.Set(name, r)
 	return fuse.OK
 }
