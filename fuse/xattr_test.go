@@ -95,6 +95,7 @@ func TestXAttrRead(t *testing.T) {
 
 	connector := NewFileSystemConnector(xfs, nil)
 	mountPoint := MakeTempDir()
+	defer os.RemoveAll(mountPoint)
 
 	state := NewMountState(connector)
 	state.Mount(mountPoint)

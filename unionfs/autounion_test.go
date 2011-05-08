@@ -30,7 +30,7 @@ func WriteFile(name string, contents string) {
 	CheckSuccess(err)
 }
 
-func setup(t *testing.T) (workdir string, state *fuse.MountState) {
+func setup(t *testing.T) (workdir string, cleanup func()) {
 	wd := fuse.MakeTempDir()
 	err := os.Mkdir(wd+"/mount", 0700)
 	fuse.CheckSuccess(err)
@@ -45,18 +45,21 @@ func setup(t *testing.T) (workdir string, state *fuse.MountState) {
 
 	fs := NewAutoUnionFs(wd+"/store", testAOpts)
 	connector := fuse.NewFileSystemConnector(fs, &testAOpts.MountOptions)
-	state = fuse.NewMountState(connector)
+	state := fuse.NewMountState(connector)
 	state.Mount(wd + "/mount")
 	state.Debug = true
 	go state.Loop(false)
 
-	return wd, state
+	return wd, func() {
+		state.Unmount()
+		os.RemoveAll(wd)
+	}
 }
 
 func TestAutoFsSymlink(t *testing.T) {
-	wd, state := setup(t)
-	defer state.Unmount()
-
+	wd, clean := setup(t)
+	defer clean()
+	
 	err := os.Mkdir(wd+"/store/foo", 0755)
 	CheckSuccess(err)
 	os.Symlink(wd+"/ro", wd+"/store/foo/READONLY")
@@ -88,8 +91,8 @@ func TestAutoFsSymlink(t *testing.T) {
 }
 
 func TestCreationChecks(t *testing.T) {
-	wd, state := setup(t)
-	defer state.Unmount()
+	wd, clean := setup(t)
+	defer clean()
 
 	err := os.Mkdir(wd+"/store/foo", 0755)
 	CheckSuccess(err)

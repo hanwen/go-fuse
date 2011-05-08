@@ -131,6 +131,7 @@ func TestFSetAttr(t *testing.T) {
 	state.Mount(dir)
 	state.Debug = true
 	defer state.Unmount()
+	defer os.RemoveAll(dir)
 
 	go state.Loop(false)
 

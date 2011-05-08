@@ -24,9 +24,11 @@ func TestMultiZipFs(t *testing.T) {
 	fs := NewMultiZipFs()
 	state := fuse.NewMountState(fs.Connector)
 	mountPoint := fuse.MakeTempDir()
+	defer os.RemoveAll(mountPoint)
 
 	state.Debug = true
 	err = state.Mount(mountPoint)
+	defer state.Unmount()
 	CheckSuccess(err)
 
 	go state.Loop(true)
@@ -97,6 +99,4 @@ func TestMultiZipFs(t *testing.T) {
 	if err == nil {
 		t.Error("stat should fail after unmount.", fi)
 	}
-
-	state.Unmount()
 }

@@ -40,6 +40,10 @@ func (me *MountState) KernelSettings() InitIn {
 	return me.kernelSettings
 }
 
+func (me *MountState) MountPoint() string {
+	return me.mountPoint
+}
+
 // Mount filesystem on mountPoint.
 func (me *MountState) Mount(mountPoint string) os.Error {
 	file, mp, err := mount(mountPoint)
