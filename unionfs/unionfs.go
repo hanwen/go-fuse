@@ -65,7 +65,7 @@ type UnionFs struct {
 
 	roots    []string
 	branches []*fuse.LoopbackFileSystem
-
+	
 	// The same, but as interfaces.
 	fileSystems []fuse.FileSystem
 
@@ -644,16 +644,14 @@ func (me *UnionFs) OpenDir(directory string) (stream chan fuse.DirEntry, status 
 		results[_READONLY] = 0, false
 	}
 
-	stream = make(chan fuse.DirEntry)
-	go func() {
-		for k, v := range results {
-			stream <- fuse.DirEntry{
-				Name: k,
-				Mode: v,
-			}
+	stream = make(chan fuse.DirEntry, len(results))
+	for k, v := range results {
+		stream <- fuse.DirEntry{
+			Name: k,
+			Mode: v,
 		}
-		close(stream)
-	}()
+	}
+	close(stream)
 	return stream, fuse.OK
 }
 
