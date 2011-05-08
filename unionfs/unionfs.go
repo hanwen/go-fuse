@@ -599,8 +599,8 @@ func (me *UnionFs) OpenDir(directory string) (stream chan fuse.DirEntry, status 
 				ch, s := pfs.OpenDir(directory)
 				statuses[j] = s
 				for s.Ok() {
-					v := <-ch
-					if v.Name == "" {
+					v, ok := <-ch
+					if !ok {
 						break
 					}
 					entries[j][v.Name] = v.Mode
