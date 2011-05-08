@@ -416,3 +416,33 @@ func TestCopyChmod(t *testing.T) {
 		t.Errorf("uncached attr error %o", fi.Mode)
 	}
 }
+
+func abs(dt int64) int64 {
+	if dt >= 0 {
+		return dt
+	} 
+	return -dt
+}
+
+func TestTruncateTimestamp(t *testing.T) {
+	t.Log("TestTruncateTimestamp")
+	wd, state := setupUfs(t)
+	defer state.Unmount()
+
+	contents := "hello"
+	fn := wd + "/mount/y"
+	err := ioutil.WriteFile(fn, []byte(contents), 0644)
+	CheckSuccess(err)
+	time.Sleep(0.2e9)
+
+	truncTs := time.Nanoseconds()
+	err = os.Truncate(fn, 3)
+	CheckSuccess(err)
+
+	fi, err := os.Lstat(fn)
+	CheckSuccess(err)
+
+	if abs(truncTs - fi.Mtime_ns) > 0.1e9 {
+		t.Error("timestamp drift", truncTs, fi.Mtime_ns)
+	}
+}

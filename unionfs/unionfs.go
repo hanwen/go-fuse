@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"sync"
 	"strings"
+	"time"
 )
 
 // TODO(hanwen): is md5 sufficiently fast?
@@ -346,6 +347,7 @@ func (me *UnionFs) Truncate(path string, offset uint64) (code fuse.Status) {
 	}
 	if code.Ok() { 
 		r.attr.Size = int64(offset)
+		r.attr.Mtime_ns = time.Nanoseconds()
 		me.branchCache.Set(path, r)
 	}
 	return code
@@ -688,22 +690,22 @@ func (me *UnionFs) Rename(src string, dst string) (code fuse.Status) {
 
 func (me *UnionFs) Open(name string, flags uint32) (fuseFile fuse.File, status fuse.Status) {
 	r := me.getBranch(name)
-	branch := r.branch
 	if flags&fuse.O_ANYWRITE != 0 && r.branch > 0 {
 		code := me.Promote(name, r)
 		if code != fuse.OK {
 			return nil, code
 		}
-		branch = 0
+		r.branch = 0
+		r.attr.Mtime_ns = time.Nanoseconds()
+		me.branchCache.Set(name, r)
 	}
-	return me.fileSystems[branch].Open(name, uint32(flags))
+	return me.fileSystems[r.branch].Open(name, uint32(flags))
 }
 
 func (me *UnionFs) Release(name string) {
-	r := me.getBranch(name)
-	fresh := me.getBranchAttrNoCache(name)
-	r.attr.Size = fresh.attr.Size
-	me.branchCache.Set(name, r)
+	// Refresh timestamps and size field.
+	me.branchCache.DropEntry(name)
+	me.getBranch(name)
 }
 
 func (me *UnionFs) Roots() (result []string) {
