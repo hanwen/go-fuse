@@ -18,9 +18,12 @@ import (
 type FileSystem interface {
 	// Attributes
 	GetAttr(name string) (*os.FileInfo, Status)
+
+	// These should update the file's ctime too.
 	Chmod(name string, mode uint32) (code Status)
 	Chown(name string, uid uint32, gid uint32) (code Status)
 	Utimens(name string, AtimeNs uint64, MtimeNs uint64) (code Status)
+	
 	Truncate(name string, offset uint64) (code Status)
 
 	Access(name string, mode uint32) (code Status)
@@ -43,9 +46,11 @@ type FileSystem interface {
 	Mount(connector *FileSystemConnector) Status
 	Unmount()
 
-	// File handling
+	// File handling.  If opening for writing, the file's mtime
+	// should be updated too.
 	Open(name string, flags uint32) (file File, code Status)
 	Create(name string, flags uint32, mode uint32) (file File, code Status)
+	
 	// Release() gets called after File.Release() on a file opened
 	// as writable.
 	Release(name string)
@@ -66,17 +71,15 @@ type FileSystem interface {
 type File interface {
 	Read(*ReadIn, *BufferPool) ([]byte, Status)
 	Write(*WriteIn, []byte) (written uint32, code Status)
-	
-	Flush() Status
-	Release()
-	Fsync(*FsyncIn) (code Status)
+	Truncate(size uint64) Status
 
 	GetAttr() (*os.FileInfo, Status)
-
 	Chown(uid uint32, gid uint32) Status
 	Chmod(perms uint32) Status
 	Utimens(atimeNs uint64, mtimeNs uint64) Status
-	Truncate(size uint64) Status
+	Flush() Status
+	Release()
+	Fsync(*FsyncIn) (code Status)
 	Ioctl(input *IoctlIn) (output *IoctlOut, data []byte, code Status)
 }
 
