@@ -68,7 +68,7 @@ func (me *AutoUnionFs) Mount(connector *fuse.FileSystemConnector) fuse.Status {
 func (me *AutoUnionFs) addAutomaticFs(roots []string) {
 	relative := strings.TrimLeft(strings.Replace(roots[0], me.root, "", -1), "/")
 	name := strings.Replace(relative, "/", "-", -1)
-	
+
 	if me.getUnionFs(name) == nil {
 		me.addFs(name, roots)
 	}
@@ -113,7 +113,7 @@ func (me *AutoUnionFs) rmFs(name string) (code fuse.Status) {
 	if code.Ok() {
 		me.knownFileSystems[name] = nil, false
 	} else {
-		log.Println("Unmount failed for %s.  Code %v", name, code)
+		log.Printf("Unmount failed for %s.  Code %v", name, code)
 	}
 
 	return code
