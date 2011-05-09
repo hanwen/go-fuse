@@ -18,7 +18,7 @@ func NewReadOnlyFile(data []byte) *ReadOnlyFile {
 	return f
 }
 
-func (me *ReadOnlyFile) Read(input *ReadIn, bp *BufferPool) ([]byte, Status) {
+func (me *ReadOnlyFile) Read(input *ReadIn, bp BufferPool) ([]byte, Status) {
 	end := int(input.Offset) + int(input.Size)
 	if end > len(me.data) {
 		end = len(me.data)
@@ -38,7 +38,7 @@ func NewDevNullFile() *DevNullFile {
 	return new(DevNullFile)
 }
 
-func (me *DevNullFile) Read(input *ReadIn, bp *BufferPool) ([]byte, Status) {
+func (me *DevNullFile) Read(input *ReadIn, bp BufferPool) ([]byte, Status) {
 	return []byte{}, OK
 }
 
@@ -63,7 +63,7 @@ type LoopbackFile struct {
 	DefaultFile
 }
 
-func (me *LoopbackFile) Read(input *ReadIn, buffers *BufferPool) ([]byte, Status) {
+func (me *LoopbackFile) Read(input *ReadIn, buffers BufferPool) ([]byte, Status) {
 	slice := buffers.AllocBuffer(input.Size)
 
 	n, err := me.file.ReadAt(slice, int64(input.Offset))

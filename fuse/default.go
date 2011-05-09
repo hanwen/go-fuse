@@ -100,7 +100,7 @@ func (me *DefaultRawFileSystem) OpenDir(header *InHeader, input *OpenIn) (flags 
 	return 0, 0, ENOSYS
 }
 
-func (me *DefaultRawFileSystem) Read(*ReadIn, *BufferPool) ([]byte, Status) {
+func (me *DefaultRawFileSystem) Read(*ReadIn, BufferPool) ([]byte, Status) {
 	return nil, ENOSYS
 }
 
@@ -137,7 +137,7 @@ func (me *DefaultRawFileSystem) Ioctl(header *InHeader, input *IoctlIn) (output 
 ////////////////////////////////////////////////////////////////
 //  DefaultFile
 
-func (me *DefaultFile) Read(*ReadIn, *BufferPool) ([]byte, Status) {
+func (me *DefaultFile) Read(*ReadIn, BufferPool) ([]byte, Status) {
 	return []byte(""), ENOSYS
 }
 

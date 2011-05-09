@@ -274,7 +274,7 @@ func (me *LockingRawFileSystem) ReleaseDir(header *InHeader, h *ReleaseIn) {
 	me.RawFileSystem.ReleaseDir(header, h)
 }
 
-func (me *LockingRawFileSystem) Read(input *ReadIn, bp *BufferPool) ([]byte, Status) {
+func (me *LockingRawFileSystem) Read(input *ReadIn, bp BufferPool) ([]byte, Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Read(input, bp)
 }

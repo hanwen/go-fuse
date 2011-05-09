@@ -29,7 +29,7 @@ type MountState struct {
 	Debug bool
 
 	// For efficient reads and writes.
-	buffers *BufferPool
+	buffers *BufferPoolImpl
 
 	*LatencyMap
 

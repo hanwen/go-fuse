@@ -466,7 +466,7 @@ func (me *FileSystemConnector) Write(input *WriteIn, data []byte) (written uint3
 	return f.Write(input, data)
 }
 
-func (me *FileSystemConnector) Read(input *ReadIn, bp *BufferPool) ([]byte, Status) {
+func (me *FileSystemConnector) Read(input *ReadIn, bp BufferPool) ([]byte, Status) {
 	f, _, n := me.getFile(input.Fh)
 	if me.Debug {
 		me.fileDebug(input.Fh, n)

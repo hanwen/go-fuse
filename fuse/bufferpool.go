@@ -9,10 +9,30 @@ import (
 
 var _ = log.Println
 
+type BufferPool interface {
+	AllocBuffer(size uint32) []byte
+	FreeBuffer(slice []byte)
+}
+
+type GcBufferPool struct {
+}
+
+// NewGcBufferPool is just a fallback to the standard allocation routines. 
+func NewGcBufferPool() *GcBufferPool {
+	return &GcBufferPool{}
+}
+
+func (me *GcBufferPool) AllocBuffer(size uint32) []byte {
+	return make([]byte, size)
+}
+
+func (me *GcBufferPool) FreeBuffer(slice []byte) {
+}
+
 // BufferPool implements a pool of buffers that returns slices with
 // capacity (2^e * PAGESIZE) for e=0,1,...  which have possibly been
 // used, and may contain random contents.
-type BufferPool struct {
+type BufferPoolImpl struct {
 	lock sync.Mutex
 
 	// For each exponent a list of slice pointers.
@@ -41,14 +61,14 @@ func IntToExponent(z int) uint {
 	return exp
 }
 
-func NewBufferPool() *BufferPool {
-	bp := new(BufferPool)
+func NewBufferPool() *BufferPoolImpl {
+	bp := new(BufferPoolImpl)
 	bp.buffersByExponent = make([][][]byte, 0, 8)
 	bp.outstandingBuffers = make(map[uintptr]uint)
 	return bp
 }
 
-func (me *BufferPool) String() string {
+func (me *BufferPoolImpl) String() string {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 	s := fmt.Sprintf("created: %v\noutstanding %v\n",
@@ -59,7 +79,7 @@ func (me *BufferPool) String() string {
 	return s
 }
 
-func (me *BufferPool) getBuffer(exponent uint) []byte {
+func (me *BufferPoolImpl) getBuffer(exponent uint) []byte {
 	if len(me.buffersByExponent) <= int(exponent) {
 		return nil
 	}
@@ -73,7 +93,7 @@ func (me *BufferPool) getBuffer(exponent uint) []byte {
 	return result
 }
 
-func (me *BufferPool) addBuffer(slice []byte, exp uint) {
+func (me *BufferPoolImpl) addBuffer(slice []byte, exp uint) {
 	for len(me.buffersByExponent) <= int(exp) {
 		me.buffersByExponent = append(me.buffersByExponent, make([][]byte, 0))
 	}
@@ -82,7 +102,7 @@ func (me *BufferPool) addBuffer(slice []byte, exp uint) {
 
 // AllocBuffer creates a buffer of at least the given size. After use,
 // it should be deallocated with FreeBuffer().
-func (me *BufferPool) AllocBuffer(size uint32) []byte {
+func (me *BufferPoolImpl) AllocBuffer(size uint32) []byte {
 	sz := int(size)
 	if sz < PAGESIZE {
 		sz = PAGESIZE
@@ -119,7 +139,7 @@ func (me *BufferPool) AllocBuffer(size uint32) []byte {
 // FreeBuffer takes back a buffer if it was allocated through
 // AllocBuffer.  It is not an error to call FreeBuffer() on a slice
 // obtained elsewhere.
-func (me *BufferPool) FreeBuffer(slice []byte) {
+func (me *BufferPoolImpl) FreeBuffer(slice []byte) {
 	if slice == nil {
 		return
 	}

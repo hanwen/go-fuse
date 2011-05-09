@@ -17,7 +17,7 @@ type MutableDataFile struct {
 	GetAttrCalled bool
 }
 
-func (me *MutableDataFile) Read(r *ReadIn, bp *BufferPool) ([]byte, Status) {
+func (me *MutableDataFile) Read(r *ReadIn, bp BufferPool) ([]byte, Status) {
 	return me.data[r.Offset : r.Offset+uint64(r.Size)], OK
 }
 

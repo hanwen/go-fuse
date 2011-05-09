@@ -141,7 +141,7 @@ func (me *TimingRawFileSystem) Release(header *InHeader, input *ReleaseIn) {
 	me.RawFileSystem.Release(header, input)
 }
 
-func (me *TimingRawFileSystem) Read(input *ReadIn, bp *BufferPool) ([]byte, Status) {
+func (me *TimingRawFileSystem) Read(input *ReadIn, bp BufferPool) ([]byte, Status) {
 	defer me.startTimer("Read")()
 	return me.RawFileSystem.Read(input, bp)
 }

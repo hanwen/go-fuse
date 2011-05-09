@@ -13,7 +13,7 @@ import (
 // Typically, each call happens in its own goroutine, so take care to
 // make the file system thread-safe.
 //
-// Include DefaultFileSystem to provide default null implementation of
+// Include DefaultFileSystem to provide a default null implementation of
 // required methods.
 type FileSystem interface {
 	// Attributes
@@ -69,7 +69,7 @@ type FileSystem interface {
 //
 // TODO - should File be thread safe?
 type File interface {
-	Read(*ReadIn, *BufferPool) ([]byte, Status)
+	Read(*ReadIn, BufferPool) ([]byte, Status)
 	Write(*WriteIn, []byte) (written uint32, code Status)
 	Truncate(size uint64) Status
 
@@ -137,7 +137,7 @@ type RawFileSystem interface {
 	// File handling.
 	Create(header *InHeader, input *CreateIn, name string) (flags uint32, handle uint64, out *EntryOut, code Status)
 	Open(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status)
-	Read(*ReadIn, *BufferPool) ([]byte, Status)
+	Read(*ReadIn, BufferPool) ([]byte, Status)
 
 	Release(header *InHeader, input *ReleaseIn)
 	Write(*WriteIn, []byte) (written uint32, code Status)
