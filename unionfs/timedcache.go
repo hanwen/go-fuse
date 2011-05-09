@@ -15,9 +15,8 @@ type cacheEntry struct {
 	expiryNs int64
 }
 
-// TimedIntCache caches the result of fetch() for some time.
-//
-// Oh, how I wish we had generics.
+// TimedIntCache caches the result of fetch() for some time.  It is
+// thread-safe.
 type TimedCache struct {
 	fetch func(name string) interface{}
 
@@ -32,6 +31,8 @@ type TimedCache struct {
 
 const layerCacheTimeoutNs = 1e9
 
+// Creates a new cache with the given TTL.  If TTL <= 0, the caching is
+// indefinite.
 func NewTimedCache(fetcher func(name string) interface{}, ttlNs int64) *TimedCache {
 	l := new(TimedCache)
 	l.ttlNs = ttlNs
@@ -45,8 +46,8 @@ func (me *TimedCache) Get(name string) interface{} {
 	info, ok := me.cacheMap[name]
 	me.cacheMapMutex.RUnlock()
 
-	now := time.Nanoseconds()
-	if ok && info.expiryNs > now {
+	valid := ok && (me.ttlNs <= 0 || info.expiryNs > time.Nanoseconds())
+	if valid {
 		return info.data
 	}
 	return me.GetFresh(name)
@@ -93,8 +94,12 @@ func (me *TimedCache) Purge() {
 }
 
 func (me *TimedCache) RecurringPurge() {
+	if (me.ttlNs <= 0) {
+		return
+	}
+
 	me.Purge()
-	me.PurgeTimer = time.AfterFunc(5*me.ttlNs,
+	me.PurgeTimer = time.AfterFunc(me.ttlNs * 5,
 		func() { me.RecurringPurge() })
 }
 

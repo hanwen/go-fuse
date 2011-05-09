@@ -69,6 +69,8 @@ type UnionFs struct {
 	// The same, but as interfaces.
 	fileSystems []fuse.FileSystem
 
+	cachingFileSystems []*CachingFileSystem
+	
 	// A file-existence cache.
 	deletionCache *DirCache
 
@@ -93,12 +95,19 @@ func NewUnionFs(roots []string, options UnionFsOptions) *UnionFs {
 	g.roots = make([]string, len(roots))
 	copy(g.roots, roots)
 	g.options = &options
-	for _, r := range roots {
+	for i, r := range roots {
+		var fs fuse.FileSystem
 		pt := fuse.NewLoopbackFileSystem(r)
 		g.branches = append(g.branches, pt)
 
-		// We could use some sort of caching file system here.
-		g.fileSystems = append(g.fileSystems, fuse.FileSystem(pt))
+		fs = pt
+		if i > 0 {
+			cfs := NewCachingFileSystem(pt, 0)
+			g.cachingFileSystems = append(g.cachingFileSystems, cfs)
+			fs = cfs
+		}
+
+		g.fileSystems = append(g.fileSystems, fs)
 	}
 
 	deletionDir := g.deletionDir()
@@ -542,8 +551,11 @@ func (me *UnionFs) GetAttr(name string) (a *os.FileInfo, s fuse.Status) {
 	}
 	if name == _DROP_CACHE {
 		log.Println("Forced cache drop on", me.roots)
-		me.branchCache.Purge()
+		me.branchCache.DropAll()
 		me.deletionCache.DropCache()
+		for _, fs := range me.cachingFileSystems {
+			fs.DropCache()
+		}
 		return nil, fuse.ENOENT
 	}
 	if name == me.options.DeletionDirName {
