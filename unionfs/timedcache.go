@@ -97,3 +97,9 @@ func (me *TimedCache) RecurringPurge() {
 	me.PurgeTimer = time.AfterFunc(5*me.ttlNs,
 		func() { me.RecurringPurge() })
 }
+
+func (me *TimedCache) DropAll() {
+	me.cacheMapMutex.Lock()
+	defer me.cacheMapMutex.Unlock()
+	me.cacheMap = make(map[string]*cacheEntry, len(me.cacheMap))
+}

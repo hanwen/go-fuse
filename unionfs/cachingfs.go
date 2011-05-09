@@ -96,6 +96,12 @@ func NewCachingFileSystem(fs fuse.FileSystem, ttlNs int64) *CachingFileSystem {
 	return c
 }
 
+func (me *CachingFileSystem) DropCache() {
+	for _, c := range []*TimedCache{me.attributes, me.dirs, me.links, me.xattr} {
+		c.DropAll()
+	}
+}
+
 func (me *CachingFileSystem) GetAttr(name string) (*os.FileInfo, fuse.Status) {
 	r := me.attributes.Get(name).(*attrResponse)
 	return r.FileInfo, r.Status
