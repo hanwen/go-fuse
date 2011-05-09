@@ -4,12 +4,20 @@ import (
 	"fmt"
 	"github.com/hanwen/go-fuse/fuse"
 	"os"
+	"strings"
 )
 
 var _ = fmt.Println
 
+const _XATTRSEP = "@XATTR@"
+
 type attrResponse struct {
 	*os.FileInfo
+	fuse.Status
+}
+
+type xattrResponse struct {
+	data []byte
 	fuse.Status
 }
 
@@ -30,6 +38,7 @@ type CachingFileSystem struct {
 	attributes *TimedCache
 	dirs       *TimedCache
 	links      *TimedCache
+	xattr      *TimedCache
 }
 
 func readDir(fs fuse.FileSystem, name string) *dirResponse {
@@ -53,7 +62,16 @@ func readDir(fs fuse.FileSystem, name string) *dirResponse {
 func getAttr(fs fuse.FileSystem, name string) *attrResponse {
 	a, code := fs.GetAttr(name)
 	return &attrResponse{
-		FileInfo:   a,
+		FileInfo: a,
+		Status:   code,
+	}
+}
+
+func getXAttr(fs fuse.FileSystem, nameAttr string) *xattrResponse {
+	ns := strings.Split(nameAttr, _XATTRSEP, 2)
+	a, code := fs.GetXAttr(ns[0], ns[1])
+	return &xattrResponse{
+		data:   a,
 		Status: code,
 	}
 }
@@ -72,12 +90,21 @@ func NewCachingFileSystem(fs fuse.FileSystem, ttlNs int64) *CachingFileSystem {
 	c.attributes = NewTimedCache(func(n string) interface{} { return getAttr(fs, n) }, ttlNs)
 	c.dirs = NewTimedCache(func(n string) interface{} { return readDir(fs, n) }, ttlNs)
 	c.links = NewTimedCache(func(n string) interface{} { return readLink(fs, n) }, ttlNs)
+	c.xattr = NewTimedCache(func(n string) interface{} {
+		return getXAttr(fs, n)
+	},ttlNs)
 	return c
 }
 
 func (me *CachingFileSystem) GetAttr(name string) (*os.FileInfo, fuse.Status) {
 	r := me.attributes.Get(name).(*attrResponse)
 	return r.FileInfo, r.Status
+}
+
+func (me *CachingFileSystem) GetXAttr(name string, attr string) ([]byte, fuse.Status) {
+	key := name + _XATTRSEP + attr
+	r := me.xattr.Get(key).(*xattrResponse)
+	return r.data, r.Status
 }
 
 func (me *CachingFileSystem) Readlink(name string) (string, fuse.Status) {
