@@ -65,12 +65,12 @@ type UnionFs struct {
 
 	roots    []string
 	branches []*fuse.LoopbackFileSystem
-	
+
 	// The same, but as interfaces.
 	fileSystems []fuse.FileSystem
 
 	cachingFileSystems []*CachingFileSystem
-	
+
 	// A file-existence cache.
 	deletionCache *DirCache
 
@@ -153,10 +153,10 @@ type branchResult struct {
 
 func (me *UnionFs) getBranchAttrNoCache(name string) branchResult {
 	name = stripSlash(name)
-	
+
 	parent, base := path.Split(name)
 	parent = stripSlash(parent)
-	
+
 	parentBranch := 0
 	if base != "" {
 		parentBranch = me.getBranch(parent).branch
@@ -168,11 +168,8 @@ func (me *UnionFs) getBranchAttrNoCache(name string) branchResult {
 
 		a, s := fs.GetAttr(name)
 		if s.Ok() {
-			if a.Mode&fuse.S_IFDIR != 0 {
-				// Make all directories appear writable
-				a.Mode |= 0200
-			}
-
+			// Make all files appear writable
+			a.Mode |= 0222
 			return branchResult{
 				attr:   a,
 				code:   s,
@@ -265,12 +262,12 @@ func (me *UnionFs) Promote(name string, srcResult branchResult) fuse.Status {
 
 	// Promote directories.
 	me.promoteDirsTo(name)
-	
+
 	_, err := CopyFile(writable.GetPath(name), sourceFs.GetPath(name))
 	r := me.getBranch(name)
 	r.branch = 0
 	me.branchCache.Set(name, r)
-	
+
 	if err != nil {
 		log.Println("promote error: ", name, err.String())
 		return fuse.EPERM
@@ -320,7 +317,7 @@ func (me *UnionFs) Mkdir(path string, mode uint32) (code fuse.Status) {
 	if r.code != fuse.ENOENT {
 		return syscall.EEXIST
 	}
-	
+
 	code = me.promoteDirsTo(path)
 	if code.Ok() {
 		code = me.fileSystems[0].Mkdir(path, mode)
@@ -354,7 +351,7 @@ func (me *UnionFs) Truncate(path string, offset uint64) (code fuse.Status) {
 	if code.Ok() {
 		code = me.fileSystems[0].Truncate(path, offset)
 	}
-	if code.Ok() { 
+	if code.Ok() {
 		r.attr.Size = int64(offset)
 		r.attr.Mtime_ns = time.Nanoseconds()
 		me.branchCache.Set(path, r)
@@ -362,7 +359,7 @@ func (me *UnionFs) Truncate(path string, offset uint64) (code fuse.Status) {
 	return code
 }
 
-func (me *UnionFs) Utimens(name string, atime uint64, mtime uint64) (code fuse.Status) { 
+func (me *UnionFs) Utimens(name string, atime uint64, mtime uint64) (code fuse.Status) {
 	name = stripSlash(name)
 	r := me.getBranch(name)
 
@@ -388,11 +385,11 @@ func (me *UnionFs) Chown(name string, uid uint32, gid uint32) (code fuse.Status)
 	if r.attr == nil || r.code != fuse.OK {
 		return r.code
 	}
-	
+
 	if os.Geteuid() != 0 {
 		return fuse.EPERM
 	}
-	
+
 	if r.attr.Uid != int(uid) || r.attr.Gid != int(gid) {
 		if r.branch > 0 {
 			code := me.Promote(name, r)
@@ -488,7 +485,7 @@ func stripSlash(fn string) string {
 func (me *UnionFs) promoteDirsTo(filename string) fuse.Status {
 	dirName, _ := filepath.Split(filename)
 	dirName = stripSlash(dirName)
-	
+
 	var todo []string
 	var results []branchResult
 	for dirName != "" {
@@ -682,7 +679,7 @@ func (me *UnionFs) Rename(src string, dst string) (code fuse.Status) {
 	if code.Ok() {
 		code = me.fileSystems[0].Rename(src, dst)
 	}
-	
+
 	if code.Ok() {
 		me.removeDeletion(dst)
 		srcResult.branch = 0
