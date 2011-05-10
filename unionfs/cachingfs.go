@@ -161,7 +161,7 @@ func (me *CachingFileSystem) GetXAttr(name string, attr string) ([]byte, fuse.St
 }
 
 func (me *CachingFileSystem) Readlink(name string) (string, fuse.Status) {
-	r := me.attributes.Get(name).(*linkResponse)
+	r := me.links.Get(name).(*linkResponse)
 	return r.linkContent, r.Status
 }
 

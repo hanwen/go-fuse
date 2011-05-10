@@ -102,7 +102,7 @@ func mapEq(m1, m2 map[string]bool) bool {
 	}
 
 	for k, v := range m1 {
-		ok, val := m2[k]
+		val, ok := m2[k]
 		if !ok || val != v {
 			return false
 		}
