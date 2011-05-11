@@ -374,6 +374,7 @@ func (me *UnionFs) Utimens(name string, atime uint64, mtime uint64) (code fuse.S
 	if code.Ok() {
 		r.attr.Atime_ns = int64(atime)
 		r.attr.Mtime_ns = int64(mtime)
+		r.attr.Ctime_ns = time.Nanoseconds()
 		me.branchCache.Set(name, r)
 	}
 	return code
@@ -534,8 +535,11 @@ func (me *UnionFs) Create(name string, flags uint32, mode uint32) (fuseFile fuse
 	if code.Ok() {
 		me.removeDeletion(name)
 
+		now := time.Nanoseconds()
 		a := os.FileInfo{
 		Mode: fuse.S_IFREG | mode,
+		Ctime_ns: now,
+		Mtime_ns: now,
 		}
 		me.branchCache.Set(name, branchResult{&a, fuse.OK, 0})
 	}
