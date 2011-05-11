@@ -42,7 +42,8 @@ func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string
 	// Init.
 	fullPath, mount := parent.GetPath()
 	if mount == nil {
-		return NegativeEntry(mount.options.NegativeTimeout), OK, nil
+		rootMount := me.rootNode.mount
+		return NegativeEntry(rootMount.options.NegativeTimeout), OK, nil
 	}
 	fullPath = filepath.Join(fullPath, name)
 
