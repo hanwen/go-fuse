@@ -353,7 +353,9 @@ func (me *UnionFs) Truncate(path string, offset uint64) (code fuse.Status) {
 	}
 	if code.Ok() {
 		r.attr.Size = int64(offset)
-		r.attr.Mtime_ns = time.Nanoseconds()
+		now := time.Nanoseconds()
+		r.attr.Mtime_ns = now
+		r.attr.Ctime_ns = now
 		me.branchCache.Set(path, r)
 	}
 	return code
