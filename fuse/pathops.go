@@ -76,7 +76,7 @@ func (me *FileSystemConnector) Forget(h *InHeader, input *ForgetIn) {
 
 func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
 	if input.Flags&FUSE_GETATTR_FH != 0 {
-		f, mount, _ := me.getFile(input.Fh)
+		f, bridge := me.getFile(input.Fh)
 		fi, err := f.GetAttr()
 		if err != OK && err != ENOSYS {
 			return nil, err
@@ -86,7 +86,7 @@ func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out 
 			out = &AttrOut{}
 			CopyFileInfo(fi, &out.Attr)
 			out.Attr.Ino = header.NodeId
-			SplitNs(mount.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
+			SplitNs(bridge.mountData.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 
 			return out, OK
 		}
@@ -124,13 +124,13 @@ func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags u
 	de := &Dir{
 		stream: stream,
 	}
-	h := me.registerFile(node, mount, de)
+	h := me.registerFile(node, mount, de, input.Flags)
 
 	return 0, h, OK
 }
 
 func (me *FileSystemConnector) ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status) {
-	d, _, _ := me.getDir(input.Fh)
+	d, _ := me.getDir(input.Fh)
 	de, code := d.ReadDir(input)
 	if code != OK {
 		return nil, code
@@ -149,7 +149,7 @@ func (me *FileSystemConnector) Open(header *InHeader, input *OpenIn) (flags uint
 	if err != OK {
 		return 0, 0, err
 	}
-	h := me.registerFile(node, mount, f)
+	h := me.registerFile(node, mount, f, input.Flags)
 
 	return 0, h, OK
 }
@@ -367,30 +367,35 @@ func (me *FileSystemConnector) Create(header *InHeader, input *CreateIn, name st
 	}
 
 	out, code, inode := me.internalLookupWithNode(parent, name, 1)
-	return 0, me.registerFile(inode, mount, f), out, code
+	return 0, me.registerFile(inode, mount, f, input.Flags), out, code
 }
 
 func (me *FileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
 	node := me.getInodeData(header.NodeId)
 	f := me.unregisterFile(node, input.Fh).(File)
 	f.Release()
+}
 
-	if input.Flags & O_ANYWRITE != 0 {
+func (me *FileSystemConnector) Flush(input *FlushIn) Status {
+	f, b := me.getFile(input.Fh)
+	
+	code := f.Flush()
+	if code.Ok() && b.Flags & O_ANYWRITE != 0 {
 		// We only signal releases to the FS if the
 		// open could have changed things.
 		var path string
 		var mount *mountData
 		me.treeLock.RLock()
-		if node.Parent != nil {
-			path, mount = node.GetPath()
+		if b.inode.Parent != nil {
+			path, mount = b.inode.GetPath()
 		}
 		me.treeLock.RUnlock()
 
 		if mount != nil {
-			mount.fs.Release(path)
+			code = mount.fs.Flush(path)
 		}
 	}
-	me.considerDropInode(node)
+	return code
 }
 
 func (me *FileSystemConnector) ReleaseDir(header *InHeader, input *ReleaseIn) {
@@ -459,25 +464,25 @@ func (me *FileSystemConnector) fileDebug(fh uint64, n *inode) {
 }
 
 func (me *FileSystemConnector) Write(input *WriteIn, data []byte) (written uint32, code Status) {
-	f, _, n  := me.getFile(input.Fh)
+	f, b  := me.getFile(input.Fh)
 	if me.Debug {
-		me.fileDebug(input.Fh, n)
+		me.fileDebug(input.Fh, b.inode)
 	}
 	return f.Write(input, data)
 }
 
 func (me *FileSystemConnector) Read(input *ReadIn, bp BufferPool) ([]byte, Status) {
-	f, _, n := me.getFile(input.Fh)
+	f, b := me.getFile(input.Fh)
 	if me.Debug {
-		me.fileDebug(input.Fh, n)
+		me.fileDebug(input.Fh, b.inode)
 	}
 	return f.Read(input, bp)
 }
 
 func (me *FileSystemConnector) Ioctl(header *InHeader, input *IoctlIn) (out *IoctlOut, data []byte, code Status) {
-	f, _, n := me.getFile(input.Fh)
+	f, b := me.getFile(input.Fh)
 	if me.Debug {
-		me.fileDebug(input.Fh, n)
+		me.fileDebug(input.Fh, b.inode)
 	}
 	return f.Ioctl(input)
 }

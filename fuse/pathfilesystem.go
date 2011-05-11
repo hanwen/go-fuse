@@ -198,6 +198,7 @@ type FileSystemConnector struct {
 type fileBridge struct {
 	*mountData
 	*inode
+	Flags uint32 
 	Iface interface{}
 }
 
@@ -226,7 +227,7 @@ func (me *FileSystemConnector) unregisterFile(node *inode, handle uint64) (inter
 	return b.Iface
 }
 
-func (me *FileSystemConnector) registerFile(node *inode, mount *mountData, f interface{}) uint64 {
+func (me *FileSystemConnector) registerFile(node *inode, mount *mountData, f interface{}, flags uint32) uint64 {
 	me.fileLock.Lock()
 	defer me.fileLock.Unlock()
 
@@ -234,6 +235,7 @@ func (me *FileSystemConnector) registerFile(node *inode, mount *mountData, f int
 		Iface:     f,
 		inode: node,
 		mountData: mount,
+		Flags: flags,
 	}
 	h := uint64(uintptr(unsafe.Pointer(b)))
 	_, ok := me.openFiles[h]
@@ -246,9 +248,9 @@ func (me *FileSystemConnector) registerFile(node *inode, mount *mountData, f int
 	return h
 }
 
-func (me *FileSystemConnector) decodeFileHandle(h uint64) (interface{}, *mountData, *inode) {
+func (me *FileSystemConnector) decodeFileHandle(h uint64) (*fileBridge) {
 	b := (*fileBridge)(unsafe.Pointer(uintptr(h)))
-	return b.Iface, b.mountData, b.inode
+	return b
 }
 
 type rawDir interface {
@@ -256,14 +258,14 @@ type rawDir interface {
 	Release()
 }
 
-func (me *FileSystemConnector) getDir(h uint64) (rawDir, *mountData, *inode) {
-	f, m, n := me.decodeFileHandle(h)
-	return f.(rawDir), m, n
+func (me *FileSystemConnector) getDir(h uint64) (dir rawDir, bridge *fileBridge) {
+	b := me.decodeFileHandle(h)
+	return b.Iface.(rawDir), b
 }
 
-func (me *FileSystemConnector) getFile(h uint64) (File, *mountData, *inode) {
-	f, m, n := me.decodeFileHandle(h)
-	return f.(File), m, n
+func (me *FileSystemConnector) getFile(h uint64) (file File, bridge *fileBridge) {
+	b := me.decodeFileHandle(h)
+	return b.Iface.(File), b
 }
 
 func (me *FileSystemConnector) verify() {
@@ -524,9 +526,11 @@ func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *mount
 	return p, m, n
 }
 
-func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64) (f File, m *mountData, p string) {
+func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64)  (f File, m *mountData, p string) {
 	if fh != 0 {
-		f, m, _ = me.getFile(fh)
+		var bridge *fileBridge
+		f, bridge = me.getFile(fh)
+		m = bridge.mountData
 	}
 	me.treeLock.RLock()
 	defer me.treeLock.RUnlock()

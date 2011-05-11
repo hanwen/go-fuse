@@ -51,9 +51,8 @@ type FileSystem interface {
 	Open(name string, flags uint32) (file File, code Status)
 	Create(name string, flags uint32, mode uint32) (file File, code Status)
 	
-	// Release() gets called after File.Release() on a file opened
-	// as writable.
-	Release(name string)
+	// Flush() gets called as a file opened for read/write.
+	Flush(name string) Status
 	
 	// Directory handling
 	OpenDir(name string) (stream chan DirEntry, code Status)

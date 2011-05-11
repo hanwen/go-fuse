@@ -717,10 +717,11 @@ func (me *UnionFs) Open(name string, flags uint32) (fuseFile fuse.File, status f
 	return me.fileSystems[r.branch].Open(name, uint32(flags))
 }
 
-func (me *UnionFs) Release(name string) {
+func (me *UnionFs) Flush(name string) fuse.Status {
 	// Refresh timestamps and size field.
 	me.branchCache.DropEntry(name)
 	me.getBranch(name)
+	return fuse.OK
 }
 
 func (me *UnionFs) Roots() (result []string) {

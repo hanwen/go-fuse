@@ -146,7 +146,7 @@ func (me *DefaultFile) Write(*WriteIn, []byte) (uint32, Status) {
 }
 
 func (me *DefaultFile) Flush() Status {
-	return ENOSYS
+	return OK
 }
 
 func (me *DefaultFile) Release() {
@@ -252,7 +252,8 @@ func (me *DefaultFileSystem) Open(name string, flags uint32) (file File, code St
 	return nil, ENOSYS
 }
 
-func (me *DefaultFileSystem) Release(name string) {
+func (me *DefaultFileSystem) Flush(name string) Status {
+	return OK
 }
 
 func (me *DefaultFileSystem) OpenDir(name string) (stream chan DirEntry, status Status) {
