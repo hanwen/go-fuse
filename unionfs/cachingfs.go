@@ -77,7 +77,7 @@ func getAttr(fs fuse.FileSystem, name string) *attrResponse {
 func openFile(fs fuse.FileSystem, name string) (result *openResponse) {
 	result = &openResponse{}
 	flags := uint32(os.O_RDONLY)
-	
+
 	f, code := fs.Open(name, flags)
 	if !code.Ok() {
 		result.Status = code
@@ -88,9 +88,9 @@ func openFile(fs fuse.FileSystem, name string) (result *openResponse) {
 
 	buf := bytes.NewBuffer(nil)
 	input := fuse.ReadIn{
-	Offset: 0,
-	Size: 128 * (1<<10),
-	Flags: flags,
+		Offset: 0,
+		Size:   128 * (1 << 10),
+		Flags:  flags,
 	}
 
 	bp := fuse.NewGcBufferPool()
@@ -99,7 +99,7 @@ func openFile(fs fuse.FileSystem, name string) (result *openResponse) {
 		buf.Write(data)
 		if !status.Ok() {
 			result.Status = status
-			return 
+			return
 		}
 		if len(data) < int(input.Size) {
 			break
@@ -181,7 +181,7 @@ func (me *CachingFileSystem) OpenDir(name string) (stream chan fuse.DirEntry, st
 
 // Caching file contents easily overflows available memory.
 func (me *CachingFileSystem) DisabledOpen(name string, flags uint32) (f fuse.File, status fuse.Status) {
-	if flags & fuse.O_ANYWRITE != 0 {
+	if flags&fuse.O_ANYWRITE != 0 {
 		return nil, fuse.EPERM
 	}
 

@@ -11,16 +11,16 @@ type request struct {
 	inputBuf []byte
 
 	// These split up inputBuf.
-	inHeader *InHeader      // generic header
-	inData   unsafe.Pointer // per op data
-	arg      []byte         // flat data.
-	filenames []string     // filename arguments
-	
+	inHeader  *InHeader      // generic header
+	inData    unsafe.Pointer // per op data
+	arg       []byte         // flat data.
+	filenames []string       // filename arguments
+
 	// Unstructured data, a pointer to the relevant XxxxOut struct.
 	outData  unsafe.Pointer
 	status   Status
 	flatData []byte
-	
+
 	// Header + structured data for what we send back to the kernel.
 	// May be followed by flatData.
 	outHeaderBytes []byte
@@ -106,7 +106,7 @@ func (me *request) parse() {
 	}
 
 	count := me.handler.FileNames
-	if count  > 0 {
+	if count > 0 {
 		if count == 1 {
 			me.filenames = []string{string(me.arg[:len(me.arg)-1])}
 		} else {

@@ -86,7 +86,7 @@ func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out 
 		if err != OK && err != ENOSYS {
 			return nil, err
 		}
-		
+
 		if fi != nil {
 			out = &AttrOut{}
 			CopyFileInfo(fi, &out.Attr)
@@ -383,9 +383,9 @@ func (me *FileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
 
 func (me *FileSystemConnector) Flush(input *FlushIn) Status {
 	f, b := me.getFile(input.Fh)
-	
+
 	code := f.Flush()
-	if code.Ok() && b.Flags & O_ANYWRITE != 0 {
+	if code.Ok() && b.Flags&O_ANYWRITE != 0 {
 		// We only signal releases to the FS if the
 		// open could have changed things.
 		var path string
@@ -469,7 +469,7 @@ func (me *FileSystemConnector) fileDebug(fh uint64, n *inode) {
 }
 
 func (me *FileSystemConnector) Write(input *WriteIn, data []byte) (written uint32, code Status) {
-	f, b  := me.getFile(input.Fh)
+	f, b := me.getFile(input.Fh)
 	if me.Debug {
 		me.fileDebug(input.Fh, b.inode)
 	}
@@ -491,4 +491,3 @@ func (me *FileSystemConnector) Ioctl(header *InHeader, input *IoctlIn) (out *Ioc
 	}
 	return f.Ioctl(input)
 }
-

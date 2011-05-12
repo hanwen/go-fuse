@@ -15,6 +15,7 @@ type BufferPool interface {
 }
 
 type GcBufferPool struct {
+
 }
 
 // NewGcBufferPool is just a fallback to the standard allocation routines. 

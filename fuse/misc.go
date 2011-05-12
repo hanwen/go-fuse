@@ -165,4 +165,4 @@ func ioctl(fd int, cmd int, arg uintptr) (int, int) {
 	val := int(r0)
 	errno := int(e1)
 	return val, errno
-}	
+}

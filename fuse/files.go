@@ -1,4 +1,5 @@
 package fuse
+
 import (
 	"os"
 	"syscall"
@@ -108,4 +109,3 @@ func (me *LoopbackFile) GetAttr() (*os.FileInfo, Status) {
 	}
 	return fi, OK
 }
-

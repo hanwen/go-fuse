@@ -1,6 +1,7 @@
 // The fuse package provides APIs to implement filesystems in
 // userspace, using libfuse on Linux.
 package fuse
+
 import (
 	"os"
 )
@@ -23,7 +24,7 @@ type FileSystem interface {
 	Chmod(name string, mode uint32) (code Status)
 	Chown(name string, uid uint32, gid uint32) (code Status)
 	Utimens(name string, AtimeNs uint64, MtimeNs uint64) (code Status)
-	
+
 	Truncate(name string, offset uint64) (code Status)
 
 	Access(name string, mode uint32) (code Status)
@@ -50,13 +51,13 @@ type FileSystem interface {
 	// should be updated too.
 	Open(name string, flags uint32) (file File, code Status)
 	Create(name string, flags uint32, mode uint32) (file File, code Status)
-	
+
 	// Flush() gets called as a file opened for read/write.
 	Flush(name string) Status
-	
+
 	// Directory handling
 	OpenDir(name string) (stream chan DirEntry, code Status)
-	
+
 	// Symlinks.
 	Symlink(value string, linkName string) (code Status)
 	Readlink(name string) (string, Status)
@@ -89,7 +90,6 @@ type MountOptions struct {
 	EntryTimeout    float64
 	AttrTimeout     float64
 	NegativeTimeout float64
-
 }
 
 // DefaultFileSystem implements a FileSystem that returns ENOSYS for every operation.

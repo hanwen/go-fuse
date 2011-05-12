@@ -43,8 +43,8 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 	ufs := NewUnionFs(roots, testOpts)
 
 	opts := &fuse.MountOptions{
-		EntryTimeout: entryTtl,
-		AttrTimeout: entryTtl,
+		EntryTimeout:    entryTtl,
+		AttrTimeout:     entryTtl,
 		NegativeTimeout: entryTtl,
 	}
 
@@ -140,13 +140,13 @@ func TestChtimes(t *testing.T) {
 	defer clean()
 
 	writeToFile(wd+"/ro/file", "a")
-	err := os.Chtimes(wd + "/ro/file", 42e9, 43e9)
+	err := os.Chtimes(wd+"/ro/file", 42e9, 43e9)
 	CheckSuccess(err)
 
-	err = os.Chtimes(wd + "/mount/file", 82e9, 83e9)
+	err = os.Chtimes(wd+"/mount/file", 82e9, 83e9)
 	CheckSuccess(err)
 
-	fi, err := os.Lstat(wd +"/mount/file")
+	fi, err := os.Lstat(wd + "/mount/file")
 	if fi.Atime_ns != 82e9 || fi.Mtime_ns != 83e9 {
 		t.Error("Incorrect timestamp", fi)
 	}
@@ -199,7 +199,7 @@ func TestBasic(t *testing.T) {
 		t.Errorf("missing file in rw layer", names)
 	}
 
-	contents := readFromFile(wd+"/mount/new")
+	contents := readFromFile(wd + "/mount/new")
 	if contents != "new contents" {
 		t.Errorf("read mismatch: '%v'", contents)
 	}
@@ -297,7 +297,7 @@ func TestMkdirPromote(t *testing.T) {
 
 	err = os.Mkdir(wd+"/mount/subdir/subdir2/dir3", 0755)
 	CheckSuccess(err)
-	fi, _ := os.Lstat(wd+"/rw/subdir/subdir2/dir3")
+	fi, _ := os.Lstat(wd + "/rw/subdir/subdir2/dir3")
 	CheckSuccess(err)
 	if fi == nil || !fi.IsDirectory() {
 		t.Error("is not a directory: ", fi)
@@ -409,13 +409,13 @@ func TestCopyChmod(t *testing.T) {
 
 	fi, err := os.Lstat(fn)
 	CheckSuccess(err)
-	if fi.Mode & 0111 == 0 {
+	if fi.Mode&0111 == 0 {
 		t.Errorf("1st attr error %o", fi.Mode)
 	}
 	time.Sleep(entryTtl * 1.1e9)
 	fi, err = os.Lstat(fn)
 	CheckSuccess(err)
-	if fi.Mode & 0111 == 0 {
+	if fi.Mode&0111 == 0 {
 		t.Errorf("uncached attr error %o", fi.Mode)
 	}
 }
@@ -423,7 +423,7 @@ func TestCopyChmod(t *testing.T) {
 func abs(dt int64) int64 {
 	if dt >= 0 {
 		return dt
-	} 
+	}
 	return -dt
 }
 
@@ -445,7 +445,7 @@ func TestTruncateTimestamp(t *testing.T) {
 	fi, err := os.Lstat(fn)
 	CheckSuccess(err)
 
-	if abs(truncTs - fi.Mtime_ns) > 0.1e9 {
+	if abs(truncTs-fi.Mtime_ns) > 0.1e9 {
 		t.Error("timestamp drift", truncTs, fi.Mtime_ns)
 	}
 }

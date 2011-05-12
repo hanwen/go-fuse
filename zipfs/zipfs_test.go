@@ -17,11 +17,11 @@ func TestZipFs(t *testing.T) {
 	connector := fuse.NewFileSystemConnector(zfs, nil)
 	mountPoint := fuse.MakeTempDir()
 	defer os.RemoveAll(mountPoint)
-	
+
 	state := fuse.NewMountState(connector)
 	state.Mount(mountPoint)
 	defer state.Unmount()
-	
+
 	go state.Loop(false)
 
 	d, err := os.Open(mountPoint)

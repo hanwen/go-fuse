@@ -198,7 +198,7 @@ type FileSystemConnector struct {
 type fileBridge struct {
 	*mountData
 	*inode
-	Flags uint32 
+	Flags uint32
 	Iface interface{}
 }
 
@@ -215,7 +215,7 @@ func (me *FileSystemConnector) Statistics() string {
 		len(me.openFiles), len(me.inodeMap))
 }
 
-func (me *FileSystemConnector) unregisterFile(node *inode, handle uint64) (interface{}) {
+func (me *FileSystemConnector) unregisterFile(node *inode, handle uint64) interface{} {
 	me.fileLock.Lock()
 	defer me.fileLock.Unlock()
 	b, ok := me.openFiles[handle]
@@ -233,9 +233,9 @@ func (me *FileSystemConnector) registerFile(node *inode, mount *mountData, f int
 
 	b := &fileBridge{
 		Iface:     f,
-		inode: node,
+		inode:     node,
 		mountData: mount,
-		Flags: flags,
+		Flags:     flags,
 	}
 	h := uint64(uintptr(unsafe.Pointer(b)))
 	_, ok := me.openFiles[h]
@@ -248,7 +248,7 @@ func (me *FileSystemConnector) registerFile(node *inode, mount *mountData, f int
 	return h
 }
 
-func (me *FileSystemConnector) decodeFileHandle(h uint64) (*fileBridge) {
+func (me *FileSystemConnector) decodeFileHandle(h uint64) *fileBridge {
 	b := (*fileBridge)(unsafe.Pointer(uintptr(h)))
 	return b
 }
@@ -438,7 +438,7 @@ func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *Mou
 		log.Println("Could not find mountpoint?", mountPoint)
 		return ENOENT
 	}
-	
+
 	if !node.IsDir() {
 		return EINVAL
 	}
@@ -526,7 +526,7 @@ func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *mount
 	return p, m, n
 }
 
-func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64)  (f File, m *mountData, p string) {
+func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64) (f File, m *mountData, p string) {
 	if fh != 0 {
 		var bridge *fileBridge
 		f, bridge = me.getFile(fh)

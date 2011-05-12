@@ -194,12 +194,12 @@ func (me *MountState) handleRequest(req *request) {
 	if req.status.Ok() && me.Debug {
 		log.Println(req.InputDebug())
 	}
-	
+
 	if req.status.Ok() && req.handler.Func == nil {
 		log.Printf("Unimplemented opcode %v", req.inHeader.opcode)
 		req.status = ENOSYS
 	}
-	
+
 	if req.status.Ok() {
 		req.handler.Func(me, req)
 	}
@@ -219,7 +219,7 @@ func (me *MountState) write(req *request) {
 	if me.Debug {
 		log.Println(req.OutputDebug())
 	}
-	
+
 	if me.LatencyMap != nil {
 		req.preWriteNs = time.Nanoseconds()
 	}

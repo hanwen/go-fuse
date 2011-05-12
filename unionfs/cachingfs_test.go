@@ -30,7 +30,7 @@ func modeMapEq(m1, m2 map[string]uint32) bool {
 func TestCachingFs(t *testing.T) {
 	wd := fuse.MakeTempDir()
 	defer os.RemoveAll(wd)
-	
+
 	fs := fuse.NewLoopbackFileSystem(wd)
 	cfs := NewCachingFileSystem(fs, 0)
 
@@ -38,11 +38,11 @@ func TestCachingFs(t *testing.T) {
 	fi, code := cfs.GetAttr("orig")
 	if !code.Ok() {
 		t.Fatal("GetAttr failure", code)
-	} 
+	}
 	if !fi.IsDirectory() {
 		t.Error("unexpected attr", fi)
 	}
-	
+
 	os.Symlink("orig", wd+"/symlink")
 
 	val, code := cfs.Readlink("symlink")
@@ -64,10 +64,9 @@ func TestCachingFs(t *testing.T) {
 	}
 	expected := map[string]uint32{
 		"symlink": syscall.S_IFLNK,
-		"orig": fuse.S_IFDIR,
+		"orig":    fuse.S_IFDIR,
 	}
 	if !modeMapEq(results, expected) {
 		t.Error("Unexpected readdir result", results, expected)
 	}
 }
-

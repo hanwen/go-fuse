@@ -371,7 +371,7 @@ func (me *UnionFs) Utimens(name string, atime uint64, mtime uint64) (code fuse.S
 		r.branch = 0
 	}
 	if code.Ok() {
- 		code = me.fileSystems[0].Utimens(name, atime, mtime)
+		code = me.fileSystems[0].Utimens(name, atime, mtime)
 	}
 	if code.Ok() {
 		r.attr.Atime_ns = int64(atime)
@@ -497,7 +497,7 @@ func (me *UnionFs) promoteDirsTo(filename string) fuse.Status {
 		if r.code != fuse.OK {
 			log.Println("path component does not exist", filename, dirName)
 		}
-		if r.attr.Mode & fuse.S_IFDIR == 0 {
+		if r.attr.Mode&fuse.S_IFDIR == 0 {
 			log.Println("path component is not a directory.", dirName, r)
 			return fuse.EPERM
 		}
@@ -511,7 +511,7 @@ func (me *UnionFs) promoteDirsTo(filename string) fuse.Status {
 	}
 
 	for i, _ := range todo {
-		j := len(todo)-i-1
+		j := len(todo) - i - 1
 		d := todo[j]
 		log.Println("Promoting directory", d)
 		code := me.fileSystems[0].Mkdir(d, 0755)
@@ -539,9 +539,9 @@ func (me *UnionFs) Create(name string, flags uint32, mode uint32) (fuseFile fuse
 
 		now := time.Nanoseconds()
 		a := os.FileInfo{
-		Mode: fuse.S_IFREG | mode,
-		Ctime_ns: now,
-		Mtime_ns: now,
+			Mode:     fuse.S_IFREG | mode,
+			Ctime_ns: now,
+			Mtime_ns: now,
 		}
 		me.branchCache.Set(name, branchResult{&a, fuse.OK, 0})
 	}

@@ -94,12 +94,12 @@ func (me *TimedCache) Purge() {
 }
 
 func (me *TimedCache) RecurringPurge() {
-	if (me.ttlNs <= 0) {
+	if me.ttlNs <= 0 {
 		return
 	}
 
 	me.Purge()
-	me.PurgeTimer = time.AfterFunc(me.ttlNs * 5,
+	me.PurgeTimer = time.AfterFunc(me.ttlNs*5,
 		func() { me.RecurringPurge() })
 }
 

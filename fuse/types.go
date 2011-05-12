@@ -453,5 +453,3 @@ type NotifyInvalEntryOut struct {
 	NameLen uint32
 	Padding uint32
 }
-
-
