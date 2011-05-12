@@ -719,8 +719,7 @@ func (me *UnionFs) Open(name string, flags uint32) (fuseFile fuse.File, status f
 
 func (me *UnionFs) Flush(name string) fuse.Status {
 	// Refresh timestamps and size field.
-	me.branchCache.DropEntry(name)
-	me.getBranch(name)
+	me.branchCache.GetFresh(name)
 	return fuse.OK
 }
 
