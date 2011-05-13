@@ -483,6 +483,7 @@ func init() {
 		_OP_IOCTL:   func(ptr unsafe.Pointer) interface{} { return (*IoctlIn)(ptr) },
 		_OP_OPEN:    func(ptr unsafe.Pointer) interface{} { return (*OpenIn)(ptr) },
 		_OP_CREATE:  func(ptr unsafe.Pointer) interface{} { return (*CreateIn)(ptr) },
+		_OP_READ:    func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
 	} {
 		operationHandlers[op].DecodeIn = f
 	}
