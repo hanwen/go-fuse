@@ -1,9 +1,11 @@
 package fuse
 
 import (
+	"fmt"
 	"os"
 	"syscall"
 )
+var _ = fmt.Println
 
 // ReadOnlyFile is for implementing read-only filesystems.  This
 // assumes we already have the data in memory.
@@ -68,8 +70,9 @@ func (me *LoopbackFile) Read(input *ReadIn, buffers BufferPool) ([]byte, Status)
 	slice := buffers.AllocBuffer(input.Size)
 
 	n, err := me.file.ReadAt(slice, int64(input.Offset))
+	// TODO - fix Go documentation.
 	if err == os.EOF {
-		return slice[:n], OK
+		err = nil
 	}
 	return slice[:n], OsErrorToErrno(err)
 }
