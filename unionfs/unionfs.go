@@ -336,7 +336,7 @@ func (me *UnionFs) Symlink(pointedTo string, linkName string) (code fuse.Status)
 	code = me.fileSystems[0].Symlink(pointedTo, linkName)
 	if code.Ok() {
 		me.removeDeletion(linkName)
-		me.branchCache.Set(linkName, branchResult{nil, fuse.OK, 0})
+		me.branchCache.GetFresh(linkName)
 	}
 	return code
 }
@@ -570,9 +570,6 @@ func (me *UnionFs) GetAttr(name string) (a *os.FileInfo, s fuse.Status) {
 	r := me.getBranch(name)
 	if r.branch < 0 {
 		return nil, fuse.ENOENT
-	}
-	if r.attr == nil {
-		return me.fileSystems[r.branch].GetAttr(name)
 	}
 	return r.attr, r.code
 }
