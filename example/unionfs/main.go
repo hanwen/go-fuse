@@ -29,7 +29,12 @@ func main() {
 		DeletionDirName:      *deldirname,
 	}
 
-	ufs := unionfs.NewUnionFs(flag.Args()[1:], ufsOptions)
+	fses := make([]fuse.FileSystem, 0)
+	for _, r := range flag.Args()[1:] {
+		fses = append(fses, fuse.NewLoopbackFileSystem(r))
+	}
+	
+	ufs := unionfs.NewUnionFs("unionfs", fses, ufsOptions)
 	conn := fuse.NewFileSystemConnector(ufs, nil)
 	mountState := fuse.NewMountState(conn)
 	mountState.Debug = *debug

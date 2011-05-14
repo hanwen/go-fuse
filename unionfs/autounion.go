@@ -22,6 +22,7 @@ type AutoUnionFs struct {
 
 	lock             sync.RWMutex
 	knownFileSystems map[string]*UnionFs
+	nameRootMap      map[string]string
 	root             string
 
 	connector *fuse.FileSystemConnector
@@ -48,6 +49,7 @@ const (
 func NewAutoUnionFs(directory string, options AutoUnionFsOptions) *AutoUnionFs {
 	a := new(AutoUnionFs)
 	a.knownFileSystems = make(map[string]*UnionFs)
+	a.nameRootMap = make(map[string]string)
 	a.options = &options
 	directory, err := filepath.Abs(directory)
 	if err != nil {
@@ -78,25 +80,30 @@ func (me *AutoUnionFs) createFs(name string, roots []string) (*UnionFs, fuse.Sta
 	me.lock.Lock()
 	defer me.lock.Unlock()
 
-	used := make(map[string]string)
-	for workspace, v := range me.knownFileSystems {
-		used[v.Roots()[0]] = workspace
+	for workspace, root := range me.nameRootMap {
+		if root == roots[0] && workspace != name {
+			log.Printf("Already have a union FS for directory %s in workspace %s",
+				roots[0], workspace)
+			return nil, fuse.EBUSY
+		}
 	}
 
-	workspace, ok := used[roots[0]]
-	if ok {
-		log.Printf("Already have a union FS for directory %s in workspace %s",
-			roots[0], workspace)
-		return nil, fuse.EBUSY
+	gofs := me.knownFileSystems[name]
+	if gofs != nil {
+		return gofs, fuse.OK
 	}
 
-	var gofs *UnionFs
-	if me.knownFileSystems[name] == nil {
-		log.Println("Adding UnionFs for roots", roots)
-		gofs = NewUnionFs(roots, me.options.UnionFsOptions)
-		me.knownFileSystems[name] = gofs
+	fses := make([]fuse.FileSystem, 0)
+	for _, r := range roots {
+		fses = append(fses, fuse.NewLoopbackFileSystem(r))
 	}
+	identifier := fmt.Sprintf("%v", roots)
+	log.Println("Adding UnionFs for", identifier)
+	gofs = NewUnionFs(identifier, fses, me.options.UnionFsOptions)
 
+	me.knownFileSystems[name] = gofs
+	me.nameRootMap[name] = roots[0]
+	
 	return gofs, fuse.OK
 }
 
@@ -112,6 +119,7 @@ func (me *AutoUnionFs) rmFs(name string) (code fuse.Status) {
 	code = me.connector.Unmount(name)
 	if code.Ok() {
 		me.knownFileSystems[name] = nil, false
+		me.nameRootMap[name] = "", false
 	} else {
 		log.Printf("Unmount failed for %s.  Code %v", name, code)
 	}
@@ -174,11 +182,12 @@ func (me *AutoUnionFs) Readlink(path string) (out string, code fuse.Status) {
 	name := comps[1]
 	me.lock.RLock()
 	defer me.lock.RUnlock()
-	fs := me.knownFileSystems[name]
-	if fs == nil {
-		return "", fuse.ENOENT
+
+	root, ok := me.nameRootMap[name]
+	if ok {
+		return root, fuse.OK
 	}
-	return fs.Roots()[0], fuse.OK
+	return "", fuse.ENOENT
 }
 
 func (me *AutoUnionFs) getUnionFs(name string) *UnionFs {

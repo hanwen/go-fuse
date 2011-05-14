@@ -60,25 +60,25 @@ func TestAutoFsSymlink(t *testing.T) {
 	wd, clean := setup(t)
 	defer clean()
 
-	err := os.Mkdir(wd+"/store/foo", 0755)
+	err := os.Mkdir(wd+"/store/backing1", 0755)
 	CheckSuccess(err)
-	os.Symlink(wd+"/ro", wd+"/store/foo/READONLY")
-	CheckSuccess(err)
-
-	err = os.Symlink(wd+"/store/foo", wd+"/mount/config/bar")
+	os.Symlink(wd+"/ro", wd+"/store/backing1/READONLY")
 	CheckSuccess(err)
 
-	fi, err := os.Lstat(wd + "/mount/bar/file1")
+	err = os.Symlink(wd+"/store/backing1", wd+"/mount/config/manual1")
 	CheckSuccess(err)
 
-	err = os.Remove(wd + "/mount/config/bar")
+	fi, err := os.Lstat(wd + "/mount/manual1/file1")
+	CheckSuccess(err)
+
+	err = os.Remove(wd + "/mount/config/manual1")
 	CheckSuccess(err)
 
 	// Need time for the unmount to be noticed.
 	log.Println("sleeping...")
 	time.Sleep(entryTtl * 2e9)
 
-	fi, _ = os.Lstat(wd + "/mount/foo")
+	fi, _ = os.Lstat(wd + "/mount/manual1")
 	if fi != nil {
 		t.Error("Should not have file:", fi)
 	}
@@ -86,7 +86,7 @@ func TestAutoFsSymlink(t *testing.T) {
 	_, err = ioutil.ReadDir(wd + "/mount/config")
 	CheckSuccess(err)
 
-	_, err = os.Lstat(wd + "/mount/foo/file1")
+	_, err = os.Lstat(wd + "/mount/backing1/file1")
 	CheckSuccess(err)
 }
 
@@ -118,5 +118,4 @@ func TestCreationChecks(t *testing.T) {
 	if code != fuse.EINVAL {
 		t.Error("Should return EINVAL", err)
 	}
-
 }

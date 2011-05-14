@@ -37,10 +37,10 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 	os.Mkdir(wd+"/ro", 0700)
 	fuse.CheckSuccess(err)
 
-	var roots []string
-	roots = append(roots, wd+"/rw")
-	roots = append(roots, wd+"/ro")
-	ufs := NewUnionFs(roots, testOpts)
+	var fses []fuse.FileSystem
+	fses = append(fses, fuse.NewLoopbackFileSystem(wd+"/rw"))
+	fses = append(fses, fuse.NewLoopbackFileSystem(wd+"/ro"))
+	ufs := NewUnionFs("testFs", fses, testOpts)
 
 	opts := &fuse.MountOptions{
 		EntryTimeout:    entryTtl,

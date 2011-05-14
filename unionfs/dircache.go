@@ -1,7 +1,7 @@
 package unionfs
 
 import (
-	"os"
+	"github.com/hanwen/go-fuse/fuse"
 	"sync"
 	"log"
 	"time"
@@ -12,22 +12,18 @@ import (
  On error, returns an empty map, since we have little options
  for outputting any other diagnostics.
 */
-func newDirnameMap(dir string) map[string]bool {
+func newDirnameMap(fs fuse.FileSystem, dir string) map[string]bool {
 	result := make(map[string]bool)
 
-	f, err := os.Open(dir)
-	if err != nil {
-		log.Printf("newDirnameMap(): %v %v", dir, err)
+	stream, code := fs.OpenDir(dir)
+	if !code.Ok() {
+		log.Printf("newDirnameMap(): %v %v", dir, code)
 		return result
 	}
-	names, err := f.Readdirnames(-1)
-	if err != nil {
-		log.Printf("newDirnameMap(): readdirnames %v %v", dir, err)
-		return result
-	}
-
-	for _, n := range names {
-		result[n] = true
+	for e := range stream {
+		if e.Mode & fuse.S_IFREG != 0 {
+			result[e.Name] = true
+		}
 	}
 	return result
 }
@@ -41,7 +37,7 @@ func newDirnameMap(dir string) map[string]bool {
 type DirCache struct {
 	dir   string
 	ttlNs int64
-
+	fs    fuse.FileSystem
 	// Protects data below.
 	lock sync.RWMutex
 
@@ -62,8 +58,8 @@ func (me *DirCache) setMap(newMap map[string]bool) {
 
 func (me *DirCache) DropCache() {
 	me.lock.Lock()
+	defer me.lock.Unlock()
 	me.names = nil
-	me.lock.Unlock()
 }
 
 // Try to refresh: if another update is already running, do nothing,
@@ -76,7 +72,7 @@ func (me *DirCache) maybeRefresh() {
 	}
 	me.updateRunning = true
 	go func() {
-		me.setMap(newDirnameMap(me.dir))
+		me.setMap(newDirnameMap(me.fs, me.dir))
 	}()
 }
 
@@ -102,9 +98,10 @@ func (me *DirCache) AddEntry(name string) {
 	me.names[name] = true
 }
 
-func NewDirCache(dir string, ttlNs int64) *DirCache {
+func NewDirCache(fs fuse.FileSystem, dir string, ttlNs int64) *DirCache {
 	dc := new(DirCache)
 	dc.dir = dir
+	dc.fs = fs
 	dc.ttlNs = ttlNs
 	return dc
 }

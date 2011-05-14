@@ -4,7 +4,6 @@ import (
 	"crypto/md5"
 	"fmt"
 	"github.com/hanwen/go-fuse/fuse"
-	"io/ioutil"
 	"log"
 	"os"
 	"syscall"
@@ -26,7 +25,6 @@ func filePathHash(path string) string {
 	// more results in a readdir() roundtrip.
 	return fmt.Sprintf("%x-%s", h.Sum()[:8], base)
 }
-
 
 /*
 
@@ -62,8 +60,7 @@ func filePathHash(path string) string {
 type UnionFs struct {
 	fuse.DefaultFileSystem
 
-	roots    []string
-	branches []*fuse.LoopbackFileSystem
+	name     string
 
 	// The same, but as interfaces.
 	fileSystems []fuse.FileSystem
@@ -89,19 +86,13 @@ const (
 	_DROP_CACHE = ".drop_cache"
 )
 
-func NewUnionFs(roots []string, options UnionFsOptions) *UnionFs {
+func NewUnionFs(name string, fileSystems []fuse.FileSystem, options UnionFsOptions) *UnionFs {
 	g := new(UnionFs)
-	g.roots = make([]string, len(roots))
-	copy(g.roots, roots)
+	g.name = name
 	g.options = &options
-	for i, r := range roots {
-		var fs fuse.FileSystem
-		pt := fuse.NewLoopbackFileSystem(r)
-		g.branches = append(g.branches, pt)
-
-		fs = pt
+	for i, fs := range fileSystems {
 		if i > 0 {
-			cfs := NewCachingFileSystem(pt, 0)
+			cfs := NewCachingFileSystem(fs, 0)
 			g.cachingFileSystems = append(g.cachingFileSystems, cfs)
 			fs = cfs
 		}
@@ -109,14 +100,18 @@ func NewUnionFs(roots []string, options UnionFsOptions) *UnionFs {
 		g.fileSystems = append(g.fileSystems, fs)
 	}
 
-	deletionDir := g.deletionDir()
-	err := os.MkdirAll(deletionDir, 0755)
-	if err != nil {
+	writable := g.fileSystems[0]
+	fi, code := writable.GetAttr(options.DeletionDirName)
+	if code == fuse.ENOENT {
+		code = writable.Mkdir(options.DeletionDirName, 0755)
+		fi, code = writable.GetAttr(options.DeletionDirName)
+	} 
+	if !code.Ok() || !fi.IsDirectory() {
 		panic(fmt.Sprintf("could not create deletion path %v: %v",
-			deletionDir, err))
+			options.DeletionDirName, code))
 	}
 
-	g.deletionCache = NewDirCache(deletionDir, int64(options.DeletionCacheTTLSecs*1e9))
+	g.deletionCache = NewDirCache(writable, options.DeletionDirName, int64(options.DeletionCacheTTLSecs*1e9))
 	g.branchCache = NewTimedCache(
 		func(n string) interface{} { return g.getBranchAttrNoCache(n) },
 		int64(options.BranchCacheTTLSecs*1e9))
@@ -128,14 +123,23 @@ func NewUnionFs(roots []string, options UnionFsOptions) *UnionFs {
 // Deal with all the caches.
 
 func (me *UnionFs) isDeleted(name string) bool {
-	haveCache, found := me.deletionCache.HasEntry(filePathHash(name))
+	marker := me.deletionPath(name)
+	haveCache, found := me.deletionCache.HasEntry(filepath.Base(marker))
 	if haveCache {
 		return found
 	}
 
-	fileName := me.deletionPath(name)
-	fi, _ := os.Lstat(fileName)
-	return fi != nil
+	_, code := me.fileSystems[0].GetAttr(marker)
+
+	if code == fuse.OK {
+		return true
+	}
+	if code == fuse.ENOENT {
+		return false
+	}
+	
+	panic(fmt.Sprintf("Unexpected GetAttr return code %v %v", code, marker))
+	return false
 }
 
 func (me *UnionFs) getBranch(name string) branchResult {
@@ -186,15 +190,8 @@ func (me *UnionFs) getBranchAttrNoCache(name string) branchResult {
 ////////////////
 // Deletion.
 
-func (me *UnionFs) deletionDir() string {
-	dir := filepath.Join(me.branches[0].GetPath(""), me.options.DeletionDirName)
-	return dir
-}
-
 func (me *UnionFs) deletionPath(name string) string {
-	dir := me.deletionDir()
-
-	return filepath.Join(dir, filePathHash(name))
+	return filepath.Join(me.options.DeletionDirName, filePathHash(name))
 }
 
 func (me *UnionFs) removeDeletion(name string) {
@@ -204,24 +201,32 @@ func (me *UnionFs) removeDeletion(name string) {
 	// os.Remove tries to be smart and issues a Remove() and
 	// Rmdir() sequentially.  We want to skip the 2nd system call,
 	// so use syscall.Unlink() directly.
-	errno := syscall.Unlink(marker)
-	if errno != 0 && errno != syscall.ENOENT {
-		log.Printf("error unlinking %s: %v", marker, errno)
+	
+	code := me.fileSystems[0].Unlink(marker)
+	if !code.Ok() && code != fuse.ENOENT {
+		log.Printf("error unlinking %s: %v", marker, code)
 	}
 }
 
 func (me *UnionFs) putDeletion(name string) fuse.Status {
-	fileName := me.deletionPath(name)
-	me.deletionCache.AddEntry(path.Base(fileName))
+	marker := me.deletionPath(name)
+	me.deletionCache.AddEntry(path.Base(marker))
 
 	// Is there a WriteStringToFileOrDie ?
-	err := ioutil.WriteFile(fileName, []byte(name), 0644)
-	if err != nil {
+	writable := me.fileSystems[0]
+	f, code := writable.Open(marker, uint32(os.O_TRUNC|os.O_WRONLY|os.O_CREATE))
+	if !code.Ok() {
 		log.Printf("could not create deletion file %v: %v",
-			fileName, err)
+			marker, code)
 		return fuse.EPERM
 	}
-
+	defer f.Release()
+	defer f.Flush()
+	n, code := f.Write(&fuse.WriteIn{}, []byte(name))
+	if int(n) != len(name) || !code.Ok() {
+		panic(fmt.Sprintf("Error for writing %v: %v, %v (exp %v) %v", name, marker, n, len(name), code))
+	}
+	
 	return fuse.OK
 }
 
@@ -229,8 +234,8 @@ func (me *UnionFs) putDeletion(name string) fuse.Status {
 // Promotion.
 
 func (me *UnionFs) Promote(name string, srcResult branchResult) fuse.Status {
-	writable := me.branches[0]
-	sourceFs := me.branches[srcResult.branch]
+	writable := me.fileSystems[0]
+	sourceFs := me.fileSystems[srcResult.branch]
 
 	// Promote directories.
 	me.promoteDirsTo(name)
@@ -558,20 +563,21 @@ func (me *UnionFs) OpenDir(directory string) (stream chan fuse.DirEntry, status 
 
 	// We could try to use the cache, but we have a delay, so
 	// might as well get the fresh results async.
+	var wg sync.WaitGroup
 	var deletions map[string]bool
-	deletionsDone := make(chan bool, 1)
+
+	wg.Add(1)
 	go func() {
-		deletions = newDirnameMap(me.deletionDir())
-		deletionsDone <- true
+		deletions = newDirnameMap(me.fileSystems[0], me.options.DeletionDirName)
+		wg.Done()
 	}()
 
-	entries := make([]map[string]uint32, len(me.branches))
-	for i, _ := range me.branches {
+	entries := make([]map[string]uint32, len(me.fileSystems))
+	for i, _ := range me.fileSystems {
 		entries[i] = make(map[string]uint32)
 	}
 
-	statuses := make([]fuse.Status, len(me.branches))
-	var wg sync.WaitGroup
+	statuses := make([]fuse.Status, len(me.fileSystems))
 	for i, l := range me.fileSystems {
 		if i >= dirBranch.branch {
 			wg.Add(1)
@@ -591,7 +597,6 @@ func (me *UnionFs) OpenDir(directory string) (stream chan fuse.DirEntry, status 
 	}
 
 	wg.Wait()
-	_ = <-deletionsDone
 
 	results := entries[0]
 
@@ -669,7 +674,7 @@ func (me *UnionFs) Rename(src string, dst string) (code fuse.Status) {
 }
 
 func (me *UnionFs) DropCaches() {
-		log.Println("Forced cache drop on", me.roots)
+		log.Println("Forced cache drop on", me.name)
 		me.branchCache.DropAll()
 		me.deletionCache.DropCache()
 		for _, fs := range me.cachingFileSystems {
@@ -703,9 +708,6 @@ func (me *UnionFs) Flush(name string) fuse.Status {
 	return fuse.OK
 }
 
-func (me *UnionFs) Roots() (result []string) {
-	for _, loopback := range me.branches {
-		result = append(result, loopback.GetPath(""))
-	}
-	return result
+func (me *UnionFs) Name() string {
+	return me.name
 }
