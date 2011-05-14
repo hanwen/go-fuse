@@ -391,11 +391,11 @@ func (me *UnionFs) Chmod(name string, mode uint32) (code fuse.Status) {
 	if r.code != fuse.OK {
 		return r.code
 	}
-	if r.attr.Mode&fuse.S_IFREG == 0 {
-		return fuse.EPERM
-	}
-
+	
 	permMask := uint32(07777)
+
+	// Always be writable.
+	mode |= 0222
 	oldMode := r.attr.Mode & permMask
 
 	if oldMode != mode {
@@ -408,7 +408,7 @@ func (me *UnionFs) Chmod(name string, mode uint32) (code fuse.Status) {
 		}
 		me.fileSystems[0].Chmod(name, mode)
 	}
-	r.attr.Mode = (r.attr.Mode &^ 07777) | mode
+	r.attr.Mode = (r.attr.Mode &^ permMask) | mode
 	r.attr.Ctime_ns = time.Nanoseconds()
 	me.branchCache.Set(name, r)
 	return fuse.OK

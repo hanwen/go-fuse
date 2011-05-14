@@ -170,7 +170,7 @@ func TestChmod(t *testing.T) {
 
 	fi, err := os.Lstat(m_fn)
 	CheckSuccess(err)
-	if fi.Mode&07777 != 07070 {
+	if fi.Mode&07777 != 07272 {
 		t.Errorf("Unexpected mode found: %o", fi.Mode)
 	}
 	_, err = os.Lstat(wd + "/rw/file")
