@@ -3,32 +3,35 @@ include $(GOROOT)/src/Make.inc
 
 TARG=github.com/hanwen/go-fuse/fuse
 
-GOFILES=api.go \
-	misc.go\
-	request.go \
-	fuse.go\
-	direntry.go\
-	mount.go\
-	types.go\
-	pathfilesystem.go \
+GOFILES=\
+	api.go \
 	bufferpool.go \
+	copy.go \
 	default.go \
+	direntry.go\
 	files.go \
+	fuse.go\
+	latencymap.go \
 	lockingfs.go \
+	loggingfs.go \
 	loopback.go \
+	misc.go \
+	mount.go \
+	opcode.go \
+	pathdebug.go \
+	pathfilesystem.go \
+	pathops.go \
+	request.go \
 	timingfs.go \
 	timingrawfs.go \
+	types.go\
+	version.gen.go \
 	xattr.go \
-	pathdebug.go \
-	opcode.go \
-	pathops.go \
-	latencymap.go \
-	loggingfs.go \
-	version.gen.go
+
+include $(GOROOT)/src/Make.pkg
 
 version.gen.go:
 	echo "package fuse" > $@
 	git log -n1 --pretty=format:'const version = "%h (%cd)"' --date=iso >> $@
 
-include $(GOROOT)/src/Make.pkg
 

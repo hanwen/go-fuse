@@ -4,7 +4,6 @@ import (
 	"crypto/md5"
 	"fmt"
 	"github.com/hanwen/go-fuse/fuse"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -229,48 +228,21 @@ func (me *UnionFs) putDeletion(name string) fuse.Status {
 ////////////////
 // Promotion.
 
-// From the golang blog.
-func CopyFile(dstName, srcName string) (written int64, err os.Error) {
-	src, err := os.Open(srcName)
-	if err != nil {
-		return
-	}
-	defer src.Close()
-
-	dir, _ := filepath.Split(dstName)
-	fi, err := os.Stat(dir)
-	if fi != nil && !fi.IsDirectory() {
-		return 0, os.NewError("Destination is not a directory.")
-	}
-
-	if err != nil {
-		return 0, err
-	}
-
-	dst, err := os.Create(dstName)
-	if err != nil {
-		return
-	}
-	defer dst.Close()
-
-	return io.Copy(dst, src)
-}
-
 func (me *UnionFs) Promote(name string, srcResult branchResult) fuse.Status {
 	writable := me.branches[0]
 	sourceFs := me.branches[srcResult.branch]
 
 	// Promote directories.
 	me.promoteDirsTo(name)
-
-	_, err := CopyFile(writable.GetPath(name), sourceFs.GetPath(name))
-	r := me.getBranch(name)
-	r.branch = 0
-	me.branchCache.Set(name, r)
-
-	if err != nil {
-		log.Println("promote error: ", name, err.String())
-		return fuse.EPERM
+	
+	code := fuse.CopyFile(sourceFs, writable, name, name)
+	if !code.Ok() {
+		me.branchCache.GetFresh(name)
+		return code
+	} else {
+		r := me.getBranch(name)
+		r.branch = 0
+		me.branchCache.Set(name, r)
 	}
 
 	return fuse.OK
