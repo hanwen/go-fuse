@@ -14,7 +14,7 @@ func TestCopyFile(t *testing.T) {
 
 	content1 := "blabla"
 
-	err := ioutil.WriteFile(d1 + "/file", []byte(content1), 0644)
+	err := ioutil.WriteFile(d1+"/file", []byte(content1), 0644)
 	CheckSuccess(err)
 
 	code := CopyFile(fs1, fs2, "file", "file")
@@ -26,10 +26,10 @@ func TestCopyFile(t *testing.T) {
 	if content1 != string(data) {
 		t.Fatal("Unexpected content", string(data))
 	}
-	
+
 	content2 := "foobar"
 
-	err = ioutil.WriteFile(d2 + "/file", []byte(content2), 0644)
+	err = ioutil.WriteFile(d2+"/file", []byte(content2), 0644)
 	CheckSuccess(err)
 
 	// Copy back: should overwrite.
@@ -42,7 +42,5 @@ func TestCopyFile(t *testing.T) {
 	if content2 != string(data) {
 		t.Fatal("Unexpected content", string(data))
 	}
-	
-	
-}
 
+}

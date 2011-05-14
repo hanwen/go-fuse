@@ -5,6 +5,7 @@ import (
 	"os"
 	"syscall"
 )
+
 var _ = fmt.Println
 
 // ReadOnlyFile is for implementing read-only filesystems.  This

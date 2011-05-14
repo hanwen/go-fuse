@@ -60,7 +60,7 @@ func filePathHash(path string) string {
 type UnionFs struct {
 	fuse.DefaultFileSystem
 
-	name     string
+	name string
 
 	// The same, but as interfaces.
 	fileSystems []fuse.FileSystem
@@ -105,7 +105,7 @@ func NewUnionFs(name string, fileSystems []fuse.FileSystem, options UnionFsOptio
 	if code == fuse.ENOENT {
 		code = writable.Mkdir(options.DeletionDirName, 0755)
 		fi, code = writable.GetAttr(options.DeletionDirName)
-	} 
+	}
 	if !code.Ok() || !fi.IsDirectory() {
 		panic(fmt.Sprintf("could not create deletion path %v: %v",
 			options.DeletionDirName, code))
@@ -137,7 +137,7 @@ func (me *UnionFs) isDeleted(name string) bool {
 	if code == fuse.ENOENT {
 		return false
 	}
-	
+
 	panic(fmt.Sprintf("Unexpected GetAttr return code %v %v", code, marker))
 	return false
 }
@@ -201,7 +201,7 @@ func (me *UnionFs) removeDeletion(name string) {
 	// os.Remove tries to be smart and issues a Remove() and
 	// Rmdir() sequentially.  We want to skip the 2nd system call,
 	// so use syscall.Unlink() directly.
-	
+
 	code := me.fileSystems[0].Unlink(marker)
 	if !code.Ok() && code != fuse.ENOENT {
 		log.Printf("error unlinking %s: %v", marker, code)
@@ -226,7 +226,7 @@ func (me *UnionFs) putDeletion(name string) fuse.Status {
 	if int(n) != len(name) || !code.Ok() {
 		panic(fmt.Sprintf("Error for writing %v: %v, %v (exp %v) %v", name, marker, n, len(name), code))
 	}
-	
+
 	return fuse.OK
 }
 
@@ -239,7 +239,7 @@ func (me *UnionFs) Promote(name string, srcResult branchResult) fuse.Status {
 
 	// Promote directories.
 	me.promoteDirsTo(name)
-	
+
 	code := fuse.CopyFile(sourceFs, writable, name, name)
 	if !code.Ok() {
 		me.branchCache.GetFresh(name)
@@ -396,7 +396,7 @@ func (me *UnionFs) Chmod(name string, mode uint32) (code fuse.Status) {
 	if r.code != fuse.OK {
 		return r.code
 	}
-	
+
 	permMask := uint32(07777)
 
 	// Always be writable.
@@ -532,7 +532,7 @@ func (me *UnionFs) GetAttr(name string) (a *os.FileInfo, s fuse.Status) {
 	if name == _DROP_CACHE {
 		return &os.FileInfo{
 			Mode: fuse.S_IFREG | 0777,
-		}, fuse.OK
+		},fuse.OK
 	}
 	if name == me.options.DeletionDirName {
 		return nil, fuse.ENOENT
@@ -674,17 +674,17 @@ func (me *UnionFs) Rename(src string, dst string) (code fuse.Status) {
 }
 
 func (me *UnionFs) DropCaches() {
-		log.Println("Forced cache drop on", me.name)
-		me.branchCache.DropAll()
-		me.deletionCache.DropCache()
-		for _, fs := range me.cachingFileSystems {
-			fs.DropCache()
-		}
+	log.Println("Forced cache drop on", me.name)
+	me.branchCache.DropAll()
+	me.deletionCache.DropCache()
+	for _, fs := range me.cachingFileSystems {
+		fs.DropCache()
+	}
 }
 
 func (me *UnionFs) Open(name string, flags uint32) (fuseFile fuse.File, status fuse.Status) {
 	if name == _DROP_CACHE {
-		if flags & fuse.O_ANYWRITE != 0 {
+		if flags&fuse.O_ANYWRITE != 0 {
 			me.DropCaches()
 		}
 		return fuse.NewDevNullFile(), fuse.OK

@@ -1,4 +1,5 @@
 package fuse
+
 import (
 	"os"
 )
@@ -15,9 +16,9 @@ func CopyFile(srcFs, destFs FileSystem, srcFile, destFile string) Status {
 	if !code.Ok() {
 		return code
 	}
-	
+
 	w := WriteIn{
-	Flags: uint32(os.O_WRONLY|os.O_CREATE|os.O_TRUNC),
+		Flags: uint32(os.O_WRONLY | os.O_CREATE | os.O_TRUNC),
 	}
 	dst, code := destFs.Create(destFile, w.Flags, attr.Mode)
 	if !code.Ok() {
@@ -28,7 +29,7 @@ func CopyFile(srcFs, destFs FileSystem, srcFile, destFile string) Status {
 
 	bp := NewBufferPool()
 	r := ReadIn{
-	Size: 128 * (1<<10),
+		Size: 128 * (1 << 10),
 	}
 	for {
 		data, code := src.Read(&r, bp)
@@ -36,7 +37,7 @@ func CopyFile(srcFs, destFs FileSystem, srcFile, destFile string) Status {
 			return code
 		}
 		if len(data) == 0 {
-			break;
+			break
 		}
 		n, code := dst.Write(&w, data)
 		if !code.Ok() {
@@ -46,7 +47,7 @@ func CopyFile(srcFs, destFs FileSystem, srcFile, destFile string) Status {
 			return EIO
 		}
 		if len(data) < int(r.Size) {
-			break;
+			break
 		}
 		r.Offset += uint64(len(data))
 		w.Offset += uint64(len(data))

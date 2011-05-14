@@ -103,7 +103,7 @@ func (me *AutoUnionFs) createFs(name string, roots []string) (*UnionFs, fuse.Sta
 
 	me.knownFileSystems[name] = gofs
 	me.nameRootMap[name] = roots[0]
-	
+
 	return gofs, fuse.OK
 }
 
