@@ -525,13 +525,9 @@ func (me *UnionFs) GetAttr(name string) (a *os.FileInfo, s fuse.Status) {
 		return nil, fuse.ENOENT
 	}
 	if name == _DROP_CACHE {
-		log.Println("Forced cache drop on", me.roots)
-		me.branchCache.DropAll()
-		me.deletionCache.DropCache()
-		for _, fs := range me.cachingFileSystems {
-			fs.DropCache()
-		}
-		return nil, fuse.ENOENT
+		return &os.FileInfo{
+			Mode: fuse.S_IFREG | 0777,
+		}, fuse.OK
 	}
 	if name == me.options.DeletionDirName {
 		return nil, fuse.ENOENT
@@ -672,7 +668,23 @@ func (me *UnionFs) Rename(src string, dst string) (code fuse.Status) {
 	return code
 }
 
+
+func (me *UnionFs) DropCaches() {
+		log.Println("Forced cache drop on", me.roots)
+		me.branchCache.DropAll()
+		me.deletionCache.DropCache()
+		for _, fs := range me.cachingFileSystems {
+			fs.DropCache()
+		}
+}
+
 func (me *UnionFs) Open(name string, flags uint32) (fuseFile fuse.File, status fuse.Status) {
+	if name == _DROP_CACHE {
+		if flags & fuse.O_ANYWRITE != 0 {
+			me.DropCaches()
+		}
+		return fuse.NewDevNullFile(), fuse.OK
+	}
 	r := me.getBranch(name)
 	if flags&fuse.O_ANYWRITE != 0 && r.branch > 0 {
 		code := me.Promote(name, r)
