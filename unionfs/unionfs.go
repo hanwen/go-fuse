@@ -256,7 +256,7 @@ func (me *UnionFs) Rmdir(path string) (code fuse.Status) {
 	if r.code != fuse.OK {
 		return r.code
 	}
-	if r.attr.Mode&fuse.S_IFDIR == 0 {
+	if !r.attr.IsDirectory() {
 		return syscall.ENOTDIR
 	}
 	if r.branch > 0 {
@@ -450,7 +450,7 @@ func (me *UnionFs) Readlink(name string) (out string, code fuse.Status) {
 
 func IsDir(fs fuse.FileSystem, name string) bool {
 	a, code := fs.GetAttr(name)
-	return code.Ok() && a.Mode&fuse.S_IFDIR != 0
+	return code.Ok() && a.IsDirectory()
 }
 
 func stripSlash(fn string) string {
@@ -469,7 +469,7 @@ func (me *UnionFs) promoteDirsTo(filename string) fuse.Status {
 		if r.code != fuse.OK {
 			log.Println("path component does not exist", filename, dirName)
 		}
-		if r.attr.Mode&fuse.S_IFDIR == 0 {
+		if !r.attr.IsDirectory() {
 			log.Println("path component is not a directory.", dirName, r)
 			return fuse.EPERM
 		}

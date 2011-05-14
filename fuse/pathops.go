@@ -61,7 +61,7 @@ func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string
 		return nil, err, nil
 	}
 
-	data := me.lookupUpdate(parent, name, fi.Mode&S_IFDIR != 0)
+	data := me.lookupUpdate(parent, name, fi.IsDirectory())
 	data.LookupCount += lookupCount
 
 	out = &EntryOut{
