@@ -297,7 +297,7 @@ func (me *UnionFs) Mkdir(path string, mode uint32) (code fuse.Status) {
 	if code.Ok() {
 		me.removeDeletion(path)
 		attr := &os.FileInfo{
-			Mode: fuse.S_IFDIR | mode,
+			Mode: fuse.S_IFDIR | mode | 0222,
 		}
 		me.branchCache.Set(path, branchResult{attr, fuse.OK, 0})
 	}
@@ -511,7 +511,7 @@ func (me *UnionFs) Create(name string, flags uint32, mode uint32) (fuseFile fuse
 
 		now := time.Nanoseconds()
 		a := os.FileInfo{
-			Mode:     fuse.S_IFREG | mode,
+			Mode:     fuse.S_IFREG | mode | 0222,
 			Ctime_ns: now,
 			Mtime_ns: now,
 		}
@@ -667,7 +667,6 @@ func (me *UnionFs) Rename(src string, dst string) (code fuse.Status) {
 	}
 	return code
 }
-
 
 func (me *UnionFs) DropCaches() {
 		log.Println("Forced cache drop on", me.roots)
