@@ -23,7 +23,12 @@ GOFILES=api.go \
 	opcode.go \
 	pathops.go \
 	latencymap.go \
-	loggingfs.go
+	loggingfs.go \
+	version.gen.go
+
+version.gen.go:
+	echo "package fuse" > $@
+	git log -n1 --pretty=format:'const version = "%h (%cd)"' --date=iso >> $@
 
 include $(GOROOT)/src/Make.pkg
 

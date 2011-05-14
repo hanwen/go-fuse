@@ -33,7 +33,7 @@ func main() {
 	conn := fuse.NewFileSystemConnector(ufs, nil)
 	mountState := fuse.NewMountState(conn)
 	mountState.Debug = *debug
-	fmt.Printf("Mounting...\n")
+	fmt.Printf("Go-FUSE Version %v.\nMounting UnionFs...\n", fuse.Version())
 	err := mountState.Mount(mountpoint)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)

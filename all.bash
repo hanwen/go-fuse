@@ -1,6 +1,7 @@
 #!/bin/sh
 set -eux
 
+rm -f fuse/version.gen.go
 
 for d in fuse zipfs unionfs example/loopback example/zipfs \
     example/bulkstat example/multizip example/unionfs \

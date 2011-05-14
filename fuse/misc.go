@@ -166,3 +166,7 @@ func ioctl(fd int, cmd int, arg uintptr) (int, int) {
 	errno := int(e1)
 	return val, errno
 }
+
+func Version() string {
+	return version
+}

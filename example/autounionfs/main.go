@@ -43,7 +43,7 @@ func main() {
 	conn.Debug = *debug
 	mountState := fuse.NewMountState(conn)
 	mountState.Debug = *debug
-	fmt.Printf("Mounting...\n")
+	fmt.Printf("Go-FUSE %v Mounting AutoUnionFs...\n", fuse.Version())
 	err := mountState.Mount(mountpoint)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
