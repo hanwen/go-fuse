@@ -70,8 +70,7 @@ func zipFilesToTree(files []*zip.File) *MemTree {
 }
 
 
-// NewZipArchiveFileSystem creates a new file-system for the
-// zip file named name.
+// NewZipTree creates a new file-system for the zip file named name.
 func NewZipTree(name string) (*MemTree, os.Error) {
 	r, err := zip.OpenReader(name)
 	if err != nil {

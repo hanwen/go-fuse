@@ -2,12 +2,12 @@ package fuse
 
 /*
 
- PathFilesystemConnector is a lowlevel FUSE filesystem that translates
+ FilesystemConnector is a lowlevel FUSE filesystem that translates
  from inode numbers (as delivered by the kernel) to traditional path
  names.  The paths are then used as arguments for methods of
- PathFilesystem instances.
+ FileSystem instances.
 
- PathFilesystemConnector supports mounts of different PathFilesystem
+ FileSystemConnector supports mounts of different FileSystems
  on top of each other's directories.
 
  General todos:

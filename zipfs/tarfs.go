@@ -25,7 +25,6 @@ func HeaderToFileInfo(h *tar.Header) *os.FileInfo {
 		Gid:      h.Gid,
 		Size:     h.Size,
 		Mtime_ns: h.Mtime,
-		//Linkname:  h.Linkname ,
 		Atime_ns: h.Atime,
 		Ctime_ns: h.Ctime,
 	}
@@ -74,6 +73,7 @@ func NewTarTree(r io.Reader) *MemTree {
 			hdr.Name = *longName
 			longName = nil
 		}
+		
 		comps := strings.Split(filepath.Clean(hdr.Name), "/", -1)
 		base := ""
 		if !strings.HasSuffix(hdr.Name, "/") {

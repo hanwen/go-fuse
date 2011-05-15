@@ -37,7 +37,7 @@ type openResponse struct {
 	fuse.Status
 }
 
-// Caches readdir and getattr()
+// Caches filesystem metadata.
 type CachingFileSystem struct {
 	fuse.FileSystem
 

@@ -43,8 +43,8 @@ func filePathHash(path string) string {
 
  Implementation notes.
 
- * It piggybacks on the existing LoopbackFileSystem in Go-FUSE, so we
- don't have to translate back and forth between Go's and FUSE's API.
+ * It overlays arbitrary writable FileSystems with any number of
+   readonly FileSystems.
 
  * Deleting a file will put a file named
  /DELETIONS/HASH-OF-FULL-FILENAME into the writable overlay,
