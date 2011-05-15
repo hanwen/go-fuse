@@ -91,6 +91,13 @@ func NewArchiveFileSystem(name string) (fs *MemTreeFileSystem, err os.Error) {
 	if strings.HasSuffix(name, ".tar.bz2") {
 		tree, err = NewTarCompressedTree(name, "bz2")
 	}
+	if strings.HasSuffix(name, ".tar") {
+		f, err := os.Open(name)
+		if err != nil {
+			return nil, err
+		}
+		tree = NewTarTree(f)
+	}
 	if err != nil {
 		return nil, err
 	}
