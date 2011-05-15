@@ -264,19 +264,20 @@ func (me *UnionFs) Rmdir(path string) (code fuse.Status) {
 	if !r.attr.IsDirectory() {
 		return syscall.ENOTDIR
 	}
-	if r.branch > 0 {
-		stream, code := me.fileSystems[r.branch].OpenDir(path)
-		if code.Ok() {
-			_, ok := <-stream
-			if ok {
-				// TODO - should consume stream.
-				return syscall.ENOTEMPTY
-			}
-		}
-		me.putDeletion(path)
-		return fuse.OK
+
+	stream, code := me.OpenDir(path)
+	found := false
+	for _ = range stream {
+		found = true
+	}
+	if found {
+		return syscall.ENOTEMPTY
 	}
 
+	if r.branch > 0 {
+		code = me.putDeletion(path)
+		return code
+	}
 	code = me.fileSystems[0].Rmdir(path)
 	if code != fuse.OK {
 		return code

@@ -449,3 +449,23 @@ func TestTruncateTimestamp(t *testing.T) {
 		t.Error("timestamp drift", truncTs, fi.Mtime_ns)
 	}
 }
+
+func TestRemoveAll(t *testing.T) {
+	t.Log("TestRemoveAll")
+	wd, clean := setupUfs(t)
+	defer clean()
+
+	err := os.Mkdir(wd + "/ro/dir", 0755)
+	CheckSuccess(err)
+	
+	contents := "hello"
+	fn := wd + "/ro/dir/y"
+	err = ioutil.WriteFile(fn, []byte(contents), 0644)
+	CheckSuccess(err)
+
+	err = os.RemoveAll(wd+"/mount/dir")
+	if err != nil {
+		t.Error("Should delete all")
+	}
+}
+
