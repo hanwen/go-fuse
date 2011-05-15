@@ -59,6 +59,7 @@ func (me *zipCreateFile) Write(input *fuse.WriteIn, nameBytes []byte) (uint32, f
 	// TODO. locks?
 
 	me.zfs.zips[me.Basename] = fs
+	me.zfs.dirZipFileMap[me.Basename] = zipFile
 	me.zfs.pendingZips[me.Basename] = false, false
 
 	me.zfs = nil
@@ -74,18 +75,18 @@ func (me *zipCreateFile) Write(input *fuse.WriteIn, nameBytes []byte) (uint32, f
 type MultiZipFs struct {
 	Connector    *fuse.FileSystemConnector
 	lock         sync.RWMutex
-	zips         map[string]*ZipArchiveFileSystem
+	zips         map[string]*MemTreeFileSystem
 	pendingZips  map[string]bool
-	zipFileNames map[string]string
+	dirZipFileMap map[string]string
 
 	fuse.DefaultFileSystem
 }
 
 func NewMultiZipFs() *MultiZipFs {
 	m := new(MultiZipFs)
-	m.zips = make(map[string]*ZipArchiveFileSystem)
+	m.zips = make(map[string]*MemTreeFileSystem)
 	m.pendingZips = make(map[string]bool)
-	m.zipFileNames = make(map[string]string)
+	m.dirZipFileMap = make(map[string]string)
 	m.Connector = fuse.NewFileSystemConnector(m, nil)
 	return m
 }
@@ -155,9 +156,8 @@ func (me *MultiZipFs) GetAttr(name string) (*os.FileInfo, fuse.Status) {
 	defer me.lock.RUnlock()
 
 	a.Mode = submode
-	entry, hasDir := me.zips[base]
+	_, hasDir := me.zips[base]
 	if hasDir {
-		a.Size = int64(len(entry.ZipFileName))
 		return a, fuse.OK
 	}
 	_, hasDir = me.pendingZips[base]
@@ -177,6 +177,7 @@ func (me *MultiZipFs) Unlink(name string) (code fuse.Status) {
 		_, ok := me.zips[basename]
 		if ok {
 			me.zips[basename] = nil, false
+			me.dirZipFileMap[basename] = "", false
 			return fuse.OK
 		} else {
 			return fuse.ENOENT
@@ -195,12 +196,12 @@ func (me *MultiZipFs) Open(name string, flags uint32) (file fuse.File, code fuse
 		me.lock.RLock()
 		defer me.lock.RUnlock()
 
-		entry, ok := me.zips[basename]
+		orig, ok := me.dirZipFileMap[basename]
 		if !ok {
 			return nil, fuse.ENOENT
 		}
 
-		return fuse.NewReadOnlyFile([]byte(entry.ZipFileName)), fuse.OK
+		return fuse.NewReadOnlyFile([]byte(orig)), fuse.OK
 	}
 
 	return nil, fuse.ENOENT

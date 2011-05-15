@@ -6,6 +6,7 @@ DEPS=../fuse
 
 GOFILES=zipfs.go \
 	multizip.go \
+	memtree.go
 
 include $(GOROOT)/src/Make.pkg
 

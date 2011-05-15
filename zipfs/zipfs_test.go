@@ -22,6 +22,7 @@ func TestZipFs(t *testing.T) {
 	state.Mount(mountPoint)
 	defer state.Unmount()
 
+	state.Debug = true
 	go state.Loop(false)
 
 	d, err := os.Open(mountPoint)
@@ -55,7 +56,7 @@ func TestZipFs(t *testing.T) {
 	n, err := f.Read(b)
 
 	b = b[:n]
-	if string(b[:n]) != "hello\n" {
+	if string(b) != "hello\n" {
 		t.Error("content fail", b[:n])
 	}
 	f.Close()
