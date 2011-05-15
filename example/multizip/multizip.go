@@ -13,6 +13,7 @@ var _ = log.Printf
 
 func main() {
 	// Scans the arg list and sets up flags
+	debug := flag.Bool("debug", false, "debug on")
 	flag.Parse()
 	if flag.NArg() < 1 {
 		// TODO - where to get program name?
@@ -21,12 +22,12 @@ func main() {
 	}
 
 	fs := zipfs.NewMultiZipFs()
-	state := fuse.NewMountState(fs.Connector)
-
-	mountPoint := flag.Arg(0)
-	state.Debug = true
-	state.Mount(mountPoint)
-
-	fmt.Printf("Mounted %s\n", mountPoint)
+	state, _, err := fuse.MountFileSystem(flag.Arg(0), fs, nil)
+	if err != nil {
+		fmt.Printf("Mount fail: %v\n", err)
+		os.Exit(1)
+	}
+	
+	state.Debug = *debug
 	state.Loop(true)
 }

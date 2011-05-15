@@ -44,9 +44,8 @@ func setup(t *testing.T) (workdir string, cleanup func()) {
 	WriteFile(wd+"/ro/file2", "file2")
 
 	fs := NewAutoUnionFs(wd+"/store", testAOpts)
-	connector := fuse.NewFileSystemConnector(fs, &testAOpts.MountOptions)
-	state := fuse.NewMountState(connector)
-	state.Mount(wd + "/mount")
+	state, _, err := fuse.MountFileSystem(wd + "/mount", fs, &testAOpts.MountOptions)
+	CheckSuccess(err)
 	state.Debug = true
 	go state.Loop(false)
 
@@ -76,7 +75,7 @@ func TestAutoFsSymlink(t *testing.T) {
 
 	// Need time for the unmount to be noticed.
 	log.Println("sleeping...")
-	time.Sleep(entryTtl * 2e9)
+	time.Sleep(2 * entryTtl * 1e9)
 
 	fi, _ = os.Lstat(wd + "/mount/manual1")
 	if fi != nil {

@@ -10,7 +10,7 @@ import (
 
 func main() {
 	debug := flag.Bool("debug", false, "debug on")
-	threaded := flag.Bool("threaded", true, "debug on")
+	threaded := flag.Bool("threaded", true, "threading on")
 	delcache_ttl := flag.Float64("deletion_cache_ttl", 5.0, "Deletion cache TTL in seconds.")
 	branchcache_ttl := flag.Float64("branchcache_ttl", 5.0, "Branch cache TTL in seconds.")
 	deldirname := flag.String(
@@ -21,8 +21,6 @@ func main() {
 		fmt.Println("Usage:\n  main MOUNTPOINT BASEDIR")
 		os.Exit(2)
 	}
-	mountpoint := flag.Arg(0)
-
 	ufsOptions := unionfs.UnionFsOptions{
 		DeletionCacheTTLSecs: *delcache_ttl,
 		BranchCacheTTLSecs:   *branchcache_ttl,
@@ -39,16 +37,14 @@ func main() {
 	}
 
 	gofs := unionfs.NewAutoUnionFs(flag.Arg(1), options)
-	conn := fuse.NewFileSystemConnector(gofs, nil)
-	conn.Debug = *debug
-	mountState := fuse.NewMountState(conn)
-	mountState.Debug = *debug
-	fmt.Printf("Go-FUSE %v Mounting AutoUnionFs...\n", fuse.Version())
-	err := mountState.Mount(mountpoint)
+
+	state, conn, err := fuse.MountFileSystem(flag.Arg(0), gofs, nil)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("Mounted!\n")
-	mountState.Loop(*threaded)
+	
+	conn.Debug = *debug
+	state.Debug = *debug
+	state.Loop(*threaded)
 }

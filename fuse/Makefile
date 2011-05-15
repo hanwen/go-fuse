@@ -17,6 +17,7 @@ GOFILES=\
 	loopback.go \
 	misc.go \
 	mount.go \
+	mountstate.go \
 	opcode.go \
 	pathdebug.go \
 	pathfilesystem.go \

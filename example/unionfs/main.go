@@ -21,7 +21,6 @@ func main() {
 		fmt.Println("Usage:\n  main MOUNTPOINT RW-DIRECTORY RO-DIRECTORY ...")
 		os.Exit(2)
 	}
-	mountpoint := flag.Arg(0)
 
 	ufsOptions := unionfs.UnionFsOptions{
 		DeletionCacheTTLSecs: *delcache_ttl,
@@ -35,15 +34,12 @@ func main() {
 	}
 	
 	ufs := unionfs.NewUnionFs("unionfs", fses, ufsOptions)
-	conn := fuse.NewFileSystemConnector(ufs, nil)
-	mountState := fuse.NewMountState(conn)
-	mountState.Debug = *debug
-	fmt.Printf("Go-FUSE Version %v.\nMounting UnionFs...\n", fuse.Version())
-	err := mountState.Mount(mountpoint)
+	mountState, _, err := fuse.MountFileSystem(flag.Arg(0), ufs, nil)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("Mounted!\n")
+
+	mountState.Debug = *debug
 	mountState.Loop(*threaded)
 }

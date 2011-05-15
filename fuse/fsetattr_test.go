@@ -124,14 +124,12 @@ func NewFile() *MutableDataFile {
 func TestFSetAttr(t *testing.T) {
 	fs := &FSetAttrFs{}
 
-	c := NewFileSystemConnector(fs, nil)
-	state := NewMountState(c)
 	dir := MakeTempDir()
-
-	state.Mount(dir)
+	defer os.RemoveAll(dir)
+	state, _, err := MountFileSystem(dir, fs, nil)
+	CheckSuccess(err)
 	state.Debug = true
 	defer state.Unmount()
-	defer os.RemoveAll(dir)
 
 	go state.Loop(false)
 

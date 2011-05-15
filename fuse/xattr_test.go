@@ -92,20 +92,18 @@ func TestXAttrRead(t *testing.T) {
 		"user.attr1": []byte("val1"),
 		"user.attr2": []byte("val2")}
 	xfs := NewXAttrFs(nm, golden)
-
-	connector := NewFileSystemConnector(xfs, nil)
 	mountPoint := MakeTempDir()
 	defer os.RemoveAll(mountPoint)
 
-	state := NewMountState(connector)
-	state.Mount(mountPoint)
+	state, _, err := MountFileSystem(mountPoint, xfs, nil)
+	CheckSuccess(err)
 	state.Debug = true
 	defer state.Unmount()
 
 	go state.Loop(false)
 
 	mounted := filepath.Join(mountPoint, nm)
-	_, err := os.Lstat(mounted)
+	_, err = os.Lstat(mounted)
 	if err != nil {
 		t.Error("Unexpected stat error", err)
 	}

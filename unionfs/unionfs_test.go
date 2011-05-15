@@ -48,9 +48,8 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 		NegativeTimeout: entryTtl,
 	}
 
-	connector := fuse.NewFileSystemConnector(ufs, opts)
-	state := fuse.NewMountState(connector)
-	state.Mount(wd + "/mount")
+	state, _, err := fuse.MountFileSystem(wd + "/mount", ufs, opts)
+	CheckSuccess(err)
 	state.Debug = true
 	go state.Loop(false)
 

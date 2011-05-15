@@ -87,8 +87,12 @@ func NewMultiZipFs() *MultiZipFs {
 	m.zips = make(map[string]*MemTreeFileSystem)
 	m.pendingZips = make(map[string]bool)
 	m.dirZipFileMap = make(map[string]string)
-	m.Connector = fuse.NewFileSystemConnector(m, nil)
 	return m
+}
+
+func (me *MultiZipFs) Mount(connector *fuse.FileSystemConnector) fuse.Status {
+	me.Connector = connector
+	return fuse.OK
 }
 
 func (me *MultiZipFs) OpenDir(name string) (stream chan fuse.DirEntry, code fuse.Status) {

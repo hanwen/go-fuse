@@ -8,12 +8,8 @@ import (
 	"time"
 )
 
-func CheckSuccess(err os.Error) {
-	if err != nil {
-		log.Println(err)
-		panic("error")
-	}
-}
+var _ = log.Printf
+var CheckSuccess = fuse.CheckSuccess
 
 func TestMultiZipFs(t *testing.T) {
 	var err os.Error
@@ -22,14 +18,13 @@ func TestMultiZipFs(t *testing.T) {
 	zipFile := wd + "/test.zip"
 
 	fs := NewMultiZipFs()
-	state := fuse.NewMountState(fs.Connector)
 	mountPoint := fuse.MakeTempDir()
+	state, _, err := fuse.MountFileSystem(mountPoint, fs, nil)
 	defer os.RemoveAll(mountPoint)
-
-	state.Debug = true
-	err = state.Mount(mountPoint)
-	defer state.Unmount()
 	CheckSuccess(err)
+	defer state.Unmount()
+	
+	state.Debug = true
 
 	go state.Loop(true)
 

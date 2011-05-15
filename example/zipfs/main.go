@@ -35,19 +35,18 @@ func main() {
 		fs = debugFs
 	}
 
-	conn := fuse.NewFileSystemConnector(fs, nil)
-	state := fuse.NewMountState(conn)
+	state, conn, err := fuse.MountFileSystem(flag.Arg(0), fs, nil)
+	if err != nil {
+		fmt.Printf("Mount fail: %v\n", err)
+		os.Exit(1)
+	}
 
 	if *latencies {
 		debugFs.AddFileSystemConnector(conn)
 		debugFs.AddMountState(state)
 	}
 
-	mountPoint := flag.Arg(0)
 	state.SetRecordStatistics(*latencies)
 	state.Debug = *debug
-	state.Mount(mountPoint)
-
-	fmt.Printf("Mounted %s - PID %s\n", mountPoint, fuse.MyPID())
 	state.Loop(true)
 }
