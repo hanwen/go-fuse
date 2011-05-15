@@ -16,16 +16,18 @@ subdirectories of the FUSE mount.
 
 EXAMPLES
 
-* examplelib/zipfs.go contains a small and simple read-only filesystem
-  for zip files. The corresponding command is in example/zipfs/ . For
-  example,
+* examples/hello/hello.go contains a 60-line "hello world" filesystem
+
+* zipfs/zipfs.go contains a small and simple read-only filesystem for
+  zip and tar files. The corresponding command is in example/zipfs/
+  For example,
 
     mkdir /tmp/mountpoint
     example/zipfs/zipfs /tmp/mountpoint file.zip &
     ls /tmp/mountpoint
     fusermount -u /tmp/mountpoint
 
-* examplelib/multizipfs.go shows how to use in-process mounts to
+* zipfs/multizipfs.go shows how to use in-process mounts to
   combine multiple Go-FUSE filesystems into a larger filesystem.
     
 * fuse/loopback.go mounts another piece of the filesystem.
