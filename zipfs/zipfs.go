@@ -23,7 +23,7 @@ func (me *ZipFile) Stat() *os.FileInfo {
 		Size: int64(me.File.UncompressedSize),
 	}
 }
-	
+
 func (me *ZipFile) Data() []byte {
 	data := make([]byte, me.UncompressedSize)
 	zf := (*me)
@@ -72,11 +72,32 @@ func zipFilesToTree(files []*zip.File) *MemTree {
 
 // NewZipArchiveFileSystem creates a new file-system for the
 // zip file named name.
-func NewZipArchiveFileSystem(name string) (*MemTreeFileSystem, os.Error) {
+func NewZipTree(name string) (*MemTree, os.Error) {
 	r, err := zip.OpenReader(name)
 	if err != nil {
 		return nil, err
 	}
-	z := NewMemTreeFileSystem(zipFilesToTree(r.File))
-	return z, nil
+	return zipFilesToTree(r.File), nil
+}
+
+func NewArchiveFileSystem(name string) (fs *MemTreeFileSystem, err os.Error) {
+	var tree *MemTree
+	if strings.HasSuffix(name, ".zip") {
+		tree, err = NewZipTree(name)
+	}
+	if strings.HasSuffix(name, ".tar.gz") {
+		tree, err = NewTarCompressedTree(name, "gz")
+	}
+	if strings.HasSuffix(name, ".tar.bz2") {
+		tree, err = NewTarCompressedTree(name, "bz2")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if tree == nil {
+		return nil, os.NewError(fmt.Sprintf("Unknown type for %v", name))
+	}
+
+	return NewMemTreeFileSystem(tree), nil
 }

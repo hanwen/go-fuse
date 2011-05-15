@@ -23,9 +23,9 @@ func main() {
 	}
 
 	var fs fuse.FileSystem
-	fs, err := zipfs.NewZipArchiveFileSystem(flag.Arg(1))
+	fs, err := zipfs.NewArchiveFileSystem(flag.Arg(1))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "NewZipArchiveFileSystem failed: %v\n", err)
+		fmt.Fprintf(os.Stderr, "NewArchiveFileSystem failed: %v\n", err)
 		os.Exit(1)
 	}
 	debugFs := fuse.NewFileSystemDebug()

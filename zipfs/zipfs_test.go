@@ -9,7 +9,7 @@ import (
 func TestZipFs(t *testing.T) {
 	wd, err := os.Getwd()
 	CheckSuccess(err)
-	zfs, err := NewZipArchiveFileSystem(wd + "/test.zip")
+	zfs, err := NewArchiveFileSystem(wd + "/test.zip")
 	if err != nil {
 		t.Error("NewZipArchiveFileSystem failed:", err)
 	}

@@ -43,10 +43,10 @@ func (me *zipCreateFile) Write(input *fuse.WriteIn, nameBytes []byte) (uint32, f
 	zipFile := string(nameBytes)
 
 	zipFile = strings.Trim(zipFile, "\n ")
-	fs, err := NewZipArchiveFileSystem(zipFile)
+	fs, err := NewArchiveFileSystem(zipFile)
 	if err != nil {
 		// TODO
-		log.Println("NewZipArchiveFileSystem failed:", err)
+		log.Println("NewZipArchiveFileSystem failed.")
 		me.zfs.pendingZips[me.Basename] = false, false
 		return 0, fuse.ENOSYS
 	}
@@ -73,10 +73,10 @@ func (me *zipCreateFile) Write(input *fuse.WriteIn, nameBytes []byte) (uint32, f
 // reference to the FileSystemConnector to be able to execute
 // mounts.
 type MultiZipFs struct {
-	Connector    *fuse.FileSystemConnector
-	lock         sync.RWMutex
-	zips         map[string]*MemTreeFileSystem
-	pendingZips  map[string]bool
+	Connector     *fuse.FileSystemConnector
+	lock          sync.RWMutex
+	zips          map[string]*MemTreeFileSystem
+	pendingZips   map[string]bool
 	dirZipFileMap map[string]string
 
 	fuse.DefaultFileSystem

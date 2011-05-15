@@ -10,8 +10,8 @@ import (
 
 
 type MemFile interface {
-	Stat() 	*os.FileInfo
-	Data() []byte 
+	Stat() *os.FileInfo
+	Data() []byte
 }
 
 type MemTree struct {
@@ -76,7 +76,7 @@ func (me *MemTree) FindDir(name string) *MemTree {
 ////////////////////////////////////////////////////////////////
 
 type MemTreeFileSystem struct {
-	tree        *MemTree
+	tree *MemTree
 	fuse.DefaultFileSystem
 }
 
@@ -126,18 +126,18 @@ func (me *MemTreeFileSystem) OpenDir(name string) (stream chan fuse.DirEntry, co
 	if dir == nil {
 		panic("dir")
 	}
-	
+
 	stream = make(chan fuse.DirEntry, len(dir.files)+len(dir.subdirs))
 	for k, _ := range dir.files {
 		stream <- fuse.DirEntry{
-		Name: k,
-		Mode: mem_FILEMODE,
+			Name: k,
+			Mode: mem_FILEMODE,
 		}
 	}
 	for k, _ := range dir.subdirs {
 		stream <- fuse.DirEntry{
-		Name: k,
-		Mode: mem_DIRMODE,
+			Name: k,
+			Mode: mem_DIRMODE,
 		}
 	}
 	close(stream)
