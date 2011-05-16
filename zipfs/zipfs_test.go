@@ -14,12 +14,9 @@ func TestZipFs(t *testing.T) {
 		t.Error("NewZipArchiveFileSystem failed:", err)
 	}
 
-	connector := fuse.NewFileSystemConnector(zfs, nil)
 	mountPoint := fuse.MakeTempDir()
 	defer os.RemoveAll(mountPoint)
-
-	state := fuse.NewMountState(connector)
-	state.Mount(mountPoint)
+	state, _, err := fuse.MountFileSystem(mountPoint, zfs, nil)
 	defer state.Unmount()
 
 	state.Debug = true
