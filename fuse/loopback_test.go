@@ -68,7 +68,7 @@ func (me *testCase) Setup(t *testing.T) {
 
 	me.connector.Debug = true
 	me.state = NewMountState(rfs)
-	me.state.Mount(me.mountPoint)
+	me.state.Mount(me.mountPoint, nil)
 
 	//me.state.Debug = false
 	me.state.Debug = true

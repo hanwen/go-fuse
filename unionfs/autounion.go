@@ -32,7 +32,7 @@ type AutoUnionFs struct {
 
 type AutoUnionFsOptions struct {
 	UnionFsOptions
-	fuse.MountOptions
+	fuse.FileSystemOptions
 
 	// If set, run updateKnownFses() after mounting.
 	UpdateOnMount bool
@@ -134,7 +134,7 @@ func (me *AutoUnionFs) addFs(name string, roots []string) (code fuse.Status) {
 	}
 	gofs, code := me.createFs(name, roots)
 	if gofs != nil {
-		me.connector.Mount("/"+name, gofs, &me.options.MountOptions)
+		me.connector.Mount("/"+name, gofs, &me.options.FileSystemOptions)
 	}
 	return code
 }

@@ -33,7 +33,7 @@ func Socketpair(network string) (l, r *os.File, err os.Error) {
 
 // Create a FUSE FS on the specified mount point.  The returned
 // mount point is always absolute.
-func mount(mountPoint string) (f *os.File, finalMountPoint string, err os.Error) {
+func mount(mountPoint string, options string) (f *os.File, finalMountPoint string, err os.Error) {
 	local, remote, err := Socketpair("unixgram")
 	if err != nil {
 		return
@@ -50,8 +50,15 @@ func mount(mountPoint string) (f *os.File, finalMountPoint string, err os.Error)
 		}
 		mountPoint = filepath.Clean(filepath.Join(cwd, mountPoint))
 	}
+	
+	cmd := []string{"/bin/fusermount", mountPoint}
+	if options != "" {
+		cmd = append(cmd, "-o")
+		cmd = append(cmd, options)
+	}
+	
 	proc, err := os.StartProcess("/bin/fusermount",
-		[]string{"/bin/fusermount", mountPoint},
+		cmd,
 		&os.ProcAttr{
 			Env:   []string{"_FUSE_COMMFD=3"},
 			Files: []*os.File{os.Stdin, os.Stdout, os.Stderr, remote}})

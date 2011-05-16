@@ -17,7 +17,7 @@ func TestPathDebug(t *testing.T) {
 	defer os.RemoveAll(mountPoint)
 
 	state := NewMountState(connector)
-	state.Mount(mountPoint)
+	state.Mount(mountPoint, nil)
 	state.Debug = true
 	defer state.Unmount()
 

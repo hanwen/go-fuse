@@ -12,7 +12,7 @@ import (
 
 var _ = fmt.Println
 
-func NewFileSystemConnector(fs FileSystem, opts *MountOptions) (out *FileSystemConnector) {
+func NewFileSystemConnector(fs FileSystem, opts *FileSystemOptions) (out *FileSystemConnector) {
 	out = EmptyFileSystemConnector()
 	if code := out.Mount("/", fs, opts); code != OK {
 		panic("root mount failed.")

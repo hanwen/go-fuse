@@ -39,7 +39,7 @@ func main() {
 		finalFs = timing
 	}
 
-	opts := &fuse.MountOptions{
+	opts := &fuse.FileSystemOptions{
 		// These options are to be compatible with libfuse defaults,
 		// making benchmarking easier.
 		NegativeTimeout: 1.0,
@@ -71,7 +71,7 @@ func main() {
 	mountPoint := flag.Arg(0)
 
 	fmt.Println("Mounting")
-	err := state.Mount(mountPoint)
+	err := state.Mount(mountPoint, nil)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)

@@ -45,8 +45,14 @@ func (me *MountState) MountPoint() string {
 }
 
 // Mount filesystem on mountPoint.
-func (me *MountState) Mount(mountPoint string) os.Error {
-	file, mp, err := mount(mountPoint)
+func (me *MountState) Mount(mountPoint string, opts *MountOptions) os.Error {
+
+	optStr := ""
+	if opts != nil && opts.AllowOther {
+		optStr = "allow_other"
+	}
+	
+	file, mp, err := mount(mountPoint, optStr)
 	if err != nil {
 		return err
 	}

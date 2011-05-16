@@ -42,7 +42,7 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 	fses = append(fses, fuse.NewLoopbackFileSystem(wd+"/ro"))
 	ufs := NewUnionFs("testFs", fses, testOpts)
 
-	opts := &fuse.MountOptions{
+	opts := &fuse.FileSystemOptions{
 		EntryTimeout:    entryTtl,
 		AttrTimeout:     entryTtl,
 		NegativeTimeout: entryTtl,

@@ -46,7 +46,7 @@ type mountData struct {
 	// consider if we can measure significant contention for
 	// multi-mount filesystems.
 
-	options *MountOptions
+	options *FileSystemOptions
 }
 
 func newMount(fs FileSystem) *mountData {
@@ -165,8 +165,8 @@ func (me *inode) setParent(newParent *inode) {
 	}
 }
 
-func NewMountOptions() *MountOptions {
-	return &MountOptions{
+func NewFileSystemOptions() *FileSystemOptions {
+	return &FileSystemOptions{
 		NegativeTimeout: 0.0,
 		AttrTimeout:     1.0,
 		EntryTimeout:    1.0,
@@ -422,7 +422,7 @@ func EmptyFileSystemConnector() (out *FileSystemConnector) {
 	return out
 }
 
-func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *MountOptions) Status {
+func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *FileSystemOptions) Status {
 	var node *inode
 
 	if mountPoint != "/" {
@@ -465,7 +465,7 @@ func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *Mou
 
 	node.mount = newMount(fs)
 	if opts == nil {
-		opts = NewMountOptions()
+		opts = NewFileSystemOptions()
 	}
 	node.mount.options = opts
 	return OK

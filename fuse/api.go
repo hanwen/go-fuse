@@ -86,10 +86,14 @@ type File interface {
 // MountOptions contains time out options for a FileSystem.  The
 // default copied from libfuse and set in NewMountOptions() is
 // (1s,1s,0s).
-type MountOptions struct {
+type FileSystemOptions struct {
 	EntryTimeout    float64
 	AttrTimeout     float64
 	NegativeTimeout float64
+}
+
+type MountOptions struct {
+	AllowOther      bool
 }
 
 // DefaultFileSystem implements a FileSystem that returns ENOSYS for every operation.

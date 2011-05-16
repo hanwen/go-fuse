@@ -17,7 +17,7 @@ const entryTtl = 0.1
 
 var testAOpts = AutoUnionFsOptions{
 	UnionFsOptions: testOpts,
-	MountOptions: fuse.MountOptions{
+	FileSystemOptions: fuse.FileSystemOptions{
 		EntryTimeout:    entryTtl,
 		AttrTimeout:     entryTtl,
 		NegativeTimeout: 0,
@@ -44,7 +44,7 @@ func setup(t *testing.T) (workdir string, cleanup func()) {
 	WriteFile(wd+"/ro/file2", "file2")
 
 	fs := NewAutoUnionFs(wd+"/store", testAOpts)
-	state, _, err := fuse.MountFileSystem(wd + "/mount", fs, &testAOpts.MountOptions)
+	state, _, err := fuse.MountFileSystem(wd + "/mount", fs, &testAOpts.FileSystemOptions)
 	CheckSuccess(err)
 	state.Debug = true
 	go state.Loop(false)
