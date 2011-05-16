@@ -456,7 +456,7 @@ func TestRemoveAll(t *testing.T) {
 
 	err := os.Mkdir(wd + "/ro/dir", 0755)
 	CheckSuccess(err)
-	
+
 	contents := "hello"
 	fn := wd + "/ro/dir/y"
 	err = ioutil.WriteFile(fn, []byte(contents), 0644)
@@ -468,3 +468,44 @@ func TestRemoveAll(t *testing.T) {
 	}
 }
 
+func Readdirnames(dir string) ([]string, os.Error) {
+	f, err := os.Open(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	defer f.Close()
+	return f.Readdirnames(-1)
+}
+
+func TestDropCache(t *testing.T) {
+	t.Log("TestDropCache")
+	wd, clean := setupUfs(t)
+	defer clean()
+
+	err := ioutil.WriteFile(wd + "/ro/file", []byte("bla"), 0644)
+	CheckSuccess(err)
+
+	_, err = os.Lstat(wd + "/mount/.drop_cache")
+	CheckSuccess(err)
+
+	names, err := Readdirnames(wd + "/mount")
+	CheckSuccess(err)
+	if len(names) != 1 || names[0] != "file"  {
+		t.Fatal("unexpected names", names)
+	}
+
+	err = ioutil.WriteFile(wd + "/ro/file2", []byte("blabla"), 0644)
+	names2, err := Readdirnames(wd + "/mount")
+	CheckSuccess(err)
+	if len(names2) != len(names) {
+		t.Fatal("mismatch", names2)
+	}
+
+	err = ioutil.WriteFile(wd + "/mount/.drop_cache", []byte("does not matter"), 0644)
+	CheckSuccess(err)
+	names2, err = Readdirnames(wd + "/mount")
+	if len(names2) != 2 {
+		t.Fatal("mismatch 2", names2)
+	}
+}

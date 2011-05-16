@@ -6,11 +6,11 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"log"
 	"os"
-	"syscall"
 	"path"
 	"path/filepath"
-	"sync"
 	"strings"
+	"sync"
+	"syscall"
 	"time"
 )
 
@@ -320,6 +320,10 @@ func (me *UnionFs) Symlink(pointedTo string, linkName string) (code fuse.Status)
 }
 
 func (me *UnionFs) Truncate(path string, offset uint64) (code fuse.Status) {
+	if path == _DROP_CACHE {
+		return fuse.OK
+	}
+
 	r := me.getBranch(path)
 	if r.branch > 0 {
 		code = me.Promote(path, r)
@@ -549,6 +553,10 @@ func (me *UnionFs) GetAttr(name string) (a *os.FileInfo, s fuse.Status) {
 }
 
 func (me *UnionFs) GetXAttr(name string, attr string) ([]byte, fuse.Status) {
+	if name == _DROP_CACHE {
+		return nil, syscall.ENODATA
+	}
+
 	r := me.getBranch(name)
 	if r.branch >= 0 {
 		return me.fileSystems[r.branch].GetXAttr(name, attr)
