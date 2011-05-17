@@ -471,6 +471,7 @@ func init() {
 		_OP_GETATTR: func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
 		_OP_CREATE:  func(ptr unsafe.Pointer) interface{} { return (*CreateOut)(ptr) },
 		_OP_SETATTR: func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
+		_OP_INIT:    func(ptr unsafe.Pointer) interface{} { return (*InitOut)(ptr) },
 	} {
 		operationHandlers[op].DecodeOut = f
 	}
