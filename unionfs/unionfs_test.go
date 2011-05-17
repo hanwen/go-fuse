@@ -178,6 +178,36 @@ func TestChmod(t *testing.T) {
 	}
 }
 
+func TestDelete(t *testing.T) {
+	wd, clean := setupUfs(t)
+	defer clean()
+
+	writeToFile(wd+"/ro/file", "a")
+	_, err := os.Lstat(wd + "/mount/file")
+	CheckSuccess(err)
+
+	err = os.Remove(wd + "/mount/file")
+	CheckSuccess(err)
+
+	_, err = os.Lstat(wd + "/mount/file")
+	if err == nil {
+		t.Fatal("should have disappeared.")
+	}
+	delPath := wd + "/rw/" + testOpts.DeletionDirName
+	names := dirNames(delPath)
+	if len(names) != 1 {
+		t.Fatal("Should have 1 deletion", names)
+	}
+
+	for k, _ := range names {
+		c, err := ioutil.ReadFile(delPath + "/" + k)
+		CheckSuccess(err)
+		if string(c) != "file" {
+			t.Fatal("content mismatch", string(c)) 
+		}
+	}
+}
+
 func TestBasic(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()

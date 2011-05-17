@@ -208,16 +208,26 @@ func (me *UnionFs) removeDeletion(name string) {
 	}
 }
 
-func (me *UnionFs) putDeletion(name string) fuse.Status {
+func (me *UnionFs) putDeletion(name string) (code fuse.Status) {
 	marker := me.deletionPath(name)
 	me.deletionCache.AddEntry(path.Base(marker))
 
 	// Is there a WriteStringToFileOrDie ?
 	writable := me.fileSystems[0]
-	f, code := writable.Open(marker, uint32(os.O_TRUNC|os.O_WRONLY|os.O_CREATE))
+	fi, code := writable.GetAttr(marker)
+	if code.Ok() && fi.Size == int64(len(name)) {
+		return fuse.OK
+	}
+	
+	var f fuse.File
+	if code == fuse.ENOENT {
+		f, code = writable.Create(marker, uint32(os.O_TRUNC|os.O_WRONLY), 0644)
+	} else {
+		writable.Chmod(marker, 0644)
+		f, code = writable.Open(marker, uint32(os.O_TRUNC|os.O_WRONLY))
+	}
 	if !code.Ok() {
-		log.Printf("could not create deletion file %v: %v",
-			marker, code)
+		log.Printf("could not create deletion file %v: %v", marker, code)
 		return fuse.EPERM
 	}
 	defer f.Release()
