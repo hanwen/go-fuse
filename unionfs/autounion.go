@@ -245,6 +245,7 @@ func (me *AutoUnionFs) GetAttr(path string) (*os.FileInfo, fuse.Status) {
 	if path == filepath.Join(_STATUS, _VERSION) {
 		a := &os.FileInfo{
 			Mode: fuse.S_IFREG | 0644,
+			Size: int64(len(fuse.Version())),
 		}
 		return a, fuse.OK
 	}
@@ -293,6 +294,16 @@ func (me *AutoUnionFs) StatusDir() (stream chan fuse.DirEntry, status fuse.Statu
 
 	close(stream)
 	return stream, fuse.OK
+}
+
+func (me *AutoUnionFs) Open(path string, flags uint32) (fuse.File, fuse.Status) {
+	if path == _STATUS + "/" + _VERSION {
+		if flags & fuse.O_ANYWRITE != 0 {
+			return nil, fuse.EPERM
+		}
+		return fuse.NewReadOnlyFile([]byte(fuse.Version())), fuse.OK
+	}
+	return nil, fuse.ENOENT
 }
 
 func (me *AutoUnionFs) OpenDir(name string) (stream chan fuse.DirEntry, status fuse.Status) {

@@ -55,6 +55,18 @@ func setup(t *testing.T) (workdir string, cleanup func()) {
 	}
 }
 
+func TestVersion(t *testing.T) {
+	wd, clean := setup(t)
+	defer clean()
+
+	c, err := ioutil.ReadFile(wd+"/mount/status/gounionfs_version")
+	CheckSuccess(err)
+	if len(c) == 0 {
+		t.Fatal("No version found.")
+	}
+	log.Println("Found version:", string(c))
+}
+
 func TestAutoFsSymlink(t *testing.T) {
 	wd, clean := setup(t)
 	defer clean()
