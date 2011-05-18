@@ -244,6 +244,11 @@ func (me *UnionFs) putDeletion(name string) (code fuse.Status) {
 // Promotion.
 
 func (me *UnionFs) Promote(name string, srcResult branchResult) fuse.Status {
+	if !srcResult.attr.IsRegular() {
+		// TODO - implement rename for dirs, links, etc.
+		return fuse.ENOSYS
+	}
+	
 	writable := me.fileSystems[0]
 	sourceFs := me.fileSystems[srcResult.branch]
 
@@ -664,10 +669,6 @@ func (me *UnionFs) Rename(src string, dst string) (code fuse.Status) {
 	code = srcResult.code
 	if code.Ok() {
 		code = srcResult.code
-	}
-	if code.Ok() && !srcResult.attr.IsRegular() {
-		// TODO - implement rename for dirs, links, etc.
-		code = fuse.ENOSYS
 	}
 	if code.Ok() && srcResult.branch > 0 {
 		code = me.Promote(src, srcResult)
