@@ -120,11 +120,11 @@ func (me *MemTreeFileSystem) Open(name string, flags uint32) (fuseFile fuse.File
 
 func (me *MemTreeFileSystem) OpenDir(name string) (stream chan fuse.DirEntry, code fuse.Status) {
 	dir, file := me.tree.Lookup(name)
-	if file != nil {
-		return nil, fuse.ENOSYS
-	}
 	if dir == nil {
-		panic("dir")
+		return nil, fuse.ENOENT
+	}
+	if file != nil {
+		return nil, fuse.ENOTDIR
 	}
 
 	stream = make(chan fuse.DirEntry, len(dir.files)+len(dir.subdirs))
