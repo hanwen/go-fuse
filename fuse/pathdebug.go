@@ -44,7 +44,6 @@ func (me *FileSystemDebug) Add(name string, callback getter) {
 }
 
 func (me *FileSystemDebug) Open(path string, flags uint32) (fuseFile File, status Status) {
-
 	content := me.getContent(path)
 	if content != nil {
 		return NewReadOnlyFile(content), OK

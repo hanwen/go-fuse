@@ -90,6 +90,10 @@ type FileSystemOptions struct {
 	EntryTimeout    float64
 	AttrTimeout     float64
 	NegativeTimeout float64
+
+	// If set, replace all uids with given UID.  NewFileSystemOptions() will set
+	// this to the daemon's uid/gid.
+	*Owner
 }
 
 type MountOptions struct {
@@ -102,7 +106,7 @@ type DefaultFileSystem struct{}
 // DefaultFile returns ENOSYS for every operation.
 type DefaultFile struct{}
 
-// RawFileSystem is an interface closer to the FUSE wire protocol. 
+// RawFileSystem is an interface closer to the FUSE wire protocol.
 //
 // Unless you really know what you are doing, you should not implement
 // this, but rather the FileSystem interface; the details of getting

@@ -21,6 +21,7 @@ package fuse
 import (
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -52,6 +53,13 @@ type mountData struct {
 func newMount(fs FileSystem) *mountData {
 	return &mountData{fs: fs}
 }
+
+func (me *mountData) setOwner(attr *Attr) {
+	if me.options.Owner != nil {
+		attr.Owner = *me.options.Owner
+	}
+}
+
 
 // Tests should set to true.
 var paranoia = false
@@ -165,11 +173,19 @@ func (me *inode) setParent(newParent *inode) {
 	}
 }
 
+func CurrentOwner() *Owner {
+	return &Owner{
+	Uid: uint32(os.Getuid()),
+	Gid: uint32(os.Getgid()),
+	}
+}
+
 func NewFileSystemOptions() *FileSystemOptions {
 	return &FileSystemOptions{
 		NegativeTimeout: 0.0,
 		AttrTimeout:     1.0,
 		EntryTimeout:    1.0,
+		Owner: CurrentOwner(),
 	}
 }
 

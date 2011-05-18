@@ -72,8 +72,10 @@ func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string
 	SplitNs(mount.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	CopyFileInfo(fi, &out.Attr)
 	out.Attr.Ino = data.NodeId
+	mount.setOwner(&out.Attr)
 	return out, OK, data
 }
+
 
 func (me *FileSystemConnector) Forget(h *InHeader, input *ForgetIn) {
 	me.forgetUpdate(h.NodeId, int(input.Nlookup))
@@ -110,8 +112,8 @@ func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out 
 	out = &AttrOut{}
 	CopyFileInfo(fi, &out.Attr)
 	out.Attr.Ino = header.NodeId
+	mount.setOwner(&out.Attr)
 	SplitNs(mount.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
-
 	return out, OK
 }
 
