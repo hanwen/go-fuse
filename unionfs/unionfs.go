@@ -665,6 +665,10 @@ func (me *UnionFs) Rename(src string, dst string) (code fuse.Status) {
 	if code.Ok() {
 		code = srcResult.code
 	}
+	if code.Ok() && !srcResult.attr.IsRegular() {
+		// TODO - implement rename for dirs, links, etc.
+		code = fuse.ENOSYS
+	}
 	if code.Ok() && srcResult.branch > 0 {
 		code = me.Promote(src, srcResult)
 	}
