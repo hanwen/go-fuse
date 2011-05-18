@@ -7,7 +7,8 @@ GOFILES=unionfs.go \
 	timedcache.go \
 	cachingfs.go \
 	autounion.go \
+	create.go
 
-DEPS=../fuse
+DEPS=../fuse ../zipfs
 
 include $(GOROOT)/src/Make.pkg

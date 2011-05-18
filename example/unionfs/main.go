@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/unionfs"
 	"os"
@@ -28,16 +29,14 @@ func main() {
 		DeletionDirName:      *deldirname,
 	}
 
-	fses := make([]fuse.FileSystem, 0)
-	for _, r := range flag.Args()[1:] {
-		fses = append(fses, fuse.NewLoopbackFileSystem(r))
+	ufs, err := unionfs.NewUnionFsFromRoots(flag.Args()[1:], &ufsOptions)
+	if err != nil {
+		log.Fatal("Cannot create UnionFs", err)
+		os.Exit(1)
 	}
-	
-	ufs := unionfs.NewUnionFs("unionfs", fses, ufsOptions)
 	mountState, _, err := fuse.MountFileSystem(flag.Arg(0), ufs, nil)
 	if err != nil {
-		fmt.Printf("Mount fail: %v\n", err)
-		os.Exit(1)
+		log.Fatal("Mount fail:", err)
 	}
 
 	mountState.Debug = *debug

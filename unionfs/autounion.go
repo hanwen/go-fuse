@@ -93,15 +93,13 @@ func (me *AutoUnionFs) createFs(name string, roots []string) (*UnionFs, fuse.Sta
 		return gofs, fuse.OK
 	}
 
-	fses := make([]fuse.FileSystem, 0)
-	for _, r := range roots {
-		fses = append(fses, fuse.NewLoopbackFileSystem(r))
+	ufs, err := NewUnionFsFromRoots(roots, &me.options.UnionFsOptions)
+	if err != nil {
+		log.Println("Could not create UnionFs:", err)
+		return nil, fuse.EPERM
 	}
-	identifier := fmt.Sprintf("%v", roots)
-	log.Println("Adding UnionFs for", identifier)
-	gofs = NewUnionFs(identifier, fses, me.options.UnionFsOptions)
 
-	me.knownFileSystems[name] = gofs
+	me.knownFileSystems[name] = ufs
 	me.nameRootMap[name] = roots[0]
 
 	return gofs, fuse.OK
