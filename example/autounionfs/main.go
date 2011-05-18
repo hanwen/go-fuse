@@ -32,6 +32,7 @@ func main() {
 			EntryTimeout:    1.0,
 			AttrTimeout:     1.0,
 			NegativeTimeout: 1.0,
+			Owner: fuse.CurrentOwner(),
 		},
 		UpdateOnMount: true,
 	}
@@ -43,7 +44,7 @@ func main() {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)
 	}
-	
+
 	conn.Debug = *debug
 	state.Debug = *debug
 	state.Loop(*threaded)
