@@ -62,7 +62,7 @@ func (me *DevNullFile) Fsync(*FsyncIn) (code Status) {
 
 // LoopbackFile delegates all operations back to an underlying os.File.
 type LoopbackFile struct {
-	file *os.File
+	File *os.File
 
 	DefaultFile
 }
@@ -70,8 +70,8 @@ type LoopbackFile struct {
 func (me *LoopbackFile) Read(input *ReadIn, buffers BufferPool) ([]byte, Status) {
 	slice := buffers.AllocBuffer(input.Size)
 
-	n, err := me.file.ReadAt(slice, int64(input.Offset))
-	// TODO - fix Go documentation.
+	n, err := me.File.ReadAt(slice, int64(input.Offset))
+	// TODO - fix Go ndocumentation.
 	if err == os.EOF {
 		err = nil
 	}
@@ -79,35 +79,35 @@ func (me *LoopbackFile) Read(input *ReadIn, buffers BufferPool) ([]byte, Status)
 }
 
 func (me *LoopbackFile) Write(input *WriteIn, data []byte) (uint32, Status) {
-	n, err := me.file.WriteAt(data, int64(input.Offset))
+	n, err := me.File.WriteAt(data, int64(input.Offset))
 	return uint32(n), OsErrorToErrno(err)
 }
 
 func (me *LoopbackFile) Release() {
-	me.file.Close()
+	me.File.Close()
 }
 
 func (me *LoopbackFile) Fsync(*FsyncIn) (code Status) {
-	return Status(syscall.Fsync(me.file.Fd()))
+	return Status(syscall.Fsync(me.File.Fd()))
 }
 
 
 func (me *LoopbackFile) Truncate(size uint64) Status {
-	return Status(syscall.Ftruncate(me.file.Fd(), int64(size)))
+	return Status(syscall.Ftruncate(me.File.Fd(), int64(size)))
 }
 
 // futimens missing from 6g runtime.
 
 func (me *LoopbackFile) Chmod(mode uint32) Status {
-	return OsErrorToErrno(me.file.Chmod(mode))
+	return OsErrorToErrno(me.File.Chmod(mode))
 }
 
 func (me *LoopbackFile) Chown(uid uint32, gid uint32) Status {
-	return OsErrorToErrno(me.file.Chown(int(uid), int(gid)))
+	return OsErrorToErrno(me.File.Chown(int(uid), int(gid)))
 }
 
 func (me *LoopbackFile) GetAttr() (*os.FileInfo, Status) {
-	fi, err := me.file.Stat()
+	fi, err := me.File.Stat()
 	if err != nil {
 		return nil, OsErrorToErrno(err)
 	}

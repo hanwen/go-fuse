@@ -79,7 +79,7 @@ func (me *LoopbackFileSystem) Open(name string, flags uint32) (fuseFile File, st
 	if err != nil {
 		return nil, OsErrorToErrno(err)
 	}
-	return &LoopbackFile{file: f}, OK
+	return &LoopbackFile{File: f}, OK
 }
 
 func (me *LoopbackFileSystem) Chmod(path string, mode uint32) (code Status) {
@@ -140,7 +140,7 @@ func (me *LoopbackFileSystem) Access(name string, mode uint32) (code Status) {
 
 func (me *LoopbackFileSystem) Create(path string, flags uint32, mode uint32) (fuseFile File, code Status) {
 	f, err := os.OpenFile(me.GetPath(path), int(flags)|os.O_CREATE, mode)
-	return &LoopbackFile{file: f}, OsErrorToErrno(err)
+	return &LoopbackFile{File: f}, OsErrorToErrno(err)
 }
 
 func (me *LoopbackFileSystem) GetXAttr(name string, attr string) ([]byte, Status) {
