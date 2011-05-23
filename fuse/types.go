@@ -24,6 +24,7 @@ const (
 
 	S_IFDIR = syscall.S_IFDIR
 	S_IFREG = syscall.S_IFREG
+	S_IFLNK = syscall.S_IFLNK
 
 	// TODO - get this from a canonical place.
 	PAGESIZE = 4096
