@@ -88,9 +88,10 @@ func (me *AutoUnionFs) createFs(name string, roots []string) (*UnionFs, fuse.Sta
 		}
 	}
 
-	gofs := me.knownFileSystems[name]
-	if gofs != nil {
-		return gofs, fuse.OK
+	ufs := me.knownFileSystems[name]
+	if ufs != nil {
+		log.Println("Already have a workspace:", name)
+		return nil, fuse.EBUSY
 	}
 
 	ufs, err := NewUnionFsFromRoots(roots, &me.options.UnionFsOptions)
@@ -99,10 +100,12 @@ func (me *AutoUnionFs) createFs(name string, roots []string) (*UnionFs, fuse.Sta
 		return nil, fuse.EPERM
 	}
 
+	log.Printf("Adding workspace %v for roots %v", name, ufs.Name())
+
 	me.knownFileSystems[name] = ufs
 	me.nameRootMap[name] = roots[0]
 
-	return gofs, fuse.OK
+	return ufs, fuse.OK
 }
 
 func (me *AutoUnionFs) rmFs(name string) (code fuse.Status) {
@@ -130,9 +133,9 @@ func (me *AutoUnionFs) addFs(name string, roots []string) (code fuse.Status) {
 		log.Println("Illegal name for overlay", roots)
 		return fuse.EINVAL
 	}
-	gofs, code := me.createFs(name, roots)
-	if gofs != nil {
-		me.connector.Mount("/"+name, gofs, &me.options.FileSystemOptions)
+	fs, code := me.createFs(name, roots)
+	if code.Ok() && fs != nil {
+		code = me.connector.Mount("/"+name, fs, &me.options.FileSystemOptions)
 	}
 	return code
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/zipfs"
-	"log"
 	"os"
 )
 
@@ -30,6 +29,5 @@ func NewUnionFsFromRoots(roots []string, opts *UnionFsOptions) (*UnionFs, os.Err
 	}
 
 	identifier := fmt.Sprintf("%v", roots)
-	log.Println("Adding UnionFs for", identifier)
 	return NewUnionFs(identifier, fses, *opts), nil
 }
