@@ -539,3 +539,74 @@ func TestDropCache(t *testing.T) {
 		t.Fatal("mismatch 2", names2)
 	}
 }
+
+func TestDisappearing(t *testing.T) {
+	// This init is like setupUfs, but we want access to the
+	// writable Fs.
+	wd := fuse.MakeTempDir()
+	defer os.RemoveAll(wd)
+	err := os.Mkdir(wd+"/mount", 0700)
+	fuse.CheckSuccess(err)
+
+	err = os.Mkdir(wd+"/rw", 0700)
+	fuse.CheckSuccess(err)
+
+	os.Mkdir(wd+"/ro", 0700)
+	fuse.CheckSuccess(err)
+
+	wrFs := fuse.NewLoopbackFileSystem(wd+"/rw")
+	var fses []fuse.FileSystem
+	fses = append(fses, wrFs)
+	fses = append(fses, fuse.NewLoopbackFileSystem(wd+"/ro"))
+	ufs := NewUnionFs("testFs", fses, testOpts)
+
+	opts := &fuse.FileSystemOptions{
+	       EntryTimeout:    entryTtl,
+	       AttrTimeout:     entryTtl,
+	       NegativeTimeout: entryTtl,
+	}
+
+	state, _, err := fuse.MountFileSystem(wd + "/mount", ufs, opts)
+	CheckSuccess(err)
+	defer state.Unmount()
+	state.Debug = true
+	go state.Loop(true)
+
+	log.Println("TestDisappearing2")
+
+	err = ioutil.WriteFile(wd + "/ro/file", []byte("blabla"), 0644)
+	CheckSuccess(err)
+
+	err = os.Remove(wd+"/mount/file")
+	CheckSuccess(err)
+
+	oldRoot := wrFs.Root
+	wrFs.Root = "/dev/null"
+	time.Sleep(1.5*entryTtl*1e9)
+
+	_, err = ioutil.ReadDir(wd+"/mount")
+	if err == nil {
+	       t.Fatal("Readdir should have failed")
+	} 
+	log.Println("expected readdir failure:", err)
+	
+	err = ioutil.WriteFile(wd + "/mount/file2", []byte("blabla"), 0644)
+	if err == nil {
+		t.Fatal("write should have failed")
+	}
+	log.Println("expected write failure:", err)
+
+	// Restore, and wait for caches to catch up.
+	wrFs.Root = oldRoot
+	time.Sleep(1.5*entryTtl*1e9)
+	
+	_, err = ioutil.ReadDir(wd+"/mount")
+	if err != nil {
+	       t.Fatal("Readdir should succeed", err)
+	} 
+	err = ioutil.WriteFile(wd + "/mount/file2", []byte("blabla"), 0644)
+	if err != nil {
+		t.Fatal("write should succeed", err)
+	}	
+}
+

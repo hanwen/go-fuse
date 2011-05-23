@@ -122,24 +122,24 @@ func NewUnionFs(name string, fileSystems []fuse.FileSystem, options UnionFsOptio
 ////////////////
 // Deal with all the caches.
 
-func (me *UnionFs) isDeleted(name string) bool {
+func (me *UnionFs) isDeleted(name string) (deleted bool, accessError os.Error) {
 	marker := me.deletionPath(name)
 	haveCache, found := me.deletionCache.HasEntry(filepath.Base(marker))
 	if haveCache {
-		return found
+		return found, nil
 	}
 
 	_, code := me.fileSystems[0].GetAttr(marker)
 
 	if code == fuse.OK {
-		return true
+		return true, nil
 	}
 	if code == fuse.ENOENT {
-		return false
+		return false, nil
 	}
 
-	panic(fmt.Sprintf("Unexpected GetAttr return code %v %v", code, marker))
-	return false
+	log.Println("error accessing deletion marker:", marker) 
+	return false, os.EROFS
 }
 
 func (me *UnionFs) getBranch(name string) branchResult {
@@ -557,7 +557,12 @@ func (me *UnionFs) GetAttr(name string) (a *os.FileInfo, s fuse.Status) {
 	if name == me.options.DeletionDirName {
 		return nil, fuse.ENOENT
 	}
-	if me.isDeleted(name) {
+	isDel, err := me.isDeleted(name)
+	if err != nil {
+		return nil, fuse.OsErrorToErrno(err)
+	}
+	
+	if isDel {
 		return nil, fuse.ENOENT
 	}
 	r := me.getBranch(name)
@@ -621,6 +626,9 @@ func (me *UnionFs) OpenDir(directory string) (stream chan fuse.DirEntry, status 
 	}
 
 	wg.Wait()
+	if deletions == nil {
+		return nil, syscall.EROFS
+	}
 
 	results := entries[0]
 

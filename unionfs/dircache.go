@@ -7,19 +7,17 @@ import (
 	"time"
 )
 
-
-/*
- On error, returns an empty map, since we have little options
- for outputting any other diagnostics.
-*/
+// newDirnameMap reads the contents of the given directory. On error,
+// returns a nil map. This forces reloads in the DirCache until we
+// succeed.
 func newDirnameMap(fs fuse.FileSystem, dir string) map[string]bool {
-	result := make(map[string]bool)
-
 	stream, code := fs.OpenDir(dir)
 	if !code.Ok() {
 		log.Printf("newDirnameMap(): %v %v", dir, code)
-		return result
+		return nil
 	}
+	
+	result := make(map[string]bool)
 	for e := range stream {
 		if e.Mode&fuse.S_IFREG != 0 {
 			result[e.Name] = true
@@ -28,12 +26,10 @@ func newDirnameMap(fs fuse.FileSystem, dir string) map[string]bool {
 	return result
 }
 
-/*
- Caches names in a directory for some time.
-
- If called when the cache is expired, the filenames are read afresh in
- the background.
-*/
+// DirCache caches names in a directory for some time.
+//
+// If called when the cache is expired, the filenames are read afresh in
+// the background.
 type DirCache struct {
 	dir   string
 	ttlNs int64
@@ -72,7 +68,8 @@ func (me *DirCache) maybeRefresh() {
 	}
 	me.updateRunning = true
 	go func() {
-		me.setMap(newDirnameMap(me.fs, me.dir))
+		newmap := newDirnameMap(me.fs, me.dir)
+		me.setMap(newmap)
 	}()
 }
 
