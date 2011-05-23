@@ -533,16 +533,17 @@ func (me *testCase) testLargeDirRead() {
 
 	dir, err := os.Open(filepath.Join(me.mountPoint, "readdirSubdir"))
 	CheckSuccess(err)
+	defer dir.Close()
+
 	// Chunked read.
 	total := 0
 	readSet := make(map[string]bool)
 	for {
 		namesRead, err := dir.Readdirnames(200)
-		CheckSuccess(err)
-
-		if len(namesRead) == 0 {
+		if len(namesRead) == 0 || err == os.EOF {
 			break
 		}
+		CheckSuccess(err)
 		for _, v := range namesRead {
 			readSet[v] = true
 		}
@@ -558,9 +559,6 @@ func (me *testCase) testLargeDirRead() {
 			me.tester.Errorf("Name %v not found in output", k)
 		}
 	}
-
-	dir.Close()
-
 	os.RemoveAll(subdir)
 }
 
@@ -581,9 +579,23 @@ func TestMount(t *testing.T) {
 	ts.testAccess()
 	ts.testMknod()
 	ts.testFSync()
-	ts.testLargeRead()
-	ts.testLargeDirRead()
 	ts.testTouch()
+}
+
+func TestLargeRead(t *testing.T) {
+	ts := new(testCase)
+	ts.Setup(t)
+	defer ts.Cleanup()
+	
+	ts.testLargeRead()
+}
+
+func TestLargeDirRead(t *testing.T) {
+	ts := new(testCase)
+	ts.Setup(t)
+	defer ts.Cleanup()
+	
+	ts.testLargeDirRead()
 }
 
 func TestDelRename(t *testing.T) {

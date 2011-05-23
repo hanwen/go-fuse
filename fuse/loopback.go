@@ -59,11 +59,11 @@ func (me *LoopbackFileSystem) OpenDir(name string) (stream chan DirEntry, status
 					Mode: infos[i].Mode,
 				}
 			}
-			if len(infos) < want {
+			if len(infos) < want || err == os.EOF {
 				break
 			}
 			if err != nil {
-				// TODO - how to signal error
+				log.Println("Readdir() returned err:", err)
 				break
 			}
 		}
