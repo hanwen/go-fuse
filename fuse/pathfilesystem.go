@@ -207,14 +207,6 @@ func (me *inode) GetFullPath() (path string) {
 	return ReverseJoin(rev_components, "/")
 }
 
-func ReverseJoin(rev_components []string, sep string) string {
-	components := make([]string, len(rev_components))
-	for i, v := range rev_components {
-		components[len(rev_components)-i-1] = v
-	}
-	return strings.Join(components, sep)
-}
-
 func (me *inode) GetPath() (path string, mount *mountData) {
 	if me.NodeId != FUSE_ROOT_ID && me.Parent == nil {
 		// Deleted node.  Treat as if the filesystem was unmounted.
@@ -274,13 +266,6 @@ func (me *inode) setParent(newParent *inode) {
 		}
 
 		me.Parent.Children[me.Name] = me
-	}
-}
-
-func CurrentOwner() *Owner {
-	return &Owner{
-	Uid: uint32(os.Getuid()),
-	Gid: uint32(os.Getgid()),
 	}
 }
 

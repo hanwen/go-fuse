@@ -170,3 +170,19 @@ func ioctl(fd int, cmd int, arg uintptr) (int, int) {
 func Version() string {
 	return version
 }
+
+func ReverseJoin(rev_components []string, sep string) string {
+	components := make([]string, len(rev_components))
+	for i, v := range rev_components {
+		components[len(rev_components)-i-1] = v
+	}
+	return strings.Join(components, sep)
+}
+
+func CurrentOwner() *Owner {
+	return &Owner{
+	Uid: uint32(os.Getuid()),
+	Gid: uint32(os.Getgid()),
+	}
+}
+
