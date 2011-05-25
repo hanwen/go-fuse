@@ -680,12 +680,19 @@ func TestRecursiveMount(t *testing.T) {
 		t.Error("expect EBUSY")
 	}
 
+	err = os.Rename(ts.mountPoint + "/mnt", ts.mountPoint + "/foobar")
+	CheckSuccess(err)
+	
 	f.Close()
 
 	log.Println("Waiting for kernel to flush file-close to fuse...")
 	time.Sleep(1.5e9 * testTtl)
+	code = ts.connector.Unmount("/doesnotexist")
+	if code != EINVAL {
+		t.Fatal("expect EINVAL", code)
+	}
 
-	code = ts.connector.Unmount("/mnt")
+	code = ts.connector.Unmount("/foobar")
 	if code != OK {
 		t.Error("umount failed.", code)
 	}

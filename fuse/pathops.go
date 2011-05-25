@@ -391,11 +391,11 @@ func (me *FileSystemConnector) Flush(input *FlushIn) Status {
 		// open could have changed things.
 		var path string
 		var mount *mountData
-		me.treeLock.RLock()
+		b.mount.treeLock.RLock()
 		if b.inode.Parent != nil {
 			path, mount = b.inode.GetPath()
 		}
-		me.treeLock.RUnlock()
+		b.mount.treeLock.RUnlock()
 
 		if mount != nil {
 			code = mount.fs.Flush(path)
@@ -492,3 +492,4 @@ func (me *FileSystemConnector) Ioctl(header *InHeader, input *IoctlIn) (out *Ioc
 	}
 	return f.Ioctl(input)
 }
+
