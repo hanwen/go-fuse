@@ -11,6 +11,8 @@ import (
 var _ = log.Printf
 var CheckSuccess = fuse.CheckSuccess
 
+const testTtl = 0.1
+
 func TestMultiZipFs(t *testing.T) {
 	var err os.Error
 
@@ -19,7 +21,11 @@ func TestMultiZipFs(t *testing.T) {
 
 	fs := NewMultiZipFs()
 	mountPoint := fuse.MakeTempDir()
-	state, _, err := fuse.MountFileSystem(mountPoint, fs, nil)
+	state, _, err := fuse.MountFileSystem(mountPoint, fs, 	&fuse.FileSystemOptions{
+		EntryTimeout: testTtl,
+		AttrTimeout: testTtl,
+		NegativeTimeout: 0.0,
+	})
 	defer os.RemoveAll(mountPoint)
 	CheckSuccess(err)
 	defer state.Unmount()
@@ -88,7 +94,7 @@ func TestMultiZipFs(t *testing.T) {
 
 	// This is ugly but necessary: We don't have ways to signal
 	// back to FUSE that the file disappeared.
-	time.Sleep(1.5e9)
+	time.Sleep(1.5e9 * testTtl)
 
 	fi, err = os.Stat(mountPoint + "/zipmount")
 	if err == nil {
