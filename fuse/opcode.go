@@ -472,6 +472,7 @@ func init() {
 		_OP_CREATE:  func(ptr unsafe.Pointer) interface{} { return (*CreateOut)(ptr) },
 		_OP_SETATTR: func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
 		_OP_INIT:    func(ptr unsafe.Pointer) interface{} { return (*InitOut)(ptr) },
+		_OP_MKDIR:   func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
 	} {
 		operationHandlers[op].DecodeOut = f
 	}
