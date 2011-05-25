@@ -37,6 +37,8 @@ type testCase struct {
 	connector    *FileSystemConnector
 }
 
+const testTtl = 0.1
+
 // Create and mount filesystem.
 func (me *testCase) Setup(t *testing.T) {
 	me.tester = t
@@ -61,7 +63,12 @@ func (me *testCase) Setup(t *testing.T) {
 	pfs = NewLockingFileSystem(pfs)
 
 	var rfs RawFileSystem
-	me.connector = NewFileSystemConnector(pfs, nil)
+	me.connector = NewFileSystemConnector(pfs,
+		&FileSystemOptions{
+		EntryTimeout: testTtl,
+		AttrTimeout: testTtl,
+		NegativeTimeout: 0.0,
+	})
 	rfs = me.connector
 	rfs = NewTimingRawFileSystem(rfs)
 	rfs = NewLockingRawFileSystem(rfs)
@@ -676,7 +683,7 @@ func TestRecursiveMount(t *testing.T) {
 	f.Close()
 
 	log.Println("Waiting for kernel to flush file-close to fuse...")
-	time.Sleep(1e9)
+	time.Sleep(1.5e9 * testTtl)
 
 	code = ts.connector.Unmount("/mnt")
 	if code != OK {
@@ -684,3 +691,40 @@ func TestRecursiveMount(t *testing.T) {
 	}
 }
 
+func TestDeletedUnmount(t *testing.T) {
+	ts := new(testCase)
+	ts.Setup(t)
+	defer ts.Cleanup()
+	
+	submnt := filepath.Join(ts.mountPoint, "mnt")
+	err := os.Mkdir(submnt, 0777)
+	CheckSuccess(err)
+	
+	pfs2 := NewLoopbackFileSystem(ts.origDir)
+	code := ts.connector.Mount("/mnt", pfs2, nil)
+	if !code.Ok() {
+		t.Fatal("err")
+	}
+	f, err := os.Create(filepath.Join(submnt, "hello.txt"))
+	CheckSuccess(err)
+
+	log.Println("Removing")
+	err = os.Remove(filepath.Join(submnt, "hello.txt"))
+	CheckSuccess(err)
+
+	log.Println("Removing")
+	_, err = f.Write([]byte("bla"))
+	CheckSuccess(err)
+
+	code = ts.connector.Unmount("/mnt")
+	if code != EBUSY {
+		t.Error("expect EBUSY", code)
+	}
+
+	f.Close()
+	time.Sleep(1.5e9 * testTtl)
+	code = ts.connector.Unmount("/mnt")
+	if !code.Ok() {
+		t.Error("should succeed", code)
+	}
+}

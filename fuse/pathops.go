@@ -130,7 +130,7 @@ func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags u
 	de := &Dir{
 		stream: stream,
 	}
-	h := me.registerFile(node, mount, de, input.Flags)
+	h := mount.registerFile(node, de, input.Flags)
 
 	return 0, h, OK
 }
@@ -155,7 +155,7 @@ func (me *FileSystemConnector) Open(header *InHeader, input *OpenIn) (flags uint
 	if err != OK {
 		return 0, 0, err
 	}
-	h := me.registerFile(node, mount, f, input.Flags)
+	h := mount.registerFile(node, f, input.Flags)
 
 	return 0, h, OK
 }
@@ -373,12 +373,12 @@ func (me *FileSystemConnector) Create(header *InHeader, input *CreateIn, name st
 	}
 
 	out, code, inode := me.internalLookupWithNode(parent, name, 1)
-	return 0, me.registerFile(inode, mount, f, input.Flags), out, code
+	return 0, mount.registerFile(inode, f, input.Flags), out, code
 }
 
 func (me *FileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
 	node := me.getInodeData(header.NodeId)
-	f := me.unregisterFile(node, input.Fh).(File)
+	f := node.mount.unregisterFile(node, input.Fh).(File)
 	f.Release()
 }
 
@@ -406,7 +406,7 @@ func (me *FileSystemConnector) Flush(input *FlushIn) Status {
 
 func (me *FileSystemConnector) ReleaseDir(header *InHeader, input *ReleaseIn) {
 	node := me.getInodeData(header.NodeId)
-	d := me.unregisterFile(node, input.Fh).(rawDir)
+	d := node.mount.unregisterFile(node, input.Fh).(rawDir)
 	d.Release()
 	me.considerDropInode(node)
 }

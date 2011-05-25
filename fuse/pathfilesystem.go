@@ -28,6 +28,14 @@ import (
 	"unsafe"
 )
 
+// fileBridge stores either an open dir or an open file.
+type fileBridge struct {
+	*mountData
+	*inode
+	Flags uint32
+	Iface interface{}
+}
+
 type mountData struct {
 	// If non-nil the file system mounted here.
 	fs FileSystem
@@ -46,12 +54,20 @@ type mountData struct {
 	// We could have separate treeLocks per mount; something to
 	// consider if we can measure significant contention for
 	// multi-mount filesystems.
-
 	options *FileSystemOptions
+
+	// Protects openFiles
+	openFilesLock sync.RWMutex	
+
+	// Open files/directories.
+	openFiles map[uint64]*fileBridge
 }
 
 func newMount(fs FileSystem) *mountData {
-	return &mountData{fs: fs}
+	return &mountData{
+		fs: fs,
+		openFiles: make(map[uint64]*fileBridge),
+	}
 }
 
 func (me *mountData) setOwner(attr *Attr) {
@@ -59,7 +75,40 @@ func (me *mountData) setOwner(attr *Attr) {
 		attr.Owner = *me.options.Owner
 	}
 }
+func (me *mountData) unregisterFile(node *inode, handle uint64) interface{} {
+	me.openFilesLock.Lock()
+	defer me.openFilesLock.Unlock()
+	b, ok := me.openFiles[handle]
+	if !ok {
+		panic("invalid handle")
+	}
+	node.OpenCount--
+	me.openFiles[handle] = nil, false
+	return b.Iface
+}
 
+func (me *mountData) registerFile(node *inode, f interface{}, flags uint32) uint64 {
+	me.openFilesLock.Lock()
+	defer me.openFilesLock.Unlock()
+
+	b := &fileBridge{
+		Iface:     f,
+		inode:     node,
+		mountData: me,
+		Flags:     flags,
+	}
+	h := uint64(uintptr(unsafe.Pointer(b)))
+	_, ok := me.openFiles[h]
+	if ok {
+		panic("handle counter wrapped")
+	}
+
+	node.OpenCount++
+	me.openFiles[h] = b
+	return h
+}
+
+////////////////
 
 // Tests should set to true.
 var paranoia = false
@@ -71,18 +120,29 @@ type inode struct {
 	NodeId      uint64
 	Name        string
 	LookupCount int
+
+	// Protected by openFilesLock.
+	// TODO - verify() this variable too.
 	OpenCount   int
 
 	// Non-nil if this is a mountpoint.
 	mountPoint  *mountData
 
-	// The point under which this node is.
+	// The point under which this node is.  Should be non-nil for
+	// all nodes.
 	mount       *mountData
 }
 
 // Should be called with treeLock and fileLock held.
 func (me *inode) totalOpenCount() int {
-	o := me.OpenCount
+	o := 0
+	if me.mountPoint != nil {
+		me.mountPoint.openFilesLock.RLock()
+		defer me.mountPoint.openFilesLock.RUnlock()
+
+		o += len(me.mountPoint.openFiles)
+	}
+
 	for _, v := range me.Children {
 		o += v.totalOpenCount()
 	}
@@ -108,16 +168,18 @@ func (me *inode) IsDir() bool {
 const initDirSize = 20
 
 func (me *inode) verify(cur *mountData) {
-	if !(me.NodeId == FUSE_ROOT_ID || me.LookupCount > 0 || len(me.Children) > 0) {
+	if !(me.NodeId == FUSE_ROOT_ID || me.LookupCount > 0 || len(me.Children) > 0 || me.mountPoint != nil) {
 		p, _ := me.GetPath()
-		panic(fmt.Sprintf("node %v should be dead: %v %v", p, len(me.Children), me.LookupCount))
+		panic(fmt.Sprintf("node %v %d should be dead: %v %v", p, me.NodeId, len(me.Children), me.LookupCount))
 	}
-	if me.mountPoint == nil {
-		if me.mount != cur {
-//			panic("me.mount not set correctly", me.mount, cur)
+	if me.mountPoint != nil {
+		if me.mountPoint.unmountPending && len(me.mountPoint.openFiles) > 0 {
+			panic(fmt.Sprintf("cannot have open files for pending unmount"))
 		}
-	} else {
 		cur = me.mountPoint
+	}
+	if me.mount != cur {
+		panic(fmt.Sprintf("me.mount not set correctly %v %v", me.mount, cur))
 	}
 	
 	for n, ch := range me.Children {
@@ -136,7 +198,29 @@ func (me *inode) verify(cur *mountData) {
 	}
 }
 
+func (me *inode) GetFullPath() (path string) {
+	rev_components := make([]string, 0, 10)
+	inode := me
+	for ; inode != nil; inode = inode.Parent {
+		rev_components = append(rev_components, inode.Name)
+	}
+	return ReverseJoin(rev_components, "/")
+}
+
+func ReverseJoin(rev_components []string, sep string) string {
+	components := make([]string, len(rev_components))
+	for i, v := range rev_components {
+		components[len(rev_components)-i-1] = v
+	}
+	return strings.Join(components, sep)
+}
+
 func (me *inode) GetPath() (path string, mount *mountData) {
+	if me.NodeId != FUSE_ROOT_ID && me.Parent == nil {
+		// Deleted node.  Treat as if the filesystem was unmounted.
+		return ".deleted", nil
+	}
+	
 	rev_components := make([]string, 0, 10)
 	inode := me
 
@@ -151,27 +235,32 @@ func (me *inode) GetPath() (path string, mount *mountData) {
 	if mount.unmountPending {
 		return "", nil
 	}
-	components := make([]string, len(rev_components))
-	for i, v := range rev_components {
-		components[len(rev_components)-i-1] = v
-	}
-	fullPath := strings.Join(components, "/")
-	return fullPath, mount
+	return ReverseJoin(rev_components, "/"), mount
 }
 
 // Must be called with treeLock held.
 func (me *inode) setParent(newParent *inode) {
-	if me.Parent == newParent {
+	oldParent := me.Parent
+	if oldParent == newParent {
 		return
 	}
-	if me.Parent != nil {
+	if oldParent != nil {
 		if paranoia {
-			ch := me.Parent.Children[me.Name]
+			ch := oldParent.Children[me.Name]
 			if ch == nil {
 				panic(fmt.Sprintf("parent has no child named %v", me.Name))
 			}
 		}
-		me.Parent.Children[me.Name] = nil, false
+		oldParent.Children[me.Name] = nil, false
+
+		if oldParent.mountPoint != nil && oldParent.mountPoint.unmountPending &&
+			len(oldParent.Children) == 0 {
+			oldParent.mountPoint = nil
+			if oldParent.Parent != nil {
+				oldParent.mount = oldParent.Parent.mount
+			}
+		}
+
 		me.Parent = nil
 	}
 	if newParent != nil {
@@ -218,65 +307,16 @@ type FileSystemConnector struct {
 	// Invariants: see the verify() method.
 	inodeMap map[uint64]*inode
 	rootNode *inode
-
-	// Open files/directories.
-	openFiles map[uint64]*fileBridge
-
-	// Protects openFiles and OpenCount in all of the nodes.
-	fileLock sync.RWMutex
-}
-
-type fileBridge struct {
-	*mountData
-	*inode
-	Flags uint32
-	Iface interface{}
 }
 
 func (me *FileSystemConnector) Statistics() string {
 	me.treeLock.RLock()
 	defer me.treeLock.RUnlock()
 
-	me.fileLock.RLock()
-	defer me.fileLock.RUnlock()
-
 	root := me.rootNode
 	return fmt.Sprintf("Mounts %20d\nFiles %20d\nInodes %20d\n",
 		root.totalMountCount(),
-		len(me.openFiles), len(me.inodeMap))
-}
-
-func (me *FileSystemConnector) unregisterFile(node *inode, handle uint64) interface{} {
-	me.fileLock.Lock()
-	defer me.fileLock.Unlock()
-	b, ok := me.openFiles[handle]
-	if !ok {
-		panic("invalid handle")
-	}
-	me.openFiles[handle] = nil, false
-	node.OpenCount--
-	return b.Iface
-}
-
-func (me *FileSystemConnector) registerFile(node *inode, mount *mountData, f interface{}, flags uint32) uint64 {
-	me.fileLock.Lock()
-	defer me.fileLock.Unlock()
-
-	b := &fileBridge{
-		Iface:     f,
-		inode:     node,
-		mountData: mount,
-		Flags:     flags,
-	}
-	h := uint64(uintptr(unsafe.Pointer(b)))
-	_, ok := me.openFiles[h]
-	if ok {
-		panic("handle counter wrapped")
-	}
-
-	node.OpenCount++
-	me.openFiles[h] = b
-	return h
+		root.totalOpenCount(), len(me.inodeMap))
 }
 
 func (me *FileSystemConnector) decodeFileHandle(h uint64) *fileBridge {
@@ -305,27 +345,15 @@ func (me *FileSystemConnector) verify() {
 	}
 	me.treeLock.Lock()
 	defer me.treeLock.Unlock()
-	me.fileLock.Lock()
-	defer me.fileLock.Unlock()
 
-	hiddenOpen := 0
 	for k, v := range me.inodeMap {
 		if v.NodeId != k {
 			panic(fmt.Sprintf("nodeid mismatch %v %v", v, k))
-		}
-		if v.Parent == nil && v != me.rootNode {
-			hiddenOpen += v.OpenCount
 		}
 	}
 
 	root := me.rootNode
 	root.verify(me.rootNode.mountPoint)
-
-	open := root.totalOpenCount()
-	openFiles := len(me.openFiles)
-	if open+hiddenOpen != openFiles {
-		panic(fmt.Sprintf("opencount mismatch totalOpen=%v openFiles=%v hiddenOpen=%v", open, openFiles, hiddenOpen))
-	}
 }
 
 func (me *FileSystemConnector) newInode(root bool, isDir bool) *inode {
@@ -355,6 +383,7 @@ func (me *FileSystemConnector) lookupUpdate(parent *inode, name string, isDir bo
 		data = me.newInode(false, isDir)
 		data.Name = name
 		data.setParent(parent)
+		data.mount = parent.mount
 	}
 	data.LookupCount += lookupCount
 	return data
@@ -385,7 +414,7 @@ func (me *FileSystemConnector) considerDropInode(n *inode) {
 		n.OpenCount <= 0 {
 		n.setParent(nil)
 		me.inodeMap[n.NodeId] = nil, false
-	}
+	} 
 }
 
 func (me *FileSystemConnector) renameUpdate(oldParent *inode, oldName string, newParent *inode, newName string) {
@@ -444,7 +473,6 @@ func (me *FileSystemConnector) findInode(fullPath string) *inode {
 func EmptyFileSystemConnector() (out *FileSystemConnector) {
 	out = new(FileSystemConnector)
 	out.inodeMap = make(map[uint64]*inode)
-	out.openFiles = make(map[uint64]*fileBridge)
 
 	rootData := out.newInode(true, true)
 	rootData.Children = make(map[string]*inode, initDirSize)
@@ -495,6 +523,7 @@ func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *Fil
 	}
 
 	node.mountPoint = newMount(fs)
+	node.mount = node.mountPoint
 	if opts == nil {
 		opts = NewFileSystemOptions()
 	}
@@ -510,7 +539,6 @@ func (me *FileSystemConnector) Unmount(path string) Status {
 
 	// Need to lock to look at node.Children
 	me.treeLock.RLock()
-	me.fileLock.Lock()
 
 	unmountError := OK
 
@@ -529,7 +557,6 @@ func (me *FileSystemConnector) Unmount(path string) Status {
 		// We settle for eventual consistency.
 		mount.unmountPending = true
 	}
-	me.fileLock.Unlock()
 	me.treeLock.RUnlock()
 
 	if unmountError.Ok() {
@@ -551,7 +578,7 @@ func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *mount
 
 	p, m := n.GetPath()
 	if me.Debug {
-		log.Printf("Node %v = '%s'", nodeid, p)
+		log.Printf("Node %v = '%s'", nodeid, n.GetFullPath())
 	}
 
 	return p, m, n
