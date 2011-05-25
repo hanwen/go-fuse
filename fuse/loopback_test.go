@@ -582,6 +582,14 @@ func TestMount(t *testing.T) {
 	ts.testTouch()
 }
 
+func TestOverwriteRename(t *testing.T) {
+	ts := new(testCase)
+	ts.Setup(t)
+	defer ts.Cleanup()
+	ts.testOverwriteRename()
+}
+
+
 func TestLargeRead(t *testing.T) {
 	ts := new(testCase)
 	ts.Setup(t)
@@ -630,6 +638,7 @@ func TestIoctl(t *testing.T) {
 func TestRecursiveMount(t *testing.T) {
 	ts := new(testCase)
 	ts.Setup(t)
+	defer ts.Cleanup()
 
 	f, err := os.OpenFile(filepath.Join(ts.mountPoint, "hello.txt"),
 		os.O_WRONLY|os.O_CREATE, 0777)
@@ -673,6 +682,5 @@ func TestRecursiveMount(t *testing.T) {
 	if code != OK {
 		t.Error("umount failed.", code)
 	}
-
-	ts.Cleanup()
 }
+

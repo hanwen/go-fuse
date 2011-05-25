@@ -72,6 +72,11 @@ type inode struct {
 	Name        string
 	LookupCount int
 	OpenCount   int
+
+	// Non-nil if this is a mountpoint.
+	mountPoint  *mountData
+
+	// The point under which this node is.
 	mount       *mountData
 }
 
@@ -87,7 +92,7 @@ func (me *inode) totalOpenCount() int {
 // Should be called with treeLock held.
 func (me *inode) totalMountCount() int {
 	o := 0
-	if me.mount != nil && !me.mount.unmountPending {
+	if me.mountPoint != nil && !me.mountPoint.unmountPending {
 		o++
 	}
 	for _, v := range me.Children {
@@ -102,10 +107,19 @@ func (me *inode) IsDir() bool {
 
 const initDirSize = 20
 
-func (me *inode) verify() {
+func (me *inode) verify(cur *mountData) {
 	if !(me.NodeId == FUSE_ROOT_ID || me.LookupCount > 0 || len(me.Children) > 0) {
-		panic(fmt.Sprintf("node should be dead: %v", me))
+		p, _ := me.GetPath()
+		panic(fmt.Sprintf("node %v should be dead: %v %v", p, len(me.Children), me.LookupCount))
 	}
+	if me.mountPoint == nil {
+		if me.mount != cur {
+//			panic("me.mount not set correctly", me.mount, cur)
+		}
+	} else {
+		cur = me.mountPoint
+	}
+	
 	for n, ch := range me.Children {
 		if ch == nil {
 			panic("Found nil child.")
@@ -118,6 +132,7 @@ func (me *inode) verify() {
 			panic(fmt.Sprintf("parent/child relation corrupted %v %v %v",
 				ch.Parent, me, ch))
 		}
+		ch.verify(cur)
 	}
 }
 
@@ -125,13 +140,13 @@ func (me *inode) GetPath() (path string, mount *mountData) {
 	rev_components := make([]string, 0, 10)
 	inode := me
 
-	for ; inode != nil && inode.mount == nil; inode = inode.Parent {
+	for ; inode != nil && inode.mountPoint == nil; inode = inode.Parent {
 		rev_components = append(rev_components, inode.Name)
 	}
 	if inode == nil {
 		panic(fmt.Sprintf("did not find parent with mount: %v", rev_components))
 	}
-	mount = inode.mount
+	mount = inode.mountPoint
 
 	if mount.unmountPending {
 		return "", nil
@@ -304,7 +319,7 @@ func (me *FileSystemConnector) verify() {
 	}
 
 	root := me.rootNode
-	root.verify()
+	root.verify(me.rootNode.mountPoint)
 
 	open := root.totalOpenCount()
 	openFiles := len(me.openFiles)
@@ -329,7 +344,7 @@ func (me *FileSystemConnector) newInode(root bool, isDir bool) *inode {
 	return data
 }
 
-func (me *FileSystemConnector) lookupUpdate(parent *inode, name string, isDir bool) *inode {
+func (me *FileSystemConnector) lookupUpdate(parent *inode, name string, isDir bool, lookupCount int) *inode {
 	defer me.verify()
 
 	me.treeLock.Lock()
@@ -341,7 +356,7 @@ func (me *FileSystemConnector) lookupUpdate(parent *inode, name string, isDir bo
 		data.Name = name
 		data.setParent(parent)
 	}
-
+	data.LookupCount += lookupCount
 	return data
 }
 
@@ -366,7 +381,7 @@ func (me *FileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int) {
 }
 
 func (me *FileSystemConnector) considerDropInode(n *inode) {
-	if n.LookupCount <= 0 && len(n.Children) == 0 && (n.mount == nil || n.mount.unmountPending) &&
+	if n.LookupCount <= 0 && len(n.Children) == 0 && (n.mountPoint == nil || n.mountPoint.unmountPending) &&
 		n.OpenCount <= 0 {
 		n.setParent(nil)
 		me.inodeMap[n.NodeId] = nil, false
@@ -479,11 +494,11 @@ func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *Fil
 		log.Println("Mount: ", fs, "on", mountPoint, node)
 	}
 
-	node.mount = newMount(fs)
+	node.mountPoint = newMount(fs)
 	if opts == nil {
 		opts = NewFileSystemOptions()
 	}
-	node.mount.options = opts
+	node.mountPoint.options = opts
 	return OK
 }
 
@@ -499,7 +514,7 @@ func (me *FileSystemConnector) Unmount(path string) Status {
 
 	unmountError := OK
 
-	mount := node.mount
+	mount := node.mountPoint
 	if mount == nil || mount.unmountPending {
 		unmountError = EINVAL
 	}

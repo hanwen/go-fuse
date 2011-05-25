@@ -42,7 +42,7 @@ func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string
 	// Init.
 	fullPath, mount := parent.GetPath()
 	if mount == nil {
-		timeout := me.rootNode.mount.options.NegativeTimeout
+		timeout := me.rootNode.mountPoint.options.NegativeTimeout
 		if timeout > 0 {
 			return NegativeEntry(timeout), OK, nil
 		} else {
@@ -61,8 +61,7 @@ func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string
 		return nil, err, nil
 	}
 
-	data := me.lookupUpdate(parent, name, fi.IsDirectory())
-	data.LookupCount += lookupCount
+	data := me.lookupUpdate(parent, name, fi.IsDirectory(), lookupCount)
 
 	out = &EntryOut{
 		NodeId:     data.NodeId,
