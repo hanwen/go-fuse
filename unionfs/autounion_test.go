@@ -102,6 +102,37 @@ func TestAutoFsSymlink(t *testing.T) {
 	CheckSuccess(err)
 }
 
+func TestExplicitScan(t *testing.T) {
+	wd, clean := setup(t)
+	defer clean()
+
+	err := os.Mkdir(wd+"/store/backing1", 0755)
+	CheckSuccess(err)
+	os.Symlink(wd+"/ro", wd+"/store/backing1/READONLY")
+	CheckSuccess(err)
+
+	fi, _ := os.Lstat(wd + "/mount/backing1")
+	if fi != nil {
+		t.Error("Should not have file:", fi)
+	}
+
+	scan := wd + "/mount/config/" + _SCAN_CONFIG
+	_, err = os.Lstat(scan)
+	if err != nil {
+		t.Error(".scan_config missing:", err)
+	}
+	
+	err = ioutil.WriteFile(scan, []byte("something"), 0644 )
+	if err != nil {
+		t.Error("error writing:", err)
+	}
+	
+	_, err = os.Lstat(wd + "/mount/backing1")
+	if err != nil {
+		t.Error("Should have workspace backing1:", err)
+	}
+}
+
 func TestCreationChecks(t *testing.T) {
 	wd, clean := setup(t)
 	defer clean()

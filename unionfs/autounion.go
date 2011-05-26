@@ -44,6 +44,7 @@ const (
 	_CONFIG   = "config"
 	_ROOT     = "root"
 	_VERSION  = "gounionfs_version"
+	_SCAN_CONFIG = ".scan_config"
 )
 
 func NewAutoUnionFs(directory string, options AutoUnionFsOptions) *AutoUnionFs {
@@ -129,7 +130,7 @@ func (me *AutoUnionFs) rmFs(name string) (code fuse.Status) {
 }
 
 func (me *AutoUnionFs) addFs(name string, roots []string) (code fuse.Status) {
-	if name == _CONFIG || name == _STATUS {
+	if name == _CONFIG || name == _STATUS || name == _SCAN_CONFIG {
 		log.Println("Illegal name for overlay", roots)
 		return fuse.EINVAL
 	}
@@ -222,7 +223,7 @@ func (me *AutoUnionFs) Unlink(path string) (code fuse.Status) {
 		return fuse.EPERM
 	}
 
-	if comps[0] == _CONFIG {
+	if comps[0] == _CONFIG && comps[1] != _SCAN_CONFIG {
 		code = me.rmFs(comps[1])
 	} else {
 		code = fuse.ENOENT
@@ -257,7 +258,13 @@ func (me *AutoUnionFs) GetAttr(path string) (*os.FileInfo, fuse.Status) {
 		}
 		return a, fuse.OK
 	}
-
+	
+	if path == filepath.Join(_CONFIG, _SCAN_CONFIG) {
+		a := &os.FileInfo{
+			Mode: fuse.S_IFREG | 0644,
+		}
+		return a, fuse.OK
+	}
 	comps := strings.Split(path, filepath.SeparatorString, -1)
 
 	if len(comps) > 1 && comps[0] == _CONFIG {
@@ -298,13 +305,26 @@ func (me *AutoUnionFs) StatusDir() (stream chan fuse.DirEntry, status fuse.Statu
 }
 
 func (me *AutoUnionFs) Open(path string, flags uint32) (fuse.File, fuse.Status) {
-	if path == _STATUS + "/" + _VERSION {
+	if path == filepath.Join(_STATUS, _VERSION) {
 		if flags & fuse.O_ANYWRITE != 0 {
 			return nil, fuse.EPERM
 		}
 		return fuse.NewReadOnlyFile([]byte(fuse.Version())), fuse.OK
 	}
+	if path == filepath.Join(_CONFIG, _SCAN_CONFIG) {
+		if flags & fuse.O_ANYWRITE != 0 {
+			me.updateKnownFses()
+		}
+		return fuse.NewDevNullFile(), fuse.OK
+	}
 	return nil, fuse.ENOENT
+}
+func (me *AutoUnionFs) Truncate(name string, offset uint64) (code fuse.Status) {
+	if name != filepath.Join(_CONFIG, _SCAN_CONFIG) {
+		log.Println("Huh? Truncating unsupported write file", name)
+		return fuse.EPERM
+	}
+	return fuse.OK
 }
 
 func (me *AutoUnionFs) OpenDir(name string) (stream chan fuse.DirEntry, status fuse.Status) {
