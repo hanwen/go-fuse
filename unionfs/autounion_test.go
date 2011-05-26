@@ -90,6 +90,12 @@ func TestAutoFsSymlink(t *testing.T) {
 	log.Println("sleeping...")
 	time.Sleep(2 * entryTtl * 1e9)
 
+	scan := wd + "/mount/config/" + _SCAN_CONFIG
+	err = ioutil.WriteFile(scan, []byte("something"), 0644 )
+	if err != nil {
+		t.Error("error writing:", err)
+	}
+
 	fi, _ = os.Lstat(wd + "/mount/manual1")
 	if fi != nil {
 		t.Error("Should not have file:", fi)

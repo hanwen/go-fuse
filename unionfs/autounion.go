@@ -332,7 +332,6 @@ func (me *AutoUnionFs) OpenDir(name string) (stream chan fuse.DirEntry, status f
 	case _STATUS:
 		return me.StatusDir()
 	case _CONFIG:
-		me.updateKnownFses()
 	case "/":
 		name = ""
 	case "":
