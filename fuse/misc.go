@@ -169,7 +169,10 @@ func ioctl(fd int, cmd int, arg uintptr) (int, int) {
 }
 
 func Version() string {
-	return version
+	if version != nil {
+		return *version
+	}
+	return "unknown"
 }
 
 func ReverseJoin(rev_components []string, sep string) string {

@@ -26,13 +26,14 @@ GOFILES=\
 	timingfs.go \
 	timingrawfs.go \
 	types.go\
+	version.go \
 	version.gen.go \
 	xattr.go \
 
 include $(GOROOT)/src/Make.pkg
 
-version.gen.go:
-	echo "package fuse" > $@
-	git log -n1 --pretty=format:'const version = "%h (%cd)"' --date=iso >> $@
+version.gen.go: FORCE
+	sh genversion.sh > $@
 
+FORCE:
 
