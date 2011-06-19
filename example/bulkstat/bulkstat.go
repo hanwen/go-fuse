@@ -4,7 +4,7 @@ package main
 // in parallel.  This is useful for benchmarking purposes.
 
 import (
-	"encoding/line"
+	"bufio"
 	"flag"
 	"fmt"
 	"github.com/hanwen/go-fuse/fuse"
@@ -31,8 +31,7 @@ func main() {
 		panic("err" + err.String())
 	}
 
-	linelen := 1000
-	reader := line.NewReader(f, linelen)
+	reader := bufio.NewReader(f)
 
 	files := make([]string, 0)
 	for {
@@ -64,8 +63,8 @@ func main() {
 }
 
 func Analyze(times []float64) {
-	sorted := sort.Float64Array(times)
-	sorted.Sort()
+	sorted := times
+	sort.SortFloat64s(sorted)
 
 	tot := 0.0
 	for _, v := range times {

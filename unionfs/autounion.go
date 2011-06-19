@@ -173,7 +173,7 @@ func (me *AutoUnionFs) updateKnownFses() {
 }
 
 func (me *AutoUnionFs) Readlink(path string) (out string, code fuse.Status) {
-	comps := strings.Split(path, filepath.SeparatorString, -1)
+	comps := strings.Split(path, fuse.SeparatorString, -1)
 	if comps[0] == _STATUS && comps[1] == _ROOT {
 		return me.root, fuse.OK
 	}
@@ -265,7 +265,7 @@ func (me *AutoUnionFs) GetAttr(path string) (*os.FileInfo, fuse.Status) {
 		}
 		return a, fuse.OK
 	}
-	comps := strings.Split(path, filepath.SeparatorString, -1)
+	comps := strings.Split(path, fuse.SeparatorString, -1)
 
 	if len(comps) > 1 && comps[0] == _CONFIG {
 		fs := me.getUnionFs(comps[1])

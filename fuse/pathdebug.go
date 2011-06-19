@@ -51,8 +51,10 @@ func (me *FileSystemDebug) Open(path string, flags uint32) (fuseFile File, statu
 	return me.FileSystem.Open(path, flags)
 }
 
+var SeparatorString = string([]byte{filepath.Separator})
+
 func (me *FileSystemDebug) getContent(path string) []byte {
-	comps := strings.Split(path, filepath.SeparatorString, -1)
+	comps := strings.Split(path, SeparatorString, -1)
 	if comps[0] == DebugDir {
 		me.RWMutex.RLock()
 		defer me.RWMutex.RUnlock()
