@@ -65,10 +65,10 @@ func (me *testCase) Setup(t *testing.T) {
 	var rfs RawFileSystem
 	me.connector = NewFileSystemConnector(pfs,
 		&FileSystemOptions{
-		EntryTimeout: testTtl,
-		AttrTimeout: testTtl,
-		NegativeTimeout: 0.0,
-	})
+			EntryTimeout:    testTtl,
+			AttrTimeout:     testTtl,
+			NegativeTimeout: 0.0,
+		})
 	rfs = me.connector
 	rfs = NewTimingRawFileSystem(rfs)
 	rfs = NewLockingRawFileSystem(rfs)
@@ -601,7 +601,7 @@ func TestLargeRead(t *testing.T) {
 	ts := new(testCase)
 	ts.Setup(t)
 	defer ts.Cleanup()
-	
+
 	ts.testLargeRead()
 }
 
@@ -609,7 +609,7 @@ func TestLargeDirRead(t *testing.T) {
 	ts := new(testCase)
 	ts.Setup(t)
 	defer ts.Cleanup()
-	
+
 	ts.testLargeDirRead()
 }
 
@@ -680,9 +680,9 @@ func TestRecursiveMount(t *testing.T) {
 		t.Error("expect EBUSY")
 	}
 
-	err = os.Rename(ts.mountPoint + "/mnt", ts.mountPoint + "/foobar")
+	err = os.Rename(ts.mountPoint+"/mnt", ts.mountPoint+"/foobar")
 	CheckSuccess(err)
-	
+
 	f.Close()
 
 	log.Println("Waiting for kernel to flush file-close to fuse...")
@@ -702,11 +702,11 @@ func TestDeletedUnmount(t *testing.T) {
 	ts := new(testCase)
 	ts.Setup(t)
 	defer ts.Cleanup()
-	
+
 	submnt := filepath.Join(ts.mountPoint, "mnt")
 	err := os.Mkdir(submnt, 0777)
 	CheckSuccess(err)
-	
+
 	pfs2 := NewLoopbackFileSystem(ts.origDir)
 	code := ts.connector.Mount("/mnt", pfs2, nil)
 	if !code.Ok() {

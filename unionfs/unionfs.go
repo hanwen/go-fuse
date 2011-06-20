@@ -570,7 +570,7 @@ func (me *UnionFs) GetAttr(name string) (a *os.FileInfo, s fuse.Status) {
 	if name == _DROP_CACHE {
 		return &os.FileInfo{
 			Mode: fuse.S_IFREG | 0777,
-		},fuse.OK
+		}, fuse.OK
 	}
 	if name == me.options.DeletionDirName {
 		return nil, fuse.ENOENT

@@ -20,8 +20,8 @@ func (me *ownerFs) GetAttr(name string) (*os.FileInfo, Status) {
 	}
 	return &os.FileInfo{
 		Mode: S_IFREG | 0644,
-		Uid: _RANDOM_OWNER,
-		Gid: _RANDOM_OWNER,
+		Uid:  _RANDOM_OWNER,
+		Gid:  _RANDOM_OWNER,
 	}, OK
 }
 
@@ -70,4 +70,3 @@ func TestOwnerOverride(t *testing.T) {
 		t.Fatal("Should use current uid for mount", fi.Uid, fi.Gid)
 	}
 }
-

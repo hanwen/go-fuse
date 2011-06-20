@@ -50,13 +50,13 @@ func mount(mountPoint string, options string) (f *os.File, finalMountPoint strin
 		}
 		mountPoint = filepath.Clean(filepath.Join(cwd, mountPoint))
 	}
-	
+
 	cmd := []string{"/bin/fusermount", mountPoint}
 	if options != "" {
 		cmd = append(cmd, "-o")
 		cmd = append(cmd, options)
 	}
-	
+
 	proc, err := os.StartProcess("/bin/fusermount",
 		cmd,
 		&os.ProcAttr{

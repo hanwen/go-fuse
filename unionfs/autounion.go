@@ -39,11 +39,11 @@ type AutoUnionFsOptions struct {
 }
 
 const (
-	_READONLY = "READONLY"
-	_STATUS   = "status"
-	_CONFIG   = "config"
-	_ROOT     = "root"
-	_VERSION  = "gounionfs_version"
+	_READONLY    = "READONLY"
+	_STATUS      = "status"
+	_CONFIG      = "config"
+	_ROOT        = "root"
+	_VERSION     = "gounionfs_version"
 	_SCAN_CONFIG = ".scan_config"
 )
 
@@ -258,7 +258,7 @@ func (me *AutoUnionFs) GetAttr(path string) (*os.FileInfo, fuse.Status) {
 		}
 		return a, fuse.OK
 	}
-	
+
 	if path == filepath.Join(_CONFIG, _SCAN_CONFIG) {
 		a := &os.FileInfo{
 			Mode: fuse.S_IFREG | 0644,
@@ -283,7 +283,7 @@ func (me *AutoUnionFs) GetAttr(path string) (*os.FileInfo, fuse.Status) {
 	if me.getUnionFs(path) != nil {
 		return &os.FileInfo{
 			Mode: fuse.S_IFDIR | 0755,
-		},fuse.OK
+		}, fuse.OK
 	}
 
 	return nil, fuse.ENOENT
@@ -306,13 +306,13 @@ func (me *AutoUnionFs) StatusDir() (stream chan fuse.DirEntry, status fuse.Statu
 
 func (me *AutoUnionFs) Open(path string, flags uint32) (fuse.File, fuse.Status) {
 	if path == filepath.Join(_STATUS, _VERSION) {
-		if flags & fuse.O_ANYWRITE != 0 {
+		if flags&fuse.O_ANYWRITE != 0 {
 			return nil, fuse.EPERM
 		}
 		return fuse.NewReadOnlyFile([]byte(fuse.Version())), fuse.OK
 	}
 	if path == filepath.Join(_CONFIG, _SCAN_CONFIG) {
-		if flags & fuse.O_ANYWRITE != 0 {
+		if flags&fuse.O_ANYWRITE != 0 {
 			me.updateKnownFses()
 		}
 		return fuse.NewDevNullFile(), fuse.OK

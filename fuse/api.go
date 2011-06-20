@@ -97,7 +97,7 @@ type FileSystemOptions struct {
 }
 
 type MountOptions struct {
-	AllowOther      bool
+	AllowOther bool
 }
 
 // DefaultFileSystem implements a FileSystem that returns ENOSYS for every operation.

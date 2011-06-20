@@ -136,10 +136,10 @@ func NewCachingFileSystem(fs fuse.FileSystem, ttlNs int64) *CachingFileSystem {
 	c.links = NewTimedCache(func(n string) interface{} { return readLink(fs, n) }, ttlNs)
 	c.xattr = NewTimedCache(func(n string) interface{} {
 		return getXAttr(fs, n)
-	},ttlNs)
+	}, ttlNs)
 	c.files = NewTimedCache(func(n string) interface{} {
 		return openFile(fs, n)
-	},ttlNs)
+	}, ttlNs)
 	return c
 }
 

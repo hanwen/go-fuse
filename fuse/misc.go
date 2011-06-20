@@ -185,8 +185,7 @@ func ReverseJoin(rev_components []string, sep string) string {
 
 func CurrentOwner() *Owner {
 	return &Owner{
-	Uid: uint32(os.Getuid()),
-	Gid: uint32(os.Getgid()),
+		Uid: uint32(os.Getuid()),
+		Gid: uint32(os.Getgid()),
 	}
 }
-

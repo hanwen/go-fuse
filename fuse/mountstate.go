@@ -51,7 +51,7 @@ func (me *MountState) Mount(mountPoint string, opts *MountOptions) os.Error {
 	if opts != nil && opts.AllowOther {
 		optStr = "allow_other"
 	}
-	
+
 	file, mp, err := mount(mountPoint, optStr)
 	if err != nil {
 		return err

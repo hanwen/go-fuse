@@ -21,15 +21,15 @@ func TestMultiZipFs(t *testing.T) {
 
 	fs := NewMultiZipFs()
 	mountPoint := fuse.MakeTempDir()
-	state, _, err := fuse.MountFileSystem(mountPoint, fs, 	&fuse.FileSystemOptions{
-		EntryTimeout: testTtl,
-		AttrTimeout: testTtl,
+	state, _, err := fuse.MountFileSystem(mountPoint, fs, &fuse.FileSystemOptions{
+		EntryTimeout:    testTtl,
+		AttrTimeout:     testTtl,
 		NegativeTimeout: 0.0,
 	})
 	defer os.RemoveAll(mountPoint)
 	CheckSuccess(err)
 	defer state.Unmount()
-	
+
 	state.Debug = true
 
 	go state.Loop(true)

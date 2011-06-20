@@ -73,7 +73,7 @@ func NewTarTree(r io.Reader) *MemTree {
 			hdr.Name = *longName
 			longName = nil
 		}
-		
+
 		comps := strings.Split(filepath.Clean(hdr.Name), "/", -1)
 		base := ""
 		if !strings.HasSuffix(hdr.Name, "/") {

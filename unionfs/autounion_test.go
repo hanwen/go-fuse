@@ -44,7 +44,7 @@ func setup(t *testing.T) (workdir string, cleanup func()) {
 	WriteFile(wd+"/ro/file2", "file2")
 
 	fs := NewAutoUnionFs(wd+"/store", testAOpts)
-	state, conn, err := fuse.MountFileSystem(wd + "/mount", fs, &testAOpts.FileSystemOptions)
+	state, conn, err := fuse.MountFileSystem(wd+"/mount", fs, &testAOpts.FileSystemOptions)
 	CheckSuccess(err)
 	state.Debug = true
 	conn.Debug = true
@@ -60,7 +60,7 @@ func TestVersion(t *testing.T) {
 	wd, clean := setup(t)
 	defer clean()
 
-	c, err := ioutil.ReadFile(wd+"/mount/status/gounionfs_version")
+	c, err := ioutil.ReadFile(wd + "/mount/status/gounionfs_version")
 	CheckSuccess(err)
 	if len(c) == 0 {
 		t.Fatal("No version found.")
@@ -91,7 +91,7 @@ func TestAutoFsSymlink(t *testing.T) {
 	time.Sleep(2 * entryTtl * 1e9)
 
 	scan := wd + "/mount/config/" + _SCAN_CONFIG
-	err = ioutil.WriteFile(scan, []byte("something"), 0644 )
+	err = ioutil.WriteFile(scan, []byte("something"), 0644)
 	if err != nil {
 		t.Error("error writing:", err)
 	}
@@ -127,12 +127,12 @@ func TestExplicitScan(t *testing.T) {
 	if err != nil {
 		t.Error(".scan_config missing:", err)
 	}
-	
-	err = ioutil.WriteFile(scan, []byte("something"), 0644 )
+
+	err = ioutil.WriteFile(scan, []byte("something"), 0644)
 	if err != nil {
 		t.Error("error writing:", err)
 	}
-	
+
 	_, err = os.Lstat(wd + "/mount/backing1")
 	if err != nil {
 		t.Error("Should have workspace backing1:", err)
