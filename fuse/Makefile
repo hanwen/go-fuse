@@ -3,8 +3,7 @@ include $(GOROOT)/src/Make.inc
 
 TARG=github.com/hanwen/go-fuse/fuse
 
-GOFILES=\
-	api.go \
+MANUAL_GOFILES=api.go \
 	bufferpool.go \
 	copy.go \
 	default.go \
@@ -27,13 +26,11 @@ GOFILES=\
 	timingrawfs.go \
 	types.go\
 	version.go \
-	version.gen.go \
 	xattr.go \
+
+GOFILES=$(MANUAL_GOFILES) version.gen.go
 
 include $(GOROOT)/src/Make.pkg
 
-version.gen.go: FORCE
+version.gen.go: $(MANUAL_GOFILES)
 	sh genversion.sh > $@
-
-FORCE:
-
