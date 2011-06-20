@@ -101,14 +101,10 @@ func NewUnionFs(name string, fileSystems []fuse.FileSystem, options UnionFsOptio
 	}
 
 	writable := g.fileSystems[0]
-	fi, code := writable.GetAttr(options.DeletionDirName)
-	if code == fuse.ENOENT {
-		code = writable.Mkdir(options.DeletionDirName, 0755)
-		fi, code = writable.GetAttr(options.DeletionDirName)
-	}
-	if !code.Ok() || !fi.IsDirectory() {
-		panic(fmt.Sprintf("could not create deletion path %v: %v",
-			options.DeletionDirName, code))
+	code := g.createDeletionStore()
+	if !code.Ok() {
+		log.Printf("could not create deletion path %v: %v", options.DeletionDirName, code)
+		return nil
 	}
 
 	g.deletionCache = NewDirCache(writable, options.DeletionDirName, int64(options.DeletionCacheTTLSecs*1e9))
@@ -122,24 +118,41 @@ func NewUnionFs(name string, fileSystems []fuse.FileSystem, options UnionFsOptio
 ////////////////
 // Deal with all the caches.
 
-func (me *UnionFs) isDeleted(name string) (deleted bool, accessError os.Error) {
+func (me *UnionFs) isDeleted(name string) (deleted bool, code fuse.Status) {
 	marker := me.deletionPath(name)
 	haveCache, found := me.deletionCache.HasEntry(filepath.Base(marker))
 	if haveCache {
-		return found, nil
+		return found, fuse.OK
 	}
 
-	_, code := me.fileSystems[0].GetAttr(marker)
+	_, code = me.fileSystems[0].GetAttr(marker)
 
 	if code == fuse.OK {
-		return true, nil
+		return true, code
 	}
 	if code == fuse.ENOENT {
-		return false, nil
+		return false, fuse.OK
 	}
 
-	log.Println("error accessing deletion marker:", marker) 
-	return false, os.EROFS
+	log.Println("error accessing deletion marker:", marker)
+	return false, syscall.EROFS
+}
+
+func (me *UnionFs) createDeletionStore() (code fuse.Status) {
+	writable := me.fileSystems[0]
+	fi, code := writable.GetAttr(me.options.DeletionDirName)
+	if code == fuse.ENOENT {
+		code = writable.Mkdir(me.options.DeletionDirName, 0755)
+		if code.Ok() {
+			fi, code = writable.GetAttr(me.options.DeletionDirName)
+		}
+	}
+
+	if !code.Ok() || !fi.IsDirectory() {
+		code = syscall.EROFS
+	}
+
+	return code
 }
 
 func (me *UnionFs) getBranch(name string) branchResult {
@@ -209,6 +222,11 @@ func (me *UnionFs) removeDeletion(name string) {
 }
 
 func (me *UnionFs) putDeletion(name string) (code fuse.Status) {
+	code = me.createDeletionStore()
+	if !code.Ok() {
+		return code
+	}
+
 	marker := me.deletionPath(name)
 	me.deletionCache.AddEntry(path.Base(marker))
 
@@ -218,7 +236,7 @@ func (me *UnionFs) putDeletion(name string) (code fuse.Status) {
 	if code.Ok() && fi.Size == int64(len(name)) {
 		return fuse.OK
 	}
-	
+
 	var f fuse.File
 	if code == fuse.ENOENT {
 		f, code = writable.Create(marker, uint32(os.O_TRUNC|os.O_WRONLY), 0644)
@@ -248,7 +266,7 @@ func (me *UnionFs) Promote(name string, srcResult branchResult) fuse.Status {
 		// TODO - implement rename for dirs, links, etc.
 		return fuse.ENOSYS
 	}
-	
+
 	writable := me.fileSystems[0]
 	sourceFs := me.fileSystems[srcResult.branch]
 
@@ -557,11 +575,11 @@ func (me *UnionFs) GetAttr(name string) (a *os.FileInfo, s fuse.Status) {
 	if name == me.options.DeletionDirName {
 		return nil, fuse.ENOENT
 	}
-	isDel, err := me.isDeleted(name)
-	if err != nil {
-		return nil, fuse.OsErrorToErrno(err)
+	isDel, s := me.isDeleted(name)
+	if !s.Ok() {
+		return nil, s
 	}
-	
+
 	if isDel {
 		return nil, fuse.ENOENT
 	}
@@ -627,7 +645,12 @@ func (me *UnionFs) OpenDir(directory string) (stream chan fuse.DirEntry, status 
 
 	wg.Wait()
 	if deletions == nil {
-		return nil, syscall.EROFS
+		_, code := me.fileSystems[0].GetAttr(me.options.DeletionDirName)
+		if code == fuse.ENOENT {
+			deletions = map[string]bool{}
+		} else {
+			return nil, syscall.EROFS
+		}
 	}
 
 	results := entries[0]

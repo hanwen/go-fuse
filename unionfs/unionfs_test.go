@@ -119,6 +119,20 @@ func remove(path string) {
 	fuse.CheckSuccess(err)
 }
 
+func TestAutocreateDeletionDir(t *testing.T) {
+	wd, clean := setupUfs(t)
+	defer clean()
+
+	err := os.Remove(wd+"/rw/DELETIONS")
+	CheckSuccess(err)
+
+	err = os.Mkdir(wd+"/mount/dir", 0755)
+	CheckSuccess(err)
+
+	_, err = ioutil.ReadDir(wd+"/mount/dir")
+	CheckSuccess(err)
+}
+
 func TestSymlink(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
@@ -203,7 +217,7 @@ func TestDelete(t *testing.T) {
 		c, err := ioutil.ReadFile(delPath + "/" + k)
 		CheckSuccess(err)
 		if string(c) != "file" {
-			t.Fatal("content mismatch", string(c)) 
+			t.Fatal("content mismatch", string(c))
 		}
 	}
 }
@@ -587,9 +601,9 @@ func TestDisappearing(t *testing.T) {
 	_, err = ioutil.ReadDir(wd+"/mount")
 	if err == nil {
 	       t.Fatal("Readdir should have failed")
-	} 
+	}
 	log.Println("expected readdir failure:", err)
-	
+
 	err = ioutil.WriteFile(wd + "/mount/file2", []byte("blabla"), 0644)
 	if err == nil {
 		t.Fatal("write should have failed")
@@ -599,14 +613,14 @@ func TestDisappearing(t *testing.T) {
 	// Restore, and wait for caches to catch up.
 	wrFs.Root = oldRoot
 	time.Sleep(1.5*entryTtl*1e9)
-	
+
 	_, err = ioutil.ReadDir(wd+"/mount")
 	if err != nil {
 	       t.Fatal("Readdir should succeed", err)
-	} 
+	}
 	err = ioutil.WriteFile(wd + "/mount/file2", []byte("blabla"), 0644)
 	if err != nil {
 		t.Fatal("write should succeed", err)
-	}	
+	}
 }
 
