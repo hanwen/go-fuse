@@ -411,8 +411,10 @@ func (me *FileSystemConnector) considerDropInode(n *inode) {
 	n.mount.treeLock.Lock()
 	defer n.mount.treeLock.Unlock()
 
-	if n.LookupCount <= 0 && len(n.Children) == 0 && (n.mountPoint == nil || n.mountPoint.unmountPending) &&
-		n.OpenCount <= 0 {
+	dropInode := n.LookupCount <= 0 && len(n.Children) == 0 &&
+		(n.mountPoint == nil || n.mountPoint.unmountPending) &&
+		n.OpenCount <= 0
+	if dropInode {
 		n.setParent(nil)
 
 		me.inodeMapMutex.Lock()
@@ -517,15 +519,11 @@ func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *Fil
 	}
 
 	if node != me.rootNode {
-		node.mount.treeLock.RLock()
-	}
-	hasChildren := len(node.Children) > 0
-	// don't use defer, as we don't want to hold the lock during
-	// fs.Mount().
-	if node != me.rootNode {
-		node.mount.treeLock.RUnlock()
+		node.mount.treeLock.Lock()
+		defer node.mount.treeLock.Unlock()
 	}
 
+	hasChildren := len(node.Children) > 0
 	if hasChildren {
 		return EBUSY
 	}
