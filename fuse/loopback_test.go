@@ -577,7 +577,6 @@ func TestMount(t *testing.T) {
 	defer ts.Cleanup()
 	ts.testOverwriteRename()
 	ts.testOpenUnreadable()
-	ts.testReadThrough()
 	ts.testRemove()
 	ts.testMkdirRmdir()
 	ts.testLink()
@@ -589,13 +588,19 @@ func TestMount(t *testing.T) {
 	ts.testTouch()
 }
 
+func TestReadThrough(t *testing.T) {
+	ts := new(testCase)
+	ts.Setup(t)
+	defer ts.Cleanup()
+	ts.testReadThrough()
+}
+
 func TestOverwriteRename(t *testing.T) {
 	ts := new(testCase)
 	ts.Setup(t)
 	defer ts.Cleanup()
 	ts.testOverwriteRename()
 }
-
 
 func TestLargeRead(t *testing.T) {
 	ts := new(testCase)
