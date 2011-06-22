@@ -226,6 +226,9 @@ func (me *inode) GetFullPath() (path string) {
 // inode.  It returns nil for mount if the file was deleted or the
 // filesystem unmounted.
 func (me *inode) GetPath() (path string, mount *mountData) {
+	me.mount.treeLock.RLock()
+	defer me.mount.treeLock.RUnlock()
+		
 	if me.NodeId != FUSE_ROOT_ID && me.Parent == nil {
 		// Deleted node.  Treat as if the filesystem was unmounted.
 		return ".deleted", nil
@@ -586,10 +589,6 @@ func (me *FileSystemConnector) Unmount(path string) Status {
 func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *mountData, node *inode) {
 	n := me.getInodeData(nodeid)
 
-	// Need to lock because renames create invalid states.
-	n.mount.treeLock.RLock()
-	defer n.mount.treeLock.RUnlock()
-
 	p, m := n.GetPath()
 	if me.Debug {
 		log.Printf("Node %v = '%s'", nodeid, n.GetFullPath())
@@ -608,9 +607,15 @@ func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64) (f File
 	node.mount.treeLock.RLock()
 	defer node.mount.treeLock.RUnlock()
 
-	if node.Parent != nil {
-		p, m = node.GetPath()
-	}
+	path, maybeNil := node.GetPath()
+	// If the file was deleted, GetPath() will return nil.
+	if maybeNil != nil {
+		if m != nil && maybeNil != m {
+			panic("mount mismatch")
+		}
 
+		m = maybeNil
+		p = path
+	}
 	return
 }
