@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"fmt"
 	"log"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -417,6 +418,23 @@ func TestWritableDir(t *testing.T) {
 	CheckSuccess(err)
 	if fi.Permission()&0222 == 0 {
 		t.Errorf("unexpected permission %o", fi.Permission())
+	}
+}
+
+func TestWriteAccess(t *testing.T) {
+	t.Log("TestWriteAccess")
+	wd, clean := setupUfs(t)
+	defer clean()
+
+	fn := wd + "/ro/file"
+	// No write perms.
+	err := ioutil.WriteFile(fn, []byte("foo"), 0444)
+	CheckSuccess(err)
+
+	errno := syscall.Access(wd + "/mount/file", fuse.W_OK)
+	if errno != 0 {
+		err = os.Errno(errno)
+		CheckSuccess(err)
 	}
 }
 

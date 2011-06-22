@@ -458,11 +458,12 @@ func (me *UnionFs) Chmod(name string, mode uint32) (code fuse.Status) {
 }
 
 func (me *UnionFs) Access(name string, mode uint32) (code fuse.Status) {
+	// We always allow writing.
+	mode = mode &^ fuse.W_OK
 	r := me.getBranch(name)
 	if r.branch >= 0 {
 		return me.fileSystems[r.branch].Access(name, mode)
 	}
-
 	return fuse.ENOENT
 }
 
