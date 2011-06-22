@@ -242,7 +242,7 @@ func (me *testCase) testLink() {
 	err = os.Link(me.mountFile, me.mountSubfile)
 	CheckSuccess(err)
 
-	fi, err := os.Lstat(me.mountFile)
+	fi, err := os.Lstat(me.origFile)
 	if fi.Nlink != 2 {
 		me.tester.Errorf("Expect 2 links: %v", fi)
 	}

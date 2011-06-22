@@ -69,9 +69,14 @@ func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string
 	}
 	SplitNs(mount.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
 	SplitNs(mount.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
+	if !fi.IsDirectory() {
+		fi.Nlink = 1
+	}
+
 	CopyFileInfo(fi, &out.Attr)
 	out.Attr.Ino = data.NodeId
 	mount.setOwner(&out.Attr)
+
 	return out, OK, data
 }
 
@@ -111,6 +116,10 @@ func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out 
 	out = &AttrOut{}
 	CopyFileInfo(fi, &out.Attr)
 	out.Attr.Ino = header.NodeId
+
+	if !fi.IsDirectory() {
+		out.Nlink = 1
+	}
 	mount.setOwner(&out.Attr)
 	SplitNs(mount.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	return out, OK
