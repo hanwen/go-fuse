@@ -486,6 +486,7 @@ func init() {
 		_OP_OPEN:    func(ptr unsafe.Pointer) interface{} { return (*OpenIn)(ptr) },
 		_OP_CREATE:  func(ptr unsafe.Pointer) interface{} { return (*CreateIn)(ptr) },
 		_OP_READ:    func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
+		_OP_ACCESS:  func(ptr unsafe.Pointer) interface{} { return (*AccessIn)(ptr) },
 	} {
 		operationHandlers[op].DecodeIn = f
 	}
