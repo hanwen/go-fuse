@@ -48,10 +48,11 @@ func (me *HelloFs) Open(name string, flags uint32) (file fuse.File, code fuse.St
 }
 
 func main() {
+	flag.Parse()
 	if len(flag.Args()) < 1 {
 		log.Fatal("Usage:\n  hello MOUNTPOINT")
 	}
-	state, conn, err := fuse.MountFileSystem(flag.Arg(0), &HelloFs{}, nil)
+	state, _, err := fuse.MountFileSystem(flag.Arg(0), &HelloFs{}, nil)
 	if err != nil {
 		log.Fatal("Mount fail: %v\n", err)
 	}
