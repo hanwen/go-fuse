@@ -64,12 +64,15 @@ func (me *HandleMap) Register(obj *Handled) (handle uint64) {
 	if unsafe.Sizeof(obj) == 8 {
 		me.nextFree = me.nextFree & (1<<(64-48+3) - 1)
 
-		rest := (handle &^ (1<<48 - 1)) | (handle & (1<<3 - 1))
+		rest := (handle &^ (1<<48 - 1)) 
 		if rest != 0 {
-			panic("unaligned ptr or more than 48 bits in address")
+			panic("more than 48 bits in address")
+		}
+		if handle & 0x7 != 0 {
+			panic("unaligned ptr")
 		}
 		handle >>= 3
-		handle |= uint64(obj.check) << (64 - 48 + 3)
+		handle |= uint64(check) << (48 - 3)
 	}
 
 	if unsafe.Sizeof(obj) == 4 {
