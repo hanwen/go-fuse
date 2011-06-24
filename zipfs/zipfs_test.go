@@ -1,4 +1,3 @@
-
 package zipfs
 
 import (
@@ -11,12 +10,12 @@ func setupZipfs() (mountPoint string, cleanup func()) {
 	wd, err := os.Getwd()
 	CheckSuccess(err)
 	zfs, err := NewArchiveFileSystem(wd + "/test.zip")
-	CheckSuccess(err) 
+	CheckSuccess(err)
 
 	mountPoint = fuse.MakeTempDir()
 
 	state, _, err := fuse.MountFileSystem(mountPoint, zfs, nil)
-	
+
 	state.Debug = true
 	go state.Loop(false)
 
@@ -74,8 +73,7 @@ func TestLinkCount(t *testing.T) {
 
 	fi, err := os.Stat(mp + "/file.txt")
 	CheckSuccess(err)
-	if fi.Nlink != 1  {
+	if fi.Nlink != 1 {
 		t.Fatal("wrong link count", fi.Nlink)
 	}
 }
-

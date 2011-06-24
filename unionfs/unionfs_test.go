@@ -431,7 +431,7 @@ func TestWriteAccess(t *testing.T) {
 	err := ioutil.WriteFile(fn, []byte("foo"), 0444)
 	CheckSuccess(err)
 
-	errno := syscall.Access(wd + "/mount/file", fuse.W_OK)
+	errno := syscall.Access(wd+"/mount/file", fuse.W_OK)
 	if errno != 0 {
 		err = os.Errno(errno)
 		CheckSuccess(err)
