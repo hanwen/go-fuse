@@ -55,9 +55,6 @@ func (me *HandleMap) Count() int {
 }
 
 func (me *HandleMap) Register(obj *Handled) (handle uint64) {
-	if obj.check != 0 {
-		panic("Object already has a handle.")
-	}
 	me.mutex.Lock()
 	defer me.mutex.Unlock()
 
@@ -82,6 +79,9 @@ func (me *HandleMap) Register(obj *Handled) (handle uint64) {
 		}
 
 		handle |= uint64(check) << 32
+	}
+	if obj.check != 0 {
+		panic("Object already has a handle.")
 	}
 	obj.check = check
 	me.handles[handle] = obj
