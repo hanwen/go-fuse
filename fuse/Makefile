@@ -9,7 +9,8 @@ MANUAL_GOFILES=api.go \
 	default.go \
 	direntry.go\
 	files.go \
-	fuse.go\
+	fuse.go \
+	handle.go \
 	latencymap.go \
 	lockingfs.go \
 	loggingfs.go \
