@@ -4,10 +4,14 @@ package fuse
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"unsafe"
 )
+
+var mount_bin string = "/bin/fusermount"
 
 func Socketpair(network string) (l, r *os.File, err os.Error) {
 	var domain int
@@ -51,13 +55,13 @@ func mount(mountPoint string, options string) (f *os.File, finalMountPoint strin
 		mountPoint = filepath.Clean(filepath.Join(cwd, mountPoint))
 	}
 
-	cmd := []string{"/bin/fusermount", mountPoint}
+	cmd := []string{mount_bin, mountPoint}
 	if options != "" {
 		cmd = append(cmd, "-o")
 		cmd = append(cmd, options)
 	}
 
-	proc, err := os.StartProcess("/bin/fusermount",
+	proc, err := os.StartProcess(mount_bin,
 		cmd,
 		&os.ProcAttr{
 			Env:   []string{"_FUSE_COMMFD=3"},
@@ -82,8 +86,8 @@ func mount(mountPoint string, options string) (f *os.File, finalMountPoint strin
 
 func unmount(mountPoint string) (err os.Error) {
 	dir, _ := filepath.Split(mountPoint)
-	proc, err := os.StartProcess("/bin/fusermount",
-		[]string{"/bin/fusermount", "-u", mountPoint},
+	proc, err := os.StartProcess(mount_bin,
+		[]string{mount_bin, "-u", mountPoint},
 		&os.ProcAttr{Dir: dir, Files: []*os.File{nil, nil, os.Stderr}})
 	if err != nil {
 		return
@@ -127,4 +131,15 @@ func getConnection(local *os.File) (f *os.File, err os.Error) {
 	}
 	f = os.NewFile(int(fd), "<fuseConnection>")
 	return
+}
+
+func init() {
+	for _, v := range strings.Split(os.Getenv("PATH"), ":", -1) {
+		tpath := path.Join(v, "fusermount")
+		fi, err := os.Stat(tpath)
+		if err == nil && (fi.Mode&0111) != 0 {
+			mount_bin = tpath
+			break
+		}
+	}
 }
