@@ -34,7 +34,7 @@ func TestHandleMapUnaligned(t *testing.T) {
 
 	b := make([]byte, 100)
 	v := (*Handled)(unsafe.Pointer(&b[1]))
-	
+
 	defer markSeen("unaligned")
 	hm.Register(v)
 	t.Error("Unaligned register did not panic")
@@ -42,11 +42,11 @@ func TestHandleMapUnaligned(t *testing.T) {
 
 func TestHandleMapPointerLayout(t *testing.T) {
 	if unsafe.Sizeof(t) == 4 {
-		return 
+		return
 	}
 
 	hm := NewHandleMap()
-	bogus := uint64(1) << uint32((8*(unsafe.Sizeof(t)  - 1)))
+	bogus := uint64(1) << uint32((8 * (unsafe.Sizeof(t) - 1)))
 	p := uintptr(bogus)
 	v := (*Handled)(unsafe.Pointer(p))
 	defer markSeen("48")
@@ -79,7 +79,7 @@ func TestHandleMapMultiple(t *testing.T) {
 		if DecodeHandle(h) != v {
 			t.Fatal("address mismatch")
 		}
-		if hm.Count() != i + 1 {
+		if hm.Count() != i+1 {
 			t.Fatal("count error")
 		}
 	}
@@ -87,10 +87,10 @@ func TestHandleMapMultiple(t *testing.T) {
 
 func TestHandleMapCheckFail(t *testing.T) {
 	defer markSeen("check mismatch")
-	
+
 	v := new(Handled)
 	hm := NewHandleMap()
 	h := hm.Register(v)
-	DecodeHandle(h | (uint64(1)<<63))
+	DecodeHandle(h | (uint64(1) << 63))
 	t.Error("Borked decode did not panic")
 }

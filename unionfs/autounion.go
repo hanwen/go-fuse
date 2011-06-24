@@ -283,7 +283,7 @@ func (me *AutoUnionFs) GetAttr(path string) (*os.FileInfo, fuse.Status) {
 	if me.getUnionFs(path) != nil {
 		return &os.FileInfo{
 			Mode: fuse.S_IFDIR | 0755,
-		}, fuse.OK
+		},fuse.OK
 	}
 
 	return nil, fuse.ENOENT

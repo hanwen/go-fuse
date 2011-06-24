@@ -80,14 +80,14 @@ func (me *FileSystemDebug) GetAttr(path string) (*os.FileInfo, Status) {
 	if path == DebugDir {
 		return &os.FileInfo{
 			Mode: S_IFDIR | 0755,
-		}, OK
+		},OK
 	}
 	c := me.getContent(path)
 	if c != nil {
 		return &os.FileInfo{
 			Mode: S_IFREG | 0644,
 			Size: int64(len(c)),
-		}, OK
+		},OK
 	}
 	return nil, ENOENT
 }

@@ -34,8 +34,8 @@ type openedFile struct {
 	*inode
 	Flags uint32
 
-	dir    rawDir
-	file   File
+	dir  rawDir
+	file File
 }
 
 type mountData struct {
@@ -79,10 +79,10 @@ func (me *mountData) setOwner(attr *Attr) {
 	}
 }
 
-func (me *mountData) unregisterFileHandle(node *inode, handle uint64) (*openedFile) {
+func (me *mountData) unregisterFileHandle(node *inode, handle uint64) *openedFile {
 	obj := me.openFiles.Forget(handle)
 	opened := (*openedFile)(unsafe.Pointer(obj))
-	
+
 	node.OpenCountMutex.Lock()
 	defer node.OpenCountMutex.Unlock()
 	node.OpenCount--
@@ -95,7 +95,7 @@ func (me *mountData) registerFileHandle(node *inode, dir rawDir, f File, flags u
 	defer node.OpenCountMutex.Unlock()
 	b := &openedFile{
 		dir:       dir,
-		file: f,
+		file:      f,
 		inode:     node,
 		mountData: me,
 		Flags:     flags,
@@ -119,7 +119,7 @@ type inode struct {
 	LookupCount int
 
 	OpenCountMutex sync.Mutex
-	OpenCount int
+	OpenCount      int
 
 	// Non-nil if this is a mountpoint.
 	mountPoint *mountData
@@ -218,7 +218,7 @@ func (me *inode) GetFullPath() (path string) {
 func (me *inode) GetPath() (path string, mount *mountData) {
 	me.mount.treeLock.RLock()
 	defer me.mount.treeLock.RUnlock()
-		
+
 	if me.NodeId != FUSE_ROOT_ID && me.Parent == nil {
 		// Deleted node.  Treat as if the filesystem was unmounted.
 		return ".deleted", nil
