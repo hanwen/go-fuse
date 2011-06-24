@@ -87,8 +87,8 @@ func (me *FileSystemConnector) Forget(h *InHeader, input *ForgetIn) {
 
 func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
 	if input.Flags&FUSE_GETATTR_FH != 0 {
-		f, bridge := me.getFile(input.Fh)
-		fi, err := f.GetAttr()
+		opened := me.getOpenedFile(input.Fh)
+		fi, err := opened.file.GetAttr()
 		if err != OK && err != ENOSYS {
 			return nil, err
 		}
@@ -97,7 +97,7 @@ func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out 
 			out = &AttrOut{}
 			CopyFileInfo(fi, &out.Attr)
 			out.Attr.Ino = header.NodeId
-			SplitNs(bridge.mountData.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
+			SplitNs(opened.mountData.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 
 			return out, OK
 		}
@@ -139,14 +139,14 @@ func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags u
 	de := &Dir{
 		stream: stream,
 	}
-	h := mount.registerFile(node, de, input.Flags)
+	h := mount.registerFileHandle(node, de, nil, input.Flags)
 
 	return 0, h, OK
 }
 
 func (me *FileSystemConnector) ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status) {
-	d, _ := me.getDir(input.Fh)
-	de, code := d.ReadDir(input)
+	opened := me.getOpenedFile(input.Fh)
+	de, code := opened.dir.ReadDir(input)
 	if code != OK {
 		return nil, code
 	}
@@ -164,7 +164,7 @@ func (me *FileSystemConnector) Open(header *InHeader, input *OpenIn) (flags uint
 	if err != OK {
 		return 0, 0, err
 	}
-	h := mount.registerFile(node, f, input.Flags)
+	h := mount.registerFileHandle(node, nil, f, input.Flags)
 
 	return 0, h, OK
 }
@@ -382,25 +382,25 @@ func (me *FileSystemConnector) Create(header *InHeader, input *CreateIn, name st
 	}
 
 	out, code, inode := me.internalLookupWithNode(parent, name, 1)
-	return 0, mount.registerFile(inode, f, input.Flags), out, code
+	return 0, mount.registerFileHandle(inode, nil, f, input.Flags), out, code
 }
 
 func (me *FileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
 	node := me.getInodeData(header.NodeId)
-	f := node.mount.unregisterFile(node, input.Fh).(File)
-	f.Release()
+	opened := node.mount.unregisterFileHandle(node, input.Fh)
+	opened.file.Release()
 }
 
 func (me *FileSystemConnector) Flush(input *FlushIn) Status {
-	f, b := me.getFile(input.Fh)
+	opened := me.getOpenedFile(input.Fh)
 
-	code := f.Flush()
-	if code.Ok() && b.Flags&O_ANYWRITE != 0 {
+	code := opened.file.Flush()
+	if code.Ok() && opened.Flags&O_ANYWRITE != 0 {
 		// We only signal releases to the FS if the
 		// open could have changed things.
 		var path string
 		var mount *mountData
-		path, mount = b.inode.GetPath()
+		path, mount = opened.inode.GetPath()
 
 		if mount != nil {
 			code = mount.fs.Flush(path)
@@ -411,8 +411,8 @@ func (me *FileSystemConnector) Flush(input *FlushIn) Status {
 
 func (me *FileSystemConnector) ReleaseDir(header *InHeader, input *ReleaseIn) {
 	node := me.getInodeData(header.NodeId)
-	d := node.mount.unregisterFile(node, input.Fh).(rawDir)
-	d.Release()
+	opened := node.mount.unregisterFileHandle(node, input.Fh)
+	opened.dir.Release()
 	me.considerDropInode(node)
 }
 
@@ -475,25 +475,25 @@ func (me *FileSystemConnector) fileDebug(fh uint64, n *inode) {
 }
 
 func (me *FileSystemConnector) Write(input *WriteIn, data []byte) (written uint32, code Status) {
-	f, b := me.getFile(input.Fh)
+	opened := me.getOpenedFile(input.Fh)
 	if me.Debug {
-		me.fileDebug(input.Fh, b.inode)
+		me.fileDebug(input.Fh, opened.inode)
 	}
-	return f.Write(input, data)
+	return opened.file.Write(input, data)
 }
 
 func (me *FileSystemConnector) Read(input *ReadIn, bp BufferPool) ([]byte, Status) {
-	f, b := me.getFile(input.Fh)
+	opened := me.getOpenedFile(input.Fh)
 	if me.Debug {
-		me.fileDebug(input.Fh, b.inode)
+		me.fileDebug(input.Fh, opened.inode)
 	}
-	return f.Read(input, bp)
+	return opened.file.Read(input, bp)
 }
 
 func (me *FileSystemConnector) Ioctl(header *InHeader, input *IoctlIn) (out *IoctlOut, data []byte, code Status) {
-	f, b := me.getFile(input.Fh)
+	opened := me.getOpenedFile(input.Fh)
 	if me.Debug {
-		me.fileDebug(input.Fh, b.inode)
+		me.fileDebug(input.Fh, opened.inode)
 	}
-	return f.Ioctl(input)
+	return opened.file.Ioctl(input)
 }

@@ -27,12 +27,15 @@ import (
 	"unsafe"
 )
 
-// fileBridge stores either an open dir or an open file.
-type fileBridge struct {
+// openedFile stores either an open dir or an open file.
+type openedFile struct {
+	Handled
 	*mountData
 	*inode
 	Flags uint32
-	Iface interface{}
+
+	dir    rawDir
+	file   File
 }
 
 type mountData struct {
@@ -59,17 +62,14 @@ type mountData struct {
 	// treeLock should be acquired before openFilesLock
 	treeLock sync.RWMutex
 
-	// Protects openFiles
-	openFilesLock sync.RWMutex
-
-	// Open files/directories.
-	openFiles map[uint64]*fileBridge
+	// Manage filehandles of open files.
+	openFiles *HandleMap
 }
 
 func newMount(fs FileSystem) *mountData {
 	return &mountData{
 		fs:        fs,
-		openFiles: make(map[uint64]*fileBridge),
+		openFiles: NewHandleMap(),
 	}
 }
 
@@ -78,37 +78,30 @@ func (me *mountData) setOwner(attr *Attr) {
 		attr.Owner = *me.options.Owner
 	}
 }
-func (me *mountData) unregisterFile(node *inode, handle uint64) interface{} {
-	me.openFilesLock.Lock()
-	defer me.openFilesLock.Unlock()
-	b, ok := me.openFiles[handle]
-	if !ok {
-		panic("invalid handle")
-	}
+
+func (me *mountData) unregisterFileHandle(node *inode, handle uint64) (*openedFile) {
+	obj := me.openFiles.Forget(handle)
+	opened := (*openedFile)(unsafe.Pointer(obj))
+	
+	node.OpenCountMutex.Lock()
+	defer node.OpenCountMutex.Unlock()
 	node.OpenCount--
-	me.openFiles[handle] = nil, false
-	return b.Iface
+
+	return opened
 }
 
-func (me *mountData) registerFile(node *inode, f interface{}, flags uint32) uint64 {
-	me.openFilesLock.Lock()
-	defer me.openFilesLock.Unlock()
-
-	b := &fileBridge{
-		Iface:     f,
+func (me *mountData) registerFileHandle(node *inode, dir rawDir, f File, flags uint32) uint64 {
+	node.OpenCountMutex.Lock()
+	defer node.OpenCountMutex.Unlock()
+	b := &openedFile{
+		dir:       dir,
+		file: f,
 		inode:     node,
 		mountData: me,
 		Flags:     flags,
 	}
-	h := uint64(uintptr(unsafe.Pointer(b)))
-	_, ok := me.openFiles[h]
-	if ok {
-		panic("handle counter wrapped")
-	}
-
 	node.OpenCount++
-	me.openFiles[h] = b
-	return h
+	return me.openFiles.Register(&b.Handled)
 }
 
 ////////////////
@@ -125,8 +118,7 @@ type inode struct {
 	Name        string
 	LookupCount int
 
-	// Protected by openFilesLock.
-	// TODO - verify() this variable too.
+	OpenCountMutex sync.Mutex
 	OpenCount int
 
 	// Non-nil if this is a mountpoint.
@@ -145,10 +137,7 @@ func (me *inode) TotalOpenCount() int {
 		me.mountPoint.treeLock.RLock()
 		defer me.mountPoint.treeLock.RUnlock()
 
-		me.mountPoint.openFilesLock.RLock()
-		defer me.mountPoint.openFilesLock.RUnlock()
-
-		o += len(me.mountPoint.openFiles)
+		o += me.mountPoint.openFiles.Count()
 	}
 
 	for _, v := range me.Children {
@@ -189,7 +178,7 @@ func (me *inode) verify(cur *mountData) {
 		panic(fmt.Sprintf("node %v %d should be dead: %v %v", p, me.NodeId, len(me.Children), me.LookupCount))
 	}
 	if me.mountPoint != nil {
-		if me.mountPoint.unmountPending && len(me.mountPoint.openFiles) > 0 {
+		if me.mountPoint.unmountPending && me.mountPoint.openFiles.Count() > 0 {
 			panic(fmt.Sprintf("cannot have open files for pending unmount"))
 		}
 		cur = me.mountPoint
@@ -317,24 +306,14 @@ func (me *FileSystemConnector) Statistics() string {
 		root.TotalOpenCount(), me.inodeMap.Count())
 }
 
-func (me *FileSystemConnector) decodeFileHandle(h uint64) *fileBridge {
-	b := (*fileBridge)(unsafe.Pointer(uintptr(h)))
+func (me *FileSystemConnector) getOpenedFile(h uint64) *openedFile {
+	b := (*openedFile)(unsafe.Pointer(DecodeHandle(h)))
 	return b
 }
 
 type rawDir interface {
 	ReadDir(input *ReadIn) (*DirEntryList, Status)
 	Release()
-}
-
-func (me *FileSystemConnector) getDir(h uint64) (dir rawDir, bridge *fileBridge) {
-	b := me.decodeFileHandle(h)
-	return b.Iface.(rawDir), b
-}
-
-func (me *FileSystemConnector) getFile(h uint64) (file File, bridge *fileBridge) {
-	b := me.decodeFileHandle(h)
-	return b.Iface.(File), b
 }
 
 func (me *FileSystemConnector) verify() {
@@ -397,6 +376,8 @@ func (me *FileSystemConnector) considerDropInode(n *inode) {
 	n.mount.treeLock.Lock()
 	defer n.mount.treeLock.Unlock()
 
+	n.OpenCountMutex.Lock()
+	defer n.OpenCountMutex.Unlock()
 	dropInode := n.LookupCount <= 0 && len(n.Children) == 0 &&
 		(n.mountPoint == nil || n.mountPoint.unmountPending) &&
 		n.OpenCount <= 0
@@ -581,9 +562,9 @@ func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *mount
 
 func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64) (f File, m *mountData, p string) {
 	if fh != 0 {
-		var bridge *fileBridge
-		f, bridge = me.getFile(fh)
-		m = bridge.mountData
+		opened := me.getOpenedFile(fh)
+		m = opened.mountData
+		f = opened.file
 	}
 	node := me.getInodeData(nodeid)
 	node.mount.treeLock.RLock()
