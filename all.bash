@@ -3,7 +3,8 @@ set -eux
 
 rm -f fuse/version.gen.go
 
-for d in fuse zipfs unionfs example/loopback example/zipfs \
+for d in fuse zipfs unionfs \
+    example/hello example/loopback example/zipfs \
     example/bulkstat example/multizip example/unionfs \
     example/autounionfs ; \
 do
