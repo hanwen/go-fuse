@@ -118,6 +118,7 @@ var paranoia = false
 
 // TODO should rename to dentry?
 type inode struct {
+	Handled
 	Parent      *inode
 	Children    map[string]*inode
 	NodeId      uint64
@@ -305,22 +306,15 @@ type FileSystemConnector struct {
 	Debug bool
 
 	////////////////
-
-	// inodeMapMutex protects inodeMap
-	inodeMapMutex sync.Mutex
-
-	// Invariants: see the verify() method.
-	inodeMap map[uint64]*inode
+	inodeMap *HandleMap
 	rootNode *inode
 }
 
 func (me *FileSystemConnector) Statistics() string {
 	root := me.rootNode
-	me.inodeMapMutex.Lock()
-	defer me.inodeMapMutex.Unlock()
 	return fmt.Sprintf("Mounts %20d\nFiles %20d\nInodes %20d\n",
 		root.TotalMountCount(),
-		root.TotalOpenCount(), len(me.inodeMap))
+		root.TotalOpenCount(), me.inodeMap.Count())
 }
 
 func (me *FileSystemConnector) decodeFileHandle(h uint64) *fileBridge {
@@ -347,28 +341,18 @@ func (me *FileSystemConnector) verify() {
 	if !paranoia {
 		return
 	}
-	me.inodeMapMutex.Lock()
-	defer me.inodeMapMutex.Unlock()
-
-	for k, v := range me.inodeMap {
-		if v.NodeId != k {
-			panic(fmt.Sprintf("nodeid mismatch %v %v", v, k))
-		}
-	}
-
+	me.inodeMap.verify()
 	root := me.rootNode
 	root.verify(me.rootNode.mountPoint)
 }
 
 func (me *FileSystemConnector) newInode(root bool, isDir bool) *inode {
 	data := new(inode)
+	data.NodeId = me.inodeMap.Register(&data.Handled)
 	if root {
-		data.NodeId = FUSE_ROOT_ID
 		me.rootNode = data
-	} else {
-		data.NodeId = uint64(uintptr(unsafe.Pointer(data)))
+		data.NodeId = FUSE_ROOT_ID
 	}
-	me.inodeMap[data.NodeId] = data
 	if isDir {
 		data.Children = make(map[string]*inode, initDirSize)
 	}
@@ -397,8 +381,7 @@ func (me *FileSystemConnector) getInodeData(nodeid uint64) *inode {
 	if nodeid == FUSE_ROOT_ID {
 		return me.rootNode
 	}
-
-	return (*inode)(unsafe.Pointer(uintptr(nodeid)))
+	return (*inode)(unsafe.Pointer(DecodeHandle(nodeid)))
 }
 
 func (me *FileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int) {
@@ -419,10 +402,9 @@ func (me *FileSystemConnector) considerDropInode(n *inode) {
 		n.OpenCount <= 0
 	if dropInode {
 		n.setParent(nil)
-
-		me.inodeMapMutex.Lock()
-		defer me.inodeMapMutex.Unlock()
-		me.inodeMap[n.NodeId] = nil, false
+		if n != me.rootNode {
+			me.inodeMap.Forget(n.NodeId)
+		}
 	}
 }
 
@@ -488,7 +470,7 @@ func (me *FileSystemConnector) findInode(fullPath string) *inode {
 
 func EmptyFileSystemConnector() (out *FileSystemConnector) {
 	out = new(FileSystemConnector)
-	out.inodeMap = make(map[uint64]*inode)
+	out.inodeMap = NewHandleMap()
 
 	rootData := out.newInode(true, true)
 	rootData.Children = make(map[string]*inode, initDirSize)
