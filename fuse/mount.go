@@ -11,7 +11,7 @@ import (
 	"unsafe"
 )
 
-var mount_bin string = "/bin/fusermount"
+var mountBinary string = "/bin/fusermount"
 
 func Socketpair(network string) (l, r *os.File, err os.Error) {
 	var domain int
@@ -55,13 +55,13 @@ func mount(mountPoint string, options string) (f *os.File, finalMountPoint strin
 		mountPoint = filepath.Clean(filepath.Join(cwd, mountPoint))
 	}
 
-	cmd := []string{mount_bin, mountPoint}
+	cmd := []string{mountBinary, mountPoint}
 	if options != "" {
 		cmd = append(cmd, "-o")
 		cmd = append(cmd, options)
 	}
 
-	proc, err := os.StartProcess(mount_bin,
+	proc, err := os.StartProcess(mountBinary,
 		cmd,
 		&os.ProcAttr{
 			Env:   []string{"_FUSE_COMMFD=3"},
@@ -86,8 +86,8 @@ func mount(mountPoint string, options string) (f *os.File, finalMountPoint strin
 
 func unmount(mountPoint string) (err os.Error) {
 	dir, _ := filepath.Split(mountPoint)
-	proc, err := os.StartProcess(mount_bin,
-		[]string{mount_bin, "-u", mountPoint},
+	proc, err := os.StartProcess(mountBinary,
+		[]string{mountBinary, "-u", mountPoint},
 		&os.ProcAttr{Dir: dir, Files: []*os.File{nil, nil, os.Stderr}})
 	if err != nil {
 		return
@@ -138,7 +138,7 @@ func init() {
 		tpath := path.Join(v, "fusermount")
 		fi, err := os.Stat(tpath)
 		if err == nil && (fi.Mode&0111) != 0 {
-			mount_bin = tpath
+			mountBinary = tpath
 			break
 		}
 	}
