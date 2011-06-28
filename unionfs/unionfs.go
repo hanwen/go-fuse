@@ -264,6 +264,7 @@ func (me *UnionFs) putDeletion(name string) (code fuse.Status) {
 func (me *UnionFs) Promote(name string, srcResult branchResult) fuse.Status {
 	if !srcResult.attr.IsRegular() {
 		// TODO - implement rename for dirs, links, etc.
+		log.Println("Can only promote normal files: ", name, srcResult.attr)
 		return fuse.ENOSYS
 	}
 
