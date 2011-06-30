@@ -140,7 +140,7 @@ func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags u
 		return 0, 0, err
 	}
 
-	de := &Dir{
+	de := &connectorDir{
 		extra:  node.GetMountDirEntries(),
 		stream: stream,
 	}

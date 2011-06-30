@@ -317,10 +317,6 @@ func (me *FileSystemConnector) getOpenedFile(h uint64) *openedFile {
 	return b
 }
 
-type rawDir interface {
-	ReadDir(input *ReadIn) (*DirEntryList, Status)
-	Release()
-}
 
 func (me *FileSystemConnector) verify() {
 	if !paranoia {
