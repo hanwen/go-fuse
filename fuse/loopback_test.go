@@ -170,6 +170,7 @@ func (me *testCase) TestReadThrough(t *testing.T) {
 	fmt.Println("Testing open.")
 	f, err := os.Open(ts.mountFile)
 	CheckSuccess(err)
+	defer f.Close()
 
 	fmt.Println("Testing read.")
 	var buf [1024]byte
@@ -177,10 +178,9 @@ func (me *testCase) TestReadThrough(t *testing.T) {
 	n, err := f.Read(slice)
 
 	if len(slice[:n]) != len(contents) {
-		me.tester.Errorf("Content error %v", slice)
+		t.Errorf("Content error %v", slice)
 	}
 	fmt.Println("Testing close.")
-	f.Close()
 }
 
 func TestRemove(t *testing.T) {
@@ -194,7 +194,7 @@ func TestRemove(t *testing.T) {
 	CheckSuccess(err)
 	_, err = os.Lstat(me.origFile)
 	if err == nil {
-		me.tester.Errorf("Lstat() after delete should have generated error.")
+		t.Errorf("Lstat() after delete should have generated error.")
 	}
 }
 
@@ -203,21 +203,21 @@ func TestWriteThrough(t *testing.T) {
 	defer me.Cleanup()
 
 	// Create (for write), write.
-	me.tester.Log("Testing create.")
+	t.Log("Testing create.")
 	f, err := os.OpenFile(me.mountFile, os.O_WRONLY|os.O_CREATE, 0644)
 	CheckSuccess(err)
 	defer f.Close()
 
-	me.tester.Log("Testing write.")
+	t.Log("Testing write.")
 	n, err := f.WriteString(contents)
 	CheckSuccess(err)
 	if n != len(contents) {
-		me.tester.Errorf("Write mismatch: %v of %v", n, len(contents))
+		t.Errorf("Write mismatch: %v of %v", n, len(contents))
 	}
 
 	fi, err := os.Lstat(me.origFile)
 	if fi.Mode&0777 != 0644 {
-		me.tester.Errorf("create mode error %o", fi.Mode&0777)
+		t.Errorf("create mode error %o", fi.Mode&0777)
 	}
 
 	f, err = os.Open(me.origFile)
@@ -226,9 +226,9 @@ func TestWriteThrough(t *testing.T) {
 	slice := buf[:]
 	n, err = f.Read(slice)
 	CheckSuccess(err)
-	me.tester.Log("Orig contents", slice[:n])
+	t.Log("Orig contents", slice[:n])
 	if string(slice[:n]) != contents {
-		me.tester.Errorf("write contents error %v", slice[:n])
+		t.Errorf("write contents error %v", slice[:n])
 	}
 }
 
@@ -241,7 +241,7 @@ func TestMkdirRmdir(t *testing.T) {
 	CheckSuccess(err)
 	fi, err := os.Lstat(me.origSubdir)
 	if !fi.IsDirectory() {
-		me.tester.Errorf("Not a directory: %o", fi.Mode)
+		t.Errorf("Not a directory: %o", fi.Mode)
 	}
 
 	err = os.Remove(me.mountSubdir)
@@ -252,7 +252,7 @@ func TestLink(t *testing.T) {
 	me := NewTestCase(t)
 	defer me.Cleanup()
 
-	me.tester.Log("Testing hard links.")
+	t.Log("Testing hard links.")
 	me.writeOrigFile()
 	err := os.Mkdir(me.origSubdir, 0777)
 	CheckSuccess(err)
@@ -263,7 +263,7 @@ func TestLink(t *testing.T) {
 
 	fi, err := os.Lstat(me.origFile)
 	if fi.Nlink != 2 {
-		me.tester.Errorf("Expect 2 links: %v", fi)
+		t.Errorf("Expect 2 links: %v", fi)
 	}
 
 	f, err := os.Open(me.mountSubfile)
@@ -275,7 +275,7 @@ func TestLink(t *testing.T) {
 
 	strContents := string(slice[:n])
 	if strContents != contents {
-		me.tester.Errorf("Content error: %v", slice[:n])
+		t.Errorf("Content error: %v", slice[:n])
 	}
 }
 
@@ -283,7 +283,7 @@ func TestSymlink(t *testing.T) {
 	me := NewTestCase(t)
 	defer me.Cleanup()
 
-	me.tester.Log("testing symlink/readlink.")
+	t.Log("testing symlink/readlink.")
 	me.writeOrigFile()
 
 	linkFile := "symlink-file"
@@ -299,7 +299,7 @@ func TestSymlink(t *testing.T) {
 	CheckSuccess(err)
 
 	if !fi.IsSymlink() {
-		me.tester.Errorf("not a symlink: %o", fi.Mode)
+		t.Errorf("not a symlink: %o", fi.Mode)
 		return
 	}
 
@@ -307,7 +307,7 @@ func TestSymlink(t *testing.T) {
 	CheckSuccess(err)
 
 	if read != orig {
-		me.tester.Errorf("unexpected symlink value '%v'", read)
+		t.Errorf("unexpected symlink value '%v'", read)
 	}
 }
 
@@ -315,7 +315,7 @@ func TestRename(t *testing.T) {
 	me := NewTestCase(t)
 	defer me.Cleanup()
 
-	me.tester.Log("Testing rename.")
+	t.Log("Testing rename.")
 	me.writeOrigFile()
 	sd := me.mnt + "/testRename"
 	err := os.MkdirAll(sd, 0777)
@@ -326,11 +326,11 @@ func TestRename(t *testing.T) {
 	CheckSuccess(err)
 	f, _ := os.Lstat(me.origFile)
 	if f != nil {
-		me.tester.Errorf("original %v still exists.", me.origFile)
+		t.Errorf("original %v still exists.", me.origFile)
 	}
 	f, _ = os.Lstat(subFile)
 	if f == nil {
-		me.tester.Errorf("destination %v does not exist.", me.origSubfile)
+		t.Errorf("destination %v does not exist.", me.origSubfile)
 	}
 }
 
@@ -338,7 +338,7 @@ func TestDelRename(t *testing.T) {
 	me := NewTestCase(t)
 	defer me.Cleanup()
 
-	me.tester.Log("Testing del+rename.")
+	t.Log("Testing del+rename.")
 
 	sd := me.mnt + "/testDelRename"
 	err := os.MkdirAll(sd, 0755)
@@ -368,7 +368,7 @@ func TestOverwriteRename(t *testing.T) {
 	me := NewTestCase(t)
 	defer me.Cleanup()
 
-	me.tester.Log("Testing rename overwrite.")
+	t.Log("Testing rename overwrite.")
 
 	sd := me.mnt + "/testOverwriteRename"
 	err := os.MkdirAll(sd, 0755)
@@ -398,13 +398,13 @@ func TestAccess(t *testing.T) {
 
 	errCode := syscall.Access(me.mountFile, W_OK)
 	if errCode != syscall.EACCES {
-		me.tester.Errorf("Expected EACCES for non-writable, %v %v", errCode, syscall.EACCES)
+		t.Errorf("Expected EACCES for non-writable, %v %v", errCode, syscall.EACCES)
 	}
 	err = os.Chmod(me.origFile, 0222)
 	CheckSuccess(err)
 	errCode = syscall.Access(me.mountFile, W_OK)
 	if errCode != 0 {
-		me.tester.Errorf("Expected no error code for writable. %v", errCode)
+		t.Errorf("Expected no error code for writable. %v", errCode)
 	}
 }
 
@@ -412,14 +412,14 @@ func TestMknod(t *testing.T) {
 	me := NewTestCase(t)
 	defer me.Cleanup()
 
-	me.tester.Log("Testing mknod.")
+	t.Log("Testing mknod.")
 	errNo := syscall.Mknod(me.mountFile, syscall.S_IFIFO|0777, 0)
 	if errNo != 0 {
-		me.tester.Errorf("Mknod %v", errNo)
+		t.Errorf("Mknod %v", errNo)
 	}
 	fi, _ := os.Lstat(me.origFile)
 	if fi == nil || !fi.IsFifo() {
-		me.tester.Errorf("Expected FIFO filetype.")
+		t.Errorf("Expected FIFO filetype.")
 	}
 }
 
@@ -427,7 +427,7 @@ func TestReaddir(t *testing.T) {
 	me := NewTestCase(t)
 	defer me.Cleanup()
 
-	me.tester.Log("Testing readdir.")
+	t.Log("Testing readdir.")
 	me.writeOrigFile()
 	me.makeOrigSubdir()
 
@@ -441,12 +441,12 @@ func TestReaddir(t *testing.T) {
 		"subdir":    true,
 	}
 	if len(wanted) != len(infos) {
-		me.tester.Errorf("Length mismatch %v", infos)
+		t.Errorf("Length mismatch %v", infos)
 	} else {
 		for _, v := range infos {
 			_, ok := wanted[v.Name]
 			if !ok {
-				me.tester.Errorf("Unexpected name %v", v.Name)
+				t.Errorf("Unexpected name %v", v.Name)
 			}
 		}
 	}
@@ -458,7 +458,7 @@ func TestFSync(t *testing.T) {
 	me := NewTestCase(t)
 	defer me.Cleanup()
 
-	me.tester.Log("Testing fsync.")
+	t.Log("Testing fsync.")
 	me.writeOrigFile()
 
 	f, err := os.OpenFile(me.mountFile, os.O_WRONLY, 0)
@@ -468,7 +468,7 @@ func TestFSync(t *testing.T) {
 	// How to really test fsync ?
 	errNo := syscall.Fsync(f.Fd())
 	if errNo != 0 {
-		me.tester.Errorf("fsync returned %v", errNo)
+		t.Errorf("fsync returned %v", errNo)
 	}
 	f.Close()
 }
@@ -477,7 +477,7 @@ func TestLargeRead(t *testing.T) {
 	me := NewTestCase(t)
 	defer me.Cleanup()
 
-	me.tester.Log("Testing large read.")
+	t.Log("Testing large read.")
 	name := filepath.Join(me.orig, "large")
 	f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE, 0777)
 	CheckSuccess(err)
@@ -502,11 +502,11 @@ func TestLargeRead(t *testing.T) {
 	readSlice := make([]byte, len(slice))
 	m, err := g.Read(readSlice)
 	if m != n {
-		me.tester.Errorf("read mismatch %v %v", m, n)
+		t.Errorf("read mismatch %v %v", m, n)
 	}
 	for i, v := range readSlice {
 		if slice[i] != v {
-			me.tester.Errorf("char mismatch %v %v %v", i, slice[i], v)
+			t.Errorf("char mismatch %v %v %v", i, slice[i], v)
 			break
 		}
 	}
@@ -529,7 +529,7 @@ func TestLargeRead(t *testing.T) {
 		total += m
 	}
 	if total != len(slice) {
-		me.tester.Errorf("slice error %d", total)
+		t.Errorf("slice error %d", total)
 	}
 }
 
@@ -550,7 +550,7 @@ func TestLargeDirRead(t *testing.T) {
 	me := NewTestCase(t)
 	defer me.Cleanup()
 
-	me.tester.Log("Testing large readdir.")
+	t.Log("Testing large readdir.")
 	created := 100
 
 	names := make([]string, created)
@@ -596,12 +596,12 @@ func TestLargeDirRead(t *testing.T) {
 	}
 
 	if total != created {
-		me.tester.Errorf("readdir mismatch got %v wanted %v", total, created)
+		t.Errorf("readdir mismatch got %v wanted %v", total, created)
 	}
 	for k, _ := range nameSet {
 		_, ok := readSet[k]
 		if !ok {
-			me.tester.Errorf("Name %v not found in output", k)
+			t.Errorf("Name %v not found in output", k)
 		}
 	}
 }
