@@ -23,8 +23,10 @@ const contents string = "ABC"
 const mode uint32 = 0757
 
 type testCase struct {
-	origDir      string
-	mountPoint   string
+	tmpDir string
+	orig   string
+	mnt    string
+
 	mountFile    string
 	mountSubdir  string
 	mountSubfile string
@@ -39,25 +41,30 @@ type testCase struct {
 const testTtl = 0.1
 
 // Create and mount filesystem.
-func (me *testCase) Setup(t *testing.T) {
+func NewTestCase(t *testing.T) *testCase {
+	me := &testCase{}
 	me.tester = t
 	paranoia = true
 
 	const name string = "hello.txt"
 	const subdir string = "subdir"
 
-	me.origDir = MakeTempDir()
-	me.mountPoint = MakeTempDir()
+	me.tmpDir = MakeTempDir()
+	me.orig = me.tmpDir + "/orig"
+	me.mnt = me.tmpDir + "/mnt"
 
-	me.mountFile = filepath.Join(me.mountPoint, name)
-	me.mountSubdir = filepath.Join(me.mountPoint, subdir)
+	os.Mkdir(me.orig, 0700)
+	os.Mkdir(me.mnt, 0700)
+
+	me.mountFile = filepath.Join(me.mnt, name)
+	me.mountSubdir = filepath.Join(me.mnt, subdir)
 	me.mountSubfile = filepath.Join(me.mountSubdir, "subfile")
-	me.origFile = filepath.Join(me.origDir, name)
-	me.origSubdir = filepath.Join(me.origDir, subdir)
+	me.origFile = filepath.Join(me.orig, name)
+	me.origSubdir = filepath.Join(me.orig, subdir)
 	me.origSubfile = filepath.Join(me.origSubdir, "subfile")
 
 	var pfs FileSystem
-	pfs = NewLoopbackFileSystem(me.origDir)
+	pfs = NewLoopbackFileSystem(me.orig)
 	pfs = NewTimingFileSystem(pfs)
 	pfs = NewLockingFileSystem(pfs)
 
@@ -74,15 +81,14 @@ func (me *testCase) Setup(t *testing.T) {
 
 	me.connector.Debug = true
 	me.state = NewMountState(rfs)
-	me.state.Mount(me.mountPoint, nil)
+	me.state.Mount(me.mnt, nil)
 
 	//me.state.Debug = false
 	me.state.Debug = true
 
-	fmt.Println("Orig ", me.origDir, " mount ", me.mountPoint)
-
 	// Unthreaded, but in background.
 	go me.state.Loop(false)
+	return me
 }
 
 // Unmount and del.
@@ -90,8 +96,7 @@ func (me *testCase) Cleanup() {
 	fmt.Println("Unmounting.")
 	err := me.state.Unmount()
 	CheckSuccess(err)
-	os.Remove(me.mountPoint)
-	os.RemoveAll(me.origDir)
+	os.Remove(me.tmpDir)
 }
 
 ////////////////
@@ -101,7 +106,6 @@ func (me *testCase) makeOrigSubdir() {
 	err := os.Mkdir(me.origSubdir, 0777)
 	CheckSuccess(err)
 }
-
 
 func (me *testCase) removeMountSubdir() {
 	err := os.RemoveAll(me.mountSubdir)
@@ -121,42 +125,50 @@ func (me *testCase) writeOrigFile() {
 ////////////////
 // Tests.
 
-func (me *testCase) testOpenUnreadable() {
-	_, err := os.Open(filepath.Join(me.mountPoint, "doesnotexist"))
+func TestOpenUnreadable(t *testing.T) {
+	ts := NewTestCase(t)
+	defer ts.Cleanup()
+	_, err := os.Open(ts.mnt + "/doesnotexist")
 	if err == nil {
-		me.tester.Errorf("open non-existent should raise error")
+		t.Errorf("open non-existent should raise error")
 	}
 }
 
-func (me *testCase) testTouch() {
+func TestTouch(t *testing.T) {
+	ts := NewTestCase(t)
+	defer ts.Cleanup()
+
 	log.Println("testTouch")
-	me.writeOrigFile()
-	err := os.Chtimes(me.mountFile, 42e9, 43e9)
+	ts.writeOrigFile()
+	err := os.Chtimes(ts.mountFile, 42e9, 43e9)
 	CheckSuccess(err)
-	fi, err := os.Lstat(me.mountFile)
+	fi, err := os.Lstat(ts.mountFile)
 	CheckSuccess(err)
 	if fi.Atime_ns != 42e9 || fi.Mtime_ns != 43e9 {
-		me.tester.Errorf("Got wrong timestamps %v", fi)
+		t.Errorf("Got wrong timestamps %v", fi)
 	}
 }
 
-func (me *testCase) testReadThrough() {
-	me.writeOrigFile()
+func (me *testCase) TestReadThrough(t *testing.T) {
+	ts := NewTestCase(t)
+	defer ts.Cleanup()
+
+	ts.writeOrigFile()
 
 	fmt.Println("Testing chmod.")
-	err := os.Chmod(me.mountFile, mode)
+	err := os.Chmod(ts.mountFile, mode)
 	CheckSuccess(err)
 
 	fmt.Println("Testing Lstat.")
-	fi, err := os.Lstat(me.mountFile)
+	fi, err := os.Lstat(ts.mountFile)
 	CheckSuccess(err)
 	if (fi.Mode & 0777) != mode {
-		me.tester.Errorf("Wrong mode %o != %o", fi.Mode, mode)
+		t.Errorf("Wrong mode %o != %o", fi.Mode, mode)
 	}
 
 	// Open (for read), read.
 	fmt.Println("Testing open.")
-	f, err := os.Open(me.mountFile)
+	f, err := os.Open(ts.mountFile)
 	CheckSuccess(err)
 
 	fmt.Println("Testing read.")
@@ -169,11 +181,12 @@ func (me *testCase) testReadThrough() {
 	}
 	fmt.Println("Testing close.")
 	f.Close()
-
-	me.removeMountFile()
 }
 
-func (me *testCase) testRemove() {
+func TestRemove(t *testing.T) {
+	me := NewTestCase(t)
+	defer me.Cleanup()
+
 	me.writeOrigFile()
 
 	fmt.Println("Testing remove.")
@@ -185,11 +198,15 @@ func (me *testCase) testRemove() {
 	}
 }
 
-func (me *testCase) testWriteThrough() {
+func TestWriteThrough(t *testing.T) {
+	me := NewTestCase(t)
+	defer me.Cleanup()
+
 	// Create (for write), write.
 	me.tester.Log("Testing create.")
 	f, err := os.OpenFile(me.mountFile, os.O_WRONLY|os.O_CREATE, 0644)
 	CheckSuccess(err)
+	defer f.Close()
 
 	me.tester.Log("Testing write.")
 	n, err := f.WriteString(contents)
@@ -213,11 +230,12 @@ func (me *testCase) testWriteThrough() {
 	if string(slice[:n]) != contents {
 		me.tester.Errorf("write contents error %v", slice[:n])
 	}
-	f.Close()
-	me.removeMountFile()
 }
 
-func (me *testCase) testMkdirRmdir() {
+func TestMkdirRmdir(t *testing.T) {
+	me := NewTestCase(t)
+	defer me.Cleanup()
+
 	// Mkdir/Rmdir.
 	err := os.Mkdir(me.mountSubdir, 0777)
 	CheckSuccess(err)
@@ -228,10 +246,12 @@ func (me *testCase) testMkdirRmdir() {
 
 	err = os.Remove(me.mountSubdir)
 	CheckSuccess(err)
-	CheckSuccess(err)
 }
 
-func (me *testCase) testLink() {
+func TestLink(t *testing.T) {
+	me := NewTestCase(t)
+	defer me.Cleanup()
+
 	me.tester.Log("Testing hard links.")
 	me.writeOrigFile()
 	err := os.Mkdir(me.origSubdir, 0777)
@@ -257,23 +277,24 @@ func (me *testCase) testLink() {
 	if strContents != contents {
 		me.tester.Errorf("Content error: %v", slice[:n])
 	}
-	me.removeMountSubdir()
-	me.removeMountFile()
 }
 
-func (me *testCase) testSymlink() {
+func TestSymlink(t *testing.T) {
+	me := NewTestCase(t)
+	defer me.Cleanup()
+
 	me.tester.Log("testing symlink/readlink.")
 	me.writeOrigFile()
 
 	linkFile := "symlink-file"
 	orig := "hello.txt"
-	err := os.Symlink(orig, filepath.Join(me.mountPoint, linkFile))
-	defer os.Remove(filepath.Join(me.mountPoint, linkFile))
+	err := os.Symlink(orig, filepath.Join(me.mnt, linkFile))
+	defer os.Remove(filepath.Join(me.mnt, linkFile))
 	defer me.removeMountFile()
 
 	CheckSuccess(err)
 
-	origLink := filepath.Join(me.origDir, linkFile)
+	origLink := filepath.Join(me.orig, linkFile)
 	fi, err := os.Lstat(origLink)
 	CheckSuccess(err)
 
@@ -282,7 +303,7 @@ func (me *testCase) testSymlink() {
 		return
 	}
 
-	read, err := os.Readlink(filepath.Join(me.mountPoint, linkFile))
+	read, err := os.Readlink(filepath.Join(me.mnt, linkFile))
 	CheckSuccess(err)
 
 	if read != orig {
@@ -290,10 +311,13 @@ func (me *testCase) testSymlink() {
 	}
 }
 
-func (me *testCase) testRename() {
+func TestRename(t *testing.T) {
+	me := NewTestCase(t)
+	defer me.Cleanup()
+
 	me.tester.Log("Testing rename.")
 	me.writeOrigFile()
-	sd := me.mountPoint + "/testRename"
+	sd := me.mnt + "/testRename"
 	err := os.MkdirAll(sd, 0777)
 	defer os.RemoveAll(sd)
 
@@ -310,10 +334,13 @@ func (me *testCase) testRename() {
 	}
 }
 
-func (me *testCase) testDelRename() {
+func TestDelRename(t *testing.T) {
+	me := NewTestCase(t)
+	defer me.Cleanup()
+
 	me.tester.Log("Testing del+rename.")
 
-	sd := me.mountPoint + "/testDelRename"
+	sd := me.mnt + "/testDelRename"
 	err := os.MkdirAll(sd, 0755)
 	CheckSuccess(err)
 
@@ -323,6 +350,7 @@ func (me *testCase) testDelRename() {
 
 	f, err := os.Open(d)
 	CheckSuccess(err)
+	defer f.Close()
 
 	err = os.Remove(d)
 	CheckSuccess(err)
@@ -334,13 +362,15 @@ func (me *testCase) testDelRename() {
 	err = os.Rename(s, d)
 	CheckSuccess(err)
 
-	f.Close()
 }
 
-func (me *testCase) testOverwriteRename() {
+func TestOverwriteRename(t *testing.T) {
+	me := NewTestCase(t)
+	defer me.Cleanup()
+
 	me.tester.Log("Testing rename overwrite.")
 
-	sd := me.mountPoint + "/testOverwriteRename"
+	sd := me.mnt + "/testOverwriteRename"
 	err := os.MkdirAll(sd, 0755)
 	CheckSuccess(err)
 
@@ -356,7 +386,10 @@ func (me *testCase) testOverwriteRename() {
 	CheckSuccess(err)
 }
 
-func (me *testCase) testAccess() {
+func TestAccess(t *testing.T) {
+	me := NewTestCase(t)
+	defer me.Cleanup()
+
 	me.writeOrigFile()
 	err := os.Chmod(me.origFile, 0)
 	CheckSuccess(err)
@@ -373,11 +406,12 @@ func (me *testCase) testAccess() {
 	if errCode != 0 {
 		me.tester.Errorf("Expected no error code for writable. %v", errCode)
 	}
-	me.removeMountFile()
-	me.removeMountFile()
 }
 
-func (me *testCase) testMknod() {
+func TestMknod(t *testing.T) {
+	me := NewTestCase(t)
+	defer me.Cleanup()
+
 	me.tester.Log("Testing mknod.")
 	errNo := syscall.Mknod(me.mountFile, syscall.S_IFIFO|0777, 0)
 	if errNo != 0 {
@@ -387,16 +421,17 @@ func (me *testCase) testMknod() {
 	if fi == nil || !fi.IsFifo() {
 		me.tester.Errorf("Expected FIFO filetype.")
 	}
-
-	me.removeMountFile()
 }
 
-func (me *testCase) testReaddir() {
+func TestReaddir(t *testing.T) {
+	me := NewTestCase(t)
+	defer me.Cleanup()
+
 	me.tester.Log("Testing readdir.")
 	me.writeOrigFile()
 	me.makeOrigSubdir()
 
-	dir, err := os.Open(me.mountPoint)
+	dir, err := os.Open(me.mnt)
 	CheckSuccess(err)
 	infos, err := dir.Readdir(10)
 	CheckSuccess(err)
@@ -417,12 +452,12 @@ func (me *testCase) testReaddir() {
 	}
 
 	dir.Close()
-
-	me.removeMountSubdir()
-	me.removeMountFile()
 }
 
-func (me *testCase) testFSync() {
+func TestFSync(t *testing.T) {
+	me := NewTestCase(t)
+	defer me.Cleanup()
+
 	me.tester.Log("Testing fsync.")
 	me.writeOrigFile()
 
@@ -438,9 +473,12 @@ func (me *testCase) testFSync() {
 	f.Close()
 }
 
-func (me *testCase) testLargeRead() {
+func TestLargeRead(t *testing.T) {
+	me := NewTestCase(t)
+	defer me.Cleanup()
+
 	me.tester.Log("Testing large read.")
-	name := filepath.Join(me.origDir, "large")
+	name := filepath.Join(me.orig, "large")
 	f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE, 0777)
 	CheckSuccess(err)
 
@@ -459,7 +497,7 @@ func (me *testCase) testLargeRead() {
 	CheckSuccess(err)
 
 	// Read in one go.
-	g, err := os.Open(filepath.Join(me.mountPoint, "large"))
+	g, err := os.Open(filepath.Join(me.mnt, "large"))
 	CheckSuccess(err)
 	readSlice := make([]byte, len(slice))
 	m, err := g.Read(readSlice)
@@ -477,8 +515,9 @@ func (me *testCase) testLargeRead() {
 	g.Close()
 
 	// Read in chunks
-	g, err = os.Open(filepath.Join(me.mountPoint, "large"))
+	g, err = os.Open(filepath.Join(me.mnt, "large"))
 	CheckSuccess(err)
+	defer g.Close()
 	readSlice = make([]byte, 4096)
 	total := 0
 	for {
@@ -492,9 +531,6 @@ func (me *testCase) testLargeRead() {
 	if total != len(slice) {
 		me.tester.Errorf("slice error %d", total)
 	}
-	g.Close()
-
-	os.Remove(name)
 }
 
 func randomLengthString(length int) string {
@@ -510,13 +546,16 @@ func randomLengthString(length int) string {
 }
 
 
-func (me *testCase) testLargeDirRead() {
+func TestLargeDirRead(t *testing.T) {
+	me := NewTestCase(t)
+	defer me.Cleanup()
+
 	me.tester.Log("Testing large readdir.")
 	created := 100
 
 	names := make([]string, created)
 
-	subdir := filepath.Join(me.origDir, "readdirSubdir")
+	subdir := filepath.Join(me.orig, "readdirSubdir")
 	os.Mkdir(subdir, 0700)
 	longname := "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
@@ -537,7 +576,7 @@ func (me *testCase) testLargeDirRead() {
 		names[i] = name
 	}
 
-	dir, err := os.Open(filepath.Join(me.mountPoint, "readdirSubdir"))
+	dir, err := os.Open(filepath.Join(me.mnt, "readdirSubdir"))
 	CheckSuccess(err)
 	defer dir.Close()
 
@@ -565,64 +604,13 @@ func (me *testCase) testLargeDirRead() {
 			me.tester.Errorf("Name %v not found in output", k)
 		}
 	}
-	os.RemoveAll(subdir)
-}
-
-
-// Test driver.
-func TestMount(t *testing.T) {
-	ts := new(testCase)
-	ts.Setup(t)
-	defer ts.Cleanup()
-	ts.testOverwriteRename()
-	ts.testOpenUnreadable()
-	ts.testRemove()
-	ts.testMkdirRmdir()
-	ts.testLink()
-	ts.testSymlink()
-	ts.testRename()
-	ts.testAccess()
-	ts.testMknod()
-	ts.testFSync()
-	ts.testTouch()
-}
-
-func TestReadThrough(t *testing.T) {
-	ts := new(testCase)
-	ts.Setup(t)
-	defer ts.Cleanup()
-	ts.testReadThrough()
-}
-
-func TestOverwriteRename(t *testing.T) {
-	ts := new(testCase)
-	ts.Setup(t)
-	defer ts.Cleanup()
-	ts.testOverwriteRename()
-}
-
-func TestLargeRead(t *testing.T) {
-	ts := new(testCase)
-	ts.Setup(t)
-	defer ts.Cleanup()
-
-	ts.testLargeRead()
-}
-
-func TestLargeDirRead(t *testing.T) {
-	ts := new(testCase)
-	ts.Setup(t)
-	defer ts.Cleanup()
-
-	ts.testLargeDirRead()
 }
 
 func TestRootDir(t *testing.T) {
-	ts := new(testCase)
-	ts.Setup(t)
+	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
-	d, err := os.Open(ts.mountPoint)
+	d, err := os.Open(ts.mnt)
 	CheckSuccess(err)
 	_, err = d.Readdirnames(-1)
 	CheckSuccess(err)
@@ -630,27 +618,11 @@ func TestRootDir(t *testing.T) {
 	CheckSuccess(err)
 }
 
-func TestDelRename(t *testing.T) {
-	ts := new(testCase)
-	ts.Setup(t)
-	defer ts.Cleanup()
-	ts.testDelRename()
-}
-
-func TestReadOnly(t *testing.T) {
-	ts := new(testCase)
-	ts.Setup(t)
-	defer ts.Cleanup()
-
-	ts.testReaddir()
-}
-
 func TestIoctl(t *testing.T) {
-	ts := new(testCase)
-	ts.Setup(t)
+	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
-	f, err := os.OpenFile(filepath.Join(ts.mountPoint, "hello.txt"),
+	f, err := os.OpenFile(filepath.Join(ts.mnt, "hello.txt"),
 		os.O_WRONLY|os.O_CREATE, 0777)
 	defer f.Close()
 	CheckSuccess(err)

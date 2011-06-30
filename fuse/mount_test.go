@@ -10,11 +10,10 @@ import (
 )
 
 func TestMountOnExisting(t *testing.T) {
-	ts := new(testCase)
-	ts.Setup(t)
+	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
-	err := os.Mkdir(ts.mountPoint+"/mnt", 0777)
+	err := os.Mkdir(ts.mnt+"/mnt", 0777)
 	CheckSuccess(err)
 	fs := &DefaultFileSystem{}
 	code := ts.connector.Mount("/mnt", fs, nil)
@@ -22,7 +21,7 @@ func TestMountOnExisting(t *testing.T) {
 		t.Fatal("expect EBUSY:", code)
 	}
 
-	err = os.Remove(ts.mountPoint + "/mnt")
+	err = os.Remove(ts.mnt + "/mnt")
 	CheckSuccess(err)
 	code = ts.connector.Mount("/mnt", fs, nil)
 	if !code.Ok() {
@@ -31,8 +30,7 @@ func TestMountOnExisting(t *testing.T) {
 }
 
 func TestUnmountNoExist(t *testing.T) {
-	ts := new(testCase)
-	ts.Setup(t)
+	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
 	code := ts.connector.Unmount("/doesnotexist")
@@ -42,33 +40,31 @@ func TestUnmountNoExist(t *testing.T) {
 }
 
 func TestMountRename(t *testing.T) {
-	ts := new(testCase)
-	ts.Setup(t)
+	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
-	fs := NewLoopbackFileSystem(ts.origDir)
+	fs := NewLoopbackFileSystem(ts.orig)
 	code := ts.connector.Mount("/mnt", fs, nil)
 	if !code.Ok() {
 		t.Fatal("mount should succeed")
 	}
-	err := os.Rename(ts.mountPoint+"/mnt", ts.mountPoint+"/foobar")
+	err := os.Rename(ts.mnt+"/mnt", ts.mnt+"/foobar")
 	if OsErrorToErrno(err) != EBUSY {
 		t.Fatal("rename mount point should fail with EBUSY:", err)
 	}
 }
 
 func TestMountReaddir(t *testing.T) {
-	ts := new(testCase)
-	ts.Setup(t)
+	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
-	fs := NewLoopbackFileSystem(ts.origDir)
+	fs := NewLoopbackFileSystem(ts.orig)
 	code := ts.connector.Mount("/mnt", fs, nil)
 	if !code.Ok() {
 		t.Fatal("mount should succeed")
 	}
 
-	entries, err := ioutil.ReadDir(ts.mountPoint)
+	entries, err := ioutil.ReadDir(ts.mnt)
 	CheckSuccess(err)
 	if len(entries) != 1 || entries[0].Name != "mnt" {
 		t.Error("wrong readdir result", entries)
@@ -76,20 +72,19 @@ func TestMountReaddir(t *testing.T) {
 }
 
 func TestRecursiveMount(t *testing.T) {
-	ts := new(testCase)
-	ts.Setup(t)
+	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
-	err := ioutil.WriteFile(ts.origDir+"/hello.txt", []byte("blabla"), 0644)
+	err := ioutil.WriteFile(ts.orig+"/hello.txt", []byte("blabla"), 0644)
 	CheckSuccess(err)
 
-	fs := NewLoopbackFileSystem(ts.origDir)
+	fs := NewLoopbackFileSystem(ts.orig)
 	code := ts.connector.Mount("/mnt", fs, nil)
 	if !code.Ok() {
 		t.Fatal("mount should succeed")
 	}
 
-	submnt := ts.mountPoint + "/mnt"
+	submnt := ts.mnt + "/mnt"
 	_, err = os.Lstat(submnt)
 	CheckSuccess(err)
 	_, err = os.Lstat(filepath.Join(submnt, "hello.txt"))
@@ -116,12 +111,11 @@ func TestRecursiveMount(t *testing.T) {
 }
 
 func TestDeletedUnmount(t *testing.T) {
-	ts := new(testCase)
-	ts.Setup(t)
+	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
-	submnt := filepath.Join(ts.mountPoint, "mnt")
-	pfs2 := NewLoopbackFileSystem(ts.origDir)
+	submnt := filepath.Join(ts.mnt, "mnt")
+	pfs2 := NewLoopbackFileSystem(ts.orig)
 	code := ts.connector.Mount("/mnt", pfs2, nil)
 	if !code.Ok() {
 		t.Fatal("Mount error", code)
