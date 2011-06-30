@@ -2,6 +2,7 @@ package zipfs
 
 import (
 	"github.com/hanwen/go-fuse/fuse"
+	"io/ioutil"
 	"os"
 	"testing"
 )
@@ -28,17 +29,11 @@ func setupZipfs() (mountPoint string, cleanup func()) {
 func TestZipFs(t *testing.T) {
 	mountPoint, clean := setupZipfs()
 	defer clean()
-
-	d, err := os.Open(mountPoint)
+	entries, err := ioutil.ReadDir(mountPoint)
 	CheckSuccess(err)
 
-	names, err := d.Readdirnames(-1)
-	CheckSuccess(err)
-	err = d.Close()
-	CheckSuccess(err)
-
-	if len(names) != 2 {
-		t.Error("wrong length", names)
+	if len(entries) != 2 {
+		t.Error("wrong length", entries)
 	}
 	fi, err := os.Stat(mountPoint + "/subdir")
 	CheckSuccess(err)
