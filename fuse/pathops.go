@@ -141,7 +141,7 @@ func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags u
 	}
 
 	de := &Dir{
-		extra: 	node.GetMountDirEntries(),
+		extra:  node.GetMountDirEntries(),
 		stream: stream,
 	}
 	h := mount.registerFileHandle(node, de, nil, input.Flags)

@@ -8,13 +8,13 @@ import (
 	"path/filepath"
 	"io/ioutil"
 )
-	
+
 func TestMountOnExisting(t *testing.T) {
 	ts := new(testCase)
 	ts.Setup(t)
 	defer ts.Cleanup()
 
-	err := os.Mkdir(ts.mountPoint + "/mnt", 0777)
+	err := os.Mkdir(ts.mountPoint+"/mnt", 0777)
 	CheckSuccess(err)
 	fs := &DefaultFileSystem{}
 	code := ts.connector.Mount("/mnt", fs, nil)
@@ -39,7 +39,7 @@ func TestUnmountNoExist(t *testing.T) {
 	if code != EINVAL {
 		t.Fatal("expect EINVAL", code)
 	}
-}	
+}
 
 func TestMountRename(t *testing.T) {
 	ts := new(testCase)
@@ -80,9 +80,9 @@ func TestRecursiveMount(t *testing.T) {
 	ts.Setup(t)
 	defer ts.Cleanup()
 
-	err := ioutil.WriteFile(ts.origDir + "/hello.txt", []byte("blabla"), 0644)
+	err := ioutil.WriteFile(ts.origDir+"/hello.txt", []byte("blabla"), 0644)
 	CheckSuccess(err)
-	
+
 	fs := NewLoopbackFileSystem(ts.origDir)
 	code := ts.connector.Mount("/mnt", fs, nil)
 	if !code.Ok() {

@@ -64,11 +64,11 @@ func (me *HandleMap) Register(obj *Handled) (handle uint64) {
 	if unsafe.Sizeof(obj) == 8 {
 		me.nextFree = me.nextFree & (1<<(64-48+3) - 1)
 
-		rest := (handle &^ (1<<48 - 1)) 
+		rest := (handle &^ (1<<48 - 1))
 		if rest != 0 {
 			panic("more than 48 bits in address")
 		}
-		if handle & 0x7 != 0 {
+		if handle&0x7 != 0 {
 			panic("unaligned ptr")
 		}
 		handle >>= 3

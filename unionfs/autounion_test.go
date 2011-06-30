@@ -74,7 +74,7 @@ func TestAutoFsSymlink(t *testing.T) {
 
 	err := os.Mkdir(wd+"/store/backing1", 0755)
 	CheckSuccess(err)
-	
+
 	os.Symlink(wd+"/ro", wd+"/store/backing1/READONLY")
 	CheckSuccess(err)
 
@@ -89,7 +89,7 @@ func TestAutoFsSymlink(t *testing.T) {
 	if len(entries) != 3 {
 		t.Error("readdir mismatch", entries)
 	}
-	
+
 	err = os.Remove(wd + "/mount/config/manual1")
 	CheckSuccess(err)
 

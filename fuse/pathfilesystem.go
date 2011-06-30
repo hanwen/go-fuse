@@ -108,7 +108,7 @@ type inode struct {
 	Handled
 
 	// Constant during lifetime.
-	NodeId      uint64
+	NodeId uint64
 
 	// Number of open files and its protection.
 	OpenCountMutex sync.Mutex
@@ -174,8 +174,8 @@ func (me *inode) GetMountDirEntries() (out []DirEntry) {
 
 	for k, _ := range me.Mounts {
 		out = append(out, DirEntry{
-		Name: k,
-		Mode: S_IFDIR,
+			Name: k,
+			Mode: S_IFDIR,
 		})
 	}
 	return out

@@ -657,4 +657,3 @@ func TestIoctl(t *testing.T) {
 	v, e := ioctl(f.Fd(), 0x5401, 42)
 	fmt.Println("ioctl", v, e)
 }
-
