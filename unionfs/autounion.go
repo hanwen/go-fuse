@@ -76,7 +76,7 @@ func (me *AutoUnionFs) addAutomaticFs(roots []string) {
 	}
 }
 
-func (me *AutoUnionFs) createFs(name string, roots []string) (*UnionFs, fuse.Status) {
+func (me *AutoUnionFs) createFs(name string, roots []string) (fuse.Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 
@@ -84,28 +84,29 @@ func (me *AutoUnionFs) createFs(name string, roots []string) (*UnionFs, fuse.Sta
 		if root == roots[0] && workspace != name {
 			log.Printf("Already have a union FS for directory %s in workspace %s",
 				roots[0], workspace)
-			return nil, fuse.EBUSY
+			return fuse.EBUSY
 		}
 	}
 
 	ufs := me.knownFileSystems[name]
 	if ufs != nil {
 		log.Println("Already have a workspace:", name)
-		return nil, fuse.EBUSY
+		return fuse.EBUSY
 	}
 
 	ufs, err := NewUnionFsFromRoots(roots, &me.options.UnionFsOptions)
 	if err != nil {
 		log.Println("Could not create UnionFs:", err)
-		return nil, fuse.EPERM
+		return fuse.EPERM
 	}
 
 	log.Printf("Adding workspace %v for roots %v", name, ufs.Name())
-
-	me.knownFileSystems[name] = ufs
-	me.nameRootMap[name] = roots[0]
-
-	return ufs, fuse.OK
+	code := me.connector.Mount("/"+name, ufs, &me.options.FileSystemOptions)
+	if code.Ok() {
+		me.knownFileSystems[name] = ufs
+		me.nameRootMap[name] = roots[0]
+	}
+	return code
 }
 
 func (me *AutoUnionFs) rmFs(name string) (code fuse.Status) {
@@ -133,11 +134,7 @@ func (me *AutoUnionFs) addFs(name string, roots []string) (code fuse.Status) {
 		log.Println("Illegal name for overlay", roots)
 		return fuse.EINVAL
 	}
-	fs, code := me.createFs(name, roots)
-	if code.Ok() && fs != nil {
-		code = me.connector.Mount("/"+name, fs, &me.options.FileSystemOptions)
-	}
-	return code
+	return me.createFs(name, roots)
 }
 
 // TODO - should hide these methods.
