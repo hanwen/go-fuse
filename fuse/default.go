@@ -260,8 +260,7 @@ func (me *DefaultFileSystem) OpenDir(name string) (stream chan DirEntry, status 
 	return nil, ENOSYS
 }
 
-func (me *DefaultFileSystem) Mount(conn *FileSystemConnector) Status {
-	return OK
+func (me *DefaultFileSystem) Mount(conn *FileSystemConnector) {
 }
 
 func (me *DefaultFileSystem) Unmount() {

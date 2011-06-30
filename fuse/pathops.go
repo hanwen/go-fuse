@@ -37,11 +37,17 @@ func (me *FileSystemConnector) internalLookup(parent *inode, name string, lookup
 }
 
 func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string, lookupCount int) (out *EntryOut, status Status, node *inode) {
-	// TODO - fuse.c has special case code for name == "." and
-	// "..", those lookups happen if FUSE_EXPORT_SUPPORT is set in
-	// Init.
-	fullPath, mount := parent.GetPath()
+	fullPath, mount, isMountPoint := me.lookupMount(parent, name, lookupCount)
+	if isMountPoint {
+		node = mount.mountPoint
+	} else {
+		fullPath, mount = parent.GetPath()
+		fullPath = filepath.Join(fullPath, name)
+	}
+
 	if mount == nil {
+		fmt.Println(me.rootNode)
+		fmt.Println(me.rootNode.mountPoint)
 		timeout := me.rootNode.mountPoint.options.NegativeTimeout
 		if timeout > 0 {
 			return NegativeEntry(timeout), OK, nil
@@ -49,10 +55,7 @@ func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string
 			return nil, ENOENT, nil
 		}
 	}
-	fullPath = filepath.Join(fullPath, name)
-
 	fi, err := mount.fs.GetAttr(fullPath)
-
 	if err == ENOENT && mount.options.NegativeTimeout > 0.0 {
 		return NegativeEntry(mount.options.NegativeTimeout), OK, nil
 	}
@@ -60,11 +63,12 @@ func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string
 	if err != OK {
 		return nil, err, nil
 	}
-
-	data := me.lookupUpdate(parent, name, fi.IsDirectory(), lookupCount)
+	if !isMountPoint {
+		node = me.lookupUpdate(parent, name, fi.IsDirectory(), lookupCount)
+	}
 
 	out = &EntryOut{
-		NodeId:     data.NodeId,
+		NodeId:     node.NodeId,
 		Generation: 1, // where to get the generation?
 	}
 	SplitNs(mount.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
@@ -74,10 +78,10 @@ func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string
 	}
 
 	CopyFileInfo(fi, &out.Attr)
-	out.Attr.Ino = data.NodeId
+	out.Attr.Ino = node.NodeId
 	mount.setOwner(&out.Attr)
 
-	return out, OK, data
+	return out, OK, node
 }
 
 
@@ -137,6 +141,7 @@ func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags u
 	}
 
 	de := &Dir{
+		extra: 	node.GetMountDirEntries(),
 		stream: stream,
 	}
 	h := mount.registerFileHandle(node, de, nil, input.Flags)
@@ -328,6 +333,10 @@ func (me *FileSystemConnector) Rename(header *InHeader, input *RenameIn, oldName
 	if mount == nil || oldMount == nil {
 		return ENOENT
 	}
+	_, _, isMountPoint := me.lookupMount(oldParent, oldName, 0)
+	if isMountPoint {
+		return EBUSY
+	}
 	if mount != oldMount {
 		return EXDEV
 	}
@@ -382,6 +391,10 @@ func (me *FileSystemConnector) Create(header *InHeader, input *CreateIn, name st
 	}
 
 	out, code, inode := me.internalLookupWithNode(parent, name, 1)
+	if inode == nil {
+		msg := fmt.Sprintf("Create succeded, but GetAttr returned no entry %v", fullPath)
+		panic(msg)
+	}
 	return 0, mount.registerFileHandle(inode, nil, f, input.Flags), out, code
 }
 

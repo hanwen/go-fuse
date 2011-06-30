@@ -11,7 +11,6 @@ import (
 	"strings"
 	"syscall"
 	"testing"
-	"time"
 )
 
 var _ = strings.Join
@@ -618,6 +617,19 @@ func TestLargeDirRead(t *testing.T) {
 	ts.testLargeDirRead()
 }
 
+func TestRootDir(t *testing.T) {
+	ts := new(testCase)
+	ts.Setup(t)
+	defer ts.Cleanup()
+
+	d, err := os.Open(ts.mountPoint)
+	CheckSuccess(err)
+	_, err = d.Readdirnames(-1)
+	CheckSuccess(err)
+	err = d.Close()
+	CheckSuccess(err)
+}
+
 func TestDelRename(t *testing.T) {
 	ts := new(testCase)
 	ts.Setup(t)
@@ -646,97 +658,3 @@ func TestIoctl(t *testing.T) {
 	fmt.Println("ioctl", v, e)
 }
 
-
-func TestRecursiveMount(t *testing.T) {
-	ts := new(testCase)
-	ts.Setup(t)
-	defer ts.Cleanup()
-
-	f, err := os.OpenFile(filepath.Join(ts.mountPoint, "hello.txt"),
-		os.O_WRONLY|os.O_CREATE, 0777)
-
-	CheckSuccess(err)
-	f.WriteString("bla")
-	f.Close()
-
-	pfs2 := NewLoopbackFileSystem(ts.origDir)
-	code := ts.connector.Mount("/hello.txt", pfs2, nil)
-	if code != EINVAL {
-		t.Error("expect EINVAL", code)
-	}
-
-	submnt := filepath.Join(ts.mountPoint, "mnt")
-	err = os.Mkdir(submnt, 0777)
-	CheckSuccess(err)
-	code = ts.connector.Mount("/mnt", pfs2, nil)
-	if code != OK {
-		t.Errorf("mkdir")
-	}
-
-	_, err = os.Lstat(submnt)
-	CheckSuccess(err)
-	_, err = os.Lstat(filepath.Join(submnt, "hello.txt"))
-	CheckSuccess(err)
-
-	f, err = os.Open(filepath.Join(submnt, "hello.txt"))
-	CheckSuccess(err)
-	code = ts.connector.Unmount("/mnt")
-	if code != EBUSY {
-		t.Error("expect EBUSY")
-	}
-
-	err = os.Rename(ts.mountPoint+"/mnt", ts.mountPoint+"/foobar")
-	CheckSuccess(err)
-
-	f.Close()
-
-	log.Println("Waiting for kernel to flush file-close to fuse...")
-	time.Sleep(1.5e9 * testTtl)
-	code = ts.connector.Unmount("/doesnotexist")
-	if code != EINVAL {
-		t.Fatal("expect EINVAL", code)
-	}
-
-	code = ts.connector.Unmount("/foobar")
-	if code != OK {
-		t.Error("umount failed.", code)
-	}
-}
-
-func TestDeletedUnmount(t *testing.T) {
-	ts := new(testCase)
-	ts.Setup(t)
-	defer ts.Cleanup()
-
-	submnt := filepath.Join(ts.mountPoint, "mnt")
-	err := os.Mkdir(submnt, 0777)
-	CheckSuccess(err)
-
-	pfs2 := NewLoopbackFileSystem(ts.origDir)
-	code := ts.connector.Mount("/mnt", pfs2, nil)
-	if !code.Ok() {
-		t.Fatal("err")
-	}
-	f, err := os.Create(filepath.Join(submnt, "hello.txt"))
-	CheckSuccess(err)
-
-	log.Println("Removing")
-	err = os.Remove(filepath.Join(submnt, "hello.txt"))
-	CheckSuccess(err)
-
-	log.Println("Removing")
-	_, err = f.Write([]byte("bla"))
-	CheckSuccess(err)
-
-	code = ts.connector.Unmount("/mnt")
-	if code != EBUSY {
-		t.Error("expect EBUSY", code)
-	}
-
-	f.Close()
-	time.Sleep(1.5e9 * testTtl)
-	code = ts.connector.Unmount("/mnt")
-	if !code.Ok() {
-		t.Error("should succeed", code)
-	}
-}

@@ -60,12 +60,11 @@ func NewAutoUnionFs(directory string, options AutoUnionFsOptions) *AutoUnionFs {
 	return a
 }
 
-func (me *AutoUnionFs) Mount(connector *fuse.FileSystemConnector) fuse.Status {
+func (me *AutoUnionFs) Mount(connector *fuse.FileSystemConnector) {
 	me.connector = connector
 	if me.options.UpdateOnMount {
 		time.AfterFunc(0.1e9, func() { me.updateKnownFses() })
 	}
-	return fuse.OK
 }
 
 func (me *AutoUnionFs) addAutomaticFs(roots []string) {
@@ -343,15 +342,12 @@ func (me *AutoUnionFs) OpenDir(name string) (stream chan fuse.DirEntry, status f
 	defer me.lock.RUnlock()
 
 	stream = make(chan fuse.DirEntry, len(me.knownFileSystems)+5)
-	for k, _ := range me.knownFileSystems {
-		mode := fuse.S_IFDIR | 0755
-		if name == _CONFIG {
-			mode = syscall.S_IFLNK | 0644
-		}
-
-		stream <- fuse.DirEntry{
-			Name: k,
-			Mode: uint32(mode),
+	if name == _CONFIG {
+		for k, _ := range me.knownFileSystems {
+			stream <- fuse.DirEntry{
+				Name: k,
+				Mode: syscall.S_IFLNK | 0644,
+			}
 		}
 	}
 

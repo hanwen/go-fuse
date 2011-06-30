@@ -66,44 +66,47 @@ func (me *DirEntryList) Bytes() []byte {
 ////////////////////////////////////////////////////////////////
 
 type Dir struct {
+	extra    []DirEntry
 	stream   chan DirEntry
 	leftOver DirEntry
 }
 
-func (me *Dir) inode(name string) uint64 {
+func (me *Dir) ReadDir(input *ReadIn) (*DirEntryList, Status) {
+	if me.stream == nil && len(me.extra) == 0 {
+		return nil, OK
+	}
+
 	// We could also return
 	// me.connector.lookupUpdate(me.parentIno, name).NodeId but it
 	// appears FUSE will issue a LOOKUP afterwards for the entry
 	// anyway, so we skip hash table update here.
-	return FUSE_UNKNOWN_INO
-}
-
-func (me *Dir) ReadDir(input *ReadIn) (*DirEntryList, Status) {
-	if me.stream == nil {
-		return nil, OK
-	}
+	inode := uint64(FUSE_UNKNOWN_INO)
 
 	list := NewDirEntryList(int(input.Size))
-
 	if me.leftOver.Name != "" {
 		n := me.leftOver.Name
-		i := me.inode(n)
-		success := list.AddString(n, i, me.leftOver.Mode)
+		success := list.AddString(n, inode, me.leftOver.Mode)
 		if !success {
 			panic("No space for single entry.")
 		}
 		me.leftOver.Name = ""
 	}
-
+	for len(me.extra) > 0 {
+		e := me.extra[len(me.extra)-1]
+		me.extra = me.extra[:len(me.extra)-1]
+		success := list.AddString(e.Name, inode, e.Mode)
+		if !success {
+			me.leftOver = e
+			return list, OK
+		}
+	}
 	for {
 		d, isOpen := <-me.stream
 		if !isOpen {
 			me.stream = nil
 			break
 		}
-		i := me.inode(d.Name)
-
-		if !list.AddString(d.Name, i, d.Mode) {
+		if !list.AddString(d.Name, inode, d.Mode) {
 			me.leftOver = d
 			break
 		}

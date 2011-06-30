@@ -74,6 +74,7 @@ func TestAutoFsSymlink(t *testing.T) {
 
 	err := os.Mkdir(wd+"/store/backing1", 0755)
 	CheckSuccess(err)
+	
 	os.Symlink(wd+"/ro", wd+"/store/backing1/READONLY")
 	CheckSuccess(err)
 
@@ -83,6 +84,12 @@ func TestAutoFsSymlink(t *testing.T) {
 	fi, err := os.Lstat(wd + "/mount/manual1/file1")
 	CheckSuccess(err)
 
+	entries, err := ioutil.ReadDir(wd + "/mount")
+	CheckSuccess(err)
+	if len(entries) != 3 {
+		t.Error("readdir mismatch", entries)
+	}
+	
 	err = os.Remove(wd + "/mount/config/manual1")
 	CheckSuccess(err)
 

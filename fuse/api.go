@@ -44,7 +44,7 @@ type FileSystem interface {
 	SetXAttr(name string, attr string, data []byte, flags int) Status
 
 	// Called after mount.
-	Mount(connector *FileSystemConnector) Status
+	Mount(connector *FileSystemConnector)
 	Unmount()
 
 	// File handling.  If opening for writing, the file's mtime
