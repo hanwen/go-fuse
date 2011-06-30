@@ -14,16 +14,28 @@ var _ = fmt.Println
 
 func NewFileSystemConnector(fs FileSystem, opts *FileSystemOptions) (out *FileSystemConnector) {
 	out = EmptyFileSystemConnector()
-	if code := out.Mount("/", fs, opts); code != OK {
-		panic("root mount failed.")
-	}
-	out.verify()
-
+	out.mountRoot(fs, opts)
 	return out
 }
 
+func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *fileSystemMount, node *inode) {
+	n := me.getInodeData(nodeid)
+
+	p, m := n.GetPath()
+	if me.Debug {
+		log.Printf("Node %v = '%s'", nodeid, n.GetFullPath())
+	}
+
+	return p, m, n
+}
+
 func (me *FileSystemConnector) Destroy(h *InHeader, input *InitIn) {
-	// TODO - umount all.
+}
+
+func (me *fileSystemMount) setOwner(attr *Attr) {
+	if me.options.Owner != nil {
+		attr.Owner = *me.options.Owner
+	}
 }
 
 func (me *FileSystemConnector) Lookup(header *InHeader, name string) (out *EntryOut, status Status) {

@@ -58,17 +58,9 @@ type fileSystemMount struct {
 	openFiles *HandleMap
 }
 
-func newMount(fs FileSystem) *fileSystemMount {
-	return &fileSystemMount{
-		fs:        fs,
-		openFiles: NewHandleMap(),
-	}
-}
-
-func (me *fileSystemMount) setOwner(attr *Attr) {
-	if me.options.Owner != nil {
-		attr.Owner = *me.options.Owner
-	}
+func (me *FileSystemConnector) getOpenedFile(h uint64) *openedFile {
+	b := (*openedFile)(unsafe.Pointer(DecodeHandle(h)))
+	return b
 }
 
 func (me *fileSystemMount) unregisterFileHandle(node *inode, handle uint64) *openedFile {
@@ -114,9 +106,9 @@ type inode struct {
 	OpenCountMutex sync.Mutex
 	OpenCount      int
 
-	// me.mount.treeLock; we need store this mutex separately,
-	// since unmount may set me.mount = nil during Unmount().
-	// Constant during lifetime.
+	// treeLock is a pointer to me.mount.treeLock; we need store
+	// this mutex separately, since unmount may set me.mount = nil
+	// during Unmount().  Constant during lifetime.
 	//
 	// If multiple treeLocks must be acquired, the treeLocks
 	// closer to the root must be acquired first.
@@ -136,6 +128,18 @@ type inode struct {
 	// during the lifetime, except upon Unmount() when it is set
 	// to nil.
 	mount *fileSystemMount
+}
+
+// Can only be called on untouched inodes.
+func (me *inode) mountFs(fs FileSystem, opts *FileSystemOptions) {
+	me.mountPoint = &fileSystemMount{
+		fs:        fs,
+		openFiles: NewHandleMap(),
+		mountInode: me,
+		options:    opts,
+	}
+	me.mount = me.mountPoint
+	me.treeLock = &me.mountPoint.treeLock
 }
 
 // Must be called with treeLock held.
@@ -302,7 +306,6 @@ type FileSystemConnector struct {
 
 	Debug bool
 
-	////////////////
 	inodeMap *HandleMap
 	rootNode *inode
 }
@@ -310,12 +313,6 @@ type FileSystemConnector struct {
 func (me *FileSystemConnector) Statistics() string {
 	return fmt.Sprintf("Inodes %20d\n", me.inodeMap.Count())
 }
-
-func (me *FileSystemConnector) getOpenedFile(h uint64) *openedFile {
-	b := (*openedFile)(unsafe.Pointer(DecodeHandle(h)))
-	return b
-}
-
 
 func (me *FileSystemConnector) verify() {
 	if !paranoia {
@@ -326,13 +323,9 @@ func (me *FileSystemConnector) verify() {
 	root.verify(me.rootNode.mountPoint)
 }
 
-func (me *FileSystemConnector) newInode(root bool, isDir bool) *inode {
+func (me *FileSystemConnector) newInode(isDir bool) *inode {
 	data := new(inode)
 	data.NodeId = me.inodeMap.Register(&data.Handled)
-	if root {
-		me.rootNode = data
-		data.NodeId = FUSE_ROOT_ID
-	}
 	if isDir {
 		data.Children = make(map[string]*inode, initDirSize)
 	}
@@ -348,7 +341,7 @@ func (me *FileSystemConnector) lookupUpdate(parent *inode, name string, isDir bo
 
 	data, ok := parent.Children[name]
 	if !ok {
-		data = me.newInode(false, isDir)
+		data = me.newInode(isDir)
 		data.Name = name
 		data.setParent(parent)
 		data.mount = parent.mount
@@ -478,13 +471,14 @@ func (me *FileSystemConnector) findInode(fullPath string) *inode {
 
 ////////////////////////////////////////////////////////////////
 
-func EmptyFileSystemConnector() (out *FileSystemConnector) {
-	out = new(FileSystemConnector)
-	out.inodeMap = NewHandleMap()
+func EmptyFileSystemConnector() (me *FileSystemConnector) {
+	me = new(FileSystemConnector)
+	me.inodeMap = NewHandleMap()
 
-	out.newInode(true, true)
-	out.verify()
-	return out
+	me.rootNode = me.newInode(true)
+	me.rootNode.NodeId = FUSE_ROOT_ID
+	me.verify()
+	return me
 }
 
 // Mount() generates a synthetic directory node, and mounts the file
@@ -499,58 +493,56 @@ func EmptyFileSystemConnector() (out *FileSystemConnector) {
 //
 // EBUSY: the intended mount point already exists.
 func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *FileSystemOptions) Status {
-	var node *inode
-	var parent *inode
-	if mountPoint != "/" {
-		dirParent, base := filepath.Split(mountPoint)
-		parent = me.findInode(dirParent)
-		if parent == nil {
-			log.Println("Could not find mountpoint parent:", dirParent)
-			return ENOENT
-		}
-
-		parent.treeLock.Lock()
-		defer parent.treeLock.Unlock()
-		if parent.mount == nil {
-			return ENOENT
-		}
-		node = parent.Children[base]
-		if node != nil {
-			return EBUSY
-		}
-
-		node = me.newInode(false, true)
-		node.Name = base
-		node.setParent(parent)
-		if opts == nil {
-			opts = me.rootNode.mountPoint.options
-		}
-	} else {
-		node = me.rootNode
-		if opts == nil {
-			opts = NewFileSystemOptions()
-		}
+	if mountPoint == "/" || mountPoint == "" {
+		me.mountRoot(fs, opts)
+		return OK
+	}
+	
+ 	dirParent, base := filepath.Split(mountPoint)
+	parent := me.findInode(dirParent)
+	if parent == nil {
+		log.Println("Could not find mountpoint parent:", dirParent)
+		return ENOENT
 	}
 
-	node.mountPoint = newMount(fs)
-	node.treeLock = &node.mountPoint.treeLock
-	node.mount = node.mountPoint
-	node.mountPoint.mountInode = node
-	if parent != nil {
-		if parent.Mounts == nil {
-			parent.Mounts = make(map[string]*fileSystemMount)
-		}
-		parent.Mounts[node.Name] = node.mountPoint
+	parent.treeLock.Lock()
+	defer parent.treeLock.Unlock()
+	if parent.mount == nil {
+		return ENOENT
+	}
+	node := parent.Children[base]
+	if node != nil {
+		return EBUSY
 	}
 
-	node.mountPoint.options = opts
+	node = me.newInode(true)
+	node.Name = base
+	node.setParent(parent)
+	if opts == nil {
+		opts = me.rootNode.mountPoint.options
+	}
 
+	node.mountFs(fs, opts)
+	if parent.Mounts == nil {
+		parent.Mounts = make(map[string]*fileSystemMount)
+	}
+	parent.Mounts[node.Name] = node.mountPoint
 	if me.Debug {
 		log.Println("Mount: ", fs, "on dir", mountPoint,
 			"parent", parent)
 	}
 	fs.Mount(me)
+	me.verify()
 	return OK
+}
+
+func (me *FileSystemConnector) mountRoot(fs FileSystem, opts *FileSystemOptions) {
+	if opts == nil {
+		opts = NewFileSystemOptions()
+	}
+	me.rootNode.mountFs(fs, opts)
+	fs.Mount(me)
+	me.verify()
 }
 
 // Unmount() tries to unmount the given path.  Because of kernel-side
@@ -616,17 +608,6 @@ func (me *FileSystemConnector) unsafeUnmountNode(node *inode) {
 		parentNode.Children[node.Name] = nil, false
 	}
 	unmounted.fs.Unmount()
-}
-
-func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *fileSystemMount, node *inode) {
-	n := me.getInodeData(nodeid)
-
-	p, m := n.GetPath()
-	if me.Debug {
-		log.Printf("Node %v = '%s'", nodeid, n.GetFullPath())
-	}
-
-	return p, m, n
 }
 
 func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64) (f File, m *fileSystemMount, p string) {
