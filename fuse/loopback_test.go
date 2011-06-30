@@ -46,6 +46,9 @@ func NewTestCase(t *testing.T) *testCase {
 	me.tester = t
 	paranoia = true
 
+	// Make sure system setting does not affect test.
+	syscall.Umask(0)
+
 	const name string = "hello.txt"
 	const subdir string = "subdir"
 
@@ -203,12 +206,10 @@ func TestWriteThrough(t *testing.T) {
 	defer me.Cleanup()
 
 	// Create (for write), write.
-	t.Log("Testing create.")
 	f, err := os.OpenFile(me.mountFile, os.O_WRONLY|os.O_CREATE, 0644)
 	CheckSuccess(err)
 	defer f.Close()
 
-	t.Log("Testing write.")
 	n, err := f.WriteString(contents)
 	CheckSuccess(err)
 	if n != len(contents) {
@@ -222,13 +223,13 @@ func TestWriteThrough(t *testing.T) {
 
 	f, err = os.Open(me.origFile)
 	CheckSuccess(err)
+
 	var buf [1024]byte
 	slice := buf[:]
 	n, err = f.Read(slice)
 	CheckSuccess(err)
-	t.Log("Orig contents", slice[:n])
 	if string(slice[:n]) != contents {
-		t.Errorf("write contents error %v", slice[:n])
+		t.Errorf("write contents error. Got: %v, expect: %v", string(slice[:n]), contents)
 	}
 }
 
