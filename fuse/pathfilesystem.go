@@ -30,7 +30,7 @@ import (
 // openedFile stores either an open dir or an open file.
 type openedFile struct {
 	Handled
-	*mountData
+	*fileSystemMount
 	*inode
 	Flags uint32
 
@@ -38,12 +38,12 @@ type openedFile struct {
 	file File
 }
 
-type mountData struct {
+type fileSystemMount struct {
 	// If non-nil the file system mounted here.
 	fs FileSystem
 
 	// Node that we were mounted on.
-	mountPoint *inode
+	mountInode *inode
 
 	// We could have separate treeLocks per mount; something to
 	// consider if we can measure significant contention for
@@ -58,20 +58,20 @@ type mountData struct {
 	openFiles *HandleMap
 }
 
-func newMount(fs FileSystem) *mountData {
-	return &mountData{
+func newMount(fs FileSystem) *fileSystemMount {
+	return &fileSystemMount{
 		fs:        fs,
 		openFiles: NewHandleMap(),
 	}
 }
 
-func (me *mountData) setOwner(attr *Attr) {
+func (me *fileSystemMount) setOwner(attr *Attr) {
 	if me.options.Owner != nil {
 		attr.Owner = *me.options.Owner
 	}
 }
 
-func (me *mountData) unregisterFileHandle(node *inode, handle uint64) *openedFile {
+func (me *fileSystemMount) unregisterFileHandle(node *inode, handle uint64) *openedFile {
 	obj := me.openFiles.Forget(handle)
 	opened := (*openedFile)(unsafe.Pointer(obj))
 
@@ -82,14 +82,14 @@ func (me *mountData) unregisterFileHandle(node *inode, handle uint64) *openedFil
 	return opened
 }
 
-func (me *mountData) registerFileHandle(node *inode, dir rawDir, f File, flags uint32) uint64 {
+func (me *fileSystemMount) registerFileHandle(node *inode, dir rawDir, f File, flags uint32) uint64 {
 	node.OpenCountMutex.Lock()
 	defer node.OpenCountMutex.Unlock()
 	b := &openedFile{
 		dir:       dir,
 		file:      f,
 		inode:     node,
-		mountData: me,
+		fileSystemMount: me,
 		Flags:     flags,
 	}
 	node.OpenCount++
@@ -126,16 +126,16 @@ type inode struct {
 	Name        string
 	Parent      *inode
 	Children    map[string]*inode
-	Mounts      map[string]*mountData
+	Mounts      map[string]*fileSystemMount
 	LookupCount int
 
 	// Non-nil if this is a mountpoint.
-	mountPoint *mountData
+	mountPoint *fileSystemMount
 
 	// The file system to which this node belongs.  Is constant
 	// during the lifetime, except upon Unmount() when it is set
 	// to nil.
-	mount *mountData
+	mount *fileSystemMount
 }
 
 // Must be called with treeLock held.
@@ -183,13 +183,13 @@ func (me *inode) GetMountDirEntries() (out []DirEntry) {
 
 const initDirSize = 20
 
-func (me *inode) verify(cur *mountData) {
+func (me *inode) verify(cur *fileSystemMount) {
 	if !(me.NodeId == FUSE_ROOT_ID || me.LookupCount > 0 || len(me.Children) > 0 || me.mountPoint != nil) {
 		p, _ := me.GetPath()
 		panic(fmt.Sprintf("node %v %d should be dead: %v %v", p, me.NodeId, len(me.Children), me.LookupCount))
 	}
 	if me.mountPoint != nil {
-		if me != me.mountPoint.mountPoint {
+		if me != me.mountPoint.mountInode {
 			panic("mountpoint mismatch")
 		}
 		cur = me.mountPoint
@@ -199,12 +199,11 @@ func (me *inode) verify(cur *mountData) {
 	}
 
 	for name, m := range me.Mounts {
-		if m.mountPoint != me.Children[name] {
+		if m.mountInode != me.Children[name] {
 			panic(fmt.Sprintf("mountpoint parent mismatch: node:%v name:%v ch:%v",
 				me.mountPoint, name, me.Children))
 		}
 	}
-
 	for n, ch := range me.Children {
 		if ch == nil {
 			panic("Found nil child.")
@@ -233,7 +232,7 @@ func (me *inode) GetFullPath() (path string) {
 // GetPath returns the path relative to the mount governing this
 // inode.  It returns nil for mount if the file was deleted or the
 // filesystem unmounted.
-func (me *inode) GetPath() (path string, mount *mountData) {
+func (me *inode) GetPath() (path string, mount *fileSystemMount) {
 	me.treeLock.RLock()
 	defer me.treeLock.RUnlock()
 	if me.mount == nil {
@@ -359,7 +358,7 @@ func (me *FileSystemConnector) lookupUpdate(parent *inode, name string, isDir bo
 	return data
 }
 
-func (me *FileSystemConnector) lookupMount(parent *inode, name string, lookupCount int) (path string, mount *mountData, isMount bool) {
+func (me *FileSystemConnector) lookupMount(parent *inode, name string, lookupCount int) (path string, mount *fileSystemMount, isMount bool) {
 	parent.treeLock.RLock()
 	defer parent.treeLock.RUnlock()
 	if parent.Mounts == nil {
@@ -370,7 +369,7 @@ func (me *FileSystemConnector) lookupMount(parent *inode, name string, lookupCou
 	if ok {
 		mount.treeLock.Lock()
 		defer mount.treeLock.Unlock()
-		mount.mountPoint.LookupCount += lookupCount
+		mount.mountInode.LookupCount += lookupCount
 		return "", mount, true
 	}
 	return "", nil, false
@@ -536,10 +535,10 @@ func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *Fil
 	node.mountPoint = newMount(fs)
 	node.treeLock = &node.mountPoint.treeLock
 	node.mount = node.mountPoint
-	node.mountPoint.mountPoint = node
+	node.mountPoint.mountInode = node
 	if parent != nil {
 		if parent.Mounts == nil {
-			parent.Mounts = make(map[string]*mountData)
+			parent.Mounts = make(map[string]*fileSystemMount)
 		}
 		parent.Mounts[node.Name] = node.mountPoint
 	}
@@ -607,7 +606,7 @@ func (me *FileSystemConnector) unsafeUnmountNode(node *inode) {
 	}
 	node.recursiveUnmount()
 	unmounted := node.mountPoint
-	unmounted.mountPoint = nil
+	unmounted.mountInode = nil
 	node.mountPoint = nil
 
 	parentNode := node.Parent
@@ -619,7 +618,7 @@ func (me *FileSystemConnector) unsafeUnmountNode(node *inode) {
 	unmounted.fs.Unmount()
 }
 
-func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *mountData, node *inode) {
+func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *fileSystemMount, node *inode) {
 	n := me.getInodeData(nodeid)
 
 	p, m := n.GetPath()
@@ -630,14 +629,14 @@ func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *mount
 	return p, m, n
 }
 
-func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64) (f File, m *mountData, p string) {
+func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64) (f File, m *fileSystemMount, p string) {
 	node := me.getInodeData(nodeid)
 	node.treeLock.RLock()
 	defer node.treeLock.RUnlock()
 
 	if fh != 0 {
 		opened := me.getOpenedFile(fh)
-		m = opened.mountData
+		m = opened.fileSystemMount
 		f = opened.file
 	}
 

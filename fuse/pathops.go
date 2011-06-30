@@ -39,7 +39,7 @@ func (me *FileSystemConnector) internalLookup(parent *inode, name string, lookup
 func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string, lookupCount int) (out *EntryOut, status Status, node *inode) {
 	fullPath, mount, isMountPoint := me.lookupMount(parent, name, lookupCount)
 	if isMountPoint {
-		node = mount.mountPoint
+		node = mount.mountInode
 	} else {
 		fullPath, mount = parent.GetPath()
 		fullPath = filepath.Join(fullPath, name)
@@ -101,7 +101,7 @@ func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out 
 			out = &AttrOut{}
 			CopyFileInfo(fi, &out.Attr)
 			out.Attr.Ino = header.NodeId
-			SplitNs(opened.mountData.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
+			SplitNs(opened.fileSystemMount.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 
 			return out, OK
 		}
@@ -412,7 +412,7 @@ func (me *FileSystemConnector) Flush(input *FlushIn) Status {
 		// We only signal releases to the FS if the
 		// open could have changed things.
 		var path string
-		var mount *mountData
+		var mount *fileSystemMount
 		path, mount = opened.inode.GetPath()
 
 		if mount != nil {
