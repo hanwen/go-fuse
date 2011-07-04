@@ -44,10 +44,12 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 		NewCachingFileSystem(fuse.NewLoopbackFileSystem(wd+"/ro"), 0))
 	ufs := NewUnionFs("testFs", fses, testOpts)
 
+	// We configure timeouts are smaller, so we can check for
+	// UnionFs's cache consistency.
 	opts := &fuse.FileSystemOptions{
-		EntryTimeout:    entryTtl,
-		AttrTimeout:     entryTtl,
-		NegativeTimeout: entryTtl,
+		EntryTimeout:    .5 * entryTtl,
+		AttrTimeout:     .5 * entryTtl,
+		NegativeTimeout: .5 * entryTtl,
 	}
 
 	state, _, err := fuse.MountFileSystem(wd+"/mount", ufs, opts)
@@ -539,6 +541,43 @@ func Readdirnames(dir string) ([]string, os.Error) {
 
 	defer f.Close()
 	return f.Readdirnames(-1)
+}
+
+func TestDropDeletionCache(t *testing.T) {
+	t.Log("TestDropDeletionCache")
+	wd, clean := setupUfs(t)
+	defer clean()
+
+	err := ioutil.WriteFile(wd+"/ro/file", []byte("bla"), 0644)
+	CheckSuccess(err)
+	_, err = os.Lstat(wd + "/mount/file")
+	CheckSuccess(err)
+	err = os.Remove(wd + "/mount/file")
+	CheckSuccess(err)
+	fi, _ := os.Lstat(wd + "/mount/file")
+	if fi != nil {
+		t.Fatal("Lstat() should have failed", fi)
+	}
+
+	names, err := Readdirnames(wd + "/rw/DELETIONS")
+	CheckSuccess(err)
+	if len(names) != 1 {
+		t.Fatal("unexpected names", names)
+	}
+	os.Remove(wd + "/rw/DELETIONS/" + names[0])
+	fi, _ = os.Lstat(wd + "/mount/file")
+	if fi != nil {
+		t.Fatal("Lstat() should have failed", fi)
+	}
+
+	// Expire kernel entry.
+	time.Sleep(0.6e9 * entryTtl)
+	err = ioutil.WriteFile(wd+"/mount/.drop_cache", []byte(""), 0644)
+	CheckSuccess(err)
+	_, err = os.Lstat(wd + "/mount/file")
+	if err != nil {
+		t.Fatal("Lstat() should have succeeded", err)
+	}
 }
 
 func TestDropCache(t *testing.T) {

@@ -720,10 +720,17 @@ func (me *UnionFs) Rename(src string, dst string) (code fuse.Status) {
 	return code
 }
 
-func (me *UnionFs) DropCaches() {
-	log.Println("Forced cache drop on", me.name)
+// TODO - a DropBranchCache which takes a list of names.
+
+func (me *UnionFs) DropBranchCache() {
 	me.branchCache.DropAll()
+}
+
+func (me *UnionFs) DropDeletionCache() {
 	me.deletionCache.DropCache()
+}
+
+func (me *UnionFs) DropSubFsCaches() {
 	for _, fs := range me.fileSystems {
 		a, code := fs.GetAttr(_DROP_CACHE)
 		if code.Ok() && a.IsRegular() {
@@ -739,7 +746,10 @@ func (me *UnionFs) DropCaches() {
 func (me *UnionFs) Open(name string, flags uint32) (fuseFile fuse.File, status fuse.Status) {
 	if name == _DROP_CACHE {
 		if flags&fuse.O_ANYWRITE != 0 {
-			me.DropCaches()
+			log.Println("Forced cache drop on", me.name)
+			me.DropBranchCache()
+			me.DropDeletionCache()
+			me.DropSubFsCaches()
 		}
 		return fuse.NewDevNullFile(), fuse.OK
 	}
