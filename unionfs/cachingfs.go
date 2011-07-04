@@ -1,7 +1,6 @@
 package unionfs
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/hanwen/go-fuse/fuse"
 	"os"
@@ -29,11 +28,6 @@ type dirResponse struct {
 
 type linkResponse struct {
 	linkContent string
-	fuse.Status
-}
-
-type openResponse struct {
-	fuse.File
 	fuse.Status
 }
 
@@ -74,43 +68,6 @@ func getAttr(fs fuse.FileSystem, name string) *attrResponse {
 	}
 }
 
-func openFile(fs fuse.FileSystem, name string) (result *openResponse) {
-	result = &openResponse{}
-	flags := uint32(os.O_RDONLY)
-
-	f, code := fs.Open(name, flags)
-	if !code.Ok() {
-		result.Status = code
-		return
-	}
-	defer f.Release()
-	defer f.Flush()
-
-	buf := bytes.NewBuffer(nil)
-	input := fuse.ReadIn{
-		Offset: 0,
-		Size:   128 * (1 << 10),
-		Flags:  flags,
-	}
-
-	bp := fuse.NewGcBufferPool()
-	for {
-		data, status := f.Read(&input, bp)
-		buf.Write(data)
-		if !status.Ok() {
-			result.Status = status
-			return
-		}
-		if len(data) < int(input.Size) {
-			break
-		}
-		input.Offset += uint64(len(data))
-	}
-
-	result.File = fuse.NewReadOnlyFile(buf.Bytes())
-	return
-}
-
 func getXAttr(fs fuse.FileSystem, nameAttr string) *xattrResponse {
 	ns := strings.Split(nameAttr, _XATTRSEP, 2)
 	a, code := fs.GetXAttr(ns[0], ns[1])
@@ -136,9 +93,6 @@ func NewCachingFileSystem(fs fuse.FileSystem, ttlNs int64) *CachingFileSystem {
 	c.links = NewTimedCache(func(n string) interface{} { return readLink(fs, n) }, ttlNs)
 	c.xattr = NewTimedCache(func(n string) interface{} {
 		return getXAttr(fs, n)
-	},ttlNs)
-	c.files = NewTimedCache(func(n string) interface{} {
-		return openFile(fs, n)
 	},ttlNs)
 	return c
 }
