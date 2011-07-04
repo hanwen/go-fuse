@@ -4,6 +4,25 @@ import (
 	"testing"
 )
 
+func TestSwitchFsSlash(t *testing.T) {
+	fsMap := []SwitchedFileSystem{
+		SwitchedFileSystem{Prefix: ""},
+		SwitchedFileSystem{Prefix:"/home"},
+		SwitchedFileSystem{Prefix:"usr/"},
+	}
+
+	sfs := NewSwitchFileSystem(fsMap)
+	for path, expectPrefix := range map[string]string {
+		"home/foo/bar": "home",
+		"usr/local": "usr",
+	} {
+		_, fs := sfs.findFileSystem(path)
+		if fs.Prefix != expectPrefix {
+			t.Errorf("Mismatch %s - '%s' != '%s'", path, fs.Prefix, expectPrefix)
+		}
+	}
+}
+
 func TestSwitchFs(t *testing.T) {
 	fsMap := []SwitchedFileSystem{
 		SwitchedFileSystem{Prefix: ""},

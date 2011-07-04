@@ -53,6 +53,8 @@ func NewSwitchFileSystem(fsMap []SwitchedFileSystem) *SwitchFileSystem {
 	me := &SwitchFileSystem{}
 	for _, inSwFs := range fsMap {
 		swFs := inSwFs
+		swFs.Prefix = strings.TrimLeft(swFs.Prefix, string(filepath.Separator))
+		swFs.Prefix = strings.TrimRight(swFs.Prefix, string(filepath.Separator))
 		me.fileSystems = append(me.fileSystems, &swFs)
 	}
 	sort.Sort(me.fileSystems)
