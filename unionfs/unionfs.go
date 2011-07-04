@@ -520,7 +520,6 @@ func (me *UnionFs) promoteDirsTo(filename string) fuse.Status {
 	for i, _ := range todo {
 		j := len(todo) - i - 1
 		d := todo[j]
-		log.Println("Promoting directory", d)
 		code := me.fileSystems[0].Mkdir(d, 0755)
 		if code != fuse.OK {
 			log.Println("Error creating dir leading to path", d, code)
