@@ -150,6 +150,12 @@ func (me *CachingFileSystem) DropCache() {
 }
 
 func (me *CachingFileSystem) GetAttr(name string) (*os.FileInfo, fuse.Status) {
+	if name == _DROP_CACHE {
+		return &os.FileInfo{
+			Mode: fuse.S_IFREG | 0777,
+		},fuse.OK
+	}
+	
 	r := me.attributes.Get(name).(*attrResponse)
 	return r.FileInfo, r.Status
 }
@@ -179,12 +185,9 @@ func (me *CachingFileSystem) OpenDir(name string) (stream chan fuse.DirEntry, st
 	return nil, r.Status
 }
 
-// Caching file contents easily overflows available memory.
-func (me *CachingFileSystem) DisabledOpen(name string, flags uint32) (f fuse.File, status fuse.Status) {
-	if flags&fuse.O_ANYWRITE != 0 {
-		return nil, fuse.EPERM
+func (me *CachingFileSystem) Open(name string, flags uint32) (f fuse.File, status fuse.Status) {
+	if flags&fuse.O_ANYWRITE != 0 && name == _DROP_CACHE {
+		me.DropCache()
 	}
-
-	r := me.files.Get(name).(*openResponse)
-	return r.File, r.Status
+	return me.FileSystem.Open(name, flags)
 }

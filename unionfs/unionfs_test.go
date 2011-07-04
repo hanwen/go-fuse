@@ -40,7 +40,8 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 
 	var fses []fuse.FileSystem
 	fses = append(fses, fuse.NewLoopbackFileSystem(wd+"/rw"))
-	fses = append(fses, fuse.NewLoopbackFileSystem(wd+"/ro"))
+	fses = append(fses,
+		NewCachingFileSystem(fuse.NewLoopbackFileSystem(wd+"/ro"), 0))
 	ufs := NewUnionFs("testFs", fses, testOpts)
 
 	opts := &fuse.FileSystemOptions{

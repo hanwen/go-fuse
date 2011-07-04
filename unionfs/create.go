@@ -7,9 +7,9 @@ import (
 	"os"
 )
 
-func NewUnionFsFromRoots(roots []string, opts *UnionFsOptions) (*UnionFs, os.Error) {
+func NewUnionFsFromRoots(roots []string, opts *UnionFsOptions, roCaching bool) (*UnionFs, os.Error) {
 	fses := make([]fuse.FileSystem, 0)
-	for _, r := range roots {
+	for i, r := range roots {
 		var fs fuse.FileSystem
 		fi, err := os.Stat(r)
 		if err != nil {
@@ -23,6 +23,10 @@ func NewUnionFsFromRoots(roots []string, opts *UnionFsOptions) (*UnionFs, os.Err
 		}
 		if fs == nil {
 			return nil, err
+
+		}
+		if i > 0 && roCaching {
+			fs = NewCachingFileSystem(fs, 0)
 		}
 
 		fses = append(fses, fs)

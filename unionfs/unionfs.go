@@ -65,8 +65,6 @@ type UnionFs struct {
 	// The same, but as interfaces.
 	fileSystems []fuse.FileSystem
 
-	cachingFileSystems []*CachingFileSystem
-
 	// A file-existence cache.
 	deletionCache *DirCache
 
@@ -90,15 +88,7 @@ func NewUnionFs(name string, fileSystems []fuse.FileSystem, options UnionFsOptio
 	g := new(UnionFs)
 	g.name = name
 	g.options = &options
-	for i, fs := range fileSystems {
-		if i > 0 {
-			cfs := NewCachingFileSystem(fs, 0)
-			g.cachingFileSystems = append(g.cachingFileSystems, cfs)
-			fs = cfs
-		}
-
-		g.fileSystems = append(g.fileSystems, fs)
-	}
+	g.fileSystems = fileSystems
 
 	writable := g.fileSystems[0]
 	code := g.createDeletionStore()
@@ -734,8 +724,15 @@ func (me *UnionFs) DropCaches() {
 	log.Println("Forced cache drop on", me.name)
 	me.branchCache.DropAll()
 	me.deletionCache.DropCache()
-	for _, fs := range me.cachingFileSystems {
-		fs.DropCache()
+	for _, fs := range me.fileSystems {
+		a, code := fs.GetAttr(_DROP_CACHE)
+		if code.Ok() && a.IsRegular() {
+			f, _ := fs.Open(_DROP_CACHE, uint32(os.O_WRONLY))
+			if f != nil {
+				f.Flush()
+				f.Release()
+			}
+		}
 	}
 }
 

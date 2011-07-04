@@ -94,7 +94,7 @@ func (me *AutoUnionFs) createFs(name string, roots []string) (fuse.Status) {
 		return fuse.EBUSY
 	}
 
-	ufs, err := NewUnionFsFromRoots(roots, &me.options.UnionFsOptions)
+	ufs, err := NewUnionFsFromRoots(roots, &me.options.UnionFsOptions, true)
 	if err != nil {
 		log.Println("Could not create UnionFs:", err)
 		return fuse.EPERM
