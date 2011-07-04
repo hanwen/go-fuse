@@ -23,9 +23,10 @@ MANUAL_GOFILES=api.go \
 	pathfilesystem.go \
 	pathops.go \
 	request.go \
+	switchfs.go \
 	timingfs.go \
 	timingrawfs.go \
-	types.go\
+	types.go \
 	version.go \
 	xattr.go \
 
