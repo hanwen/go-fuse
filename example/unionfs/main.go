@@ -29,7 +29,7 @@ func main() {
 		DeletionDirName:      *deldirname,
 	}
 
-	ufs, err := unionfs.NewUnionFsFromRoots(flag.Args()[1:], &ufsOptions)
+	ufs, err := unionfs.NewUnionFsFromRoots(flag.Args()[1:], &ufsOptions, true)
 	if err != nil {
 		log.Fatal("Cannot create UnionFs", err)
 		os.Exit(1)
