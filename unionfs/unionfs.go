@@ -753,6 +753,12 @@ func (me *UnionFs) Open(name string, flags uint32) (fuseFile fuse.File, status f
 		return fuse.NewDevNullFile(), fuse.OK
 	}
 	r := me.getBranch(name)
+	if r.branch < 0 {
+		// This should not happen, as a GetAttr() should have
+		// already verified existence.
+		log.Println("UnionFs: open of non-existent file:", name)
+		return nil, fuse.ENOENT
+	}
 	if flags&fuse.O_ANYWRITE != 0 && r.branch > 0 {
 		code := me.Promote(name, r)
 		if code != fuse.OK {
