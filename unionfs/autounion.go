@@ -1,7 +1,6 @@
 package unionfs
 
 import (
-	"fmt"
 	"github.com/hanwen/go-fuse/fuse"
 	"log"
 	"os"
@@ -276,12 +275,6 @@ func (me *AutoUnionFs) GetAttr(path string) (*os.FileInfo, fuse.Status) {
 		return a, fuse.OK
 	}
 
-	if me.getUnionFs(path) != nil {
-		return &os.FileInfo{
-			Mode: fuse.S_IFDIR | 0755,
-		},fuse.OK
-	}
-
 	return nil, fuse.ENOENT
 }
 
@@ -315,6 +308,7 @@ func (me *AutoUnionFs) Open(path string, flags uint32) (fuse.File, fuse.Status) 
 	}
 	return nil, fuse.ENOENT
 }
+
 func (me *AutoUnionFs) Truncate(name string, offset uint64) (code fuse.Status) {
 	if name != filepath.Join(_CONFIG, _SCAN_CONFIG) {
 		log.Println("Huh? Truncating unsupported write file", name)
@@ -332,8 +326,8 @@ func (me *AutoUnionFs) OpenDir(name string) (stream chan fuse.DirEntry, status f
 		name = ""
 	case "":
 	default:
-		log.Sprintf("Argh! Don't know how to list dir %v", name)
-		return fuse.ENOSYS
+		log.Printf("Argh! Don't know how to list dir %v", name)
+		return nil, fuse.ENOSYS
 	}
 
 	me.lock.RLock()
