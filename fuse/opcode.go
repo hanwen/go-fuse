@@ -298,8 +298,8 @@ type castPointerFunc func(unsafe.Pointer) interface{}
 type operationHandler struct {
 	Name       string
 	Func       operationFunc
-	InputSize  int
-	OutputSize int
+	InputSize  uintptr
+	OutputSize uintptr
 	DecodeIn   castPointerFunc
 	DecodeOut  castPointerFunc
 	FileNames  int
@@ -332,7 +332,7 @@ func init() {
 		operationHandlers[i] = &operationHandler{Name: "UNKNOWN"}
 	}
 
-	for op, sz := range map[opcode]int{
+	for op, sz := range map[opcode]uintptr{
 		_OP_FORGET:     unsafe.Sizeof(ForgetIn{}),
 		_OP_GETATTR:    unsafe.Sizeof(GetAttrIn{}),
 		_OP_SETATTR:    unsafe.Sizeof(SetAttrIn{}),
@@ -364,7 +364,7 @@ func init() {
 		operationHandlers[op].InputSize = sz
 	}
 
-	for op, sz := range map[opcode]int{
+	for op, sz := range map[opcode]uintptr{
 		_OP_LOOKUP:    unsafe.Sizeof(EntryOut{}),
 		_OP_GETATTR:   unsafe.Sizeof(AttrOut{}),
 		_OP_SETATTR:   unsafe.Sizeof(AttrOut{}),

@@ -155,8 +155,8 @@ func MyPID() string {
 }
 
 // Thanks to Andrew Gerrand for this hack.
-func asSlice(ptr unsafe.Pointer, byteCount int) []byte {
-	h := &reflect.SliceHeader{uintptr(ptr), byteCount, byteCount}
+func asSlice(ptr unsafe.Pointer, byteCount uintptr) []byte {
+	h := &reflect.SliceHeader{uintptr(ptr), int(byteCount), int(byteCount)}
 	return *(*[]byte)(unsafe.Pointer(h))
 }
 

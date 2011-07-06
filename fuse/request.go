@@ -78,7 +78,7 @@ func (me *request) OutputDebug() string {
 }
 
 func (me *request) parse() {
-	inHSize := unsafe.Sizeof(InHeader{})
+	inHSize := int(unsafe.Sizeof(InHeader{}))
 	if len(me.inputBuf) < inHSize {
 		log.Printf("Short read for input header: %v", me.inputBuf)
 		return
@@ -94,7 +94,7 @@ func (me *request) parse() {
 		return
 	}
 
-	if len(me.arg) < me.handler.InputSize {
+	if len(me.arg) < int(me.handler.InputSize) {
 		log.Printf("Short read for %v: %v", me.inHeader.opcode, me.arg)
 		me.status = EIO
 		return
@@ -135,7 +135,8 @@ func (me *request) serialize() {
 	outHeader := (*OutHeader)(unsafe.Pointer(&me.outHeaderBytes[0]))
 	outHeader.Unique = me.inHeader.Unique
 	outHeader.Status = -me.status
-	outHeader.Length = uint32(sizeOfOutHeader + dataLength + len(me.flatData))
+	outHeader.Length = uint32(
+		int(sizeOfOutHeader) + int(dataLength) + int(len(me.flatData)))
 
 	copy(me.outHeaderBytes[sizeOfOutHeader:], asSlice(me.outData, dataLength))
 }
