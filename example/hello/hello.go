@@ -18,11 +18,11 @@ func (me *HelloFs) GetAttr(name string) (*os.FileInfo, fuse.Status) {
 	case "file.txt":
 		return &os.FileInfo{
 			Mode: fuse.S_IFREG | 0644, Size: int64(len(name)),
-		}, fuse.OK
+		},fuse.OK
 	case "":
 		return &os.FileInfo{
 			Mode: fuse.S_IFDIR | 0755,
-		}, fuse.OK
+		},fuse.OK
 	}
 	return nil, fuse.ENOENT
 }
@@ -30,7 +30,7 @@ func (me *HelloFs) GetAttr(name string) (*os.FileInfo, fuse.Status) {
 func (me *HelloFs) OpenDir(name string) (c chan fuse.DirEntry, code fuse.Status) {
 	if name == "" {
 		c = make(chan fuse.DirEntry, 1)
-		c <- fuse.DirEntry{Name: "file.txt",Mode: fuse.S_IFREG}
+		c <- fuse.DirEntry{Name: "file.txt", Mode: fuse.S_IFREG}
 		close(c)
 		return c, fuse.OK
 	}
@@ -41,7 +41,7 @@ func (me *HelloFs) Open(name string, flags uint32) (file fuse.File, code fuse.St
 	if name != "file.txt" {
 		return nil, fuse.ENOENT
 	}
-	if flags & fuse.O_ANYWRITE != 0 {
+	if flags&fuse.O_ANYWRITE != 0 {
 		return nil, fuse.EPERM
 	}
 	return fuse.NewReadOnlyFile([]byte(name)), fuse.OK

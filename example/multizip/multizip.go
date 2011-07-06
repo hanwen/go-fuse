@@ -27,7 +27,7 @@ func main() {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)
 	}
-	
+
 	state.Debug = *debug
 	state.Loop(true)
 }

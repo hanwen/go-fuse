@@ -38,7 +38,7 @@ func main() {
 			EntryTimeout:    1.0,
 			AttrTimeout:     1.0,
 			NegativeTimeout: 1.0,
-			Owner: fuse.CurrentOwner(),
+			Owner:           fuse.CurrentOwner(),
 		},
 		UpdateOnMount: true,
 	}

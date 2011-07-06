@@ -75,21 +75,21 @@ func Analyze(times []float64) {
 	avg := tot / n
 	variance := 0.0
 	for _, v := range times {
-		variance += (v - avg)*(v - avg)
+		variance += (v - avg) * (v - avg)
 	}
 	variance /= n
 
 	stddev := math.Sqrt(variance)
 
 	median := sorted[len(times)/2]
-	perc90 := sorted[int(n * 0.9)]
-	perc10 := sorted[int(n * 0.1)]
+	perc90 := sorted[int(n*0.9)]
+	perc10 := sorted[int(n*0.1)]
 
 	fmt.Printf(
-		"%d samples\n" +
-		"avg %.2f ms 2sigma %.2f " +
-		"median %.2fms\n"  +
-		"10%%tile %.2fms, 90%%tile %.2fms\n",
+		"%d samples\n"+
+			"avg %.2f ms 2sigma %.2f "+
+			"median %.2fms\n"+
+			"10%%tile %.2fms, 90%%tile %.2fms\n",
 		len(times), avg, 2*stddev, median, perc10, perc90)
 }
 
