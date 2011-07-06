@@ -78,11 +78,11 @@ func (me *fileSystemMount) registerFileHandle(node *inode, dir rawDir, f File, f
 	node.OpenCountMutex.Lock()
 	defer node.OpenCountMutex.Unlock()
 	b := &openedFile{
-		dir:       dir,
-		file:      f,
-		inode:     node,
+		dir:             dir,
+		file:            f,
+		inode:           node,
 		fileSystemMount: me,
-		Flags:     flags,
+		Flags:           flags,
 	}
 	node.OpenCount++
 	return me.openFiles.Register(&b.Handled)
@@ -133,8 +133,8 @@ type inode struct {
 // Can only be called on untouched inodes.
 func (me *inode) mountFs(fs FileSystem, opts *FileSystemOptions) {
 	me.mountPoint = &fileSystemMount{
-		fs:        fs,
-		openFiles: NewHandleMap(),
+		fs:         fs,
+		openFiles:  NewHandleMap(),
 		mountInode: me,
 		options:    opts,
 	}
@@ -497,8 +497,8 @@ func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *Fil
 		me.mountRoot(fs, opts)
 		return OK
 	}
-	
- 	dirParent, base := filepath.Split(mountPoint)
+
+	dirParent, base := filepath.Split(mountPoint)
 	parent := me.findInode(dirParent)
 	if parent == nil {
 		log.Println("Could not find mountpoint parent:", dirParent)

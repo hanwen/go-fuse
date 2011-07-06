@@ -76,7 +76,7 @@ func (me *AutoUnionFs) addAutomaticFs(roots []string) {
 	}
 }
 
-func (me *AutoUnionFs) createFs(name string, roots []string) (fuse.Status) {
+func (me *AutoUnionFs) createFs(name string, roots []string) fuse.Status {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 

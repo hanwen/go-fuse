@@ -7,14 +7,14 @@ import (
 func TestSwitchFsSlash(t *testing.T) {
 	fsMap := []SwitchedFileSystem{
 		SwitchedFileSystem{Prefix: ""},
-		SwitchedFileSystem{Prefix:"/home"},
-		SwitchedFileSystem{Prefix:"usr/"},
+		SwitchedFileSystem{Prefix: "/home"},
+		SwitchedFileSystem{Prefix: "usr/"},
 	}
 
 	sfs := NewSwitchFileSystem(fsMap)
-	for path, expectPrefix := range map[string]string {
+	for path, expectPrefix := range map[string]string{
 		"home/foo/bar": "home",
-		"usr/local": "usr",
+		"usr/local":    "usr",
 	} {
 		_, fs := sfs.findFileSystem(path)
 		if fs.Prefix != expectPrefix {
@@ -26,21 +26,21 @@ func TestSwitchFsSlash(t *testing.T) {
 func TestSwitchFs(t *testing.T) {
 	fsMap := []SwitchedFileSystem{
 		SwitchedFileSystem{Prefix: ""},
-		SwitchedFileSystem{Prefix:"home/foo"},
-		SwitchedFileSystem{Prefix:"home"},
-		SwitchedFileSystem{Prefix:"usr"},
+		SwitchedFileSystem{Prefix: "home/foo"},
+		SwitchedFileSystem{Prefix: "home"},
+		SwitchedFileSystem{Prefix: "usr"},
 	}
 
 	sfs := NewSwitchFileSystem(fsMap)
 
-	for path, expectPrefix := range map[string]string {
-		"xyz": "",
-		"home/foo/bar": "home/foo",
+	for path, expectPrefix := range map[string]string{
+		"xyz":           "",
+		"home/foo/bar":  "home/foo",
 		"home/fooz/bar": "home",
-		"home/efg": "home",
-		"lib": "",
-		"abc": "",
-		"usr/local": "usr",
+		"home/efg":      "home",
+		"lib":           "",
+		"abc":           "",
+		"usr/local":     "usr",
 	} {
 		_, fs := sfs.findFileSystem(path)
 		if fs.Prefix != expectPrefix {
@@ -53,19 +53,19 @@ func TestSwitchFs(t *testing.T) {
 func TestSwitchFsStrip(t *testing.T) {
 	fsMap := []SwitchedFileSystem{
 		SwitchedFileSystem{Prefix: ""},
-		SwitchedFileSystem{Prefix:"dev", StripPrefix: true},
-		SwitchedFileSystem{Prefix:"home", StripPrefix: false},
+		SwitchedFileSystem{Prefix: "dev", StripPrefix: true},
+		SwitchedFileSystem{Prefix: "home", StripPrefix: false},
 	}
 
 	sfs := NewSwitchFileSystem(fsMap)
 	// Don't check for inputs ending in '/' since Go-FUSE never
 	// generates them.
-	for path, expectPath := range map[string]string {
-		"xyz": "xyz",
+	for path, expectPath := range map[string]string{
+		"xyz":          "xyz",
 		"home/foo/bar": "home/foo/bar",
-		"home": "home",
-		"dev/null": "null",
-		"dev": "",
+		"home":         "home",
+		"dev/null":     "null",
+		"dev":          "",
 	} {
 		stripPath, _ := sfs.findFileSystem(path)
 		if stripPath != expectPath {

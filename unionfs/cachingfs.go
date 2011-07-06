@@ -109,7 +109,7 @@ func (me *CachingFileSystem) GetAttr(name string) (*os.FileInfo, fuse.Status) {
 			Mode: fuse.S_IFREG | 0777,
 		},fuse.OK
 	}
-	
+
 	r := me.attributes.Get(name).(*attrResponse)
 	return r.FileInfo, r.Status
 }

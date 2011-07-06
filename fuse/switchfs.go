@@ -65,7 +65,7 @@ func NewSwitchFileSystem(fsMap []SwitchedFileSystem) *SwitchFileSystem {
 // numbers of switched filesystems.
 func (me *SwitchFileSystem) findFileSystem(path string) (string, *SwitchedFileSystem) {
 	for _, swFs := range me.fileSystems {
-		if swFs.Prefix == "" || swFs.Prefix == path || strings.HasPrefix(path, swFs.Prefix + string(filepath.Separator)) {
+		if swFs.Prefix == "" || swFs.Prefix == path || strings.HasPrefix(path, swFs.Prefix+string(filepath.Separator)) {
 			if swFs.StripPrefix {
 				path = strings.TrimLeft(path[len(swFs.Prefix):], string(filepath.Separator))
 			}
@@ -135,7 +135,7 @@ func (me *SwitchFileSystem) Symlink(value string, linkName string) (code Status)
 func (me *SwitchFileSystem) Rename(oldName string, newName string) (code Status) {
 	oldName, fs1 := me.findFileSystem(oldName)
 	newName, fs2 := me.findFileSystem(newName)
-	if fs1 != fs2  {
+	if fs1 != fs2 {
 		return syscall.EXDEV
 	}
 	if fs1 == nil {
@@ -147,7 +147,7 @@ func (me *SwitchFileSystem) Rename(oldName string, newName string) (code Status)
 func (me *SwitchFileSystem) Link(oldName string, newName string) (code Status) {
 	oldName, fs1 := me.findFileSystem(oldName)
 	newName, fs2 := me.findFileSystem(newName)
-	if fs1 != fs2  {
+	if fs1 != fs2 {
 		return syscall.EXDEV
 	}
 	if fs1 == nil {
@@ -271,4 +271,3 @@ func (me *SwitchFileSystem) Flush(name string) Status {
 	}
 	return fs.FileSystem.Flush(name)
 }
-

@@ -33,7 +33,7 @@ type MountState struct {
 
 	*LatencyMap
 
-	opts *MountOptions
+	opts           *MountOptions
 	kernelSettings InitIn
 }
 
@@ -53,7 +53,7 @@ func (me *MountState) Mount(mountPoint string, opts *MountOptions) os.Error {
 		}
 	}
 	me.opts = opts
-	
+
 	optStr := ""
 	if opts.AllowOther {
 		optStr = "allow_other"
