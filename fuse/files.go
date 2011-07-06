@@ -58,6 +58,10 @@ func (me *DevNullFile) Fsync(*FsyncIn) (code Status) {
 	return OK
 }
 
+func (me *DevNullFile) Truncate(size uint64) (code Status) {
+	return OK
+}
+
 ////////////////
 
 // LoopbackFile delegates all operations back to an underlying os.File.
