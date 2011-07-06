@@ -332,7 +332,8 @@ func (me *AutoUnionFs) OpenDir(name string) (stream chan fuse.DirEntry, status f
 		name = ""
 	case "":
 	default:
-		panic(fmt.Sprintf("Don't know how to list dir %v", name))
+		log.Sprintf("Argh! Don't know how to list dir %v", name)
+		return fuse.ENOSYS
 	}
 
 	me.lock.RLock()
