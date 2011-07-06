@@ -98,6 +98,9 @@ type FileSystemOptions struct {
 
 type MountOptions struct {
 	AllowOther bool
+
+	// Default is _DEFAULT_BACKGROUND_TASKS, 12.
+	MaxBackground int
 }
 
 // DefaultFileSystem implements a FileSystem that returns ENOSYS for every operation.

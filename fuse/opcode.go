@@ -84,8 +84,8 @@ func doInit(state *MountState, req *request) {
 		MaxReadAhead:        input.MaxReadAhead,
 		Flags:               state.kernelSettings.Flags,
 		MaxWrite:            maxRead,
-		CongestionThreshold: _BACKGROUND_TASKS * 3 / 4,
-		MaxBackground:       _BACKGROUND_TASKS,
+		CongestionThreshold: uint16(state.opts.MaxBackground * 3 / 4),
+		MaxBackground:       uint16(state.opts.MaxBackground),
 	}
 
 	req.outData = unsafe.Pointer(out)

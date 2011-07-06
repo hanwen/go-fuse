@@ -35,8 +35,7 @@ const (
 )
 
 const (
-	// TODO - we should read this from /sys/fs/fuse/ , dynamically.
-	_BACKGROUND_TASKS = 12
+	_DEFAULT_BACKGROUND_TASKS = 12
 )
 
 type Status int32

@@ -33,6 +33,7 @@ type MountState struct {
 
 	*LatencyMap
 
+	opts *MountOptions
 	kernelSettings InitIn
 }
 
@@ -46,9 +47,15 @@ func (me *MountState) MountPoint() string {
 
 // Mount filesystem on mountPoint.
 func (me *MountState) Mount(mountPoint string, opts *MountOptions) os.Error {
-
+	if opts == nil {
+		opts = &MountOptions{
+			MaxBackground: _DEFAULT_BACKGROUND_TASKS,
+		}
+	}
+	me.opts = opts
+	
 	optStr := ""
-	if opts != nil && opts.AllowOther {
+	if opts.AllowOther {
 		optStr = "allow_other"
 	}
 
@@ -150,7 +157,7 @@ func (me *MountState) Loop(threaded bool) {
 	// This means that the request once read does not need to be
 	// assigned to another thread, so it avoids a context switch.
 	if threaded {
-		for i := 0; i < _BACKGROUND_TASKS; i++ {
+		for i := 0; i < me.opts.MaxBackground-1; i++ {
 			go me.loop()
 		}
 	}
