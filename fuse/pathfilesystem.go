@@ -397,13 +397,9 @@ func (me *FileSystemConnector) considerDropInode(n *inode) {
 	n.OpenCountMutex.Lock()
 	defer n.OpenCountMutex.Unlock()
 	dropInode := n.LookupCount <= 0 && len(n.Children) == 0 &&
-		n.OpenCount <= 0 && n != me.rootNode
+		n.OpenCount <= 0 && n != me.rootNode && n.mountPoint == nil
 	if dropInode {
-		if n.mountPoint != nil {
-			me.unsafeUnmountNode(n)
-		} else {
-			n.setParent(nil)
-		}
+		n.setParent(nil)
 		if n != me.rootNode {
 			me.inodeMap.Forget(n.NodeId)
 		}
@@ -492,6 +488,11 @@ func EmptyFileSystemConnector() (me *FileSystemConnector) {
 // ENOENT: the directory containing the mount point does not exist.
 //
 // EBUSY: the intended mount point already exists.
+//
+// TODO - would be useful to expose an interface to put all of the
+// mount management in FileSystemConnector, so AutoUnionFs and
+// MultiZipFs don't have to do it separately, with the risk of
+// inconsistencies.
 func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *FileSystemOptions) Status {
 	if mountPoint == "/" || mountPoint == "" {
 		me.mountRoot(fs, opts)
