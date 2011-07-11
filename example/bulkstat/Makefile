@@ -3,7 +3,7 @@ include $(GOROOT)/src/Make.inc
 
 TARG=bulkstat
 GOFILES=bulkstat.go
-DEPS=../../fuse
+DEPS=../../benchmark
 
 include $(GOROOT)/src/Make.cmd
 
