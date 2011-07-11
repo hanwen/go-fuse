@@ -110,7 +110,7 @@ func (me *request) parse() {
 		if count == 1 {
 			me.filenames = []string{string(me.arg[:len(me.arg)-1])}
 		} else {
-			names := bytes.Split(me.arg[:len(me.arg)-1], []byte{0}, count)
+			names := bytes.SplitN(me.arg[:len(me.arg)-1], []byte{0}, count)
 			me.filenames = make([]string, len(names))
 			for i, n := range names {
 				me.filenames[i] = string(n)

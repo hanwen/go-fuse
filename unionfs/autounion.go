@@ -168,7 +168,7 @@ func (me *AutoUnionFs) updateKnownFses() {
 }
 
 func (me *AutoUnionFs) Readlink(path string) (out string, code fuse.Status) {
-	comps := strings.Split(path, fuse.SeparatorString, -1)
+	comps := strings.Split(path, fuse.SeparatorString)
 	if comps[0] == _STATUS && comps[1] == _ROOT {
 		return me.root, fuse.OK
 	}
@@ -194,7 +194,7 @@ func (me *AutoUnionFs) getUnionFs(name string) *UnionFs {
 }
 
 func (me *AutoUnionFs) Symlink(pointedTo string, linkName string) (code fuse.Status) {
-	comps := strings.Split(linkName, "/", -1)
+	comps := strings.Split(linkName, "/")
 	if len(comps) != 2 {
 		return fuse.EPERM
 	}
@@ -213,7 +213,7 @@ func (me *AutoUnionFs) Symlink(pointedTo string, linkName string) (code fuse.Sta
 
 
 func (me *AutoUnionFs) Unlink(path string) (code fuse.Status) {
-	comps := strings.Split(path, "/", -1)
+	comps := strings.Split(path, "/")
 	if len(comps) != 2 {
 		return fuse.EPERM
 	}
@@ -260,7 +260,7 @@ func (me *AutoUnionFs) GetAttr(path string) (*os.FileInfo, fuse.Status) {
 		}
 		return a, fuse.OK
 	}
-	comps := strings.Split(path, fuse.SeparatorString, -1)
+	comps := strings.Split(path, fuse.SeparatorString)
 
 	if len(comps) > 1 && comps[0] == _CONFIG {
 		fs := me.getUnionFs(comps[1])

@@ -46,7 +46,7 @@ func (me *MemTree) Lookup(name string) (*MemTree, MemFile) {
 		return me, nil
 	}
 	parent := me
-	comps := strings.Split(filepath.Clean(name), "/", -1)
+	comps := strings.Split(filepath.Clean(name), "/")
 	for _, c := range comps[:len(comps)-1] {
 		parent = parent.subdirs[c]
 		if parent == nil {

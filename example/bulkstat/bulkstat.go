@@ -64,7 +64,7 @@ func main() {
 
 func Analyze(times []float64) {
 	sorted := times
-	sort.SortFloat64s(sorted)
+	sort.Float64s(sorted)
 
 	tot := 0.0
 	for _, v := range times {

@@ -69,7 +69,7 @@ func getAttr(fs fuse.FileSystem, name string) *attrResponse {
 }
 
 func getXAttr(fs fuse.FileSystem, nameAttr string) *xattrResponse {
-	ns := strings.Split(nameAttr, _XATTRSEP, 2)
+	ns := strings.SplitN(nameAttr, _XATTRSEP, 2)
 	a, code := fs.GetXAttr(ns[0], ns[1])
 	return &xattrResponse{
 		data:   a,
@@ -93,7 +93,7 @@ func NewCachingFileSystem(fs fuse.FileSystem, ttlNs int64) *CachingFileSystem {
 	c.links = NewTimedCache(func(n string) interface{} { return readLink(fs, n) }, ttlNs)
 	c.xattr = NewTimedCache(func(n string) interface{} {
 		return getXAttr(fs, n)
-	},ttlNs)
+	}, ttlNs)
 	return c
 }
 
@@ -107,7 +107,7 @@ func (me *CachingFileSystem) GetAttr(name string) (*os.FileInfo, fuse.Status) {
 	if name == _DROP_CACHE {
 		return &os.FileInfo{
 			Mode: fuse.S_IFREG | 0777,
-		},fuse.OK
+		}, fuse.OK
 	}
 
 	r := me.attributes.Get(name).(*attrResponse)

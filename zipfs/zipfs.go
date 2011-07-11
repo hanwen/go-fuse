@@ -51,7 +51,7 @@ func zipFilesToTree(files []*zip.File) *MemTree {
 	t := NewMemTree()
 	for _, f := range files {
 		parent := t
-		comps := strings.Split(filepath.Clean(f.Name), "/", -1)
+		comps := strings.Split(filepath.Clean(f.Name), "/")
 		base := ""
 
 		// Ugh - zip files have directories separate.

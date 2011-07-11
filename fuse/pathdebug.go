@@ -54,7 +54,7 @@ func (me *FileSystemDebug) Open(path string, flags uint32) (fuseFile File, statu
 var SeparatorString = string([]byte{filepath.Separator})
 
 func (me *FileSystemDebug) getContent(path string) []byte {
-	comps := strings.Split(path, SeparatorString, -1)
+	comps := strings.Split(path, SeparatorString)
 	if comps[0] == DebugDir {
 		me.RWMutex.RLock()
 		defer me.RWMutex.RUnlock()
@@ -80,14 +80,14 @@ func (me *FileSystemDebug) GetAttr(path string) (*os.FileInfo, Status) {
 	if path == DebugDir {
 		return &os.FileInfo{
 			Mode: S_IFDIR | 0755,
-		},OK
+		}, OK
 	}
 	c := me.getContent(path)
 	if c != nil {
 		return &os.FileInfo{
 			Mode: S_IFREG | 0644,
 			Size: int64(len(c)),
-		},OK
+		}, OK
 	}
 	return nil, ENOENT
 }
@@ -98,7 +98,7 @@ func FloatMapToBytes(m map[string]float64) []byte {
 		keys = append(keys, k)
 	}
 
-	sort.SortStrings(keys)
+	sort.Strings(keys)
 
 	var r []string
 	for _, k := range keys {
@@ -114,7 +114,7 @@ func IntMapToBytes(m map[string]int) []byte {
 		keys = append(keys, k)
 	}
 
-	sort.SortStrings(keys)
+	sort.Strings(keys)
 
 	var r []string
 	for _, k := range keys {

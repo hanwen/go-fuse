@@ -134,7 +134,7 @@ func getConnection(local *os.File) (f *os.File, err os.Error) {
 }
 
 func init() {
-	for _, v := range strings.Split(os.Getenv("PATH"), ":", -1) {
+	for _, v := range strings.Split(os.Getenv("PATH"), ":") {
 		tpath := path.Join(v, "fusermount")
 		fi, err := os.Stat(tpath)
 		if err == nil && (fi.Mode&0111) != 0 {

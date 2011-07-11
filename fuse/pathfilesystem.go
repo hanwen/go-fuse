@@ -448,7 +448,7 @@ func (me *FileSystemConnector) unlinkUpdate(parent *inode, name string) {
 // node not found.
 func (me *FileSystemConnector) findInode(fullPath string) *inode {
 	fullPath = strings.TrimLeft(filepath.Clean(fullPath), "/")
-	comps := strings.Split(fullPath, "/", -1)
+	comps := strings.Split(fullPath, "/")
 
 	node := me.rootNode
 	for _, component := range comps {

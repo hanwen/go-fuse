@@ -261,7 +261,7 @@ func doFsyncDir(state *MountState, req *request) {
 }
 
 func doSetXAttr(state *MountState, req *request) {
-	splits := bytes.Split(req.arg, []byte{0}, 2)
+	splits := bytes.SplitN(req.arg, []byte{0}, 2)
 	req.status = state.fileSystem.SetXAttr(req.inHeader, (*SetXAttrIn)(req.inData), string(splits[0]), splits[1])
 }
 

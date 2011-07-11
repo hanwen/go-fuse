@@ -65,7 +65,7 @@ func ListXAttr(path string) (attributes []string, errno int) {
 
 	// -1 to drop the final empty slice.
 	dest = dest[:sz-1]
-	attributesBytes := bytes.Split(dest, []byte{0}, -1)
+	attributesBytes := bytes.Split(dest, []byte{0})
 	attributes = make([]string, len(attributesBytes))
 	for i, v := range attributesBytes {
 		attributes[i] = string(v)

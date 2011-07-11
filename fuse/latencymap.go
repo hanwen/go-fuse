@@ -96,6 +96,6 @@ func (me *LatencyMap) TopArgs(name string) []string {
 	for k, v := range counts {
 		results = append(results, fmt.Sprintf("% 9d %s", v, k))
 	}
-	sort.SortStrings(results)
+	sort.Strings(results)
 	return results
 }
