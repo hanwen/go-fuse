@@ -179,13 +179,8 @@ func (me *MountState) loop() {
 				continue
 			}
 
-			// According to fuse_chan_receive()
 			if errNo == syscall.ENODEV {
-				break
-			}
-
-			// What I see on linux-x86 2.6.35.10.
-			if errNo == syscall.ENOSYS {
+				// Unmount.
 				break
 			}
 
