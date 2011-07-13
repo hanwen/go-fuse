@@ -159,11 +159,6 @@ func NewLockingRawFileSystem(rfs RawFileSystem) *LockingRawFileSystem {
 	return l
 }
 
-func (me *LockingRawFileSystem) Destroy(h *InHeader, input *InitIn) {
-	defer me.locked()()
-	me.RawFileSystem.Destroy(h, input)
-}
-
 func (me *LockingRawFileSystem) Lookup(h *InHeader, name string) (out *EntryOut, code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Lookup(h, name)

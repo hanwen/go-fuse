@@ -9,10 +9,6 @@ import (
 var _ = log.Println
 var _ = fmt.Println
 
-func (me *DefaultRawFileSystem) Destroy(h *InHeader, input *InitIn) {
-
-}
-
 func (me *DefaultRawFileSystem) Lookup(h *InHeader, name string) (out *EntryOut, code Status) {
 	return nil, ENOSYS
 }

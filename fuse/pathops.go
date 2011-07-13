@@ -29,9 +29,6 @@ func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *fileS
 	return p, m, n
 }
 
-func (me *FileSystemConnector) Destroy(h *InHeader, input *InitIn) {
-}
-
 func (me *fileSystemMount) setOwner(attr *Attr) {
 	if me.options.Owner != nil {
 		attr.Owner = *me.options.Owner

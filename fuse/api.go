@@ -118,7 +118,6 @@ type DefaultFile struct{}
 //
 // Include DefaultRawFileSystem to inherit a null implementation.
 type RawFileSystem interface {
-	Destroy(h *InHeader, input *InitIn)
 	Lookup(header *InHeader, name string) (out *EntryOut, status Status)
 	Forget(header *InHeader, input *ForgetIn)
 

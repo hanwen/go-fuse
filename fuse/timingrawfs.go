@@ -31,11 +31,6 @@ func (me *TimingRawFileSystem) Latencies() map[string]float64 {
 	return me.LatencyMap.Latencies(1e-3)
 }
 
-func (me *TimingRawFileSystem) Destroy(h *InHeader, input *InitIn) {
-	defer me.startTimer("Destroy")()
-	me.RawFileSystem.Destroy(h, input)
-}
-
 func (me *TimingRawFileSystem) Lookup(h *InHeader, name string) (out *EntryOut, code Status) {
 	defer me.startTimer("Lookup")()
 	return me.RawFileSystem.Lookup(h, name)

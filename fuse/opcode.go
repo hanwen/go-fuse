@@ -200,10 +200,6 @@ func doReadlink(state *MountState, req *request) {
 	req.flatData, req.status = state.fileSystem.Readlink(req.inHeader)
 }
 
-func doDestroy(state *MountState, req *request) {
-	state.fileSystem.Destroy(req.inHeader, (*InitIn)(req.inData))
-}
-
 func doLookup(state *MountState, req *request) {
 	lookupOut, s := state.fileSystem.Lookup(req.inHeader, req.filenames[0])
 	req.status = s
@@ -442,7 +438,6 @@ func init() {
 		_OP_FORGET:      doForget,
 		_OP_READLINK:    doReadlink,
 		_OP_INIT:        doInit,
-		_OP_DESTROY:     doDestroy,
 		_OP_LOOKUP:      doLookup,
 		_OP_MKNOD:       doMknod,
 		_OP_MKDIR:       doMkdir,
