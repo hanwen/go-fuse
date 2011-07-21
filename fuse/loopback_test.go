@@ -639,7 +639,8 @@ func TestStatFs(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
-	s1 := syscall.Statfs_t{}
+	empty := syscall.Statfs_t{}
+	s1 := empty
 	err := syscall.Statfs(ts.orig, &s1)
 	if err != 0 {
 		t.Fatal("statfs orig", err)
@@ -650,8 +651,13 @@ func TestStatFs(t *testing.T) {
 
 	s1.Type = 0
 	s2.Type = 0
-	s1.Fsid = [8]byte{0, 0, 0, 0, 0, 0, 0, 0}
-	s2.Fsid = [8]byte{0, 0, 0, 0, 0, 0, 0, 0}
+
+	s1.Fsid = empty.Fsid
+	s2.Fsid = empty.Fsid
+	
+	s1.Spare = empty.Spare
+	s2.Spare = empty.Spare
+
 	if err != 0 {
 		t.Fatal("statfs mnt", err)
 	}
