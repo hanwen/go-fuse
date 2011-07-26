@@ -19,6 +19,10 @@ func markSeen(substr string) {
 }
 
 func TestHandleMapDoubleRegister(t *testing.T) {
+	if unsafe.Sizeof(t) < 8 {
+		t.Log("skipping test for 32 bits")
+		return
+	}
 	log.Println("TestDoubleRegister")
 	defer markSeen("already has a handle")
 	hm := NewHandleMap()
@@ -30,6 +34,10 @@ func TestHandleMapDoubleRegister(t *testing.T) {
 }
 
 func TestHandleMapUnaligned(t *testing.T) {
+	if unsafe.Sizeof(t) < 8 {
+		t.Log("skipping test for 32 bits")
+		return
+	}
 	hm := NewHandleMap()
 
 	b := make([]byte, 100)
@@ -41,7 +49,8 @@ func TestHandleMapUnaligned(t *testing.T) {
 }
 
 func TestHandleMapPointerLayout(t *testing.T) {
-	if unsafe.Sizeof(t) == 4 {
+	if unsafe.Sizeof(t) < 8 {
+		t.Log("skipping test for 32 bits")
 		return
 	}
 
@@ -55,6 +64,10 @@ func TestHandleMapPointerLayout(t *testing.T) {
 }
 
 func TestHandleMapBasic(t *testing.T) {
+	if unsafe.Sizeof(t) < 8 {
+		t.Log("skipping test for 32 bits")
+		return
+	}
 	v := new(Handled)
 	hm := NewHandleMap()
 	h := hm.Register(v)
@@ -72,6 +85,10 @@ func TestHandleMapBasic(t *testing.T) {
 }
 
 func TestHandleMapMultiple(t *testing.T) {
+	if unsafe.Sizeof(t) < 8 {
+		t.Log("skipping test for 32 bits")
+		return
+	}
 	hm := NewHandleMap()
 	for i := 0; i < 10; i++ {
 		v := &Handled{}
@@ -86,6 +103,10 @@ func TestHandleMapMultiple(t *testing.T) {
 }
 
 func TestHandleMapCheckFail(t *testing.T) {
+	if unsafe.Sizeof(t) < 8 {
+		t.Log("skipping test for 32 bits")
+		return
+	}
 	defer markSeen("check mismatch")
 
 	v := new(Handled)

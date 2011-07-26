@@ -55,7 +55,7 @@ type fileSystemMount struct {
 	treeLock sync.RWMutex
 
 	// Manage filehandles of open files.
-	openFiles *HandleMap
+	openFiles HandleMap
 }
 
 func (me *FileSystemConnector) getOpenedFile(h uint64) *openedFile {
@@ -306,7 +306,7 @@ type FileSystemConnector struct {
 
 	Debug bool
 
-	inodeMap *HandleMap
+	inodeMap HandleMap
 	rootNode *inode
 }
 
@@ -318,7 +318,6 @@ func (me *FileSystemConnector) verify() {
 	if !paranoia {
 		return
 	}
-	me.inodeMap.verify()
 	root := me.rootNode
 	root.verify(me.rootNode.mountPoint)
 }
