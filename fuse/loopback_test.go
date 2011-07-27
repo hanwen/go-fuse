@@ -223,6 +223,7 @@ func TestWriteThrough(t *testing.T) {
 
 	f, err = os.Open(me.origFile)
 	CheckSuccess(err)
+	defer f.Close()
 
 	var buf [1024]byte
 	slice := buf[:]
