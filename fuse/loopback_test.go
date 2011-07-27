@@ -389,6 +389,10 @@ func TestOverwriteRename(t *testing.T) {
 }
 
 func TestAccess(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Log("Skipping TestAccess() as root.")
+		return
+	}
 	me := NewTestCase(t)
 	defer me.Cleanup()
 
