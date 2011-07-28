@@ -52,9 +52,12 @@ const (
 	_OP_IOCTL       = opcode(39)
 	_OP_POLL        = opcode(40)
 
-	_OPCODE_COUNT = opcode(41)
-)
+	// Ugh - what will happen if FUSE introduces a new opcode here?
+	_OP_NOTIFY_ENTRY = opcode(51)
+	_OP_NOTIFY_INODE = opcode(52)
 
+	_OPCODE_COUNT = opcode(53)
+)
 
 ////////////////////////////////////////////////////////////////
 
@@ -121,7 +124,6 @@ func doCreate(state *MountState, req *request) {
 	}
 }
 
-
 func doReadDir(state *MountState, req *request) {
 	entries, code := state.fileSystem.ReadDir(req.inHeader, (*ReadIn)(req.inData))
 	if entries != nil {
@@ -129,7 +131,6 @@ func doReadDir(state *MountState, req *request) {
 	}
 	req.status = code
 }
-
 
 func doOpenDir(state *MountState, req *request) {
 	flags, handle, status := state.fileSystem.OpenDir(req.inHeader, (*OpenIn)(req.inData))
@@ -156,7 +157,6 @@ func doWrite(state *MountState, req *request) {
 	req.outData = unsafe.Pointer(o)
 	req.status = status
 }
-
 
 func doGetXAttr(state *MountState, req *request) {
 	input := (*GetXAttrIn)(req.inData)
@@ -361,67 +361,72 @@ func init() {
 	}
 
 	for op, sz := range map[opcode]uintptr{
-		_OP_LOOKUP:    unsafe.Sizeof(EntryOut{}),
-		_OP_GETATTR:   unsafe.Sizeof(AttrOut{}),
-		_OP_SETATTR:   unsafe.Sizeof(AttrOut{}),
-		_OP_SYMLINK:   unsafe.Sizeof(EntryOut{}),
-		_OP_MKNOD:     unsafe.Sizeof(EntryOut{}),
-		_OP_MKDIR:     unsafe.Sizeof(EntryOut{}),
-		_OP_LINK:      unsafe.Sizeof(EntryOut{}),
-		_OP_OPEN:      unsafe.Sizeof(OpenOut{}),
-		_OP_WRITE:     unsafe.Sizeof(WriteOut{}),
-		_OP_STATFS:    unsafe.Sizeof(StatfsOut{}),
-		_OP_GETXATTR:  unsafe.Sizeof(GetXAttrOut{}),
-		_OP_LISTXATTR: unsafe.Sizeof(GetXAttrOut{}),
-		_OP_INIT:      unsafe.Sizeof(InitOut{}),
-		_OP_OPENDIR:   unsafe.Sizeof(OpenOut{}),
-		_OP_CREATE:    unsafe.Sizeof(CreateOut{}),
-		_OP_BMAP:      unsafe.Sizeof(BmapOut{}),
-		_OP_IOCTL:     unsafe.Sizeof(IoctlOut{}),
-		_OP_POLL:      unsafe.Sizeof(PollOut{}),
+		_OP_LOOKUP:       unsafe.Sizeof(EntryOut{}),
+		_OP_GETATTR:      unsafe.Sizeof(AttrOut{}),
+		_OP_SETATTR:      unsafe.Sizeof(AttrOut{}),
+		_OP_SYMLINK:      unsafe.Sizeof(EntryOut{}),
+		_OP_MKNOD:        unsafe.Sizeof(EntryOut{}),
+		_OP_MKDIR:        unsafe.Sizeof(EntryOut{}),
+		_OP_LINK:         unsafe.Sizeof(EntryOut{}),
+		_OP_OPEN:         unsafe.Sizeof(OpenOut{}),
+		_OP_WRITE:        unsafe.Sizeof(WriteOut{}),
+		_OP_STATFS:       unsafe.Sizeof(StatfsOut{}),
+		_OP_GETXATTR:     unsafe.Sizeof(GetXAttrOut{}),
+		_OP_LISTXATTR:    unsafe.Sizeof(GetXAttrOut{}),
+		_OP_INIT:         unsafe.Sizeof(InitOut{}),
+		_OP_OPENDIR:      unsafe.Sizeof(OpenOut{}),
+		_OP_CREATE:       unsafe.Sizeof(CreateOut{}),
+		_OP_BMAP:         unsafe.Sizeof(BmapOut{}),
+		_OP_IOCTL:        unsafe.Sizeof(IoctlOut{}),
+		_OP_POLL:         unsafe.Sizeof(PollOut{}),
+		_OP_NOTIFY_ENTRY: unsafe.Sizeof(NotifyInvalEntryOut{}),
+		_OP_NOTIFY_INODE: unsafe.Sizeof(NotifyInvalInodeOut{}),
 	} {
 		operationHandlers[op].OutputSize = sz
 	}
 
 	for op, v := range map[opcode]string{
-		_OP_LOOKUP:      "LOOKUP",
-		_OP_FORGET:      "FORGET",
-		_OP_GETATTR:     "GETATTR",
-		_OP_SETATTR:     "SETATTR",
-		_OP_READLINK:    "READLINK",
-		_OP_SYMLINK:     "SYMLINK",
-		_OP_MKNOD:       "MKNOD",
-		_OP_MKDIR:       "MKDIR",
-		_OP_UNLINK:      "UNLINK",
-		_OP_RMDIR:       "RMDIR",
-		_OP_RENAME:      "RENAME",
-		_OP_LINK:        "LINK",
-		_OP_OPEN:        "OPEN",
-		_OP_READ:        "READ",
-		_OP_WRITE:       "WRITE",
-		_OP_STATFS:      "STATFS",
-		_OP_RELEASE:     "RELEASE",
-		_OP_FSYNC:       "FSYNC",
-		_OP_SETXATTR:    "SETXATTR",
-		_OP_GETXATTR:    "GETXATTR",
-		_OP_LISTXATTR:   "LISTXATTR",
-		_OP_REMOVEXATTR: "REMOVEXATTR",
-		_OP_FLUSH:       "FLUSH",
-		_OP_INIT:        "INIT",
-		_OP_OPENDIR:     "OPENDIR",
-		_OP_READDIR:     "READDIR",
-		_OP_RELEASEDIR:  "RELEASEDIR",
-		_OP_FSYNCDIR:    "FSYNCDIR",
-		_OP_GETLK:       "GETLK",
-		_OP_SETLK:       "SETLK",
-		_OP_SETLKW:      "SETLKW",
-		_OP_ACCESS:      "ACCESS",
-		_OP_CREATE:      "CREATE",
-		_OP_INTERRUPT:   "INTERRUPT",
-		_OP_BMAP:        "BMAP",
-		_OP_DESTROY:     "DESTROY",
-		_OP_IOCTL:       "IOCTL",
-		_OP_POLL:        "POLL"} {
+		_OP_LOOKUP:       "LOOKUP",
+		_OP_FORGET:       "FORGET",
+		_OP_GETATTR:      "GETATTR",
+		_OP_SETATTR:      "SETATTR",
+		_OP_READLINK:     "READLINK",
+		_OP_SYMLINK:      "SYMLINK",
+		_OP_MKNOD:        "MKNOD",
+		_OP_MKDIR:        "MKDIR",
+		_OP_UNLINK:       "UNLINK",
+		_OP_RMDIR:        "RMDIR",
+		_OP_RENAME:       "RENAME",
+		_OP_LINK:         "LINK",
+		_OP_OPEN:         "OPEN",
+		_OP_READ:         "READ",
+		_OP_WRITE:        "WRITE",
+		_OP_STATFS:       "STATFS",
+		_OP_RELEASE:      "RELEASE",
+		_OP_FSYNC:        "FSYNC",
+		_OP_SETXATTR:     "SETXATTR",
+		_OP_GETXATTR:     "GETXATTR",
+		_OP_LISTXATTR:    "LISTXATTR",
+		_OP_REMOVEXATTR:  "REMOVEXATTR",
+		_OP_FLUSH:        "FLUSH",
+		_OP_INIT:         "INIT",
+		_OP_OPENDIR:      "OPENDIR",
+		_OP_READDIR:      "READDIR",
+		_OP_RELEASEDIR:   "RELEASEDIR",
+		_OP_FSYNCDIR:     "FSYNCDIR",
+		_OP_GETLK:        "GETLK",
+		_OP_SETLK:        "SETLK",
+		_OP_SETLKW:       "SETLKW",
+		_OP_ACCESS:       "ACCESS",
+		_OP_CREATE:       "CREATE",
+		_OP_INTERRUPT:    "INTERRUPT",
+		_OP_BMAP:         "BMAP",
+		_OP_DESTROY:      "DESTROY",
+		_OP_IOCTL:        "IOCTL",
+		_OP_POLL:         "POLL",
+		_OP_NOTIFY_ENTRY: "NOTIFY_ENTRY",
+		_OP_NOTIFY_INODE: "NOTIFY_INODE",
+	} {
 		operationHandlers[op].Name = v
 	}
 
@@ -461,13 +466,15 @@ func init() {
 
 	// Outputs.
 	for op, f := range map[opcode]castPointerFunc{
-		_OP_LOOKUP:  func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
-		_OP_OPEN:    func(ptr unsafe.Pointer) interface{} { return (*OpenOut)(ptr) },
-		_OP_GETATTR: func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
-		_OP_CREATE:  func(ptr unsafe.Pointer) interface{} { return (*CreateOut)(ptr) },
-		_OP_SETATTR: func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
-		_OP_INIT:    func(ptr unsafe.Pointer) interface{} { return (*InitOut)(ptr) },
-		_OP_MKDIR:   func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
+		_OP_LOOKUP:       func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
+		_OP_OPEN:         func(ptr unsafe.Pointer) interface{} { return (*OpenOut)(ptr) },
+		_OP_GETATTR:      func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
+		_OP_CREATE:       func(ptr unsafe.Pointer) interface{} { return (*CreateOut)(ptr) },
+		_OP_SETATTR:      func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
+		_OP_INIT:         func(ptr unsafe.Pointer) interface{} { return (*InitOut)(ptr) },
+		_OP_MKDIR:        func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
+		_OP_NOTIFY_ENTRY: func(ptr unsafe.Pointer) interface{} { return (*NotifyInvalEntryOut)(ptr) },
+		_OP_NOTIFY_INODE: func(ptr unsafe.Pointer) interface{} { return (*NotifyInvalInodeOut)(ptr) },
 	} {
 		operationHandlers[op].DecodeOut = f
 	}

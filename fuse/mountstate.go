@@ -5,6 +5,7 @@ import (
 	"os"
 	"syscall"
 	"time"
+	"unsafe"
 )
 
 const (
@@ -63,6 +64,12 @@ func (me *MountState) Mount(mountPoint string, opts *MountOptions) os.Error {
 	if err != nil {
 		return err
 	}
+	initParams := RawFsInit{
+		InodeNotify: func(n *NotifyInvalInodeOut) Status {
+			return me.writeInodeNotify(n)
+		},
+	}
+	me.fileSystem.Init(&initParams)
 	me.mountPoint = mp
 	me.mountFile = file
 	return nil
@@ -212,15 +219,19 @@ func (me *MountState) handleRequest(req *request) {
 		req.handler.Func(me, req)
 	}
 
-	me.write(req)
+	errNo := me.write(req)
+	if errNo != 0 {
+		log.Printf("writer: Write/Writev %v failed, err: %v. opcode: %v",
+			req.outHeaderBytes, errNo, operationName(req.inHeader.opcode))
+	}
 }
 
-func (me *MountState) write(req *request) {
+func (me *MountState) write(req *request) Status {
 	// If we try to write OK, nil, we will get
 	// error:  writer: Writev [[16 0 0 0 0 0 0 0 17 0 0 0 0 0 0 0]]
 	// failed, err: writev: no such file or directory
 	if req.inHeader.opcode == _OP_FORGET {
-		return
+		return OK
 	}
 
 	req.serialize()
@@ -233,7 +244,7 @@ func (me *MountState) write(req *request) {
 	}
 
 	if req.outHeaderBytes == nil {
-		return
+		return OK
 	}
 
 	var err os.Error
@@ -244,8 +255,23 @@ func (me *MountState) write(req *request) {
 			[][]byte{req.outHeaderBytes, req.flatData})
 	}
 
-	if err != nil {
-		log.Printf("writer: Write/Writev %v failed, err: %v. opcode: %v",
-			req.outHeaderBytes, err, operationName(req.inHeader.opcode))
+	return OsErrorToErrno(err)
+}
+
+func (me *MountState) writeInodeNotify(entry *NotifyInvalInodeOut) Status {
+	req := request{
+		inHeader: &InHeader{
+			opcode: _OP_NOTIFY_INODE,
+		},
+		handler: operationHandlers[_OP_NOTIFY_INODE],
+		status:  NOTIFY_INVAL_INODE,
 	}
+	req.outData = unsafe.Pointer(entry)
+	req.serialize()
+	result := me.write(&req)
+
+	if me.Debug {
+		log.Println("Response: INODE_NOTIFY", result)
+	}
+	return result
 }

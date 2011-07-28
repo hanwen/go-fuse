@@ -54,14 +54,13 @@ const (
 	EXDEV   = Status(syscall.EXDEV)
 )
 
-
 type NotifyCode int
 
 const (
-	FUSE_NOTIFY_POLL        = 1
-	FUSE_NOTIFY_INVAL_INODE = 2
-	FUSE_NOTIFY_INVAL_ENTRY = 3
-	FUSE_NOTIFY_CODE_MAX    = 4
+	NOTIFY_POLL        = -1
+	NOTIFY_INVAL_INODE = -2
+	NOTIFY_INVAL_ENTRY = -3
+	NOTIFY_CODE_MAX    = -4
 )
 
 type Attr struct {
@@ -164,7 +163,6 @@ type LinkIn struct {
 	Oldnodeid uint64
 }
 
-
 const ( // SetAttrIn.Valid
 	FATTR_MODE      = (1 << 0)
 	FATTR_UID       = (1 << 1)
@@ -253,7 +251,6 @@ type ReadIn struct {
 	Flags     uint32
 	Padding   uint32
 }
-
 
 const (
 	FUSE_WRITE_CACHE     = (1 << 0)

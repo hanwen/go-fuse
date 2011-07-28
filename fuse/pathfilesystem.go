@@ -306,8 +306,13 @@ type FileSystemConnector struct {
 
 	Debug bool
 
+	fsInit   RawFsInit
 	inodeMap HandleMap
 	rootNode *inode
+}
+
+func (me *FileSystemConnector) Init(fsInit *RawFsInit) {
+	me.fsInit = *fsInit
 }
 
 func (me *FileSystemConnector) Statistics() string {
@@ -629,4 +634,18 @@ func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64) (f File
 		p = path
 	}
 	return
+}
+
+func (me *FileSystemConnector) FileNotify(path string, off int64, length int64) Status {
+	node := me.findInode(path)
+	if node == nil {
+		return ENOENT
+	}
+
+	out := NotifyInvalInodeOut{
+		Length: length,
+		Off:    off,
+		Ino:    node.NodeId,
+	}
+	return me.fsInit.InodeNotify(&out)
 }

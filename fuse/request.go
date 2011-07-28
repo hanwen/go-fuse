@@ -125,7 +125,7 @@ func (me *request) parse() {
 
 func (me *request) serialize() {
 	dataLength := me.handler.OutputSize
-	if me.outData == nil || me.status != OK {
+	if me.outData == nil || me.status > OK {
 		dataLength = 0
 	}
 

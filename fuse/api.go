@@ -8,7 +8,6 @@ import (
 
 // Types for users to implement.
 
-
 // A filesystem API that uses paths rather than inodes.  A minimal
 // file system should have at least a functional GetAttr method.
 // Typically, each call happens in its own goroutine, so take care to
@@ -161,7 +160,18 @@ type RawFileSystem interface {
 
 	//
 	Ioctl(header *InHeader, input *IoctlIn) (output *IoctlOut, data []byte, code Status)
+
+	// Provide callbacks for pushing notifications to the kernel.
+	Init(params *RawFsInit)
 }
 
 // DefaultRawFileSystem returns ENOSYS for every operation.
 type DefaultRawFileSystem struct{}
+
+// Talk back to FUSE.
+//
+// TODO - implement EntryNotify. Currently, EntryNotify causes a
+// kernel error.
+type RawFsInit struct {
+	InodeNotify func(*NotifyInvalInodeOut) Status
+}

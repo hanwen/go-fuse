@@ -9,6 +9,9 @@ import (
 var _ = log.Println
 var _ = fmt.Println
 
+func (me *DefaultRawFileSystem) Init(init *RawFsInit) {
+}
+
 func (me *DefaultRawFileSystem) Lookup(h *InHeader, name string) (out *EntryOut, code Status) {
 	return nil, ENOSYS
 }

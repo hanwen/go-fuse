@@ -14,10 +14,14 @@ import (
 	"io/ioutil"
 )
 
-
 func (code Status) String() string {
-	if code.Ok() {
-		return "OK"
+	if code <= 0 {
+		return []string{
+			"OK",
+			"NOTIFY_POLL",
+			"NOTIFY_INVAL_INODE",
+			"NOTIFY_INVAL_ENTRY",
+		}[-code]
 	}
 	return fmt.Sprintf("%d=%v", int(code), os.Errno(code))
 }
@@ -82,7 +86,6 @@ func CopyFileInfo(fi *os.FileInfo, attr *Attr) {
 	attr.Blksize = uint32(fi.Blksize)
 }
 
-
 func writev(fd int, iovecs *syscall.Iovec, cnt int) (n int, errno int) {
 	n1, _, e1 := syscall.Syscall(
 		syscall.SYS_WRITEV,
@@ -126,7 +129,6 @@ func NegativeEntry(time float64) *EntryOut {
 func ModeToType(mode uint32) uint32 {
 	return (mode & 0170000) >> 12
 }
-
 
 func CheckSuccess(e os.Error) {
 	if e != nil {
@@ -174,4 +176,3 @@ func CurrentOwner() *Owner {
 		Gid: uint32(os.Getgid()),
 	}
 }
-
