@@ -21,6 +21,7 @@ import (
 // it also works if the encompassing file system already has the
 // mounted directory.
 type SwitchFileSystem struct {
+	DefaultFileSystem
 	fileSystems SwitchedFileSystems
 }
 
