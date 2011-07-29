@@ -3,6 +3,7 @@ package unionfs
 import (
 	"fmt"
 	"github.com/hanwen/go-fuse/fuse"
+	"log"
 	"os"
 	"strings"
 )
@@ -145,6 +146,7 @@ func (me *CachingFileSystem) Name() string {
 
 func (me *CachingFileSystem) Open(name string, flags uint32) (f fuse.File, status fuse.Status) {
 	if flags&fuse.O_ANYWRITE != 0 && name == _DROP_CACHE {
+		log.Println("Dropping cache for", me.Name())
 		me.DropCache()
 	}
 	return me.FileSystem.Open(name, flags)
