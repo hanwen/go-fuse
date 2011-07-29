@@ -276,3 +276,7 @@ func (me *DefaultFileSystem) Create(name string, flags uint32, mode uint32) (fil
 func (me *DefaultFileSystem) Utimens(name string, AtimeNs uint64, CtimeNs uint64) (code Status) {
 	return ENOSYS
 }
+
+func (me *DefaultFileSystem) Name() string {
+	return "DefaultFileSystem"
+}

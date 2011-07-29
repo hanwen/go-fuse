@@ -89,6 +89,10 @@ func NewMemTreeFileSystem(t *MemTree) *MemTreeFileSystem {
 const mem_DIRMODE uint32 = fuse.S_IFDIR | 0500
 const mem_FILEMODE uint32 = fuse.S_IFREG | 0400
 
+func (me *MemTreeFileSystem) Name() string {
+	return "MemTreeFileSystem"
+}
+
 func (me *MemTreeFileSystem) GetAttr(name string) (*os.FileInfo, fuse.Status) {
 	dir, file := me.tree.Lookup(name)
 	if dir == nil {

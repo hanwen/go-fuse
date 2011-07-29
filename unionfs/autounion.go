@@ -1,6 +1,7 @@
 package unionfs
 
 import (
+	"fmt"
 	"github.com/hanwen/go-fuse/fuse"
 	"log"
 	"os"
@@ -57,6 +58,10 @@ func NewAutoUnionFs(directory string, options AutoUnionFsOptions) *AutoUnionFs {
 	}
 	a.root = directory
 	return a
+}
+
+func (me *AutoUnionFs) Name() string {
+	return fmt.Sprintf("AutoUnionFs(%s)", me.root)
 }
 
 func (me *AutoUnionFs) Mount(connector *fuse.FileSystemConnector) {
@@ -356,3 +361,4 @@ func (me *AutoUnionFs) OpenDir(name string) (stream chan fuse.DirEntry, status f
 	close(stream)
 	return stream, status
 }
+

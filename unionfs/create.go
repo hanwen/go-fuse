@@ -1,7 +1,6 @@
 package unionfs
 
 import (
-	"fmt"
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/zipfs"
 	"os"
@@ -32,6 +31,5 @@ func NewUnionFsFromRoots(roots []string, opts *UnionFsOptions, roCaching bool) (
 		fses = append(fses, fs)
 	}
 
-	identifier := fmt.Sprintf("%v", roots)
-	return NewUnionFs(identifier, fses, *opts), nil
+	return NewUnionFs(fses, *opts), nil
 }

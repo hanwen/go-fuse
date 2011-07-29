@@ -16,6 +16,9 @@ import (
 // Include DefaultFileSystem to provide a default null implementation of
 // required methods.
 type FileSystem interface {
+	// Used for pretty printing.
+	Name() string
+
 	// Attributes
 	GetAttr(name string) (*os.FileInfo, Status)
 

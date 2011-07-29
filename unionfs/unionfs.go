@@ -60,8 +60,6 @@ func filePathHash(path string) string {
 type UnionFs struct {
 	fuse.DefaultFileSystem
 
-	name string
-
 	// The same, but as interfaces.
 	fileSystems []fuse.FileSystem
 
@@ -84,9 +82,8 @@ const (
 	_DROP_CACHE = ".drop_cache"
 )
 
-func NewUnionFs(name string, fileSystems []fuse.FileSystem, options UnionFsOptions) *UnionFs {
+func NewUnionFs(fileSystems []fuse.FileSystem, options UnionFsOptions) *UnionFs {
 	g := new(UnionFs)
-	g.name = name
 	g.options = &options
 	g.fileSystems = fileSystems
 
@@ -745,7 +742,7 @@ func (me *UnionFs) DropSubFsCaches() {
 func (me *UnionFs) Open(name string, flags uint32) (fuseFile fuse.File, status fuse.Status) {
 	if name == _DROP_CACHE {
 		if flags&fuse.O_ANYWRITE != 0 {
-			log.Println("Forced cache drop on", me.name)
+			log.Println("Forced cache drop on", me.Name())
 			me.DropBranchCache()
 			me.DropDeletionCache()
 			me.DropSubFsCaches()
@@ -778,5 +775,9 @@ func (me *UnionFs) Flush(name string) fuse.Status {
 }
 
 func (me *UnionFs) Name() string {
-	return me.name
+	names := []string{}
+	for _, fs := range me.fileSystems {
+		names = append(names, fs.Name())
+	}
+	return fmt.Sprintf("%v", names)
 }

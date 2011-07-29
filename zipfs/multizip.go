@@ -46,6 +46,10 @@ func NewMultiZipFs() *MultiZipFs {
 	return m
 }
 
+func (me *MultiZipFs) Name() string {
+	return "MultiZipFs"
+}
+
 func (me *MultiZipFs) Mount(connector *fuse.FileSystemConnector) {
 	me.Connector = connector
 }

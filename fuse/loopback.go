@@ -158,3 +158,8 @@ func (me *LoopbackFileSystem) ListXAttr(name string) ([]string, Status) {
 func (me *LoopbackFileSystem) RemoveXAttr(name string, attr string) Status {
 	return Status(Removexattr(me.GetPath(name), attr))
 }
+
+func (me *LoopbackFileSystem) Name() string {
+	return fmt.Sprintf("LoopbackFileSystem(%s)", me.Root)
+}
+

@@ -42,7 +42,7 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 	fses = append(fses, fuse.NewLoopbackFileSystem(wd+"/rw"))
 	fses = append(fses,
 		NewCachingFileSystem(fuse.NewLoopbackFileSystem(wd+"/ro"), 0))
-	ufs := NewUnionFs("testFs", fses, testOpts)
+	ufs := NewUnionFs(fses, testOpts)
 
 	// We configure timeouts are smaller, so we can check for
 	// UnionFs's cache consistency.
@@ -630,7 +630,7 @@ func TestDisappearing(t *testing.T) {
 	var fses []fuse.FileSystem
 	fses = append(fses, wrFs)
 	fses = append(fses, fuse.NewLoopbackFileSystem(wd+"/ro"))
-	ufs := NewUnionFs("testFs", fses, testOpts)
+	ufs := NewUnionFs(fses, testOpts)
 
 	opts := &fuse.FileSystemOptions{
 		EntryTimeout:    entryTtl,
