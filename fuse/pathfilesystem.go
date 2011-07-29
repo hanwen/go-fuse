@@ -593,6 +593,11 @@ func (me *FileSystemConnector) Unmount(path string) Status {
 	}
 
 	me.unsafeUnmountNode(node)
+	notifyMessage := NotifyInvalInodeOut{
+		Ino:    node.NodeId,
+	}
+	me.fsInit.InodeNotify(&notifyMessage)
+
 	return OK
 }
 

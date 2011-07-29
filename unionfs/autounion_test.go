@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"testing"
-	"time"
 )
 
 var _ = fmt.Print
@@ -92,10 +91,6 @@ func TestAutoFsSymlink(t *testing.T) {
 
 	err = os.Remove(wd + "/mount/config/manual1")
 	CheckSuccess(err)
-
-	// Need time for the unmount to be noticed.
-	log.Println("sleeping...")
-	time.Sleep(2 * entryTtl * 1e9)
 
 	scan := wd + "/mount/config/" + _SCAN_CONFIG
 	err = ioutil.WriteFile(scan, []byte("something"), 0644)

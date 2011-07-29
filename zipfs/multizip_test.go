@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"testing"
-	"time"
 )
 
 var _ = log.Printf
@@ -91,10 +90,6 @@ func TestMultiZipFs(t *testing.T) {
 	// Removing the config dir unmount
 	err = os.Remove(mountPoint + "/config/zipmount")
 	CheckSuccess(err)
-
-	// This is ugly but necessary: We don't have ways to signal
-	// back to FUSE that the file disappeared.
-	time.Sleep(1.5e9 * testTtl)
 
 	fi, err = os.Stat(mountPoint + "/zipmount")
 	if err == nil {

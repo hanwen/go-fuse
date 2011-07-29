@@ -85,23 +85,28 @@ func mount(mountPoint string, options string) (f *os.File, finalMountPoint strin
 	return
 }
 
-func unmount(mountPoint string) (err os.Error) {
-	if os.Geteuid() == 0 {
-		maxTry := 2
-		delay := int64(0)
-		errNo := 0
+func privilegedUnmount(mountPoint string) os.Error {
+	maxTry := 2
+	delay := int64(0)
+
+	errNo := syscall.Unmount(mountPoint, 0)
+	for try := 0; errNo != 0 && try < maxTry; try++ {
 		// A file close operation must be processed and acked
 		// by the daemon. This takes some time, so retry if
 		// the first unmount fails.
-		for try := 0; try < maxTry; try++ {
-			errNo = syscall.Unmount(mountPoint, 0)
-			if errNo == 0 {
-				return nil
-			}
-			delay = 2*delay + 0.01e9
-			time.Sleep(delay)
-		}
-		return os.Errno(errNo)
+		delay = 2*delay + 0.01e9
+		time.Sleep(delay)
+		errNo = syscall.Unmount(mountPoint, 0)
+	}
+	if errNo == 0 {
+		return nil
+	}
+	return os.Errno(errNo)
+}
+
+func unmount(mountPoint string) (err os.Error) {
+	if os.Geteuid() == 0 {
+		return privilegedUnmount(mountPoint)
 	}
 	dir, _ := filepath.Split(mountPoint)
 	proc, err := os.StartProcess(mountBinary,
