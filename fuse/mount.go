@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
-	"time"
 	"unsafe"
 )
 
-var mountBinary string = "/bin/fusermount"
+var fusermountBinary string = "/bin/fusermount"
+var umountBinary string = "/bin/umount"
 
 func Socketpair(network string) (l, r *os.File, err os.Error) {
 	var domain int
@@ -56,13 +56,13 @@ func mount(mountPoint string, options string) (f *os.File, finalMountPoint strin
 		mountPoint = filepath.Clean(filepath.Join(cwd, mountPoint))
 	}
 
-	cmd := []string{mountBinary, mountPoint}
+	cmd := []string{fusermountBinary, mountPoint}
 	if options != "" {
 		cmd = append(cmd, "-o")
 		cmd = append(cmd, options)
 	}
 
-	proc, err := os.StartProcess(mountBinary,
+	proc, err := os.StartProcess(fusermountBinary,
 		cmd,
 		&os.ProcAttr{
 			Env:   []string{"_FUSE_COMMFD=3"},
@@ -86,28 +86,27 @@ func mount(mountPoint string, options string) (f *os.File, finalMountPoint strin
 }
 
 func privilegedUnmount(mountPoint string) os.Error {
-	maxTry := 2
-	delay := int64(0)
-
-	errNo := syscall.Unmount(mountPoint, 0)
-	for try := 0; errNo != 0 && try < maxTry; try++ {
-		// A file close operation must be processed and acked
-		// by the daemon. This takes some time, so retry if
-		// the first unmount fails.
-		delay = 2*delay + 0.01e9
-		time.Sleep(delay)
-		errNo = syscall.Unmount(mountPoint, 0)
+	dir, _ := filepath.Split(mountPoint)
+	proc, err := os.StartProcess(umountBinary,
+		[]string{umountBinary, mountPoint},
+		&os.ProcAttr{Dir: dir, Files: []*os.File{nil, nil, os.Stderr}})
+	if err != nil {
+		return err
 	}
-	if errNo == 0 {
-		return nil
+	w, err := os.Wait(proc.Pid, 0)
+	if w.ExitStatus() != 0 {
+		return os.NewError(fmt.Sprintf("umount exited with code %d\n", w.ExitStatus()))
 	}
-	return os.Errno(errNo)
+	return err
 }
 
 func unmount(mountPoint string) (err os.Error) {
+	if os.Geteuid() == 0 {
+		return privilegedUnmount(mountPoint)
+	}
 	dir, _ := filepath.Split(mountPoint)
-	proc, err := os.StartProcess(mountBinary,
-		[]string{mountBinary, "-u", mountPoint},
+	proc, err := os.StartProcess(fusermountBinary,
+		[]string{fusermountBinary, "-u", mountPoint},
 		&os.ProcAttr{Dir: dir, Files: []*os.File{nil, nil, os.Stderr}})
 	if err != nil {
 		return
@@ -156,10 +155,18 @@ func getConnection(local *os.File) (f *os.File, err os.Error) {
 func init() {
 	for _, v := range strings.Split(os.Getenv("PATH"), ":") {
 		tpath := path.Join(v, "fusermount")
-		fi, err := os.Stat(tpath)
-		if err == nil && (fi.Mode&0111) != 0 {
-			mountBinary = tpath
+		fi, _ := os.Stat(tpath)
+		if fi != nil && (fi.Mode&0111) != 0 {
+			fusermountBinary = tpath
 			break
 		}
+
+		tpath = path.Join(v, "umount")
+		fi, _ = os.Stat(tpath)
+		if fi != nil && (fi.Mode&0111) != 0 {
+			umountBinary = tpath
+			break
+		}
+		
 	}
 }
