@@ -716,10 +716,8 @@ func (me *UnionFs) Rename(src string, dst string) (code fuse.Status) {
 	return code
 }
 
-// TODO - a DropBranchCache which takes a list of names.
-
-func (me *UnionFs) DropBranchCache() {
-	me.branchCache.DropAll()
+func (me *UnionFs) DropBranchCache(names []string) {
+	me.branchCache.DropAll(names)
 }
 
 func (me *UnionFs) DropDeletionCache() {
@@ -743,7 +741,7 @@ func (me *UnionFs) Open(name string, flags uint32) (fuseFile fuse.File, status f
 	if name == _DROP_CACHE {
 		if flags&fuse.O_ANYWRITE != 0 {
 			log.Println("Forced cache drop on", me.Name())
-			me.DropBranchCache()
+			me.DropBranchCache(nil)
 			me.DropDeletionCache()
 			me.DropSubFsCaches()
 		}

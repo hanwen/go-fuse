@@ -103,8 +103,15 @@ func (me *TimedCache) RecurringPurge() {
 		func() { me.RecurringPurge() })
 }
 
-func (me *TimedCache) DropAll() {
+func (me *TimedCache) DropAll(names []string) {
 	me.cacheMapMutex.Lock()
 	defer me.cacheMapMutex.Unlock()
-	me.cacheMap = make(map[string]*cacheEntry, len(me.cacheMap))
+
+	if names == nil {
+		me.cacheMap = make(map[string]*cacheEntry, len(me.cacheMap))
+	} else {
+		for _, nm := range names {
+			me.cacheMap[nm] = nil, false
+		}
+	}
 }

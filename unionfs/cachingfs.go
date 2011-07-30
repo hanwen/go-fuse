@@ -100,7 +100,7 @@ func NewCachingFileSystem(fs fuse.FileSystem, ttlNs int64) *CachingFileSystem {
 
 func (me *CachingFileSystem) DropCache() {
 	for _, c := range []*TimedCache{me.attributes, me.dirs, me.links, me.xattr} {
-		c.DropAll()
+		c.DropAll(nil)
 	}
 }
 
