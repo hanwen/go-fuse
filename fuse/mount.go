@@ -105,9 +105,6 @@ func privilegedUnmount(mountPoint string) os.Error {
 }
 
 func unmount(mountPoint string) (err os.Error) {
-	if os.Geteuid() == 0 {
-		return privilegedUnmount(mountPoint)
-	}
 	dir, _ := filepath.Split(mountPoint)
 	proc, err := os.StartProcess(mountBinary,
 		[]string{mountBinary, "-u", mountPoint},
