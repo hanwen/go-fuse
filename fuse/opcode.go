@@ -486,6 +486,7 @@ func init() {
 		_OP_MKDIR:        func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
 		_OP_NOTIFY_ENTRY: func(ptr unsafe.Pointer) interface{} { return (*NotifyInvalEntryOut)(ptr) },
 		_OP_NOTIFY_INODE: func(ptr unsafe.Pointer) interface{} { return (*NotifyInvalInodeOut)(ptr) },
+		_OP_STATFS:       func(ptr unsafe.Pointer) interface{} { return (*StatfsOut)(ptr) },
 	} {
 		operationHandlers[op].DecodeOut = f
 	}
