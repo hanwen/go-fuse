@@ -30,7 +30,6 @@ func HeaderToFileInfo(h *tar.Header) *os.FileInfo {
 	}
 }
 
-
 type TarFile struct {
 	data []byte
 	tar.Header

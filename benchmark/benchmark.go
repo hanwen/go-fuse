@@ -52,7 +52,6 @@ func BulkStat(parallelism int, files []string) float64 {
 	return avg
 }
 
-
 func AnalyzeBenchmarkRuns(times []float64) {
 	sorted := times
 	sort.Float64s(sorted)
@@ -101,7 +100,6 @@ func RunBulkStat(runs int, threads int, sleepTime float64, files []string) (resu
 	}
 	return results
 }
-
 
 func CountCpus() int {
 	var contents [10240]byte

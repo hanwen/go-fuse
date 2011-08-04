@@ -24,7 +24,6 @@ const (
 	CONFIG_PREFIX = "config/"
 )
 
-
 ////////////////////////////////////////////////////////////////
 
 // MultiZipFs is a path filesystem that mounts zipfiles.  It needs a

@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 )
 
-
 type MemFile interface {
 	Stat() *os.FileInfo
 	Data() []byte
@@ -71,7 +70,6 @@ func (me *MemTree) FindDir(name string) *MemTree {
 	}
 	return s
 }
-
 
 ////////////////////////////////////////////////////////////////
 

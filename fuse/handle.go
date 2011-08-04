@@ -31,7 +31,7 @@ type Handled struct {
 
 // 32 bits version of HandleMap
 type int32HandleMap struct {
-	mutex sync.Mutex
+	mutex   sync.Mutex
 	handles map[uint32]*Handled
 }
 
@@ -58,7 +58,6 @@ func (me *int32HandleMap) Forget(handle uint64) *Handled {
 	me.handles[uint32(handle)] = nil, false
 	return val
 }
-
 
 // 64 bits version of HandleMap
 type int64HandleMap struct {
@@ -91,12 +90,11 @@ func NewHandleMap() (hm HandleMap) {
 		}
 	case 4:
 		return &int32HandleMap{
-			handles:  make(map[uint32]*Handled),
+			handles: make(map[uint32]*Handled),
 		}
 	}
 	return nil
 }
-
 
 func (me *int64HandleMap) Count() int {
 	me.mutex.Lock()
@@ -136,7 +134,7 @@ func (me *int64HandleMap) Register(obj *Handled) (handle uint64) {
 
 func (me *int64HandleMap) Forget(handle uint64) (val *Handled) {
 	defer me.verify()
-	
+
 	val = DecodeHandle(handle)
 
 	me.mutex.Lock()

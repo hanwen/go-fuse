@@ -13,7 +13,6 @@ var CheckSuccess = fuse.CheckSuccess
 
 const testTtl = 0.1
 
-
 func setupMzfs() (mountPoint string, cleanup func()) {
 	fs := NewMultiZipFs()
 	mountPoint = fuse.MakeTempDir()

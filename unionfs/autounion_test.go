@@ -23,7 +23,6 @@ var testAOpts = AutoUnionFsOptions{
 	},
 }
 
-
 func WriteFile(name string, contents string) {
 	err := ioutil.WriteFile(name, []byte(contents), 0644)
 	CheckSuccess(err)

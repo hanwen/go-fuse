@@ -12,7 +12,6 @@ import (
 var _ = fmt.Print
 var _ = log.Print
 
-
 func modeMapEq(m1, m2 map[string]uint32) bool {
 	if len(m1) != len(m2) {
 		return false

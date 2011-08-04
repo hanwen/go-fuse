@@ -49,7 +49,6 @@ func (p SwitchedFileSystems) Swap(i, j int) {
 	p[j] = swFs
 }
 
-
 func NewSwitchFileSystem(fsMap []SwitchedFileSystem) *SwitchFileSystem {
 	me := &SwitchFileSystem{}
 	for _, inSwFs := range fsMap {

@@ -551,7 +551,6 @@ func randomLengthString(length int) string {
 	return string(b)
 }
 
-
 func TestLargeDirRead(t *testing.T) {
 	me := NewTestCase(t)
 	defer me.Cleanup()
@@ -657,9 +656,7 @@ func TestStatFs(t *testing.T) {
 		t.Fatal("statfs mnt", err)
 	}
 
-
-
-	if fmt.Sprintf("%v", s2) !=  fmt.Sprintf("%v", s1) {
+	if fmt.Sprintf("%v", s2) != fmt.Sprintf("%v", s1) {
 		t.Error("Mismatch", s1, s2)
 	}
 }

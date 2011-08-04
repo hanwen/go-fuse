@@ -93,7 +93,6 @@ func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string
 	return out, OK, node
 }
 
-
 func (me *FileSystemConnector) Forget(h *InHeader, input *ForgetIn) {
 	me.forgetUpdate(h.NodeId, int(input.Nlookup))
 }
@@ -523,4 +522,3 @@ func (me *FileSystemConnector) Ioctl(header *InHeader, input *IoctlIn) (out *Ioc
 func (me *FileSystemConnector) StatFs() *StatfsOut {
 	return me.rootNode.mountPoint.fs.StatFs()
 }
-

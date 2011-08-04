@@ -12,7 +12,6 @@ var _ = fmt.Println
 func (me *DefaultRawFileSystem) Init(init *RawFsInit) {
 }
 
-
 func (me *DefaultRawFileSystem) StatFs() *StatfsOut {
 	return nil
 }

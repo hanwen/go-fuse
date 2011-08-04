@@ -216,7 +216,6 @@ func (me *AutoUnionFs) Symlink(pointedTo string, linkName string) (code fuse.Sta
 	return fuse.EPERM
 }
 
-
 func (me *AutoUnionFs) Unlink(path string) (code fuse.Status) {
 	comps := strings.Split(path, "/")
 	if len(comps) != 2 {
@@ -365,4 +364,3 @@ func (me *AutoUnionFs) OpenDir(name string) (stream chan fuse.DirEntry, status f
 func (me *AutoUnionFs) StatFs() *fuse.StatfsOut {
 	return &fuse.StatfsOut{}
 }
-

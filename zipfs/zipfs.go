@@ -46,7 +46,6 @@ func (me *ZipFile) Data() []byte {
 	return data
 }
 
-
 func zipFilesToTree(files []*zip.File) *MemTree {
 	t := NewMemTree()
 	for _, f := range files {
@@ -68,7 +67,6 @@ func zipFilesToTree(files []*zip.File) *MemTree {
 	}
 	return t
 }
-
 
 // NewZipTree creates a new file-system for the zip file named name.
 func NewZipTree(name string) (*MemTree, os.Error) {

@@ -6,7 +6,6 @@ import (
 	"syscall"
 )
 
-
 func TestOsErrorToErrno(t *testing.T) {
 	errNo := OsErrorToErrno(os.EPERM)
 	if errNo != syscall.EPERM {

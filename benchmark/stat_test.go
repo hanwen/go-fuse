@@ -2,7 +2,7 @@ package fuse
 
 import (
 	"bufio"
-	"fmt"	
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -15,6 +15,7 @@ import (
 )
 
 var CheckSuccess = fuse.CheckSuccess
+
 type StatFs struct {
 	fuse.DefaultFileSystem
 	entries map[string]*os.FileInfo
@@ -27,12 +28,12 @@ func (me *StatFs) add(name string, fi os.FileInfo) {
 	if ok {
 		return
 	}
-	
+
 	me.entries[name] = &fi
 	if name == "/" || name == "" {
 		return
 	}
-	
+
 	dir, base := filepath.Split(name)
 	dir = strings.TrimRight(dir, "/")
 	me.dirs[dir] = append(me.dirs[dir], fuse.DirEntry{Name: base, Mode: fi.Mode})
@@ -64,7 +65,7 @@ func (me *StatFs) OpenDir(name string) (stream chan fuse.DirEntry, status fuse.S
 func NewStatFs() *StatFs {
 	return &StatFs{
 		entries: make(map[string]*os.FileInfo),
-		dirs: make(map[string][]fuse.DirEntry),
+		dirs:    make(map[string][]fuse.DirEntry),
 	}
 }
 
@@ -94,7 +95,7 @@ func TestNewStatFs(t *testing.T) {
 		"sub/dir/bar.txt", "sub/marine.txt"} {
 		fs.add(n, os.FileInfo{Mode: fuse.S_IFREG | 0644})
 	}
-	
+
 	wd, clean := setupFs(fs, nil)
 	defer clean()
 
@@ -125,14 +126,14 @@ func TestNewStatFs(t *testing.T) {
 	if !fi.IsRegular() {
 		t.Error("mode", fi)
 	}
-}	
- 
+}
+
 func BenchmarkThreadedStat(b *testing.B) {
 	b.StopTimer()
 	fs := NewStatFs()
 	wd, _ := os.Getwd()
 	// Names from OpenJDK 1.6
-	f, err := os.Open(wd  + "/testpaths.txt")
+	f, err := os.Open(wd + "/testpaths.txt")
 	CheckSuccess(err)
 
 	defer f.Close()
@@ -144,7 +145,7 @@ func BenchmarkThreadedStat(b *testing.B) {
 		if line == nil || err != nil {
 			break
 		}
-		
+
 		fn := string(line)
 		files = append(files, fn)
 
@@ -158,8 +159,8 @@ func BenchmarkThreadedStat(b *testing.B) {
 
 	ttl := 0.1
 	opts := fuse.FileSystemOptions{
-		EntryTimeout: ttl,
-		AttrTimeout: ttl,
+		EntryTimeout:    ttl,
+		AttrTimeout:     ttl,
 		NegativeTimeout: 0.0,
 	}
 	wd, clean := setupFs(fs, &opts)
@@ -171,7 +172,7 @@ func BenchmarkThreadedStat(b *testing.B) {
 
 	log.Println("N = ", b.N)
 	threads := runtime.GOMAXPROCS(0)
-	results := TestingBOnePass(b, threads, ttl * 1.2, files)
+	results := TestingBOnePass(b, threads, ttl*1.2, files)
 	AnalyzeBenchmarkRuns(results)
 }
 

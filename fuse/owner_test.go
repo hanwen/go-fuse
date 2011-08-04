@@ -5,7 +5,6 @@ import (
 	"testing"
 )
 
-
 type ownerFs struct {
 	DefaultFileSystem
 }
@@ -16,13 +15,13 @@ func (me *ownerFs) GetAttr(name string) (*os.FileInfo, Status) {
 	if name == "" {
 		return &os.FileInfo{
 			Mode: S_IFDIR | 0755,
-		},OK
+		}, OK
 	}
 	return &os.FileInfo{
 		Mode: S_IFREG | 0644,
 		Uid:  _RANDOM_OWNER,
 		Gid:  _RANDOM_OWNER,
-	},OK
+	}, OK
 }
 
 func setupOwnerTest(opts *FileSystemOptions) (workdir string, cleanup func()) {

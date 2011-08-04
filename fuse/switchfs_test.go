@@ -49,7 +49,6 @@ func TestSwitchFs(t *testing.T) {
 	}
 }
 
-
 func TestSwitchFsStrip(t *testing.T) {
 	fsMap := []SwitchedFileSystem{
 		SwitchedFileSystem{Prefix: ""},
