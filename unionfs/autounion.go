@@ -362,3 +362,7 @@ func (me *AutoUnionFs) OpenDir(name string) (stream chan fuse.DirEntry, status f
 	return stream, status
 }
 
+func (me *AutoUnionFs) StatFs() *fuse.StatfsOut {
+	return &fuse.StatfsOut{}
+}
+
