@@ -279,6 +279,16 @@ func doRename(state *MountState, req *request) {
 	req.status = state.fileSystem.Rename(req.inHeader, (*RenameIn)(req.inData), req.filenames[0], req.filenames[1])
 }
 
+func doStatFs(state *MountState, req *request) {
+	stat := state.fileSystem.StatFs()
+	if stat != nil {
+		req.outData = unsafe.Pointer(stat)
+		req.status = OK
+	} else {
+		req.status = ENOSYS
+	}
+}
+
 func doIoctl(state *MountState, req *request) {
 	out, data, stat := state.fileSystem.Ioctl(req.inHeader, (*IoctlIn)(req.inData))
 	req.outData = unsafe.Pointer(out)
@@ -460,6 +470,7 @@ func init() {
 		_OP_ACCESS:      doAccess,
 		_OP_SYMLINK:     doSymlink,
 		_OP_RENAME:      doRename,
+		_OP_STATFS:      doStatFs,
 	} {
 		operationHandlers[op].Func = v
 	}

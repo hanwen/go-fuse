@@ -12,6 +12,11 @@ var _ = fmt.Println
 func (me *DefaultRawFileSystem) Init(init *RawFsInit) {
 }
 
+
+func (me *DefaultRawFileSystem) StatFs() *StatfsOut {
+	return nil
+}
+
 func (me *DefaultRawFileSystem) Lookup(h *InHeader, name string) (out *EntryOut, code Status) {
 	return nil, ENOSYS
 }
@@ -279,4 +284,8 @@ func (me *DefaultFileSystem) Utimens(name string, AtimeNs uint64, CtimeNs uint64
 
 func (me *DefaultFileSystem) Name() string {
 	return "DefaultFileSystem"
+}
+
+func (me *DefaultFileSystem) StatFs() *StatfsOut {
+	return nil
 }

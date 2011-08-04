@@ -635,3 +635,31 @@ func TestIoctl(t *testing.T) {
 	v, e := ioctl(f.Fd(), 0x5401, 42)
 	fmt.Println("ioctl", v, e)
 }
+
+func TestStatFs(t *testing.T) {
+	ts := NewTestCase(t)
+	defer ts.Cleanup()
+
+	s1 := syscall.Statfs_t{}
+	err := syscall.Statfs(ts.orig, &s1)
+	if err != 0 {
+		t.Fatal("statfs orig", err)
+	}
+
+	s2 := syscall.Statfs_t{}
+	err = syscall.Statfs(ts.mnt, &s2)
+
+	s1.Type = 0
+	s2.Type = 0
+	s1.Fsid = [8]byte{0, 0, 0, 0, 0, 0, 0, 0}
+	s2.Fsid = [8]byte{0, 0, 0, 0, 0, 0, 0, 0}
+	if err != 0 {
+		t.Fatal("statfs mnt", err)
+	}
+
+
+
+	if fmt.Sprintf("%v", s2) !=  fmt.Sprintf("%v", s1) {
+		t.Error("Mismatch", s1, s2)
+	}
+}

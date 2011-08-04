@@ -63,6 +63,8 @@ type FileSystem interface {
 	// Symlinks.
 	Symlink(value string, linkName string) (code Status)
 	Readlink(name string) (string, Status)
+
+	StatFs() *StatfsOut
 }
 
 // A File object should be returned from FileSystem.Open and
@@ -163,6 +165,7 @@ type RawFileSystem interface {
 
 	//
 	Ioctl(header *InHeader, input *IoctlIn) (output *IoctlOut, data []byte, code Status)
+	StatFs() *StatfsOut
 
 	// Provide callbacks for pushing notifications to the kernel.
 	Init(params *RawFsInit)

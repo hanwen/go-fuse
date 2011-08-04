@@ -163,3 +163,24 @@ func (me *LoopbackFileSystem) Name() string {
 	return fmt.Sprintf("LoopbackFileSystem(%s)", me.Root)
 }
 
+
+func (me *LoopbackFileSystem) StatFs() *StatfsOut {
+	s := syscall.Statfs_t{}
+	errNo := syscall.Statfs(me.Root, &s)
+
+	if errNo == 0 {
+		return &StatfsOut{
+			Kstatfs{
+				Blocks: s.Blocks,
+				Bsize: uint32(s.Bsize),
+				Bfree: s.Bfree,
+				Bavail: s.Bavail,
+				Files: s.Files,
+				Ffree: s.Ffree,
+				Frsize: uint32(s.Frsize),
+				NameLen: uint32(s.Namelen),
+			},
+		}
+	}
+	return nil
+}

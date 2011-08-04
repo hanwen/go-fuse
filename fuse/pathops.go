@@ -519,3 +519,8 @@ func (me *FileSystemConnector) Ioctl(header *InHeader, input *IoctlIn) (out *Ioc
 	}
 	return opened.file.Ioctl(input)
 }
+
+func (me *FileSystemConnector) StatFs() *StatfsOut {
+	return me.rootNode.mountPoint.fs.StatFs()
+}
+
