@@ -13,7 +13,7 @@ import (
 func newDirnameMap(fs fuse.FileSystem, dir string) map[string]bool {
 	stream, code := fs.OpenDir(dir)
 	if !code.Ok() {
-		log.Printf("newDirnameMap(): %v %v", dir, code)
+		log.Printf("newDirnameMap(%s): %v %v", fs.Name(), dir, code)
 		return nil
 	}
 
