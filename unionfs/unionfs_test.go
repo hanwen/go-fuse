@@ -350,6 +350,7 @@ func TestMkdirPromote(t *testing.T) {
 		t.Error("is not a directory: ", fi)
 	}
 }
+
 func TestRename(t *testing.T) {
 	type Config struct {
 		f1_ro bool
@@ -405,6 +406,54 @@ func TestRename(t *testing.T) {
 		CheckSuccess(err)
 
 		clean()
+	}
+}
+
+func disabledTestRenameDir(t *testing.T) {
+	wd, clean := setupUfs(t)
+	defer clean()
+
+	err := os.MkdirAll(wd + "/ro/dir/subdir", 0755)
+	CheckSuccess(err)
+
+	err = os.Rename(wd + "/mount/dir", wd + "/mount/renamed")
+	CheckSuccess(err)
+
+	if fi, _ := os.Lstat(wd + "/mount/dir"); fi != nil {
+		t.Fatalf("%s/mount/dir should have disappeared: %v", wd, fi)
+	}
+
+	if fi, _ := os.Lstat(wd + "/mount/renamed"); fi == nil || !fi.IsDirectory() {
+		t.Fatalf("%s/mount/renamed should be directory: %v", wd, fi)
+	}
+
+	entries, err := ioutil.ReadDir(wd + "/mount/renamed")
+	if err != nil || len(entries) != 1 || entries[0].Name != "subdir" {
+		t.Errorf("readdir(%s/mount/renamed) should have one entry: %v, err %v", wd, entries, err)
+	}
+
+}
+
+func TestRenameSymlink(t *testing.T) {
+	wd, clean := setupUfs(t)
+	defer clean()
+
+	err := os.Symlink("linktarget", wd + "/ro/link")
+	CheckSuccess(err)
+
+	err = os.Rename(wd + "/mount/link", wd + "/mount/renamed")
+	CheckSuccess(err)
+
+	if fi, _ := os.Lstat(wd + "/mount/link"); fi != nil {
+		t.Fatalf("%s/mount/link should have disappeared: %v", wd, fi)
+	}
+
+	if fi, _ := os.Lstat(wd + "/mount/renamed"); fi == nil || !fi.IsSymlink() {
+		t.Fatalf("%s/mount/renamed should be link: %v", wd, fi)
+	}
+
+	if link, err := os.Readlink(wd + "/mount/renamed"); err != nil || link != "linktarget" {
+		t.Fatalf("readlink(%s/mount/renamed) should point to 'linktarget': %v, err %v", wd, link, err)
 	}
 }
 
@@ -681,3 +730,4 @@ func TestDisappearing(t *testing.T) {
 		t.Fatal("write should succeed", err)
 	}
 }
+

@@ -248,20 +248,30 @@ func (me *UnionFs) putDeletion(name string) (code fuse.Status) {
 ////////////////
 // Promotion.
 
-func (me *UnionFs) Promote(name string, srcResult branchResult) fuse.Status {
-	if !srcResult.attr.IsRegular() {
-		// TODO - implement rename for dirs, links, etc.
-		log.Println("Can only promote normal files: ", name, srcResult.attr)
-		return fuse.ENOSYS
-	}
-
+func (me *UnionFs) Promote(name string, srcResult branchResult) (code fuse.Status) {
 	writable := me.fileSystems[0]
 	sourceFs := me.fileSystems[srcResult.branch]
 
 	// Promote directories.
 	me.promoteDirsTo(name)
 
-	code := fuse.CopyFile(sourceFs, writable, name, name)
+	if srcResult.attr.IsRegular() {
+		code = fuse.CopyFile(sourceFs, writable, name, name)
+	} else if srcResult.attr.IsDirectory() {
+		code = writable.Mkdir(name, 0755)
+	} else if srcResult.attr.IsSymlink() {
+		link := ""
+		link, code = sourceFs.Readlink(name)
+		if !code.Ok() {
+			log.Println("can't read link in source fs", name)
+		} else {
+			code = writable.Symlink(link, name)
+		}
+	} else {
+		log.Println("Unknown file type:", srcResult.attr)
+		return fuse.ENOSYS
+	}
+
 	if !code.Ok() {
 		me.branchCache.GetFresh(name)
 		return code
@@ -683,11 +693,20 @@ func (me *UnionFs) OpenDir(directory string) (stream chan fuse.DirEntry, status 
 	return stream, fuse.OK
 }
 
+
 func (me *UnionFs) Rename(src string, dst string) (code fuse.Status) {
 	srcResult := me.getBranch(src)
 	code = srcResult.code
 	if code.Ok() {
 		code = srcResult.code
+	}
+	if srcResult.attr.IsDirectory() {
+		log.Println("rename directories unimplemented.")
+		// TODO - to rename a directory:
+		//   * promote all files below the directory
+		//   * execute a move in writable layer
+	        //   * issue invalidations against all promoted files.
+		return fuse.ENOSYS
 	}
 	if code.Ok() && srcResult.branch > 0 {
 		code = me.Promote(src, srcResult)
