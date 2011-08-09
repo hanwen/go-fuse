@@ -152,9 +152,9 @@ func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags u
 		extra:  node.GetMountDirEntries(),
 		stream: stream,
 	}
-	h := mount.registerFileHandle(node, de, nil, input.Flags)
+	h, opened := mount.registerFileHandle(node, de, nil, input.Flags)
 
-	return 0, h, OK
+	return opened.FuseFlags, h, OK
 }
 
 func (me *FileSystemConnector) ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status) {
@@ -172,14 +172,15 @@ func (me *FileSystemConnector) Open(header *InHeader, input *OpenIn) (flags uint
 		return 0, 0, ENOENT
 	}
 
-	// TODO - how to handle return flags, the FUSE open flags?
 	f, err := mount.fs.Open(fullPath, input.Flags)
 	if err != OK {
 		return 0, 0, err
 	}
-	h := mount.registerFileHandle(node, nil, f, input.Flags)
 
-	return 0, h, OK
+
+	h, opened := mount.registerFileHandle(node, nil, f, input.Flags)
+
+	return opened.FuseFlags, h, OK
 }
 
 func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out *AttrOut, code Status) {
@@ -403,7 +404,8 @@ func (me *FileSystemConnector) Create(header *InHeader, input *CreateIn, name st
 		msg := fmt.Sprintf("Create succeded, but GetAttr returned no entry %v", fullPath)
 		panic(msg)
 	}
-	return 0, mount.registerFileHandle(inode, nil, f, input.Flags), out, code
+	handle, opened := mount.registerFileHandle(inode, nil, f, input.Flags)
+	return opened.FuseFlags, handle, out, code
 }
 
 func (me *FileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
@@ -416,7 +418,7 @@ func (me *FileSystemConnector) Flush(input *FlushIn) Status {
 	opened := me.getOpenedFile(input.Fh)
 
 	code := opened.file.Flush()
-	if code.Ok() && opened.Flags&O_ANYWRITE != 0 {
+	if code.Ok() && opened.OpenFlags&O_ANYWRITE != 0 {
 		// We only signal releases to the FS if the
 		// open could have changed things.
 		var path string

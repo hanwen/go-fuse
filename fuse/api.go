@@ -87,6 +87,13 @@ type File interface {
 	Ioctl(input *IoctlIn) (output *IoctlOut, data []byte, code Status)
 }
 
+type WithFlags struct {
+	File
+
+	// Put FOPEN_* flags here.
+	Flags uint32
+}
+
 // MountOptions contains time out options for a FileSystem.  The
 // default copied from libfuse and set in NewMountOptions() is
 // (1s,1s,0s).

@@ -32,7 +32,12 @@ type openedFile struct {
 	Handled
 	*fileSystemMount
 	*inode
-	Flags uint32
+
+	// O_CREAT, O_TRUNC, etc.
+	OpenFlags uint32
+
+	// FOPEN_KEEP_CACHE and friends.
+	FuseFlags uint32
 
 	dir  rawDir
 	file File
@@ -74,7 +79,7 @@ func (me *fileSystemMount) unregisterFileHandle(node *inode, handle uint64) *ope
 	return opened
 }
 
-func (me *fileSystemMount) registerFileHandle(node *inode, dir rawDir, f File, flags uint32) uint64 {
+func (me *fileSystemMount) registerFileHandle(node *inode, dir rawDir, f File, flags uint32) (uint64, *openedFile) {
 	node.OpenCountMutex.Lock()
 	defer node.OpenCountMutex.Unlock()
 	b := &openedFile{
@@ -82,10 +87,18 @@ func (me *fileSystemMount) registerFileHandle(node *inode, dir rawDir, f File, f
 		file:            f,
 		inode:           node,
 		fileSystemMount: me,
-		Flags:           flags,
+		OpenFlags:       flags,
 	}
+
+	withFlags, ok := f.(*WithFlags)
+	if ok {
+		b.FuseFlags = withFlags.Flags
+		f = withFlags.File
+	}
+
 	node.OpenCount++
-	return me.openFiles.Register(&b.Handled)
+	handle := me.openFiles.Register(&b.Handled)
+	return handle, b
 }
 
 ////////////////
