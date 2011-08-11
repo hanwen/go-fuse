@@ -257,8 +257,6 @@ func (me *UnionFs) Promote(name string, srcResult branchResult) (code fuse.Statu
 
 	if srcResult.attr.IsRegular() {
 		code = fuse.CopyFile(sourceFs, writable, name, name)
-	} else if srcResult.attr.IsDirectory() {
-		code = writable.Mkdir(name, 0755)
 	} else if srcResult.attr.IsSymlink() {
 		link := ""
 		link, code = sourceFs.Readlink(name)
@@ -267,6 +265,8 @@ func (me *UnionFs) Promote(name string, srcResult branchResult) (code fuse.Statu
 		} else {
 			code = writable.Symlink(link, name)
 		}
+	} else if srcResult.attr.IsDirectory() {
+		code = writable.Mkdir(name, 0755)
 	} else {
 		log.Println("Unknown file type:", srcResult.attr)
 		return fuse.ENOSYS
@@ -694,20 +694,86 @@ func (me *UnionFs) OpenDir(directory string) (stream chan fuse.DirEntry, status 
 }
 
 
+// recursivePromote promotes path, and if a directory, everything
+// below that directory.  It returns a list of all promoted paths.
+func (me *UnionFs) recursivePromote(path string, pathResult branchResult) (names []string, code fuse.Status) {
+	names = []string{}
+	if pathResult.branch > 0 {
+		code = me.Promote(path, pathResult)
+	}
+
+	if code.Ok() {
+		names = append(names, path)
+	}
+
+	if code.Ok() && pathResult.attr.IsDirectory() {
+		var stream chan fuse.DirEntry
+		stream, code = me.OpenDir(path)
+		for e := range stream {
+			if !code.Ok() {
+				break
+			}
+			subnames := []string{}
+			p := filepath.Join(path, e.Name)
+			r := me.getBranch(p)
+			subnames, code = me.recursivePromote(p, r)
+			names = append(names, subnames...)
+		}
+	}
+
+	if !code.Ok() {
+		names = nil
+	}
+	return names, code
+}
+
+
+func (me *UnionFs) renameDirectory(srcResult branchResult, srcDir string, dstDir string) (code fuse.Status) {
+	names := []string{}
+	if code.Ok() {
+		names, code = me.recursivePromote(srcDir, srcResult)
+	}
+	if code.Ok() {
+		code = me.promoteDirsTo(dstDir)
+	}
+
+	if code.Ok() {
+		writable := me.fileSystems[0]
+		code = writable.Rename(srcDir, dstDir)
+	}
+
+	if code.Ok() {
+		for _, srcName := range names {
+			relative := strings.TrimLeft(srcName[len(srcDir):], string(filepath.Separator))
+			dst := filepath.Join(dstDir, relative)
+			me.removeDeletion(dst)
+		}
+
+		srcResult := me.getBranch(srcDir)
+		srcResult.branch = 0
+		me.branchCache.Set(dstDir, srcResult)
+
+		srcResult = me.branchCache.GetFresh(srcDir).(branchResult)
+		if srcResult.branch > 0 {
+			code = me.putDeletion(srcDir)
+		}
+
+		// TODO - should issue invalidations against promoted files?
+	}
+	return code
+}
+
 func (me *UnionFs) Rename(src string, dst string) (code fuse.Status) {
 	srcResult := me.getBranch(src)
 	code = srcResult.code
 	if code.Ok() {
 		code = srcResult.code
 	}
+
 	if srcResult.attr.IsDirectory() {
-		log.Println("rename directories unimplemented.")
-		// TODO - to rename a directory:
-		//   * promote all files below the directory
-		//   * execute a move in writable layer
-	        //   * issue invalidations against all promoted files.
-		return fuse.ENOSYS
+		return me.renameDirectory(srcResult, src, dst)
 	}
+
 	if code.Ok() && srcResult.branch > 0 {
 		code = me.Promote(src, srcResult)
 	}
@@ -723,12 +789,8 @@ func (me *UnionFs) Rename(src string, dst string) (code fuse.Status) {
 		srcResult.branch = 0
 		me.branchCache.Set(dst, srcResult)
 
-		if srcResult.branch == 0 {
-			srcResult := me.branchCache.GetFresh(src)
-			if srcResult.(branchResult).branch > 0 {
-				code = me.putDeletion(src)
-			}
-		} else {
+		srcResult := me.branchCache.GetFresh(src)
+		if srcResult.(branchResult).branch > 0 {
 			code = me.putDeletion(src)
 		}
 	}

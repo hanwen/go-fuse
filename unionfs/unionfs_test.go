@@ -409,7 +409,7 @@ func TestRename(t *testing.T) {
 	}
 }
 
-func disabledTestRenameDir(t *testing.T) {
+func TestRenameDir(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -431,7 +431,46 @@ func disabledTestRenameDir(t *testing.T) {
 	if err != nil || len(entries) != 1 || entries[0].Name != "subdir" {
 		t.Errorf("readdir(%s/mount/renamed) should have one entry: %v, err %v", wd, entries, err)
 	}
+}
 
+func TestRenameDirWithDeletions(t *testing.T) {
+	wd, clean := setupUfs(t)
+	defer clean()
+
+	err := os.MkdirAll(wd + "/ro/dir/subdir", 0755)
+	CheckSuccess(err)
+
+	err = ioutil.WriteFile(wd + "/ro/dir/file.txt", []byte{42}, 0644)
+	CheckSuccess(err)
+
+	err = ioutil.WriteFile(wd + "/ro/dir/subdir/file.txt", []byte{42}, 0644)
+	CheckSuccess(err)
+
+	if fi, _ := os.Lstat(wd + "/mount/dir/subdir/file.txt"); fi == nil || !fi.IsRegular() {
+		t.Fatalf("%s/mount/dir/subdir/file.txt should be file: %v", wd, fi)
+	}
+
+	err = os.Remove(wd + "/mount/dir/file.txt")
+	CheckSuccess(err)
+
+	err = os.Rename(wd + "/mount/dir", wd + "/mount/renamed")
+	CheckSuccess(err)
+
+	if fi, _ := os.Lstat(wd + "/mount/dir/subdir/file.txt"); fi != nil {
+		t.Fatalf("%s/mount/dir/subdir/file.txt should have disappeared: %v", wd, fi)
+	}
+
+	if fi, _ := os.Lstat(wd + "/mount/dir"); fi != nil {
+		t.Fatalf("%s/mount/dir should have disappeared: %v", wd, fi)
+	}
+
+	if fi, _ := os.Lstat(wd + "/mount/renamed"); fi == nil || !fi.IsDirectory() {
+		t.Fatalf("%s/mount/renamed should be directory: %v", wd, fi)
+	}
+
+	if fi, _ := os.Lstat(wd + "/mount/renamed/file.txt"); fi != nil {
+		t.Fatalf("%s/mount/renamed/file.txt should have disappeared %#v", wd, fi)
+	}
 }
 
 func TestRenameSymlink(t *testing.T) {
