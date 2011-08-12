@@ -351,6 +351,21 @@ func TestMkdirPromote(t *testing.T) {
 	}
 }
 
+func TestRmdirMkdir(t *testing.T) {
+	wd, clean := setupUfs(t)
+	defer clean()
+
+	err := os.Mkdir(wd + "/ro/subdir", 0755)
+	CheckSuccess(err)
+
+	dirname := wd + "/mount/subdir"
+	err = os.Remove(dirname)
+	CheckSuccess(err)
+
+	err = os.Mkdir(dirname, 0755)
+	CheckSuccess(err)
+}
+
 func TestRename(t *testing.T) {
 	type Config struct {
 		f1_ro bool
@@ -409,7 +424,7 @@ func TestRename(t *testing.T) {
 	}
 }
 
-func TestRenameDir(t *testing.T) {
+func TestRenameDirBasic(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 

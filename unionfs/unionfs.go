@@ -105,6 +105,8 @@ func NewUnionFs(fileSystems []fuse.FileSystem, options UnionFsOptions) *UnionFs 
 ////////////////
 // Deal with all the caches.
 
+// The isDeleted() method tells us if a path has a marker in the deletion store.
+// It may return an error code if the store could not be accessed.
 func (me *UnionFs) isDeleted(name string) (deleted bool, code fuse.Status) {
 	marker := me.deletionPath(name)
 	haveCache, found := me.deletionCache.HasEntry(filepath.Base(marker))
@@ -322,9 +324,16 @@ func (me *UnionFs) Rmdir(path string) (code fuse.Status) {
 }
 
 func (me *UnionFs) Mkdir(path string, mode uint32) (code fuse.Status) {
-	r := me.getBranch(path)
-	if r.code != fuse.ENOENT {
-		return syscall.EEXIST
+	deleted, code := me.isDeleted(path)
+	if !code.Ok() {
+		return code
+	}
+
+	if !deleted {
+		r := me.getBranch(path)
+		if r.code != fuse.ENOENT {
+			return syscall.EEXIST
+		}
 	}
 
 	code = me.promoteDirsTo(path)
