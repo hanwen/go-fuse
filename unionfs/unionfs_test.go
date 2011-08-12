@@ -446,6 +446,10 @@ func TestRenameDirBasic(t *testing.T) {
 	if err != nil || len(entries) != 1 || entries[0].Name != "subdir" {
 		t.Errorf("readdir(%s/mount/renamed) should have one entry: %v, err %v", wd, entries, err)
 	}
+
+	if err = os.Mkdir(wd + "/mount/dir", 0755); err != nil {
+		t.Errorf("mkdir should succeed %v", err)
+	}
 }
 
 func TestRenameDirWithDeletions(t *testing.T) {
@@ -485,6 +489,14 @@ func TestRenameDirWithDeletions(t *testing.T) {
 
 	if fi, _ := os.Lstat(wd + "/mount/renamed/file.txt"); fi != nil {
 		t.Fatalf("%s/mount/renamed/file.txt should have disappeared %#v", wd, fi)
+	}
+
+	if err = os.Mkdir(wd + "/mount/dir", 0755); err != nil {
+		t.Errorf("mkdir should succeed %v", err)
+	}
+
+	if fi, _ := os.Lstat(wd + "/mount/dir/subdir"); fi != nil {
+		t.Fatalf("%s/mount/dir/subdir should have disappeared %#v", wd, fi)
 	}
 }
 

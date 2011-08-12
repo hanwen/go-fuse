@@ -347,6 +347,15 @@ func (me *UnionFs) Mkdir(path string, mode uint32) (code fuse.Status) {
 		}
 		me.branchCache.Set(path, branchResult{attr, fuse.OK, 0})
 	}
+
+	var stream chan fuse.DirEntry
+	stream, code = me.OpenDir(path)
+	if code.Ok() {
+		for entry := range stream {
+			me.putDeletion(filepath.Join(path, entry.Name))
+		}
+	}
+
 	return code
 }
 
