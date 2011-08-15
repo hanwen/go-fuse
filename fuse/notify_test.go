@@ -146,9 +146,7 @@ func TestEntryNotify(t *testing.T) {
 	if !code.Ok() {
 		t.Errorf("EntryNotify returns error: %v", code)
 	}
-	
+
 	fi, err := os.Lstat(fn)
 	CheckSuccess(err)
 }
-
-	

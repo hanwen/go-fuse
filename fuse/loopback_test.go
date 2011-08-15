@@ -654,7 +654,7 @@ func TestStatFs(t *testing.T) {
 
 	s1.Fsid = empty.Fsid
 	s2.Fsid = empty.Fsid
-	
+
 	s1.Spare = empty.Spare
 	s2.Spare = empty.Spare
 

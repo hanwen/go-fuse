@@ -177,7 +177,6 @@ func (me *FileSystemConnector) Open(header *InHeader, input *OpenIn) (flags uint
 		return 0, 0, err
 	}
 
-
 	h, opened := mount.registerFileHandle(node, nil, f, input.Flags)
 
 	return opened.FuseFlags, h, OK

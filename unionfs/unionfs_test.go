@@ -355,7 +355,7 @@ func TestRmdirMkdir(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
-	err := os.Mkdir(wd + "/ro/subdir", 0755)
+	err := os.Mkdir(wd+"/ro/subdir", 0755)
 	CheckSuccess(err)
 
 	dirname := wd + "/mount/subdir"
@@ -428,10 +428,10 @@ func TestRenameDirBasic(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
-	err := os.MkdirAll(wd + "/ro/dir/subdir", 0755)
+	err := os.MkdirAll(wd+"/ro/dir/subdir", 0755)
 	CheckSuccess(err)
 
-	err = os.Rename(wd + "/mount/dir", wd + "/mount/renamed")
+	err = os.Rename(wd+"/mount/dir", wd+"/mount/renamed")
 	CheckSuccess(err)
 
 	if fi, _ := os.Lstat(wd + "/mount/dir"); fi != nil {
@@ -447,7 +447,7 @@ func TestRenameDirBasic(t *testing.T) {
 		t.Errorf("readdir(%s/mount/renamed) should have one entry: %v, err %v", wd, entries, err)
 	}
 
-	if err = os.Mkdir(wd + "/mount/dir", 0755); err != nil {
+	if err = os.Mkdir(wd+"/mount/dir", 0755); err != nil {
 		t.Errorf("mkdir should succeed %v", err)
 	}
 }
@@ -456,13 +456,13 @@ func TestRenameDirWithDeletions(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
-	err := os.MkdirAll(wd + "/ro/dir/subdir", 0755)
+	err := os.MkdirAll(wd+"/ro/dir/subdir", 0755)
 	CheckSuccess(err)
 
-	err = ioutil.WriteFile(wd + "/ro/dir/file.txt", []byte{42}, 0644)
+	err = ioutil.WriteFile(wd+"/ro/dir/file.txt", []byte{42}, 0644)
 	CheckSuccess(err)
 
-	err = ioutil.WriteFile(wd + "/ro/dir/subdir/file.txt", []byte{42}, 0644)
+	err = ioutil.WriteFile(wd+"/ro/dir/subdir/file.txt", []byte{42}, 0644)
 	CheckSuccess(err)
 
 	if fi, _ := os.Lstat(wd + "/mount/dir/subdir/file.txt"); fi == nil || !fi.IsRegular() {
@@ -472,7 +472,7 @@ func TestRenameDirWithDeletions(t *testing.T) {
 	err = os.Remove(wd + "/mount/dir/file.txt")
 	CheckSuccess(err)
 
-	err = os.Rename(wd + "/mount/dir", wd + "/mount/renamed")
+	err = os.Rename(wd+"/mount/dir", wd+"/mount/renamed")
 	CheckSuccess(err)
 
 	if fi, _ := os.Lstat(wd + "/mount/dir/subdir/file.txt"); fi != nil {
@@ -491,7 +491,7 @@ func TestRenameDirWithDeletions(t *testing.T) {
 		t.Fatalf("%s/mount/renamed/file.txt should have disappeared %#v", wd, fi)
 	}
 
-	if err = os.Mkdir(wd + "/mount/dir", 0755); err != nil {
+	if err = os.Mkdir(wd+"/mount/dir", 0755); err != nil {
 		t.Errorf("mkdir should succeed %v", err)
 	}
 
@@ -504,10 +504,10 @@ func TestRenameSymlink(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
-	err := os.Symlink("linktarget", wd + "/ro/link")
+	err := os.Symlink("linktarget", wd+"/ro/link")
 	CheckSuccess(err)
 
-	err = os.Rename(wd + "/mount/link", wd + "/mount/renamed")
+	err = os.Rename(wd+"/mount/link", wd+"/mount/renamed")
 	CheckSuccess(err)
 
 	if fi, _ := os.Lstat(wd + "/mount/link"); fi != nil {
@@ -796,4 +796,3 @@ func TestDisappearing(t *testing.T) {
 		t.Fatal("write should succeed", err)
 	}
 }
-

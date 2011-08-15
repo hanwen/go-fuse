@@ -463,7 +463,7 @@ func (me *FileSystemConnector) findInode(fullPath string) *inode {
 	if fullPath == "" {
 		return me.rootNode
 	}
-	
+
 	fullPath = strings.TrimLeft(filepath.Clean(fullPath), "/")
 	comps := strings.Split(fullPath, "/")
 
@@ -675,7 +675,7 @@ func (me *FileSystemConnector) FileNotify(path string, off int64, length int64) 
 func (me *FileSystemConnector) EntryNotify(dir string, name string) Status {
 	node := me.findInode(dir)
 	if node == nil {
-		log.Printf("dir not found, %q",dir)
+		log.Printf("dir not found, %q", dir)
 		return ENOENT
 	}
 

@@ -711,7 +711,6 @@ func (me *UnionFs) OpenDir(directory string) (stream chan fuse.DirEntry, status 
 	return stream, fuse.OK
 }
 
-
 // recursivePromote promotes path, and if a directory, everything
 // below that directory.  It returns a list of all promoted paths.
 func (me *UnionFs) recursivePromote(path string, pathResult branchResult) (names []string, code fuse.Status) {
@@ -744,7 +743,6 @@ func (me *UnionFs) recursivePromote(path string, pathResult branchResult) (names
 	}
 	return names, code
 }
-
 
 func (me *UnionFs) renameDirectory(srcResult branchResult, srcDir string, dstDir string) (code fuse.Status) {
 	names := []string{}

@@ -280,31 +280,29 @@ func (me *MountState) writeInodeNotify(entry *NotifyInvalInodeOut) Status {
 }
 
 func (me *MountState) writeEntryNotify(parent uint64, name string) Status {
-        req := request{
-                inHeader: &InHeader{
-                        opcode: _OP_NOTIFY_ENTRY,
-                },
-                handler: operationHandlers[_OP_NOTIFY_ENTRY],
-                status: NOTIFY_INVAL_ENTRY,
-        }
+	req := request{
+		inHeader: &InHeader{
+			opcode: _OP_NOTIFY_ENTRY,
+		},
+		handler: operationHandlers[_OP_NOTIFY_ENTRY],
+		status:  NOTIFY_INVAL_ENTRY,
+	}
 	entry := &NotifyInvalEntryOut{
-		Parent: parent,
+		Parent:  parent,
 		NameLen: uint32(len(name)),
 	}
 
 	// Many versions of FUSE generate stacktraces if the
 	// terminating null byte is missing.
 	nameBytes := []byte(name + "\000")
-        req.outData = unsafe.Pointer(entry)
-        req.flatData = nameBytes
-        req.serialize()
-        log.Println([][]byte{req.outHeaderBytes, req.flatData})
-        result := me.write(&req)
+	req.outData = unsafe.Pointer(entry)
+	req.flatData = nameBytes
+	req.serialize()
+	log.Println([][]byte{req.outHeaderBytes, req.flatData})
+	result := me.write(&req)
 
-        if me.Debug {
-                log.Printf("ENTRY_NOTIFY: %v", result)
-        }
-        return result
+	if me.Debug {
+		log.Printf("ENTRY_NOTIFY: %v", result)
+	}
+	return result
 }
-
-
