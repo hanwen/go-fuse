@@ -187,4 +187,5 @@ type DefaultRawFileSystem struct{}
 // kernel error.
 type RawFsInit struct {
 	InodeNotify func(*NotifyInvalInodeOut) Status
+	EntryNotify func(parent uint64, name string) Status
 }

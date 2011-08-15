@@ -15,6 +15,9 @@ type NotifyFs struct {
 }
 
 func (me *NotifyFs) GetAttr(name string) (*os.FileInfo, Status) {
+	if name == "" {
+		return &os.FileInfo{Mode: S_IFDIR | 0755}, OK
+	}
 	if name == "file" || (name == "dir/file" && me.exist) {
 		return &os.FileInfo{Mode: S_IFREG | 0644, Size: me.size}, OK
 	}
@@ -119,3 +122,33 @@ func TestInodeNotifyRemoval(t *testing.T) {
 		t.Error("should have been removed", fi)
 	}
 }
+
+func TestEntryNotify(t *testing.T) {
+	test := NewNotifyTest()
+	defer test.Clean()
+
+	dir := test.dir
+	test.fs.size = 42
+	test.fs.exist = false
+	fn := dir + "/dir/file"
+	fi, _ := os.Lstat(fn)
+	if fi != nil {
+		t.Errorf("File should not exist, %#v", fi)
+	}
+
+	test.fs.exist = true
+	fi, _ = os.Lstat(fn)
+	if fi != nil {
+		t.Errorf("negative entry should have been cached: %#v", fi)
+	}
+
+	code := test.connector.EntryNotify("dir", "file")
+	if !code.Ok() {
+		t.Errorf("EntryNotify returns error: %v", code)
+	}
+	
+	fi, err := os.Lstat(fn)
+	CheckSuccess(err)
+}
+
+	
