@@ -298,11 +298,10 @@ func (me *MountState) writeEntryNotify(parent uint64, name string) Status {
 	req.outData = unsafe.Pointer(entry)
 	req.flatData = nameBytes
 	req.serialize()
-	log.Println([][]byte{req.outHeaderBytes, req.flatData})
 	result := me.write(&req)
 
 	if me.Debug {
-		log.Printf("ENTRY_NOTIFY: %v", result)
+		log.Printf("Response: ENTRY_NOTIFY: %v", result)
 	}
 	return result
 }
