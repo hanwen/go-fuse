@@ -20,5 +20,5 @@ done
 
 for d in benchmark
 do
-  (cd $d && gotest -test.bench '.*' -test.cpu 1,2
+  (cd $d && gotest -test.bench '.*' -test.cpu 1,2 )
 done 
