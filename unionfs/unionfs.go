@@ -723,7 +723,7 @@ func (me *UnionFs) recursivePromote(path string, pathResult branchResult) (names
 		names = append(names, path)
 	}
 
-	if code.Ok() && pathResult.attr.IsDirectory() {
+	if code.Ok() && pathResult.attr != nil && pathResult.attr.IsDirectory() {
 		var stream chan fuse.DirEntry
 		stream, code = me.OpenDir(path)
 		for e := range stream {
