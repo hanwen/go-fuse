@@ -22,7 +22,7 @@ func (me *cacheFs) Open(name string, flags uint32) (fuseFile File, status Status
 
 }
 
-func setupCacheTest() (string, func()) {
+func setupCacheTest() (string, *FileSystemConnector, func()) {
 	dir := MakeTempDir()
 	os.Mkdir(dir+"/mnt", 0755)
 	os.Mkdir(dir+"/orig", 0755)
@@ -30,12 +30,13 @@ func setupCacheTest() (string, func()) {
 	fs := &cacheFs{
 		LoopbackFileSystem: NewLoopbackFileSystem(dir + "/orig"),
 	}
-	state, _, err := MountFileSystem(dir+"/mnt", fs, nil)
+	state, conn, err := MountFileSystem(dir+"/mnt", fs, nil)
 	CheckSuccess(err)
-
+	state.Debug = true
+	conn.Debug = true
 	go state.Loop(false)
 
-	return dir, func() {
+	return dir, conn, func() {
 		err := state.Unmount()
 		if err == nil {
 			os.RemoveAll(dir)
@@ -44,10 +45,12 @@ func setupCacheTest() (string, func()) {
 }
 
 func TestCacheFs(t *testing.T) {
-	wd, clean := setupCacheTest()
+	wd, conn, clean := setupCacheTest()
 	defer clean()
 
-	err := ioutil.WriteFile(wd+"/orig/file.txt", []byte("hello"), 0644)
+	content1 := "hello"
+	content2 := "qqqq"
+	err := ioutil.WriteFile(wd+"/orig/file.txt", []byte(content1), 0644)
 	CheckSuccess(err)
 
 	c, err := ioutil.ReadFile(wd + "/mnt/file.txt")
@@ -57,7 +60,7 @@ func TestCacheFs(t *testing.T) {
 		t.Fatalf("expect 'hello' %q", string(c))
 	}
 
-	err = ioutil.WriteFile(wd+"/orig/file.txt", []byte("qqqqq"), 0644)
+	err = ioutil.WriteFile(wd+"/orig/file.txt", []byte(content2), 0644)
 	CheckSuccess(err)
 
 	c, err = ioutil.ReadFile(wd + "/mnt/file.txt")
@@ -65,5 +68,16 @@ func TestCacheFs(t *testing.T) {
 
 	if string(c) != "hello" {
 		t.Fatalf("expect 'hello' %q", string(c))
+	}
+
+	code := conn.EntryNotify("", "file.txt")
+	if !code.Ok() {
+		t.Errorf("Entry notify failed: %v", code)
+	}
+
+	c, err = ioutil.ReadFile(wd + "/mnt/file.txt")
+	CheckSuccess(err)
+	if string(c) != string(content2) {
+		t.Fatalf("expect '%s' %q", content2, string(c))
 	}
 }
