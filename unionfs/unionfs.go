@@ -360,7 +360,10 @@ func (me *UnionFs) Mkdir(path string, mode uint32) (code fuse.Status) {
 }
 
 func (me *UnionFs) Symlink(pointedTo string, linkName string) (code fuse.Status) {
-	code = me.fileSystems[0].Symlink(pointedTo, linkName)
+	code = me.promoteDirsTo(linkName)
+	if code.Ok() {
+		code = me.fileSystems[0].Symlink(pointedTo, linkName)
+	}
 	if code.Ok() {
 		me.removeDeletion(linkName)
 		me.branchCache.GetFresh(linkName)

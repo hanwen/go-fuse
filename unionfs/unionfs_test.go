@@ -152,6 +152,17 @@ func TestSymlink(t *testing.T) {
 	}
 }
 
+func TestSymlinkPromote(t *testing.T) {
+	wd, clean := setupUfs(t)
+	defer clean()
+
+	err := os.Mkdir(wd + "/ro/subdir", 0755)
+	CheckSuccess(err)
+	
+	err = os.Symlink("/foobar", wd+"/mount/subdir/link")
+	CheckSuccess(err)
+}
+
 func TestChtimes(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
