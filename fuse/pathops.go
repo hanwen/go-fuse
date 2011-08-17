@@ -37,6 +37,9 @@ func (me *fileSystemMount) setOwner(attr *Attr) {
 
 func (me *FileSystemConnector) Lookup(header *InHeader, name string) (out *EntryOut, status Status) {
 	parent := me.getInodeData(header.NodeId)
+	if me.Debug {
+		log.Printf("Node %v = '%s'", parent.NodeId, parent.GetFullPath())
+	}
 	return me.internalLookup(parent, name, 1)
 }
 
