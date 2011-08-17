@@ -194,13 +194,6 @@ type SetAttrIn struct {
 	Unused5 uint32
 }
 
-const (
-	// OpenIn.Flags
-	FOPEN_DIRECT_IO   = (1 << 0)
-	FOPEN_KEEP_CACHE  = (1 << 1)
-	FOPEN_NONSEEKABLE = (1 << 2)
-)
-
 type OpenIn struct {
 	Flags  uint32
 	Unused uint32
@@ -212,6 +205,13 @@ type CreateIn struct {
 	Umask   uint32
 	Padding uint32
 }
+
+const (
+	// OpenOut.Flags
+	FOPEN_DIRECT_IO   = (1 << 0)
+	FOPEN_KEEP_CACHE  = (1 << 1)
+	FOPEN_NONSEEKABLE = (1 << 2)
+)
 
 type OpenOut struct {
 	Fh        uint64
