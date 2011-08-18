@@ -660,7 +660,10 @@ func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64) (f File
 	}
 
 	path, mount := node.GetPath()
-
+	if me.Debug {
+		log.Printf("Node %v = '%s'", nodeid, path)
+	}
+	
 	// If the file was deleted, GetPath() will return nil.
 	if mount != nil {
 		m = mount
