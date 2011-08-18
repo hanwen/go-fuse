@@ -98,9 +98,18 @@ func (me *FileSystemConnector) Forget(h *InHeader, input *ForgetIn) {
 }
 
 func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
+	fh := uint64(0)
 	if input.Flags&FUSE_GETATTR_FH != 0 {
-		opened := me.getOpenedFile(input.Fh)
-		fi, err := opened.file.GetAttr()
+		fh = input.Fh
+	}
+
+	f, mount, fullPath, node := me.getOpenFileData(header.NodeId, fh)
+	if mount == nil && f == nil {
+		return nil, ENOENT
+	}
+
+	if f != nil {
+		fi, err := f.GetAttr()
 		if err != OK && err != ENOSYS {
 			return nil, err
 		}
@@ -109,13 +118,12 @@ func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out 
 			out = &AttrOut{}
 			CopyFileInfo(fi, &out.Attr)
 			out.Attr.Ino = header.NodeId
-			SplitNs(opened.fileSystemMount.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
+			SplitNs(node.mount.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 
 			return out, OK
 		}
 	}
 
-	fullPath, mount, _ := me.GetPath(header.NodeId)
 	if mount == nil {
 		return nil, ENOENT
 	}
@@ -192,7 +200,7 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 		getAttrIn.Flags |= FUSE_GETATTR_FH
 	}
 
-	f, mount, fullPath := me.getOpenFileData(header.NodeId, fh)
+	f, mount, fullPath, _ := me.getOpenFileData(header.NodeId, fh)
 	if mount == nil {
 		return nil, ENOENT
 	}

@@ -807,3 +807,23 @@ func TestDisappearing(t *testing.T) {
 		t.Fatal("write should succeed", err)
 	}
 }
+
+func TestDeletedGetAttr(t *testing.T) {
+	t.Log("TestDeletedGetAttr")
+	wd, clean := setupUfs(t)
+	defer clean()
+
+	err := ioutil.WriteFile(wd+"/ro/file", []byte("blabla"), 0644)
+	CheckSuccess(err)
+
+	f, err := os.Open(wd + "/mount/file")
+	CheckSuccess(err)
+	defer f.Close()
+
+	err = os.Remove(wd+"/mount/file")
+	CheckSuccess(err)
+
+	if fi, err := f.Stat(); err != nil || !fi.IsRegular() {
+		t.Fatalf("stat returned error or non-file: %v %v", err, fi)
+	}
+}

@@ -3,7 +3,6 @@ package fuse
 import (
 	"fmt"
 	"log"
-	"json"
 	"os"
 	"syscall"
 	"testing"
@@ -152,28 +151,25 @@ func TestFSetAttr(t *testing.T) {
 
 	if state.KernelSettings().Flags&CAP_FILE_OPS == 0 {
 		log.Println("Mount does not support file operations")
-		m, _ := json.Marshal(state.KernelSettings())
-		log.Println("Kernel settings: ", string(m))
-		return
 	}
-
-	_, err = os.Lstat(fn)
+	
+	_, err = f.Stat()
 	CheckSuccess(err)
 
 	if !fs.file.GetAttrCalled {
 		t.Error("Should have called File.GetAttr")
 	}
 
-	err = os.Chmod(fn, 024)
+	err = f.Chmod(024)
 	CheckSuccess(err)
 	if fs.file.FileInfo.Mode&07777 != 024 {
 		t.Error("chmod")
 	}
 
-	err = os.Chtimes(fn, 100, 101)
+	err = os.Chtimes(fn, 100e3, 101e3)
 	CheckSuccess(err)
-	if fs.file.FileInfo.Atime_ns != 100 || fs.file.FileInfo.Atime_ns != 101 {
-		t.Error("Utimens")
+	if fs.file.FileInfo.Atime_ns != 100e3 || fs.file.FileInfo.Mtime_ns != 101e3 {
+		t.Error("Utimens", fs.file.FileInfo)
 	}
 
 	// TODO - test chown if run as root.

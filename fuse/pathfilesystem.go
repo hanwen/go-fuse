@@ -648,8 +648,8 @@ func (me *FileSystemConnector) unsafeUnmountNode(node *inode) {
 	unmounted.fs.Unmount()
 }
 
-func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64) (f File, m *fileSystemMount, p string) {
-	node := me.getInodeData(nodeid)
+func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64) (f File, m *fileSystemMount, p string, node *inode) {
+	node = me.getInodeData(nodeid)
 	node.treeLock.RLock()
 	defer node.treeLock.RUnlock()
 
@@ -665,6 +665,14 @@ func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64) (f File
 	if mount != nil {
 		m = mount
 		p = path
+	}
+	if f == nil {
+		node.OpenFilesMutex.Lock()
+		defer node.OpenFilesMutex.Unlock()
+
+		if len(node.OpenFiles) > 0 {
+			f = node.OpenFiles[0].file
+		}
 	}
 	return
 }
