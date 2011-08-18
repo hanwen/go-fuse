@@ -72,16 +72,27 @@ func (me *fileSystemMount) unregisterFileHandle(node *inode, handle uint64) *ope
 	obj := me.openFiles.Forget(handle)
 	opened := (*openedFile)(unsafe.Pointer(obj))
 
-	node.OpenCountMutex.Lock()
-	defer node.OpenCountMutex.Unlock()
-	node.OpenCount--
+	node.OpenFilesMutex.Lock()
+	defer node.OpenFilesMutex.Unlock()
+
+	idx := -1
+	for i, v := range node.OpenFiles {
+		if v == opened {
+			idx = i
+			break
+		}
+	}
+
+	l := len(node.OpenFiles)
+	node.OpenFiles[idx] = node.OpenFiles[l-1]
+	node.OpenFiles = node.OpenFiles[:l-1]
 
 	return opened
 }
 
 func (me *fileSystemMount) registerFileHandle(node *inode, dir rawDir, f File, flags uint32) (uint64, *openedFile) {
-	node.OpenCountMutex.Lock()
-	defer node.OpenCountMutex.Unlock()
+	node.OpenFilesMutex.Lock()
+	defer node.OpenFilesMutex.Unlock()
 	b := &openedFile{
 		dir:             dir,
 		file:            f,
@@ -96,7 +107,7 @@ func (me *fileSystemMount) registerFileHandle(node *inode, dir rawDir, f File, f
 		f = withFlags.File
 	}
 
-	node.OpenCount++
+	node.OpenFiles = append(node.OpenFiles, b)
 	handle := me.openFiles.Register(&b.Handled)
 	return handle, b
 }
@@ -116,8 +127,8 @@ type inode struct {
 	NodeId uint64
 
 	// Number of open files and its protection.
-	OpenCountMutex sync.Mutex
-	OpenCount      int
+	OpenFilesMutex sync.Mutex
+	OpenFiles      []*openedFile
 
 	// treeLock is a pointer to me.mount.treeLock; we need store
 	// this mutex separately, since unmount may set me.mount = nil
@@ -168,9 +179,9 @@ func (me *inode) canUnmount() bool {
 		}
 	}
 
-	me.OpenCountMutex.Lock()
-	defer me.OpenCountMutex.Unlock()
-	return me.OpenCount == 0
+	me.OpenFilesMutex.Lock()
+	defer me.OpenFilesMutex.Unlock()
+	return len(me.OpenFiles) == 0
 }
 
 // Must be called with treeLock held
@@ -411,10 +422,10 @@ func (me *FileSystemConnector) considerDropInode(n *inode) {
 		defer n.treeLock.Unlock()
 	}
 
-	n.OpenCountMutex.Lock()
-	defer n.OpenCountMutex.Unlock()
+	n.OpenFilesMutex.Lock()
+	defer n.OpenFilesMutex.Unlock()
 	dropInode := n.LookupCount <= 0 && len(n.Children) == 0 &&
-		n.OpenCount <= 0 && n != me.rootNode && n.mountPoint == nil
+		len(n.OpenFiles) <= 0 && n != me.rootNode && n.mountPoint == nil
 	if dropInode {
 		n.setParent(nil)
 		if n != me.rootNode {
