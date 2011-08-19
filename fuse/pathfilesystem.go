@@ -470,16 +470,16 @@ func (me *FileSystemConnector) unlinkUpdate(parent *inode, name string) {
 
 // Walk the file system starting from the root. Will return nil if
 // node not found.
-func (me *FileSystemConnector) findInode(fullPath string) *inode {
+func (me *FileSystemConnector) findLastKnownInode(fullPath string) (*inode, []string) {
 	if fullPath == "" {
-		return me.rootNode
+		return me.rootNode, nil
 	}
-
+	
 	fullPath = strings.TrimLeft(filepath.Clean(fullPath), "/")
 	comps := strings.Split(fullPath, "/")
 
 	node := me.rootNode
-	for _, component := range comps {
+	for i, component := range comps {
 		if len(component) == 0 {
 			continue
 		}
@@ -489,12 +489,22 @@ func (me *FileSystemConnector) findInode(fullPath string) *inode {
 			defer node.mountPoint.treeLock.RUnlock()
 		}
 
-		node = node.Children[component]
-		if node == nil {
-			return nil
+		next := node.Children[component]
+		if next == nil {
+			return node, comps[i:]
 		}
+		node = next
 	}
-	return node
+
+	return node, nil
+}
+
+func (me *FileSystemConnector) findInode(fullPath string) *inode {
+	n, rest := me.findLastKnownInode(fullPath)
+	if len(rest) > 0 {
+		return nil
+	}
+	return n
 }
 
 ////////////////////////////////////////////////////////////////
@@ -703,3 +713,16 @@ func (me *FileSystemConnector) EntryNotify(dir string, name string) Status {
 
 	return me.fsInit.EntryNotify(node.NodeId, name)
 }
+
+
+func (me *FileSystemConnector) Notify(path string) Status {
+	node, rest := me.findLastKnownInode(path)
+	if len(rest) > 0 {
+			return me.fsInit.EntryNotify(node.NodeId, rest[0])
+	} 
+	out := NotifyInvalInodeOut{
+		Ino:    node.NodeId,
+	}
+	return me.fsInit.InodeNotify(&out)
+}
+
