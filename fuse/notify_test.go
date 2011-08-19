@@ -27,6 +27,10 @@ func (me *NotifyFs) GetAttr(name string) (*os.FileInfo, Status) {
 	return nil, ENOENT
 }
 
+func (me *NotifyFs) Open(name string, f uint32) (File, Status) {
+	return NewReadOnlyFile([]byte{42}), OK
+}
+
 type NotifyTest struct {
 	fs        *NotifyFs
 	connector *FileSystemConnector
@@ -91,35 +95,6 @@ func TestInodeNotify(t *testing.T) {
 	CheckSuccess(err)
 	if !fi.IsRegular() || fi.Size != 666 {
 		t.Error(fi)
-	}
-}
-
-func TestInodeNotifyRemoval(t *testing.T) {
-	test := NewNotifyTest()
-	defer test.Clean()
-
-	fs := test.fs
-	dir := test.dir
-	fs.exist = true
-
-	fi, err := os.Lstat(dir + "/dir/file")
-	CheckSuccess(err)
-	if !fi.IsRegular() {
-		t.Error("IsRegular", fi)
-	}
-
-	fs.exist = false
-	fi, err = os.Lstat(dir + "/dir/file")
-	CheckSuccess(err)
-
-	code := test.connector.FileNotify("dir/file", -1, 0)
-	if !code.Ok() {
-		t.Error(code)
-	}
-
-	fi, err = os.Lstat(dir + "/dir/file")
-	if fi != nil {
-		t.Error("should have been removed", fi)
 	}
 }
 

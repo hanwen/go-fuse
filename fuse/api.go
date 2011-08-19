@@ -183,8 +183,15 @@ type DefaultRawFileSystem struct{}
 
 // Talk back to FUSE.
 //
-// TODO - implement EntryNotify. Currently, EntryNotify causes a
-// kernel error.
+// InodeNotify invalidates the information associated with the inode
+// (ie. data cache, attributes, etc.)
+//
+// EntryNotify should be used if the existence status of an entry changes,
+// (ie. to notify of creation or deletion of the file).
+//
+// Somewhat confusingly, InodeNotify for a file that stopped to exist
+// will give the correct result for Lstat (ENOENT), but the kernel
+// will still issue file Open() on the inode.
 type RawFsInit struct {
 	InodeNotify func(*NotifyInvalInodeOut) Status
 	EntryNotify func(parent uint64, name string) Status
