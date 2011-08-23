@@ -48,6 +48,7 @@ const (
 	EIO     = Status(syscall.EIO)
 	ENOENT  = Status(syscall.ENOENT)
 	ENOSYS  = Status(syscall.ENOSYS)
+	ENODATA = Status(syscall.ENODATA)
 	ENOTDIR = Status(syscall.ENOTDIR)
 	EPERM   = Status(syscall.EPERM)
 	ERANGE  = Status(syscall.ERANGE)

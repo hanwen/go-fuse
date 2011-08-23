@@ -232,7 +232,7 @@ func (me *AutoUnionFs) Unlink(path string) (code fuse.Status) {
 
 // Must define this, because ENOSYS will suspend all GetXAttr calls.
 func (me *AutoUnionFs) GetXAttr(name string, attr string) ([]byte, fuse.Status) {
-	return nil, syscall.ENODATA
+	return nil, fuse.ENODATA
 }
 
 func (me *AutoUnionFs) GetAttr(path string) (*os.FileInfo, fuse.Status) {

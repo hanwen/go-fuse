@@ -611,7 +611,7 @@ func (me *UnionFs) GetAttr(name string) (a *os.FileInfo, s fuse.Status) {
 
 func (me *UnionFs) GetXAttr(name string, attr string) ([]byte, fuse.Status) {
 	if name == _DROP_CACHE {
-		return nil, syscall.ENODATA
+		return nil, fuse.ENODATA
 	}
 
 	r := me.getBranch(name)

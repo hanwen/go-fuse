@@ -55,7 +55,7 @@ func (me *XAttrTestFs) GetXAttr(name string, attr string) ([]byte, Status) {
 	}
 	v, ok := me.attrs[attr]
 	if !ok {
-		return nil, syscall.ENODATA
+		return nil, ENODATA
 	}
 	log.Println("GetXAttr", string(v))
 	return v, OK
@@ -79,7 +79,7 @@ func (me *XAttrTestFs) RemoveXAttr(name string, attr string) Status {
 	_, ok := me.attrs[attr]
 	log.Println("RemoveXAttr", name, attr, ok)
 	if !ok {
-		return syscall.ENODATA
+		return ENODATA
 	}
 	me.attrs[attr] = nil, false
 	return OK
@@ -149,7 +149,7 @@ func TestXAttrRead(t *testing.T) {
 
 	Removexattr(mounted, "third")
 	val, errno = GetXAttr(mounted, "third")
-	if errno != syscall.ENODATA {
+	if errno != ENODATA {
 		t.Error("Data not removed?", errno, val)
 	}
 }

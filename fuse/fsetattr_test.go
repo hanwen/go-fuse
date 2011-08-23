@@ -84,7 +84,7 @@ type FSetAttrFs struct {
 }
 
 func (me *FSetAttrFs) GetXAttr(name string, attr string) ([]byte, Status) {
-	return nil, syscall.ENODATA
+	return nil, ENODATA
 }
 
 func (me *FSetAttrFs) GetAttr(name string) (*os.FileInfo, Status) {

@@ -8,7 +8,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"syscall"
 )
 
 var _ = fmt.Println
@@ -68,7 +67,7 @@ func (me *FileSystemDebug) getContent(path string) []byte {
 
 func (me *FileSystemDebug) GetXAttr(name string, attr string) ([]byte, Status) {
 	if strings.HasPrefix(name, DebugDir) {
-		return nil, syscall.ENODATA
+		return nil, ENODATA
 	}
 	return me.FileSystem.GetXAttr(name, attr)
 }
