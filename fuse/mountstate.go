@@ -88,11 +88,13 @@ func (me *MountState) SetRecordStatistics(record bool) {
 
 func (me *MountState) Unmount() os.Error {
 	// Todo: flush/release all files/dirs?
-	result := unmount(me.mountPoint)
-	if result == nil {
+	err := unmount(me.mountPoint)
+	if err == nil {
 		me.mountPoint = ""
+		me.mountFile.Close()
+		me.mountFile = nil
 	}
-	return result
+	return err
 }
 
 func NewMountState(fs RawFileSystem) *MountState {
