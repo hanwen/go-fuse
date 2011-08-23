@@ -6,7 +6,6 @@ import (
 	"log"
 	"path/filepath"
 	"os"
-	"syscall"
 )
 
 var _ = log.Print
@@ -149,7 +148,7 @@ func TestXAttrRead(t *testing.T) {
 
 	Removexattr(mounted, "third")
 	val, errno = GetXAttr(mounted, "third")
-	if errno != ENODATA {
+	if errno != int(ENODATA) {
 		t.Error("Data not removed?", errno, val)
 	}
 }
