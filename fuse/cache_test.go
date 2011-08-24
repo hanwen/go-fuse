@@ -1,9 +1,10 @@
 package fuse
 
 import (
-	"testing"
-	"os"
+	"bytes"
 	"io/ioutil"
+	"os"
+	"testing"
 )
 
 type cacheFs struct {
@@ -79,5 +80,54 @@ func TestCacheFs(t *testing.T) {
 	CheckSuccess(err)
 	if string(c) != string(content2) {
 		t.Fatalf("expect '%s' %q", content2, string(c))
+	}
+}
+
+type nonseekFs struct {
+	DefaultFileSystem
+	Length int 
+}
+
+func (me *nonseekFs) GetAttr(name string) (fi *os.FileInfo, status Status) {
+	if name == "file" {
+		return &os.FileInfo{ Mode: S_IFREG | 0644 }, OK
+	}
+	return nil, ENOENT
+}
+
+func (me *nonseekFs) Open(name string, flags uint32) (fuseFile File, status Status) {
+	if name != "file" {
+		return nil, ENOENT
+	}
+
+	data := bytes.Repeat([]byte{42}, me.Length)
+	f := NewReadOnlyFile(data)
+	return &WithFlags{
+		File:  f,
+		Flags: FOPEN_NONSEEKABLE,
+	}, OK
+}
+
+func TestNonseekable(t *testing.T) {
+	fs := &nonseekFs{}
+	fs.Length = 200*1024
+
+	dir := MakeTempDir()
+	defer os.RemoveAll(dir)
+	state, _, err := MountFileSystem(dir, fs, nil)
+	CheckSuccess(err)
+	state.Debug = true
+	defer state.Unmount()
+
+	go state.Loop(false)
+
+	f, err := os.Open(dir + "/file")
+	CheckSuccess(err)
+	defer f.Close()
+	
+	b := make([]byte, 200)
+	n, err := f.ReadAt(b, 20)
+	if err == nil || n > 0 {
+		t.Errorf("file was opened nonseekable, but seek successful")
 	}
 }
