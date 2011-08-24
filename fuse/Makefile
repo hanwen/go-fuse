@@ -22,6 +22,7 @@ MANUAL_GOFILES=api.go \
 	pathdebug.go \
 	pathfilesystem.go \
 	pathops.go \
+	readonlyfs.go \
 	request.go \
 	switchfs.go \
 	timingfs.go \
