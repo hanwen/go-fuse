@@ -11,7 +11,7 @@ type ownerFs struct {
 
 const _RANDOM_OWNER = 31415265
 
-func (me *ownerFs) GetAttr(name string) (*os.FileInfo, Status) {
+func (me *ownerFs) GetAttr(name string, context *Context) (*os.FileInfo, Status) {
 	if name == "" {
 		return &os.FileInfo{
 			Mode: S_IFDIR | 0755,

@@ -17,7 +17,7 @@ func TestCopyFile(t *testing.T) {
 	err := ioutil.WriteFile(d1+"/file", []byte(content1), 0644)
 	CheckSuccess(err)
 
-	code := CopyFile(fs1, fs2, "file", "file")
+	code := CopyFile(fs1, fs2, "file", "file", nil)
 	if !code.Ok() {
 		t.Fatal("Unexpected ret code", code)
 	}
@@ -33,7 +33,7 @@ func TestCopyFile(t *testing.T) {
 	CheckSuccess(err)
 
 	// Copy back: should overwrite.
-	code = CopyFile(fs2, fs1, "file", "file")
+	code = CopyFile(fs2, fs1, "file", "file", nil)
 	if !code.Ok() {
 		t.Fatal("Unexpected ret code", code)
 	}

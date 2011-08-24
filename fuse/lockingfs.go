@@ -26,73 +26,73 @@ func (me *LockingFileSystem) locked() func() {
 	return func() { me.lock.Unlock() }
 }
 
-func (me *LockingFileSystem) GetAttr(name string) (*os.FileInfo, Status) {
+func (me *LockingFileSystem) GetAttr(name string, context *Context) (*os.FileInfo, Status) {
 	defer me.locked()()
-	return me.FileSystem.GetAttr(name)
+	return me.FileSystem.GetAttr(name, context)
 }
 
-func (me *LockingFileSystem) Readlink(name string) (string, Status) {
+func (me *LockingFileSystem) Readlink(name string, context *Context) (string, Status) {
 	defer me.locked()()
-	return me.FileSystem.Readlink(name)
+	return me.FileSystem.Readlink(name, context)
 }
 
-func (me *LockingFileSystem) Mknod(name string, mode uint32, dev uint32) Status {
+func (me *LockingFileSystem) Mknod(name string, mode uint32, dev uint32, context *Context) Status {
 	defer me.locked()()
-	return me.FileSystem.Mknod(name, mode, dev)
+	return me.FileSystem.Mknod(name, mode, dev, context)
 }
 
-func (me *LockingFileSystem) Mkdir(name string, mode uint32) Status {
+func (me *LockingFileSystem) Mkdir(name string, mode uint32, context *Context) Status {
 	defer me.locked()()
-	return me.FileSystem.Mkdir(name, mode)
+	return me.FileSystem.Mkdir(name, mode, context)
 }
 
-func (me *LockingFileSystem) Unlink(name string) (code Status) {
+func (me *LockingFileSystem) Unlink(name string, context *Context) (code Status) {
 	defer me.locked()()
-	return me.FileSystem.Unlink(name)
+	return me.FileSystem.Unlink(name, context)
 }
 
-func (me *LockingFileSystem) Rmdir(name string) (code Status) {
+func (me *LockingFileSystem) Rmdir(name string, context *Context) (code Status) {
 	defer me.locked()()
-	return me.FileSystem.Rmdir(name)
+	return me.FileSystem.Rmdir(name, context)
 }
 
-func (me *LockingFileSystem) Symlink(value string, linkName string) (code Status) {
+func (me *LockingFileSystem) Symlink(value string, linkName string, context *Context) (code Status) {
 	defer me.locked()()
-	return me.FileSystem.Symlink(value, linkName)
+	return me.FileSystem.Symlink(value, linkName, context)
 }
 
-func (me *LockingFileSystem) Rename(oldName string, newName string) (code Status) {
+func (me *LockingFileSystem) Rename(oldName string, newName string, context *Context) (code Status) {
 	defer me.locked()()
-	return me.FileSystem.Rename(oldName, newName)
+	return me.FileSystem.Rename(oldName, newName, context)
 }
 
-func (me *LockingFileSystem) Link(oldName string, newName string) (code Status) {
+func (me *LockingFileSystem) Link(oldName string, newName string, context *Context) (code Status) {
 	defer me.locked()()
-	return me.FileSystem.Link(oldName, newName)
+	return me.FileSystem.Link(oldName, newName, context)
 }
 
-func (me *LockingFileSystem) Chmod(name string, mode uint32) (code Status) {
+func (me *LockingFileSystem) Chmod(name string, mode uint32, context *Context) (code Status) {
 	defer me.locked()()
-	return me.FileSystem.Chmod(name, mode)
+	return me.FileSystem.Chmod(name, mode, context)
 }
 
-func (me *LockingFileSystem) Chown(name string, uid uint32, gid uint32) (code Status) {
+func (me *LockingFileSystem) Chown(name string, uid uint32, gid uint32, context *Context) (code Status) {
 	defer me.locked()()
-	return me.FileSystem.Chown(name, uid, gid)
+	return me.FileSystem.Chown(name, uid, gid, context)
 }
 
-func (me *LockingFileSystem) Truncate(name string, offset uint64) (code Status) {
+func (me *LockingFileSystem) Truncate(name string, offset uint64, context *Context) (code Status) {
 	defer me.locked()()
-	return me.FileSystem.Truncate(name, offset)
+	return me.FileSystem.Truncate(name, offset, context)
 }
 
-func (me *LockingFileSystem) Open(name string, flags uint32) (file File, code Status) {
-	return me.FileSystem.Open(name, flags)
+func (me *LockingFileSystem) Open(name string, flags uint32, context *Context) (file File, code Status) {
+	return me.FileSystem.Open(name, flags, context)
 }
 
-func (me *LockingFileSystem) OpenDir(name string) (stream chan DirEntry, status Status) {
+func (me *LockingFileSystem) OpenDir(name string, context *Context) (stream chan DirEntry, status Status) {
 	defer me.locked()()
-	return me.FileSystem.OpenDir(name)
+	return me.FileSystem.OpenDir(name, context)
 }
 
 func (me *LockingFileSystem) Mount(conn *FileSystemConnector) {
@@ -105,39 +105,39 @@ func (me *LockingFileSystem) Unmount() {
 	me.FileSystem.Unmount()
 }
 
-func (me *LockingFileSystem) Access(name string, mode uint32) (code Status) {
+func (me *LockingFileSystem) Access(name string, mode uint32, context *Context) (code Status) {
 	defer me.locked()()
-	return me.FileSystem.Access(name, mode)
+	return me.FileSystem.Access(name, mode, context)
 }
 
-func (me *LockingFileSystem) Create(name string, flags uint32, mode uint32) (file File, code Status) {
+func (me *LockingFileSystem) Create(name string, flags uint32, mode uint32, context *Context) (file File, code Status) {
 	defer me.locked()()
-	return me.FileSystem.Create(name, flags, mode)
+	return me.FileSystem.Create(name, flags, mode, context)
 }
 
-func (me *LockingFileSystem) Utimens(name string, AtimeNs uint64, CtimeNs uint64) (code Status) {
+func (me *LockingFileSystem) Utimens(name string, AtimeNs uint64, CtimeNs uint64, context *Context) (code Status) {
 	defer me.locked()()
-	return me.FileSystem.Utimens(name, AtimeNs, CtimeNs)
+	return me.FileSystem.Utimens(name, AtimeNs, CtimeNs, context)
 }
 
-func (me *LockingFileSystem) GetXAttr(name string, attr string) ([]byte, Status) {
+func (me *LockingFileSystem) GetXAttr(name string, attr string, context *Context) ([]byte, Status) {
 	defer me.locked()()
-	return me.FileSystem.GetXAttr(name, attr)
+	return me.FileSystem.GetXAttr(name, attr, context)
 }
 
-func (me *LockingFileSystem) SetXAttr(name string, attr string, data []byte, flags int) Status {
+func (me *LockingFileSystem) SetXAttr(name string, attr string, data []byte, flags int, context *Context) Status {
 	defer me.locked()()
-	return me.FileSystem.SetXAttr(name, attr, data, flags)
+	return me.FileSystem.SetXAttr(name, attr, data, flags, context)
 }
 
-func (me *LockingFileSystem) ListXAttr(name string) ([]string, Status) {
+func (me *LockingFileSystem) ListXAttr(name string, context *Context) ([]string, Status) {
 	defer me.locked()()
-	return me.FileSystem.ListXAttr(name)
+	return me.FileSystem.ListXAttr(name, context)
 }
 
-func (me *LockingFileSystem) RemoveXAttr(name string, attr string) Status {
+func (me *LockingFileSystem) RemoveXAttr(name string, attr string, context *Context) Status {
 	defer me.locked()()
-	return me.FileSystem.RemoveXAttr(name, attr)
+	return me.FileSystem.RemoveXAttr(name, attr, context)
 }
 
 ////////////////////////////////////////////////////////////////

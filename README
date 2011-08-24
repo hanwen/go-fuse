@@ -106,9 +106,6 @@ Grep source code for TODO.  Major topics:
 
 * Missing support for FUSE_INTERRUPT, CUSE, BMAP, POLL, IOCTL
 
-* Partial support for mounting as root (The high level FS api does not
-  pass caller Uid/Gid/Pid)
-
 * In the high-level API, renames are racy; See also:
   http://sourceforge.net/mailarchive/message.php?msg_id=27550667
 

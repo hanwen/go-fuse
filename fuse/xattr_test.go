@@ -24,7 +24,7 @@ func NewXAttrFs(nm string, m map[string][]byte) *XAttrTestFs {
 	return x
 }
 
-func (me *XAttrTestFs) GetAttr(name string) (*os.FileInfo, Status) {
+func (me *XAttrTestFs) GetAttr(name string, context *Context) (*os.FileInfo, Status) {
 	a := &os.FileInfo{}
 	if name == "" || name == "/" {
 		a.Mode = S_IFDIR | 0700
@@ -37,7 +37,7 @@ func (me *XAttrTestFs) GetAttr(name string) (*os.FileInfo, Status) {
 	return nil, ENOENT
 }
 
-func (me *XAttrTestFs) SetXAttr(name string, attr string, data []byte, flags int) Status {
+func (me *XAttrTestFs) SetXAttr(name string, attr string, data []byte, flags int, context *Context) Status {
 	log.Println("SetXAttr", name, attr, string(data), flags)
 	if name != me.filename {
 		return ENOENT
@@ -48,7 +48,7 @@ func (me *XAttrTestFs) SetXAttr(name string, attr string, data []byte, flags int
 	return OK
 }
 
-func (me *XAttrTestFs) GetXAttr(name string, attr string) ([]byte, Status) {
+func (me *XAttrTestFs) GetXAttr(name string, attr string, context *Context) ([]byte, Status) {
 	if name != me.filename {
 		return nil, ENOENT
 	}
@@ -60,7 +60,7 @@ func (me *XAttrTestFs) GetXAttr(name string, attr string) ([]byte, Status) {
 	return v, OK
 }
 
-func (me *XAttrTestFs) ListXAttr(name string) (data []string, code Status) {
+func (me *XAttrTestFs) ListXAttr(name string, context *Context) (data []string, code Status) {
 	if name != me.filename {
 		return nil, ENOENT
 	}
@@ -71,7 +71,7 @@ func (me *XAttrTestFs) ListXAttr(name string) (data []string, code Status) {
 	return data, OK
 }
 
-func (me *XAttrTestFs) RemoveXAttr(name string, attr string) Status {
+func (me *XAttrTestFs) RemoveXAttr(name string, attr string, context *Context) Status {
 	if name != me.filename {
 		return ENOENT
 	}

@@ -172,7 +172,7 @@ func (me *AutoUnionFs) updateKnownFses() {
 	log.Println("Done looking")
 }
 
-func (me *AutoUnionFs) Readlink(path string) (out string, code fuse.Status) {
+func (me *AutoUnionFs) Readlink(path string, context *fuse.Context) (out string, code fuse.Status) {
 	comps := strings.Split(path, fuse.SeparatorString)
 	if comps[0] == _STATUS && comps[1] == _ROOT {
 		return me.root, fuse.OK
@@ -198,7 +198,7 @@ func (me *AutoUnionFs) getUnionFs(name string) *UnionFs {
 	return me.knownFileSystems[name]
 }
 
-func (me *AutoUnionFs) Symlink(pointedTo string, linkName string) (code fuse.Status) {
+func (me *AutoUnionFs) Symlink(pointedTo string, linkName string, context *fuse.Context) (code fuse.Status) {
 	comps := strings.Split(linkName, "/")
 	if len(comps) != 2 {
 		return fuse.EPERM
@@ -216,7 +216,7 @@ func (me *AutoUnionFs) Symlink(pointedTo string, linkName string) (code fuse.Sta
 	return fuse.EPERM
 }
 
-func (me *AutoUnionFs) Unlink(path string) (code fuse.Status) {
+func (me *AutoUnionFs) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 	comps := strings.Split(path, "/")
 	if len(comps) != 2 {
 		return fuse.EPERM
@@ -231,11 +231,11 @@ func (me *AutoUnionFs) Unlink(path string) (code fuse.Status) {
 }
 
 // Must define this, because ENOSYS will suspend all GetXAttr calls.
-func (me *AutoUnionFs) GetXAttr(name string, attr string) ([]byte, fuse.Status) {
+func (me *AutoUnionFs) GetXAttr(name string, attr string, context *fuse.Context) ([]byte, fuse.Status) {
 	return nil, fuse.ENODATA
 }
 
-func (me *AutoUnionFs) GetAttr(path string) (*os.FileInfo, fuse.Status) {
+func (me *AutoUnionFs) GetAttr(path string, context *fuse.Context) (*os.FileInfo, fuse.Status) {
 	if path == "" || path == _CONFIG || path == _STATUS {
 		a := &os.FileInfo{
 			Mode: fuse.S_IFDIR | 0755,
@@ -297,7 +297,7 @@ func (me *AutoUnionFs) StatusDir() (stream chan fuse.DirEntry, status fuse.Statu
 	return stream, fuse.OK
 }
 
-func (me *AutoUnionFs) Open(path string, flags uint32) (fuse.File, fuse.Status) {
+func (me *AutoUnionFs) Open(path string, flags uint32, context *fuse.Context) (fuse.File, fuse.Status) {
 	if path == filepath.Join(_STATUS, _VERSION) {
 		if flags&fuse.O_ANYWRITE != 0 {
 			return nil, fuse.EPERM
@@ -313,7 +313,7 @@ func (me *AutoUnionFs) Open(path string, flags uint32) (fuse.File, fuse.Status) 
 	return nil, fuse.ENOENT
 }
 
-func (me *AutoUnionFs) Truncate(name string, offset uint64) (code fuse.Status) {
+func (me *AutoUnionFs) Truncate(name string, offset uint64, context *fuse.Context) (code fuse.Status) {
 	if name != filepath.Join(_CONFIG, _SCAN_CONFIG) {
 		log.Println("Huh? Truncating unsupported write file", name)
 		return fuse.EPERM
@@ -321,7 +321,7 @@ func (me *AutoUnionFs) Truncate(name string, offset uint64) (code fuse.Status) {
 	return fuse.OK
 }
 
-func (me *AutoUnionFs) OpenDir(name string) (stream chan fuse.DirEntry, status fuse.Status) {
+func (me *AutoUnionFs) OpenDir(name string, context *fuse.Context) (stream chan fuse.DirEntry, status fuse.Status) {
 	switch name {
 	case _STATUS:
 		return me.StatusDir()

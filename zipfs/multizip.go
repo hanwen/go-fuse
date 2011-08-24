@@ -53,7 +53,7 @@ func (me *MultiZipFs) Mount(connector *fuse.FileSystemConnector) {
 	me.Connector = connector
 }
 
-func (me *MultiZipFs) OpenDir(name string) (stream chan fuse.DirEntry, code fuse.Status) {
+func (me *MultiZipFs) OpenDir(name string, context *fuse.Context) (stream chan fuse.DirEntry, code fuse.Status) {
 	me.lock.RLock()
 	defer me.lock.RUnlock()
 
@@ -78,7 +78,7 @@ func (me *MultiZipFs) OpenDir(name string) (stream chan fuse.DirEntry, code fuse
 	return stream, fuse.OK
 }
 
-func (me *MultiZipFs) GetAttr(name string) (*os.FileInfo, fuse.Status) {
+func (me *MultiZipFs) GetAttr(name string, context *fuse.Context) (*os.FileInfo, fuse.Status) {
 	a := &os.FileInfo{}
 	if name == "" {
 		// Should not write in top dir.
@@ -113,7 +113,7 @@ func (me *MultiZipFs) GetAttr(name string) (*os.FileInfo, fuse.Status) {
 	return nil, fuse.ENOENT
 }
 
-func (me *MultiZipFs) Unlink(name string) (code fuse.Status) {
+func (me *MultiZipFs) Unlink(name string, context *fuse.Context) (code fuse.Status) {
 	dir, basename := filepath.Split(name)
 	if dir == CONFIG_PREFIX {
 		me.lock.Lock()
@@ -135,7 +135,7 @@ func (me *MultiZipFs) Unlink(name string) (code fuse.Status) {
 	return fuse.EPERM
 }
 
-func (me *MultiZipFs) Readlink(path string) (val string, code fuse.Status) {
+func (me *MultiZipFs) Readlink(path string, context *fuse.Context) (val string, code fuse.Status) {
 	dir, base := filepath.Split(path)
 	if dir != CONFIG_PREFIX {
 		return "", fuse.ENOENT
@@ -151,7 +151,7 @@ func (me *MultiZipFs) Readlink(path string) (val string, code fuse.Status) {
 	return zipfile, fuse.OK
 
 }
-func (me *MultiZipFs) Symlink(value string, linkName string) (code fuse.Status) {
+func (me *MultiZipFs) Symlink(value string, linkName string, context *fuse.Context) (code fuse.Status) {
 	dir, base := filepath.Split(linkName)
 	if dir != CONFIG_PREFIX {
 		return fuse.EPERM

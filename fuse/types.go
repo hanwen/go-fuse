@@ -87,7 +87,7 @@ type Owner struct {
 	Gid uint32
 }
 
-type Identity struct {
+type Context struct {
 	Owner
 	Pid uint32
 }
@@ -430,7 +430,7 @@ type InHeader struct {
 	opcode
 	Unique uint64
 	NodeId uint64
-	Identity
+	Context
 	Padding uint32
 }
 

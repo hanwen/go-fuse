@@ -40,7 +40,7 @@ func (me *StatFs) add(name string, fi os.FileInfo) {
 	me.add(dir, os.FileInfo{Mode: fuse.S_IFDIR | 0755})
 }
 
-func (me *StatFs) GetAttr(name string) (*os.FileInfo, fuse.Status) {
+func (me *StatFs) GetAttr(name string, context *fuse.Context) (*os.FileInfo, fuse.Status) {
 	e := me.entries[name]
 	if e == nil {
 		return nil, fuse.ENOENT
@@ -48,7 +48,7 @@ func (me *StatFs) GetAttr(name string) (*os.FileInfo, fuse.Status) {
 	return e, fuse.OK
 }
 
-func (me *StatFs) OpenDir(name string) (stream chan fuse.DirEntry, status fuse.Status) {
+func (me *StatFs) OpenDir(name string, context *fuse.Context) (stream chan fuse.DirEntry, status fuse.Status) {
 	log.Printf("OPENDIR '%v', %v %v", name, me.entries, me.dirs)
 	entries := me.dirs[name]
 	if entries == nil {

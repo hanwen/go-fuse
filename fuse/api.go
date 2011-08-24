@@ -20,30 +20,30 @@ type FileSystem interface {
 	Name() string
 
 	// Attributes
-	GetAttr(name string) (*os.FileInfo, Status)
+	GetAttr(name string, context *Context) (*os.FileInfo, Status)
 
 	// These should update the file's ctime too.
-	Chmod(name string, mode uint32) (code Status)
-	Chown(name string, uid uint32, gid uint32) (code Status)
-	Utimens(name string, AtimeNs uint64, MtimeNs uint64) (code Status)
+	Chmod(name string, mode uint32, context *Context) (code Status)
+	Chown(name string, uid uint32, gid uint32, context *Context) (code Status)
+	Utimens(name string, AtimeNs uint64, MtimeNs uint64, context *Context) (code Status)
 
-	Truncate(name string, offset uint64) (code Status)
+	Truncate(name string, offset uint64, context *Context) (code Status)
 
-	Access(name string, mode uint32) (code Status)
+	Access(name string, mode uint32, context *Context) (code Status)
 
 	// Tree structure
-	Link(oldName string, newName string) (code Status)
-	Mkdir(name string, mode uint32) Status
-	Mknod(name string, mode uint32, dev uint32) Status
-	Rename(oldName string, newName string) (code Status)
-	Rmdir(name string) (code Status)
-	Unlink(name string) (code Status)
+	Link(oldName string, newName string, context *Context) (code Status)
+	Mkdir(name string, mode uint32, context *Context) Status
+	Mknod(name string, mode uint32, dev uint32, context *Context) Status
+	Rename(oldName string, newName string, context *Context) (code Status)
+	Rmdir(name string, context *Context) (code Status)
+	Unlink(name string, context *Context) (code Status)
 
 	// Extended attributes.
-	GetXAttr(name string, attribute string) (data []byte, code Status)
-	ListXAttr(name string) (attributes []string, code Status)
-	RemoveXAttr(name string, attr string) Status
-	SetXAttr(name string, attr string, data []byte, flags int) Status
+	GetXAttr(name string, attribute string, context *Context) (data []byte, code Status)
+	ListXAttr(name string, context *Context) (attributes []string, code Status)
+	RemoveXAttr(name string, attr string, context *Context) Status
+	SetXAttr(name string, attr string, data []byte, flags int, context *Context) Status
 
 	// Called after mount.
 	Mount(connector *FileSystemConnector)
@@ -51,18 +51,18 @@ type FileSystem interface {
 
 	// File handling.  If opening for writing, the file's mtime
 	// should be updated too.
-	Open(name string, flags uint32) (file File, code Status)
-	Create(name string, flags uint32, mode uint32) (file File, code Status)
+	Open(name string, flags uint32, context *Context) (file File, code Status)
+	Create(name string, flags uint32, mode uint32, context *Context) (file File, code Status)
 
 	// Flush() gets called as a file opened for read/write.
 	Flush(name string) Status
 
 	// Directory handling
-	OpenDir(name string) (stream chan DirEntry, code Status)
+	OpenDir(name string, context *Context) (stream chan DirEntry, code Status)
 
 	// Symlinks.
-	Symlink(value string, linkName string) (code Status)
-	Readlink(name string) (string, Status)
+	Symlink(value string, linkName string, context *Context) (code Status)
+	Readlink(name string, context *Context) (string, Status)
 
 	StatFs() *StatfsOut
 }
@@ -72,6 +72,7 @@ type FileSystem interface {
 // a default null implementation.
 //
 // TODO - should File be thread safe?
+// TODO - should we pass a *Context argument?
 type File interface {
 	Read(*ReadIn, BufferPool) ([]byte, Status)
 	Write(*WriteIn, []byte) (written uint32, code Status)

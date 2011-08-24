@@ -24,94 +24,94 @@ func (me *LoggingFileSystem) Print(name string, arg string) {
 	log.Printf("Op %s arg %s", name, arg)
 }
 
-func (me *LoggingFileSystem) GetAttr(name string) (*os.FileInfo, Status) {
+func (me *LoggingFileSystem) GetAttr(name string, context *Context) (*os.FileInfo, Status) {
 	me.Print("GetAttr", name)
-	return me.FileSystem.GetAttr(name)
+	return me.FileSystem.GetAttr(name, context)
 }
 
-func (me *LoggingFileSystem) GetXAttr(name string, attr string) ([]byte, Status) {
+func (me *LoggingFileSystem) GetXAttr(name string, attr string, context *Context) ([]byte, Status) {
 	me.Print("GetXAttr", name)
-	return me.FileSystem.GetXAttr(name, attr)
+	return me.FileSystem.GetXAttr(name, attr, context)
 }
 
-func (me *LoggingFileSystem) SetXAttr(name string, attr string, data []byte, flags int) Status {
+func (me *LoggingFileSystem) SetXAttr(name string, attr string, data []byte, flags int, context *Context) Status {
 	me.Print("SetXAttr", name)
-	return me.FileSystem.SetXAttr(name, attr, data, flags)
+	return me.FileSystem.SetXAttr(name, attr, data, flags, context)
 }
 
-func (me *LoggingFileSystem) ListXAttr(name string) ([]string, Status) {
+func (me *LoggingFileSystem) ListXAttr(name string, context *Context) ([]string, Status) {
 	me.Print("ListXAttr", name)
-	return me.FileSystem.ListXAttr(name)
+	return me.FileSystem.ListXAttr(name, context)
 }
 
-func (me *LoggingFileSystem) RemoveXAttr(name string, attr string) Status {
+func (me *LoggingFileSystem) RemoveXAttr(name string, attr string, context *Context) Status {
 	me.Print("RemoveXAttr", name)
-	return me.FileSystem.RemoveXAttr(name, attr)
+	return me.FileSystem.RemoveXAttr(name, attr, context)
 }
 
-func (me *LoggingFileSystem) Readlink(name string) (string, Status) {
+func (me *LoggingFileSystem) Readlink(name string, context *Context) (string, Status) {
 	me.Print("Readlink", name)
-	return me.FileSystem.Readlink(name)
+	return me.FileSystem.Readlink(name, context)
 }
 
-func (me *LoggingFileSystem) Mknod(name string, mode uint32, dev uint32) Status {
+func (me *LoggingFileSystem) Mknod(name string, mode uint32, dev uint32, context *Context) Status {
 	me.Print("Mknod", name)
-	return me.FileSystem.Mknod(name, mode, dev)
+	return me.FileSystem.Mknod(name, mode, dev, context)
 }
 
-func (me *LoggingFileSystem) Mkdir(name string, mode uint32) Status {
+func (me *LoggingFileSystem) Mkdir(name string, mode uint32, context *Context) Status {
 	me.Print("Mkdir", name)
-	return me.FileSystem.Mkdir(name, mode)
+	return me.FileSystem.Mkdir(name, mode, context)
 }
 
-func (me *LoggingFileSystem) Unlink(name string) (code Status) {
+func (me *LoggingFileSystem) Unlink(name string, context *Context) (code Status) {
 	me.Print("Unlink", name)
-	return me.FileSystem.Unlink(name)
+	return me.FileSystem.Unlink(name, context)
 }
 
-func (me *LoggingFileSystem) Rmdir(name string) (code Status) {
+func (me *LoggingFileSystem) Rmdir(name string, context *Context) (code Status) {
 	me.Print("Rmdir", name)
-	return me.FileSystem.Rmdir(name)
+	return me.FileSystem.Rmdir(name, context)
 }
 
-func (me *LoggingFileSystem) Symlink(value string, linkName string) (code Status) {
+func (me *LoggingFileSystem) Symlink(value string, linkName string, context *Context) (code Status) {
 	me.Print("Symlink", linkName)
-	return me.FileSystem.Symlink(value, linkName)
+	return me.FileSystem.Symlink(value, linkName, context)
 }
 
-func (me *LoggingFileSystem) Rename(oldName string, newName string) (code Status) {
+func (me *LoggingFileSystem) Rename(oldName string, newName string, context *Context) (code Status) {
 	me.Print("Rename", oldName)
-	return me.FileSystem.Rename(oldName, newName)
+	return me.FileSystem.Rename(oldName, newName, context)
 }
 
-func (me *LoggingFileSystem) Link(oldName string, newName string) (code Status) {
+func (me *LoggingFileSystem) Link(oldName string, newName string, context *Context) (code Status) {
 	me.Print("Link", newName)
-	return me.FileSystem.Link(oldName, newName)
+	return me.FileSystem.Link(oldName, newName, context)
 }
 
-func (me *LoggingFileSystem) Chmod(name string, mode uint32) (code Status) {
+func (me *LoggingFileSystem) Chmod(name string, mode uint32, context *Context) (code Status) {
 	me.Print("Chmod", name)
-	return me.FileSystem.Chmod(name, mode)
+	return me.FileSystem.Chmod(name, mode, context)
 }
 
-func (me *LoggingFileSystem) Chown(name string, uid uint32, gid uint32) (code Status) {
+func (me *LoggingFileSystem) Chown(name string, uid uint32, gid uint32, context *Context) (code Status) {
 	me.Print("Chown", name)
-	return me.FileSystem.Chown(name, uid, gid)
+	return me.FileSystem.Chown(name, uid, gid, context)
 }
 
-func (me *LoggingFileSystem) Truncate(name string, offset uint64) (code Status) {
+func (me *LoggingFileSystem) Truncate(name string, offset uint64, context *Context) (code Status) {
 	me.Print("Truncate", name)
-	return me.FileSystem.Truncate(name, offset)
+	return me.FileSystem.Truncate(name, offset, context)
 }
 
-func (me *LoggingFileSystem) Open(name string, flags uint32) (file File, code Status) {
+func (me *LoggingFileSystem) Open(name string, flags uint32, context *Context) (file File, code Status) {
 	me.Print("Open", name)
-	return me.FileSystem.Open(name, flags)
+	return me.FileSystem.Open(name, flags, context)
 }
 
-func (me *LoggingFileSystem) OpenDir(name string) (stream chan DirEntry, status Status) {
+func (me *LoggingFileSystem) OpenDir(name string, context *Context) (stream chan DirEntry, status Status) {
 	me.Print("OpenDir", name)
-	return me.FileSystem.OpenDir(name)
+	return me.FileSystem.OpenDir(name, context)
 }
 
 func (me *LoggingFileSystem) Mount(conn *FileSystemConnector) {
@@ -124,17 +124,17 @@ func (me *LoggingFileSystem) Unmount() {
 	me.FileSystem.Unmount()
 }
 
-func (me *LoggingFileSystem) Access(name string, mode uint32) (code Status) {
+func (me *LoggingFileSystem) Access(name string, mode uint32, context *Context) (code Status) {
 	me.Print("Access", name)
-	return me.FileSystem.Access(name, mode)
+	return me.FileSystem.Access(name, mode, context)
 }
 
-func (me *LoggingFileSystem) Create(name string, flags uint32, mode uint32) (file File, code Status) {
+func (me *LoggingFileSystem) Create(name string, flags uint32, mode uint32, context *Context) (file File, code Status) {
 	me.Print("Create", name)
-	return me.FileSystem.Create(name, flags, mode)
+	return me.FileSystem.Create(name, flags, mode, context)
 }
 
-func (me *LoggingFileSystem) Utimens(name string, AtimeNs uint64, CtimeNs uint64) (code Status) {
+func (me *LoggingFileSystem) Utimens(name string, AtimeNs uint64, CtimeNs uint64, context *Context) (code Status) {
 	me.Print("Utimens", name)
-	return me.FileSystem.Utimens(name, AtimeNs, CtimeNs)
+	return me.FileSystem.Utimens(name, AtimeNs, CtimeNs, context)
 }

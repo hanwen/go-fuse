@@ -14,7 +14,7 @@ type NotifyFs struct {
 	exist bool
 }
 
-func (me *NotifyFs) GetAttr(name string) (*os.FileInfo, Status) {
+func (me *NotifyFs) GetAttr(name string, context *Context) (*os.FileInfo, Status) {
 	if name == "" {
 		return &os.FileInfo{Mode: S_IFDIR | 0755}, OK
 	}
@@ -27,7 +27,7 @@ func (me *NotifyFs) GetAttr(name string) (*os.FileInfo, Status) {
 	return nil, ENOENT
 }
 
-func (me *NotifyFs) Open(name string, f uint32) (File, Status) {
+func (me *NotifyFs) Open(name string, f uint32, context *Context) (File, Status) {
 	return NewReadOnlyFile([]byte{42}), OK
 }
 

@@ -83,11 +83,11 @@ type FSetAttrFs struct {
 	file *MutableDataFile
 }
 
-func (me *FSetAttrFs) GetXAttr(name string, attr string) ([]byte, Status) {
+func (me *FSetAttrFs) GetXAttr(name string, attr string, context *Context) ([]byte, Status) {
 	return nil, ENODATA
 }
 
-func (me *FSetAttrFs) GetAttr(name string) (*os.FileInfo, Status) {
+func (me *FSetAttrFs) GetAttr(name string, context *Context) (*os.FileInfo, Status) {
 	if name == "" {
 		return &os.FileInfo{Mode: S_IFDIR | 0700}, OK
 	}
@@ -99,14 +99,14 @@ func (me *FSetAttrFs) GetAttr(name string) (*os.FileInfo, Status) {
 	return nil, ENOENT
 }
 
-func (me *FSetAttrFs) Open(name string, flags uint32) (File, Status) {
+func (me *FSetAttrFs) Open(name string, flags uint32, context *Context) (File, Status) {
 	if name == "file" {
 		return me.file, OK
 	}
 	return nil, ENOENT
 }
 
-func (me *FSetAttrFs) Create(name string, flags uint32, mode uint32) (File, Status) {
+func (me *FSetAttrFs) Create(name string, flags uint32, mode uint32, context *Context) (File, Status) {
 	if name == "file" {
 		f := NewFile()
 		me.file = f

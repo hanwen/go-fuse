@@ -11,8 +11,8 @@ type cacheFs struct {
 	*LoopbackFileSystem
 }
 
-func (me *cacheFs) Open(name string, flags uint32) (fuseFile File, status Status) {
-	f, c := me.LoopbackFileSystem.Open(name, flags)
+func (me *cacheFs) Open(name string, flags uint32, context *Context) (fuseFile File, status Status) {
+	f, c := me.LoopbackFileSystem.Open(name, flags, context)
 	if !c.Ok() {
 		return f, c
 	}
@@ -88,14 +88,14 @@ type nonseekFs struct {
 	Length int 
 }
 
-func (me *nonseekFs) GetAttr(name string) (fi *os.FileInfo, status Status) {
+func (me *nonseekFs) GetAttr(name string, context *Context) (fi *os.FileInfo, status Status) {
 	if name == "file" {
 		return &os.FileInfo{ Mode: S_IFREG | 0644 }, OK
 	}
 	return nil, ENOENT
 }
 
-func (me *nonseekFs) Open(name string, flags uint32) (fuseFile File, status Status) {
+func (me *nonseekFs) Open(name string, flags uint32, context *Context) (fuseFile File, status Status) {
 	if name != "file" {
 		return nil, ENOENT
 	}

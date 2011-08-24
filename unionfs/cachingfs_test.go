@@ -34,7 +34,7 @@ func TestCachingFs(t *testing.T) {
 	cfs := NewCachingFileSystem(fs, 0)
 
 	os.Mkdir(wd+"/orig", 0755)
-	fi, code := cfs.GetAttr("orig")
+	fi, code := cfs.GetAttr("orig", nil)
 	if !code.Ok() {
 		t.Fatal("GetAttr failure", code)
 	}
@@ -44,7 +44,7 @@ func TestCachingFs(t *testing.T) {
 
 	os.Symlink("orig", wd+"/symlink")
 
-	val, code := cfs.Readlink("symlink")
+	val, code := cfs.Readlink("symlink", nil)
 	if val != "orig" {
 		t.Error("unexpected readlink", val)
 	}
@@ -52,7 +52,7 @@ func TestCachingFs(t *testing.T) {
 		t.Error("code !ok ", code)
 	}
 
-	stream, code := cfs.OpenDir("")
+	stream, code := cfs.OpenDir("", nil)
 	if !code.Ok() {
 		t.Fatal("Readdir fail", code)
 	}

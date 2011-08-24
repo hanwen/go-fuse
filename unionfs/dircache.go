@@ -11,7 +11,7 @@ import (
 // returns a nil map. This forces reloads in the DirCache until we
 // succeed.
 func newDirnameMap(fs fuse.FileSystem, dir string) map[string]bool {
-	stream, code := fs.OpenDir(dir)
+	stream, code := fs.OpenDir(dir, nil)
 	if !code.Ok() {
 		log.Printf("newDirnameMap(%s): %v %v", fs.Name(), dir, code)
 		return nil

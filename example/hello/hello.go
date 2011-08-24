@@ -13,7 +13,7 @@ type HelloFs struct {
 	fuse.DefaultFileSystem
 }
 
-func (me *HelloFs) GetAttr(name string) (*os.FileInfo, fuse.Status) {
+func (me *HelloFs) GetAttr(name string, context *fuse.Context) (*os.FileInfo, fuse.Status) {
 	switch name {
 	case "file.txt":
 		return &os.FileInfo{
@@ -27,7 +27,7 @@ func (me *HelloFs) GetAttr(name string) (*os.FileInfo, fuse.Status) {
 	return nil, fuse.ENOENT
 }
 
-func (me *HelloFs) OpenDir(name string) (c chan fuse.DirEntry, code fuse.Status) {
+func (me *HelloFs) OpenDir(name string, context *fuse.Context) (c chan fuse.DirEntry, code fuse.Status) {
 	if name == "" {
 		c = make(chan fuse.DirEntry, 1)
 		c <- fuse.DirEntry{Name: "file.txt", Mode: fuse.S_IFREG}
@@ -37,7 +37,7 @@ func (me *HelloFs) OpenDir(name string) (c chan fuse.DirEntry, code fuse.Status)
 	return nil, fuse.ENOENT
 }
 
-func (me *HelloFs) Open(name string, flags uint32) (file fuse.File, code fuse.Status) {
+func (me *HelloFs) Open(name string, flags uint32, context *fuse.Context) (file fuse.File, code fuse.Status) {
 	if name != "file.txt" {
 		return nil, fuse.ENOENT
 	}

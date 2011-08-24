@@ -91,7 +91,7 @@ func (me *MemTreeFileSystem) Name() string {
 	return "MemTreeFileSystem"
 }
 
-func (me *MemTreeFileSystem) GetAttr(name string) (*os.FileInfo, fuse.Status) {
+func (me *MemTreeFileSystem) GetAttr(name string, context *fuse.Context) (*os.FileInfo, fuse.Status) {
 	dir, file := me.tree.Lookup(name)
 	if dir == nil {
 		return nil, fuse.ENOENT
@@ -107,7 +107,7 @@ func (me *MemTreeFileSystem) GetAttr(name string) (*os.FileInfo, fuse.Status) {
 	return a, fuse.OK
 }
 
-func (me *MemTreeFileSystem) Open(name string, flags uint32) (fuseFile fuse.File, code fuse.Status) {
+func (me *MemTreeFileSystem) Open(name string, flags uint32, context *fuse.Context) (fuseFile fuse.File, code fuse.Status) {
 	if flags&fuse.O_ANYWRITE != 0 {
 		return nil, fuse.EPERM
 	}
@@ -120,7 +120,7 @@ func (me *MemTreeFileSystem) Open(name string, flags uint32) (fuseFile fuse.File
 	return fuse.NewReadOnlyFile(file.Data()), fuse.OK
 }
 
-func (me *MemTreeFileSystem) OpenDir(name string) (stream chan fuse.DirEntry, code fuse.Status) {
+func (me *MemTreeFileSystem) OpenDir(name string, context *fuse.Context) (stream chan fuse.DirEntry, code fuse.Status) {
 	dir, file := me.tree.Lookup(name)
 	if dir == nil {
 		return nil, fuse.ENOENT

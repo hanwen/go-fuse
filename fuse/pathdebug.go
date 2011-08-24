@@ -42,12 +42,12 @@ func (me *FileSystemDebug) Add(name string, callback getter) {
 	me.callbacks[name] = callback
 }
 
-func (me *FileSystemDebug) Open(path string, flags uint32) (fuseFile File, status Status) {
+func (me *FileSystemDebug) Open(path string, flags uint32, context *Context) (fuseFile File, status Status) {
 	content := me.getContent(path)
 	if content != nil {
 		return NewReadOnlyFile(content), OK
 	}
-	return me.FileSystem.Open(path, flags)
+	return me.FileSystem.Open(path, flags, context)
 }
 
 var SeparatorString = string([]byte{filepath.Separator})
@@ -65,16 +65,16 @@ func (me *FileSystemDebug) getContent(path string) []byte {
 	return nil
 }
 
-func (me *FileSystemDebug) GetXAttr(name string, attr string) ([]byte, Status) {
+func (me *FileSystemDebug) GetXAttr(name string, attr string, context *Context) ([]byte, Status) {
 	if strings.HasPrefix(name, DebugDir) {
 		return nil, ENODATA
 	}
-	return me.FileSystem.GetXAttr(name, attr)
+	return me.FileSystem.GetXAttr(name, attr, context)
 }
 
-func (me *FileSystemDebug) GetAttr(path string) (*os.FileInfo, Status) {
+func (me *FileSystemDebug) GetAttr(path string, context *Context) (*os.FileInfo, Status) {
 	if !strings.HasPrefix(path, DebugDir) {
-		return me.FileSystem.GetAttr(path)
+		return me.FileSystem.GetAttr(path, context)
 	}
 	if path == DebugDir {
 		return &os.FileInfo{
@@ -122,7 +122,7 @@ func IntMapToBytes(m map[string]int) []byte {
 	return []byte(strings.Join(r, "\n"))
 }
 
-func (me *FileSystemDebug) OpenDir(name string) (stream chan DirEntry, status Status) {
+func (me *FileSystemDebug) OpenDir(name string, context *Context) (stream chan DirEntry, status Status) {
 	if name == DebugDir {
 		me.RWMutex.RLock()
 		defer me.RWMutex.RUnlock()
@@ -137,7 +137,7 @@ func (me *FileSystemDebug) OpenDir(name string) (stream chan DirEntry, status St
 		close(stream)
 		return stream, OK
 	}
-	return me.FileSystem.OpenDir(name)
+	return me.FileSystem.OpenDir(name, context)
 }
 
 func (me *FileSystemDebug) AddMountState(state *MountState) {

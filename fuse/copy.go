@@ -4,15 +4,15 @@ import (
 	"os"
 )
 
-func CopyFile(srcFs, destFs FileSystem, srcFile, destFile string) Status {
-	src, code := srcFs.Open(srcFile, uint32(os.O_RDONLY))
+func CopyFile(srcFs, destFs FileSystem, srcFile, destFile string, context *Context) Status {
+	src, code := srcFs.Open(srcFile, uint32(os.O_RDONLY), context)
 	if !code.Ok() {
 		return code
 	}
 	defer src.Release()
 	defer src.Flush()
 
-	attr, code := srcFs.GetAttr(srcFile)
+	attr, code := srcFs.GetAttr(srcFile, context)
 	if !code.Ok() {
 		return code
 	}
@@ -20,7 +20,7 @@ func CopyFile(srcFs, destFs FileSystem, srcFile, destFile string) Status {
 	w := WriteIn{
 		Flags: uint32(os.O_WRONLY | os.O_CREATE | os.O_TRUNC),
 	}
-	dst, code := destFs.Create(destFile, w.Flags, attr.Mode)
+	dst, code := destFs.Create(destFile, w.Flags, attr.Mode, context)
 	if !code.Ok() {
 		return code
 	}
