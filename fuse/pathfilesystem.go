@@ -259,7 +259,8 @@ func (me *inode) GetFullPath() (path string) {
 
 // GetPath returns the path relative to the mount governing this
 // inode.  It returns nil for mount if the file was deleted or the
-// filesystem unmounted.
+// filesystem unmounted.  This will take the treeLock for the mount,
+// so it can not be used in internal methods.
 func (me *inode) GetPath() (path string, mount *fileSystemMount) {
 	me.treeLock.RLock()
 	defer me.treeLock.RUnlock()
@@ -474,7 +475,7 @@ func (me *FileSystemConnector) findLastKnownInode(fullPath string) (*inode, []st
 	if fullPath == "" {
 		return me.rootNode, nil
 	}
-	
+
 	fullPath = strings.TrimLeft(filepath.Clean(fullPath), "/")
 	comps := strings.Split(fullPath, "/")
 
@@ -660,9 +661,6 @@ func (me *FileSystemConnector) unsafeUnmountNode(node *inode) {
 
 func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64) (f File, m *fileSystemMount, p string, node *inode) {
 	node = me.getInodeData(nodeid)
-	node.treeLock.RLock()
-	defer node.treeLock.RUnlock()
-
 	if fh != 0 {
 		opened := me.getOpenedFile(fh)
 		m = opened.fileSystemMount
@@ -673,7 +671,7 @@ func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64) (f File
 	if me.Debug {
 		log.Printf("Node %v = '%s'", nodeid, path)
 	}
-	
+
 	// If the file was deleted, GetPath() will return nil.
 	if mount != nil {
 		m = mount
@@ -719,7 +717,7 @@ func (me *FileSystemConnector) Notify(path string) Status {
 	node, rest := me.findLastKnownInode(path)
 	if len(rest) > 0 {
 			return me.fsInit.EntryNotify(node.NodeId, rest[0])
-	} 
+	}
 	out := NotifyInvalInodeOut{
 		Ino:    node.NodeId,
 	}
