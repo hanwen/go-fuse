@@ -411,7 +411,7 @@ func (me *FileSystemConnector) Create(header *InHeader, input *CreateIn, name st
 
 	out, code, inode := me.internalLookupWithNode(parent, name, 1, &header.Context)
 	if inode == nil {
-		msg := fmt.Sprintf("Create succeded, but GetAttr returned no entry %v", fullPath)
+		msg := fmt.Sprintf("Create succeded, but GetAttr returned no entry %v. code %v", fullPath, code)
 		panic(msg)
 	}
 	handle, opened := mount.registerFileHandle(inode, nil, f, input.Flags)
