@@ -705,7 +705,6 @@ func (me *FileSystemConnector) FileNotify(path string, off int64, length int64) 
 func (me *FileSystemConnector) EntryNotify(dir string, name string) Status {
 	node := me.findInode(dir)
 	if node == nil {
-		log.Printf("dir not found, %q", dir)
 		return ENOENT
 	}
 
