@@ -3,6 +3,7 @@ package fuse
 import (
 	"log"
 	"os"
+	"strings"
 	"syscall"
 	"time"
 	"unsafe"
@@ -55,12 +56,12 @@ func (me *MountState) Mount(mountPoint string, opts *MountOptions) os.Error {
 	}
 	me.opts = opts
 
-	optStr := ""
+	optStrs := opts.Options
 	if opts.AllowOther {
-		optStr = "allow_other"
+		optStrs = append(optStrs, "allow_other")
 	}
 
-	file, mp, err := mount(mountPoint, optStr)
+	file, mp, err := mount(mountPoint, strings.Join(optStrs, ","))
 	if err != nil {
 		return err
 	}

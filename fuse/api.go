@@ -111,6 +111,9 @@ type FileSystemOptions struct {
 type MountOptions struct {
 	AllowOther bool
 
+	// Options are passed as -o string to fusermount.
+	Options    []string
+
 	// Default is _DEFAULT_BACKGROUND_TASKS, 12.
 	MaxBackground int
 }
