@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"fmt"
 	"log"
+	"path/filepath"
 	"syscall"
 	"testing"
 	"time"
@@ -158,7 +159,7 @@ func TestSymlinkPromote(t *testing.T) {
 
 	err := os.Mkdir(wd + "/ro/subdir", 0755)
 	CheckSuccess(err)
-	
+
 	err = os.Symlink("/foobar", wd+"/mount/subdir/link")
 	CheckSuccess(err)
 }
@@ -645,17 +646,29 @@ func TestRemoveAll(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
-	err := os.Mkdir(wd+"/ro/dir", 0755)
+	err := os.MkdirAll(wd+"/ro/dir/subdir", 0755)
 	CheckSuccess(err)
 
 	contents := "hello"
-	fn := wd + "/ro/dir/y"
+	fn := wd + "/ro/dir/subdir/y"
 	err = ioutil.WriteFile(fn, []byte(contents), 0644)
 	CheckSuccess(err)
 
 	err = os.RemoveAll(wd + "/mount/dir")
 	if err != nil {
 		t.Error("Should delete all")
+	}
+
+	for _, f := range []string{"dir/subdir/y", "dir/subdir", "dir"} {
+		if fi, _ := os.Lstat(filepath.Join(wd, "mount", f)); fi != nil {
+			t.Errorf("file %s should have disappeared: %v", f, fi)
+		}
+	}
+
+	names, err := Readdirnames(wd + "/rw/DELETIONS")
+	CheckSuccess(err)
+	if len(names) != 3 {
+		t.Fatal("unexpected names", names)
 	}
 }
 
