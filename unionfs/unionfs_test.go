@@ -1,6 +1,7 @@
 package unionfs
 
 import (
+	"exec"
 	"os"
 	"github.com/hanwen/go-fuse/fuse"
 	"io/ioutil"
@@ -53,8 +54,9 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 		NegativeTimeout: .5 * entryTtl,
 	}
 
-	state, _, err := fuse.MountFileSystem(wd+"/mount", ufs, opts)
+	state, conn, err := fuse.MountFileSystem(wd+"/mount", ufs, opts)
 	CheckSuccess(err)
+	conn.Debug = true
 	state.Debug = true
 	go state.Loop(false)
 
@@ -657,6 +659,38 @@ func TestRemoveAll(t *testing.T) {
 	err = os.RemoveAll(wd + "/mount/dir")
 	if err != nil {
 		t.Error("Should delete all")
+	}
+
+	for _, f := range []string{"dir/subdir/y", "dir/subdir", "dir"} {
+		if fi, _ := os.Lstat(filepath.Join(wd, "mount", f)); fi != nil {
+			t.Errorf("file %s should have disappeared: %v", f, fi)
+		}
+	}
+
+	names, err := Readdirnames(wd + "/rw/DELETIONS")
+	CheckSuccess(err)
+	if len(names) != 3 {
+		t.Fatal("unexpected names", names)
+	}
+}
+
+func TestRmRf(t *testing.T) {
+	t.Log("TestRemoveAll")
+	wd, clean := setupUfs(t)
+	defer clean()
+
+	err := os.MkdirAll(wd+"/ro/dir/subdir", 0755)
+	CheckSuccess(err)
+
+	contents := "hello"
+	fn := wd + "/ro/dir/subdir/y"
+	err = ioutil.WriteFile(fn, []byte(contents), 0644)
+	CheckSuccess(err)
+
+	cmd := exec.Command("/bin/rm", "-rf", wd + "/mount/dir")
+	err = cmd.Run()
+	if err != nil {
+		t.Fatal("rm -rf returned error:", err)
 	}
 
 	for _, f := range []string{"dir/subdir/y", "dir/subdir", "dir"} {
