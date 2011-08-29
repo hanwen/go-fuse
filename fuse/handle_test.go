@@ -25,7 +25,7 @@ func TestHandleMapDoubleRegister(t *testing.T) {
 	}
 	log.Println("TestDoubleRegister")
 	defer markSeen("already has a handle")
-	hm := NewHandleMap()
+	hm := NewHandleMap(true)
 	hm.Register(&Handled{})
 	v := &Handled{}
 	hm.Register(v)
@@ -38,7 +38,7 @@ func TestHandleMapUnaligned(t *testing.T) {
 		t.Log("skipping test for 32 bits")
 		return
 	}
-	hm := NewHandleMap()
+	hm := NewHandleMap(true)
 
 	b := make([]byte, 100)
 	v := (*Handled)(unsafe.Pointer(&b[1]))
@@ -54,7 +54,7 @@ func TestHandleMapPointerLayout(t *testing.T) {
 		return
 	}
 
-	hm := NewHandleMap()
+	hm := NewHandleMap(true)
 	bogus := uint64(1) << uint32((8 * (unsafe.Sizeof(t) - 1)))
 	p := uintptr(bogus)
 	v := (*Handled)(unsafe.Pointer(p))
@@ -69,7 +69,7 @@ func TestHandleMapBasic(t *testing.T) {
 		return
 	}
 	v := new(Handled)
-	hm := NewHandleMap()
+	hm := NewHandleMap(true)
 	h := hm.Register(v)
 	log.Printf("Got handle 0x%x", h)
 	if DecodeHandle(h) != v {
@@ -89,7 +89,7 @@ func TestHandleMapMultiple(t *testing.T) {
 		t.Log("skipping test for 32 bits")
 		return
 	}
-	hm := NewHandleMap()
+	hm := NewHandleMap(true)
 	for i := 0; i < 10; i++ {
 		v := &Handled{}
 		h := hm.Register(v)
@@ -110,8 +110,25 @@ func TestHandleMapCheckFail(t *testing.T) {
 	defer markSeen("check mismatch")
 
 	v := new(Handled)
-	hm := NewHandleMap()
+	hm := NewHandleMap(true)
 	h := hm.Register(v)
 	DecodeHandle(h | (uint64(1) << 63))
 	t.Error("Borked decode did not panic")
+}
+
+func TestHandleMapNoCheck(t *testing.T) {
+	if unsafe.Sizeof(t) < 8 {
+		t.Log("skipping test for 32 bits")
+		return
+	}
+	v := new(Handled)
+	hm := NewHandleMap(false)
+	h := hm.Register(v)
+	if h > uint64(0xffffffff) {
+		t.Errorf("handles should in 32 bit if verification switched off: %x", h)
+	}
+	v2 := DecodeHandle(h)
+	if v2 != v {
+		t.Errorf("Handle decode error.")
+	}
 }

@@ -85,7 +85,7 @@ func TestCacheFs(t *testing.T) {
 
 type nonseekFs struct {
 	DefaultFileSystem
-	Length int 
+	Length int
 }
 
 func (me *nonseekFs) GetAttr(name string, context *Context) (fi *os.FileInfo, status Status) {
@@ -124,7 +124,7 @@ func TestNonseekable(t *testing.T) {
 	f, err := os.Open(dir + "/file")
 	CheckSuccess(err)
 	defer f.Close()
-	
+
 	b := make([]byte, 200)
 	n, err := f.ReadAt(b, 20)
 	if err == nil || n > 0 {

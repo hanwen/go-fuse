@@ -2,8 +2,9 @@ package fuse
 
 import (
 	"fmt"
-	"unsafe"
+	"log"
 	"sync"
+	"unsafe"
 )
 
 // HandleMap translates objects in Go space to 64-bit handles that can
@@ -13,7 +14,7 @@ import (
 // in a map, so the Go runtime will not garbage collect it.
 //
 // The 32 bits version of this is a threadsafe wrapper around a map.
-// 
+//
 // To use it, include Handled as first member of the structure
 // you wish to export.
 //
@@ -64,7 +65,10 @@ type int64HandleMap struct {
 	mutex    sync.Mutex
 	handles  map[uint64]*Handled
 	nextFree uint32
+	addCheck bool
 }
+
+var baseAddress uint64
 
 func (me *int64HandleMap) verify() {
 	if !paranoia {
@@ -80,11 +84,14 @@ func (me *int64HandleMap) verify() {
 	}
 }
 
-func NewHandleMap() (hm HandleMap) {
+// NewHandleMap creates a new HandleMap.  If verify is given, we
+// use remaining bits in the handle to store sanity check bits.
+func NewHandleMap(verify bool) (hm HandleMap) {
 	var obj *Handled
 	switch unsafe.Sizeof(obj) {
 	case 8:
 		return &int64HandleMap{
+			addCheck: verify,
 			handles:  make(map[uint64]*Handled),
 			nextFree: 1, // to make tests easier.
 		}
@@ -92,7 +99,10 @@ func NewHandleMap() (hm HandleMap) {
 		return &int32HandleMap{
 			handles: make(map[uint32]*Handled),
 		}
+	default:
+		log.Println("Unknown size.")
 	}
+
 	return nil
 }
 
@@ -109,10 +119,6 @@ func (me *int64HandleMap) Register(obj *Handled) (handle uint64) {
 	defer me.mutex.Unlock()
 
 	handle = uint64(uintptr(unsafe.Pointer(obj)))
-	check := me.nextFree
-	me.nextFree++
-
-	me.nextFree = me.nextFree & (1<<(64-48+3) - 1)
 
 	rest := (handle &^ (1<<48 - 1))
 	if rest != 0 {
@@ -121,13 +127,21 @@ func (me *int64HandleMap) Register(obj *Handled) (handle uint64) {
 	if handle&0x7 != 0 {
 		panic("unaligned ptr")
 	}
+	handle -= baseAddress
 	handle >>= 3
-	handle |= uint64(check) << (48 - 3)
 
-	if obj.check != 0 {
-		panic("Object already has a handle.")
+	if me.addCheck {
+		check := me.nextFree
+		me.nextFree++
+		me.nextFree = me.nextFree & (1<<(64-48+3) - 1)
+
+		handle |= uint64(check) << (48 - 3)
+		if obj.check != 0 {
+			panic("Object already has a handle.")
+		}
+		obj.check = check
 	}
-	obj.check = check
+
 	me.handles[handle] = obj
 	return handle
 }
@@ -149,7 +163,7 @@ func DecodeHandle(handle uint64) (val *Handled) {
 	if unsafe.Sizeof(val) == 8 {
 		ptrBits := uintptr(handle & (1<<45 - 1))
 		check = uint32(handle >> 45)
-		val = (*Handled)(unsafe.Pointer(ptrBits << 3))
+		val = (*Handled)(unsafe.Pointer(ptrBits << 3 + uintptr(baseAddress)))
 	}
 	if unsafe.Sizeof(val) == 4 {
 		val = (*Handled)(unsafe.Pointer(uintptr(handle & ((1 << 32) - 1))))
@@ -160,4 +174,11 @@ func DecodeHandle(handle uint64) (val *Handled) {
 		panic(msg)
 	}
 	return val
+}
+
+func init() {
+	// TODO - figure out a way to discover this nicely.  This is
+	// depends in a pretty fragile way on the 6g allocator
+	// characteristics.
+	baseAddress = uint64(0xf800000000)
 }

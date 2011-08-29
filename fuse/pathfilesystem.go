@@ -158,7 +158,7 @@ type inode struct {
 func (me *inode) mountFs(fs FileSystem, opts *FileSystemOptions) {
 	me.mountPoint = &fileSystemMount{
 		fs:         fs,
-		openFiles:  NewHandleMap(),
+		openFiles:  NewHandleMap(true),
 		mountInode: me,
 		options:    opts,
 	}
@@ -510,16 +510,6 @@ func (me *FileSystemConnector) findInode(fullPath string) *inode {
 
 ////////////////////////////////////////////////////////////////
 
-func EmptyFileSystemConnector() (me *FileSystemConnector) {
-	me = new(FileSystemConnector)
-	me.inodeMap = NewHandleMap()
-
-	me.rootNode = me.newInode(true)
-	me.rootNode.NodeId = FUSE_ROOT_ID
-	me.verify()
-	return me
-}
-
 // Mount() generates a synthetic directory node, and mounts the file
 // system there.  If opts is nil, the mount options of the root file
 // system are inherited.  The encompassing filesystem should pretend
@@ -581,9 +571,6 @@ func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *Fil
 }
 
 func (me *FileSystemConnector) mountRoot(fs FileSystem, opts *FileSystemOptions) {
-	if opts == nil {
-		opts = NewFileSystemOptions()
-	}
 	me.rootNode.mountFs(fs, opts)
 	fs.Mount(me)
 	me.verify()

@@ -1,9 +1,12 @@
 package fuse
 
 import (
+	"log"
 	"os"
 	"fmt"
 )
+
+var _ = log.Println
 
 func MountFileSystem(mountpoint string, fs FileSystem, opts *FileSystemOptions) (*MountState, *FileSystemConnector, os.Error) {
 	conn := NewFileSystemConnector(fs, opts)

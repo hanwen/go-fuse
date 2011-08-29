@@ -12,10 +12,17 @@ import (
 
 var _ = fmt.Println
 
-func NewFileSystemConnector(fs FileSystem, opts *FileSystemOptions) (out *FileSystemConnector) {
-	out = EmptyFileSystemConnector()
-	out.mountRoot(fs, opts)
-	return out
+func NewFileSystemConnector(fs FileSystem, opts *FileSystemOptions) (me *FileSystemConnector) {
+	me = new(FileSystemConnector)
+	if opts == nil {
+		opts = NewFileSystemOptions()
+	}
+	me.inodeMap = NewHandleMap(!opts.SkipCheckHandles)
+	me.rootNode = me.newInode(true)
+	me.rootNode.NodeId = FUSE_ROOT_ID
+	me.verify()
+	me.mountRoot(fs, opts)
+	return me
 }
 
 func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *fileSystemMount, node *inode) {
@@ -130,7 +137,7 @@ func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out 
 	if mount == nil {
 		return nil, ENOENT
 	}
-	
+
 	fi, err := mount.fs.GetAttr(fullPath, &header.Context)
 	if err != OK {
 		return nil, err
