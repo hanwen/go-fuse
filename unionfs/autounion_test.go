@@ -73,7 +73,7 @@ func TestAutoFsSymlink(t *testing.T) {
 	err := os.Mkdir(wd+"/store/backing1", 0755)
 	CheckSuccess(err)
 
-	os.Symlink(wd+"/ro", wd+"/store/backing1/READONLY")
+	err = os.Symlink(wd+"/ro", wd+"/store/backing1/READONLY")
 	CheckSuccess(err)
 
 	err = os.Symlink(wd+"/store/backing1", wd+"/mount/config/manual1")
@@ -106,6 +106,29 @@ func TestAutoFsSymlink(t *testing.T) {
 	CheckSuccess(err)
 
 	_, err = os.Lstat(wd + "/mount/backing1/file1")
+	CheckSuccess(err)
+}
+
+func TestDetectSymlinkedDirectories(t *testing.T) {
+	wd, clean := setup(t)
+	defer clean()
+
+	err := os.Mkdir(wd+"/backing1", 0755)
+	CheckSuccess(err)
+
+	err = os.Symlink(wd+"/ro", wd+"/backing1/READONLY")
+	CheckSuccess(err)
+
+	err = os.Symlink(wd+"/backing1", wd+"/store/backing1")
+	CheckSuccess(err)
+
+	scan := wd + "/mount/config/" + _SCAN_CONFIG
+	err = ioutil.WriteFile(scan, []byte("something"), 0644)
+	if err != nil {
+		t.Error("error writing:", err)
+	}
+
+	_, err = os.Lstat(wd + "/mount/backing1")
 	CheckSuccess(err)
 }
 

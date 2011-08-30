@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"sync"
 	"time"
+	"io/ioutil"
 )
 
 // Creates unions for all files under a given directory,
@@ -168,7 +169,18 @@ func (me *AutoUnionFs) VisitFile(path string, f *os.FileInfo) {
 
 func (me *AutoUnionFs) updateKnownFses() {
 	log.Println("Looking for new filesystems")
-	filepath.Walk(me.root, me, nil)
+	// We unroll the first level of entries in the root manually in order
+	// to allow symbolic links on that level.
+	directoryEntries, err := ioutil.ReadDir(me.root)
+	if err == nil {
+		for _, dir := range directoryEntries {
+			if dir.IsDirectory() || dir.IsSymlink() {
+				path := filepath.Join(me.root, dir.Name)
+				me.VisitDir(path, nil)
+				filepath.Walk(path, me, nil)
+			}
+		}
+	}
 	log.Println("Done looking")
 }
 
