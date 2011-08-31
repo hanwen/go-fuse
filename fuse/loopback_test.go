@@ -43,20 +43,29 @@ const testTtl = 0.1
 // Create and mount filesystem.
 func NewTestCase(t *testing.T) *testCase {
 	me := &testCase{}
+	me.Init(t)
+	os.Mkdir(me.orig, 0700)
+	me.FinishSetup()
+	return me
+}
+
+func (me *testCase) Init(t *testing.T) {
 	me.tester = t
-	paranoia = true
 
 	// Make sure system setting does not affect test.
 	syscall.Umask(0)
 
+	me.tmpDir = MakeTempDir()
+	me.orig = me.tmpDir + "/orig"
+}
+
+func (me *testCase) FinishSetup() {
+	paranoia = true
+
 	const name string = "hello.txt"
 	const subdir string = "subdir"
 
-	me.tmpDir = MakeTempDir()
-	me.orig = me.tmpDir + "/orig"
 	me.mnt = me.tmpDir + "/mnt"
-
-	os.Mkdir(me.orig, 0700)
 	os.Mkdir(me.mnt, 0700)
 
 	me.mountFile = filepath.Join(me.mnt, name)
@@ -91,7 +100,6 @@ func NewTestCase(t *testing.T) *testCase {
 
 	// Unthreaded, but in background.
 	go me.state.Loop(false)
-	return me
 }
 
 // Unmount and del.
@@ -665,4 +673,17 @@ func TestStatFs(t *testing.T) {
 	if fmt.Sprintf("%v", s2) != fmt.Sprintf("%v", s1) {
 		t.Error("Mismatch", s1, s2)
 	}
+}
+
+func TestOriginalIsSymlink(t *testing.T) {
+	ts := &testCase{}
+	ts.Init(t)
+	realpath := filepath.Join(ts.tmpDir, "real")
+	os.Mkdir(realpath, 0777)
+	os.Symlink(realpath, ts.orig)
+	ts.FinishSetup()
+	defer ts.Cleanup()
+
+	_, err := os.Lstat(ts.mnt)
+	CheckSuccess(err)
 }
