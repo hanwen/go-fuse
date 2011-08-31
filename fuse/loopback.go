@@ -32,9 +32,16 @@ func (me *LoopbackFileSystem) GetPath(relPath string) string {
 	return filepath.Join(me.Root, relPath)
 }
 
-func (me *LoopbackFileSystem) GetAttr(name string, context *Context) (*os.FileInfo, Status) {
+func (me *LoopbackFileSystem) GetAttr(name string, context *Context) (fi *os.FileInfo, code Status) {
 	fullPath := me.GetPath(name)
-	fi, err := os.Lstat(fullPath)
+	var err os.Error = nil
+	if name == "" {
+		// When GetAttr is called for the toplevel directory, we always want
+		// to look through symlinks.
+		fi, err = os.Stat(fullPath)
+	} else {
+		fi, err = os.Lstat(fullPath)
+	}
 	if err != nil {
 		return nil, OsErrorToErrno(err)
 	}

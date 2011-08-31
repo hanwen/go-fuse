@@ -666,3 +666,27 @@ func TestStatFs(t *testing.T) {
 		t.Error("Mismatch", s1, s2)
 	}
 }
+
+func TestOriginalIsSymlink(t *testing.T) {
+	tmpDir := MakeTempDir()
+	defer os.RemoveAll(tmpDir)
+	orig := tmpDir + "/orig"
+	err := os.Mkdir(orig, 0755)
+	CheckSuccess(err)
+	link := tmpDir + "/link"
+	mnt := tmpDir + "/mnt"
+	err = os.Mkdir(mnt, 0755)
+	CheckSuccess(err)
+	err = os.Symlink("orig", link)
+	CheckSuccess(err)
+
+	fs := NewLoopbackFileSystem(link)
+	state, _, err := MountFileSystem(mnt, fs, nil)
+	CheckSuccess(err)
+	defer state.Unmount()
+
+	go state.Loop(false)
+
+	_, err = os.Lstat(mnt)
+	CheckSuccess(err)
+}
