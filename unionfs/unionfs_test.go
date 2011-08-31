@@ -674,8 +674,8 @@ func TestRemoveAll(t *testing.T) {
 	}
 }
 
-func TestRmRf(t *testing.T) {
-	t.Log("TestRemoveAll")
+func DisabledTestRmRf(t *testing.T) {
+	t.Log("TestRmRf")
 	wd, clean := setupUfs(t)
 	defer clean()
 
