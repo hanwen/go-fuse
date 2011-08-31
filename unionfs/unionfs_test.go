@@ -674,7 +674,7 @@ func TestRemoveAll(t *testing.T) {
 	}
 }
 
-func DisabledTestRmRf(t *testing.T) {
+func TestRmRf(t *testing.T) {
 	t.Log("TestRmRf")
 	wd, clean := setupUfs(t)
 	defer clean()
@@ -686,8 +686,9 @@ func DisabledTestRmRf(t *testing.T) {
 	fn := wd + "/ro/dir/subdir/y"
 	err = ioutil.WriteFile(fn, []byte(contents), 0644)
 	CheckSuccess(err)
-
-	cmd := exec.Command("/bin/rm", "-rf", wd + "/mount/dir")
+	bin, err := exec.LookPath("rm")
+	CheckSuccess(err)
+	cmd := exec.Command(bin, "-rf", wd + "/mount/dir")
 	err = cmd.Run()
 	if err != nil {
 		t.Fatal("rm -rf returned error:", err)
