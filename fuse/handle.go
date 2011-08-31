@@ -163,7 +163,7 @@ func DecodeHandle(handle uint64) (val *Handled) {
 	if unsafe.Sizeof(val) == 8 {
 		ptrBits := uintptr(handle & (1<<45 - 1))
 		check = uint32(handle >> 45)
-		val = (*Handled)(unsafe.Pointer(ptrBits << 3 + uintptr(baseAddress)))
+		val = (*Handled)(unsafe.Pointer(ptrBits<<3 + uintptr(baseAddress)))
 	}
 	if unsafe.Sizeof(val) == 4 {
 		val = (*Handled)(unsafe.Pointer(uintptr(handle & ((1 << 32) - 1))))

@@ -18,11 +18,11 @@ func (me *HelloFs) GetAttr(name string, context *fuse.Context) (*os.FileInfo, fu
 	case "file.txt":
 		return &os.FileInfo{
 			Mode: fuse.S_IFREG | 0644, Size: int64(len(name)),
-		},fuse.OK
+		}, fuse.OK
 	case "":
 		return &os.FileInfo{
 			Mode: fuse.S_IFDIR | 0755,
-		},fuse.OK
+		}, fuse.OK
 	}
 	return nil, fuse.ENOENT
 }

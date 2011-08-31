@@ -170,8 +170,8 @@ func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags u
 		extra:  node.GetMountDirEntries(),
 		stream: stream,
 	}
-	de.extra  = append(de.extra, DirEntry{S_IFDIR, "."}, DirEntry{S_IFDIR, ".."})
-		
+	de.extra = append(de.extra, DirEntry{S_IFDIR, "."}, DirEntry{S_IFDIR, ".."})
+
 	h, opened := mount.registerFileHandle(node, de, nil, input.Flags)
 
 	return opened.FuseFlags, h, OK

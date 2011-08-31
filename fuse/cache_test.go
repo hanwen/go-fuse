@@ -90,7 +90,7 @@ type nonseekFs struct {
 
 func (me *nonseekFs) GetAttr(name string, context *Context) (fi *os.FileInfo, status Status) {
 	if name == "file" {
-		return &os.FileInfo{ Mode: S_IFREG | 0644 }, OK
+		return &os.FileInfo{Mode: S_IFREG | 0644}, OK
 	}
 	return nil, ENOENT
 }
@@ -110,7 +110,7 @@ func (me *nonseekFs) Open(name string, flags uint32, context *Context) (fuseFile
 
 func TestNonseekable(t *testing.T) {
 	fs := &nonseekFs{}
-	fs.Length = 200*1024
+	fs.Length = 200 * 1024
 
 	dir := MakeTempDir()
 	defer os.RemoveAll(dir)

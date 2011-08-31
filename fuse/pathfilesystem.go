@@ -698,15 +698,13 @@ func (me *FileSystemConnector) EntryNotify(dir string, name string) Status {
 	return me.fsInit.EntryNotify(node.NodeId, name)
 }
 
-
 func (me *FileSystemConnector) Notify(path string) Status {
 	node, rest := me.findLastKnownInode(path)
 	if len(rest) > 0 {
-			return me.fsInit.EntryNotify(node.NodeId, rest[0])
+		return me.fsInit.EntryNotify(node.NodeId, rest[0])
 	}
 	out := NotifyInvalInodeOut{
-		Ino:    node.NodeId,
+		Ino: node.NodeId,
 	}
 	return me.fsInit.InodeNotify(&out)
 }
-

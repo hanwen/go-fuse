@@ -159,7 +159,7 @@ func TestSymlinkPromote(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
-	err := os.Mkdir(wd + "/ro/subdir", 0755)
+	err := os.Mkdir(wd+"/ro/subdir", 0755)
 	CheckSuccess(err)
 
 	err = os.Symlink("/foobar", wd+"/mount/subdir/link")
@@ -688,7 +688,7 @@ func TestRmRf(t *testing.T) {
 	CheckSuccess(err)
 	bin, err := exec.LookPath("rm")
 	CheckSuccess(err)
-	cmd := exec.Command(bin, "-rf", wd + "/mount/dir")
+	cmd := exec.Command(bin, "-rf", wd+"/mount/dir")
 	err = cmd.Run()
 	if err != nil {
 		t.Fatal("rm -rf returned error:", err)
@@ -868,7 +868,7 @@ func TestDeletedGetAttr(t *testing.T) {
 	CheckSuccess(err)
 	defer f.Close()
 
-	err = os.Remove(wd+"/mount/file")
+	err = os.Remove(wd + "/mount/file")
 	CheckSuccess(err)
 
 	if fi, err := f.Stat(); err != nil || !fi.IsRegular() {

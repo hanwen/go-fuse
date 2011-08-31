@@ -58,7 +58,7 @@ func (me *ReadonlyFileSystem) Truncate(name string, offset uint64, context *Cont
 }
 
 func (me *ReadonlyFileSystem) Open(name string, flags uint32, context *Context) (file File, code Status) {
-	if flags & O_ANYWRITE != 0 {
+	if flags&O_ANYWRITE != 0 {
 		return nil, EPERM
 	}
 	// TODO - wrap the File object inside a R/O wrapper too?

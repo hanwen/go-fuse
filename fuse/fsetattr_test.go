@@ -152,7 +152,7 @@ func TestFSetAttr(t *testing.T) {
 	if state.KernelSettings().Flags&CAP_FILE_OPS == 0 {
 		log.Println("Mount does not support file operations")
 	}
-	
+
 	_, err = f.Stat()
 	CheckSuccess(err)
 

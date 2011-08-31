@@ -111,14 +111,14 @@ type FileSystemOptions struct {
 	// make inode numbers (exported back to callers) stay within
 	// int64 (assuming the process uses less than 4G memory.).
 	// 64-bit inode numbers makes stat() in 32-bit programs fail.
-	SkipCheckHandles    bool
+	SkipCheckHandles bool
 }
 
 type MountOptions struct {
 	AllowOther bool
 
 	// Options are passed as -o string to fusermount.
-	Options    []string
+	Options []string
 
 	// Default is _DEFAULT_BACKGROUND_TASKS, 12.
 	MaxBackground int
