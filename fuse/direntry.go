@@ -18,12 +18,12 @@ type DirEntry struct {
 
 type DirEntryList struct {
 	buf     bytes.Buffer
-	offset  uint64
+	offset  *uint64
 	maxSize int
 }
 
-func NewDirEntryList(max int) *DirEntryList {
-	return &DirEntryList{maxSize: max}
+func NewDirEntryList(max int, off *uint64) *DirEntryList {
+	return &DirEntryList{maxSize: max, offset: off}
 }
 
 func (me *DirEntryList) AddString(name string, inode uint64, mode uint32) bool {
@@ -36,10 +36,10 @@ func (me *DirEntryList) AddDirEntry(e DirEntry) bool {
 
 func (me *DirEntryList) Add(name []byte, inode uint64, mode uint32) bool {
 	lastLen := me.buf.Len()
-	me.offset++
+	(*me.offset)++
 
 	dirent := Dirent{
-		Off:     me.offset,
+		Off:     *me.offset,
 		Ino:     inode,
 		NameLen: uint32(len(name)),
 		Typ:     ModeToType(mode),
@@ -58,7 +58,7 @@ func (me *DirEntryList) Add(name []byte, inode uint64, mode uint32) bool {
 
 	if me.buf.Len() > me.maxSize {
 		me.buf.Truncate(lastLen)
-		me.offset--
+		(*me.offset)--
 		return false
 	}
 	return true
@@ -79,6 +79,7 @@ type connectorDir struct {
 	extra    []DirEntry
 	stream   chan DirEntry
 	leftOver DirEntry
+	lastOffset uint64
 }
 
 func (me *connectorDir) ReadDir(input *ReadIn) (*DirEntryList, Status) {
@@ -86,7 +87,7 @@ func (me *connectorDir) ReadDir(input *ReadIn) (*DirEntryList, Status) {
 		return nil, OK
 	}
 
-	list := NewDirEntryList(int(input.Size))
+	list := NewDirEntryList(int(input.Size), &me.lastOffset)
 	if me.leftOver.Name != "" {
 		success := list.AddDirEntry(me.leftOver)
 		if !success {
