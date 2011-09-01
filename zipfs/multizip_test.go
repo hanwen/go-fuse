@@ -50,8 +50,7 @@ func TestMultiZipFs(t *testing.T) {
 	mountPoint, cleanup := setupMzfs()
 	defer cleanup()
 
-	wd, err := os.Getwd()
-	zipFile := wd + "/test.zip"
+	zipFile := testZipFile()
 
 	entries, err := ioutil.ReadDir(mountPoint)
 	CheckSuccess(err)

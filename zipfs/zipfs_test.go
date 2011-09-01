@@ -4,13 +4,22 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"runtime"
 	"testing"
 )
 
+func testZipFile() string {
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		panic("need runtime.Caller()'s file name to discover testdata")
+	}
+	dir, _ := filepath.Split(file)
+	return filepath.Join(dir, "test.zip")
+}
+
 func setupZipfs() (mountPoint string, cleanup func()) {
-	wd, err := os.Getwd()
-	CheckSuccess(err)
-	zfs, err := NewArchiveFileSystem(wd + "/test.zip")
+	zfs, err := NewArchiveFileSystem(testZipFile())
 	CheckSuccess(err)
 
 	mountPoint = fuse.MakeTempDir()
