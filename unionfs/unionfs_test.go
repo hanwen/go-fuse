@@ -875,3 +875,18 @@ func TestDeletedGetAttr(t *testing.T) {
 		t.Fatalf("stat returned error or non-file: %v %v", err, fi)
 	}
 }
+
+// Eclipse writes files in this manner:
+func DisabledTestDoubleOpen(t *testing.T) {
+	wd, clean := setupUfs(t)
+	defer clean()
+	err := ioutil.WriteFile(wd+"/ro/file", []byte("blabla"), 0644)
+	CheckSuccess(err)
+
+	roFile, err := os.Open(wd + "/mount/file")
+	CheckSuccess(err)
+	defer roFile.Close()
+	rwFile, err := os.OpenFile(wd + "/mount/file", os.O_WRONLY | os.O_TRUNC, 0666)
+	CheckSuccess(err)
+	defer rwFile.Close()
+}
