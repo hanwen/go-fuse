@@ -16,7 +16,9 @@ type cacheEntry struct {
 }
 
 // TimedIntCache caches the result of fetch() for some time.  It is
-// thread-safe.
+// thread-safe.  Calls of fetch() do no happen inside a critical
+// section, so when multiple concurrent Get()s happen for the same
+// key, multiple fetch() calls may be issued for the same key.
 type TimedCache struct {
 	fetch func(name string) interface{}
 
