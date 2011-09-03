@@ -879,7 +879,7 @@ func TestDeletedGetAttr(t *testing.T) {
 func TestDoubleOpen(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
-	err := ioutil.WriteFile(wd+"/ro/file", []byte("blabla"), 0644)
+	err := ioutil.WriteFile(wd+"/ro/file", []byte("blablabla"), 0644)
 	CheckSuccess(err)
 
 	roFile, err := os.Open(wd + "/mount/file")
@@ -895,6 +895,22 @@ func TestDoubleOpen(t *testing.T) {
 		t.Errorf("After r/w truncation, r/o file should be empty too:", output)
 	}
 
-	// There are still failure cases here: writes to the r/w will
-	// not be read back by the ro/o files.
+	disabled := true
+	if !disabled {
+		want := "hello"
+		_, err = rwFile.Write([]byte(want))
+		CheckSuccess(err)
+
+		b := make([]byte, 100)
+		
+		roFile.Seek(0, 0)
+		n, err := roFile.Read(b)
+		CheckSuccess(err)
+		b = b[:n]
+
+		if string(b) != "hello" {
+			t.Errorf("r/w and r/o file are not synchronized: got %q want %q", string(b), want)
+		}
+	}
 }
+
