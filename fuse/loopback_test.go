@@ -29,10 +29,8 @@ type testCase struct {
 
 	mountFile    string
 	mountSubdir  string
-	mountSubfile string
 	origFile     string
 	origSubdir   string
-	origSubfile  string
 	tester       *testing.T
 	state        *MountState
 	connector    *FileSystemConnector
@@ -61,10 +59,8 @@ func NewTestCase(t *testing.T) *testCase {
 
 	me.mountFile = filepath.Join(me.mnt, name)
 	me.mountSubdir = filepath.Join(me.mnt, subdir)
-	me.mountSubfile = filepath.Join(me.mountSubdir, "subfile")
 	me.origFile = filepath.Join(me.orig, name)
 	me.origSubdir = filepath.Join(me.orig, subdir)
-	me.origSubfile = filepath.Join(me.origSubdir, "subfile")
 
 	var pfs FileSystem
 	pfs = NewLoopbackFileSystem(me.orig)
@@ -102,27 +98,7 @@ func (me *testCase) Cleanup() {
 	os.Remove(me.tmpDir)
 }
 
-////////////////
-// Utilities.
-
-func (me *testCase) makeOrigSubdir() {
-	err := os.Mkdir(me.origSubdir, 0777)
-	CheckSuccess(err)
-}
-
-func (me *testCase) removeMountSubdir() {
-	err := os.RemoveAll(me.mountSubdir)
-	CheckSuccess(err)
-}
-
-func (me *testCase) removeMountFile() {
-	os.Remove(me.mountFile)
-	// ignore errors.
-}
-
 func (me *testCase) writeOrigFile() {
-	err := ioutil.WriteFile(me.origFile, []byte(contents), 0700)
-	CheckSuccess(err)
 }
 
 ////////////////
@@ -142,8 +118,9 @@ func TestTouch(t *testing.T) {
 	defer ts.Cleanup()
 
 	log.Println("testTouch")
-	ts.writeOrigFile()
-	err := os.Chtimes(ts.mountFile, 42e9, 43e9)
+	err := ioutil.WriteFile(ts.origFile, []byte(contents), 0700)
+	CheckSuccess(err)
+	err = os.Chtimes(ts.mountFile, 42e9, 43e9)
 	CheckSuccess(err)
 	fi, err := os.Lstat(ts.mountFile)
 	CheckSuccess(err)
@@ -156,10 +133,11 @@ func (me *testCase) TestReadThrough(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
-	ts.writeOrigFile()
+	err := ioutil.WriteFile(ts.origFile, []byte(contents), 0700)
+	CheckSuccess(err)
 
 	fmt.Println("Testing chmod.")
-	err := os.Chmod(ts.mountFile, mode)
+	err = os.Chmod(ts.mountFile, mode)
 	CheckSuccess(err)
 
 	fmt.Println("Testing Lstat.")
@@ -190,10 +168,10 @@ func TestRemove(t *testing.T) {
 	me := NewTestCase(t)
 	defer me.Cleanup()
 
-	me.writeOrigFile()
+	err := ioutil.WriteFile(me.origFile, []byte(contents), 0700)
+	CheckSuccess(err)
 
-	fmt.Println("Testing remove.")
-	err := os.Remove(me.mountFile)
+	err = os.Remove(me.mountFile)
 	CheckSuccess(err)
 	_, err = os.Lstat(me.origFile)
 	if err == nil {
@@ -255,12 +233,14 @@ func TestLink(t *testing.T) {
 	defer me.Cleanup()
 
 	t.Log("Testing hard links.")
-	me.writeOrigFile()
-	err := os.Mkdir(me.origSubdir, 0777)
+	err := ioutil.WriteFile(me.origFile, []byte(contents), 0700)
+	CheckSuccess(err)
+	err = os.Mkdir(me.origSubdir, 0777)
 	CheckSuccess(err)
 
 	// Link.
-	err = os.Link(me.mountFile, me.mountSubfile)
+	mountSubfile := filepath.Join(me.mountSubdir, "subfile")
+	err = os.Link(me.mountFile, mountSubfile)
 	CheckSuccess(err)
 
 	fi, err := os.Lstat(me.origFile)
@@ -268,7 +248,7 @@ func TestLink(t *testing.T) {
 		t.Errorf("Expect 2 links: %v", fi)
 	}
 
-	f, err := os.Open(me.mountSubfile)
+	f, err := os.Open(mountSubfile)
 
 	var buf [1024]byte
 	slice := buf[:]
@@ -286,13 +266,12 @@ func TestSymlink(t *testing.T) {
 	defer me.Cleanup()
 
 	t.Log("testing symlink/readlink.")
-	me.writeOrigFile()
+	err := ioutil.WriteFile(me.origFile, []byte(contents), 0700)
+	CheckSuccess(err)
 
 	linkFile := "symlink-file"
 	orig := "hello.txt"
-	err := os.Symlink(orig, filepath.Join(me.mnt, linkFile))
-	defer os.Remove(filepath.Join(me.mnt, linkFile))
-	defer me.removeMountFile()
+	err = os.Symlink(orig, filepath.Join(me.mnt, linkFile))
 
 	CheckSuccess(err)
 
@@ -318,10 +297,10 @@ func TestRename(t *testing.T) {
 	defer me.Cleanup()
 
 	t.Log("Testing rename.")
-	me.writeOrigFile()
+	err := ioutil.WriteFile(me.origFile, []byte(contents), 0700)
+	CheckSuccess(err)
 	sd := me.mnt + "/testRename"
-	err := os.MkdirAll(sd, 0777)
-	defer os.RemoveAll(sd)
+	err = os.MkdirAll(sd, 0777)
 
 	subFile := sd + "/subfile"
 	err = os.Rename(me.mountFile, subFile)
@@ -332,7 +311,7 @@ func TestRename(t *testing.T) {
 	}
 	f, _ = os.Lstat(subFile)
 	if f == nil {
-		t.Errorf("destination %v does not exist.", me.origSubfile)
+		t.Errorf("destination %v does not exist.", subFile)
 	}
 }
 
@@ -396,8 +375,9 @@ func TestAccess(t *testing.T) {
 	me := NewTestCase(t)
 	defer me.Cleanup()
 
-	me.writeOrigFile()
-	err := os.Chmod(me.origFile, 0)
+	err := ioutil.WriteFile(me.origFile, []byte(contents), 0700)
+	CheckSuccess(err)
+	err = os.Chmod(me.origFile, 0)
 	CheckSuccess(err)
 	// Ugh - copied from unistd.h
 	const W_OK uint32 = 2
@@ -434,8 +414,10 @@ func TestReaddir(t *testing.T) {
 	defer me.Cleanup()
 
 	t.Log("Testing readdir.")
-	me.writeOrigFile()
-	me.makeOrigSubdir()
+	err := ioutil.WriteFile(me.origFile, []byte(contents), 0700)
+	CheckSuccess(err)
+	err = os.Mkdir(me.origSubdir, 0777)
+	CheckSuccess(err)
 
 	dir, err := os.Open(me.mnt)
 	CheckSuccess(err)
@@ -465,7 +447,8 @@ func TestFSync(t *testing.T) {
 	defer me.Cleanup()
 
 	t.Log("Testing fsync.")
-	me.writeOrigFile()
+	err := ioutil.WriteFile(me.origFile, []byte(contents), 0700)
+	CheckSuccess(err)
 
 	f, err := os.OpenFile(me.mountFile, os.O_WRONLY, 0)
 	_, err = f.WriteString("hello there")
@@ -690,3 +673,4 @@ func TestOriginalIsSymlink(t *testing.T) {
 	_, err = os.Lstat(mnt)
 	CheckSuccess(err)
 }
+
