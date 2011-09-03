@@ -68,10 +68,10 @@ func (me *FileSystemConnector) getOpenedFile(h uint64) *openedFile {
 	return b
 }
 
-func (me *fileSystemMount) unregisterFileHandle(node *inode, handle uint64) *openedFile {
+func (me *fileSystemMount) unregisterFileHandle(handle uint64) *openedFile {
 	obj := me.openFiles.Forget(handle)
 	opened := (*openedFile)(unsafe.Pointer(obj))
-
+	node := opened.inode
 	node.OpenFilesMutex.Lock()
 	defer node.OpenFilesMutex.Unlock()
 
@@ -646,12 +646,11 @@ func (me *FileSystemConnector) unsafeUnmountNode(node *inode) {
 	unmounted.fs.Unmount()
 }
 
-func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64) (f File, m *fileSystemMount, p string, node *inode) {
+// Returns an openedFile for the gived inode.
+func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64) (opened *openedFile, m *fileSystemMount, p string, node *inode) {
 	node = me.getInodeData(nodeid)
 	if fh != 0 {
-		opened := me.getOpenedFile(fh)
-		m = opened.fileSystemMount
-		f = opened.file
+		opened = me.getOpenedFile(fh)
 	}
 
 	path, mount := node.GetPath()
@@ -664,12 +663,14 @@ func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64) (f File
 		m = mount
 		p = path
 	}
-	if f == nil {
+	if opened == nil {
 		node.OpenFilesMutex.Lock()
 		defer node.OpenFilesMutex.Unlock()
 
-		if len(node.OpenFiles) > 0 {
-			f = node.OpenFiles[0].file
+		for _, f := range node.OpenFiles {
+			if f.OpenFlags & O_ANYWRITE != 0 || opened == nil {
+				opened = f
+			}
 		}
 	}
 	return

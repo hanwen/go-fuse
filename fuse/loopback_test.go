@@ -674,3 +674,18 @@ func TestOriginalIsSymlink(t *testing.T) {
 	CheckSuccess(err)
 }
 
+func TestDoubleOpen(t *testing.T) {
+        ts := NewTestCase(t)
+        defer ts.Cleanup()
+
+        err := ioutil.WriteFile(ts.orig +"/file", []byte("blabla"), 0644)
+        CheckSuccess(err)
+        
+        roFile, err := os.Open(ts.mnt + "/file")
+        CheckSuccess(err)
+        defer roFile.Close()
+
+        rwFile, err := os.OpenFile(ts.mnt + "/file", os.O_WRONLY | os.O_TRUNC, 0666)
+        CheckSuccess(err)
+        defer rwFile.Close()
+}

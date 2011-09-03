@@ -113,13 +113,13 @@ func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out 
 		fh = input.Fh
 	}
 
-	f, mount, fullPath, node := me.getOpenFileData(header.NodeId, fh)
-	if mount == nil && f == nil {
+	opened, mount, fullPath, node := me.getOpenFileData(header.NodeId, fh)
+	if mount == nil && opened == nil {
 		return nil, ENOENT
 	}
 
-	if f != nil {
-		fi, err := f.GetAttr()
+	if opened != nil {
+		fi, err := opened.file.GetAttr()
 		if err != OK && err != ENOSYS {
 			return nil, err
 		}
@@ -198,7 +198,6 @@ func (me *FileSystemConnector) Open(header *InHeader, input *OpenIn) (flags uint
 	}
 
 	h, opened := mount.registerFileHandle(node, nil, f, input.Flags)
-
 	return opened.FuseFlags, h, OK
 }
 
@@ -212,16 +211,19 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 		getAttrIn.Flags |= FUSE_GETATTR_FH
 	}
 
-	f, mount, fullPath, _ := me.getOpenFileData(header.NodeId, fh)
+	opened, mount, fullPath, _ := me.getOpenFileData(header.NodeId, fh)
 	if mount == nil {
 		return nil, ENOENT
 	}
-
+	if opened != nil && opened.OpenFlags & O_ANYWRITE == 0 {
+		opened = nil
+	}
+	
 	fileResult := ENOSYS
 	if err.Ok() && input.Valid&FATTR_MODE != 0 {
 		permissions := uint32(07777) & input.Mode
-		if f != nil {
-			fileResult = f.Chmod(permissions)
+		if opened != nil {
+			fileResult = opened.file.Chmod(permissions)
 		}
 		if fileResult == ENOSYS {
 			err = mount.fs.Chmod(fullPath, permissions, &header.Context)
@@ -231,8 +233,8 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 		}
 	}
 	if err.Ok() && (input.Valid&(FATTR_UID|FATTR_GID) != 0) {
-		if f != nil {
-			fileResult = f.Chown(uint32(input.Uid), uint32(input.Gid))
+		if opened != nil {
+			fileResult = opened.file.Chown(uint32(input.Uid), uint32(input.Gid))
 		}
 
 		if fileResult == ENOSYS {
@@ -244,8 +246,8 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 		}
 	}
 	if err.Ok() && input.Valid&FATTR_SIZE != 0 {
-		if f != nil {
-			fileResult = f.Truncate(input.Size)
+		if opened != nil {
+			fileResult = opened.file.Truncate(input.Size)
 		}
 		if fileResult == ENOSYS {
 			err = mount.fs.Truncate(fullPath, input.Size, &header.Context)
@@ -265,8 +267,8 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 			mtime = uint64(time.Nanoseconds())
 		}
 
-		if f != nil {
-			fileResult = f.Utimens(atime, mtime)
+		if opened != nil {
+			fileResult = opened.file.Utimens(atime, mtime)
 		}
 		if fileResult == ENOSYS {
 			err = mount.fs.Utimens(fullPath, atime, mtime, &header.Context)
@@ -428,9 +430,8 @@ func (me *FileSystemConnector) Create(header *InHeader, input *CreateIn, name st
 }
 
 func (me *FileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
-	node := me.getInodeData(header.NodeId)
-	opened := node.mount.unregisterFileHandle(node, input.Fh)
-	opened.file.Release()
+	opened := me.getOpenedFile(input.Fh)
+	opened.inode.mount.unregisterFileHandle(input.Fh)
 }
 
 func (me *FileSystemConnector) Flush(input *FlushIn) Status {
@@ -453,7 +454,7 @@ func (me *FileSystemConnector) Flush(input *FlushIn) Status {
 
 func (me *FileSystemConnector) ReleaseDir(header *InHeader, input *ReleaseIn) {
 	node := me.getInodeData(header.NodeId)
-	opened := node.mount.unregisterFileHandle(node, input.Fh)
+	opened := node.mount.unregisterFileHandle(input.Fh)
 	opened.dir.Release()
 	me.considerDropInode(node)
 }

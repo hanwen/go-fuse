@@ -876,8 +876,7 @@ func TestDeletedGetAttr(t *testing.T) {
 	}
 }
 
-// Eclipse writes files in this manner:
-func DisabledTestDoubleOpen(t *testing.T) {
+func TestDoubleOpen(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 	err := ioutil.WriteFile(wd+"/ro/file", []byte("blabla"), 0644)
@@ -889,4 +888,13 @@ func DisabledTestDoubleOpen(t *testing.T) {
 	rwFile, err := os.OpenFile(wd + "/mount/file", os.O_WRONLY | os.O_TRUNC, 0666)
 	CheckSuccess(err)
 	defer rwFile.Close()
+
+	output, err := ioutil.ReadAll(roFile)
+	CheckSuccess(err)
+	if len(output) != 0 {
+		t.Errorf("After r/w truncation, r/o file should be empty too:", output)
+	}
+
+	// There are still failure cases here: writes to the r/w will
+	// not be read back by the ro/o files.
 }
