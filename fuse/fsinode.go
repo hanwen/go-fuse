@@ -170,15 +170,16 @@ func (me *fsInode) GetAttr(file File, context *Context) (fi *os.FileInfo, code S
 }	
 
 func (me *fsInode) Chmod(file File, perms uint32, context *Context) (code Status) {
-	if file == nil {
-		file = me.inode.getWritableFile()
-	}
-	if file != nil {
+	files := me.inode.getWritableFiles()
+	for _, f := range files {
 		// TODO - pass context
-		code = file.Chmod(perms)
-	} 
+		code = f.Chmod(perms)
+		if !code.Ok() {
+			break
+		}
+	}
 	
-	if file == nil || code == ENOSYS {
+	if len(files) == 0 || code == ENOSYS {
 		code = me.inode.mount.fs.Chmod(me.GetPath(), perms, context)
 	}
 	return code
@@ -186,11 +187,15 @@ func (me *fsInode) Chmod(file File, perms uint32, context *Context) (code Status
 
 	
 func (me *fsInode) Chown(file File, uid uint32, gid uint32, context *Context) (code Status) {
-	if file != nil {
+	files := me.inode.getWritableFiles()
+	for _, f := range files {
 		// TODO - pass context
-		code = file.Chown(uid, gid)
+		code = f.Chown(uid, gid)
+		if !code.Ok() {
+			break
+		}
 	}
-	if file == nil || code == ENOSYS {
+	if len(files) == 0 || code == ENOSYS {
 		// TODO - can we get just FATTR_GID but not FATTR_UID ?
 		code = me.inode.mount.fs.Chown(me.GetPath(), uid, gid, context)
 	}
@@ -198,26 +203,31 @@ func (me *fsInode) Chown(file File, uid uint32, gid uint32, context *Context) (c
 }
 
 func (me *fsInode) Truncate(file File, size uint64, context *Context) (code Status) {
-	if file == nil {
-		file = me.inode.getWritableFile()
+	files := me.inode.getWritableFiles()
+	for _, f := range files {
+		// TODO - pass context
+		log.Println("truncating file", f)
+		code = f.Truncate(size)
+		if !code.Ok() {
+			break
+		}
 	}
-	if file != nil {
-		code = file.Truncate(size)
-	}
-	if file == nil || code == ENOSYS {
+	if len(files) == 0 || code == ENOSYS {
 		code = me.inode.mount.fs.Truncate(me.GetPath(), size, context)
 	}
 	return code
 }
 
 func (me *fsInode) Utimens(file File, atime uint64, mtime uint64, context *Context) (code Status) {
-	if file == nil {
-		file = me.inode.getWritableFile()
+	files := me.inode.getWritableFiles()
+	for _, f := range files {
+		// TODO - pass context
+		code = f.Utimens(atime, mtime)
+		if !code.Ok() {
+			break
+		}
 	}
-	if file != nil {
-		code = file.Utimens(atime, mtime)
-	}
-	if file == nil || code == ENOSYS {
+	if len(files) == 0 || code == ENOSYS {
 		code = me.inode.mount.fs.Utimens(me.GetPath(), atime, mtime, context)
 	}
 	return code

@@ -260,16 +260,16 @@ func (me *inode) getAnyFile() (file File) {
 }
 
 // Returns an open writable file for the given inode.
-func (me *inode) getWritableFile() (file File) {
+func (me *inode) getWritableFiles() (files []File) {
 	me.OpenFilesMutex.Lock()
 	defer me.OpenFilesMutex.Unlock()
 
 	for _, f := range me.OpenFiles {
 		if f.OpenFlags & O_ANYWRITE != 0 {
-			return f.file
+			files = append(files, f.file)
 		}
 	}
-	return nil
+	return files
 }
 
 const initDirSize = 20

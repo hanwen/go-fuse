@@ -892,7 +892,7 @@ func TestDoubleOpen(t *testing.T) {
 	output, err := ioutil.ReadAll(roFile)
 	CheckSuccess(err)
 	if len(output) != 0 {
-		t.Errorf("After r/w truncation, r/o file should be empty too:", output)
+		t.Errorf("After r/w truncation, r/o file should be empty too: %q", string(output))
 	}
 
 	disabled := true
