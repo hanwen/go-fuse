@@ -50,9 +50,6 @@ type fileSystemMount struct {
 	// Node that we were mounted on.
 	mountInode *inode
 
-	// We could have separate treeLocks per mount; something to
-	// consider if we can measure significant contention for
-	// multi-mount filesystems.
 	options *FileSystemOptions
 
 	// Protects parent/child relations within the mount.
