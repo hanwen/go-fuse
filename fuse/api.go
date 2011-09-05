@@ -85,7 +85,6 @@ type File interface {
 	Flush() Status
 	Release()
 	Fsync(*FsyncIn) (code Status)
-	Ioctl(input *IoctlIn) (output *IoctlOut, data []byte, code Status)
 }
 
 type WithFlags struct {

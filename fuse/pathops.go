@@ -324,11 +324,6 @@ func (me *FileSystemConnector) ReleaseDir(header *InHeader, input *ReleaseIn) {
 	me.considerDropInode(node)
 }
 
-func (me *FileSystemConnector) FsyncDir(header *InHeader, input *FsyncIn) (code Status) {
-	// What the heck is FsyncDir supposed to do?
-	return OK
-}
-
 func (me *FileSystemConnector) GetXAttr(header *InHeader, attribute string) (data []byte, code Status) {
 	node := me.getInodeData(header.NodeId)
 	return node.fsInode.GetXAttr(attribute, &header.Context)
@@ -371,11 +366,6 @@ func (me *FileSystemConnector) Write(input *WriteIn, data []byte) (written uint3
 func (me *FileSystemConnector) Read(input *ReadIn, bp BufferPool) ([]byte, Status) {
 	opened := me.getOpenedFile(input.Fh)
 	return opened.file.Read(input, bp)
-}
-
-func (me *FileSystemConnector) Ioctl(header *InHeader, input *IoctlIn) (out *IoctlOut, data []byte, code Status) {
-	opened := me.getOpenedFile(input.Fh)
-	return opened.file.Ioctl(input)
 }
 
 func (me *FileSystemConnector) StatFs() *StatfsOut {
