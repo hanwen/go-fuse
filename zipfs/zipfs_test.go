@@ -71,7 +71,6 @@ func TestZipFs(t *testing.T) {
 }
 
 func TestLinkCount(t *testing.T) {
-	t.Log("TestLinkCount")
 	mp, clean := setupZipfs()
 	defer clean()
 

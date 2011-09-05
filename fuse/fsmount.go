@@ -40,21 +40,20 @@ type fileSystemMount struct {
 	openFiles HandleMap
 }
 
-
-
 func (me *fileSystemMount) setOwner(attr *Attr) {
 	if me.options.Owner != nil {
 		attr.Owner = *me.options.Owner
 	}
 }
+
 func (me *fileSystemMount) fileInfoToEntry(fi *os.FileInfo) (out *EntryOut) {
 	out = &EntryOut{}
 	SplitNs(me.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
 	SplitNs(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	CopyFileInfo(fi, &out.Attr)
 	me.setOwner(&out.Attr)
-	if !fi.IsDirectory() {
-		fi.Nlink = 1
+	if !fi.IsDirectory() && fi.Nlink == 0 {
+		out.Nlink = 1
 	}
 	return out
 }

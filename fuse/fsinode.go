@@ -258,7 +258,7 @@ func (me *fsInode) GetAttr(file File, context *Context) (fi *os.FileInfo, code S
 		fi, code = me.fs.GetAttr(me.GetPath(), context)
 	}
 	
-	if fi != nil && !fi.IsDirectory() {
+	if fi != nil && !fi.IsDirectory() && fi.Nlink == 0 {
 		fi.Nlink = 1
 	}
 	return fi, code
