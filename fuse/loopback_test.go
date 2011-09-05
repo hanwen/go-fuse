@@ -68,7 +68,8 @@ func NewTestCase(t *testing.T) *testCase {
 	pfs = NewLockingFileSystem(pfs)
 
 	var rfs RawFileSystem
-	me.connector = NewFileSystemConnector(pfs,
+	nfs := NewPathNodeFs(pfs)
+	me.connector = NewFileSystemConnector(nfs,
 		&FileSystemOptions{
 			EntryTimeout:    testTtl,
 			AttrTimeout:     testTtl,
@@ -670,7 +671,7 @@ func TestOriginalIsSymlink(t *testing.T) {
 	CheckSuccess(err)
 
 	fs := NewLoopbackFileSystem(link)
-	state, _, err := MountFileSystem(mnt, fs, nil)
+	state, _, err := MountPathFileSystem(mnt, fs, nil)
 	CheckSuccess(err)
 	defer state.Unmount()
 

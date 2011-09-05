@@ -54,7 +54,7 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 		NegativeTimeout: .5 * entryTtl,
 	}
 
-	state, conn, err := fuse.MountFileSystem(wd+"/mount", ufs, opts)
+	state, conn, err := fuse.MountPathFileSystem(wd+"/mount", ufs, opts)
 	CheckSuccess(err)
 	conn.Debug = true
 	state.Debug = true
@@ -821,7 +821,7 @@ func TestDisappearing(t *testing.T) {
 		NegativeTimeout: entryTtl,
 	}
 
-	state, _, err := fuse.MountFileSystem(wd+"/mount", ufs, opts)
+	state, _, err := fuse.MountPathFileSystem(wd+"/mount", ufs, opts)
 	CheckSuccess(err)
 	defer state.Unmount()
 	state.Debug = true

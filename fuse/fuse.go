@@ -8,8 +8,8 @@ import (
 
 var _ = log.Println
 
-func MountFileSystem(mountpoint string, fs FileSystem, opts *FileSystemOptions) (*MountState, *FileSystemConnector, os.Error) {
-	conn := NewFileSystemConnector(fs, opts)
+func MountNodeFileSystem(mountpoint string, nodeFs NodeFileSystem, opts *FileSystemOptions) (*MountState, *FileSystemConnector, os.Error) {
+	conn := NewFileSystemConnector(nodeFs, opts)
 	mountState := NewMountState(conn)
 	fmt.Printf("Go-FUSE Version %v.\nMounting...\n", Version())
 	err := mountState.Mount(mountpoint, nil)
@@ -18,4 +18,9 @@ func MountFileSystem(mountpoint string, fs FileSystem, opts *FileSystemOptions) 
 	}
 	fmt.Println("Mounted!")
 	return mountState, conn, nil
+}
+
+func MountPathFileSystem(mountpoint string, pathFs FileSystem, opts *FileSystemOptions) (*MountState, *FileSystemConnector, os.Error) {
+	nfs := NewPathNodeFs(pathFs)
+	return MountNodeFileSystem(mountpoint, nfs, opts)
 }

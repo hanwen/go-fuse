@@ -42,7 +42,7 @@ func setup(t *testing.T) (workdir string, cleanup func()) {
 	WriteFile(wd+"/ro/file2", "file2")
 
 	fs := NewAutoUnionFs(wd+"/store", testAOpts)
-	state, conn, err := fuse.MountFileSystem(wd+"/mount", fs, &testAOpts.FileSystemOptions)
+	state, conn, err := fuse.MountPathFileSystem(wd+"/mount", fs, &testAOpts.FileSystemOptions)
 	CheckSuccess(err)
 	state.Debug = true
 	conn.Debug = true

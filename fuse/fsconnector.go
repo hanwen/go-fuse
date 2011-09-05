@@ -35,7 +35,7 @@ type FileSystemConnector struct {
 	rootNode *Inode
 }
 
-func NewFileSystemConnector(fs FileSystem, opts *FileSystemOptions) (me *FileSystemConnector) {
+func NewFileSystemConnector(nodeFs NodeFileSystem, opts *FileSystemOptions) (me *FileSystemConnector) {
 	me = new(FileSystemConnector)
 	if opts == nil {
 		opts = NewFileSystemOptions()
@@ -44,7 +44,7 @@ func NewFileSystemConnector(fs FileSystem, opts *FileSystemOptions) (me *FileSys
 	me.rootNode = me.newInode(true)
 	me.rootNode.nodeId = FUSE_ROOT_ID
 	me.verify()
-	me.mountRoot(fs, opts)
+	me.mountRoot(nodeFs, opts)
 	return me
 }
 
@@ -229,9 +229,9 @@ func (me *FileSystemConnector) findInode(fullPath string) *Inode {
 // mount management in FileSystemConnector, so AutoUnionFs and
 // MultiZipFs don't have to do it separately, with the risk of
 // inconsistencies.
-func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *FileSystemOptions) Status {
+func (me *FileSystemConnector) Mount(mountPoint string, nodeFs NodeFileSystem, opts *FileSystemOptions) Status {
 	if mountPoint == "/" || mountPoint == "" {
-		me.mountRoot(fs, opts)
+		me.mountRoot(nodeFs, opts)
 		return OK
 	}
 
@@ -257,7 +257,6 @@ func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *Fil
 		opts = me.rootNode.mountPoint.options
 	}
 
-	nodeFs := NewPathNodeFs(fs)
 	node.mountFs(nodeFs, opts)
 	parent.addChild(base, node)
 
@@ -266,18 +265,17 @@ func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *Fil
 	}
 	parent.mounts[base] = node.mountPoint
 	if me.Debug {
-		log.Println("Mount: ", fs, "on dir", mountPoint,
+		log.Println("Mount: ", nodeFs, "on dir", mountPoint,
 			"parent", parent)
 	}
-	fs.Mount(me)
+	nodeFs.Mount(me)
 	me.verify()
 	return OK
 }
 
-func (me *FileSystemConnector) mountRoot(fs FileSystem, opts *FileSystemOptions) {
-	ifs := NewPathNodeFs(fs)
-	me.rootNode.mountFs(ifs, opts)
-	ifs.Mount(me)
+func (me *FileSystemConnector) mountRoot(nodeFs NodeFileSystem, opts *FileSystemOptions) {
+	me.rootNode.mountFs(nodeFs, opts)
+	nodeFs.Mount(me)
 	me.verify()
 }
 

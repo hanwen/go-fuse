@@ -33,7 +33,7 @@ func setupCacheTest() (string, *FileSystemConnector, func()) {
 	fs := &cacheFs{
 		LoopbackFileSystem: NewLoopbackFileSystem(dir + "/orig"),
 	}
-	state, conn, err := MountFileSystem(dir+"/mnt", fs, nil)
+	state, conn, err := MountPathFileSystem(dir+"/mnt", fs, nil)
 	CheckSuccess(err)
 	state.Debug = true
 	conn.Debug = true
@@ -116,7 +116,7 @@ func TestNonseekable(t *testing.T) {
 
 	dir := MakeTempDir()
 	defer os.RemoveAll(dir)
-	state, _, err := MountFileSystem(dir, fs, nil)
+	state, _, err := MountPathFileSystem(dir, fs, nil)
 	CheckSuccess(err)
 	state.Debug = true
 	defer state.Unmount()

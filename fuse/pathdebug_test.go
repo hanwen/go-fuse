@@ -12,7 +12,7 @@ func TestPathDebug(t *testing.T) {
 	debugFs.FileSystem = &DefaultFileSystem{}
 	debugFs.Add("test-entry", func() []byte { return []byte("test-content") })
 
-	connector := NewFileSystemConnector(debugFs, nil)
+	connector := NewFileSystemConnector(NewPathNodeFs(debugFs), nil)
 	mountPoint := MakeTempDir()
 	defer os.RemoveAll(mountPoint)
 

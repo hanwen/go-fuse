@@ -15,15 +15,15 @@ func TestMountOnExisting(t *testing.T) {
 
 	err := os.Mkdir(ts.mnt+"/mnt", 0777)
 	CheckSuccess(err)
-	fs := &DefaultFileSystem{}
-	code := ts.connector.Mount("/mnt", fs, nil)
+	nfs := &DefaultNodeFileSystem{}
+	code := ts.connector.Mount("/mnt", nfs, nil)
 	if code != EBUSY {
 		t.Fatal("expect EBUSY:", code)
 	}
 
 	err = os.Remove(ts.mnt + "/mnt")
 	CheckSuccess(err)
-	code = ts.connector.Mount("/mnt", fs, nil)
+	code = ts.connector.Mount("/mnt", nfs, nil)
 	if !code.Ok() {
 		t.Fatal("expect OK:", code)
 	}
@@ -43,7 +43,7 @@ func TestMountRename(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
-	fs := NewLoopbackFileSystem(ts.orig)
+	fs := NewPathNodeFs(NewLoopbackFileSystem(ts.orig))
 	code := ts.connector.Mount("/mnt", fs, nil)
 	if !code.Ok() {
 		t.Fatal("mount should succeed")
@@ -58,7 +58,7 @@ func TestMountReaddir(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
-	fs := NewLoopbackFileSystem(ts.orig)
+	fs := NewPathNodeFs(NewLoopbackFileSystem(ts.orig))
 	code := ts.connector.Mount("/mnt", fs, nil)
 	if !code.Ok() {
 		t.Fatal("mount should succeed")
@@ -78,7 +78,7 @@ func TestRecursiveMount(t *testing.T) {
 	err := ioutil.WriteFile(ts.orig+"/hello.txt", []byte("blabla"), 0644)
 	CheckSuccess(err)
 
-	fs := NewLoopbackFileSystem(ts.orig)
+	fs := NewPathNodeFs(NewLoopbackFileSystem(ts.orig))
 	code := ts.connector.Mount("/mnt", fs, nil)
 	if !code.Ok() {
 		t.Fatal("mount should succeed")
@@ -115,7 +115,7 @@ func TestDeletedUnmount(t *testing.T) {
 	defer ts.Cleanup()
 
 	submnt := filepath.Join(ts.mnt, "mnt")
-	pfs2 := NewLoopbackFileSystem(ts.orig)
+	pfs2 := NewPathNodeFs(NewLoopbackFileSystem(ts.orig))
 	code := ts.connector.Mount("/mnt", pfs2, nil)
 	if !code.Ok() {
 		t.Fatal("Mount error", code)

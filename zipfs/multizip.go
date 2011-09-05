@@ -171,7 +171,7 @@ func (me *MultiZipFs) Symlink(value string, linkName string, context *fuse.Conte
 		return fuse.EINVAL
 	}
 
-	code = me.Connector.Mount("/"+base, fs, nil)
+	code = me.Connector.Mount("/"+base, fuse.NewPathNodeFs(fs), nil)
 	if !code.Ok() {
 		return code
 	}

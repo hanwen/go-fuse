@@ -50,7 +50,7 @@ func NewNotifyTest() *NotifyTest {
 	}
 
 	var err os.Error
-	me.state, me.connector, err = MountFileSystem(me.dir, me.fs, opts)
+	me.state, me.connector, err = MountPathFileSystem(me.dir, me.fs, opts)
 	CheckSuccess(err)
 	me.state.Debug = true
 	go me.state.Loop(false)

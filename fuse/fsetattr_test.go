@@ -122,7 +122,7 @@ func NewFile() *MutableDataFile {
 
 func setupFAttrTest(fs FileSystem) (dir string, clean func()) {
 	dir = MakeTempDir()
-	state, _, err := MountFileSystem(dir, fs, nil)
+	state, _, err := MountPathFileSystem(dir, fs, nil)
 	CheckSuccess(err)
 	state.Debug = true
 	

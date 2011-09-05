@@ -28,7 +28,7 @@ func setupOwnerTest(opts *FileSystemOptions) (workdir string, cleanup func()) {
 	wd := MakeTempDir()
 
 	fs := &ownerFs{}
-	state, _, err := MountFileSystem(wd, fs, opts)
+	state, _, err := MountPathFileSystem(wd, fs, opts)
 	CheckSuccess(err)
 	go state.Loop(false)
 	return wd, func() {

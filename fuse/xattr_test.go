@@ -94,7 +94,7 @@ func TestXAttrRead(t *testing.T) {
 	mountPoint := MakeTempDir()
 	defer os.RemoveAll(mountPoint)
 
-	state, _, err := MountFileSystem(mountPoint, xfs, nil)
+	state, _, err := MountPathFileSystem(mountPoint, xfs, nil)
 	CheckSuccess(err)
 	state.Debug = true
 	defer state.Unmount()
