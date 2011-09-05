@@ -48,13 +48,14 @@ func (me *PathNodeFs) Root() FsNode {
 // there is a one-to-one mapping of paths and inodes, ie. FSes that
 // disallow hardlinks.
 type pathInode struct {
-	inode  *Inode
 	ifs    *PathNodeFs
 	fs     FileSystem
 	Name   string
 
 	// This is nil at the root of the mount.
 	Parent *pathInode
+
+	DefaultFsNode
 }
 
 // GetPath returns the path relative to the mount governing this
@@ -90,17 +91,6 @@ func (me *pathInode) RmChild(name string, child FsNode) {
 	ch := child.(*pathInode)
 	ch.Name = ".deleted"
 	ch.Parent = nil
-}
-
-func (me *pathInode) SetInode(node *Inode) {
-	if me.inode != nil {
-		panic("already have Inode")
-	}
-	me.inode = node
-}
-
-func (me *pathInode) Inode() *Inode {
-	return me.inode
 }
 
 ////////////////////////////////////////////////////////////////

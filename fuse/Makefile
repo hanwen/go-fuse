@@ -8,6 +8,7 @@ MANUAL_GOFILES=api.go \
 	copy.go \
 	default.go \
 	defaultfile.go \
+	defaultnode.go \
 	defaultraw.go \
 	direntry.go\
 	files.go \
