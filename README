@@ -99,6 +99,8 @@ KNOWN PROBLEMS
 
 Grep source code for TODO.  Major topics:
 
+* Support for umask in Create
+
 * Use splice for transporting data, use io.Reader in API.
 
 * Opendir/Readdir does not support seeking correctly
