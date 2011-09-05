@@ -17,6 +17,10 @@ type memNode struct {
 	file MemFile
 }
 
+
+// MemTreeFs creates a tree of internal Inodes.  Since the tree is
+// loaded in memory completely at startup, it does not need to inode
+// discovery through Lookup() at serve time.
 type MemTreeFs struct {
 	fuse.DefaultNodeFileSystem
 	root    memNode
@@ -57,6 +61,11 @@ func (me *memNode) Print(indent int) {
 			fmt.Println(s + k)
 		}
 	}
+}
+
+// We construct the tree at mount, so we never need to look anything up.
+func (me *memNode) Lookup(name string) (fi *os.FileInfo, node FsNode, code Status) {
+	return nil, nil, ENOENT
 }
 
 func (me *memNode) OpenDir(context *fuse.Context) (stream chan fuse.DirEntry, code fuse.Status) {
