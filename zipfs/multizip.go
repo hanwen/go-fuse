@@ -32,7 +32,7 @@ const (
 type MultiZipFs struct {
 	Connector     *fuse.FileSystemConnector
 	lock          sync.RWMutex
-	zips          map[string]*MemTreeFileSystem
+	zips          map[string]*MemTreeFs
 	dirZipFileMap map[string]string
 
 	fuse.DefaultFileSystem
@@ -40,7 +40,7 @@ type MultiZipFs struct {
 
 func NewMultiZipFs() *MultiZipFs {
 	m := new(MultiZipFs)
-	m.zips = make(map[string]*MemTreeFileSystem)
+	m.zips = make(map[string]*MemTreeFs)
 	m.dirZipFileMap = make(map[string]string)
 	return m
 }
@@ -171,7 +171,7 @@ func (me *MultiZipFs) Symlink(value string, linkName string, context *fuse.Conte
 		return fuse.EINVAL
 	}
 
-	code = me.Connector.Mount("/"+base, fuse.NewPathNodeFs(fs), nil)
+	code = me.Connector.Mount("/"+base, fs, nil)
 	if !code.Ok() {
 		return code
 	}

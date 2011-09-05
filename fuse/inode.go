@@ -41,6 +41,8 @@ type Inode struct {
 	// during the lifetime, except upon Unmount() when it is set
 	// to nil.
 	mount *fileSystemMount
+
+	connector *FileSystemConnector
 }
 
 // public methods.
@@ -66,6 +68,21 @@ func (me *Inode) AnyFile() (file File) {
 	return file
 }
 
+func (me *Inode) Children() (out map[string]*Inode) {
+	me.treeLock.Lock()
+	defer me.treeLock.Unlock()
+
+	out = map[string]*Inode{}
+	for k, v := range me.children {
+		out[k] = v
+	}
+	return out
+}
+
+func (me *Inode) FsNode() FsNode {
+	return me.fsInode
+}
+	
 // Returns an open writable file for the given Inode.
 func (me *Inode) WritableFiles() (files []File) {
 	me.openFilesMutex.Lock()
@@ -83,7 +100,8 @@ func (me *Inode) IsDir() bool {
 	return me.children != nil
 }
 
-func (me *Inode) createChild(name string, isDir bool, fsi FsNode, conn *FileSystemConnector) *Inode {
+// Creates an Inode as child. 
+func (me *Inode) CreateChild(name string, isDir bool, fsi FsNode) *Inode {
 	me.treeLock.Lock()
 	defer me.treeLock.Unlock()
 
@@ -91,18 +109,19 @@ func (me *Inode) createChild(name string, isDir bool, fsi FsNode, conn *FileSyst
 	if ch != nil {
 		panic(fmt.Sprintf("already have a child at %v %q", me.nodeId, name))
 	}
-	ch = conn.newInode(isDir)
+	ch = me.connector.newInode(isDir)
 	ch.fsInode = fsi
  	fsi.SetInode(ch)
 	ch.mount = me.mount
 	ch.treeLock = me.treeLock
 	ch.lookupCount = 1
+	ch.connector = me.connector
 	
 	me.addChild(name, ch)
 	return ch
 }
 
-func (me *Inode) getChild(name string) (child *Inode) {
+func (me *Inode) GetChild(name string) (child *Inode) {
 	me.treeLock.Lock()
 	defer me.treeLock.Unlock()
 	

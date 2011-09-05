@@ -47,7 +47,7 @@ func (me *FileSystemConnector) internalLookup(parent *Inode, name string, lookup
 	}
 
 	var fi *os.FileInfo
-	child := parent.getChild(name)
+	child := parent.GetChild(name)
 	if child != nil {
 		fi, code = child.fsInode.GetAttr(nil, nil)
 	}
@@ -198,15 +198,6 @@ func (me *FileSystemConnector) Mknod(header *InHeader, input *MknodIn, name stri
 	}
 	return out, code
 }
-
-func (me *FileSystemConnector) createChild(parent *Inode, name string, fi *os.FileInfo, fsi FsNode) (out *EntryOut, child *Inode) {
-	child = parent.createChild(name, fi.IsDirectory(), fsi, me)
-	out = parent.mount.fileInfoToEntry(fi)
-	out.Ino = child.nodeId
-	out.NodeId = child.nodeId
-	return out, child
-}
-
 
 func (me *FileSystemConnector) Mkdir(header *InHeader, input *MkdirIn, name string) (out *EntryOut, code Status) {
 	parent := me.getInodeData(header.NodeId)

@@ -8,8 +8,6 @@ import (
 
 var _ = log.Println
 
-
-
 type PathNodeFs struct {
 	fs   FileSystem
 	root *pathInode

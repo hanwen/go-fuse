@@ -7,6 +7,7 @@ package fuse
 import (
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
 	"unsafe"
@@ -59,11 +60,20 @@ func (me *FileSystemConnector) verify() {
 func (me *FileSystemConnector) newInode(isDir bool) *Inode {
 	data := new(Inode)
 	data.nodeId = me.inodeMap.Register(&data.handled)
+	data.connector = me
 	if isDir {
 		data.children = make(map[string]*Inode, initDirSize)
 	}
 
 	return data
+}
+
+func (me *FileSystemConnector) createChild(parent *Inode, name string, fi *os.FileInfo, fsi FsNode) (out *EntryOut, child *Inode) {
+	child = parent.CreateChild(name, fi.IsDirectory(), fsi)
+	out = parent.mount.fileInfoToEntry(fi)
+	out.Ino = child.nodeId
+	out.NodeId = child.nodeId
+	return out, child
 }
 
 func (me *FileSystemConnector) lookupUpdate(parent *Inode, name string, isDir bool, lookupCount int) *Inode {

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 	"syscall"
 )
@@ -45,8 +44,8 @@ func (me *TarFile) Data() []byte {
 	return me.data
 }
 
-func NewTarTree(r io.Reader) *MemTree {
-	tree := NewMemTree()
+func NewTarTree(r io.Reader) (map[string]MemFile) {
+	files := map[string]MemFile{}
 	tr := tar.NewReader(r)
 
 	var longName *string
@@ -73,32 +72,22 @@ func NewTarTree(r io.Reader) *MemTree {
 			longName = nil
 		}
 
-		comps := strings.Split(filepath.Clean(hdr.Name), "/")
-		base := ""
-		if !strings.HasSuffix(hdr.Name, "/") {
-			base = comps[len(comps)-1]
-			comps = comps[:len(comps)-1]
-		}
-
-		parent := tree
-		for _, c := range comps {
-			parent = parent.FindDir(c)
+		if strings.HasSuffix(hdr.Name, "/") {
+			continue
 		}
 
 		buf := bytes.NewBuffer(make([]byte, 0, hdr.Size))
 		io.Copy(buf, tr)
-		if base != "" {
-			b := buf.Bytes()
-			parent.files[base] = &TarFile{
-				Header: *hdr,
-				data:   b,
-			}
+
+		files[hdr.Name] = &TarFile{
+		Header: *hdr,
+		data:   buf.Bytes(),
 		}
 	}
-	return tree
+	return files
 }
 
-func NewTarCompressedTree(name string, format string) (*MemTree, os.Error) {
+func NewTarCompressedTree(name string, format string) (map[string]MemFile, os.Error) {
 	f, err := os.Open(name)
 	if err != nil {
 		return nil, err
