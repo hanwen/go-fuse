@@ -66,7 +66,6 @@ func main() {
 	if *latencies {
 		state.SetRecordStatistics(true)
 		debugFs.AddMountState(state)
-		debugFs.AddFileSystemConnector(conn)
 	}
 	mountPoint := flag.Arg(0)
 

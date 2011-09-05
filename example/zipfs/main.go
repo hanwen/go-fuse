@@ -35,14 +35,13 @@ func main() {
 		fs = debugFs
 	}
 
-	state, conn, err := fuse.MountFileSystem(flag.Arg(0), fs, nil)
+	state, _, err := fuse.MountFileSystem(flag.Arg(0), fs, nil)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)
 	}
 
 	if *latencies {
-		debugFs.AddFileSystemConnector(conn)
 		debugFs.AddMountState(state)
 	}
 
