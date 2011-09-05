@@ -7,6 +7,8 @@ MANUAL_GOFILES=api.go \
 	bufferpool.go \
 	copy.go \
 	default.go \
+	defaultfile.go \
+	defaultraw.go \
 	direntry.go\
 	files.go \
 	fuse.go \
