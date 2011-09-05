@@ -25,14 +25,40 @@ func NewFileSystemConnector(fs FileSystem, opts *FileSystemOptions) (me *FileSys
 	return me
 }
 
+
+// Returns an openedFile for the given inode.
+func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64) (opened *openedFile, m *fileSystemMount, p string, node *inode) {
+	node = me.getInodeData(nodeid)
+	if fh != 0 {
+		opened = me.getOpenedFile(fh)
+	}
+
+	path, mount := node.fsInode.GetPath()
+	if me.Debug {
+		log.Printf("Node %v = '%s'", nodeid, path)
+	}
+
+	// If the file was deleted, GetPath() will return nil.
+	if mount != nil {
+		m = mount
+		p = path
+	}
+	if opened == nil {
+		node.OpenFilesMutex.Lock()
+		defer node.OpenFilesMutex.Unlock()
+
+		for _, f := range node.OpenFiles {
+			if f.OpenFlags & O_ANYWRITE != 0 || opened == nil {
+				opened = f
+			}
+		}
+	}
+	return
+}
 func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *fileSystemMount, node *inode) {
 	n := me.getInodeData(nodeid)
 
-	p, m := n.GetPath()
-	if me.Debug {
-		log.Printf("Node %v = '%s'", nodeid, n.GetFullPath())
-	}
-
+	p, m := n.fsInode.GetPath()
 	return p, m, n
 }
 
@@ -44,9 +70,6 @@ func (me *fileSystemMount) setOwner(attr *Attr) {
 
 func (me *FileSystemConnector) Lookup(header *InHeader, name string) (out *EntryOut, status Status) {
 	parent := me.getInodeData(header.NodeId)
-	if me.Debug {
-		log.Printf("Node %v = '%s'", parent.NodeId, parent.GetFullPath())
-	}
 	return me.internalLookup(parent, name, 1, &header.Context)
 }
 
@@ -56,17 +79,17 @@ func (me *FileSystemConnector) internalLookup(parent *inode, name string, lookup
 }
 
 func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string, lookupCount int, context *Context) (out *EntryOut, status Status, node *inode) {
-	fullPath, mount, isMountPoint := me.lookupMount(parent, name, lookupCount)
+	mount := me.lookupMount(parent, name, lookupCount)
+	isMountPoint := (mount != nil)
+	fullPath := ""
 	if isMountPoint {
 		node = mount.mountInode
 	} else {
-		fullPath, mount = parent.GetPath()
+		fullPath, mount = parent.fsInode.GetPath()
 		fullPath = filepath.Join(fullPath, name)
 	}
 
 	if mount == nil {
-		fmt.Println(me.rootNode)
-		fmt.Println(me.rootNode.mountPoint)
 		timeout := me.rootNode.mountPoint.options.NegativeTimeout
 		if timeout > 0 {
 			return NegativeEntry(timeout), OK, nil
@@ -166,7 +189,7 @@ func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags u
 	}
 
 	de := &connectorDir{
-		extra:  node.GetMountDirEntries(),
+		extra:  node.getMountDirEntries(),
 		stream: stream,
 	}
 	de.extra = append(de.extra, DirEntry{S_IFDIR, "."}, DirEntry{S_IFDIR, ".."})
@@ -363,7 +386,7 @@ func (me *FileSystemConnector) Rename(header *InHeader, input *RenameIn, oldName
 	if mount == nil || oldMount == nil {
 		return ENOENT
 	}
-	_, _, isMountPoint := me.lookupMount(oldParent, oldName, 0)
+	isMountPoint := me.lookupMount(oldParent, oldName, 0) != nil
 	if isMountPoint {
 		return EBUSY
 	}
@@ -443,7 +466,7 @@ func (me *FileSystemConnector) Flush(input *FlushIn) Status {
 		// open could have changed things.
 		var path string
 		var mount *fileSystemMount
-		path, mount = opened.inode.GetPath()
+		path, mount = opened.inode.fsInode.GetPath()
 
 		if mount != nil {
 			code = mount.fs.Flush(path)

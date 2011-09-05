@@ -3,9 +3,11 @@ package fuse
 import (
 	"bytes"
 	"io/ioutil"
+	"log"
 	"os"
 	"testing"
 )
+var _ = log.Println
 
 type cacheFs struct {
 	*LoopbackFileSystem

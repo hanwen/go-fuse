@@ -114,9 +114,7 @@ func (me *fileSystemMount) registerFileHandle(node *inode, dir rawDir, f File, f
 // Tests should set to true.
 var paranoia = false
 
-// The inode is a combination of dentry (entry in the file/directory
-// tree) and inode.  We do this, since in the high-level API, each
-// files and inodes correspond one-to-one.
+// The inode reflects the kernel's idea of the inode.
 type inode struct {
 	Handled
 
@@ -136,9 +134,12 @@ type inode struct {
 	treeLock *sync.RWMutex
 
 	// All data below is protected by treeLock.
-	Name        string
-	Parent      *inode
+	fsInode *fsInode
+	
 	Children    map[string]*inode
+
+	// Contains directories that function as mounts. The entries
+	// are duplicated in Children.
 	Mounts      map[string]*fileSystemMount
 	LookupCount int
 
@@ -149,6 +150,29 @@ type inode struct {
 	// during the lifetime, except upon Unmount() when it is set
 	// to nil.
 	mount *fileSystemMount
+}
+
+// Must be called with treeLock for the mount held.
+func (me *inode) addChild(name string, child *inode) {
+	if paranoia {
+		ch := me.Children[name]
+		if ch != nil {
+			panic(fmt.Sprintf("Already have an inode with same name: %v: %v", name, ch))
+		}
+	}
+
+	me.Children[name] = child
+	me.fsInode.addChild(name, child.fsInode)
+}
+
+// Must be called with treeLock for the mount held.
+func (me *inode) rmChild(name string) (ch *inode) {
+	ch = me.Children[name]
+	if ch != nil {
+		me.Children[name] = nil, false
+		me.fsInode.rmChild(name, ch.fsInode)
+	}
+	return ch
 }
 
 // Can only be called on untouched inodes.
@@ -193,7 +217,7 @@ func (me *inode) IsDir() bool {
 	return me.Children != nil
 }
 
-func (me *inode) GetMountDirEntries() (out []DirEntry) {
+func (me *inode) getMountDirEntries() (out []DirEntry) {
 	me.treeLock.RLock()
 	defer me.treeLock.RUnlock()
 
@@ -209,10 +233,6 @@ func (me *inode) GetMountDirEntries() (out []DirEntry) {
 const initDirSize = 20
 
 func (me *inode) verify(cur *fileSystemMount) {
-	if !(me.NodeId == FUSE_ROOT_ID || me.LookupCount > 0 || len(me.Children) > 0 || me.mountPoint != nil) {
-		p, _ := me.GetPath()
-		panic(fmt.Sprintf("node %v %d should be dead: %v %v", p, me.NodeId, len(me.Children), me.LookupCount))
-	}
 	if me.mountPoint != nil {
 		if me != me.mountPoint.mountInode {
 			panic("mountpoint mismatch")
@@ -229,88 +249,12 @@ func (me *inode) verify(cur *fileSystemMount) {
 				me.mountPoint, name, me.Children))
 		}
 	}
-	for n, ch := range me.Children {
+	
+	for _, ch := range me.Children {
 		if ch == nil {
 			panic("Found nil child.")
 		}
-		if ch.Name != n {
-			panic(fmt.Sprintf("parent/child name corrupted %v %v",
-				ch.Name, n))
-		}
-		if ch.Parent != me {
-			panic(fmt.Sprintf("parent/child relation corrupted %v %v %v",
-				ch.Parent, me, ch))
-		}
 		ch.verify(cur)
-	}
-}
-
-func (me *inode) GetFullPath() (path string) {
-	rev_components := make([]string, 0, 10)
-	inode := me
-	for ; inode != nil; inode = inode.Parent {
-		rev_components = append(rev_components, inode.Name)
-	}
-	return ReverseJoin(rev_components, "/")
-}
-
-// GetPath returns the path relative to the mount governing this
-// inode.  It returns nil for mount if the file was deleted or the
-// filesystem unmounted.  This will take the treeLock for the mount,
-// so it can not be used in internal methods.
-func (me *inode) GetPath() (path string, mount *fileSystemMount) {
-	me.treeLock.RLock()
-	defer me.treeLock.RUnlock()
-	if me.mount == nil {
-		// Node from unmounted file system.
-		return ".deleted", nil
-	}
-
-	if me.NodeId != FUSE_ROOT_ID && me.Parent == nil {
-		// Deleted node.  Treat as if the filesystem was unmounted.
-		return ".deleted", nil
-	}
-
-	rev_components := make([]string, 0, 10)
-	inode := me
-
-	for ; inode != nil && inode.mountPoint == nil; inode = inode.Parent {
-		rev_components = append(rev_components, inode.Name)
-	}
-	if inode == nil {
-		panic(fmt.Sprintf("did not find parent with mount: %v", rev_components))
-	}
-	mount = inode.mountPoint
-	return ReverseJoin(rev_components, "/"), mount
-}
-
-// Must be called with treeLock for the mount held.
-func (me *inode) setParent(newParent *inode) {
-	oldParent := me.Parent
-	if oldParent == newParent {
-		return
-	}
-	if oldParent != nil {
-		if paranoia {
-			ch := oldParent.Children[me.Name]
-			if ch == nil {
-				panic(fmt.Sprintf("parent has no child named %v", me.Name))
-			}
-		}
-		oldParent.Children[me.Name] = nil, false
-		me.Parent = nil
-	}
-	if newParent != nil {
-		me.Parent = newParent
-
-		if paranoia {
-			ch := me.Parent.Children[me.Name]
-			if ch != nil {
-				panic(fmt.Sprintf("Already have an inode with same name: %v: %v", me.Name, ch))
-			}
-		}
-
-		me.Parent.Children[me.Name] = me
 	}
 }
 
@@ -352,6 +296,8 @@ func (me *FileSystemConnector) verify() {
 func (me *FileSystemConnector) newInode(isDir bool) *inode {
 	data := new(inode)
 	data.NodeId = me.inodeMap.Register(&data.Handled)
+	data.fsInode = new(fsInode)
+	data.fsInode.inode = data
 	if isDir {
 		data.Children = make(map[string]*inode, initDirSize)
 	}
@@ -368,8 +314,7 @@ func (me *FileSystemConnector) lookupUpdate(parent *inode, name string, isDir bo
 	data, ok := parent.Children[name]
 	if !ok {
 		data = me.newInode(isDir)
-		data.Name = name
-		data.setParent(parent)
+		parent.addChild(name, data)
 		data.mount = parent.mount
 		data.treeLock = &data.mount.treeLock
 	}
@@ -377,11 +322,11 @@ func (me *FileSystemConnector) lookupUpdate(parent *inode, name string, isDir bo
 	return data
 }
 
-func (me *FileSystemConnector) lookupMount(parent *inode, name string, lookupCount int) (path string, mount *fileSystemMount, isMount bool) {
+func (me *FileSystemConnector) lookupMount(parent *inode, name string, lookupCount int) (mount *fileSystemMount) {
 	parent.treeLock.RLock()
 	defer parent.treeLock.RUnlock()
 	if parent.Mounts == nil {
-		return "", nil, false
+		return nil
 	}
 
 	mount, ok := parent.Mounts[name]
@@ -389,9 +334,9 @@ func (me *FileSystemConnector) lookupMount(parent *inode, name string, lookupCou
 		mount.treeLock.Lock()
 		defer mount.treeLock.Unlock()
 		mount.mountInode.LookupCount += lookupCount
-		return "", mount, true
+		return mount
 	}
-	return "", nil, false
+	return nil
 }
 
 func (me *FileSystemConnector) getInodeData(nodeid uint64) *inode {
@@ -406,30 +351,38 @@ func (me *FileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int) {
 
 	node := me.getInodeData(nodeId)
 
+	node.treeLock.Lock()
+	defer node.treeLock.Unlock()
+
 	node.LookupCount -= forgetCount
 	me.considerDropInode(node)
 }
 
-func (me *FileSystemConnector) considerDropInode(n *inode) {
-	if n.Parent != nil {
-		n.Parent.treeLock.Lock()
-		defer n.Parent.treeLock.Unlock()
-	}
-	if n.Parent == nil || n.Parent.treeLock != n.treeLock {
-		n.treeLock.Lock()
-		defer n.treeLock.Unlock()
-	}
-
-	n.OpenFilesMutex.Lock()
-	defer n.OpenFilesMutex.Unlock()
-	dropInode := n.LookupCount <= 0 && len(n.Children) == 0 &&
-		len(n.OpenFiles) <= 0 && n != me.rootNode && n.mountPoint == nil
-	if dropInode {
-		n.setParent(nil)
-		if n != me.rootNode {
-			me.inodeMap.Forget(n.NodeId)
+func (me *FileSystemConnector) considerDropInode(n *inode) (drop bool) {
+	delChildren := []string{}
+	for k, v := range n.Children {
+		if v.mountPoint == nil && me.considerDropInode(v) {
+			delChildren = append(delChildren, k)
 		}
 	}
+	for _, k := range delChildren {
+		ch := n.rmChild(k)
+		if ch == nil {
+			panic(fmt.Sprintf("trying to del child %q, but not present", k))
+		}
+		me.inodeMap.Forget(ch.NodeId)
+	}
+
+	if len(n.Children) > 0 || n.LookupCount > 0 {
+		return false
+	}
+	if n == me.rootNode || n.mountPoint != nil {
+		return false
+	}
+	
+	n.OpenFilesMutex.Lock()
+	defer n.OpenFilesMutex.Unlock()
+	return len(n.OpenFiles) == 0 
 }
 
 func (me *FileSystemConnector) renameUpdate(oldParent *inode, oldName string, newParent *inode, newName string) {
@@ -440,30 +393,22 @@ func (me *FileSystemConnector) renameUpdate(oldParent *inode, oldName string, ne
 	if oldParent.mount != newParent.mount {
 		panic("Cross mount rename")
 	}
-
-	node := oldParent.Children[oldName]
+	
+	node := oldParent.rmChild(oldName)
 	if node == nil {
 		panic("Source of rename does not exist")
 	}
-
-	dest := newParent.Children[newName]
-	if dest != nil {
-		dest.setParent(nil)
-	}
-	node.setParent(nil)
-	node.Name = newName
-	node.setParent(newParent)
+	newParent.rmChild(newName)
+	newParent.addChild(newName, node)
 }
 
 func (me *FileSystemConnector) unlinkUpdate(parent *inode, name string) {
 	defer me.verify()
-
+	
 	parent.treeLock.Lock()
 	defer parent.treeLock.Unlock()
 
-	node := parent.Children[name]
-	node.setParent(nil)
-	node.Name = ".deleted"
+	parent.rmChild(name)
 }
 
 // Walk the file system starting from the root. Will return nil if
@@ -547,17 +492,17 @@ func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *Fil
 	}
 
 	node = me.newInode(true)
-	node.Name = base
-	node.setParent(parent)
 	if opts == nil {
 		opts = me.rootNode.mountPoint.options
 	}
 
 	node.mountFs(fs, opts)
+	parent.addChild(base, node)
+
 	if parent.Mounts == nil {
 		parent.Mounts = make(map[string]*fileSystemMount)
 	}
-	parent.Mounts[node.Name] = node.mountPoint
+	parent.Mounts[base] = node.mountPoint
 	if me.Debug {
 		log.Println("Mount: ", fs, "on dir", mountPoint,
 			"parent", parent)
@@ -583,15 +528,10 @@ func (me *FileSystemConnector) mountRoot(fs FileSystem, opts *FileSystemOptions)
 //
 // EBUSY: there are open files, or submounts below this node.
 func (me *FileSystemConnector) Unmount(path string) Status {
-	node := me.findInode(path)
-	if node == nil {
-		log.Println("Could not find mountpoint:", path)
-		return EINVAL
-	}
-
-	parentNode := node.Parent
+	dir, name := filepath.Split(path)
+	parentNode := me.findInode(dir)
 	if parentNode == nil {
-		// attempt to unmount root?
+		log.Println("Could not find parent of mountpoint:", path)
 		return EINVAL
 	}
 
@@ -599,78 +539,31 @@ func (me *FileSystemConnector) Unmount(path string) Status {
 	parentNode.treeLock.Lock()
 	defer parentNode.treeLock.Unlock()
 
-	if node.treeLock != parentNode.treeLock {
-		node.treeLock.Lock()
-		defer node.treeLock.Unlock()
-	}
-	if node.mountPoint == nil {
+	mount := parentNode.Mounts[name]
+	if mount == nil {
 		return EINVAL
 	}
 
-	if node.mountPoint.openFiles.Count() > 0 {
+	if mount.openFiles.Count() > 0 {
 		return EBUSY
 	}
 
-	if !node.canUnmount() {
+	mountInode := mount.mountInode
+	if !mountInode.canUnmount() {
 		return EBUSY
 	}
 
-	me.unsafeUnmountNode(node)
-	notifyMessage := NotifyInvalInodeOut{
-		Ino: node.NodeId,
-	}
-	me.fsInit.InodeNotify(&notifyMessage)
+	mountInode.recursiveUnmount()
+	mount.mountInode = nil
+	mountInode.mountPoint = nil
+
+	parentNode.Mounts[name] = nil, false
+	parentNode.Children[name] = nil, false
+	mount.fs.Unmount()
+
+	me.fsInit.EntryNotify(parentNode.NodeId, name)
 
 	return OK
-}
-
-// Assumes node.treeLock and node.Parent.treeLock have been taken.
-func (me *FileSystemConnector) unsafeUnmountNode(node *inode) {
-	if node == me.rootNode {
-		return
-	}
-	node.recursiveUnmount()
-	unmounted := node.mountPoint
-	unmounted.mountInode = nil
-	node.mountPoint = nil
-
-	parentNode := node.Parent
-	node.Parent = nil
-	if parentNode != nil {
-		parentNode.Mounts[node.Name] = nil, false
-		parentNode.Children[node.Name] = nil, false
-	}
-	unmounted.fs.Unmount()
-}
-
-// Returns an openedFile for the gived inode.
-func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64) (opened *openedFile, m *fileSystemMount, p string, node *inode) {
-	node = me.getInodeData(nodeid)
-	if fh != 0 {
-		opened = me.getOpenedFile(fh)
-	}
-
-	path, mount := node.GetPath()
-	if me.Debug {
-		log.Printf("Node %v = '%s'", nodeid, path)
-	}
-
-	// If the file was deleted, GetPath() will return nil.
-	if mount != nil {
-		m = mount
-		p = path
-	}
-	if opened == nil {
-		node.OpenFilesMutex.Lock()
-		defer node.OpenFilesMutex.Unlock()
-
-		for _, f := range node.OpenFiles {
-			if f.OpenFlags & O_ANYWRITE != 0 || opened == nil {
-				opened = f
-			}
-		}
-	}
-	return
 }
 
 func (me *FileSystemConnector) FileNotify(path string, off int64, length int64) Status {

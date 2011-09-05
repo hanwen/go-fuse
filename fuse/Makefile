@@ -11,6 +11,7 @@ MANUAL_GOFILES=api.go \
 	defaultraw.go \
 	direntry.go\
 	files.go \
+	fsinode.go \
 	fuse.go \
 	handle.go \
 	latencymap.go \
