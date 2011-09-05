@@ -1,9 +1,12 @@
 package fuse
+
 import (
+	"log"
 	"os"
 	"sync"
 	"unsafe"
 )
+var _ = log.Println
 
 // openedFile stores either an open dir or an open file.
 type openedFile struct {
@@ -21,7 +24,7 @@ type openedFile struct {
 
 type fileSystemMount struct {
 	// The file system we mounted here.
-	fs FileSystem
+	fs *inodeFs
 
 	// Node that we were mounted on.
 	mountInode *inode

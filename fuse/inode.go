@@ -43,6 +43,32 @@ type inode struct {
 	mount *fileSystemMount
 }
 
+func (me *inode) createChild(name string, isDir bool, fsi *fsInode, conn *FileSystemConnector) *inode {
+	me.treeLock.Lock()
+	defer me.treeLock.Unlock()
+
+	ch := me.children[name]
+	if ch != nil {
+		panic(fmt.Sprintf("already have a child at %v %q", me.nodeId, name))
+	}
+	ch = conn.newInode(isDir)
+	ch.fsInode = fsi
+ 	fsi.SetInode(ch)
+	ch.mount = me.mount
+	ch.treeLock = me.treeLock
+	ch.lookupCount = 1
+	
+	me.addChild(name, ch)
+	return ch
+}
+
+func (me *inode) getChild(name string) (child *inode) {
+	me.treeLock.Lock()
+	defer me.treeLock.Unlock()
+	
+	return me.children[name]
+}
+
 // Must be called with treeLock for the mount held.
 func (me *inode) addChild(name string, child *inode) {
 	if paranoia {
@@ -67,7 +93,7 @@ func (me *inode) rmChild(name string) (ch *inode) {
 }
 
 // Can only be called on untouched inodes.
-func (me *inode) mountFs(fs FileSystem, opts *FileSystemOptions) {
+func (me *inode) mountFs(fs *inodeFs, opts *FileSystemOptions) {
 	me.mountPoint = &fileSystemMount{
 		fs:         fs,
 		openFiles:  NewHandleMap(true),
@@ -76,6 +102,8 @@ func (me *inode) mountFs(fs FileSystem, opts *FileSystemOptions) {
 	}
 	me.mount = me.mountPoint
 	me.treeLock = &me.mountPoint.treeLock
+	me.fsInode = fs.RootNode()
+	me.fsInode.SetInode(me)
 }
 
 // Must be called with treeLock held.

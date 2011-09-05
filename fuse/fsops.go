@@ -4,8 +4,8 @@ package fuse
 
 import (
 	"bytes"
-	"fmt"
 	"log"
+	"os"
 	"time"
 )
 
@@ -23,7 +23,7 @@ func (me *FileSystemConnector) Lookup(header *InHeader, name string) (out *Entry
 }
 
 func (me *FileSystemConnector) internalMountLookup(mount *fileSystemMount, lookupCount int) (out *EntryOut, status Status, node *inode) {
-	fi, err := mount.fs.GetAttr("", nil)
+	fi, err := mount.fs.RootNode().GetAttr(nil, nil)
 	if err == ENOENT && mount.options.NegativeTimeout > 0.0 {
 		return NegativeEntry(mount.options.NegativeTimeout), OK, nil
 	}
@@ -41,12 +41,16 @@ func (me *FileSystemConnector) internalMountLookup(mount *fileSystemMount, looku
 	return out, OK, mount.mountInode
 }
 
-func (me *FileSystemConnector) internalLookup(parent *inode, name string, lookupCount int, context *Context) (out *EntryOut, status Status, node *inode) {
+func (me *FileSystemConnector) internalLookup(parent *inode, name string, lookupCount int, context *Context) (out *EntryOut, code Status, node *inode) {
 	if mount := me.lookupMount(parent, name, lookupCount); mount != nil {
 		return me.internalMountLookup(mount, lookupCount)
 	}
 
-	fi, code := parent.fsInode.Lookup(name)
+	var fi *os.FileInfo
+	child := parent.getChild(name)
+	if child != nil {
+		fi, code = child.fsInode.GetAttr(nil, nil)
+	}
 	mount := parent.mount
 	if code == ENOENT && mount.options.NegativeTimeout > 0.0 {
 		return NegativeEntry(mount.options.NegativeTimeout), OK, nil
@@ -54,13 +58,25 @@ func (me *FileSystemConnector) internalLookup(parent *inode, name string, lookup
 	if !code.Ok() {
 		return nil, code, nil
 	}
-	node = me.lookupUpdate(parent, name, fi.IsDirectory(), lookupCount)
-	out = &EntryOut{
-		NodeId:     node.nodeId,
-		Generation: 1, // where to get the generation?
+
+	if child != nil && code.Ok() {
+		out = &EntryOut{
+			NodeId:     child.nodeId,
+			Generation: 1, // where to get the generation?
+		}
+		parent.mount.fileInfoToEntry(fi, out)	
+		return out, OK, child
 	}
-	parent.mount.fileInfoToEntry(fi, out)
-	out.Attr.Ino = node.nodeId
+	
+	fi, fsNode, code := parent.fsInode.Lookup(name)
+	if code == ENOENT && mount.options.NegativeTimeout > 0.0 {
+		return NegativeEntry(mount.options.NegativeTimeout), OK, nil
+	}
+	if !code.Ok() {
+		return nil, code, nil
+	}
+
+	out, _ =  me.createChild(parent, name, fi, fsNode)
 	return out, OK, node
 }
 
@@ -122,7 +138,6 @@ func (me *FileSystemConnector) Open(header *InHeader, input *OpenIn) (flags uint
 	if !code.Ok() {
 		return 0, 0, code
 	}
-
 	h, opened := node.mount.registerFileHandle(node, nil, f, input.Flags)
 	return opened.FuseFlags, h, OK
 }
@@ -178,20 +193,30 @@ func (me *FileSystemConnector) Readlink(header *InHeader) (out []byte, code Stat
 }
 
 func (me *FileSystemConnector) Mknod(header *InHeader, input *MknodIn, name string) (out *EntryOut, code Status) {
-	n := me.getInodeData(header.NodeId)
-	code = n.fsInode.Mknod(name, input.Mode, uint32(input.Rdev), &header.Context)
+	parent := me.getInodeData(header.NodeId)
+	fi, fsNode, code := parent.fsInode.Mknod(name, input.Mode, uint32(input.Rdev), &header.Context)
 	if code.Ok() {
-		out, code, _ = me.internalLookup(n, name, 1, &header.Context)
+		out, _ = me.createChild(parent, name, fi, fsNode)
 	}
 	return out, code
 }
 
+func (me *FileSystemConnector) createChild(parent *inode, name string, fi *os.FileInfo, fsi *fsInode) (out *EntryOut, child *inode) {
+	child = parent.createChild(name, fi.IsDirectory(), fsi, me)
+	out = &EntryOut{}
+	parent.mount.fileInfoToEntry(fi, out)
+	out.Ino = child.nodeId
+	out.NodeId = child.nodeId
+	return out, child
+}
+
+
 func (me *FileSystemConnector) Mkdir(header *InHeader, input *MkdirIn, name string) (out *EntryOut, code Status) {
 	parent := me.getInodeData(header.NodeId)
-	code = parent.fsInode.Mkdir(name, input.Mode, &header.Context)
+	fi, fsInode, code := parent.fsInode.Mkdir(name, input.Mode, &header.Context)
 
 	if code.Ok() {
-		out, code, _ = me.internalLookup(parent, name, 1, &header.Context)
+		out, _ = me.createChild(parent, name, fi, fsInode)
 	}
 	return out, code
 }
@@ -218,9 +243,9 @@ func (me *FileSystemConnector) Rmdir(header *InHeader, name string) (code Status
 
 func (me *FileSystemConnector) Symlink(header *InHeader, pointedTo string, linkName string) (out *EntryOut, code Status) {
 	parent := me.getInodeData(header.NodeId)
-	code = parent.fsInode.Symlink(linkName, pointedTo, &header.Context)
+	fi, fsNode, code := parent.fsInode.Symlink(linkName, pointedTo, &header.Context)
 	if code.Ok() {
-		out, code, _ = me.internalLookup(parent, linkName, 1, &header.Context)
+		out, _ = me.createChild(parent, linkName, fi, fsNode)
 	}
 	return out, code
 }
@@ -269,17 +294,12 @@ func (me *FileSystemConnector) Access(header *InHeader, input *AccessIn) (code S
 
 func (me *FileSystemConnector) Create(header *InHeader, input *CreateIn, name string) (flags uint32, h uint64, out *EntryOut, code Status) {
 	parent := me.getInodeData(header.NodeId)
-	f, code := parent.fsInode.Create(name, uint32(input.Flags), input.Mode, &header.Context)
+	f, fi, fsNode, code := parent.fsInode.Create(name, uint32(input.Flags), input.Mode, &header.Context)
 	if !code.Ok() {
 		return 0, 0, nil, code
 	}
-
-	out, code, inode := me.internalLookup(parent, name, 1, &header.Context)
-	if inode == nil {
-		msg := fmt.Sprintf("Create succeded, but GetAttr returned no entry %v, %q. code %v", header.NodeId, name, code)
-		panic(msg)
-	}
-	handle, opened := parent.mount.registerFileHandle(inode, nil, f, input.Flags)
+	out, child := me.createChild(parent, name, fi, fsNode)
+	handle, opened := parent.mount.registerFileHandle(child, nil, f, input.Flags)
 	return opened.FuseFlags, handle, out, code
 }
 

@@ -59,8 +59,6 @@ func (me *FileSystemConnector) verify() {
 func (me *FileSystemConnector) newInode(isDir bool) *inode {
 	data := new(inode)
 	data.nodeId = me.inodeMap.Register(&data.handled)
-	data.fsInode = new(fsInode)
-	data.fsInode.inode = data
 	if isDir {
 		data.children = make(map[string]*inode, initDirSize)
 	}
@@ -259,7 +257,8 @@ func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *Fil
 		opts = me.rootNode.mountPoint.options
 	}
 
-	node.mountFs(fs, opts)
+	ifs := newInodeFs(fs)
+	node.mountFs(ifs, opts)
 	parent.addChild(base, node)
 
 	if parent.mounts == nil {
@@ -276,8 +275,9 @@ func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *Fil
 }
 
 func (me *FileSystemConnector) mountRoot(fs FileSystem, opts *FileSystemOptions) {
-	me.rootNode.mountFs(fs, opts)
-	fs.Mount(me)
+	ifs := newInodeFs(fs)
+	me.rootNode.mountFs(ifs, opts)
+	ifs.Mount(me)
 	me.verify()
 }
 

@@ -50,7 +50,7 @@ func (me *FileSystemDebug) Open(path string, flags uint32, context *Context) (fu
 	return me.FileSystem.Open(path, flags, context)
 }
 
-var SeparatorString = string([]byte{filepath.Separator})
+var SeparatorString = string(filepath.Separator)
 
 func (me *FileSystemDebug) getContent(path string) []byte {
 	comps := strings.Split(path, SeparatorString)
