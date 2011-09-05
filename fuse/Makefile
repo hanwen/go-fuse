@@ -11,9 +11,12 @@ MANUAL_GOFILES=api.go \
 	defaultraw.go \
 	direntry.go\
 	files.go \
+	fsmount.go \
 	fsinode.go \
+	fsconnector.go \
 	fuse.go \
 	handle.go \
+	inode.go \
 	latencymap.go \
 	lockingfs.go \
 	loggingfs.go \
@@ -23,8 +26,7 @@ MANUAL_GOFILES=api.go \
 	mountstate.go \
 	opcode.go \
 	pathdebug.go \
-	pathfilesystem.go \
-	pathops.go \
+	fsops.go \
 	readonlyfs.go \
 	request.go \
 	switchfs.go \

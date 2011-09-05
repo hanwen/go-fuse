@@ -1,4 +1,5 @@
 package fuse
+
 import (
 	"log"
 	"os"

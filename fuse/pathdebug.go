@@ -149,11 +149,6 @@ func (me *FileSystemDebug) AddMountState(state *MountState) {
 		func() []byte { return []byte(state.BufferPoolStats()) })
 }
 
-func (me *FileSystemDebug) AddFileSystemConnector(conn *FileSystemConnector) {
-	me.Add("filesystemconnector-stats",
-		func() []byte { return []byte(conn.Statistics()) })
-}
-
 func hotPaths(timing *TimingFileSystem) []byte {
 	hot := timing.HotPaths("GetAttr")
 	unique := len(hot)

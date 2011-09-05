@@ -1,4 +1,4 @@
-// Translation of raw operation to path based operations.
+// FileSystemConnector's implementation of RawFileSystem
 
 package fuse
 
@@ -11,39 +11,14 @@ import (
 
 var _ = log.Println
 
-func NewFileSystemConnector(fs FileSystem, opts *FileSystemOptions) (me *FileSystemConnector) {
-	me = new(FileSystemConnector)
-	if opts == nil {
-		opts = NewFileSystemOptions()
-	}
-	me.inodeMap = NewHandleMap(!opts.SkipCheckHandles)
-	me.rootNode = me.newInode(true)
-	me.rootNode.NodeId = FUSE_ROOT_ID
-	me.verify()
-	me.mountRoot(fs, opts)
-	return me
-}
 
-func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *fileSystemMount, node *inode) {
-	n := me.getInodeData(nodeid)
-
-	p := n.fsInode.GetPath()
-	return p, n.mount, n
-}
-
-func (me *fileSystemMount) setOwner(attr *Attr) {
-	if me.options.Owner != nil {
-		attr.Owner = *me.options.Owner
-	}
+func (me *FileSystemConnector) Init(fsInit *RawFsInit) {
+	me.fsInit = *fsInit
 }
 
 func (me *FileSystemConnector) Lookup(header *InHeader, name string) (out *EntryOut, status Status) {
 	parent := me.getInodeData(header.NodeId)
-	return me.internalLookup(parent, name, 1, &header.Context)
-}
-
-func (me *FileSystemConnector) internalLookup(parent *inode, name string, lookupCount int, context *Context) (out *EntryOut, status Status) {
-	out, status, _ = me.internalLookupWithNode(parent, name, lookupCount, context)
+	out, status, _ = me.internalLookup(parent, name, 1, &header.Context)
 	return out, status
 }
 
@@ -66,7 +41,7 @@ func (me *FileSystemConnector) internalMountLookup(mount *fileSystemMount, looku
 	return out, OK, mount.mountInode
 }
 
-func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string, lookupCount int, context *Context) (out *EntryOut, status Status, node *inode) {
+func (me *FileSystemConnector) internalLookup(parent *inode, name string, lookupCount int, context *Context) (out *EntryOut, status Status, node *inode) {
 	if mount := me.lookupMount(parent, name, lookupCount); mount != nil {
 		return me.internalMountLookup(mount, lookupCount)
 	}
@@ -206,9 +181,9 @@ func (me *FileSystemConnector) Mknod(header *InHeader, input *MknodIn, name stri
 	n := me.getInodeData(header.NodeId)
 	code = n.fsInode.Mknod(name, input.Mode, uint32(input.Rdev), &header.Context)
 	if code.Ok() {
-		return me.internalLookup(n, name, 1, &header.Context)
+		out, code, _ = me.internalLookup(n, name, 1, &header.Context)
 	}
-	return nil, code
+	return out, code
 }
 
 func (me *FileSystemConnector) Mkdir(header *InHeader, input *MkdirIn, name string) (out *EntryOut, code Status) {
@@ -216,7 +191,7 @@ func (me *FileSystemConnector) Mkdir(header *InHeader, input *MkdirIn, name stri
 	code = parent.fsInode.Mkdir(name, input.Mode, &header.Context)
 
 	if code.Ok() {
-		out, code = me.internalLookup(parent, name, 1, &header.Context)
+		out, code, _ = me.internalLookup(parent, name, 1, &header.Context)
 	}
 	return out, code
 }
@@ -245,9 +220,9 @@ func (me *FileSystemConnector) Symlink(header *InHeader, pointedTo string, linkN
 	parent := me.getInodeData(header.NodeId)
 	code = parent.fsInode.Symlink(linkName, pointedTo, &header.Context)
 	if code.Ok() {
-		return me.internalLookup(parent, linkName, 1, &header.Context)
+		out, code, _ = me.internalLookup(parent, linkName, 1, &header.Context)
 	}
-	return nil, code
+	return out, code
 }
 
 
@@ -283,7 +258,8 @@ func (me *FileSystemConnector) Link(header *InHeader, input *LinkIn, filename st
 		return nil, code
 	}
 	// TODO - revise this for real hardlinks?
-	return me.internalLookup(parent, filename, 1, &header.Context)
+	out, code, _ = me.internalLookup(parent, filename, 1, &header.Context)
+	return out, code
 }
 
 func (me *FileSystemConnector) Access(header *InHeader, input *AccessIn) (code Status) {
@@ -298,7 +274,7 @@ func (me *FileSystemConnector) Create(header *InHeader, input *CreateIn, name st
 		return 0, 0, nil, code
 	}
 
-	out, code, inode := me.internalLookupWithNode(parent, name, 1, &header.Context)
+	out, code, inode := me.internalLookup(parent, name, 1, &header.Context)
 	if inode == nil {
 		msg := fmt.Sprintf("Create succeded, but GetAttr returned no entry %v, %q. code %v", header.NodeId, name, code)
 		panic(msg)
@@ -308,18 +284,19 @@ func (me *FileSystemConnector) Create(header *InHeader, input *CreateIn, name st
 }
 
 func (me *FileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
-	opened := me.getOpenedFile(input.Fh)
-	opened.inode.mount.unregisterFileHandle(input.Fh)
+	node := me.getInodeData(header.NodeId)
+	node.mount.unregisterFileHandle(input.Fh, node)
 }
 
 func (me *FileSystemConnector) Flush(header *InHeader, input *FlushIn) Status {
+	node := me.getInodeData(header.NodeId)
 	opened := me.getOpenedFile(input.Fh)
-	return opened.inode.fsInode.Flush(opened.file, opened.OpenFlags, &header.Context)
+	return node.fsInode.Flush(opened.file, opened.OpenFlags, &header.Context)
 }
 
 func (me *FileSystemConnector) ReleaseDir(header *InHeader, input *ReleaseIn) {
 	node := me.getInodeData(header.NodeId)
-	opened := node.mount.unregisterFileHandle(input.Fh)
+	opened := node.mount.unregisterFileHandle(input.Fh, node)
 	opened.dir.Release()
 	me.considerDropInode(node)
 }
