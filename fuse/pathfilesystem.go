@@ -518,9 +518,7 @@ func (me *FileSystemConnector) mountRoot(fs FileSystem, opts *FileSystemOptions)
 	me.verify()
 }
 
-// Unmount() tries to unmount the given path.  Because of kernel-side
-// caching, it may takes a few seconds for files to disappear when
-// viewed from user-space.
+// Unmount() tries to unmount the given path.  
 //
 // Returns the following error codes:
 //
