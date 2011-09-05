@@ -21,6 +21,7 @@ package fuse
 import (
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -58,6 +59,24 @@ type fileSystemMount struct {
 
 	// Manage filehandles of open files.
 	openFiles HandleMap
+}
+
+func (me *fileSystemMount) fileInfoToEntry(fi *os.FileInfo, out *EntryOut) {
+	SplitNs(me.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
+	SplitNs(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
+	if !fi.IsDirectory() {
+		fi.Nlink = 1
+	}
+
+	CopyFileInfo(fi, &out.Attr)
+	me.setOwner(&out.Attr)
+}
+
+	
+func (me *fileSystemMount) fileInfoToAttr(fi *os.FileInfo, out *AttrOut) {
+	CopyFileInfo(fi, &out.Attr)
+	SplitNs(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
+	me.setOwner(&out.Attr)
 }
 
 func (me *FileSystemConnector) getOpenedFile(h uint64) *openedFile {
@@ -228,6 +247,29 @@ func (me *inode) getMountDirEntries() (out []DirEntry) {
 		})
 	}
 	return out
+}
+
+func (me *inode) getAnyFile() (file File) {
+	me.OpenFilesMutex.Lock()
+	defer me.OpenFilesMutex.Unlock()
+	
+	for _, f := range me.OpenFiles {
+		return f.file
+	}
+	return nil
+}
+
+// Returns an open writable file for the given inode.
+func (me *inode) getWritableFile() (file File) {
+	me.OpenFilesMutex.Lock()
+	defer me.OpenFilesMutex.Unlock()
+
+	for _, f := range me.OpenFiles {
+		if f.OpenFlags & O_ANYWRITE != 0 {
+			return f.file
+		}
+	}
+	return nil
 }
 
 const initDirSize = 20

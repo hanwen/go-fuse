@@ -105,7 +105,7 @@ func (me *DefaultRawFileSystem) Write(input *WriteIn, data []byte) (written uint
 	return 0, ENOSYS
 }
 
-func (me *DefaultRawFileSystem) Flush(input *FlushIn) Status {
+func (me *DefaultRawFileSystem) Flush(header *InHeader, input *FlushIn) Status {
 	return OK
 }
 

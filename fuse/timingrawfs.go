@@ -146,9 +146,9 @@ func (me *TimingRawFileSystem) Write(input *WriteIn, data []byte) (written uint3
 	return me.RawFileSystem.Write(input, data)
 }
 
-func (me *TimingRawFileSystem) Flush(input *FlushIn) Status {
+func (me *TimingRawFileSystem) Flush(header *InHeader, input *FlushIn) Status {
 	defer me.startTimer("Flush")()
-	return me.RawFileSystem.Flush(input)
+	return me.RawFileSystem.Flush(header, input)
 }
 
 func (me *TimingRawFileSystem) Fsync(input *FsyncIn) (code Status) {

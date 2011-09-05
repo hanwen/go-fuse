@@ -279,9 +279,9 @@ func (me *LockingRawFileSystem) Write(input *WriteIn, data []byte) (written uint
 	return me.RawFileSystem.Write(input, data)
 }
 
-func (me *LockingRawFileSystem) Flush(input *FlushIn) Status {
+func (me *LockingRawFileSystem) Flush(header *InHeader, input *FlushIn) Status {
 	defer me.locked()()
-	return me.RawFileSystem.Flush(input)
+	return me.RawFileSystem.Flush(header, input)
 }
 
 func (me *LockingRawFileSystem) Fsync(input *FsyncIn) (code Status) {

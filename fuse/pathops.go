@@ -6,11 +6,10 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"path/filepath"
 	"time"
 )
 
-var _ = fmt.Println
+var _ = log.Println
 
 func NewFileSystemConnector(fs FileSystem, opts *FileSystemOptions) (me *FileSystemConnector) {
 	me = new(FileSystemConnector)
@@ -25,41 +24,11 @@ func NewFileSystemConnector(fs FileSystem, opts *FileSystemOptions) (me *FileSys
 	return me
 }
 
-
-// Returns an openedFile for the given inode.
-func (me *FileSystemConnector) getOpenFileData(nodeid uint64, fh uint64) (opened *openedFile, m *fileSystemMount, p string, node *inode) {
-	node = me.getInodeData(nodeid)
-	if fh != 0 {
-		opened = me.getOpenedFile(fh)
-	}
-
-	path, mount := node.fsInode.GetPath()
-	if me.Debug {
-		log.Printf("Node %v = '%s'", nodeid, path)
-	}
-
-	// If the file was deleted, GetPath() will return nil.
-	if mount != nil {
-		m = mount
-		p = path
-	}
-	if opened == nil {
-		node.OpenFilesMutex.Lock()
-		defer node.OpenFilesMutex.Unlock()
-
-		for _, f := range node.OpenFiles {
-			if f.OpenFlags & O_ANYWRITE != 0 || opened == nil {
-				opened = f
-			}
-		}
-	}
-	return
-}
 func (me *FileSystemConnector) GetPath(nodeid uint64) (path string, mount *fileSystemMount, node *inode) {
 	n := me.getInodeData(nodeid)
 
-	p, m := n.fsInode.GetPath()
-	return p, m, n
+	p := n.fsInode.GetPath()
+	return p, n.mount, n
 }
 
 func (me *fileSystemMount) setOwner(attr *Attr) {
@@ -78,51 +47,45 @@ func (me *FileSystemConnector) internalLookup(parent *inode, name string, lookup
 	return out, status
 }
 
-func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string, lookupCount int, context *Context) (out *EntryOut, status Status, node *inode) {
-	mount := me.lookupMount(parent, name, lookupCount)
-	isMountPoint := (mount != nil)
-	fullPath := ""
-	if isMountPoint {
-		node = mount.mountInode
-	} else {
-		fullPath, mount = parent.fsInode.GetPath()
-		fullPath = filepath.Join(fullPath, name)
-	}
-
-	if mount == nil {
-		timeout := me.rootNode.mountPoint.options.NegativeTimeout
-		if timeout > 0 {
-			return NegativeEntry(timeout), OK, nil
-		} else {
-			return nil, ENOENT, nil
-		}
-	}
-	fi, err := mount.fs.GetAttr(fullPath, context)
+func (me *FileSystemConnector) internalMountLookup(mount *fileSystemMount, lookupCount int) (out *EntryOut, status Status, node *inode) {
+	fi, err := mount.fs.GetAttr("", nil)
 	if err == ENOENT && mount.options.NegativeTimeout > 0.0 {
 		return NegativeEntry(mount.options.NegativeTimeout), OK, nil
 	}
-
-	if err != OK {
-		return nil, err, nil
+	if !err.Ok() {
+		return nil, err, mount.mountInode
 	}
-	if !isMountPoint {
-		node = me.lookupUpdate(parent, name, fi.IsDirectory(), lookupCount)
+	mount.treeLock.Lock()
+	defer mount.treeLock.Unlock()
+	mount.mountInode.LookupCount += lookupCount
+	out = &EntryOut{
+		NodeId:     mount.mountInode.NodeId,
+		Generation: 1, // where to get the generation?
+	}
+	mount.fileInfoToEntry(fi, out)
+	return out, OK, mount.mountInode
+}
+
+func (me *FileSystemConnector) internalLookupWithNode(parent *inode, name string, lookupCount int, context *Context) (out *EntryOut, status Status, node *inode) {
+	if mount := me.lookupMount(parent, name, lookupCount); mount != nil {
+		return me.internalMountLookup(mount, lookupCount)
 	}
 
+	fi, code := parent.fsInode.Lookup(name)
+	mount := parent.mount
+	if code == ENOENT && mount.options.NegativeTimeout > 0.0 {
+		return NegativeEntry(mount.options.NegativeTimeout), OK, nil
+	}
+	if !code.Ok() {
+		return nil, code, nil
+	}
+	node = me.lookupUpdate(parent, name, fi.IsDirectory(), lookupCount)
 	out = &EntryOut{
 		NodeId:     node.NodeId,
 		Generation: 1, // where to get the generation?
 	}
-	SplitNs(mount.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
-	SplitNs(mount.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
-	if !fi.IsDirectory() {
-		fi.Nlink = 1
-	}
-
-	CopyFileInfo(fi, &out.Attr)
+	parent.mount.fileInfoToEntry(fi, out)
 	out.Attr.Ino = node.NodeId
-	mount.setOwner(&out.Attr)
-
 	return out, OK, node
 }
 
@@ -131,59 +94,28 @@ func (me *FileSystemConnector) Forget(h *InHeader, input *ForgetIn) {
 }
 
 func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
-	fh := uint64(0)
+	node := me.getInodeData(header.NodeId)
+
+	var f File
 	if input.Flags&FUSE_GETATTR_FH != 0 {
-		fh = input.Fh
-	}
-
-	opened, mount, fullPath, node := me.getOpenFileData(header.NodeId, fh)
-	if mount == nil && opened == nil {
-		return nil, ENOENT
-	}
-
-	if opened != nil {
-		fi, err := opened.file.GetAttr()
-		if err != OK && err != ENOSYS {
-			return nil, err
-		}
-
-		if fi != nil {
-			out = &AttrOut{}
-			CopyFileInfo(fi, &out.Attr)
-			out.Attr.Ino = header.NodeId
-			SplitNs(node.mount.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
-
-			return out, OK
+		if opened := me.getOpenedFile(input.Fh); opened != nil {
+			f = opened.file
 		}
 	}
-
-	if mount == nil {
-		return nil, ENOENT
+	
+	fi, code := node.fsInode.GetAttr(f, &header.Context)
+	if !code.Ok() {
+		return nil, code
 	}
-
-	fi, err := mount.fs.GetAttr(fullPath, &header.Context)
-	if err != OK {
-		return nil, err
-	}
-
 	out = &AttrOut{}
-	CopyFileInfo(fi, &out.Attr)
 	out.Attr.Ino = header.NodeId
-
-	if !fi.IsDirectory() {
-		out.Nlink = 1
-	}
-	mount.setOwner(&out.Attr)
-	SplitNs(mount.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
+	node.mount.fileInfoToAttr(fi, out)
 	return out, OK
 }
-
-func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
-	fullPath, mount, node := me.GetPath(header.NodeId)
-	if mount == nil {
-		return 0, 0, ENOENT
-	}
-	stream, err := mount.fs.OpenDir(fullPath, &header.Context)
+	
+func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags uint32, handle uint64, code Status) {
+	node := me.getInodeData(header.NodeId)
+	stream, err := node.fsInode.OpenDir(&header.Context)
 	if err != OK {
 		return 0, 0, err
 	}
@@ -193,7 +125,7 @@ func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags u
 		stream: stream,
 	}
 	de.extra = append(de.extra, DirEntry{S_IFDIR, "."}, DirEntry{S_IFDIR, ".."})
-	h, opened := mount.registerFileHandle(node, de, nil, input.Flags)
+	h, opened := node.mount.registerFileHandle(node, de, nil, input.Flags)
 	
 	// TODO - implement seekable directories
 	opened.FuseFlags |= FOPEN_NONSEEKABLE
@@ -210,76 +142,34 @@ func (me *FileSystemConnector) ReadDir(header *InHeader, input *ReadIn) (*DirEnt
 }
 
 func (me *FileSystemConnector) Open(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
-	fullPath, mount, node := me.GetPath(header.NodeId)
-	if mount == nil {
-		return 0, 0, ENOENT
+	node := me.getInodeData(header.NodeId)
+	f, code := node.fsInode.Open(input.Flags, &header.Context)
+	if !code.Ok() {
+		return 0, 0, code
 	}
 
-	f, err := mount.fs.Open(fullPath, input.Flags, &header.Context)
-	if err != OK {
-		return 0, 0, err
-	}
-
-	h, opened := mount.registerFileHandle(node, nil, f, input.Flags)
+	h, opened := node.mount.registerFileHandle(node, nil, f, input.Flags)
 	return opened.FuseFlags, h, OK
 }
 
 func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out *AttrOut, code Status) {
-	var err Status = OK
-	var getAttrIn GetAttrIn
-	fh := uint64(0)
+	var f File
 	if input.Valid&FATTR_FH != 0 {
-		fh = input.Fh
-		getAttrIn.Fh = fh
-		getAttrIn.Flags |= FUSE_GETATTR_FH
+		me.getOpenedFile(input.Fh)
 	}
 
-	opened, mount, fullPath, _ := me.getOpenFileData(header.NodeId, fh)
-	if mount == nil {
-		return nil, ENOENT
-	}
-	if opened != nil && opened.OpenFlags & O_ANYWRITE == 0 {
-		opened = nil
-	}
-	
-	fileResult := ENOSYS
-	if err.Ok() && input.Valid&FATTR_MODE != 0 {
+	node := me.getInodeData(header.NodeId)
+	if code.Ok() && input.Valid&FATTR_MODE != 0 {
 		permissions := uint32(07777) & input.Mode
-		if opened != nil {
-			fileResult = opened.file.Chmod(permissions)
-		}
-		if fileResult == ENOSYS {
-			err = mount.fs.Chmod(fullPath, permissions, &header.Context)
-		} else {
-			err = fileResult
-			fileResult = ENOSYS
-		}
+		code = node.fsInode.Chmod(f, permissions, &header.Context)
 	}
-	if err.Ok() && (input.Valid&(FATTR_UID|FATTR_GID) != 0) {
-		if opened != nil {
-			fileResult = opened.file.Chown(uint32(input.Uid), uint32(input.Gid))
-		}
-
-		if fileResult == ENOSYS {
-			// TODO - can we get just FATTR_GID but not FATTR_UID ?
-			err = mount.fs.Chown(fullPath, uint32(input.Uid), uint32(input.Gid), &header.Context)
-		} else {
-			err = fileResult
-			fileResult = ENOSYS
-		}
+	if code.Ok() && (input.Valid&(FATTR_UID|FATTR_GID) != 0) {
+		code = node.fsInode.Chown(f, uint32(input.Uid), uint32(input.Gid), &header.Context)
 	}
-	if err.Ok() && input.Valid&FATTR_SIZE != 0 {
-		if opened != nil {
-			fileResult = opened.file.Truncate(input.Size)
-		}
-		if fileResult == ENOSYS {
-			err = mount.fs.Truncate(fullPath, input.Size, &header.Context)
-		} else {
-			err = fileResult
-			fileResult = ENOSYS
-		}
+	if code.Ok() && input.Valid&FATTR_SIZE != 0 {
+		code = node.fsInode.Truncate(f, input.Size, &header.Context)
 	}
-	if err.Ok() && (input.Valid&(FATTR_ATIME|FATTR_MTIME|FATTR_ATIME_NOW|FATTR_MTIME_NOW) != 0) {
+	if code.Ok() && (input.Valid&(FATTR_ATIME|FATTR_MTIME|FATTR_ATIME_NOW|FATTR_MTIME_NOW) != 0) {
 		atime := uint64(input.Atime*1e9) + uint64(input.Atimensec)
 		if input.Valid&FATTR_ATIME_NOW != 0 {
 			atime = uint64(time.Nanoseconds())
@@ -290,51 +180,41 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 			mtime = uint64(time.Nanoseconds())
 		}
 
-		if opened != nil {
-			fileResult = opened.file.Utimens(atime, mtime)
-		}
-		if fileResult == ENOSYS {
-			err = mount.fs.Utimens(fullPath, atime, mtime, &header.Context)
-		} else {
-			err = fileResult
-			fileResult = ENOSYS
-		}
-	}
-	if err != OK {
-		return nil, err
+		// TODO - if using NOW, mtime and atime may differ.
+		code = node.fsInode.Utimens(f, atime, mtime, &header.Context)
 	}
 
-	return me.GetAttr(header, &getAttrIn)
+	if !code.Ok() {
+		return nil, code
+	}
+
+	fi, code := node.fsInode.GetAttr(f, &header.Context)
+	out = &AttrOut{}
+	if fi != nil {
+		out.Attr.Ino = header.NodeId
+		node.mount.fileInfoToAttr(fi, out)
+	}
+	return out, code
 }
 
 func (me *FileSystemConnector) Readlink(header *InHeader) (out []byte, code Status) {
-	fullPath, mount, _ := me.GetPath(header.NodeId)
-	if mount == nil {
-		return nil, ENOENT
-	}
-	val, err := mount.fs.Readlink(fullPath, &header.Context)
-	return []byte(val), err
+	n := me.getInodeData(header.NodeId)
+	return n.fsInode.Readlink(&header.Context)
 }
 
 func (me *FileSystemConnector) Mknod(header *InHeader, input *MknodIn, name string) (out *EntryOut, code Status) {
-	fullPath, mount, node := me.GetPath(header.NodeId)
-	if mount == nil {
-		return nil, ENOENT
+	n := me.getInodeData(header.NodeId)
+	code = n.fsInode.Mknod(name, input.Mode, uint32(input.Rdev), &header.Context)
+	if code.Ok() {
+		return me.internalLookup(n, name, 1, &header.Context)
 	}
-	fullPath = filepath.Join(fullPath, name)
-	err := mount.fs.Mknod(fullPath, input.Mode, uint32(input.Rdev), &header.Context)
-	if err != OK {
-		return nil, err
-	}
-	return me.internalLookup(node, name, 1, &header.Context)
+	return nil, code
 }
 
 func (me *FileSystemConnector) Mkdir(header *InHeader, input *MkdirIn, name string) (out *EntryOut, code Status) {
-	fullPath, mount, parent := me.GetPath(header.NodeId)
-	if mount == nil {
-		return nil, ENOENT
-	}
-	code = mount.fs.Mkdir(filepath.Join(fullPath, name), input.Mode, &header.Context)
+	parent := me.getInodeData(header.NodeId)
+	code = parent.fsInode.Mkdir(name, input.Mode, &header.Context)
+
 	if code.Ok() {
 		out, code = me.internalLookup(parent, name, 1, &header.Context)
 	}
@@ -342,11 +222,8 @@ func (me *FileSystemConnector) Mkdir(header *InHeader, input *MkdirIn, name stri
 }
 
 func (me *FileSystemConnector) Unlink(header *InHeader, name string) (code Status) {
-	fullPath, mount, parent := me.GetPath(header.NodeId)
-	if mount == nil {
-		return ENOENT
-	}
-	code = mount.fs.Unlink(filepath.Join(fullPath, name), &header.Context)
+	parent := me.getInodeData(header.NodeId)
+	code = parent.fsInode.Unlink(name, &header.Context)
 	if code.Ok() {
 		// Like fuse.c, we update our internal tables.
 		me.unlinkUpdate(parent, name)
@@ -355,48 +232,38 @@ func (me *FileSystemConnector) Unlink(header *InHeader, name string) (code Statu
 }
 
 func (me *FileSystemConnector) Rmdir(header *InHeader, name string) (code Status) {
-	fullPath, mount, parent := me.GetPath(header.NodeId)
-	if mount == nil {
-		return ENOENT
-	}
-	code = mount.fs.Rmdir(filepath.Join(fullPath, name), &header.Context)
+	parent := me.getInodeData(header.NodeId)
+	code = parent.fsInode.Rmdir(name, &header.Context)
 	if code.Ok() {
+		// Like fuse.c, we update our internal tables.
 		me.unlinkUpdate(parent, name)
 	}
 	return code
 }
 
 func (me *FileSystemConnector) Symlink(header *InHeader, pointedTo string, linkName string) (out *EntryOut, code Status) {
-	fullPath, mount, parent := me.GetPath(header.NodeId)
-	if mount == nil {
-		return nil, ENOENT
+	parent := me.getInodeData(header.NodeId)
+	code = parent.fsInode.Symlink(linkName, pointedTo, &header.Context)
+	if code.Ok() {
+		return me.internalLookup(parent, linkName, 1, &header.Context)
 	}
-	err := mount.fs.Symlink(pointedTo, filepath.Join(fullPath, linkName), &header.Context)
-	if err != OK {
-		return nil, err
-	}
-
-	out, code = me.internalLookup(parent, linkName, 1, &header.Context)
-	return out, code
+	return nil, code
 }
 
+
 func (me *FileSystemConnector) Rename(header *InHeader, input *RenameIn, oldName string, newName string) (code Status) {
-	oldPath, oldMount, oldParent := me.GetPath(header.NodeId)
-	newPath, mount, newParent := me.GetPath(input.Newdir)
-	if mount == nil || oldMount == nil {
-		return ENOENT
-	}
+	oldParent := me.getInodeData(header.NodeId)
 	isMountPoint := me.lookupMount(oldParent, oldName, 0) != nil
 	if isMountPoint {
 		return EBUSY
 	}
-	if mount != oldMount {
+
+	newParent := me.getInodeData(input.Newdir)
+	if oldParent.mount != newParent.mount {
 		return EXDEV
 	}
 
-	oldPath = filepath.Join(oldPath, oldName)
-	newPath = filepath.Join(newPath, newName)
-	code = mount.fs.Rename(oldPath, newPath, &header.Context)
+	code = oldParent.fsInode.Rename(oldName, newParent.fsInode, newName, &header.Context)
 	if code.Ok() {
 		me.renameUpdate(oldParent, oldName, newParent, newName)
 	}
@@ -404,51 +271,39 @@ func (me *FileSystemConnector) Rename(header *InHeader, input *RenameIn, oldName
 }
 
 func (me *FileSystemConnector) Link(header *InHeader, input *LinkIn, filename string) (out *EntryOut, code Status) {
-	orig, mount, _ := me.GetPath(input.Oldnodeid)
-	newName, newMount, newParent := me.GetPath(header.NodeId)
+	existing := me.getInodeData(input.Oldnodeid)
+	parent := me.getInodeData(header.NodeId)
 
-	if mount == nil || newMount == nil {
-		return nil, ENOENT
-	}
-	if mount != newMount {
+	if existing.mount != parent.mount {
 		return nil, EXDEV
 	}
-	newName = filepath.Join(newName, filename)
-	err := mount.fs.Link(orig, newName, &header.Context)
 
-	if err != OK {
-		return nil, err
+	code = parent.fsInode.Link(filename, existing.fsInode, &header.Context)
+	if !code.Ok() {
+		return nil, code
 	}
-
-	return me.internalLookup(newParent, filename, 1, &header.Context)
+	// TODO - revise this for real hardlinks?
+	return me.internalLookup(parent, filename, 1, &header.Context)
 }
 
 func (me *FileSystemConnector) Access(header *InHeader, input *AccessIn) (code Status) {
-	p, mount, _ := me.GetPath(header.NodeId)
-	if mount == nil {
-		return ENOENT
-	}
-	return mount.fs.Access(p, input.Mask, &header.Context)
+	n := me.getInodeData(header.NodeId)
+	return n.fsInode.Access(input.Mask, &header.Context)
 }
 
 func (me *FileSystemConnector) Create(header *InHeader, input *CreateIn, name string) (flags uint32, h uint64, out *EntryOut, code Status) {
-	directory, mount, parent := me.GetPath(header.NodeId)
-	if mount == nil {
-		return 0, 0, nil, ENOENT
-	}
-	fullPath := filepath.Join(directory, name)
-
-	f, err := mount.fs.Create(fullPath, uint32(input.Flags), input.Mode, &header.Context)
-	if err != OK {
-		return 0, 0, nil, err
+	parent := me.getInodeData(header.NodeId)
+	f, code := parent.fsInode.Create(name, uint32(input.Flags), input.Mode, &header.Context)
+	if !code.Ok() {
+		return 0, 0, nil, code
 	}
 
 	out, code, inode := me.internalLookupWithNode(parent, name, 1, &header.Context)
 	if inode == nil {
-		msg := fmt.Sprintf("Create succeded, but GetAttr returned no entry %v. code %v", fullPath, code)
+		msg := fmt.Sprintf("Create succeded, but GetAttr returned no entry %v, %q. code %v", header.NodeId, name, code)
 		panic(msg)
 	}
-	handle, opened := mount.registerFileHandle(inode, nil, f, input.Flags)
+	handle, opened := parent.mount.registerFileHandle(inode, nil, f, input.Flags)
 	return opened.FuseFlags, handle, out, code
 }
 
@@ -457,22 +312,9 @@ func (me *FileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
 	opened.inode.mount.unregisterFileHandle(input.Fh)
 }
 
-func (me *FileSystemConnector) Flush(input *FlushIn) Status {
+func (me *FileSystemConnector) Flush(header *InHeader, input *FlushIn) Status {
 	opened := me.getOpenedFile(input.Fh)
-
-	code := opened.file.Flush()
-	if code.Ok() && opened.OpenFlags&O_ANYWRITE != 0 {
-		// We only signal releases to the FS if the
-		// open could have changed things.
-		var path string
-		var mount *fileSystemMount
-		path, mount = opened.inode.fsInode.GetPath()
-
-		if mount != nil {
-			code = mount.fs.Flush(path)
-		}
-	}
-	return code
+	return opened.inode.fsInode.Flush(opened.file, opened.OpenFlags, &header.Context)
 }
 
 func (me *FileSystemConnector) ReleaseDir(header *InHeader, input *ReleaseIn) {
@@ -488,40 +330,23 @@ func (me *FileSystemConnector) FsyncDir(header *InHeader, input *FsyncIn) (code 
 }
 
 func (me *FileSystemConnector) GetXAttr(header *InHeader, attribute string) (data []byte, code Status) {
-	path, mount, _ := me.GetPath(header.NodeId)
-	if mount == nil {
-		return nil, ENOENT
-	}
-
-	data, code = mount.fs.GetXAttr(path, attribute, &header.Context)
-	return data, code
+	node := me.getInodeData(header.NodeId)
+	return node.fsInode.GetXAttr(attribute, &header.Context)
 }
 
 func (me *FileSystemConnector) RemoveXAttr(header *InHeader, attr string) Status {
-	path, mount, _ := me.GetPath(header.NodeId)
-	if mount == nil {
-		return ENOENT
-	}
-
-	return mount.fs.RemoveXAttr(path, attr, &header.Context)
-}
+	node := me.getInodeData(header.NodeId)
+	return node.fsInode.RemoveXAttr(attr, &header.Context)
+}	
 
 func (me *FileSystemConnector) SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) Status {
-	path, mount, _ := me.GetPath(header.NodeId)
-	if mount == nil {
-		return ENOENT
-	}
-
-	return mount.fs.SetXAttr(path, attr, data, int(input.Flags), &header.Context)
+	node := me.getInodeData(header.NodeId)
+	return node.fsInode.SetXAttr(attr, data, int(input.Flags), &header.Context)
 }
 
 func (me *FileSystemConnector) ListXAttr(header *InHeader) (data []byte, code Status) {
-	path, mount, _ := me.GetPath(header.NodeId)
-	if mount == nil {
-		return nil, ENOENT
-	}
-
-	attrs, code := mount.fs.ListXAttr(path, &header.Context)
+	node := me.getInodeData(header.NodeId)
+	attrs, code := node.fsInode.ListXAttr(&header.Context)
 	if code != OK {
 		return nil, code
 	}
@@ -535,32 +360,21 @@ func (me *FileSystemConnector) ListXAttr(header *InHeader) (data []byte, code St
 	return b.Bytes(), code
 }
 
-func (me *FileSystemConnector) fileDebug(fh uint64, n *inode) {
-	p, _, _ := me.GetPath(n.NodeId)
-	log.Printf("Fh %d = %s", fh, p)
-}
+////////////////
+// files.
 
 func (me *FileSystemConnector) Write(input *WriteIn, data []byte) (written uint32, code Status) {
 	opened := me.getOpenedFile(input.Fh)
-	if me.Debug {
-		me.fileDebug(input.Fh, opened.inode)
-	}
 	return opened.file.Write(input, data)
 }
 
 func (me *FileSystemConnector) Read(input *ReadIn, bp BufferPool) ([]byte, Status) {
 	opened := me.getOpenedFile(input.Fh)
-	if me.Debug {
-		me.fileDebug(input.Fh, opened.inode)
-	}
 	return opened.file.Read(input, bp)
 }
 
 func (me *FileSystemConnector) Ioctl(header *InHeader, input *IoctlIn) (out *IoctlOut, data []byte, code Status) {
 	opened := me.getOpenedFile(input.Fh)
-	if me.Debug {
-		me.fileDebug(input.Fh, opened.inode)
-	}
 	return opened.file.Ioctl(input)
 }
 

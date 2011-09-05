@@ -120,18 +120,32 @@ func NewFile() *MutableDataFile {
 	return &MutableDataFile{}
 }
 
-func TestFSetAttr(t *testing.T) {
-	fs := &FSetAttrFs{}
-
-	dir := MakeTempDir()
-	defer os.RemoveAll(dir)
+func setupFAttrTest(fs FileSystem) (dir string, clean func()) {
+	dir = MakeTempDir()
 	state, _, err := MountFileSystem(dir, fs, nil)
 	CheckSuccess(err)
 	state.Debug = true
-	defer state.Unmount()
-
+	
 	go state.Loop(false)
 
+	// Trigger INIT.
+	os.Lstat(dir)
+	if state.KernelSettings().Flags&CAP_FILE_OPS == 0 {
+		log.Println("Mount does not support file operations")
+	}
+	
+	return dir, func() {
+		if state.Unmount() == nil {
+			os.RemoveAll(dir)
+		}
+	}
+}
+
+func TestFSetAttr(t *testing.T) {
+	fs := &FSetAttrFs{}
+	dir, clean := setupFAttrTest(fs)
+	defer clean()
+	
 	fn := dir + "/file"
 	f, err := os.OpenFile(fn, os.O_CREATE|os.O_WRONLY, 0755)
 	CheckSuccess(err)
@@ -149,17 +163,6 @@ func TestFSetAttr(t *testing.T) {
 		t.Error("truncate")
 	}
 
-	if state.KernelSettings().Flags&CAP_FILE_OPS == 0 {
-		log.Println("Mount does not support file operations")
-	}
-
-	_, err = f.Stat()
-	CheckSuccess(err)
-
-	if !fs.file.GetAttrCalled {
-		t.Error("Should have called File.GetAttr")
-	}
-
 	err = f.Chmod(024)
 	CheckSuccess(err)
 	if fs.file.FileInfo.Mode&07777 != 024 {
@@ -169,7 +172,8 @@ func TestFSetAttr(t *testing.T) {
 	err = os.Chtimes(fn, 100e3, 101e3)
 	CheckSuccess(err)
 	if fs.file.FileInfo.Atime_ns != 100e3 || fs.file.FileInfo.Mtime_ns != 101e3 {
-		t.Error("Utimens", fs.file.FileInfo)
+		t.Errorf("Utimens: atime %d != 100e3 mtime %d != 101e3",
+			fs.file.FileInfo.Atime_ns, fs.file.FileInfo.Mtime_ns)
 	}
 
 	// TODO - test chown if run as root.

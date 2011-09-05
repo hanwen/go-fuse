@@ -315,6 +315,7 @@ func TestRename(t *testing.T) {
 	}
 }
 
+// Flaky test, due to rename race condition.
 func TestDelRename(t *testing.T) {
 	me := NewTestCase(t)
 	defer me.Cleanup()
@@ -342,7 +343,6 @@ func TestDelRename(t *testing.T) {
 
 	err = os.Rename(s, d)
 	CheckSuccess(err)
-
 }
 
 func TestOverwriteRename(t *testing.T) {

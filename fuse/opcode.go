@@ -237,7 +237,7 @@ func doRead(state *MountState, req *request) {
 }
 
 func doFlush(state *MountState, req *request) {
-	req.status = state.fileSystem.Flush((*FlushIn)(req.inData))
+	req.status = state.fileSystem.Flush(req.inHeader, (*FlushIn)(req.inData))
 }
 
 func doRelease(state *MountState, req *request) {
