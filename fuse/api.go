@@ -1,5 +1,8 @@
 // The fuse package provides APIs to implement filesystems in
-// userspace, using libfuse on Linux.
+// userspace, using libfuse on Linux.  Typically, each call of the API
+// happens in its own goroutine, so take care to make the file system
+// thread-safe.
+
 package fuse
 
 import (
@@ -8,6 +11,11 @@ import (
 
 // Types for users to implement.
 
+// NodeFileSystem is a high level API that resembles the kernel's idea
+// of what an FS looks like.  NodeFileSystems can have multiple
+// hard-links to one file, for example. It is also suited if the data
+// to represent fits in memory: you can construct FsNode at mount
+// time, and the filesystem will be ready.
 type NodeFileSystem interface {
 	Unmount()
 	Mount(conn *FileSystemConnector)
@@ -57,7 +65,6 @@ type FsNode interface {
 	Truncate(file File, size uint64, context *Context) (code Status) 
 	Utimens(file File, atime uint64, mtime uint64, context *Context) (code Status)
 }
-
 
 // A filesystem API that uses paths rather than inodes.  A minimal
 // file system should have at least a functional GetAttr method.
@@ -146,7 +153,7 @@ type WithFlags struct {
 	Flags uint32
 }
 
-// MountOptions contains time out options for a FileSystem.  The
+// MountOptions contains time out options for a (Node)FileSystem.  The
 // default copied from libfuse and set in NewMountOptions() is
 // (1s,1s,0s).
 type FileSystemOptions struct {
@@ -181,7 +188,7 @@ type DefaultFileSystem struct{}
 // DefaultFile returns ENOSYS for every operation.
 type DefaultFile struct{}
 
-// RawFileSystem is an interface closer to the FUSE wire protocol.
+// RawFileSystem is an interface close to the FUSE wire protocol.
 //
 // Unless you really know what you are doing, you should not implement
 // this, but rather the FileSystem interface; the details of getting
