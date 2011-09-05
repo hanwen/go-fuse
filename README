@@ -101,6 +101,8 @@ Grep source code for TODO.  Major topics:
 
 * Use splice for transporting data, use io.Reader in API.
 
+* Opendir/Readdir does not support seeking correctly
+
 * Missing support for network FS file locking: FUSE_GETLK, FUSE_SETLK,
   FUSE_SETLKW
 
