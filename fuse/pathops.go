@@ -290,7 +290,7 @@ func (me *FileSystemConnector) Readlink(header *InHeader) (out []byte, code Stat
 		return nil, ENOENT
 	}
 	val, err := mount.fs.Readlink(fullPath, &header.Context)
-	return bytes.NewBufferString(val).Bytes(), err
+	return []byte(val), err
 }
 
 func (me *FileSystemConnector) Mknod(header *InHeader, input *MknodIn, name string) (out *EntryOut, code Status) {
