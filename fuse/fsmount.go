@@ -47,17 +47,17 @@ func (me *fileSystemMount) setOwner(attr *Attr) {
 		attr.Owner = *me.options.Owner
 	}
 }
-func (me *fileSystemMount) fileInfoToEntry(fi *os.FileInfo, out *EntryOut) {
+func (me *fileSystemMount) fileInfoToEntry(fi *os.FileInfo) (out *EntryOut) {
+	out = &EntryOut{}
 	SplitNs(me.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
 	SplitNs(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
+	CopyFileInfo(fi, &out.Attr)
+	me.setOwner(&out.Attr)
 	if !fi.IsDirectory() {
 		fi.Nlink = 1
 	}
-
-	CopyFileInfo(fi, &out.Attr)
-	me.setOwner(&out.Attr)
+	return out
 }
-
 	
 func (me *fileSystemMount) fileInfoToAttr(fi *os.FileInfo, out *AttrOut) {
 	CopyFileInfo(fi, &out.Attr)

@@ -243,11 +243,17 @@ func TestLink(t *testing.T) {
 	err = os.Link(me.mountFile, mountSubfile)
 	CheckSuccess(err)
 
+	subfi, err := os.Lstat(mountSubfile)
+	CheckSuccess(err)
 	fi, err := os.Lstat(me.origFile)
+	CheckSuccess(err)
+
 	if fi.Nlink != 2 {
 		t.Errorf("Expect 2 links: %v", fi)
 	}
-
+	if fi.Ino != subfi.Ino {
+		t.Errorf("Link succeeded, but inode numbers different: %v %v", fi.Ino, subfi.Ino)
+	}
 	f, err := os.Open(mountSubfile)
 
 	var buf [1024]byte

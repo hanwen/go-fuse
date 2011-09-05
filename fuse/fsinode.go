@@ -92,6 +92,10 @@ func (me *fsInode) SetInode(node *inode) {
 	me.inode = node
 }
 
+func (me *fsInode) Inode() *inode {
+	return me.inode
+}
+
 ////////////////////////////////////////////////////////////////
 
 func (me *fsInode) Readlink(c *Context) ([]byte, Status) {
@@ -188,8 +192,19 @@ func (me *fsInode) Rename(oldName string, newParent *fsInode, newName string, co
 	return me.fs.Rename(oldPath, newPath, context)
 }
 
-func (me *fsInode) Link(name string, existing *fsInode, context *Context) (code Status) {
-	return me.fs.Link(existing.GetPath(), filepath.Join(me.GetPath(), name), context)
+func (me *fsInode) Link(name string, existing *fsInode, context *Context) (fi *os.FileInfo, newNode *fsInode, code Status) {
+	newPath := filepath.Join(me.GetPath(), name)
+	oldPath := existing.GetPath()
+	code = me.fs.Link(oldPath, newPath, context)
+	if code.Ok() {
+		oldFi, _ := me.fs.GetAttr(oldPath, context)
+		fi, _ = me.fs.GetAttr(newPath, context)
+		if oldFi != nil && fi != nil && oldFi.Ino != 0 && oldFi.Ino == fi.Ino {
+			return fi, existing, OK
+		}
+		newNode = me.createChild(name)
+	}
+	return 
 }
 
 func (me *fsInode) Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *os.FileInfo, newNode *fsInode, code Status) {

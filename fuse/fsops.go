@@ -33,11 +33,11 @@ func (me *FileSystemConnector) internalMountLookup(mount *fileSystemMount, looku
 	mount.treeLock.Lock()
 	defer mount.treeLock.Unlock()
 	mount.mountInode.lookupCount += lookupCount
-	out = &EntryOut{
-		NodeId:     mount.mountInode.nodeId,
-		Generation: 1, // where to get the generation?
-	}
-	mount.fileInfoToEntry(fi, out)
+	out = mount.fileInfoToEntry(fi)
+	out.NodeId = mount.mountInode.nodeId
+
+	// We don't do NFS.
+	out.Generation = 1
 	return out, OK, mount.mountInode
 }
 
@@ -60,11 +60,9 @@ func (me *FileSystemConnector) internalLookup(parent *inode, name string, lookup
 	}
 
 	if child != nil && code.Ok() {
-		out = &EntryOut{
-			NodeId:     child.nodeId,
-			Generation: 1, // where to get the generation?
-		}
-		parent.mount.fileInfoToEntry(fi, out)	
+		out = parent.mount.fileInfoToEntry(fi)	
+		out.NodeId = child.nodeId
+		out.Generation = 1
 		return out, OK, child
 	}
 	
@@ -203,8 +201,7 @@ func (me *FileSystemConnector) Mknod(header *InHeader, input *MknodIn, name stri
 
 func (me *FileSystemConnector) createChild(parent *inode, name string, fi *os.FileInfo, fsi *fsInode) (out *EntryOut, child *inode) {
 	child = parent.createChild(name, fi.IsDirectory(), fsi, me)
-	out = &EntryOut{}
-	parent.mount.fileInfoToEntry(fi, out)
+	out = parent.mount.fileInfoToEntry(fi)
 	out.Ino = child.nodeId
 	out.NodeId = child.nodeId
 	return out, child
@@ -270,20 +267,26 @@ func (me *FileSystemConnector) Rename(header *InHeader, input *RenameIn, oldName
 	return code
 }
 
-func (me *FileSystemConnector) Link(header *InHeader, input *LinkIn, filename string) (out *EntryOut, code Status) {
+func (me *FileSystemConnector) Link(header *InHeader, input *LinkIn, name string) (out *EntryOut, code Status) {
 	existing := me.getInodeData(input.Oldnodeid)
 	parent := me.getInodeData(header.NodeId)
 
 	if existing.mount != parent.mount {
 		return nil, EXDEV
 	}
-
-	code = parent.fsInode.Link(filename, existing.fsInode, &header.Context)
+	
+	fi, fsInode, code := parent.fsInode.Link(name, existing.fsInode, &header.Context)
 	if !code.Ok() {
 		return nil, code
 	}
-	// TODO - revise this for real hardlinks?
-	out, code, _ = me.internalLookup(parent, filename, 1, &header.Context)
+
+	if fsInode.Inode() == nil {
+		out, _ = me.createChild(parent, name, fi, fsInode)
+	} else {
+		out = parent.mount.fileInfoToEntry(fi)
+		out.Ino = fsInode.Inode().nodeId
+		out.NodeId = out.Ino
+	}
 	return out, code
 }
 
