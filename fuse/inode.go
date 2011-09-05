@@ -7,14 +7,14 @@ import (
 
 // The inode reflects the kernel's idea of the inode.
 type inode struct {
-	Handled
+	handled Handled
 
 	// Constant during lifetime.
-	NodeId uint64
+	nodeId uint64
 
 	// Number of open files and its protection.
-	OpenFilesMutex sync.Mutex
-	OpenFiles      []*openedFile
+	openFilesMutex sync.Mutex
+	openFiles      []*openedFile
 
 	// treeLock is a pointer to me.mount.treeLock; we need store
 	// this mutex separately, since unmount may set me.mount = nil
@@ -27,12 +27,12 @@ type inode struct {
 	// All data below is protected by treeLock.
 	fsInode *fsInode
 	
-	Children    map[string]*inode
+	children    map[string]*inode
 
 	// Contains directories that function as mounts. The entries
-	// are duplicated in Children.
-	Mounts      map[string]*fileSystemMount
-	LookupCount int
+	// are duplicated in children.
+	mounts      map[string]*fileSystemMount
+	lookupCount int
 
 	// Non-nil if this is a mountpoint.
 	mountPoint *fileSystemMount
@@ -46,21 +46,21 @@ type inode struct {
 // Must be called with treeLock for the mount held.
 func (me *inode) addChild(name string, child *inode) {
 	if paranoia {
-		ch := me.Children[name]
+		ch := me.children[name]
 		if ch != nil {
 			panic(fmt.Sprintf("Already have an inode with same name: %v: %v", name, ch))
 		}
 	}
 
-	me.Children[name] = child
+	me.children[name] = child
 	me.fsInode.addChild(name, child.fsInode)
 }
 
 // Must be called with treeLock for the mount held.
 func (me *inode) rmChild(name string) (ch *inode) {
-	ch = me.Children[name]
+	ch = me.children[name]
 	if ch != nil {
-		me.Children[name] = nil, false
+		me.children[name] = nil, false
 		me.fsInode.rmChild(name, ch.fsInode)
 	}
 	return ch
@@ -80,7 +80,7 @@ func (me *inode) mountFs(fs FileSystem, opts *FileSystemOptions) {
 
 // Must be called with treeLock held.
 func (me *inode) canUnmount() bool {
-	for _, v := range me.Children {
+	for _, v := range me.children {
 		if v.mountPoint != nil {
 			// This access may be out of date, but it is no
 			// problem to err on the safe side.
@@ -91,20 +91,20 @@ func (me *inode) canUnmount() bool {
 		}
 	}
 
-	me.OpenFilesMutex.Lock()
-	defer me.OpenFilesMutex.Unlock()
-	return len(me.OpenFiles) == 0
+	me.openFilesMutex.Lock()
+	defer me.openFilesMutex.Unlock()
+	return len(me.openFiles) == 0
 }
 
 func (me *inode) IsDir() bool {
-	return me.Children != nil
+	return me.children != nil
 }
 
 func (me *inode) getMountDirEntries() (out []DirEntry) {
 	me.treeLock.RLock()
 	defer me.treeLock.RUnlock()
 
-	for k, _ := range me.Mounts {
+	for k, _ := range me.mounts {
 		out = append(out, DirEntry{
 			Name: k,
 			Mode: S_IFDIR,
@@ -115,10 +115,10 @@ func (me *inode) getMountDirEntries() (out []DirEntry) {
 
 // Returns any open file, preferably a r/w one.
 func (me *inode) getAnyFile() (file File) {
-	me.OpenFilesMutex.Lock()
-	defer me.OpenFilesMutex.Unlock()
+	me.openFilesMutex.Lock()
+	defer me.openFilesMutex.Unlock()
 	
-	for _, f := range me.OpenFiles {
+	for _, f := range me.openFiles {
 		if file == nil || f.OpenFlags & O_ANYWRITE != 0 {
 			file = f.file
 		}
@@ -128,10 +128,10 @@ func (me *inode) getAnyFile() (file File) {
 
 // Returns an open writable file for the given inode.
 func (me *inode) getWritableFiles() (files []File) {
-	me.OpenFilesMutex.Lock()
-	defer me.OpenFilesMutex.Unlock()
+	me.openFilesMutex.Lock()
+	defer me.openFilesMutex.Unlock()
 
-	for _, f := range me.OpenFiles {
+	for _, f := range me.openFiles {
 		if f.OpenFlags & O_ANYWRITE != 0 {
 			files = append(files, f.file)
 		}
@@ -152,14 +152,14 @@ func (me *inode) verify(cur *fileSystemMount) {
 		panic(fmt.Sprintf("me.mount not set correctly %v %v", me.mount, cur))
 	}
 
-	for name, m := range me.Mounts {
-		if m.mountInode != me.Children[name] {
+	for name, m := range me.mounts {
+		if m.mountInode != me.children[name] {
 			panic(fmt.Sprintf("mountpoint parent mismatch: node:%v name:%v ch:%v",
-				me.mountPoint, name, me.Children))
+				me.mountPoint, name, me.children))
 		}
 	}
 	
-	for _, ch := range me.Children {
+	for _, ch := range me.children {
 		if ch == nil {
 			panic("Found nil child.")
 		}

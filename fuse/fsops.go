@@ -32,9 +32,9 @@ func (me *FileSystemConnector) internalMountLookup(mount *fileSystemMount, looku
 	}
 	mount.treeLock.Lock()
 	defer mount.treeLock.Unlock()
-	mount.mountInode.LookupCount += lookupCount
+	mount.mountInode.lookupCount += lookupCount
 	out = &EntryOut{
-		NodeId:     mount.mountInode.NodeId,
+		NodeId:     mount.mountInode.nodeId,
 		Generation: 1, // where to get the generation?
 	}
 	mount.fileInfoToEntry(fi, out)
@@ -56,11 +56,11 @@ func (me *FileSystemConnector) internalLookup(parent *inode, name string, lookup
 	}
 	node = me.lookupUpdate(parent, name, fi.IsDirectory(), lookupCount)
 	out = &EntryOut{
-		NodeId:     node.NodeId,
+		NodeId:     node.nodeId,
 		Generation: 1, // where to get the generation?
 	}
 	parent.mount.fileInfoToEntry(fi, out)
-	out.Attr.Ino = node.NodeId
+	out.Attr.Ino = node.nodeId
 	return out, OK, node
 }
 
