@@ -193,12 +193,6 @@ func TestChmod(t *testing.T) {
 	err := os.Chmod(m_fn, 07070)
 	CheckSuccess(err)
 
-	err = os.Chown(m_fn, 0, 0)
-	code := fuse.OsErrorToErrno(err)
-	if code != fuse.EPERM {
-		t.Error("Unexpected error code", code, err)
-	}
-
 	fi, err := os.Lstat(m_fn)
 	CheckSuccess(err)
 	if fi.Mode&07777 != 07272 {
@@ -207,6 +201,21 @@ func TestChmod(t *testing.T) {
 	_, err = os.Lstat(wd + "/rw/file")
 	if err != nil {
 		t.Errorf("File not promoted")
+	}
+}
+
+func TestChown(t *testing.T) {
+	wd, clean := setupUfs(t)
+	defer clean()
+
+	ro_fn := wd + "/ro/file"
+	m_fn := wd + "/mount/file"
+	writeToFile(ro_fn, "a")
+
+	err := os.Chown(m_fn, 0, 0)
+	code := fuse.OsErrorToErrno(err)
+	if code != fuse.EPERM {
+		t.Error("Unexpected error code", code, err)
 	}
 }
 
@@ -857,7 +866,6 @@ func TestDisappearing(t *testing.T) {
 }
 
 func TestDeletedGetAttr(t *testing.T) {
-	t.Log("TestDeletedGetAttr")
 	wd, clean := setupUfs(t)
 	defer clean()
 

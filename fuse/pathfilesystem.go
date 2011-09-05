@@ -249,14 +249,17 @@ func (me *inode) getMountDirEntries() (out []DirEntry) {
 	return out
 }
 
+// Returns any open file, preferably a r/w one.
 func (me *inode) getAnyFile() (file File) {
 	me.OpenFilesMutex.Lock()
 	defer me.OpenFilesMutex.Unlock()
 	
 	for _, f := range me.OpenFiles {
-		return f.file
+		if file == nil || f.OpenFlags & O_ANYWRITE != 0 {
+			file = f.file
+		}
 	}
-	return nil
+	return file
 }
 
 // Returns an open writable file for the given inode.

@@ -159,21 +159,15 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 	}
 
 	node := me.getInodeData(header.NodeId)
-	fi, code := node.fsInode.GetAttr(f, &header.Context)
-	
 	if code.Ok() && input.Valid&FATTR_MODE != 0 {
 		permissions := uint32(07777) & input.Mode
 		code = node.fsInode.Chmod(f, permissions, &header.Context)
-		fi.Mode = (fi.Mode &^ 07777) | permissions
 	}
 	if code.Ok() && (input.Valid&(FATTR_UID|FATTR_GID) != 0) {
 		code = node.fsInode.Chown(f, uint32(input.Uid), uint32(input.Gid), &header.Context)
-		fi.Uid = int(input.Uid)
-		fi.Gid = int(input.Gid)
 	}
 	if code.Ok() && input.Valid&FATTR_SIZE != 0 {
 		code = node.fsInode.Truncate(f, input.Size, &header.Context)
-		fi.Size = int64(input.Size)
 	}
 	if code.Ok() && (input.Valid&(FATTR_ATIME|FATTR_MTIME|FATTR_ATIME_NOW|FATTR_MTIME_NOW) != 0) {
 		atime := uint64(input.Atime*1e9) + uint64(input.Atimensec)
@@ -188,14 +182,15 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 
 		// TODO - if using NOW, mtime and atime may differ.
 		code = node.fsInode.Utimens(f, atime, mtime, &header.Context)
-		fi.Atime_ns = int64(atime)
-		fi.Mtime_ns = int64(mtime)
 	}
 
 	if !code.Ok() {
 		return nil, code
 	}
 
+	// Must call GetAttr(); the filesystem may override some of
+	// the changes we effect here.
+	fi, code := node.fsInode.GetAttr(f, &header.Context)
 	out = &AttrOut{}
 	out.Attr.Ino = header.NodeId
 	node.mount.fileInfoToAttr(fi, out)

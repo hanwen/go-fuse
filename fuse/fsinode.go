@@ -150,7 +150,7 @@ func (me *fsInode) Lookup(name string) (fi *os.FileInfo, code Status) {
 }
 
 func (me *fsInode) GetAttr(file File, context *Context) (fi *os.FileInfo, code Status) {
-	if file == nil && me.Parent == nil && me.inode.mountPoint == nil {
+	if file == nil {
 		// called on a deleted files.
 		file = me.inode.getAnyFile()
 	}

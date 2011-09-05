@@ -863,7 +863,11 @@ func (me *UnionFs) Open(name string, flags uint32, context *fuse.Context) (fuseF
 		r.attr.Mtime_ns = time.Nanoseconds()
 		me.branchCache.Set(name, r)
 	}
-	return me.fileSystems[r.branch].Open(name, uint32(flags), context)
+	fuseFile, status = me.fileSystems[r.branch].Open(name, uint32(flags), context)
+	if fuseFile != nil {
+		fuseFile = &UnionFsFile{fuseFile}
+	}
+	return fuseFile, status
 }
 
 func (me *UnionFs) Flush(name string) fuse.Status {
@@ -878,4 +882,18 @@ func (me *UnionFs) Name() string {
 		names = append(names, fs.Name())
 	}
 	return fmt.Sprintf("%v", names)
+}
+
+type UnionFsFile struct {
+	fuse.File
+}
+
+func (me *UnionFsFile) GetAttr() (*os.FileInfo, fuse.Status) {
+	fi, code := me.File.GetAttr()
+	if fi != nil {
+		f := *fi
+		fi = &f
+		fi.Mode |= 0222
+	}
+	return fi, code
 }
