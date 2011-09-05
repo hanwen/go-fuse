@@ -160,7 +160,6 @@ func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags u
 	if mount == nil {
 		return 0, 0, ENOENT
 	}
-	// TODO - how to handle return flags, the FUSE open flags?
 	stream, err := mount.fs.OpenDir(fullPath, &header.Context)
 	if err != OK {
 		return 0, 0, err
@@ -171,9 +170,10 @@ func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags u
 		stream: stream,
 	}
 	de.extra = append(de.extra, DirEntry{S_IFDIR, "."}, DirEntry{S_IFDIR, ".."})
-
 	h, opened := mount.registerFileHandle(node, de, nil, input.Flags)
-
+	
+	// TODO - implement seekable directories
+	opened.FuseFlags |= FOPEN_NONSEEKABLE
 	return opened.FuseFlags, h, OK
 }
 
