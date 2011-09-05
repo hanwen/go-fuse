@@ -25,7 +25,7 @@ type inode struct {
 	treeLock *sync.RWMutex
 
 	// All data below is protected by treeLock.
-	fsInode *fsInode
+	fsInode     FsNode
 	
 	children    map[string]*inode
 
@@ -43,7 +43,7 @@ type inode struct {
 	mount *fileSystemMount
 }
 
-func (me *inode) createChild(name string, isDir bool, fsi *fsInode, conn *FileSystemConnector) *inode {
+func (me *inode) createChild(name string, isDir bool, fsi FsNode, conn *FileSystemConnector) *inode {
 	me.treeLock.Lock()
 	defer me.treeLock.Unlock()
 
@@ -79,7 +79,7 @@ func (me *inode) addChild(name string, child *inode) {
 	}
 
 	me.children[name] = child
-	me.fsInode.addChild(name, child.fsInode)
+	me.fsInode.AddChild(name, child.fsInode)
 }
 
 // Must be called with treeLock for the mount held.
@@ -87,7 +87,7 @@ func (me *inode) rmChild(name string) (ch *inode) {
 	ch = me.children[name]
 	if ch != nil {
 		me.children[name] = nil, false
-		me.fsInode.rmChild(name, ch.fsInode)
+		me.fsInode.RmChild(name, ch.fsInode)
 	}
 	return ch
 }
@@ -102,7 +102,7 @@ func (me *inode) mountFs(fs *inodeFs, opts *FileSystemOptions) {
 	}
 	me.mount = me.mountPoint
 	me.treeLock = &me.mountPoint.treeLock
-	me.fsInode = fs.RootNode()
+	me.fsInode = fs.Root()
 	me.fsInode.SetInode(me)
 }
 

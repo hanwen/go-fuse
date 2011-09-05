@@ -8,6 +8,8 @@ import (
 
 var _ = log.Println
 
+
+
 type inodeFs struct {
 	fs   FileSystem
 	root *fsInode
@@ -36,9 +38,10 @@ func newInodeFs(fs FileSystem) *inodeFs {
 	return me
 }
 
-func (me *inodeFs) RootNode() *fsInode {
+func (me *inodeFs) Root() FsNode {
 	return me.root
 }
+
 
 // This is a combination of dentry (entry in the file/directory and
 // the inode). This structure is used to implement glue for FSes where
@@ -73,14 +76,16 @@ func (me *fsInode) GetPath() (path string) {
 	return ReverseJoin(rev_components, "/")
 }
 
-func (me *fsInode) addChild(name string, ch *fsInode) {
+func (me *fsInode) AddChild(name string, child FsNode) {
+	ch := child.(*fsInode)
 	if ch.inode.mountPoint == nil {
 		ch.Parent = me
 	}
 	ch.Name = name
 }
 
-func (me *fsInode) rmChild(name string, ch *fsInode) {
+func (me *fsInode) RmChild(name string, child FsNode) {
+	ch := child.(*fsInode)
 	ch.Name = ".deleted"
 	ch.Parent = nil
 }
@@ -142,7 +147,7 @@ func (me *fsInode) OpenDir(context *Context) (chan DirEntry, Status) {
 	return me.fs.OpenDir(me.GetPath(), context)
 }
 
-func (me *fsInode) Mknod(name string, mode uint32, dev uint32, context *Context) (fi *os.FileInfo, newNode *fsInode, code Status) {
+func (me *fsInode) Mknod(name string, mode uint32, dev uint32, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
 	p := me.GetPath()
 	code = me.fs.Mknod(filepath.Join(p, name), mode, dev, context)
 	if code.Ok() {
@@ -154,7 +159,7 @@ func (me *fsInode) Mknod(name string, mode uint32, dev uint32, context *Context)
 	return
 }
 	
-func (me *fsInode) Mkdir(name string, mode uint32, context *Context) (fi *os.FileInfo, newNode *fsInode, code Status) {
+func (me *fsInode) Mkdir(name string, mode uint32, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
 	code = me.fs.Mkdir(filepath.Join(me.GetPath(), name), mode, context)
 	if code.Ok() {
 		newNode = me.createChild(name)
@@ -173,7 +178,7 @@ func (me *fsInode) Rmdir(name string, context *Context) (code Status) {
 	return me.fs.Rmdir(filepath.Join(me.GetPath(), name), context)
 }
 
-func (me *fsInode) Symlink(name string, content string, context *Context) (fi *os.FileInfo, newNode *fsInode, code Status) {
+func (me *fsInode) Symlink(name string, content string, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
 	code = me.fs.Symlink(content, filepath.Join(me.GetPath(), name), context)
 	if code.Ok() {
 		newNode = me.createChild(name)
@@ -185,16 +190,19 @@ func (me *fsInode) Symlink(name string, content string, context *Context) (fi *o
 }
 
 
-func (me *fsInode) Rename(oldName string, newParent *fsInode, newName string, context *Context) (code Status) {
+func (me *fsInode) Rename(oldName string, newParent FsNode, newName string, context *Context) (code Status) {
+	p := newParent.(*fsInode)
 	oldPath := filepath.Join(me.GetPath(), oldName)
-	newPath := filepath.Join(newParent.GetPath(), newName)
+	newPath := filepath.Join(p.GetPath(), newName)
 	
 	return me.fs.Rename(oldPath, newPath, context)
 }
 
-func (me *fsInode) Link(name string, existing *fsInode, context *Context) (fi *os.FileInfo, newNode *fsInode, code Status) {
+func (me *fsInode) Link(name string, existing FsNode, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
+
 	newPath := filepath.Join(me.GetPath(), name)
-	oldPath := existing.GetPath()
+	e := existing.(*fsInode)
+	oldPath := e.GetPath()
 	code = me.fs.Link(oldPath, newPath, context)
 	if code.Ok() {
 		oldFi, _ := me.fs.GetAttr(oldPath, context)
@@ -207,7 +215,7 @@ func (me *fsInode) Link(name string, existing *fsInode, context *Context) (fi *o
 	return 
 }
 
-func (me *fsInode) Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *os.FileInfo, newNode *fsInode, code Status) {
+func (me *fsInode) Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *os.FileInfo, newNode FsNode, code Status) {
 	fullPath := filepath.Join(me.GetPath(), name)
 	file, code = me.fs.Create(fullPath, flags, mode, context)
 	if code.Ok() {
@@ -234,7 +242,7 @@ func (me *fsInode) Open(flags uint32, context *Context) (file File, code Status)
 }
 
 // TOOD - need context.
-func (me *fsInode) Lookup(name string) (fi *os.FileInfo, node *fsInode, code Status) {
+func (me *fsInode) Lookup(name string) (fi *os.FileInfo, node FsNode, code Status) {
 	fullPath := filepath.Join(me.GetPath(), name)
 	fi, code = me.fs.GetAttr(fullPath, nil)
 	if code.Ok() {

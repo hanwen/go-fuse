@@ -24,7 +24,7 @@ type openedFile struct {
 
 type fileSystemMount struct {
 	// The file system we mounted here.
-	fs *inodeFs
+	fs InodeFs
 
 	// Node that we were mounted on.
 	mountInode *inode

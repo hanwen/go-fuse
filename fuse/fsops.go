@@ -23,7 +23,7 @@ func (me *FileSystemConnector) Lookup(header *InHeader, name string) (out *Entry
 }
 
 func (me *FileSystemConnector) internalMountLookup(mount *fileSystemMount, lookupCount int) (out *EntryOut, status Status, node *inode) {
-	fi, err := mount.fs.RootNode().GetAttr(nil, nil)
+	fi, err := mount.fs.Root().GetAttr(nil, nil)
 	if err == ENOENT && mount.options.NegativeTimeout > 0.0 {
 		return NegativeEntry(mount.options.NegativeTimeout), OK, nil
 	}
@@ -199,7 +199,7 @@ func (me *FileSystemConnector) Mknod(header *InHeader, input *MknodIn, name stri
 	return out, code
 }
 
-func (me *FileSystemConnector) createChild(parent *inode, name string, fi *os.FileInfo, fsi *fsInode) (out *EntryOut, child *inode) {
+func (me *FileSystemConnector) createChild(parent *inode, name string, fi *os.FileInfo, fsi FsNode) (out *EntryOut, child *inode) {
 	child = parent.createChild(name, fi.IsDirectory(), fsi, me)
 	out = parent.mount.fileInfoToEntry(fi)
 	out.Ino = child.nodeId
