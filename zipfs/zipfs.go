@@ -2,7 +2,9 @@ package zipfs
 
 import (
 	"archive/zip"
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"path/filepath"
@@ -25,25 +27,18 @@ func (me *ZipFile) Stat() *os.FileInfo {
 }
 
 func (me *ZipFile) Data() []byte {
-	data := make([]byte, me.UncompressedSize)
 	zf := (*me)
 	rc, err := zf.Open()
 	if err != nil {
-		panic("zip open")
+		panic(err)
 	}
-
-	start := 0
-	for {
-		n, err := rc.Read(data[start:])
-		start += n
-		if err == os.EOF {
-			break
-		}
-		if err != nil && err != os.EOF {
-			panic(fmt.Sprintf("read err: %v, n %v, sz %v", err, n, len(data)))
-		}
+	dest := bytes.NewBuffer(make([]byte, 0, me.UncompressedSize))
+	
+	_, err = io.Copyn(dest, rc, int64(me.UncompressedSize))
+	if err != nil {
+		panic(err)
 	}
-	return data
+	return dest.Bytes()
 }
 
 func zipFilesToTree(files []*zip.File) *MemTree {
