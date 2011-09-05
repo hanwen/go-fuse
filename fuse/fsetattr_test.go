@@ -125,7 +125,7 @@ func setupFAttrTest(fs FileSystem) (dir string, clean func()) {
 	state, _, err := MountPathFileSystem(dir, fs, nil)
 	CheckSuccess(err)
 	state.Debug = true
-	
+
 	go state.Loop(false)
 
 	// Trigger INIT.
@@ -133,7 +133,7 @@ func setupFAttrTest(fs FileSystem) (dir string, clean func()) {
 	if state.KernelSettings().Flags&CAP_FILE_OPS == 0 {
 		log.Println("Mount does not support file operations")
 	}
-	
+
 	return dir, func() {
 		if state.Unmount() == nil {
 			os.RemoveAll(dir)
@@ -145,7 +145,7 @@ func TestFSetAttr(t *testing.T) {
 	fs := &FSetAttrFs{}
 	dir, clean := setupFAttrTest(fs)
 	defer clean()
-	
+
 	fn := dir + "/file"
 	f, err := os.OpenFile(fn, os.O_CREATE|os.O_WRONLY, 0755)
 	CheckSuccess(err)

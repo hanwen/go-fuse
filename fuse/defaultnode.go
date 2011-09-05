@@ -1,4 +1,5 @@
 package fuse
+
 import (
 	"os"
 )
@@ -44,8 +45,7 @@ func (me *DefaultFsNode) RmChild(name string, child FsNode) {
 func (me *DefaultFsNode) AddChild(name string, child FsNode) {
 }
 
-
-func (me *DefaultFsNode) Lookup(name string) (fi *os.FileInfo, node FsNode, code Status)  {
+func (me *DefaultFsNode) Lookup(name string) (fi *os.FileInfo, node FsNode, code Status) {
 	return nil, nil, ENOSYS
 }
 
@@ -85,34 +85,33 @@ func (me *DefaultFsNode) Create(name string, flags uint32, mode uint32, context 
 	return nil, nil, nil, ENOSYS
 }
 
-func (me *DefaultFsNode) Open(flags uint32, context *Context) (file File, code Status)  {
+func (me *DefaultFsNode) Open(flags uint32, context *Context) (file File, code Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultFsNode) Flush(file File, openFlags uint32, context *Context) (code Status)  {
+func (me *DefaultFsNode) Flush(file File, openFlags uint32, context *Context) (code Status) {
 	return ENOSYS
 }
 
-func (me *DefaultFsNode) OpenDir(context *Context) (chan DirEntry, Status)  {
+func (me *DefaultFsNode) OpenDir(context *Context) (chan DirEntry, Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultFsNode) GetXAttr(attribute string, context *Context) (data []byte, code Status)  {
+func (me *DefaultFsNode) GetXAttr(attribute string, context *Context) (data []byte, code Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultFsNode) RemoveXAttr(attr string, context *Context) Status  {
+func (me *DefaultFsNode) RemoveXAttr(attr string, context *Context) Status {
 	return ENOSYS
 }
 
-func (me *DefaultFsNode) SetXAttr(attr string, data []byte, flags int, context *Context) Status  {
+func (me *DefaultFsNode) SetXAttr(attr string, data []byte, flags int, context *Context) Status {
 	return ENOSYS
 }
 
-func (me *DefaultFsNode) ListXAttr(context *Context) (attrs []string, code Status)  {
+func (me *DefaultFsNode) ListXAttr(context *Context) (attrs []string, code Status) {
 	return nil, ENOSYS
 }
-
 
 func (me *DefaultFsNode) GetAttr(file File, context *Context) (fi *os.FileInfo, code Status) {
 	return nil, ENOSYS
@@ -126,11 +125,10 @@ func (me *DefaultFsNode) Chown(file File, uid uint32, gid uint32, context *Conte
 	return ENOSYS
 }
 
-func (me *DefaultFsNode) Truncate(file File, size uint64, context *Context) (code Status)  {
+func (me *DefaultFsNode) Truncate(file File, size uint64, context *Context) (code Status) {
 	return ENOSYS
 }
 
 func (me *DefaultFsNode) Utimens(file File, atime uint64, mtime uint64, context *Context) (code Status) {
 	return ENOSYS
 }
-

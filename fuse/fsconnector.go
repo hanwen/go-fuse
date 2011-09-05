@@ -150,10 +150,10 @@ func (me *FileSystemConnector) considerDropInode(n *Inode) (drop bool) {
 	if n == me.rootNode || n.mountPoint != nil {
 		return false
 	}
-	
+
 	n.openFilesMutex.Lock()
 	defer n.openFilesMutex.Unlock()
-	return len(n.openFiles) == 0 
+	return len(n.openFiles) == 0
 }
 
 func (me *FileSystemConnector) renameUpdate(oldParent *Inode, oldName string, newParent *Inode, newName string) {
@@ -164,7 +164,7 @@ func (me *FileSystemConnector) renameUpdate(oldParent *Inode, oldName string, ne
 	if oldParent.mount != newParent.mount {
 		panic("Cross mount rename")
 	}
-	
+
 	node := oldParent.rmChild(oldName)
 	if node == nil {
 		panic("Source of rename does not exist")
@@ -175,7 +175,7 @@ func (me *FileSystemConnector) renameUpdate(oldParent *Inode, oldName string, ne
 
 func (me *FileSystemConnector) unlinkUpdate(parent *Inode, name string) {
 	defer me.verify()
-	
+
 	parent.treeLock.Lock()
 	defer parent.treeLock.Unlock()
 

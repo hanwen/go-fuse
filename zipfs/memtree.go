@@ -17,14 +17,13 @@ type memNode struct {
 	file MemFile
 }
 
-
 // MemTreeFs creates a tree of internal Inodes.  Since the tree is
 // loaded in memory completely at startup, it does not need to inode
 // discovery through Lookup() at serve time.
 type MemTreeFs struct {
 	fuse.DefaultNodeFileSystem
-	root    memNode
-	files   map[string]MemFile
+	root  memNode
+	files map[string]MemFile
 }
 
 func NewMemTreeFs() *MemTreeFs {
@@ -55,7 +54,7 @@ func (me *memNode) Print(indent int) {
 			fmt.Println(s + k + ":")
 			mn, ok := v.FsNode().(*memNode)
 			if ok {
-				mn.Print(indent+2)
+				mn.Print(indent + 2)
 			}
 		} else {
 			fmt.Println(s + k)
@@ -96,7 +95,7 @@ func (me *memNode) Open(flags uint32, context *fuse.Context) (fuseFile fuse.File
 func (me *memNode) GetAttr(file fuse.File, context *fuse.Context) (*os.FileInfo, fuse.Status) {
 	if me.Inode().IsDir() {
 		return &os.FileInfo{
-			Mode: fuse.S_IFDIR  | 0777,
+			Mode: fuse.S_IFDIR | 0777,
 		}, fuse.OK
 	}
 
@@ -114,7 +113,7 @@ func (me *MemTreeFs) addFile(name string, f MemFile) {
 			if i == len(comps)-1 {
 				fsnode.file = f
 			}
-			
+
 			ch = node.CreateChild(c, fsnode.file == nil, fsnode)
 		}
 		node = ch

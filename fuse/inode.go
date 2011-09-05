@@ -25,9 +25,9 @@ type Inode struct {
 	treeLock *sync.RWMutex
 
 	// All data below is protected by treeLock.
-	fsInode     FsNode
-	
-	children    map[string]*Inode
+	fsInode FsNode
+
+	children map[string]*Inode
 
 	// Contains directories that function as mounts. The entries
 	// are duplicated in children.
@@ -49,7 +49,7 @@ type Inode struct {
 
 // LockTree() Locks the mutex used for tree operations, and returns the
 // unlock function.
-func (me *Inode) LockTree() (func()) {
+func (me *Inode) LockTree() func() {
 	// TODO - this API is tricky.
 	me.treeLock.Lock()
 	return func() { me.treeLock.Unlock() }
@@ -59,9 +59,9 @@ func (me *Inode) LockTree() (func()) {
 func (me *Inode) AnyFile() (file File) {
 	me.openFilesMutex.Lock()
 	defer me.openFilesMutex.Unlock()
-	
+
 	for _, f := range me.openFiles {
-		if file == nil || f.OpenFlags & O_ANYWRITE != 0 {
+		if file == nil || f.OpenFlags&O_ANYWRITE != 0 {
 			file = f.file
 		}
 	}
@@ -82,14 +82,14 @@ func (me *Inode) Children() (out map[string]*Inode) {
 func (me *Inode) FsNode() FsNode {
 	return me.fsInode
 }
-	
+
 // Returns an open writable file for the given Inode.
 func (me *Inode) WritableFiles() (files []File) {
 	me.openFilesMutex.Lock()
 	defer me.openFilesMutex.Unlock()
 
 	for _, f := range me.openFiles {
-		if f.OpenFlags & O_ANYWRITE != 0 {
+		if f.OpenFlags&O_ANYWRITE != 0 {
 			files = append(files, f.file)
 		}
 	}
@@ -111,12 +111,12 @@ func (me *Inode) CreateChild(name string, isDir bool, fsi FsNode) *Inode {
 	}
 	ch = me.connector.newInode(isDir)
 	ch.fsInode = fsi
- 	fsi.SetInode(ch)
+	fsi.SetInode(ch)
 	ch.mount = me.mount
 	ch.treeLock = me.treeLock
 	ch.lookupCount = 1
 	ch.connector = me.connector
-	
+
 	me.addChild(name, ch)
 	return ch
 }
@@ -124,7 +124,7 @@ func (me *Inode) CreateChild(name string, isDir bool, fsi FsNode) *Inode {
 func (me *Inode) GetChild(name string) (child *Inode) {
 	me.treeLock.Lock()
 	defer me.treeLock.Unlock()
-	
+
 	return me.children[name]
 }
 
@@ -217,7 +217,7 @@ func (me *Inode) verify(cur *fileSystemMount) {
 				me.mountPoint, name, me.children))
 		}
 	}
-	
+
 	for _, ch := range me.children {
 		if ch == nil {
 			panic("Found nil child.")

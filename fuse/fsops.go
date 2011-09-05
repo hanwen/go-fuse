@@ -11,7 +11,6 @@ import (
 
 var _ = log.Println
 
-
 func (me *FileSystemConnector) Init(fsInit *RawFsInit) {
 	me.fsInit = *fsInit
 }
@@ -60,12 +59,12 @@ func (me *FileSystemConnector) internalLookup(parent *Inode, name string, lookup
 	}
 
 	if child != nil && code.Ok() {
-		out = parent.mount.fileInfoToEntry(fi)	
+		out = parent.mount.fileInfoToEntry(fi)
 		out.NodeId = child.nodeId
 		out.Generation = 1
 		return out, OK, child
 	}
-	
+
 	fi, fsNode, code := parent.fsInode.Lookup(name)
 	if code == ENOENT && mount.options.NegativeTimeout > 0.0 {
 		return NegativeEntry(mount.options.NegativeTimeout), OK, nil
@@ -74,7 +73,7 @@ func (me *FileSystemConnector) internalLookup(parent *Inode, name string, lookup
 		return nil, code, nil
 	}
 
-	out, _ =  me.createChild(parent, name, fi, fsNode)
+	out, _ = me.createChild(parent, name, fi, fsNode)
 	return out, OK, node
 }
 
@@ -91,7 +90,7 @@ func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out 
 			f = opened.file
 		}
 	}
-	
+
 	fi, code := node.fsInode.GetAttr(f, &header.Context)
 	if !code.Ok() {
 		return nil, code
@@ -101,7 +100,7 @@ func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out 
 	node.mount.fileInfoToAttr(fi, out)
 	return out, OK
 }
-	
+
 func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags uint32, handle uint64, code Status) {
 	node := me.getInodeData(header.NodeId)
 	stream, err := node.fsInode.OpenDir(&header.Context)
@@ -115,7 +114,7 @@ func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags u
 	}
 	de.extra = append(de.extra, DirEntry{S_IFDIR, "."}, DirEntry{S_IFDIR, ".."})
 	h, opened := node.mount.registerFileHandle(node, de, nil, input.Flags)
-	
+
 	// TODO - implement seekable directories
 	opened.FuseFlags |= FOPEN_NONSEEKABLE
 	return opened.FuseFlags, h, OK
@@ -238,7 +237,6 @@ func (me *FileSystemConnector) Symlink(header *InHeader, pointedTo string, linkN
 	return out, code
 }
 
-
 func (me *FileSystemConnector) Rename(header *InHeader, input *RenameIn, oldName string, newName string) (code Status) {
 	oldParent := me.getInodeData(header.NodeId)
 	isMountPoint := me.lookupMount(oldParent, oldName, 0) != nil
@@ -265,7 +263,7 @@ func (me *FileSystemConnector) Link(header *InHeader, input *LinkIn, name string
 	if existing.mount != parent.mount {
 		return nil, EXDEV
 	}
-	
+
 	fi, fsInode, code := parent.fsInode.Link(name, existing.fsInode, &header.Context)
 	if !code.Ok() {
 		return nil, code
@@ -323,7 +321,7 @@ func (me *FileSystemConnector) GetXAttr(header *InHeader, attribute string) (dat
 func (me *FileSystemConnector) RemoveXAttr(header *InHeader, attr string) Status {
 	node := me.getInodeData(header.NodeId)
 	return node.fsInode.RemoveXAttr(attr, &header.Context)
-}	
+}
 
 func (me *FileSystemConnector) SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) Status {
 	node := me.getInodeData(header.NodeId)

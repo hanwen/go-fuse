@@ -27,10 +27,10 @@ func (me *PathNodeFs) StatFs() *StatfsOut {
 func NewPathNodeFs(fs FileSystem) *PathNodeFs {
 	root := new(pathInode)
 	root.fs = fs
-	
+
 	me := &PathNodeFs{
-	fs: fs,
-	root: root,
+		fs:   fs,
+		root: root,
 	}
 	root.ifs = me
 	return me
@@ -40,15 +40,14 @@ func (me *PathNodeFs) Root() FsNode {
 	return me.root
 }
 
-
 // This is a combination of dentry (entry in the file/directory and
 // the inode). This structure is used to implement glue for FSes where
 // there is a one-to-one mapping of paths and inodes, ie. FSes that
 // disallow hardlinks.
 type pathInode struct {
-	ifs    *PathNodeFs
-	fs     FileSystem
-	Name   string
+	ifs  *PathNodeFs
+	fs   FileSystem
+	Name string
 
 	// This is nil at the root of the mount.
 	Parent *pathInode
@@ -95,7 +94,7 @@ func (me *pathInode) RmChild(name string, child FsNode) {
 
 func (me *pathInode) Readlink(c *Context) ([]byte, Status) {
 	path := me.GetPath()
-	
+
 	val, err := me.fs.Readlink(path, c)
 	return []byte(val), err
 }
@@ -148,7 +147,7 @@ func (me *pathInode) Mknod(name string, mode uint32, dev uint32, context *Contex
 	}
 	return
 }
-	
+
 func (me *pathInode) Mkdir(name string, mode uint32, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
 	code = me.fs.Mkdir(filepath.Join(me.GetPath(), name), mode, context)
 	if code.Ok() {
@@ -179,12 +178,11 @@ func (me *pathInode) Symlink(name string, content string, context *Context) (fi 
 	return
 }
 
-
 func (me *pathInode) Rename(oldName string, newParent FsNode, newName string, context *Context) (code Status) {
 	p := newParent.(*pathInode)
 	oldPath := filepath.Join(me.GetPath(), oldName)
 	newPath := filepath.Join(p.GetPath(), newName)
-	
+
 	return me.fs.Rename(oldPath, newPath, context)
 }
 
@@ -202,7 +200,7 @@ func (me *pathInode) Link(name string, existing FsNode, context *Context) (fi *o
 		}
 		newNode = me.createChild(name)
 	}
-	return 
+	return
 }
 
 func (me *pathInode) Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *os.FileInfo, newNode FsNode, code Status) {
@@ -211,11 +209,11 @@ func (me *pathInode) Create(name string, flags uint32, mode uint32, context *Con
 	if code.Ok() {
 		newNode = me.createChild(name)
 		fi = &os.FileInfo{
-		Mode: S_IFREG | mode,
-		// TODO - ctime, mtime, atime?
+			Mode: S_IFREG | mode,
+			// TODO - ctime, mtime, atime?
 		}
 	}
-	return 
+	return
 }
 
 func (me *pathInode) createChild(name string) *pathInode {
@@ -247,7 +245,7 @@ func (me *pathInode) GetAttr(file File, context *Context) (fi *os.FileInfo, code
 		// called on a deleted files.
 		file = me.inode.AnyFile()
 	}
-	
+
 	if file != nil {
 		fi, code = file.GetAttr()
 	}
@@ -255,12 +253,12 @@ func (me *pathInode) GetAttr(file File, context *Context) (fi *os.FileInfo, code
 	if file == nil || code == ENOSYS {
 		fi, code = me.fs.GetAttr(me.GetPath(), context)
 	}
-	
+
 	if fi != nil && !fi.IsDirectory() && fi.Nlink == 0 {
 		fi.Nlink = 1
 	}
 	return fi, code
-}	
+}
 
 func (me *pathInode) Chmod(file File, perms uint32, context *Context) (code Status) {
 	files := me.inode.WritableFiles()
@@ -271,14 +269,13 @@ func (me *pathInode) Chmod(file File, perms uint32, context *Context) (code Stat
 			break
 		}
 	}
-	
+
 	if len(files) == 0 || code == ENOSYS {
 		code = me.fs.Chmod(me.GetPath(), perms, context)
 	}
 	return code
 }
 
-	
 func (me *pathInode) Chown(file File, uid uint32, gid uint32, context *Context) (code Status) {
 	files := me.inode.WritableFiles()
 	for _, f := range files {

@@ -6,6 +6,7 @@ import (
 	"sync"
 	"unsafe"
 )
+
 var _ = log.Println
 
 // openedFile stores either an open dir or an open file.
@@ -57,7 +58,7 @@ func (me *fileSystemMount) fileInfoToEntry(fi *os.FileInfo) (out *EntryOut) {
 	}
 	return out
 }
-	
+
 func (me *fileSystemMount) fileInfoToAttr(fi *os.FileInfo, out *AttrOut) {
 	CopyFileInfo(fi, &out.Attr)
 	SplitNs(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
@@ -94,9 +95,9 @@ func (me *fileSystemMount) registerFileHandle(node *Inode, dir rawDir, f File, f
 	node.openFilesMutex.Lock()
 	defer node.openFilesMutex.Unlock()
 	b := &openedFile{
-		dir:             dir,
-		file:            f,
-		OpenFlags:       flags,
+		dir:       dir,
+		file:      f,
+		OpenFlags: flags,
 	}
 
 	withFlags, ok := f.(*WithFlags)

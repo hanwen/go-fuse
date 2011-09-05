@@ -44,7 +44,7 @@ func (me *TarFile) Data() []byte {
 	return me.data
 }
 
-func NewTarTree(r io.Reader) (map[string]MemFile) {
+func NewTarTree(r io.Reader) map[string]MemFile {
 	files := map[string]MemFile{}
 	tr := tar.NewReader(r)
 
@@ -80,8 +80,8 @@ func NewTarTree(r io.Reader) (map[string]MemFile) {
 		io.Copy(buf, tr)
 
 		files[hdr.Name] = &TarFile{
-		Header: *hdr,
-		data:   buf.Bytes(),
+			Header: *hdr,
+			data:   buf.Bytes(),
 		}
 	}
 	return files

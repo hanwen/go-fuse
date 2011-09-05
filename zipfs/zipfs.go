@@ -33,7 +33,7 @@ func (me *ZipFile) Data() []byte {
 		panic(err)
 	}
 	dest := bytes.NewBuffer(make([]byte, 0, me.UncompressedSize))
-	
+
 	_, err = io.Copyn(dest, rc, int64(me.UncompressedSize))
 	if err != nil {
 		panic(err)

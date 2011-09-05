@@ -27,13 +27,13 @@ type testCase struct {
 	orig   string
 	mnt    string
 
-	mountFile    string
-	mountSubdir  string
-	origFile     string
-	origSubdir   string
-	tester       *testing.T
-	state        *MountState
-	connector    *FileSystemConnector
+	mountFile   string
+	mountSubdir string
+	origFile    string
+	origSubdir  string
+	tester      *testing.T
+	state       *MountState
+	connector   *FileSystemConnector
 }
 
 const testTtl = 0.1
@@ -682,17 +682,17 @@ func TestOriginalIsSymlink(t *testing.T) {
 }
 
 func TestDoubleOpen(t *testing.T) {
-        ts := NewTestCase(t)
-        defer ts.Cleanup()
+	ts := NewTestCase(t)
+	defer ts.Cleanup()
 
-        err := ioutil.WriteFile(ts.orig +"/file", []byte("blabla"), 0644)
-        CheckSuccess(err)
-        
-        roFile, err := os.Open(ts.mnt + "/file")
-        CheckSuccess(err)
-        defer roFile.Close()
+	err := ioutil.WriteFile(ts.orig+"/file", []byte("blabla"), 0644)
+	CheckSuccess(err)
 
-        rwFile, err := os.OpenFile(ts.mnt + "/file", os.O_WRONLY | os.O_TRUNC, 0666)
-        CheckSuccess(err)
-        defer rwFile.Close()
+	roFile, err := os.Open(ts.mnt + "/file")
+	CheckSuccess(err)
+	defer roFile.Close()
+
+	rwFile, err := os.OpenFile(ts.mnt+"/file", os.O_WRONLY|os.O_TRUNC, 0666)
+	CheckSuccess(err)
+	defer rwFile.Close()
 }

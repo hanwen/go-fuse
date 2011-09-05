@@ -76,9 +76,9 @@ type rawDir interface {
 }
 
 type connectorDir struct {
-	extra    []DirEntry
-	stream   chan DirEntry
-	leftOver DirEntry
+	extra      []DirEntry
+	stream     chan DirEntry
+	leftOver   DirEntry
 	lastOffset uint64
 }
 

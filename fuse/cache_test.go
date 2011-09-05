@@ -7,6 +7,7 @@ import (
 	"os"
 	"testing"
 )
+
 var _ = log.Println
 
 type cacheFs struct {

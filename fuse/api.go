@@ -27,42 +27,42 @@ type FsNode interface {
 	// The following are called by the FileSystemConnector
 	Inode() *Inode
 	SetInode(node *Inode)
-	
+
 	RmChild(name string, child FsNode)
 	AddChild(name string, child FsNode)
 
-	Lookup(name string) (fi *os.FileInfo, node FsNode, code Status) 
+	Lookup(name string) (fi *os.FileInfo, node FsNode, code Status)
 
 	// Misc.
-	Access(mode uint32, context *Context) (code Status) 
-	Readlink(c *Context) ([]byte, Status) 
+	Access(mode uint32, context *Context) (code Status)
+	Readlink(c *Context) ([]byte, Status)
 
 	// Namespace operations
-	Mknod(name string, mode uint32, dev uint32, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) 
-	Mkdir(name string, mode uint32, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) 
-	Unlink(name string, context *Context) (code Status) 
-	Rmdir(name string, context *Context) (code Status) 
+	Mknod(name string, mode uint32, dev uint32, context *Context) (fi *os.FileInfo, newNode FsNode, code Status)
+	Mkdir(name string, mode uint32, context *Context) (fi *os.FileInfo, newNode FsNode, code Status)
+	Unlink(name string, context *Context) (code Status)
+	Rmdir(name string, context *Context) (code Status)
 	Symlink(name string, content string, context *Context) (fi *os.FileInfo, newNode FsNode, code Status)
-	Rename(oldName string, newParent FsNode, newName string, context *Context) (code Status) 
-	Link(name string, existing FsNode, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) 
+	Rename(oldName string, newParent FsNode, newName string, context *Context) (code Status)
+	Link(name string, existing FsNode, context *Context) (fi *os.FileInfo, newNode FsNode, code Status)
 
 	// Files
-	Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *os.FileInfo, newNode FsNode, code Status) 
+	Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *os.FileInfo, newNode FsNode, code Status)
 	Open(flags uint32, context *Context) (file File, code Status)
-	Flush(file File, openFlags uint32, context *Context) (code Status) 
-	OpenDir(context *Context) (chan DirEntry, Status) 
-	
+	Flush(file File, openFlags uint32, context *Context) (code Status)
+	OpenDir(context *Context) (chan DirEntry, Status)
+
 	// XAttrs
-	GetXAttr(attribute string, context *Context) (data []byte, code Status) 
-	RemoveXAttr(attr string, context *Context) Status 
-	SetXAttr(attr string, data []byte, flags int, context *Context) Status 
-	ListXAttr(context *Context) (attrs []string, code Status) 
+	GetXAttr(attribute string, context *Context) (data []byte, code Status)
+	RemoveXAttr(attr string, context *Context) Status
+	SetXAttr(attr string, data []byte, flags int, context *Context) Status
+	ListXAttr(context *Context) (attrs []string, code Status)
 
 	// Attributes
 	GetAttr(file File, context *Context) (fi *os.FileInfo, code Status)
 	Chmod(file File, perms uint32, context *Context) (code Status)
 	Chown(file File, uid uint32, gid uint32, context *Context) (code Status)
-	Truncate(file File, size uint64, context *Context) (code Status) 
+	Truncate(file File, size uint64, context *Context) (code Status)
 	Utimens(file File, atime uint64, mtime uint64, context *Context) (code Status)
 }
 

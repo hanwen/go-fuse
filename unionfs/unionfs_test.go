@@ -893,7 +893,7 @@ func TestDoubleOpen(t *testing.T) {
 	roFile, err := os.Open(wd + "/mount/file")
 	CheckSuccess(err)
 	defer roFile.Close()
-	rwFile, err := os.OpenFile(wd + "/mount/file", os.O_WRONLY | os.O_TRUNC, 0666)
+	rwFile, err := os.OpenFile(wd+"/mount/file", os.O_WRONLY|os.O_TRUNC, 0666)
 	CheckSuccess(err)
 	defer rwFile.Close()
 
@@ -910,7 +910,7 @@ func TestDoubleOpen(t *testing.T) {
 		CheckSuccess(err)
 
 		b := make([]byte, 100)
-		
+
 		roFile.Seek(0, 0)
 		n, err := roFile.Read(b)
 		CheckSuccess(err)
@@ -921,4 +921,3 @@ func TestDoubleOpen(t *testing.T) {
 		}
 	}
 }
-
