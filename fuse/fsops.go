@@ -22,7 +22,7 @@ func (me *FileSystemConnector) Lookup(header *InHeader, name string) (out *Entry
 	return out, status
 }
 
-func (me *FileSystemConnector) internalMountLookup(mount *fileSystemMount, lookupCount int) (out *EntryOut, status Status, node *inode) {
+func (me *FileSystemConnector) internalMountLookup(mount *fileSystemMount, lookupCount int) (out *EntryOut, status Status, node *Inode) {
 	fi, err := mount.fs.Root().GetAttr(nil, nil)
 	if err == ENOENT && mount.options.NegativeTimeout > 0.0 {
 		return NegativeEntry(mount.options.NegativeTimeout), OK, nil
@@ -41,7 +41,7 @@ func (me *FileSystemConnector) internalMountLookup(mount *fileSystemMount, looku
 	return out, OK, mount.mountInode
 }
 
-func (me *FileSystemConnector) internalLookup(parent *inode, name string, lookupCount int, context *Context) (out *EntryOut, code Status, node *inode) {
+func (me *FileSystemConnector) internalLookup(parent *Inode, name string, lookupCount int, context *Context) (out *EntryOut, code Status, node *Inode) {
 	if mount := me.lookupMount(parent, name, lookupCount); mount != nil {
 		return me.internalMountLookup(mount, lookupCount)
 	}
@@ -199,7 +199,7 @@ func (me *FileSystemConnector) Mknod(header *InHeader, input *MknodIn, name stri
 	return out, code
 }
 
-func (me *FileSystemConnector) createChild(parent *inode, name string, fi *os.FileInfo, fsi FsNode) (out *EntryOut, child *inode) {
+func (me *FileSystemConnector) createChild(parent *Inode, name string, fi *os.FileInfo, fsi FsNode) (out *EntryOut, child *Inode) {
 	child = parent.createChild(name, fi.IsDirectory(), fsi, me)
 	out = parent.mount.fileInfoToEntry(fi)
 	out.Ino = child.nodeId

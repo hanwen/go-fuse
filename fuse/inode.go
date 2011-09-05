@@ -6,7 +6,7 @@ import (
 )
 
 // The inode reflects the kernel's idea of the inode.
-type inode struct {
+type Inode struct {
 	handled Handled
 
 	// Constant during lifetime.
@@ -27,7 +27,7 @@ type inode struct {
 	// All data below is protected by treeLock.
 	fsInode     FsNode
 	
-	children    map[string]*inode
+	children    map[string]*Inode
 
 	// Contains directories that function as mounts. The entries
 	// are duplicated in children.
@@ -43,7 +43,47 @@ type inode struct {
 	mount *fileSystemMount
 }
 
-func (me *inode) createChild(name string, isDir bool, fsi FsNode, conn *FileSystemConnector) *inode {
+// public methods.
+
+// LockTree() Locks the mutex used for tree operations, and returns the
+// unlock function.
+func (me *Inode) LockTree() (func()) {
+	// TODO - this API is tricky.
+	me.treeLock.Lock()
+	return func() { me.treeLock.Unlock() }
+}
+
+// Returns any open file, preferably a r/w one.
+func (me *Inode) AnyFile() (file File) {
+	me.openFilesMutex.Lock()
+	defer me.openFilesMutex.Unlock()
+	
+	for _, f := range me.openFiles {
+		if file == nil || f.OpenFlags & O_ANYWRITE != 0 {
+			file = f.file
+		}
+	}
+	return file
+}
+
+// Returns an open writable file for the given Inode.
+func (me *Inode) WritableFiles() (files []File) {
+	me.openFilesMutex.Lock()
+	defer me.openFilesMutex.Unlock()
+
+	for _, f := range me.openFiles {
+		if f.OpenFlags & O_ANYWRITE != 0 {
+			files = append(files, f.file)
+		}
+	}
+	return files
+}
+
+func (me *Inode) IsDir() bool {
+	return me.children != nil
+}
+
+func (me *Inode) createChild(name string, isDir bool, fsi FsNode, conn *FileSystemConnector) *Inode {
 	me.treeLock.Lock()
 	defer me.treeLock.Unlock()
 
@@ -62,7 +102,7 @@ func (me *inode) createChild(name string, isDir bool, fsi FsNode, conn *FileSyst
 	return ch
 }
 
-func (me *inode) getChild(name string) (child *inode) {
+func (me *Inode) getChild(name string) (child *Inode) {
 	me.treeLock.Lock()
 	defer me.treeLock.Unlock()
 	
@@ -70,20 +110,22 @@ func (me *inode) getChild(name string) (child *inode) {
 }
 
 // Must be called with treeLock for the mount held.
-func (me *inode) addChild(name string, child *inode) {
+func (me *Inode) addChild(name string, child *Inode) {
 	if paranoia {
 		ch := me.children[name]
 		if ch != nil {
-			panic(fmt.Sprintf("Already have an inode with same name: %v: %v", name, ch))
+			panic(fmt.Sprintf("Already have an Inode with same name: %v: %v", name, ch))
 		}
 	}
-
 	me.children[name] = child
-	me.fsInode.AddChild(name, child.fsInode)
+
+	if child.mountPoint == nil {
+		me.fsInode.AddChild(name, child.fsInode)
+	}
 }
 
 // Must be called with treeLock for the mount held.
-func (me *inode) rmChild(name string) (ch *inode) {
+func (me *Inode) rmChild(name string) (ch *Inode) {
 	ch = me.children[name]
 	if ch != nil {
 		me.children[name] = nil, false
@@ -93,7 +135,7 @@ func (me *inode) rmChild(name string) (ch *inode) {
 }
 
 // Can only be called on untouched inodes.
-func (me *inode) mountFs(fs *inodeFs, opts *FileSystemOptions) {
+func (me *Inode) mountFs(fs NodeFileSystem, opts *FileSystemOptions) {
 	me.mountPoint = &fileSystemMount{
 		fs:         fs,
 		openFiles:  NewHandleMap(true),
@@ -107,7 +149,7 @@ func (me *inode) mountFs(fs *inodeFs, opts *FileSystemOptions) {
 }
 
 // Must be called with treeLock held.
-func (me *inode) canUnmount() bool {
+func (me *Inode) canUnmount() bool {
 	for _, v := range me.children {
 		if v.mountPoint != nil {
 			// This access may be out of date, but it is no
@@ -124,11 +166,7 @@ func (me *inode) canUnmount() bool {
 	return len(me.openFiles) == 0
 }
 
-func (me *inode) IsDir() bool {
-	return me.children != nil
-}
-
-func (me *inode) getMountDirEntries() (out []DirEntry) {
+func (me *Inode) getMountDirEntries() (out []DirEntry) {
 	me.treeLock.RLock()
 	defer me.treeLock.RUnlock()
 
@@ -141,35 +179,9 @@ func (me *inode) getMountDirEntries() (out []DirEntry) {
 	return out
 }
 
-// Returns any open file, preferably a r/w one.
-func (me *inode) getAnyFile() (file File) {
-	me.openFilesMutex.Lock()
-	defer me.openFilesMutex.Unlock()
-	
-	for _, f := range me.openFiles {
-		if file == nil || f.OpenFlags & O_ANYWRITE != 0 {
-			file = f.file
-		}
-	}
-	return file
-}
-
-// Returns an open writable file for the given inode.
-func (me *inode) getWritableFiles() (files []File) {
-	me.openFilesMutex.Lock()
-	defer me.openFilesMutex.Unlock()
-
-	for _, f := range me.openFiles {
-		if f.OpenFlags & O_ANYWRITE != 0 {
-			files = append(files, f.file)
-		}
-	}
-	return files
-}
-
 const initDirSize = 20
 
-func (me *inode) verify(cur *fileSystemMount) {
+func (me *Inode) verify(cur *fileSystemMount) {
 	if me.mountPoint != nil {
 		if me != me.mountPoint.mountInode {
 			panic("mountpoint mismatch")

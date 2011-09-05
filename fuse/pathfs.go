@@ -10,27 +10,27 @@ var _ = log.Println
 
 
 
-type inodeFs struct {
+type PathNodeFs struct {
 	fs   FileSystem
-	root *fsInode
+	root *pathInode
 }
 
-func (me *inodeFs) Unmount() {
+func (me *PathNodeFs) Unmount() {
 }
 
-func (me *inodeFs) Mount(conn *FileSystemConnector) {
+func (me *PathNodeFs) Mount(conn *FileSystemConnector) {
 	me.fs.Mount(conn)
 }
 
-func (me *inodeFs) StatFs() *StatfsOut {
+func (me *PathNodeFs) StatFs() *StatfsOut {
 	return me.fs.StatFs()
 }
 
-func newInodeFs(fs FileSystem) *inodeFs {
-	root := new(fsInode)
+func NewPathNodeFs(fs FileSystem) *PathNodeFs {
+	root := new(pathInode)
 	root.fs = fs
 	
-	me := &inodeFs{
+	me := &PathNodeFs{
 	fs: fs,
 	root: root,
 	}
@@ -38,7 +38,7 @@ func newInodeFs(fs FileSystem) *inodeFs {
 	return me
 }
 
-func (me *inodeFs) Root() FsNode {
+func (me *PathNodeFs) Root() FsNode {
 	return me.root
 }
 
@@ -47,92 +47,94 @@ func (me *inodeFs) Root() FsNode {
 // the inode). This structure is used to implement glue for FSes where
 // there is a one-to-one mapping of paths and inodes, ie. FSes that
 // disallow hardlinks.
-type fsInode struct {
-	*inode
-	ifs    *inodeFs
+type pathInode struct {
+	inode  *Inode
+	ifs    *PathNodeFs
 	fs     FileSystem
 	Name   string
 
 	// This is nil at the root of the mount.
-	Parent *fsInode
+	Parent *pathInode
 }
 
 // GetPath returns the path relative to the mount governing this
 // inode.  It returns nil for mount if the file was deleted or the
 // filesystem unmounted.  This will take the treeLock for the mount,
 // so it can not be used in internal methods.
-func (me *fsInode) GetPath() (path string) {
-	me.inode.treeLock.RLock()
-	defer me.inode.treeLock.RUnlock()
+func (me *pathInode) GetPath() (path string) {
+	defer me.inode.LockTree()()
 
 	rev_components := make([]string, 0, 10)
 	n := me
 	for ; n.Parent != nil; n = n.Parent {
 		rev_components = append(rev_components, n.Name)
 	}
-	if n.mountPoint == nil {
+	if n != me.ifs.root {
 		return ".deleted"
 	}
 	return ReverseJoin(rev_components, "/")
 }
 
-func (me *fsInode) AddChild(name string, child FsNode) {
-	ch := child.(*fsInode)
+func (me *pathInode) AddChild(name string, child FsNode) {
+	ch := child.(*pathInode)
 	if ch.inode.mountPoint == nil {
 		ch.Parent = me
+	} else {
+		log.Printf("name %q", name)
+		panic("should have no mounts")
 	}
 	ch.Name = name
 }
 
-func (me *fsInode) RmChild(name string, child FsNode) {
-	ch := child.(*fsInode)
+func (me *pathInode) RmChild(name string, child FsNode) {
+	ch := child.(*pathInode)
 	ch.Name = ".deleted"
 	ch.Parent = nil
 }
 
-func (me *fsInode) SetInode(node *inode) {
+func (me *pathInode) SetInode(node *Inode) {
 	if me.inode != nil {
-		panic("already have inode")
+		panic("already have Inode")
 	}
 	me.inode = node
 }
 
-func (me *fsInode) Inode() *inode {
+func (me *pathInode) Inode() *Inode {
 	return me.inode
 }
 
 ////////////////////////////////////////////////////////////////
 
-func (me *fsInode) Readlink(c *Context) ([]byte, Status) {
+func (me *pathInode) Readlink(c *Context) ([]byte, Status) {
 	path := me.GetPath()
 	
 	val, err := me.fs.Readlink(path, c)
 	return []byte(val), err
 }
 
-func (me *fsInode) Access(mode uint32, context *Context) (code Status) {
+func (me *pathInode) Access(mode uint32, context *Context) (code Status) {
 	p := me.GetPath()
 	return me.fs.Access(p, mode, context)
 }
 
-func (me *fsInode) GetXAttr(attribute string, context *Context) (data []byte, code Status) {
+func (me *pathInode) GetXAttr(attribute string, context *Context) (data []byte, code Status) {
 	return me.fs.GetXAttr(me.GetPath(), attribute, context)
 }
 
-func (me *fsInode) RemoveXAttr(attr string, context *Context) Status {
+func (me *pathInode) RemoveXAttr(attr string, context *Context) Status {
 	p := me.GetPath()
 	return me.fs.RemoveXAttr(p, attr, context)
 }
 
-func (me *fsInode) SetXAttr(attr string, data []byte, flags int, context *Context) Status {
+func (me *pathInode) SetXAttr(attr string, data []byte, flags int, context *Context) Status {
 	return me.fs.SetXAttr(me.GetPath(), attr, data, flags, context)
 }
 
-func (me *fsInode) ListXAttr(context *Context) (attrs []string, code Status) {
+func (me *pathInode) ListXAttr(context *Context) (attrs []string, code Status) {
 	return me.fs.ListXAttr(me.GetPath(), context)
 }
 
-func (me *fsInode) Flush(file File, openFlags uint32, context *Context) (code Status) {
+func (me *pathInode) Flush(file File, openFlags uint32, context *Context) (code Status) {
 	code = file.Flush()
 	if code.Ok() && openFlags&O_ANYWRITE != 0 {
 		// We only signal releases to the FS if the
@@ -143,11 +145,11 @@ func (me *fsInode) Flush(file File, openFlags uint32, context *Context) (code St
 	return code
 }
 
-func (me *fsInode) OpenDir(context *Context) (chan DirEntry, Status) {
+func (me *pathInode) OpenDir(context *Context) (chan DirEntry, Status) {
 	return me.fs.OpenDir(me.GetPath(), context)
 }
 
-func (me *fsInode) Mknod(name string, mode uint32, dev uint32, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
+func (me *pathInode) Mknod(name string, mode uint32, dev uint32, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
 	p := me.GetPath()
 	code = me.fs.Mknod(filepath.Join(p, name), mode, dev, context)
 	if code.Ok() {
@@ -159,7 +161,7 @@ func (me *fsInode) Mknod(name string, mode uint32, dev uint32, context *Context)
 	return
 }
 	
-func (me *fsInode) Mkdir(name string, mode uint32, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
+func (me *pathInode) Mkdir(name string, mode uint32, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
 	code = me.fs.Mkdir(filepath.Join(me.GetPath(), name), mode, context)
 	if code.Ok() {
 		newNode = me.createChild(name)
@@ -170,15 +172,15 @@ func (me *fsInode) Mkdir(name string, mode uint32, context *Context) (fi *os.Fil
 	return
 }
 
-func (me *fsInode) Unlink(name string, context *Context) (code Status) {
+func (me *pathInode) Unlink(name string, context *Context) (code Status) {
 	return me.fs.Unlink(filepath.Join(me.GetPath(), name), context)
 }
 
-func (me *fsInode) Rmdir(name string, context *Context) (code Status) {
+func (me *pathInode) Rmdir(name string, context *Context) (code Status) {
 	return me.fs.Rmdir(filepath.Join(me.GetPath(), name), context)
 }
 
-func (me *fsInode) Symlink(name string, content string, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
+func (me *pathInode) Symlink(name string, content string, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
 	code = me.fs.Symlink(content, filepath.Join(me.GetPath(), name), context)
 	if code.Ok() {
 		newNode = me.createChild(name)
@@ -190,18 +192,18 @@ func (me *fsInode) Symlink(name string, content string, context *Context) (fi *o
 }
 
 
-func (me *fsInode) Rename(oldName string, newParent FsNode, newName string, context *Context) (code Status) {
-	p := newParent.(*fsInode)
+func (me *pathInode) Rename(oldName string, newParent FsNode, newName string, context *Context) (code Status) {
+	p := newParent.(*pathInode)
 	oldPath := filepath.Join(me.GetPath(), oldName)
 	newPath := filepath.Join(p.GetPath(), newName)
 	
 	return me.fs.Rename(oldPath, newPath, context)
 }
 
-func (me *fsInode) Link(name string, existing FsNode, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
+func (me *pathInode) Link(name string, existing FsNode, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
 
 	newPath := filepath.Join(me.GetPath(), name)
-	e := existing.(*fsInode)
+	e := existing.(*pathInode)
 	oldPath := e.GetPath()
 	code = me.fs.Link(oldPath, newPath, context)
 	if code.Ok() {
@@ -215,7 +217,7 @@ func (me *fsInode) Link(name string, existing FsNode, context *Context) (fi *os.
 	return 
 }
 
-func (me *fsInode) Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *os.FileInfo, newNode FsNode, code Status) {
+func (me *pathInode) Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *os.FileInfo, newNode FsNode, code Status) {
 	fullPath := filepath.Join(me.GetPath(), name)
 	file, code = me.fs.Create(fullPath, flags, mode, context)
 	if code.Ok() {
@@ -228,8 +230,8 @@ func (me *fsInode) Create(name string, flags uint32, mode uint32, context *Conte
 	return 
 }
 
-func (me *fsInode) createChild(name string) *fsInode {
-	i := new(fsInode)
+func (me *pathInode) createChild(name string) *pathInode {
+	i := new(pathInode)
 	i.Parent = me
 	i.Name = name
 	i.fs = me.fs
@@ -237,12 +239,12 @@ func (me *fsInode) createChild(name string) *fsInode {
 	return i
 }
 
-func (me *fsInode) Open(flags uint32, context *Context) (file File, code Status) {
+func (me *pathInode) Open(flags uint32, context *Context) (file File, code Status) {
 	return me.fs.Open(me.GetPath(), flags, context)
 }
 
 // TOOD - need context.
-func (me *fsInode) Lookup(name string) (fi *os.FileInfo, node FsNode, code Status) {
+func (me *pathInode) Lookup(name string) (fi *os.FileInfo, node FsNode, code Status) {
 	fullPath := filepath.Join(me.GetPath(), name)
 	fi, code = me.fs.GetAttr(fullPath, nil)
 	if code.Ok() {
@@ -252,10 +254,10 @@ func (me *fsInode) Lookup(name string) (fi *os.FileInfo, node FsNode, code Statu
 	return
 }
 
-func (me *fsInode) GetAttr(file File, context *Context) (fi *os.FileInfo, code Status) {
+func (me *pathInode) GetAttr(file File, context *Context) (fi *os.FileInfo, code Status) {
 	if file == nil {
 		// called on a deleted files.
-		file = me.inode.getAnyFile()
+		file = me.inode.AnyFile()
 	}
 	
 	if file != nil {
@@ -272,8 +274,8 @@ func (me *fsInode) GetAttr(file File, context *Context) (fi *os.FileInfo, code S
 	return fi, code
 }	
 
-func (me *fsInode) Chmod(file File, perms uint32, context *Context) (code Status) {
-	files := me.inode.getWritableFiles()
+func (me *pathInode) Chmod(file File, perms uint32, context *Context) (code Status) {
+	files := me.inode.WritableFiles()
 	for _, f := range files {
 		// TODO - pass context
 		code = f.Chmod(perms)
@@ -289,8 +291,8 @@ func (me *fsInode) Chmod(file File, perms uint32, context *Context) (code Status
 }
 
 	
-func (me *fsInode) Chown(file File, uid uint32, gid uint32, context *Context) (code Status) {
-	files := me.inode.getWritableFiles()
+func (me *pathInode) Chown(file File, uid uint32, gid uint32, context *Context) (code Status) {
+	files := me.inode.WritableFiles()
 	for _, f := range files {
 		// TODO - pass context
 		code = f.Chown(uid, gid)
@@ -305,8 +307,8 @@ func (me *fsInode) Chown(file File, uid uint32, gid uint32, context *Context) (c
 	return code
 }
 
-func (me *fsInode) Truncate(file File, size uint64, context *Context) (code Status) {
-	files := me.inode.getWritableFiles()
+func (me *pathInode) Truncate(file File, size uint64, context *Context) (code Status) {
+	files := me.inode.WritableFiles()
 	for _, f := range files {
 		// TODO - pass context
 		log.Println("truncating file", f)
@@ -321,8 +323,8 @@ func (me *fsInode) Truncate(file File, size uint64, context *Context) (code Stat
 	return code
 }
 
-func (me *fsInode) Utimens(file File, atime uint64, mtime uint64, context *Context) (code Status) {
-	files := me.inode.getWritableFiles()
+func (me *pathInode) Utimens(file File, atime uint64, mtime uint64, context *Context) (code Status) {
+	files := me.inode.WritableFiles()
 	for _, f := range files {
 		// TODO - pass context
 		code = f.Utimens(atime, mtime)

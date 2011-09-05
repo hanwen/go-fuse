@@ -12,7 +12,6 @@ MANUAL_GOFILES=api.go \
 	direntry.go\
 	files.go \
 	fsmount.go \
-	fsinode.go \
 	fsconnector.go \
 	fuse.go \
 	handle.go \
@@ -25,6 +24,7 @@ MANUAL_GOFILES=api.go \
 	mount.go \
 	mountstate.go \
 	opcode.go \
+	pathfs.go \
 	pathdebug.go \
 	fsops.go \
 	readonlyfs.go \

@@ -24,10 +24,10 @@ type openedFile struct {
 
 type fileSystemMount struct {
 	// The file system we mounted here.
-	fs InodeFs
+	fs NodeFileSystem
 
 	// Node that we were mounted on.
-	mountInode *inode
+	mountInode *Inode
 
 	// Options for the mount.
 	options *FileSystemOptions
@@ -69,7 +69,7 @@ func (me *FileSystemConnector) getOpenedFile(h uint64) *openedFile {
 	return b
 }
 
-func (me *fileSystemMount) unregisterFileHandle(handle uint64, node *inode) *openedFile {
+func (me *fileSystemMount) unregisterFileHandle(handle uint64, node *Inode) *openedFile {
 	obj := me.openFiles.Forget(handle)
 	opened := (*openedFile)(unsafe.Pointer(obj))
 	node.openFilesMutex.Lock()
@@ -90,7 +90,7 @@ func (me *fileSystemMount) unregisterFileHandle(handle uint64, node *inode) *ope
 	return opened
 }
 
-func (me *fileSystemMount) registerFileHandle(node *inode, dir rawDir, f File, flags uint32) (uint64, *openedFile) {
+func (me *fileSystemMount) registerFileHandle(node *Inode, dir rawDir, f File, flags uint32) (uint64, *openedFile) {
 	node.openFilesMutex.Lock()
 	defer node.openFilesMutex.Unlock()
 	b := &openedFile{

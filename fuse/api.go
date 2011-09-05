@@ -8,7 +8,7 @@ import (
 
 // Types for users to implement.
 
-type InodeFs interface {
+type NodeFileSystem interface {
 	Unmount()
 	Mount(conn *FileSystemConnector)
 	StatFs() *StatfsOut
@@ -17,8 +17,9 @@ type InodeFs interface {
 
 type FsNode interface {
 	// The following are called by the FileSystemConnector
-	Inode() *inode
-	SetInode(node *inode)
+	Inode() *Inode
+	SetInode(node *Inode)
+	
 	RmChild(name string, child FsNode)
 	AddChild(name string, child FsNode)
 
@@ -137,6 +138,7 @@ type File interface {
 	Fsync(*FsyncIn) (code Status)
 }
 
+// Wrap a File return in this to set FUSE flags.
 type WithFlags struct {
 	File
 

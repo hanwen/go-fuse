@@ -32,7 +32,7 @@ type FileSystemConnector struct {
 
 	fsInit   RawFsInit
 	inodeMap HandleMap
-	rootNode *inode
+	rootNode *Inode
 }
 
 func NewFileSystemConnector(fs FileSystem, opts *FileSystemOptions) (me *FileSystemConnector) {
@@ -56,17 +56,17 @@ func (me *FileSystemConnector) verify() {
 	root.verify(me.rootNode.mountPoint)
 }
 
-func (me *FileSystemConnector) newInode(isDir bool) *inode {
-	data := new(inode)
+func (me *FileSystemConnector) newInode(isDir bool) *Inode {
+	data := new(Inode)
 	data.nodeId = me.inodeMap.Register(&data.handled)
 	if isDir {
-		data.children = make(map[string]*inode, initDirSize)
+		data.children = make(map[string]*Inode, initDirSize)
 	}
 
 	return data
 }
 
-func (me *FileSystemConnector) lookupUpdate(parent *inode, name string, isDir bool, lookupCount int) *inode {
+func (me *FileSystemConnector) lookupUpdate(parent *Inode, name string, isDir bool, lookupCount int) *Inode {
 	defer me.verify()
 
 	parent.treeLock.Lock()
@@ -83,7 +83,7 @@ func (me *FileSystemConnector) lookupUpdate(parent *inode, name string, isDir bo
 	return data
 }
 
-func (me *FileSystemConnector) lookupMount(parent *inode, name string, lookupCount int) (mount *fileSystemMount) {
+func (me *FileSystemConnector) lookupMount(parent *Inode, name string, lookupCount int) (mount *fileSystemMount) {
 	parent.treeLock.RLock()
 	defer parent.treeLock.RUnlock()
 	if parent.mounts == nil {
@@ -100,11 +100,11 @@ func (me *FileSystemConnector) lookupMount(parent *inode, name string, lookupCou
 	return nil
 }
 
-func (me *FileSystemConnector) getInodeData(nodeid uint64) *inode {
+func (me *FileSystemConnector) getInodeData(nodeid uint64) *Inode {
 	if nodeid == FUSE_ROOT_ID {
 		return me.rootNode
 	}
-	return (*inode)(unsafe.Pointer(DecodeHandle(nodeid)))
+	return (*Inode)(unsafe.Pointer(DecodeHandle(nodeid)))
 }
 
 func (me *FileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int) {
@@ -119,7 +119,7 @@ func (me *FileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int) {
 	me.considerDropInode(node)
 }
 
-func (me *FileSystemConnector) considerDropInode(n *inode) (drop bool) {
+func (me *FileSystemConnector) considerDropInode(n *Inode) (drop bool) {
 	delChildren := []string{}
 	for k, v := range n.children {
 		if v.mountPoint == nil && me.considerDropInode(v) {
@@ -146,7 +146,7 @@ func (me *FileSystemConnector) considerDropInode(n *inode) (drop bool) {
 	return len(n.openFiles) == 0 
 }
 
-func (me *FileSystemConnector) renameUpdate(oldParent *inode, oldName string, newParent *inode, newName string) {
+func (me *FileSystemConnector) renameUpdate(oldParent *Inode, oldName string, newParent *Inode, newName string) {
 	defer me.verify()
 	oldParent.treeLock.Lock()
 	defer oldParent.treeLock.Unlock()
@@ -163,7 +163,7 @@ func (me *FileSystemConnector) renameUpdate(oldParent *inode, oldName string, ne
 	newParent.addChild(newName, node)
 }
 
-func (me *FileSystemConnector) unlinkUpdate(parent *inode, name string) {
+func (me *FileSystemConnector) unlinkUpdate(parent *Inode, name string) {
 	defer me.verify()
 	
 	parent.treeLock.Lock()
@@ -174,7 +174,7 @@ func (me *FileSystemConnector) unlinkUpdate(parent *inode, name string) {
 
 // Walk the file system starting from the root. Will return nil if
 // node not found.
-func (me *FileSystemConnector) findLastKnownInode(fullPath string) (*inode, []string) {
+func (me *FileSystemConnector) findLastKnownInode(fullPath string) (*Inode, []string) {
 	if fullPath == "" {
 		return me.rootNode, nil
 	}
@@ -203,7 +203,7 @@ func (me *FileSystemConnector) findLastKnownInode(fullPath string) (*inode, []st
 	return node, nil
 }
 
-func (me *FileSystemConnector) findInode(fullPath string) *inode {
+func (me *FileSystemConnector) findInode(fullPath string) *Inode {
 	n, rest := me.findLastKnownInode(fullPath)
 	if len(rest) > 0 {
 		return nil
@@ -217,7 +217,7 @@ func (me *FileSystemConnector) findInode(fullPath string) *inode {
 // system there.  If opts is nil, the mount options of the root file
 // system are inherited.  The encompassing filesystem should pretend
 // the mount point does not exist.  If it does, it will generate an
-// inode with the same, which will cause Mount() to return EBUSY.
+// Inode with the same, which will cause Mount() to return EBUSY.
 //
 // Return values:
 //
@@ -257,8 +257,8 @@ func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *Fil
 		opts = me.rootNode.mountPoint.options
 	}
 
-	ifs := newInodeFs(fs)
-	node.mountFs(ifs, opts)
+	nodeFs := NewPathNodeFs(fs)
+	node.mountFs(nodeFs, opts)
 	parent.addChild(base, node)
 
 	if parent.mounts == nil {
@@ -275,7 +275,7 @@ func (me *FileSystemConnector) Mount(mountPoint string, fs FileSystem, opts *Fil
 }
 
 func (me *FileSystemConnector) mountRoot(fs FileSystem, opts *FileSystemOptions) {
-	ifs := newInodeFs(fs)
+	ifs := NewPathNodeFs(fs)
 	me.rootNode.mountFs(ifs, opts)
 	ifs.Mount(me)
 	me.verify()
