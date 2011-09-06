@@ -78,7 +78,7 @@ src.zip (7000 files).
 
 platform               libfuse      Go-FUSE     difference (%)
 
-Lenovo T60   (2cpu)    106us        125us       18%
+Lenovo T60/F15 (2cpu)  106us        125us       18%
 
 (todo - revise timings below: )
 Lenovo T400  (2cpu)    38us         58us        52%
@@ -117,7 +117,7 @@ Grep source code for TODO.  Major topics:
 
 * Missing support for FUSE_INTERRUPT, CUSE, BMAP, POLL, IOCTL
 
-* In the high-level API, renames are racy; See also:
+* In the path API, renames are racy; See also:
   http://sourceforge.net/mailarchive/message.php?msg_id=27550667
 
 
