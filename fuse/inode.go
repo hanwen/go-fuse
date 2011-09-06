@@ -90,7 +90,6 @@ func (me *Inode) FsNode() FsNode {
 func (me *Inode) Files(mask uint32) (files []WithFlags) {
 	me.openFilesMutex.Lock()
 	defer me.openFilesMutex.Unlock()
-	log.Println("inod.files:", me.openFiles)
 	for _, f := range me.openFiles {
 		if mask == 0 || f.WithFlags.OpenFlags&mask != 0 {
 			files = append(files, f.WithFlags)
@@ -103,7 +102,7 @@ func (me *Inode) IsDir() bool {
 	return me.children != nil
 }
 
-// Creates an Inode as child. 
+// Creates an Inode as child.
 func (me *Inode) CreateChild(name string, isDir bool, fsi FsNode) *Inode {
 	me.treeLock.Lock()
 	defer me.treeLock.Unlock()
