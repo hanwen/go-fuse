@@ -4,6 +4,9 @@
 .nfs*
 _*
 6.out
+example/hello/hello
+example/unionfs/unionfs
+example/autounionfs/autounionfs
 example/loopback/loopback
 example/multizip/multizip
 example/bulkstat/bulkstat
