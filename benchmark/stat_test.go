@@ -2,13 +2,15 @@ package fuse
 
 import (
 	"bufio"
+	"exec"
 	"fmt"
+	"github.com/hanwen/go-fuse/fuse"
 	"io/ioutil"
 	"log"
 	"os"
-	"github.com/hanwen/go-fuse/fuse"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -49,7 +51,6 @@ func (me *StatFs) GetAttr(name string, context *fuse.Context) (*os.FileInfo, fus
 }
 
 func (me *StatFs) OpenDir(name string, context *fuse.Context) (stream chan fuse.DirEntry, status fuse.Status) {
-	log.Printf("OPENDIR '%v', %v %v", name, me.entries, me.dirs)
 	entries := me.dirs[name]
 	if entries == nil {
 		return nil, fuse.ENOENT
@@ -128,18 +129,18 @@ func TestNewStatFs(t *testing.T) {
 	}
 }
 
-func BenchmarkThreadedStat(b *testing.B) {
-	b.StopTimer()
-	fs := NewStatFs()
+func GetTestLines() []string {
 	wd, _ := os.Getwd()
 	// Names from OpenJDK 1.6
-	f, err := os.Open(wd + "/testpaths.txt")
+	fn := wd + "/testpaths.txt"
+
+	f, err := os.Open(fn)
 	CheckSuccess(err)
 
 	defer f.Close()
 	r := bufio.NewReader(f)
 
-	files := []string{}
+	l := []string{}
 	for {
 		line, _, err := r.ReadLine()
 		if line == nil || err != nil {
@@ -147,15 +148,23 @@ func BenchmarkThreadedStat(b *testing.B) {
 		}
 
 		fn := string(line)
-		files = append(files, fn)
+		l = append(l, fn)
+	}
+	return l
+}
 
+func BenchmarkThreadedStat(b *testing.B) {
+	b.StopTimer()
+	fs := NewStatFs()
+	files := GetTestLines()
+	for _, fn := range files {
 		fs.add(fn, os.FileInfo{Mode: fuse.S_IFREG | 0644})
 	}
-	log.Printf("Read %d file names", len(files))
-
 	if len(files) == 0 {
 		log.Fatal("no files added")
 	}
+
+	log.Printf("Read %d file names", len(files))
 
 	ttl := 0.1
 	opts := fuse.FileSystemOptions{
@@ -196,4 +205,59 @@ func TestingBOnePass(b *testing.B, threads int, sleepTime float64, files []strin
 		}
 	}
 	return results
+}
+
+
+func BenchmarkCFuseThreadedStat(b *testing.B) {
+	log.Println("benchmarking CFuse")
+	
+	lines := GetTestLines()
+	unique := map[string]int{}
+	for _, l := range lines {
+		unique[l] = 1
+		dir, _ := filepath.Split(l)
+		for dir != "/" && dir != "" {
+			unique[dir] = 1
+			dir = filepath.Clean(dir)
+			dir, _ = filepath.Split(dir)
+		}			
+	}
+
+	out := []string{}
+	for k, _ := range unique {
+		out = append(out, k)
+	}
+
+	f, err := ioutil.TempFile("", "")
+	CheckSuccess(err)
+	sort.Strings(out)
+	for _, k := range out {
+		f.Write([]byte(fmt.Sprintf("/%s\n", k)))
+	}
+	f.Close()
+	
+	log.Println("Written:", f.Name())
+	mountPoint := fuse.MakeTempDir()
+	wd, _ := os.Getwd()
+	cmd := exec.Command(wd + "/cstatfs", mountPoint)
+	cmd.Env = append(os.Environ(), fmt.Sprintf("STATFS_INPUT=%s", f.Name()))
+	cmd.Start()
+
+	bin, err := exec.LookPath("fusermount")
+	CheckSuccess(err)
+	stop := exec.Command(bin, "-u", mountPoint)
+	CheckSuccess(err)
+	defer stop.Run()
+	
+	for i, l := range lines {
+		lines[i] = filepath.Join(mountPoint, l)
+	}
+
+	// Wait for the daemon to mount.
+	time.Sleep(0.2e9)
+	ttl := 1.0
+	log.Println("N = ", b.N)
+	threads := runtime.GOMAXPROCS(0)
+	results := TestingBOnePass(b, threads, ttl*1.2, lines)
+	AnalyzeBenchmarkRuns(results)	
 }

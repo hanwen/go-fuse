@@ -4,6 +4,7 @@ package fuse
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"os"
 	"regexp"
@@ -28,7 +29,10 @@ func BulkStat(parallelism int, files []string) float64 {
 				}
 
 				t := time.Nanoseconds()
-				os.Lstat(fn)
+				_, err := os.Lstat(fn)
+				if err != nil {
+					log.Fatal("All stats should succeed:", err)
+				}
 				dts <- time.Nanoseconds() - t
 			}
 		}()
@@ -77,9 +81,9 @@ func AnalyzeBenchmarkRuns(times []float64) {
 
 	fmt.Printf(
 		"%d samples\n"+
-			"avg %.2f ms 2sigma %.2f "+
-			"median %.2fms\n"+
-			"10%%tile %.2fms, 90%%tile %.2fms\n",
+			"avg %.3f ms 2sigma %.3f "+
+			"median %.3fms\n"+
+			"10%%tile %.3fms, 90%%tile %.3fms\n",
 		len(times), avg, 2*stddev, median, perc10, perc90)
 }
 

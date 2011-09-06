@@ -6,3 +6,6 @@ TARG=github.com/hanwen/go-fuse/benchmark
 GOFILES=benchmark.go
 
 include $(GOROOT)/src/Make.pkg
+
+cstatfs: statfs.cc
+	g++ -Wall -std=c++0x `pkg-config fuse --cflags --libs` $< -o $@

@@ -3,6 +3,7 @@ set -eux
 
 rm -f fuse/version.gen.go
 
+
 for target in "clean" "" "$@" ; do
   for d in fuse benchmark zipfs unionfs \
     example/hello example/loopback example/zipfs \
@@ -18,6 +19,7 @@ do
   (cd $d && gotest )
 done
 
+gomake -C benchmark cstatfs
 for d in benchmark
 do
   (cd $d && gotest -test.bench '.*' -test.cpu 1,2 )

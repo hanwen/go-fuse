@@ -39,7 +39,7 @@ EXAMPLES
     
 * fuse/loopback.go mounts another piece of the filesystem.
   Functionally, it is similar to a symlink.  A binary to run is in
-  example/loopback/ . For example
+i  example/loopback/ . For example
 
     mkdir /tmp/mountpoint
     example/loopback/loopback -debug /tmp/mountpoint /some/other/directory &
@@ -69,18 +69,18 @@ Tested on:
 
 BENCHMARKS
 
-We use threaded stats over a read-only filesystem for benchmarking. A
-script to do this is in example/benchmark.sh.  A libfuse baseline is
-given by running the same test against archivemount
-(http://www.cybernoia.de/software/archivemount/), with the locks in
-its GetAttr implementation removed.
+We use threaded stats over a read-only filesystem for benchmarking.
+Automated code is under benchmark/ .sh.  A simple C version of the
+same FS gives a FUSe baselin
 
-Data points (time per stat, Go-FUSE version May 1), using java 1.6
+Data points (time per stat, Go-FUSE version Sep 3), using java 1.6
 src.zip (7000 files).
 
 platform               libfuse      Go-FUSE     difference (%)
 
-Lenovo T60   (2cpu)    83us         99us        19%
+Lenovo T60   (2cpu)    106us        125us       18%
+
+(todo - revise timings below: )
 Lenovo T400  (2cpu)    38us         58us        52%
 DellT3500/Lucid (2cpu) 34us(*)      35us         3%
 DellT3500/Lucid (6cpu) 59us         76us        28%
