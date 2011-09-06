@@ -154,7 +154,6 @@ func (me *int64HandleMap) Forget(handle uint64) (val *Handled) {
 
 	me.mutex.Lock()
 	defer me.mutex.Unlock()
-	val.check = 0xdeadbeef
 	me.handles[handle] = nil, false
 	return val
 }

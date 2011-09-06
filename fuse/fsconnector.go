@@ -140,7 +140,6 @@ func (me *FileSystemConnector) considerDropInode(n *Inode) (drop bool) {
 			panic(fmt.Sprintf("trying to del child %q, but not present", k))
 		}
 		me.inodeMap.Forget(ch.nodeId)
-		ch.nodeId = 0xdeadbeef
 	}
 
 	if len(n.children) > 0 || n.lookupCount > 0 {
