@@ -12,13 +12,23 @@ var _ = log.Println
 type PathNodeFs struct {
 	fs   FileSystem
 	root *pathInode
+	connector *FileSystemConnector
 }
 
-func (me *PathNodeFs) Unmount() {
+func (me *PathNodeFs) Mount(parent *Inode, name string, nodeFs NodeFileSystem, opts *FileSystemOptions) Status {
+	return me.connector.Mount(parent, name, nodeFs, opts)
 }
 
-func (me *PathNodeFs) Mount(conn *FileSystemConnector) {
-	me.fs.Mount(me, conn)
+func (me *PathNodeFs) Unmount(node *Inode) Status {
+	return me.connector.Unmount(node)
+}
+
+func (me *PathNodeFs) OnUnmount() {
+}
+
+func (me *PathNodeFs) OnMount(conn *FileSystemConnector) {
+	me.connector = conn
+	me.fs.OnMount(me)
 }
 
 func (me *PathNodeFs) StatFs() *StatfsOut {

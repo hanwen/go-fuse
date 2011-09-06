@@ -196,15 +196,15 @@ func (me *SwitchFileSystem) OpenDir(name string, context *Context) (stream chan 
 	return fs.FileSystem.OpenDir(name, context)
 }
 
-func (me *SwitchFileSystem) Mount(nodeFs *PathNodeFs, conn *FileSystemConnector) {
+func (me *SwitchFileSystem) OnMount(nodeFs *PathNodeFs) {
 	for _, fs := range me.fileSystems {
-		fs.FileSystem.Mount(nodeFs, conn)
+		fs.FileSystem.OnMount(nodeFs)
 	}
 }
 
-func (me *SwitchFileSystem) Unmount() {
+func (me *SwitchFileSystem) OnUnmount() {
 	for _, fs := range me.fileSystems {
-		fs.FileSystem.Unmount()
+		fs.FileSystem.OnUnmount()
 	}
 }
 

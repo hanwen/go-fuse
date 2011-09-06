@@ -8,10 +8,11 @@ type DefaultNodeFileSystem struct {
 	root DefaultFsNode
 }
 
-func (me *DefaultNodeFileSystem) Unmount() {
+func (me *DefaultNodeFileSystem) OnUnmount() {
 }
 
-func (me *DefaultNodeFileSystem) Mount(conn *FileSystemConnector) {
+func (me *DefaultNodeFileSystem) OnMount(conn *FileSystemConnector) {
+
 }
 
 func (me *DefaultNodeFileSystem) StatFs() *StatfsOut {

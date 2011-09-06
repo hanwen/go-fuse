@@ -30,7 +30,6 @@ const (
 // reference to the FileSystemConnector to be able to execute
 // mounts.
 type MultiZipFs struct {
-	Connector     *fuse.FileSystemConnector
 	lock          sync.RWMutex
 	zips          map[string]*MemTreeFs
 	dirZipFileMap map[string]string
@@ -50,9 +49,8 @@ func (me *MultiZipFs) Name() string {
 	return "MultiZipFs"
 }
 
-func (me *MultiZipFs) Mount(nodeFs *fuse.PathNodeFs, connector *fuse.FileSystemConnector) {
+func (me *MultiZipFs) OnMount(nodeFs *fuse.PathNodeFs) {
 	me.nodeFs = nodeFs
-	me.Connector = connector
 }
 
 func (me *MultiZipFs) OpenDir(name string, context *fuse.Context) (stream chan fuse.DirEntry, code fuse.Status) {
@@ -123,7 +121,7 @@ func (me *MultiZipFs) Unlink(name string, context *fuse.Context) (code fuse.Stat
 
 		zfs, ok := me.zips[basename]
 		if ok {
-			code = me.Connector.Unmount(zfs.Root().Inode())
+			code = me.nodeFs.Unmount(zfs.Root().Inode())
 			if !code.Ok() {
 				return code
 			}
@@ -173,7 +171,7 @@ func (me *MultiZipFs) Symlink(value string, linkName string, context *fuse.Conte
 		return fuse.EINVAL
 	}
 
-	code = me.Connector.Mount(me.nodeFs.Root().Inode(), base, fs, nil)
+	code = me.nodeFs.Mount(me.nodeFs.Root().Inode(), base, fs, nil)
 	if !code.Ok() {
 		return code
 	}

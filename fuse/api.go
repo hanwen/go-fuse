@@ -17,8 +17,8 @@ import (
 // to represent fits in memory: you can construct FsNode at mount
 // time, and the filesystem will be ready.
 type NodeFileSystem interface {
-	Unmount()
-	Mount(conn *FileSystemConnector)
+	OnUnmount()
+	OnMount(conn *FileSystemConnector)
 	StatFs() *StatfsOut
 	Root() FsNode
 }
@@ -104,8 +104,8 @@ type FileSystem interface {
 	SetXAttr(name string, attr string, data []byte, flags int, context *Context) Status
 
 	// Called after mount.
-	Mount(nodeFs *PathNodeFs, connector *FileSystemConnector)
-	Unmount()
+	OnMount(nodeFs *PathNodeFs)
+	OnUnmount()
 
 	// File handling.  If opening for writing, the file's mtime
 	// should be updated too.

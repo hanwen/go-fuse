@@ -31,7 +31,7 @@ func NewMemTreeFs() *MemTreeFs {
 	return d
 }
 
-func (me *MemTreeFs) Mount(conn *fuse.FileSystemConnector) {
+func (me *MemTreeFs) OnMount(conn *fuse.FileSystemConnector) {
 	for k, v := range me.files {
 		me.addFile(k, v)
 	}

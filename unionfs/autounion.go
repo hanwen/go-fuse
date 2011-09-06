@@ -31,7 +31,6 @@ type AutoUnionFs struct {
 	nameRootMap      map[string]string
 	root             string
 
-	connector *fuse.FileSystemConnector
 	nodeFs    *fuse.PathNodeFs
 	options *AutoUnionFsOptions
 }
@@ -70,9 +69,8 @@ func (me *AutoUnionFs) Name() string {
 	return fmt.Sprintf("AutoUnionFs(%s)", me.root)
 }
 
-func (me *AutoUnionFs) Mount(nodeFs *fuse.PathNodeFs, connector *fuse.FileSystemConnector) {
+func (me *AutoUnionFs) OnMount(nodeFs *fuse.PathNodeFs) {
 	me.nodeFs = nodeFs
-	me.connector = connector
 	if me.options.UpdateOnMount {
 		time.AfterFunc(0.1e9, func() { me.updateKnownFses() })
 	}
@@ -113,7 +111,7 @@ func (me *AutoUnionFs) createFs(name string, roots []string) fuse.Status {
 
 	log.Printf("Adding workspace %v for roots %v", name, ufs.Name())
 	nfs := fuse.NewPathNodeFs(ufs)
-	code := me.connector.Mount(me.nodeFs.Root().Inode(), name, nfs, &me.options.FileSystemOptions)
+	code := me.nodeFs.Mount(me.nodeFs.Root().Inode(), name, nfs, &me.options.FileSystemOptions)
 	if code.Ok() {
 		me.knownFileSystems[name] = knownFs{
 			ufs,
@@ -133,7 +131,7 @@ func (me *AutoUnionFs) rmFs(name string) (code fuse.Status) {
 		return fuse.ENOENT
 	}
 
-	code = me.connector.Unmount(known.PathNodeFs.Root().Inode())
+	code = me.nodeFs.Unmount(known.PathNodeFs.Root().Inode())
 	if code.Ok() {
 		me.knownFileSystems[name] = knownFs{}, false
 		me.nameRootMap[name] = "", false

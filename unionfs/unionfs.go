@@ -103,7 +103,7 @@ func NewUnionFs(fileSystems []fuse.FileSystem, options UnionFsOptions) *UnionFs 
 	return g
 }
 
-func (me *UnionFs) Mount(nodeFs *fuse.PathNodeFs, connector *fuse.FileSystemConnector) {
+func (me *UnionFs) OnMount(nodeFs *fuse.PathNodeFs) {
 	me.nodeFs = nodeFs
 }
 

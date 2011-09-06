@@ -225,7 +225,7 @@ func (me *FileSystemConnector) findInode(fullPath string) *Inode {
 
 func (me *FileSystemConnector) MountRoot(nodeFs NodeFileSystem, opts *FileSystemOptions) {
 	me.rootNode.mountFs(nodeFs, opts)
-	nodeFs.Mount(me)
+	nodeFs.OnMount(me)
 	me.verify()
 }
 
@@ -270,8 +270,8 @@ func (me *FileSystemConnector) Mount(parent *Inode, name string, nodeFs NodeFile
 		log.Println("Mount: ", nodeFs, "on subdir", name,
 			"parent", parent.nodeId)
 	}
-	nodeFs.Mount(me)
 	me.verify()
+	nodeFs.OnMount(me)
 	return OK
 }
 
@@ -309,7 +309,7 @@ func (me *FileSystemConnector) Unmount(node *Inode) Status {
 
 	parentNode.mounts[name] = nil, false
 	parentNode.children[name] = nil, false
-	mount.fs.Unmount()
+	mount.fs.OnUnmount()
 
 	me.fsInit.EntryNotify(parentNode.nodeId, name)
 
