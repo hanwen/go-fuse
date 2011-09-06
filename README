@@ -36,7 +36,7 @@ EXAMPLES
 
 * zipfs/multizipfs.go shows how to use in-process mounts to
   combine multiple Go-FUSE filesystems into a larger filesystem.
-    
+
 * fuse/loopback.go mounts another piece of the filesystem.
   Functionally, it is similar to a symlink.  A binary to run is in
 i  example/loopback/ . For example
@@ -55,7 +55,7 @@ i  example/loopback/ . For example
     ls -l /tmp/mountpoint/bin/vi
     rm /tmp/mountpoint/bin/vi
     ls -l /tmp/mountpoint/bin/vi
-    cat /tmp/writable/*DELETION*/* 
+    cat /tmp/writable/*DELETION*/*
 
 * union/autounionfs.go: creates UnionFs mounts automatically based on
   existence of READONLY symlinks.
@@ -71,7 +71,7 @@ BENCHMARKS
 
 We use threaded stats over a read-only filesystem for benchmarking.
 Automated code is under benchmark/ .sh.  A simple C version of the
-same FS gives a FUSe baselin
+same FS gives a FUSE baseline
 
 Data points (time per stat, Go-FUSE version Sep 3), using java 1.6
 src.zip (7000 files).
@@ -79,15 +79,8 @@ src.zip (7000 files).
 platform               libfuse      Go-FUSE     difference (%)
 
 Lenovo T60/F15 (2cpu)  106us        125us       18%
-
-(todo - revise timings below: )
-Lenovo T400  (2cpu)    38us         58us        52%
-DellT3500/Lucid (2cpu) 34us(*)      35us         3%
-DellT3500/Lucid (6cpu) 59us         76us        28%
-
-(*) libfuse does not limit the number worker threads.  In the
-T3500/2cpu case, the daemon may still run on 6 CPUs (with associated
-scaling overhead.)
+DellT3500/Lucid (2cpu) 33us         42us        27%
+Lenovo T400  (2cpu)    64us         77us        20%
 
 
 CREDITS
