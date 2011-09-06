@@ -13,7 +13,7 @@ var _ = log.Println
 type openedFile struct {
 	Handled
 
-	WithFlags 
+	WithFlags
 
 	dir  rawDir
 }
@@ -119,6 +119,6 @@ func (me *fileSystemMount) registerFileHandle(node *Inode, dir rawDir, f File, f
 	}
 
 	node.openFiles = append(node.openFiles, b)
-	handle := me.openFiles.Register(&b.Handled)
+	handle := me.openFiles.Register(&b.Handled, b)
 	return handle, b
 }

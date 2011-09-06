@@ -59,7 +59,7 @@ func (me *FileSystemConnector) verify() {
 
 func (me *FileSystemConnector) newInode(isDir bool) *Inode {
 	data := new(Inode)
-	data.nodeId = me.inodeMap.Register(&data.handled)
+	data.nodeId = me.inodeMap.Register(&data.handled, data)
 	data.connector = me
 	if isDir {
 		data.children = make(map[string]*Inode, initDirSize)
@@ -260,7 +260,7 @@ func (me *FileSystemConnector) Mount(parent *Inode, name string, nodeFs NodeFile
 
 	node.mountFs(nodeFs, opts)
 	parent.addChild(name, node)
-	
+
 	if parent.mounts == nil {
 		parent.mounts = make(map[string]*fileSystemMount)
 	}
@@ -275,7 +275,7 @@ func (me *FileSystemConnector) Mount(parent *Inode, name string, nodeFs NodeFile
 	return OK
 }
 
-// Unmount() tries to unmount the given inode.  
+// Unmount() tries to unmount the given inode.
 //
 // Returns the following error codes:
 //

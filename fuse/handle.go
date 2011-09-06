@@ -20,14 +20,14 @@ import (
 //
 // This structure is thread-safe.
 type HandleMap interface {
-	Register(obj *Handled) uint64
+	Register(obj *Handled, asInt interface{}) uint64
 	Count() int
 	Forget(uint64) *Handled
 }
 
-// TODO - store interface{} pointer to wrapped object.
 type Handled struct {
-	check uint32
+	check  uint32
+	object interface{}
 }
 
 // 32 bits version of HandleMap
@@ -36,7 +36,7 @@ type int32HandleMap struct {
 	handles map[uint32]*Handled
 }
 
-func (me *int32HandleMap) Register(obj *Handled) uint64 {
+func (me *int32HandleMap) Register(obj *Handled, asInt interface{}) uint64 {
 	me.mutex.Lock()
 	defer me.mutex.Unlock()
 	handle := uint32(uintptr(unsafe.Pointer(obj)))
@@ -112,7 +112,7 @@ func (me *int64HandleMap) Count() int {
 	return len(me.handles)
 }
 
-func (me *int64HandleMap) Register(obj *Handled) (handle uint64) {
+func (me *int64HandleMap) Register(obj *Handled, asInterface interface{}) (handle uint64) {
 	defer me.verify()
 
 	me.mutex.Lock()
@@ -142,6 +142,7 @@ func (me *int64HandleMap) Register(obj *Handled) (handle uint64) {
 		obj.check = check
 	}
 
+	obj.object = asInterface
 	me.handles[handle] = obj
 	return handle
 }
@@ -169,8 +170,8 @@ func DecodeHandle(handle uint64) (val *Handled) {
 		val = (*Handled)(unsafe.Pointer(uintptr(handle & ((1 << 32) - 1))))
 	}
 	if val.check != check {
-		msg := fmt.Sprintf("handle check mismatch; handle has 0x%x, object has 0x%x",
-			check, val.check)
+		msg := fmt.Sprintf("handle check mismatch; handle has 0x%x, object has 0x%x: %v",
+			check, val.check, val.object)
 		panic(msg)
 	}
 	return val
