@@ -21,7 +21,7 @@ func (me *FileSystemConnector) Lookup(header *InHeader, name string) (out *Entry
 	return out, status
 }
 
-func (me *FileSystemConnector) internalMountLookup(mount *fileSystemMount, lookupCount int) (out *EntryOut, status Status, node *Inode) {
+func (me *FileSystemConnector) lookupMountUpdate(mount *fileSystemMount, lookupCount int) (out *EntryOut, status Status, node *Inode) {
 	fi, err := mount.fs.Root().GetAttr(nil, nil)
 	if err == ENOENT && mount.options.NegativeTimeout > 0.0 {
 		return NegativeEntry(mount.options.NegativeTimeout), OK, nil
@@ -31,7 +31,9 @@ func (me *FileSystemConnector) internalMountLookup(mount *fileSystemMount, looku
 	}
 	mount.treeLock.Lock()
 	defer mount.treeLock.Unlock()
-	mount.mountInode.lookupCount += lookupCount
+
+	mount.mountInode.addLookupCount(lookupCount)
+
 	out = mount.fileInfoToEntry(fi)
 	out.NodeId = mount.mountInode.nodeId
 
@@ -41,8 +43,8 @@ func (me *FileSystemConnector) internalMountLookup(mount *fileSystemMount, looku
 }
 
 func (me *FileSystemConnector) internalLookup(parent *Inode, name string, lookupCount int, context *Context) (out *EntryOut, code Status, node *Inode) {
-	if mount := me.lookupMount(parent, name, lookupCount); mount != nil {
-		return me.internalMountLookup(mount, lookupCount)
+	if mount := me.findMount(parent, name); mount != nil {
+		return me.lookupMountUpdate(mount, lookupCount)
 	}
 
 	var fi *os.FileInfo
@@ -59,6 +61,9 @@ func (me *FileSystemConnector) internalLookup(parent *Inode, name string, lookup
 	}
 
 	if child != nil && code.Ok() {
+		mount.treeLock.Lock()
+		defer mount.treeLock.Unlock()
+		child.addLookupCount(1)
 		out = parent.mount.fileInfoToEntry(fi)
 		out.NodeId = child.nodeId
 		out.Generation = 1
@@ -239,7 +244,7 @@ func (me *FileSystemConnector) Symlink(header *InHeader, pointedTo string, linkN
 
 func (me *FileSystemConnector) Rename(header *InHeader, input *RenameIn, oldName string, newName string) (code Status) {
 	oldParent := me.getInodeData(header.NodeId)
-	isMountPoint := me.lookupMount(oldParent, oldName, 0) != nil
+	isMountPoint := me.findMount(oldParent, oldName) != nil
 	if isMountPoint {
 		return EBUSY
 	}
@@ -272,6 +277,7 @@ func (me *FileSystemConnector) Link(header *InHeader, input *LinkIn, name string
 	if fsInode.Inode() == nil {
 		out, _ = me.createChild(parent, name, fi, fsInode)
 	} else {
+		fsInode.Inode().addLookupCount(1)
 		out = parent.mount.fileInfoToEntry(fi)
 		out.Ino = fsInode.Inode().nodeId
 		out.NodeId = out.Ino

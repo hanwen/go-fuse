@@ -34,6 +34,8 @@ type Inode struct {
 	// Contains directories that function as mounts. The entries
 	// are duplicated in children.
 	mounts      map[string]*fileSystemMount
+
+	// Use addLookupCount() to manipulate.
 	lookupCount int
 
 	// Non-nil if this is a mountpoint.
@@ -116,7 +118,7 @@ func (me *Inode) CreateChild(name string, isDir bool, fsi FsNode) *Inode {
 	fsi.SetInode(ch)
 	ch.mount = me.mount
 	ch.treeLock = me.treeLock
-	ch.lookupCount = 1
+	ch.addLookupCount(1)
 	ch.connector = me.connector
 
 	me.addChild(name, ch)
@@ -128,6 +130,16 @@ func (me *Inode) GetChild(name string) (child *Inode) {
 	defer me.treeLock.Unlock()
 
 	return me.children[name]
+}
+
+////////////////////////////////////////////////////////////////
+// private
+
+func (me *Inode) addLookupCount(delta int) {
+	me.lookupCount += delta
+	if me.lookupCount < 0 {
+		panic(fmt.Sprintf("lookupCount underflow: %d: %v", me.lookupCount, me))
+	}
 }
 
 // Must be called with treeLock for the mount held.
@@ -203,6 +215,9 @@ func (me *Inode) getMountDirEntries() (out []DirEntry) {
 const initDirSize = 20
 
 func (me *Inode) verify(cur *fileSystemMount) {
+	if me.lookupCount < 0 {
+		panic("negative lookup count")
+	}
 	if me.mountPoint != nil {
 		if me != me.mountPoint.mountInode {
 			panic("mountpoint mismatch")

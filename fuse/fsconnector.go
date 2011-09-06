@@ -44,6 +44,10 @@ func NewFileSystemConnector(nodeFs NodeFileSystem, opts *FileSystemOptions) (me 
 	me.inodeMap = NewHandleMap(!opts.SkipCheckHandles)
 	me.rootNode = me.newInode(true)
 	me.rootNode.nodeId = FUSE_ROOT_ID
+
+	// FUSE does not issue a LOOKUP for 1 (obviously), but it does
+	// issue a forget.  This lookupCount is to make the counts match.
+	me.rootNode.addLookupCount(1)
 	me.verify()
 	me.MountRoot(nodeFs, opts)
 	return me
@@ -89,32 +93,26 @@ func (me *FileSystemConnector) lookupUpdate(parent *Inode, name string, isDir bo
 		data.mount = parent.mount
 		data.treeLock = &data.mount.treeLock
 	}
-	data.lookupCount += lookupCount
+	data.addLookupCount(lookupCount)
 	return data
 }
 
-func (me *FileSystemConnector) lookupMount(parent *Inode, name string, lookupCount int) (mount *fileSystemMount) {
+func (me *FileSystemConnector) findMount(parent *Inode, name string) (mount *fileSystemMount) {
 	parent.treeLock.RLock()
 	defer parent.treeLock.RUnlock()
 	if parent.mounts == nil {
 		return nil
 	}
 
-	mount, ok := parent.mounts[name]
-	if ok {
-		mount.treeLock.Lock()
-		defer mount.treeLock.Unlock()
-		mount.mountInode.lookupCount += lookupCount
-		return mount
-	}
-	return nil
+	return parent.mounts[name]
 }
 
 func (me *FileSystemConnector) getInodeData(nodeid uint64) *Inode {
 	if nodeid == FUSE_ROOT_ID {
 		return me.rootNode
 	}
-	return (*Inode)(unsafe.Pointer(DecodeHandle(nodeid)))
+	i := (*Inode)(unsafe.Pointer(DecodeHandle(nodeid)))
+	return i
 }
 
 func (me *FileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int) {
@@ -125,7 +123,7 @@ func (me *FileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int) {
 	node.treeLock.Lock()
 	defer node.treeLock.Unlock()
 
-	node.lookupCount -= forgetCount
+	node.addLookupCount(-forgetCount)
 	me.considerDropInode(node)
 }
 
@@ -142,6 +140,7 @@ func (me *FileSystemConnector) considerDropInode(n *Inode) (drop bool) {
 			panic(fmt.Sprintf("trying to del child %q, but not present", k))
 		}
 		me.inodeMap.Forget(ch.nodeId)
+		ch.nodeId = 0xdeadbeef
 	}
 
 	if len(n.children) > 0 || n.lookupCount > 0 {
