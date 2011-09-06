@@ -9,6 +9,6 @@ GOFILES=unionfs.go \
 	autounion.go \
 	create.go
 
-DEPS=../fuse ../zipfs
+DEPS=../fuse
 
 include $(GOROOT)/src/Make.pkg

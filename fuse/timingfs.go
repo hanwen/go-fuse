@@ -135,9 +135,9 @@ func (me *TimingFileSystem) OpenDir(name string, context *Context) (stream chan 
 	return me.FileSystem.OpenDir(name, context)
 }
 
-func (me *TimingFileSystem) Mount(conn *FileSystemConnector) {
+func (me *TimingFileSystem) Mount(nodeFs *PathNodeFs, conn *FileSystemConnector) {
 	defer me.startTimer("Mount", "")()
-	me.FileSystem.Mount(conn)
+	me.FileSystem.Mount(nodeFs, conn)
 }
 
 func (me *TimingFileSystem) Unmount() {

@@ -49,7 +49,7 @@ func (me *MultiZipFs) Name() string {
 	return "MultiZipFs"
 }
 
-func (me *MultiZipFs) Mount(connector *fuse.FileSystemConnector) {
+func (me *MultiZipFs) Mount(nodeFs *fuse.PathNodeFs, connector *fuse.FileSystemConnector) {
 	me.Connector = connector
 }
 

@@ -65,7 +65,7 @@ func (me *AutoUnionFs) Name() string {
 	return fmt.Sprintf("AutoUnionFs(%s)", me.root)
 }
 
-func (me *AutoUnionFs) Mount(connector *fuse.FileSystemConnector) {
+func (me *AutoUnionFs) Mount(nodeFs *fuse.PathNodeFs, connector *fuse.FileSystemConnector) {
 	me.connector = connector
 	if me.options.UpdateOnMount {
 		time.AfterFunc(0.1e9, func() { me.updateKnownFses() })

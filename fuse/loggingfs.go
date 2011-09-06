@@ -114,9 +114,9 @@ func (me *LoggingFileSystem) OpenDir(name string, context *Context) (stream chan
 	return me.FileSystem.OpenDir(name, context)
 }
 
-func (me *LoggingFileSystem) Mount(conn *FileSystemConnector) {
+func (me *LoggingFileSystem) Mount(nodeFs *PathNodeFs, conn *FileSystemConnector) {
 	me.Print("Mount", "")
-	me.FileSystem.Mount(conn)
+	me.FileSystem.Mount(nodeFs, conn)
 }
 
 func (me *LoggingFileSystem) Unmount() {

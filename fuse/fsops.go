@@ -87,7 +87,7 @@ func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out 
 	var f File
 	if input.Flags&FUSE_GETATTR_FH != 0 {
 		if opened := me.getOpenedFile(input.Fh); opened != nil {
-			f = opened.file
+			f = opened.WithFlags.File
 		}
 	}
 
@@ -303,7 +303,7 @@ func (me *FileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
 func (me *FileSystemConnector) Flush(header *InHeader, input *FlushIn) Status {
 	node := me.getInodeData(header.NodeId)
 	opened := me.getOpenedFile(input.Fh)
-	return node.fsInode.Flush(opened.file, opened.OpenFlags, &header.Context)
+	return node.fsInode.Flush(opened.WithFlags.File, opened.WithFlags.OpenFlags, &header.Context)
 }
 
 func (me *FileSystemConnector) ReleaseDir(header *InHeader, input *ReleaseIn) {
@@ -349,12 +349,12 @@ func (me *FileSystemConnector) ListXAttr(header *InHeader) (data []byte, code St
 
 func (me *FileSystemConnector) Write(input *WriteIn, data []byte) (written uint32, code Status) {
 	opened := me.getOpenedFile(input.Fh)
-	return opened.file.Write(input, data)
+	return opened.WithFlags.File.Write(input, data)
 }
 
 func (me *FileSystemConnector) Read(input *ReadIn, bp BufferPool) ([]byte, Status) {
 	opened := me.getOpenedFile(input.Fh)
-	return opened.file.Read(input, bp)
+	return opened.WithFlags.File.Read(input, bp)
 }
 
 func (me *FileSystemConnector) StatFs() *StatfsOut {

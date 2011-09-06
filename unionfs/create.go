@@ -2,7 +2,6 @@ package unionfs
 
 import (
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/zipfs"
 	"os"
 )
 
@@ -16,9 +15,6 @@ func NewUnionFsFromRoots(roots []string, opts *UnionFsOptions, roCaching bool) (
 		}
 		if fi.IsDirectory() {
 			fs = fuse.NewLoopbackFileSystem(r)
-		}
-		if fs == nil {
-			fs, err = zipfs.NewArchiveFileSystem(r)
 		}
 		if fs == nil {
 			return nil, err

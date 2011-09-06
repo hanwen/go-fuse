@@ -63,8 +63,8 @@ func (me *memNode) Print(indent int) {
 }
 
 // We construct the tree at mount, so we never need to look anything up.
-func (me *memNode) Lookup(name string) (fi *os.FileInfo, node FsNode, code Status) {
-	return nil, nil, ENOENT
+func (me *memNode) Lookup(name string) (fi *os.FileInfo, node fuse.FsNode, code fuse.Status) {
+	return nil, nil, fuse.ENOENT
 }
 
 func (me *memNode) OpenDir(context *fuse.Context) (stream chan fuse.DirEntry, code fuse.Status) {

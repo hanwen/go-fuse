@@ -95,9 +95,9 @@ func (me *LockingFileSystem) OpenDir(name string, context *Context) (stream chan
 	return me.FileSystem.OpenDir(name, context)
 }
 
-func (me *LockingFileSystem) Mount(conn *FileSystemConnector) {
+func (me *LockingFileSystem) Mount(nodeFs *PathNodeFs, conn *FileSystemConnector) {
 	defer me.locked()()
-	me.FileSystem.Mount(conn)
+	me.FileSystem.Mount(nodeFs, conn)
 }
 
 func (me *LockingFileSystem) Unmount() {

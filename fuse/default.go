@@ -81,7 +81,7 @@ func (me *DefaultFileSystem) OpenDir(name string, context *Context) (stream chan
 	return nil, ENOSYS
 }
 
-func (me *DefaultFileSystem) Mount(conn *FileSystemConnector) {
+func (me *DefaultFileSystem) Mount(nodeFs *PathNodeFs, conn *FileSystemConnector) {
 }
 
 func (me *DefaultFileSystem) Unmount() {

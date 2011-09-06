@@ -70,6 +70,7 @@ type UnionFs struct {
 	branchCache *TimedCache
 
 	options *UnionFsOptions
+	nodeFs  *fuse.PathNodeFs
 }
 
 type UnionFsOptions struct {
@@ -100,6 +101,10 @@ func NewUnionFs(fileSystems []fuse.FileSystem, options UnionFsOptions) *UnionFs 
 		int64(options.BranchCacheTTLSecs*1e9))
 	g.branchCache.RecurringPurge()
 	return g
+}
+
+func (me *UnionFs) Mount(nodeFs *fuse.PathNodeFs, connector *fuse.FileSystemConnector) {
+	me.nodeFs = nodeFs
 }
 
 ////////////////
@@ -259,6 +264,18 @@ func (me *UnionFs) Promote(name string, srcResult branchResult, context *fuse.Co
 
 	if srcResult.attr.IsRegular() {
 		code = fuse.CopyFile(sourceFs, writable, name, name, context)
+		files := me.nodeFs.AllFiles(name, 0)
+		log.Println("promote files", files, name)
+		for _, f := range files {
+			if !code.Ok() {
+				break
+			}
+			uf := f.File.(*UnionFsFile)
+			if uf.layer > 0 {
+				uf.layer = 0
+				uf.File, code = me.fileSystems[0].Open(name, f.OpenFlags, context)
+			}
+		}
 	} else if srcResult.attr.IsSymlink() {
 		link := ""
 		link, code = sourceFs.Readlink(name, context)
@@ -865,7 +882,7 @@ func (me *UnionFs) Open(name string, flags uint32, context *fuse.Context) (fuseF
 	}
 	fuseFile, status = me.fileSystems[r.branch].Open(name, uint32(flags), context)
 	if fuseFile != nil {
-		fuseFile = &UnionFsFile{fuseFile}
+		fuseFile = &UnionFsFile{fuseFile, r.branch}
 	}
 	return fuseFile, status
 }
@@ -886,6 +903,7 @@ func (me *UnionFs) Name() string {
 
 type UnionFsFile struct {
 	fuse.File
+	layer int 
 }
 
 func (me *UnionFsFile) GetAttr() (*os.FileInfo, fuse.Status) {

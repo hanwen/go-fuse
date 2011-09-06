@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 var _ = log.Println
@@ -17,11 +18,32 @@ func (me *PathNodeFs) Unmount() {
 }
 
 func (me *PathNodeFs) Mount(conn *FileSystemConnector) {
-	me.fs.Mount(conn)
+	me.fs.Mount(me, conn)
 }
 
 func (me *PathNodeFs) StatFs() *StatfsOut {
 	return me.fs.StatFs()
+}
+
+func (me *PathNodeFs) Node(name string) *Inode {
+	name = filepath.Clean(name)
+	comps := strings.Split(name, string(filepath.Separator))
+	node := me.root.Inode()
+	for _, c := range comps {
+		node = node.GetChild(c)
+		if node == nil {
+			break
+		}
+	}
+	return node
+}
+
+func (me *PathNodeFs) AllFiles(name string, mask uint32) []WithFlags {
+	n := me.Node(name)
+	if n == nil {
+		return nil
+	}
+	return n.Files(mask)
 }
 
 func NewPathNodeFs(fs FileSystem) *PathNodeFs {
@@ -261,7 +283,7 @@ func (me *pathInode) GetAttr(file File, context *Context) (fi *os.FileInfo, code
 }
 
 func (me *pathInode) Chmod(file File, perms uint32, context *Context) (code Status) {
-	files := me.inode.WritableFiles()
+	files := me.inode.Files(O_ANYWRITE)
 	for _, f := range files {
 		// TODO - pass context
 		code = f.Chmod(perms)
@@ -277,7 +299,7 @@ func (me *pathInode) Chmod(file File, perms uint32, context *Context) (code Stat
 }
 
 func (me *pathInode) Chown(file File, uid uint32, gid uint32, context *Context) (code Status) {
-	files := me.inode.WritableFiles()
+	files := me.inode.Files(O_ANYWRITE)
 	for _, f := range files {
 		// TODO - pass context
 		code = f.Chown(uid, gid)
@@ -293,7 +315,7 @@ func (me *pathInode) Chown(file File, uid uint32, gid uint32, context *Context) 
 }
 
 func (me *pathInode) Truncate(file File, size uint64, context *Context) (code Status) {
-	files := me.inode.WritableFiles()
+	files := me.inode.Files(O_ANYWRITE)
 	for _, f := range files {
 		// TODO - pass context
 		log.Println("truncating file", f)
@@ -309,7 +331,7 @@ func (me *pathInode) Truncate(file File, size uint64, context *Context) (code St
 }
 
 func (me *pathInode) Utimens(file File, atime uint64, mtime uint64, context *Context) (code Status) {
-	files := me.inode.WritableFiles()
+	files := me.inode.Files(O_ANYWRITE)
 	for _, f := range files {
 		// TODO - pass context
 		code = f.Utimens(atime, mtime)

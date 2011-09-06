@@ -69,8 +69,8 @@ func (me *ReadonlyFileSystem) OpenDir(name string, context *Context) (stream cha
 	return me.FileSystem.OpenDir(name, context)
 }
 
-func (me *ReadonlyFileSystem) Mount(conn *FileSystemConnector) {
-	me.FileSystem.Mount(conn)
+func (me *ReadonlyFileSystem) Mount(nodeFs *PathNodeFs, conn *FileSystemConnector) {
+	me.FileSystem.Mount(nodeFs, conn)
 }
 
 func (me *ReadonlyFileSystem) Unmount() {

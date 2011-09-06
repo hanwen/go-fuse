@@ -13,14 +13,9 @@ var _ = log.Println
 type openedFile struct {
 	Handled
 
-	// O_CREAT, O_TRUNC, etc.
-	OpenFlags uint32
-
-	// FOPEN_KEEP_CACHE and friends.
-	FuseFlags uint32
+	WithFlags 
 
 	dir  rawDir
-	file File
 }
 
 type fileSystemMount struct {
@@ -96,14 +91,15 @@ func (me *fileSystemMount) registerFileHandle(node *Inode, dir rawDir, f File, f
 	defer node.openFilesMutex.Unlock()
 	b := &openedFile{
 		dir:       dir,
-		file:      f,
-		OpenFlags: flags,
+		WithFlags: WithFlags{
+			File: f,
+			OpenFlags: flags,
+		},
 	}
-
 	withFlags, ok := f.(*WithFlags)
 	if ok {
-		b.FuseFlags = withFlags.Flags
-		f = withFlags.File
+		b.WithFlags.FuseFlags = withFlags.FuseFlags
+		b.WithFlags.File = withFlags.File
 	}
 
 	node.openFiles = append(node.openFiles, b)

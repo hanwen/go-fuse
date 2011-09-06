@@ -104,7 +104,7 @@ type FileSystem interface {
 	SetXAttr(name string, attr string, data []byte, flags int, context *Context) Status
 
 	// Called after mount.
-	Mount(connector *FileSystemConnector)
+	Mount(nodeFs *PathNodeFs, connector *FileSystemConnector)
 	Unmount()
 
 	// File handling.  If opening for writing, the file's mtime
@@ -150,7 +150,10 @@ type WithFlags struct {
 	File
 
 	// Put FOPEN_* flags here.
-	Flags uint32
+	FuseFlags uint32
+
+	// O_RDWR, O_TRUNCATE, etc.
+	OpenFlags uint32
 }
 
 // MountOptions contains time out options for a (Node)FileSystem.  The

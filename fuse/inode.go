@@ -2,8 +2,10 @@ package fuse
 
 import (
 	"fmt"
+	"log"
 	"sync"
 )
+var _ = log.Println
 
 // The inode reflects the kernel's idea of the inode.
 type Inode struct {
@@ -61,8 +63,8 @@ func (me *Inode) AnyFile() (file File) {
 	defer me.openFilesMutex.Unlock()
 
 	for _, f := range me.openFiles {
-		if file == nil || f.OpenFlags&O_ANYWRITE != 0 {
-			file = f.file
+		if file == nil || f.WithFlags.OpenFlags&O_ANYWRITE != 0 {
+			file = f.WithFlags.File
 		}
 	}
 	return file
@@ -83,14 +85,15 @@ func (me *Inode) FsNode() FsNode {
 	return me.fsInode
 }
 
-// Returns an open writable file for the given Inode.
-func (me *Inode) WritableFiles() (files []File) {
+// Files() returns an opens file that have bits in common with the
+// give mask.  Use mask==0 to return all files.
+func (me *Inode) Files(mask uint32) (files []WithFlags) {
 	me.openFilesMutex.Lock()
 	defer me.openFilesMutex.Unlock()
-
+	log.Println("inod.files:", me.openFiles)
 	for _, f := range me.openFiles {
-		if f.OpenFlags&O_ANYWRITE != 0 {
-			files = append(files, f.file)
+		if mask == 0 || f.WithFlags.OpenFlags&mask != 0 {
+			files = append(files, f.WithFlags)
 		}
 	}
 	return files
