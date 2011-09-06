@@ -2,7 +2,7 @@
 include $(GOROOT)/src/Make.inc
 
 TARG=multizip
-GOFILES=multizip.go
+GOFILES=main.go
 DEPS=../../fuse ../../zipfs
 
 include $(GOROOT)/src/Make.cmd
