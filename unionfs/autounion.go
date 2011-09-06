@@ -3,15 +3,20 @@ package unionfs
 import (
 	"fmt"
 	"github.com/hanwen/go-fuse/fuse"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"sync"
+	"syscall"
 	"time"
-	"io/ioutil"
 )
+
+type knownFs struct {
+	*UnionFs
+	*fuse.PathNodeFs
+}
 
 // Creates unions for all files under a given directory,
 // walking the tree and looking for directories D which have a
@@ -22,12 +27,12 @@ type AutoUnionFs struct {
 	fuse.DefaultFileSystem
 
 	lock             sync.RWMutex
-	knownFileSystems map[string]*UnionFs
+	knownFileSystems map[string]knownFs
 	nameRootMap      map[string]string
 	root             string
 
 	connector *fuse.FileSystemConnector
-
+	nodeFs    *fuse.PathNodeFs
 	options *AutoUnionFsOptions
 }
 
@@ -50,7 +55,7 @@ const (
 
 func NewAutoUnionFs(directory string, options AutoUnionFsOptions) *AutoUnionFs {
 	a := new(AutoUnionFs)
-	a.knownFileSystems = make(map[string]*UnionFs)
+	a.knownFileSystems = make(map[string]knownFs)
 	a.nameRootMap = make(map[string]string)
 	a.options = &options
 	directory, err := filepath.Abs(directory)
@@ -66,6 +71,7 @@ func (me *AutoUnionFs) Name() string {
 }
 
 func (me *AutoUnionFs) Mount(nodeFs *fuse.PathNodeFs, connector *fuse.FileSystemConnector) {
+	me.nodeFs = nodeFs
 	me.connector = connector
 	if me.options.UpdateOnMount {
 		time.AfterFunc(0.1e9, func() { me.updateKnownFses() })
@@ -93,8 +99,8 @@ func (me *AutoUnionFs) createFs(name string, roots []string) fuse.Status {
 		}
 	}
 
-	ufs := me.knownFileSystems[name]
-	if ufs != nil {
+	known := me.knownFileSystems[name]
+	if known.UnionFs != nil {
 		log.Println("Already have a workspace:", name)
 		return fuse.EBUSY
 	}
@@ -107,9 +113,12 @@ func (me *AutoUnionFs) createFs(name string, roots []string) fuse.Status {
 
 	log.Printf("Adding workspace %v for roots %v", name, ufs.Name())
 	nfs := fuse.NewPathNodeFs(ufs)
-	code := me.connector.Mount("/"+name, nfs, &me.options.FileSystemOptions)
+	code := me.connector.Mount(me.nodeFs.Root().Inode(), name, nfs, &me.options.FileSystemOptions)
 	if code.Ok() {
-		me.knownFileSystems[name] = ufs
+		me.knownFileSystems[name] = knownFs{
+			ufs,
+			nfs,
+		}
 		me.nameRootMap[name] = roots[0]
 	}
 	return code
@@ -119,14 +128,14 @@ func (me *AutoUnionFs) rmFs(name string) (code fuse.Status) {
 	me.lock.Lock()
 	defer me.lock.Unlock()
 
-	fs := me.knownFileSystems[name]
-	if fs == nil {
+	known := me.knownFileSystems[name]
+	if known.UnionFs == nil {
 		return fuse.ENOENT
 	}
 
-	code = me.connector.Unmount(name)
+	code = me.connector.Unmount(known.PathNodeFs.Root().Inode())
 	if code.Ok() {
-		me.knownFileSystems[name] = nil, false
+		me.knownFileSystems[name] = knownFs{}, false
 		me.nameRootMap[name] = "", false
 	} else {
 		log.Printf("Unmount failed for %s.  Code %v", name, code)
@@ -208,7 +217,7 @@ func (me *AutoUnionFs) Readlink(path string, context *fuse.Context) (out string,
 func (me *AutoUnionFs) getUnionFs(name string) *UnionFs {
 	me.lock.RLock()
 	defer me.lock.RUnlock()
-	return me.knownFileSystems[name]
+	return me.knownFileSystems[name].UnionFs
 }
 
 func (me *AutoUnionFs) Symlink(pointedTo string, linkName string, context *fuse.Context) (code fuse.Status) {

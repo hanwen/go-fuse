@@ -35,6 +35,7 @@ type MultiZipFs struct {
 	zips          map[string]*MemTreeFs
 	dirZipFileMap map[string]string
 
+	nodeFs	 *fuse.PathNodeFs
 	fuse.DefaultFileSystem
 }
 
@@ -50,6 +51,7 @@ func (me *MultiZipFs) Name() string {
 }
 
 func (me *MultiZipFs) Mount(nodeFs *fuse.PathNodeFs, connector *fuse.FileSystemConnector) {
+	me.nodeFs = nodeFs
 	me.Connector = connector
 }
 
@@ -119,9 +121,9 @@ func (me *MultiZipFs) Unlink(name string, context *fuse.Context) (code fuse.Stat
 		me.lock.Lock()
 		defer me.lock.Unlock()
 
-		_, ok := me.zips[basename]
+		zfs, ok := me.zips[basename]
 		if ok {
-			code = me.Connector.Unmount("/" + basename)
+			code = me.Connector.Unmount(zfs.Root().Inode())
 			if !code.Ok() {
 				return code
 			}
@@ -171,7 +173,7 @@ func (me *MultiZipFs) Symlink(value string, linkName string, context *fuse.Conte
 		return fuse.EINVAL
 	}
 
-	code = me.Connector.Mount("/"+base, fs, nil)
+	code = me.Connector.Mount(me.nodeFs.Root().Inode(), base, fs, nil)
 	if !code.Ok() {
 		return code
 	}

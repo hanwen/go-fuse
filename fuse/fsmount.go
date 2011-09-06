@@ -25,6 +25,9 @@ type fileSystemMount struct {
 	// Node that we were mounted on.
 	mountInode *Inode
 
+	// Parent to the mountInode.
+	parentInode *Inode
+
 	// Options for the mount.
 	options *FileSystemOptions
 
@@ -35,6 +38,19 @@ type fileSystemMount struct {
 	// Manage filehandles of open files.
 	openFiles HandleMap
 }
+
+// Must called with lock for parent held.
+func (me *fileSystemMount) mountName() string {
+	for k, v := range me.parentInode.mounts {
+		if me == v {
+			return k
+		}
+	}
+	panic("not found")
+	return ""
+}
+
+
 
 func (me *fileSystemMount) setOwner(attr *Attr) {
 	if me.options.Owner != nil {

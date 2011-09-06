@@ -16,26 +16,16 @@ func TestMountOnExisting(t *testing.T) {
 	err := os.Mkdir(ts.mnt+"/mnt", 0777)
 	CheckSuccess(err)
 	nfs := &DefaultNodeFileSystem{}
-	code := ts.connector.Mount("/mnt", nfs, nil)
+	code := ts.connector.Mount(ts.rootNode(), "mnt", nfs, nil)
 	if code != EBUSY {
 		t.Fatal("expect EBUSY:", code)
 	}
 
 	err = os.Remove(ts.mnt + "/mnt")
 	CheckSuccess(err)
-	code = ts.connector.Mount("/mnt", nfs, nil)
+	code = ts.connector.Mount(ts.rootNode(), "mnt", nfs, nil)
 	if !code.Ok() {
 		t.Fatal("expect OK:", code)
-	}
-}
-
-func TestUnmountNoExist(t *testing.T) {
-	ts := NewTestCase(t)
-	defer ts.Cleanup()
-
-	code := ts.connector.Unmount("/doesnotexist")
-	if code != EINVAL {
-		t.Fatal("expect EINVAL", code)
 	}
 }
 
@@ -44,7 +34,7 @@ func TestMountRename(t *testing.T) {
 	defer ts.Cleanup()
 
 	fs := NewPathNodeFs(NewLoopbackFileSystem(ts.orig))
-	code := ts.connector.Mount("/mnt", fs, nil)
+	code := ts.connector.Mount(ts.rootNode(), "mnt", fs, nil)
 	if !code.Ok() {
 		t.Fatal("mount should succeed")
 	}
@@ -59,7 +49,7 @@ func TestMountReaddir(t *testing.T) {
 	defer ts.Cleanup()
 
 	fs := NewPathNodeFs(NewLoopbackFileSystem(ts.orig))
-	code := ts.connector.Mount("/mnt", fs, nil)
+	code := ts.connector.Mount(ts.rootNode(), "mnt", fs, nil)
 	if !code.Ok() {
 		t.Fatal("mount should succeed")
 	}
@@ -79,7 +69,7 @@ func TestRecursiveMount(t *testing.T) {
 	CheckSuccess(err)
 
 	fs := NewPathNodeFs(NewLoopbackFileSystem(ts.orig))
-	code := ts.connector.Mount("/mnt", fs, nil)
+	code := ts.connector.Mount(ts.rootNode(), "mnt", fs, nil)
 	if !code.Ok() {
 		t.Fatal("mount should succeed")
 	}
@@ -93,7 +83,7 @@ func TestRecursiveMount(t *testing.T) {
 	f, err := os.Open(filepath.Join(submnt, "hello.txt"))
 	CheckSuccess(err)
 	log.Println("Attempting unmount, should fail")
-	code = ts.connector.Unmount("/mnt")
+	code = ts.connector.Unmount(ts.nodeFs.Node("mnt"))
 	if code != EBUSY {
 		t.Error("expect EBUSY")
 	}
@@ -104,7 +94,7 @@ func TestRecursiveMount(t *testing.T) {
 	time.Sleep(1.5e9 * testTtl)
 
 	log.Println("Attempting unmount, should succeed")
-	code = ts.connector.Unmount("/mnt")
+	code = ts.connector.Unmount(ts.nodeFs.Node("mnt"))
 	if code != OK {
 		t.Error("umount failed.", code)
 	}
@@ -116,7 +106,7 @@ func TestDeletedUnmount(t *testing.T) {
 
 	submnt := filepath.Join(ts.mnt, "mnt")
 	pfs2 := NewPathNodeFs(NewLoopbackFileSystem(ts.orig))
-	code := ts.connector.Mount("/mnt", pfs2, nil)
+	code := ts.connector.Mount(ts.rootNode(), "mnt", pfs2, nil)
 	if !code.Ok() {
 		t.Fatal("Mount error", code)
 	}
@@ -131,14 +121,14 @@ func TestDeletedUnmount(t *testing.T) {
 	_, err = f.Write([]byte("bla"))
 	CheckSuccess(err)
 
-	code = ts.connector.Unmount("/mnt")
+	code = ts.connector.Unmount(ts.nodeFs.Node("mnt"))
 	if code != EBUSY {
 		t.Error("expect EBUSY for unmount with open files", code)
 	}
 
 	f.Close()
 	time.Sleep(1.5e9 * testTtl)
-	code = ts.connector.Unmount("/mnt")
+	code = ts.connector.Unmount(ts.nodeFs.Node("mnt"))
 	if !code.Ok() {
 		t.Error("should succeed", code)
 	}

@@ -33,6 +33,7 @@ type testCase struct {
 	origSubdir  string
 	tester      *testing.T
 	state       *MountState
+	nodeFs      *PathNodeFs
 	connector   *FileSystemConnector
 }
 
@@ -68,8 +69,8 @@ func NewTestCase(t *testing.T) *testCase {
 	pfs = NewLockingFileSystem(pfs)
 
 	var rfs RawFileSystem
-	nfs := NewPathNodeFs(pfs)
-	me.connector = NewFileSystemConnector(nfs,
+	me.nodeFs = NewPathNodeFs(pfs)
+	me.connector = NewFileSystemConnector(me.nodeFs,
 		&FileSystemOptions{
 			EntryTimeout:    testTtl,
 			AttrTimeout:     testTtl,
@@ -99,7 +100,8 @@ func (me *testCase) Cleanup() {
 	os.Remove(me.tmpDir)
 }
 
-func (me *testCase) writeOrigFile() {
+func (me *testCase) rootNode() *Inode {
+	return me.nodeFs.Root().Inode()
 }
 
 ////////////////

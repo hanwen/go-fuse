@@ -45,7 +45,7 @@ func NewFileSystemConnector(nodeFs NodeFileSystem, opts *FileSystemOptions) (me 
 	me.rootNode = me.newInode(true)
 	me.rootNode.nodeId = FUSE_ROOT_ID
 	me.verify()
-	me.mountRoot(nodeFs, opts)
+	me.MountRoot(nodeFs, opts)
 	return me
 }
 
@@ -223,6 +223,12 @@ func (me *FileSystemConnector) findInode(fullPath string) *Inode {
 
 ////////////////////////////////////////////////////////////////
 
+func (me *FileSystemConnector) MountRoot(nodeFs NodeFileSystem, opts *FileSystemOptions) {
+	me.rootNode.mountFs(nodeFs, opts)
+	nodeFs.Mount(me)
+	me.verify()
+}
+
 // Mount() generates a synthetic directory node, and mounts the file
 // system there.  If opts is nil, the mount options of the root file
 // system are inherited.  The encompassing filesystem should pretend
@@ -239,25 +245,10 @@ func (me *FileSystemConnector) findInode(fullPath string) *Inode {
 // mount management in FileSystemConnector, so AutoUnionFs and
 // MultiZipFs don't have to do it separately, with the risk of
 // inconsistencies.
-func (me *FileSystemConnector) Mount(mountPoint string, nodeFs NodeFileSystem, opts *FileSystemOptions) Status {
-	if mountPoint == "/" || mountPoint == "" {
-		me.mountRoot(nodeFs, opts)
-		return OK
-	}
-
-	dirParent, base := filepath.Split(mountPoint)
-	parent := me.findInode(dirParent)
-	if parent == nil {
-		log.Println("Could not find mountpoint parent:", dirParent)
-		return ENOENT
-	}
-
+func (me *FileSystemConnector) Mount(parent *Inode, name string, nodeFs NodeFileSystem, opts *FileSystemOptions) Status {
 	parent.treeLock.Lock()
 	defer parent.treeLock.Unlock()
-	if parent.mount == nil {
-		return ENOENT
-	}
-	node := parent.children[base]
+	node := parent.children[name]
 	if node != nil {
 		return EBUSY
 	}
@@ -268,51 +259,42 @@ func (me *FileSystemConnector) Mount(mountPoint string, nodeFs NodeFileSystem, o
 	}
 
 	node.mountFs(nodeFs, opts)
-	parent.addChild(base, node)
-
+	parent.addChild(name, node)
+	
 	if parent.mounts == nil {
 		parent.mounts = make(map[string]*fileSystemMount)
 	}
-	parent.mounts[base] = node.mountPoint
+	parent.mounts[name] = node.mountPoint
+	node.mountPoint.parentInode = parent
 	if me.Debug {
-		log.Println("Mount: ", nodeFs, "on dir", mountPoint,
-			"parent", parent)
+		log.Println("Mount: ", nodeFs, "on subdir", name,
+			"parent", parent.nodeId)
 	}
 	nodeFs.Mount(me)
 	me.verify()
 	return OK
 }
 
-func (me *FileSystemConnector) mountRoot(nodeFs NodeFileSystem, opts *FileSystemOptions) {
-	me.rootNode.mountFs(nodeFs, opts)
-	nodeFs.Mount(me)
-	me.verify()
-}
-
-// Unmount() tries to unmount the given path.  
+// Unmount() tries to unmount the given inode.  
 //
 // Returns the following error codes:
 //
 // EINVAL: path does not exist, or is not a mount point.
 //
 // EBUSY: there are open files, or submounts below this node.
-func (me *FileSystemConnector) Unmount(path string) Status {
-	dir, name := filepath.Split(path)
-	parentNode := me.findInode(dir)
-	if parentNode == nil {
-		log.Println("Could not find parent of mountpoint:", path)
+func (me *FileSystemConnector) Unmount(node *Inode) Status {
+	if node.mountPoint == nil {
+		log.Println("not a mountpoint:", node.nodeId)
 		return EINVAL
 	}
 
 	// Must lock parent to update tree structure.
+	parentNode := node.mountPoint.parentInode
 	parentNode.treeLock.Lock()
 	defer parentNode.treeLock.Unlock()
 
-	mount := parentNode.mounts[name]
-	if mount == nil {
-		return EINVAL
-	}
-
+	mount := node.mountPoint
+	name := node.mountPoint.mountName()
 	if mount.openFiles.Count() > 0 {
 		return EBUSY
 	}
