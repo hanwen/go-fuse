@@ -52,7 +52,7 @@ func main() {
 	if len(flag.Args()) < 1 {
 		log.Fatal("Usage:\n  hello MOUNTPOINT")
 	}
-	state, _, err := fuse.MountFileSystem(flag.Arg(0), &HelloFs{}, nil)
+	state, _, err := fuse.MountPathFileSystem(flag.Arg(0), &HelloFs{}, nil)
 	if err != nil {
 		log.Fatal("Mount fail: %v\n", err)
 	}

@@ -34,7 +34,7 @@ func main() {
 		log.Fatal("Cannot create UnionFs", err)
 		os.Exit(1)
 	}
-	mountState, _, err := fuse.MountFileSystem(flag.Arg(0), ufs, nil)
+	mountState, _, err := fuse.MountPathFileSystem(flag.Arg(0), ufs, nil)
 	if err != nil {
 		log.Fatal("Mount fail:", err)
 	}

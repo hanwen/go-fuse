@@ -52,7 +52,7 @@ func main() {
 		finalFs = debugFs
 	}
 
-	conn := fuse.NewFileSystemConnector(finalFs, opts)
+	conn := fuse.NewFileSystemConnector(fuse.NewPathNodeFs(finalFs), opts)
 	var finalRawFs fuse.RawFileSystem = conn
 	if *latencies {
 		rawTiming := fuse.NewTimingRawFileSystem(conn)

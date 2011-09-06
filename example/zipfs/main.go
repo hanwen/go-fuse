@@ -22,27 +22,17 @@ func main() {
 		os.Exit(2)
 	}
 
-	var fs fuse.FileSystem
+	var fs fuse.NodeFileSystem
 	fs, err := zipfs.NewArchiveFileSystem(flag.Arg(1))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "NewArchiveFileSystem failed: %v\n", err)
 		os.Exit(1)
 	}
-	debugFs := fuse.NewFileSystemDebug()
 
-	if *latencies {
-		debugFs.FileSystem = fs
-		fs = debugFs
-	}
-
-	state, _, err := fuse.MountFileSystem(flag.Arg(0), fs, nil)
+	state, _, err := fuse.MountNodeFileSystem(flag.Arg(0), fs, nil)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)
-	}
-
-	if *latencies {
-		debugFs.AddMountState(state)
 	}
 
 	state.SetRecordStatistics(*latencies)

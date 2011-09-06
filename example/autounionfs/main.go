@@ -45,7 +45,7 @@ func main() {
 
 	gofs := unionfs.NewAutoUnionFs(flag.Arg(1), options)
 
-	state, conn, err := fuse.MountFileSystem(flag.Arg(0), gofs, nil)
+	state, conn, err := fuse.MountPathFileSystem(flag.Arg(0), gofs, nil)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)
