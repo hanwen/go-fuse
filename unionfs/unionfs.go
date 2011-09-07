@@ -277,6 +277,7 @@ func (me *UnionFs) Promote(name string, srcResult branchResult, context *fuse.Co
 			uf := f.File.(*UnionFsFile)
 			if uf.layer > 0 {
 				uf.layer = 0
+				uf.File.Release()
 				uf.File, code = me.fileSystems[0].Open(name, f.OpenFlags, context)
 			}
 		}
