@@ -17,69 +17,96 @@ func (me *FileSystemConnector) Init(fsInit *RawFsInit) {
 
 func (me *FileSystemConnector) Lookup(header *InHeader, name string) (out *EntryOut, status Status) {
 	parent := me.getInodeData(header.NodeId)
-	out, status, _ = me.internalLookup(parent, name, 1, &header.Context)
+	out, status = me.internalLookup(parent, name, &header.Context)
 	return out, status
 }
 
-func (me *FileSystemConnector) lookupMountUpdate(mount *fileSystemMount, lookupCount int) (out *EntryOut, status Status, node *Inode) {
+func (me *FileSystemConnector) lookupMountUpdate(mount *fileSystemMount) (out *EntryOut, status Status) {
 	fi, err := mount.fs.Root().GetAttr(nil, nil)
 	if err == ENOENT && mount.options.NegativeTimeout > 0.0 {
-		return NegativeEntry(mount.options.NegativeTimeout), OK, nil
+		return NegativeEntry(mount.options.NegativeTimeout), OK
 	}
 	if !err.Ok() {
-		return nil, err, mount.mountInode
+		return nil, err
 	}
 	mount.treeLock.Lock()
 	defer mount.treeLock.Unlock()
 
-	mount.mountInode.addLookupCount(lookupCount)
+	mount.mountInode.addLookupCount(1)
 
 	out = mount.fileInfoToEntry(fi)
 	out.NodeId = mount.mountInode.nodeId
 
 	// We don't do NFS.
 	out.Generation = 1
-	return out, OK, mount.mountInode
+	return out, OK
 }
 
-func (me *FileSystemConnector) internalLookup(parent *Inode, name string, lookupCount int, context *Context) (out *EntryOut, code Status, node *Inode) {
+func (me *FileSystemConnector) internalLookup(parent *Inode, name string, context *Context) (out *EntryOut, code Status) {
 	if mount := me.findMount(parent, name); mount != nil {
-		return me.lookupMountUpdate(mount, lookupCount)
+		return me.lookupMountUpdate(mount)
 	}
+	
+	lookupNode, getattrNode := me.preLookup(parent, name)
 
 	var fi *os.FileInfo
-	child := parent.GetChild(name)
+	var fsNode FsNode
+	if getattrNode != nil {
+		fi, code = getattrNode.fsInode.GetAttr(nil, nil)
+	} else if lookupNode != nil {
+		fi, fsNode, code = parent.fsInode.Lookup(name)
+	}
+
+	return me.postLookup(fi, fsNode, code, getattrNode, lookupNode, name)
+}
+
+// Prepare for lookup: we are either looking for getattr of an
+// existing node, or lookup a new one. Here we decide which of those
+func (me *FileSystemConnector) preLookup(parent *Inode, name string) (lookupNode *Inode, attrNode *Inode) {
+	parent.treeLock.Lock()
+	defer parent.treeLock.Unlock()
+	
+	child := parent.children[name]
 	if child != nil {
-		fi, code = child.fsInode.GetAttr(nil, nil)
-	}
-	mount := parent.mount
-	if code == ENOENT && mount.options.NegativeTimeout > 0.0 {
-		return NegativeEntry(mount.options.NegativeTimeout), OK, nil
-	}
-	if !code.Ok() {
-		return nil, code, nil
-	}
-
-	if child != nil && code.Ok() {
-		mount.treeLock.Lock()
-		defer mount.treeLock.Unlock()
+		// Make sure the child doesn't die inbetween.
 		child.addLookupCount(1)
-		out = parent.mount.fileInfoToEntry(fi)
-		out.NodeId = child.nodeId
-		out.Generation = 1
-		return out, OK, child
+		return nil, child
+	}
+	
+	return parent, nil
+}
+
+// Process the result of lookup/getattr.
+func (me *FileSystemConnector) postLookup(fi *os.FileInfo, fsNode FsNode, code Status, attrNode *Inode, lookupNode *Inode, name string) (out *EntryOut, outCode Status) {
+	var mount *fileSystemMount
+	if attrNode != nil {
+		mount = attrNode.mount
+	} else {
+		mount = lookupNode.mount
 	}
 
-	fi, fsNode, code := parent.fsInode.Lookup(name)
-	if code == ENOENT && mount.options.NegativeTimeout > 0.0 {
-		return NegativeEntry(mount.options.NegativeTimeout), OK, nil
-	}
 	if !code.Ok() {
-		return nil, code, nil
+		if attrNode != nil {
+			mount.treeLock.Lock()
+			defer mount.treeLock.Unlock()
+			attrNode.addLookupCount(-1)
+		}
+
+		if code == ENOENT && mount.options.NegativeTimeout > 0.0 {
+			return NegativeEntry(mount.options.NegativeTimeout), OK
+		}
+		return nil, code
 	}
 
-	out, _ = me.createChild(parent, name, fi, fsNode)
-	return out, OK, node
+	if attrNode != nil {
+		out = attrNode.mount.fileInfoToEntry(fi)
+		out.Generation = 1
+		out.NodeId = attrNode.nodeId
+	} else if lookupNode != nil {
+		out, _ = me.createChild(lookupNode, name, fi, fsNode)
+		return out, OK
+	}
+	return out, OK
 }
 
 func (me *FileSystemConnector) Forget(h *InHeader, input *ForgetIn) {
