@@ -153,7 +153,7 @@ func GetTestLines() []string {
 	return l
 }
 
-func BenchmarkThreadedStat(b *testing.B) {
+func BenchmarkGoFuseThreadedStat(b *testing.B) {
 	b.StopTimer()
 	fs := NewStatFs()
 	files := GetTestLines()
@@ -261,3 +261,4 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 	results := TestingBOnePass(b, threads, ttl*1.2, lines)
 	AnalyzeBenchmarkRuns(results)	
 }
+
