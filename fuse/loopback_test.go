@@ -257,17 +257,18 @@ func TestLink(t *testing.T) {
 	if fi.Ino != subfi.Ino {
 		t.Errorf("Link succeeded, but inode numbers different: %v %v", fi.Ino, subfi.Ino)
 	}
-	f, err := os.Open(mountSubfile)
+	readback, err := ioutil.ReadFile(mountSubfile)
+	CheckSuccess(err)
 
-	var buf [1024]byte
-	slice := buf[:]
-	n, err := f.Read(slice)
-	f.Close()
-
-	strContents := string(slice[:n])
-	if strContents != contents {
-		t.Errorf("Content error: %v", slice[:n])
+	if string(readback) != contents {
+		t.Errorf("Content error: got %q want %q", string(readback), contents)
 	}
+
+	err = os.Remove(me.mountFile)
+	CheckSuccess(err)
+
+	_, err = ioutil.ReadFile(mountSubfile)
+	CheckSuccess(err)
 }
 
 func TestSymlink(t *testing.T) {
