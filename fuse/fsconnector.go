@@ -73,7 +73,15 @@ func (me *FileSystemConnector) newInode(isDir bool) *Inode {
 }
 
 func (me *FileSystemConnector) createChild(parent *Inode, name string, fi *os.FileInfo, fsi FsNode) (out *EntryOut, child *Inode) {
-	child = parent.CreateChild(name, fi.IsDirectory(), fsi)
+	if fsi.Inode() == nil {
+		child = parent.CreateChild(name, fi.IsDirectory(), fsi)
+	} else {
+		parent.treeLock.Lock()
+		defer parent.treeLock.Unlock()
+		child = fsi.Inode()
+		child.addLookupCount(1)
+	}
+	
 	out = parent.mount.fileInfoToEntry(fi)
 	out.Ino = child.nodeId
 	out.NodeId = child.nodeId
