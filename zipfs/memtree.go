@@ -63,7 +63,7 @@ func (me *memNode) Print(indent int) {
 }
 
 // We construct the tree at mount, so we never need to look anything up.
-func (me *memNode) Lookup(name string) (fi *os.FileInfo, node fuse.FsNode, code fuse.Status) {
+func (me *memNode) Lookup(name string, c *fuse.Context) (fi *os.FileInfo, node fuse.FsNode, code fuse.Status) {
 	return nil, nil, fuse.ENOENT
 }
 

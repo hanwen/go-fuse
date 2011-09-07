@@ -54,7 +54,7 @@ func (me *FileSystemConnector) internalLookup(parent *Inode, name string, contex
 	if getattrNode != nil {
 		fi, code = getattrNode.fsInode.GetAttr(nil, nil)
 	} else if lookupNode != nil {
-		fi, fsNode, code = parent.fsInode.Lookup(name)
+		fi, fsNode, code = parent.fsInode.Lookup(name, context)
 	}
 
 	return me.postLookup(fi, fsNode, code, getattrNode, lookupNode, name)

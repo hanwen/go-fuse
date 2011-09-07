@@ -33,7 +33,7 @@ type FsNode interface {
 	RmChild(name string, child FsNode)
 	AddChild(name string, child FsNode)
 
-	Lookup(name string) (fi *os.FileInfo, node FsNode, code Status)
+	Lookup(name string, context *Context) (fi *os.FileInfo, node FsNode, code Status)
 	OnForget()
 	
 	// Misc.

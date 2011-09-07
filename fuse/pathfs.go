@@ -344,10 +344,9 @@ func (me *pathInode) Open(flags uint32, context *Context) (file File, code Statu
 	return me.fs.Open(me.GetPath(), flags, context)
 }
 
-// TOOD - need context.
-func (me *pathInode) Lookup(name string) (fi *os.FileInfo, node FsNode, code Status) {
+func (me *pathInode) Lookup(name string, context *Context) (fi *os.FileInfo, node FsNode, code Status) {
 	fullPath := filepath.Join(me.GetPath(), name)
-	fi, code = me.fs.GetAttr(fullPath, nil)
+	fi, code = me.fs.GetAttr(fullPath, context)
 	if code.Ok() {
 		node = me.findChild(fi.Ino, name)
 	}
