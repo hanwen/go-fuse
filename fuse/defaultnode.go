@@ -40,6 +40,9 @@ func (me *DefaultFsNode) Inode() *Inode {
 	return me.inode
 }
 
+func (me *DefaultFsNode) OnForget() {
+}
+
 func (me *DefaultFsNode) RmChild(name string, child FsNode) {
 }
 

@@ -27,12 +27,15 @@ type FsNode interface {
 	// The following are called by the FileSystemConnector
 	Inode() *Inode
 	SetInode(node *Inode)
-
+	
+	// RmChild and AddChild run inside the critical section for
+	// the mutex behind Inode().LockTree().
 	RmChild(name string, child FsNode)
 	AddChild(name string, child FsNode)
 
 	Lookup(name string) (fi *os.FileInfo, node FsNode, code Status)
-
+	OnForget()
+	
 	// Misc.
 	Access(mode uint32, context *Context) (code Status)
 	Readlink(c *Context) ([]byte, Status)
