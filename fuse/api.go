@@ -80,7 +80,12 @@ type FileSystem interface {
 	// Used for pretty printing.
 	Name() string
 
-	// Attributes
+	// Attributes.  This function is the main entry point, through
+	// which FUSE discovers which files and directories exist.
+	//
+	// If the filesystem wants to implement hard-links, it should
+	// return consistent non-zero FileInfo.Ino data.  Using
+	// hardlinks incurs a performance hit.
 	GetAttr(name string, context *Context) (*os.FileInfo, Status)
 
 	// These should update the file's ctime too.
