@@ -178,6 +178,26 @@ func (me *pathInode) RmChild(name string, child FsNode) {
 	ch.Parent = nil
 }
 
+func (me *pathInode) setClientInode(ino uint64) {
+	if ino == me.clientInode {
+		return
+	}
+	defer me.Inode().LockTree()()
+	me.ifs.clientInodeMapMutex.Lock()
+	defer me.ifs.clientInodeMapMutex.Unlock()
+	if me.clientInode != 0 {
+		me.ifs.clientInodeMap[me.clientInode] = nil, false
+	}
+
+	me.clientInode = ino
+	if me.Parent != nil {
+		e := &clientInodePath{
+			me.Parent, me.Name, me,
+		}
+		me.ifs.clientInodeMap[ino] = append(me.ifs.clientInodeMap[ino], e)
+	}
+}
+
 func (me *pathInode) OnForget() {
 	if me.clientInode == 0 {
 		return
@@ -329,14 +349,28 @@ func (me *pathInode) Lookup(name string) (fi *os.FileInfo, node FsNode, code Sta
 	fullPath := filepath.Join(me.GetPath(), name)
 	fi, code = me.fs.GetAttr(fullPath, nil)
 	if code.Ok() {
-		pNode := me.createChild(name)
-		node = pNode
-		if fi.Ino > 0 {
-			pNode.clientInode = fi.Ino
-		}
+		node = me.findChild(fi.Ino, name)
 	}
 
 	return
+}
+
+func (me *pathInode) findChild(ino uint64, name string) (out *pathInode) {
+	if ino > 0 {
+		me.ifs.clientInodeMapMutex.Lock()
+		defer me.ifs.clientInodeMapMutex.Unlock()
+		v := me.ifs.clientInodeMap[ino]
+		if len(v) > 0 {
+			out = v[0].node
+		}
+	}
+
+	if out == nil {
+		out = me.createChild(name)
+		out.clientInode = ino
+	}
+
+	return out
 }
 
 func (me *pathInode) GetAttr(file File, context *Context) (fi *os.FileInfo, code Status) {
@@ -353,6 +387,10 @@ func (me *pathInode) GetAttr(file File, context *Context) (fi *os.FileInfo, code
 		fi, code = me.fs.GetAttr(me.GetPath(), context)
 	}
 
+	if fi != nil {
+		me.setClientInode(fi.Ino)
+	}
+	
 	if fi != nil && !fi.IsDirectory() && fi.Nlink == 0 {
 		fi.Nlink = 1
 	}
@@ -395,7 +433,6 @@ func (me *pathInode) Truncate(file File, size uint64, context *Context) (code St
 	files := me.inode.Files(O_ANYWRITE)
 	for _, f := range files {
 		// TODO - pass context
-		log.Println("truncating file", f)
 		code = f.Truncate(size)
 		if !code.Ok() {
 			break
