@@ -36,7 +36,7 @@ func (me *FileSystemConnector) lookupMountUpdate(mount *fileSystemMount) (out *E
 
 	out = mount.fileInfoToEntry(fi)
 	out.NodeId = mount.mountInode.nodeId
-
+	out.Ino = out.NodeId
 	// We don't do NFS.
 	out.Generation = 1
 	return out, OK
@@ -102,9 +102,9 @@ func (me *FileSystemConnector) postLookup(fi *os.FileInfo, fsNode FsNode, code S
 		out = attrNode.mount.fileInfoToEntry(fi)
 		out.Generation = 1
 		out.NodeId = attrNode.nodeId
+		out.Ino = attrNode.nodeId
 	} else if lookupNode != nil {
 		out, _ = me.createChild(lookupNode, name, fi, fsNode)
-		return out, OK
 	}
 	return out, OK
 }
@@ -128,8 +128,8 @@ func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out 
 		return nil, code
 	}
 	out = &AttrOut{}
-	out.Attr.Ino = header.NodeId
 	node.mount.fileInfoToAttr(fi, out)
+	out.Attr.Ino = header.NodeId
 	return out, OK
 }
 
