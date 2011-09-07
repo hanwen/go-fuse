@@ -24,7 +24,7 @@ func (me *FileSystemConnector) Lookup(header *InHeader, name string) (out *Entry
 func (me *FileSystemConnector) lookupMountUpdate(mount *fileSystemMount) (out *EntryOut, status Status) {
 	fi, err := mount.fs.Root().GetAttr(nil, nil)
 	if err == ENOENT && mount.options.NegativeTimeout > 0.0 {
-		return NegativeEntry(mount.options.NegativeTimeout), OK
+		return mount.negativeEntry(), OK
 	}
 	if !err.Ok() {
 		return nil, err
@@ -93,7 +93,7 @@ func (me *FileSystemConnector) postLookup(fi *os.FileInfo, fsNode FsNode, code S
 		}
 
 		if code == ENOENT && mount.options.NegativeTimeout > 0.0 {
-			return NegativeEntry(mount.options.NegativeTimeout), OK
+			return mount.negativeEntry(), OK
 		}
 		return nil, code
 	}

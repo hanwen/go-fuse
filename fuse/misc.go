@@ -118,14 +118,6 @@ func Writev(fd int, packet [][]byte) (n int, err os.Error) {
 	return n, err
 }
 
-// Creates a return entry for a non-existent path.
-func NegativeEntry(time float64) *EntryOut {
-	out := new(EntryOut)
-	out.NodeId = 0
-	SplitNs(time, &out.EntryValid, &out.EntryValidNsec)
-	return out
-}
-
 func ModeToType(mode uint32) uint32 {
 	return (mode & 0170000) >> 12
 }
