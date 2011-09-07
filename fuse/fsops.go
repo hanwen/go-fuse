@@ -305,6 +305,7 @@ func (me *FileSystemConnector) Link(header *InHeader, input *LinkIn, name string
 		out, _ = me.createChild(parent, name, fi, fsInode)
 	} else {
 		fsInode.Inode().addLookupCount(1)
+		parent.addChild(name, fsInode.Inode())
 		out = parent.mount.fileInfoToEntry(fi)
 		out.Ino = fsInode.Inode().nodeId
 		out.NodeId = out.Ino
