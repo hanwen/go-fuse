@@ -210,9 +210,11 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 	// Must call GetAttr(); the filesystem may override some of
 	// the changes we effect here.
 	fi, code := node.fsInode.GetAttr(f, &header.Context)
-	out = &AttrOut{}
-	out.Attr.Ino = header.NodeId
-	node.mount.fileInfoToAttr(fi, out)
+	if code.Ok() {
+		out = &AttrOut{}
+		out.Attr.Ino = header.NodeId
+		node.mount.fileInfoToAttr(fi, out)
+	}
 	return out, code
 }
 
