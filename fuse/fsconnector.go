@@ -142,7 +142,7 @@ func (me *FileSystemConnector) considerDropInode(n *Inode) (drop bool) {
 		me.inodeMap.Forget(ch.nodeId)
 	}
 
-	if len(n.children) > 0 || n.lookupCount > 0 {
+	if len(n.children) > 0 || n.Live() {
 		return false
 	}
 	if n == me.rootNode || n.mountPoint != nil {

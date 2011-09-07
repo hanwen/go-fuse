@@ -59,6 +59,10 @@ func (me *Inode) LockTree() func() {
 	return func() { me.treeLock.Unlock() }
 }
 
+func (me *Inode) Live() bool {
+	return me.lookupCount > 0
+}
+
 // Returns any open file, preferably a r/w one.
 func (me *Inode) AnyFile() (file File) {
 	me.openFilesMutex.Lock()
