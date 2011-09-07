@@ -331,6 +331,7 @@ func (me *FileSystemConnector) Create(header *InHeader, input *CreateIn, name st
 
 func (me *FileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
 	node := me.getInodeData(header.NodeId)
+	me.getOpenedFile(input.Fh).WithFlags.File.Release()
 	node.mount.unregisterFileHandle(input.Fh, node)
 }
 
