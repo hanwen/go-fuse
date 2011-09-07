@@ -231,11 +231,10 @@ func TestMkdirRmdir(t *testing.T) {
 	CheckSuccess(err)
 }
 
-func TestLink(t *testing.T) {
+func TestLinkCreate(t *testing.T) {
 	me := NewTestCase(t)
 	defer me.Cleanup()
 
-	t.Log("Testing hard links.")
 	err := ioutil.WriteFile(me.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
 	err = os.Mkdir(me.origSubdir, 0777)
@@ -248,7 +247,7 @@ func TestLink(t *testing.T) {
 
 	subfi, err := os.Lstat(mountSubfile)
 	CheckSuccess(err)
-	fi, err := os.Lstat(me.origFile)
+	fi, err := os.Lstat(me.mountFile)
 	CheckSuccess(err)
 
 	if fi.Nlink != 2 {
