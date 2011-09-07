@@ -178,6 +178,10 @@ func (me *UnionFs) getBranchAttrNoCache(name string) branchResult {
 
 		a, s := fs.GetAttr(name, nil)
 		if s.Ok() {
+			if i > 0 {
+				// Needed to make hardlinks work.
+				a.Ino = 0
+			}
 			// Make all files appear writable
 			a.Mode |= 0222
 			return branchResult{
@@ -305,6 +309,35 @@ func (me *UnionFs) Promote(name string, srcResult branchResult, context *fuse.Co
 
 ////////////////////////////////////////////////////////////////
 // Below: implement interface for a FileSystem.
+
+func (me *UnionFs) Link(orig string, newName string, context *fuse.Context) (code fuse.Status) {
+	origResult := me.getBranch(orig)
+	code = origResult.code
+	if code.Ok() && origResult.branch > 0 {
+		code = me.Promote(orig, origResult, context)
+	}
+	if code.Ok() && origResult.branch > 0 {
+		// Hairy: for the link to be hooked up to the existing
+		// inode, PathNodeFs must see a client inode for the
+		// original.  We force a refresh of the attribute (so
+		// the Ino is filled in.), and then force PathNodeFs
+		// to see the Inode number.
+		me.branchCache.GetFresh(orig)
+		inode := me.nodeFs.Node(orig)
+		inode.FsNode().GetAttr(nil, nil)
+	}
+	if code.Ok() {
+		code = me.promoteDirsTo(newName)
+	}
+	if code.Ok() {
+		code = me.fileSystems[0].Link(orig, newName, context)
+	}
+	if code.Ok() {
+		me.removeDeletion(newName)
+		me.branchCache.GetFresh(newName)
+	}
+	return code
+}
 
 func (me *UnionFs) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 	r := me.getBranch(path)

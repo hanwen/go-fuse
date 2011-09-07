@@ -579,6 +579,32 @@ func TestWriteAccess(t *testing.T) {
 	}
 }
 
+func TestLink(t *testing.T) {
+	wd, clean := setupUfs(t)
+	defer clean()
+
+	content := "blabla"
+	fn := wd + "/ro/file"
+	err := ioutil.WriteFile(fn, []byte(content), 0666)
+	CheckSuccess(err)
+
+	err = os.Link(wd+"/mount/file", wd + "/mount/linked")
+	CheckSuccess(err)
+
+	fi2, err := os.Lstat(wd + "/mount/linked")
+	CheckSuccess(err)
+
+	fi1, err := os.Lstat(wd + "/mount/file")
+	CheckSuccess(err)
+	if fi1.Ino != fi2.Ino {
+		t.Errorf("inode numbers should be equal for linked files %v, %v", fi1.Ino, fi2.Ino)
+	}
+	c, err := ioutil.ReadFile(wd + "/mount/linked")
+	if string(c) != content {
+		t.Errorf("content mismatch got %q want %q", string(c), content)
+	}
+}
+
 func TestTruncate(t *testing.T) {
 	t.Log("TestTruncate")
 	wd, clean := setupUfs(t)
