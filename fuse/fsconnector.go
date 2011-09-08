@@ -1,9 +1,18 @@
 package fuse
 
 // This file contains the internal logic of the
-// FileSystemConnector. The functions for satisfying the raw interface are in
-// fsops.go
+// FileSystemConnector. The functions for satisfying the raw interface
+// are in fsops.go
 
+/* TODO - document overall structure and locking strategy.
+
+ "at a first glance, questions that come up: why doesn't fsconnector
+have the lock, why does every node need it?  (I have some ideas, but
+they take a while to verify)"
+
+ "a short sum up on how the forget count is handled"
+
+*/
 import (
 	"fmt"
 	"log"
@@ -47,7 +56,7 @@ func NewFileSystemConnector(nodeFs NodeFileSystem, opts *FileSystemOptions) (me 
 	// FUSE does not issue a LOOKUP for 1 (obviously), but it does
 	// issue a forget.  This lookupCount is to make the counts match.
 	me.lookupUpdate(me.rootNode)
-	
+
 	me.verify()
 	me.MountRoot(nodeFs, opts)
 	return me
@@ -75,7 +84,7 @@ func (me *FileSystemConnector) createChild(parent *Inode, name string, fi *os.Fi
 		parent.addChild(name, child)
 	}
 	me.lookupUpdate(child)
-	
+
 	out = parent.mount.fileInfoToEntry(fi)
 	out.Ino = child.nodeId
 	out.NodeId = child.nodeId
@@ -121,7 +130,7 @@ func (me *FileSystemConnector) forgetUpdate(node *Inode, forgetCount int) {
 	} else if node.lookupCount < 0 {
 		panic(fmt.Sprintf("lookupCount underflow: %d: %v", node.lookupCount, me))
 	}
-	
+
 	me.recursiveConsiderDropInode(node)
 }
 
@@ -317,7 +326,7 @@ func (me *FileSystemConnector) Unmount(node *Inode) Status {
 	parentNode.mounts[name] = nil, false
 	parentNode.children[name] = nil, false
 	mount.fs.OnUnmount()
-	
+
 	me.EntryNotify(parentNode, name)
 
 	return OK
@@ -334,7 +343,7 @@ func (me *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) 
 	out := NotifyInvalInodeOut{
 		Length: length,
 		Off:    off,
-		Ino:    n, 
+		Ino:    n,
 	}
 	return me.fsInit.InodeNotify(&out)
 }
