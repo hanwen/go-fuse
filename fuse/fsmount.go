@@ -78,6 +78,9 @@ func (me *fileSystemMount) fileInfoToAttr(fi *os.FileInfo, out *AttrOut) {
 
 func (me *FileSystemConnector) getOpenedFile(h uint64) *openedFile {
 	b := (*openedFile)(unsafe.Pointer(DecodeHandle(h)))
+	if me.Debug {
+		log.Printf("File %d = %s", h, b.WithFlags.Description)
+	}
 	return b
 }
 
@@ -112,10 +115,16 @@ func (me *fileSystemMount) registerFileHandle(node *Inode, dir rawDir, f File, f
 			OpenFlags: flags,
 		},
 	}
-	withFlags, ok := f.(*WithFlags)
-	if ok {
-		b.WithFlags.FuseFlags = withFlags.FuseFlags
-		b.WithFlags.File = withFlags.File
+
+	for {
+		withFlags, ok := f.(*WithFlags)
+		if !ok {
+			break
+		}
+
+		b.WithFlags.FuseFlags |= withFlags.FuseFlags
+		b.WithFlags.Description += withFlags.Description
+		f = withFlags.File
 	}
 
 	node.openFiles = append(node.openFiles, b)

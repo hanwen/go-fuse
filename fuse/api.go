@@ -153,10 +153,14 @@ type File interface {
 	Fsync(*FsyncIn) (code Status)
 }
 
-// Wrap a File return in this to set FUSE flags.
+// Wrap a File return in this to set FUSE flags.  Also used internally
+// to store open file data.
 type WithFlags struct {
 	File
 
+	// For debugging.
+	Description string
+	
 	// Put FOPEN_* flags here.
 	FuseFlags uint32
 

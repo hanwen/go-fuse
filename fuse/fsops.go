@@ -174,7 +174,8 @@ func (me *FileSystemConnector) Open(header *InHeader, input *OpenIn) (flags uint
 func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out *AttrOut, code Status) {
 	var f File
 	if input.Valid&FATTR_FH != 0 {
-		me.getOpenedFile(input.Fh)
+		opened := me.getOpenedFile(input.Fh)
+		f = opened.WithFlags.File
 	}
 
 	node := me.getInodeData(header.NodeId)

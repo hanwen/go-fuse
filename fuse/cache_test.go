@@ -73,7 +73,7 @@ func TestCacheFs(t *testing.T) {
 	CheckSuccess(err)
 
 	if string(c) != "hello" {
-		t.Fatalf("expect 'hello' %q", string(c))
+		t.Fatalf("Page cache skipped: expect 'hello' %q", string(c))
 	}
 
 	code := pathfs.EntryNotify("", "file.txt")

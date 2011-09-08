@@ -164,7 +164,12 @@ func (me *pathInode) GetPath() (path string) {
 	if n != me.ifs.root {
 		return ".deleted"
 	}
-	return ReverseJoin(rev_components, "/")
+	p := ReverseJoin(rev_components, "/")
+	if me.ifs.Debug {
+		log.Printf("Inode %d = %q", me.Inode().nodeId, p)
+	}
+		
+	return p
 }
 
 func (me *pathInode) AddChild(name string, child FsNode) {
@@ -379,7 +384,14 @@ func (me *pathInode) createChild(name string) *pathInode {
 }
 
 func (me *pathInode) Open(flags uint32, context *Context) (file File, code Status) {
-	return me.fs.Open(me.GetPath(), flags, context)
+	file, code = me.fs.Open(me.GetPath(), flags, context)
+	if me.ifs.Debug {
+		file = &WithFlags{
+			File: file,
+			Description: me.GetPath(),
+		}
+	}
+	return 
 }
 
 func (me *pathInode) Lookup(name string, context *Context) (fi *os.FileInfo, node FsNode, code Status) {
