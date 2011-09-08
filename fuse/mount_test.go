@@ -28,7 +28,7 @@ func TestMountOnExisting(t *testing.T) {
 		t.Fatal("expect OK:", code)
 	}
 
-	ts.nodeFs.Unmount("mnt")
+	ts.pathFs.Unmount("mnt")
 }
 
 func TestMountRename(t *testing.T) {
@@ -44,7 +44,7 @@ func TestMountRename(t *testing.T) {
 	if OsErrorToErrno(err) != EBUSY {
 		t.Fatal("rename mount point should fail with EBUSY:", err)
 	}
-	ts.nodeFs.Unmount("mnt")
+	ts.pathFs.Unmount("mnt")
 }
 
 func TestMountReaddir(t *testing.T) {
@@ -62,7 +62,7 @@ func TestMountReaddir(t *testing.T) {
 	if len(entries) != 1 || entries[0].Name != "mnt" {
 		t.Error("wrong readdir result", entries)
 	}
-	ts.nodeFs.Unmount("mnt")
+	ts.pathFs.Unmount("mnt")
 }
 
 func TestRecursiveMount(t *testing.T) {
@@ -87,7 +87,7 @@ func TestRecursiveMount(t *testing.T) {
 	f, err := os.Open(filepath.Join(submnt, "hello.txt"))
 	CheckSuccess(err)
 	log.Println("Attempting unmount, should fail")
-	code = ts.nodeFs.Unmount("mnt")
+	code = ts.pathFs.Unmount("mnt")
 	if code != EBUSY {
 		t.Error("expect EBUSY")
 	}
@@ -98,7 +98,7 @@ func TestRecursiveMount(t *testing.T) {
 	time.Sleep(1.5e9 * testTtl)
 
 	log.Println("Attempting unmount, should succeed")
-	code = ts.nodeFs.Unmount("mnt")
+	code = ts.pathFs.Unmount("mnt")
 	if code != OK {
 		t.Error("umount failed.", code)
 	}
@@ -125,14 +125,14 @@ func TestDeletedUnmount(t *testing.T) {
 	_, err = f.Write([]byte("bla"))
 	CheckSuccess(err)
 
-	code = ts.nodeFs.Unmount("mnt")
+	code = ts.pathFs.Unmount("mnt")
 	if code != EBUSY {
 		t.Error("expect EBUSY for unmount with open files", code)
 	}
 
 	f.Close()
 	time.Sleep(1.5e9 * testTtl)
-	code = ts.nodeFs.Unmount("mnt")
+	code = ts.pathFs.Unmount("mnt")
 	if !code.Ok() {
 		t.Error("should succeed", code)
 	}

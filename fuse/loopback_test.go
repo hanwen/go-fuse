@@ -33,7 +33,7 @@ type testCase struct {
 	origSubdir  string
 	tester      *testing.T
 	state       *MountState
-	nodeFs      *PathNodeFs
+	pathFs      *PathNodeFs
 	connector   *FileSystemConnector
 }
 
@@ -69,8 +69,8 @@ func NewTestCase(t *testing.T) *testCase {
 	pfs = NewLockingFileSystem(pfs)
 
 	var rfs RawFileSystem
-	me.nodeFs = NewPathNodeFs(pfs)
-	me.connector = NewFileSystemConnector(me.nodeFs,
+	me.pathFs = NewPathNodeFs(pfs)
+	me.connector = NewFileSystemConnector(me.pathFs,
 		&FileSystemOptions{
 			EntryTimeout:    testTtl,
 			AttrTimeout:     testTtl,
@@ -101,7 +101,7 @@ func (me *testCase) Cleanup() {
 }
 
 func (me *testCase) rootNode() *Inode {
-	return me.nodeFs.Root().Inode()
+	return me.pathFs.Root().Inode()
 }
 
 ////////////////
