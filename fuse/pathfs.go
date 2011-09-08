@@ -115,7 +115,7 @@ func NewPathNodeFs(fs FileSystem) *PathNodeFs {
 		root:           root,
 		clientInodeMap: map[uint64][]*clientInodePath{},
 	}
-	root.ifs = me
+	root.pathFs = me
 	return me
 }
 
@@ -127,7 +127,7 @@ func (me *PathNodeFs) Root() FsNode {
 // the inode). This structure is used to implement glue for FSes where
 // there is a one-to-one mapping of paths and inodes.
 type pathInode struct {
-	ifs  *PathNodeFs
+	pathFs  *PathNodeFs
 	fs   FileSystem
 	Name string
 
@@ -161,11 +161,11 @@ func (me *pathInode) GetPath() (path string) {
 	for ; n.Parent != nil; n = n.Parent {
 		rev_components = append(rev_components, n.Name)
 	}
-	if n != me.ifs.root {
+	if n != me.pathFs.root {
 		return ".deleted"
 	}
 	p := ReverseJoin(rev_components, "/")
-	if me.ifs.Debug {
+	if me.pathFs.Debug {
 		log.Printf("Inode %d = %q", me.Inode().nodeId, p)
 	}
 
@@ -178,14 +178,14 @@ func (me *pathInode) AddChild(name string, child FsNode) {
 	ch.Name = name
 
 	if ch.clientInode > 0 {
-		me.ifs.clientInodeMapMutex.Lock()
-		defer me.ifs.clientInodeMapMutex.Unlock()
-		m := me.ifs.clientInodeMap[ch.clientInode]
+		me.pathFs.clientInodeMapMutex.Lock()
+		defer me.pathFs.clientInodeMapMutex.Unlock()
+		m := me.pathFs.clientInodeMap[ch.clientInode]
 		e := &clientInodePath{
 			me, name, child.(*pathInode),
 		}
 		m = append(m, e)
-		me.ifs.clientInodeMap[ch.clientInode] = m
+		me.pathFs.clientInodeMap[ch.clientInode] = m
 	}
 }
 
@@ -193,9 +193,9 @@ func (me *pathInode) RmChild(name string, child FsNode) {
 	ch := child.(*pathInode)
 
 	if ch.clientInode > 0 {
-		me.ifs.clientInodeMapMutex.Lock()
-		defer me.ifs.clientInodeMapMutex.Unlock()
-		m := me.ifs.clientInodeMap[ch.clientInode]
+		me.pathFs.clientInodeMapMutex.Lock()
+		defer me.pathFs.clientInodeMapMutex.Unlock()
+		m := me.pathFs.clientInodeMap[ch.clientInode]
 
 		idx := -1
 		for i, v := range m {
@@ -213,7 +213,7 @@ func (me *pathInode) RmChild(name string, child FsNode) {
 			ch.Name = m[0].name
 			return
 		} else {
-			me.ifs.clientInodeMap[ch.clientInode] = nil, false
+			me.pathFs.clientInodeMap[ch.clientInode] = nil, false
 		}
 	}
 
@@ -226,10 +226,10 @@ func (me *pathInode) setClientInode(ino uint64) {
 		return
 	}
 	defer me.Inode().LockTree()()
-	me.ifs.clientInodeMapMutex.Lock()
-	defer me.ifs.clientInodeMapMutex.Unlock()
+	me.pathFs.clientInodeMapMutex.Lock()
+	defer me.pathFs.clientInodeMapMutex.Unlock()
 	if me.clientInode != 0 {
-		me.ifs.clientInodeMap[me.clientInode] = nil, false
+		me.pathFs.clientInodeMap[me.clientInode] = nil, false
 	}
 
 	me.clientInode = ino
@@ -237,7 +237,7 @@ func (me *pathInode) setClientInode(ino uint64) {
 		e := &clientInodePath{
 			me.Parent, me.Name, me,
 		}
-		me.ifs.clientInodeMap[ino] = append(me.ifs.clientInodeMap[ino], e)
+		me.pathFs.clientInodeMap[ino] = append(me.pathFs.clientInodeMap[ino], e)
 	}
 }
 
@@ -245,9 +245,9 @@ func (me *pathInode) OnForget() {
 	if me.clientInode == 0 {
 		return
 	}
-	me.ifs.clientInodeMapMutex.Lock()
-	defer me.ifs.clientInodeMapMutex.Unlock()
-	me.ifs.clientInodeMap[me.clientInode] = nil, false
+	me.pathFs.clientInodeMapMutex.Lock()
+	defer me.pathFs.clientInodeMapMutex.Unlock()
+	me.pathFs.clientInodeMap[me.clientInode] = nil, false
 }
 
 ////////////////////////////////////////////////////////////////
@@ -379,13 +379,13 @@ func (me *pathInode) createChild(name string) *pathInode {
 	i.Parent = me
 	i.Name = name
 	i.fs = me.fs
-	i.ifs = me.ifs
+	i.pathFs = me.pathFs
 	return i
 }
 
 func (me *pathInode) Open(flags uint32, context *Context) (file File, code Status) {
 	file, code = me.fs.Open(me.GetPath(), flags, context)
-	if me.ifs.Debug {
+	if me.pathFs.Debug {
 		file = &WithFlags{
 			File:        file,
 			Description: me.GetPath(),
@@ -406,9 +406,9 @@ func (me *pathInode) Lookup(name string, context *Context) (fi *os.FileInfo, nod
 
 func (me *pathInode) findChild(ino uint64, name string) (out *pathInode) {
 	if ino > 0 {
-		me.ifs.clientInodeMapMutex.Lock()
-		defer me.ifs.clientInodeMapMutex.Unlock()
-		v := me.ifs.clientInodeMap[ino]
+		me.pathFs.clientInodeMapMutex.Lock()
+		defer me.pathFs.clientInodeMapMutex.Unlock()
+		v := me.pathFs.clientInodeMap[ino]
 		if len(v) > 0 {
 			out = v[0].node
 		}
