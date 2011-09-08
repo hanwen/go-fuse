@@ -269,7 +269,6 @@ func (me *UnionFs) Promote(name string, srcResult branchResult, context *fuse.Co
 	if srcResult.attr.IsRegular() {
 		code = fuse.CopyFile(sourceFs, writable, name, name, context)
 		files := me.nodeFs.AllFiles(name, 0)
-		log.Println("promote files", files, name)
 		for _, f := range files {
 			if !code.Ok() {
 				break
