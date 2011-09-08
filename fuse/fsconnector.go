@@ -117,7 +117,7 @@ func (me *FileSystemConnector) findMount(parent *Inode, name string) (mount *fil
 	return parent.mounts[name]
 }
 
-func (me *FileSystemConnector) getInodeData(nodeid uint64) *Inode {
+func (me *FileSystemConnector) toInode(nodeid uint64) *Inode {
 	if nodeid == FUSE_ROOT_ID {
 		return me.rootNode
 	}
@@ -128,7 +128,7 @@ func (me *FileSystemConnector) getInodeData(nodeid uint64) *Inode {
 func (me *FileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int) {
 	defer me.verify()
 
-	node := me.getInodeData(nodeId)
+	node := me.toInode(nodeId)
 
 	node.treeLock.Lock()
 	defer node.treeLock.Unlock()

@@ -16,7 +16,7 @@ func (me *FileSystemConnector) Init(fsInit *RawFsInit) {
 }
 
 func (me *FileSystemConnector) Lookup(header *InHeader, name string) (out *EntryOut, status Status) {
-	parent := me.getInodeData(header.NodeId)
+	parent := me.toInode(header.NodeId)
 	out, status = me.internalLookup(parent, name, &header.Context)
 	return out, status
 }
@@ -114,7 +114,7 @@ func (me *FileSystemConnector) Forget(h *InHeader, input *ForgetIn) {
 }
 
 func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
-	node := me.getInodeData(header.NodeId)
+	node := me.toInode(header.NodeId)
 
 	var f File
 	if input.Flags&FUSE_GETATTR_FH != 0 {
@@ -134,7 +134,7 @@ func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out 
 }
 
 func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags uint32, handle uint64, code Status) {
-	node := me.getInodeData(header.NodeId)
+	node := me.toInode(header.NodeId)
 	stream, err := node.fsInode.OpenDir(&header.Context)
 	if err != OK {
 		return 0, 0, err
@@ -162,7 +162,7 @@ func (me *FileSystemConnector) ReadDir(header *InHeader, input *ReadIn) (*DirEnt
 }
 
 func (me *FileSystemConnector) Open(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
-	node := me.getInodeData(header.NodeId)
+	node := me.toInode(header.NodeId)
 	f, code := node.fsInode.Open(input.Flags, &header.Context)
 	if !code.Ok() {
 		return 0, 0, code
@@ -178,7 +178,7 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 		f = opened.WithFlags.File
 	}
 
-	node := me.getInodeData(header.NodeId)
+	node := me.toInode(header.NodeId)
 	if code.Ok() && input.Valid&FATTR_MODE != 0 {
 		permissions := uint32(07777) & input.Mode
 		code = node.fsInode.Chmod(f, permissions, &header.Context)
@@ -220,12 +220,12 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 }
 
 func (me *FileSystemConnector) Readlink(header *InHeader) (out []byte, code Status) {
-	n := me.getInodeData(header.NodeId)
+	n := me.toInode(header.NodeId)
 	return n.fsInode.Readlink(&header.Context)
 }
 
 func (me *FileSystemConnector) Mknod(header *InHeader, input *MknodIn, name string) (out *EntryOut, code Status) {
-	parent := me.getInodeData(header.NodeId)
+	parent := me.toInode(header.NodeId)
 	fi, fsNode, code := parent.fsInode.Mknod(name, input.Mode, uint32(input.Rdev), &header.Context)
 	if code.Ok() {
 		out, _ = me.createChild(parent, name, fi, fsNode)
@@ -234,7 +234,7 @@ func (me *FileSystemConnector) Mknod(header *InHeader, input *MknodIn, name stri
 }
 
 func (me *FileSystemConnector) Mkdir(header *InHeader, input *MkdirIn, name string) (out *EntryOut, code Status) {
-	parent := me.getInodeData(header.NodeId)
+	parent := me.toInode(header.NodeId)
 	fi, fsInode, code := parent.fsInode.Mkdir(name, input.Mode, &header.Context)
 
 	if code.Ok() {
@@ -244,7 +244,7 @@ func (me *FileSystemConnector) Mkdir(header *InHeader, input *MkdirIn, name stri
 }
 
 func (me *FileSystemConnector) Unlink(header *InHeader, name string) (code Status) {
-	parent := me.getInodeData(header.NodeId)
+	parent := me.toInode(header.NodeId)
 	code = parent.fsInode.Unlink(name, &header.Context)
 	if code.Ok() {
 		// Like fuse.c, we update our internal tables.
@@ -254,7 +254,7 @@ func (me *FileSystemConnector) Unlink(header *InHeader, name string) (code Statu
 }
 
 func (me *FileSystemConnector) Rmdir(header *InHeader, name string) (code Status) {
-	parent := me.getInodeData(header.NodeId)
+	parent := me.toInode(header.NodeId)
 	code = parent.fsInode.Rmdir(name, &header.Context)
 	if code.Ok() {
 		// Like fuse.c, we update our internal tables.
@@ -264,7 +264,7 @@ func (me *FileSystemConnector) Rmdir(header *InHeader, name string) (code Status
 }
 
 func (me *FileSystemConnector) Symlink(header *InHeader, pointedTo string, linkName string) (out *EntryOut, code Status) {
-	parent := me.getInodeData(header.NodeId)
+	parent := me.toInode(header.NodeId)
 	fi, fsNode, code := parent.fsInode.Symlink(linkName, pointedTo, &header.Context)
 	if code.Ok() {
 		out, _ = me.createChild(parent, linkName, fi, fsNode)
@@ -273,13 +273,13 @@ func (me *FileSystemConnector) Symlink(header *InHeader, pointedTo string, linkN
 }
 
 func (me *FileSystemConnector) Rename(header *InHeader, input *RenameIn, oldName string, newName string) (code Status) {
-	oldParent := me.getInodeData(header.NodeId)
+	oldParent := me.toInode(header.NodeId)
 	isMountPoint := me.findMount(oldParent, oldName) != nil
 	if isMountPoint {
 		return EBUSY
 	}
 
-	newParent := me.getInodeData(input.Newdir)
+	newParent := me.toInode(input.Newdir)
 	if oldParent.mount != newParent.mount {
 		return EXDEV
 	}
@@ -292,8 +292,8 @@ func (me *FileSystemConnector) Rename(header *InHeader, input *RenameIn, oldName
 }
 
 func (me *FileSystemConnector) Link(header *InHeader, input *LinkIn, name string) (out *EntryOut, code Status) {
-	existing := me.getInodeData(input.Oldnodeid)
-	parent := me.getInodeData(header.NodeId)
+	existing := me.toInode(input.Oldnodeid)
+	parent := me.toInode(header.NodeId)
 
 	if existing.mount != parent.mount {
 		return nil, EXDEV
@@ -317,12 +317,12 @@ func (me *FileSystemConnector) Link(header *InHeader, input *LinkIn, name string
 }
 
 func (me *FileSystemConnector) Access(header *InHeader, input *AccessIn) (code Status) {
-	n := me.getInodeData(header.NodeId)
+	n := me.toInode(header.NodeId)
 	return n.fsInode.Access(input.Mask, &header.Context)
 }
 
 func (me *FileSystemConnector) Create(header *InHeader, input *CreateIn, name string) (flags uint32, h uint64, out *EntryOut, code Status) {
-	parent := me.getInodeData(header.NodeId)
+	parent := me.toInode(header.NodeId)
 	f, fi, fsNode, code := parent.fsInode.Create(name, uint32(input.Flags), input.Mode, &header.Context)
 	if !code.Ok() {
 		return 0, 0, nil, code
@@ -333,41 +333,41 @@ func (me *FileSystemConnector) Create(header *InHeader, input *CreateIn, name st
 }
 
 func (me *FileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
-	node := me.getInodeData(header.NodeId)
+	node := me.toInode(header.NodeId)
 	opened := node.mount.unregisterFileHandle(input.Fh, node)
 	opened.WithFlags.File.Release()
 }
 
 func (me *FileSystemConnector) Flush(header *InHeader, input *FlushIn) Status {
-	node := me.getInodeData(header.NodeId)
+	node := me.toInode(header.NodeId)
 	opened := me.getOpenedFile(input.Fh)
 	return node.fsInode.Flush(opened.WithFlags.File, opened.WithFlags.OpenFlags, &header.Context)
 }
 
 func (me *FileSystemConnector) ReleaseDir(header *InHeader, input *ReleaseIn) {
-	node := me.getInodeData(header.NodeId)
+	node := me.toInode(header.NodeId)
 	opened := node.mount.unregisterFileHandle(input.Fh, node)
 	opened.dir.Release()
 	me.considerDropInode(node)
 }
 
 func (me *FileSystemConnector) GetXAttr(header *InHeader, attribute string) (data []byte, code Status) {
-	node := me.getInodeData(header.NodeId)
+	node := me.toInode(header.NodeId)
 	return node.fsInode.GetXAttr(attribute, &header.Context)
 }
 
 func (me *FileSystemConnector) RemoveXAttr(header *InHeader, attr string) Status {
-	node := me.getInodeData(header.NodeId)
+	node := me.toInode(header.NodeId)
 	return node.fsInode.RemoveXAttr(attr, &header.Context)
 }
 
 func (me *FileSystemConnector) SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) Status {
-	node := me.getInodeData(header.NodeId)
+	node := me.toInode(header.NodeId)
 	return node.fsInode.SetXAttr(attr, data, int(input.Flags), &header.Context)
 }
 
 func (me *FileSystemConnector) ListXAttr(header *InHeader) (data []byte, code Status) {
-	node := me.getInodeData(header.NodeId)
+	node := me.toInode(header.NodeId)
 	attrs, code := node.fsInode.ListXAttr(&header.Context)
 	if code != OK {
 		return nil, code
