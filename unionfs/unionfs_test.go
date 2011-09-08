@@ -944,3 +944,30 @@ func TestDoubleOpen(t *testing.T) {
 		t.Errorf("r/w and r/o file are not synchronized: got %q want %q", string(b), want)
 	}
 }
+
+
+func TestFdLeak(t *testing.T) {
+	beforeEntries, err := ioutil.ReadDir("/proc/self/fd")
+	CheckSuccess(err)
+
+	wd, clean := setupUfs(t)
+	err = ioutil.WriteFile(wd+"/ro/file", []byte("blablabla"), 0644)
+	CheckSuccess(err)
+
+	contents, err := ioutil.ReadFile(wd + "/mount/file")
+	CheckSuccess(err)
+
+	err = ioutil.WriteFile(wd + "/mount/file", contents, 0644)
+	CheckSuccess(err)
+
+	clean()
+
+	afterEntries, err := ioutil.ReadDir("/proc/self/fd")
+	CheckSuccess(err)
+
+	if len(afterEntries) != len(beforeEntries) {
+		t.Errorf("/proc/self/fd changed size: after %v before %v", len(beforeEntries), len(afterEntries))
+	}
+}
+
+
