@@ -12,9 +12,6 @@ var _ = log.Println
 type Inode struct {
 	handled Handled
 
-	// Constant during lifetime.
-	nodeId uint64
-
 	// Number of open files and its protection.
 	openFilesMutex sync.Mutex
 	openFiles      []*openedFile
@@ -36,9 +33,19 @@ type Inode struct {
 	// are duplicated in children.
 	mounts map[string]*fileSystemMount
 
-	// Use addLookupCount() to manipulate.
+	// This is exclusively used for managing the lifetime of
+	// nodeId below, and it is ok for a node to have 0 lookupCount
+	// and be in the system if it is synthetic.
 	lookupCount int
 
+	// The nodeId is only used to communicate to the kernel.  If
+	// it is zero, it means the kernel does not know about this
+	// Inode.
+	nodeId uint64
+	
+	// This is to prevent lookupCount==0 node from being dropped.
+	synthetic bool
+	
 	// Non-nil if this is a mountpoint.
 	mountPoint *fileSystemMount
 
@@ -46,8 +53,17 @@ type Inode struct {
 	// during the lifetime, except upon Unmount() when it is set
 	// to nil.
 	mount *fileSystemMount
+}
 
-	connector *FileSystemConnector
+func newInode(isDir bool, fsNode FsNode) *Inode {
+	me := new(Inode)
+	if isDir {
+		me.children = make(map[string]*Inode, initDirSize)
+	}
+	me.fsInode = fsNode
+	me.fsInode.SetInode(me)
+
+	return me
 }
 
 // public methods.
@@ -58,10 +74,6 @@ func (me *Inode) LockTree() func() {
 	// TODO - this API is tricky.
 	me.treeLock.Lock()
 	return func() { me.treeLock.Unlock() }
-}
-
-func (me *Inode) Live() bool {
-	return me.lookupCount > 0
 }
 
 // Returns any open file, preferably a r/w one.
@@ -109,22 +121,26 @@ func (me *Inode) IsDir() bool {
 	return me.children != nil
 }
 
-// Creates an Inode as child.
+
+// CreateChild() creates node for synthetic use
 func (me *Inode) CreateChild(name string, isDir bool, fsi FsNode) *Inode {
 	me.treeLock.Lock()
 	defer me.treeLock.Unlock()
 
+	ch :=  me.createChild(name, isDir, fsi)
+	ch.synthetic = true
+	return ch
+}
+
+// Creates an Inode as child.
+func (me *Inode) createChild(name string, isDir bool, fsi FsNode) *Inode {
 	ch := me.children[name]
 	if ch != nil {
 		panic(fmt.Sprintf("already have a child at %v %q", me.nodeId, name))
 	}
-	ch = me.connector.newInode(isDir)
-	ch.fsInode = fsi
-	fsi.SetInode(ch)
+	ch = newInode(isDir, fsi)
 	ch.mount = me.mount
 	ch.treeLock = me.treeLock
-	ch.addLookupCount(1)
-	ch.connector = me.connector
 
 	me.addChild(name, ch)
 	return ch
@@ -139,13 +155,6 @@ func (me *Inode) GetChild(name string) (child *Inode) {
 
 ////////////////////////////////////////////////////////////////
 // private
-
-func (me *Inode) addLookupCount(delta int) {
-	me.lookupCount += delta
-	if me.lookupCount < 0 {
-		panic(fmt.Sprintf("lookupCount underflow: %d: %v", me.lookupCount, me))
-	}
-}
 
 // Must be called with treeLock for the mount held.
 func (me *Inode) addChild(name string, child *Inode) {
@@ -182,8 +191,6 @@ func (me *Inode) mountFs(fs NodeFileSystem, opts *FileSystemOptions) {
 	}
 	me.mount = me.mountPoint
 	me.treeLock = &me.mountPoint.treeLock
-	me.fsInode = fs.Root()
-	me.fsInode.SetInode(me)
 }
 
 // Must be called with treeLock held.
@@ -222,6 +229,9 @@ const initDirSize = 20
 func (me *Inode) verify(cur *fileSystemMount) {
 	if me.lookupCount < 0 {
 		panic(fmt.Sprintf("negative lookup count %d on node %d", me.lookupCount, me.nodeId))
+	}
+	if (me.lookupCount == 0) != (me.nodeId == 0) {
+		panic("kernel registration mismatch")
 	}
 	if me.mountPoint != nil {
 		if me != me.mountPoint.mountInode {

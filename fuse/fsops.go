@@ -32,8 +32,7 @@ func (me *FileSystemConnector) lookupMountUpdate(mount *fileSystemMount) (out *E
 	mount.treeLock.Lock()
 	defer mount.treeLock.Unlock()
 
-	mount.mountInode.addLookupCount(1)
-
+	me.lookupUpdate(mount.mountInode)
 	out = mount.fileInfoToEntry(fi)
 	out.NodeId = mount.mountInode.nodeId
 	out.Ino = out.NodeId
@@ -60,6 +59,7 @@ func (me *FileSystemConnector) internalLookup(parent *Inode, name string, contex
 	return me.postLookup(fi, fsNode, code, getattrNode, lookupNode, name)
 }
 
+
 // Prepare for lookup: we are either looking for getattr of an
 // existing node, or lookup a new one. Here we decide which of those
 func (me *FileSystemConnector) preLookup(parent *Inode, name string) (lookupNode *Inode, attrNode *Inode) {
@@ -69,7 +69,7 @@ func (me *FileSystemConnector) preLookup(parent *Inode, name string) (lookupNode
 	child := parent.children[name]
 	if child != nil {
 		// Make sure the child doesn't die inbetween.
-		child.addLookupCount(1)
+		me.lookupUpdate(child)
 		return nil, child
 	}
 
@@ -89,7 +89,7 @@ func (me *FileSystemConnector) postLookup(fi *os.FileInfo, fsNode FsNode, code S
 		if attrNode != nil {
 			mount.treeLock.Lock()
 			defer mount.treeLock.Unlock()
-			attrNode.addLookupCount(-1)
+			me.forgetUpdate(attrNode, -1)
 		}
 
 		if code == ENOENT && mount.options.NegativeTimeout > 0.0 {
@@ -104,13 +104,14 @@ func (me *FileSystemConnector) postLookup(fi *os.FileInfo, fsNode FsNode, code S
 		out.NodeId = attrNode.nodeId
 		out.Ino = attrNode.nodeId
 	} else if lookupNode != nil {
-		out, _ = me.createChild(lookupNode, name, fi, fsNode)
+		out = me.createChild(lookupNode, name, fi, fsNode)
 	}
 	return out, OK
 }
 
 func (me *FileSystemConnector) Forget(h *InHeader, input *ForgetIn) {
-	me.forgetUpdate(h.NodeId, int(input.Nlookup))
+	node := me.toInode(h.NodeId)
+	me.forgetUpdate(node, int(input.Nlookup))
 }
 
 func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
@@ -228,7 +229,7 @@ func (me *FileSystemConnector) Mknod(header *InHeader, input *MknodIn, name stri
 	parent := me.toInode(header.NodeId)
 	fi, fsNode, code := parent.fsInode.Mknod(name, input.Mode, uint32(input.Rdev), &header.Context)
 	if code.Ok() {
-		out, _ = me.createChild(parent, name, fi, fsNode)
+		out = me.createChild(parent, name, fi, fsNode)
 	}
 	return out, code
 }
@@ -238,7 +239,7 @@ func (me *FileSystemConnector) Mkdir(header *InHeader, input *MkdirIn, name stri
 	fi, fsInode, code := parent.fsInode.Mkdir(name, input.Mode, &header.Context)
 
 	if code.Ok() {
-		out, _ = me.createChild(parent, name, fi, fsInode)
+		out = me.createChild(parent, name, fi, fsInode)
 	}
 	return out, code
 }
@@ -267,7 +268,7 @@ func (me *FileSystemConnector) Symlink(header *InHeader, pointedTo string, linkN
 	parent := me.toInode(header.NodeId)
 	fi, fsNode, code := parent.fsInode.Symlink(linkName, pointedTo, &header.Context)
 	if code.Ok() {
-		out, _ = me.createChild(parent, linkName, fi, fsNode)
+		out = me.createChild(parent, linkName, fi, fsNode)
 	}
 	return out, code
 }
@@ -304,15 +305,7 @@ func (me *FileSystemConnector) Link(header *InHeader, input *LinkIn, name string
 		return nil, code
 	}
 
-	if fsInode.Inode() == nil {
-		out, _ = me.createChild(parent, name, fi, fsInode)
-	} else {
-		fsInode.Inode().addLookupCount(1)
-		parent.addChild(name, fsInode.Inode())
-		out = parent.mount.fileInfoToEntry(fi)
-		out.Ino = fsInode.Inode().nodeId
-		out.NodeId = out.Ino
-	}
+	out = me.createChild(parent, name, fi, fsInode)
 	return out, code
 }
 
@@ -327,8 +320,8 @@ func (me *FileSystemConnector) Create(header *InHeader, input *CreateIn, name st
 	if !code.Ok() {
 		return 0, 0, nil, code
 	}
-	out, child := me.createChild(parent, name, fi, fsNode)
-	handle, opened := parent.mount.registerFileHandle(child, nil, f, input.Flags)
+	out = me.createChild(parent, name, fi, fsNode)
+	handle, opened := parent.mount.registerFileHandle(fsNode.Inode(), nil, f, input.Flags)
 	return opened.FuseFlags, handle, out, code
 }
 
