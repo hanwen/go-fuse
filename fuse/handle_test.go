@@ -73,6 +73,9 @@ func TestHandleMapBasic(t *testing.T) {
 	hm := NewHandleMap(true)
 	h := hm.Register(v, v)
 	log.Printf("Got handle 0x%x", h)
+	if !hm.Has(h) {
+		t.Fatal("Does not have handle")
+	}
 	if DecodeHandle(h) != v {
 		t.Fatal("address mismatch")
 	}
@@ -82,6 +85,9 @@ func TestHandleMapBasic(t *testing.T) {
 	hm.Forget(h)
 	if hm.Count() != 0 {
 		t.Fatal("count error")
+	}
+	if hm.Has(h) {
+		t.Fatal("Still has handle")
 	}
 }
 

@@ -23,6 +23,7 @@ type HandleMap interface {
 	Register(obj *Handled, asInt interface{}) uint64
 	Count() int
 	Forget(uint64) *Handled
+	Has(uint64) bool
 }
 
 type Handled struct {
@@ -43,6 +44,13 @@ func (me *int32HandleMap) Register(obj *Handled, asInt interface{}) uint64 {
 	me.handles[handle] = obj
 	return uint64(handle)
 }
+
+func (me *int32HandleMap) Has(h uint64) bool {
+	me.mutex.Lock()
+	defer me.mutex.Unlock()
+	return me.handles[uint32(h)] != nil
+}
+
 
 func (me *int32HandleMap) Count() int {
 	me.mutex.Lock()
@@ -156,6 +164,12 @@ func (me *int64HandleMap) Forget(handle uint64) (val *Handled) {
 	defer me.mutex.Unlock()
 	me.handles[handle] = nil, false
 	return val
+}
+
+func (me *int64HandleMap) Has(handle uint64) bool {
+	me.mutex.Lock()
+	defer me.mutex.Unlock()
+	return me.handles[handle] != nil
 }
 
 func DecodeHandle(handle uint64) (val *Handled) {
