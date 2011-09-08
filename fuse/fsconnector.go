@@ -317,8 +317,8 @@ func (me *FileSystemConnector) Unmount(node *Inode) Status {
 	parentNode.mounts[name] = nil, false
 	parentNode.children[name] = nil, false
 	mount.fs.OnUnmount()
-
-	me.fsInit.EntryNotify(parentNode.nodeId, name)
+	
+	me.EntryNotify(parentNode, name)
 
 	return OK
 }

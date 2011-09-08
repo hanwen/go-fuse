@@ -39,6 +39,10 @@ func (me *PathNodeFs) Mount(path string, nodeFs NodeFileSystem, opts *FileSystem
 	return me.connector.Mount(parent, name, nodeFs, opts)
 }
 
+func (me *PathNodeFs) UnmountNode(node *Inode) Status {
+	return me.connector.Unmount(node)
+}
+
 func (me *PathNodeFs) Unmount(path string) Status {
 	node := me.Node(path)
 	if node == nil {

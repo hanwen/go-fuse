@@ -121,7 +121,7 @@ func (me *MultiZipFs) Unlink(name string, context *fuse.Context) (code fuse.Stat
 
 		zfs, ok := me.zips[basename]
 		if ok {
-			code = me.nodeFs.Unmount(zfs.Root().Inode())
+			code = me.nodeFs.UnmountNode(zfs.Root().Inode())
 			if !code.Ok() {
 				return code
 			}
@@ -171,7 +171,7 @@ func (me *MultiZipFs) Symlink(value string, linkName string, context *fuse.Conte
 		return fuse.EINVAL
 	}
 
-	code = me.nodeFs.Mount(me.nodeFs.Root().Inode(), base, fs, nil)
+	code = me.nodeFs.Mount(base, fs, nil)
 	if !code.Ok() {
 		return code
 	}
