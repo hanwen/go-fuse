@@ -29,7 +29,9 @@ type PathNodeFs struct {
 
 func (me *PathNodeFs) Mount(path string, nodeFs NodeFileSystem, opts *FileSystemOptions) Status {
 	dir, name := filepath.Split(path)
-	dir = filepath.Clean(dir)
+	if dir != "" {
+		dir = filepath.Clean(dir)
+	}
 	parent := me.Node(dir)
 	if parent == nil {
 		return ENOENT
