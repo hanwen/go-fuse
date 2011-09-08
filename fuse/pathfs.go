@@ -17,6 +17,7 @@ type clientInodePath struct {
 }
 
 type PathNodeFs struct {
+	Debug bool
 	fs   FileSystem
 	root *pathInode
 	connector *FileSystemConnector
@@ -46,17 +47,55 @@ func (me *PathNodeFs) StatFs() *StatfsOut {
 	return me.fs.StatFs()
 }
 
-func (me *PathNodeFs) Node(name string) *Inode {
+func (me *PathNodeFs) Node(name string) (*Inode) {
+	n, rest := me.LastNode(name)
+	if len(rest) > 0 {
+		return nil
+	}
+	return n
+}
+
+func (me *PathNodeFs) LastNode(name string) (*Inode, []string) {
+	if name == "" {
+		return me.Root().Inode(), nil
+	}
+	
 	name = filepath.Clean(name)
 	comps := strings.Split(name, string(filepath.Separator))
+	
 	node := me.root.Inode()
-	for _, c := range comps {
-		node = node.GetChild(c)
-		if node == nil {
-			break
+	for i, c := range comps {
+		next := node.GetChild(c)
+		if next == nil {
+			return node, comps[i:]
 		}
+		node = next
 	}
-	return node
+	return node, nil
+}
+
+func (me *PathNodeFs) FileNotify(path string, off int64, length int64) Status {
+	node := me.Node(path)
+	if node == nil {
+		return ENOENT
+	}
+	return me.connector.FileNotify(node, off, length)
+}
+
+func (me *PathNodeFs) EntryNotify(dir string, name string) Status {
+	node := me.Node(dir)
+	if node == nil {
+		return ENOENT
+	}
+	return me.connector.EntryNotify(node, name)
+}
+
+func (me *PathNodeFs) Notify(path string) Status {
+	node, rest := me.LastNode(path)
+	if len(rest) > 0 {
+		return me.connector.EntryNotify(node, rest[0])
+	}
+	return me.connector.FileNotify(node, 0, 0)
 }
 
 func (me *PathNodeFs) AllFiles(name string, mask uint32) []WithFlags {
@@ -101,7 +140,6 @@ type pathInode struct {
 	
 	DefaultFsNode
 }
-
 
 func (me *pathInode) fillNewChildAttr(path string, child *pathInode, c *Context) (fi *os.FileInfo) {
 	fi, _ = me.fs.GetAttr(path, c)

@@ -33,6 +33,7 @@ func (me *NotifyFs) Open(name string, f uint32, context *Context) (File, Status)
 
 type NotifyTest struct {
 	fs        *NotifyFs
+	pathfs    *PathNodeFs
 	connector *FileSystemConnector
 	dir       string
 	state     *MountState
@@ -50,7 +51,8 @@ func NewNotifyTest() *NotifyTest {
 	}
 
 	var err os.Error
-	me.state, me.connector, err = MountPathFileSystem(me.dir, me.fs, opts)
+	me.pathfs = NewPathNodeFs(me.fs)
+	me.state, me.connector, err = MountNodeFileSystem(me.dir, me.pathfs, opts)
 	CheckSuccess(err)
 	me.state.Debug = true
 	go me.state.Loop(false)
@@ -86,7 +88,7 @@ func TestInodeNotify(t *testing.T) {
 		t.Error(fi)
 	}
 
-	code := test.connector.FileNotify("file", -1, 0)
+	code := test.pathfs.FileNotify("file", -1, 0)
 	if !code.Ok() {
 		t.Error(code)
 	}
@@ -117,7 +119,7 @@ func TestEntryNotify(t *testing.T) {
 		t.Errorf("negative entry should have been cached: %#v", fi)
 	}
 
-	code := test.connector.EntryNotify("dir", "file")
+	code := test.pathfs.EntryNotify("dir", "file")
 	if !code.Ok() {
 		t.Errorf("EntryNotify returns error: %v", code)
 	}

@@ -325,12 +325,7 @@ func (me *FileSystemConnector) Unmount(node *Inode) Status {
 	return OK
 }
 
-func (me *FileSystemConnector) FileNotify(path string, off int64, length int64) Status {
-	node := me.findInode(path)
-	if node == nil {
-		return ENOENT
-	}
-
+func (me *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) Status {
 	out := NotifyInvalInodeOut{
 		Length: length,
 		Off:    off,
@@ -339,22 +334,7 @@ func (me *FileSystemConnector) FileNotify(path string, off int64, length int64) 
 	return me.fsInit.InodeNotify(&out)
 }
 
-func (me *FileSystemConnector) EntryNotify(dir string, name string) Status {
-	node := me.findInode(dir)
-	if node == nil {
-		return ENOENT
-	}
-
-	return me.fsInit.EntryNotify(node.nodeId, name)
+func (me *FileSystemConnector) EntryNotify(dir *Inode, name string) Status {
+	return me.fsInit.EntryNotify(dir.nodeId, name)
 }
 
-func (me *FileSystemConnector) Notify(path string) Status {
-	node, rest := me.findLastKnownInode(path)
-	if len(rest) > 0 {
-		return me.fsInit.EntryNotify(node.nodeId, rest[0])
-	}
-	out := NotifyInvalInodeOut{
-		Ino: node.nodeId,
-	}
-	return me.fsInit.InodeNotify(&out)
-}

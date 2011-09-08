@@ -26,7 +26,7 @@ func (me *cacheFs) Open(name string, flags uint32, context *Context) (fuseFile F
 
 }
 
-func setupCacheTest() (string, *FileSystemConnector, func()) {
+func setupCacheTest() (string, *PathNodeFs, func()) {
 	dir := MakeTempDir()
 	os.Mkdir(dir+"/mnt", 0755)
 	os.Mkdir(dir+"/orig", 0755)
@@ -34,13 +34,15 @@ func setupCacheTest() (string, *FileSystemConnector, func()) {
 	fs := &cacheFs{
 		LoopbackFileSystem: NewLoopbackFileSystem(dir + "/orig"),
 	}
-	state, conn, err := MountPathFileSystem(dir+"/mnt", fs, nil)
+	pfs := NewPathNodeFs(fs)
+	state, conn, err := MountNodeFileSystem(dir+"/mnt", pfs, nil)
 	CheckSuccess(err)
 	state.Debug = true
 	conn.Debug = true
+	pfs.Debug = true
 	go state.Loop(false)
 
-	return dir, conn, func() {
+	return dir, pfs, func() {
 		err := state.Unmount()
 		if err == nil {
 			os.RemoveAll(dir)
@@ -49,7 +51,7 @@ func setupCacheTest() (string, *FileSystemConnector, func()) {
 }
 
 func TestCacheFs(t *testing.T) {
-	wd, conn, clean := setupCacheTest()
+	wd, pathfs, clean := setupCacheTest()
 	defer clean()
 
 	content1 := "hello"
@@ -74,7 +76,7 @@ func TestCacheFs(t *testing.T) {
 		t.Fatalf("expect 'hello' %q", string(c))
 	}
 
-	code := conn.EntryNotify("", "file.txt")
+	code := pathfs.EntryNotify("", "file.txt")
 	if !code.Ok() {
 		t.Errorf("Entry notify failed: %v", code)
 	}
@@ -82,7 +84,7 @@ func TestCacheFs(t *testing.T) {
 	c, err = ioutil.ReadFile(wd + "/mnt/file.txt")
 	CheckSuccess(err)
 	if string(c) != string(content2) {
-		t.Fatalf("expect '%s' %q", content2, string(c))
+		t.Fatalf("Mismatch after notify expect '%s' %q", content2, string(c))
 	}
 }
 
