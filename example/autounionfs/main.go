@@ -44,13 +44,14 @@ func main() {
 	}
 
 	gofs := unionfs.NewAutoUnionFs(flag.Arg(1), options)
-
-	state, conn, err := fuse.MountPathFileSystem(flag.Arg(0), gofs, nil)
+	pathfs := fuse.NewPathNodeFs(gofs)
+	state, conn, err := fuse.MountNodeFileSystem(flag.Arg(0), pathfs, nil)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)
 	}
 
+	pathfs.Debug = *debug
 	conn.Debug = *debug
 	state.Debug = *debug
 	state.Loop(*threaded)
