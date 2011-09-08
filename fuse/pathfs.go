@@ -27,11 +27,21 @@ type PathNodeFs struct {
 	clientInodeMap      map[uint64][]*clientInodePath
 }
 
-func (me *PathNodeFs) Mount(parent *Inode, name string, nodeFs NodeFileSystem, opts *FileSystemOptions) Status {
+func (me *PathNodeFs) Mount(path string, nodeFs NodeFileSystem, opts *FileSystemOptions) Status {
+	dir, name := filepath.Split(path)
+	dir = filepath.Clean(dir)
+	parent := me.Node(dir)
+	if parent == nil {
+		return ENOENT
+	}
 	return me.connector.Mount(parent, name, nodeFs, opts)
 }
 
-func (me *PathNodeFs) Unmount(node *Inode) Status {
+func (me *PathNodeFs) Unmount(path string) Status {
+	node := me.Node(path)
+	if node == nil {
+		return ENOENT
+	}
 	return me.connector.Unmount(node)
 }
 
