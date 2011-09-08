@@ -72,6 +72,8 @@ func (me *FileSystemConnector) newInode(isDir bool) *Inode {
 	return data
 }
 
+// createChild() creates a child for given as FsNode as child of 'parent'.  The
+// resulting inode will have its lookupCount incremented.
 func (me *FileSystemConnector) createChild(parent *Inode, name string, fi *os.FileInfo, fsi FsNode) (out *EntryOut, child *Inode) {
 	if fsi.Inode() == nil {
 		child = parent.CreateChild(name, fi.IsDirectory(), fsi)
