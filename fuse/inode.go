@@ -221,7 +221,7 @@ const initDirSize = 20
 
 func (me *Inode) verify(cur *fileSystemMount) {
 	if me.lookupCount < 0 {
-		panic("negative lookup count")
+		panic(fmt.Sprintf("negative lookup count %d on node %d", me.lookupCount, me.nodeId))
 	}
 	if me.mountPoint != nil {
 		if me != me.mountPoint.mountInode {
