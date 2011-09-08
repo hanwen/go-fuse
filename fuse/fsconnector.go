@@ -134,13 +134,22 @@ func (me *FileSystemConnector) forgetUpdate(nodeId uint64, forgetCount int) {
 	defer node.treeLock.Unlock()
 
 	node.addLookupCount(-forgetCount)
-	me.considerDropInode(node)
+	me.recursiveConsiderDropInode(node)
 }
 
-func (me *FileSystemConnector) considerDropInode(n *Inode) (drop bool) {
+func (me *FileSystemConnector) considerDropInode(node *Inode) {
+	node.treeLock.Lock()
+	defer node.treeLock.Unlock()
+	me.recursiveConsiderDropInode(node)
+}
+
+// Must hold treeLock.
+func (me *FileSystemConnector) recursiveConsiderDropInode(n *Inode) (drop bool) {
 	delChildren := []string{}
 	for k, v := range n.children {
-		if v.mountPoint == nil && me.considerDropInode(v) {
+		// Only consider children from the same mount, or
+		// already unmounted mountpoints.
+		if v.mountPoint == nil && me.recursiveConsiderDropInode(v) {
 			delChildren = append(delChildren, k)
 		}
 	}
