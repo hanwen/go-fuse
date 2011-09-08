@@ -588,7 +588,7 @@ func TestLink(t *testing.T) {
 	err := ioutil.WriteFile(fn, []byte(content), 0666)
 	CheckSuccess(err)
 
-	err = os.Link(wd+"/mount/file", wd + "/mount/linked")
+	err = os.Link(wd+"/mount/file", wd+"/mount/linked")
 	CheckSuccess(err)
 
 	fi2, err := os.Lstat(wd + "/mount/linked")
@@ -945,7 +945,6 @@ func TestDoubleOpen(t *testing.T) {
 	}
 }
 
-
 func TestFdLeak(t *testing.T) {
 	beforeEntries, err := ioutil.ReadDir("/proc/self/fd")
 	CheckSuccess(err)
@@ -957,7 +956,7 @@ func TestFdLeak(t *testing.T) {
 	contents, err := ioutil.ReadFile(wd + "/mount/file")
 	CheckSuccess(err)
 
-	err = ioutil.WriteFile(wd + "/mount/file", contents, 0644)
+	err = ioutil.WriteFile(wd+"/mount/file", contents, 0644)
 	CheckSuccess(err)
 
 	clean()
@@ -969,5 +968,3 @@ func TestFdLeak(t *testing.T) {
 		t.Errorf("/proc/self/fd changed size: after %v before %v", len(beforeEntries), len(afterEntries))
 	}
 }
-
-

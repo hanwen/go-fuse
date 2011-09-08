@@ -51,7 +51,6 @@ func (me *int32HandleMap) Has(h uint64) bool {
 	return me.handles[uint32(h)] != nil
 }
 
-
 func (me *int32HandleMap) Count() int {
 	me.mutex.Lock()
 	defer me.mutex.Unlock()

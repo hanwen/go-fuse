@@ -15,7 +15,7 @@ type openedFile struct {
 
 	WithFlags
 
-	dir  rawDir
+	dir rawDir
 }
 
 type fileSystemMount struct {
@@ -49,8 +49,6 @@ func (me *fileSystemMount) mountName() string {
 	panic("not found")
 	return ""
 }
-
-
 
 func (me *fileSystemMount) setOwner(attr *Attr) {
 	if me.options.Owner != nil {
@@ -109,9 +107,9 @@ func (me *fileSystemMount) registerFileHandle(node *Inode, dir rawDir, f File, f
 	node.openFilesMutex.Lock()
 	defer node.openFilesMutex.Unlock()
 	b := &openedFile{
-		dir:       dir,
+		dir: dir,
 		WithFlags: WithFlags{
-			File: f,
+			File:      f,
 			OpenFlags: flags,
 		},
 	}
@@ -139,4 +137,3 @@ func (me *fileSystemMount) negativeEntry() *EntryOut {
 	SplitNs(me.options.NegativeTimeout, &out.EntryValid, &out.EntryValidNsec)
 	return out
 }
-

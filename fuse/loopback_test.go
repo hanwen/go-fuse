@@ -277,10 +277,10 @@ func TestLinkExisting(t *testing.T) {
 	defer me.Cleanup()
 
 	c := "hello"
-	
-	err := ioutil.WriteFile(me.orig + "/file1", []byte(c), 0644)
+
+	err := ioutil.WriteFile(me.orig+"/file1", []byte(c), 0644)
 	CheckSuccess(err)
-	err = os.Link(me.orig + "/file1", me.orig + "/file2")
+	err = os.Link(me.orig+"/file1", me.orig+"/file2")
 	CheckSuccess(err)
 
 	f1, err := os.Lstat(me.mnt + "/file1")
@@ -294,7 +294,7 @@ func TestLinkExisting(t *testing.T) {
 	c1, err := ioutil.ReadFile(me.mnt + "/file1")
 	CheckSuccess(err)
 	if string(c1) != c {
-		t.Errorf("Content mismatch relative to original.")		
+		t.Errorf("Content mismatch relative to original.")
 	}
 }
 

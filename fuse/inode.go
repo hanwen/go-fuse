@@ -5,6 +5,7 @@ import (
 	"log"
 	"sync"
 )
+
 var _ = log.Println
 
 // The inode reflects the kernel's idea of the inode.
@@ -33,7 +34,7 @@ type Inode struct {
 
 	// Contains directories that function as mounts. The entries
 	// are duplicated in children.
-	mounts      map[string]*fileSystemMount
+	mounts map[string]*fileSystemMount
 
 	// Use addLookupCount() to manipulate.
 	lookupCount int

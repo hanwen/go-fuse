@@ -20,7 +20,7 @@ func (me *cacheFs) Open(name string, flags uint32, context *Context) (fuseFile F
 		return f, c
 	}
 	return &WithFlags{
-		File:  f,
+		File:      f,
 		FuseFlags: FOPEN_KEEP_CACHE,
 	}, c
 
@@ -108,7 +108,7 @@ func (me *nonseekFs) Open(name string, flags uint32, context *Context) (fuseFile
 	data := bytes.Repeat([]byte{42}, me.Length)
 	f := NewReadOnlyFile(data)
 	return &WithFlags{
-		File:  f,
+		File:      f,
 		FuseFlags: FOPEN_NONSEEKABLE,
 	}, OK
 }

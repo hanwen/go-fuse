@@ -17,9 +17,9 @@ type clientInodePath struct {
 }
 
 type PathNodeFs struct {
-	Debug bool
-	fs   FileSystem
-	root *pathInode
+	Debug     bool
+	fs        FileSystem
+	root      *pathInode
 	connector *FileSystemConnector
 
 	// Used for dealing with hardlinks.
@@ -47,7 +47,7 @@ func (me *PathNodeFs) StatFs() *StatfsOut {
 	return me.fs.StatFs()
 }
 
-func (me *PathNodeFs) Node(name string) (*Inode) {
+func (me *PathNodeFs) Node(name string) *Inode {
 	n, rest := me.LastNode(name)
 	if len(rest) > 0 {
 		return nil
@@ -59,10 +59,10 @@ func (me *PathNodeFs) LastNode(name string) (*Inode, []string) {
 	if name == "" {
 		return me.Root().Inode(), nil
 	}
-	
+
 	name = filepath.Clean(name)
 	comps := strings.Split(name, string(filepath.Separator))
-	
+
 	node := me.root.Inode()
 	for i, c := range comps {
 		next := node.GetChild(c)
@@ -111,8 +111,8 @@ func NewPathNodeFs(fs FileSystem) *PathNodeFs {
 	root.fs = fs
 
 	me := &PathNodeFs{
-		fs:   fs,
-		root: root,
+		fs:             fs,
+		root:           root,
 		clientInodeMap: map[uint64][]*clientInodePath{},
 	}
 	root.ifs = me
@@ -137,7 +137,7 @@ type pathInode struct {
 	// This is to correctly resolve hardlinks of the underlying
 	// real filesystem.
 	clientInode uint64
-	
+
 	DefaultFsNode
 }
 
@@ -168,7 +168,7 @@ func (me *pathInode) GetPath() (path string) {
 	if me.ifs.Debug {
 		log.Printf("Inode %d = %q", me.Inode().nodeId, p)
 	}
-		
+
 	return p
 }
 
@@ -215,8 +215,8 @@ func (me *pathInode) RmChild(name string, child FsNode) {
 		} else {
 			me.ifs.clientInodeMap[ch.clientInode] = nil, false
 		}
-	} 
-	
+	}
+
 	ch.Name = ".deleted"
 	ch.Parent = nil
 }
@@ -368,7 +368,7 @@ func (me *pathInode) Create(name string, flags uint32, mode uint32, context *Con
 	file, code = me.fs.Create(fullPath, flags, mode, context)
 	if code.Ok() {
 		pNode := me.createChild(name)
-		newNode = pNode 
+		newNode = pNode
 		fi = me.fillNewChildAttr(fullPath, pNode, context)
 	}
 	return
@@ -387,11 +387,11 @@ func (me *pathInode) Open(flags uint32, context *Context) (file File, code Statu
 	file, code = me.fs.Open(me.GetPath(), flags, context)
 	if me.ifs.Debug {
 		file = &WithFlags{
-			File: file,
+			File:        file,
 			Description: me.GetPath(),
 		}
 	}
-	return 
+	return
 }
 
 func (me *pathInode) Lookup(name string, context *Context) (fi *os.FileInfo, node FsNode, code Status) {
@@ -439,7 +439,7 @@ func (me *pathInode) GetAttr(file File, context *Context) (fi *os.FileInfo, code
 	if fi != nil {
 		me.setClientInode(fi.Ino)
 	}
-	
+
 	if fi != nil && !fi.IsDirectory() && fi.Nlink == 0 {
 		fi.Nlink = 1
 	}

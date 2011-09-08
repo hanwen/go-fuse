@@ -936,7 +936,7 @@ func (me *UnionFs) Name() string {
 
 type UnionFsFile struct {
 	fuse.File
-	layer int 
+	layer int
 }
 
 func (me *UnionFsFile) GetAttr() (*os.FileInfo, fuse.Status) {

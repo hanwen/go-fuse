@@ -34,7 +34,7 @@ type MultiZipFs struct {
 	zips          map[string]*MemTreeFs
 	dirZipFileMap map[string]string
 
-	nodeFs	 *fuse.PathNodeFs
+	nodeFs *fuse.PathNodeFs
 	fuse.DefaultFileSystem
 }
 

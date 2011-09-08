@@ -31,7 +31,7 @@ type AutoUnionFs struct {
 	nameRootMap      map[string]string
 	root             string
 
-	nodeFs    *fuse.PathNodeFs
+	nodeFs  *fuse.PathNodeFs
 	options *AutoUnionFsOptions
 }
 

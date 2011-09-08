@@ -207,10 +207,9 @@ func TestingBOnePass(b *testing.B, threads int, sleepTime float64, files []strin
 	return results
 }
 
-
 func BenchmarkCFuseThreadedStat(b *testing.B) {
 	log.Println("benchmarking CFuse")
-	
+
 	lines := GetTestLines()
 	unique := map[string]int{}
 	for _, l := range lines {
@@ -220,7 +219,7 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 			unique[dir] = 1
 			dir = filepath.Clean(dir)
 			dir, _ = filepath.Split(dir)
-		}			
+		}
 	}
 
 	out := []string{}
@@ -235,11 +234,11 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 		f.Write([]byte(fmt.Sprintf("/%s\n", k)))
 	}
 	f.Close()
-	
+
 	log.Println("Written:", f.Name())
 	mountPoint := fuse.MakeTempDir()
 	wd, _ := os.Getwd()
-	cmd := exec.Command(wd + "/cstatfs", mountPoint)
+	cmd := exec.Command(wd+"/cstatfs", mountPoint)
 	cmd.Env = append(os.Environ(), fmt.Sprintf("STATFS_INPUT=%s", f.Name()))
 	cmd.Start()
 
@@ -248,7 +247,7 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 	stop := exec.Command(bin, "-u", mountPoint)
 	CheckSuccess(err)
 	defer stop.Run()
-	
+
 	for i, l := range lines {
 		lines[i] = filepath.Join(mountPoint, l)
 	}
@@ -259,6 +258,5 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 	log.Println("N = ", b.N)
 	threads := runtime.GOMAXPROCS(0)
 	results := TestingBOnePass(b, threads, ttl*1.2, lines)
-	AnalyzeBenchmarkRuns(results)	
+	AnalyzeBenchmarkRuns(results)
 }
-

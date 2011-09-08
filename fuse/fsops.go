@@ -46,7 +46,7 @@ func (me *FileSystemConnector) internalLookup(parent *Inode, name string, contex
 	if mount := me.findMount(parent, name); mount != nil {
 		return me.lookupMountUpdate(mount)
 	}
-	
+
 	lookupNode, getattrNode := me.preLookup(parent, name)
 
 	var fi *os.FileInfo
@@ -65,14 +65,14 @@ func (me *FileSystemConnector) internalLookup(parent *Inode, name string, contex
 func (me *FileSystemConnector) preLookup(parent *Inode, name string) (lookupNode *Inode, attrNode *Inode) {
 	parent.treeLock.Lock()
 	defer parent.treeLock.Unlock()
-	
+
 	child := parent.children[name]
 	if child != nil {
 		// Make sure the child doesn't die inbetween.
 		child.addLookupCount(1)
 		return nil, child
 	}
-	
+
 	return parent, nil
 }
 

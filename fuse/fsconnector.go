@@ -83,7 +83,7 @@ func (me *FileSystemConnector) createChild(parent *Inode, name string, fi *os.Fi
 		child = fsi.Inode()
 		child.addLookupCount(1)
 	}
-	
+
 	out = parent.mount.fileInfoToEntry(fi)
 	out.Ino = child.nodeId
 	out.NodeId = child.nodeId
@@ -337,4 +337,3 @@ func (me *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) 
 func (me *FileSystemConnector) EntryNotify(dir *Inode, name string) Status {
 	return me.fsInit.EntryNotify(dir.nodeId, name)
 }
-
