@@ -87,8 +87,6 @@ func (me *FileSystemConnector) postLookup(fi *os.FileInfo, fsNode FsNode, code S
 
 	if !code.Ok() {
 		if attrNode != nil {
-			mount.treeLock.Lock()
-			defer mount.treeLock.Unlock()
 			me.forgetUpdate(attrNode, 1)
 		}
 

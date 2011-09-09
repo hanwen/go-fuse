@@ -117,6 +117,10 @@ func (me *FileSystemConnector) lookupUpdate(node *Inode) {
 	node.lookupCount += 1
 }
 
+
+// Must run outside treeLock.
+//
+// TODO - reconcile api for lookupUpdate() and forgetUpdate().
 func (me *FileSystemConnector) forgetUpdate(node *Inode, forgetCount int) {
 	defer me.verify()
 
