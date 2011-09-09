@@ -968,3 +968,17 @@ func TestFdLeak(t *testing.T) {
 		t.Errorf("/proc/self/fd changed size: after %v before %v", len(beforeEntries), len(afterEntries))
 	}
 }
+
+func TestStatFs(t *testing.T) {
+	wd, clean := setupUfs(t)
+	defer clean()
+
+	s1 := syscall.Statfs_t{}
+	err := syscall.Statfs(wd + "/mount", &s1)
+	if err != 0 {
+		t.Fatal("statfs mnt", err)
+	}
+	if s1.Bsize == 0 {
+		t.Fatal("Expect blocksize > 0")
+	}
+}

@@ -934,6 +934,10 @@ func (me *UnionFs) Name() string {
 	return fmt.Sprintf("%v", names)
 }
 
+func (me *UnionFs) StatFs() *fuse.StatfsOut {
+	return me.fileSystems[0].StatFs()
+}
+
 type UnionFsFile struct {
 	fuse.File
 	layer int
@@ -948,3 +952,4 @@ func (me *UnionFsFile) GetAttr() (*os.FileInfo, fuse.Status) {
 	}
 	return fi, code
 }
+
