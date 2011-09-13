@@ -176,15 +176,16 @@ type FileSystemOptions struct {
 	AttrTimeout     float64
 	NegativeTimeout float64
 
-	// If set, replace all uids with given UID.  NewFileSystemOptions() will set
-	// this to the daemon's uid/gid.
+	// If set, replace all uids with given UID.
+	// NewFileSystemOptions() will set this to the daemon's
+	// uid/gid.
 	*Owner
 
-	// If set, drop extra verification bits to handles.  This will
-	// make inode numbers (exported back to callers) stay within
-	// int64 (assuming the process uses less than 4G memory.).
-	// 64-bit inode numbers makes stat() in 32-bit programs fail.
-	SkipCheckHandles bool
+	// If set, use a more portable, but slower inode number
+	// generation scheme.  This will make inode numbers (exported
+	// back to callers) stay within int32, which is necessary for
+	// making stat() succeed in 32-bit programs.
+	PortableInodes bool
 }
 
 type MountOptions struct {
