@@ -58,7 +58,7 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 	CheckSuccess(err)
 	conn.Debug = true
 	state.Debug = true
-	go state.Loop(false)
+	go state.Loop()
 
 	return wd, func() {
 		state.Unmount()
@@ -851,7 +851,7 @@ func TestDisappearing(t *testing.T) {
 	CheckSuccess(err)
 	defer state.Unmount()
 	state.Debug = true
-	go state.Loop(true)
+	go state.Loop()
 
 	log.Println("TestDisappearing2")
 

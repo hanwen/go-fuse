@@ -37,5 +37,5 @@ func main() {
 
 	state.SetRecordStatistics(*latencies)
 	state.Debug = *debug
-	state.Loop(true)
+	state.Loop()
 }

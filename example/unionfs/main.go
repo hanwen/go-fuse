@@ -11,7 +11,6 @@ import (
 
 func main() {
 	debug := flag.Bool("debug", false, "debug on")
-	threaded := flag.Bool("threaded", true, "debug on")
 	delcache_ttl := flag.Float64("deletion_cache_ttl", 5.0, "Deletion cache TTL in seconds.")
 	branchcache_ttl := flag.Float64("branchcache_ttl", 5.0, "Branch cache TTL in seconds.")
 	deldirname := flag.String(
@@ -40,5 +39,5 @@ func main() {
 	}
 
 	mountState.Debug = *debug
-	mountState.Loop(*threaded)
+	mountState.Loop()
 }

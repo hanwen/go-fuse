@@ -126,7 +126,7 @@ func setupFAttrTest(fs FileSystem) (dir string, clean func()) {
 	CheckSuccess(err)
 	state.Debug = true
 
-	go state.Loop(false)
+	go state.Loop()
 
 	// Trigger INIT.
 	os.Lstat(dir)

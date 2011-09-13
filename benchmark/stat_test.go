@@ -77,7 +77,7 @@ func setupFs(fs fuse.FileSystem, opts *fuse.FileSystemOptions) (string, func()) 
 		panic(fmt.Sprintf("cannot mount %v", err)) // ugh - benchmark has no error methods.
 	}
 	// state.Debug = true
-	go state.Loop(false)
+	go state.Loop()
 
 	return mountPoint, func() {
 		err := state.Unmount()

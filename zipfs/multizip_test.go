@@ -23,7 +23,7 @@ func setupMzfs() (mountPoint string, cleanup func()) {
 	})
 	CheckSuccess(err)
 	state.Debug = true
-	go state.Loop(true)
+	go state.Loop()
 
 	return mountPoint, func() {
 		state.Unmount()

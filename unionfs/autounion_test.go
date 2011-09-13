@@ -46,7 +46,7 @@ func setup(t *testing.T) (workdir string, cleanup func()) {
 	CheckSuccess(err)
 	state.Debug = true
 	conn.Debug = true
-	go state.Loop(false)
+	go state.Loop()
 
 	return wd, func() {
 		state.Unmount()

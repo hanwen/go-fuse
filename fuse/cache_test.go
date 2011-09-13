@@ -40,7 +40,7 @@ func setupCacheTest() (string, *PathNodeFs, func()) {
 	state.Debug = true
 	conn.Debug = true
 	pfs.Debug = true
-	go state.Loop(false)
+	go state.Loop()
 
 	return dir, pfs, func() {
 		err := state.Unmount()
@@ -124,7 +124,7 @@ func TestNonseekable(t *testing.T) {
 	state.Debug = true
 	defer state.Unmount()
 
-	go state.Loop(false)
+	go state.Loop()
 
 	f, err := os.Open(dir + "/file")
 	CheckSuccess(err)

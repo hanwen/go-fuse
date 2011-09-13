@@ -21,7 +21,7 @@ func TestPathDebug(t *testing.T) {
 	state.Debug = true
 	defer state.Unmount()
 
-	go state.Loop(false)
+	go state.Loop()
 
 	dir := filepath.Join(mountPoint, ".debug")
 	_, err := os.Lstat(dir)

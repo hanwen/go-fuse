@@ -55,7 +55,7 @@ func NewNotifyTest() *NotifyTest {
 	me.state, me.connector, err = MountNodeFileSystem(me.dir, me.pathfs, opts)
 	CheckSuccess(err)
 	me.state.Debug = true
-	go me.state.Loop(false)
+	go me.state.Loop()
 
 	return me
 }

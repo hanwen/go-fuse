@@ -30,7 +30,7 @@ func setupOwnerTest(opts *FileSystemOptions) (workdir string, cleanup func()) {
 	fs := &ownerFs{}
 	state, _, err := MountPathFileSystem(wd, fs, opts)
 	CheckSuccess(err)
-	go state.Loop(false)
+	go state.Loop()
 	return wd, func() {
 		state.Unmount()
 		os.RemoveAll(wd)

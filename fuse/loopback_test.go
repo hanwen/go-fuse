@@ -88,7 +88,7 @@ func NewTestCase(t *testing.T) *testCase {
 	me.state.Debug = true
 
 	// Unthreaded, but in background.
-	go me.state.Loop(false)
+	go me.state.Loop()
 	return me
 }
 
@@ -707,7 +707,7 @@ func TestOriginalIsSymlink(t *testing.T) {
 	CheckSuccess(err)
 	defer state.Unmount()
 
-	go state.Loop(false)
+	go state.Loop()
 
 	_, err = os.Lstat(mnt)
 	CheckSuccess(err)

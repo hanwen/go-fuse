@@ -99,7 +99,7 @@ func TestXAttrRead(t *testing.T) {
 	state.Debug = true
 	defer state.Unmount()
 
-	go state.Loop(false)
+	go state.Loop()
 
 	mounted := filepath.Join(mountPoint, nm)
 	_, err = os.Lstat(mounted)

@@ -19,7 +19,6 @@ func main() {
 	// Scans the arg list and sets up flags
 	debug := flag.Bool("debug", false, "print debugging messages.")
 	latencies := flag.Bool("latencies", false, "record latencies.")
-	threaded := flag.Bool("threaded", true, "switch off threading; print debugging messages.")
 	flag.Parse()
 	if flag.NArg() < 2 {
 		// TODO - where to get program name?
@@ -77,5 +76,5 @@ func main() {
 	}
 
 	fmt.Println("Mounted!")
-	state.Loop(*threaded)
+	state.Loop()
 }

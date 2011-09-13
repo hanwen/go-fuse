@@ -56,5 +56,5 @@ func main() {
 	if err != nil {
 		log.Fatal("Mount fail: %v\n", err)
 	}
-	state.Loop(true)
+	state.Loop()
 }

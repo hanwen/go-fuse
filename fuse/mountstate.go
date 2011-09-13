@@ -153,9 +153,8 @@ func (me *MountState) recordStats(req *request) {
 // and wait for it to exit, but tests will want to run this in a
 // goroutine.
 //
-// If threaded is given, each filesystem operation executes in a
-// separate goroutine.
-func (me *MountState) Loop(unused bool) {
+// Each filesystem operation executes in a separate goroutine.
+func (me *MountState) Loop() {
 	me.loop()
 	me.mountFile.Close()
 }
