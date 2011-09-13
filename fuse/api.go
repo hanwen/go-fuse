@@ -193,7 +193,9 @@ type MountOptions struct {
 	// Options are passed as -o string to fusermount.
 	Options []string
 
-	// Default is _DEFAULT_BACKGROUND_TASKS, 12.
+	// Default is _DEFAULT_BACKGROUND_TASKS, 12.  This numbers
+	// controls the allowed number of requests that relate to
+	// async I/O.  Concurrency for synchronous I/O is not limited.
 	MaxBackground int
 }
 
