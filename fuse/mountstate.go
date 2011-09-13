@@ -118,17 +118,7 @@ func (me *MountState) BufferPoolStats() string {
 	return me.buffers.String()
 }
 
-func (me *MountState) newRequest(oldReq *request) *request {
-	if oldReq != nil {
-		me.buffers.FreeBuffer(oldReq.flatData)
-
-		*oldReq = request{
-			status:   OK,
-			inputBuf: oldReq.inputBuf[0:bufSize],
-		}
-		return oldReq
-	}
-
+func (me *MountState) newRequest() *request {
 	return &request{
 		status:   OK,
 		inputBuf: me.buffers.AllocBuffer(bufSize),
@@ -165,24 +155,14 @@ func (me *MountState) recordStats(req *request) {
 //
 // If threaded is given, each filesystem operation executes in a
 // separate goroutine.
-func (me *MountState) Loop(threaded bool) {
-	// To limit scheduling overhead, we spawn multiple read loops.
-	// This means that the request once read does not need to be
-	// assigned to another thread, so it avoids a context switch.
-	if threaded {
-		for i := 0; i < me.opts.MaxBackground-1; i++ {
-			go me.loop()
-		}
-	}
+func (me *MountState) Loop(unused bool) {
 	me.loop()
 	me.mountFile.Close()
 }
 
 func (me *MountState) loop() {
-	var lastReq *request
 	for {
-		req := me.newRequest(lastReq)
-		lastReq = req
+		req := me.newRequest()
 		err := me.readRequest(req)
 		if err != nil {
 			errNo := OsErrorToErrno(err)
@@ -200,8 +180,22 @@ func (me *MountState) loop() {
 			log.Printf("Failed to read from fuse conn: %v", err)
 			break
 		}
-		me.handleRequest(req)
+
+		// When closely analyzing timings, the context switch
+		// generates some delay.  While unfortunate, the
+		// alternative is to have a fixed goroutine pool,
+		// which will lock up the FS if the daemon has too
+		// many blocking calls.
+		go func(r *request) {
+			me.handleRequest(r)
+			me.discardRequest(r)
+		}(req)
 	}
+}
+
+func (me *MountState) discardRequest(req *request) {
+	me.buffers.FreeBuffer(req.flatData)
+	me.buffers.FreeBuffer(req.inputBuf)
 }
 
 func (me *MountState) handleRequest(req *request) {
