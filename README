@@ -41,7 +41,7 @@ EXAMPLES
 
 * fuse/loopback.go mounts another piece of the filesystem.
   Functionally, it is similar to a symlink.  A binary to run is in
-i  example/loopback/ . For example
+  example/loopback/ . For example
 
     mkdir /tmp/mountpoint
     example/loopback/loopback -debug /tmp/mountpoint /some/other/directory &
