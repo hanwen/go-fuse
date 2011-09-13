@@ -157,12 +157,17 @@ type pathInode struct {
 	DefaultFsNode
 }
 
-func (me *pathInode) fillNewChildAttr(path string, child *pathInode, c *Context) (fi *os.FileInfo) {
+func (me *pathInode) fillNewChildAttr(path string, child *pathInode, c *Context) (fi *os.FileInfo, code Status) {
 	fi, _ = me.fs.GetAttr(path, c)
 	if fi != nil && fi.Ino > 0 {
 		child.clientInode = fi.Ino
 	}
-	return fi
+
+	if fi == nil {
+		log.Println("fillNewChildAttr found nil FileInfo", path)
+		return nil, ENOENT
+	}
+	return fi, OK
 }
 
 // GetPath returns the path relative to the mount governing this
@@ -320,7 +325,7 @@ func (me *pathInode) Mknod(name string, mode uint32, dev uint32, context *Contex
 	if code.Ok() {
 		pNode := me.createChild(name)
 		newNode = pNode
-		fi = me.fillNewChildAttr(fullPath, pNode, context)
+		fi, code = me.fillNewChildAttr(fullPath, pNode, context)
 	}
 	return
 }
@@ -331,7 +336,7 @@ func (me *pathInode) Mkdir(name string, mode uint32, context *Context) (fi *os.F
 	if code.Ok() {
 		pNode := me.createChild(name)
 		newNode = pNode
-		fi = me.fillNewChildAttr(fullPath, pNode, context)
+		fi, code = me.fillNewChildAttr(fullPath, pNode, context)
 	}
 	return
 }
@@ -350,7 +355,7 @@ func (me *pathInode) Symlink(name string, content string, context *Context) (fi 
 	if code.Ok() {
 		pNode := me.createChild(name)
 		newNode = pNode
-		fi = me.fillNewChildAttr(fullPath, pNode, context)
+		fi, code = me.fillNewChildAttr(fullPath, pNode, context)
 	}
 	return
 }
@@ -385,7 +390,7 @@ func (me *pathInode) Create(name string, flags uint32, mode uint32, context *Con
 	if code.Ok() {
 		pNode := me.createChild(name)
 		newNode = pNode
-		fi = me.fillNewChildAttr(fullPath, pNode, context)
+		fi, code = me.fillNewChildAttr(fullPath, pNode, context)
 	}
 	return
 }
