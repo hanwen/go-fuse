@@ -242,12 +242,12 @@ type RawFileSystem interface {
 	// File handling.
 	Create(header *InHeader, input *CreateIn, name string) (flags uint32, handle uint64, out *EntryOut, code Status)
 	Open(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status)
-	Read(*ReadIn, BufferPool) ([]byte, Status)
+	Read(*InHeader, *ReadIn, BufferPool) ([]byte, Status)
 
 	Release(header *InHeader, input *ReleaseIn)
-	Write(*WriteIn, []byte) (written uint32, code Status)
+	Write(*InHeader, *WriteIn, []byte) (written uint32, code Status)
 	Flush(header *InHeader, input *FlushIn) Status
-	Fsync(*FsyncIn) (code Status)
+	Fsync(*InHeader, *FsyncIn) (code Status)
 
 	// Directory handling
 	OpenDir(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status)

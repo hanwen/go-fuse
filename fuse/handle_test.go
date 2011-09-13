@@ -25,7 +25,7 @@ func TestHandleMapDoubleRegister(t *testing.T) {
 	}
 	log.Println("TestDoubleRegister")
 	defer markSeen("already has a handle")
-	hm := NewHandleMap(true)
+	hm := NewHandleMap(false)
 	obj := &Handled{}
 	hm.Register(obj, obj)
 	v := &Handled{}
@@ -39,7 +39,7 @@ func TestHandleMapUnaligned(t *testing.T) {
 		t.Log("skipping test for 32 bits")
 		return
 	}
-	hm := NewHandleMap(true)
+	hm := NewHandleMap(false)
 
 	b := make([]byte, 100)
 	v := (*Handled)(unsafe.Pointer(&b[1]))
@@ -55,7 +55,7 @@ func TestHandleMapPointerLayout(t *testing.T) {
 		return
 	}
 
-	hm := NewHandleMap(true)
+	hm := NewHandleMap(false)
 	bogus := uint64(1) << uint32((8 * (unsafe.Sizeof(t) - 1)))
 	p := uintptr(bogus)
 	v := (*Handled)(unsafe.Pointer(p))
@@ -65,46 +65,39 @@ func TestHandleMapPointerLayout(t *testing.T) {
 }
 
 func TestHandleMapBasic(t *testing.T) {
-	if unsafe.Sizeof(t) < 8 {
-		t.Log("skipping test for 32 bits")
-		return
-	}
-	v := new(Handled)
-	hm := NewHandleMap(true)
-	h := hm.Register(v, v)
-	log.Printf("Got handle 0x%x", h)
-	if !hm.Has(h) {
-		t.Fatal("Does not have handle")
-	}
-	if DecodeHandle(h) != v {
-		t.Fatal("address mismatch")
-	}
-	if hm.Count() != 1 {
-		t.Fatal("count error")
-	}
-	hm.Forget(h)
-	if hm.Count() != 0 {
-		t.Fatal("count error")
-	}
-	if hm.Has(h) {
-		t.Fatal("Still has handle")
-	}
-	if v.check != 0 {
-		t.Errorf("forgotten object still has a check.")  
-	}
-	
+	for _, portable := range []bool{true, false} {
+		v := new(Handled)
+		hm := NewHandleMap(portable)
+		h := hm.Register(v, v)
+		log.Printf("Got handle 0x%x", h)
+		if !hm.Has(h) {
+			t.Fatal("Does not have handle")
+		}
+		if hm.Decode(h) != v {
+			t.Fatal("address mismatch")
+		}
+		if hm.Count() != 1 {
+			t.Fatal("count error")
+		}
+		hm.Forget(h)
+		if hm.Count() != 0 {
+			t.Fatal("count error")
+		}
+		if hm.Has(h) {
+			t.Fatal("Still has handle")
+		}
+		if v.check != 0 {
+			t.Errorf("forgotten object still has a check.")  
+		}
+	}	
 }
 
 func TestHandleMapMultiple(t *testing.T) {
-	if unsafe.Sizeof(t) < 8 {
-		t.Log("skipping test for 32 bits")
-		return
-	}
-	hm := NewHandleMap(true)
+	hm := NewHandleMap(false)
 	for i := 0; i < 10; i++ {
 		v := &Handled{}
 		h := hm.Register(v, v)
-		if DecodeHandle(h) != v {
+		if hm.Decode(h) != v {
 			t.Fatal("address mismatch")
 		}
 		if hm.Count() != i+1 {
@@ -121,25 +114,9 @@ func TestHandleMapCheckFail(t *testing.T) {
 	defer markSeen("check mismatch")
 
 	v := new(Handled)
-	hm := NewHandleMap(true)
+	hm := NewHandleMap(false)
 	h := hm.Register(v, v)
-	DecodeHandle(h | (uint64(1) << 63))
+	hm.Decode(h | (uint64(1) << 63))
 	t.Error("Borked decode did not panic")
 }
 
-func TestHandleMapNoCheck(t *testing.T) {
-	if unsafe.Sizeof(t) < 8 {
-		t.Log("skipping test for 32 bits")
-		return
-	}
-	v := new(Handled)
-	hm := NewHandleMap(false)
-	h := hm.Register(v, v)
-	if h > uint64(0xffffffff) {
-		t.Errorf("handles should in 32 bit if verification switched off: %x", h)
-	}
-	v2 := DecodeHandle(h)
-	if v2 != v {
-		t.Errorf("Handle decode error.")
-	}
-}

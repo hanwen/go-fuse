@@ -185,7 +185,7 @@ func (me *Inode) rmChild(name string) (ch *Inode) {
 func (me *Inode) mountFs(fs NodeFileSystem, opts *FileSystemOptions) {
 	me.mountPoint = &fileSystemMount{
 		fs:         fs,
-		openFiles:  NewHandleMap(true),
+		openFiles:  NewHandleMap(false),
 		mountInode: me,
 		options:    opts,
 	}

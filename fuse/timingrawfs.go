@@ -136,14 +136,14 @@ func (me *TimingRawFileSystem) Release(header *InHeader, input *ReleaseIn) {
 	me.RawFileSystem.Release(header, input)
 }
 
-func (me *TimingRawFileSystem) Read(input *ReadIn, bp BufferPool) ([]byte, Status) {
+func (me *TimingRawFileSystem) Read(header *InHeader, input *ReadIn, bp BufferPool) ([]byte, Status) {
 	defer me.startTimer("Read")()
-	return me.RawFileSystem.Read(input, bp)
+	return me.RawFileSystem.Read(header, input, bp)
 }
 
-func (me *TimingRawFileSystem) Write(input *WriteIn, data []byte) (written uint32, code Status) {
+func (me *TimingRawFileSystem) Write(header *InHeader, input *WriteIn, data []byte) (written uint32, code Status) {
 	defer me.startTimer("Write")()
-	return me.RawFileSystem.Write(input, data)
+	return me.RawFileSystem.Write(header, input, data)
 }
 
 func (me *TimingRawFileSystem) Flush(header *InHeader, input *FlushIn) Status {
@@ -151,9 +151,9 @@ func (me *TimingRawFileSystem) Flush(header *InHeader, input *FlushIn) Status {
 	return me.RawFileSystem.Flush(header, input)
 }
 
-func (me *TimingRawFileSystem) Fsync(input *FsyncIn) (code Status) {
+func (me *TimingRawFileSystem) Fsync(header *InHeader, input *FsyncIn) (code Status) {
 	defer me.startTimer("Fsync")()
-	return me.RawFileSystem.Fsync(input)
+	return me.RawFileSystem.Fsync(header, input)
 }
 
 func (me *TimingRawFileSystem) ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status) {

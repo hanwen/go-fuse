@@ -269,14 +269,14 @@ func (me *LockingRawFileSystem) ReleaseDir(header *InHeader, h *ReleaseIn) {
 	me.RawFileSystem.ReleaseDir(header, h)
 }
 
-func (me *LockingRawFileSystem) Read(input *ReadIn, bp BufferPool) ([]byte, Status) {
+func (me *LockingRawFileSystem) Read(header *InHeader, input *ReadIn, bp BufferPool) ([]byte, Status) {
 	defer me.locked()()
-	return me.RawFileSystem.Read(input, bp)
+	return me.RawFileSystem.Read(header, input, bp)
 }
 
-func (me *LockingRawFileSystem) Write(input *WriteIn, data []byte) (written uint32, code Status) {
+func (me *LockingRawFileSystem) Write(header *InHeader, input *WriteIn, data []byte) (written uint32, code Status) {
 	defer me.locked()()
-	return me.RawFileSystem.Write(input, data)
+	return me.RawFileSystem.Write(header, input, data)
 }
 
 func (me *LockingRawFileSystem) Flush(header *InHeader, input *FlushIn) Status {
@@ -284,9 +284,9 @@ func (me *LockingRawFileSystem) Flush(header *InHeader, input *FlushIn) Status {
 	return me.RawFileSystem.Flush(header, input)
 }
 
-func (me *LockingRawFileSystem) Fsync(input *FsyncIn) (code Status) {
+func (me *LockingRawFileSystem) Fsync(header *InHeader, input *FsyncIn) (code Status) {
 	defer me.locked()()
-	return me.RawFileSystem.Fsync(input)
+	return me.RawFileSystem.Fsync(header, input)
 }
 
 func (me *LockingRawFileSystem) ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status) {

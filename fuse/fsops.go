@@ -117,7 +117,7 @@ func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out 
 
 	var f File
 	if input.Flags&FUSE_GETATTR_FH != 0 {
-		if opened := me.getOpenedFile(input.Fh); opened != nil {
+		if opened := node.mount.getOpenedFile(input.Fh); opened != nil {
 			f = opened.WithFlags.File
 		}
 	}
@@ -152,7 +152,8 @@ func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags u
 }
 
 func (me *FileSystemConnector) ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status) {
-	opened := me.getOpenedFile(input.Fh)
+	node := me.toInode(header.NodeId)
+	opened := node.mount.getOpenedFile(input.Fh)
 	de, code := opened.dir.ReadDir(input)
 	if code != OK {
 		return nil, code
@@ -171,13 +172,13 @@ func (me *FileSystemConnector) Open(header *InHeader, input *OpenIn) (flags uint
 }
 
 func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out *AttrOut, code Status) {
+	node := me.toInode(header.NodeId)
 	var f File
 	if input.Valid&FATTR_FH != 0 {
-		opened := me.getOpenedFile(input.Fh)
+		opened := node.mount.getOpenedFile(input.Fh)
 		f = opened.WithFlags.File
 	}
 
-	node := me.toInode(header.NodeId)
 	if code.Ok() && input.Valid&FATTR_MODE != 0 {
 		permissions := uint32(07777) & input.Mode
 		code = node.fsInode.Chmod(f, permissions, &header.Context)
@@ -331,7 +332,7 @@ func (me *FileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
 
 func (me *FileSystemConnector) Flush(header *InHeader, input *FlushIn) Status {
 	node := me.toInode(header.NodeId)
-	opened := me.getOpenedFile(input.Fh)
+	opened := node.mount.getOpenedFile(input.Fh)
 	return node.fsInode.Flush(opened.WithFlags.File, opened.WithFlags.OpenFlags, &header.Context)
 }
 
@@ -376,13 +377,15 @@ func (me *FileSystemConnector) ListXAttr(header *InHeader) (data []byte, code St
 ////////////////
 // files.
 
-func (me *FileSystemConnector) Write(input *WriteIn, data []byte) (written uint32, code Status) {
-	opened := me.getOpenedFile(input.Fh)
+func (me *FileSystemConnector) Write(header *InHeader, input *WriteIn, data []byte) (written uint32, code Status) {
+	node := me.toInode(header.NodeId)
+	opened := node.mount.getOpenedFile(input.Fh)
 	return opened.WithFlags.File.Write(input, data)
 }
 
-func (me *FileSystemConnector) Read(input *ReadIn, bp BufferPool) ([]byte, Status) {
-	opened := me.getOpenedFile(input.Fh)
+func (me *FileSystemConnector) Read(header *InHeader, input *ReadIn, bp BufferPool) ([]byte, Status) {
+	node := me.toInode(header.NodeId)
+	opened := node.mount.getOpenedFile(input.Fh)
 	return opened.WithFlags.File.Read(input, bp)
 }
 

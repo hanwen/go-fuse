@@ -50,7 +50,7 @@ func NewFileSystemConnector(nodeFs NodeFileSystem, opts *FileSystemOptions) (me 
 	if opts == nil {
 		opts = NewFileSystemOptions()
 	}
-	me.inodeMap = NewHandleMap(!opts.SkipCheckHandles)
+	me.inodeMap = NewHandleMap(opts.SkipCheckHandles)
 	me.rootNode = newInode(true, nodeFs.Root())
 
 	// FUSE does not issue a LOOKUP for 1 (obviously), but it does
@@ -105,7 +105,7 @@ func (me *FileSystemConnector) toInode(nodeid uint64) *Inode {
 	if nodeid == FUSE_ROOT_ID {
 		return me.rootNode
 	}
-	i := (*Inode)(unsafe.Pointer(DecodeHandle(nodeid)))
+	i := (*Inode)(unsafe.Pointer(me.inodeMap.Decode(nodeid)))
 	return i
 }
 

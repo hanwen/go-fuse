@@ -94,14 +94,14 @@ func (me *DefaultRawFileSystem) OpenDir(header *InHeader, input *OpenIn) (flags 
 	return 0, 0, ENOSYS
 }
 
-func (me *DefaultRawFileSystem) Read(*ReadIn, BufferPool) ([]byte, Status) {
+func (me *DefaultRawFileSystem) Read(header *InHeader, input *ReadIn, bp BufferPool) ([]byte, Status) {
 	return nil, ENOSYS
 }
 
 func (me *DefaultRawFileSystem) Release(header *InHeader, input *ReleaseIn) {
 }
 
-func (me *DefaultRawFileSystem) Write(input *WriteIn, data []byte) (written uint32, code Status) {
+func (me *DefaultRawFileSystem) Write(header *InHeader, input *WriteIn, data []byte) (written uint32, code Status) {
 	return 0, ENOSYS
 }
 
@@ -109,7 +109,7 @@ func (me *DefaultRawFileSystem) Flush(header *InHeader, input *FlushIn) Status {
 	return OK
 }
 
-func (me *DefaultRawFileSystem) Fsync(input *FsyncIn) (code Status) {
+func (me *DefaultRawFileSystem) Fsync(header *InHeader, input *FsyncIn) (code Status) {
 	return ENOSYS
 }
 

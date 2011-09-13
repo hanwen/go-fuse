@@ -150,7 +150,7 @@ func doSetattr(state *MountState, req *request) {
 }
 
 func doWrite(state *MountState, req *request) {
-	n, status := state.fileSystem.Write((*WriteIn)(req.inData), req.arg)
+	n, status := state.fileSystem.Write(req.inHeader, (*WriteIn)(req.inData), req.arg)
 	o := &WriteOut{
 		Size: n,
 	}
@@ -233,7 +233,7 @@ func doLink(state *MountState, req *request) {
 }
 
 func doRead(state *MountState, req *request) {
-	req.flatData, req.status = state.fileSystem.Read((*ReadIn)(req.inData), state.buffers)
+	req.flatData, req.status = state.fileSystem.Read(req.inHeader, (*ReadIn)(req.inData), state.buffers)
 }
 
 func doFlush(state *MountState, req *request) {
@@ -245,7 +245,7 @@ func doRelease(state *MountState, req *request) {
 }
 
 func doFsync(state *MountState, req *request) {
-	req.status = state.fileSystem.Fsync((*FsyncIn)(req.inData))
+	req.status = state.fileSystem.Fsync(req.inHeader, (*FsyncIn)(req.inData))
 }
 
 func doReleaseDir(state *MountState, req *request) {
