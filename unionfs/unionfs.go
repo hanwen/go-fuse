@@ -401,6 +401,7 @@ func (me *UnionFs) Mkdir(path string, mode uint32, context *fuse.Context) (code 
 	var stream chan fuse.DirEntry
 	stream, code = me.OpenDir(path, context)
 	if code.Ok() {
+		// This shouldn't happen, but let's be safe.
 		for entry := range stream {
 			me.putDeletion(filepath.Join(path, entry.Name))
 		}
@@ -765,7 +766,8 @@ func (me *UnionFs) OpenDir(directory string, context *fuse.Context) (stream chan
 }
 
 // recursivePromote promotes path, and if a directory, everything
-// below that directory.  It returns a list of all promoted paths.
+// below that directory.  It returns a list of all promoted paths, in
+// full, including the path itself.
 func (me *UnionFs) recursivePromote(path string, pathResult branchResult, context *fuse.Context) (names []string, code fuse.Status) {
 	names = []string{}
 	if pathResult.branch > 0 {
@@ -816,18 +818,16 @@ func (me *UnionFs) renameDirectory(srcResult branchResult, srcDir string, dstDir
 			relative := strings.TrimLeft(srcName[len(srcDir):], string(filepath.Separator))
 			dst := filepath.Join(dstDir, relative)
 			me.removeDeletion(dst)
+
+			srcResult := me.getBranch(srcName)
+			srcResult.branch = 0
+			me.branchCache.Set(dst, srcResult)
+
+			srcResult = me.branchCache.GetFresh(srcName).(branchResult)
+			if srcResult.branch > 0 {
+				code = me.putDeletion(srcName)
+			}
 		}
-
-		srcResult := me.getBranch(srcDir)
-		srcResult.branch = 0
-		me.branchCache.Set(dstDir, srcResult)
-
-		srcResult = me.branchCache.GetFresh(srcDir).(branchResult)
-		if srcResult.branch > 0 {
-			code = me.putDeletion(srcDir)
-		}
-
-		// TODO - should issue invalidations against promoted files?
 	}
 	return code
 }

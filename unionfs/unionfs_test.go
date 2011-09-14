@@ -475,6 +475,25 @@ func TestRenameDirBasic(t *testing.T) {
 	}
 }
 
+func TestRenameDirAllSourcesGone(t *testing.T) {
+	wd, clean := setupUfs(t)
+	defer clean()
+
+	err := os.MkdirAll(wd+"/ro/dir", 0755)
+	CheckSuccess(err)
+
+	err = ioutil.WriteFile(wd+"/ro/dir/file.txt", []byte{42}, 0644)
+	CheckSuccess(err)
+
+	err = os.Rename(wd+"/mount/dir", wd+"/mount/renamed")
+	CheckSuccess(err)
+
+	names := dirNames(wd + "/rw/" + testOpts.DeletionDirName)
+	if len(names) != 2 {
+		t.Errorf("Expected 2 entries in %v", names)
+	}
+}
+
 func TestRenameDirWithDeletions(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
