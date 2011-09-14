@@ -2,6 +2,7 @@ package fuse
 
 import (
 	"bytes"
+	"exec"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -727,4 +728,25 @@ func TestDoubleOpen(t *testing.T) {
 	rwFile, err := os.OpenFile(ts.mnt+"/file", os.O_WRONLY|os.O_TRUNC, 0666)
 	CheckSuccess(err)
 	defer rwFile.Close()
+}
+
+func TestUmask(t *testing.T) {
+	ts := NewTestCase(t)
+	defer ts.Cleanup()
+
+	// Make sure system setting does not affect test.
+	fn := ts.mnt+"/file"
+	mask := 020
+	cmd := exec.Command("/bin/sh", "-c", 
+		fmt.Sprintf("umask %o && mkdir %s", mask, fn))
+	cmd.Run()
+		
+	fi, err := os.Lstat(fn)
+	CheckSuccess(err)
+
+	expect := mask ^ 0777
+	got := int(fi.Mode & 0777)
+	if got != expect {
+		t.Errorf("got %o, expect mode %o for file %s", got, expect, fn)
+	}
 }
