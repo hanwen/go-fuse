@@ -917,6 +917,9 @@ func (me *UnionFs) Open(name string, flags uint32, context *fuse.Context) (fuseF
 	if fuseFile != nil {
 		fuseFile = &UnionFsFile{fuseFile, r.branch}
 	}
+	if r.branch > 0 && fuseFile != nil {
+		fuseFile = &fuse.ReadOnlyFile{fuseFile}
+	}
 	return fuseFile, status
 }
 

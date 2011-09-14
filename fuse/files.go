@@ -116,3 +116,30 @@ func (me *LoopbackFile) GetAttr() (*os.FileInfo, Status) {
 	}
 	return fi, OK
 }
+
+////////////////////////////////////////////////////////////////
+
+// ReadOnlyFile is a wrapper that denies writable operations
+type ReadOnlyFile struct {
+	File
+}
+
+func (me *ReadOnlyFile) Write(input *WriteIn, data []byte) (uint32, Status) {
+	return 0, EPERM
+}
+
+func (me *ReadOnlyFile) Fsync(*FsyncIn) (code Status) {
+	return OK
+}
+
+func (me *ReadOnlyFile) Truncate(size uint64) Status {
+	return EPERM
+}
+
+func (me *ReadOnlyFile) Chmod(mode uint32) Status {
+	return EPERM
+}
+
+func (me *ReadOnlyFile) Chown(uid uint32, gid uint32) Status {
+	return EPERM
+}

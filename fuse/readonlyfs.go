@@ -61,8 +61,8 @@ func (me *ReadonlyFileSystem) Open(name string, flags uint32, context *Context) 
 	if flags&O_ANYWRITE != 0 {
 		return nil, EPERM
 	}
-	// TODO - wrap the File object inside a R/O wrapper too?
-	return me.FileSystem.Open(name, flags, context)
+	file, code = me.FileSystem.Open(name, flags, context)
+	return &ReadOnlyFile{file}, code
 }
 
 func (me *ReadonlyFileSystem) OpenDir(name string, context *Context) (stream chan DirEntry, status Status) {
