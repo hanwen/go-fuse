@@ -48,11 +48,23 @@ func (me *portableHandleMap) Register(obj *Handled, asInt interface{}) uint64 {
 	}
 	me.Lock()
 	defer me.Unlock()
-	h := uint64(me.nextFree)
-	me.nextFree++
-	me.handles[h] = obj
-	obj.check = 0xbaabbaab
-	return h
+	for {
+		h := uint64(me.nextFree)
+		me.nextFree++
+		if h < 2 {
+			continue
+		}
+		old := me.handles[h]
+		if old != nil {
+			continue
+		}
+
+		me.handles[h] = obj
+		obj.check = 0xbaabbaab
+		return h
+	}
+
+	return 0
 }
 
 func (me *portableHandleMap) Count() int {
@@ -125,7 +137,7 @@ func (me *int32HandleMap) Decode(handle uint64) *Handled {
 	val := (*Handled)(unsafe.Pointer(uintptr(handle & ((1 << 32) - 1))))
 	return val
 }
-	
+
 // 64 bits version of HandleMap
 type int64HandleMap struct {
 	mutex    sync.Mutex
@@ -154,11 +166,10 @@ func (me *int64HandleMap) verify() {
 func NewHandleMap(portable bool) (hm HandleMap) {
 	if portable {
 		return &portableHandleMap{
-			nextFree: 2,
 			handles: make(map[uint64]*Handled),
 		}
 	}
-	
+
 	var obj *Handled
 	switch unsafe.Sizeof(obj) {
 	case 8:
@@ -238,7 +249,7 @@ func (me *int64HandleMap) Decode(handle uint64) (val *Handled) {
 	ptrBits := uintptr(handle & (1<<45 - 1))
 	check := uint32(handle >> 45)
 	val = (*Handled)(unsafe.Pointer(ptrBits<<3 + uintptr(baseAddress)))
-	
+
 	if val.check != check {
 		msg := fmt.Sprintf("handle check mismatch; handle has 0x%x, object has 0x%x: %v",
 			check, val.check, val.object)
@@ -246,7 +257,7 @@ func (me *int64HandleMap) Decode(handle uint64) (val *Handled) {
 	}
 	return val
 }
-	
+
 func init() {
 	// TODO - figure out a way to discover this nicely.  This is
 	// depends in a pretty fragile way on the 6g allocator
