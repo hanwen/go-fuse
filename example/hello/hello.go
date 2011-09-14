@@ -1,4 +1,4 @@
-// A Go mirror of libfuse's hello.c 
+// A Go mirror of libfuse's hello.c
 
 package main
 
@@ -44,7 +44,7 @@ func (me *HelloFs) Open(name string, flags uint32, context *fuse.Context) (file 
 	if flags&fuse.O_ANYWRITE != 0 {
 		return nil, fuse.EPERM
 	}
-	return fuse.NewReadOnlyFile([]byte(name)), fuse.OK
+	return fuse.NewDataFile([]byte(name)), fuse.OK
 }
 
 func main() {

@@ -45,7 +45,7 @@ func (me *FileSystemDebug) Add(name string, callback getter) {
 func (me *FileSystemDebug) Open(path string, flags uint32, context *Context) (fuseFile File, status Status) {
 	content := me.getContent(path)
 	if content != nil {
-		return NewReadOnlyFile(content), OK
+		return NewDataFile(content), OK
 	}
 	return me.FileSystem.Open(path, flags, context)
 }

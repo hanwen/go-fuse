@@ -322,7 +322,7 @@ func (me *AutoUnionFs) Open(path string, flags uint32, context *fuse.Context) (f
 		if flags&fuse.O_ANYWRITE != 0 {
 			return nil, fuse.EPERM
 		}
-		return fuse.NewReadOnlyFile([]byte(fuse.Version())), fuse.OK
+		return fuse.NewDataFile([]byte(fuse.Version())), fuse.OK
 	}
 	if path == filepath.Join(_CONFIG, _SCAN_CONFIG) {
 		if flags&fuse.O_ANYWRITE != 0 {

@@ -28,7 +28,7 @@ func (me *NotifyFs) GetAttr(name string, context *Context) (*os.FileInfo, Status
 }
 
 func (me *NotifyFs) Open(name string, f uint32, context *Context) (File, Status) {
-	return NewReadOnlyFile([]byte{42}), OK
+	return NewDataFile([]byte{42}), OK
 }
 
 type NotifyTest struct {

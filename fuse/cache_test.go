@@ -106,7 +106,7 @@ func (me *nonseekFs) Open(name string, flags uint32, context *Context) (fuseFile
 	}
 
 	data := bytes.Repeat([]byte{42}, me.Length)
-	f := NewReadOnlyFile(data)
+	f := NewDataFile(data)
 	return &WithFlags{
 		File:      f,
 		FuseFlags: FOPEN_NONSEEKABLE,

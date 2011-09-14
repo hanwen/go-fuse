@@ -89,7 +89,7 @@ func (me *memNode) Open(flags uint32, context *fuse.Context) (fuseFile fuse.File
 		return nil, fuse.EPERM
 	}
 
-	return fuse.NewReadOnlyFile(me.file.Data()), fuse.OK
+	return fuse.NewDataFile(me.file.Data()), fuse.OK
 }
 
 func (me *memNode) GetAttr(file fuse.File, context *fuse.Context) (*os.FileInfo, fuse.Status) {
