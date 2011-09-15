@@ -98,7 +98,7 @@ func (me *testCase) Cleanup() {
 	fmt.Println("Unmounting.")
 	err := me.state.Unmount()
 	CheckSuccess(err)
-	os.Remove(me.tmpDir)
+	os.RemoveAll(me.tmpDir)
 }
 
 func (me *testCase) rootNode() *Inode {

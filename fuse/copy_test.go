@@ -8,8 +8,10 @@ import (
 func TestCopyFile(t *testing.T) {
 	d1, err := ioutil.TempDir("", "go-fuse")
 	CheckSuccess(err)
+	defer os.RemoveAll(d1)
 	d2, err := ioutil.TempDir("", "go-fuse")
 	CheckSuccess(err)
+	defer os.RemoveAll(d2)
 
 	fs1 := NewLoopbackFileSystem(d1)
 	fs2 := NewLoopbackFileSystem(d2)
