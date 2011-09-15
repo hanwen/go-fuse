@@ -61,8 +61,8 @@ func (me *fileSystemMount) setOwner(attr *Attr) {
 
 func (me *fileSystemMount) fileInfoToEntry(fi *os.FileInfo) (out *EntryOut) {
 	out = &EntryOut{}
-	SplitNs(me.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
-	SplitNs(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
+	splitNs(me.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
+	splitNs(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	CopyFileInfo(fi, &out.Attr)
 	me.setOwner(&out.Attr)
 	if !fi.IsDirectory() && fi.Nlink == 0 {
@@ -73,7 +73,7 @@ func (me *fileSystemMount) fileInfoToEntry(fi *os.FileInfo) (out *EntryOut) {
 
 func (me *fileSystemMount) fileInfoToAttr(fi *os.FileInfo, out *AttrOut) {
 	CopyFileInfo(fi, &out.Attr)
-	SplitNs(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
+	splitNs(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	me.setOwner(&out.Attr)
 }
 
@@ -137,6 +137,6 @@ func (me *fileSystemMount) registerFileHandle(node *Inode, dir rawDir, f File, f
 func (me *fileSystemMount) negativeEntry() *EntryOut {
 	out := new(EntryOut)
 	out.NodeId = 0
-	SplitNs(me.options.NegativeTimeout, &out.EntryValid, &out.EntryValidNsec)
+	splitNs(me.options.NegativeTimeout, &out.EntryValid, &out.EntryValidNsec)
 	return out
 }

@@ -49,7 +49,7 @@ func OsErrorToErrno(err os.Error) Status {
 	return OK
 }
 
-func SplitNs(time float64, secs *uint64, nsecs *uint32) {
+func splitNs(time float64, secs *uint64, nsecs *uint32) {
 	*nsecs = uint32(1e9 * (time - math.Trunc(time)))
 	*secs = uint64(math.Trunc(time))
 }
