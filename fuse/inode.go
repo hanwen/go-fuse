@@ -8,7 +8,9 @@ import (
 
 var _ = log.Println
 
-// The inode reflects the kernel's idea of the inode.
+// The inode reflects the kernel's idea of the inode.  Inodes may be
+// created automatically when the kernel does lookups inode, or by
+// explicitly by calling Inode.CreateChild().
 type Inode struct {
 	handled Handled
 
@@ -16,43 +18,48 @@ type Inode struct {
 	openFilesMutex sync.Mutex
 	openFiles      []*openedFile
 
-	// treeLock is a pointer to me.mount.treeLock; we need store
-	// this mutex separately, since unmount may set me.mount = nil
-	// during Unmount().  Constant during lifetime.
+	fsInode FsNode
+
+	// Each inode belongs to exactly one fileSystemMount. This
+	// pointer is constant during the lifetime, except upon
+	// Unmount() when it is set to nil.
+	mount *fileSystemMount
+	
+	// treeLock is a pointer to me.mount.treeLock.  We store it
+	// here for convenience.  Constant during lifetime of the
+	// inode.
 	//
 	// If multiple treeLocks must be acquired, the treeLocks
 	// closer to the root must be acquired first.
 	treeLock *sync.RWMutex
 
 	// All data below is protected by treeLock.
-	fsInode FsNode
-
 	children map[string]*Inode
 
 	// Contains directories that function as mounts. The entries
 	// are duplicated in children.
 	mounts map[string]*fileSystemMount
 
-	// This is exclusively used for managing the lifetime of
-	// nodeId below, and it is ok for a node to have 0 lookupCount
-	// and be in the system if it is synthetic.
-	lookupCount int
-
 	// The nodeId is only used to communicate to the kernel.  If
 	// it is zero, it means the kernel does not know about this
-	// Inode.
+	// Inode.  nodeIds are chosen by FileSystemConnector.inodeMap.
 	nodeId uint64
 	
+	// lookupCount registers how often the kernel got this inode
+	// back for a Lookup operation. This number is a reference
+	// count, and the Forget operation lists how many references to drop.
+	//
+	// The lookupCount is exclusively used for managing the
+	// lifetime of nodeId variable.  It is ok for a node to have 0
+	// == lookupCount.  This can happen if the inode is synthetic.
+	lookupCount int
+
 	// This is to prevent lookupCount==0 node from being dropped.
 	synthetic bool
 	
-	// Non-nil if this is a mountpoint.
+	// Non-nil if this inode is a mountpoint, ie. the Root of a
+	// NodeFileSystem.
 	mountPoint *fileSystemMount
-
-	// The file system to which this node belongs.  Is constant
-	// during the lifetime, except upon Unmount() when it is set
-	// to nil.
-	mount *fileSystemMount
 }
 
 func newInode(isDir bool, fsNode FsNode) *Inode {

@@ -18,6 +18,7 @@ type openedFile struct {
 	dir rawDir
 }
 
+
 type fileSystemMount struct {
 	// The file system we mounted here.
 	fs NodeFileSystem
@@ -32,7 +33,7 @@ type fileSystemMount struct {
 	options *FileSystemOptions
 
 	// Protects Children hashmaps within the mount.  treeLock
-	// should be acquired before openFilesLock
+	// should be acquired before openFilesLock.
 	treeLock sync.RWMutex
 
 	// Manage filehandles of open files.

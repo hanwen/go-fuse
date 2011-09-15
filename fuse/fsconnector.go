@@ -4,15 +4,6 @@ package fuse
 // FileSystemConnector. The functions for satisfying the raw interface
 // are in fsops.go
 
-/* TODO - document overall structure and locking strategy.
-
- "at a first glance, questions that come up: why doesn't fsconnector
-have the lock, why does every node need it?  (I have some ideas, but
-they take a while to verify)"
-
- "a short sum up on how the forget count is handled"
-
-*/
 import (
 	"fmt"
 	"log"
@@ -25,6 +16,33 @@ import (
 // Tests should set to true.
 var paranoia = false
 
+// FilesystemConnector is a raw FUSE filesystem that manages
+// in-process mounts and inodes.  Its job is twofold:
+//
+// * It translates between the raw kernel interface (padded structs
+// of int32 and int64) and the more abstract NodeFileSystem interface.
+// that is based on a hierarchy of Inodes
+//
+// * It manages mounting and unmounting of NodeFileSystems into the
+// directory hierarchy
+//
+// To achieve this, the connector only needs a pointer to the root
+// node.
+type FileSystemConnector struct {
+	DefaultRawFileSystem
+
+	Debug bool
+
+	// Callbacks for talking back to the kernel.
+	fsInit   RawFsInit
+
+	// Translate between uint64 handles and *Inode.
+	inodeMap HandleMap
+
+	// The root of the FUSE file system.
+	rootNode *Inode
+}
+
 func NewFileSystemOptions() *FileSystemOptions {
 	return &FileSystemOptions{
 		NegativeTimeout: 0.0,
@@ -32,17 +50,6 @@ func NewFileSystemOptions() *FileSystemOptions {
 		EntryTimeout:    1.0,
 		Owner:           CurrentOwner(),
 	}
-}
-
-// FilesystemConnector is a raw FUSE filesystem that manages in-process mounts and inodes.
-type FileSystemConnector struct {
-	DefaultRawFileSystem
-
-	Debug bool
-
-	fsInit   RawFsInit
-	inodeMap HandleMap
-	rootNode *Inode
 }
 
 func NewFileSystemConnector(nodeFs NodeFileSystem, opts *FileSystemOptions) (me *FileSystemConnector) {

@@ -10,20 +10,31 @@ import (
 
 var _ = log.Println
 
+// A parent pointer: node should be reachable as parent.children[name]
 type clientInodePath struct {
 	parent *pathInode
 	name   string
 	node   *pathInode
 }
 
+// PathNodeFs is the file system that can translate an inode back to a
+// path.  The path name is then used to call into an object that has
+// the FileSystem interface.
+//
+// Lookups (ie. FileSystem.GetAttr) may return a inode number in its
+// return value. The inode number ("clientInode") is used to indicate
+// linked files. The clientInode is never exported back to the kernel;
+// it is only used to maintain a list of all names of an inode.
 type PathNodeFs struct {
 	Debug     bool
 	fs        FileSystem
 	root      *pathInode
 	connector *FileSystemConnector
 
-	// Used for dealing with hardlinks.
 	clientInodeMapMutex sync.Mutex
+
+	// This map lists all the parent links known for a given
+	// nodeId.
 	clientInodeMap      map[uint64][]*clientInodePath
 }
 
