@@ -3,6 +3,7 @@ package unionfs
 import (
 	"os"
 	"github.com/hanwen/go-fuse/fuse"
+	"io/ioutil"
 	"fmt"
 	"log"
 	"syscall"
@@ -27,7 +28,7 @@ func modeMapEq(m1, m2 map[string]uint32) bool {
 }
 
 func TestCachingFs(t *testing.T) {
-	wd := fuse.MakeTempDir()
+	wd, _ := ioutil.TempDir("", "")
 	defer os.RemoveAll(wd)
 
 	fs := fuse.NewLoopbackFileSystem(wd)

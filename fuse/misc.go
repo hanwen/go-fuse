@@ -11,7 +11,6 @@ import (
 	"strings"
 	"syscall"
 	"unsafe"
-	"io/ioutil"
 )
 
 func (code Status) String() string {
@@ -28,15 +27,6 @@ func (code Status) String() string {
 
 func (code Status) Ok() bool {
 	return code == OK
-}
-
-// Make a temporary directory securely.
-func MakeTempDir() string {
-	nm, err := ioutil.TempDir("", "go-fuse")
-	if err != nil {
-		panic("TempDir() failed: " + err.String())
-	}
-	return nm
 }
 
 // Convert os.Error back to Errno based errors.

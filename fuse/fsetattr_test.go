@@ -2,6 +2,7 @@ package fuse
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"syscall"
@@ -121,7 +122,8 @@ func NewFile() *MutableDataFile {
 }
 
 func setupFAttrTest(fs FileSystem) (dir string, clean func()) {
-	dir = MakeTempDir()
+	dir, err := ioutil.TempDir("", "go-fuse")
+	CheckSuccess(err)
 	state, _, err := MountPathFileSystem(dir, fs, nil)
 	CheckSuccess(err)
 	state.Debug = true

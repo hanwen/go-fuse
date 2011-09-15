@@ -2,6 +2,7 @@ package fuse
 
 import (
 	"bytes"
+	"io/ioutil"
 	"testing"
 	"log"
 	"path/filepath"
@@ -91,7 +92,8 @@ func TestXAttrRead(t *testing.T) {
 		"user.attr1": []byte("val1"),
 		"user.attr2": []byte("val2")}
 	xfs := NewXAttrFs(nm, golden)
-	mountPoint := MakeTempDir()
+	mountPoint, err := ioutil.TempDir("", "go-fuse")
+	CheckSuccess(err)
 	defer os.RemoveAll(mountPoint)
 
 	state, _, err := MountPathFileSystem(mountPoint, xfs, nil)

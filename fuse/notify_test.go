@@ -1,6 +1,7 @@
 package fuse
 
 import (
+	"io/ioutil"
 	"log"
 	"os"
 	"testing"
@@ -42,7 +43,9 @@ type NotifyTest struct {
 func NewNotifyTest() *NotifyTest {
 	me := &NotifyTest{}
 	me.fs = &NotifyFs{}
-	me.dir = MakeTempDir()
+	var err os.Error
+	me.dir, err = ioutil.TempDir("", "go-fuse")
+	CheckSuccess(err)
 	entryTtl := 0.1
 	opts := &FileSystemOptions{
 		EntryTimeout:    entryTtl,
@@ -50,7 +53,6 @@ func NewNotifyTest() *NotifyTest {
 		NegativeTimeout: entryTtl,
 	}
 
-	var err os.Error
 	me.pathfs = NewPathNodeFs(me.fs)
 	me.state, me.connector, err = MountNodeFileSystem(me.dir, me.pathfs, opts)
 	CheckSuccess(err)

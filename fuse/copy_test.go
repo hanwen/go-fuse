@@ -6,15 +6,17 @@ import (
 )
 
 func TestCopyFile(t *testing.T) {
-	d1 := MakeTempDir()
-	d2 := MakeTempDir()
+	d1, err := ioutil.TempDir("", "go-fuse")
+	CheckSuccess(err)
+	d2, err := ioutil.TempDir("", "go-fuse")
+	CheckSuccess(err)
 
 	fs1 := NewLoopbackFileSystem(d1)
 	fs2 := NewLoopbackFileSystem(d2)
 
 	content1 := "blabla"
 
-	err := ioutil.WriteFile(d1+"/file", []byte(content1), 0644)
+	err = ioutil.WriteFile(d1+"/file", []byte(content1), 0644)
 	CheckSuccess(err)
 
 	code := CopyFile(fs1, fs2, "file", "file", nil)

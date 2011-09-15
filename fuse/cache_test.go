@@ -27,7 +27,8 @@ func (me *cacheFs) Open(name string, flags uint32, context *Context) (fuseFile F
 }
 
 func setupCacheTest() (string, *PathNodeFs, func()) {
-	dir := MakeTempDir()
+	dir, err := ioutil.TempDir("", "go-fuse")
+	CheckSuccess(err)
 	os.Mkdir(dir+"/mnt", 0755)
 	os.Mkdir(dir+"/orig", 0755)
 
@@ -117,7 +118,8 @@ func TestNonseekable(t *testing.T) {
 	fs := &nonseekFs{}
 	fs.Length = 200 * 1024
 
-	dir := MakeTempDir()
+	dir, err := ioutil.TempDir("", "go-fuse")
+	CheckSuccess(err)
 	defer os.RemoveAll(dir)
 	state, _, err := MountPathFileSystem(dir, fs, nil)
 	CheckSuccess(err)

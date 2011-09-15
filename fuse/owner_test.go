@@ -1,6 +1,7 @@
 package fuse
 
 import (
+	"io/ioutil"
 	"os"
 	"testing"
 )
@@ -25,7 +26,7 @@ func (me *ownerFs) GetAttr(name string, context *Context) (*os.FileInfo, Status)
 }
 
 func setupOwnerTest(opts *FileSystemOptions) (workdir string, cleanup func()) {
-	wd := MakeTempDir()
+	wd, err := ioutil.TempDir("", "go-fuse")
 
 	fs := &ownerFs{}
 	state, _, err := MountPathFileSystem(wd, fs, opts)

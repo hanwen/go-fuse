@@ -52,7 +52,9 @@ func NewTestCase(t *testing.T) *testCase {
 	const name string = "hello.txt"
 	const subdir string = "subdir"
 
-	me.tmpDir = MakeTempDir()
+	var err os.Error
+	me.tmpDir, err = ioutil.TempDir("", "go-fuse")
+	CheckSuccess(err)
 	me.orig = me.tmpDir + "/orig"
 	me.mnt = me.tmpDir + "/mnt"
 
@@ -689,10 +691,11 @@ func TestStatFs(t *testing.T) {
 }
 
 func TestOriginalIsSymlink(t *testing.T) {
-	tmpDir := MakeTempDir()
+	tmpDir, err := ioutil.TempDir("", "go-fuse")
+	CheckSuccess(err)
 	defer os.RemoveAll(tmpDir)
 	orig := tmpDir + "/orig"
-	err := os.Mkdir(orig, 0755)
+	err = os.Mkdir(orig, 0755)
 	CheckSuccess(err)
 	link := tmpDir + "/link"
 	mnt := tmpDir + "/mnt"

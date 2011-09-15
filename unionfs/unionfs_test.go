@@ -30,7 +30,7 @@ var testOpts = UnionFsOptions{
 }
 
 func setupUfs(t *testing.T) (workdir string, cleanup func()) {
-	wd := fuse.MakeTempDir()
+	wd, _ := ioutil.TempDir("", "")
 	err := os.Mkdir(wd+"/mount", 0700)
 	fuse.CheckSuccess(err)
 
@@ -843,7 +843,7 @@ func TestDropCache(t *testing.T) {
 func TestDisappearing(t *testing.T) {
 	// This init is like setupUfs, but we want access to the
 	// writable Fs.
-	wd := fuse.MakeTempDir()
+	wd, _ := ioutil.TempDir("", "")
 	defer os.RemoveAll(wd)
 	err := os.Mkdir(wd+"/mount", 0700)
 	fuse.CheckSuccess(err)

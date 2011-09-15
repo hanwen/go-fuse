@@ -29,7 +29,7 @@ func WriteFile(name string, contents string) {
 }
 
 func setup(t *testing.T) (workdir string, cleanup func()) {
-	wd := fuse.MakeTempDir()
+	wd, _ := ioutil.TempDir("", "")
 	err := os.Mkdir(wd+"/mount", 0700)
 	fuse.CheckSuccess(err)
 
