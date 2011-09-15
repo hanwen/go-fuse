@@ -39,7 +39,7 @@ const _ALREADY_MSG = "Object already has a handle"
 type portableHandleMap struct {
 	sync.RWMutex
 	nextFree uint32
-	handles map[uint64]*Handled
+	handles  map[uint64]*Handled
 }
 
 func (me *portableHandleMap) Register(obj *Handled, asInt interface{}) uint64 {
@@ -79,7 +79,6 @@ func (me *portableHandleMap) Decode(h uint64) *Handled {
 	return me.handles[h]
 }
 
-
 func (me *portableHandleMap) Forget(h uint64) *Handled {
 	me.Lock()
 	defer me.Unlock()
@@ -94,7 +93,6 @@ func (me *portableHandleMap) Has(h uint64) bool {
 	defer me.RUnlock()
 	return me.handles[h] != nil
 }
-
 
 // 32 bits version of HandleMap
 type int32HandleMap struct {
@@ -131,7 +129,6 @@ func (me *int32HandleMap) Forget(handle uint64) *Handled {
 	me.handles[uint32(handle)] = nil, false
 	return val
 }
-
 
 func (me *int32HandleMap) Decode(handle uint64) *Handled {
 	val := (*Handled)(unsafe.Pointer(uintptr(handle & ((1 << 32) - 1))))

@@ -59,7 +59,6 @@ func (me *FileSystemConnector) internalLookup(parent *Inode, name string, contex
 	return me.postLookup(fi, fsNode, code, getattrNode, lookupNode, name)
 }
 
-
 // Prepare for lookup: we are either looking for getattr of an
 // existing node, or lookup a new one. Here we decide which of those
 func (me *FileSystemConnector) preLookup(parent *Inode, name string) (lookupNode *Inode, attrNode *Inode) {

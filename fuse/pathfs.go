@@ -35,7 +35,7 @@ type PathNodeFs struct {
 
 	// This map lists all the parent links known for a given
 	// nodeId.
-	clientInodeMap      map[uint64][]*clientInodePath
+	clientInodeMap map[uint64][]*clientInodePath
 }
 
 func (me *PathNodeFs) Mount(path string, nodeFs NodeFileSystem, opts *FileSystemOptions) Status {
@@ -154,9 +154,9 @@ func (me *PathNodeFs) Root() FsNode {
 // the inode). This structure is used to implement glue for FSes where
 // there is a one-to-one mapping of paths and inodes.
 type pathInode struct {
-	pathFs  *PathNodeFs
-	fs   FileSystem
-	Name string
+	pathFs *PathNodeFs
+	fs     FileSystem
+	Name   string
 
 	// This is nil at the root of the mount.
 	Parent *pathInode

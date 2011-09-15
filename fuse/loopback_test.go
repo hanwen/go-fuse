@@ -736,12 +736,12 @@ func TestUmask(t *testing.T) {
 	defer ts.Cleanup()
 
 	// Make sure system setting does not affect test.
-	fn := ts.mnt+"/file"
+	fn := ts.mnt + "/file"
 	mask := 020
-	cmd := exec.Command("/bin/sh", "-c", 
+	cmd := exec.Command("/bin/sh", "-c",
 		fmt.Sprintf("umask %o && mkdir %s", mask, fn))
 	cmd.Run()
-		
+
 	fi, err := os.Lstat(fn)
 	CheckSuccess(err)
 

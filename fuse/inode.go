@@ -24,7 +24,7 @@ type Inode struct {
 	// pointer is constant during the lifetime, except upon
 	// Unmount() when it is set to nil.
 	mount *fileSystemMount
-	
+
 	// treeLock is a pointer to me.mount.treeLock.  We store it
 	// here for convenience.  Constant during lifetime of the
 	// inode.
@@ -44,7 +44,7 @@ type Inode struct {
 	// it is zero, it means the kernel does not know about this
 	// Inode.  nodeIds are chosen by FileSystemConnector.inodeMap.
 	nodeId uint64
-	
+
 	// lookupCount registers how often the kernel got this inode
 	// back for a Lookup operation. This number is a reference
 	// count, and the Forget operation lists how many references to drop.
@@ -56,7 +56,7 @@ type Inode struct {
 
 	// This is to prevent lookupCount==0 node from being dropped.
 	synthetic bool
-	
+
 	// Non-nil if this inode is a mountpoint, ie. the Root of a
 	// NodeFileSystem.
 	mountPoint *fileSystemMount
@@ -128,13 +128,12 @@ func (me *Inode) IsDir() bool {
 	return me.children != nil
 }
 
-
 // CreateChild() creates node for synthetic use
 func (me *Inode) CreateChild(name string, isDir bool, fsi FsNode) *Inode {
 	me.treeLock.Lock()
 	defer me.treeLock.Unlock()
 
-	ch :=  me.createChild(name, isDir, fsi)
+	ch := me.createChild(name, isDir, fsi)
 	ch.synthetic = true
 	return ch
 }

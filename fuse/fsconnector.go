@@ -34,7 +34,7 @@ type FileSystemConnector struct {
 	Debug bool
 
 	// Callbacks for talking back to the kernel.
-	fsInit   RawFsInit
+	fsInit RawFsInit
 
 	// Translate between uint64 handles and *Inode.
 	inodeMap HandleMap
@@ -76,7 +76,6 @@ func (me *FileSystemConnector) verify() {
 	root := me.rootNode
 	root.verify(me.rootNode.mountPoint)
 }
-
 
 // createChild() creates a child for given as FsNode as child of 'parent'.  The
 // resulting inode will have its lookupCount incremented.
@@ -123,7 +122,6 @@ func (me *FileSystemConnector) lookupUpdate(node *Inode) {
 	}
 	node.lookupCount += 1
 }
-
 
 // Must run outside treeLock.
 //

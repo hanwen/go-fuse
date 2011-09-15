@@ -18,7 +18,6 @@ type openedFile struct {
 	dir rawDir
 }
 
-
 type fileSystemMount struct {
 	// The file system we mounted here.
 	fs NodeFileSystem
@@ -39,7 +38,7 @@ type fileSystemMount struct {
 	// Manage filehandles of open files.
 	openFiles HandleMap
 
-	Debug     bool
+	Debug bool
 }
 
 // Must called with lock for parent held.

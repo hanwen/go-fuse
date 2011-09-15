@@ -87,9 +87,9 @@ func TestHandleMapBasic(t *testing.T) {
 			t.Fatal("Still has handle")
 		}
 		if v.check != 0 {
-			t.Errorf("forgotten object still has a check.")  
+			t.Errorf("forgotten object still has a check.")
 		}
-	}	
+	}
 }
 
 func TestHandleMapMultiple(t *testing.T) {
@@ -119,4 +119,3 @@ func TestHandleMapCheckFail(t *testing.T) {
 	hm.Decode(h | (uint64(1) << 63))
 	t.Error("Borked decode did not panic")
 }
-

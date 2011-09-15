@@ -993,7 +993,7 @@ func TestStatFs(t *testing.T) {
 	defer clean()
 
 	s1 := syscall.Statfs_t{}
-	err := syscall.Statfs(wd + "/mount", &s1)
+	err := syscall.Statfs(wd+"/mount", &s1)
 	if err != 0 {
 		t.Fatal("statfs mnt", err)
 	}
