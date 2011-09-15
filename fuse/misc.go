@@ -118,11 +118,6 @@ func CheckSuccess(e os.Error) {
 	}
 }
 
-func MyPID() string {
-	v, _ := os.Readlink("/proc/self")
-	return v
-}
-
 // Thanks to Andrew Gerrand for this hack.
 func asSlice(ptr unsafe.Pointer, byteCount uintptr) []byte {
 	h := &reflect.SliceHeader{uintptr(ptr), int(byteCount), int(byteCount)}
