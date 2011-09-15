@@ -71,7 +71,7 @@ func NewStatFs() *StatFs {
 }
 
 func setupFs(fs fuse.FileSystem, opts *fuse.FileSystemOptions) (string, func()) {
-	mountPoint := fuse.MakeTempDir()
+	mountPoint, _ := ioutil.TempDir("", "stat_test")
 	state, _, err := fuse.MountPathFileSystem(mountPoint, fs, opts)
 	if err != nil {
 		panic(fmt.Sprintf("cannot mount %v", err)) // ugh - benchmark has no error methods.
@@ -236,7 +236,7 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 	f.Close()
 
 	log.Println("Written:", f.Name())
-	mountPoint := fuse.MakeTempDir()
+	mountPoint, _ := ioutil.TempDir("", "stat_test")
 	wd, _ := os.Getwd()
 	cmd := exec.Command(wd+"/cstatfs", mountPoint)
 	cmd.Env = append(os.Environ(), fmt.Sprintf("STATFS_INPUT=%s", f.Name()))

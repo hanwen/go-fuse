@@ -3,6 +3,7 @@ package fuse
 import (
 	"testing"
 	"io/ioutil"
+	"os"
 )
 
 func TestCopyFile(t *testing.T) {
