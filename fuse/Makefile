@@ -19,20 +19,16 @@ MANUAL_GOFILES=api.go \
 	inode.go \
 	latencymap.go \
 	lockingfs.go \
-	loggingfs.go \
 	loopback.go \
 	misc.go \
 	mount.go \
 	mountstate.go \
 	opcode.go \
 	pathfs.go \
-	pathdebug.go \
 	fsops.go \
 	readonlyfs.go \
 	request.go \
 	switchfs.go \
-	timingfs.go \
-	timingrawfs.go \
 	types.go \
 	version.go \
 	xattr.go \

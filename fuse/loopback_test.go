@@ -66,7 +66,6 @@ func NewTestCase(t *testing.T) *testCase {
 
 	var pfs FileSystem
 	pfs = NewLoopbackFileSystem(me.orig)
-	pfs = NewTimingFileSystem(pfs)
 	pfs = NewLockingFileSystem(pfs)
 
 	var rfs RawFileSystem
@@ -78,7 +77,6 @@ func NewTestCase(t *testing.T) *testCase {
 			NegativeTimeout: 0.0,
 		})
 	rfs = me.connector
-	rfs = NewTimingRawFileSystem(rfs)
 	rfs = NewLockingRawFileSystem(rfs)
 
 	me.connector.Debug = true

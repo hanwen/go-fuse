@@ -18,7 +18,6 @@ var _ = log.Print
 func main() {
 	// Scans the arg list and sets up flags
 	debug := flag.Bool("debug", false, "print debugging messages.")
-	latencies := flag.Bool("latencies", false, "record latencies.")
 	flag.Parse()
 	if flag.NArg() < 2 {
 		// TODO - where to get program name?
@@ -31,13 +30,6 @@ func main() {
 	loopbackfs := fuse.NewLoopbackFileSystem(orig)
 	finalFs = loopbackfs
 
-	debugFs := fuse.NewFileSystemDebug()
-	if *latencies {
-		timing := fuse.NewTimingFileSystem(finalFs)
-		debugFs.AddTimingFileSystem(timing)
-		finalFs = timing
-	}
-
 	opts := &fuse.FileSystemOptions{
 		// These options are to be compatible with libfuse defaults,
 		// making benchmarking easier.
@@ -46,26 +38,10 @@ func main() {
 		EntryTimeout:    1.0,
 	}
 
-	if *latencies {
-		debugFs.FileSystem = finalFs
-		finalFs = debugFs
-	}
-
 	conn := fuse.NewFileSystemConnector(fuse.NewPathNodeFs(finalFs), opts)
-	var finalRawFs fuse.RawFileSystem = conn
-	if *latencies {
-		rawTiming := fuse.NewTimingRawFileSystem(conn)
-		debugFs.AddRawTimingFileSystem(rawTiming)
-		finalRawFs = rawTiming
-	}
-
-	state := fuse.NewMountState(finalRawFs)
+	state := fuse.NewMountState(conn)
 	state.Debug = *debug
 
-	if *latencies {
-		state.SetRecordStatistics(true)
-		debugFs.AddMountState(state)
-	}
 	mountPoint := flag.Arg(0)
 
 	fmt.Println("Mounting")
