@@ -580,7 +580,7 @@ func (me *UnionFs) promoteDirsTo(filename string) fuse.Status {
 	for dirName != "" {
 		r := me.getBranch(dirName)
 
-		if r.code != fuse.OK {
+		if !r.code.Ok() {
 			log.Println("path component does not exist", filename, dirName)
 		}
 		if !r.attr.IsDirectory() {
