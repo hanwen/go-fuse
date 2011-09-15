@@ -125,9 +125,7 @@ func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out 
 	if !code.Ok() {
 		return nil, code
 	}
-	out = &AttrOut{}
-	node.mount.fileInfoToAttr(fi, out)
-	out.Attr.Ino = header.NodeId
+	out = node.mount.fileInfoToAttr(fi, header.NodeId)
 	return out, OK
 }
 
@@ -211,9 +209,7 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 	// the changes we effect here.
 	fi, code := node.fsInode.GetAttr(f, &header.Context)
 	if code.Ok() {
-		out = &AttrOut{}
-		out.Attr.Ino = header.NodeId
-		node.mount.fileInfoToAttr(fi, out)
+		out = node.mount.fileInfoToAttr(fi, header.NodeId)
 	}
 	return out, code
 }

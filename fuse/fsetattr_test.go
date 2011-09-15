@@ -150,9 +150,12 @@ func TestFSetAttr(t *testing.T) {
 
 	fn := dir + "/file"
 	f, err := os.OpenFile(fn, os.O_CREATE|os.O_WRONLY, 0755)
+
 	CheckSuccess(err)
 	defer f.Close()
-
+	fi, err := f.Stat()
+	CheckSuccess(err)
+	
 	_, err = f.WriteString("hello")
 	CheckSuccess(err)
 
@@ -178,5 +181,10 @@ func TestFSetAttr(t *testing.T) {
 			fs.file.FileInfo.Atime_ns, fs.file.FileInfo.Mtime_ns)
 	}
 
+	newFi, err := f.Stat()
+	CheckSuccess(err)
+	if fi.Ino != newFi.Ino {
+		t.Errorf("f.Lstat().Ino = %d. Returned %d before.", newFi.Ino, fi.Ino)
+	}
 	// TODO - test chown if run as root.
 }

@@ -70,10 +70,13 @@ func (me *fileSystemMount) fileInfoToEntry(fi *os.FileInfo) (out *EntryOut) {
 	return out
 }
 
-func (me *fileSystemMount) fileInfoToAttr(fi *os.FileInfo, out *AttrOut) {
+func (me *fileSystemMount) fileInfoToAttr(fi *os.FileInfo, nodeId uint64) (out *AttrOut) {
+	out = &AttrOut{}
 	CopyFileInfo(fi, &out.Attr)
 	splitNs(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	me.setOwner(&out.Attr)
+	out.Ino = nodeId
+	return out
 }
 
 func (me *fileSystemMount) getOpenedFile(h uint64) *openedFile {
