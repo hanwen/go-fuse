@@ -1,7 +1,7 @@
 include $(GOROOT)/src/Make.inc
 
 TARG=hello
-GOFILES=hello.go
+GOFILES=main.go
 
 DEPS=../../fuse
 
