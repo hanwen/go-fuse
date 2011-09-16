@@ -150,15 +150,6 @@ func (me *AutoUnionFs) addFs(name string, roots []string) (code fuse.Status) {
 	return me.createFs(name, roots)
 }
 
-// TODO - should hide these methods.
-func (me *AutoUnionFs) VisitDir(path string, f *os.FileInfo) bool {
-	roots := me.getRoots(path)
-	if roots != nil {
-		me.addAutomaticFs(roots)
-	}
-	return true
-}
-
 func (me *AutoUnionFs) getRoots(path string) []string {
 	ro := filepath.Join(path, _READONLY)
 	fi, err := os.Lstat(ro)
@@ -171,8 +162,14 @@ func (me *AutoUnionFs) getRoots(path string) []string {
 	return nil
 }
 
-func (me *AutoUnionFs) VisitFile(path string, f *os.FileInfo) {
-
+func (me *AutoUnionFs) visit(path string, fi *os.FileInfo, err os.Error) os.Error {
+	if fi.IsDirectory() {
+		roots := me.getRoots(path)
+		if roots != nil {
+			me.addAutomaticFs(roots)
+		}
+	}
+	return nil
 }
 
 func (me *AutoUnionFs) updateKnownFses() {
@@ -184,8 +181,12 @@ func (me *AutoUnionFs) updateKnownFses() {
 		for _, dir := range directoryEntries {
 			if dir.IsDirectory() || dir.IsSymlink() {
 				path := filepath.Join(me.root, dir.Name)
-				me.VisitDir(path, nil)
-				filepath.Walk(path, me, nil)
+				dir, _ = os.Stat(path)
+				me.visit(path, dir, nil)
+				filepath.Walk(path,
+					func(path string, fi *os.FileInfo, err os.Error) os.Error {
+						return me.visit(path, fi, err)
+				})
 			}
 		}
 	}
