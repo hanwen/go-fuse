@@ -317,6 +317,7 @@ func (me *pathInode) ListXAttr(context *Context) (attrs []string, code Status) {
 
 func (me *pathInode) Flush(file File, openFlags uint32, context *Context) (code Status) {
 	code = file.Flush()
+	// TODO - drop this. The filesystem should hook into Flush of the file itself.
 	if code.Ok() && openFlags&O_ANYWRITE != 0 {
 		// We only signal releases to the FS if the
 		// open could have changed things.
