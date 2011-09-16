@@ -29,6 +29,7 @@ MANUAL_GOFILES=api.go \
 	readonlyfs.go \
 	request.go \
 	switchfs.go \
+	typeprint.go \
 	types.go \
 	version.go \
 	xattr.go \
