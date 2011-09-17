@@ -12,8 +12,12 @@ var initFlagNames map[int]string
 var fuseOpenFlagNames map[int]string
 var writeFlagNames map[int]string
 var readFlagNames map[int]string
+var releaseFlagNames map[int]string
 
 func init() {
+	releaseFlagNames = map[int]string{
+		RELEASE_FLUSH: "FLUSH",
+	}
 	openFlagNames = map[int]string{
 		os.O_WRONLY:   "WRONLY",
 		os.O_RDWR:     "RDWR",
@@ -128,6 +132,10 @@ func (me *CreateIn) String() string {
 		flagString(openFlagNames, int(me.Flags), "O_RDONLY"), me.Umask)
 }
 
+func (me *CreateOut) String() string {
+	return fmt.Sprintf("{%v %v}", &me.EntryOut, &me.OpenOut)
+}
+
 func (me *OpenOut) String() string {
 	return fmt.Sprintf("{Fh %d %s}", me.Fh,
 		flagString(fuseOpenFlagNames, int(me.OpenFlags), ""))
@@ -162,7 +170,8 @@ func (me *MkdirIn) String() string {
 }
 
 func (me *ReleaseIn) String() string {
-	return fmt.Sprintf("{Fh %d %s 0x%x %d}",
-		me.Fh, flagString(openFlagNames, int(me.Flags), ""), me.ReleaseFlags,
+	return fmt.Sprintf("{Fh %d %s %s %d}",
+		me.Fh, flagString(openFlagNames, int(me.Flags), ""),
+		flagString(releaseFlagNames, int(me.ReleaseFlags), ""),
 		me.LockOwner)
 }

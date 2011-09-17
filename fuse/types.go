@@ -12,8 +12,6 @@ const (
 
 	CUSE_UNRESTRICTED_IOCTL = (1 << 0)
 
-	FUSE_RELEASE_FLUSH = (1 << 0)
-
 	FUSE_LK_FLOCK = (1 << 0)
 
 	FUSE_IOCTL_MAX_IOV = 256
@@ -225,6 +223,9 @@ type CreateOut struct {
 	EntryOut
 	OpenOut
 }
+
+
+const RELEASE_FLUSH = (1 << 0)
 
 type ReleaseIn struct {
 	Fh           uint64
