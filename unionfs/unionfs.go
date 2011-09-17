@@ -282,15 +282,28 @@ func (me *UnionFs) Promote(name string, srcResult branchResult, context *fuse.Co
 	if srcResult.attr.IsRegular() {
 		code = fuse.CopyFile(sourceFs, writable, name, name, context)
 		files := me.nodeFs.AllFiles(name, 0)
-		for _, f := range files {
+		for _, fileWrapper := range files {
 			if !code.Ok() {
 				break
 			}
-			uf := f.File.(*UnionFsFile)
+			var uf *unionFsFile
+			f := fileWrapper.File
+			for f != nil {
+				ok := false
+				uf, ok = f.(*unionFsFile)
+				if ok {
+					break
+				}
+				f = f.InnerFile()
+			}
+			if uf == nil {
+				panic("no unionFsFile found inside")
+			}
+			
 			if uf.layer > 0 {
 				uf.layer = 0
 				uf.File.Release()
-				uf.File, code = me.fileSystems[0].Open(name, f.OpenFlags, context)
+				uf.File, code = me.fileSystems[0].Open(name, fileWrapper.OpenFlags, context)
 			}
 		}
 	} else if srcResult.attr.IsSymlink() {
@@ -633,6 +646,7 @@ func (me *UnionFs) Create(name string, flags uint32, mode uint32, context *fuse.
 	}
 	fuseFile, code = writable.Create(name, flags, mode, context)
 	if code.Ok() {
+		fuseFile = me.newUnionFsFile(fuseFile, 0)
 		me.removeDeletion(name)
 
 		now := time.Nanoseconds()
@@ -868,8 +882,8 @@ func (me *UnionFs) Rename(src string, dst string, context *fuse.Context) (code f
 
 	if code.Ok() {
 		me.removeDeletion(dst)
-		srcResult.branch = 0
-		me.branchCache.Set(dst, srcResult)
+		// Rename is racy; avoid racing with unionFsFile.Release().
+		me.branchCache.DropEntry(dst)
 
 		srcResult := me.branchCache.GetFresh(src)
 		if srcResult.(branchResult).branch > 0 {
@@ -928,15 +942,9 @@ func (me *UnionFs) Open(name string, flags uint32, context *fuse.Context) (fuseF
 	}
 	fuseFile, status = me.fileSystems[r.branch].Open(name, uint32(flags), context)
 	if fuseFile != nil {
-		fuseFile = &UnionFsFile{fuseFile, r.branch}
+		fuseFile = me.newUnionFsFile(fuseFile, r.branch)
 	}
 	return fuseFile, status
-}
-
-func (me *UnionFs) Flush(name string) fuse.Status {
-	// Refresh timestamps and size field.
-	me.branchCache.GetFresh(name)
-	return fuse.OK
 }
 
 func (me *UnionFs) Name() string {
@@ -951,12 +959,39 @@ func (me *UnionFs) StatFs() *fuse.StatfsOut {
 	return me.fileSystems[0].StatFs()
 }
 
-type UnionFsFile struct {
+type unionFsFile struct {
 	fuse.File
+	ufs *UnionFs
+	node *fuse.Inode
 	layer int
 }
 
-func (me *UnionFsFile) GetAttr() (*os.FileInfo, fuse.Status) {
+func (me *UnionFs) newUnionFsFile(f fuse.File, branch int) *unionFsFile {
+	return &unionFsFile{
+		File: f,
+		ufs: me,
+		layer: branch,
+	}
+}
+
+func (me *unionFsFile) InnerFile() (file fuse.File) {
+	return me.File
+}
+
+// We can't hook on Release. Release has no response, so it is not
+// ordered wrt any following calls.
+func (me *unionFsFile) Flush() (code fuse.Status) {
+	code = me.File.Flush()
+	path := me.ufs.nodeFs.Path(me.node)
+	me.ufs.branchCache.GetFresh(path)
+	return code
+}
+
+func (me *unionFsFile) SetInode(node *fuse.Inode) {
+	me.node = node
+}
+
+func (me *unionFsFile) GetAttr() (*os.FileInfo, fuse.Status) {
 	fi, code := me.File.GetAttr()
 	if fi != nil {
 		f := *fi

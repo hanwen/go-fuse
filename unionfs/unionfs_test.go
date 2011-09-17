@@ -1001,3 +1001,51 @@ func TestStatFs(t *testing.T) {
 		t.Fatal("Expect blocksize > 0")
 	}
 }
+
+func TestFlushSize(t *testing.T) {
+	wd, clean := setupUfs(t)
+	defer clean()
+
+	fn := wd + "/mount/file"
+	f, err := os.OpenFile(fn, os.O_WRONLY|os.O_CREATE, 0644)
+	CheckSuccess(err)
+	fi, err := f.Stat()
+	CheckSuccess(err)
+
+	n, err := f.Write([]byte("hello"))
+	CheckSuccess(err)
+
+	f.Close()
+	fi, err = os.Lstat(fn)
+	CheckSuccess(err)
+	if fi.Size != int64(n) {
+		t.Errorf("got %d from Stat().Size, want %d", fi.Size, n)
+	}
+}
+
+func TestFlushRename(t *testing.T) {
+	wd, clean := setupUfs(t)
+	defer clean()
+
+	err := ioutil.WriteFile(wd +"/mount/file", []byte("x"), 0644)
+	
+	fn := wd + "/mount/tmp"
+	f, err := os.OpenFile(fn, os.O_WRONLY|os.O_CREATE, 0644)
+	CheckSuccess(err)
+	fi, err := f.Stat()
+	CheckSuccess(err)
+
+	n, err := f.Write([]byte("hello"))
+	CheckSuccess(err)
+	f.Close()
+
+	dst := wd + "/mount/file"
+	err = os.Rename(fn, dst)
+	CheckSuccess(err)
+	
+	fi, err = os.Lstat(dst)
+	CheckSuccess(err)
+	if fi.Size != int64(n) {
+		t.Errorf("got %d from Stat().Size, want %d", fi.Size, n)
+	}
+}
