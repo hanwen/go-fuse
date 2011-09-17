@@ -1,10 +1,17 @@
 package fuse
 
 import (
+	"log"
 	"os"
 )
 
+var _ = log.Println
+
 func (me *DefaultFile) SetInode(*Inode) {
+}
+
+func (me *DefaultFile) InnerFile() File {
+	return nil
 }
 
 func (me *DefaultFile) Read(*ReadIn, BufferPool) ([]byte, Status) {

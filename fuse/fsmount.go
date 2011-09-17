@@ -133,7 +133,9 @@ func (me *fileSystemMount) registerFileHandle(node *Inode, dir rawDir, f File, f
 		f = withFlags.File
 	}
 
-	b.WithFlags.File.SetInode(node)
+	if b.WithFlags.File != nil {
+		b.WithFlags.File.SetInode(node)
+	}
 	node.openFiles = append(node.openFiles, b)
 	handle := me.openFiles.Register(&b.Handled, b)
 	return handle, b

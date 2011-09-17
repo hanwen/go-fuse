@@ -139,6 +139,10 @@ type FileSystem interface {
 type File interface {
 	// Called upon registering the filehandle in the inode.
 	SetInode(*Inode)
+
+	// Wrappers around other File implementations, should return
+	// the inner file here.
+	InnerFile() File 
 	
 	Read(*ReadIn, BufferPool) ([]byte, Status)
 	Write(*WriteIn, []byte) (written uint32, code Status)
