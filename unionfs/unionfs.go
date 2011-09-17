@@ -161,6 +161,19 @@ type branchResult struct {
 	branch int
 }
 
+func printFileInfo(me *os.FileInfo) string {
+	return fmt.Sprintf(
+		"{0%o S=%d L=%d %d:%d %d*%d %d:%d " +
+		"A %.09f M %.09f C %.09f}",
+		me.Mode, me.Size, me.Nlink, me.Uid, me.Gid, me.Blocks, me.Blksize, me.Rdev, me.Ino,
+		float64(me.Atime_ns)*1e-9, float64(me.Mtime_ns)*1e-9, float64(me.Ctime_ns)*1e-9)
+}
+
+func (me branchResult) String() string {
+	return fmt.Sprintf("{%s %v branch %d}", printFileInfo(me.attr), me.code, me.branch)
+}
+
+
 func (me *UnionFs) getBranchAttrNoCache(name string) branchResult {
 	name = stripSlash(name)
 
