@@ -39,6 +39,8 @@ type fileSystemMount struct {
 	openFiles HandleMap
 
 	Debug bool
+
+	connector *FileSystemConnector
 }
 
 // Must called with lock for parent held.
@@ -81,8 +83,8 @@ func (me *fileSystemMount) fileInfoToAttr(fi *os.FileInfo, nodeId uint64) (out *
 
 func (me *fileSystemMount) getOpenedFile(h uint64) *openedFile {
 	b := (*openedFile)(unsafe.Pointer(me.openFiles.Decode(h)))
-	if me.Debug {
-		log.Printf("File %d = %s", h, b.WithFlags.Description)
+	if me.connector.Debug && b.WithFlags.Description != "" {
+		log.Printf("File %d = %q", h, b.WithFlags.Description)
 	}
 	return b
 }

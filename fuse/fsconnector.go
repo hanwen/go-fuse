@@ -250,6 +250,7 @@ func (me *FileSystemConnector) findInode(fullPath string) *Inode {
 
 func (me *FileSystemConnector) MountRoot(nodeFs NodeFileSystem, opts *FileSystemOptions) {
 	me.rootNode.mountFs(nodeFs, opts)
+	me.rootNode.mount.connector = me
 	nodeFs.OnMount(me)
 	me.verify()
 }
@@ -284,6 +285,7 @@ func (me *FileSystemConnector) Mount(parent *Inode, name string, nodeFs NodeFile
 	}
 
 	node.mountFs(nodeFs, opts)
+	node.mount.connector = me
 	parent.addChild(name, node)
 
 	if parent.mounts == nil {
