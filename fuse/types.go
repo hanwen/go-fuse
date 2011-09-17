@@ -241,7 +241,7 @@ type FlushIn struct {
 }
 
 const (
-	FUSE_READ_LOCKOWNER = (1 << 1)
+	READ_LOCKOWNER = (1 << 1)
 )
 
 type ReadIn struct {
@@ -255,8 +255,8 @@ type ReadIn struct {
 }
 
 const (
-	FUSE_WRITE_CACHE     = (1 << 0)
-	FUSE_WRITE_LOCKOWNER = (1 << 1)
+	WRITE_CACHE     = (1 << 0)
+	WRITE_LOCKOWNER = (1 << 1)
 )
 
 type WriteIn struct {
