@@ -169,6 +169,10 @@ func (me *MkdirIn) String() string {
 	return fmt.Sprintf("{0%o (0%o)}", me.Mode, me.Umask)
 }
 
+func (me *MknodIn) String() string {
+	return fmt.Sprintf("{0%o (0%o), %d}", me.Mode, me.Umask, me.Rdev)
+}
+
 func (me *ReleaseIn) String() string {
 	return fmt.Sprintf("{Fh %d %s %s %d}",
 		me.Fh, flagString(openFlagNames, int(me.Flags), ""),
