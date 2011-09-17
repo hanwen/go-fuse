@@ -507,6 +507,8 @@ func init() {
 		_OP_FORGET:  func(ptr unsafe.Pointer) interface{} { return (*ForgetIn)(ptr) },
 		_OP_LINK:    func(ptr unsafe.Pointer) interface{} { return (*LinkIn)(ptr) },
 		_OP_MKDIR:   func(ptr unsafe.Pointer) interface{} { return (*MkdirIn)(ptr) },
+		_OP_RELEASE: func(ptr unsafe.Pointer) interface{} { return (*ReleaseIn)(ptr) },
+		_OP_RELEASEDIR: func(ptr unsafe.Pointer) interface{} { return (*ReleaseIn)(ptr) },
 	} {
 		operationHandlers[op].DecodeIn = f
 	}
