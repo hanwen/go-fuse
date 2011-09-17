@@ -263,11 +263,3 @@ func (me *SwitchFileSystem) RemoveXAttr(name string, attr string, context *Conte
 	}
 	return fs.FileSystem.RemoveXAttr(name, attr, context)
 }
-
-func (me *SwitchFileSystem) Flush(name string) Status {
-	name, fs := me.findFileSystem(name)
-	if fs == nil {
-		return ENOENT
-	}
-	return fs.FileSystem.Flush(name)
-}

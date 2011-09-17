@@ -73,10 +73,6 @@ func (me *DefaultFileSystem) Open(name string, flags uint32, context *Context) (
 	return nil, ENOSYS
 }
 
-func (me *DefaultFileSystem) Flush(name string) Status {
-	return OK
-}
-
 func (me *DefaultFileSystem) OpenDir(name string, context *Context) (stream chan DirEntry, status Status) {
 	return nil, ENOSYS
 }

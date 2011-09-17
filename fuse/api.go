@@ -120,9 +120,6 @@ type FileSystem interface {
 	Open(name string, flags uint32, context *Context) (file File, code Status)
 	Create(name string, flags uint32, mode uint32, context *Context) (file File, code Status)
 
-	// Flush() gets called as a file opened for read/write.
-	Flush(name string) Status
-
 	// Directory handling
 	OpenDir(name string, context *Context) (stream chan DirEntry, code Status)
 
@@ -140,6 +137,9 @@ type FileSystem interface {
 // TODO - should File be thread safe?
 // TODO - should we pass a *Context argument?
 type File interface {
+	// Called upon registering the filehandle in the inode.
+	SetInode(*Inode)
+	
 	Read(*ReadIn, BufferPool) ([]byte, Status)
 	Write(*WriteIn, []byte) (written uint32, code Status)
 	Truncate(size uint64) Status

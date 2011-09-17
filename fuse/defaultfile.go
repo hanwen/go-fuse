@@ -4,6 +4,9 @@ import (
 	"os"
 )
 
+func (me *DefaultFile) SetInode(*Inode) {
+}
+
 func (me *DefaultFile) Read(*ReadIn, BufferPool) ([]byte, Status) {
 	return []byte(""), ENOSYS
 }

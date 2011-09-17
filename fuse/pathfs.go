@@ -82,6 +82,11 @@ func (me *PathNodeFs) Node(name string) *Inode {
 	return n
 }
 
+func (me *PathNodeFs) Path(node *Inode) string {
+	pNode := node.FsNode().(*pathInode)
+	return pNode.GetPath()
+}
+
 func (me *PathNodeFs) LastNode(name string) (*Inode, []string) {
 	if name == "" {
 		return me.Root().Inode(), nil
@@ -316,15 +321,7 @@ func (me *pathInode) ListXAttr(context *Context) (attrs []string, code Status) {
 }
 
 func (me *pathInode) Flush(file File, openFlags uint32, context *Context) (code Status) {
-	code = file.Flush()
-	// TODO - drop this. The filesystem should hook into Flush of the file itself.
-	if code.Ok() && openFlags&O_ANYWRITE != 0 {
-		// We only signal releases to the FS if the
-		// open could have changed things.
-		path := me.GetPath()
-		code = me.fs.Flush(path)
-	}
-	return code
+	return file.Flush()
 }
 
 func (me *pathInode) OpenDir(context *Context) (chan DirEntry, Status) {
