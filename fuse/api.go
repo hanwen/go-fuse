@@ -142,8 +142,8 @@ type File interface {
 
 	// Wrappers around other File implementations, should return
 	// the inner file here.
-	InnerFile() File 
-	
+	InnerFile() File
+
 	Read(*ReadIn, BufferPool) ([]byte, Status)
 	Write(*WriteIn, []byte) (written uint32, code Status)
 	Truncate(size uint64) Status

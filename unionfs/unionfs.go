@@ -163,8 +163,8 @@ type branchResult struct {
 
 func printFileInfo(me *os.FileInfo) string {
 	return fmt.Sprintf(
-		"{0%o S=%d L=%d %d:%d %d*%d %d:%d " +
-		"A %.09f M %.09f C %.09f}",
+		"{0%o S=%d L=%d %d:%d %d*%d %d:%d "+
+			"A %.09f M %.09f C %.09f}",
 		me.Mode, me.Size, me.Nlink, me.Uid, me.Gid, me.Blocks, me.Blksize, me.Rdev, me.Ino,
 		float64(me.Atime_ns)*1e-9, float64(me.Mtime_ns)*1e-9, float64(me.Ctime_ns)*1e-9)
 }
@@ -172,7 +172,6 @@ func printFileInfo(me *os.FileInfo) string {
 func (me branchResult) String() string {
 	return fmt.Sprintf("{%s %v branch %d}", printFileInfo(me.attr), me.code, me.branch)
 }
-
 
 func (me *UnionFs) getBranchAttrNoCache(name string) branchResult {
 	name = stripSlash(name)
@@ -299,7 +298,7 @@ func (me *UnionFs) Promote(name string, srcResult branchResult, context *fuse.Co
 			if uf == nil {
 				panic("no unionFsFile found inside")
 			}
-			
+
 			if uf.layer > 0 {
 				uf.layer = 0
 				uf.File.Release()
@@ -961,15 +960,15 @@ func (me *UnionFs) StatFs() *fuse.StatfsOut {
 
 type unionFsFile struct {
 	fuse.File
-	ufs *UnionFs
-	node *fuse.Inode
+	ufs   *UnionFs
+	node  *fuse.Inode
 	layer int
 }
 
 func (me *UnionFs) newUnionFsFile(f fuse.File, branch int) *unionFsFile {
 	return &unionFsFile{
-		File: f,
-		ufs: me,
+		File:  f,
+		ufs:   me,
 		layer: branch,
 	}
 }

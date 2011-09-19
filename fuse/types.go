@@ -224,7 +224,6 @@ type CreateOut struct {
 	OpenOut
 }
 
-
 const RELEASE_FLUSH = (1 << 0)
 
 type ReleaseIn struct {

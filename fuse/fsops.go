@@ -42,7 +42,7 @@ func (me *FileSystemConnector) Lookup(header *InHeader, name string) (out *Entry
 	}
 
 	mount := parent.mount
-	
+
 	child := parent.GetChild(name)
 	if child != nil {
 		parent = nil

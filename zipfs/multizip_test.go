@@ -83,7 +83,7 @@ func TestMultiZipFs(t *testing.T) {
 	if !fi.IsDirectory() {
 		t.Fatal("expect directory for /zipmount, got %v", fi)
 	}
-	
+
 	// Check that zipfs itself works.
 	fi, err = os.Stat(mountPoint + "/zipmount/subdir")
 	CheckSuccess(err)

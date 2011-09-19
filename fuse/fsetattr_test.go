@@ -155,7 +155,7 @@ func TestFSetAttr(t *testing.T) {
 	defer f.Close()
 	fi, err := f.Stat()
 	CheckSuccess(err)
-	
+
 	_, err = f.WriteString("hello")
 	CheckSuccess(err)
 

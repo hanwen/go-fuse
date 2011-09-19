@@ -1027,8 +1027,8 @@ func TestFlushRename(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
-	err := ioutil.WriteFile(wd +"/mount/file", []byte("x"), 0644)
-	
+	err := ioutil.WriteFile(wd+"/mount/file", []byte("x"), 0644)
+
 	fn := wd + "/mount/tmp"
 	f, err := os.OpenFile(fn, os.O_WRONLY|os.O_CREATE, 0644)
 	CheckSuccess(err)
@@ -1042,7 +1042,7 @@ func TestFlushRename(t *testing.T) {
 	dst := wd + "/mount/file"
 	err = os.Rename(fn, dst)
 	CheckSuccess(err)
-	
+
 	fi, err = os.Lstat(dst)
 	CheckSuccess(err)
 	if fi.Size != int64(n) {

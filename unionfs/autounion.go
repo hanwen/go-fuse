@@ -186,7 +186,7 @@ func (me *AutoUnionFs) updateKnownFses() {
 				filepath.Walk(path,
 					func(path string, fi *os.FileInfo, err os.Error) os.Error {
 						return me.visit(path, fi, err)
-				})
+					})
 			}
 		}
 	}

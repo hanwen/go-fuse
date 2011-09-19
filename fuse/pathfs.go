@@ -32,7 +32,7 @@ type PathNodeFs struct {
 	connector *FileSystemConnector
 
 	// protects clientInodeMap and pathInode.Parent pointers
-	pathLock  sync.RWMutex
+	pathLock sync.RWMutex
 
 	// This map lists all the parent links known for a given
 	// nodeId.
@@ -174,12 +174,12 @@ type pathInode struct {
 	DefaultFsNode
 }
 
-func (me *pathInode) LockTree() (func()) {
+func (me *pathInode) LockTree() func() {
 	me.pathFs.pathLock.Lock()
 	return func() { me.pathFs.pathLock.Unlock() }
 }
 
-func (me *pathInode) RLockTree() (func()) {
+func (me *pathInode) RLockTree() func() {
 	me.pathFs.pathLock.RLock()
 	return func() { me.pathFs.pathLock.RUnlock() }
 }
@@ -282,7 +282,7 @@ func (me *pathInode) setClientInode(ino uint64) {
 	if me.clientInode != 0 {
 		me.pathFs.clientInodeMap[me.clientInode] = nil, false
 	}
-	
+
 	me.clientInode = ino
 	if me.Parent != nil {
 		e := &clientInodePath{
@@ -421,7 +421,7 @@ func (me *pathInode) Link(name string, existingFsnode FsNode, context *Context) 
 			me.addChild(name, existing)
 		} else {
 			pNode := me.createChild(false)
-			newNode = pNode 
+			newNode = pNode
 			pNode.clientInode = fi.Ino
 			me.addChild(name, pNode)
 		}
