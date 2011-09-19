@@ -37,6 +37,14 @@ type PathNodeFs struct {
 	// This map lists all the parent links known for a given
 	// nodeId.
 	clientInodeMap map[uint64][]*clientInodePath
+
+	options *PathNodeFsOptions
+}
+
+type PathNodeFsOptions struct {
+	// If ClientInodes is set, use Inode returned from GetAttr to
+	// find hard-linked files.
+	ClientInodes bool
 }
 
 func (me *PathNodeFs) Mount(path string, nodeFs NodeFileSystem, opts *FileSystemOptions) Status {
@@ -139,14 +147,19 @@ func (me *PathNodeFs) AllFiles(name string, mask uint32) []WithFlags {
 	return n.Files(mask)
 }
 
-func NewPathNodeFs(fs FileSystem) *PathNodeFs {
+func NewPathNodeFs(fs FileSystem, opts *PathNodeFsOptions) *PathNodeFs {
 	root := new(pathInode)
 	root.fs = fs
+
+	if opts == nil {
+		opts = &PathNodeFsOptions{}
+	}
 
 	me := &PathNodeFs{
 		fs:             fs,
 		root:           root,
 		clientInodeMap: map[uint64][]*clientInodePath{},
+		options:        opts,
 	}
 	root.pathFs = me
 	return me
@@ -224,7 +237,7 @@ func (me *pathInode) addChild(name string, child *pathInode) {
 	child.Parent = me
 	child.Name = name
 
-	if child.clientInode > 0 {
+	if child.clientInode > 0 && me.pathFs.options.ClientInodes {
 		defer me.LockTree()()
 		m := me.pathFs.clientInodeMap[child.clientInode]
 		e := &clientInodePath{
@@ -242,7 +255,7 @@ func (me *pathInode) rmChild(name string) *pathInode {
 	}
 	ch := childInode.FsNode().(*pathInode)
 
-	if ch.clientInode > 0 {
+	if ch.clientInode > 0 && me.pathFs.options.ClientInodes {
 		defer me.LockTree()()
 		m := me.pathFs.clientInodeMap[ch.clientInode]
 
@@ -275,7 +288,7 @@ func (me *pathInode) rmChild(name string) *pathInode {
 // Handle a change in clientInode number for an other wise unchanged
 // pathInode.
 func (me *pathInode) setClientInode(ino uint64) {
-	if ino == me.clientInode {
+	if ino == me.clientInode || !me.pathFs.options.ClientInodes {
 		return
 	}
 	defer me.LockTree()()
@@ -293,7 +306,7 @@ func (me *pathInode) setClientInode(ino uint64) {
 }
 
 func (me *pathInode) OnForget() {
-	if me.clientInode == 0 {
+	if me.clientInode == 0 || !me.pathFs.options.ClientInodes {
 		return
 	}
 	defer me.LockTree()()
@@ -465,25 +478,29 @@ func (me *pathInode) Lookup(name string, context *Context) (fi *os.FileInfo, nod
 	fullPath := filepath.Join(me.GetPath(), name)
 	fi, code = me.fs.GetAttr(fullPath, context)
 	if code.Ok() {
-		node = me.findChild(fi.Ino, fi.IsDirectory(), name)
+		node = me.findChild(fi, name, fullPath)
 	}
 
 	return
 }
 
-func (me *pathInode) findChild(ino uint64, isDir bool, name string) (out *pathInode) {
-	if ino > 0 {
+func (me *pathInode) findChild(fi *os.FileInfo, name string, fullPath string) (out *pathInode) {
+	if fi.Ino > 0 {
 		unlock := me.RLockTree()
-		v := me.pathFs.clientInodeMap[ino]
+		v := me.pathFs.clientInodeMap[fi.Ino]
 		if len(v) > 0 {
 			out = v[0].node
+
+			if fi.Nlink == 1 {
+				log.Println("Found linked inode, but Nlink == 1", fullPath)
+			}
 		}
 		unlock()
 	}
 
 	if out == nil {
-		out = me.createChild(isDir)
-		out.clientInode = ino
+		out = me.createChild(fi.IsDirectory())
+		out.clientInode = fi.Ino
 		me.addChild(name, out)
 	}
 

@@ -35,7 +35,7 @@ func setupCacheTest() (string, *PathNodeFs, func()) {
 	fs := &cacheFs{
 		LoopbackFileSystem: NewLoopbackFileSystem(dir + "/orig"),
 	}
-	pfs := NewPathNodeFs(fs)
+	pfs := NewPathNodeFs(fs, nil)
 	state, conn, err := MountNodeFileSystem(dir+"/mnt", pfs, nil)
 	CheckSuccess(err)
 	state.Debug = true

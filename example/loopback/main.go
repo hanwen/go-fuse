@@ -37,8 +37,8 @@ func main() {
 		AttrTimeout:     1.0,
 		EntryTimeout:    1.0,
 	}
-
-	conn := fuse.NewFileSystemConnector(fuse.NewPathNodeFs(finalFs), opts)
+	pathFs := fuse.NewPathNodeFs(finalFs, nil)
+	conn := fuse.NewFileSystemConnector(pathFs, opts)
 	state := fuse.NewMountState(conn)
 	state.Debug = *debug
 

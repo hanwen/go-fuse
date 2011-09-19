@@ -21,6 +21,6 @@ func MountNodeFileSystem(mountpoint string, nodeFs NodeFileSystem, opts *FileSys
 }
 
 func MountPathFileSystem(mountpoint string, pathFs FileSystem, opts *FileSystemOptions) (*MountState, *FileSystemConnector, os.Error) {
-	nfs := NewPathNodeFs(pathFs)
+	nfs := NewPathNodeFs(pathFs, nil)
 	return MountNodeFileSystem(mountpoint, nfs, opts)
 }

@@ -11,6 +11,7 @@ import (
 func main() {
 	version := flag.Bool("version", false, "print version number")
 	debug := flag.Bool("debug", false, "debug on")
+	hardlinks := flag.Bool("hardlinks", false, "support hardlinks")
 	delcache_ttl := flag.Float64("deletion_cache_ttl", 5.0, "Deletion cache TTL in seconds.")
 	branchcache_ttl := flag.Float64("branchcache_ttl", 5.0, "Branch cache TTL in seconds.")
 	deldirname := flag.String(
@@ -41,9 +42,12 @@ func main() {
 		},
 		UpdateOnMount: true,
 	}
+	pathOptions := fuse.PathNodeFsOptions{
+		ClientInodes: *hardlinks,
+	}
 
 	gofs := unionfs.NewAutoUnionFs(flag.Arg(1), options)
-	pathfs := fuse.NewPathNodeFs(gofs)
+	pathfs := fuse.NewPathNodeFs(gofs, &pathOptions)
 	state, conn, err := fuse.MountNodeFileSystem(flag.Arg(0), pathfs, nil)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)

@@ -53,7 +53,7 @@ func NewNotifyTest() *NotifyTest {
 		NegativeTimeout: entryTtl,
 	}
 
-	me.pathfs = NewPathNodeFs(me.fs)
+	me.pathfs = NewPathNodeFs(me.fs, nil)
 	me.state, me.connector, err = MountNodeFileSystem(me.dir, me.pathfs, opts)
 	CheckSuccess(err)
 	me.state.Debug = true
