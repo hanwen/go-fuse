@@ -50,7 +50,7 @@ func (me *FileSystemConnector) Lookup(header *InHeader, name string) (out *Entry
 	var fi *os.FileInfo
 	var fsNode FsNode
 	if child != nil {
-		fi, code = child.fsInode.GetAttr(nil, nil)
+		fi, code = child.fsInode.GetAttr(nil, context)
 		fsNode = child.FsNode()
 	} else {
 		fi, fsNode, code = parent.fsInode.Lookup(name, context)

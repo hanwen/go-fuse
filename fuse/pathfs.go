@@ -199,7 +199,7 @@ func (me *pathInode) fillNewChildAttr(path string, child *pathInode, c *Context)
 
 // GetPath returns the path relative to the mount governing this
 // inode.  It returns nil for mount if the file was deleted or the
-// filesystem unmounted. 
+// filesystem unmounted.
 func (me *pathInode) GetPath() (path string) {
 	defer me.RLockTree()()
 
