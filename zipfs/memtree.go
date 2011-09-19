@@ -107,15 +107,16 @@ func (me *MemTreeFs) addFile(name string, f MemFile) {
 
 	node := me.root.Inode()
 	for i, c := range comps {
-		ch := node.GetChild(c)
-		if ch == nil {
+		child := node.GetChild(c)
+		if child == nil {
 			fsnode := &memNode{}
 			if i == len(comps)-1 {
 				fsnode.file = f
 			}
 
-			ch = node.CreateChild(c, fsnode.file == nil, fsnode)
+			child = node.NewSynthetic(fsnode.file == nil, fsnode)
+			node.AddChild(c, child)
 		}
-		node = ch
+		node = child
 	}
 }

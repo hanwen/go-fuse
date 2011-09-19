@@ -15,12 +15,6 @@ func (me *FileSystemConnector) Init(fsInit *RawFsInit) {
 	me.fsInit = *fsInit
 }
 
-func (me *FileSystemConnector) Lookup(header *InHeader, name string) (out *EntryOut, status Status) {
-	parent := me.toInode(header.NodeId)
-	out, status = me.internalLookup(parent, name, &header.Context)
-	return out, status
-}
-
 func (me *FileSystemConnector) lookupMountUpdate(mount *fileSystemMount) (out *EntryOut, status Status) {
 	fi, err := mount.fs.Root().GetAttr(nil, nil)
 	if err == ENOENT && mount.options.NegativeTimeout > 0.0 {
@@ -40,45 +34,26 @@ func (me *FileSystemConnector) lookupMountUpdate(mount *fileSystemMount) (out *E
 	return out, OK
 }
 
-func (me *FileSystemConnector) internalLookup(parent *Inode, name string, context *Context) (out *EntryOut, code Status) {
-	if mount := me.findMount(parent, name); mount != nil {
-		return me.lookupMountUpdate(mount)
+func (me *FileSystemConnector) Lookup(header *InHeader, name string) (out *EntryOut, code Status) {
+	parent := me.toInode(header.NodeId)
+	context := &header.Context
+	if subMount := me.findMount(parent, name); subMount != nil {
+		return me.lookupMountUpdate(subMount)
 	}
 
-	lookupNode, getattrNode := me.preLookup(parent, name)
-
+	mount := parent.mount
+	
+	child := parent.GetChild(name)
+	if child != nil {
+		parent = nil
+	}
 	var fi *os.FileInfo
 	var fsNode FsNode
-	if getattrNode != nil {
-		fi, code = getattrNode.fsInode.GetAttr(nil, nil)
-	} else if lookupNode != nil {
-		fi, fsNode, code = parent.fsInode.Lookup(name, context)
-	}
-
-	return me.postLookup(fi, fsNode, code, getattrNode, lookupNode, name)
-}
-
-// Prepare for lookup: we are either looking for getattr of an
-// existing node, or lookup a new one. Here we decide which of those
-func (me *FileSystemConnector) preLookup(parent *Inode, name string) (lookupNode *Inode, attrNode *Inode) {
-	parent.treeLock.Lock()
-	defer parent.treeLock.Unlock()
-
-	child := parent.children[name]
 	if child != nil {
-		return nil, child
-	}
-
-	return parent, nil
-}
-
-// Process the result of lookup/getattr.
-func (me *FileSystemConnector) postLookup(fi *os.FileInfo, fsNode FsNode, code Status, attrNode *Inode, lookupNode *Inode, name string) (out *EntryOut, outCode Status) {
-	var mount *fileSystemMount
-	if attrNode != nil {
-		mount = attrNode.mount
+		fi, code = child.fsInode.GetAttr(nil, nil)
+		fsNode = child.FsNode()
 	} else {
-		mount = lookupNode.mount
+		fi, fsNode, code = parent.fsInode.Lookup(name, context)
 	}
 
 	if !code.Ok() {
@@ -88,15 +63,13 @@ func (me *FileSystemConnector) postLookup(fi *os.FileInfo, fsNode FsNode, code S
 		return nil, code
 	}
 
-	if attrNode != nil {
-		me.lookupUpdate(attrNode)
-		out = attrNode.mount.fileInfoToEntry(fi)
-		out.Generation = 1
-		out.NodeId = attrNode.nodeId
-		out.Ino = attrNode.nodeId
-	} else if lookupNode != nil {
-		out = me.createChild(lookupNode, name, fi, fsNode)
+	out = mount.fileInfoToEntry(fi)
+	out.Generation = 1
+	if child == nil {
+		child = fsNode.Inode()
 	}
+	out.NodeId = me.lookupUpdate(child)
+	out.Ino = out.NodeId
 	return out, OK
 }
 
@@ -217,7 +190,7 @@ func (me *FileSystemConnector) Mknod(header *InHeader, input *MknodIn, name stri
 	parent := me.toInode(header.NodeId)
 	fi, fsNode, code := parent.fsInode.Mknod(name, input.Mode, uint32(input.Rdev), &header.Context)
 	if code.Ok() {
-		out = me.createChild(parent, name, fi, fsNode)
+		out = me.childLookup(fi, fsNode)
 	}
 	return out, code
 }
@@ -227,36 +200,26 @@ func (me *FileSystemConnector) Mkdir(header *InHeader, input *MkdirIn, name stri
 	fi, fsInode, code := parent.fsInode.Mkdir(name, input.Mode, &header.Context)
 
 	if code.Ok() {
-		out = me.createChild(parent, name, fi, fsInode)
+		out = me.childLookup(fi, fsInode)
 	}
 	return out, code
 }
 
 func (me *FileSystemConnector) Unlink(header *InHeader, name string) (code Status) {
 	parent := me.toInode(header.NodeId)
-	code = parent.fsInode.Unlink(name, &header.Context)
-	if code.Ok() {
-		// Like fuse.c, we update our internal tables.
-		me.unlinkUpdate(parent, name)
-	}
-	return code
+	return parent.fsInode.Unlink(name, &header.Context)
 }
 
 func (me *FileSystemConnector) Rmdir(header *InHeader, name string) (code Status) {
 	parent := me.toInode(header.NodeId)
-	code = parent.fsInode.Rmdir(name, &header.Context)
-	if code.Ok() {
-		// Like fuse.c, we update our internal tables.
-		me.unlinkUpdate(parent, name)
-	}
-	return code
+	return parent.fsInode.Rmdir(name, &header.Context)
 }
 
 func (me *FileSystemConnector) Symlink(header *InHeader, pointedTo string, linkName string) (out *EntryOut, code Status) {
 	parent := me.toInode(header.NodeId)
 	fi, fsNode, code := parent.fsInode.Symlink(linkName, pointedTo, &header.Context)
 	if code.Ok() {
-		out = me.createChild(parent, linkName, fi, fsNode)
+		out = me.childLookup(fi, fsNode)
 	}
 	return out, code
 }
@@ -273,11 +236,7 @@ func (me *FileSystemConnector) Rename(header *InHeader, input *RenameIn, oldName
 		return EXDEV
 	}
 
-	code = oldParent.fsInode.Rename(oldName, newParent.fsInode, newName, &header.Context)
-	if code.Ok() {
-		me.renameUpdate(oldParent, oldName, newParent, newName)
-	}
-	return code
+	return oldParent.fsInode.Rename(oldName, newParent.fsInode, newName, &header.Context)
 }
 
 func (me *FileSystemConnector) Link(header *InHeader, input *LinkIn, name string) (out *EntryOut, code Status) {
@@ -289,11 +248,10 @@ func (me *FileSystemConnector) Link(header *InHeader, input *LinkIn, name string
 	}
 
 	fi, fsInode, code := parent.fsInode.Link(name, existing.fsInode, &header.Context)
-	if !code.Ok() {
-		return nil, code
+	if code.Ok() {
+		out = me.childLookup(fi, fsInode)
 	}
 
-	out = me.createChild(parent, name, fi, fsInode)
 	return out, code
 }
 
@@ -308,7 +266,7 @@ func (me *FileSystemConnector) Create(header *InHeader, input *CreateIn, name st
 	if !code.Ok() {
 		return 0, 0, nil, code
 	}
-	out = me.createChild(parent, name, fi, fsNode)
+	out = me.childLookup(fi, fsNode)
 	handle, opened := parent.mount.registerFileHandle(fsNode.Inode(), nil, f, input.Flags)
 	return opened.FuseFlags, handle, out, code
 }

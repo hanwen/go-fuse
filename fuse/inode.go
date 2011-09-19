@@ -70,19 +70,10 @@ func newInode(isDir bool, fsNode FsNode) *Inode {
 	}
 	me.fsInode = fsNode
 	me.fsInode.SetInode(me)
-
 	return me
 }
 
 // public methods.
-
-// LockTree() Locks the mutex used for tree operations, and returns the
-// unlock function.
-func (me *Inode) LockTree() func() {
-	// TODO - this API is tricky.
-	me.treeLock.Lock()
-	return func() { me.treeLock.Unlock() }
-}
 
 // Returns any open file, preferably a r/w one.
 func (me *Inode) AnyFile() (file File) {
@@ -98,8 +89,8 @@ func (me *Inode) AnyFile() (file File) {
 }
 
 func (me *Inode) Children() (out map[string]*Inode) {
-	me.treeLock.Lock()
-	defer me.treeLock.Unlock()
+	me.treeLock.RLock()
+	defer me.treeLock.RUnlock()
 
 	out = map[string]*Inode{}
 	for k, v := range me.children {
@@ -130,37 +121,39 @@ func (me *Inode) IsDir() bool {
 }
 
 // CreateChild() creates node for synthetic use
-func (me *Inode) CreateChild(name string, isDir bool, fsi FsNode) *Inode {
-	me.treeLock.Lock()
-	defer me.treeLock.Unlock()
-
-	ch := me.createChild(name, isDir, fsi)
+func (me *Inode) NewSynthetic(isDir bool, fsi FsNode) *Inode {
+	ch := me.New(isDir, fsi)
 	ch.synthetic = true
 	return ch
 }
 
-// Creates an Inode as child.
-func (me *Inode) createChild(name string, isDir bool, fsi FsNode) *Inode {
-	ch := me.children[name]
-	if ch != nil {
-		panic(fmt.Sprintf("already have a child at %v %q", me.nodeId, name))
-	}
-	ch = newInode(isDir, fsi)
+func (me *Inode) New(isDir bool, fsi FsNode) *Inode {
+	ch := newInode(isDir, fsi)
 	ch.mount = me.mount
 	ch.treeLock = me.treeLock
-
-	me.addChild(name, ch)
 	return ch
 }
 
 func (me *Inode) GetChild(name string) (child *Inode) {
-	me.treeLock.Lock()
-	defer me.treeLock.Unlock()
+	me.treeLock.RLock()
+	defer me.treeLock.RUnlock()
 
 	return me.children[name]
 }
 
-////////////////////////////////////////////////////////////////
+func (me *Inode) AddChild(name string, child *Inode) {
+	me.treeLock.Lock()
+	defer me.treeLock.Unlock()
+	me.addChild(name, child)
+}
+
+func (me *Inode) RmChild(name string) (ch *Inode) {
+	me.treeLock.Lock()
+	defer me.treeLock.Unlock()
+	return me.rmChild(name)
+}
+
+//////////////////////////////////////////////////////////////
 // private
 
 // Must be called with treeLock for the mount held.
@@ -172,10 +165,6 @@ func (me *Inode) addChild(name string, child *Inode) {
 		}
 	}
 	me.children[name] = child
-
-	if child.mountPoint == nil {
-		me.fsInode.AddChild(name, child.fsInode)
-	}
 }
 
 // Must be called with treeLock for the mount held.
@@ -183,7 +172,6 @@ func (me *Inode) rmChild(name string) (ch *Inode) {
 	ch = me.children[name]
 	if ch != nil {
 		me.children[name] = nil, false
-		me.fsInode.RmChild(name, ch.fsInode)
 	}
 	return ch
 }

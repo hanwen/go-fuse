@@ -19,9 +19,9 @@ var paranoia = false
 // FilesystemConnector is a raw FUSE filesystem that manages
 // in-process mounts and inodes.  Its job is twofold:
 //
-// * It translates between the raw kernel interface (padded structs
-// of int32 and int64) and the more abstract NodeFileSystem interface.
-// that is based on a hierarchy of Inodes
+// * It translates between the raw kernel interface (padded structs of
+// int32 and int64) and the more abstract Go-ish NodeFileSystem
+// interface.
 //
 // * It manages mounting and unmounting of NodeFileSystems into the
 // directory hierarchy
@@ -61,7 +61,7 @@ func NewFileSystemConnector(nodeFs NodeFileSystem, opts *FileSystemOptions) (me 
 	me.rootNode = newInode(true, nodeFs.Root())
 
 	// FUSE does not issue a LOOKUP for 1 (obviously), but it does
-	// issue a forget.  This lookupCount is to make the counts match.
+	// issue a forget.  This lookupUpdate is to make the counts match.
 	me.lookupUpdate(me.rootNode)
 
 	me.verify()
@@ -77,21 +77,11 @@ func (me *FileSystemConnector) verify() {
 	root.verify(me.rootNode.mountPoint)
 }
 
-// createChild() creates a child for given as FsNode as child of 'parent'.  The
-// resulting inode will have its lookupCount incremented.
-func (me *FileSystemConnector) createChild(parent *Inode, name string, fi *os.FileInfo, fsi FsNode) (out *EntryOut) {
-	parent.treeLock.Lock()
-	defer parent.treeLock.Unlock()
-
-	child := fsi.Inode()
-	if child == nil {
-		child = parent.createChild(name, fi.IsDirectory(), fsi)
-	} else {
-		parent.addChild(name, child)
-	}
-
-	out = parent.mount.fileInfoToEntry(fi)
-	out.Ino = me.lookupUpdate(child)
+// Generate EntryOut and increase the lookup count for an inode.
+func (me *FileSystemConnector) childLookup(fi *os.FileInfo, fsi FsNode) (out *EntryOut) {
+	n := fsi.Inode()
+	out = n.mount.fileInfoToEntry(fi)
+	out.Ino = me.lookupUpdate(n)
 	out.NodeId = out.Ino
 	return out
 }
@@ -179,32 +169,6 @@ func (me *FileSystemConnector) recursiveConsiderDropInode(n *Inode) (drop bool) 
 	n.openFilesMutex.Lock()
 	defer n.openFilesMutex.Unlock()
 	return len(n.openFiles) == 0
-}
-
-func (me *FileSystemConnector) renameUpdate(oldParent *Inode, oldName string, newParent *Inode, newName string) {
-	defer me.verify()
-	oldParent.treeLock.Lock()
-	defer oldParent.treeLock.Unlock()
-
-	if oldParent.mount != newParent.mount {
-		panic("Cross mount rename")
-	}
-
-	node := oldParent.rmChild(oldName)
-	if node == nil {
-		panic("Source of rename does not exist")
-	}
-	newParent.rmChild(newName)
-	newParent.addChild(newName, node)
-}
-
-func (me *FileSystemConnector) unlinkUpdate(parent *Inode, name string) {
-	defer me.verify()
-
-	parent.treeLock.Lock()
-	defer parent.treeLock.Unlock()
-
-	parent.rmChild(name)
 }
 
 // Walk the file system starting from the root. Will return nil if
