@@ -420,6 +420,10 @@ func (me *pathInode) Rename(oldName string, newParent FsNode, newName string, co
 }
 
 func (me *pathInode) Link(name string, existingFsnode FsNode, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
+	if !me.pathFs.options.ClientInodes {
+		return nil, nil, ENOSYS
+	}
+
 	newPath := filepath.Join(me.GetPath(), name)
 	existing := existingFsnode.(*pathInode)
 	oldPath := existing.GetPath()
