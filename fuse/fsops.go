@@ -32,9 +32,8 @@ func (me *FileSystemConnector) lookupMountUpdate(mount *fileSystemMount) (out *E
 	mount.treeLock.Lock()
 	defer mount.treeLock.Unlock()
 
-	me.lookupUpdate(mount.mountInode)
 	out = mount.fileInfoToEntry(fi)
-	out.NodeId = mount.mountInode.nodeId
+	out.NodeId = me.lookupUpdate(mount.mountInode)
 	out.Ino = out.NodeId
 	// We don't do NFS.
 	out.Generation = 1
@@ -67,8 +66,6 @@ func (me *FileSystemConnector) preLookup(parent *Inode, name string) (lookupNode
 
 	child := parent.children[name]
 	if child != nil {
-		// Make sure the child doesn't die inbetween.
-		me.lookupUpdate(child)
 		return nil, child
 	}
 
@@ -85,10 +82,6 @@ func (me *FileSystemConnector) postLookup(fi *os.FileInfo, fsNode FsNode, code S
 	}
 
 	if !code.Ok() {
-		if attrNode != nil {
-			me.forgetUpdate(attrNode, 1)
-		}
-
 		if code == ENOENT && mount.options.NegativeTimeout > 0.0 {
 			return mount.negativeEntry(), OK
 		}
@@ -96,6 +89,7 @@ func (me *FileSystemConnector) postLookup(fi *os.FileInfo, fsNode FsNode, code S
 	}
 
 	if attrNode != nil {
+		me.lookupUpdate(attrNode)
 		out = attrNode.mount.fileInfoToEntry(fi)
 		out.Generation = 1
 		out.NodeId = attrNode.nodeId

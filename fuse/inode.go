@@ -42,7 +42,8 @@ type Inode struct {
 
 	// The nodeId is only used to communicate to the kernel.  If
 	// it is zero, it means the kernel does not know about this
-	// Inode.  nodeIds are chosen by FileSystemConnector.inodeMap.
+	// Inode.  You should probably never read nodeId, but always
+	// do lookupUpdate() on the node instead.
 	nodeId uint64
 
 	// lookupCount registers how often the kernel got this inode

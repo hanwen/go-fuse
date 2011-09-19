@@ -89,11 +89,10 @@ func (me *FileSystemConnector) createChild(parent *Inode, name string, fi *os.Fi
 	} else {
 		parent.addChild(name, child)
 	}
-	me.lookupUpdate(child)
 
 	out = parent.mount.fileInfoToEntry(fi)
-	out.Ino = child.nodeId
-	out.NodeId = child.nodeId
+	out.Ino = me.lookupUpdate(child)
+	out.NodeId = out.Ino
 	return out
 }
 
@@ -115,12 +114,13 @@ func (me *FileSystemConnector) toInode(nodeid uint64) *Inode {
 	return i
 }
 
-// Must run in treeLock.
-func (me *FileSystemConnector) lookupUpdate(node *Inode) {
+// Must run in treeLock.  Returns the nodeId.
+func (me *FileSystemConnector) lookupUpdate(node *Inode) uint64 {
 	if node.lookupCount == 0 {
 		node.nodeId = me.inodeMap.Register(&node.handled, node)
 	}
 	node.lookupCount += 1
+	return node.nodeId
 }
 
 // Must run outside treeLock.
