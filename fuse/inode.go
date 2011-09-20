@@ -99,6 +99,21 @@ func (me *Inode) Children() (out map[string]*Inode) {
 	return out
 }
 
+// FsChildren returns all the children from the same filesystem.  It
+// will skip mountpoints.
+func (me *Inode) FsChildren() (out map[string]*Inode) {
+	me.treeLock.RLock()
+	defer me.treeLock.RUnlock()
+
+	out = map[string]*Inode{}
+	for k, v := range me.children {
+		if v.mount == me.mount {
+			out[k] = v
+		}
+	}
+	return out
+}
+
 func (me *Inode) FsNode() FsNode {
 	return me.fsInode
 }

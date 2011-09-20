@@ -59,6 +59,26 @@ func (me *PathNodeFs) Mount(path string, nodeFs NodeFileSystem, opts *FileSystem
 	return me.connector.Mount(parent, name, nodeFs, opts)
 }
 
+// Forgets all known information on client inodes.
+func (me *PathNodeFs) ForgetClientInodes() {
+	if !me.options.ClientInodes {
+		return
+	}
+	me.pathLock.Lock()
+	defer me.pathLock.Unlock()
+	me.clientInodeMap = map[uint64][]*clientInodePath{}
+	me.root.forgetClientInodes()
+}
+
+// Rereads all inode numbers for all known files.
+func (me *PathNodeFs) RereadClientInodes() {
+	if !me.options.ClientInodes {
+		return
+	}
+	me.ForgetClientInodes()
+	me.root.updateClientInodes()
+}
+
 func (me *PathNodeFs) UnmountNode(node *Inode) Status {
 	return me.connector.Unmount(node)
 }
@@ -70,6 +90,7 @@ func (me *PathNodeFs) Unmount(path string) Status {
 	}
 	return me.connector.Unmount(node)
 }
+
 
 func (me *PathNodeFs) OnUnmount() {
 }
@@ -185,6 +206,22 @@ type pathInode struct {
 	clientInode uint64
 
 	DefaultFsNode
+}
+
+// Drop all known client inodes. Must have the treeLock.
+func (me *pathInode) forgetClientInodes() {
+	me.clientInode = 0
+	for _, ch := range me.Inode().FsChildren() {
+		ch.FsNode().(*pathInode).forgetClientInodes()
+	}
+}
+
+// Reread all client nodes below this node.  Must run outside the treeLock.
+func (me *pathInode) updateClientInodes() {
+	me.GetAttr(nil, nil)
+	for _, ch := range me.Inode().FsChildren() {
+		ch.FsNode().(*pathInode).updateClientInodes()
+	}
 }
 
 func (me *pathInode) LockTree() func() {

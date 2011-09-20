@@ -917,6 +917,7 @@ func (me *UnionFs) Open(name string, flags uint32, context *fuse.Context) (fuseF
 	if name == _DROP_CACHE {
 		if flags&fuse.O_ANYWRITE != 0 {
 			log.Println("Forced cache drop on", me.Name())
+			me.nodeFs.RereadClientInodes()
 			me.DropBranchCache(nil)
 			me.DropDeletionCache()
 			me.DropSubFsCaches()

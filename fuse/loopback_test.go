@@ -300,6 +300,31 @@ func TestLinkExisting(t *testing.T) {
 	}
 }
 
+// Deal correctly with hard links implied by matching client inode
+// numbers.
+func TestLinkForget(t *testing.T) {
+	me := NewTestCase(t)
+	defer me.Cleanup()
+
+	c := "hello"
+
+	err := ioutil.WriteFile(me.orig+"/file1", []byte(c), 0644)
+	CheckSuccess(err)
+	err = os.Link(me.orig+"/file1", me.orig+"/file2")
+	CheckSuccess(err)
+
+	f1, err := os.Lstat(me.mnt + "/file1")
+	CheckSuccess(err)
+
+	me.pathFs.ForgetClientInodes()
+
+	f2, err := os.Lstat(me.mnt + "/file2")
+	CheckSuccess(err)
+	if f1.Ino == f2.Ino {
+		t.Error("After forget, we should not export links")
+	}
+}
+
 func TestSymlink(t *testing.T) {
 	me := NewTestCase(t)
 	defer me.Cleanup()
