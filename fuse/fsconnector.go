@@ -60,12 +60,12 @@ func NewFileSystemConnector(nodeFs NodeFileSystem, opts *FileSystemOptions) (me 
 	me.inodeMap = NewHandleMap(opts.PortableInodes)
 	me.rootNode = newInode(true, nodeFs.Root())
 
+	me.verify()
+	me.MountRoot(nodeFs, opts)
+
 	// FUSE does not issue a LOOKUP for 1 (obviously), but it does
 	// issue a forget.  This lookupUpdate is to make the counts match.
 	me.lookupUpdate(me.rootNode)
-
-	me.verify()
-	me.MountRoot(nodeFs, opts)
 	return me
 }
 
@@ -104,8 +104,12 @@ func (me *FileSystemConnector) toInode(nodeid uint64) *Inode {
 	return i
 }
 
-// Must run in treeLock.  Returns the nodeId.
+// Must run outside treeLock.  Returns the nodeId.
+//
+// TODO - write a stress test to exercise this.
 func (me *FileSystemConnector) lookupUpdate(node *Inode) uint64 {
+	node.treeLock.Lock()
+	defer node.treeLock.Unlock()
 	if node.lookupCount == 0 {
 		node.nodeId = me.inodeMap.Register(&node.handled, node)
 	}
@@ -114,8 +118,6 @@ func (me *FileSystemConnector) lookupUpdate(node *Inode) uint64 {
 }
 
 // Must run outside treeLock.
-//
-// TODO - reconcile api for lookupUpdate() and forgetUpdate().
 func (me *FileSystemConnector) forgetUpdate(node *Inode, forgetCount int) {
 	defer me.verify()
 

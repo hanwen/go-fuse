@@ -23,8 +23,6 @@ func (me *FileSystemConnector) lookupMountUpdate(mount *fileSystemMount) (out *E
 	if !err.Ok() {
 		return nil, err
 	}
-	mount.treeLock.Lock()
-	defer mount.treeLock.Unlock()
 
 	out = mount.fileInfoToEntry(fi)
 	out.NodeId = me.lookupUpdate(mount.mountInode)
