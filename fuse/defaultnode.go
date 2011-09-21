@@ -43,12 +43,6 @@ func (me *DefaultFsNode) Inode() *Inode {
 func (me *DefaultFsNode) OnForget() {
 }
 
-func (me *DefaultFsNode) RmChild(name string, child FsNode) {
-}
-
-func (me *DefaultFsNode) AddChild(name string, child FsNode) {
-}
-
 func (me *DefaultFsNode) Lookup(name string, context *Context) (fi *os.FileInfo, node FsNode, code Status) {
 	return nil, nil, ENOSYS
 }

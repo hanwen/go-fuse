@@ -28,11 +28,6 @@ type FsNode interface {
 	Inode() *Inode
 	SetInode(node *Inode)
 
-	// RmChild and AddChild run inside the critical section for
-	// the mutex behind Inode().LockTree().
-	RmChild(name string, child FsNode)
-	AddChild(name string, child FsNode)
-
 	Lookup(name string, context *Context) (fi *os.FileInfo, node FsNode, code Status)
 	OnForget()
 
@@ -52,7 +47,6 @@ type FsNode interface {
 	// Files
 	Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *os.FileInfo, newNode FsNode, code Status)
 	Open(flags uint32, context *Context) (file File, code Status)
-	Flush(file File, openFlags uint32, context *Context) (code Status)
 	OpenDir(context *Context) (chan DirEntry, Status)
 
 	// XAttrs

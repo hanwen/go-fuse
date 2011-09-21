@@ -277,12 +277,6 @@ func (me *FileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
 	opened.WithFlags.File.Release()
 }
 
-func (me *FileSystemConnector) Flush(header *InHeader, input *FlushIn) Status {
-	node := me.toInode(header.NodeId)
-	opened := node.mount.getOpenedFile(input.Fh)
-	return node.fsInode.Flush(opened.WithFlags.File, opened.WithFlags.OpenFlags, &header.Context)
-}
-
 func (me *FileSystemConnector) ReleaseDir(header *InHeader, input *ReleaseIn) {
 	node := me.toInode(header.NodeId)
 	opened := node.mount.unregisterFileHandle(input.Fh, node)
