@@ -1,11 +1,13 @@
 package fuse
 
 import (
+	"log"
 	"os"
 )
 
+var _ = log.Println
+
 type DefaultNodeFileSystem struct {
-	root DefaultFsNode
 }
 
 func (me *DefaultNodeFileSystem) OnUnmount() {
@@ -19,7 +21,7 @@ func (me *DefaultNodeFileSystem) StatFs() *StatfsOut {
 	return nil
 }
 func (me *DefaultNodeFileSystem) Root() FsNode {
-	return &me.root
+	return new(DefaultFsNode)
 }
 
 ////////////////////////////////////////////////////////////////
@@ -44,7 +46,7 @@ func (me *DefaultFsNode) OnForget() {
 }
 
 func (me *DefaultFsNode) Lookup(name string, context *Context) (fi *os.FileInfo, node FsNode, code Status) {
-	return nil, nil, ENOSYS
+	return nil, nil, ENOENT
 }
 
 func (me *DefaultFsNode) Access(mode uint32, context *Context) (code Status) {
@@ -92,7 +94,17 @@ func (me *DefaultFsNode) Flush(file File, openFlags uint32, context *Context) (c
 }
 
 func (me *DefaultFsNode) OpenDir(context *Context) (chan DirEntry, Status) {
-	return nil, ENOSYS
+	ch := me.Inode().Children()
+	s := make(chan DirEntry, len(ch))
+	for name, child := range ch {
+		fi, code  := child.FsNode().GetAttr(nil, context)
+		if code.Ok() {
+			log.Printf("mode %o", fi.Mode)
+			s <- DirEntry{Name: name, Mode: fi.Mode}
+		}
+	}
+	close(s)
+	return s, OK
 }
 
 func (me *DefaultFsNode) GetXAttr(attribute string, context *Context) (data []byte, code Status) {

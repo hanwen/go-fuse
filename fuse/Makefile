@@ -21,6 +21,7 @@ MANUAL_GOFILES=api.go \
 	lockingfs.go \
 	loopback.go \
 	misc.go \
+	memnode.go \
 	mount.go \
 	mountstate.go \
 	opcode.go \
