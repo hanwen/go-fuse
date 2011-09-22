@@ -38,6 +38,7 @@ type AutoUnionFs struct {
 type AutoUnionFsOptions struct {
 	UnionFsOptions
 	fuse.FileSystemOptions
+	fuse.PathNodeFsOptions
 
 	// If set, run updateKnownFses() after mounting.
 	UpdateOnMount bool
@@ -110,7 +111,7 @@ func (me *AutoUnionFs) createFs(name string, roots []string) fuse.Status {
 	}
 
 	log.Printf("Adding workspace %v for roots %v", name, ufs.Name())
-	nfs := fuse.NewPathNodeFs(ufs, nil)
+	nfs := fuse.NewPathNodeFs(ufs, &me.options.PathNodeFsOptions)
 	code := me.nodeFs.Mount(name, nfs, &me.options.FileSystemOptions)
 	if code.Ok() {
 		me.knownFileSystems[name] = knownFs{

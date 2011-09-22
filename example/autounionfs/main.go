@@ -41,13 +41,13 @@ func main() {
 			Owner:           fuse.CurrentOwner(),
 		},
 		UpdateOnMount: true,
-	}
-	pathOptions := fuse.PathNodeFsOptions{
-		ClientInodes: *hardlinks,
+		fuse.PathNodeFsOptions{
+			ClientInodes: *hardlinks,
+		}
 	}
 
 	gofs := unionfs.NewAutoUnionFs(flag.Arg(1), options)
-	pathfs := fuse.NewPathNodeFs(gofs, &pathOptions)
+	pathfs := fuse.NewPathNodeFs(gofs, nil)
 	state, conn, err := fuse.MountNodeFileSystem(flag.Arg(0), pathfs, nil)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
