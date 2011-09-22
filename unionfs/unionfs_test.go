@@ -1051,3 +1051,21 @@ func TestFlushRename(t *testing.T) {
 		t.Errorf("got %d from Stat().Size, want %d", fi.Size, n)
 	}
 }
+
+func TestTruncGetAttr(t *testing.T) {
+	wd, clean := setupUfs(t)
+	defer clean()
+
+	c := []byte("hello")
+	f, err := os.OpenFile(wd+"/mount/file", os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
+	CheckSuccess(err)
+	_, err = f.Write(c)
+	CheckSuccess(err)
+	err = f.Close()
+	CheckSuccess(err)
+
+	fi, err :=  os.Lstat(wd+"/mount/file")
+	if fi.Size != int64(len(c)) {
+		t.Fatalf("Length mismatch got %d want %d", fi.Size, len(c))
+	}
+}
