@@ -41,9 +41,9 @@ func main() {
 			Owner:           fuse.CurrentOwner(),
 		},
 		UpdateOnMount: true,
-		fuse.PathNodeFsOptions{
+		PathNodeFsOptions: fuse.PathNodeFsOptions{
 			ClientInodes: *hardlinks,
-		}
+		},
 	}
 
 	gofs := unionfs.NewAutoUnionFs(flag.Arg(1), options)
