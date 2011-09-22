@@ -10,7 +10,7 @@ import (
 var _ = fmt.Print
 var _ = log.Print
 
-func TestTimedIntCache(t *testing.T) {
+func TestTimedCache(t *testing.T) {
 	fetchCount := 0
 	fetch := func(n string) interface{} {
 		fetchCount++
@@ -24,10 +24,10 @@ func TestTimedIntCache(t *testing.T) {
 	cache := NewTimedCache(fetch, ttl)
 	v := cache.Get("n").(*int)
 	if *v != int('n') {
-		t.Error("value mismatch", v)
+		t.Errorf("value mismatch: got %d, want %d", *v, int('n'))
 	}
 	if fetchCount != 1 {
-		t.Error("fetch count mismatch", fetchCount)
+		t.Errorf("fetch count mismatch: got %d want 1", fetchCount)
 	}
 
 	// The cache update is async.
@@ -35,11 +35,11 @@ func TestTimedIntCache(t *testing.T) {
 
 	w := cache.Get("n")
 	if v != w {
-		t.Error("Huh, inconsistent.")
+		t.Errorf("Huh, inconsistent: 1st = %v != 2nd = %v", v, w)
 	}
 
 	if fetchCount > 1 {
-		t.Error("fetch count fail.", fetchCount)
+		t.Errorf("fetch count fail: %d > 1", fetchCount)
 	}
 
 	time.Sleep(ttl * 2)
@@ -47,6 +47,6 @@ func TestTimedIntCache(t *testing.T) {
 
 	w = cache.Get("n")
 	if fetchCount == 1 {
-		t.Error("did not fetch again. Purge unsuccessful?")
+		t.Error("Did not fetch again. Purge unsuccessful?")
 	}
 }
