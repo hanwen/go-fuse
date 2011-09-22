@@ -128,7 +128,7 @@ func (me *Attr) String() string {
 
 func (me *CreateIn) String() string {
 	return fmt.Sprintf(
-		"{0%o [%s] (0%o)}", me.Flags,
+		"{0%o [%s] (0%o)}", me.Mode,
 		flagString(openFlagNames, int(me.Flags), "O_RDONLY"), me.Umask)
 }
 
@@ -174,8 +174,12 @@ func (me *MknodIn) String() string {
 }
 
 func (me *ReleaseIn) String() string {
-	return fmt.Sprintf("{Fh %d %s %s %d}",
+	return fmt.Sprintf("{Fh %d %s %s L%d}",
 		me.Fh, flagString(openFlagNames, int(me.Flags), ""),
 		flagString(releaseFlagNames, int(me.ReleaseFlags), ""),
 		me.LockOwner)
+}
+
+func (me *FlushIn) String() string {
+	return fmt.Sprintf("{Fh %d}", me.Fh)
 }

@@ -494,6 +494,7 @@ func init() {
 
 	// Inputs.
 	for op, f := range map[opcode]castPointerFunc{
+		_OP_FLUSH:      func(ptr unsafe.Pointer) interface{} { return (*FlushIn)(ptr) },
 		_OP_GETATTR:    func(ptr unsafe.Pointer) interface{} { return (*GetAttrIn)(ptr) },
 		_OP_SETATTR:    func(ptr unsafe.Pointer) interface{} { return (*SetAttrIn)(ptr) },
 		_OP_INIT:       func(ptr unsafe.Pointer) interface{} { return (*InitIn)(ptr) },
