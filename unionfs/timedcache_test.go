@@ -19,7 +19,9 @@ func TestTimedCache(t *testing.T) {
 	}
 
 	var ttl int64
-	ttl = 1e6
+
+	// This fails with 1e6 on some Opteron CPUs.
+	ttl = 1e8
 
 	cache := NewTimedCache(fetch, ttl)
 	v := cache.Get("n").(*int)
