@@ -38,9 +38,9 @@ func setupCacheTest() (string, *PathNodeFs, func()) {
 	pfs := NewPathNodeFs(fs, nil)
 	state, conn, err := MountNodeFileSystem(dir+"/mnt", pfs, nil)
 	CheckSuccess(err)
-	state.Debug = true
-	conn.Debug = true
-	pfs.Debug = true
+	state.Debug = VerboseTest()
+	conn.Debug = VerboseTest()
+	pfs.Debug = VerboseTest()
 	go state.Loop()
 
 	return dir, pfs, func() {
@@ -123,7 +123,7 @@ func TestNonseekable(t *testing.T) {
 	defer os.RemoveAll(dir)
 	state, _, err := MountPathFileSystem(dir, fs, nil)
 	CheckSuccess(err)
-	state.Debug = true
+	state.Debug = VerboseTest()
 	defer state.Unmount()
 
 	go state.Loop()

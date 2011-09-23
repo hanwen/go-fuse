@@ -25,7 +25,7 @@ func setupZipfs() (mountPoint string, cleanup func()) {
 	mountPoint, _ = ioutil.TempDir("", "")
 	state, _, err := fuse.MountNodeFileSystem(mountPoint, zfs, nil)
 
-	state.Debug = true
+	state.Debug = fuse.VerboseTest()
 	go state.Loop()
 
 	return mountPoint, func() {

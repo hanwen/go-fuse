@@ -22,7 +22,7 @@ func setupMzfs() (mountPoint string, cleanup func()) {
 		NegativeTimeout: 0.0,
 	})
 	CheckSuccess(err)
-	state.Debug = true
+	state.Debug = fuse.VerboseTest()
 	go state.Loop()
 
 	return mountPoint, func() {

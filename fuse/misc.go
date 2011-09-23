@@ -3,10 +3,11 @@
 package fuse
 
 import (
-	"os"
+	"flag"
 	"fmt"
 	"log"
 	"math"
+	"os"
 	"reflect"
 	"strings"
 	"syscall"
@@ -152,4 +153,9 @@ func CurrentOwner() *Owner {
 		Uid: uint32(os.Getuid()),
 		Gid: uint32(os.Getgid()),
 	}
+}
+
+func VerboseTest() bool {
+	flag := flag.Lookup("test.v")
+	return flag != nil && flag.Value.String() == "true"
 }

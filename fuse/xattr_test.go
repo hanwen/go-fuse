@@ -98,7 +98,7 @@ func TestXAttrRead(t *testing.T) {
 
 	state, _, err := MountPathFileSystem(mountPoint, xfs, nil)
 	CheckSuccess(err)
-	state.Debug = true
+	state.Debug = VerboseTest()
 	defer state.Unmount()
 
 	go state.Loop()

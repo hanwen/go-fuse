@@ -82,12 +82,11 @@ func NewTestCase(t *testing.T) *testCase {
 	rfs = me.connector
 	rfs = NewLockingRawFileSystem(rfs)
 
-	me.connector.Debug = true
+	me.connector.Debug = VerboseTest()
 	me.state = NewMountState(rfs)
 	me.state.Mount(me.mnt, nil)
 
-	//me.state.Debug = false
-	me.state.Debug = true
+	me.state.Debug = VerboseTest()
 
 	// Unthreaded, but in background.
 	go me.state.Loop()

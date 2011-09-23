@@ -126,7 +126,7 @@ func setupFAttrTest(fs FileSystem) (dir string, clean func()) {
 	CheckSuccess(err)
 	state, _, err := MountPathFileSystem(dir, fs, nil)
 	CheckSuccess(err)
-	state.Debug = true
+	state.Debug = VerboseTest()
 
 	go state.Loop()
 

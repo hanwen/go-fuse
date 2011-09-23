@@ -56,7 +56,7 @@ func NewNotifyTest() *NotifyTest {
 	me.pathfs = NewPathNodeFs(me.fs, nil)
 	me.state, me.connector, err = MountNodeFileSystem(me.dir, me.pathfs, opts)
 	CheckSuccess(err)
-	me.state.Debug = true
+	me.state.Debug = VerboseTest()
 	go me.state.Loop()
 
 	return me

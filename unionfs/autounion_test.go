@@ -44,8 +44,8 @@ func setup(t *testing.T) (workdir string, cleanup func()) {
 	fs := NewAutoUnionFs(wd+"/store", testAOpts)
 	state, conn, err := fuse.MountPathFileSystem(wd+"/mount", fs, &testAOpts.FileSystemOptions)
 	CheckSuccess(err)
-	state.Debug = true
-	conn.Debug = true
+	state.Debug = fuse.VerboseTest()
+	conn.Debug = fuse.VerboseTest()
 	go state.Loop()
 
 	return wd, func() {

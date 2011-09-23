@@ -58,8 +58,8 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 		&fuse.PathNodeFsOptions{ClientInodes: true})
 	state, conn, err := fuse.MountNodeFileSystem(wd+"/mount", pathfs, opts)
 	CheckSuccess(err)
-	conn.Debug = true
-	state.Debug = true
+	conn.Debug = fuse.VerboseTest()
+	state.Debug = fuse.VerboseTest()
 	go state.Loop()
 
 	return wd, func() {
@@ -871,7 +871,7 @@ func TestDisappearing(t *testing.T) {
 	state, _, err := fuse.MountPathFileSystem(wd+"/mount", ufs, opts)
 	CheckSuccess(err)
 	defer state.Unmount()
-	state.Debug = true
+	state.Debug = fuse.VerboseTest()
 	go state.Loop()
 
 	log.Println("TestDisappearing2")
