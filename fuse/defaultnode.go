@@ -20,6 +20,7 @@ func (me *DefaultNodeFileSystem) OnMount(conn *FileSystemConnector) {
 func (me *DefaultNodeFileSystem) StatFs() *StatfsOut {
 	return nil
 }
+
 func (me *DefaultNodeFileSystem) Root() FsNode {
 	return new(DefaultFsNode)
 }
@@ -124,7 +125,10 @@ func (me *DefaultFsNode) ListXAttr(context *Context) (attrs []string, code Statu
 }
 
 func (me *DefaultFsNode) GetAttr(file File, context *Context) (fi *os.FileInfo, code Status) {
-	return nil, ENOSYS
+	if me.Inode().IsDir() {
+		return &os.FileInfo{Mode: S_IFDIR | 0755}, OK
+	}
+	return &os.FileInfo{Mode: S_IFREG | 0644}, OK
 }
 
 func (me *DefaultFsNode) Chmod(file File, perms uint32, context *Context) (code Status) {
