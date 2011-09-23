@@ -75,7 +75,6 @@ func writeToFile(path string, contents string) {
 
 func readFromFile(path string) string {
 	b, err := ioutil.ReadFile(path)
-	fmt.Println(b)
 	CheckSuccess(err)
 	return string(b)
 }
@@ -265,7 +264,6 @@ func TestBasic(t *testing.T) {
 	}
 	checkMapEq(t, names, expected)
 
-	log.Println("new contents")
 	writeToFile(wd+"/mount/new", "new contents")
 	if !fileExists(wd + "/rw/new") {
 		t.Errorf("missing file in rw layer", names)
@@ -275,7 +273,6 @@ func TestBasic(t *testing.T) {
 	if contents != "new contents" {
 		t.Errorf("read mismatch: '%v'", contents)
 	}
-	return
 	writeToFile(wd+"/mount/ro1", "promote me")
 	if !fileExists(wd + "/rw/ro1") {
 		t.Errorf("missing file in rw layer", names)

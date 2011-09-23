@@ -46,6 +46,7 @@ func main() {
 		},
 	}
 
+	fmt.Printf("AutoUnionFs - Go-FUSE Version %v.\n", fuse.Version())
 	gofs := unionfs.NewAutoUnionFs(flag.Arg(1), options)
 	pathfs := fuse.NewPathNodeFs(gofs, nil)
 	state, conn, err := fuse.MountNodeFileSystem(flag.Arg(0), pathfs, nil)
