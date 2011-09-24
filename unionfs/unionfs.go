@@ -194,8 +194,6 @@ func (me *UnionFs) getBranchAttrNoCache(name string) branchResult {
 				// Needed to make hardlinks work.
 				a.Ino = 0
 			}
-			// Make all files appear writable
-			a.Mode |= 0222
 			return branchResult{
 				attr:   a,
 				code:   s,
@@ -418,7 +416,7 @@ func (me *UnionFs) Mkdir(path string, mode uint32, context *fuse.Context) (code 
 	if code.Ok() {
 		me.removeDeletion(path)
 		attr := &os.FileInfo{
-			Mode: fuse.S_IFDIR | mode | 0222,
+			Mode: fuse.S_IFDIR | mode,
 		}
 		me.branchCache.Set(path, branchResult{attr, fuse.OK, 0})
 	}
@@ -533,7 +531,6 @@ func (me *UnionFs) Chmod(name string, mode uint32, context *fuse.Context) (code 
 	permMask := uint32(07777)
 
 	// Always be writable.
-	mode |= 0222
 	oldMode := r.attr.Mode & permMask
 
 	if oldMode != mode {
@@ -624,12 +621,14 @@ func (me *UnionFs) promoteDirsTo(filename string) fuse.Status {
 	for i, _ := range todo {
 		j := len(todo) - i - 1
 		d := todo[j]
-		code := me.fileSystems[0].Mkdir(d, 0755, nil)
+		r := results[j]
+		code := me.fileSystems[0].Mkdir(d, r.attr.Mode & 07777, nil)
 		if code != fuse.OK {
 			log.Println("Error creating dir leading to path", d, code)
 			return fuse.EPERM
 		}
-		r := results[j]
+		
+		me.fileSystems[0].Utimens(d, uint64(r.attr.Atime_ns), uint64(r.attr.Mtime_ns), nil)
 		r.branch = 0
 		me.branchCache.Set(d, r)
 	}
@@ -650,7 +649,7 @@ func (me *UnionFs) Create(name string, flags uint32, mode uint32, context *fuse.
 
 		now := time.Nanoseconds()
 		a := os.FileInfo{
-			Mode:     fuse.S_IFREG | mode | 0222,
+			Mode:     fuse.S_IFREG | mode,
 			Ctime_ns: now,
 			Mtime_ns: now,
 		}
@@ -683,7 +682,10 @@ func (me *UnionFs) GetAttr(name string, context *fuse.Context) (a *os.FileInfo, 
 	if r.branch < 0 {
 		return nil, fuse.ENOENT
 	}
-	return r.attr, r.code
+	fi := *r.attr
+	// Make everything appear writable.
+	fi.Mode |= 0200
+	return &fi, r.code
 }
 
 func (me *UnionFs) GetXAttr(name string, attr string, context *fuse.Context) ([]byte, fuse.Status) {
@@ -996,7 +998,7 @@ func (me *unionFsFile) GetAttr() (*os.FileInfo, fuse.Status) {
 	if fi != nil {
 		f := *fi
 		fi = &f
-		fi.Mode |= 0222
+		fi.Mode |= 0200
 	}
 	return fi, code
 }

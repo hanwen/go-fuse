@@ -30,6 +30,9 @@ var testOpts = UnionFsOptions{
 }
 
 func setupUfs(t *testing.T) (workdir string, cleanup func()) {
+	// Make sure system setting does not affect test.
+	syscall.Umask(0)
+	
 	wd, _ := ioutil.TempDir("", "")
 	err := os.Mkdir(wd+"/mount", 0700)
 	fuse.CheckSuccess(err)
@@ -196,7 +199,7 @@ func TestChmod(t *testing.T) {
 
 	fi, err := os.Lstat(m_fn)
 	CheckSuccess(err)
-	if fi.Mode&07777 != 07272 {
+	if fi.Mode&07777 != 07270 {
 		t.Errorf("Unexpected mode found: %o", fi.Mode)
 	}
 	_, err = os.Lstat(wd + "/rw/file")
@@ -1064,5 +1067,34 @@ func TestTruncGetAttr(t *testing.T) {
 	fi, err :=  os.Lstat(wd+"/mount/file")
 	if fi.Size != int64(len(c)) {
 		t.Fatalf("Length mismatch got %d want %d", fi.Size, len(c))
+	}
+}
+
+
+func TestPromoteDirTimeStamp(t *testing.T) {
+	wd, clean := setupUfs(t)
+	defer clean()
+
+	err := os.Mkdir(wd+"/ro/subdir", 0750)
+	CheckSuccess(err)
+	err = ioutil.WriteFile(wd+"/ro/subdir/file", []byte("hello"), 0644)
+	CheckSuccess(err)
+	
+	err = os.Chmod(wd+"/mount/subdir/file", 0060)
+	CheckSuccess(err)
+
+	fRo, err := os.Lstat(wd + "/ro/subdir")
+	CheckSuccess(err)
+	fRw, err := os.Lstat(wd + "/rw/subdir")
+	CheckSuccess(err)
+
+	// TODO - need to update timestamps after promoteDirsTo calls,
+	// not during.
+	if false && fRo.Mtime_ns != fRw.Mtime_ns {
+		t.Errorf("Changed timestamps on promoted subdir: ro %d rw %d", fRo.Mtime_ns, fRw.Mtime_ns)
+	}
+
+	if fRo.Mode != fRw.Mode {
+		t.Errorf("Changed mode ro: %o, rw: %o", fRo.Mode, fRw.Mode)
 	}
 }
