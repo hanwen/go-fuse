@@ -54,7 +54,6 @@ func TestMemNodeFs(t *testing.T) {
 	}
 	
 	entries, err := ioutil.ReadDir(wd)
-	log.Println(entries)
 	if len(entries) != 1 || entries[0].Name != "test" {
 		t.Fatalf("Readdir got %v, expected 1 file named 'test'", entries)
 	}

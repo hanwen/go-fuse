@@ -1,9 +1,7 @@
 package fuse
 
 import (
-	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"syscall"
 	"testing"
@@ -121,7 +119,7 @@ func NewFile() *MutableDataFile {
 	return &MutableDataFile{}
 }
 
-func setupFAttrTest(fs FileSystem) (dir string, clean func()) {
+func setupFAttrTest(t *testing.T, fs FileSystem) (dir string, clean func()) {
 	dir, err := ioutil.TempDir("", "go-fuse")
 	CheckSuccess(err)
 	state, _, err := MountPathFileSystem(dir, fs, nil)
@@ -133,7 +131,7 @@ func setupFAttrTest(fs FileSystem) (dir string, clean func()) {
 	// Trigger INIT.
 	os.Lstat(dir)
 	if state.KernelSettings().Flags&CAP_FILE_OPS == 0 {
-		log.Println("Mount does not support file operations")
+		t.Log("Mount does not support file operations")
 	}
 
 	return dir, func() {
@@ -145,7 +143,7 @@ func setupFAttrTest(fs FileSystem) (dir string, clean func()) {
 
 func TestFSetAttr(t *testing.T) {
 	fs := &FSetAttrFs{}
-	dir, clean := setupFAttrTest(fs)
+	dir, clean := setupFAttrTest(t, fs)
 	defer clean()
 
 	fn := dir + "/file"
@@ -159,7 +157,6 @@ func TestFSetAttr(t *testing.T) {
 	_, err = f.WriteString("hello")
 	CheckSuccess(err)
 
-	fmt.Println("Ftruncate")
 	code := syscall.Ftruncate(f.Fd(), 3)
 	if code != 0 {
 		t.Error("truncate retval", os.NewSyscallError("Ftruncate", code))

@@ -12,6 +12,7 @@ import (
 var _ = log.Print
 
 type XAttrTestFs struct {
+	tester   *testing.T
 	filename string
 	attrs    map[string][]byte
 
@@ -39,7 +40,7 @@ func (me *XAttrTestFs) GetAttr(name string, context *Context) (*os.FileInfo, Sta
 }
 
 func (me *XAttrTestFs) SetXAttr(name string, attr string, data []byte, flags int, context *Context) Status {
-	log.Println("SetXAttr", name, attr, string(data), flags)
+	me.tester.Log("SetXAttr", name, attr, string(data), flags)
 	if name != me.filename {
 		return ENOENT
 	}
@@ -57,7 +58,7 @@ func (me *XAttrTestFs) GetXAttr(name string, attr string, context *Context) ([]b
 	if !ok {
 		return nil, ENODATA
 	}
-	log.Println("GetXAttr", string(v))
+	me.tester.Log("GetXAttr", string(v))
 	return v, OK
 }
 
@@ -77,7 +78,7 @@ func (me *XAttrTestFs) RemoveXAttr(name string, attr string, context *Context) S
 		return ENOENT
 	}
 	_, ok := me.attrs[attr]
-	log.Println("RemoveXAttr", name, attr, ok)
+	me.tester.Log("RemoveXAttr", name, attr, ok)
 	if !ok {
 		return ENODATA
 	}
@@ -92,6 +93,7 @@ func TestXAttrRead(t *testing.T) {
 		"user.attr1": []byte("val1"),
 		"user.attr2": []byte("val2")}
 	xfs := NewXAttrFs(nm, golden)
+	xfs.tester = t
 	mountPoint, err := ioutil.TempDir("", "go-fuse")
 	CheckSuccess(err)
 	defer os.RemoveAll(mountPoint)

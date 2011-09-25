@@ -142,7 +142,6 @@ func (me *memNodeFile) Flush() Status {
 	fi, _ := me.LoopbackFile.GetAttr()
 	me.node.info.Size = fi.Size
 	me.node.info.Blocks = fi.Blocks
-	log.Println("reset size", me.node.info.Size, me.node.Inode().nodeId)
 	return code
 }
 

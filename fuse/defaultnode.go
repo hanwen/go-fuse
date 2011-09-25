@@ -104,7 +104,6 @@ func (me *DefaultFsNode) OpenDir(context *Context) (chan DirEntry, Status) {
 	for name, child := range ch {
 		fi, code  := child.FsNode().GetAttr(nil, context)
 		if code.Ok() {
-			log.Printf("mode %o", fi.Mode)
 			s <- DirEntry{Name: name, Mode: fi.Mode}
 		}
 	}

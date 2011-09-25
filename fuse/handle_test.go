@@ -23,7 +23,7 @@ func TestHandleMapDoubleRegister(t *testing.T) {
 		t.Log("skipping test for 32 bits")
 		return
 	}
-	log.Println("TestDoubleRegister")
+	t.Log("TestDoubleRegister")
 	defer markSeen("already has a handle")
 	hm := NewHandleMap(false)
 	obj := &Handled{}
@@ -69,7 +69,7 @@ func TestHandleMapBasic(t *testing.T) {
 		v := new(Handled)
 		hm := NewHandleMap(portable)
 		h := hm.Register(v, v)
-		log.Printf("Got handle 0x%x", h)
+		t.Logf("Got handle 0x%x", h)
 		if !hm.Has(h) {
 			t.Fatal("Does not have handle")
 		}

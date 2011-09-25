@@ -1,7 +1,6 @@
 package fuse
 
 import (
-	"log"
 	"os"
 	"testing"
 	"time"
@@ -86,7 +85,7 @@ func TestRecursiveMount(t *testing.T) {
 
 	f, err := os.Open(filepath.Join(submnt, "hello.txt"))
 	CheckSuccess(err)
-	log.Println("Attempting unmount, should fail")
+	t.Log("Attempting unmount, should fail")
 	code = ts.pathFs.Unmount("mnt")
 	if code != EBUSY {
 		t.Error("expect EBUSY")
@@ -94,10 +93,10 @@ func TestRecursiveMount(t *testing.T) {
 
 	f.Close()
 
-	log.Println("Waiting for kernel to flush file-close to fuse...")
+	t.Log("Waiting for kernel to flush file-close to fuse...")
 	time.Sleep(1.5e9 * testTtl)
 
-	log.Println("Attempting unmount, should succeed")
+	t.Log("Attempting unmount, should succeed")
 	code = ts.pathFs.Unmount("mnt")
 	if code != OK {
 		t.Error("umount failed.", code)
@@ -117,11 +116,11 @@ func TestDeletedUnmount(t *testing.T) {
 	f, err := os.Create(filepath.Join(submnt, "hello.txt"))
 	CheckSuccess(err)
 
-	log.Println("Removing")
+	t.Log("Removing")
 	err = os.Remove(filepath.Join(submnt, "hello.txt"))
 	CheckSuccess(err)
 
-	log.Println("Removing")
+	t.Log("Removing")
 	_, err = f.Write([]byte("bla"))
 	CheckSuccess(err)
 

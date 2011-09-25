@@ -8,7 +8,6 @@ import (
 var _ = fmt.Println
 
 func TestLatencyMap(t *testing.T) {
-	fmt.Println("TestLatencyMap")
 	m := NewLatencyMap()
 	m.Add("foo", "", 0.1e9)
 	m.Add("foo", "", 0.2e9)

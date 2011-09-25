@@ -120,7 +120,6 @@ func TestTouch(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
-	log.Println("testTouch")
 	err := ioutil.WriteFile(ts.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
 	err = os.Chtimes(ts.mountFile, 42e9, 43e9)
@@ -139,11 +138,9 @@ func (me *testCase) TestReadThrough(t *testing.T) {
 	err := ioutil.WriteFile(ts.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
 
-	fmt.Println("Testing chmod.")
 	err = os.Chmod(ts.mountFile, mode)
 	CheckSuccess(err)
 
-	fmt.Println("Testing Lstat.")
 	fi, err := os.Lstat(ts.mountFile)
 	CheckSuccess(err)
 	if (fi.Mode & 0777) != mode {
@@ -151,12 +148,10 @@ func (me *testCase) TestReadThrough(t *testing.T) {
 	}
 
 	// Open (for read), read.
-	fmt.Println("Testing open.")
 	f, err := os.Open(ts.mountFile)
 	CheckSuccess(err)
 	defer f.Close()
 
-	fmt.Println("Testing read.")
 	var buf [1024]byte
 	slice := buf[:]
 	n, err := f.Read(slice)
@@ -164,7 +159,6 @@ func (me *testCase) TestReadThrough(t *testing.T) {
 	if len(slice[:n]) != len(contents) {
 		t.Errorf("Content error %v", slice)
 	}
-	fmt.Println("Testing close.")
 }
 
 func TestRemove(t *testing.T) {
@@ -676,8 +670,7 @@ func TestIoctl(t *testing.T) {
 		os.O_WRONLY|os.O_CREATE, 0777)
 	defer f.Close()
 	CheckSuccess(err)
-	v, e := ioctl(f.Fd(), 0x5401, 42)
-	fmt.Println("ioctl", v, e)
+	ioctl(f.Fd(), 0x5401, 42)
 }
 
 // This test is racy. If an external process consumes space while this
