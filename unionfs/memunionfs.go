@@ -19,7 +19,7 @@ type MemUnionFs struct {
 	backingStore string
 	root         *memNode
 
-	mutex    sync.Mutex
+	mutex    sync.RWMutex
 	nextFree int
 
 	readonly fuse.FileSystem
@@ -29,20 +29,39 @@ type memNode struct {
 	fuse.DefaultFsNode
 	fs *MemUnionFs
 
-	original string
-
 	// protects mutable data below.
-	mutex   sync.RWMutex
-	backing string
-	changed bool
-	link    string
-	info    os.FileInfo
-	deleted map[string]bool
+	mutex    *sync.RWMutex
+	backing  string
+	original string
+	changed  bool
+	link     string
+	info     os.FileInfo
+	deleted  map[string]bool
+}
+
+type Result struct {
+	Info     *os.FileInfo
+	Original string
+	Backing  string
+	Link     string
+}
+
+func (me *MemUnionFs) Reap() map[string]*Result {
+	me.mutex.RLock()
+	defer me.mutex.RUnlock()
+
+	m := map[string]*Result{}
+	me.root.Reap("", m)
+	return m
+}
+
+func (me *MemUnionFs) Clear() {
+	me.mutex.Lock()
+	defer me.mutex.Unlock()
+	me.root.Clear("")
 }
 
 func (me *MemUnionFs) getFilename() string {
-	me.mutex.Lock()
-	defer me.mutex.Unlock()
 	id := me.nextFree
 	me.nextFree++
 	return fmt.Sprintf("%s/%d", me.backingStore, id)
@@ -59,7 +78,8 @@ func (me *MemUnionFs) StatFs() *fuse.StatfsOut {
 
 func (me *MemUnionFs) newNode(isdir bool) *memNode {
 	n := &memNode{
-		fs: me,
+		fs:    me,
+		mutex: &me.mutex,
 	}
 	if isdir {
 		n.deleted = map[string]bool{}
@@ -171,6 +191,7 @@ func (me *memNode) Symlink(name string, content string, context *fuse.Context) (
 	n := me.newNode(false)
 	n.info.Mode = fuse.S_IFLNK | 0777
 	n.link = content
+	n.changed = true
 	me.Inode().AddChild(name, n.Inode())
 	me.touch()
 	me.deleted[name] = false, false
@@ -190,10 +211,11 @@ func (me *memNode) Rename(oldName string, newParent fuse.FsNode, newName string,
 }
 
 func (me *memNode) Link(name string, existing fuse.FsNode, context *fuse.Context) (fi *os.FileInfo, newNode fuse.FsNode, code fuse.Status) {
-	me.mutex.Lock()
-	defer me.mutex.Unlock()
 	me.Inode().AddChild(name, existing.Inode())
 	fi, code = existing.GetAttr(nil, context)
+
+	me.mutex.Lock()
+	defer me.mutex.Unlock()
 	me.touch()
 	me.deleted[name] = false, false
 	return fi, existing, code
@@ -202,6 +224,7 @@ func (me *memNode) Link(name string, existing fuse.FsNode, context *fuse.Context
 func (me *memNode) Create(name string, flags uint32, mode uint32, context *fuse.Context) (file fuse.File, fi *os.FileInfo, newNode fuse.FsNode, code fuse.Status) {
 	me.mutex.Lock()
 	defer me.mutex.Unlock()
+
 	n := me.newNode(false)
 	n.info.Mode = mode | fuse.S_IFREG
 	n.changed = true
@@ -229,9 +252,10 @@ func (me *memNodeFile) InnerFile() fuse.File {
 func (me *memNodeFile) Flush() fuse.Status {
 	code := me.File.Flush()
 	if me.writable {
+		fi, _ := me.File.GetAttr()
+
 		me.node.mutex.Lock()
 		defer me.node.mutex.Unlock()
-		fi, _ := me.File.GetAttr()
 		me.node.info.Size = fi.Size
 		me.node.info.Blocks = fi.Blocks
 	}
@@ -253,7 +277,7 @@ func (me *memNode) promote() {
 		destfs := &fuse.LoopbackFileSystem{Root: "/"}
 		fuse.CopyFile(me.fs.readonly, destfs,
 			me.original, strings.TrimLeft(me.backing, "/"), nil)
-
+		me.original = ""
 		files := me.Inode().Files(0)
 		for _, f := range files {
 			mf := f.File.(*memNodeFile)
@@ -272,11 +296,13 @@ func (me *memNode) promote() {
 func (me *memNode) Open(flags uint32, context *fuse.Context) (file fuse.File, code fuse.Status) {
 	if flags&fuse.O_ANYWRITE != 0 {
 		me.mutex.Lock()
-		defer me.mutex.Unlock()
-
 		me.promote()
 		me.touch()
+		me.mutex.Unlock()
 	}
+
+	me.mutex.RLock()
+	defer me.mutex.RUnlock()
 
 	if me.backing != "" {
 		f, err := os.OpenFile(me.backing, int(flags), 0666)
@@ -382,4 +408,38 @@ func (me *memNode) OpenDir(context *fuse.Context) (stream chan fuse.DirEntry, co
 	}
 	close(stream)
 	return stream, fuse.OK
+}
+
+func (me *memNode) Reap(path string, results map[string]*Result) {
+	for name, _ := range me.deleted {
+		p := filepath.Join(path, name)
+		results[p] = &Result{}
+	}
+
+	if me.changed {
+		info := me.info
+		results[path] = &Result{
+			Info:     &info,
+			Link:     me.link,
+			Backing:  me.backing,
+			Original: me.original,
+		}
+	}
+
+	for n, ch := range me.Inode().FsChildren() {
+		p := filepath.Join(path, n)
+		ch.FsNode().(*memNode).Reap(p, results)
+	}
+}
+
+func (me *memNode) Clear(path string) {
+	me.original = path
+	me.changed = false
+	me.backing = ""
+	me.deleted = make(map[string]bool)
+	for n, ch := range me.Inode().FsChildren() {
+		p := filepath.Join(path, n)
+		mn := ch.FsNode().(*memNode)
+		mn.Clear(p)
+	}
 }

@@ -18,7 +18,7 @@ var _ = log.Print
 
 var CheckSuccess = fuse.CheckSuccess
 
-func setupMemUfs(t *testing.T) (workdir string, cleanup func()) {
+func setupMemUfs(t *testing.T) (workdir string, ufs *MemUnionFs, cleanup func()) {
 	// Make sure system setting does not affect test.
 	syscall.Umask(0)
 
@@ -49,14 +49,14 @@ func setupMemUfs(t *testing.T) (workdir string, cleanup func()) {
 	state.Debug = fuse.VerboseTest()
 	go state.Loop()
 
-	return wd, func() {
+	return wd, memFs, func() {
 		state.Unmount()
 		os.RemoveAll(wd)
 	}
 }
 
 func TestMemUnionFsSymlink(t *testing.T) {
-	wd, clean := setupMemUfs(t)
+	wd, ufs, clean := setupMemUfs(t)
 	defer clean()
 
 	err := os.Symlink("/foobar", wd+"/mount/link")
@@ -68,10 +68,15 @@ func TestMemUnionFsSymlink(t *testing.T) {
 	if val != "/foobar" {
 		t.Errorf("symlink mismatch: %v", val)
 	}
+
+	r := ufs.Reap()
+	if len(r) != 2 || r["link"] == nil || r["link"].Link != "/foobar" {
+		t.Errorf("expect 1 symlink reap result: %v", r)
+	}
 }
 
 func TestMemUnionFsSymlinkPromote(t *testing.T) {
-	wd, clean := setupMemUfs(t)
+	wd, ufs, clean := setupMemUfs(t)
 	defer clean()
 
 	err := os.Mkdir(wd+"/ro/subdir", 0755)
@@ -79,10 +84,15 @@ func TestMemUnionFsSymlinkPromote(t *testing.T) {
 
 	err = os.Symlink("/foobar", wd+"/mount/subdir/link")
 	CheckSuccess(err)
+		
+	r := ufs.Reap()
+	if len(r) != 2 || r["subdir"] == nil || r["subdir/link"] == nil || r["subdir/link"].Link != "/foobar" {
+		t.Errorf("expect 1 symlink reap result: %v", r)
+	}
 }
 
 func TestMemUnionFsChtimes(t *testing.T) {
-	wd, clean := setupMemUfs(t)
+	wd, ufs, clean := setupMemUfs(t)
 	defer clean()
 
 	writeToFile(wd+"/ro/file", "a")
@@ -96,10 +106,15 @@ func TestMemUnionFsChtimes(t *testing.T) {
 	if fi.Atime_ns != 82e9 || fi.Mtime_ns != 83e9 {
 		t.Error("Incorrect timestamp", fi)
 	}
+
+	r := ufs.Reap()
+	if r["file"] == nil || r["file"].Original == "" {
+		t.Errorf("expect 1 file reap result: %v", r)
+	}
 }
 
 func TestMemUnionFsChmod(t *testing.T) {
-	wd, clean := setupMemUfs(t)
+	wd, ufs, clean := setupMemUfs(t)
 	defer clean()
 
 	ro_fn := wd + "/ro/file"
@@ -113,10 +128,15 @@ func TestMemUnionFsChmod(t *testing.T) {
 	if fi.Mode&07777 != 07070 {
 		t.Errorf("Unexpected mode found: %o", fi.Mode)
 	}
+
+	r := ufs.Reap()
+	if r["file"] == nil || r["file"].Original == "" {
+		t.Errorf("expect 1 file reap result: %v", r)
+	}
 }
 
 func TestMemUnionFsChown(t *testing.T) {
-	wd, clean := setupMemUfs(t)
+	wd, _, clean := setupMemUfs(t)
 	defer clean()
 
 	ro_fn := wd + "/ro/file"
@@ -131,7 +151,7 @@ func TestMemUnionFsChown(t *testing.T) {
 }
 
 func TestMemUnionFsDelete(t *testing.T) {
-	wd, clean := setupMemUfs(t)
+	wd, ufs, clean := setupMemUfs(t)
 	defer clean()
 
 	writeToFile(wd+"/ro/file", "a")
@@ -145,10 +165,15 @@ func TestMemUnionFsDelete(t *testing.T) {
 	if err == nil {
 		t.Fatal("should have disappeared.")
 	}
+
+	r := ufs.Reap()
+	if r["file"] == nil || r["file"].Info != nil {
+		t.Errorf("expect 1 deletion reap result: %v", r)
+	}
 }
 
 func TestMemUnionFsBasic(t *testing.T) {
-	wd, clean := setupMemUfs(t)
+	wd, _, clean := setupMemUfs(t)
 	defer clean()
 
 	writeToFile(wd+"/mount/rw", "a")
@@ -184,17 +209,22 @@ func TestMemUnionFsBasic(t *testing.T) {
 }
 
 func TestMemUnionFsPromote(t *testing.T) {
-	wd, clean := setupMemUfs(t)
+	wd, ufs, clean := setupMemUfs(t)
 	defer clean()
 
 	err := os.Mkdir(wd+"/ro/subdir", 0755)
 	CheckSuccess(err)
 	writeToFile(wd+"/ro/subdir/file", "content")
 	writeToFile(wd+"/mount/subdir/file", "other-content")
+
+	r := ufs.Reap()
+	if r["subdir/file"] == nil || r["subdir/file"].Backing == "" {
+		t.Errorf("expect 1 file reap result: %v", r)
+	}
 }
 
 func TestMemUnionFsCreate(t *testing.T) {
-	wd, clean := setupMemUfs(t)
+	wd, ufs, clean := setupMemUfs(t)
 	defer clean()
 
 	err := os.MkdirAll(wd+"/ro/subdir/sub2", 0755)
@@ -202,10 +232,15 @@ func TestMemUnionFsCreate(t *testing.T) {
 	writeToFile(wd+"/mount/subdir/sub2/file", "other-content")
 	_, err = os.Lstat(wd + "/mount/subdir/sub2/file")
 	CheckSuccess(err)
+	
+	r := ufs.Reap()
+	if r["subdir/sub2/file"] == nil || r["subdir/sub2/file"].Backing == "" {
+		t.Errorf("expect 1 file reap result: %v", r)
+	}
 }
 
 func TestMemUnionFsOpenUndeletes(t *testing.T) {
-	wd, clean := setupMemUfs(t)
+	wd, _, clean := setupMemUfs(t)
 	defer clean()
 
 	writeToFile(wd+"/ro/file", "X")
@@ -213,11 +248,10 @@ func TestMemUnionFsOpenUndeletes(t *testing.T) {
 	CheckSuccess(err)
 	writeToFile(wd+"/mount/file", "X")
 	_, err = os.Lstat(wd + "/mount/file")
-	CheckSuccess(err)
 }
 
 func TestMemUnionFsMkdir(t *testing.T) {
-	wd, clean := setupMemUfs(t)
+	wd, ufs, clean := setupMemUfs(t)
 	defer clean()
 
 	dirname := wd + "/mount/subdir"
@@ -226,10 +260,15 @@ func TestMemUnionFsMkdir(t *testing.T) {
 
 	err = os.Remove(dirname)
 	CheckSuccess(err)
+
+	r := ufs.Reap()
+	if len(r) > 2 || r[""] == nil || r["subdir"] == nil {
+		t.Errorf("expect 1 file reap result: %v", r)
+	}
 }
 
 func TestMemUnionFsMkdirPromote(t *testing.T) {
-	wd, clean := setupMemUfs(t)
+	wd, ufs, clean := setupMemUfs(t)
 	defer clean()
 
 	dirname := wd + "/ro/subdir/subdir2"
@@ -238,10 +277,15 @@ func TestMemUnionFsMkdirPromote(t *testing.T) {
 
 	err = os.Mkdir(wd+"/mount/subdir/subdir2/dir3", 0755)
 	CheckSuccess(err)
+
+	r := ufs.Reap()
+	if r["subdir/subdir2/dir3"] == nil ||  r["subdir/subdir2/dir3"].Info.Mode & fuse.S_IFDIR == 0 {
+		t.Errorf("expect 1 file reap result: %v", r)
+	}
 }
 
 func TestMemUnionFsRmdirMkdir(t *testing.T) {
-	wd, clean := setupMemUfs(t)
+	wd, _, clean := setupMemUfs(t)
 	defer clean()
 
 	err := os.Mkdir(wd+"/ro/subdir", 0755)
@@ -256,7 +300,7 @@ func TestMemUnionFsRmdirMkdir(t *testing.T) {
 }
 
 func TestMemUnionFsLink(t *testing.T) {
-	wd, clean := setupMemUfs(t)
+	wd, _, clean := setupMemUfs(t)
 	defer clean()
 
 	content := "blabla"
@@ -282,7 +326,7 @@ func TestMemUnionFsLink(t *testing.T) {
 }
 
 func TestMemUnionFsTruncate(t *testing.T) {
-	wd, clean := setupMemUfs(t)
+	wd, _, clean := setupMemUfs(t)
 	defer clean()
 
 	writeToFile(wd+"/ro/file", "hello")
@@ -295,7 +339,7 @@ func TestMemUnionFsTruncate(t *testing.T) {
 
 func TestMemUnionFsCopyChmod(t *testing.T) {
 	t.Log("TestCopyChmod")
-	wd, clean := setupMemUfs(t)
+	wd, _, clean := setupMemUfs(t)
 	defer clean()
 
 	contents := "hello"
@@ -321,7 +365,7 @@ func TestMemUnionFsCopyChmod(t *testing.T) {
 
 func TestMemUnionFsTruncateTimestamp(t *testing.T) {
 	t.Log("TestTruncateTimestamp")
-	wd, clean := setupMemUfs(t)
+	wd, _, clean := setupMemUfs(t)
 	defer clean()
 
 	contents := "hello"
@@ -344,7 +388,7 @@ func TestMemUnionFsTruncateTimestamp(t *testing.T) {
 
 func TestMemUnionFsRemoveAll(t *testing.T) {
 	t.Log("TestRemoveAll")
-	wd, clean := setupMemUfs(t)
+	wd, _, clean := setupMemUfs(t)
 	defer clean()
 
 	err := os.MkdirAll(wd+"/ro/dir/subdir", 0755)
@@ -368,7 +412,7 @@ func TestMemUnionFsRemoveAll(t *testing.T) {
 }
 
 func TestMemUnionFsRmRf(t *testing.T) {
-	wd, clean := setupMemUfs(t)
+	wd, _, clean := setupMemUfs(t)
 	defer clean()
 
 	err := os.MkdirAll(wd+"/ro/dir/subdir", 0755)
@@ -394,7 +438,7 @@ func TestMemUnionFsRmRf(t *testing.T) {
 }
 
 func TestMemUnionFsDeletedGetAttr(t *testing.T) {
-	wd, clean := setupMemUfs(t)
+	wd, _, clean := setupMemUfs(t)
 	defer clean()
 
 	err := ioutil.WriteFile(wd+"/ro/file", []byte("blabla"), 0644)
@@ -413,7 +457,7 @@ func TestMemUnionFsDeletedGetAttr(t *testing.T) {
 }
 
 func TestMemUnionFsDoubleOpen(t *testing.T) {
-	wd, clean := setupMemUfs(t)
+	wd, _, clean := setupMemUfs(t)
 	defer clean()
 	err := ioutil.WriteFile(wd+"/ro/file", []byte("blablabla"), 0644)
 	CheckSuccess(err)
@@ -451,7 +495,7 @@ func TestMemUnionFsFdLeak(t *testing.T) {
 	beforeEntries, err := ioutil.ReadDir("/proc/self/fd")
 	CheckSuccess(err)
 
-	wd, clean := setupMemUfs(t)
+	wd, _, clean := setupMemUfs(t)
 	err = ioutil.WriteFile(wd+"/ro/file", []byte("blablabla"), 0644)
 	CheckSuccess(err)
 
@@ -472,7 +516,7 @@ func TestMemUnionFsFdLeak(t *testing.T) {
 }
 
 func TestMemUnionFsStatFs(t *testing.T) {
-	wd, clean := setupMemUfs(t)
+	wd, _, clean := setupMemUfs(t)
 	defer clean()
 
 	s1 := syscall.Statfs_t{}
@@ -486,7 +530,7 @@ func TestMemUnionFsStatFs(t *testing.T) {
 }
 
 func TestMemUnionFsFlushSize(t *testing.T) {
-	wd, clean := setupMemUfs(t)
+	wd, _, clean := setupMemUfs(t)
 	defer clean()
 
 	fn := wd + "/mount/file"
@@ -507,7 +551,7 @@ func TestMemUnionFsFlushSize(t *testing.T) {
 }
 
 func TestMemUnionFsFlushRename(t *testing.T) {
-	wd, clean := setupMemUfs(t)
+	wd, _, clean := setupMemUfs(t)
 	defer clean()
 
 	err := ioutil.WriteFile(wd+"/mount/file", []byte("x"), 0644)
@@ -534,7 +578,7 @@ func TestMemUnionFsFlushRename(t *testing.T) {
 }
 
 func TestMemUnionFsTruncGetAttr(t *testing.T) {
-	wd, clean := setupMemUfs(t)
+	wd, _, clean := setupMemUfs(t)
 	defer clean()
 
 	c := []byte("hello")
