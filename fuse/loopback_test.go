@@ -95,7 +95,6 @@ func NewTestCase(t *testing.T) *testCase {
 
 // Unmount and del.
 func (me *testCase) Cleanup() {
-	fmt.Println("Unmounting.")
 	err := me.state.Unmount()
 	CheckSuccess(err)
 	os.RemoveAll(me.tmpDir)
