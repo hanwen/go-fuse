@@ -87,7 +87,7 @@ type FileSystem interface {
 	Chown(name string, uid uint32, gid uint32, context *Context) (code Status)
 	Utimens(name string, AtimeNs uint64, MtimeNs uint64, context *Context) (code Status)
 
-	Truncate(name string, offset uint64, context *Context) (code Status)
+	Truncate(name string, size uint64, context *Context) (code Status)
 
 	Access(name string, mode uint32, context *Context) (code Status)
 
