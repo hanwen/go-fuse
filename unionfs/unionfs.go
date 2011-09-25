@@ -445,7 +445,7 @@ func (me *UnionFs) Symlink(pointedTo string, linkName string, context *fuse.Cont
 	return code
 }
 
-func (me *UnionFs) Truncate(path string, offset uint64, context *fuse.Context) (code fuse.Status) {
+func (me *UnionFs) Truncate(path string, size uint64, context *fuse.Context) (code fuse.Status) {
 	if path == _DROP_CACHE {
 		return fuse.OK
 	}
@@ -457,10 +457,10 @@ func (me *UnionFs) Truncate(path string, offset uint64, context *fuse.Context) (
 	}
 
 	if code.Ok() {
-		code = me.fileSystems[0].Truncate(path, offset, context)
+		code = me.fileSystems[0].Truncate(path, size, context)
 	}
 	if code.Ok() {
-		r.attr.Size = int64(offset)
+		r.attr.Size = int64(size)
 		now := time.Nanoseconds()
 		r.attr.Mtime_ns = now
 		r.attr.Ctime_ns = now
