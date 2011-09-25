@@ -55,7 +55,6 @@ type memNode struct {
 	fs *MemNodeFs
 	id     int
 	
-	regular string
 	link    string
 	info    os.FileInfo
 }
@@ -173,23 +172,27 @@ func (me *memNode) Truncate(file File, size uint64, context *Context) (code Stat
 
 	me.info.Size = int64(size)
 	err := os.Truncate(me.filename(), int64(size))
+	me.info.Ctime_ns = time.Nanoseconds()
 	return OsErrorToErrno(err)
 }
 
 func (me *memNode) Utimens(file File, atime uint64, mtime uint64, context *Context) (code Status) {
 	me.info.Atime_ns = int64(atime)
 	me.info.Mtime_ns = int64(mtime)
+	me.info.Ctime_ns = time.Nanoseconds()
 	return OK
 }
 
 func (me *memNode) Chmod(file File, perms uint32, context *Context) (code Status) {
 	me.info.Mode = (me.info.Mode ^ 07777) | perms
+	me.info.Ctime_ns = time.Nanoseconds()
 	return OK
 }
 
 func (me *memNode) Chown(file File, uid uint32, gid uint32, context *Context) (code Status) {
 	me.info.Uid = int(uid)
 	me.info.Gid = int(gid)
+	me.info.Ctime_ns = time.Nanoseconds()
 	return OK
 }
 

@@ -16,8 +16,6 @@ import (
 var _ = fmt.Print
 var _ = log.Print
 
-var CheckSuccess = fuse.CheckSuccess
-
 func TestFilePathHash(t *testing.T) {
 	// Simple test coverage.
 	t.Log(filePathHash("xyz/abc"))
@@ -101,8 +99,7 @@ func dirNames(path string) map[string]bool {
 func checkMapEq(t *testing.T, m1, m2 map[string]bool) {
 	if !mapEq(m1, m2) {
 		msg := fmt.Sprintf("mismatch: got %v != expect %v", m1, m2)
-		log.Print(msg)
-		t.Error(msg)
+		panic(msg)
 	}
 }
 
