@@ -125,7 +125,32 @@ func (me *memNode) Create(name string, flags uint32, mode uint32, context *Conte
 		return nil, nil, nil, OsErrorToErrno(err)
 	}
 	me.Inode().AddChild(name, n.Inode())
-	return &LoopbackFile{File: f}, &n.info, n, OK
+	return n.newFile(f), &n.info, n, OK
+}
+
+type memNodeFile struct {
+	LoopbackFile
+	node *memNode
+}
+
+func (me *memNodeFile) InnerFile() File {
+	return &me.LoopbackFile
+}
+
+func (me *memNodeFile) Flush() Status {
+	code := me.LoopbackFile.Flush()
+	fi, _ := me.LoopbackFile.GetAttr()
+	me.node.info.Size = fi.Size
+	me.node.info.Blocks = fi.Blocks
+	log.Println("reset size", me.node.info.Size, me.node.Inode().nodeId)
+	return code
+}
+
+func (me *memNode) newFile(f *os.File) File {
+	return &memNodeFile{
+		LoopbackFile: LoopbackFile{File: f},
+		node: me,
+	}
 }
 
 func (me *memNode) Open(flags uint32, context *Context) (file File, code Status) {
@@ -134,14 +159,11 @@ func (me *memNode) Open(flags uint32, context *Context) (file File, code Status)
 		return nil, OsErrorToErrno(err)
 	}
 
-	return &LoopbackFile{File: f}, OK
+	return me.newFile(f), OK
 }
 
+
 func (me *memNode) GetAttr(file File, context *Context) (fi *os.FileInfo, code Status) {
-	if me.info.Mode & S_IFREG != 0 {
-		fi, err := os.Lstat(me.filename())
-		return fi, OsErrorToErrno(err)
-	}
 	return &me.info, OK
 }
 
@@ -150,20 +172,25 @@ func (me *memNode) Truncate(file File, size uint64, context *Context) (code Stat
 		return file.Truncate(size)
 	}
 
+	me.info.Size = int64(size)
 	err := os.Truncate(me.filename(), int64(size))
 	return OsErrorToErrno(err)
 }
 
 func (me *memNode) Utimens(file File, atime uint64, mtime uint64, context *Context) (code Status) {
-	if file != nil {
-		return file.Utimens(atime, mtime)
-	}
-	if me.info.Mode & S_IFREG != 0 {
-		err := os.Chtimes(me.filename(), int64(atime), int64(mtime))
-		return OsErrorToErrno(err)
-	}
 	me.info.Atime_ns = int64(atime)
 	me.info.Mtime_ns = int64(mtime)
+	return OK
+}
+
+func (me *memNode) Chmod(file File, perms uint32, context *Context) (code Status) {
+	me.info.Mode = (me.info.Mode ^ 07777) | perms
+	return OK
+}
+
+func (me *memNode) Chown(file File, uid uint32, gid uint32, context *Context) (code Status) {
+	me.info.Uid = int(uid)
+	me.info.Gid = int(gid)
 	return OK
 }
 

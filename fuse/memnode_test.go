@@ -47,9 +47,16 @@ func TestMemNodeFs(t *testing.T) {
 	err := ioutil.WriteFile(wd + "/test", []byte{42}, 0644)
 	CheckSuccess(err)
 
+	fi, err := os.Lstat(wd + "/test")
+	CheckSuccess(err)
+	if fi.Size != 1 {
+		t.Errorf("Size after write incorrect: got %d want 1", fi.Size)
+	}
+	
 	entries, err := ioutil.ReadDir(wd)
 	log.Println(entries)
 	if len(entries) != 1 || entries[0].Name != "test" {
 		t.Fatalf("Readdir got %v, expected 1 file named 'test'", entries)
 	}
 }
+
