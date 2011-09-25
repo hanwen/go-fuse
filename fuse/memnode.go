@@ -62,7 +62,7 @@ type memNode struct {
 
 func (me *memNode) newNode(isdir bool) *memNode {
 	n := me.fs.newNode()
-	me.Inode().NewSynthetic(isdir, n)
+	me.Inode().New(isdir, n)
 	return n
 }
 

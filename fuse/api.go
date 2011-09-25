@@ -29,8 +29,14 @@ type FsNode interface {
 	SetInode(node *Inode)
 
 	Lookup(name string, context *Context) (fi *os.FileInfo, node FsNode, code Status)
-	OnForget()
 
+	// Deletable() should return true if this inode may be
+	// discarded from the children list. This will be called from
+	// within the treeLock critical section, so you cannot look at
+	// other inodes.
+	Deletable() bool
+	OnForget()
+	
 	// Misc.
 	Access(mode uint32, context *Context) (code Status)
 	Readlink(c *Context) ([]byte, Status)

@@ -52,11 +52,9 @@ type Inode struct {
 	//
 	// The lookupCount is exclusively used for managing the
 	// lifetime of nodeId variable.  It is ok for a node to have 0
-	// == lookupCount.  This can happen if the inode is synthetic.
+	// == lookupCount.  This can happen if the inode return false
+	// for Deletable().
 	lookupCount int
-
-	// This is to prevent lookupCount==0 node from being dropped.
-	synthetic bool
 
 	// Non-nil if this inode is a mountpoint, ie. the Root of a
 	// NodeFileSystem.
@@ -133,13 +131,6 @@ func (me *Inode) Files(mask uint32) (files []WithFlags) {
 
 func (me *Inode) IsDir() bool {
 	return me.children != nil
-}
-
-// CreateChild() creates node for synthetic use
-func (me *Inode) NewSynthetic(isDir bool, fsi FsNode) *Inode {
-	ch := me.New(isDir, fsi)
-	ch.synthetic = true
-	return ch
 }
 
 func (me *Inode) New(isDir bool, fsi FsNode) *Inode {

@@ -161,7 +161,7 @@ func (me *FileSystemConnector) recursiveConsiderDropInode(n *Inode) (drop bool) 
 		ch.fsInode.OnForget()
 	}
 
-	if len(n.children) > 0 || n.lookupCount > 0 || n.synthetic {
+	if len(n.children) > 0 || n.lookupCount > 0 || !n.FsNode().Deletable() {
 		return false
 	}
 	if n == me.rootNode || n.mountPoint != nil {

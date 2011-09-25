@@ -39,6 +39,10 @@ func (me *DefaultFsNode) SetInode(node *Inode) {
 	me.inode = node
 }
 
+func (me *DefaultFsNode) Deletable() bool {
+	return true
+}
+
 func (me *DefaultFsNode) Inode() *Inode {
 	return me.inode
 }

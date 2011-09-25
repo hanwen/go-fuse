@@ -92,6 +92,10 @@ func (me *memNode) Open(flags uint32, context *fuse.Context) (fuseFile fuse.File
 	return fuse.NewDataFile(me.file.Data()), fuse.OK
 }
 
+func (me *memNode) Deletable() bool {
+	return false
+}
+
 func (me *memNode) GetAttr(file fuse.File, context *fuse.Context) (*os.FileInfo, fuse.Status) {
 	if me.Inode().IsDir() {
 		return &os.FileInfo{
@@ -114,7 +118,7 @@ func (me *MemTreeFs) addFile(name string, f MemFile) {
 				fsnode.file = f
 			}
 
-			child = node.NewSynthetic(fsnode.file == nil, fsnode)
+			child = node.New(fsnode.file == nil, fsnode)
 			node.AddChild(c, child)
 		}
 		node = child
