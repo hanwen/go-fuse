@@ -3,7 +3,7 @@ package unionfs
 import (
 	"fmt"
 	"github.com/hanwen/go-fuse/fuse"
- 	"log"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,9 +17,9 @@ var _ = log.Println
 type MemUnionFs struct {
 	fuse.DefaultNodeFileSystem
 	backingStore string
-	root *memNode
+	root         *memNode
 
-	mutex sync.Mutex
+	mutex    sync.Mutex
 	nextFree int
 
 	readonly fuse.FileSystem
@@ -27,7 +27,7 @@ type MemUnionFs struct {
 
 type memNode struct {
 	fuse.DefaultFsNode
-	fs     *MemUnionFs
+	fs *MemUnionFs
 
 	original string
 
@@ -108,36 +108,36 @@ func (me *memNode) Readlink(c *fuse.Context) ([]byte, fuse.Status) {
 func (me *memNode) Lookup(name string, context *fuse.Context) (fi *os.FileInfo, node fuse.FsNode, code fuse.Status) {
 	me.mutex.RLock()
 	defer me.mutex.RUnlock()
-	
+
 	if _, del := me.deleted[name]; del {
 		return nil, nil, fuse.ENOENT
 	}
-	
+
 	if me.original == "" && me != me.fs.root {
 		return nil, nil, fuse.ENOENT
 	}
-	
+
 	fn := filepath.Join(me.original, name)
 	fi, code = me.fs.readonly.GetAttr(fn, context)
 	if !code.Ok() {
 		return nil, nil, code
 	}
 
-	child := me.newNode(fi.Mode & fuse.S_IFDIR != 0)
+	child := me.newNode(fi.Mode&fuse.S_IFDIR != 0)
 	child.info = *fi
 	child.original = fn
-	if child.info.Mode & fuse.S_IFLNK != 0 {
+	if child.info.Mode&fuse.S_IFLNK != 0 {
 		child.link, _ = me.fs.readonly.Readlink(fn, context)
 	}
 	me.Inode().AddChild(name, child.Inode())
 
-	return fi, child, fuse.OK 
+	return fi, child, fuse.OK
 }
 
 func (me *memNode) Mkdir(name string, mode uint32, context *fuse.Context) (fi *os.FileInfo, newNode fuse.FsNode, code fuse.Status) {
 	me.mutex.Lock()
 	defer me.mutex.Unlock()
-	
+
 	me.deleted[name] = false, false
 	n := me.newNode(true)
 	n.changed = true
@@ -157,7 +157,7 @@ func (me *memNode) Unlink(name string, context *fuse.Context) (code fuse.Status)
 		return fuse.ENOENT
 	}
 	me.touch()
-	
+
 	return fuse.OK
 }
 
@@ -240,9 +240,9 @@ func (me *memNodeFile) Flush() fuse.Status {
 
 func (me *memNode) newFile(f fuse.File, writable bool) fuse.File {
 	return &memNodeFile{
-		File: f,
+		File:     f,
 		writable: writable,
-		node: me,
+		node:     me,
 	}
 }
 
@@ -270,10 +270,10 @@ func (me *memNode) promote() {
 }
 
 func (me *memNode) Open(flags uint32, context *fuse.Context) (file fuse.File, code fuse.Status) {
-	if flags & fuse.O_ANYWRITE != 0 {
+	if flags&fuse.O_ANYWRITE != 0 {
 		me.mutex.Lock()
 		defer me.mutex.Unlock()
-		
+
 		me.promote()
 		me.touch()
 	}
@@ -283,7 +283,7 @@ func (me *memNode) Open(flags uint32, context *fuse.Context) (file fuse.File, co
 		if err != nil {
 			return nil, fuse.OsErrorToErrno(err)
 		}
-		wr := flags & fuse.O_ANYWRITE != 0
+		wr := flags&fuse.O_ANYWRITE != 0
 		return me.newFile(&fuse.LoopbackFile{File: f}, wr), fuse.OK
 	}
 
@@ -291,7 +291,7 @@ func (me *memNode) Open(flags uint32, context *fuse.Context) (file fuse.File, co
 	if !code.Ok() {
 		return nil, code
 	}
-	
+
 	return me.newFile(file, false), fuse.OK
 }
 
@@ -342,10 +342,10 @@ func (me *memNode) Chown(file fuse.File, uid uint32, gid uint32, context *fuse.C
 	if context.Uid != 0 {
 		return fuse.EPERM
 	}
-	
+
 	me.mutex.Lock()
 	defer me.mutex.Unlock()
-	
+
 	me.info.Uid = int(uid)
 	me.info.Gid = int(gid)
 	me.ctouch()
@@ -365,7 +365,7 @@ func (me *memNode) OpenDir(context *fuse.Context) (stream chan fuse.DirEntry, co
 	}
 
 	for k, n := range me.Inode().FsChildren() {
-		fi, code  := n.FsNode().GetAttr(nil, nil)
+		fi, code := n.FsNode().GetAttr(nil, nil)
 		if !code.Ok() {
 			panic("child does not have mode.")
 		}

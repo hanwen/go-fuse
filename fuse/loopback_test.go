@@ -72,7 +72,7 @@ func NewTestCase(t *testing.T) *testCase {
 
 	var rfs RawFileSystem
 	me.pathFs = NewPathNodeFs(pfs, &PathNodeFsOptions{
-	ClientInodes: true})
+		ClientInodes: true})
 	me.connector = NewFileSystemConnector(me.pathFs,
 		&FileSystemOptions{
 			EntryTimeout:    testTtl,

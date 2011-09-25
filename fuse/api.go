@@ -36,7 +36,7 @@ type FsNode interface {
 	// other inodes.
 	Deletable() bool
 	OnForget()
-	
+
 	// Misc.
 	Access(mode uint32, context *Context) (code Status)
 	Readlink(c *Context) ([]byte, Status)

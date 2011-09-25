@@ -8,6 +8,7 @@ import (
 var _ = log.Println
 
 type DefaultNodeFileSystem struct {
+
 }
 
 func (me *DefaultNodeFileSystem) OnUnmount() {
@@ -102,7 +103,7 @@ func (me *DefaultFsNode) OpenDir(context *Context) (chan DirEntry, Status) {
 	ch := me.Inode().Children()
 	s := make(chan DirEntry, len(ch))
 	for name, child := range ch {
-		fi, code  := child.FsNode().GetAttr(nil, context)
+		fi, code := child.FsNode().GetAttr(nil, context)
 		if code.Ok() {
 			s <- DirEntry{Name: name, Mode: fi.Mode}
 		}

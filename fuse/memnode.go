@@ -13,9 +13,9 @@ var _ = log.Println
 type MemNodeFs struct {
 	DefaultNodeFileSystem
 	backingStore string
-	root *memNode
+	root         *memNode
 
-	mutex sync.Mutex
+	mutex    sync.Mutex
 	nextFree int
 }
 
@@ -53,10 +53,10 @@ func (me *MemNodeFs) Filename(n *Inode) string {
 type memNode struct {
 	DefaultFsNode
 	fs *MemNodeFs
-	id     int
-	
-	link    string
-	info    os.FileInfo
+	id int
+
+	link string
+	info os.FileInfo
 }
 
 func (me *memNode) newNode(isdir bool) *memNode {
@@ -88,7 +88,6 @@ func (me *memNode) Unlink(name string, context *Context) (code Status) {
 	return OK
 }
 
-
 func (me *memNode) Rmdir(name string, context *Context) (code Status) {
 	return me.Unlink(name, context)
 }
@@ -98,7 +97,7 @@ func (me *memNode) Symlink(name string, content string, context *Context) (fi *o
 	n.info.Mode = S_IFLNK | 0777
 	n.link = content
 	me.Inode().AddChild(name, n.Inode())
-	
+
 	return &n.info, n, OK
 }
 
@@ -118,7 +117,7 @@ func (me *memNode) Link(name string, existing FsNode, context *Context) (fi *os.
 func (me *memNode) Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *os.FileInfo, newNode FsNode, code Status) {
 	n := me.newNode(false)
 	n.info.Mode = mode | S_IFREG
-	
+
 	f, err := os.Create(n.filename())
 	if err != nil {
 		return nil, nil, nil, OsErrorToErrno(err)
@@ -147,7 +146,7 @@ func (me *memNodeFile) Flush() Status {
 func (me *memNode) newFile(f *os.File) File {
 	return &memNodeFile{
 		LoopbackFile: LoopbackFile{File: f},
-		node: me,
+		node:         me,
 	}
 }
 
@@ -159,7 +158,6 @@ func (me *memNode) Open(flags uint32, context *Context) (file File, code Status)
 
 	return me.newFile(f), OK
 }
-
 
 func (me *memNode) GetAttr(file File, context *Context) (fi *os.FileInfo, code Status) {
 	return &me.info, OK
@@ -195,6 +193,3 @@ func (me *memNode) Chown(file File, uid uint32, gid uint32, context *Context) (c
 	me.info.Ctime_ns = time.Nanoseconds()
 	return OK
 }
-
-
-

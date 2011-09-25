@@ -622,12 +622,12 @@ func (me *UnionFs) promoteDirsTo(filename string) fuse.Status {
 		j := len(todo) - i - 1
 		d := todo[j]
 		r := results[j]
-		code := me.fileSystems[0].Mkdir(d, r.attr.Mode & 07777, nil)
+		code := me.fileSystems[0].Mkdir(d, r.attr.Mode&07777, nil)
 		if code != fuse.OK {
 			log.Println("Error creating dir leading to path", d, code)
 			return fuse.EPERM
 		}
-		
+
 		me.fileSystems[0].Utimens(d, uint64(r.attr.Atime_ns), uint64(r.attr.Mtime_ns), nil)
 		r.branch = 0
 		me.branchCache.Set(d, r)

@@ -21,7 +21,7 @@ var CheckSuccess = fuse.CheckSuccess
 func setupMemUfs(t *testing.T) (workdir string, cleanup func()) {
 	// Make sure system setting does not affect test.
 	syscall.Umask(0)
-	
+
 	wd, _ := ioutil.TempDir("", "")
 	err := os.Mkdir(wd+"/mount", 0700)
 	fuse.CheckSuccess(err)
@@ -545,7 +545,7 @@ func TestMemUnionFsTruncGetAttr(t *testing.T) {
 	err = f.Close()
 	CheckSuccess(err)
 
-	fi, err :=  os.Lstat(wd+"/mount/file")
+	fi, err := os.Lstat(wd + "/mount/file")
 	if fi.Size != int64(len(c)) {
 		t.Fatalf("Length mismatch got %d want %d", fi.Size, len(c))
 	}

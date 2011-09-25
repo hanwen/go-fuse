@@ -91,7 +91,6 @@ func (me *PathNodeFs) Unmount(path string) Status {
 	return me.connector.Unmount(node)
 }
 
-
 func (me *PathNodeFs) OnUnmount() {
 }
 

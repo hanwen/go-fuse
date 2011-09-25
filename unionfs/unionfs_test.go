@@ -30,7 +30,7 @@ var testOpts = UnionFsOptions{
 func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 	// Make sure system setting does not affect test.
 	syscall.Umask(0)
-	
+
 	wd, _ := ioutil.TempDir("", "")
 	err := os.Mkdir(wd+"/mount", 0700)
 	fuse.CheckSuccess(err)
@@ -1061,12 +1061,11 @@ func TestTruncGetAttr(t *testing.T) {
 	err = f.Close()
 	CheckSuccess(err)
 
-	fi, err :=  os.Lstat(wd+"/mount/file")
+	fi, err := os.Lstat(wd + "/mount/file")
 	if fi.Size != int64(len(c)) {
 		t.Fatalf("Length mismatch got %d want %d", fi.Size, len(c))
 	}
 }
-
 
 func TestPromoteDirTimeStamp(t *testing.T) {
 	wd, clean := setupUfs(t)
@@ -1076,7 +1075,7 @@ func TestPromoteDirTimeStamp(t *testing.T) {
 	CheckSuccess(err)
 	err = ioutil.WriteFile(wd+"/ro/subdir/file", []byte("hello"), 0644)
 	CheckSuccess(err)
-	
+
 	err = os.Chmod(wd+"/mount/subdir/file", 0060)
 	CheckSuccess(err)
 

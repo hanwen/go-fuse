@@ -17,7 +17,7 @@ func setupMemNodeTest(t *testing.T) (wd string, fs *MemNodeFs, clean func()) {
 	fs = NewMemNodeFs(back)
 	mnt := tmp + "/mnt"
 	os.Mkdir(mnt, 0700)
-	
+
 	connector := NewFileSystemConnector(fs,
 		&FileSystemOptions{
 			EntryTimeout:    testTtl,
@@ -37,14 +37,14 @@ func setupMemNodeTest(t *testing.T) (wd string, fs *MemNodeFs, clean func()) {
 		state.Unmount()
 		os.RemoveAll(tmp)
 	}
-	
+
 }
 
 func TestMemNodeFs(t *testing.T) {
 	wd, _, clean := setupMemNodeTest(t)
 	defer clean()
 
-	err := ioutil.WriteFile(wd + "/test", []byte{42}, 0644)
+	err := ioutil.WriteFile(wd+"/test", []byte{42}, 0644)
 	CheckSuccess(err)
 
 	fi, err := os.Lstat(wd + "/test")
@@ -52,10 +52,9 @@ func TestMemNodeFs(t *testing.T) {
 	if fi.Size != 1 {
 		t.Errorf("Size after write incorrect: got %d want 1", fi.Size)
 	}
-	
+
 	entries, err := ioutil.ReadDir(wd)
 	if len(entries) != 1 || entries[0].Name != "test" {
 		t.Fatalf("Readdir got %v, expected 1 file named 'test'", entries)
 	}
 }
-

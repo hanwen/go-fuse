@@ -337,4 +337,3 @@ func (me *FileSystemConnector) Flush(header *InHeader, input *FlushIn) Status {
 	opened := node.mount.getOpenedFile(input.Fh)
 	return opened.WithFlags.File.Flush()
 }
-
