@@ -338,7 +338,6 @@ func TestMemUnionFsTruncate(t *testing.T) {
 }
 
 func TestMemUnionFsCopyChmod(t *testing.T) {
-	t.Log("TestCopyChmod")
 	wd, _, clean := setupMemUfs(t)
 	defer clean()
 
@@ -364,7 +363,6 @@ func TestMemUnionFsCopyChmod(t *testing.T) {
 }
 
 func TestMemUnionFsTruncateTimestamp(t *testing.T) {
-	t.Log("TestTruncateTimestamp")
 	wd, _, clean := setupMemUfs(t)
 	defer clean()
 
@@ -387,7 +385,6 @@ func TestMemUnionFsTruncateTimestamp(t *testing.T) {
 }
 
 func TestMemUnionFsRemoveAll(t *testing.T) {
-	t.Log("TestRemoveAll")
 	wd, _, clean := setupMemUfs(t)
 	defer clean()
 

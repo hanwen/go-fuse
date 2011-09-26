@@ -565,7 +565,6 @@ func TestRenameSymlink(t *testing.T) {
 }
 
 func TestWritableDir(t *testing.T) {
-	t.Log("TestWritableDir")
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -581,7 +580,6 @@ func TestWritableDir(t *testing.T) {
 }
 
 func TestWriteAccess(t *testing.T) {
-	t.Log("TestWriteAccess")
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -624,7 +622,6 @@ func TestLink(t *testing.T) {
 }
 
 func TestTruncate(t *testing.T) {
-	t.Log("TestTruncate")
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -641,7 +638,6 @@ func TestTruncate(t *testing.T) {
 }
 
 func TestCopyChmod(t *testing.T) {
-	t.Log("TestCopyChmod")
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -674,7 +670,6 @@ func abs(dt int64) int64 {
 }
 
 func TestTruncateTimestamp(t *testing.T) {
-	t.Log("TestTruncateTimestamp")
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -697,7 +692,6 @@ func TestTruncateTimestamp(t *testing.T) {
 }
 
 func TestRemoveAll(t *testing.T) {
-	t.Log("TestRemoveAll")
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -728,7 +722,6 @@ func TestRemoveAll(t *testing.T) {
 }
 
 func TestRmRf(t *testing.T) {
-	t.Log("TestRmRf")
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -771,7 +764,6 @@ func Readdirnames(dir string) ([]string, os.Error) {
 }
 
 func TestDropDeletionCache(t *testing.T) {
-	t.Log("TestDropDeletionCache")
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -808,7 +800,6 @@ func TestDropDeletionCache(t *testing.T) {
 }
 
 func TestDropCache(t *testing.T) {
-	t.Log("TestDropCache")
 	wd, clean := setupUfs(t)
 	defer clean()
 
