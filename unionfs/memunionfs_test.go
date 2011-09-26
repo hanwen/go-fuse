@@ -275,7 +275,7 @@ func TestMemUnionFsMkdir(t *testing.T) {
 	CheckSuccess(err)
 
 	r := ufs.Reap()
-	if len(r) > 2 || r[""] == nil || r["subdir"] == nil {
+	if len(r) > 2 || r[""] == nil || r["subdir"] != nil {
 		t.Errorf("expect 1 file reap result: %v", r)
 	}
 }
