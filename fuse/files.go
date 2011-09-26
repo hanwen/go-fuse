@@ -16,6 +16,19 @@ type DataFile struct {
 	DefaultFile
 }
 
+func (me *DataFile) String() string {
+	l := len(me.data)
+	if l > 10 {
+		l = 10
+	}
+
+	return fmt.Sprintf("DataFile(%x)", me.data[:l])
+}
+
+func (me *DataFile) GetAttr() (*os.FileInfo, Status) {
+	return &os.FileInfo{Mode: S_IFREG | 0644, Size: int64(len(me.data))}, OK
+}
+
 func NewDataFile(data []byte) *DataFile {
 	f := new(DataFile)
 	f.data = data
