@@ -160,6 +160,8 @@ func NewMemUnionFs(backingStore string, roFs fuse.FileSystem) *MemUnionFs {
 	me.backingStore = backingStore
 	me.readonly = roFs
 	me.root = me.newNode(true)
+	fi, _ := roFs.GetAttr("", nil)
+	me.root.info = *fi
 	me.cond = sync.NewCond(&me.mutex)
 	return me
 }
