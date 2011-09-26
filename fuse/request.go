@@ -55,7 +55,7 @@ func (me *request) InputDebug() string {
 
 func (me *request) OutputDebug() string {
 	var val interface{}
-	if me.handler.DecodeOut != nil {
+	if me.handler.DecodeOut != nil && me.outData != nil {
 		val = me.handler.DecodeOut(me.outData)
 	}
 
