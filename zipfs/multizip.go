@@ -45,7 +45,7 @@ func NewMultiZipFs() *MultiZipFs {
 	return m
 }
 
-func (me *MultiZipFs) Name() string {
+func (me *MultiZipFs) String() string {
 	return "MultiZipFs"
 }
 

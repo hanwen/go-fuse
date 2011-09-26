@@ -166,7 +166,7 @@ func (me *LoopbackFileSystem) RemoveXAttr(name string, attr string, context *Con
 	return Status(Removexattr(me.GetPath(name), attr))
 }
 
-func (me *LoopbackFileSystem) Name() string {
+func (me *LoopbackFileSystem) String() string {
 	return fmt.Sprintf("LoopbackFileSystem(%s)", me.Root)
 }
 

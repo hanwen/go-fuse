@@ -113,7 +113,7 @@ func (me *SetAttrIn) String() string {
 
 func (me *Attr) String() string {
 	return fmt.Sprintf(
-		"{0%o S=%d L=%d "+
+		"{M0%o S=%d L=%d "+
 			"%d:%d "+
 			"%d*%d %d:%d "+
 			"A %d.%09d "+
@@ -130,6 +130,12 @@ func (me *CreateIn) String() string {
 	return fmt.Sprintf(
 		"{0%o [%s] (0%o)}", me.Mode,
 		flagString(openFlagNames, int(me.Flags), "O_RDONLY"), me.Umask)
+}
+
+func (me *EntryOut) String() string {
+	return fmt.Sprintf("{%d E%d.%09d A%d.%09d %v}",
+		me.NodeId, me.EntryValid, me.EntryValidNsec,
+		me.AttrValid, me.AttrValidNsec, &me.Attr)
 }
 
 func (me *CreateOut) String() string {

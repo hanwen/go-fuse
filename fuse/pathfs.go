@@ -1,6 +1,7 @@
 package fuse
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -52,7 +53,7 @@ func (me *PathNodeFs) Mount(path string, nodeFs NodeFileSystem, opts *FileSystem
 	if dir != "" {
 		dir = filepath.Clean(dir)
 	}
-	parent := me.Node(dir)
+	parent := me.LookupNode(dir)
 	if parent == nil {
 		return ENOENT
 	}
@@ -94,6 +95,10 @@ func (me *PathNodeFs) Unmount(path string) Status {
 func (me *PathNodeFs) OnUnmount() {
 }
 
+func (me *PathNodeFs) String() string {
+	return fmt.Sprintf("PathNodeFs(%v)", me.fs)
+}
+
 func (me *PathNodeFs) OnMount(conn *FileSystemConnector) {
 	me.connector = conn
 	me.fs.OnMount(me)
@@ -109,6 +114,11 @@ func (me *PathNodeFs) Node(name string) *Inode {
 		return nil
 	}
 	return n
+}
+
+// Like node, but use Lookup to discover inodes we may not have yet.
+func (me *PathNodeFs) LookupNode(name string) *Inode {
+	return me.connector.LookupNode(me.Root().Inode(), name)
 }
 
 func (me *PathNodeFs) Path(node *Inode) string {

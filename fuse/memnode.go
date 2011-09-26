@@ -12,11 +12,15 @@ var _ = log.Println
 
 type MemNodeFs struct {
 	DefaultNodeFileSystem
-	backingStore string
+	backingStorePrefix string
 	root         *memNode
 
 	mutex    sync.Mutex
 	nextFree int
+}
+
+func (me *MemNodeFs) String() string {
+	return fmt.Sprintf("MemNodeFs(%s)", me.backingStorePrefix)
 }
 
 func (me *MemNodeFs) Root() FsNode {
@@ -34,13 +38,14 @@ func (me *MemNodeFs) newNode() *memNode {
 	n.info.Mtime_ns = now
 	n.info.Atime_ns = now
 	n.info.Ctime_ns = now
+	n.info.Mode = S_IFDIR | 0777
 	me.nextFree++
 	return n
 }
 
-func NewMemNodeFs(backingStore string) *MemNodeFs {
+func NewMemNodeFs(prefix string) *MemNodeFs {
 	me := &MemNodeFs{}
-	me.backingStore = backingStore
+	me.backingStorePrefix = prefix
 	me.root = me.newNode()
 	return me
 }
@@ -66,7 +71,11 @@ func (me *memNode) newNode(isdir bool) *memNode {
 }
 
 func (me *memNode) filename() string {
-	return fmt.Sprintf("%s/%d", me.fs.backingStore, me.id)
+	return fmt.Sprintf("%s%d", me.fs.backingStorePrefix, me.id)
+}
+
+func (me *memNode) Deletable() bool {
+	return false
 }
 
 func (me *memNode) Readlink(c *Context) ([]byte, Status) {

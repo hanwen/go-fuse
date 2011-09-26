@@ -21,6 +21,9 @@ type NodeFileSystem interface {
 	OnMount(conn *FileSystemConnector)
 	StatFs() *StatfsOut
 	Root() FsNode
+
+	// Used for debug outputs
+	String() string
 }
 
 type FsNode interface {
@@ -78,7 +81,7 @@ type FsNode interface {
 // required methods.
 type FileSystem interface {
 	// Used for pretty printing.
-	Name() string
+	String() string
 
 	// Attributes.  This function is the main entry point, through
 	// which FUSE discovers which files and directories exist.

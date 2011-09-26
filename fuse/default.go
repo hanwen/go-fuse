@@ -95,7 +95,7 @@ func (me *DefaultFileSystem) Utimens(name string, AtimeNs uint64, CtimeNs uint64
 	return ENOSYS
 }
 
-func (me *DefaultFileSystem) Name() string {
+func (me *DefaultFileSystem) String() string {
 	return "DefaultFileSystem"
 }
 

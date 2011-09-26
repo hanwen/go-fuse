@@ -26,6 +26,10 @@ func (me *DefaultNodeFileSystem) Root() FsNode {
 	return new(DefaultFsNode)
 }
 
+func (me *DefaultNodeFileSystem) String() string {
+	return "DefaultNodeFileSystem"
+}
+
 ////////////////////////////////////////////////////////////////
 // FsNode default
 

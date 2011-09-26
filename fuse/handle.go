@@ -51,7 +51,9 @@ func (me *portableHandleMap) Register(obj *Handled, asInt interface{}) uint64 {
 	for {
 		h := uint64(me.nextFree)
 		me.nextFree++
-		if h < 2 {
+		// HACK - we make sure we start with 1, so we always
+		// assign root to 1.
+		if h < 1 {
 			continue
 		}
 		old := me.handles[h]

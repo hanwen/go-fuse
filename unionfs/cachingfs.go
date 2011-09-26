@@ -140,13 +140,13 @@ func (me *CachingFileSystem) OpenDir(name string, context *fuse.Context) (stream
 	return nil, r.Status
 }
 
-func (me *CachingFileSystem) Name() string {
-	return fmt.Sprintf("CachingFileSystem(%s)", me.FileSystem.Name())
+func (me *CachingFileSystem) String() string {
+	return fmt.Sprintf("CachingFileSystem(%v)", me.FileSystem)
 }
 
 func (me *CachingFileSystem) Open(name string, flags uint32, context *fuse.Context) (f fuse.File, status fuse.Status) {
 	if flags&fuse.O_ANYWRITE != 0 && name == _DROP_CACHE {
-		log.Println("Dropping cache for", me.Name())
+		log.Println("Dropping cache for", me)
 		me.DropCache()
 	}
 	return me.FileSystem.Open(name, flags, context)

@@ -1,6 +1,7 @@
 package fuse
 
 import (
+	"fmt"
 	"os"
 )
 
@@ -75,6 +76,10 @@ func (me *ReadonlyFileSystem) OnMount(nodeFs *PathNodeFs) {
 
 func (me *ReadonlyFileSystem) OnUnmount() {
 	me.FileSystem.OnUnmount()
+}
+
+func (me *ReadonlyFileSystem) String() string {
+	return fmt.Sprintf("ReadonlyFileSystem(%v)", me.FileSystem)
 }
 
 func (me *ReadonlyFileSystem) Access(name string, mode uint32, context *Context) (code Status) {

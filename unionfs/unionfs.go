@@ -918,7 +918,7 @@ func (me *UnionFs) DropSubFsCaches() {
 func (me *UnionFs) Open(name string, flags uint32, context *fuse.Context) (fuseFile fuse.File, status fuse.Status) {
 	if name == _DROP_CACHE {
 		if flags&fuse.O_ANYWRITE != 0 {
-			log.Println("Forced cache drop on", me.Name())
+			log.Println("Forced cache drop on", me)
 			me.DropBranchCache(nil)
 			me.DropDeletionCache()
 			me.DropSubFsCaches()
@@ -949,10 +949,10 @@ func (me *UnionFs) Open(name string, flags uint32, context *fuse.Context) (fuseF
 	return fuseFile, status
 }
 
-func (me *UnionFs) Name() string {
+func (me *UnionFs) String() string {
 	names := []string{}
 	for _, fs := range me.fileSystems {
-		names = append(names, fs.Name())
+		names = append(names, fs.String())
 	}
 	return fmt.Sprintf("%v", names)
 }
