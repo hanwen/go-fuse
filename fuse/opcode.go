@@ -309,6 +309,7 @@ type operationHandler struct {
 	DecodeIn   castPointerFunc
 	DecodeOut  castPointerFunc
 	FileNames  int
+	FileNameOut bool
 }
 
 var operationHandlers []*operationHandler
@@ -338,6 +339,11 @@ func init() {
 		operationHandlers[i] = &operationHandler{Name: "UNKNOWN"}
 	}
 
+	fileOps := []opcode{_OP_READLINK, _OP_NOTIFY_ENTRY} 
+	for _, op := range fileOps {
+		operationHandlers[op].FileNameOut = true
+	}
+	
 	for op, sz := range map[opcode]uintptr{
 		_OP_FORGET:     unsafe.Sizeof(ForgetIn{}),
 		_OP_GETATTR:    unsafe.Sizeof(GetAttrIn{}),

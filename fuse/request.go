@@ -1,9 +1,10 @@
 package fuse
 
 import (
-	"fmt"
 	"bytes"
+	"fmt"
 	"log"
+	"strings"
 	"unsafe"
 )
 
@@ -70,7 +71,12 @@ func (me *request) OutputDebug() string {
 
 	flatStr := ""
 	if len(me.flatData) > 0 {
-		flatStr = fmt.Sprintf(" %d bytes data\n", len(me.flatData))
+		if me.handler.FileNameOut {
+			s := strings.TrimRight(string(me.flatData), "\x00")
+			flatStr = fmt.Sprintf(" %q", s)
+		} else {
+			flatStr = fmt.Sprintf(" %d bytes data\n", len(me.flatData))
+		}
 	}
 
 	return fmt.Sprintf("Serialize: %v code: %v value: %v%v",
