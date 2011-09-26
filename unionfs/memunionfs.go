@@ -24,8 +24,6 @@ type MemUnionFs struct {
 	cond     *sync.Cond
 	nextFree int
 	
-	// TODO - should clear out backing every X file creations, to clean up unused files. 
-
 	readonly fuse.FileSystem
 
 	openWritable int
@@ -65,6 +63,34 @@ func (me *MemUnionFs) release() {
 	defer me.mutex.Unlock()
 	me.openWritable--
 	me.cond.Broadcast()
+}
+
+func (me *MemUnionFs) gc() {
+	f, err := os.Open(me.backingStore)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	names, err := f.Readdirnames(-1)
+	if err != nil {
+		return
+	}
+
+	me.mutex.Lock()
+	seen := map[string]bool{}
+	me.root.markUsed(seen)
+	del := []string{}
+	for _, n := range names {
+		full := filepath.Join(me.backingStore, n)
+		if !seen[full] {
+			del = append(del, full)
+		}
+	}
+	me.mutex.Unlock()
+
+	for _, n := range del {
+		os.Remove(n)
+	}
 }
 
 func (me *MemUnionFs) Reap() map[string]*Result {
@@ -164,6 +190,9 @@ func (me *MemUnionFs) Update(results map[string]*Result) {
 func (me *MemUnionFs) getFilename() string {
 	id := me.nextFree
 	me.nextFree++
+	if me.nextFree % 1000 == 0 {
+		go me.gc()
+	}
 	return fmt.Sprintf("%s/%d", me.backingStore, id)
 }
 
@@ -582,6 +611,16 @@ func (me *memNode) Reap(path string, results map[string]*Result) {
 	}
 }
 
+func (me *memNode) markUsed(seen map[string]bool) {
+	if me.backing != "" {
+		seen[me.backing] = true
+	}
+
+	for _, ch := range me.Inode().FsChildren() {
+		ch.FsNode().(*memNode).markUsed(seen)
+	}
+}
+			
 func (me *memNode) Clear(path string) {
 	me.original = path
 	me.changed = false
@@ -592,3 +631,4 @@ func (me *memNode) Clear(path string) {
 		mn.Clear(p)
 	}
 }
+ 

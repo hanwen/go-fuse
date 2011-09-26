@@ -775,3 +775,21 @@ func TestMemUnionFsRenameDirWithDeletions(t *testing.T) {
 		t.Fatalf("%s/mount/dir/subdir should have disappeared %#v", wd, fi)
 	}
 }
+
+
+func TestMemUnionGc(t *testing.T) {
+	wd, ufs, clean := setupMemUfs(t)
+	defer clean()
+
+	writeToFile(wd+"/mount/file1", "other-content")
+	writeToFile(wd+"/mount/file2", "other-content")
+	err := os.Remove(wd+"/mount/file1")
+	CheckSuccess(err)
+	ufs.gc()
+	
+	entries, err := ioutil.ReadDir(wd+"/backing")
+	CheckSuccess(err)
+	if len(entries) != 1 {
+		t.Fatalf("should have 1 file after backing store gc: %v", entries)
+	}
+}
