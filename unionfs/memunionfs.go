@@ -526,6 +526,9 @@ func (me *memNode) GetAttr(file fuse.File, context *fuse.Context) (fi *os.FileIn
 		fi, code := file.GetAttr()
 		if code.Ok() {
 			sz = fi.Size
+		} else {
+			msg := fmt.Sprintf("File.GetAttr(%s) = %v, %v", file.String(), fi, code)
+			panic(msg)
 		}
 	}
 	me.mutex.RLock()
