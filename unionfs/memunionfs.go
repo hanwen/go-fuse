@@ -23,6 +23,8 @@ type MemUnionFs struct {
 	mutex    sync.RWMutex
 	cond     *sync.Cond
 	nextFree int
+	
+	// TODO - should clear out backing every X file creations, to clean up unused files. 
 
 	readonly fuse.FileSystem
 
@@ -379,6 +381,7 @@ func (me *memNode) Create(name string, flags uint32, mode uint32, context *fuse.
 	n.backing = me.fs.getFilename()
 	f, err := os.Create(n.backing)
 	if err != nil {
+		log.Printf("Backing store error %q: %v", n.backing, err)
 		return nil, nil, nil, fuse.OsErrorToErrno(err)
 	}
 	me.Inode().AddChild(name, n.Inode())
@@ -475,12 +478,16 @@ func (me *memNode) Open(flags uint32, context *fuse.Context) (file fuse.File, co
 }
 
 func (me *memNode) GetAttr(file fuse.File, context *fuse.Context) (fi *os.FileInfo, code fuse.Status) {
+	var sz int64
+	if file != nil {
+		fi, _ := file.GetAttr()
+		sz = fi.Size
+	}
 	me.mutex.RLock()
 	defer me.mutex.RUnlock()
 	info := me.info
 	if file != nil {
-		fi, _ := file.GetAttr()
-		info.Size = fi.Size
+		info.Size = sz
 	}
 	return &info, fuse.OK
 }
@@ -547,11 +554,7 @@ func (me *memNode) OpenDir(context *fuse.Context) (stream chan fuse.DirEntry, co
 	}
 	
 	for k, n := range me.Inode().FsChildren() {
-		fi, code := n.FsNode().GetAttr(nil, nil)
-		if !code.Ok() {
-			panic("child does not have mode.")
-		}
-		ch[k] = fi.Mode
+		ch[k] = n.FsNode().(*memNode).info.Mode
 	}
 
 	stream = make(chan fuse.DirEntry, len(ch))

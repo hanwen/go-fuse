@@ -222,7 +222,7 @@ func TestMemUnionFsPromote(t *testing.T) {
 	}
 }
 
-func TestMemUnionFsCreate(t *testing.T) {
+func TestMemUnionFsSubdirCreate(t *testing.T) {
 	wd, ufs, clean := setupMemUfs(t)
 	defer clean()
 
@@ -234,6 +234,20 @@ func TestMemUnionFsCreate(t *testing.T) {
 	
 	r := ufs.Reap()
 	if r["subdir/sub2/file"] == nil || r["subdir/sub2/file"].Backing == "" {
+		t.Errorf("expect 1 file reap result: %v", r)
+	}
+}
+
+func TestMemUnionFsCreate(t *testing.T) {
+	wd, ufs, clean := setupMemUfs(t)
+	defer clean()
+
+	writeToFile(wd+"/mount/file.txt", "hello")
+	_, err := os.Lstat(wd + "/mount/file.txt")
+	CheckSuccess(err)
+	
+	r := ufs.Reap()
+	if r["file.txt"] == nil || r["file.txt"].Backing == "" {
 		t.Errorf("expect 1 file reap result: %v", r)
 	}
 }
