@@ -23,7 +23,7 @@ type MemUnionFs struct {
 	mutex    sync.RWMutex
 	cond     *sync.Cond
 	nextFree int
-	
+
 	readonly fuse.FileSystem
 
 	openWritable int
@@ -99,9 +99,9 @@ func (me *MemUnionFs) Reap() map[string]*Result {
 	for me.openWritable > 0 {
 		me.cond.Wait()
 	}
-	
+
 	m := map[string]*Result{}
-	
+
 	for name, _ := range me.deleted {
 
 		fi, code := me.readonly.GetAttr(name, nil)
@@ -112,13 +112,13 @@ func (me *MemUnionFs) Reap() map[string]*Result {
 		if !fi.IsDirectory() {
 			continue
 		}
-		
+
 		todo := []string{name}
 		for len(todo) > 0 {
 			l := len(todo)-1
 			n := todo[l]
 			todo = todo[:l]
-			
+
 			s, _ := me.readonly.OpenDir(n, nil)
 			for e := range s {
 				full := filepath.Join(n, e.Name)
@@ -161,16 +161,16 @@ func (me *MemUnionFs) Update(results map[string]*Result) {
 		if len(rest) > 0 {
 			continue
 		}
-		
+
 		dirNode.RmChild(base)
 		me.connector.EntryNotify(dirNode, base)
 	}
-	
+
 	me.mutex.Lock()
 	notifyNodes := []*fuse.Inode{}
 	enotifyNodes := []*fuse.Inode{}
 	enotifyNames := []string{}
-	
+
 	sort.Strings(add)
 	for _, n := range add {
 		node, rest := me.connector.Node(me.root.Inode(), n)
@@ -189,7 +189,7 @@ func (me *MemUnionFs) Update(results map[string]*Result) {
 		mn.link = r.Link
 	}
 	me.mutex.Unlock()
-	
+
 	for _, n := range notifyNodes {
 		me.connector.FileNotify(n, 0, 0)
 	}
@@ -202,7 +202,7 @@ func (me *MemUnionFs) getFilename() string {
 	id := me.nextFree
 	me.nextFree++
 	if me.nextFree % 1000 == 0 {
-		go me.gc()
+		// go me.gc()
 	}
 	return fmt.Sprintf("%s/%d", me.backingStore, id)
 }
@@ -236,7 +236,7 @@ func NewMemUnionFs(backingStore string, roFs fuse.FileSystem) *MemUnionFs {
 	me.root = me.newNode(true)
 	me.root.info.Mode = fuse.S_IFDIR | 0755
 	me.cond = sync.NewCond(&me.mutex)
-	
+
 	return me
 }
 
@@ -282,7 +282,7 @@ func (me *memNode) lookup(name string, context *fuse.Context) (fi *os.FileInfo, 
 	if _, del := me.fs.deleted[fn]; del {
 		return nil, nil, fuse.ENOENT
 	}
-	
+
 	fi, code = me.fs.readonly.GetAttr(fn, context)
 	if !code.Ok() {
 		return nil, nil, code
@@ -386,7 +386,7 @@ func (me *memNode) Rename(oldName string, newParent fuse.FsNode, newName string,
 		mn.materialize()
 		mn.markChanged()
 	}
-	
+
 	newParent.Inode().RmChild(newName)
 	newParent.Inode().AddChild(newName, ch)
 	me.touch()
@@ -433,6 +433,10 @@ type memNodeFile struct {
 	fuse.File
 	writable bool
 	node     *memNode
+}
+
+func (me *memNodeFile) String() string {
+	return fmt.Sprintf("memUfsFile(%s)", me.File.String())
 }
 
 func (me *memNodeFile) InnerFile() fuse.File {
@@ -593,7 +597,7 @@ func (me *memNode) OpenDir(context *fuse.Context) (stream chan fuse.DirEntry, co
 			}
 		}
 	}
-	
+
 	for k, n := range me.Inode().FsChildren() {
 		ch[k] = n.FsNode().(*memNode).info.Mode
 	}
@@ -632,7 +636,7 @@ func (me *memNode) markUsed(seen map[string]bool) {
 		ch.FsNode().(*memNode).markUsed(seen)
 	}
 }
-			
+
 func (me *memNode) Clear(path string) {
 	me.original = path
 	me.changed = false
@@ -643,4 +647,4 @@ func (me *memNode) Clear(path string) {
 		mn.Clear(p)
 	}
 }
- 
+

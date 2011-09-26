@@ -14,6 +14,10 @@ func (me *DefaultFile) InnerFile() File {
 	return nil
 }
 
+func (me *DefaultFile) String() string {
+	return "DefaultFile"
+}
+
 func (me *DefaultFile) Read(*ReadIn, BufferPool) ([]byte, Status) {
 	return []byte(""), ENOSYS
 }

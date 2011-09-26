@@ -140,6 +140,10 @@ type memNodeFile struct {
 	node *memNode
 }
 
+func (me *memNodeFile) String() string {
+	return fmt.Sprintf("memNodeFile(%s)", me.LoopbackFile.String())
+}
+
 func (me *memNodeFile) InnerFile() File {
 	return &me.LoopbackFile
 }

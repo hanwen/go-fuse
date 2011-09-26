@@ -143,6 +143,9 @@ type File interface {
 	// Called upon registering the filehandle in the inode.
 	SetInode(*Inode)
 
+	// The String method is for debug printing.
+	String() string
+
 	// Wrappers around other File implementations, should return
 	// the inner file here.
 	InnerFile() File

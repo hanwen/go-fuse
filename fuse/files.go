@@ -42,6 +42,11 @@ func NewDevNullFile() *DevNullFile {
 	return new(DevNullFile)
 }
 
+func (me *DevNullFile) String() string {
+	return "DevNullFile"
+}
+
+
 func (me *DevNullFile) Read(input *ReadIn, bp BufferPool) ([]byte, Status) {
 	return []byte{}, OK
 }
@@ -69,6 +74,10 @@ type LoopbackFile struct {
 	File *os.File
 
 	DefaultFile
+}
+
+func (me *LoopbackFile) String() string {
+	return fmt.Sprintf("LoopbackFile(%s)", me.File.Name())
 }
 
 func (me *LoopbackFile) Read(input *ReadIn, buffers BufferPool) ([]byte, Status) {
@@ -122,6 +131,10 @@ func (me *LoopbackFile) GetAttr() (*os.FileInfo, Status) {
 // ReadOnlyFile is a wrapper that denies writable operations
 type ReadOnlyFile struct {
 	File
+}
+
+func (me *ReadOnlyFile) String() string {
+	return fmt.Sprintf("ReadOnlyFile(%s)", me.File.String())
 }
 
 func (me *ReadOnlyFile) Write(input *WriteIn, data []byte) (uint32, Status) {

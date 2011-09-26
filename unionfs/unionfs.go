@@ -971,6 +971,10 @@ type unionFsFile struct {
 	layer int
 }
 
+func (me *unionFsFile) String() string {
+	return fmt.Sprintf("unionFsFile(%s)", me.File.String())
+}
+
 func (me *UnionFs) newUnionFsFile(f fuse.File, branch int) *unionFsFile {
 	return &unionFsFile{
 		File:  f,
