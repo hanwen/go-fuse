@@ -32,7 +32,7 @@ func setupMemUfs(t *testing.T) (workdir string, ufs *MemUnionFs, cleanup func())
 	os.Mkdir(wd+"/ro", 0700)
 	fuse.CheckSuccess(err)
 
-	roFs := NewCachingFileSystem(fuse.NewLoopbackFileSystem(wd+"/ro"), 0.0)
+	roFs := fuse.NewLoopbackFileSystem(wd+"/ro")
 	memFs := NewMemUnionFs(wd+"/backing", roFs)
 
 	// We configure timeouts are smaller, so we can check for
@@ -167,7 +167,7 @@ func TestMemUnionFsDelete(t *testing.T) {
 	}
 
 	r := ufs.Reap()
-	if r["file"] == nil || r["file"].Info != nil {
+	if r["file"] == nil || r["file"].FileInfo != nil {
 		t.Errorf("expect 1 deletion reap result: %v", r)
 	}
 }
@@ -279,7 +279,7 @@ func TestMemUnionFsMkdirPromote(t *testing.T) {
 	CheckSuccess(err)
 
 	r := ufs.Reap()
-	if r["subdir/subdir2/dir3"] == nil ||  r["subdir/subdir2/dir3"].Info.Mode & fuse.S_IFDIR == 0 {
+	if r["subdir/subdir2/dir3"] == nil ||  r["subdir/subdir2/dir3"].FileInfo.Mode & fuse.S_IFDIR == 0 {
 		t.Errorf("expect 1 file reap result: %v", r)
 	}
 }
@@ -485,6 +485,76 @@ func TestMemUnionFsDoubleOpen(t *testing.T) {
 
 	if string(b) != "hello" {
 		t.Errorf("r/w and r/o file are not synchronized: got %q want %q", string(b), want)
+	}
+}
+
+func TestMemUnionFsUpdate(t *testing.T) {
+	wd, ufs, clean := setupMemUfs(t)
+	defer clean()
+	
+	err := ioutil.WriteFile(wd+"/ro/file1", []byte("blablabla"), 0644)
+	CheckSuccess(err)
+
+	_, err = os.Lstat(wd + "/mount/file1")
+	CheckSuccess(err)
+	if fi, _ := os.Lstat(wd + "/mount/file2"); fi != nil {
+		t.Fatal("file2 should not exist", fi)
+	}
+	if fi, _ := os.Lstat(wd + "/mount/symlink"); fi != nil {
+		t.Fatal("symlink should not exist", fi)
+	}
+	
+	err = os.Remove(wd+"/ro/file1")
+	CheckSuccess(err)
+	err = ioutil.WriteFile(wd+"/ro/file2", []byte("foobar"), 0644)
+	CheckSuccess(err)
+	err = os.Symlink("target", wd + "/ro/symlink")
+	CheckSuccess(err)
+	
+	// Still have cached attributes.
+	fi, err := os.Lstat(wd + "/mount/file1")
+	CheckSuccess(err)
+	if fi, _ := os.Lstat(wd + "/mount/file2"); fi != nil {
+		t.Fatal("file2 should not exist")
+	}
+	if fi, _ := os.Lstat(wd + "/mount/symlink"); fi != nil {
+		t.Fatal("symlink should not exist", fi)
+	}
+
+	roF2, err := os.Lstat(wd + "/ro/file2")
+	CheckSuccess(err)
+	roSymlinkFi, err := os.Lstat(wd + "/ro/symlink")
+	CheckSuccess(err)
+	
+	updates := map[string]*Result{
+		"file1": &Result{
+			nil, "", "", "",
+		},
+		"file2": &Result{
+			roF2, "", "", "",
+		},
+		"symlink": &Result{
+			roSymlinkFi, "", "", "target",
+		},
+	}
+
+	ufs.Update(updates)
+
+	// Cached attributes flushed.
+	if fi, _ := os.Lstat(wd + "/mount/file1"); fi != nil {
+		t.Fatal("file1 should have disappeared", fi)
+	}
+
+	fi, err = os.Lstat(wd + "/mount/file2")
+	CheckSuccess(err)
+	if roF2.Mtime_ns != fi.Mtime_ns {
+		t.Fatalf("file2 attribute mismatch: got %v want %v", fi, roF2)
+	}
+
+	val, err := os.Readlink(wd + "/mount/symlink")
+	CheckSuccess(err)
+	if val != "target" {
+		t.Error("symlink value got %q want %v", val, "target")
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sort"
 	"sync"
 	"time"
 )
@@ -18,7 +19,7 @@ type MemUnionFs struct {
 	fuse.DefaultNodeFileSystem
 	backingStore string
 	root         *memNode
-
+	connector    *fuse.FileSystemConnector
 	mutex    sync.RWMutex
 	cond     *sync.Cond
 	nextFree int
@@ -43,10 +44,14 @@ type memNode struct {
 }
 
 type Result struct {
-	Info     *os.FileInfo
+	*os.FileInfo
 	Original string
 	Backing  string
 	Link     string
+}
+
+func (me *MemUnionFs) OnMount(conn *fuse.FileSystemConnector) {
+	me.connector = conn
 }
 
 func (me *MemUnionFs) release() {
@@ -72,6 +77,52 @@ func (me *MemUnionFs) Clear() {
 	me.mutex.Lock()
 	defer me.mutex.Unlock()
 	me.root.Clear("")
+}
+
+func (me *MemUnionFs) Update(results map[string]*Result) {
+	del := []string{}
+	add := []string{}
+	for k, v := range results {
+		if v.FileInfo != nil {
+			add = append(add, k)
+		} else {
+			del = append(del, k)
+		}
+	}
+
+	sort.Strings(del)
+	for i := len(del)-1; i >= 0; i-- {
+		n := del[i]
+		dir, base := filepath.Split(n)
+		dir = strings.TrimRight(dir, "/")
+		dirNode, rest := me.connector.Node(me.root.Inode(), dir)
+		if len(rest) > 0 {
+			continue
+		}
+		
+		dirNode.RmChild(base)
+		me.connector.EntryNotify(dirNode, base)
+	}
+	
+	me.mutex.Lock()
+	defer me.mutex.Unlock()
+	
+	sort.Strings(add)
+	for _, n := range add {
+		node, rest := me.connector.Node(me.root.Inode(), n)
+		if len(rest) > 0 {
+			me.connector.EntryNotify(node, rest[0])
+			continue
+		}
+		me.connector.FileNotify(node, 0, 0)
+		mn := node.FsNode().(*memNode)
+		mn.original = n
+		mn.changed = false
+
+		r := results[n]
+		mn.info = *r.FileInfo
+		mn.link = r.Link
+	}
 }
 
 func (me *MemUnionFs) getFilename() string {
@@ -439,7 +490,7 @@ func (me *memNode) Reap(path string, results map[string]*Result) {
 	if me.changed {
 		info := me.info
 		results[path] = &Result{
-			Info:     &info,
+			FileInfo:     &info,
 			Link:     me.link,
 			Backing:  me.backing,
 			Original: me.original,
