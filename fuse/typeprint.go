@@ -13,6 +13,7 @@ var fuseOpenFlagNames map[int]string
 var writeFlagNames map[int]string
 var readFlagNames map[int]string
 var releaseFlagNames map[int]string
+var accessFlagName map[int]string
 
 func init() {
 	releaseFlagNames = map[int]string{
@@ -59,6 +60,11 @@ func init() {
 	}
 	readFlagNames = map[int]string{
 		READ_LOCKOWNER: "LOCKOWNER",
+	}
+	accessFlagName = map[int]string{
+		X_OK: "x",
+		W_OK: "w",
+		R_OK: "r",
 	}
 }
 
@@ -188,4 +194,8 @@ func (me *ReleaseIn) String() string {
 
 func (me *FlushIn) String() string {
 	return fmt.Sprintf("{Fh %d}", me.Fh)
+}
+
+func (me *AccessIn) String() string {
+	return fmt.Sprintf("{%s}", flagString(accessFlagName, int(me.Mask), ""))
 }
