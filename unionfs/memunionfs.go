@@ -519,8 +519,10 @@ func (me *memNode) Open(flags uint32, context *fuse.Context) (file fuse.File, co
 func (me *memNode) GetAttr(file fuse.File, context *fuse.Context) (fi *os.FileInfo, code fuse.Status) {
 	var sz int64
 	if file != nil {
-		fi, _ := file.GetAttr()
-		sz = fi.Size
+		fi, code := file.GetAttr()
+		if code.Ok() {
+			sz = fi.Size
+		}
 	}
 	me.mutex.RLock()
 	defer me.mutex.RUnlock()
