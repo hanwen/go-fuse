@@ -552,6 +552,9 @@ func (me *UnionFs) Chmod(name string, mode uint32, context *fuse.Context) (code 
 func (me *UnionFs) Access(name string, mode uint32, context *fuse.Context) (code fuse.Status) {
 	// We always allow writing.
 	mode = mode &^ fuse.W_OK
+	if name == "" {
+		return fuse.OK
+	}
 	r := me.getBranch(name)
 	if r.branch >= 0 {
 		return me.fileSystems[r.branch].Access(name, mode, context)
@@ -954,7 +957,7 @@ func (me *UnionFs) String() string {
 	for _, fs := range me.fileSystems {
 		names = append(names, fs.String())
 	}
-	return fmt.Sprintf("%v", names)
+	return fmt.Sprintf("UnionFs(%v)", names)
 }
 
 func (me *UnionFs) StatFs() *fuse.StatfsOut {
