@@ -146,23 +146,23 @@ func (me *PathNodeFs) LastNode(name string) (*Inode, []string) {
 }
 
 func (me *PathNodeFs) FileNotify(path string, off int64, length int64) Status {
-	node := me.Node(path)
-	if node == nil {
+	node, r := me.connector.Node(me.root.Inode(), path)
+	if len(r) > 0 {
 		return ENOENT
 	}
 	return me.connector.FileNotify(node, off, length)
 }
 
 func (me *PathNodeFs) EntryNotify(dir string, name string) Status {
-	node := me.Node(dir)
-	if node == nil {
+	node, rest := me.connector.Node(me.root.Inode(), dir)
+	if len(rest) > 0 {
 		return ENOENT
 	}
 	return me.connector.EntryNotify(node, name)
 }
 
 func (me *PathNodeFs) Notify(path string) Status {
-	node, rest := me.LastNode(path)
+	node, rest := me.connector.Node(me.root.Inode(), path)
 	if len(rest) > 0 {
 		return me.connector.EntryNotify(node, rest[0])
 	}
@@ -272,7 +272,7 @@ func (me *pathInode) GetPath() (path string) {
 	}
 	p := ReverseJoin(rev_components, "/")
 	if me.pathFs.Debug {
-		log.Printf("Inode %d = %q", me.Inode().nodeId, p)
+		log.Printf("Inode %d = %q (%s)", me.Inode().nodeId, p, me.fs.String())
 	}
 
 	return p

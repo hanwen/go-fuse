@@ -173,25 +173,34 @@ func (me *FileSystemConnector) recursiveConsiderDropInode(n *Inode) (drop bool) 
 	return len(n.openFiles) == 0
 }
 
-// Walk the file system starting from the root. Will return nil if
-// node not found.
-func (me *FileSystemConnector) findLastKnownInode(fullPath string) (*Inode, []string) {
+// Finds a node within the currently known inodes, returns the last
+// known node and the remaining unknown path components.  If parent is
+// nil, start from FUSE mountpoint.
+func (me *FileSystemConnector) Node(parent *Inode, fullPath string) (*Inode, []string) {
+	if parent == nil {
+		parent = me.rootNode
+	}
 	if fullPath == "" {
-		return me.rootNode, nil
+		return parent, nil
 	}
 
 	fullPath = strings.TrimLeft(filepath.Clean(fullPath), "/")
 	comps := strings.Split(fullPath, "/")
 
-	node := me.rootNode
+	node := parent
+	if node.mountPoint == nil {
+		node.treeLock.RLock()
+		defer node.treeLock.RUnlock()
+	}
+	
 	for i, component := range comps {
 		if len(component) == 0 {
 			continue
 		}
 
 		if node.mountPoint != nil {
-			node.mountPoint.treeLock.RLock()
-			defer node.mountPoint.treeLock.RUnlock()
+			node.treeLock.RLock()
+			defer node.treeLock.RUnlock()
 		}
 
 		next := node.children[component]
@@ -202,14 +211,6 @@ func (me *FileSystemConnector) findLastKnownInode(fullPath string) (*Inode, []st
 	}
 
 	return node, nil
-}
-
-func (me *FileSystemConnector) findInode(fullPath string) *Inode {
-	n, rest := me.findLastKnownInode(fullPath)
-	if len(rest) > 0 {
-		return nil
-	}
-	return n
 }
 
 func (me *FileSystemConnector) LookupNode(parent *Inode, path string) *Inode {
