@@ -167,16 +167,19 @@ func (me *MemUnionFs) Update(results map[string]*Result) {
 	}
 	
 	me.mutex.Lock()
-	defer me.mutex.Unlock()
+	notifyNodes := []*fuse.Inode{}
+	enotifyNodes := []*fuse.Inode{}
+	enotifyNames := []string{}
 	
 	sort.Strings(add)
 	for _, n := range add {
 		node, rest := me.connector.Node(me.root.Inode(), n)
 		if len(rest) > 0 {
-			me.connector.EntryNotify(node, rest[0])
+			enotifyNames = append(enotifyNames, rest[0])
+			enotifyNodes = append(enotifyNodes, node)
 			continue
 		}
-		me.connector.FileNotify(node, 0, 0)
+		notifyNodes = append(notifyNodes, node)
 		mn := node.FsNode().(*memNode)
 		mn.original = n
 		mn.changed = false
@@ -184,6 +187,14 @@ func (me *MemUnionFs) Update(results map[string]*Result) {
 		r := results[n]
 		mn.info = *r.FileInfo
 		mn.link = r.Link
+	}
+	me.mutex.Unlock()
+	
+	for _, n := range notifyNodes {
+		me.connector.FileNotify(n, 0, 0)
+	}
+	for i, n := range enotifyNodes {
+		me.connector.EntryNotify(n, enotifyNames[i])
 	}
 }
 
@@ -372,7 +383,6 @@ func (me *memNode) Rename(oldName string, newParent fuse.FsNode, newName string,
 			me.fs.deleted[filepath.Join(newParent.(*memNode).original, newName)] = true
 		}
 
-		log.Println("materialize")
 		mn.materialize()
 		mn.markChanged()
 	}
