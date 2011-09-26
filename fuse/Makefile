@@ -25,6 +25,7 @@ MANUAL_GOFILES=api.go \
 	mount.go \
 	mountstate.go \
 	opcode.go \
+	prefixfs.go \
 	pathfs.go \
 	fsops.go \
 	readonlyfs.go \
