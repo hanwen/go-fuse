@@ -205,7 +205,6 @@ func TestMemUnionFsBasic(t *testing.T) {
 	checkMapEq(t, names, map[string]bool{
 		"rw": true, "ro2": true,
 	})
-
 }
 
 func TestMemUnionFsPromote(t *testing.T) {
@@ -659,5 +658,106 @@ func TestMemUnionFsTruncGetAttr(t *testing.T) {
 	fi, err := os.Lstat(wd + "/mount/file")
 	if fi.Size != int64(len(c)) {
 		t.Fatalf("Length mismatch got %d want %d", fi.Size, len(c))
+	}
+}
+
+func TestMemUnionFsRenameDirBasic(t *testing.T) {
+	wd, ufs, clean := setupMemUfs(t)
+	defer clean()
+
+	err := os.MkdirAll(wd+"/ro/dir/subdir", 0755)
+	CheckSuccess(err)
+
+	err = os.Rename(wd+"/mount/dir", wd+"/mount/renamed")
+	CheckSuccess(err)
+
+	if fi, _ := os.Lstat(wd + "/mount/dir"); fi != nil {
+		t.Fatalf("%s/mount/dir should have disappeared: %v", wd, fi)
+	}
+
+	if fi, _ := os.Lstat(wd + "/mount/renamed"); fi == nil || !fi.IsDirectory() {
+		t.Fatalf("%s/mount/renamed should be directory: %v", wd, fi)
+	}
+
+	entries, err := ioutil.ReadDir(wd + "/mount/renamed")
+	if err != nil || len(entries) != 1 || entries[0].Name != "subdir" {
+		t.Errorf("readdir(%s/mount/renamed) should have one entry: %v, err %v", wd, entries, err)
+	}
+
+	r := ufs.Reap()
+	if r["dir"] == nil || r["dir"].FileInfo != nil || r["renamed/subdir"] == nil || !r["renamed/subdir"].FileInfo.IsDirectory() {
+		t.Errorf("Reap should del dir, and add renamed/subdir: %v", r)
+	}
+	
+	if err = os.Mkdir(wd+"/mount/dir", 0755); err != nil {
+		t.Errorf("mkdir should succeed %v", err)
+	}
+
+}
+
+func TestMemUnionFsRenameDirAllSourcesGone(t *testing.T) {
+	wd, ufs, clean := setupMemUfs(t)
+	defer clean()
+
+	err := os.MkdirAll(wd+"/ro/dir", 0755)
+	CheckSuccess(err)
+
+	err = ioutil.WriteFile(wd+"/ro/dir/file.txt", []byte{42}, 0644)
+	CheckSuccess(err)
+
+	err = os.Rename(wd+"/mount/dir", wd+"/mount/renamed")
+	CheckSuccess(err)
+
+	r := ufs.Reap()
+	if r["dir"] == nil || r["dir"].FileInfo != nil || r["dir/file.txt"] == nil || r["dir/file.txt"].FileInfo != nil {
+		t.Errorf("Expected 2 deletion entries in %v", r)
+	}
+}
+
+func TestMemUnionFsRenameDirWithDeletions(t *testing.T) {
+	wd, _, clean := setupMemUfs(t)
+	defer clean()
+
+	err := os.MkdirAll(wd+"/ro/dir/subdir", 0755)
+	CheckSuccess(err)
+
+	err = ioutil.WriteFile(wd+"/ro/dir/file.txt", []byte{42}, 0644)
+	CheckSuccess(err)
+
+	err = ioutil.WriteFile(wd+"/ro/dir/subdir/file.txt", []byte{42}, 0644)
+	CheckSuccess(err)
+
+	if fi, _ := os.Lstat(wd + "/mount/dir/subdir/file.txt"); fi == nil || !fi.IsRegular() {
+		t.Fatalf("%s/mount/dir/subdir/file.txt should be file: %v", wd, fi)
+	}
+
+	err = os.Remove(wd + "/mount/dir/file.txt")
+	CheckSuccess(err)
+
+	err = os.Rename(wd+"/mount/dir", wd+"/mount/renamed")
+	CheckSuccess(err)
+
+	if fi, _ := os.Lstat(wd + "/mount/dir/subdir/file.txt"); fi != nil {
+		t.Fatalf("%s/mount/dir/subdir/file.txt should have disappeared: %v", wd, fi)
+	}
+
+	if fi, _ := os.Lstat(wd + "/mount/dir"); fi != nil {
+		t.Fatalf("%s/mount/dir should have disappeared: %v", wd, fi)
+	}
+
+	if fi, _ := os.Lstat(wd + "/mount/renamed"); fi == nil || !fi.IsDirectory() {
+		t.Fatalf("%s/mount/renamed should be directory: %v", wd, fi)
+	}
+
+	if fi, _ := os.Lstat(wd + "/mount/renamed/file.txt"); fi != nil {
+		t.Fatalf("%s/mount/renamed/file.txt should have disappeared %#v", wd, fi)
+	}
+
+	if err = os.Mkdir(wd+"/mount/dir", 0755); err != nil {
+		t.Errorf("mkdir should succeed %v", err)
+	}
+
+	if fi, _ := os.Lstat(wd + "/mount/dir/subdir"); fi != nil {
+		t.Fatalf("%s/mount/dir/subdir should have disappeared %#v", wd, fi)
 	}
 }

@@ -27,6 +27,11 @@ type MemUnionFs struct {
 	readonly fuse.FileSystem
 
 	openWritable int
+
+	// All paths that have been renamed or deleted will be marked
+	// here.  After deletion, entries may be recreated, but they
+	// will be treated as new.
+	deleted  map[string]bool
 }
 
 type memNode struct {
@@ -40,7 +45,6 @@ type memNode struct {
 	changed  bool
 	link     string
 	info     os.FileInfo
-	deleted  map[string]bool
 }
 
 type Result struct {
@@ -69,6 +73,35 @@ func (me *MemUnionFs) Reap() map[string]*Result {
 	}
 	
 	m := map[string]*Result{}
+	
+	for name, _ := range me.deleted {
+
+		fi, code := me.readonly.GetAttr(name, nil)
+		if !code.Ok() {
+			continue
+		}
+		m[name] = &Result{}
+		if !fi.IsDirectory() {
+			continue
+		}
+		
+		todo := []string{name}
+		for len(todo) > 0 {
+			l := len(todo)-1
+			n := todo[l]
+			todo = todo[:l]
+			
+			s, _ := me.readonly.OpenDir(n, nil)
+			for e := range s {
+				full := filepath.Join(n, e.Name)
+				m[full] = &Result{}
+				if e.Mode & fuse.S_IFDIR != 0 {
+					todo = append(todo, full)
+				}
+			}
+		}
+	}
+
 	me.root.Reap("", m)
 	return m
 }
@@ -76,6 +109,7 @@ func (me *MemUnionFs) Reap() map[string]*Result {
 func (me *MemUnionFs) Clear() {
 	me.mutex.Lock()
 	defer me.mutex.Unlock()
+	me.deleted = make(map[string]bool)
 	me.root.Clear("")
 }
 
@@ -145,9 +179,6 @@ func (me *MemUnionFs) newNode(isdir bool) *memNode {
 		fs:    me,
 		mutex: &me.mutex,
 	}
-	if isdir {
-		n.deleted = map[string]bool{}
-	}
 	now := time.Nanoseconds()
 	n.info.Mtime_ns = now
 	n.info.Atime_ns = now
@@ -157,16 +188,18 @@ func (me *MemUnionFs) newNode(isdir bool) *memNode {
 
 func NewMemUnionFs(backingStore string, roFs fuse.FileSystem) *MemUnionFs {
 	me := &MemUnionFs{}
+	me.deleted = make(map[string]bool)
 	me.backingStore = backingStore
 	me.readonly = roFs
 	me.root = me.newNode(true)
 	me.root.info.Mode = fuse.S_IFDIR | 0755
 	me.cond = sync.NewCond(&me.mutex)
+	
 	return me
 }
 
 func (me *memNode) Deletable() bool {
-	return !me.changed
+	return !me.changed && me.original == ""
 }
 
 func (me *memNode) touch() {
@@ -194,16 +227,20 @@ func (me *memNode) Readlink(c *fuse.Context) ([]byte, fuse.Status) {
 func (me *memNode) Lookup(name string, context *fuse.Context) (fi *os.FileInfo, node fuse.FsNode, code fuse.Status) {
 	me.mutex.RLock()
 	defer me.mutex.RUnlock()
+	return me.lookup(name, context)
+}
 
-	if _, del := me.deleted[name]; del {
-		return nil, nil, fuse.ENOENT
-	}
-
+// Must run with mutex held.
+func (me *memNode) lookup(name string, context *fuse.Context) (fi *os.FileInfo, node fuse.FsNode, code fuse.Status) {
 	if me.original == "" && me != me.fs.root {
 		return nil, nil, fuse.ENOENT
 	}
 
 	fn := filepath.Join(me.original, name)
+	if _, del := me.fs.deleted[fn]; del {
+		return nil, nil, fuse.ENOENT
+	}
+	
 	fi, code = me.fs.readonly.GetAttr(fn, context)
 	if !code.Ok() {
 		return nil, nil, code
@@ -224,7 +261,6 @@ func (me *memNode) Mkdir(name string, mode uint32, context *fuse.Context) (fi *o
 	me.mutex.Lock()
 	defer me.mutex.Unlock()
 
-	me.deleted[name] = false, false
 	n := me.newNode(true)
 	n.changed = true
 	n.info.Mode = mode | fuse.S_IFDIR
@@ -237,7 +273,9 @@ func (me *memNode) Unlink(name string, context *fuse.Context) (code fuse.Status)
 	me.mutex.Lock()
 	defer me.mutex.Unlock()
 
-	me.deleted[name] = true
+	if me.original != "" || me == me.fs.root {
+		me.fs.deleted[filepath.Join(me.original, name)] = true
+	}
 	ch := me.Inode().RmChild(name)
 	if ch == nil {
 		return fuse.ENOENT
@@ -260,31 +298,66 @@ func (me *memNode) Symlink(name string, content string, context *fuse.Context) (
 	n.changed = true
 	me.Inode().AddChild(name, n.Inode())
 	me.touch()
-	me.deleted[name] = false, false
 	return &n.info, n, fuse.OK
+}
+
+// Expand the original fs as a tree.
+func (me *memNode) materializeSelf() {
+	me.changed = true
+	if !me.Inode().IsDir() {
+		return
+	}
+	s, _ := me.fs.readonly.OpenDir(me.original, nil)
+	for e := range s {
+		me.lookup(e.Name, nil)
+	}
+	me.original = ""
+}
+
+func (me *memNode) materialize() {
+	me.materializeSelf()
+	for _, n := range me.Inode().FsChildren() {
+		if n.IsDir() {
+			n.FsNode().(*memNode).materialize()
+		}
+	}
 }
 
 func (me *memNode) Rename(oldName string, newParent fuse.FsNode, newName string, context *fuse.Context) (code fuse.Status) {
 	me.mutex.Lock()
 	defer me.mutex.Unlock()
 	ch := me.Inode().RmChild(oldName)
-	me.deleted[oldName] = true
+	if ch == nil {
+		return fuse.ENOENT
+	}
+
+	if me.original != "" || me == me.fs.root {
+		me.fs.deleted[filepath.Join(me.original, oldName)] = true
+	}
+
+	mn := ch.FsNode().(*memNode)
+	if mn.original != "" || mn == me.fs.root {
+		if newParent.(*memNode).original != "" {
+			me.fs.deleted[filepath.Join(newParent.(*memNode).original, newName)] = true
+		}
+
+		log.Println("materialize")
+		mn.materialize()
+		mn.markChanged()
+	}
+	
 	newParent.Inode().RmChild(newName)
 	newParent.Inode().AddChild(newName, ch)
-	me.deleted[newName] = false, false
-	me.markChanged()
 	me.touch()
 	return fuse.OK
 }
 
-// TODO - test this.
 func (me *memNode) markChanged() {
 	me.changed = true
 	for _, n := range me.Inode().FsChildren() {
 		n.FsNode().(*memNode).markChanged()
 	}
 }
-
 
 func (me *memNode) Link(name string, existing fuse.FsNode, context *fuse.Context) (fi *os.FileInfo, newNode fuse.FsNode, code fuse.Status) {
 	me.Inode().AddChild(name, existing.Inode())
@@ -293,7 +366,6 @@ func (me *memNode) Link(name string, existing fuse.FsNode, context *fuse.Context
 	me.mutex.Lock()
 	defer me.mutex.Unlock()
 	me.touch()
-	me.deleted[name] = false, false
 	return fi, existing, code
 }
 
@@ -311,7 +383,6 @@ func (me *memNode) Create(name string, flags uint32, mode uint32, context *fuse.
 	}
 	me.Inode().AddChild(name, n.Inode())
 	me.touch()
-	me.deleted[name] = false, false
 	me.fs.openWritable++
 	return n.newFile(&fuse.LoopbackFile{File: f}, true), &n.info, n, fuse.OK
 }
@@ -468,20 +539,19 @@ func (me *memNode) OpenDir(context *fuse.Context) (stream chan fuse.DirEntry, co
 	if me.original != "" || me == me.fs.root {
 		stream, code = me.fs.readonly.OpenDir(me.original, context)
 		for e := range stream {
-			ch[e.Name] = e.Mode
+			fn := filepath.Join(me.original, e.Name)
+			if !me.fs.deleted[fn] {
+				ch[e.Name] = e.Mode
+			}
 		}
 	}
-
+	
 	for k, n := range me.Inode().FsChildren() {
 		fi, code := n.FsNode().GetAttr(nil, nil)
 		if !code.Ok() {
 			panic("child does not have mode.")
 		}
 		ch[k] = fi.Mode
-	}
-
-	for k, _ := range me.deleted {
-		ch[k] = 0, false
 	}
 
 	stream = make(chan fuse.DirEntry, len(ch))
@@ -493,11 +563,6 @@ func (me *memNode) OpenDir(context *fuse.Context) (stream chan fuse.DirEntry, co
 }
 
 func (me *memNode) Reap(path string, results map[string]*Result) {
-	for name, _ := range me.deleted {
-		p := filepath.Join(path, name)
-		results[p] = &Result{}
-	}
-
 	if me.changed {
 		info := me.info
 		results[path] = &Result{
@@ -518,7 +583,6 @@ func (me *memNode) Clear(path string) {
 	me.original = path
 	me.changed = false
 	me.backing = ""
-	me.deleted = make(map[string]bool)
 	for n, ch := range me.Inode().FsChildren() {
 		p := filepath.Join(path, n)
 		mn := ch.FsNode().(*memNode)
