@@ -160,8 +160,7 @@ func NewMemUnionFs(backingStore string, roFs fuse.FileSystem) *MemUnionFs {
 	me.backingStore = backingStore
 	me.readonly = roFs
 	me.root = me.newNode(true)
-	fi, _ := roFs.GetAttr("", nil)
-	me.root.info = *fi
+	me.root.info.Mode = fuse.S_IFDIR | 0755
 	me.cond = sync.NewCond(&me.mutex)
 	return me
 }
@@ -273,9 +272,19 @@ func (me *memNode) Rename(oldName string, newParent fuse.FsNode, newName string,
 	newParent.Inode().RmChild(newName)
 	newParent.Inode().AddChild(newName, ch)
 	me.deleted[newName] = false, false
+	me.markChanged()
 	me.touch()
 	return fuse.OK
 }
+
+// TODO - test this.
+func (me *memNode) markChanged() {
+	me.changed = true
+	for _, n := range me.Inode().FsChildren() {
+		n.FsNode().(*memNode).markChanged()
+	}
+}
+
 
 func (me *memNode) Link(name string, existing fuse.FsNode, context *fuse.Context) (fi *os.FileInfo, newNode fuse.FsNode, code fuse.Status) {
 	me.Inode().AddChild(name, existing.Inode())
