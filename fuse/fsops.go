@@ -15,37 +15,25 @@ func (me *FileSystemConnector) Init(fsInit *RawFsInit) {
 	me.fsInit = *fsInit
 }
 
-func (me *FileSystemConnector) lookupMountUpdate(mount *fileSystemMount) (out *EntryOut, status Status) {
-	fi, err := mount.fs.Root().GetAttr(nil, nil)
-	if err == ENOENT && mount.options.NegativeTimeout > 0.0 {
-		return mount.negativeEntry(), OK
-	}
-	if !err.Ok() {
-		return nil, err
+func (me *FileSystemConnector) lookupMountUpdate(mount *fileSystemMount) (fi *os.FileInfo, node *Inode, code Status) {
+	fi, code = mount.fs.Root().GetAttr(nil, nil)
+	if !code.Ok() {
+		log.Println("Root getattr should not return error", code)
+		return &os.FileInfo{Mode: S_IFDIR | 0755}, mount.mountInode, OK
 	}
 
-	out = mount.fileInfoToEntry(fi)
-	out.NodeId = me.lookupUpdate(mount.mountInode)
-	out.Ino = out.NodeId
-	// We don't do NFS.
-	out.Generation = 1
-	return out, OK
+	return fi, mount.mountInode, OK
 }
 
-func (me *FileSystemConnector) Lookup(header *InHeader, name string) (out *EntryOut, code Status) {
-	parent := me.toInode(header.NodeId)
-	context := &header.Context
+func (me *FileSystemConnector) internalLookup(parent *Inode, name string, context *Context) (fi *os.FileInfo, node *Inode, code Status) {
 	if subMount := me.findMount(parent, name); subMount != nil {
 		return me.lookupMountUpdate(subMount)
 	}
-
-	mount := parent.mount
 
 	child := parent.GetChild(name)
 	if child != nil {
 		parent = nil
 	}
-	var fi *os.FileInfo
 	var fsNode FsNode
 	if child != nil {
 		fi, code = child.fsInode.GetAttr(nil, context)
@@ -54,20 +42,31 @@ func (me *FileSystemConnector) Lookup(header *InHeader, name string) (out *Entry
 		fi, fsNode, code = parent.fsInode.Lookup(name, context)
 	}
 
+	if child == nil && fsNode != nil {
+		child = fsNode.Inode()
+	}
+
+	return fi, child, code
+}
+
+func (me *FileSystemConnector) Lookup(header *InHeader, name string) (out *EntryOut, code Status) {
+	parent := me.toInode(header.NodeId)
+	context := &header.Context
+	fi, child, code := me.internalLookup(parent, name, context)
 	if !code.Ok() {
-		if code == ENOENT && mount.options.NegativeTimeout > 0.0 {
-			return mount.negativeEntry(), OK
+		if code == ENOENT {
+			return parent.mount.negativeEntry()
 		}
 		return nil, code
 	}
-
-	out = mount.fileInfoToEntry(fi)
-	out.Generation = 1
 	if child == nil {
-		child = fsNode.Inode()
+		log.Println("HUH", name)
 	}
+	out = child.mount.fileInfoToEntry(fi)
 	out.NodeId = me.lookupUpdate(child)
+	out.Generation = 1
 	out.Ino = out.NodeId
+	
 	return out, OK
 }
 

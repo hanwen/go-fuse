@@ -212,6 +212,23 @@ func (me *FileSystemConnector) findInode(fullPath string) *Inode {
 	return n
 }
 
+func (me *FileSystemConnector) LookupNode(parent *Inode, path string) *Inode {
+	if path == "" {
+		return parent
+	}
+	components := strings.Split(path, "/")
+	for _, r := range components {
+		_, child, _ := me.internalLookup(parent, r, nil)
+		if child == nil {
+			return nil
+		}
+
+		parent = child
+	}
+
+	return parent
+}
+
 ////////////////////////////////////////////////////////////////
 
 func (me *FileSystemConnector) MountRoot(nodeFs NodeFileSystem, opts *FileSystemOptions) {

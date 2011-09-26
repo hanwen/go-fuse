@@ -142,9 +142,12 @@ func (me *fileSystemMount) registerFileHandle(node *Inode, dir rawDir, f File, f
 }
 
 // Creates a return entry for a non-existent path.
-func (me *fileSystemMount) negativeEntry() *EntryOut {
-	out := new(EntryOut)
-	out.NodeId = 0
-	splitNs(me.options.NegativeTimeout, &out.EntryValid, &out.EntryValidNsec)
-	return out
+func (me *fileSystemMount) negativeEntry() (*EntryOut, Status) {
+	if me.options.NegativeTimeout > 0.0 {
+		out := new(EntryOut)
+		out.NodeId = 0
+		splitNs(me.options.NegativeTimeout, &out.EntryValid, &out.EntryValidNsec)
+		return out, OK
+	}
+	return nil, ENOENT
 }
