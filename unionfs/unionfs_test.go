@@ -27,6 +27,15 @@ var testOpts = UnionFsOptions{
 	BranchCacheTTLSecs:   entryTtl,
 }
 
+func freezeRo(dir string) {
+	err := filepath.Walk(
+		dir,
+		func(path string, fi *os.FileInfo, err os.Error) os.Error {
+			return os.Chmod(path, (fi.Mode & 0777) &^ 0222)
+	})
+	CheckSuccess(err)
+}
+
 func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 	// Make sure system setting does not affect test.
 	syscall.Umask(0)
@@ -127,7 +136,7 @@ func remove(path string) {
 	fuse.CheckSuccess(err)
 }
 
-func TestAutocreateDeletionDir(t *testing.T) {
+func TestUnionFsAutocreateDeletionDir(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -141,7 +150,7 @@ func TestAutocreateDeletionDir(t *testing.T) {
 	CheckSuccess(err)
 }
 
-func TestSymlink(t *testing.T) {
+func TestUnionFsSymlink(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -156,7 +165,7 @@ func TestSymlink(t *testing.T) {
 	}
 }
 
-func TestSymlinkPromote(t *testing.T) {
+func TestUnionFsSymlinkPromote(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -167,7 +176,7 @@ func TestSymlinkPromote(t *testing.T) {
 	CheckSuccess(err)
 }
 
-func TestChtimes(t *testing.T) {
+func TestUnionFsChtimes(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -184,7 +193,7 @@ func TestChtimes(t *testing.T) {
 	}
 }
 
-func TestChmod(t *testing.T) {
+func TestUnionFsChmod(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -205,7 +214,7 @@ func TestChmod(t *testing.T) {
 	}
 }
 
-func TestChown(t *testing.T) {
+func TestUnionFsChown(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -220,7 +229,7 @@ func TestChown(t *testing.T) {
 	}
 }
 
-func TestDelete(t *testing.T) {
+func TestUnionFsDelete(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -250,7 +259,7 @@ func TestDelete(t *testing.T) {
 	}
 }
 
-func TestBasic(t *testing.T) {
+func TestUnionFsBasic(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -311,7 +320,7 @@ func TestBasic(t *testing.T) {
 	}
 }
 
-func TestPromote(t *testing.T) {
+func TestUnionFsPromote(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -321,7 +330,7 @@ func TestPromote(t *testing.T) {
 	writeToFile(wd+"/mount/subdir/file", "other-content")
 }
 
-func TestCreate(t *testing.T) {
+func TestUnionFsCreate(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -332,7 +341,7 @@ func TestCreate(t *testing.T) {
 	CheckSuccess(err)
 }
 
-func TestOpenUndeletes(t *testing.T) {
+func TestUnionFsOpenUndeletes(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -344,7 +353,7 @@ func TestOpenUndeletes(t *testing.T) {
 	CheckSuccess(err)
 }
 
-func TestMkdir(t *testing.T) {
+func TestUnionFsMkdir(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -356,7 +365,7 @@ func TestMkdir(t *testing.T) {
 	CheckSuccess(err)
 }
 
-func TestMkdirPromote(t *testing.T) {
+func TestUnionFsMkdirPromote(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -373,7 +382,7 @@ func TestMkdirPromote(t *testing.T) {
 	}
 }
 
-func TestRmdirMkdir(t *testing.T) {
+func TestUnionFsRmdirMkdir(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -388,7 +397,7 @@ func TestRmdirMkdir(t *testing.T) {
 	CheckSuccess(err)
 }
 
-func TestRename(t *testing.T) {
+func TestUnionFsRename(t *testing.T) {
 	type Config struct {
 		f1_ro bool
 		f1_rw bool
@@ -446,7 +455,7 @@ func TestRename(t *testing.T) {
 	}
 }
 
-func TestRenameDirBasic(t *testing.T) {
+func TestUnionFsRenameDirBasic(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -474,7 +483,7 @@ func TestRenameDirBasic(t *testing.T) {
 	}
 }
 
-func TestRenameDirAllSourcesGone(t *testing.T) {
+func TestUnionFsRenameDirAllSourcesGone(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -484,6 +493,7 @@ func TestRenameDirAllSourcesGone(t *testing.T) {
 	err = ioutil.WriteFile(wd+"/ro/dir/file.txt", []byte{42}, 0644)
 	CheckSuccess(err)
 
+	freezeRo(wd+"/ro")
 	err = os.Rename(wd+"/mount/dir", wd+"/mount/renamed")
 	CheckSuccess(err)
 
@@ -493,7 +503,7 @@ func TestRenameDirAllSourcesGone(t *testing.T) {
 	}
 }
 
-func TestRenameDirWithDeletions(t *testing.T) {
+func TestUnionFsRenameDirWithDeletions(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -505,6 +515,7 @@ func TestRenameDirWithDeletions(t *testing.T) {
 
 	err = ioutil.WriteFile(wd+"/ro/dir/subdir/file.txt", []byte{42}, 0644)
 	CheckSuccess(err)
+	freezeRo(wd+"/ro")
 
 	if fi, _ := os.Lstat(wd + "/mount/dir/subdir/file.txt"); fi == nil || !fi.IsRegular() {
 		t.Fatalf("%s/mount/dir/subdir/file.txt should be file: %v", wd, fi)
@@ -541,7 +552,7 @@ func TestRenameDirWithDeletions(t *testing.T) {
 	}
 }
 
-func TestRenameSymlink(t *testing.T) {
+func TestUnionFsRenameSymlink(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -564,13 +575,14 @@ func TestRenameSymlink(t *testing.T) {
 	}
 }
 
-func TestWritableDir(t *testing.T) {
+func TestUnionFsWritableDir(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
 	dirname := wd + "/ro/subdir"
 	err := os.Mkdir(dirname, 0555)
 	CheckSuccess(err)
+	freezeRo(wd+"/ro")
 
 	fi, err := os.Lstat(wd + "/mount/subdir")
 	CheckSuccess(err)
@@ -579,7 +591,7 @@ func TestWritableDir(t *testing.T) {
 	}
 }
 
-func TestWriteAccess(t *testing.T) {
+func TestUnionFsWriteAccess(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -587,6 +599,7 @@ func TestWriteAccess(t *testing.T) {
 	// No write perms.
 	err := ioutil.WriteFile(fn, []byte("foo"), 0444)
 	CheckSuccess(err)
+	freezeRo(wd+"/ro")
 
 	errno := syscall.Access(wd+"/mount/file", fuse.W_OK)
 	if errno != 0 {
@@ -595,7 +608,7 @@ func TestWriteAccess(t *testing.T) {
 	}
 }
 
-func TestLink(t *testing.T) {
+func TestUnionFsLink(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -603,6 +616,7 @@ func TestLink(t *testing.T) {
 	fn := wd + "/ro/file"
 	err := ioutil.WriteFile(fn, []byte(content), 0666)
 	CheckSuccess(err)
+	freezeRo(wd+"/ro")
 
 	err = os.Link(wd+"/mount/file", wd+"/mount/linked")
 	CheckSuccess(err)
@@ -621,11 +635,13 @@ func TestLink(t *testing.T) {
 	}
 }
 
-func TestTruncate(t *testing.T) {
+func TestUnionFsTruncate(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
 	writeToFile(wd+"/ro/file", "hello")
+	freezeRo(wd+"/ro")
+
 	os.Truncate(wd+"/mount/file", 2)
 	content := readFromFile(wd + "/mount/file")
 	if content != "he" {
@@ -637,7 +653,7 @@ func TestTruncate(t *testing.T) {
 	}
 }
 
-func TestCopyChmod(t *testing.T) {
+func TestUnionFsCopyChmod(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -669,7 +685,7 @@ func abs(dt int64) int64 {
 	return -dt
 }
 
-func TestTruncateTimestamp(t *testing.T) {
+func TestUnionFsTruncateTimestamp(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -691,7 +707,7 @@ func TestTruncateTimestamp(t *testing.T) {
 	}
 }
 
-func TestRemoveAll(t *testing.T) {
+func TestUnionFsRemoveAll(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -702,6 +718,7 @@ func TestRemoveAll(t *testing.T) {
 	fn := wd + "/ro/dir/subdir/y"
 	err = ioutil.WriteFile(fn, []byte(contents), 0644)
 	CheckSuccess(err)
+	freezeRo(wd+"/ro")
 
 	err = os.RemoveAll(wd + "/mount/dir")
 	if err != nil {
@@ -721,7 +738,7 @@ func TestRemoveAll(t *testing.T) {
 	}
 }
 
-func TestRmRf(t *testing.T) {
+func TestUnionFsRmRf(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -732,6 +749,8 @@ func TestRmRf(t *testing.T) {
 	fn := wd + "/ro/dir/subdir/y"
 	err = ioutil.WriteFile(fn, []byte(contents), 0644)
 	CheckSuccess(err)
+	freezeRo(wd+"/ro")
+
 	bin, err := exec.LookPath("rm")
 	CheckSuccess(err)
 	cmd := exec.Command(bin, "-rf", wd+"/mount/dir")
@@ -763,12 +782,14 @@ func Readdirnames(dir string) ([]string, os.Error) {
 	return f.Readdirnames(-1)
 }
 
-func TestDropDeletionCache(t *testing.T) {
+func TestUnionFsDropDeletionCache(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
 	err := ioutil.WriteFile(wd+"/ro/file", []byte("bla"), 0644)
 	CheckSuccess(err)
+	freezeRo(wd+"/ro")
+
 	_, err = os.Lstat(wd + "/mount/file")
 	CheckSuccess(err)
 	err = os.Remove(wd + "/mount/file")
@@ -799,7 +820,7 @@ func TestDropDeletionCache(t *testing.T) {
 	}
 }
 
-func TestDropCache(t *testing.T) {
+func TestUnionFsDropCache(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -830,7 +851,7 @@ func TestDropCache(t *testing.T) {
 	}
 }
 
-func TestDisappearing(t *testing.T) {
+func TestUnionFsDisappearing(t *testing.T) {
 	// This init is like setupUfs, but we want access to the
 	// writable Fs.
 	wd, _ := ioutil.TempDir("", "")
@@ -862,10 +883,11 @@ func TestDisappearing(t *testing.T) {
 	state.Debug = fuse.VerboseTest()
 	go state.Loop()
 
-	log.Println("TestDisappearing2")
+	log.Println("TestUnionFsDisappearing2")
 
 	err = ioutil.WriteFile(wd+"/ro/file", []byte("blabla"), 0644)
 	CheckSuccess(err)
+	freezeRo(wd+"/ro")
 
 	err = os.Remove(wd + "/mount/file")
 	CheckSuccess(err)
@@ -900,12 +922,13 @@ func TestDisappearing(t *testing.T) {
 	}
 }
 
-func TestDeletedGetAttr(t *testing.T) {
+func TestUnionFsDeletedGetAttr(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
 	err := ioutil.WriteFile(wd+"/ro/file", []byte("blabla"), 0644)
 	CheckSuccess(err)
+	freezeRo(wd+"/ro")
 
 	f, err := os.Open(wd + "/mount/file")
 	CheckSuccess(err)
@@ -919,11 +942,12 @@ func TestDeletedGetAttr(t *testing.T) {
 	}
 }
 
-func TestDoubleOpen(t *testing.T) {
+func TestUnionFsDoubleOpen(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 	err := ioutil.WriteFile(wd+"/ro/file", []byte("blablabla"), 0644)
 	CheckSuccess(err)
+	freezeRo(wd+"/ro")
 
 	roFile, err := os.Open(wd + "/mount/file")
 	CheckSuccess(err)
@@ -954,13 +978,14 @@ func TestDoubleOpen(t *testing.T) {
 	}
 }
 
-func TestFdLeak(t *testing.T) {
+func TestUnionFsFdLeak(t *testing.T) {
 	beforeEntries, err := ioutil.ReadDir("/proc/self/fd")
 	CheckSuccess(err)
 
 	wd, clean := setupUfs(t)
 	err = ioutil.WriteFile(wd+"/ro/file", []byte("blablabla"), 0644)
 	CheckSuccess(err)
+	freezeRo(wd+"/ro")
 
 	contents, err := ioutil.ReadFile(wd + "/mount/file")
 	CheckSuccess(err)
@@ -978,7 +1003,7 @@ func TestFdLeak(t *testing.T) {
 	}
 }
 
-func TestStatFs(t *testing.T) {
+func TestUnionFsStatFs(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -992,7 +1017,7 @@ func TestStatFs(t *testing.T) {
 	}
 }
 
-func TestFlushSize(t *testing.T) {
+func TestUnionFsFlushSize(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -1013,7 +1038,7 @@ func TestFlushSize(t *testing.T) {
 	}
 }
 
-func TestFlushRename(t *testing.T) {
+func TestUnionFsFlushRename(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -1040,7 +1065,7 @@ func TestFlushRename(t *testing.T) {
 	}
 }
 
-func TestTruncGetAttr(t *testing.T) {
+func TestUnionFsTruncGetAttr(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -1058,7 +1083,7 @@ func TestTruncGetAttr(t *testing.T) {
 	}
 }
 
-func TestPromoteDirTimeStamp(t *testing.T) {
+func TestUnionFsPromoteDirTimeStamp(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
@@ -1066,6 +1091,7 @@ func TestPromoteDirTimeStamp(t *testing.T) {
 	CheckSuccess(err)
 	err = ioutil.WriteFile(wd+"/ro/subdir/file", []byte("hello"), 0644)
 	CheckSuccess(err)
+	freezeRo(wd+"/ro")
 
 	err = os.Chmod(wd+"/mount/subdir/file", 0060)
 	CheckSuccess(err)
@@ -1081,7 +1107,7 @@ func TestPromoteDirTimeStamp(t *testing.T) {
 		t.Errorf("Changed timestamps on promoted subdir: ro %d rw %d", fRo.Mtime_ns, fRw.Mtime_ns)
 	}
 
-	if fRo.Mode != fRw.Mode {
+	if fRo.Mode | 0200 != fRw.Mode {
 		t.Errorf("Changed mode ro: %o, rw: %o", fRo.Mode, fRw.Mode)
 	}
 }
