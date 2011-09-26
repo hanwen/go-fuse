@@ -20,9 +20,12 @@ type MemUnionFs struct {
 	root         *memNode
 
 	mutex    sync.RWMutex
+	cond     *sync.Cond
 	nextFree int
 
 	readonly fuse.FileSystem
+
+	openWritable int
 }
 
 type memNode struct {
@@ -46,10 +49,20 @@ type Result struct {
 	Link     string
 }
 
-func (me *MemUnionFs) Reap() map[string]*Result {
-	me.mutex.RLock()
-	defer me.mutex.RUnlock()
+func (me *MemUnionFs) release() {
+	me.mutex.Lock()
+	defer me.mutex.Unlock()
+	me.openWritable--
+	me.cond.Broadcast()
+}
 
+func (me *MemUnionFs) Reap() map[string]*Result {
+	me.mutex.Lock()
+	defer me.mutex.Unlock()
+	for me.openWritable > 0 {
+		me.cond.Wait()
+	}
+	
 	m := map[string]*Result{}
 	me.root.Reap("", m)
 	return m
@@ -96,6 +109,7 @@ func NewMemUnionFs(backingStore string, roFs fuse.FileSystem) *MemUnionFs {
 	me.backingStore = backingStore
 	me.readonly = roFs
 	me.root = me.newNode(true)
+	me.cond = sync.NewCond(&me.mutex)
 	return me
 }
 
@@ -236,6 +250,7 @@ func (me *memNode) Create(name string, flags uint32, mode uint32, context *fuse.
 	me.Inode().AddChild(name, n.Inode())
 	me.touch()
 	me.deleted[name] = false, false
+	me.fs.openWritable++
 	return n.newFile(&fuse.LoopbackFile{File: f}, true), &n.info, n, fuse.OK
 }
 
@@ -247,6 +262,11 @@ type memNodeFile struct {
 
 func (me *memNodeFile) InnerFile() fuse.File {
 	return me.File
+}
+
+func (me *memNodeFile) Release() {
+	me.node.fs.release()
+	me.File.Release()
 }
 
 func (me *memNodeFile) Flush() fuse.Status {
@@ -294,15 +314,12 @@ func (me *memNode) promote() {
 }
 
 func (me *memNode) Open(flags uint32, context *fuse.Context) (file fuse.File, code fuse.Status) {
+	me.mutex.Lock()
+	defer me.mutex.Unlock()
 	if flags&fuse.O_ANYWRITE != 0 {
-		me.mutex.Lock()
 		me.promote()
 		me.touch()
-		me.mutex.Unlock()
 	}
-
-	me.mutex.RLock()
-	defer me.mutex.RUnlock()
 
 	if me.backing != "" {
 		f, err := os.OpenFile(me.backing, int(flags), 0666)
@@ -310,6 +327,9 @@ func (me *memNode) Open(flags uint32, context *fuse.Context) (file fuse.File, co
 			return nil, fuse.OsErrorToErrno(err)
 		}
 		wr := flags&fuse.O_ANYWRITE != 0
+		if wr {
+			me.fs.openWritable++
+		}
 		return me.newFile(&fuse.LoopbackFile{File: f}, wr), fuse.OK
 	}
 
