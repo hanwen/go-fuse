@@ -65,34 +65,6 @@ func (me *MemUnionFs) release() {
 	me.cond.Broadcast()
 }
 
-func (me *MemUnionFs) gc() {
-	f, err := os.Open(me.backingStore)
-	if err != nil {
-		return
-	}
-	defer f.Close()
-	names, err := f.Readdirnames(-1)
-	if err != nil {
-		return
-	}
-
-	me.mutex.Lock()
-	seen := map[string]bool{}
-	me.root.markUsed(seen)
-	del := []string{}
-	for _, n := range names {
-		full := filepath.Join(me.backingStore, n)
-		if !seen[full] {
-			del = append(del, full)
-		}
-	}
-	me.mutex.Unlock()
-
-	for _, n := range del {
-		os.Remove(n)
-	}
-}
-
 func (me *MemUnionFs) Reap() map[string]*Result {
 	me.mutex.Lock()
 	defer me.mutex.Unlock()
@@ -139,6 +111,18 @@ func (me *MemUnionFs) Clear() {
 	defer me.mutex.Unlock()
 	me.deleted = make(map[string]bool)
 	me.root.Clear("")
+	f, err := os.Open(me.backingStore)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	names, err := f.Readdirnames(-1)
+	if err != nil {
+		return
+	}
+	for _, n := range names {
+		os.Remove(filepath.Join(me.backingStore, n))
+	}
 }
 
 func (me *MemUnionFs) Update(results map[string]*Result) {
@@ -201,9 +185,6 @@ func (me *MemUnionFs) Update(results map[string]*Result) {
 func (me *MemUnionFs) getFilename() string {
 	id := me.nextFree
 	me.nextFree++
-	if me.nextFree % 1000 == 0 {
-		// go me.gc()
-	}
 	return fmt.Sprintf("%s/%d", me.backingStore, id)
 }
 

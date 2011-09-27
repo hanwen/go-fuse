@@ -776,7 +776,6 @@ func TestMemUnionFsRenameDirWithDeletions(t *testing.T) {
 	}
 }
 
-
 func TestMemUnionGc(t *testing.T) {
 	wd, ufs, clean := setupMemUfs(t)
 	defer clean()
@@ -785,11 +784,11 @@ func TestMemUnionGc(t *testing.T) {
 	writeToFile(wd+"/mount/file2", "other-content")
 	err := os.Remove(wd+"/mount/file1")
 	CheckSuccess(err)
-	ufs.gc()
+	ufs.Clear()
 	
 	entries, err := ioutil.ReadDir(wd+"/backing")
 	CheckSuccess(err)
-	if len(entries) != 1 {
+	if len(entries) != 0 {
 		t.Fatalf("should have 1 file after backing store gc: %v", entries)
 	}
 }
