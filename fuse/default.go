@@ -99,6 +99,6 @@ func (me *DefaultFileSystem) String() string {
 	return "DefaultFileSystem"
 }
 
-func (me *DefaultFileSystem) StatFs() *StatfsOut {
+func (me *DefaultFileSystem) StatFs(name string) *StatfsOut {
 	return nil
 }

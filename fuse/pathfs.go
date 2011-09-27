@@ -104,10 +104,6 @@ func (me *PathNodeFs) OnMount(conn *FileSystemConnector) {
 	me.fs.OnMount(me)
 }
 
-func (me *PathNodeFs) StatFs() *StatfsOut {
-	return me.fs.StatFs()
-}
-
 func (me *PathNodeFs) Node(name string) *Inode {
 	n, rest := me.LastNode(name)
 	if len(rest) > 0 {
@@ -362,6 +358,9 @@ func (me *pathInode) OnForget() {
 ////////////////////////////////////////////////////////////////
 // FS operations
 
+func (me *pathInode) StatFs() *StatfsOut {
+	return me.fs.StatFs(me.GetPath())
+}
 
 func (me *pathInode) Readlink(c *Context) ([]byte, Status) {
 	path := me.GetPath()

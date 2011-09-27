@@ -18,10 +18,6 @@ func (me *DefaultNodeFileSystem) OnMount(conn *FileSystemConnector) {
 
 }
 
-func (me *DefaultNodeFileSystem) StatFs() *StatfsOut {
-	return nil
-}
-
 func (me *DefaultNodeFileSystem) Root() FsNode {
 	return new(DefaultFsNode)
 }
@@ -35,6 +31,10 @@ func (me *DefaultNodeFileSystem) String() string {
 
 type DefaultFsNode struct {
 	inode *Inode
+}
+
+func (me *DefaultFsNode) StatFs() *StatfsOut {
+	return nil
 }
 
 func (me *DefaultFsNode) SetInode(node *Inode) {

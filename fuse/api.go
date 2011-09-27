@@ -19,7 +19,6 @@ import (
 type NodeFileSystem interface {
 	OnUnmount()
 	OnMount(conn *FileSystemConnector)
-	StatFs() *StatfsOut
 	Root() FsNode
 
 	// Used for debug outputs
@@ -70,6 +69,8 @@ type FsNode interface {
 	Chown(file File, uid uint32, gid uint32, context *Context) (code Status)
 	Truncate(file File, size uint64, context *Context) (code Status)
 	Utimens(file File, atime uint64, mtime uint64, context *Context) (code Status)
+
+	StatFs() *StatfsOut
 }
 
 // A filesystem API that uses paths rather than inodes.  A minimal
@@ -130,7 +131,7 @@ type FileSystem interface {
 	Symlink(value string, linkName string, context *Context) (code Status)
 	Readlink(name string, context *Context) (string, Status)
 
-	StatFs() *StatfsOut
+	StatFs(name string) *StatfsOut
 }
 
 // A File object should be returned from FileSystem.Open and
@@ -268,7 +269,7 @@ type RawFileSystem interface {
 
 	//
 	Ioctl(header *InHeader, input *IoctlIn) (output *IoctlOut, data []byte, code Status)
-	StatFs() *StatfsOut
+	StatFs(header *InHeader) *StatfsOut
 
 	// Provide callbacks for pushing notifications to the kernel.
 	Init(params *RawFsInit)

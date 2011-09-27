@@ -970,8 +970,8 @@ func (me *UnionFs) String() string {
 	return fmt.Sprintf("UnionFs(%v)", names)
 }
 
-func (me *UnionFs) StatFs() *fuse.StatfsOut {
-	return me.fileSystems[0].StatFs()
+func (me *UnionFs) StatFs(name string) *fuse.StatfsOut {
+	return me.fileSystems[0].StatFs("")
 }
 
 type unionFsFile struct {

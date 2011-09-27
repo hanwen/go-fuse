@@ -280,7 +280,7 @@ func doRename(state *MountState, req *request) {
 }
 
 func doStatFs(state *MountState, req *request) {
-	stat := state.fileSystem.StatFs()
+	stat := state.fileSystem.StatFs(req.inHeader)
 	if stat != nil {
 		req.outData = unsafe.Pointer(stat)
 		req.status = OK

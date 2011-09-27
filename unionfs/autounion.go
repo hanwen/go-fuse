@@ -383,6 +383,6 @@ func (me *AutoUnionFs) OpenDir(name string, context *fuse.Context) (stream chan 
 	return stream, status
 }
 
-func (me *AutoUnionFs) StatFs() *fuse.StatfsOut {
+func (me *AutoUnionFs) StatFs(name string) *fuse.StatfsOut {
 	return &fuse.StatfsOut{}
 }

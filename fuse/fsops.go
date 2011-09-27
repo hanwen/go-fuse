@@ -327,8 +327,9 @@ func (me *FileSystemConnector) Read(header *InHeader, input *ReadIn, bp BufferPo
 	return opened.WithFlags.File.Read(input, bp)
 }
 
-func (me *FileSystemConnector) StatFs() *StatfsOut {
-	return me.rootNode.mountPoint.fs.StatFs()
+func (me *FileSystemConnector) StatFs(header *InHeader) *StatfsOut {
+	node := me.toInode(header.NodeId)
+	return node.FsNode().StatFs()
 }
 
 func (me *FileSystemConnector) Flush(header *InHeader, input *FlushIn) Status {

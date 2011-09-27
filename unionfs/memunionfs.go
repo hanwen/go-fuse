@@ -192,11 +192,6 @@ func (me *MemUnionFs) Root() fuse.FsNode {
 	return me.root
 }
 
-func (me *MemUnionFs) StatFs() *fuse.StatfsOut {
-	backingFs := &fuse.LoopbackFileSystem{Root: me.backingStore}
-	return backingFs.StatFs()
-}
-
 func (me *MemUnionFs) newNode(isdir bool) *memNode {
 	n := &memNode{
 		fs:    me,
@@ -223,6 +218,11 @@ func NewMemUnionFs(backingStore string, roFs fuse.FileSystem) *MemUnionFs {
 
 func (me *memNode) Deletable() bool {
 	return !me.changed && me.original == ""
+}
+
+func (me *memNode) StatFs() *fuse.StatfsOut {
+	backingFs := &fuse.LoopbackFileSystem{Root: me.fs.backingStore}
+	return backingFs.StatFs("")
 }
 
 func (me *memNode) touch() {

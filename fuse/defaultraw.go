@@ -3,7 +3,7 @@ package fuse
 func (me *DefaultRawFileSystem) Init(init *RawFsInit) {
 }
 
-func (me *DefaultRawFileSystem) StatFs() *StatfsOut {
+func (me *DefaultRawFileSystem) StatFs(h *InHeader) *StatfsOut {
 	return nil
 }
 

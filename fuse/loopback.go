@@ -170,9 +170,9 @@ func (me *LoopbackFileSystem) String() string {
 	return fmt.Sprintf("LoopbackFileSystem(%s)", me.Root)
 }
 
-func (me *LoopbackFileSystem) StatFs() *StatfsOut {
+func (me *LoopbackFileSystem) StatFs(name string) *StatfsOut {
 	s := syscall.Statfs_t{}
-	errNo := syscall.Statfs(me.Root, &s)
+	errNo := syscall.Statfs(me.GetPath(name), &s)
 
 	if errNo == 0 {
 		return &StatfsOut{

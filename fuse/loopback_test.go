@@ -673,6 +673,13 @@ func TestIoctl(t *testing.T) {
 	ioctl(f.Fd(), 0x5401, 42)
 }
 
+func clearStatfs(s *syscall.Statfs_t) {
+	empty := syscall.Statfs_t{}
+	s.Type = 0
+	s.Fsid = empty.Fsid
+	s.Spare = empty.Spare
+}
+
 // This test is racy. If an external process consumes space while this
 // runs, we may see spurious differences between the two statfs() calls.
 func TestStatFs(t *testing.T) {
@@ -689,19 +696,44 @@ func TestStatFs(t *testing.T) {
 	s2 := syscall.Statfs_t{}
 	err = syscall.Statfs(ts.mnt, &s2)
 
-	s1.Type = 0
-	s2.Type = 0
-
-	s1.Fsid = empty.Fsid
-	s2.Fsid = empty.Fsid
-
-	s1.Spare = empty.Spare
-	s2.Spare = empty.Spare
-
 	if err != 0 {
 		t.Fatal("statfs mnt", err)
 	}
 
+	clearStatfs(&s1)
+	clearStatfs(&s2)
+	if fmt.Sprintf("%v", s2) != fmt.Sprintf("%v", s1) {
+		t.Error("Mismatch", s1, s2)
+	}
+}
+
+func TestFStatFs(t *testing.T) {
+	ts := NewTestCase(t)
+	defer ts.Cleanup()
+
+	fOrig, err := os.OpenFile(ts.orig+"/file", os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0644)
+	CheckSuccess(err)
+	defer fOrig.Close()
+	
+	empty := syscall.Statfs_t{}
+	s1 := empty
+	errno := syscall.Fstatfs(fOrig.Fd(), &s1)
+	if errno != 0 {
+		t.Fatal("statfs orig", err)
+	}
+		
+	fMnt, err := os.OpenFile(ts.mnt+"/file", os.O_RDWR, 0644)
+	CheckSuccess(err)
+	defer fMnt.Close()
+	s2 := empty
+
+	errno = syscall.Fstatfs(fMnt.Fd(), &s2)
+	if errno != 0 {
+		t.Fatal("statfs mnt", err)
+	}
+	
+	clearStatfs(&s1)
+	clearStatfs(&s2)
 	if fmt.Sprintf("%v", s2) != fmt.Sprintf("%v", s1) {
 		t.Error("Mismatch", s1, s2)
 	}
