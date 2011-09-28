@@ -425,8 +425,10 @@ func (me *memNodeFile) InnerFile() fuse.File {
 }
 
 func (me *memNodeFile) Release() {
-	me.node.fs.release()
+	// Must do the subfile release first, as that may flush data
+	// to disk.
 	me.File.Release()
+	me.node.fs.release()
 }
 
 func (me *memNodeFile) Flush() fuse.Status {
