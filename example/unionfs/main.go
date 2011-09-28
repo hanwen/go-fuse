@@ -12,6 +12,10 @@ import (
 func main() {
 	debug := flag.Bool("debug", false, "debug on")
 	mem := flag.Bool("mem", false, "use in-memory unionfs")
+
+	entry_ttl := flag.Float64("entry_ttl", 1.0, "fuse entry cache TTL.")
+	negative_ttl := flag.Float64("negative_ttl", 1.0, "fuse negative entry cache TTL.")
+	
 	delcache_ttl := flag.Float64("deletion_cache_ttl", 5.0, "Deletion cache TTL in seconds.")
 	branchcache_ttl := flag.Float64("branchcache_ttl", 5.0, "Branch cache TTL in seconds.")
 	deldirname := flag.String(
@@ -40,7 +44,12 @@ func main() {
 		}
 		nodeFs = fuse.NewPathNodeFs(ufs, &fuse.PathNodeFsOptions{ClientInodes: true})
 	}
-	mountState, _, err := fuse.MountNodeFileSystem(flag.Arg(0), nodeFs, nil)
+	mOpts := fuse.FileSystemOptions{
+		EntryTimeout:    *entry_ttl,
+		AttrTimeout:     *entry_ttl,
+		NegativeTimeout: *negative_ttl,
+	}
+	mountState, _, err := fuse.MountNodeFileSystem(flag.Arg(0), nodeFs, &mOpts)
 	if err != nil {
 		log.Fatal("Mount fail:", err)
 	}
