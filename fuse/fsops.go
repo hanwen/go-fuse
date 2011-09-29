@@ -66,7 +66,7 @@ func (me *FileSystemConnector) Lookup(header *InHeader, name string) (out *Entry
 	out.NodeId = me.lookupUpdate(child)
 	out.Generation = 1
 	out.Ino = out.NodeId
-	
+
 	return out, OK
 }
 

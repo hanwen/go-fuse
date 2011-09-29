@@ -31,8 +31,8 @@ func freezeRo(dir string) {
 	err := filepath.Walk(
 		dir,
 		func(path string, fi *os.FileInfo, err os.Error) os.Error {
-			return os.Chmod(path, (fi.Mode & 0777) &^ 0222)
-	})
+			return os.Chmod(path, (fi.Mode&0777)&^0222)
+		})
 	CheckSuccess(err)
 }
 
@@ -493,7 +493,7 @@ func TestUnionFsRenameDirAllSourcesGone(t *testing.T) {
 	err = ioutil.WriteFile(wd+"/ro/dir/file.txt", []byte{42}, 0644)
 	CheckSuccess(err)
 
-	freezeRo(wd+"/ro")
+	freezeRo(wd + "/ro")
 	err = os.Rename(wd+"/mount/dir", wd+"/mount/renamed")
 	CheckSuccess(err)
 
@@ -515,7 +515,7 @@ func TestUnionFsRenameDirWithDeletions(t *testing.T) {
 
 	err = ioutil.WriteFile(wd+"/ro/dir/subdir/file.txt", []byte{42}, 0644)
 	CheckSuccess(err)
-	freezeRo(wd+"/ro")
+	freezeRo(wd + "/ro")
 
 	if fi, _ := os.Lstat(wd + "/mount/dir/subdir/file.txt"); fi == nil || !fi.IsRegular() {
 		t.Fatalf("%s/mount/dir/subdir/file.txt should be file: %v", wd, fi)
@@ -582,7 +582,7 @@ func TestUnionFsWritableDir(t *testing.T) {
 	dirname := wd + "/ro/subdir"
 	err := os.Mkdir(dirname, 0555)
 	CheckSuccess(err)
-	freezeRo(wd+"/ro")
+	freezeRo(wd + "/ro")
 
 	fi, err := os.Lstat(wd + "/mount/subdir")
 	CheckSuccess(err)
@@ -599,7 +599,7 @@ func TestUnionFsWriteAccess(t *testing.T) {
 	// No write perms.
 	err := ioutil.WriteFile(fn, []byte("foo"), 0444)
 	CheckSuccess(err)
-	freezeRo(wd+"/ro")
+	freezeRo(wd + "/ro")
 
 	errno := syscall.Access(wd+"/mount/file", fuse.W_OK)
 	if errno != 0 {
@@ -616,7 +616,7 @@ func TestUnionFsLink(t *testing.T) {
 	fn := wd + "/ro/file"
 	err := ioutil.WriteFile(fn, []byte(content), 0666)
 	CheckSuccess(err)
-	freezeRo(wd+"/ro")
+	freezeRo(wd + "/ro")
 
 	err = os.Link(wd+"/mount/file", wd+"/mount/linked")
 	CheckSuccess(err)
@@ -640,7 +640,7 @@ func TestUnionFsTruncate(t *testing.T) {
 	defer clean()
 
 	writeToFile(wd+"/ro/file", "hello")
-	freezeRo(wd+"/ro")
+	freezeRo(wd + "/ro")
 
 	os.Truncate(wd+"/mount/file", 2)
 	content := readFromFile(wd + "/mount/file")
@@ -718,7 +718,7 @@ func TestUnionFsRemoveAll(t *testing.T) {
 	fn := wd + "/ro/dir/subdir/y"
 	err = ioutil.WriteFile(fn, []byte(contents), 0644)
 	CheckSuccess(err)
-	freezeRo(wd+"/ro")
+	freezeRo(wd + "/ro")
 
 	err = os.RemoveAll(wd + "/mount/dir")
 	if err != nil {
@@ -749,7 +749,7 @@ func TestUnionFsRmRf(t *testing.T) {
 	fn := wd + "/ro/dir/subdir/y"
 	err = ioutil.WriteFile(fn, []byte(contents), 0644)
 	CheckSuccess(err)
-	freezeRo(wd+"/ro")
+	freezeRo(wd + "/ro")
 
 	bin, err := exec.LookPath("rm")
 	CheckSuccess(err)
@@ -788,7 +788,7 @@ func TestUnionFsDropDeletionCache(t *testing.T) {
 
 	err := ioutil.WriteFile(wd+"/ro/file", []byte("bla"), 0644)
 	CheckSuccess(err)
-	freezeRo(wd+"/ro")
+	freezeRo(wd + "/ro")
 
 	_, err = os.Lstat(wd + "/mount/file")
 	CheckSuccess(err)
@@ -887,7 +887,7 @@ func TestUnionFsDisappearing(t *testing.T) {
 
 	err = ioutil.WriteFile(wd+"/ro/file", []byte("blabla"), 0644)
 	CheckSuccess(err)
-	freezeRo(wd+"/ro")
+	freezeRo(wd + "/ro")
 
 	err = os.Remove(wd + "/mount/file")
 	CheckSuccess(err)
@@ -928,7 +928,7 @@ func TestUnionFsDeletedGetAttr(t *testing.T) {
 
 	err := ioutil.WriteFile(wd+"/ro/file", []byte("blabla"), 0644)
 	CheckSuccess(err)
-	freezeRo(wd+"/ro")
+	freezeRo(wd + "/ro")
 
 	f, err := os.Open(wd + "/mount/file")
 	CheckSuccess(err)
@@ -947,7 +947,7 @@ func TestUnionFsDoubleOpen(t *testing.T) {
 	defer clean()
 	err := ioutil.WriteFile(wd+"/ro/file", []byte("blablabla"), 0644)
 	CheckSuccess(err)
-	freezeRo(wd+"/ro")
+	freezeRo(wd + "/ro")
 
 	roFile, err := os.Open(wd + "/mount/file")
 	CheckSuccess(err)
@@ -985,7 +985,7 @@ func TestUnionFsFdLeak(t *testing.T) {
 	wd, clean := setupUfs(t)
 	err = ioutil.WriteFile(wd+"/ro/file", []byte("blablabla"), 0644)
 	CheckSuccess(err)
-	freezeRo(wd+"/ro")
+	freezeRo(wd + "/ro")
 
 	contents, err := ioutil.ReadFile(wd + "/mount/file")
 	CheckSuccess(err)
@@ -1091,7 +1091,7 @@ func TestUnionFsPromoteDirTimeStamp(t *testing.T) {
 	CheckSuccess(err)
 	err = ioutil.WriteFile(wd+"/ro/subdir/file", []byte("hello"), 0644)
 	CheckSuccess(err)
-	freezeRo(wd+"/ro")
+	freezeRo(wd + "/ro")
 
 	err = os.Chmod(wd+"/mount/subdir/file", 0060)
 	CheckSuccess(err)
@@ -1107,7 +1107,7 @@ func TestUnionFsPromoteDirTimeStamp(t *testing.T) {
 		t.Errorf("Changed timestamps on promoted subdir: ro %d rw %d", fRo.Mtime_ns, fRw.Mtime_ns)
 	}
 
-	if fRo.Mode | 0200 != fRw.Mode {
+	if fRo.Mode|0200 != fRw.Mode {
 		t.Errorf("Changed mode ro: %o, rw: %o", fRo.Mode, fRw.Mode)
 	}
 }

@@ -13,7 +13,7 @@ var _ = log.Println
 type MemNodeFs struct {
 	DefaultNodeFileSystem
 	backingStorePrefix string
-	root         *memNode
+	root               *memNode
 
 	mutex    sync.Mutex
 	nextFree int

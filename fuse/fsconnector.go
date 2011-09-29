@@ -192,7 +192,7 @@ func (me *FileSystemConnector) Node(parent *Inode, fullPath string) (*Inode, []s
 		node.treeLock.RLock()
 		defer node.treeLock.RUnlock()
 	}
-	
+
 	for i, component := range comps {
 		if len(component) == 0 {
 			continue

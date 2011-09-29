@@ -59,7 +59,6 @@ func (me *DevNullFile) String() string {
 	return "DevNullFile"
 }
 
-
 func (me *DevNullFile) Read(input *ReadIn, bp BufferPool) ([]byte, Status) {
 	return []byte{}, OK
 }

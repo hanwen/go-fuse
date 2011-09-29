@@ -30,7 +30,7 @@ func main() {
 	var nodeFs fuse.NodeFileSystem
 	if *mem {
 		nodeFs = unionfs.NewMemUnionFs(
-			flag.Arg(1) + "/", &fuse.LoopbackFileSystem{Root: flag.Arg(2)})
+			flag.Arg(1)+"/", &fuse.LoopbackFileSystem{Root: flag.Arg(2)})
 	} else {
 		ufsOptions := unionfs.UnionFsOptions{
 			DeletionCacheTTLSecs: *delcache_ttl,

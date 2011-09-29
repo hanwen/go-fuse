@@ -714,14 +714,14 @@ func TestFStatFs(t *testing.T) {
 	fOrig, err := os.OpenFile(ts.orig+"/file", os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0644)
 	CheckSuccess(err)
 	defer fOrig.Close()
-	
+
 	empty := syscall.Statfs_t{}
 	s1 := empty
 	errno := syscall.Fstatfs(fOrig.Fd(), &s1)
 	if errno != 0 {
 		t.Fatal("statfs orig", err)
 	}
-		
+
 	fMnt, err := os.OpenFile(ts.mnt+"/file", os.O_RDWR, 0644)
 	CheckSuccess(err)
 	defer fMnt.Close()
@@ -731,7 +731,7 @@ func TestFStatFs(t *testing.T) {
 	if errno != 0 {
 		t.Fatal("statfs mnt", err)
 	}
-	
+
 	clearStatfs(&s1)
 	clearStatfs(&s2)
 	if fmt.Sprintf("%v", s2) != fmt.Sprintf("%v", s1) {

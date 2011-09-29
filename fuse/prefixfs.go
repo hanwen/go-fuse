@@ -14,7 +14,7 @@ type PrefixFileSystem struct {
 
 func (me *PrefixFileSystem) prefixed(n string) string {
 	return filepath.Join(me.Prefix, n)
-} 
+}
 
 func (me *PrefixFileSystem) GetAttr(name string, context *Context) (*os.FileInfo, Status) {
 	return me.FileSystem.GetAttr(me.prefixed(name), context)

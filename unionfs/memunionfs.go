@@ -20,9 +20,9 @@ type MemUnionFs struct {
 	backingStore string
 	root         *memNode
 	connector    *fuse.FileSystemConnector
-	mutex    sync.RWMutex
-	cond     *sync.Cond
-	nextFree int
+	mutex        sync.RWMutex
+	cond         *sync.Cond
+	nextFree     int
 
 	readonly fuse.FileSystem
 
@@ -31,7 +31,7 @@ type MemUnionFs struct {
 	// All paths that have been renamed or deleted will be marked
 	// here.  After deletion, entries may be recreated, but they
 	// will be treated as new.
-	deleted  map[string]bool
+	deleted map[string]bool
 }
 
 type memNode struct {
@@ -87,7 +87,7 @@ func (me *MemUnionFs) Reap() map[string]*Result {
 
 		todo := []string{name}
 		for len(todo) > 0 {
-			l := len(todo)-1
+			l := len(todo) - 1
 			n := todo[l]
 			todo = todo[:l]
 
@@ -95,7 +95,7 @@ func (me *MemUnionFs) Reap() map[string]*Result {
 			for e := range s {
 				full := filepath.Join(n, e.Name)
 				m[full] = &Result{}
-				if e.Mode & fuse.S_IFDIR != 0 {
+				if e.Mode&fuse.S_IFDIR != 0 {
 					todo = append(todo, full)
 				}
 			}
@@ -137,7 +137,7 @@ func (me *MemUnionFs) Update(results map[string]*Result) {
 	}
 
 	sort.Strings(del)
-	for i := len(del)-1; i >= 0; i-- {
+	for i := len(del) - 1; i >= 0; i-- {
 		n := del[i]
 		dir, base := filepath.Split(n)
 		dir = strings.TrimRight(dir, "/")
@@ -600,7 +600,7 @@ func (me *memNode) Reap(path string, results map[string]*Result) {
 	if me.changed {
 		info := me.info
 		results[path] = &Result{
-			FileInfo:     &info,
+			FileInfo: &info,
 			Link:     me.link,
 			Backing:  me.backing,
 			Original: me.original,
@@ -633,4 +633,3 @@ func (me *memNode) Clear(path string) {
 		mn.Clear(p)
 	}
 }
-

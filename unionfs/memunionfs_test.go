@@ -32,7 +32,7 @@ func setupMemUfs(t *testing.T) (workdir string, ufs *MemUnionFs, cleanup func())
 	os.Mkdir(wd+"/ro", 0700)
 	fuse.CheckSuccess(err)
 
-	roFs := fuse.NewLoopbackFileSystem(wd+"/ro")
+	roFs := fuse.NewLoopbackFileSystem(wd + "/ro")
 	memFs := NewMemUnionFs(wd+"/backing", roFs)
 
 	// We configure timeouts are smaller, so we can check for
@@ -84,7 +84,7 @@ func TestMemUnionFsSymlinkPromote(t *testing.T) {
 
 	err = os.Symlink("/foobar", wd+"/mount/subdir/link")
 	CheckSuccess(err)
-		
+
 	r := ufs.Reap()
 	if len(r) != 2 || r["subdir"] == nil || r["subdir/link"] == nil || r["subdir/link"].Link != "/foobar" {
 		t.Errorf("expect 1 symlink reap result: %v", r)
@@ -231,7 +231,7 @@ func TestMemUnionFsSubdirCreate(t *testing.T) {
 	writeToFile(wd+"/mount/subdir/sub2/file", "other-content")
 	_, err = os.Lstat(wd + "/mount/subdir/sub2/file")
 	CheckSuccess(err)
-	
+
 	r := ufs.Reap()
 	if r["subdir/sub2/file"] == nil || r["subdir/sub2/file"].Backing == "" {
 		t.Errorf("expect 1 file reap result: %v", r)
@@ -245,7 +245,7 @@ func TestMemUnionFsCreate(t *testing.T) {
 	writeToFile(wd+"/mount/file.txt", "hello")
 	_, err := os.Lstat(wd + "/mount/file.txt")
 	CheckSuccess(err)
-	
+
 	r := ufs.Reap()
 	if r["file.txt"] == nil || r["file.txt"].Backing == "" {
 		t.Errorf("expect 1 file reap result: %v", r)
@@ -292,7 +292,7 @@ func TestMemUnionFsMkdirPromote(t *testing.T) {
 	CheckSuccess(err)
 
 	r := ufs.Reap()
-	if r["subdir/subdir2/dir3"] == nil ||  r["subdir/subdir2/dir3"].FileInfo.Mode & fuse.S_IFDIR == 0 {
+	if r["subdir/subdir2/dir3"] == nil || r["subdir/subdir2/dir3"].FileInfo.Mode&fuse.S_IFDIR == 0 {
 		t.Errorf("expect 1 file reap result: %v", r)
 	}
 }
@@ -504,7 +504,7 @@ func TestMemUnionFsDoubleOpen(t *testing.T) {
 func TestMemUnionFsUpdate(t *testing.T) {
 	wd, ufs, clean := setupMemUfs(t)
 	defer clean()
-	
+
 	err := ioutil.WriteFile(wd+"/ro/file1", []byte("blablabla"), 0644)
 	CheckSuccess(err)
 
@@ -516,14 +516,14 @@ func TestMemUnionFsUpdate(t *testing.T) {
 	if fi, _ := os.Lstat(wd + "/mount/symlink"); fi != nil {
 		t.Fatal("symlink should not exist", fi)
 	}
-	
-	err = os.Remove(wd+"/ro/file1")
+
+	err = os.Remove(wd + "/ro/file1")
 	CheckSuccess(err)
 	err = ioutil.WriteFile(wd+"/ro/file2", []byte("foobar"), 0644)
 	CheckSuccess(err)
-	err = os.Symlink("target", wd + "/ro/symlink")
+	err = os.Symlink("target", wd+"/ro/symlink")
 	CheckSuccess(err)
-	
+
 	// Still have cached attributes.
 	fi, err := os.Lstat(wd + "/mount/file1")
 	CheckSuccess(err)
@@ -538,7 +538,7 @@ func TestMemUnionFsUpdate(t *testing.T) {
 	CheckSuccess(err)
 	roSymlinkFi, err := os.Lstat(wd + "/ro/symlink")
 	CheckSuccess(err)
-	
+
 	updates := map[string]*Result{
 		"file1": &Result{
 			nil, "", "", "",
@@ -702,7 +702,7 @@ func TestMemUnionFsRenameDirBasic(t *testing.T) {
 	if r["dir"] == nil || r["dir"].FileInfo != nil || r["renamed/subdir"] == nil || !r["renamed/subdir"].FileInfo.IsDirectory() {
 		t.Errorf("Reap should del dir, and add renamed/subdir: %v", r)
 	}
-	
+
 	if err = os.Mkdir(wd+"/mount/dir", 0755); err != nil {
 		t.Errorf("mkdir should succeed %v", err)
 	}
@@ -782,11 +782,11 @@ func TestMemUnionGc(t *testing.T) {
 
 	writeToFile(wd+"/mount/file1", "other-content")
 	writeToFile(wd+"/mount/file2", "other-content")
-	err := os.Remove(wd+"/mount/file1")
+	err := os.Remove(wd + "/mount/file1")
 	CheckSuccess(err)
 	ufs.Clear()
-	
-	entries, err := ioutil.ReadDir(wd+"/backing")
+
+	entries, err := ioutil.ReadDir(wd + "/backing")
 	CheckSuccess(err)
 	if len(entries) != 0 {
 		t.Fatalf("should have 1 file after backing store gc: %v", entries)

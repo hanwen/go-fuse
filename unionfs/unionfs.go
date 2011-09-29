@@ -280,7 +280,7 @@ func (me *UnionFs) Promote(name string, srcResult branchResult, context *fuse.Co
 		code = fuse.CopyFile(sourceFs, writable, name, name, context)
 
 		if code.Ok() {
-			code = writable.Chmod(name, srcResult.attr.Mode & 07777 | 0200, context)
+			code = writable.Chmod(name, srcResult.attr.Mode&07777|0200, context)
 		}
 		if code.Ok() {
 			code = writable.Utimens(name, uint64(srcResult.attr.Atime_ns),
@@ -321,12 +321,11 @@ func (me *UnionFs) Promote(name string, srcResult branchResult, context *fuse.Co
 			code = writable.Symlink(link, name, context)
 		}
 	} else if srcResult.attr.IsDirectory() {
-		code = writable.Mkdir(name, srcResult.attr.Mode & 07777 | 0200, context)
+		code = writable.Mkdir(name, srcResult.attr.Mode&07777|0200, context)
 	} else {
 		log.Println("Unknown file type:", srcResult.attr)
 		return fuse.ENOSYS
 	}
-
 
 	if !code.Ok() {
 		me.branchCache.GetFresh(name)
@@ -635,7 +634,7 @@ func (me *UnionFs) promoteDirsTo(filename string) fuse.Status {
 		j := len(todo) - i - 1
 		d := todo[j]
 		r := results[j]
-		code := me.fileSystems[0].Mkdir(d, r.attr.Mode&07777 | 0200, nil)
+		code := me.fileSystems[0].Mkdir(d, r.attr.Mode&07777|0200, nil)
 		if code != fuse.OK {
 			log.Println("Error creating dir leading to path", d, code, me.fileSystems[0])
 			return fuse.EPERM

@@ -302,13 +302,13 @@ type operationFunc func(*MountState, *request)
 type castPointerFunc func(unsafe.Pointer) interface{}
 
 type operationHandler struct {
-	Name       string
-	Func       operationFunc
-	InputSize  uintptr
-	OutputSize uintptr
-	DecodeIn   castPointerFunc
-	DecodeOut  castPointerFunc
-	FileNames  int
+	Name        string
+	Func        operationFunc
+	InputSize   uintptr
+	OutputSize  uintptr
+	DecodeIn    castPointerFunc
+	DecodeOut   castPointerFunc
+	FileNames   int
 	FileNameOut bool
 }
 
@@ -339,11 +339,11 @@ func init() {
 		operationHandlers[i] = &operationHandler{Name: "UNKNOWN"}
 	}
 
-	fileOps := []opcode{_OP_READLINK, _OP_NOTIFY_ENTRY} 
+	fileOps := []opcode{_OP_READLINK, _OP_NOTIFY_ENTRY}
 	for _, op := range fileOps {
 		operationHandlers[op].FileNameOut = true
 	}
-	
+
 	for op, sz := range map[opcode]uintptr{
 		_OP_FORGET:     unsafe.Sizeof(ForgetIn{}),
 		_OP_GETATTR:    unsafe.Sizeof(GetAttrIn{}),
