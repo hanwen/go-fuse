@@ -308,8 +308,10 @@ func (me *UnionFs) Promote(name string, srcResult branchResult, context *fuse.Co
 
 			if uf.layer > 0 {
 				uf.layer = 0
-				uf.File.Release()
+				f := uf.File
 				uf.File, code = me.fileSystems[0].Open(name, fileWrapper.OpenFlags, context)
+				f.Flush()
+				f.Release()
 			}
 		}
 	} else if srcResult.attr.IsSymlink() {
