@@ -212,3 +212,9 @@ func (me *Kstatfs) String() string {
 		me.Blocks, me.Bfree, me.Bavail, me.Files, me.Ffree,
 		me.Bsize, me.NameLen, me.Frsize)
 }
+
+func (me *WithFlags) String() string {
+	return fmt.Sprintf("File %s (%s) %s %s",
+		me.File, me.Description, flagString(openFlagNames, int(me.OpenFlags), "O_RDONLY"),
+		flagString(fuseOpenFlagNames, int(me.FuseFlags), ""))
+}
