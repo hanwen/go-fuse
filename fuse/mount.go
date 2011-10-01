@@ -11,8 +11,8 @@ import (
 	"unsafe"
 )
 
-var fusermountBinary string = "/bin/fusermount"
-var umountBinary string = "/bin/umount"
+var fusermountBinary string = "fusermount"
+var umountBinary string = "umount"
 
 func Socketpair(network string) (l, r *os.File, err os.Error) {
 	var domain int
