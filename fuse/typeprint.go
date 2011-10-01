@@ -102,7 +102,7 @@ func (me *SetAttrIn) String() string {
 		s = append(s, fmt.Sprintf("uid %d", me.Gid))
 	}
 	if me.Valid&FATTR_SIZE != 0 {
-		s = append(s, fmt.Sprintf("uid %d", me.Size))
+		s = append(s, fmt.Sprintf("size %d", me.Size))
 	}
 	if me.Valid&FATTR_ATIME != 0 {
 		s = append(s, fmt.Sprintf("atime %d %d", me.Atime, me.Atimensec))
