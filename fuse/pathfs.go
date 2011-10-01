@@ -566,7 +566,7 @@ func (me *pathInode) GetAttr(file File, context *Context) (fi *os.FileInfo, code
 		fi, code = file.GetAttr()
 	}
 
-	if file == nil || code == ENOSYS {
+	if file == nil || code == ENOSYS || code == EBADF {
 		fi, code = me.fs.GetAttr(me.GetPath(), context)
 	}
 
@@ -585,12 +585,12 @@ func (me *pathInode) Chmod(file File, perms uint32, context *Context) (code Stat
 	for _, f := range files {
 		// TODO - pass context
 		code = f.Chmod(perms)
-		if !code.Ok() {
-			break
+		if code.Ok() {
+			return
 		}
 	}
 
-	if len(files) == 0 || code == ENOSYS {
+	if len(files) == 0 || code == ENOSYS || code == EBADF {
 		code = me.fs.Chmod(me.GetPath(), perms, context)
 	}
 	return code
@@ -601,11 +601,11 @@ func (me *pathInode) Chown(file File, uid uint32, gid uint32, context *Context) 
 	for _, f := range files {
 		// TODO - pass context
 		code = f.Chown(uid, gid)
-		if !code.Ok() {
-			break
+		if code.Ok() {
+			return code
 		}
 	}
-	if len(files) == 0 || code == ENOSYS {
+	if len(files) == 0 || code == ENOSYS || code == EBADF {
 		// TODO - can we get just FATTR_GID but not FATTR_UID ?
 		code = me.fs.Chown(me.GetPath(), uid, gid, context)
 	}
@@ -617,11 +617,11 @@ func (me *pathInode) Truncate(file File, size uint64, context *Context) (code St
 	for _, f := range files {
 		// TODO - pass context
 		code = f.Truncate(size)
-		if !code.Ok() {
-			break
+		if code.Ok() {
+			return code
 		}
 	}
-	if len(files) == 0 || code == ENOSYS {
+	if  len(files) == 0 || code == ENOSYS || code == EBADF {
 		code = me.fs.Truncate(me.GetPath(), size, context)
 	}
 	return code
@@ -632,11 +632,11 @@ func (me *pathInode) Utimens(file File, atime uint64, mtime uint64, context *Con
 	for _, f := range files {
 		// TODO - pass context
 		code = f.Utimens(atime, mtime)
-		if !code.Ok() {
-			break
+		if code.Ok() {
+			return code
 		}
 	}
-	if len(files) == 0 || code == ENOSYS {
+	if len(files) == 0 || code == ENOSYS || code == EBADF {
 		code = me.fs.Utimens(me.GetPath(), atime, mtime, context)
 	}
 	return code

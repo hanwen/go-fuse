@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"sync"
 	"testing"
 )
 
@@ -136,5 +137,50 @@ func TestNonseekable(t *testing.T) {
 	n, err := f.ReadAt(b, 20)
 	if err == nil || n > 0 {
 		t.Errorf("file was opened nonseekable, but seek successful")
+	}
+}
+
+func TestGetAttrRace(t *testing.T) {
+	dir, err := ioutil.TempDir("", "go-fuse")
+	CheckSuccess(err)
+	defer os.RemoveAll(dir)
+	os.Mkdir(dir+"/mnt", 0755)
+	os.Mkdir(dir+"/orig", 0755)
+
+	fs := NewLoopbackFileSystem(dir + "/orig")
+	pfs := NewPathNodeFs(fs, nil)
+	state, conn, err := MountNodeFileSystem(dir+"/mnt", pfs,
+		&FileSystemOptions{})
+	CheckSuccess(err)
+	state.Debug = VerboseTest()
+	conn.Debug = VerboseTest()
+	pfs.Debug = VerboseTest()
+	go state.Loop()
+
+	defer state.Unmount()
+
+	var wg sync.WaitGroup
+
+	n := 100
+	wg.Add(n)
+	var statErr os.Error
+	for i := 0; i < n; i++ {
+		go func() {
+			defer wg.Done()
+			fn := dir + "/mnt/file"
+			err := ioutil.WriteFile(fn, []byte{42}, 0644)
+			if err != nil {
+				statErr = err
+				return
+			}
+			_, err = os.Lstat(fn)
+			if err != nil {
+				statErr = err
+			}
+		}()
+	}
+	wg.Wait()
+	if statErr != nil {
+		t.Error(statErr)
 	}
 }

@@ -136,7 +136,7 @@ type FileSystem interface {
 
 // A File object should be returned from FileSystem.Open and
 // FileSystem.Create.  Include DefaultFile into the struct to inherit
-// a default null implementation.
+// a default null implementation.  
 //
 // TODO - should File be thread safe?
 // TODO - should we pass a *Context argument?
@@ -153,15 +153,17 @@ type File interface {
 
 	Read(*ReadIn, BufferPool) ([]byte, Status)
 	Write(*WriteIn, []byte) (written uint32, code Status)
-	Truncate(size uint64) Status
+	Flush() Status
+	Release()
+	Fsync(*FsyncIn) (code Status)
 
+	// The methods below may be called on closed files, due to
+	// concurrency.  In that case, you should return EBADF.
+	Truncate(size uint64) Status
 	GetAttr() (*os.FileInfo, Status)
 	Chown(uid uint32, gid uint32) Status
 	Chmod(perms uint32) Status
 	Utimens(atimeNs uint64, mtimeNs uint64) Status
-	Flush() Status
-	Release()
-	Fsync(*FsyncIn) (code Status)
 }
 
 // Wrap a File return in this to set FUSE flags.  Also used internally
