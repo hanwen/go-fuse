@@ -132,6 +132,12 @@ func (me *Attr) String() string {
 		me.Ctime, me.Ctimensec)
 }
 
+func (me *AttrOut) String() string {
+	return fmt.Sprintf(
+		"{A%d.%09d %v}",
+		me.AttrValid, me.AttrValidNsec, &me.Attr)
+}
+
 func (me *CreateIn) String() string {
 	return fmt.Sprintf(
 		"{0%o [%s] (0%o)}", me.Mode,
