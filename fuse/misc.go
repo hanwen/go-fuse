@@ -159,3 +159,18 @@ func VerboseTest() bool {
 	flag := flag.Lookup("test.v")
 	return flag != nil && flag.Value.String() == "true"
 }
+
+const AT_FDCWD = -100
+func Linkat(fd1 int, n1 string, fd2 int, n2 string) int {
+	b1 := syscall.StringBytePtr(n1)
+	b2 := syscall.StringBytePtr(n2)
+
+	_, _, errNo := syscall.Syscall6(
+		syscall.SYS_LINKAT,
+		uintptr(fd1),
+		uintptr(unsafe.Pointer(b1)),
+		uintptr(fd2),
+		uintptr(unsafe.Pointer(b2)),
+		0, 0)
+	return int(errNo)
+}
