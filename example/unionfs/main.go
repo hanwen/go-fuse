@@ -12,6 +12,7 @@ import (
 func main() {
 	debug := flag.Bool("debug", false, "debug on")
 	mem := flag.Bool("mem", false, "use in-memory unionfs")
+	portable := flag.Bool("portable", false, "use 32 bit inodes")
 
 	entry_ttl := flag.Float64("entry_ttl", 1.0, "fuse entry cache TTL.")
 	negative_ttl := flag.Float64("negative_ttl", 1.0, "fuse negative entry cache TTL.")
@@ -48,6 +49,7 @@ func main() {
 		EntryTimeout:    *entry_ttl,
 		AttrTimeout:     *entry_ttl,
 		NegativeTimeout: *negative_ttl,
+		PortableInodes:  *portable,
 	}
 	mountState, _, err := fuse.MountNodeFileSystem(flag.Arg(0), nodeFs, &mOpts)
 	if err != nil {
