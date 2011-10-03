@@ -2,17 +2,16 @@ package fuse
 
 // Written with a look to http://ptspts.blogspot.com/2009/11/fuse-protocol-tutorial-for-linux-26.html
 import (
+	"exec"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
-	"strings"
 	"syscall"
 	"unsafe"
 )
 
-var fusermountBinary string = "/bin/fusermount"
-var umountBinary string = "/bin/umount"
+var fusermountBinary string
+var umountBinary string
 
 func Socketpair(network string) (l, r *os.File, err os.Error) {
 	var domain int
@@ -153,20 +152,6 @@ func getConnection(local *os.File) (f *os.File, err os.Error) {
 }
 
 func init() {
-	for _, v := range strings.Split(os.Getenv("PATH"), ":") {
-		tpath := path.Join(v, "fusermount")
-		fi, _ := os.Stat(tpath)
-		if fi != nil && (fi.Mode&0111) != 0 {
-			fusermountBinary = tpath
-			break
-		}
-
-		tpath = path.Join(v, "umount")
-		fi, _ = os.Stat(tpath)
-		if fi != nil && (fi.Mode&0111) != 0 {
-			umountBinary = tpath
-			break
-		}
-
-	}
+	fusermountBinary, _ = exec.LookPath("fusermount")
+	umountBinary, _ = exec.LookPath("umount")
 }
