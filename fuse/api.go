@@ -1,7 +1,6 @@
 // The fuse package provides APIs to implement filesystems in
-// userspace, using libfuse on Linux.  Typically, each call of the API
-// happens in its own goroutine, so take care to make the file system
-// thread-safe.
+// userspace.  Typically, each call of the API happens in its own
+// goroutine, so take care to make the file system thread-safe.
 
 package fuse
 
