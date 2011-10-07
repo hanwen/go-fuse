@@ -6,12 +6,13 @@ import (
 	"testing"
 	"unsafe"
 )
+var _ = log.Println
 
-func markSeen(substr string) {
+func markSeen(t *testing.T, substr string) {
 	if r := recover(); r != nil {
 		s := r.(string)
 		if strings.Contains(s, substr) {
-			log.Println("expected recovery from: ", r)
+			t.Log("expected recovery from: ", r)
 		} else {
 			panic(s)
 		}
@@ -24,7 +25,7 @@ func TestHandleMapDoubleRegister(t *testing.T) {
 		return
 	}
 	t.Log("TestDoubleRegister")
-	defer markSeen("already has a handle")
+	defer markSeen(t, "already has a handle")
 	hm := NewHandleMap(false)
 	obj := &Handled{}
 	hm.Register(obj, obj)
@@ -44,7 +45,7 @@ func TestHandleMapUnaligned(t *testing.T) {
 	b := make([]byte, 100)
 	v := (*Handled)(unsafe.Pointer(&b[1]))
 
-	defer markSeen("unaligned")
+	defer markSeen(t, "unaligned")
 	hm.Register(v, v)
 	t.Error("Unaligned register did not panic")
 }
@@ -59,7 +60,7 @@ func TestHandleMapPointerLayout(t *testing.T) {
 	bogus := uint64(1) << uint32((8 * (unsafe.Sizeof(t) - 1)))
 	p := uintptr(bogus)
 	v := (*Handled)(unsafe.Pointer(p))
-	defer markSeen("48")
+	defer markSeen(t, "48")
 	hm.Register(v, v)
 	t.Error("bogus register did not panic")
 }
@@ -111,7 +112,7 @@ func TestHandleMapCheckFail(t *testing.T) {
 		t.Log("skipping test for 32 bits")
 		return
 	}
-	defer markSeen("check mismatch")
+	defer markSeen(t, "check mismatch")
 
 	v := new(Handled)
 	hm := NewHandleMap(false)
