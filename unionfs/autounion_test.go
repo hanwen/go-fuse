@@ -30,7 +30,7 @@ func WriteFile(name string, contents string) {
 
 func setup(t *testing.T) (workdir string, cleanup func()) {
 	wd, _ := ioutil.TempDir("", "")
-	err := os.Mkdir(wd+"/mount", 0700)
+	err := os.Mkdir(wd+"/mnt", 0700)
 	fuse.CheckSuccess(err)
 
 	err = os.Mkdir(wd+"/store", 0700)
@@ -42,7 +42,7 @@ func setup(t *testing.T) (workdir string, cleanup func()) {
 	WriteFile(wd+"/ro/file2", "file2")
 
 	fs := NewAutoUnionFs(wd+"/store", testAOpts)
-	state, conn, err := fuse.MountPathFileSystem(wd+"/mount", fs, &testAOpts.FileSystemOptions)
+	state, conn, err := fuse.MountPathFileSystem(wd+"/mnt", fs, &testAOpts.FileSystemOptions)
 	CheckSuccess(err)
 	state.Debug = fuse.VerboseTest()
 	conn.Debug = fuse.VerboseTest()
@@ -58,7 +58,7 @@ func TestVersion(t *testing.T) {
 	wd, clean := setup(t)
 	defer clean()
 
-	c, err := ioutil.ReadFile(wd + "/mount/status/gounionfs_version")
+	c, err := ioutil.ReadFile(wd + "/mnt/status/gounionfs_version")
 	CheckSuccess(err)
 	if len(c) == 0 {
 		t.Fatal("No version found.")
@@ -76,36 +76,36 @@ func TestAutoFsSymlink(t *testing.T) {
 	err = os.Symlink(wd+"/ro", wd+"/store/backing1/READONLY")
 	CheckSuccess(err)
 
-	err = os.Symlink(wd+"/store/backing1", wd+"/mount/config/manual1")
+	err = os.Symlink(wd+"/store/backing1", wd+"/mnt/config/manual1")
 	CheckSuccess(err)
 
-	fi, err := os.Lstat(wd + "/mount/manual1/file1")
+	fi, err := os.Lstat(wd + "/mnt/manual1/file1")
 	CheckSuccess(err)
 
-	entries, err := ioutil.ReadDir(wd + "/mount")
+	entries, err := ioutil.ReadDir(wd + "/mnt")
 	CheckSuccess(err)
 	if len(entries) != 3 {
 		t.Error("readdir mismatch", entries)
 	}
 
-	err = os.Remove(wd + "/mount/config/manual1")
+	err = os.Remove(wd + "/mnt/config/manual1")
 	CheckSuccess(err)
 
-	scan := wd + "/mount/config/" + _SCAN_CONFIG
+	scan := wd + "/mnt/config/" + _SCAN_CONFIG
 	err = ioutil.WriteFile(scan, []byte("something"), 0644)
 	if err != nil {
 		t.Error("error writing:", err)
 	}
 
-	fi, _ = os.Lstat(wd + "/mount/manual1")
+	fi, _ = os.Lstat(wd + "/mnt/manual1")
 	if fi != nil {
 		t.Error("Should not have file:", fi)
 	}
 
-	_, err = ioutil.ReadDir(wd + "/mount/config")
+	_, err = ioutil.ReadDir(wd + "/mnt/config")
 	CheckSuccess(err)
 
-	_, err = os.Lstat(wd + "/mount/backing1/file1")
+	_, err = os.Lstat(wd + "/mnt/backing1/file1")
 	CheckSuccess(err)
 }
 
@@ -122,13 +122,13 @@ func TestDetectSymlinkedDirectories(t *testing.T) {
 	err = os.Symlink(wd+"/backing1", wd+"/store/backing1")
 	CheckSuccess(err)
 
-	scan := wd + "/mount/config/" + _SCAN_CONFIG
+	scan := wd + "/mnt/config/" + _SCAN_CONFIG
 	err = ioutil.WriteFile(scan, []byte("something"), 0644)
 	if err != nil {
 		t.Error("error writing:", err)
 	}
 
-	_, err = os.Lstat(wd + "/mount/backing1")
+	_, err = os.Lstat(wd + "/mnt/backing1")
 	CheckSuccess(err)
 }
 
@@ -141,12 +141,12 @@ func TestExplicitScan(t *testing.T) {
 	os.Symlink(wd+"/ro", wd+"/store/backing1/READONLY")
 	CheckSuccess(err)
 
-	fi, _ := os.Lstat(wd + "/mount/backing1")
+	fi, _ := os.Lstat(wd + "/mnt/backing1")
 	if fi != nil {
 		t.Error("Should not have file:", fi)
 	}
 
-	scan := wd + "/mount/config/" + _SCAN_CONFIG
+	scan := wd + "/mnt/config/" + _SCAN_CONFIG
 	_, err = os.Lstat(scan)
 	if err != nil {
 		t.Error(".scan_config missing:", err)
@@ -157,7 +157,7 @@ func TestExplicitScan(t *testing.T) {
 		t.Error("error writing:", err)
 	}
 
-	_, err = os.Lstat(wd + "/mount/backing1")
+	_, err = os.Lstat(wd + "/mnt/backing1")
 	if err != nil {
 		t.Error("Should have workspace backing1:", err)
 	}
@@ -177,16 +177,16 @@ func TestCreationChecks(t *testing.T) {
 	os.Symlink(wd+"/ro", wd+"/store/ws2/READONLY")
 	CheckSuccess(err)
 
-	err = os.Symlink(wd+"/store/foo", wd+"/mount/config/bar")
+	err = os.Symlink(wd+"/store/foo", wd+"/mnt/config/bar")
 	CheckSuccess(err)
 
-	err = os.Symlink(wd+"/store/foo", wd+"/mount/config/foo")
+	err = os.Symlink(wd+"/store/foo", wd+"/mnt/config/foo")
 	code := fuse.OsErrorToErrno(err)
 	if code != fuse.EBUSY {
 		t.Error("Should return EBUSY", err)
 	}
 
-	err = os.Symlink(wd+"/store/ws2", wd+"/mount/config/config")
+	err = os.Symlink(wd+"/store/ws2", wd+"/mnt/config/config")
 	code = fuse.OsErrorToErrno(err)
 	if code != fuse.EINVAL {
 		t.Error("Should return EINVAL", err)

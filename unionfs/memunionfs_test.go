@@ -23,7 +23,7 @@ func setupMemUfs(t *testing.T) (workdir string, ufs *MemUnionFs, cleanup func())
 	syscall.Umask(0)
 
 	wd, _ := ioutil.TempDir("", "")
-	err := os.Mkdir(wd+"/mount", 0700)
+	err := os.Mkdir(wd+"/mnt", 0700)
 	fuse.CheckSuccess(err)
 
 	err = os.Mkdir(wd+"/backing", 0700)
@@ -43,7 +43,7 @@ func setupMemUfs(t *testing.T) (workdir string, ufs *MemUnionFs, cleanup func())
 		NegativeTimeout: .5 * entryTtl,
 	}
 
-	state, conn, err := fuse.MountNodeFileSystem(wd+"/mount", memFs, opts)
+	state, conn, err := fuse.MountNodeFileSystem(wd+"/mnt", memFs, opts)
 	CheckSuccess(err)
 	conn.Debug = fuse.VerboseTest()
 	state.Debug = fuse.VerboseTest()
@@ -59,10 +59,10 @@ func TestMemUnionFsSymlink(t *testing.T) {
 	wd, ufs, clean := setupMemUfs(t)
 	defer clean()
 
-	err := os.Symlink("/foobar", wd+"/mount/link")
+	err := os.Symlink("/foobar", wd+"/mnt/link")
 	CheckSuccess(err)
 
-	val, err := os.Readlink(wd + "/mount/link")
+	val, err := os.Readlink(wd + "/mnt/link")
 	CheckSuccess(err)
 
 	if val != "/foobar" {
@@ -82,7 +82,7 @@ func TestMemUnionFsSymlinkPromote(t *testing.T) {
 	err := os.Mkdir(wd+"/ro/subdir", 0755)
 	CheckSuccess(err)
 
-	err = os.Symlink("/foobar", wd+"/mount/subdir/link")
+	err = os.Symlink("/foobar", wd+"/mnt/subdir/link")
 	CheckSuccess(err)
 
 	r := ufs.Reap()
@@ -99,10 +99,10 @@ func TestMemUnionFsChtimes(t *testing.T) {
 	err := os.Chtimes(wd+"/ro/file", 42e9, 43e9)
 	CheckSuccess(err)
 
-	err = os.Chtimes(wd+"/mount/file", 82e9, 83e9)
+	err = os.Chtimes(wd+"/mnt/file", 82e9, 83e9)
 	CheckSuccess(err)
 
-	fi, err := os.Lstat(wd + "/mount/file")
+	fi, err := os.Lstat(wd + "/mnt/file")
 	if fi.Atime_ns != 82e9 || fi.Mtime_ns != 83e9 {
 		t.Error("Incorrect timestamp", fi)
 	}
@@ -118,7 +118,7 @@ func TestMemUnionFsChmod(t *testing.T) {
 	defer clean()
 
 	ro_fn := wd + "/ro/file"
-	m_fn := wd + "/mount/file"
+	m_fn := wd + "/mnt/file"
 	writeToFile(ro_fn, "a")
 	err := os.Chmod(m_fn, 07070)
 	CheckSuccess(err)
@@ -140,7 +140,7 @@ func TestMemUnionFsChown(t *testing.T) {
 	defer clean()
 
 	ro_fn := wd + "/ro/file"
-	m_fn := wd + "/mount/file"
+	m_fn := wd + "/mnt/file"
 	writeToFile(ro_fn, "a")
 
 	err := os.Chown(m_fn, 0, 0)
@@ -155,13 +155,13 @@ func TestMemUnionFsDelete(t *testing.T) {
 	defer clean()
 
 	writeToFile(wd+"/ro/file", "a")
-	_, err := os.Lstat(wd + "/mount/file")
+	_, err := os.Lstat(wd + "/mnt/file")
 	CheckSuccess(err)
 
-	err = os.Remove(wd + "/mount/file")
+	err = os.Remove(wd + "/mnt/file")
 	CheckSuccess(err)
 
-	_, err = os.Lstat(wd + "/mount/file")
+	_, err = os.Lstat(wd + "/mnt/file")
 	if err == nil {
 		t.Fatal("should have disappeared.")
 	}
@@ -176,32 +176,32 @@ func TestMemUnionFsBasic(t *testing.T) {
 	wd, _, clean := setupMemUfs(t)
 	defer clean()
 
-	writeToFile(wd+"/mount/rw", "a")
+	writeToFile(wd+"/mnt/rw", "a")
 	writeToFile(wd+"/ro/ro1", "a")
 	writeToFile(wd+"/ro/ro2", "b")
-	names := dirNames(wd + "/mount")
+	names := dirNames(wd + "/mnt")
 
 	expected := map[string]bool{
 		"rw": true, "ro1": true, "ro2": true,
 	}
 	checkMapEq(t, names, expected)
 
-	writeToFile(wd+"/mount/new", "new contents")
+	writeToFile(wd+"/mnt/new", "new contents")
 
-	contents := readFromFile(wd + "/mount/new")
+	contents := readFromFile(wd + "/mnt/new")
 	if contents != "new contents" {
 		t.Errorf("read mismatch: '%v'", contents)
 	}
-	writeToFile(wd+"/mount/ro1", "promote me")
+	writeToFile(wd+"/mnt/ro1", "promote me")
 
-	remove(wd + "/mount/new")
-	names = dirNames(wd + "/mount")
+	remove(wd + "/mnt/new")
+	names = dirNames(wd + "/mnt")
 	checkMapEq(t, names, map[string]bool{
 		"rw": true, "ro1": true, "ro2": true,
 	})
 
-	remove(wd + "/mount/ro1")
-	names = dirNames(wd + "/mount")
+	remove(wd + "/mnt/ro1")
+	names = dirNames(wd + "/mnt")
 	checkMapEq(t, names, map[string]bool{
 		"rw": true, "ro2": true,
 	})
@@ -214,7 +214,7 @@ func TestMemUnionFsPromote(t *testing.T) {
 	err := os.Mkdir(wd+"/ro/subdir", 0755)
 	CheckSuccess(err)
 	writeToFile(wd+"/ro/subdir/file", "content")
-	writeToFile(wd+"/mount/subdir/file", "other-content")
+	writeToFile(wd+"/mnt/subdir/file", "other-content")
 
 	r := ufs.Reap()
 	if r["subdir/file"] == nil || r["subdir/file"].Backing == "" {
@@ -228,8 +228,8 @@ func TestMemUnionFsSubdirCreate(t *testing.T) {
 
 	err := os.MkdirAll(wd+"/ro/subdir/sub2", 0755)
 	CheckSuccess(err)
-	writeToFile(wd+"/mount/subdir/sub2/file", "other-content")
-	_, err = os.Lstat(wd + "/mount/subdir/sub2/file")
+	writeToFile(wd+"/mnt/subdir/sub2/file", "other-content")
+	_, err = os.Lstat(wd + "/mnt/subdir/sub2/file")
 	CheckSuccess(err)
 
 	r := ufs.Reap()
@@ -242,8 +242,8 @@ func TestMemUnionFsCreate(t *testing.T) {
 	wd, ufs, clean := setupMemUfs(t)
 	defer clean()
 
-	writeToFile(wd+"/mount/file.txt", "hello")
-	_, err := os.Lstat(wd + "/mount/file.txt")
+	writeToFile(wd+"/mnt/file.txt", "hello")
+	_, err := os.Lstat(wd + "/mnt/file.txt")
 	CheckSuccess(err)
 
 	r := ufs.Reap()
@@ -257,17 +257,17 @@ func TestMemUnionFsOpenUndeletes(t *testing.T) {
 	defer clean()
 
 	writeToFile(wd+"/ro/file", "X")
-	err := os.Remove(wd + "/mount/file")
+	err := os.Remove(wd + "/mnt/file")
 	CheckSuccess(err)
-	writeToFile(wd+"/mount/file", "X")
-	_, err = os.Lstat(wd + "/mount/file")
+	writeToFile(wd+"/mnt/file", "X")
+	_, err = os.Lstat(wd + "/mnt/file")
 }
 
 func TestMemUnionFsMkdir(t *testing.T) {
 	wd, ufs, clean := setupMemUfs(t)
 	defer clean()
 
-	dirname := wd + "/mount/subdir"
+	dirname := wd + "/mnt/subdir"
 	err := os.Mkdir(dirname, 0755)
 	CheckSuccess(err)
 
@@ -288,7 +288,7 @@ func TestMemUnionFsMkdirPromote(t *testing.T) {
 	err := os.MkdirAll(dirname, 0755)
 	CheckSuccess(err)
 
-	err = os.Mkdir(wd+"/mount/subdir/subdir2/dir3", 0755)
+	err = os.Mkdir(wd+"/mnt/subdir/subdir2/dir3", 0755)
 	CheckSuccess(err)
 
 	r := ufs.Reap()
@@ -304,7 +304,7 @@ func TestMemUnionFsRmdirMkdir(t *testing.T) {
 	err := os.Mkdir(wd+"/ro/subdir", 0755)
 	CheckSuccess(err)
 
-	dirname := wd + "/mount/subdir"
+	dirname := wd + "/mnt/subdir"
 	err = os.Remove(dirname)
 	CheckSuccess(err)
 
@@ -321,18 +321,18 @@ func TestMemUnionFsLink(t *testing.T) {
 	err := ioutil.WriteFile(fn, []byte(content), 0666)
 	CheckSuccess(err)
 
-	err = os.Link(wd+"/mount/file", wd+"/mount/linked")
+	err = os.Link(wd+"/mnt/file", wd+"/mnt/linked")
 	CheckSuccess(err)
 
-	fi2, err := os.Lstat(wd + "/mount/linked")
+	fi2, err := os.Lstat(wd + "/mnt/linked")
 	CheckSuccess(err)
 
-	fi1, err := os.Lstat(wd + "/mount/file")
+	fi1, err := os.Lstat(wd + "/mnt/file")
 	CheckSuccess(err)
 	if fi1.Ino != fi2.Ino {
 		t.Errorf("inode numbers should be equal for linked files %v, %v", fi1.Ino, fi2.Ino)
 	}
-	c, err := ioutil.ReadFile(wd + "/mount/linked")
+	c, err := ioutil.ReadFile(wd + "/mnt/linked")
 	if string(c) != content {
 		t.Errorf("content mismatch got %q want %q", string(c), content)
 	}
@@ -347,7 +347,7 @@ func TestMemUnionFsCreateLink(t *testing.T) {
 	err := ioutil.WriteFile(fn, []byte(content), 0666)
 	CheckSuccess(err)
 
-	err = os.Link(wd+"/mount/file", wd+"/mount/linked")
+	err = os.Link(wd+"/mnt/file", wd+"/mnt/linked")
 	CheckSuccess(err)
 }
 
@@ -356,8 +356,8 @@ func TestMemUnionFsTruncate(t *testing.T) {
 	defer clean()
 
 	writeToFile(wd+"/ro/file", "hello")
-	os.Truncate(wd+"/mount/file", 2)
-	content := readFromFile(wd + "/mount/file")
+	os.Truncate(wd+"/mnt/file", 2)
+	content := readFromFile(wd + "/mnt/file")
 	if content != "he" {
 		t.Errorf("unexpected content %v", content)
 	}
@@ -368,7 +368,7 @@ func TestMemUnionFsCopyChmod(t *testing.T) {
 	defer clean()
 
 	contents := "hello"
-	fn := wd + "/mount/y"
+	fn := wd + "/mnt/y"
 	err := ioutil.WriteFile(fn, []byte(contents), 0644)
 	CheckSuccess(err)
 
@@ -393,7 +393,7 @@ func TestMemUnionFsTruncateTimestamp(t *testing.T) {
 	defer clean()
 
 	contents := "hello"
-	fn := wd + "/mount/y"
+	fn := wd + "/mnt/y"
 	err := ioutil.WriteFile(fn, []byte(contents), 0644)
 	CheckSuccess(err)
 	time.Sleep(0.2e9)
@@ -422,7 +422,7 @@ func TestMemUnionFsRemoveAll(t *testing.T) {
 	err = ioutil.WriteFile(fn, []byte(contents), 0644)
 	CheckSuccess(err)
 
-	err = os.RemoveAll(wd + "/mount/dir")
+	err = os.RemoveAll(wd + "/mnt/dir")
 	if err != nil {
 		t.Error("Should delete all")
 	}
@@ -447,7 +447,7 @@ func TestMemUnionFsRmRf(t *testing.T) {
 	CheckSuccess(err)
 	bin, err := exec.LookPath("rm")
 	CheckSuccess(err)
-	cmd := exec.Command(bin, "-rf", wd+"/mount/dir")
+	cmd := exec.Command(bin, "-rf", wd+"/mnt/dir")
 	err = cmd.Run()
 	if err != nil {
 		t.Fatal("rm -rf returned error:", err)
@@ -467,11 +467,11 @@ func TestMemUnionFsDeletedGetAttr(t *testing.T) {
 	err := ioutil.WriteFile(wd+"/ro/file", []byte("blabla"), 0644)
 	CheckSuccess(err)
 
-	f, err := os.Open(wd + "/mount/file")
+	f, err := os.Open(wd + "/mnt/file")
 	CheckSuccess(err)
 	defer f.Close()
 
-	err = os.Remove(wd + "/mount/file")
+	err = os.Remove(wd + "/mnt/file")
 	CheckSuccess(err)
 
 	if fi, err := f.Stat(); err != nil || !fi.IsRegular() {
@@ -485,10 +485,10 @@ func TestMemUnionFsDoubleOpen(t *testing.T) {
 	err := ioutil.WriteFile(wd+"/ro/file", []byte("blablabla"), 0644)
 	CheckSuccess(err)
 
-	roFile, err := os.Open(wd + "/mount/file")
+	roFile, err := os.Open(wd + "/mnt/file")
 	CheckSuccess(err)
 	defer roFile.Close()
-	rwFile, err := os.OpenFile(wd+"/mount/file", os.O_WRONLY|os.O_TRUNC, 0666)
+	rwFile, err := os.OpenFile(wd+"/mnt/file", os.O_WRONLY|os.O_TRUNC, 0666)
 	CheckSuccess(err)
 	defer rwFile.Close()
 
@@ -521,12 +521,12 @@ func TestMemUnionFsUpdate(t *testing.T) {
 	err := ioutil.WriteFile(wd+"/ro/file1", []byte("blablabla"), 0644)
 	CheckSuccess(err)
 
-	_, err = os.Lstat(wd + "/mount/file1")
+	_, err = os.Lstat(wd + "/mnt/file1")
 	CheckSuccess(err)
-	if fi, _ := os.Lstat(wd + "/mount/file2"); fi != nil {
+	if fi, _ := os.Lstat(wd + "/mnt/file2"); fi != nil {
 		t.Fatal("file2 should not exist", fi)
 	}
-	if fi, _ := os.Lstat(wd + "/mount/symlink"); fi != nil {
+	if fi, _ := os.Lstat(wd + "/mnt/symlink"); fi != nil {
 		t.Fatal("symlink should not exist", fi)
 	}
 
@@ -538,12 +538,12 @@ func TestMemUnionFsUpdate(t *testing.T) {
 	CheckSuccess(err)
 
 	// Still have cached attributes.
-	fi, err := os.Lstat(wd + "/mount/file1")
+	fi, err := os.Lstat(wd + "/mnt/file1")
 	CheckSuccess(err)
-	if fi, _ := os.Lstat(wd + "/mount/file2"); fi != nil {
+	if fi, _ := os.Lstat(wd + "/mnt/file2"); fi != nil {
 		t.Fatal("file2 should not exist")
 	}
-	if fi, _ := os.Lstat(wd + "/mount/symlink"); fi != nil {
+	if fi, _ := os.Lstat(wd + "/mnt/symlink"); fi != nil {
 		t.Fatal("symlink should not exist", fi)
 	}
 
@@ -567,17 +567,17 @@ func TestMemUnionFsUpdate(t *testing.T) {
 	ufs.Update(updates)
 
 	// Cached attributes flushed.
-	if fi, _ := os.Lstat(wd + "/mount/file1"); fi != nil {
+	if fi, _ := os.Lstat(wd + "/mnt/file1"); fi != nil {
 		t.Fatal("file1 should have disappeared", fi)
 	}
 
-	fi, err = os.Lstat(wd + "/mount/file2")
+	fi, err = os.Lstat(wd + "/mnt/file2")
 	CheckSuccess(err)
 	if roF2.Mtime_ns != fi.Mtime_ns {
 		t.Fatalf("file2 attribute mismatch: got %v want %v", fi, roF2)
 	}
 
-	val, err := os.Readlink(wd + "/mount/symlink")
+	val, err := os.Readlink(wd + "/mnt/symlink")
 	CheckSuccess(err)
 	if val != "target" {
 		t.Error("symlink value got %q want %v", val, "target")
@@ -592,10 +592,10 @@ func TestMemUnionFsFdLeak(t *testing.T) {
 	err = ioutil.WriteFile(wd+"/ro/file", []byte("blablabla"), 0644)
 	CheckSuccess(err)
 
-	contents, err := ioutil.ReadFile(wd + "/mount/file")
+	contents, err := ioutil.ReadFile(wd + "/mnt/file")
 	CheckSuccess(err)
 
-	err = ioutil.WriteFile(wd+"/mount/file", contents, 0644)
+	err = ioutil.WriteFile(wd+"/mnt/file", contents, 0644)
 	CheckSuccess(err)
 
 	clean()
@@ -613,7 +613,7 @@ func TestMemUnionFsStatFs(t *testing.T) {
 	defer clean()
 
 	s1 := syscall.Statfs_t{}
-	err := syscall.Statfs(wd+"/mount", &s1)
+	err := syscall.Statfs(wd+"/mnt", &s1)
 	if err != 0 {
 		t.Fatal("statfs mnt", err)
 	}
@@ -626,7 +626,7 @@ func TestMemUnionFsFlushSize(t *testing.T) {
 	wd, _, clean := setupMemUfs(t)
 	defer clean()
 
-	fn := wd + "/mount/file"
+	fn := wd + "/mnt/file"
 	f, err := os.OpenFile(fn, os.O_WRONLY|os.O_CREATE, 0644)
 	CheckSuccess(err)
 	fi, err := f.Stat()
@@ -647,9 +647,9 @@ func TestMemUnionFsFlushRename(t *testing.T) {
 	wd, _, clean := setupMemUfs(t)
 	defer clean()
 
-	err := ioutil.WriteFile(wd+"/mount/file", []byte("x"), 0644)
+	err := ioutil.WriteFile(wd+"/mnt/file", []byte("x"), 0644)
 
-	fn := wd + "/mount/tmp"
+	fn := wd + "/mnt/tmp"
 	f, err := os.OpenFile(fn, os.O_WRONLY|os.O_CREATE, 0644)
 	CheckSuccess(err)
 	fi, err := f.Stat()
@@ -659,7 +659,7 @@ func TestMemUnionFsFlushRename(t *testing.T) {
 	CheckSuccess(err)
 	f.Close()
 
-	dst := wd + "/mount/file"
+	dst := wd + "/mnt/file"
 	err = os.Rename(fn, dst)
 	CheckSuccess(err)
 
@@ -675,14 +675,14 @@ func TestMemUnionFsTruncGetAttr(t *testing.T) {
 	defer clean()
 
 	c := []byte("hello")
-	f, err := os.OpenFile(wd+"/mount/file", os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
+	f, err := os.OpenFile(wd+"/mnt/file", os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
 	CheckSuccess(err)
 	_, err = f.Write(c)
 	CheckSuccess(err)
 	err = f.Close()
 	CheckSuccess(err)
 
-	fi, err := os.Lstat(wd + "/mount/file")
+	fi, err := os.Lstat(wd + "/mnt/file")
 	if fi.Size != int64(len(c)) {
 		t.Fatalf("Length mismatch got %d want %d", fi.Size, len(c))
 	}
@@ -695,20 +695,20 @@ func TestMemUnionFsRenameDirBasic(t *testing.T) {
 	err := os.MkdirAll(wd+"/ro/dir/subdir", 0755)
 	CheckSuccess(err)
 
-	err = os.Rename(wd+"/mount/dir", wd+"/mount/renamed")
+	err = os.Rename(wd+"/mnt/dir", wd+"/mnt/renamed")
 	CheckSuccess(err)
 
-	if fi, _ := os.Lstat(wd + "/mount/dir"); fi != nil {
-		t.Fatalf("%s/mount/dir should have disappeared: %v", wd, fi)
+	if fi, _ := os.Lstat(wd + "/mnt/dir"); fi != nil {
+		t.Fatalf("%s/mnt/dir should have disappeared: %v", wd, fi)
 	}
 
-	if fi, _ := os.Lstat(wd + "/mount/renamed"); fi == nil || !fi.IsDirectory() {
-		t.Fatalf("%s/mount/renamed should be directory: %v", wd, fi)
+	if fi, _ := os.Lstat(wd + "/mnt/renamed"); fi == nil || !fi.IsDirectory() {
+		t.Fatalf("%s/mnt/renamed should be directory: %v", wd, fi)
 	}
 
-	entries, err := ioutil.ReadDir(wd + "/mount/renamed")
+	entries, err := ioutil.ReadDir(wd + "/mnt/renamed")
 	if err != nil || len(entries) != 1 || entries[0].Name != "subdir" {
-		t.Errorf("readdir(%s/mount/renamed) should have one entry: %v, err %v", wd, entries, err)
+		t.Errorf("readdir(%s/mnt/renamed) should have one entry: %v, err %v", wd, entries, err)
 	}
 
 	r := ufs.Reap()
@@ -716,7 +716,7 @@ func TestMemUnionFsRenameDirBasic(t *testing.T) {
 		t.Errorf("Reap should del dir, and add renamed/subdir: %v", r)
 	}
 
-	if err = os.Mkdir(wd+"/mount/dir", 0755); err != nil {
+	if err = os.Mkdir(wd+"/mnt/dir", 0755); err != nil {
 		t.Errorf("mkdir should succeed %v", err)
 	}
 
@@ -732,7 +732,7 @@ func TestMemUnionFsRenameDirAllSourcesGone(t *testing.T) {
 	err = ioutil.WriteFile(wd+"/ro/dir/file.txt", []byte{42}, 0644)
 	CheckSuccess(err)
 
-	err = os.Rename(wd+"/mount/dir", wd+"/mount/renamed")
+	err = os.Rename(wd+"/mnt/dir", wd+"/mnt/renamed")
 	CheckSuccess(err)
 
 	r := ufs.Reap()
@@ -754,38 +754,38 @@ func TestMemUnionFsRenameDirWithDeletions(t *testing.T) {
 	err = ioutil.WriteFile(wd+"/ro/dir/subdir/file.txt", []byte{42}, 0644)
 	CheckSuccess(err)
 
-	if fi, _ := os.Lstat(wd + "/mount/dir/subdir/file.txt"); fi == nil || !fi.IsRegular() {
-		t.Fatalf("%s/mount/dir/subdir/file.txt should be file: %v", wd, fi)
+	if fi, _ := os.Lstat(wd + "/mnt/dir/subdir/file.txt"); fi == nil || !fi.IsRegular() {
+		t.Fatalf("%s/mnt/dir/subdir/file.txt should be file: %v", wd, fi)
 	}
 
-	err = os.Remove(wd + "/mount/dir/file.txt")
+	err = os.Remove(wd + "/mnt/dir/file.txt")
 	CheckSuccess(err)
 
-	err = os.Rename(wd+"/mount/dir", wd+"/mount/renamed")
+	err = os.Rename(wd+"/mnt/dir", wd+"/mnt/renamed")
 	CheckSuccess(err)
 
-	if fi, _ := os.Lstat(wd + "/mount/dir/subdir/file.txt"); fi != nil {
-		t.Fatalf("%s/mount/dir/subdir/file.txt should have disappeared: %v", wd, fi)
+	if fi, _ := os.Lstat(wd + "/mnt/dir/subdir/file.txt"); fi != nil {
+		t.Fatalf("%s/mnt/dir/subdir/file.txt should have disappeared: %v", wd, fi)
 	}
 
-	if fi, _ := os.Lstat(wd + "/mount/dir"); fi != nil {
-		t.Fatalf("%s/mount/dir should have disappeared: %v", wd, fi)
+	if fi, _ := os.Lstat(wd + "/mnt/dir"); fi != nil {
+		t.Fatalf("%s/mnt/dir should have disappeared: %v", wd, fi)
 	}
 
-	if fi, _ := os.Lstat(wd + "/mount/renamed"); fi == nil || !fi.IsDirectory() {
-		t.Fatalf("%s/mount/renamed should be directory: %v", wd, fi)
+	if fi, _ := os.Lstat(wd + "/mnt/renamed"); fi == nil || !fi.IsDirectory() {
+		t.Fatalf("%s/mnt/renamed should be directory: %v", wd, fi)
 	}
 
-	if fi, _ := os.Lstat(wd + "/mount/renamed/file.txt"); fi != nil {
-		t.Fatalf("%s/mount/renamed/file.txt should have disappeared %#v", wd, fi)
+	if fi, _ := os.Lstat(wd + "/mnt/renamed/file.txt"); fi != nil {
+		t.Fatalf("%s/mnt/renamed/file.txt should have disappeared %#v", wd, fi)
 	}
 
-	if err = os.Mkdir(wd+"/mount/dir", 0755); err != nil {
+	if err = os.Mkdir(wd+"/mnt/dir", 0755); err != nil {
 		t.Errorf("mkdir should succeed %v", err)
 	}
 
-	if fi, _ := os.Lstat(wd + "/mount/dir/subdir"); fi != nil {
-		t.Fatalf("%s/mount/dir/subdir should have disappeared %#v", wd, fi)
+	if fi, _ := os.Lstat(wd + "/mnt/dir/subdir"); fi != nil {
+		t.Fatalf("%s/mnt/dir/subdir should have disappeared %#v", wd, fi)
 	}
 }
 
@@ -793,9 +793,9 @@ func TestMemUnionGc(t *testing.T) {
 	wd, ufs, clean := setupMemUfs(t)
 	defer clean()
 
-	writeToFile(wd+"/mount/file1", "other-content")
-	writeToFile(wd+"/mount/file2", "other-content")
-	err := os.Remove(wd + "/mount/file1")
+	writeToFile(wd+"/mnt/file1", "other-content")
+	writeToFile(wd+"/mnt/file2", "other-content")
+	err := os.Remove(wd + "/mnt/file1")
 	CheckSuccess(err)
 	ufs.Clear()
 
