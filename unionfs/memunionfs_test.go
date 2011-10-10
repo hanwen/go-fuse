@@ -338,6 +338,19 @@ func TestMemUnionFsLink(t *testing.T) {
 	}
 }
 
+func TestMemUnionFsCreateLink(t *testing.T) {
+	wd, _, clean := setupMemUfs(t)
+	defer clean()
+
+	content := "blabla"
+	fn := wd + "/mnt/file"
+	err := ioutil.WriteFile(fn, []byte(content), 0666)
+	CheckSuccess(err)
+
+	err = os.Link(wd+"/mount/file", wd+"/mount/linked")
+	CheckSuccess(err)
+}
+
 func TestMemUnionFsTruncate(t *testing.T) {
 	wd, _, clean := setupMemUfs(t)
 	defer clean()

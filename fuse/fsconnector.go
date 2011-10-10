@@ -83,6 +83,11 @@ func (me *FileSystemConnector) childLookup(fi *os.FileInfo, fsi FsNode) (out *En
 	out = n.mount.fileInfoToEntry(fi)
 	out.Ino = me.lookupUpdate(n)
 	out.NodeId = out.Ino
+	if out.Nlink == 0 {
+		// With Nlink == 0, newer kernels will refuse link
+		// operations.
+		out.Nlink = 1
+	}
 	return out
 }
 
