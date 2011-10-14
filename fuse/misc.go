@@ -161,6 +161,7 @@ func VerboseTest() bool {
 }
 
 const AT_FDCWD = -100
+
 func Linkat(fd1 int, n1 string, fd2 int, n2 string) int {
 	b1 := syscall.StringBytePtr(n1)
 	b2 := syscall.StringBytePtr(n2)

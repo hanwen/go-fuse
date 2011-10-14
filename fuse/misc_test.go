@@ -28,7 +28,7 @@ func TestOsErrorToErrno(t *testing.T) {
 
 func TestLinkAt(t *testing.T) {
 	dir, _ := ioutil.TempDir("", "go-fuse")
-	ioutil.WriteFile(dir + "/a", []byte{42}, 0644)
+	ioutil.WriteFile(dir+"/a", []byte{42}, 0644)
 	f, _ := os.Open(dir)
 	e := Linkat(f.Fd(), "a", f.Fd(), "b")
 	if e != 0 {

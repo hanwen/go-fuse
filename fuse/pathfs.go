@@ -621,7 +621,7 @@ func (me *pathInode) Truncate(file File, size uint64, context *Context) (code St
 			return code
 		}
 	}
-	if  len(files) == 0 || code == ENOSYS || code == EBADF {
+	if len(files) == 0 || code == ENOSYS || code == EBADF {
 		code = me.fs.Truncate(me.GetPath(), size, context)
 	}
 	return code

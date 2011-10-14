@@ -6,6 +6,7 @@ import (
 	"testing"
 	"unsafe"
 )
+
 var _ = log.Println
 
 func markSeen(t *testing.T, substr string) {

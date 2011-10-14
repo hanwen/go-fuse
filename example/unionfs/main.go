@@ -16,7 +16,7 @@ func main() {
 
 	entry_ttl := flag.Float64("entry_ttl", 1.0, "fuse entry cache TTL.")
 	negative_ttl := flag.Float64("negative_ttl", 1.0, "fuse negative entry cache TTL.")
-	
+
 	delcache_ttl := flag.Float64("deletion_cache_ttl", 5.0, "Deletion cache TTL in seconds.")
 	branchcache_ttl := flag.Float64("branchcache_ttl", 5.0, "Branch cache TTL in seconds.")
 	deldirname := flag.String(
