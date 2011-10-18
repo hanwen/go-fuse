@@ -48,7 +48,8 @@ func mount(mountPoint string, options string) (f *os.File, finalMountPoint strin
 
 	mountPoint = filepath.Clean(mountPoint)
 	if !filepath.IsAbs(mountPoint) {
-		cwd, err := os.Getwd()
+		cwd := ""
+		cwd, err = os.Getwd()
 		if err != nil {
 			return
 		}
