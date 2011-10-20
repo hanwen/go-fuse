@@ -4,6 +4,7 @@ package fuse
 import (
 	"exec"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -153,6 +154,13 @@ func getConnection(local *os.File) (f *os.File, err os.Error) {
 }
 
 func init() {
-	fusermountBinary, _ = exec.LookPath("fusermount")
+	var err os.Error
+	fusermountBinary, err = exec.LookPath("fusermount")
+	if err != nil {
+		log.Fatal("Could not find fusermount binary: %v", err)
+	}
 	umountBinary, _ = exec.LookPath("umount")
+	if err != nil {
+		log.Fatalf("Could not find umount binary: %v", err)
+	}
 }
