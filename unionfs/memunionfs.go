@@ -613,16 +613,6 @@ func (me *memNode) Reap(path string, results map[string]*Result) {
 	}
 }
 
-func (me *memNode) markUsed(seen map[string]bool) {
-	if me.backing != "" {
-		seen[me.backing] = true
-	}
-
-	for _, ch := range me.Inode().FsChildren() {
-		ch.FsNode().(*memNode).markUsed(seen)
-	}
-}
-
 func (me *memNode) Clear(path string) {
 	me.original = path
 	me.changed = false
