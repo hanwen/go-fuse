@@ -41,6 +41,7 @@ func setupMemUfs(t *testing.T) (workdir string, ufs *MemUnionFs, cleanup func())
 		EntryTimeout:    .5 * entryTtl,
 		AttrTimeout:     .5 * entryTtl,
 		NegativeTimeout: .5 * entryTtl,
+		PortableInodes: true,
 	}
 
 	state, conn, err := fuse.MountNodeFileSystem(wd+"/mnt", memFs, opts)
@@ -804,4 +805,103 @@ func TestMemUnionGc(t *testing.T) {
 	if len(entries) != 0 {
 		t.Fatalf("should have 1 file after backing store gc: %v", entries)
 	}
+}
+
+func testEq(t *testing.T, got interface{}, want interface{}, expectEq bool) {
+	gots := fmt.Sprintf("%v", got)
+	wants := fmt.Sprintf("%v", want)
+	if (gots == wants) != expectEq {
+		op := "must differ from"
+		if expectEq {
+			op = "want"
+		}
+		t.Fatalf("Got %s %s %s.", gots, op, wants)
+	}
+}
+
+func TestMemUnionResetAttr(t *testing.T) {
+	wd, ufs, clean := setupMemUfs(t)
+	defer clean()
+
+	ioutil.WriteFile(wd + "/ro/fileattr", []byte{42}, 0644)
+	before, _ := os.Lstat(wd + "/mnt/fileattr")
+	err := os.Chmod(wd + "/mnt/fileattr", 0606)
+	CheckSuccess(err)
+	after, _ := os.Lstat(wd + "/mnt/fileattr")
+	testEq(t, after, before, false)
+	ufs.Reset()
+	afterReset, _ := os.Lstat(wd + "/mnt/fileattr")
+	testEq(t, afterReset, before, true)
+}
+
+func TestMemUnionResetContent(t *testing.T) {
+	wd, ufs, clean := setupMemUfs(t)
+	defer clean()
+	ioutil.WriteFile(wd + "/ro/filecontents", []byte{42}, 0644)
+	before, _ := ioutil.ReadFile(wd + "/mnt/filecontents")
+	ioutil.WriteFile(wd + "/mnt/filecontents", []byte{43}, 0644)
+	after, _ := ioutil.ReadFile(wd + "/mnt/filecontents")
+	testEq(t, after, before, false)
+	ufs.Reset()
+	afterReset, err := ioutil.ReadFile(wd + "/mnt/filecontents")
+	CheckSuccess(err)
+	testEq(t, afterReset, before, true)
+}
+
+
+func TestMemUnionResetDelete(t *testing.T) {
+	wd, ufs, clean := setupMemUfs(t)
+	defer clean()
+	ioutil.WriteFile(wd + "/ro/todelete", []byte{42}, 0644)
+	before, _ := os.Lstat(wd + "/mnt/todelete")
+	before.Ino = 0
+	os.Remove(wd + "/mnt/todelete")
+	after, _ := os.Lstat(wd + "/mnt/todelete")
+	testEq(t, after, before, false)
+	ufs.Reset()
+	afterReset, _ := os.Lstat(wd + "/mnt/todelete")
+	afterReset.Ino = 0
+	testEq(t, afterReset, before, true)
+}
+
+func clearInodes(infos []*os.FileInfo) {
+	for _, i := range infos {
+		i.Ino = 0
+	}
+}
+
+func TestMemUnionResetDirEntry(t *testing.T) {
+	wd, ufs, clean := setupMemUfs(t)
+	defer clean()
+	os.Mkdir(wd + "/ro/dir", 0755)
+	ioutil.WriteFile(wd + "/ro/dir/todelete", []byte{42}, 0644)
+	before, _ := ioutil.ReadDir(wd + "/mnt/dir")
+	clearInodes(before)
+	ioutil.WriteFile(wd + "/mnt/dir/newfile", []byte{42}, 0644)
+	os.Remove(wd + "/mnt/dir/todelete")
+	after, _ := ioutil.ReadDir(wd + "/mnt/dir")
+	clearInodes(after)
+	testEq(t, fuse.OsFileInfos(after), fuse.OsFileInfos(before), false)
+	ufs.Reset()
+	log.Println("reseT")
+	reset, _ := ioutil.ReadDir(wd + "/mnt/dir")
+	clearInodes(reset)
+	testEq(t, fuse.OsFileInfos(reset), fuse.OsFileInfos(before), true)
+}
+
+func TestMemUnionResetRename(t *testing.T) {
+	wd, ufs, clean := setupMemUfs(t)
+	defer clean()
+	os.Mkdir(wd + "/ro/dir", 0755)
+	ioutil.WriteFile(wd + "/ro/dir/movesrc", []byte{42}, 0644)
+	before, _ := ioutil.ReadDir(wd + "/mnt/dir")
+	clearInodes(before)
+	os.Rename(wd + "/mnt/dir/movesrc", wd + "/mnt/dir/dest")
+	after, _ := ioutil.ReadDir(wd + "/mnt/dir")
+	clearInodes(after)
+	testEq(t, fuse.OsFileInfos(after), fuse.OsFileInfos(before), false)
+	ufs.Reset()
+	reset, _ := ioutil.ReadDir(wd + "/mnt/dir")
+	clearInodes(reset)
+	testEq(t, fuse.OsFileInfos(reset), fuse.OsFileInfos(before), true)
 }

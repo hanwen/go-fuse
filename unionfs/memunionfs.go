@@ -17,15 +17,14 @@ var _ = log.Println
 // A unionfs that only uses on-disk backing store for file contents.
 type MemUnionFs struct {
 	fuse.DefaultNodeFileSystem
+	readonly fuse.FileSystem
 	backingStore string
-	root         *memNode
 	connector    *fuse.FileSystemConnector
+
 	mutex        sync.RWMutex
+	root         *memNode
 	cond         *sync.Cond
 	nextFree     int
-
-	readonly fuse.FileSystem
-
 	openWritable int
 
 	// All paths that have been renamed or deleted will be marked
@@ -63,6 +62,25 @@ func (me *MemUnionFs) release() {
 	defer me.mutex.Unlock()
 	me.openWritable--
 	me.cond.Broadcast()
+}
+
+// Reset drops the state of the filesystem back its original.
+func (me *MemUnionFs) Reset() {
+	me.mutex.Lock()
+	defer me.mutex.Unlock()
+	me.root.reset("")
+	for path, _ := range me.deleted {
+		parent, base := filepath.Split(path)
+		parent = stripSlash(parent)
+
+		last, rest :=  me.connector.Node(me.root.Inode(), parent)
+		if len(rest) == 0 {
+			me.connector.EntryNotify(last, base)
+		} 
+	}
+	
+	me.deleted = make(map[string]bool, len(me.deleted))
+	me.clearBackingStore()
 }
 
 func (me *MemUnionFs) Reap() map[string]*Result {
@@ -110,7 +128,11 @@ func (me *MemUnionFs) Clear() {
 	me.mutex.Lock()
 	defer me.mutex.Unlock()
 	me.deleted = make(map[string]bool)
-	me.root.Clear("")
+	me.root.clear("")
+	me.clearBackingStore()
+}
+
+func (me *MemUnionFs) clearBackingStore() {
 	f, err := os.Open(me.backingStore)
 	if err != nil {
 		return
@@ -263,7 +285,6 @@ func (me *memNode) lookup(name string, context *fuse.Context) (fi *os.FileInfo, 
 	if _, del := me.fs.deleted[fn]; del {
 		return nil, nil, fuse.ENOENT
 	}
-
 	fi, code = me.fs.readonly.GetAttr(fn, context)
 	if !code.Ok() {
 		return nil, nil, code
@@ -613,13 +634,43 @@ func (me *memNode) Reap(path string, results map[string]*Result) {
 	}
 }
 
-func (me *memNode) Clear(path string) {
+func (me *memNode) clear(path string) {
 	me.original = path
 	me.changed = false
 	me.backing = ""
 	for n, ch := range me.Inode().FsChildren() {
 		p := filepath.Join(path, n)
 		mn := ch.FsNode().(*memNode)
-		mn.Clear(p)
+		mn.clear(p)
 	}
+}
+
+func (me *memNode) reset(path string) (entryNotify bool) {
+	for n, ch := range me.Inode().FsChildren() {
+		p := filepath.Join(path, n)
+		mn := ch.FsNode().(*memNode)
+		if mn.reset(p) {
+			me.Inode().RmChild(n)
+			me.fs.connector.EntryNotify(me.Inode(), n)
+		}
+	}
+
+	if me.backing != "" || me.original != path {
+		return true
+	}
+	
+	if me.changed {
+		info, code := me.fs.readonly.GetAttr(me.original, nil)
+		if !code.Ok() {
+			return true
+		}
+
+		me.info = *info
+		me.fs.connector.FileNotify(me.Inode(), -1, 0)
+		if me.Inode().IsDir() {
+			me.fs.connector.FileNotify(me.Inode(), 0, 0)
+		}
+	}
+
+	return false
 }
