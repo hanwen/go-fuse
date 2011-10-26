@@ -3,6 +3,7 @@ package fuse
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"syscall"
 )
@@ -88,6 +89,39 @@ func flagString(names map[int]string, fl int, def string) string {
 
 func (me *OpenIn) String() string {
 	return fmt.Sprintf("{%s}", flagString(openFlagNames, int(me.Flags), "O_RDONLY"))
+}
+
+type OsFileInfo os.FileInfo
+func (me OsFileInfo) String() string {
+	return fmt.Sprintf(
+		"{%s M0%o S=%d L=%d "+
+			"%d:%d "+
+			"%d*%d %d:%d "+
+			"C %d.%09d "+
+			"M %d.%09d "+
+			"A %d.%09d}",
+		me.Name,
+		me.Mode, me.Size, me.Nlink,
+		me.Uid, me.Gid,
+		me.Blocks, me.Blksize,
+		me.Rdev, me.Ino,
+		me.Ctime_ns/1e9,
+                me.Ctime_ns%1e9,
+                me.Mtime_ns/1e9,
+                me.Mtime_ns%1e9,
+                me.Atime_ns/1e9,
+                me.Atime_ns%1e9)
+}
+
+type OsFileInfos []*os.FileInfo
+
+func (me OsFileInfos) String() string {
+	out := []string{}
+	for _, info := range me {
+		out = append(out, OsFileInfo(*info).String())
+	}
+	sort.Strings(out)
+	return fmt.Sprintf("[%v]", out)
 }
 
 func (me *SetAttrIn) String() string {
