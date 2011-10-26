@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 )
 
@@ -123,22 +122,7 @@ func (me *PathNodeFs) Path(node *Inode) string {
 }
 
 func (me *PathNodeFs) LastNode(name string) (*Inode, []string) {
-	if name == "" {
-		return me.Root().Inode(), nil
-	}
-
-	name = filepath.Clean(name)
-	comps := strings.Split(name, string(filepath.Separator))
-
-	node := me.root.Inode()
-	for i, c := range comps {
-		next := node.GetChild(c)
-		if next == nil {
-			return node, comps[i:]
-		}
-		node = next
-	}
-	return node, nil
+	return me.connector.Node(me.Root().Inode(), name)
 }
 
 func (me *PathNodeFs) FileNotify(path string, off int64, length int64) Status {

@@ -189,8 +189,9 @@ func (me *FileSystemConnector) Node(parent *Inode, fullPath string) (*Inode, []s
 		return parent, nil
 	}
 
-	fullPath = strings.TrimLeft(filepath.Clean(fullPath), "/")
-	comps := strings.Split(fullPath, "/")
+	sep := string(filepath.Separator)
+	fullPath = strings.TrimLeft(filepath.Clean(fullPath), sep)
+	comps := strings.Split(fullPath, sep)
 
 	node := parent
 	if node.mountPoint == nil {
