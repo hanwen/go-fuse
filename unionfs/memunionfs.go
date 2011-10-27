@@ -123,14 +123,6 @@ func (me *MemUnionFs) Reap() map[string]*Result {
 	return m
 }
 
-func (me *MemUnionFs) Clear() {
-	me.mutex.Lock()
-	defer me.mutex.Unlock()
-	me.deleted = make(map[string]bool)
-	me.root.clear("")
-	me.clearBackingStore()
-}
-
 func (me *MemUnionFs) clearBackingStore() {
 	f, err := os.Open(me.backingStore)
 	if err != nil {
@@ -626,17 +618,6 @@ func (me *memNode) reap(path string, results map[string]*Result) {
 	for n, ch := range me.Inode().FsChildren() {
 		p := filepath.Join(path, n)
 		ch.FsNode().(*memNode).reap(p, results)
-	}
-}
-
-func (me *memNode) clear(path string) {
-	me.original = path
-	me.changed = false
-	me.backing = ""
-	for n, ch := range me.Inode().FsChildren() {
-		p := filepath.Join(path, n)
-		mn := ch.FsNode().(*memNode)
-		mn.clear(p)
 	}
 }
 

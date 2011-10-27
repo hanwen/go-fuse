@@ -798,7 +798,7 @@ func TestMemUnionGc(t *testing.T) {
 	writeToFile(wd+"/mnt/file2", "other-content")
 	err := os.Remove(wd + "/mnt/file1")
 	CheckSuccess(err)
-	ufs.Clear()
+	ufs.Reset()
 
 	entries, err := ioutil.ReadDir(wd + "/backing")
 	CheckSuccess(err)
