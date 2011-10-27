@@ -93,7 +93,6 @@ func (me *MemUnionFs) Reap() map[string]*Result {
 	m := map[string]*Result{}
 
 	for name, _ := range me.deleted {
-
 		fi, code := me.readonly.GetAttr(name, nil)
 		if !code.Ok() {
 			continue
@@ -120,7 +119,7 @@ func (me *MemUnionFs) Reap() map[string]*Result {
 		}
 	}
 
-	me.root.Reap("", m)
+	me.root.reap("", m)
 	return m
 }
 
@@ -379,14 +378,10 @@ func (me *memNode) Rename(oldName string, newParent fuse.FsNode, newName string,
 		me.fs.deleted[filepath.Join(me.original, oldName)] = true
 	}
 
-	mn := ch.FsNode().(*memNode)
-	if mn.original != "" || mn == me.fs.root {
-		if newParent.(*memNode).original != "" {
-			me.fs.deleted[filepath.Join(newParent.(*memNode).original, newName)] = true
-		}
-
-		mn.materialize()
-		mn.markChanged()
+	childNode := ch.FsNode().(*memNode)
+	if childNode.original != "" || childNode == me.fs.root {
+		childNode.materialize()
+		childNode.markChanged()
 	}
 
 	newParent.Inode().RmChild(newName)
@@ -617,7 +612,7 @@ func (me *memNode) OpenDir(context *fuse.Context) (stream chan fuse.DirEntry, co
 	return stream, fuse.OK
 }
 
-func (me *memNode) Reap(path string, results map[string]*Result) {
+func (me *memNode) reap(path string, results map[string]*Result) {
 	if me.changed {
 		info := me.info
 		results[path] = &Result{
@@ -630,7 +625,7 @@ func (me *memNode) Reap(path string, results map[string]*Result) {
 
 	for n, ch := range me.Inode().FsChildren() {
 		p := filepath.Join(path, n)
-		ch.FsNode().(*memNode).Reap(p, results)
+		ch.FsNode().(*memNode).reap(p, results)
 	}
 }
 

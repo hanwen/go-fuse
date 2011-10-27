@@ -883,7 +883,6 @@ func TestMemUnionResetDirEntry(t *testing.T) {
 	clearInodes(after)
 	testEq(t, fuse.OsFileInfos(after), fuse.OsFileInfos(before), false)
 	ufs.Reset()
-	log.Println("reseT")
 	reset, _ := ioutil.ReadDir(wd + "/mnt/dir")
 	clearInodes(reset)
 	testEq(t, fuse.OsFileInfos(reset), fuse.OsFileInfos(before), true)
