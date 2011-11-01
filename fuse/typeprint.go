@@ -92,6 +92,7 @@ func (me *OpenIn) String() string {
 }
 
 type OsFileInfo os.FileInfo
+
 func (me OsFileInfo) String() string {
 	return fmt.Sprintf(
 		"{%s M0%o S=%d L=%d "+
@@ -106,11 +107,11 @@ func (me OsFileInfo) String() string {
 		me.Blocks, me.Blksize,
 		me.Rdev, me.Ino,
 		me.Ctime_ns/1e9,
-                me.Ctime_ns%1e9,
-                me.Mtime_ns/1e9,
-                me.Mtime_ns%1e9,
-                me.Atime_ns/1e9,
-                me.Atime_ns%1e9)
+		me.Ctime_ns%1e9,
+		me.Mtime_ns/1e9,
+		me.Mtime_ns%1e9,
+		me.Atime_ns/1e9,
+		me.Atime_ns%1e9)
 }
 
 type OsFileInfos []*os.FileInfo

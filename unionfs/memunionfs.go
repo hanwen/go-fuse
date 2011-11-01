@@ -17,7 +17,7 @@ var _ = log.Println
 // A unionfs that only uses on-disk backing store for file contents.
 type MemUnionFs struct {
 	fuse.DefaultNodeFileSystem
-	readonly fuse.FileSystem
+	readonly     fuse.FileSystem
 	backingStore string
 	connector    *fuse.FileSystemConnector
 
@@ -73,12 +73,12 @@ func (me *MemUnionFs) Reset() {
 		parent, base := filepath.Split(path)
 		parent = stripSlash(parent)
 
-		last, rest :=  me.connector.Node(me.root.Inode(), parent)
+		last, rest := me.connector.Node(me.root.Inode(), parent)
 		if len(rest) == 0 {
 			me.connector.EntryNotify(last, base)
-		} 
+		}
 	}
-	
+
 	me.deleted = make(map[string]bool, len(me.deleted))
 	me.clearBackingStore()
 }
@@ -634,7 +634,7 @@ func (me *memNode) reset(path string) (entryNotify bool) {
 	if me.backing != "" || me.original != path {
 		return true
 	}
-	
+
 	if me.changed {
 		info, code := me.fs.readonly.GetAttr(me.original, nil)
 		if !code.Ok() {
