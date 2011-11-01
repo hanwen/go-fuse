@@ -86,7 +86,7 @@ func (me *portableHandleMap) Forget(h uint64) *Handled {
 	defer me.Unlock()
 	v := me.handles[h]
 	v.check = 0
-	me.handles[h] = nil, false
+	delete(me.handles, h)
 	return v
 }
 
@@ -128,7 +128,7 @@ func (me *int32HandleMap) Forget(handle uint64) *Handled {
 	me.mutex.Lock()
 	defer me.mutex.Unlock()
 	val.check = 0
-	me.handles[uint32(handle)] = nil, false
+	delete(me.handles, uint32(handle))
 	return val
 }
 
@@ -233,7 +233,7 @@ func (me *int64HandleMap) Forget(handle uint64) (val *Handled) {
 
 	me.mutex.Lock()
 	defer me.mutex.Unlock()
-	me.handles[handle] = nil, false
+	delete(me.handles, handle)
 	val.check = 0
 	return val
 }

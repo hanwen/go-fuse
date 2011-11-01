@@ -69,7 +69,7 @@ func (me *TimedCache) DropEntry(name string) {
 	me.cacheMapMutex.Lock()
 	defer me.cacheMapMutex.Unlock()
 
-	me.cacheMap[name] = nil, false
+	delete(me.cacheMap, name)
 }
 
 func (me *TimedCache) GetFresh(name string) interface{} {
@@ -91,7 +91,7 @@ func (me *TimedCache) Purge() {
 		}
 	}
 	for _, k := range keys {
-		me.cacheMap[k] = nil, false
+		delete(me.cacheMap, k)
 	}
 }
 
@@ -113,7 +113,7 @@ func (me *TimedCache) DropAll(names []string) {
 		me.cacheMap = make(map[string]*cacheEntry, len(me.cacheMap))
 	} else {
 		for _, nm := range names {
-			me.cacheMap[nm] = nil, false
+			delete(me.cacheMap, nm)
 		}
 	}
 }

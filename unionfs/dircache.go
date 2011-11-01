@@ -81,7 +81,7 @@ func (me *DirCache) RemoveEntry(name string) {
 		return
 	}
 
-	me.names[name] = false, false
+	delete(me.names, name)
 }
 
 func (me *DirCache) AddEntry(name string) {

@@ -161,6 +161,6 @@ func (me *BufferPoolImpl) FreeBuffer(slice []byte) {
 	exp, ok := me.outstandingBuffers[key]
 	if ok {
 		me.addBuffer(slice, exp)
-		me.outstandingBuffers[key] = 0, false
+		delete(me.outstandingBuffers, key)
 	}
 }

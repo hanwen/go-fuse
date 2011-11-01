@@ -791,9 +791,9 @@ func (me *UnionFs) OpenDir(directory string, context *fuse.Context) (stream chan
 		}
 	}
 	if directory == "" {
-		results[me.options.DeletionDirName] = 0, false
+		delete(results, me.options.DeletionDirName)
 		// HACK.
-		results[_READONLY] = 0, false
+		delete(results, _READONLY)
 	}
 
 	stream = make(chan fuse.DirEntry, len(results))

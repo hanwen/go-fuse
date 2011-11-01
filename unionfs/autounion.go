@@ -134,8 +134,8 @@ func (me *AutoUnionFs) rmFs(name string) (code fuse.Status) {
 
 	code = me.nodeFs.Unmount(name)
 	if code.Ok() {
-		me.knownFileSystems[name] = knownFs{}, false
-		me.nameRootMap[name] = "", false
+		delete(me.knownFileSystems, name)
+		delete(me.nameRootMap, name)
 	} else {
 		log.Printf("Unmount failed for %s.  Code %v", name, code)
 	}

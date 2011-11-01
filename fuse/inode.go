@@ -177,7 +177,7 @@ func (me *Inode) addChild(name string, child *Inode) {
 func (me *Inode) rmChild(name string) (ch *Inode) {
 	ch = me.children[name]
 	if ch != nil {
-		me.children[name] = nil, false
+		delete(me.children, name)
 	}
 	return ch
 }

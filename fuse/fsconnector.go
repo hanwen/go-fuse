@@ -324,8 +324,8 @@ func (me *FileSystemConnector) Unmount(node *Inode) Status {
 	mount.mountInode = nil
 	mountInode.mountPoint = nil
 
-	parentNode.mounts[name] = nil, false
-	parentNode.children[name] = nil, false
+	delete(parentNode.mounts, name)
+	delete(parentNode.children, name)
 	mount.fs.OnUnmount()
 
 	me.EntryNotify(parentNode, name)

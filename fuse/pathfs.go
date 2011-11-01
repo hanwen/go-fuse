@@ -301,7 +301,7 @@ func (me *pathInode) rmChild(name string) *pathInode {
 			ch.Name = m[0].name
 			return ch
 		} else {
-			me.pathFs.clientInodeMap[ch.clientInode] = nil, false
+			delete(me.pathFs.clientInodeMap, ch.clientInode)
 		}
 	}
 
@@ -319,7 +319,7 @@ func (me *pathInode) setClientInode(ino uint64) {
 	}
 	defer me.LockTree()()
 	if me.clientInode != 0 {
-		me.pathFs.clientInodeMap[me.clientInode] = nil, false
+		delete(me.pathFs.clientInodeMap, me.clientInode)
 	}
 
 	me.clientInode = ino
@@ -336,7 +336,7 @@ func (me *pathInode) OnForget() {
 		return
 	}
 	defer me.LockTree()()
-	me.pathFs.clientInodeMap[me.clientInode] = nil, false
+	delete(me.pathFs.clientInodeMap, me.clientInode)
 }
 
 ////////////////////////////////////////////////////////////////

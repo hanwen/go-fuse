@@ -82,7 +82,7 @@ func (me *XAttrTestFs) RemoveXAttr(name string, attr string, context *Context) S
 	if !ok {
 		return ENODATA
 	}
-	me.attrs[attr] = nil, false
+	delete(me.attrs, attr)
 	return OK
 }
 

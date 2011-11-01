@@ -125,8 +125,8 @@ func (me *MultiZipFs) Unlink(name string, context *fuse.Context) (code fuse.Stat
 			if !code.Ok() {
 				return code
 			}
-			me.zips[basename] = nil, false
-			me.dirZipFileMap[basename] = "", false
+			delete(me.zips, basename)
+			delete(me.dirZipFileMap, basename)
 			return fuse.OK
 		} else {
 			return fuse.ENOENT
