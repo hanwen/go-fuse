@@ -40,7 +40,6 @@ type CachingFileSystem struct {
 	dirs       *TimedCache
 	links      *TimedCache
 	xattr      *TimedCache
-	files      *TimedCache
 }
 
 func readDir(fs fuse.FileSystem, name string) *dirResponse {
