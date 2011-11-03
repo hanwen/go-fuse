@@ -163,7 +163,7 @@ func TestGetAttrRace(t *testing.T) {
 
 	n := 100
 	wg.Add(n)
-	var statErr os.Error
+	var statErr error
 	for i := 0; i < n; i++ {
 		go func() {
 			defer wg.Done()

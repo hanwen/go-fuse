@@ -30,7 +30,7 @@ var testOpts = UnionFsOptions{
 func freezeRo(dir string) {
 	err := filepath.Walk(
 		dir,
-		func(path string, fi *os.FileInfo, err os.Error) os.Error {
+		func(path string, fi *os.FileInfo, err error) error {
 			return os.Chmod(path, (fi.Mode&0777)&^0222)
 		})
 	CheckSuccess(err)
@@ -772,7 +772,7 @@ func TestUnionFsRmRf(t *testing.T) {
 	}
 }
 
-func Readdirnames(dir string) ([]string, os.Error) {
+func Readdirnames(dir string) ([]string, error) {
 	f, err := os.Open(dir)
 	if err != nil {
 		return nil, err

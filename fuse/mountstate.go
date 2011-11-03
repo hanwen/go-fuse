@@ -48,7 +48,7 @@ func (me *MountState) MountPoint() string {
 }
 
 // Mount filesystem on mountPoint.
-func (me *MountState) Mount(mountPoint string, opts *MountOptions) os.Error {
+func (me *MountState) Mount(mountPoint string, opts *MountOptions) error {
 	if opts == nil {
 		opts = &MountOptions{
 			MaxBackground: _DEFAULT_BACKGROUND_TASKS,
@@ -87,7 +87,7 @@ func (me *MountState) SetRecordStatistics(record bool) {
 	}
 }
 
-func (me *MountState) Unmount() os.Error {
+func (me *MountState) Unmount() error {
 	// Todo: flush/release all files/dirs?
 	err := unmount(me.mountPoint)
 	if err == nil {
@@ -125,7 +125,7 @@ func (me *MountState) newRequest() *request {
 	}
 }
 
-func (me *MountState) readRequest(req *request) os.Error {
+func (me *MountState) readRequest(req *request) error {
 	n, err := me.mountFile.Read(req.inputBuf)
 	// If we start timing before the read, we may take into
 	// account waiting for input into the timing.
@@ -246,7 +246,7 @@ func (me *MountState) write(req *request) Status {
 		return OK
 	}
 
-	var err os.Error
+	var err error
 	if req.flatData == nil {
 		_, err = me.mountFile.Write(req.outHeaderBytes)
 	} else {

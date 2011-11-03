@@ -2,6 +2,7 @@ package fuse
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"syscall"
 )
@@ -97,7 +98,7 @@ func (me *LoopbackFile) Read(input *ReadIn, buffers BufferPool) ([]byte, Status)
 
 	n, err := me.File.ReadAt(slice, int64(input.Offset))
 	// TODO - fix Go ndocumentation.
-	if err == os.EOF {
+	if err == io.EOF {
 		err = nil
 	}
 	return slice[:n], OsErrorToErrno(err)

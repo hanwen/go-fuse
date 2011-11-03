@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"exec"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -52,7 +53,7 @@ func NewTestCase(t *testing.T) *testCase {
 	const name string = "hello.txt"
 	const subdir string = "subdir"
 
-	var err os.Error
+	var err error
 	me.tmpDir, err = ioutil.TempDir("", "go-fuse")
 	CheckSuccess(err)
 	me.orig = me.tmpDir + "/orig"
@@ -567,7 +568,7 @@ func TestLargeRead(t *testing.T) {
 	total := 0
 	for {
 		m, err := g.Read(readSlice)
-		if m == 0 && err == os.EOF {
+		if m == 0 && err == io.EOF {
 			break
 		}
 		CheckSuccess(err)
@@ -629,7 +630,7 @@ func TestLargeDirRead(t *testing.T) {
 	readSet := make(map[string]bool)
 	for {
 		namesRead, err := dir.Readdirnames(200)
-		if len(namesRead) == 0 || err == os.EOF {
+		if len(namesRead) == 0 || err == io.EOF {
 			break
 		}
 		CheckSuccess(err)

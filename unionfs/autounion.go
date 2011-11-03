@@ -163,7 +163,7 @@ func (me *AutoUnionFs) getRoots(path string) []string {
 	return nil
 }
 
-func (me *AutoUnionFs) visit(path string, fi *os.FileInfo, err os.Error) os.Error {
+func (me *AutoUnionFs) visit(path string, fi *os.FileInfo, err error) error {
 	if fi.IsDirectory() {
 		roots := me.getRoots(path)
 		if roots != nil {
@@ -185,7 +185,7 @@ func (me *AutoUnionFs) updateKnownFses() {
 				dir, _ = os.Stat(path)
 				me.visit(path, dir, nil)
 				filepath.Walk(path,
-					func(path string, fi *os.FileInfo, err os.Error) os.Error {
+					func(path string, fi *os.FileInfo, err error) error {
 						return me.visit(path, fi, err)
 					})
 			}

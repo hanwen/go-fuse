@@ -6,6 +6,7 @@ package fuse
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -34,7 +35,7 @@ func (me *LoopbackFileSystem) GetPath(relPath string) string {
 
 func (me *LoopbackFileSystem) GetAttr(name string, context *Context) (fi *os.FileInfo, code Status) {
 	fullPath := me.GetPath(name)
-	var err os.Error = nil
+	var err error = nil
 	if name == "" {
 		// When GetAttr is called for the toplevel directory, we always want
 		// to look through symlinks.
@@ -66,7 +67,7 @@ func (me *LoopbackFileSystem) OpenDir(name string, context *Context) (stream cha
 					Mode: infos[i].Mode,
 				}
 			}
-			if len(infos) < want || err == os.EOF {
+			if len(infos) < want || err == io.EOF {
 				break
 			}
 			if err != nil {

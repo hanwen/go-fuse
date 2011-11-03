@@ -3,6 +3,7 @@ package zipfs
 import (
 	"archive/zip"
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/hanwen/go-fuse/fuse"
 	"io"
@@ -42,7 +43,7 @@ func (me *ZipFile) Data() []byte {
 }
 
 // NewZipTree creates a new file-system for the zip file named name.
-func NewZipTree(name string) (map[string]MemFile, os.Error) {
+func NewZipTree(name string) (map[string]MemFile, error) {
 	r, err := zip.OpenReader(name)
 	if err != nil {
 		return nil, err
@@ -61,7 +62,7 @@ func NewZipTree(name string) (map[string]MemFile, os.Error) {
 	return out, nil
 }
 
-func NewArchiveFileSystem(name string) (mfs *MemTreeFs, err os.Error) {
+func NewArchiveFileSystem(name string) (mfs *MemTreeFs, err error) {
 	mfs = &MemTreeFs{}
 	if strings.HasSuffix(name, ".zip") {
 		mfs.files, err = NewZipTree(name)
@@ -84,7 +85,7 @@ func NewArchiveFileSystem(name string) (mfs *MemTreeFs, err os.Error) {
 	}
 
 	if mfs.files == nil {
-		return nil, os.NewError(fmt.Sprintf("Unknown type for %v", name))
+		return nil, errors.New(fmt.Sprintf("Unknown type for %v", name))
 	}
 
 	return mfs, nil

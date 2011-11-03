@@ -2,6 +2,7 @@ package fuse
 
 // Written with a look to http://ptspts.blogspot.com/2009/11/fuse-protocol-tutorial-for-linux-26.html
 import (
+	"errors"
 	"exec"
 	"fmt"
 	"log"
@@ -14,7 +15,7 @@ import (
 var fusermountBinary string
 var umountBinary string
 
-func Socketpair(network string) (l, r *os.File, err os.Error) {
+func Socketpair(network string) (l, r *os.File, err error) {
 	var domain int
 	var typ int
 	switch network {
@@ -38,7 +39,7 @@ func Socketpair(network string) (l, r *os.File, err os.Error) {
 
 // Create a FUSE FS on the specified mount point.  The returned
 // mount point is always absolute.
-func mount(mountPoint string, options string) (f *os.File, finalMountPoint string, err os.Error) {
+func mount(mountPoint string, options string) (f *os.File, finalMountPoint string, err error) {
 	local, remote, err := Socketpair("unixgram")
 	if err != nil {
 		return
@@ -77,7 +78,7 @@ func mount(mountPoint string, options string) (f *os.File, finalMountPoint strin
 		return
 	}
 	if w.ExitStatus() != 0 {
-		err = os.NewError(fmt.Sprintf("fusermount exited with code %d\n", w.ExitStatus()))
+		err = errors.New(fmt.Sprintf("fusermount exited with code %d\n", w.ExitStatus()))
 		return
 	}
 
@@ -86,7 +87,7 @@ func mount(mountPoint string, options string) (f *os.File, finalMountPoint strin
 	return
 }
 
-func privilegedUnmount(mountPoint string) os.Error {
+func privilegedUnmount(mountPoint string) error {
 	dir, _ := filepath.Split(mountPoint)
 	proc, err := os.StartProcess(umountBinary,
 		[]string{umountBinary, mountPoint},
@@ -96,12 +97,12 @@ func privilegedUnmount(mountPoint string) os.Error {
 	}
 	w, err := os.Wait(proc.Pid, 0)
 	if w.ExitStatus() != 0 {
-		return os.NewError(fmt.Sprintf("umount exited with code %d\n", w.ExitStatus()))
+		return errors.New(fmt.Sprintf("umount exited with code %d\n", w.ExitStatus()))
 	}
 	return err
 }
 
-func unmount(mountPoint string) (err os.Error) {
+func unmount(mountPoint string) (err error) {
 	if os.Geteuid() == 0 {
 		return privilegedUnmount(mountPoint)
 	}
@@ -117,12 +118,12 @@ func unmount(mountPoint string) (err os.Error) {
 		return
 	}
 	if w.ExitStatus() != 0 {
-		return os.NewError(fmt.Sprintf("fusermount -u exited with code %d\n", w.ExitStatus()))
+		return errors.New(fmt.Sprintf("fusermount -u exited with code %d\n", w.ExitStatus()))
 	}
 	return
 }
 
-func getConnection(local *os.File) (f *os.File, err os.Error) {
+func getConnection(local *os.File) (f *os.File, err error) {
 	var data [4]byte
 	control := make([]byte, 4*256)
 
@@ -138,15 +139,15 @@ func getConnection(local *os.File) (f *os.File, err os.Error) {
 	fd := *(*int32)(unsafe.Pointer(uintptr(unsafe.Pointer(&control[0])) + syscall.SizeofCmsghdr))
 
 	if message.Type != 1 {
-		err = os.NewError(fmt.Sprintf("getConnection: recvmsg returned wrong control type: %d", message.Type))
+		err = errors.New(fmt.Sprintf("getConnection: recvmsg returned wrong control type: %d", message.Type))
 		return
 	}
 	if oobn <= syscall.SizeofCmsghdr {
-		err = os.NewError(fmt.Sprintf("getConnection: too short control message. Length: %d", oobn))
+		err = errors.New(fmt.Sprintf("getConnection: too short control message. Length: %d", oobn))
 		return
 	}
 	if fd < 0 {
-		err = os.NewError(fmt.Sprintf("getConnection: fd < 0: %d", fd))
+		err = errors.New(fmt.Sprintf("getConnection: fd < 0: %d", fd))
 		return
 	}
 	f = os.NewFile(int(fd), "<fuseConnection>")
@@ -154,7 +155,7 @@ func getConnection(local *os.File) (f *os.File, err os.Error) {
 }
 
 func init() {
-	var err os.Error
+	var err error
 	fusermountBinary, err = exec.LookPath("fusermount")
 	if err != nil {
 		log.Fatal("Could not find fusermount binary: %v", err)

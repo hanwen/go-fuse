@@ -31,7 +31,7 @@ func (code Status) Ok() bool {
 }
 
 // Convert os.Error back to Errno based errors.
-func OsErrorToErrno(err os.Error) Status {
+func OsErrorToErrno(err error) Status {
 	if err != nil {
 		switch t := err.(type) {
 		case os.Errno:
@@ -39,9 +39,9 @@ func OsErrorToErrno(err os.Error) Status {
 		case *os.SyscallError:
 			return Status(t.Errno)
 		case *os.PathError:
-			return OsErrorToErrno(t.Error)
+			return OsErrorToErrno(t.Err)
 		case *os.LinkError:
-			return OsErrorToErrno(t.Error)
+			return OsErrorToErrno(t.Err)
 		default:
 			log.Println("can't convert error type:", err)
 			return ENOSYS
@@ -84,7 +84,7 @@ func writev(fd int, iovecs *syscall.Iovec, cnt int) (n int, errno int) {
 	return int(n1), int(e1)
 }
 
-func Writev(fd int, packet [][]byte) (n int, err os.Error) {
+func Writev(fd int, packet [][]byte) (n int, err error) {
 	iovecs := make([]syscall.Iovec, 0, len(packet))
 
 	for _, v := range packet {
@@ -113,7 +113,7 @@ func ModeToType(mode uint32) uint32 {
 	return (mode & 0170000) >> 12
 }
 
-func CheckSuccess(e os.Error) {
+func CheckSuccess(e error) {
 	if e != nil {
 		panic(fmt.Sprintf("Unexpected error: %v", e))
 	}

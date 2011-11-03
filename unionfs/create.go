@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-func NewUnionFsFromRoots(roots []string, opts *UnionFsOptions, roCaching bool) (*UnionFs, os.Error) {
+func NewUnionFsFromRoots(roots []string, opts *UnionFsOptions, roCaching bool) (*UnionFs, error) {
 	fses := make([]fuse.FileSystem, 0)
 	for i, r := range roots {
 		var fs fuse.FileSystem

@@ -51,7 +51,7 @@ func NewTarTree(r io.Reader) map[string]MemFile {
 	var longName *string
 	for {
 		hdr, err := tr.Next()
-		if err == os.EOF {
+		if err == io.EOF {
 			// end of tar archive
 			break
 		}
@@ -87,7 +87,7 @@ func NewTarTree(r io.Reader) map[string]MemFile {
 	return files
 }
 
-func NewTarCompressedTree(name string, format string) (map[string]MemFile, os.Error) {
+func NewTarCompressedTree(name string, format string) (map[string]MemFile, error) {
 	f, err := os.Open(name)
 	if err != nil {
 		return nil, err

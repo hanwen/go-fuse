@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"flag"
 	"github.com/hanwen/go-fuse/benchmark"
+	"log"
 	"os"
 	"runtime"
 )
@@ -24,7 +25,7 @@ func main() {
 	filename := flag.Args()[0]
 	f, err := os.Open(filename)
 	if err != nil {
-		panic("err" + err.String())
+		log.Panicf("Open: %v", err)
 	}
 
 	reader := bufio.NewReader(f)

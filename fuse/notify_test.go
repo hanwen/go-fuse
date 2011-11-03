@@ -43,7 +43,7 @@ type NotifyTest struct {
 func NewNotifyTest() *NotifyTest {
 	me := &NotifyTest{}
 	me.fs = &NotifyFs{}
-	var err os.Error
+	var err error
 	me.dir, err = ioutil.TempDir("", "go-fuse")
 	CheckSuccess(err)
 	entryTtl := 0.1
