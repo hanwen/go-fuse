@@ -10,12 +10,33 @@ import (
 var _ = fmt.Print
 var _ = log.Print
 
-func TestTimedCache(t *testing.T) {
+
+func TestTimedCacheUncacheable(t *testing.T) {
 	fetchCount := 0
-	fetch := func(n string) interface{} {
+	fetch := func(n string) (interface{}, bool) {
 		fetchCount++
 		i := int(n[0])
-		return &i
+		return &i, false
+	}
+
+	cache := NewTimedCache(fetch, 0)
+	v := cache.Get("n").(*int)
+	w := cache.Get("n").(*int)
+	if *v != int('n') || *w != *v {
+		t.Errorf("value mismatch: got %d, %d want %d", *v, *w, int('n'))
+	}
+
+	if fetchCount != 2 {
+		t.Fatalf("Should have fetched twice: %d", fetchCount)
+	}
+}
+
+func TestTimedCache(t *testing.T) {
+	fetchCount := 0
+	fetch := func(n string) (interface{}, bool) {
+		fetchCount++
+		i := int(n[0])
+		return &i, true
 	}
 
 	var ttl int64

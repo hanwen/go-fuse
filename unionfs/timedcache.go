@@ -19,8 +19,9 @@ type cacheEntry struct {
 // thread-safe.  Calls of fetch() do no happen inside a critical
 // section, so when multiple concurrent Get()s happen for the same
 // key, multiple fetch() calls may be issued for the same key.
+type TimedCacheFetcher func(name string) (value interface{}, cacheable bool)
 type TimedCache struct {
-	fetch func(name string) interface{}
+	fetch TimedCacheFetcher
 
 	// ttlNs is a duration of the cache.
 	ttlNs int64
@@ -35,7 +36,7 @@ const layerCacheTimeoutNs = 1e9
 
 // Creates a new cache with the given TTL.  If TTL <= 0, the caching is
 // indefinite.
-func NewTimedCache(fetcher func(name string) interface{}, ttlNs int64) *TimedCache {
+func NewTimedCache(fetcher TimedCacheFetcher, ttlNs int64) *TimedCache {
 	l := new(TimedCache)
 	l.ttlNs = ttlNs
 	l.fetch = fetcher
@@ -73,8 +74,10 @@ func (me *TimedCache) DropEntry(name string) {
 }
 
 func (me *TimedCache) GetFresh(name string) interface{} {
-	data := me.fetch(name)
-	me.Set(name, data)
+	data, ok := me.fetch(name)
+	if ok {
+		me.Set(name, data)
+	}
 	return data
 }
 

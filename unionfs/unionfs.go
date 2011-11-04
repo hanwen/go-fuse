@@ -97,7 +97,7 @@ func NewUnionFs(fileSystems []fuse.FileSystem, options UnionFsOptions) *UnionFs 
 
 	g.deletionCache = NewDirCache(writable, options.DeletionDirName, int64(options.DeletionCacheTTLSecs*1e9))
 	g.branchCache = NewTimedCache(
-		func(n string) interface{} { return g.getBranchAttrNoCache(n) },
+		func(n string) (interface{}, bool) { return g.getBranchAttrNoCache(n), true },
 		int64(options.BranchCacheTTLSecs*1e9))
 	g.branchCache.RecurringPurge()
 	return g

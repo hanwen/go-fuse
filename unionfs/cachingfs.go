@@ -89,11 +89,21 @@ func readLink(fs fuse.FileSystem, name string) *linkResponse {
 func NewCachingFileSystem(fs fuse.FileSystem, ttlNs int64) *CachingFileSystem {
 	c := new(CachingFileSystem)
 	c.FileSystem = fs
-	c.attributes = NewTimedCache(func(n string) interface{} { return getAttr(fs, n) }, ttlNs)
-	c.dirs = NewTimedCache(func(n string) interface{} { return readDir(fs, n) }, ttlNs)
-	c.links = NewTimedCache(func(n string) interface{} { return readLink(fs, n) }, ttlNs)
-	c.xattr = NewTimedCache(func(n string) interface{} {
-		return getXAttr(fs, n)
+	c.attributes = NewTimedCache(func(n string) (interface{}, bool) {
+		a := getAttr(fs, n)
+		return a, a.Ok()
+	}, ttlNs)
+	c.dirs = NewTimedCache(func(n string) (interface{}, bool) {
+		d := readDir(fs, n)
+		return d, d.Ok()
+	}, ttlNs)
+	c.links = NewTimedCache(func(n string) (interface{}, bool) {
+		l := readLink(fs, n)
+		return l, l.Ok()
+	}, ttlNs)
+	c.xattr = NewTimedCache(func(n string) (interface{}, bool) {
+		l := getXAttr(fs, n)
+		return l, l.Ok()
 	}, ttlNs)
 	return c
 }
