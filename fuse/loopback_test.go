@@ -2,14 +2,14 @@ package fuse
 
 import (
 	"bytes"
-	"exec"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"os"
+	"os/exec"
 	"path/filepath"
-	"rand"
 	"strings"
 	"syscall"
 	"testing"

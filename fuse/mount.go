@@ -3,10 +3,10 @@ package fuse
 // Written with a look to http://ptspts.blogspot.com/2009/11/fuse-protocol-tutorial-for-linux-26.html
 import (
 	"errors"
-	"exec"
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"syscall"
 	"unsafe"
