@@ -1,10 +1,10 @@
 package fuse
 
 import (
-	"sync"
 	"fmt"
-	"unsafe"
 	"log"
+	"sync"
+	"unsafe"
 )
 
 var _ = log.Println

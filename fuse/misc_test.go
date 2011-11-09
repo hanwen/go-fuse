@@ -3,8 +3,8 @@ package fuse
 import (
 	"io/ioutil"
 	"os"
-	"testing"
 	"syscall"
+	"testing"
 )
 
 func TestOsErrorToErrno(t *testing.T) {

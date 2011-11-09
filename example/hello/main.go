@@ -4,8 +4,8 @@ package main
 
 import (
 	"flag"
-	"log"
 	"github.com/hanwen/go-fuse/fuse"
+	"log"
 	"os"
 )
 

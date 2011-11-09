@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 )

@@ -1,8 +1,8 @@
 package fuse
 
 import (
-	"path/filepath"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"syscall"

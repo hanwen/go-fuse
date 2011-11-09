@@ -1,11 +1,11 @@
 package fuse
 
 import (
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
-	"path/filepath"
-	"io/ioutil"
 )
 
 func TestMountOnExisting(t *testing.T) {

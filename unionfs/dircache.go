@@ -2,8 +2,8 @@ package unionfs
 
 import (
 	"github.com/hanwen/go-fuse/fuse"
-	"sync"
 	"log"
+	"sync"
 	"time"
 )
 

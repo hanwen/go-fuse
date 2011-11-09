@@ -1,11 +1,11 @@
 package unionfs
 
 import (
-	"os"
+	"fmt"
 	"github.com/hanwen/go-fuse/fuse"
 	"io/ioutil"
-	"fmt"
 	"log"
+	"os"
 	"testing"
 )
 

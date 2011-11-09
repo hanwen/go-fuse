@@ -1,9 +1,9 @@
 package fuse
 
 import (
-	"testing"
 	"io/ioutil"
 	"os"
+	"testing"
 )
 
 func TestCopyFile(t *testing.T) {

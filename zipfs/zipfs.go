@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"github.com/hanwen/go-fuse/fuse"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
-	"log"
 )
 
 var _ = log.Printf

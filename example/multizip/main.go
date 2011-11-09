@@ -1,10 +1,10 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/zipfs"
-	"fmt"
-	"flag"
 	"log"
 	"os"
 )

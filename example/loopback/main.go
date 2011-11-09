@@ -4,12 +4,12 @@
 package main
 
 import (
-	"github.com/hanwen/go-fuse/fuse"
-	"fmt"
-	"os"
 	"flag"
-	"runtime"
+	"fmt"
+	"github.com/hanwen/go-fuse/fuse"
 	"log"
+	"os"
+	"runtime"
 )
 
 var _ = runtime.GOMAXPROCS

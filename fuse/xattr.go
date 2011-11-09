@@ -2,8 +2,8 @@ package fuse
 
 import (
 	"bytes"
-	"syscall"
 	"fmt"
+	"syscall"
 	"unsafe"
 )
 

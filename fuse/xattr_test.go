@@ -3,10 +3,10 @@ package fuse
 import (
 	"bytes"
 	"io/ioutil"
-	"testing"
 	"log"
-	"path/filepath"
 	"os"
+	"path/filepath"
+	"testing"
 )
 
 var _ = log.Print

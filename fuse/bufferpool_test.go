@@ -1,8 +1,8 @@
 package fuse
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 var _ = fmt.Println
