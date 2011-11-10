@@ -477,6 +477,7 @@ func init() {
 		_OP_SYMLINK:     doSymlink,
 		_OP_RENAME:      doRename,
 		_OP_STATFS:      doStatFs,
+		_OP_IOCTL:       doIoctl,
 	} {
 		operationHandlers[op].Func = v
 	}
