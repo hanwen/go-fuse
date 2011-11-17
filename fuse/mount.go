@@ -2,7 +2,6 @@ package fuse
 
 // Written with a look to http://ptspts.blogspot.com/2009/11/fuse-protocol-tutorial-for-linux-26.html
 import (
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -78,7 +77,7 @@ func mount(mountPoint string, options string) (f *os.File, finalMountPoint strin
 		return
 	}
 	if w.ExitStatus() != 0 {
-		err = errors.New(fmt.Sprintf("fusermount exited with code %d\n", w.ExitStatus()))
+		err = fmt.Errorf("fusermount exited with code %d\n", w.ExitStatus())
 		return
 	}
 
@@ -97,7 +96,7 @@ func privilegedUnmount(mountPoint string) error {
 	}
 	w, err := os.Wait(proc.Pid, 0)
 	if w.ExitStatus() != 0 {
-		return errors.New(fmt.Sprintf("umount exited with code %d\n", w.ExitStatus()))
+		return fmt.Errorf("umount exited with code %d\n", w.ExitStatus())
 	}
 	return err
 }
@@ -118,7 +117,7 @@ func unmount(mountPoint string) (err error) {
 		return
 	}
 	if w.ExitStatus() != 0 {
-		return errors.New(fmt.Sprintf("fusermount -u exited with code %d\n", w.ExitStatus()))
+		return fmt.Errorf("fusermount -u exited with code %d\n", w.ExitStatus())
 	}
 	return
 }
@@ -139,15 +138,15 @@ func getConnection(local *os.File) (f *os.File, err error) {
 	fd := *(*int32)(unsafe.Pointer(uintptr(unsafe.Pointer(&control[0])) + syscall.SizeofCmsghdr))
 
 	if message.Type != 1 {
-		err = errors.New(fmt.Sprintf("getConnection: recvmsg returned wrong control type: %d", message.Type))
+		err = fmt.Errorf("getConnection: recvmsg returned wrong control type: %d", message.Type)
 		return
 	}
 	if oobn <= syscall.SizeofCmsghdr {
-		err = errors.New(fmt.Sprintf("getConnection: too short control message. Length: %d", oobn))
+		err = fmt.Errorf("getConnection: too short control message. Length: %d", oobn)
 		return
 	}
 	if fd < 0 {
-		err = errors.New(fmt.Sprintf("getConnection: fd < 0: %d", fd))
+		err = fmt.Errorf("getConnection: fd < 0: %d", fd)
 		return
 	}
 	f = os.NewFile(int(fd), "<fuseConnection>")
