@@ -52,7 +52,7 @@ const (
 	EPERM   = Status(syscall.EPERM)
 	ERANGE  = Status(syscall.ERANGE)
 	EXDEV   = Status(syscall.EXDEV)
-	EBADF   = Status(syscall.EXDEV)
+	EBADF   = Status(syscall.EBADF)
 )
 
 type NotifyCode int
