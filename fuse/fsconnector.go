@@ -5,7 +5,6 @@ package fuse
 // are in fsops.go
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -134,7 +133,7 @@ func (me *FileSystemConnector) forgetUpdate(node *Inode, forgetCount int) {
 		me.inodeMap.Forget(node.nodeId)
 		node.nodeId = 0
 	} else if node.lookupCount < 0 {
-		panic(fmt.Sprintf("lookupCount underflow: %d: %v", node.lookupCount, me))
+		log.Panicf("lookupCount underflow: %d: %v", node.lookupCount, me)
 	}
 
 	me.recursiveConsiderDropInode(node)
@@ -159,7 +158,7 @@ func (me *FileSystemConnector) recursiveConsiderDropInode(n *Inode) (drop bool) 
 	for _, k := range delChildren {
 		ch := n.rmChild(k)
 		if ch == nil {
-			panic(fmt.Sprintf("trying to del child %q, but not present", k))
+			log.Panicf("trying to del child %q, but not present", k)
 		}
 		// TODO - change name? This does not really mark the
 		// fuse Forget operation.

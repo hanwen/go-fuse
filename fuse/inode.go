@@ -1,7 +1,6 @@
 package fuse
 
 import (
-	"fmt"
 	"log"
 	"sync"
 )
@@ -167,7 +166,7 @@ func (me *Inode) addChild(name string, child *Inode) {
 	if paranoia {
 		ch := me.children[name]
 		if ch != nil {
-			panic(fmt.Sprintf("Already have an Inode with same name: %v: %v", name, ch))
+			log.Panicf("Already have an Inode with same name: %v: %v", name, ch)
 		}
 	}
 	me.children[name] = child
@@ -229,31 +228,31 @@ const initDirSize = 20
 
 func (me *Inode) verify(cur *fileSystemMount) {
 	if me.lookupCount < 0 {
-		panic(fmt.Sprintf("negative lookup count %d on node %d", me.lookupCount, me.nodeId))
+		log.Panicf("negative lookup count %d on node %d", me.lookupCount, me.nodeId)
 	}
 	if (me.lookupCount == 0) != (me.nodeId == 0) {
-		panic("kernel registration mismatch")
+		log.Panicf("kernel registration mismatch: lookup %d id %d", me.lookupCount, me.nodeId)
 	}
 	if me.mountPoint != nil {
 		if me != me.mountPoint.mountInode {
-			panic("mountpoint mismatch")
+			log.Panicf("mountpoint mismatch %v %v", me, me.mountPoint.mountInode)
 		}
 		cur = me.mountPoint
 	}
 	if me.mount != cur {
-		panic(fmt.Sprintf("me.mount not set correctly %v %v", me.mount, cur))
+		log.Panicf("me.mount not set correctly %v %v", me.mount, cur)
 	}
 
 	for name, m := range me.mounts {
 		if m.mountInode != me.children[name] {
-			panic(fmt.Sprintf("mountpoint parent mismatch: node:%v name:%v ch:%v",
-				me.mountPoint, name, me.children))
+			log.Panicf("mountpoint parent mismatch: node:%v name:%v ch:%v",
+				me.mountPoint, name, me.children)
 		}
 	}
 
-	for _, ch := range me.children {
+	for n, ch := range me.children {
 		if ch == nil {
-			panic("Found nil child.")
+			log.Panicf("Found nil child: %q", n)
 		}
 		ch.verify(cur)
 	}

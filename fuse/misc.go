@@ -115,7 +115,7 @@ func ModeToType(mode uint32) uint32 {
 
 func CheckSuccess(e error) {
 	if e != nil {
-		panic(fmt.Sprintf("Unexpected error: %v", e))
+		log.Panicf("Unexpected error: %v", e)
 	}
 }
 

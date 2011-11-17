@@ -26,7 +26,7 @@ func Socketpair(network string) (l, r *os.File, err error) {
 		domain = syscall.AF_UNIX
 		typ = syscall.SOCK_SEQPACKET
 	default:
-		panic("unknown network " + network)
+		log.Panicf("unknown network %q", network)
 	}
 	fd, errno := syscall.Socketpair(domain, typ, 0)
 	if errno != 0 {
