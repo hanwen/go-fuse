@@ -132,7 +132,7 @@ func (me *MountState) readRequest(req *request) Status {
 		req.startNs = time.Nanoseconds()
 	}
 	req.inputBuf = req.inputBuf[0:n]
-	return OsErrorToErrno(err)
+	return ToStatus(err)
 }
 
 func (me *MountState) recordStats(req *request) {
@@ -251,7 +251,7 @@ func (me *MountState) write(req *request) Status {
 			[][]byte{req.outHeaderBytes, req.flatData})
 	}
 
-	return OsErrorToErrno(err)
+	return ToStatus(err)
 }
 
 func (me *MountState) writeInodeNotify(entry *NotifyInvalInodeOut) Status {

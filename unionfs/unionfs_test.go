@@ -223,7 +223,7 @@ func TestUnionFsChown(t *testing.T) {
 	writeToFile(ro_fn, "a")
 
 	err := os.Chown(m_fn, 0, 0)
-	code := fuse.OsErrorToErrno(err)
+	code := fuse.ToStatus(err)
 	if code != fuse.EPERM {
 		t.Error("Unexpected error code", code, err)
 	}

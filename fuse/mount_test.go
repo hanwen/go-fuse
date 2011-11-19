@@ -40,7 +40,7 @@ func TestMountRename(t *testing.T) {
 		t.Fatal("mount should succeed")
 	}
 	err := os.Rename(ts.mnt+"/mnt", ts.mnt+"/foobar")
-	if OsErrorToErrno(err) != EBUSY {
+	if ToStatus(err) != EBUSY {
 		t.Fatal("rename mount point should fail with EBUSY:", err)
 	}
 	ts.pathFs.Unmount("mnt")

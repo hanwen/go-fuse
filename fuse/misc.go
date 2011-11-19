@@ -30,8 +30,8 @@ func (code Status) Ok() bool {
 	return code == OK
 }
 
-// Convert os.Error back to Errno based errors.
-func OsErrorToErrno(err error) Status {
+// Convert error back to Errno based errors.
+func ToStatus(err error) Status {
 	if err != nil {
 		switch t := err.(type) {
 		case syscall.Errno:
@@ -39,9 +39,9 @@ func OsErrorToErrno(err error) Status {
 		case *os.SyscallError:
 			return Status(t.Errno.(syscall.Errno))
 		case *os.PathError:
-			return OsErrorToErrno(t.Err)
+			return ToStatus(t.Err)
 		case *os.LinkError:
-			return OsErrorToErrno(t.Err)
+			return ToStatus(t.Err)
 		default:
 			log.Println("can't convert error type:", err)
 			return ENOSYS

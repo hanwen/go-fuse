@@ -101,12 +101,12 @@ func (me *LoopbackFile) Read(input *ReadIn, buffers BufferPool) ([]byte, Status)
 	if err == io.EOF {
 		err = nil
 	}
-	return slice[:n], OsErrorToErrno(err)
+	return slice[:n], ToStatus(err)
 }
 
 func (me *LoopbackFile) Write(input *WriteIn, data []byte) (uint32, Status) {
 	n, err := me.File.WriteAt(data, int64(input.Offset))
-	return uint32(n), OsErrorToErrno(err)
+	return uint32(n), ToStatus(err)
 }
 
 func (me *LoopbackFile) Release() {
@@ -114,27 +114,27 @@ func (me *LoopbackFile) Release() {
 }
 
 func (me *LoopbackFile) Fsync(*FsyncIn) (code Status) {
-	return OsErrorToErrno(syscall.Fsync(me.File.Fd()))
+	return ToStatus(syscall.Fsync(me.File.Fd()))
 }
 
 func (me *LoopbackFile) Truncate(size uint64) Status {
-	return OsErrorToErrno(syscall.Ftruncate(me.File.Fd(), int64(size)))
+	return ToStatus(syscall.Ftruncate(me.File.Fd(), int64(size)))
 }
 
 // futimens missing from 6g runtime.
 
 func (me *LoopbackFile) Chmod(mode uint32) Status {
-	return OsErrorToErrno(me.File.Chmod(mode))
+	return ToStatus(me.File.Chmod(mode))
 }
 
 func (me *LoopbackFile) Chown(uid uint32, gid uint32) Status {
-	return OsErrorToErrno(me.File.Chown(int(uid), int(gid)))
+	return ToStatus(me.File.Chown(int(uid), int(gid)))
 }
 
 func (me *LoopbackFile) GetAttr() (*os.FileInfo, Status) {
 	fi, err := me.File.Stat()
 	if err != nil {
-		return nil, OsErrorToErrno(err)
+		return nil, ToStatus(err)
 	}
 	return fi, OK
 }

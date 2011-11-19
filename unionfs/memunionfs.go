@@ -410,7 +410,7 @@ func (me *memNode) Create(name string, flags uint32, mode uint32, context *fuse.
 	f, err := os.Create(n.backing)
 	if err != nil {
 		log.Printf("Backing store error %q: %v", n.backing, err)
-		return nil, nil, nil, fuse.OsErrorToErrno(err)
+		return nil, nil, nil, fuse.ToStatus(err)
 	}
 	me.Inode().AddChild(name, n.Inode())
 	me.touch()
@@ -494,7 +494,7 @@ func (me *memNode) Open(flags uint32, context *fuse.Context) (file fuse.File, co
 	if me.backing != "" {
 		f, err := os.OpenFile(me.backing, int(flags), 0666)
 		if err != nil {
-			return nil, fuse.OsErrorToErrno(err)
+			return nil, fuse.ToStatus(err)
 		}
 		wr := flags&fuse.O_ANYWRITE != 0
 		if wr {
@@ -542,7 +542,7 @@ func (me *memNode) Truncate(file fuse.File, size uint64, context *fuse.Context) 
 	me.info.Size = int64(size)
 	err := os.Truncate(me.backing, int64(size))
 	me.touch()
-	return fuse.OsErrorToErrno(err)
+	return fuse.ToStatus(err)
 }
 
 func (me *memNode) Utimens(file fuse.File, atime uint64, mtime uint64, context *fuse.Context) (code fuse.Status) {

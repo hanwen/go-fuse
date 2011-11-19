@@ -181,13 +181,13 @@ func TestCreationChecks(t *testing.T) {
 	CheckSuccess(err)
 
 	err = os.Symlink(wd+"/store/foo", wd+"/mnt/config/foo")
-	code := fuse.OsErrorToErrno(err)
+	code := fuse.ToStatus(err)
 	if code != fuse.EBUSY {
 		t.Error("Should return EBUSY", err)
 	}
 
 	err = os.Symlink(wd+"/store/ws2", wd+"/mnt/config/config")
-	code = fuse.OsErrorToErrno(err)
+	code = fuse.ToStatus(err)
 	if code != fuse.EINVAL {
 		t.Error("Should return EINVAL", err)
 	}

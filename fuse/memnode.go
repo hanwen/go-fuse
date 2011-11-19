@@ -129,7 +129,7 @@ func (me *memNode) Create(name string, flags uint32, mode uint32, context *Conte
 
 	f, err := os.Create(n.filename())
 	if err != nil {
-		return nil, nil, nil, OsErrorToErrno(err)
+		return nil, nil, nil, ToStatus(err)
 	}
 	me.Inode().AddChild(name, n.Inode())
 	return n.newFile(f), &n.info, n, OK
@@ -166,7 +166,7 @@ func (me *memNode) newFile(f *os.File) File {
 func (me *memNode) Open(flags uint32, context *Context) (file File, code Status) {
 	f, err := os.OpenFile(me.filename(), int(flags), 0666)
 	if err != nil {
-		return nil, OsErrorToErrno(err)
+		return nil, ToStatus(err)
 	}
 
 	return me.newFile(f), OK
@@ -184,7 +184,7 @@ func (me *memNode) Truncate(file File, size uint64, context *Context) (code Stat
 	me.info.Size = int64(size)
 	err := os.Truncate(me.filename(), int64(size))
 	me.info.Ctime_ns = time.Nanoseconds()
-	return OsErrorToErrno(err)
+	return ToStatus(err)
 }
 
 func (me *memNode) Utimens(file File, atime uint64, mtime uint64, context *Context) (code Status) {
