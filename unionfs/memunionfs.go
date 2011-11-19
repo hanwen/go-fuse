@@ -57,10 +57,13 @@ func (me *MemUnionFs) OnMount(conn *fuse.FileSystemConnector) {
 	me.connector = conn
 }
 
-func (me *MemUnionFs) release() {
+func (me *MemUnionFs) markCloseWrite() {
 	me.mutex.Lock()
 	defer me.mutex.Unlock()
 	me.openWritable--
+	if me.openWritable < 0 {
+		log.Panicf("openWritable Underflow")
+	}
 	me.cond.Broadcast()
 }
 
@@ -436,12 +439,15 @@ func (me *memNodeFile) Release() {
 	// Must do the subfile release first, as that may flush data
 	// to disk.
 	me.File.Release()
-	me.node.fs.release()
+	if me.writable {
+		me.node.fs.markCloseWrite()
+	}
 }
 
 func (me *memNodeFile) Flush() fuse.Status {
 	code := me.File.Flush()
 	if me.writable {
+		// TODO - should this be in Release?
 		fi, _ := me.File.GetAttr()
 
 		me.node.mutex.Lock()
