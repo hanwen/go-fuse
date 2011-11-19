@@ -27,29 +27,29 @@ EXAMPLES
 
 * `zipfs/zipfs.go` contains a small and simple read-only filesystem for zip and tar files. The corresponding command is in `example/zipfs/`. For example,
 
-	mkdir /tmp/mountpoint
-	example/zipfs/zipfs /tmp/mountpoint file.zip &
-	ls /tmp/mountpoint
-	fusermount -u /tmp/mountpoint
+		mkdir /tmp/mountpoint
+		example/zipfs/zipfs /tmp/mountpoint file.zip &
+		ls /tmp/mountpoint
+		fusermount -u /tmp/mountpoint
 
 * `zipfs/multizipfs.go` shows how to use in-process mounts to combine multiple Go-FUSE filesystems into a larger filesystem.
 
 * `fuse/loopback.go` mounts another piece of the filesystem. Functionally, it is similar to a symlink.  A binary to run is in `example/loopback/`. For example
 
-	mkdir /tmp/mountpoint
-	example/loopback/loopback -debug /tmp/mountpoint /some/other/directory &
-	ls /tmp/mountpoint
-	fusermount -u /tmp/mountpoint
+		mkdir /tmp/mountpoint
+		example/loopback/loopback -debug /tmp/mountpoint /some/other/directory &
+		ls /tmp/mountpoint
+		fusermount -u /tmp/mountpoint
 
 * `unionfs/unionfs.go`: implements a union mount using 1 R/W branch, and multiple R/O branches.
 
-	mkdir -p  /tmp/mountpoint /tmp/writable
-	example/unionfs/unionfs /tmp/mountpoint /tmp/writable /usr &
-	ls /tmp/mountpoint
-	ls -l /tmp/mountpoint/bin/vi
-	rm /tmp/mountpoint/bin/vi
-	ls -l /tmp/mountpoint/bin/vi
-	cat /tmp/writable/*DELETION*/*
+		mkdir -p  /tmp/mountpoint /tmp/writable
+		example/unionfs/unionfs /tmp/mountpoint /tmp/writable /usr &
+		ls /tmp/mountpoint
+		ls -l /tmp/mountpoint/bin/vi
+		rm /tmp/mountpoint/bin/vi
+		ls -l /tmp/mountpoint/bin/vi
+		cat /tmp/writable/*DELETION*/*
 
 * `union/autounionfs.go`: creates UnionFs mounts automatically based on existence of READONLY symlinks.
 
