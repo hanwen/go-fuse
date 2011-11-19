@@ -12,8 +12,8 @@ import (
 var _ = fmt.Print
 var _ = log.Print
 
+var CheckSuccess = fuse.CheckSuccess
 const entryTtl = 0.1
-
 var testAOpts = AutoUnionFsOptions{
 	UnionFsOptions: testOpts,
 	FileSystemOptions: fuse.FileSystemOptions{
