@@ -7,8 +7,7 @@ GOFILES=unionfs.go \
 	timedcache.go \
 	cachingfs.go \
 	autounion.go \
-	create.go \
-	memunionfs.go
+	create.go
 
 DEPS=../fuse
 
