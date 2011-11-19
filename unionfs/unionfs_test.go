@@ -601,9 +601,8 @@ func TestUnionFsWriteAccess(t *testing.T) {
 	CheckSuccess(err)
 	freezeRo(wd + "/ro")
 
-	errno := syscall.Access(wd+"/mnt/file", fuse.W_OK)
-	if errno != 0 {
-		err = os.Errno(errno)
+	err = syscall.Access(wd+"/mnt/file", fuse.W_OK)
+	if err != nil {
 		CheckSuccess(err)
 	}
 }
@@ -1009,7 +1008,7 @@ func TestUnionFsStatFs(t *testing.T) {
 
 	s1 := syscall.Statfs_t{}
 	err := syscall.Statfs(wd+"/mnt", &s1)
-	if err != 0 {
+	if err != nil {
 		t.Fatal("statfs mnt", err)
 	}
 	if s1.Bsize == 0 {

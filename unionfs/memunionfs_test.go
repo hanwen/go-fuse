@@ -615,7 +615,7 @@ func TestMemUnionFsStatFs(t *testing.T) {
 
 	s1 := syscall.Statfs_t{}
 	err := syscall.Statfs(wd+"/mnt", &s1)
-	if err != 0 {
+	if err != nil {
 		t.Fatal("statfs mnt", err)
 	}
 	if s1.Bsize == 0 {
