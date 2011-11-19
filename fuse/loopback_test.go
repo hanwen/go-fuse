@@ -446,7 +446,7 @@ func TestAccess(t *testing.T) {
 	err = os.Chmod(me.origFile, 0222)
 	CheckSuccess(err)
 	errCode = syscall.Access(me.mountFile, W_OK)
-	if errCode != 0 {
+	if errCode != nil {
 		t.Errorf("Expected no error code for writable. %v", errCode)
 	}
 }
@@ -457,7 +457,7 @@ func TestMknod(t *testing.T) {
 
 	t.Log("Testing mknod.")
 	errNo := syscall.Mknod(me.mountFile, syscall.S_IFIFO|0777, 0)
-	if errNo != 0 {
+	if errNo != nil {
 		t.Errorf("Mknod %v", errNo)
 	}
 	fi, _ := os.Lstat(me.origFile)
@@ -513,7 +513,7 @@ func TestFSync(t *testing.T) {
 
 	// How to really test fsync ?
 	errNo := syscall.Fsync(f.Fd())
-	if errNo != 0 {
+	if errNo != nil {
 		t.Errorf("fsync returned %v", errNo)
 	}
 	f.Close()
@@ -679,6 +679,8 @@ func clearStatfs(s *syscall.Statfs_t) {
 	s.Type = 0
 	s.Fsid = empty.Fsid
 	s.Spare = empty.Spare
+	// TODO - figure out what this is for.
+	s.Flags = 0
 }
 
 // This test is racy. If an external process consumes space while this
@@ -690,14 +692,14 @@ func TestStatFs(t *testing.T) {
 	empty := syscall.Statfs_t{}
 	s1 := empty
 	err := syscall.Statfs(ts.orig, &s1)
-	if err != 0 {
+	if err != nil {
 		t.Fatal("statfs orig", err)
 	}
 
 	s2 := syscall.Statfs_t{}
 	err = syscall.Statfs(ts.mnt, &s2)
 
-	if err != 0 {
+	if err != nil {
 		t.Fatal("statfs mnt", err)
 	}
 
@@ -719,7 +721,7 @@ func TestFStatFs(t *testing.T) {
 	empty := syscall.Statfs_t{}
 	s1 := empty
 	errno := syscall.Fstatfs(fOrig.Fd(), &s1)
-	if errno != 0 {
+	if errno != nil {
 		t.Fatal("statfs orig", err)
 	}
 
@@ -729,7 +731,7 @@ func TestFStatFs(t *testing.T) {
 	s2 := empty
 
 	errno = syscall.Fstatfs(fMnt.Fd(), &s2)
-	if errno != 0 {
+	if errno != nil {
 		t.Fatal("statfs mnt", err)
 	}
 

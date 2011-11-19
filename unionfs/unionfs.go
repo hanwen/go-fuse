@@ -129,7 +129,7 @@ func (me *UnionFs) isDeleted(name string) (deleted bool, code fuse.Status) {
 	}
 
 	log.Println("error accessing deletion marker:", marker)
-	return false, syscall.EROFS
+	return false, fuse.Status(syscall.EROFS)
 }
 
 func (me *UnionFs) createDeletionStore() (code fuse.Status) {
@@ -143,7 +143,7 @@ func (me *UnionFs) createDeletionStore() (code fuse.Status) {
 	}
 
 	if !code.Ok() || !fi.IsDirectory() {
-		code = syscall.EROFS
+		code = fuse.Status(syscall.EROFS)
 	}
 
 	return code
@@ -379,7 +379,7 @@ func (me *UnionFs) Rmdir(path string, context *fuse.Context) (code fuse.Status) 
 		return r.code
 	}
 	if !r.attr.IsDirectory() {
-		return syscall.ENOTDIR
+		return fuse.Status(syscall.ENOTDIR)
 	}
 
 	stream, code := me.OpenDir(path, context)
@@ -388,7 +388,7 @@ func (me *UnionFs) Rmdir(path string, context *fuse.Context) (code fuse.Status) 
 		found = true
 	}
 	if found {
-		return syscall.ENOTEMPTY
+		return fuse.Status(syscall.ENOTEMPTY)
 	}
 
 	if r.branch > 0 {
@@ -416,7 +416,7 @@ func (me *UnionFs) Mkdir(path string, mode uint32, context *fuse.Context) (code 
 	if !deleted {
 		r := me.getBranch(path)
 		if r.code != fuse.ENOENT {
-			return syscall.EEXIST
+			return fuse.Status(syscall.EEXIST)
 		}
 	}
 
@@ -761,7 +761,7 @@ func (me *UnionFs) OpenDir(directory string, context *fuse.Context) (stream chan
 		if code == fuse.ENOENT {
 			deletions = map[string]bool{}
 		} else {
-			return nil, syscall.EROFS
+			return nil, fuse.Status(syscall.EROFS)
 		}
 	}
 

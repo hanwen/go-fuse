@@ -114,11 +114,11 @@ func (me *LoopbackFile) Release() {
 }
 
 func (me *LoopbackFile) Fsync(*FsyncIn) (code Status) {
-	return Status(syscall.Fsync(me.File.Fd()))
+	return OsErrorToErrno(syscall.Fsync(me.File.Fd()))
 }
 
 func (me *LoopbackFile) Truncate(size uint64) Status {
-	return Status(syscall.Ftruncate(me.File.Fd(), int64(size)))
+	return OsErrorToErrno(syscall.Ftruncate(me.File.Fd(), int64(size)))
 }
 
 // futimens missing from 6g runtime.

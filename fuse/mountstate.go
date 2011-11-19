@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"syscall"
 	"time"
 	"unsafe"
 )
@@ -125,7 +124,7 @@ func (me *MountState) newRequest() *request {
 	}
 }
 
-func (me *MountState) readRequest(req *request) error {
+func (me *MountState) readRequest(req *request) Status {
 	n, err := me.mountFile.Read(req.inputBuf)
 	// If we start timing before the read, we may take into
 	// account waiting for input into the timing.
@@ -133,7 +132,7 @@ func (me *MountState) readRequest(req *request) error {
 		req.startNs = time.Nanoseconds()
 	}
 	req.inputBuf = req.inputBuf[0:n]
-	return err
+	return OsErrorToErrno(err)
 }
 
 func (me *MountState) recordStats(req *request) {
@@ -162,21 +161,19 @@ func (me *MountState) Loop() {
 func (me *MountState) loop() {
 	for {
 		req := me.newRequest()
-		err := me.readRequest(req)
-		if err != nil {
-			errNo := OsErrorToErrno(err)
-
+		errNo := me.readRequest(req)
+		if !errNo.Ok() {
 			// Retry.
-			if errNo == syscall.ENOENT {
+			if errNo == ENOENT {
 				continue
 			}
 
-			if errNo == syscall.ENODEV {
+			if errNo == ENODEV {
 				// Unmount.
 				break
 			}
 
-			log.Printf("Failed to read from fuse conn: %v", err)
+			log.Printf("Failed to read from fuse conn: %v", errNo)
 			break
 		}
 

@@ -113,7 +113,7 @@ func (me *LoopbackFileSystem) Readlink(name string, context *Context) (out strin
 }
 
 func (me *LoopbackFileSystem) Mknod(name string, mode uint32, dev uint32, context *Context) (code Status) {
-	return Status(syscall.Mknod(me.GetPath(name), mode, int(dev)))
+	return OsErrorToErrno(syscall.Mknod(me.GetPath(name), mode, int(dev)))
 }
 
 func (me *LoopbackFileSystem) Mkdir(path string, mode uint32, context *Context) (code Status) {
@@ -122,11 +122,11 @@ func (me *LoopbackFileSystem) Mkdir(path string, mode uint32, context *Context) 
 
 // Don't use os.Remove, it removes twice (unlink followed by rmdir).
 func (me *LoopbackFileSystem) Unlink(name string, context *Context) (code Status) {
-	return Status(syscall.Unlink(me.GetPath(name)))
+	return OsErrorToErrno(syscall.Unlink(me.GetPath(name)))
 }
 
 func (me *LoopbackFileSystem) Rmdir(name string, context *Context) (code Status) {
-	return Status(syscall.Rmdir(me.GetPath(name)))
+	return OsErrorToErrno(syscall.Rmdir(me.GetPath(name)))
 }
 
 func (me *LoopbackFileSystem) Symlink(pointedTo string, linkName string, context *Context) (code Status) {
@@ -143,7 +143,7 @@ func (me *LoopbackFileSystem) Link(orig string, newName string, context *Context
 }
 
 func (me *LoopbackFileSystem) Access(name string, mode uint32, context *Context) (code Status) {
-	return Status(syscall.Access(me.GetPath(name), mode))
+	return OsErrorToErrno(syscall.Access(me.GetPath(name), mode))
 }
 
 func (me *LoopbackFileSystem) Create(path string, flags uint32, mode uint32, context *Context) (fuseFile File, code Status) {
@@ -173,9 +173,8 @@ func (me *LoopbackFileSystem) String() string {
 
 func (me *LoopbackFileSystem) StatFs(name string) *StatfsOut {
 	s := syscall.Statfs_t{}
-	errNo := syscall.Statfs(me.GetPath(name), &s)
-
-	if errNo == 0 {
+	err := syscall.Statfs(me.GetPath(name), &s)
+	if err == nil {
 		return &StatfsOut{
 			Kstatfs{
 				Blocks:  s.Blocks,

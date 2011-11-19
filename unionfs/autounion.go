@@ -229,7 +229,7 @@ func (me *AutoUnionFs) Symlink(pointedTo string, linkName string, context *fuse.
 	if comps[0] == _CONFIG {
 		roots := me.getRoots(pointedTo)
 		if roots == nil {
-			return syscall.ENOTDIR
+			return fuse.Status(syscall.ENOTDIR)
 		}
 
 		name := comps[1]

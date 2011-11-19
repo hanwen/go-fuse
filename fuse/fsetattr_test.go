@@ -158,7 +158,7 @@ func TestFSetAttr(t *testing.T) {
 	CheckSuccess(err)
 
 	code := syscall.Ftruncate(f.Fd(), 3)
-	if code != 0 {
+	if code != nil {
 		t.Error("truncate retval", os.NewSyscallError("Ftruncate", code))
 	}
 	if len(fs.file.data) != 3 {

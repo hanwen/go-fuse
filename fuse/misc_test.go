@@ -9,19 +9,19 @@ import (
 
 func TestOsErrorToErrno(t *testing.T) {
 	errNo := OsErrorToErrno(os.EPERM)
-	if errNo != syscall.EPERM {
+	if errNo != EPERM {
 		t.Errorf("Wrong conversion %v != %v", errNo, syscall.EPERM)
 	}
 
 	e := os.NewSyscallError("syscall", syscall.EPERM)
 	errNo = OsErrorToErrno(e)
-	if errNo != syscall.EPERM {
+	if errNo != EPERM {
 		t.Errorf("Wrong conversion %v != %v", errNo, syscall.EPERM)
 	}
 
 	e = os.Remove("this-file-surely-does-not-exist")
 	errNo = OsErrorToErrno(e)
-	if errNo != syscall.ENOENT {
+	if errNo != ENOENT {
 		t.Errorf("Wrong conversion %v != %v", errNo, syscall.ENOENT)
 	}
 }

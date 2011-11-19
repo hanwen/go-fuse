@@ -23,7 +23,7 @@ func (code Status) String() string {
 			"NOTIFY_INVAL_ENTRY",
 		}[-code]
 	}
-	return fmt.Sprintf("%d=%v", int(code), os.Errno(code))
+	return fmt.Sprintf("%d=%v", int(code), syscall.Errno(code))
 }
 
 func (code Status) Ok() bool {
@@ -34,10 +34,10 @@ func (code Status) Ok() bool {
 func OsErrorToErrno(err error) Status {
 	if err != nil {
 		switch t := err.(type) {
-		case os.Errno:
+		case syscall.Errno:
 			return Status(t)
 		case *os.SyscallError:
-			return Status(t.Errno)
+			return Status(t.Errno.(syscall.Errno))
 		case *os.PathError:
 			return OsErrorToErrno(t.Err)
 		case *os.LinkError:
@@ -104,7 +104,7 @@ func Writev(fd int, packet [][]byte) (n int, err error) {
 
 	n, errno := writev(fd, &iovecs[0], len(iovecs))
 	if errno != 0 {
-		err = os.NewSyscallError("writev", errno)
+		err = os.NewSyscallError("writev", syscall.Errno(errno))
 	}
 	return n, err
 }

@@ -27,9 +27,10 @@ func Socketpair(network string) (l, r *os.File, err error) {
 	default:
 		log.Panicf("unknown network %q", network)
 	}
-	fd, errno := syscall.Socketpair(domain, typ, 0)
-	if errno != 0 {
-		return nil, nil, os.NewSyscallError("socketpair", errno)
+	fd, err := syscall.Socketpair(domain, typ, 0)
+	if err != nil {
+		return nil, nil, os.NewSyscallError("socketpair",
+			err.(syscall.Errno))
 	}
 	l = os.NewFile(fd[0], "socketpair-half1")
 	r = os.NewFile(fd[1], "socketpair-half2")
@@ -59,6 +60,7 @@ func mount(mountPoint string, options string) (f *os.File, finalMountPoint strin
 
 	cmd := []string{fusermountBinary, mountPoint}
 	if options != "" {
+		log.Printf("o %q", options)
 		cmd = append(cmd, "-o")
 		cmd = append(cmd, options)
 	}
@@ -128,9 +130,9 @@ func getConnection(local *os.File) (f *os.File, err error) {
 
 	// n, oobn, recvflags, from, errno  - todo: error checking.
 	_, oobn, _, _,
-		errno := syscall.Recvmsg(
+		err := syscall.Recvmsg(
 		local.Fd(), data[:], control[:], 0)
-	if errno != 0 {
+	if err != nil {
 		return
 	}
 

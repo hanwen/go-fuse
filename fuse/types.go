@@ -53,6 +53,8 @@ const (
 	ERANGE  = Status(syscall.ERANGE)
 	EXDEV   = Status(syscall.EXDEV)
 	EBADF   = Status(syscall.EBADF)
+	ENODEV  = Status(syscall.ENODEV)
+	EROFS   = Status(syscall.EROFS)
 )
 
 type NotifyCode int

@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"syscall"
 )
 
 // SwitchFileSystem construct the union of a set of filesystems, and
@@ -136,7 +135,7 @@ func (me *SwitchFileSystem) Rename(oldName string, newName string, context *Cont
 	oldName, fs1 := me.findFileSystem(oldName)
 	newName, fs2 := me.findFileSystem(newName)
 	if fs1 != fs2 {
-		return syscall.EXDEV
+		return EXDEV
 	}
 	if fs1 == nil {
 		return ENOENT
@@ -148,7 +147,7 @@ func (me *SwitchFileSystem) Link(oldName string, newName string, context *Contex
 	oldName, fs1 := me.findFileSystem(oldName)
 	newName, fs2 := me.findFileSystem(newName)
 	if fs1 != fs2 {
-		return syscall.EXDEV
+		return EXDEV
 	}
 	if fs1 == nil {
 		return ENOENT
