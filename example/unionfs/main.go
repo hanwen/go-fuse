@@ -11,7 +11,6 @@ import (
 
 func main() {
 	debug := flag.Bool("debug", false, "debug on")
-	mem := flag.Bool("mem", false, "use in-memory unionfs")
 	portable := flag.Bool("portable", false, "use 32 bit inodes")
 
 	entry_ttl := flag.Float64("entry_ttl", 1.0, "fuse entry cache TTL.")
@@ -27,24 +26,18 @@ func main() {
 		os.Exit(2)
 	}
 
-	var nodeFs fuse.NodeFileSystem
-	if *mem {
-		nodeFs = unionfs.NewMemUnionFs(
-			flag.Arg(1)+"/", &fuse.LoopbackFileSystem{Root: flag.Arg(2)})
-	} else {
-		ufsOptions := unionfs.UnionFsOptions{
-			DeletionCacheTTLSecs: *delcache_ttl,
-			BranchCacheTTLSecs:   *branchcache_ttl,
-			DeletionDirName:      *deldirname,
-		}
-
-		ufs, err := unionfs.NewUnionFsFromRoots(flag.Args()[1:], &ufsOptions, true)
-		if err != nil {
-			log.Fatal("Cannot create UnionFs", err)
-			os.Exit(1)
-		}
-		nodeFs = fuse.NewPathNodeFs(ufs, &fuse.PathNodeFsOptions{ClientInodes: true})
+	ufsOptions := unionfs.UnionFsOptions{
+		DeletionCacheTTLSecs: *delcache_ttl,
+		BranchCacheTTLSecs:   *branchcache_ttl,
+		DeletionDirName:      *deldirname,
 	}
+
+	ufs, err := unionfs.NewUnionFsFromRoots(flag.Args()[1:], &ufsOptions, true)
+	if err != nil {
+		log.Fatal("Cannot create UnionFs", err)
+		os.Exit(1)
+	}
+	nodeFs := fuse.NewPathNodeFs(ufs, &fuse.PathNodeFsOptions{ClientInodes: true})
 	mOpts := fuse.FileSystemOptions{
 		EntryTimeout:    *entry_ttl,
 		AttrTimeout:     *entry_ttl,
