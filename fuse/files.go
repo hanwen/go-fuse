@@ -97,7 +97,6 @@ func (me *LoopbackFile) Read(input *ReadIn, buffers BufferPool) ([]byte, Status)
 	slice := buffers.AllocBuffer(input.Size)
 
 	n, err := me.File.ReadAt(slice, int64(input.Offset))
-	// TODO - fix Go ndocumentation.
 	if err == io.EOF {
 		err = nil
 	}

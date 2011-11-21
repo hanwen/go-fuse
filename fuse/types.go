@@ -25,13 +25,12 @@ const (
 	S_IFLNK = syscall.S_IFLNK
 	S_IFIFO = syscall.S_IFIFO
 
-	// TODO - get this from a canonical place.
-	PAGESIZE = 4096
-
 	CUSE_INIT = 4096
 
 	O_ANYWRITE = uint32(os.O_WRONLY | os.O_RDWR | os.O_APPEND | os.O_CREATE | os.O_TRUNC)
 )
+
+const PAGESIZE = 4096
 
 const (
 	_DEFAULT_BACKGROUND_TASKS = 12

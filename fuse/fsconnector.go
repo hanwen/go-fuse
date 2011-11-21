@@ -109,8 +109,6 @@ func (me *FileSystemConnector) toInode(nodeid uint64) *Inode {
 }
 
 // Must run outside treeLock.  Returns the nodeId.
-//
-// TODO - write a stress test to exercise this.
 func (me *FileSystemConnector) lookupUpdate(node *Inode) uint64 {
 	node.treeLock.Lock()
 	defer node.treeLock.Unlock()
@@ -160,8 +158,6 @@ func (me *FileSystemConnector) recursiveConsiderDropInode(n *Inode) (drop bool) 
 		if ch == nil {
 			log.Panicf("trying to del child %q, but not present", k)
 		}
-		// TODO - change name? This does not really mark the
-		// fuse Forget operation.
 		ch.fsInode.OnForget()
 	}
 
@@ -255,11 +251,6 @@ func (me *FileSystemConnector) MountRoot(nodeFs NodeFileSystem, opts *FileSystem
 // ENOENT: the directory containing the mount point does not exist.
 //
 // EBUSY: the intended mount point already exists.
-//
-// TODO - would be useful to expose an interface to put all of the
-// mount management in FileSystemConnector, so AutoUnionFs and
-// MultiZipFs don't have to do it separately, with the risk of
-// inconsistencies.
 func (me *FileSystemConnector) Mount(parent *Inode, name string, nodeFs NodeFileSystem, opts *FileSystemOptions) Status {
 	parent.treeLock.Lock()
 	defer parent.treeLock.Unlock()

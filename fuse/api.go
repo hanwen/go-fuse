@@ -36,6 +36,9 @@ type FsNode interface {
 	// within the treeLock critical section, so you cannot look at
 	// other inodes.
 	Deletable() bool
+
+	// OnForget is called when the reference to this inode is
+	// dropped from the tree.
 	OnForget()
 
 	// Misc.

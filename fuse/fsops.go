@@ -151,17 +151,21 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 		code = node.fsInode.Truncate(f, input.Size, &header.Context)
 	}
 	if code.Ok() && (input.Valid&(FATTR_ATIME|FATTR_MTIME|FATTR_ATIME_NOW|FATTR_MTIME_NOW) != 0) {
+		now := uint64(0)
+		if input.Valid&FATTR_ATIME_NOW != 0 || input.Valid&FATTR_MTIME_NOW != 0 {
+			now = uint64(time.Nanoseconds())
+		}
+			
 		atime := uint64(input.Atime*1e9) + uint64(input.Atimensec)
 		if input.Valid&FATTR_ATIME_NOW != 0 {
-			atime = uint64(time.Nanoseconds())
+			atime = now
 		}
 
 		mtime := uint64(input.Mtime*1e9) + uint64(input.Mtimensec)
 		if input.Valid&FATTR_MTIME_NOW != 0 {
-			mtime = uint64(time.Nanoseconds())
+			mtime = now
 		}
 
-		// TODO - if using NOW, mtime and atime may differ.
 		code = node.fsInode.Utimens(f, atime, mtime, &header.Context)
 	}
 

@@ -26,9 +26,7 @@ const (
 
 ////////////////////////////////////////////////////////////////
 
-// MultiZipFs is a path filesystem that mounts zipfiles.  It needs a
-// reference to the FileSystemConnector to be able to execute
-// mounts.
+// MultiZipFs is a path filesystem that mounts zipfiles.
 type MultiZipFs struct {
 	lock          sync.RWMutex
 	zips          map[string]*MemTreeFs
@@ -87,7 +85,6 @@ func (me *MultiZipFs) GetAttr(name string, context *fuse.Context) (*os.FileInfo,
 	}
 
 	if name == "config" {
-		// TODO
 		a.Mode = fuse.S_IFDIR | 0700
 		return a, fuse.OK
 	}
