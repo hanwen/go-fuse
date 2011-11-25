@@ -178,13 +178,17 @@ func (me *memNode) GetAttr(file File, context *Context) (fi *os.FileInfo, code S
 
 func (me *memNode) Truncate(file File, size uint64, context *Context) (code Status) {
 	if file != nil {
-		return file.Truncate(size)
+		code = file.Truncate(size)
+	} else {
+		err := os.Truncate(me.filename(), int64(size))
+		code = ToStatus(err)
 	}
-
-	me.info.Size = int64(size)
-	err := os.Truncate(me.filename(), int64(size))
-	me.info.Ctime_ns = time.Nanoseconds()
-	return ToStatus(err)
+	if code.Ok() {
+		me.info.Ctime_ns = time.Nanoseconds()
+		// TODO - should update mtime too?
+		me.info.Size = int64(size)
+	}
+	return code
 }
 
 func (me *memNode) Utimens(file File, atime uint64, mtime uint64, context *Context) (code Status) {

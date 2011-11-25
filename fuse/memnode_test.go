@@ -58,3 +58,21 @@ func TestMemNodeFs(t *testing.T) {
 		t.Fatalf("Readdir got %v, expected 1 file named 'test'", entries)
 	}
 }
+
+func TestMemNodeSetattr(t *testing.T) {
+	wd, _, clean := setupMemNodeTest(t)
+	defer clean()
+
+	f, err := os.OpenFile(wd+"/test", os.O_CREATE|os.O_WRONLY, 0644)
+	CheckSuccess(err)
+	defer f.Close()
+
+	err = f.Truncate(4096)
+	CheckSuccess(err)
+
+	fi, err := f.Stat()
+	CheckSuccess(err)
+	if fi.Size != 4096 {
+		t.Errorf("Size should be 4096 after Truncate: %d", fi.Size)
+	}
+}
