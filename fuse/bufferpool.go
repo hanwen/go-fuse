@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"strings"
 	"unsafe"
 )
 
@@ -12,6 +13,7 @@ var _ = log.Println
 type BufferPool interface {
 	AllocBuffer(size uint32) []byte
 	FreeBuffer(slice []byte)
+	String() string
 }
 
 type GcBufferPool struct {
@@ -31,74 +33,62 @@ func (me *GcBufferPool) FreeBuffer(slice []byte) {
 }
 
 // BufferPool implements a pool of buffers that returns slices with
-// capacity (2^e * PAGESIZE) for e=0,1,...  which have possibly been
-// used, and may contain random contents.
+// capacity of a multiple of PAGESIZE, which have possibly been used,
+// and may contain random contents.
 type BufferPoolImpl struct {
 	lock sync.Mutex
 
-	// For each exponent a list of slice pointers.
-	buffersByExponent [][][]byte
+	// For each page size multiple a list of slice pointers.
+	buffersBySize [][][]byte
 
-	// start of slice -> exponent.
-	outstandingBuffers map[uintptr]uint
+	// start of slice => true
+	outstandingBuffers map[uintptr]bool
 
 	// Total count of created buffers.  Handy for finding memory
 	// leaks.
 	createdBuffers int
 }
 
-// IntToExponent the smallest E such that 2^E >= Z.
-func IntToExponent(z int) uint {
-	x := z
-	var exp uint = 0
-	for x > 1 {
-		exp++
-		x >>= 1
-	}
-
-	if z > (1 << exp) {
-		exp++
-	}
-	return exp
-}
-
 func NewBufferPool() *BufferPoolImpl {
 	bp := new(BufferPoolImpl)
-	bp.buffersByExponent = make([][][]byte, 0, 8)
-	bp.outstandingBuffers = make(map[uintptr]uint)
+	bp.buffersBySize = make([][][]byte, 0, 32)
+	bp.outstandingBuffers = make(map[uintptr]bool)
 	return bp
 }
 
 func (me *BufferPoolImpl) String() string {
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	s := fmt.Sprintf("created: %v\noutstanding %v\n",
-		me.createdBuffers, len(me.outstandingBuffers))
-	for exp, bufs := range me.buffersByExponent {
-		s = s + fmt.Sprintf("%d = %d\n", exp, len(bufs))
+
+	result := []string{}
+	for exp, bufs := range me.buffersBySize {
+		if len(bufs) > 0 {
+			result = append(result, fmt.Sprintf("%d=%d\n", exp, len(bufs)))
+		}
 	}
-	return s
+	return fmt.Sprintf("created: %v\noutstanding %v\n%s",
+		me.createdBuffers, len(me.outstandingBuffers),
+		strings.Join(result, ", "))
 }
 
-func (me *BufferPoolImpl) getBuffer(exponent uint) []byte {
-	if len(me.buffersByExponent) <= int(exponent) {
-		return nil
+func (me *BufferPoolImpl) getBuffer(pageCount int) []byte {
+	for ; pageCount < len(me.buffersBySize); pageCount++ {
+		bufferList := me.buffersBySize[pageCount]
+		if len(bufferList) > 0 {
+			result := bufferList[len(bufferList)-1]
+			me.buffersBySize[pageCount] = me.buffersBySize[pageCount][:len(bufferList)-1]
+			return result
+		}
 	}
-	bufferList := me.buffersByExponent[exponent]
-	if len(bufferList) == 0 {
-		return nil
-	}
-
-	result := bufferList[len(bufferList)-1]
-	me.buffersByExponent[exponent] = me.buffersByExponent[exponent][:len(bufferList)-1]
-	return result
+	
+	return nil
 }
 
-func (me *BufferPoolImpl) addBuffer(slice []byte, exp uint) {
-	for len(me.buffersByExponent) <= int(exp) {
-		me.buffersByExponent = append(me.buffersByExponent, make([][]byte, 0))
+func (me *BufferPoolImpl) addBuffer(slice []byte, pages int) {
+	for len(me.buffersBySize) <= int(pages) {
+		me.buffersBySize = append(me.buffersBySize, make([][]byte, 0))
 	}
-	me.buffersByExponent[exp] = append(me.buffersByExponent[exp], slice)
+	me.buffersBySize[pages] = append(me.buffersBySize[pages], slice)
 }
 
 // AllocBuffer creates a buffer of at least the given size. After use,
@@ -108,28 +98,28 @@ func (me *BufferPoolImpl) AllocBuffer(size uint32) []byte {
 	if sz < PAGESIZE {
 		sz = PAGESIZE
 	}
-
-	exp := IntToExponent(sz)
-	rounded := 1 << exp
-
-	exp -= IntToExponent(PAGESIZE)
+	
+	if sz % PAGESIZE != 0 {
+		sz += PAGESIZE
+	}
+	psz := sz / PAGESIZE
 
 	me.lock.Lock()
 	defer me.lock.Unlock()
 
-	b := me.getBuffer(exp)
-
+	var b []byte
+	
+	b = me.getBuffer(psz)
 	if b == nil {
 		me.createdBuffers++
-		b = make([]byte, size, rounded)
+		b = make([]byte, size, psz * PAGESIZE)
 	} else {
 		b = b[:size]
 	}
 
-	me.outstandingBuffers[uintptr(unsafe.Pointer(&b[0]))] = exp
+	me.outstandingBuffers[uintptr(unsafe.Pointer(&b[0]))] = true
 
-	// FUSE throttles to ~10 outstanding requests, no normally,
-	// should not have more than 20 buffers outstanding.
+	// For testing should not have more than 20 buffers outstanding.
 	if paranoia && (me.createdBuffers > 50 || len(me.outstandingBuffers) > 50) {
 		panic("Leaking buffers")
 	}
@@ -144,23 +134,18 @@ func (me *BufferPoolImpl) FreeBuffer(slice []byte) {
 	if slice == nil {
 		return
 	}
-	sz := cap(slice)
-	if sz < PAGESIZE {
+	if cap(slice) % PAGESIZE != 0 {
 		return
 	}
-	exp := IntToExponent(sz)
-	rounded := 1 << exp
-	if rounded != sz {
-		return
-	}
-	slice = slice[:sz]
+	psz := cap(slice) / PAGESIZE
+	slice = slice[:psz]
 	key := uintptr(unsafe.Pointer(&slice[0]))
 
 	me.lock.Lock()
 	defer me.lock.Unlock()
-	exp, ok := me.outstandingBuffers[key]
+	ok := me.outstandingBuffers[key]
 	if ok {
-		me.addBuffer(slice, exp)
+		me.addBuffer(slice, psz)
 		delete(me.outstandingBuffers, key)
 	}
 }
