@@ -213,6 +213,10 @@ type MountOptions struct {
 	// controls the allowed number of requests that relate to
 	// async I/O.  Concurrency for synchronous I/O is not limited.
 	MaxBackground int
+
+	// Write size to use.  If 0, use default. This number is
+	// capped at the kernel maximum.
+	MaxWrite      int
 }
 
 // DefaultFileSystem implements a FileSystem that returns ENOSYS for every operation.

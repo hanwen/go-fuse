@@ -9,11 +9,8 @@ import (
 )
 
 const (
-	// bufSize should be a power of two to minimize lossage in
-	// BufferPool.  The minimum is 8k, but it doesn't cost anything to
-	// use a much larger buffer.
-	bufSize = (1 << 16)
-	maxRead = bufSize - PAGESIZE
+	// The kernel caps writes at 128k.
+	MAX_KERNEL_WRITE = 128 * 1024
 )
 
 // MountState contains the logic for reading from the FUSE device and
@@ -53,7 +50,18 @@ func (me *MountState) Mount(mountPoint string, opts *MountOptions) error {
 			MaxBackground: _DEFAULT_BACKGROUND_TASKS,
 		}
 	}
-	me.opts = opts
+	o := *opts
+	if o.MaxWrite < 0 {
+		o.MaxWrite = 0
+	}
+	if o.MaxWrite == 0 {
+		o.MaxWrite = 1 << 16
+	}
+	if o.MaxWrite > MAX_KERNEL_WRITE {
+		o.MaxWrite = MAX_KERNEL_WRITE
+	}
+	opts = &o
+	me.opts = &o
 
 	optStrs := opts.Options
 	if opts.AllowOther {
@@ -120,7 +128,7 @@ func (me *MountState) BufferPoolStats() string {
 func (me *MountState) newRequest() *request {
 	return &request{
 		status:   OK,
-		inputBuf: me.buffers.AllocBuffer(bufSize),
+		inputBuf: me.buffers.AllocBuffer(uint32(me.opts.MaxWrite + 4096)),
 	}
 }
 

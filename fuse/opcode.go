@@ -86,7 +86,7 @@ func doInit(state *MountState, req *request) {
 		Minor:               FUSE_KERNEL_MINOR_VERSION,
 		MaxReadAhead:        input.MaxReadAhead,
 		Flags:               state.kernelSettings.Flags,
-		MaxWrite:            maxRead,
+		MaxWrite:            uint32(state.opts.MaxWrite),
 		CongestionThreshold: uint16(state.opts.MaxBackground * 3 / 4),
 		MaxBackground:       uint16(state.opts.MaxBackground),
 	}
