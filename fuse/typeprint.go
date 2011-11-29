@@ -140,10 +140,10 @@ func (me *SetAttrIn) String() string {
 		s = append(s, fmt.Sprintf("size %d", me.Size))
 	}
 	if me.Valid&FATTR_ATIME != 0 {
-		s = append(s, fmt.Sprintf("atime %d %d", me.Atime, me.Atimensec))
+		s = append(s, fmt.Sprintf("atime %d.%09d", me.Atime, me.Atimensec))
 	}
 	if me.Valid&FATTR_MTIME != 0 {
-		s = append(s, fmt.Sprintf("mtime %d %d", me.Mtime, me.Mtimensec))
+		s = append(s, fmt.Sprintf("mtime %d.%09d", me.Mtime, me.Mtimensec))
 	}
 	if me.Valid&FATTR_MTIME != 0 {
 		s = append(s, fmt.Sprintf("fh %d", me.Fh))
