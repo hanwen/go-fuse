@@ -7,6 +7,7 @@ import (
 	"github.com/hanwen/go-fuse/zipfs"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 var _ = log.Printf
@@ -16,8 +17,8 @@ func main() {
 	debug := flag.Bool("debug", false, "debug on")
 	flag.Parse()
 	if flag.NArg() < 1 {
-		// TODO - where to get program name?
-		fmt.Println("usage: main MOUNTPOINT")
+		_, prog := filepath.Split(os.Args[0])
+		fmt.Printf("usage: %s MOUNTPOINT\n", prog)
 		os.Exit(2)
 	}
 
