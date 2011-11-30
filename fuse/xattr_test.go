@@ -98,7 +98,8 @@ func TestXAttrRead(t *testing.T) {
 	CheckSuccess(err)
 	defer os.RemoveAll(mountPoint)
 
-	state, _, err := MountPathFileSystem(mountPoint, xfs, nil)
+	nfs := NewPathNodeFs(xfs, nil)
+	state, _, err := MountNodeFileSystem(mountPoint, nfs, nil)
 	CheckSuccess(err)
 	state.Debug = VerboseTest()
 	defer state.Unmount()

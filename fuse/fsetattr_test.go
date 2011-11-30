@@ -122,7 +122,8 @@ func NewFile() *MutableDataFile {
 func setupFAttrTest(t *testing.T, fs FileSystem) (dir string, clean func()) {
 	dir, err := ioutil.TempDir("", "go-fuse")
 	CheckSuccess(err)
-	state, _, err := MountPathFileSystem(dir, fs, nil)
+	nfs := NewPathNodeFs(fs, nil)
+	state, _, err := MountNodeFileSystem(dir, nfs, nil)
 	CheckSuccess(err)
 	state.Debug = VerboseTest()
 

@@ -41,11 +41,6 @@ type PathNodeFs struct {
 	options *PathNodeFsOptions
 }
 
-type PathNodeFsOptions struct {
-	// If ClientInodes is set, use Inode returned from GetAttr to
-	// find hard-linked files.
-	ClientInodes bool
-}
 
 func (me *PathNodeFs) Mount(path string, nodeFs NodeFileSystem, opts *FileSystemOptions) Status {
 	dir, name := filepath.Split(path)

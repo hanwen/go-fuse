@@ -42,7 +42,9 @@ func setup(t *testing.T) (workdir string, cleanup func()) {
 	WriteFile(wd+"/ro/file2", "file2")
 
 	fs := NewAutoUnionFs(wd+"/store", testAOpts)
-	state, conn, err := fuse.MountPathFileSystem(wd+"/mnt", fs, &testAOpts.FileSystemOptions)
+
+	nfs := fuse.NewPathNodeFs(fs, nil)
+	state, conn, err := fuse.MountNodeFileSystem(wd+"/mnt", nfs, &testAOpts.FileSystemOptions)
 	CheckSuccess(err)
 	state.Debug = fuse.VerboseTest()
 	conn.Debug = fuse.VerboseTest()

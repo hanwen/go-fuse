@@ -16,7 +16,8 @@ const testTtl = 0.1
 func setupMzfs() (mountPoint string, cleanup func()) {
 	fs := NewMultiZipFs()
 	mountPoint, _ = ioutil.TempDir("", "")
-	state, _, err := fuse.MountPathFileSystem(mountPoint, fs, &fuse.FileSystemOptions{
+	nfs := fuse.NewPathNodeFs(fs)
+	state, _, err := fuse.MountNodeFileSystem(mountPoint, nfs, &fuse.FileSystemOptions{
 		EntryTimeout:    testTtl,
 		AttrTimeout:     testTtl,
 		NegativeTimeout: 0.0,

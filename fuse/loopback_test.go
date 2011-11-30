@@ -757,7 +757,8 @@ func TestOriginalIsSymlink(t *testing.T) {
 	CheckSuccess(err)
 
 	fs := NewLoopbackFileSystem(link)
-	state, _, err := MountPathFileSystem(mnt, fs, nil)
+	nfs := NewPathNodeFs(fs, nil)
+	state, _, err := MountNodeFileSystem(mnt, nfs, nil)
 	CheckSuccess(err)
 	defer state.Unmount()
 

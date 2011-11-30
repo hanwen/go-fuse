@@ -22,7 +22,8 @@ func main() {
 	}
 
 	fs := zipfs.NewMultiZipFs()
-	state, _, err := fuse.MountPathFileSystem(flag.Arg(0), fs, nil)
+	nfs := fuse.NewPathNodeFs(fs, nil)
+	state, _, err := fuse.MountNodeFileSystem(flag.Arg(0), nfs, nil)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)

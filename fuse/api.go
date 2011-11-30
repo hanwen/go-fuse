@@ -136,6 +136,12 @@ type FileSystem interface {
 	StatFs(name string) *StatfsOut
 }
 
+type PathNodeFsOptions struct {
+	// If ClientInodes is set, use Inode returned from GetAttr to
+	// find hard-linked files.
+	ClientInodes bool
+}
+
 // A File object should be returned from FileSystem.Open and
 // FileSystem.Create.  Include DefaultFile into the struct to inherit
 // a default null implementation.  

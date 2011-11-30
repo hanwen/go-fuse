@@ -29,7 +29,8 @@ func setupOwnerTest(opts *FileSystemOptions) (workdir string, cleanup func()) {
 	wd, err := ioutil.TempDir("", "go-fuse")
 
 	fs := &ownerFs{}
-	state, _, err := MountPathFileSystem(wd, fs, opts)
+	nfs := NewPathNodeFs(fs, nil)
+	state, _, err := MountNodeFileSystem(wd, nfs, opts)
 	CheckSuccess(err)
 	go state.Loop()
 	return wd, func() {

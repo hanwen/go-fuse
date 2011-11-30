@@ -876,7 +876,8 @@ func TestUnionFsDisappearing(t *testing.T) {
 		NegativeTimeout: entryTtl,
 	}
 
-	state, _, err := fuse.MountPathFileSystem(wd+"/mnt", ufs, opts)
+	nfs := fuse.NewPathNodeFs(ufs, nil)
+	state, _, err := fuse.MountNodeFileSystem(wd+"/mnt", nfs, opts)
 	CheckSuccess(err)
 	defer state.Unmount()
 	state.Debug = fuse.VerboseTest()

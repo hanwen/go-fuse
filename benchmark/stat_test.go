@@ -72,7 +72,8 @@ func NewStatFs() *StatFs {
 
 func setupFs(fs fuse.FileSystem, opts *fuse.FileSystemOptions) (string, func()) {
 	mountPoint, _ := ioutil.TempDir("", "stat_test")
-	state, _, err := fuse.MountPathFileSystem(mountPoint, fs, opts)
+	nfs := fuse.NewPathNodeFs(fs, nil)
+	state, _, err := fuse.MountNodeFileSystem(mountPoint, nfs, opts)
 	if err != nil {
 		panic(fmt.Sprintf("cannot mount %v", err)) // ugh - benchmark has no error methods.
 	}
