@@ -94,9 +94,20 @@ func (me *MountState) SetRecordStatistics(record bool) {
 	}
 }
 
-func (me *MountState) Unmount() error {
-	// Todo: flush/release all files/dirs?
-	err := unmount(me.mountPoint)
+func (me *MountState) Unmount() (err error) {
+	delay := int64(0)
+	for try := 0; try < 3; try++ {
+		err = unmount(me.mountPoint)
+		if err == nil {
+			break
+		}
+
+		// Sleep for a bit. This is not pretty, but there is
+		// no way we can be certain that the kernel thinks all
+		// open files have already been closed.
+		delay = 2*delay + 1e6
+		time.Sleep(delay)
+	}
 	if err == nil {
 		me.mountPoint = ""
 		me.mountFile.Close()
