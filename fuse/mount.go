@@ -1,6 +1,5 @@
 package fuse
 
-// Written with a look to http://ptspts.blogspot.com/2009/11/fuse-protocol-tutorial-for-linux-26.html
 import (
 	"fmt"
 	"log"
@@ -14,20 +13,8 @@ import (
 var fusermountBinary string
 var umountBinary string
 
-func Socketpair(network string) (l, r *os.File, err error) {
-	var domain int
-	var typ int
-	switch network {
-	case "unix":
-		domain = syscall.AF_UNIX
-		typ = syscall.SOCK_STREAM
-	case "unixgram":
-		domain = syscall.AF_UNIX
-		typ = syscall.SOCK_SEQPACKET
-	default:
-		log.Panicf("unknown network %q", network)
-	}
-	fd, err := syscall.Socketpair(domain, typ, 0)
+func unixgramSocketpair() (l, r *os.File, err error) {
+	fd, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_SEQPACKET, 0)
 	if err != nil {
 		return nil, nil, os.NewSyscallError("socketpair",
 			err.(syscall.Errno))
@@ -40,7 +27,7 @@ func Socketpair(network string) (l, r *os.File, err error) {
 // Create a FUSE FS on the specified mount point.  The returned
 // mount point is always absolute.
 func mount(mountPoint string, options string) (f *os.File, finalMountPoint string, err error) {
-	local, remote, err := Socketpair("unixgram")
+	local, remote, err := unixgramSocketpair()
 	if err != nil {
 		return
 	}

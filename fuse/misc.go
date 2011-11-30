@@ -77,6 +77,7 @@ func CopyFileInfo(fi *os.FileInfo, attr *Attr) {
 	attr.Blksize = uint32(fi.Blksize)
 }
 
+// TODO - expose in Go's syscall package.
 func writev(fd int, iovecs *syscall.Iovec, cnt int) (n int, errno int) {
 	n1, _, e1 := syscall.Syscall(
 		syscall.SYS_WRITEV,
