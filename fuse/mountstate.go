@@ -29,7 +29,7 @@ type MountState struct {
 	// For efficient reads and writes.
 	buffers *BufferPoolImpl
 
-	*LatencyMap
+	latencies *LatencyMap
 
 	opts           *MountOptions
 	kernelSettings InitIn
@@ -88,9 +88,9 @@ func (me *MountState) Mount(mountPoint string, opts *MountOptions) error {
 
 func (me *MountState) SetRecordStatistics(record bool) {
 	if record {
-		me.LatencyMap = NewLatencyMap()
+		me.latencies = NewLatencyMap()
 	} else {
-		me.LatencyMap = nil
+		me.latencies = nil
 	}
 }
 
@@ -125,11 +125,11 @@ func NewMountState(fs RawFileSystem) *MountState {
 }
 
 func (me *MountState) Latencies() map[string]float64 {
-	return me.LatencyMap.Latencies(1e-3)
+	return me.latencies.Latencies(1e-3)
 }
 
 func (me *MountState) OperationCounts() map[string]int {
-	return me.LatencyMap.Counts()
+	return me.latencies.Counts()
 }
 
 func (me *MountState) BufferPoolStats() string {
@@ -147,7 +147,7 @@ func (me *MountState) readRequest(req *request) Status {
 	n, err := me.mountFile.Read(req.inputBuf)
 	// If we start timing before the read, we may take into
 	// account waiting for input into the timing.
-	if me.LatencyMap != nil {
+	if me.latencies != nil {
 		req.startNs = time.Nanoseconds()
 	}
 	req.inputBuf = req.inputBuf[0:n]
@@ -155,12 +155,12 @@ func (me *MountState) readRequest(req *request) Status {
 }
 
 func (me *MountState) recordStats(req *request) {
-	if me.LatencyMap != nil {
+	if me.latencies != nil {
 		endNs := time.Nanoseconds()
 		dt := endNs - req.startNs
 
 		opname := operationName(req.inHeader.opcode)
-		me.LatencyMap.AddMany(
+		me.latencies.AddMany(
 			[]LatencyArg{
 				{opname, "", dt},
 				{opname + "-write", "", endNs - req.preWriteNs}})
@@ -254,7 +254,7 @@ func (me *MountState) write(req *request) Status {
 		log.Println(req.OutputDebug())
 	}
 
-	if me.LatencyMap != nil {
+	if me.latencies != nil {
 		req.preWriteNs = time.Nanoseconds()
 	}
 
