@@ -99,7 +99,7 @@ func (me *MountState) Unmount() (err error) {
 		return nil
 	}
 	delay := int64(0)
-	for try := 0; try < 3; try++ {
+	for try := 0; try < 5; try++ {
 		err = unmount(me.mountPoint)
 		if err == nil {
 			break
@@ -108,7 +108,7 @@ func (me *MountState) Unmount() (err error) {
 		// Sleep for a bit. This is not pretty, but there is
 		// no way we can be certain that the kernel thinks all
 		// open files have already been closed.
-		delay = 2*delay + 1e6
+		delay = 2*delay + 5e6
 		time.Sleep(delay)
 	}
 	if err == nil {
