@@ -95,6 +95,9 @@ func (me *MountState) SetRecordStatistics(record bool) {
 }
 
 func (me *MountState) Unmount() (err error) {
+	if me.mountPoint == "" {
+		return nil
+	}
 	delay := int64(0)
 	for try := 0; try < 3; try++ {
 		err = unmount(me.mountPoint)
