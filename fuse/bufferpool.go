@@ -20,7 +20,7 @@ type GcBufferPool struct {
 
 }
 
-// NewGcBufferPool is just a fallback to the standard allocation routines. 
+// NewGcBufferPool is just a fallback to the standard allocation routines.
 func NewGcBufferPool() *GcBufferPool {
 	return &GcBufferPool{}
 }
@@ -80,7 +80,7 @@ func (me *BufferPoolImpl) getBuffer(pageCount int) []byte {
 			return result
 		}
 	}
-	
+
 	return nil
 }
 
@@ -98,7 +98,7 @@ func (me *BufferPoolImpl) AllocBuffer(size uint32) []byte {
 	if sz < PAGESIZE {
 		sz = PAGESIZE
 	}
-	
+
 	if sz % PAGESIZE != 0 {
 		sz += PAGESIZE
 	}
@@ -108,7 +108,7 @@ func (me *BufferPoolImpl) AllocBuffer(size uint32) []byte {
 	defer me.lock.Unlock()
 
 	var b []byte
-	
+
 	b = me.getBuffer(psz)
 	if b == nil {
 		me.createdBuffers++
@@ -134,7 +134,7 @@ func (me *BufferPoolImpl) FreeBuffer(slice []byte) {
 	if slice == nil {
 		return
 	}
-	if cap(slice) % PAGESIZE != 0 {
+	if cap(slice) % PAGESIZE != 0 || cap(slice) == 0 {
 		return
 	}
 	psz := cap(slice) / PAGESIZE
