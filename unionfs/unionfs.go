@@ -648,7 +648,7 @@ func (me *UnionFs) Create(name string, flags uint32, mode uint32, context *fuse.
 
 		now := time.Nanoseconds()
 		a := fuse.Attr{
-			Mode:     fuse.S_IFREG | mode,
+			Mode: fuse.S_IFREG | mode,
 		}
 		a.SetTimes(-1, now, now)
 		me.branchCache.Set(name, branchResult{&a, fuse.OK, 0})

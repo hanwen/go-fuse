@@ -62,8 +62,8 @@ func readDir(fs fuse.FileSystem, name string) *dirResponse {
 func getAttr(fs fuse.FileSystem, name string) *attrResponse {
 	a, code := fs.GetAttr(name, nil)
 	return &attrResponse{
-		Attr: a,
-		Status:   code,
+		Attr:   a,
+		Status: code,
 	}
 }
 

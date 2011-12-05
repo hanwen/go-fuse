@@ -62,7 +62,7 @@ func (me *fileSystemMount) setOwner(attr *Attr) {
 func (me *fileSystemMount) fileInfoToEntry(attr *Attr) (out *EntryOut) {
 	out = &EntryOut{}
 	out.Attr = *attr
-	
+
 	splitNs(me.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
 	splitNs(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	me.setOwner(&out.Attr)
@@ -71,7 +71,7 @@ func (me *fileSystemMount) fileInfoToEntry(attr *Attr) (out *EntryOut) {
 	}
 	return out
 }
- 
+
 func (me *fileSystemMount) fillAttr(a *Attr, nodeId uint64) (out *AttrOut) {
 	out = &AttrOut{}
 	out.Attr = *a

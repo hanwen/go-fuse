@@ -158,6 +158,6 @@ func Linkat(fd1 int, n1 string, fd2 int, n2 string) int {
 func init() {
 	p := syscall.Getpagesize()
 	if p != PAGESIZE {
-		log.Panicf("page size incorrect: %d", p) 
+		log.Panicf("page size incorrect: %d", p)
 	}
 }

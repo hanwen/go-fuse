@@ -50,9 +50,6 @@ func (me FileMode) IsSymlink() bool { return (uint32(me) & syscall.S_IFMT) == sy
 // IsSocket reports whether the FileInfo describes a socket.
 func (me FileMode) IsSocket() bool { return (uint32(me) & syscall.S_IFMT) == syscall.S_IFSOCK }
 
-
-
-
 func (me *Attr) IsFifo() bool { return (uint32(me.Mode) & syscall.S_IFMT) == syscall.S_IFIFO }
 
 // IsChar reports whether the FileInfo describes a character special file.
@@ -73,33 +70,32 @@ func (me *Attr) IsSymlink() bool { return (uint32(me.Mode) & syscall.S_IFMT) == 
 // IsSocket reports whether the FileInfo describes a socket.
 func (me *Attr) IsSocket() bool { return (uint32(me.Mode) & syscall.S_IFMT) == syscall.S_IFSOCK }
 
-
 func (a *Attr) Atimens() int64 {
-	return int64(1e9 * a.Atime)  + int64(a.Atimensec)
+	return int64(1e9*a.Atime) + int64(a.Atimensec)
 }
 
 func (a *Attr) Mtimens() int64 {
-	return int64(1e9 * a.Mtime)  + int64(a.Mtimensec)
+	return int64(1e9*a.Mtime) + int64(a.Mtimensec)
 }
 
 func (a *Attr) Ctimens() int64 {
-	return int64(1e9 * a.Ctime)  + int64(a.Ctimensec)
+	return int64(1e9*a.Ctime) + int64(a.Ctimensec)
 }
 
 func (a *Attr) SetTimes(atimens int64, mtimens int64, ctimens int64) {
 	if atimens >= 0 {
-		a.Atime = uint64(atimens/1e9)
-		a.Atimensec = uint32(atimens%1e9)
+		a.Atime = uint64(atimens / 1e9)
+		a.Atimensec = uint32(atimens % 1e9)
 	}
 	if mtimens >= 0 {
-		a.Mtime = uint64(mtimens/1e9)
-		a.Mtimensec = uint32(mtimens%1e9)
+		a.Mtime = uint64(mtimens / 1e9)
+		a.Mtimensec = uint32(mtimens % 1e9)
 	}
 	if atimens >= 0 {
-		a.Ctime = uint64(ctimens/1e9)
-		a.Ctimensec = uint32(ctimens%1e9)
+		a.Ctime = uint64(ctimens / 1e9)
+		a.Ctimensec = uint32(ctimens % 1e9)
 	}
-}	
+}
 
 func (attr *Attr) FromFileInfo(fi *os.FileInfo) {
 	attr.Ino = uint64(fi.Ino)
@@ -115,17 +111,17 @@ func (attr *Attr) FromFileInfo(fi *os.FileInfo) {
 }
 func (a *Attr) ToFileInfo() (fi *os.FileInfo) {
 	return &os.FileInfo{
-		Ino: a.Ino,
-		Size: int64(a.Size),
+		Ino:      a.Ino,
+		Size:     int64(a.Size),
 		Atime_ns: a.Atimens(),
 		Mtime_ns: a.Mtimens(),
 		Ctime_ns: a.Ctimens(),
-		Blocks: int64(a.Blocks),
-		Mode: a.Mode,
-		Nlink: uint64(a.Nlink),
-		Uid: int(a.Uid),
-		Gid: int(a.Gid),
-		Rdev: uint64(a.Rdev),
-		Blksize: int64(a.Blksize),
+		Blocks:   int64(a.Blocks),
+		Mode:     a.Mode,
+		Nlink:    uint64(a.Nlink),
+		Uid:      int(a.Uid),
+		Gid:      int(a.Gid),
+		Rdev:     uint64(a.Rdev),
+		Blksize:  int64(a.Blksize),
 	}
 }

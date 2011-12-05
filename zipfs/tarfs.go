@@ -19,12 +19,12 @@ var _ = fmt.Println
 
 func HeaderToFileInfo(h *tar.Header) (*fuse.Attr, string) {
 	a := &fuse.Attr{
-		Mode:     uint32(h.Mode),
-		Size:     uint64(h.Size),
+		Mode: uint32(h.Mode),
+		Size: uint64(h.Size),
 	}
 	a.Uid = uint32(h.Uid)
 	a.Gid = uint32(h.Gid)
-	a.SetTimes(h.Atime, h.Mtime,h.Ctime)
+	a.SetTimes(h.Atime, h.Mtime, h.Ctime)
 	return a, h.Name
 }
 

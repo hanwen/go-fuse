@@ -3,8 +3,8 @@ package fuse
 import (
 	"fmt"
 	"log"
-	"sync"
 	"strings"
+	"sync"
 	"unsafe"
 )
 
@@ -99,7 +99,7 @@ func (me *BufferPoolImpl) AllocBuffer(size uint32) []byte {
 		sz = PAGESIZE
 	}
 
-	if sz % PAGESIZE != 0 {
+	if sz%PAGESIZE != 0 {
 		sz += PAGESIZE
 	}
 	psz := sz / PAGESIZE
@@ -112,7 +112,7 @@ func (me *BufferPoolImpl) AllocBuffer(size uint32) []byte {
 	b = me.getBuffer(psz)
 	if b == nil {
 		me.createdBuffers++
-		b = make([]byte, size, psz * PAGESIZE)
+		b = make([]byte, size, psz*PAGESIZE)
 	} else {
 		b = b[:size]
 	}
@@ -134,7 +134,7 @@ func (me *BufferPoolImpl) FreeBuffer(slice []byte) {
 	if slice == nil {
 		return
 	}
-	if cap(slice) % PAGESIZE != 0 || cap(slice) == 0 {
+	if cap(slice)%PAGESIZE != 0 || cap(slice) == 0 {
 		return
 	}
 	psz := cap(slice) / PAGESIZE

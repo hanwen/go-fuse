@@ -4,8 +4,7 @@
 
 package fuse
 
-import (
-)
+import ()
 
 // Types for users to implement.
 
@@ -221,7 +220,7 @@ type MountOptions struct {
 
 	// Write size to use.  If 0, use default. This number is
 	// capped at the kernel maximum.
-	MaxWrite      int
+	MaxWrite int
 }
 
 // DefaultFileSystem implements a FileSystem that returns ENOSYS for every operation.

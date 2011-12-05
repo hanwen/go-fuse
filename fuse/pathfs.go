@@ -40,7 +40,6 @@ type PathNodeFs struct {
 	options *PathNodeFsOptions
 }
 
-
 func (me *PathNodeFs) Mount(path string, nodeFs NodeFileSystem, opts *FileSystemOptions) Status {
 	dir, name := filepath.Split(path)
 	if dir != "" {

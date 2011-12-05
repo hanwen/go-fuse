@@ -154,7 +154,7 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 		if input.Valid&FATTR_ATIME_NOW != 0 || input.Valid&FATTR_MTIME_NOW != 0 {
 			now = time.Nanoseconds()
 		}
-			
+
 		atime := int64(input.Atime*1e9) + int64(input.Atimensec)
 		if input.Valid&FATTR_ATIME_NOW != 0 {
 			atime = now

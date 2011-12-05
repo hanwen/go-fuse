@@ -1,7 +1,6 @@
 package fuse
 
-import (
-)
+import ()
 
 // DefaultFileSystem
 func (me *DefaultFileSystem) GetAttr(name string, context *Context) (*Attr, Status) {
