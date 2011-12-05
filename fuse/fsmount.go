@@ -64,7 +64,7 @@ func (me *fileSystemMount) fileInfoToEntry(fi *os.FileInfo) (out *EntryOut) {
 	out = &EntryOut{}
 	splitNs(me.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
 	splitNs(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
-	CopyFileInfo(fi, &out.Attr)
+	out.Attr.FromFileInfo(fi)
 	me.setOwner(&out.Attr)
 	if !fi.IsDirectory() && fi.Nlink == 0 {
 		out.Nlink = 1
@@ -74,7 +74,7 @@ func (me *fileSystemMount) fileInfoToEntry(fi *os.FileInfo) (out *EntryOut) {
 
 func (me *fileSystemMount) fileInfoToAttr(fi *os.FileInfo, nodeId uint64) (out *AttrOut) {
 	out = &AttrOut{}
-	CopyFileInfo(fi, &out.Attr)
+	out.Attr.FromFileInfo(fi)
 	splitNs(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	me.setOwner(&out.Attr)
 	out.Ino = nodeId

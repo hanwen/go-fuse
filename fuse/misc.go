@@ -55,7 +55,7 @@ func splitNs(time float64, secs *uint64, nsecs *uint32) {
 	*secs = uint64(math.Trunc(time))
 }
 
-func CopyFileInfo(fi *os.FileInfo, attr *Attr) {
+func (attr *Attr) FromFileInfo(fi *os.FileInfo) {
 	attr.Ino = uint64(fi.Ino)
 	attr.Size = uint64(fi.Size)
 	attr.Blocks = uint64(fi.Blocks)
