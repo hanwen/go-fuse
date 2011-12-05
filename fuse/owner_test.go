@@ -12,17 +12,18 @@ type ownerFs struct {
 
 const _RANDOM_OWNER = 31415265
 
-func (me *ownerFs) GetAttr(name string, context *Context) (*os.FileInfo, Status) {
+func (me *ownerFs) GetAttr(name string, context *Context) (*Attr, Status) {
 	if name == "" {
-		return &os.FileInfo{
+		return &Attr{
 			Mode: S_IFDIR | 0755,
 		}, OK
 	}
-	return &os.FileInfo{
+	a := &Attr{
 		Mode: S_IFREG | 0644,
-		Uid:  _RANDOM_OWNER,
-		Gid:  _RANDOM_OWNER,
-	}, OK
+	}
+	a.Uid = _RANDOM_OWNER
+	a.Gid = _RANDOM_OWNER
+	return a, OK
 }
 
 func setupOwnerTest(opts *FileSystemOptions) (workdir string, cleanup func()) {

@@ -1,7 +1,6 @@
 package fuse
 
 import (
-	"os"
 	"sync"
 )
 
@@ -26,7 +25,7 @@ func (me *LockingFileSystem) locked() func() {
 	return func() { me.lock.Unlock() }
 }
 
-func (me *LockingFileSystem) GetAttr(name string, context *Context) (*os.FileInfo, Status) {
+func (me *LockingFileSystem) GetAttr(name string, context *Context) (*Attr, Status) {
 	defer me.locked()()
 	return me.FileSystem.GetAttr(name, context)
 }
@@ -115,7 +114,7 @@ func (me *LockingFileSystem) Create(name string, flags uint32, mode uint32, cont
 	return me.FileSystem.Create(name, flags, mode, context)
 }
 
-func (me *LockingFileSystem) Utimens(name string, AtimeNs uint64, CtimeNs uint64, context *Context) (code Status) {
+func (me *LockingFileSystem) Utimens(name string, AtimeNs int64, CtimeNs int64, context *Context) (code Status) {
 	defer me.locked()()
 	return me.FileSystem.Utimens(name, AtimeNs, CtimeNs, context)
 }

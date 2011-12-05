@@ -3,12 +3,11 @@ package zipfs
 import (
 	"fmt"
 	"github.com/hanwen/go-fuse/fuse"
-	"os"
 	"strings"
 )
 
 type MemFile interface {
-	Stat() *os.FileInfo
+	Stat() *fuse.Attr
 	Data() []byte
 }
 
@@ -63,7 +62,7 @@ func (me *memNode) Print(indent int) {
 }
 
 // We construct the tree at mount, so we never need to look anything up.
-func (me *memNode) Lookup(name string, c *fuse.Context) (fi *os.FileInfo, node fuse.FsNode, code fuse.Status) {
+func (me *memNode) Lookup(name string, c *fuse.Context) (fi *fuse.Attr, node fuse.FsNode, code fuse.Status) {
 	return nil, nil, fuse.ENOENT
 }
 
@@ -96,9 +95,9 @@ func (me *memNode) Deletable() bool {
 	return false
 }
 
-func (me *memNode) GetAttr(file fuse.File, context *fuse.Context) (*os.FileInfo, fuse.Status) {
+func (me *memNode) GetAttr(file fuse.File, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	if me.Inode().IsDir() {
-		return &os.FileInfo{
+		return &fuse.Attr{
 			Mode: fuse.S_IFDIR | 0777,
 		}, fuse.OK
 	}

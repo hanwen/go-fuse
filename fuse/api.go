@@ -5,7 +5,6 @@
 package fuse
 
 import (
-	"os"
 )
 
 // Types for users to implement.
@@ -29,7 +28,7 @@ type FsNode interface {
 	Inode() *Inode
 	SetInode(node *Inode)
 
-	Lookup(name string, context *Context) (fi *os.FileInfo, node FsNode, code Status)
+	Lookup(name string, context *Context) (fi *Attr, node FsNode, code Status)
 
 	// Deletable() should return true if this inode may be
 	// discarded from the children list. This will be called from
@@ -46,16 +45,16 @@ type FsNode interface {
 	Readlink(c *Context) ([]byte, Status)
 
 	// Namespace operations
-	Mknod(name string, mode uint32, dev uint32, context *Context) (fi *os.FileInfo, newNode FsNode, code Status)
-	Mkdir(name string, mode uint32, context *Context) (fi *os.FileInfo, newNode FsNode, code Status)
+	Mknod(name string, mode uint32, dev uint32, context *Context) (fi *Attr, newNode FsNode, code Status)
+	Mkdir(name string, mode uint32, context *Context) (fi *Attr, newNode FsNode, code Status)
 	Unlink(name string, context *Context) (code Status)
 	Rmdir(name string, context *Context) (code Status)
-	Symlink(name string, content string, context *Context) (fi *os.FileInfo, newNode FsNode, code Status)
+	Symlink(name string, content string, context *Context) (fi *Attr, newNode FsNode, code Status)
 	Rename(oldName string, newParent FsNode, newName string, context *Context) (code Status)
-	Link(name string, existing FsNode, context *Context) (fi *os.FileInfo, newNode FsNode, code Status)
+	Link(name string, existing FsNode, context *Context) (fi *Attr, newNode FsNode, code Status)
 
 	// Files
-	Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *os.FileInfo, newNode FsNode, code Status)
+	Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *Attr, newNode FsNode, code Status)
 	Open(flags uint32, context *Context) (file File, code Status)
 	OpenDir(context *Context) (chan DirEntry, Status)
 
@@ -66,11 +65,11 @@ type FsNode interface {
 	ListXAttr(context *Context) (attrs []string, code Status)
 
 	// Attributes
-	GetAttr(file File, context *Context) (fi *os.FileInfo, code Status)
+	GetAttr(file File, context *Context) (fi *Attr, code Status)
 	Chmod(file File, perms uint32, context *Context) (code Status)
 	Chown(file File, uid uint32, gid uint32, context *Context) (code Status)
 	Truncate(file File, size uint64, context *Context) (code Status)
-	Utimens(file File, atime uint64, mtime uint64, context *Context) (code Status)
+	Utimens(file File, atime int64, mtime int64, context *Context) (code Status)
 
 	StatFs() *StatfsOut
 }
@@ -92,12 +91,12 @@ type FileSystem interface {
 	// If the filesystem wants to implement hard-links, it should
 	// return consistent non-zero FileInfo.Ino data.  Using
 	// hardlinks incurs a performance hit.
-	GetAttr(name string, context *Context) (*os.FileInfo, Status)
+	GetAttr(name string, context *Context) (*Attr, Status)
 
 	// These should update the file's ctime too.
 	Chmod(name string, mode uint32, context *Context) (code Status)
 	Chown(name string, uid uint32, gid uint32, context *Context) (code Status)
-	Utimens(name string, AtimeNs uint64, MtimeNs uint64, context *Context) (code Status)
+	Utimens(name string, AtimeNs int64, MtimeNs int64, context *Context) (code Status)
 
 	Truncate(name string, size uint64, context *Context) (code Status)
 
@@ -168,10 +167,10 @@ type File interface {
 	// The methods below may be called on closed files, due to
 	// concurrency.  In that case, you should return EBADF.
 	Truncate(size uint64) Status
-	GetAttr() (*os.FileInfo, Status)
+	GetAttr() (*Attr, Status)
 	Chown(uid uint32, gid uint32) Status
 	Chmod(perms uint32) Status
-	Utimens(atimeNs uint64, mtimeNs uint64) Status
+	Utimens(atimeNs int64, mtimeNs int64) Status
 }
 
 // Wrap a File return in this to set FUSE flags.  Also used internally

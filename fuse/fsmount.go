@@ -2,7 +2,6 @@ package fuse
 
 import (
 	"log"
-	"os"
 	"sync"
 	"unsafe"
 )
@@ -60,21 +59,22 @@ func (me *fileSystemMount) setOwner(attr *Attr) {
 	}
 }
 
-func (me *fileSystemMount) fileInfoToEntry(fi *os.FileInfo) (out *EntryOut) {
+func (me *fileSystemMount) fileInfoToEntry(attr *Attr) (out *EntryOut) {
 	out = &EntryOut{}
+	out.Attr = *attr
+	
 	splitNs(me.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
 	splitNs(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
-	out.Attr.FromFileInfo(fi)
 	me.setOwner(&out.Attr)
-	if !fi.IsDirectory() && fi.Nlink == 0 {
+	if !attr.IsDirectory() && attr.Nlink == 0 {
 		out.Nlink = 1
 	}
 	return out
 }
-
-func (me *fileSystemMount) fileInfoToAttr(fi *os.FileInfo, nodeId uint64) (out *AttrOut) {
+ 
+func (me *fileSystemMount) fillAttr(a *Attr, nodeId uint64) (out *AttrOut) {
 	out = &AttrOut{}
-	out.Attr.FromFileInfo(fi)
+	out.Attr = *a
 	splitNs(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	me.setOwner(&out.Attr)
 	out.Ino = nodeId

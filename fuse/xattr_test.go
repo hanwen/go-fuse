@@ -26,8 +26,8 @@ func NewXAttrFs(nm string, m map[string][]byte) *XAttrTestFs {
 	return x
 }
 
-func (me *XAttrTestFs) GetAttr(name string, context *Context) (*os.FileInfo, Status) {
-	a := &os.FileInfo{}
+func (me *XAttrTestFs) GetAttr(name string, context *Context) (*Attr, Status) {
+	a := &Attr{}
 	if name == "" || name == "/" {
 		a.Mode = S_IFDIR | 0700
 		return a, OK

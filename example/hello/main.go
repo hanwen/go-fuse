@@ -6,21 +6,20 @@ import (
 	"flag"
 	"github.com/hanwen/go-fuse/fuse"
 	"log"
-	"os"
 )
 
 type HelloFs struct {
 	fuse.DefaultFileSystem
 }
 
-func (me *HelloFs) GetAttr(name string, context *fuse.Context) (*os.FileInfo, fuse.Status) {
+func (me *HelloFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	switch name {
 	case "file.txt":
-		return &os.FileInfo{
-			Mode: fuse.S_IFREG | 0644, Size: int64(len(name)),
+		return &fuse.Attr{
+			Mode: fuse.S_IFREG | 0644, Size: uint64(len(name)),
 		}, fuse.OK
 	case "":
-		return &os.FileInfo{
+		return &fuse.Attr{
 			Mode: fuse.S_IFDIR | 0755,
 		}, fuse.OK
 	}

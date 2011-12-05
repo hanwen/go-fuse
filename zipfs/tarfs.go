@@ -6,6 +6,7 @@ import (
 	"compress/bzip2"
 	"compress/gzip"
 	"fmt"
+	"github.com/hanwen/go-fuse/fuse"
 	"io"
 	"os"
 	"strings"
@@ -16,17 +17,15 @@ var _ = fmt.Println
 
 // TODO - handle symlinks.
 
-func HeaderToFileInfo(h *tar.Header) *os.FileInfo {
-	return &os.FileInfo{
-		Name:     h.Name,
+func HeaderToFileInfo(h *tar.Header) (*fuse.Attr, string) {
+	a := &fuse.Attr{
 		Mode:     uint32(h.Mode),
-		Uid:      h.Uid,
-		Gid:      h.Gid,
-		Size:     h.Size,
-		Mtime_ns: h.Mtime,
-		Atime_ns: h.Atime,
-		Ctime_ns: h.Ctime,
+		Size:     uint64(h.Size),
 	}
+	a.Uid = uint32(h.Uid)
+	a.Gid = uint32(h.Gid)
+	a.SetTimes(h.Atime, h.Mtime,h.Ctime)
+	return a, h.Name
 }
 
 type TarFile struct {
@@ -34,8 +33,8 @@ type TarFile struct {
 	tar.Header
 }
 
-func (me *TarFile) Stat() *os.FileInfo {
-	fi := HeaderToFileInfo(&me.Header)
+func (me *TarFile) Stat() *fuse.Attr {
+	fi, _ := HeaderToFileInfo(&me.Header)
 	fi.Mode |= syscall.S_IFREG
 	return fi
 }

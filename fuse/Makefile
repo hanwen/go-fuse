@@ -4,6 +4,7 @@ include $(GOROOT)/src/Make.inc
 TARG=github.com/hanwen/go-fuse/fuse
 
 MANUAL_GOFILES=api.go \
+	attr.go \
 	bufferpool.go \
 	copy.go \
 	default.go \

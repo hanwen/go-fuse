@@ -152,21 +152,13 @@ func (me *UnionFs) getBranch(name string) branchResult {
 }
 
 type branchResult struct {
-	attr   *os.FileInfo
+	attr   *fuse.Attr
 	code   fuse.Status
 	branch int
 }
 
-func printFileInfo(me *os.FileInfo) string {
-	return fmt.Sprintf(
-		"{0%o S=%d L=%d %d:%d %d*%d %d:%d "+
-			"A %.09f M %.09f C %.09f}",
-		me.Mode, me.Size, me.Nlink, me.Uid, me.Gid, me.Blocks, me.Blksize, me.Rdev, me.Ino,
-		float64(me.Atime_ns)*1e-9, float64(me.Mtime_ns)*1e-9, float64(me.Ctime_ns)*1e-9)
-}
-
 func (me branchResult) String() string {
-	return fmt.Sprintf("{%s %v branch %d}", printFileInfo(me.attr), me.code, me.branch)
+	return fmt.Sprintf("{%v %v branch %d}", me.attr, me.code, me.branch)
 }
 
 func (me *UnionFs) getBranchAttrNoCache(name string) branchResult {
@@ -237,7 +229,7 @@ func (me *UnionFs) putDeletion(name string) (code fuse.Status) {
 	// Is there a WriteStringToFileOrDie ?
 	writable := me.fileSystems[0]
 	fi, code := writable.GetAttr(marker, nil)
-	if code.Ok() && fi.Size == int64(len(name)) {
+	if code.Ok() && fi.Size == uint64(len(name)) {
 		return fuse.OK
 	}
 
@@ -279,8 +271,8 @@ func (me *UnionFs) Promote(name string, srcResult branchResult, context *fuse.Co
 			code = writable.Chmod(name, srcResult.attr.Mode&07777|0200, context)
 		}
 		if code.Ok() {
-			code = writable.Utimens(name, uint64(srcResult.attr.Atime_ns),
-				uint64(srcResult.attr.Mtime_ns), context)
+			code = writable.Utimens(name, srcResult.attr.Atimens(),
+				srcResult.attr.Mtimens(), context)
 		}
 
 		files := me.nodeFs.AllFiles(name, 0)
@@ -422,7 +414,7 @@ func (me *UnionFs) Mkdir(path string, mode uint32, context *fuse.Context) (code 
 	}
 	if code.Ok() {
 		me.removeDeletion(path)
-		attr := &os.FileInfo{
+		attr := &fuse.Attr{
 			Mode: fuse.S_IFDIR | mode,
 		}
 		me.branchCache.Set(path, branchResult{attr, fuse.OK, 0})
@@ -467,16 +459,15 @@ func (me *UnionFs) Truncate(path string, size uint64, context *fuse.Context) (co
 		code = me.fileSystems[0].Truncate(path, size, context)
 	}
 	if code.Ok() {
-		r.attr.Size = int64(size)
+		r.attr.Size = size
 		now := time.Nanoseconds()
-		r.attr.Mtime_ns = now
-		r.attr.Ctime_ns = now
+		r.attr.SetTimes(-1, now, now)
 		me.branchCache.Set(path, r)
 	}
 	return code
 }
 
-func (me *UnionFs) Utimens(name string, atime uint64, mtime uint64, context *fuse.Context) (code fuse.Status) {
+func (me *UnionFs) Utimens(name string, atime int64, mtime int64, context *fuse.Context) (code fuse.Status) {
 	name = stripSlash(name)
 	r := me.getBranch(name)
 
@@ -489,9 +480,7 @@ func (me *UnionFs) Utimens(name string, atime uint64, mtime uint64, context *fus
 		code = me.fileSystems[0].Utimens(name, atime, mtime, context)
 	}
 	if code.Ok() {
-		r.attr.Atime_ns = int64(atime)
-		r.attr.Mtime_ns = int64(mtime)
-		r.attr.Ctime_ns = time.Nanoseconds()
+		r.attr.SetTimes(atime, mtime, time.Nanoseconds())
 		me.branchCache.Set(name, r)
 	}
 	return code
@@ -508,7 +497,7 @@ func (me *UnionFs) Chown(name string, uid uint32, gid uint32, context *fuse.Cont
 		return fuse.EPERM
 	}
 
-	if r.attr.Uid != int(uid) || r.attr.Gid != int(gid) {
+	if r.attr.Uid != uid || r.attr.Gid != gid {
 		if r.branch > 0 {
 			code := me.Promote(name, r, context)
 			if code != fuse.OK {
@@ -518,9 +507,9 @@ func (me *UnionFs) Chown(name string, uid uint32, gid uint32, context *fuse.Cont
 		}
 		me.fileSystems[0].Chown(name, uid, gid, context)
 	}
-	r.attr.Uid = int(uid)
-	r.attr.Gid = int(gid)
-	r.attr.Ctime_ns = time.Nanoseconds()
+	r.attr.Uid = uid
+	r.attr.Gid = gid
+	r.attr.SetTimes(-1, -1, time.Nanoseconds())
 	me.branchCache.Set(name, r)
 	return fuse.OK
 }
@@ -551,7 +540,7 @@ func (me *UnionFs) Chmod(name string, mode uint32, context *fuse.Context) (code 
 		me.fileSystems[0].Chmod(name, mode, context)
 	}
 	r.attr.Mode = (r.attr.Mode &^ permMask) | mode
-	r.attr.Ctime_ns = time.Nanoseconds()
+	r.attr.SetTimes(-1, -1, time.Nanoseconds())
 	me.branchCache.Set(name, r)
 	return fuse.OK
 }
@@ -638,7 +627,7 @@ func (me *UnionFs) promoteDirsTo(filename string) fuse.Status {
 			return fuse.EPERM
 		}
 
-		me.fileSystems[0].Utimens(d, uint64(r.attr.Atime_ns), uint64(r.attr.Mtime_ns), nil)
+		me.fileSystems[0].Utimens(d, r.attr.Atimens(), r.attr.Mtimens(), nil)
 		r.branch = 0
 		me.branchCache.Set(d, r)
 	}
@@ -658,22 +647,21 @@ func (me *UnionFs) Create(name string, flags uint32, mode uint32, context *fuse.
 		me.removeDeletion(name)
 
 		now := time.Nanoseconds()
-		a := os.FileInfo{
+		a := fuse.Attr{
 			Mode:     fuse.S_IFREG | mode,
-			Ctime_ns: now,
-			Mtime_ns: now,
 		}
+		a.SetTimes(-1, now, now)
 		me.branchCache.Set(name, branchResult{&a, fuse.OK, 0})
 	}
 	return fuseFile, code
 }
 
-func (me *UnionFs) GetAttr(name string, context *fuse.Context) (a *os.FileInfo, s fuse.Status) {
+func (me *UnionFs) GetAttr(name string, context *fuse.Context) (a *fuse.Attr, s fuse.Status) {
 	if name == _READONLY {
 		return nil, fuse.ENOENT
 	}
 	if name == _DROP_CACHE {
-		return &os.FileInfo{
+		return &fuse.Attr{
 			Mode: fuse.S_IFREG | 0777,
 		}, fuse.OK
 	}
@@ -949,7 +937,7 @@ func (me *UnionFs) Open(name string, flags uint32, context *fuse.Context) (fuseF
 			return nil, code
 		}
 		r.branch = 0
-		r.attr.Mtime_ns = time.Nanoseconds()
+		r.attr.SetTimes(-1, time.Nanoseconds(), -1)
 		me.branchCache.Set(name, r)
 	}
 	fuseFile, status = me.fileSystems[r.branch].Open(name, uint32(flags), context)
@@ -1007,7 +995,7 @@ func (me *unionFsFile) SetInode(node *fuse.Inode) {
 	me.node = node
 }
 
-func (me *unionFsFile) GetAttr() (*os.FileInfo, fuse.Status) {
+func (me *unionFsFile) GetAttr() (*fuse.Attr, fuse.Status) {
 	fi, code := me.File.GetAttr()
 	if fi != nil {
 		f := *fi

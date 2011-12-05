@@ -11,19 +11,19 @@ var _ = log.Println
 
 type NotifyFs struct {
 	DefaultFileSystem
-	size  int64
+	size  uint64
 	exist bool
 }
 
-func (me *NotifyFs) GetAttr(name string, context *Context) (*os.FileInfo, Status) {
+func (me *NotifyFs) GetAttr(name string, context *Context) (*Attr, Status) {
 	if name == "" {
-		return &os.FileInfo{Mode: S_IFDIR | 0755}, OK
+		return &Attr{Mode: S_IFDIR | 0755}, OK
 	}
 	if name == "file" || (name == "dir/file" && me.exist) {
-		return &os.FileInfo{Mode: S_IFREG | 0644, Size: me.size}, OK
+		return &Attr{Mode: S_IFREG | 0644, Size: me.size}, OK
 	}
 	if name == "dir" {
-		return &os.FileInfo{Mode: S_IFDIR | 0755}, OK
+		return &Attr{Mode: S_IFDIR | 0755}, OK
 	}
 	return nil, ENOENT
 }

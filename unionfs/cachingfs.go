@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/hanwen/go-fuse/fuse"
 	"log"
-	"os"
 	"strings"
 )
 
@@ -13,7 +12,7 @@ var _ = fmt.Println
 const _XATTRSEP = "@XATTR@"
 
 type attrResponse struct {
-	*os.FileInfo
+	*fuse.Attr
 	fuse.Status
 }
 
@@ -63,7 +62,7 @@ func readDir(fs fuse.FileSystem, name string) *dirResponse {
 func getAttr(fs fuse.FileSystem, name string) *attrResponse {
 	a, code := fs.GetAttr(name, nil)
 	return &attrResponse{
-		FileInfo: a,
+		Attr: a,
 		Status:   code,
 	}
 }
@@ -113,15 +112,15 @@ func (me *CachingFileSystem) DropCache() {
 	}
 }
 
-func (me *CachingFileSystem) GetAttr(name string, context *fuse.Context) (*os.FileInfo, fuse.Status) {
+func (me *CachingFileSystem) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	if name == _DROP_CACHE {
-		return &os.FileInfo{
+		return &fuse.Attr{
 			Mode: fuse.S_IFREG | 0777,
 		}, fuse.OK
 	}
 
 	r := me.attributes.Get(name).(*attrResponse)
-	return r.FileInfo, r.Status
+	return r.Attr, r.Status
 }
 
 func (me *CachingFileSystem) GetXAttr(name string, attr string, context *fuse.Context) ([]byte, fuse.Status) {

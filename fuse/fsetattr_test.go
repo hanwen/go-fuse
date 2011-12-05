@@ -11,8 +11,12 @@ type MutableDataFile struct {
 	DefaultFile
 
 	data []byte
-	os.FileInfo
+	Attr
 	GetAttrCalled bool
+}
+
+func (me *MutableDataFile) String() string {
+	return "MutableDataFile"
 }
 
 func (me *MutableDataFile) Read(r *ReadIn, bp BufferPool) ([]byte, Status) {
@@ -38,13 +42,13 @@ func (me *MutableDataFile) Release() {
 
 }
 
-func (me *MutableDataFile) getAttr() *os.FileInfo {
-	f := me.FileInfo
-	f.Size = int64(len(me.data))
+func (me *MutableDataFile) getAttr() *Attr {
+	f := me.Attr
+	f.Size = uint64(len(me.data))
 	return &f
 }
 
-func (me *MutableDataFile) GetAttr() (*os.FileInfo, Status) {
+func (me *MutableDataFile) GetAttr() (*Attr, Status) {
 	me.GetAttrCalled = true
 	return me.getAttr(), OK
 }
@@ -53,9 +57,8 @@ func (me *MutableDataFile) Fsync(*FsyncIn) (code Status) {
 	return OK
 }
 
-func (me *MutableDataFile) Utimens(atimeNs uint64, mtimeNs uint64) Status {
-	me.FileInfo.Atime_ns = int64(atimeNs)
-	me.FileInfo.Mtime_ns = int64(mtimeNs)
+func (me *MutableDataFile) Utimens(atimeNs int64, mtimeNs int64) Status {
+	me.Attr.SetTimes(atimeNs, mtimeNs, -1)
 	return OK
 }
 
@@ -65,13 +68,13 @@ func (me *MutableDataFile) Truncate(size uint64) Status {
 }
 
 func (me *MutableDataFile) Chown(uid uint32, gid uint32) Status {
-	me.FileInfo.Uid = int(uid)
-	me.FileInfo.Gid = int(uid)
+	me.Attr.Uid = uid
+	me.Attr.Gid = gid
 	return OK
 }
 
 func (me *MutableDataFile) Chmod(perms uint32) Status {
-	me.FileInfo.Mode = (me.FileInfo.Mode &^ 07777) | perms
+	me.Attr.Mode = (me.Attr.Mode &^ 07777) | perms
 	return OK
 }
 
@@ -86,9 +89,9 @@ func (me *FSetAttrFs) GetXAttr(name string, attr string, context *Context) ([]by
 	return nil, ENODATA
 }
 
-func (me *FSetAttrFs) GetAttr(name string, context *Context) (*os.FileInfo, Status) {
+func (me *FSetAttrFs) GetAttr(name string, context *Context) (*Attr, Status) {
 	if name == "" {
-		return &os.FileInfo{Mode: S_IFDIR | 0700}, OK
+		return &Attr{Mode: S_IFDIR | 0700}, OK
 	}
 	if name == "file" && me.file != nil {
 		a := me.file.getAttr()
@@ -109,7 +112,7 @@ func (me *FSetAttrFs) Create(name string, flags uint32, mode uint32, context *Co
 	if name == "file" {
 		f := NewFile()
 		me.file = f
-		me.file.FileInfo.Mode = mode
+		me.file.Attr.Mode = mode
 		return f, OK
 	}
 	return nil, ENOENT
@@ -168,15 +171,15 @@ func TestFSetAttr(t *testing.T) {
 
 	err = f.Chmod(024)
 	CheckSuccess(err)
-	if fs.file.FileInfo.Mode&07777 != 024 {
+	if fs.file.Attr.Mode&07777 != 024 {
 		t.Error("chmod")
 	}
 
 	err = os.Chtimes(fn, 100e3, 101e3)
 	CheckSuccess(err)
-	if fs.file.FileInfo.Atime_ns != 100e3 || fs.file.FileInfo.Mtime_ns != 101e3 {
+	if fs.file.Attr.Atimensec != 100e3 || fs.file.Attr.Mtimensec != 101e3 {
 		t.Errorf("Utimens: atime %d != 100e3 mtime %d != 101e3",
-			fs.file.FileInfo.Atime_ns, fs.file.FileInfo.Mtime_ns)
+			fs.file.Attr.Atimensec, fs.file.Attr.Mtimensec)
 	}
 
 	newFi, err := f.Stat()

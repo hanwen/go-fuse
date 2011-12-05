@@ -13,7 +13,6 @@ symlinking path/to/zipfile to /config/zipmount
 import (
 	"github.com/hanwen/go-fuse/fuse"
 	"log"
-	"os"
 	"path/filepath"
 	"sync"
 )
@@ -76,8 +75,8 @@ func (me *MultiZipFs) OpenDir(name string, context *fuse.Context) (stream chan f
 	return stream, fuse.OK
 }
 
-func (me *MultiZipFs) GetAttr(name string, context *fuse.Context) (*os.FileInfo, fuse.Status) {
-	a := &os.FileInfo{}
+func (me *MultiZipFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
+	a := &fuse.Attr{}
 	if name == "" {
 		// Should not write in top dir.
 		a.Mode = fuse.S_IFDIR | 0500

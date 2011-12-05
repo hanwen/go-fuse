@@ -2,7 +2,6 @@ package fuse
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 )
 
@@ -16,7 +15,7 @@ func (me *PrefixFileSystem) prefixed(n string) string {
 	return filepath.Join(me.Prefix, n)
 }
 
-func (me *PrefixFileSystem) GetAttr(name string, context *Context) (*os.FileInfo, Status) {
+func (me *PrefixFileSystem) GetAttr(name string, context *Context) (*Attr, Status) {
 	return me.FileSystem.GetAttr(me.prefixed(name), context)
 }
 
@@ -88,7 +87,7 @@ func (me *PrefixFileSystem) Create(name string, flags uint32, mode uint32, conte
 	return me.FileSystem.Create(me.prefixed(name), flags, mode, context)
 }
 
-func (me *PrefixFileSystem) Utimens(name string, AtimeNs uint64, CtimeNs uint64, context *Context) (code Status) {
+func (me *PrefixFileSystem) Utimens(name string, AtimeNs int64, CtimeNs int64, context *Context) (code Status) {
 	return me.FileSystem.Utimens(me.prefixed(name), AtimeNs, CtimeNs, context)
 }
 

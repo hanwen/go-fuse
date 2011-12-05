@@ -35,9 +35,7 @@ func (me *MemNodeFs) newNode() *memNode {
 		id: me.nextFree,
 	}
 	now := time.Nanoseconds()
-	n.info.Mtime_ns = now
-	n.info.Atime_ns = now
-	n.info.Ctime_ns = now
+	n.info.SetTimes(now, now, now)
 	n.info.Mode = S_IFDIR | 0777
 	me.nextFree++
 	return n
@@ -61,7 +59,7 @@ type memNode struct {
 	id int
 
 	link string
-	info os.FileInfo
+	info Attr
 }
 
 func (me *memNode) newNode(isdir bool) *memNode {
@@ -82,7 +80,7 @@ func (me *memNode) Readlink(c *Context) ([]byte, Status) {
 	return []byte(me.link), OK
 }
 
-func (me *memNode) Mkdir(name string, mode uint32, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
+func (me *memNode) Mkdir(name string, mode uint32, context *Context) (fi *Attr, newNode FsNode, code Status) {
 	n := me.newNode(true)
 	n.info.Mode = mode | S_IFDIR
 	me.Inode().AddChild(name, n.Inode())
@@ -101,7 +99,7 @@ func (me *memNode) Rmdir(name string, context *Context) (code Status) {
 	return me.Unlink(name, context)
 }
 
-func (me *memNode) Symlink(name string, content string, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
+func (me *memNode) Symlink(name string, content string, context *Context) (fi *Attr, newNode FsNode, code Status) {
 	n := me.newNode(false)
 	n.info.Mode = S_IFLNK | 0777
 	n.link = content
@@ -117,13 +115,13 @@ func (me *memNode) Rename(oldName string, newParent FsNode, newName string, cont
 	return OK
 }
 
-func (me *memNode) Link(name string, existing FsNode, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
+func (me *memNode) Link(name string, existing FsNode, context *Context) (fi *Attr, newNode FsNode, code Status) {
 	me.Inode().AddChild(name, existing.Inode())
 	fi, code = existing.GetAttr(nil, context)
 	return fi, existing, code
 }
 
-func (me *memNode) Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *os.FileInfo, newNode FsNode, code Status) {
+func (me *memNode) Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *Attr, newNode FsNode, code Status) {
 	n := me.newNode(false)
 	n.info.Mode = mode | S_IFREG
 
@@ -172,7 +170,7 @@ func (me *memNode) Open(flags uint32, context *Context) (file File, code Status)
 	return me.newFile(f), OK
 }
 
-func (me *memNode) GetAttr(file File, context *Context) (fi *os.FileInfo, code Status) {
+func (me *memNode) GetAttr(file File, context *Context) (fi *Attr, code Status) {
 	return &me.info, OK
 }
 
@@ -184,29 +182,27 @@ func (me *memNode) Truncate(file File, size uint64, context *Context) (code Stat
 		code = ToStatus(err)
 	}
 	if code.Ok() {
-		me.info.Ctime_ns = time.Nanoseconds()
+		me.info.SetTimes(-1, -1, time.Nanoseconds())
 		// TODO - should update mtime too?
-		me.info.Size = int64(size)
+		me.info.Size = size
 	}
 	return code
 }
 
-func (me *memNode) Utimens(file File, atime uint64, mtime uint64, context *Context) (code Status) {
-	me.info.Atime_ns = int64(atime)
-	me.info.Mtime_ns = int64(mtime)
-	me.info.Ctime_ns = time.Nanoseconds()
+func (me *memNode) Utimens(file File, atime int64, mtime int64, context *Context) (code Status) {
+	me.info.SetTimes(int64(atime), int64(mtime), time.Nanoseconds())
 	return OK
 }
 
 func (me *memNode) Chmod(file File, perms uint32, context *Context) (code Status) {
 	me.info.Mode = (me.info.Mode ^ 07777) | perms
-	me.info.Ctime_ns = time.Nanoseconds()
+	me.info.SetTimes(-1, -1, time.Nanoseconds())
 	return OK
 }
 
 func (me *memNode) Chown(file File, uid uint32, gid uint32, context *Context) (code Status) {
-	me.info.Uid = int(uid)
-	me.info.Gid = int(gid)
-	me.info.Ctime_ns = time.Nanoseconds()
+	me.info.Uid = uid
+	me.info.Gid = gid
+	me.info.SetTimes(-1, -1, time.Nanoseconds())
 	return OK
 }

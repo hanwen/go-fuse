@@ -6,7 +6,6 @@ package fuse
 
 import (
 	"log"
-	"os"
 	"path/filepath"
 	"strings"
 	"unsafe"
@@ -77,7 +76,7 @@ func (me *FileSystemConnector) verify() {
 }
 
 // Generate EntryOut and increase the lookup count for an inode.
-func (me *FileSystemConnector) childLookup(fi *os.FileInfo, fsi FsNode) (out *EntryOut) {
+func (me *FileSystemConnector) childLookup(fi *Attr, fsi FsNode) (out *EntryOut) {
 	n := fsi.Inode()
 	out = n.mount.fileInfoToEntry(fi)
 	out.Ino = me.lookupUpdate(n)

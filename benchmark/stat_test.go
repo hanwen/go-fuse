@@ -20,7 +20,7 @@ var CheckSuccess = fuse.CheckSuccess
 
 type StatFs struct {
 	fuse.DefaultFileSystem
-	entries map[string]*os.FileInfo
+	entries map[string]*fuse.Attr
 	dirs    map[string][]fuse.DirEntry
 }
 
@@ -31,7 +31,9 @@ func (me *StatFs) add(name string, fi os.FileInfo) {
 		return
 	}
 
-	me.entries[name] = &fi
+	a := &fuse.Attr{}
+	a.FromFileInfo(&fi)
+	me.entries[name] = a
 	if name == "/" || name == "" {
 		return
 	}
@@ -42,7 +44,7 @@ func (me *StatFs) add(name string, fi os.FileInfo) {
 	me.add(dir, os.FileInfo{Mode: fuse.S_IFDIR | 0755})
 }
 
-func (me *StatFs) GetAttr(name string, context *fuse.Context) (*os.FileInfo, fuse.Status) {
+func (me *StatFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	e := me.entries[name]
 	if e == nil {
 		return nil, fuse.ENOENT
@@ -65,7 +67,7 @@ func (me *StatFs) OpenDir(name string, context *fuse.Context) (stream chan fuse.
 
 func NewStatFs() *StatFs {
 	return &StatFs{
-		entries: make(map[string]*os.FileInfo),
+		entries: make(map[string]*fuse.Attr),
 		dirs:    make(map[string][]fuse.DirEntry),
 	}
 }

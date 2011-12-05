@@ -74,6 +74,7 @@ func TestCacheFs(t *testing.T) {
 	c, err = ioutil.ReadFile(wd + "/mnt/file.txt")
 	CheckSuccess(err)
 
+ 	// x
 	if string(c) != "hello" {
 		t.Fatalf("Page cache skipped: expect 'hello' %q", string(c))
 	}
@@ -95,9 +96,9 @@ type nonseekFs struct {
 	Length int
 }
 
-func (me *nonseekFs) GetAttr(name string, context *Context) (fi *os.FileInfo, status Status) {
+func (me *nonseekFs) GetAttr(name string, context *Context) (fi *Attr, status Status) {
 	if name == "file" {
-		return &os.FileInfo{Mode: S_IFREG | 0644}, OK
+		return &Attr{Mode: S_IFREG | 0644}, OK
 	}
 	return nil, ENOENT
 }

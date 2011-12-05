@@ -2,7 +2,6 @@ package fuse
 
 import (
 	"log"
-	"os"
 )
 
 var _ = log.Println
@@ -55,7 +54,7 @@ func (me *DefaultFsNode) Inode() *Inode {
 func (me *DefaultFsNode) OnForget() {
 }
 
-func (me *DefaultFsNode) Lookup(name string, context *Context) (fi *os.FileInfo, node FsNode, code Status) {
+func (me *DefaultFsNode) Lookup(name string, context *Context) (fi *Attr, node FsNode, code Status) {
 	return nil, nil, ENOENT
 }
 
@@ -67,10 +66,10 @@ func (me *DefaultFsNode) Readlink(c *Context) ([]byte, Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultFsNode) Mknod(name string, mode uint32, dev uint32, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
+func (me *DefaultFsNode) Mknod(name string, mode uint32, dev uint32, context *Context) (fi *Attr, newNode FsNode, code Status) {
 	return nil, nil, ENOSYS
 }
-func (me *DefaultFsNode) Mkdir(name string, mode uint32, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
+func (me *DefaultFsNode) Mkdir(name string, mode uint32, context *Context) (fi *Attr, newNode FsNode, code Status) {
 	return nil, nil, ENOSYS
 }
 func (me *DefaultFsNode) Unlink(name string, context *Context) (code Status) {
@@ -79,7 +78,7 @@ func (me *DefaultFsNode) Unlink(name string, context *Context) (code Status) {
 func (me *DefaultFsNode) Rmdir(name string, context *Context) (code Status) {
 	return ENOSYS
 }
-func (me *DefaultFsNode) Symlink(name string, content string, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
+func (me *DefaultFsNode) Symlink(name string, content string, context *Context) (fi *Attr, newNode FsNode, code Status) {
 	return nil, nil, ENOSYS
 }
 
@@ -87,11 +86,11 @@ func (me *DefaultFsNode) Rename(oldName string, newParent FsNode, newName string
 	return ENOSYS
 }
 
-func (me *DefaultFsNode) Link(name string, existing FsNode, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
+func (me *DefaultFsNode) Link(name string, existing FsNode, context *Context) (fi *Attr, newNode FsNode, code Status) {
 	return nil, nil, ENOSYS
 }
 
-func (me *DefaultFsNode) Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *os.FileInfo, newNode FsNode, code Status) {
+func (me *DefaultFsNode) Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *Attr, newNode FsNode, code Status) {
 	return nil, nil, nil, ENOSYS
 }
 
@@ -132,11 +131,11 @@ func (me *DefaultFsNode) ListXAttr(context *Context) (attrs []string, code Statu
 	return nil, ENOSYS
 }
 
-func (me *DefaultFsNode) GetAttr(file File, context *Context) (fi *os.FileInfo, code Status) {
+func (me *DefaultFsNode) GetAttr(file File, context *Context) (fi *Attr, code Status) {
 	if me.Inode().IsDir() {
-		return &os.FileInfo{Mode: S_IFDIR | 0755}, OK
+		return &Attr{Mode: S_IFDIR | 0755}, OK
 	}
-	return &os.FileInfo{Mode: S_IFREG | 0644}, OK
+	return &Attr{Mode: S_IFREG | 0644}, OK
 }
 
 func (me *DefaultFsNode) Chmod(file File, perms uint32, context *Context) (code Status) {
@@ -151,6 +150,6 @@ func (me *DefaultFsNode) Truncate(file File, size uint64, context *Context) (cod
 	return ENOSYS
 }
 
-func (me *DefaultFsNode) Utimens(file File, atime uint64, mtime uint64, context *Context) (code Status) {
+func (me *DefaultFsNode) Utimens(file File, atime int64, mtime int64, context *Context) (code Status) {
 	return ENOSYS
 }

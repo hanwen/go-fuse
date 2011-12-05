@@ -5,7 +5,6 @@ package fuse
 import (
 	"bytes"
 	"log"
-	"os"
 	"time"
 )
 
@@ -15,17 +14,17 @@ func (me *FileSystemConnector) Init(fsInit *RawFsInit) {
 	me.fsInit = *fsInit
 }
 
-func (me *FileSystemConnector) lookupMountUpdate(mount *fileSystemMount) (fi *os.FileInfo, node *Inode, code Status) {
+func (me *FileSystemConnector) lookupMountUpdate(mount *fileSystemMount) (fi *Attr, node *Inode, code Status) {
 	fi, code = mount.fs.Root().GetAttr(nil, nil)
 	if !code.Ok() {
 		log.Println("Root getattr should not return error", code)
-		return &os.FileInfo{Mode: S_IFDIR | 0755}, mount.mountInode, OK
+		return &Attr{Mode: S_IFDIR | 0755}, mount.mountInode, OK
 	}
 
 	return fi, mount.mountInode, OK
 }
 
-func (me *FileSystemConnector) internalLookup(parent *Inode, name string, context *Context) (fi *os.FileInfo, node *Inode, code Status) {
+func (me *FileSystemConnector) internalLookup(parent *Inode, name string, context *Context) (fi *Attr, node *Inode, code Status) {
 	if subMount := me.findMount(parent, name); subMount != nil {
 		return me.lookupMountUpdate(subMount)
 	}
@@ -89,7 +88,7 @@ func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out 
 	if !code.Ok() {
 		return nil, code
 	}
-	out = node.mount.fileInfoToAttr(fi, header.NodeId)
+	out = node.mount.fillAttr(fi, header.NodeId)
 	return out, OK
 }
 
@@ -151,17 +150,17 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 		code = node.fsInode.Truncate(f, input.Size, &header.Context)
 	}
 	if code.Ok() && (input.Valid&(FATTR_ATIME|FATTR_MTIME|FATTR_ATIME_NOW|FATTR_MTIME_NOW) != 0) {
-		now := uint64(0)
+		now := int64(0)
 		if input.Valid&FATTR_ATIME_NOW != 0 || input.Valid&FATTR_MTIME_NOW != 0 {
-			now = uint64(time.Nanoseconds())
+			now = time.Nanoseconds()
 		}
 			
-		atime := uint64(input.Atime*1e9) + uint64(input.Atimensec)
+		atime := int64(input.Atime*1e9) + int64(input.Atimensec)
 		if input.Valid&FATTR_ATIME_NOW != 0 {
 			atime = now
 		}
 
-		mtime := uint64(input.Mtime*1e9) + uint64(input.Mtimensec)
+		mtime := int64(input.Mtime*1e9) + int64(input.Mtimensec)
 		if input.Valid&FATTR_MTIME_NOW != 0 {
 			mtime = now
 		}
@@ -178,7 +177,7 @@ func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out 
 	fi, code := node.fsInode.GetAttr(f, &header.Context)
 
 	if code.Ok() {
-		out = node.mount.fileInfoToAttr(fi, header.NodeId)
+		out = node.mount.fillAttr(fi, header.NodeId)
 	}
 	return out, code
 }

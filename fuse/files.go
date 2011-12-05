@@ -26,8 +26,8 @@ func (me *DataFile) String() string {
 	return fmt.Sprintf("DataFile(%x)", me.data[:l])
 }
 
-func (me *DataFile) GetAttr() (*os.FileInfo, Status) {
-	return &os.FileInfo{Mode: S_IFREG | 0644, Size: int64(len(me.data))}, OK
+func (me *DataFile) GetAttr() (*Attr, Status) {
+	return &Attr{Mode: S_IFREG | 0644, Size: uint64(len(me.data))}, OK
 }
 
 func NewDataFile(data []byte) *DataFile {
@@ -130,12 +130,14 @@ func (me *LoopbackFile) Chown(uid uint32, gid uint32) Status {
 	return ToStatus(me.File.Chown(int(uid), int(gid)))
 }
 
-func (me *LoopbackFile) GetAttr() (*os.FileInfo, Status) {
+func (me *LoopbackFile) GetAttr() (*Attr, Status) {
 	fi, err := me.File.Stat()
 	if err != nil {
 		return nil, ToStatus(err)
 	}
-	return fi, OK
+	a := &Attr{}
+	a.FromFileInfo(fi)
+	return a, OK
 }
 
 ////////////////////////////////////////////////////////////////

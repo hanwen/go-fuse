@@ -3,7 +3,6 @@ package fuse
 import (
 	"fmt"
 	"log"
-	"os"
 	"path/filepath"
 	"sync"
 )
@@ -218,7 +217,7 @@ func (me *pathInode) RLockTree() func() {
 	return func() { me.pathFs.pathLock.RUnlock() }
 }
 
-func (me *pathInode) fillNewChildAttr(path string, child *pathInode, c *Context) (fi *os.FileInfo, code Status) {
+func (me *pathInode) fillNewChildAttr(path string, child *pathInode, c *Context) (fi *Attr, code Status) {
 	fi, _ = me.fs.GetAttr(path, c)
 	if fi != nil && fi.Ino > 0 {
 		child.clientInode = fi.Ino
@@ -378,7 +377,7 @@ func (me *pathInode) OpenDir(context *Context) (chan DirEntry, Status) {
 	return me.fs.OpenDir(me.GetPath(), context)
 }
 
-func (me *pathInode) Mknod(name string, mode uint32, dev uint32, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
+func (me *pathInode) Mknod(name string, mode uint32, dev uint32, context *Context) (fi *Attr, newNode FsNode, code Status) {
 	fullPath := filepath.Join(me.GetPath(), name)
 	code = me.fs.Mknod(fullPath, mode, dev, context)
 	if code.Ok() {
@@ -390,7 +389,7 @@ func (me *pathInode) Mknod(name string, mode uint32, dev uint32, context *Contex
 	return
 }
 
-func (me *pathInode) Mkdir(name string, mode uint32, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
+func (me *pathInode) Mkdir(name string, mode uint32, context *Context) (fi *Attr, newNode FsNode, code Status) {
 	fullPath := filepath.Join(me.GetPath(), name)
 	code = me.fs.Mkdir(fullPath, mode, context)
 	if code.Ok() {
@@ -418,7 +417,7 @@ func (me *pathInode) Rmdir(name string, context *Context) (code Status) {
 	return code
 }
 
-func (me *pathInode) Symlink(name string, content string, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
+func (me *pathInode) Symlink(name string, content string, context *Context) (fi *Attr, newNode FsNode, code Status) {
 	fullPath := filepath.Join(me.GetPath(), name)
 	code = me.fs.Symlink(content, fullPath, context)
 	if code.Ok() {
@@ -443,7 +442,7 @@ func (me *pathInode) Rename(oldName string, newParent FsNode, newName string, co
 	return code
 }
 
-func (me *pathInode) Link(name string, existingFsnode FsNode, context *Context) (fi *os.FileInfo, newNode FsNode, code Status) {
+func (me *pathInode) Link(name string, existingFsnode FsNode, context *Context) (fi *Attr, newNode FsNode, code Status) {
 	if !me.pathFs.options.ClientInodes {
 		return nil, nil, ENOSYS
 	}
@@ -470,7 +469,7 @@ func (me *pathInode) Link(name string, existingFsnode FsNode, context *Context) 
 	return
 }
 
-func (me *pathInode) Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *os.FileInfo, newNode FsNode, code Status) {
+func (me *pathInode) Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *Attr, newNode FsNode, code Status) {
 	fullPath := filepath.Join(me.GetPath(), name)
 	file, code = me.fs.Create(fullPath, flags, mode, context)
 	if code.Ok() {
@@ -502,7 +501,7 @@ func (me *pathInode) Open(flags uint32, context *Context) (file File, code Statu
 	return
 }
 
-func (me *pathInode) Lookup(name string, context *Context) (fi *os.FileInfo, node FsNode, code Status) {
+func (me *pathInode) Lookup(name string, context *Context) (fi *Attr, node FsNode, code Status) {
 	fullPath := filepath.Join(me.GetPath(), name)
 	fi, code = me.fs.GetAttr(fullPath, context)
 	if code.Ok() {
@@ -512,7 +511,7 @@ func (me *pathInode) Lookup(name string, context *Context) (fi *os.FileInfo, nod
 	return
 }
 
-func (me *pathInode) findChild(fi *os.FileInfo, name string, fullPath string) (out *pathInode) {
+func (me *pathInode) findChild(fi *Attr, name string, fullPath string) (out *pathInode) {
 	if fi.Ino > 0 {
 		unlock := me.RLockTree()
 		v := me.pathFs.clientInodeMap[fi.Ino]
@@ -535,7 +534,7 @@ func (me *pathInode) findChild(fi *os.FileInfo, name string, fullPath string) (o
 	return out
 }
 
-func (me *pathInode) GetAttr(file File, context *Context) (fi *os.FileInfo, code Status) {
+func (me *pathInode) GetAttr(file File, context *Context) (fi *Attr, code Status) {
 	if file == nil {
 		// called on a deleted files.
 		file = me.inode.AnyFile()
@@ -606,7 +605,7 @@ func (me *pathInode) Truncate(file File, size uint64, context *Context) (code St
 	return code
 }
 
-func (me *pathInode) Utimens(file File, atime uint64, mtime uint64, context *Context) (code Status) {
+func (me *pathInode) Utimens(file File, atime int64, mtime int64, context *Context) (code Status) {
 	files := me.inode.Files(O_ANYWRITE)
 	for _, f := range files {
 		// TODO - pass context

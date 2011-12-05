@@ -257,31 +257,31 @@ func (me *AutoUnionFs) GetXAttr(name string, attr string, context *fuse.Context)
 	return nil, fuse.ENODATA
 }
 
-func (me *AutoUnionFs) GetAttr(path string, context *fuse.Context) (*os.FileInfo, fuse.Status) {
+func (me *AutoUnionFs) GetAttr(path string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	if path == "" || path == _CONFIG || path == _STATUS {
-		a := &os.FileInfo{
+		a := &fuse.Attr{
 			Mode: fuse.S_IFDIR | 0755,
 		}
 		return a, fuse.OK
 	}
 
 	if path == filepath.Join(_STATUS, _VERSION) {
-		a := &os.FileInfo{
+		a := &fuse.Attr{
 			Mode: fuse.S_IFREG | 0644,
-			Size: int64(len(fuse.Version())),
+			Size: uint64(len(fuse.Version())),
 		}
 		return a, fuse.OK
 	}
 
 	if path == filepath.Join(_STATUS, _ROOT) {
-		a := &os.FileInfo{
+		a := &fuse.Attr{
 			Mode: syscall.S_IFLNK | 0644,
 		}
 		return a, fuse.OK
 	}
 
 	if path == filepath.Join(_CONFIG, _SCAN_CONFIG) {
-		a := &os.FileInfo{
+		a := &fuse.Attr{
 			Mode: fuse.S_IFREG | 0644,
 		}
 		return a, fuse.OK
@@ -295,7 +295,7 @@ func (me *AutoUnionFs) GetAttr(path string, context *fuse.Context) (*os.FileInfo
 			return nil, fuse.ENOENT
 		}
 
-		a := &os.FileInfo{
+		a := &fuse.Attr{
 			Mode: syscall.S_IFLNK | 0644,
 		}
 		return a, fuse.OK

@@ -2,7 +2,6 @@ package fuse
 
 import (
 	"log"
-	"os"
 )
 
 var _ = log.Println
@@ -34,7 +33,7 @@ func (me *DefaultFile) Release() {
 
 }
 
-func (me *DefaultFile) GetAttr() (*os.FileInfo, Status) {
+func (me *DefaultFile) GetAttr() (*Attr, Status) {
 	return nil, ENOSYS
 }
 
@@ -42,7 +41,7 @@ func (me *DefaultFile) Fsync(*FsyncIn) (code Status) {
 	return ENOSYS
 }
 
-func (me *DefaultFile) Utimens(atimeNs uint64, mtimeNs uint64) Status {
+func (me *DefaultFile) Utimens(atimeNs int64, mtimeNs int64) Status {
 	return ENOSYS
 }
 

@@ -33,9 +33,10 @@ func (me *LoopbackFileSystem) GetPath(relPath string) string {
 	return filepath.Join(me.Root, relPath)
 }
 
-func (me *LoopbackFileSystem) GetAttr(name string, context *Context) (fi *os.FileInfo, code Status) {
+func (me *LoopbackFileSystem) GetAttr(name string, context *Context) (a *Attr, code Status) {
 	fullPath := me.GetPath(name)
 	var err error = nil
+	var fi *os.FileInfo
 	if name == "" {
 		// When GetAttr is called for the toplevel directory, we always want
 		// to look through symlinks.
@@ -46,7 +47,9 @@ func (me *LoopbackFileSystem) GetAttr(name string, context *Context) (fi *os.Fil
 	if err != nil {
 		return nil, ToStatus(err)
 	}
-	return fi, OK
+	a = &Attr{}
+	a.FromFileInfo(fi)
+	return a, OK
 }
 
 func (me *LoopbackFileSystem) OpenDir(name string, context *Context) (stream chan DirEntry, status Status) {
@@ -103,7 +106,7 @@ func (me *LoopbackFileSystem) Truncate(path string, offset uint64, context *Cont
 	return ToStatus(os.Truncate(me.GetPath(path), int64(offset)))
 }
 
-func (me *LoopbackFileSystem) Utimens(path string, AtimeNs uint64, MtimeNs uint64, context *Context) (code Status) {
+func (me *LoopbackFileSystem) Utimens(path string, AtimeNs int64, MtimeNs int64, context *Context) (code Status) {
 	return ToStatus(os.Chtimes(me.GetPath(path), int64(AtimeNs), int64(MtimeNs)))
 }
 

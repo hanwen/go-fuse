@@ -1,11 +1,10 @@
 package fuse
 
 import (
-	"os"
 )
 
 // DefaultFileSystem
-func (me *DefaultFileSystem) GetAttr(name string, context *Context) (*os.FileInfo, Status) {
+func (me *DefaultFileSystem) GetAttr(name string, context *Context) (*Attr, Status) {
 	return nil, ENOSYS
 }
 
@@ -91,7 +90,7 @@ func (me *DefaultFileSystem) Create(name string, flags uint32, mode uint32, cont
 	return nil, ENOSYS
 }
 
-func (me *DefaultFileSystem) Utimens(name string, AtimeNs uint64, CtimeNs uint64, context *Context) (code Status) {
+func (me *DefaultFileSystem) Utimens(name string, AtimeNs int64, CtimeNs int64, context *Context) (code Status) {
 	return ENOSYS
 }
 
