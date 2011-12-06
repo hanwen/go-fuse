@@ -45,14 +45,14 @@ func TestZipFs(t *testing.T) {
 	}
 	fi, err := os.Stat(mountPoint + "/subdir")
 	CheckSuccess(err)
-	if !fi.IsDirectory() {
+	if !fi.IsDir() {
 		t.Error("directory type", fi)
 	}
 
 	fi, err = os.Stat(mountPoint + "/file.txt")
 	CheckSuccess(err)
 
-	if !fi.IsRegular() {
+	if fi.IsDir() {
 		t.Error("file type", fi)
 	}
 
@@ -75,7 +75,7 @@ func TestLinkCount(t *testing.T) {
 
 	fi, err := os.Stat(mp + "/file.txt")
 	CheckSuccess(err)
-	if fi.Nlink != 1 {
-		t.Fatal("wrong link count", fi.Nlink)
+	if fuse.ToStatT(fi).Nlink != 1 {
+		t.Fatal("wrong link count", fuse.ToStatT(fi).Nlink)
 	}
 }

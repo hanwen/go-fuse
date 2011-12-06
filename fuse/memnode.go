@@ -34,8 +34,8 @@ func (me *MemNodeFs) newNode() *memNode {
 		fs: me,
 		id: me.nextFree,
 	}
-	now := time.Nanoseconds()
-	n.info.SetTimes(now, now, now)
+	now := time.Now().UnixNano()
+	n.info.SetNs(now, now, now)
 	n.info.Mode = S_IFDIR | 0777
 	me.nextFree++
 	return n
@@ -182,7 +182,7 @@ func (me *memNode) Truncate(file File, size uint64, context *Context) (code Stat
 		code = ToStatus(err)
 	}
 	if code.Ok() {
-		me.info.SetTimes(-1, -1, time.Nanoseconds())
+		me.info.SetNs(-1, -1, time.Now().UnixNano())
 		// TODO - should update mtime too?
 		me.info.Size = size
 	}
@@ -190,19 +190,19 @@ func (me *memNode) Truncate(file File, size uint64, context *Context) (code Stat
 }
 
 func (me *memNode) Utimens(file File, atime int64, mtime int64, context *Context) (code Status) {
-	me.info.SetTimes(int64(atime), int64(mtime), time.Nanoseconds())
+	me.info.SetNs(int64(atime), int64(mtime), time.Now().UnixNano())
 	return OK
 }
 
 func (me *memNode) Chmod(file File, perms uint32, context *Context) (code Status) {
 	me.info.Mode = (me.info.Mode ^ 07777) | perms
-	me.info.SetTimes(-1, -1, time.Nanoseconds())
+	me.info.SetNs(-1, -1, time.Now().UnixNano())
 	return OK
 }
 
 func (me *memNode) Chown(file File, uid uint32, gid uint32, context *Context) (code Status) {
 	me.info.Uid = uid
 	me.info.Gid = gid
-	me.info.SetTimes(-1, -1, time.Nanoseconds())
+	me.info.SetNs(-1, -1, time.Now().UnixNano())
 	return OK
 }

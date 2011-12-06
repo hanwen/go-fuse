@@ -5,6 +5,7 @@ import (
 	"os"
 	"syscall"
 	"testing"
+	"time"
 )
 
 type MutableDataFile struct {
@@ -58,7 +59,7 @@ func (me *MutableDataFile) Fsync(*FsyncIn) (code Status) {
 }
 
 func (me *MutableDataFile) Utimens(atimeNs int64, mtimeNs int64) Status {
-	me.Attr.SetTimes(atimeNs, mtimeNs, -1)
+	me.Attr.SetNs(atimeNs, mtimeNs, -1)
 	return OK
 }
 
@@ -175,7 +176,7 @@ func TestFSetAttr(t *testing.T) {
 		t.Error("chmod")
 	}
 
-	err = os.Chtimes(fn, 100e3, 101e3)
+	err = os.Chtimes(fn, time.Unix(0, 100e3), time.Unix(0, 101e3))
 	CheckSuccess(err)
 	if fs.file.Attr.Atimensec != 100e3 || fs.file.Attr.Mtimensec != 101e3 {
 		t.Errorf("Utimens: atime %d != 100e3 mtime %d != 101e3",
@@ -184,8 +185,10 @@ func TestFSetAttr(t *testing.T) {
 
 	newFi, err := f.Stat()
 	CheckSuccess(err)
-	if fi.Ino != newFi.Ino {
-		t.Errorf("f.Lstat().Ino = %d. Returned %d before.", newFi.Ino, fi.Ino)
+	i1 := ToStatT(fi).Ino
+	i2 := ToStatT(newFi).Ino
+	if i1 != i2 {
+		t.Errorf("f.Lstat().Ino = %d. Returned %d before.", i2, i1)
 	}
 	// TODO - test chown if run as root.
 }

@@ -58,7 +58,7 @@ func TestMountReaddir(t *testing.T) {
 
 	entries, err := ioutil.ReadDir(ts.mnt)
 	CheckSuccess(err)
-	if len(entries) != 1 || entries[0].Name != "mnt" {
+	if len(entries) != 1 || entries[0].Name() != "mnt" {
 		t.Error("wrong readdir result", entries)
 	}
 	ts.pathFs.Unmount("mnt")
@@ -92,9 +92,8 @@ func TestRecursiveMount(t *testing.T) {
 	}
 
 	f.Close()
-
 	t.Log("Waiting for kernel to flush file-close to fuse...")
-	time.Sleep(1.5e9 * testTtl)
+	time.Sleep(testTtl)
 
 	t.Log("Attempting unmount, should succeed")
 	code = ts.pathFs.Unmount("mnt")
@@ -130,7 +129,7 @@ func TestDeletedUnmount(t *testing.T) {
 	}
 
 	f.Close()
-	time.Sleep(1.5e9 * testTtl)
+	time.Sleep((3 * testTtl) / 2)
 	code = ts.pathFs.Unmount("mnt")
 	if !code.Ok() {
 		t.Error("should succeed", code)

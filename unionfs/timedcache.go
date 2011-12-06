@@ -11,8 +11,8 @@ var _ = log.Println
 type cacheEntry struct {
 	data interface{}
 
-	// expiryNs is the absolute timestamp of the expiry.
-	expiryNs int64
+	// expiry is the absolute timestamp of the expiry.
+	expiry time.Time
 }
 
 // TimedIntCache caches the result of fetch() for some time.  It is
@@ -23,8 +23,8 @@ type TimedCacheFetcher func(name string) (value interface{}, cacheable bool)
 type TimedCache struct {
 	fetch TimedCacheFetcher
 
-	// ttlNs is a duration of the cache.
-	ttlNs int64
+	// ttl is the duration of the cache.
+	ttl time.Duration
 
 	cacheMapMutex sync.RWMutex
 	cacheMap      map[string]*cacheEntry
@@ -32,13 +32,11 @@ type TimedCache struct {
 	PurgeTimer *time.Timer
 }
 
-const layerCacheTimeoutNs = 1e9
-
 // Creates a new cache with the given TTL.  If TTL <= 0, the caching is
 // indefinite.
-func NewTimedCache(fetcher TimedCacheFetcher, ttlNs int64) *TimedCache {
+func NewTimedCache(fetcher TimedCacheFetcher, ttl time.Duration) *TimedCache {
 	l := new(TimedCache)
-	l.ttlNs = ttlNs
+	l.ttl = ttl
 	l.fetch = fetcher
 	l.cacheMap = make(map[string]*cacheEntry)
 	return l
@@ -49,7 +47,7 @@ func (me *TimedCache) Get(name string) interface{} {
 	info, ok := me.cacheMap[name]
 	me.cacheMapMutex.RUnlock()
 
-	valid := ok && (me.ttlNs <= 0 || info.expiryNs > time.Nanoseconds())
+	valid := ok && (me.ttl <= 0 || info.expiry.After(time.Now()))
 	if valid {
 		return info.data
 	}
@@ -61,8 +59,8 @@ func (me *TimedCache) Set(name string, val interface{}) {
 	defer me.cacheMapMutex.Unlock()
 
 	me.cacheMap[name] = &cacheEntry{
-		data:     val,
-		expiryNs: time.Nanoseconds() + me.ttlNs,
+		data:   val,
+		expiry: time.Now().Add(me.ttl),
 	}
 }
 
@@ -84,12 +82,12 @@ func (me *TimedCache) GetFresh(name string) interface{} {
 // Drop all expired entries.
 func (me *TimedCache) Purge() {
 	keys := make([]string, 0, len(me.cacheMap))
-	now := time.Nanoseconds()
+	now := time.Now()
 
 	me.cacheMapMutex.Lock()
 	defer me.cacheMapMutex.Unlock()
 	for k, v := range me.cacheMap {
-		if v.expiryNs < now {
+		if now.After(v.expiry) {
 			keys = append(keys, k)
 		}
 	}
@@ -99,12 +97,12 @@ func (me *TimedCache) Purge() {
 }
 
 func (me *TimedCache) RecurringPurge() {
-	if me.ttlNs <= 0 {
+	if me.ttl <= 0 {
 		return
 	}
 
 	me.Purge()
-	me.PurgeTimer = time.AfterFunc(me.ttlNs*5,
+	me.PurgeTimer = time.AfterFunc(int64(me.ttl*5),
 		func() { me.RecurringPurge() })
 }
 

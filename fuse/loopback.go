@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"syscall"
+	"time"
 )
 
 var _ = fmt.Println
@@ -36,7 +37,7 @@ func (me *LoopbackFileSystem) GetPath(relPath string) string {
 func (me *LoopbackFileSystem) GetAttr(name string, context *Context) (a *Attr, code Status) {
 	fullPath := me.GetPath(name)
 	var err error = nil
-	var fi *os.FileInfo
+	var fi os.FileInfo
 	if name == "" {
 		// When GetAttr is called for the toplevel directory, we always want
 		// to look through symlinks.
@@ -65,9 +66,10 @@ func (me *LoopbackFileSystem) OpenDir(name string, context *Context) (stream cha
 		for {
 			infos, err := f.Readdir(want)
 			for i, _ := range infos {
+				s := ToStatT(infos[i])
 				output <- DirEntry{
-					Name: infos[i].Name,
-					Mode: infos[i].Mode,
+					Name: infos[i].Name(),
+					Mode: s.Mode,
 				}
 			}
 			if len(infos) < want || err == io.EOF {
@@ -107,7 +109,7 @@ func (me *LoopbackFileSystem) Truncate(path string, offset uint64, context *Cont
 }
 
 func (me *LoopbackFileSystem) Utimens(path string, AtimeNs int64, MtimeNs int64, context *Context) (code Status) {
-	return ToStatus(os.Chtimes(me.GetPath(path), int64(AtimeNs), int64(MtimeNs)))
+	return ToStatus(os.Chtimes(me.GetPath(path), time.Unix(0, AtimeNs), time.Unix(0, MtimeNs)))
 }
 
 func (me *LoopbackFileSystem) Readlink(name string, context *Context) (out string, code Status) {

@@ -525,7 +525,7 @@ func (me *pathInode) findChild(fi *Attr, name string, fullPath string) (out *pat
 	}
 
 	if out == nil {
-		out = me.createChild(fi.IsDirectory())
+		out = me.createChild(fi.IsDir())
 		out.clientInode = fi.Ino
 		me.addChild(name, out)
 	}
@@ -551,7 +551,7 @@ func (me *pathInode) GetAttr(file File, context *Context) (fi *Attr, code Status
 		me.setClientInode(fi.Ino)
 	}
 
-	if fi != nil && !fi.IsDirectory() && fi.Nlink == 0 {
+	if fi != nil && !fi.IsDir() && fi.Nlink == 0 {
 		fi.Nlink = 1
 	}
 	return fi, code

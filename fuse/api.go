@@ -4,7 +4,9 @@
 
 package fuse
 
-import ()
+import (
+	"time"
+)
 
 // Types for users to implement.
 
@@ -191,9 +193,9 @@ type WithFlags struct {
 // default copied from libfuse and set in NewMountOptions() is
 // (1s,1s,0s).
 type FileSystemOptions struct {
-	EntryTimeout    float64
-	AttrTimeout     float64
-	NegativeTimeout float64
+	EntryTimeout    time.Duration
+	AttrTimeout     time.Duration
+	NegativeTimeout time.Duration
 
 	// If set, replace all uids with given UID.
 	// NewFileSystemOptions() will set this to the daemon's

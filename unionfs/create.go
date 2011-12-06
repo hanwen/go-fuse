@@ -13,7 +13,7 @@ func NewUnionFsFromRoots(roots []string, opts *UnionFsOptions, roCaching bool) (
 		if err != nil {
 			return nil, err
 		}
-		if fi.IsDirectory() {
+		if fi.IsDir() {
 			fs = fuse.NewLoopbackFileSystem(r)
 		}
 		if fs == nil {

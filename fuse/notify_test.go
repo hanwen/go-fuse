@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"testing"
+	"time"
 )
 
 var _ = log.Println
@@ -46,7 +47,7 @@ func NewNotifyTest() *NotifyTest {
 	var err error
 	me.dir, err = ioutil.TempDir("", "go-fuse")
 	CheckSuccess(err)
-	entryTtl := 0.1
+	entryTtl := 100 * time.Millisecond
 	opts := &FileSystemOptions{
 		EntryTimeout:    entryTtl,
 		AttrTimeout:     entryTtl,
@@ -79,14 +80,14 @@ func TestInodeNotify(t *testing.T) {
 	fs.size = 42
 	fi, err := os.Lstat(dir + "/file")
 	CheckSuccess(err)
-	if !fi.IsRegular() || fi.Size != 42 {
+	if fi.Mode()&os.ModeType != 0 || fi.Size() != 42 {
 		t.Error(fi)
 	}
 
 	fs.size = 666
 	fi, err = os.Lstat(dir + "/file")
 	CheckSuccess(err)
-	if !fi.IsRegular() || fi.Size == 666 {
+	if fi.Mode()&os.ModeType != 0 || fi.Size() == 666 {
 		t.Error(fi)
 	}
 
@@ -97,7 +98,7 @@ func TestInodeNotify(t *testing.T) {
 
 	fi, err = os.Lstat(dir + "/file")
 	CheckSuccess(err)
-	if !fi.IsRegular() || fi.Size != 666 {
+	if fi.Mode()&os.ModeType != 0 || fi.Size() != 666 {
 		t.Error(fi)
 	}
 }

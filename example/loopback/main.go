@@ -33,9 +33,9 @@ func main() {
 	opts := &fuse.FileSystemOptions{
 		// These options are to be compatible with libfuse defaults,
 		// making benchmarking easier.
-		NegativeTimeout: 1.0,
-		AttrTimeout:     1.0,
-		EntryTimeout:    1.0,
+		NegativeTimeout: time.Second,
+		AttrTimeout:     time.Second,
+		EntryTimeout:    time.Second,
 	}
 	pathFs := fuse.NewPathNodeFs(finalFs, nil)
 	conn := fuse.NewFileSystemConnector(pathFs, opts)

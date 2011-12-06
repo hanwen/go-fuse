@@ -44,7 +44,9 @@ func TestLinkAt(t *testing.T) {
 		t.Fatalf("Lstat b: %v", err)
 	}
 
-	if f1.Ino != f2.Ino {
-		t.Fatal("Ino mismatch", f1, f2)
+	s1 := ToStatT(f1)
+	s2 := ToStatT(f2)
+	if s1.Ino != s2.Ino {
+		t.Fatal("Ino mismatch", s1, s2)
 	}
 }

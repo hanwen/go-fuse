@@ -155,7 +155,11 @@ func (me *AutoUnionFs) getRoots(path string) []string {
 	ro := filepath.Join(path, _READONLY)
 	fi, err := os.Lstat(ro)
 	fiDir, errDir := os.Stat(ro)
-	if err == nil && errDir == nil && fi.IsSymlink() && fiDir.IsDirectory() {
+	if err != nil || errDir != nil {
+		return nil
+	}
+
+	if fi.Mode()&os.ModeSymlink != 0 && fiDir.IsDir() {
 		// TODO - should recurse and chain all READONLYs
 		// together.
 		return []string{path, ro}
@@ -163,8 +167,8 @@ func (me *AutoUnionFs) getRoots(path string) []string {
 	return nil
 }
 
-func (me *AutoUnionFs) visit(path string, fi *os.FileInfo, err error) error {
-	if fi.IsDirectory() {
+func (me *AutoUnionFs) visit(path string, fi os.FileInfo, err error) error {
+	if fi.IsDir() {
 		roots := me.getRoots(path)
 		if roots != nil {
 			me.addAutomaticFs(roots)
@@ -180,12 +184,12 @@ func (me *AutoUnionFs) updateKnownFses() {
 	directoryEntries, err := ioutil.ReadDir(me.root)
 	if err == nil {
 		for _, dir := range directoryEntries {
-			if dir.IsDirectory() || dir.IsSymlink() {
-				path := filepath.Join(me.root, dir.Name)
+			if dir.IsDir() || dir.Mode()&os.ModeSymlink != 0 {
+				path := filepath.Join(me.root, dir.Name())
 				dir, _ = os.Stat(path)
 				me.visit(path, dir, nil)
 				filepath.Walk(path,
-					func(path string, fi *os.FileInfo, err error) error {
+					func(path string, fi os.FileInfo, err error) error {
 						return me.visit(path, fi, err)
 					})
 			}

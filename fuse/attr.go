@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"syscall"
+	"time"
 )
 
 type FileMode uint32
@@ -35,8 +36,8 @@ func (me FileMode) IsFifo() bool { return (uint32(me) & syscall.S_IFMT) == sysca
 // IsChar reports whether the FileInfo describes a character special file.
 func (me FileMode) IsChar() bool { return (uint32(me) & syscall.S_IFMT) == syscall.S_IFCHR }
 
-// IsDirectory reports whether the FileInfo describes a directory.
-func (me FileMode) IsDirectory() bool { return (uint32(me) & syscall.S_IFMT) == syscall.S_IFDIR }
+// IsDir reports whether the FileInfo describes a directory.
+func (me FileMode) IsDir() bool { return (uint32(me) & syscall.S_IFMT) == syscall.S_IFDIR }
 
 // IsBlock reports whether the FileInfo describes a block special file.
 func (me FileMode) IsBlock() bool { return (uint32(me) & syscall.S_IFMT) == syscall.S_IFBLK }
@@ -55,8 +56,8 @@ func (me *Attr) IsFifo() bool { return (uint32(me.Mode) & syscall.S_IFMT) == sys
 // IsChar reports whether the FileInfo describes a character special file.
 func (me *Attr) IsChar() bool { return (uint32(me.Mode) & syscall.S_IFMT) == syscall.S_IFCHR }
 
-// IsDirectory reports whether the FileInfo describes a directory.
-func (me *Attr) IsDirectory() bool { return (uint32(me.Mode) & syscall.S_IFMT) == syscall.S_IFDIR }
+// IsDir reports whether the FileInfo describes a directory.
+func (me *Attr) IsDir() bool { return (uint32(me.Mode) & syscall.S_IFMT) == syscall.S_IFDIR }
 
 // IsBlock reports whether the FileInfo describes a block special file.
 func (me *Attr) IsBlock() bool { return (uint32(me.Mode) & syscall.S_IFMT) == syscall.S_IFBLK }
@@ -82,7 +83,7 @@ func (a *Attr) Ctimens() int64 {
 	return int64(1e9*a.Ctime) + int64(a.Ctimensec)
 }
 
-func (a *Attr) SetTimes(atimens int64, mtimens int64, ctimens int64) {
+func (a *Attr) SetNs(atimens int64, mtimens int64, ctimens int64) {
 	if atimens >= 0 {
 		a.Atime = uint64(atimens / 1e9)
 		a.Atimensec = uint32(atimens % 1e9)
@@ -97,31 +98,69 @@ func (a *Attr) SetTimes(atimens int64, mtimens int64, ctimens int64) {
 	}
 }
 
-func (attr *Attr) FromFileInfo(fi *os.FileInfo) {
-	attr.Ino = uint64(fi.Ino)
-	attr.Size = uint64(fi.Size)
-	attr.Blocks = uint64(fi.Blocks)
-	attr.SetTimes(fi.Atime_ns, fi.Mtime_ns, fi.Ctime_ns)
-	attr.Mode = fi.Mode
-	attr.Nlink = uint32(fi.Nlink)
-	attr.Uid = uint32(fi.Uid)
-	attr.Gid = uint32(fi.Gid)
-	attr.Rdev = uint32(fi.Rdev)
-	attr.Blksize = uint32(fi.Blksize)
-}
-func (a *Attr) ToFileInfo() (fi *os.FileInfo) {
-	return &os.FileInfo{
-		Ino:      a.Ino,
-		Size:     int64(a.Size),
-		Atime_ns: a.Atimens(),
-		Mtime_ns: a.Mtimens(),
-		Ctime_ns: a.Ctimens(),
-		Blocks:   int64(a.Blocks),
-		Mode:     a.Mode,
-		Nlink:    uint64(a.Nlink),
-		Uid:      int(a.Uid),
-		Gid:      int(a.Gid),
-		Rdev:     uint64(a.Rdev),
-		Blksize:  int64(a.Blksize),
+func (a *Attr) SetTimes(access *time.Time, mod *time.Time, chstatus *time.Time) {
+	if access != nil {
+		atimens := access.UnixNano()
+		a.Atime = uint64(atimens / 1e9)
+		a.Atimensec = uint32(atimens % 1e9)
 	}
+	if mod != nil {
+		mtimens := mod.UnixNano()
+		a.Mtime = uint64(mtimens / 1e9)
+		a.Mtimensec = uint32(mtimens % 1e9)
+	}
+	if chstatus != nil {
+		ctimens := chstatus.UnixNano()
+		a.Ctime = uint64(ctimens / 1e9)
+		a.Ctimensec = uint32(ctimens % 1e9)
+	}
+}
+
+func (a *Attr) FromStat(s *syscall.Stat_t) {
+	a.Ino = uint64(s.Ino)
+	a.Size = uint64(s.Size)
+	a.Blocks = uint64(s.Blocks)
+	a.Atime = uint64(s.Atim.Sec)
+	a.Atimensec = uint32(s.Atim.Nsec)
+	a.Mtime = uint64(s.Mtim.Sec)
+	a.Mtimensec = uint32(s.Mtim.Nsec)
+	a.Ctime = uint64(s.Ctim.Sec)
+	a.Ctimensec = uint32(s.Ctim.Nsec)
+	a.Mode = s.Mode
+	a.Nlink = uint32(s.Nlink)
+	a.Uid = uint32(s.Uid)
+	a.Gid = uint32(s.Gid)
+	a.Rdev = uint32(s.Rdev)
+	a.Blksize = uint32(s.Blksize)
+}
+
+func (a *Attr) FromFileInfo(fi os.FileInfo) {
+	stat := fi.(*os.FileStat)
+	sys := stat.Sys.(*syscall.Stat_t)
+	a.FromStat(sys)
+}
+
+func (a *Attr) ChangeTime() time.Time {
+	return time.Unix(int64(a.Ctime), int64(a.Ctimensec))
+}
+
+func (a *Attr) AccessTime() time.Time {
+	return time.Unix(int64(a.Atime), int64(a.Atimensec))
+}
+
+func (a *Attr) ModTime() time.Time {
+	return time.Unix(int64(a.Mtime), int64(a.Mtimensec))
+}
+
+func ToStatT(f os.FileInfo) *syscall.Stat_t {
+	return f.(*os.FileStat).Sys.(*syscall.Stat_t)
+}
+
+func ToAttr(f os.FileInfo) *Attr {
+	if f == nil {
+		return nil
+	}
+	a := &Attr{}
+	a.FromStat(ToStatT(f))
+	return a
 }

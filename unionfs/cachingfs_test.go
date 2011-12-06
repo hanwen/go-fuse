@@ -39,7 +39,7 @@ func TestCachingFs(t *testing.T) {
 	if !code.Ok() {
 		t.Fatal("GetAttr failure", code)
 	}
-	if !fi.IsDirectory() {
+	if !fi.IsDir() {
 		t.Error("unexpected attr", fi)
 	}
 

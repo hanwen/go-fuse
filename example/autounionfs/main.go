@@ -6,6 +6,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/unionfs"
 	"os"
+	"time"
 )
 
 func main() {
@@ -28,16 +29,16 @@ func main() {
 		os.Exit(2)
 	}
 	ufsOptions := unionfs.UnionFsOptions{
-		DeletionCacheTTLSecs: *delcache_ttl,
-		BranchCacheTTLSecs:   *branchcache_ttl,
-		DeletionDirName:      *deldirname,
+		DeletionCacheTTL: time.Duration(*delcache_ttl * float64(time.Second)),
+		BranchCacheTTL:   time.Duration(*branchcache_ttl * float64(time.Second)),
+		DeletionDirName:  *deldirname,
 	}
 	options := unionfs.AutoUnionFsOptions{
 		UnionFsOptions: ufsOptions,
 		FileSystemOptions: fuse.FileSystemOptions{
-			EntryTimeout:    1.0,
-			AttrTimeout:     1.0,
-			NegativeTimeout: 1.0,
+			EntryTimeout:    time.Second,
+			AttrTimeout:     time.Second,
+			NegativeTimeout: time.Second,
 			Owner:           fuse.CurrentOwner(),
 		},
 		UpdateOnMount: true,

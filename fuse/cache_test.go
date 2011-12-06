@@ -74,7 +74,6 @@ func TestCacheFs(t *testing.T) {
 	c, err = ioutil.ReadFile(wd + "/mnt/file.txt")
 	CheckSuccess(err)
 
-	// x
 	if string(c) != "hello" {
 		t.Fatalf("Page cache skipped: expect 'hello' %q", string(c))
 	}

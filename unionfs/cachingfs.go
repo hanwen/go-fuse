@@ -5,6 +5,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"log"
 	"strings"
+	"time"
 )
 
 var _ = fmt.Println
@@ -84,25 +85,25 @@ func readLink(fs fuse.FileSystem, name string) *linkResponse {
 	}
 }
 
-func NewCachingFileSystem(fs fuse.FileSystem, ttlNs int64) *CachingFileSystem {
+func NewCachingFileSystem(fs fuse.FileSystem, ttl time.Duration) *CachingFileSystem {
 	c := new(CachingFileSystem)
 	c.FileSystem = fs
 	c.attributes = NewTimedCache(func(n string) (interface{}, bool) {
 		a := getAttr(fs, n)
 		return a, a.Ok()
-	}, ttlNs)
+	}, ttl)
 	c.dirs = NewTimedCache(func(n string) (interface{}, bool) {
 		d := readDir(fs, n)
 		return d, d.Ok()
-	}, ttlNs)
+	}, ttl)
 	c.links = NewTimedCache(func(n string) (interface{}, bool) {
 		l := readLink(fs, n)
 		return l, l.Ok()
-	}, ttlNs)
+	}, ttl)
 	c.xattr = NewTimedCache(func(n string) (interface{}, bool) {
 		l := getXAttr(fs, n)
 		return l, l.Ok()
-	}, ttlNs)
+	}, ttl)
 	return c
 }
 

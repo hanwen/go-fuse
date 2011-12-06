@@ -63,10 +63,10 @@ func (me *fileSystemMount) fileInfoToEntry(attr *Attr) (out *EntryOut) {
 	out = &EntryOut{}
 	out.Attr = *attr
 
-	splitNs(me.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
-	splitNs(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
+	splitDuration(me.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
+	splitDuration(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	me.setOwner(&out.Attr)
-	if !attr.IsDirectory() && attr.Nlink == 0 {
+	if !attr.IsDir() && attr.Nlink == 0 {
 		out.Nlink = 1
 	}
 	return out
@@ -75,7 +75,7 @@ func (me *fileSystemMount) fileInfoToEntry(attr *Attr) (out *EntryOut) {
 func (me *fileSystemMount) fillAttr(a *Attr, nodeId uint64) (out *AttrOut) {
 	out = &AttrOut{}
 	out.Attr = *a
-	splitNs(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
+	splitDuration(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	me.setOwner(&out.Attr)
 	out.Ino = nodeId
 	return out
@@ -146,7 +146,7 @@ func (me *fileSystemMount) negativeEntry() (*EntryOut, Status) {
 	if me.options.NegativeTimeout > 0.0 {
 		out := new(EntryOut)
 		out.NodeId = 0
-		splitNs(me.options.NegativeTimeout, &out.EntryValid, &out.EntryValidNsec)
+		splitDuration(me.options.NegativeTimeout, &out.EntryValid, &out.EntryValidNsec)
 		return out, OK
 	}
 	return nil, ENOENT

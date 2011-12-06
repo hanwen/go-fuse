@@ -55,7 +55,7 @@ func TestMultiZipFs(t *testing.T) {
 
 	entries, err := ioutil.ReadDir(mountPoint)
 	CheckSuccess(err)
-	if len(entries) != 1 || string(entries[0].Name) != "config" {
+	if len(entries) != 1 || string(entries[0].Name()) != "config" {
 		t.Errorf("wrong names return. %v", entries)
 	}
 
@@ -63,7 +63,7 @@ func TestMultiZipFs(t *testing.T) {
 	CheckSuccess(err)
 
 	fi, err := os.Lstat(mountPoint + "/zipmount")
-	if !fi.IsDirectory() {
+	if !fi.IsDir() {
 		t.Errorf("Expect directory at /zipmount")
 	}
 
@@ -81,14 +81,14 @@ func TestMultiZipFs(t *testing.T) {
 
 	fi, err = os.Lstat(mountPoint + "/zipmount")
 	CheckSuccess(err)
-	if !fi.IsDirectory() {
+	if !fi.IsDir() {
 		t.Fatal("expect directory for /zipmount, got %v", fi)
 	}
 
 	// Check that zipfs itself works.
 	fi, err = os.Stat(mountPoint + "/zipmount/subdir")
 	CheckSuccess(err)
-	if !fi.IsDirectory() {
+	if !fi.IsDir() {
 		t.Error("directory type", fi)
 	}
 

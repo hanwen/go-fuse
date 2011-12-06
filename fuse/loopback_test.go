@@ -13,6 +13,7 @@ import (
 	"strings"
 	"syscall"
 	"testing"
+	"time"
 )
 
 var _ = strings.Join
@@ -39,7 +40,7 @@ type testCase struct {
 	connector   *FileSystemConnector
 }
 
-const testTtl = 0.1
+const testTtl = 100 * time.Millisecond
 
 // Create and mount filesystem.
 func NewTestCase(t *testing.T) *testCase {
@@ -123,11 +124,12 @@ func TestTouch(t *testing.T) {
 
 	err := ioutil.WriteFile(ts.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
-	err = os.Chtimes(ts.mountFile, 42e9, 43e9)
+	err = os.Chtimes(ts.mountFile, time.Unix(42, 0), time.Unix(43, 0))
 	CheckSuccess(err)
 	fi, err := os.Lstat(ts.mountFile)
 	CheckSuccess(err)
-	if fi.Atime_ns != 42e9 || fi.Mtime_ns != 43e9 {
+	stat := fi.(*os.FileStat).Sys.(*syscall.Stat_t)
+	if stat.Atim.Sec != 42 || stat.Mtim.Sec != 43 {
 		t.Errorf("Got wrong timestamps %v", fi)
 	}
 }
@@ -144,8 +146,8 @@ func (me *testCase) TestReadThrough(t *testing.T) {
 
 	fi, err := os.Lstat(ts.mountFile)
 	CheckSuccess(err)
-	if (fi.Mode & 0777) != mode {
-		t.Errorf("Wrong mode %o != %o", fi.Mode, mode)
+	if uint32(fi.Mode().Perm()) != mode {
+		t.Errorf("Wrong mode %o != %o", int(fi.Mode().Perm()), mode)
 	}
 
 	// Open (for read), read.
@@ -193,8 +195,8 @@ func TestWriteThrough(t *testing.T) {
 	}
 
 	fi, err := os.Lstat(me.origFile)
-	if fi.Mode&0777 != 0644 {
-		t.Errorf("create mode error %o", fi.Mode&0777)
+	if fi.Mode().Perm() != 0644 {
+		t.Errorf("create mode error %o", fi.Mode()&0777)
 	}
 
 	f, err = os.Open(me.origFile)
@@ -218,8 +220,8 @@ func TestMkdirRmdir(t *testing.T) {
 	err := os.Mkdir(me.mountSubdir, 0777)
 	CheckSuccess(err)
 	fi, err := os.Lstat(me.origSubdir)
-	if !fi.IsDirectory() {
-		t.Errorf("Not a directory: %o", fi.Mode)
+	if !fi.IsDir() {
+		t.Errorf("Not a directory: %v", fi)
 	}
 
 	err = os.Remove(me.mountSubdir)
@@ -240,11 +242,13 @@ func TestLinkCreate(t *testing.T) {
 	err = os.Link(me.mountFile, mountSubfile)
 	CheckSuccess(err)
 
-	subfi, err := os.Lstat(mountSubfile)
+	subStat, err := os.Lstat(mountSubfile)
 	CheckSuccess(err)
-	fi, err := os.Lstat(me.mountFile)
+	stat, err := os.Lstat(me.mountFile)
 	CheckSuccess(err)
 
+	subfi := ToStatT(subStat)
+	fi := ToStatT(stat)
 	if fi.Nlink != 2 {
 		t.Errorf("Expect 2 links: %v", fi)
 	}
@@ -282,8 +286,11 @@ func TestLinkExisting(t *testing.T) {
 	CheckSuccess(err)
 	f2, err := os.Lstat(me.mnt + "/file2")
 	CheckSuccess(err)
-	if f1.Ino != f2.Ino {
-		t.Errorf("linked files should have identical inodes %v %v", f1.Ino, f2.Ino)
+
+	s1 := ToStatT(f1)
+	s2 := ToStatT(f2)
+	if s1.Ino != s2.Ino {
+		t.Errorf("linked files should have identical inodes %v %v", s1.Ino, s2.Ino)
 	}
 
 	c1, err := ioutil.ReadFile(me.mnt + "/file1")
@@ -313,7 +320,10 @@ func TestLinkForget(t *testing.T) {
 
 	f2, err := os.Lstat(me.mnt + "/file2")
 	CheckSuccess(err)
-	if f1.Ino == f2.Ino {
+
+	s1 := ToStatT(f1)
+	s2 := ToStatT(f2)
+	if s1.Ino == s2.Ino {
 		t.Error("After forget, we should not export links")
 	}
 }
@@ -336,8 +346,8 @@ func TestSymlink(t *testing.T) {
 	fi, err := os.Lstat(origLink)
 	CheckSuccess(err)
 
-	if !fi.IsSymlink() {
-		t.Errorf("not a symlink: %o", fi.Mode)
+	if fi.Mode()&os.ModeSymlink == 0 {
+		t.Errorf("not a symlink: %v", fi)
 		return
 	}
 
@@ -461,7 +471,7 @@ func TestMknod(t *testing.T) {
 		t.Errorf("Mknod %v", errNo)
 	}
 	fi, _ := os.Lstat(me.origFile)
-	if fi == nil || !fi.IsFifo() {
+	if fi == nil || fi.Mode()&os.ModeNamedPipe == 0 {
 		t.Errorf("Expected FIFO filetype.")
 	}
 }
@@ -489,9 +499,9 @@ func TestReaddir(t *testing.T) {
 		t.Errorf("Length mismatch %v", infos)
 	} else {
 		for _, v := range infos {
-			_, ok := wanted[v.Name]
+			_, ok := wanted[v.Name()]
 			if !ok {
-				t.Errorf("Unexpected name %v", v.Name)
+				t.Errorf("Unexpected name %v", v.Name())
 			}
 		}
 	}
@@ -799,7 +809,7 @@ func TestUmask(t *testing.T) {
 	CheckSuccess(err)
 
 	expect := mask ^ 0777
-	got := int(fi.Mode & 0777)
+	got := int(fi.Mode().Perm())
 	if got != expect {
 		t.Errorf("got %o, expect mode %o for file %s", got, expect, fn)
 	}

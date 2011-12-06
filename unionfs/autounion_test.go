@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"testing"
+	"time"
 )
 
 var _ = fmt.Print
@@ -14,7 +15,7 @@ var _ = log.Print
 
 var CheckSuccess = fuse.CheckSuccess
 
-const entryTtl = 0.1
+const entryTtl = 100 * time.Millisecond
 
 var testAOpts = AutoUnionFsOptions{
 	UnionFsOptions: testOpts,

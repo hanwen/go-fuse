@@ -8,6 +8,7 @@ import (
 	"log"
 	"path/filepath"
 	"strings"
+	"time"
 	"unsafe"
 )
 
@@ -43,9 +44,9 @@ type FileSystemConnector struct {
 
 func NewFileSystemOptions() *FileSystemOptions {
 	return &FileSystemOptions{
-		NegativeTimeout: 0.0,
-		AttrTimeout:     1.0,
-		EntryTimeout:    1.0,
+		NegativeTimeout: 0,
+		AttrTimeout:     time.Second,
+		EntryTimeout:    time.Second,
 		Owner:           CurrentOwner(),
 	}
 }

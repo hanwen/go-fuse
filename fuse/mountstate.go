@@ -98,7 +98,7 @@ func (me *MountState) Unmount() (err error) {
 	if me.mountPoint == "" {
 		return nil
 	}
-	delay := int64(0)
+	delay := time.Duration(0)
 	for try := 0; try < 5; try++ {
 		err = unmount(me.mountPoint)
 		if err == nil {
@@ -108,7 +108,7 @@ func (me *MountState) Unmount() (err error) {
 		// Sleep for a bit. This is not pretty, but there is
 		// no way we can be certain that the kernel thinks all
 		// open files have already been closed.
-		delay = 2*delay + 5e6
+		delay = 2*delay + 5*time.Millisecond
 		time.Sleep(delay)
 	}
 	if err == nil {
@@ -151,7 +151,7 @@ func (me *MountState) readRequest(req *request) Status {
 	// If we start timing before the read, we may take into
 	// account waiting for input into the timing.
 	if me.latencies != nil {
-		req.startNs = time.Nanoseconds()
+		req.startNs = time.Now().UnixNano()
 	}
 	req.inputBuf = req.inputBuf[0:n]
 	return ToStatus(err)
@@ -159,7 +159,7 @@ func (me *MountState) readRequest(req *request) Status {
 
 func (me *MountState) recordStats(req *request) {
 	if me.latencies != nil {
-		endNs := time.Nanoseconds()
+		endNs := time.Now().UnixNano()
 		dt := endNs - req.startNs
 
 		opname := operationName(req.inHeader.opcode)
@@ -258,7 +258,7 @@ func (me *MountState) write(req *request) Status {
 	}
 
 	if me.latencies != nil {
-		req.preWriteNs = time.Nanoseconds()
+		req.preWriteNs = time.Now().UnixNano()
 	}
 
 	if req.outHeaderBytes == nil {

@@ -24,15 +24,13 @@ type StatFs struct {
 	dirs    map[string][]fuse.DirEntry
 }
 
-func (me *StatFs) add(name string, fi os.FileInfo) {
+func (me *StatFs) add(name string, a *fuse.Attr) {
 	name = strings.TrimRight(name, "/")
 	_, ok := me.entries[name]
 	if ok {
 		return
 	}
 
-	a := &fuse.Attr{}
-	a.FromFileInfo(&fi)
 	me.entries[name] = a
 	if name == "/" || name == "" {
 		return
@@ -40,8 +38,8 @@ func (me *StatFs) add(name string, fi os.FileInfo) {
 
 	dir, base := filepath.Split(name)
 	dir = strings.TrimRight(dir, "/")
-	me.dirs[dir] = append(me.dirs[dir], fuse.DirEntry{Name: base, Mode: fi.Mode})
-	me.add(dir, os.FileInfo{Mode: fuse.S_IFDIR | 0755})
+	me.dirs[dir] = append(me.dirs[dir], fuse.DirEntry{Name: base, Mode: a.Mode})
+	me.add(dir, &fuse.Attr{Mode: fuse.S_IFDIR | 0755})
 }
 
 func (me *StatFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
@@ -97,7 +95,7 @@ func TestNewStatFs(t *testing.T) {
 	for _, n := range []string{
 		"file.txt", "sub/dir/foo.txt",
 		"sub/dir/bar.txt", "sub/marine.txt"} {
-		fs.add(n, os.FileInfo{Mode: fuse.S_IFREG | 0644})
+		fs.add(n, &fuse.Attr{Mode: fuse.S_IFREG | 0644})
 	}
 
 	wd, clean := setupFs(fs, nil)
@@ -111,7 +109,7 @@ func TestNewStatFs(t *testing.T) {
 
 	fi, err := os.Lstat(wd + "/sub")
 	CheckSuccess(err)
-	if !fi.IsDirectory() {
+	if !fi.IsDir() {
 		t.Error("mode", fi)
 	}
 	names, err = ioutil.ReadDir(wd + "/sub")
@@ -127,7 +125,7 @@ func TestNewStatFs(t *testing.T) {
 
 	fi, err = os.Lstat(wd + "/sub/marine.txt")
 	CheckSuccess(err)
-	if !fi.IsRegular() {
+	if fi.Mode()&os.ModeType != 0 {
 		t.Error("mode", fi)
 	}
 }
@@ -161,7 +159,7 @@ func BenchmarkGoFuseThreadedStat(b *testing.B) {
 	fs := NewStatFs()
 	files := GetTestLines()
 	for _, fn := range files {
-		fs.add(fn, os.FileInfo{Mode: fuse.S_IFREG | 0644})
+		fs.add(fn, &fuse.Attr{Mode: fuse.S_IFREG | 0644})
 	}
 	if len(files) == 0 {
 		log.Fatal("no files added")
@@ -169,10 +167,10 @@ func BenchmarkGoFuseThreadedStat(b *testing.B) {
 
 	log.Printf("Read %d file names", len(files))
 
-	ttl := 0.1
+	ttl := 100 * time.Millisecond
 	opts := fuse.FileSystemOptions{
-		EntryTimeout:    ttl,
-		AttrTimeout:     ttl,
+		EntryTimeout:    ttl.Seconds(),
+		AttrTimeout:     ttl.Seconds(),
 		NegativeTimeout: 0.0,
 	}
 	wd, clean := setupFs(fs, &opts)
@@ -184,11 +182,11 @@ func BenchmarkGoFuseThreadedStat(b *testing.B) {
 
 	log.Println("N = ", b.N)
 	threads := runtime.GOMAXPROCS(0)
-	results := TestingBOnePass(b, threads, ttl*1.2, files)
+	results := TestingBOnePass(b, threads, time.Duration((ttl*120)/100), files)
 	AnalyzeBenchmarkRuns(results)
 }
 
-func TestingBOnePass(b *testing.B, threads int, sleepTime float64, files []string) (results []float64) {
+func TestingBOnePass(b *testing.B, threads int, sleepTime time.Duration, files []string) (results []float64) {
 	runs := b.N + 1
 	for j := 0; j < runs; j++ {
 		if j > 0 {
@@ -203,8 +201,8 @@ func TestingBOnePass(b *testing.B, threads int, sleepTime float64, files []strin
 		}
 
 		if j < runs-1 {
-			fmt.Printf("Sleeping %.2f seconds\n", sleepTime)
-			time.Sleep(int64(sleepTime * 1e9))
+			fmt.Printf("Sleeping %.2f seconds\n", sleepTime.Seconds())
+			time.Sleep(sleepTime)
 		}
 	}
 	return results
@@ -260,6 +258,6 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 	ttl := 1.0
 	log.Println("N = ", b.N)
 	threads := runtime.GOMAXPROCS(0)
-	results := TestingBOnePass(b, threads, ttl*1.2, lines)
+	results := TestingBOnePass(b, threads, time.Duration((ttl*12)/10), lines)
 	AnalyzeBenchmarkRuns(results)
 }

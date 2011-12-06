@@ -22,16 +22,17 @@ func TestFilePathHash(t *testing.T) {
 }
 
 var testOpts = UnionFsOptions{
-	DeletionCacheTTLSecs: entryTtl,
-	DeletionDirName:      "DELETIONS",
-	BranchCacheTTLSecs:   entryTtl,
+	DeletionCacheTTL: entryTtl,
+	DeletionDirName:  "DELETIONS",
+	BranchCacheTTL:   entryTtl,
 }
 
 func freezeRo(dir string) {
 	err := filepath.Walk(
 		dir,
-		func(path string, fi *os.FileInfo, err error) error {
-			return os.Chmod(path, (fi.Mode&0777)&^0222)
+		func(path string, fi os.FileInfo, err error) error {
+			newMode := uint32(fi.Mode().Perm()) &^ 0222
+			return os.Chmod(path, newMode)
 		})
 	CheckSuccess(err)
 }
@@ -59,9 +60,9 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 	// We configure timeouts are smaller, so we can check for
 	// UnionFs's cache consistency.
 	opts := &fuse.FileSystemOptions{
-		EntryTimeout:    .5 * entryTtl,
-		AttrTimeout:     .5 * entryTtl,
-		NegativeTimeout: .5 * entryTtl,
+		EntryTimeout:    entryTtl / 2,
+		AttrTimeout:     entryTtl / 2,
+		NegativeTimeout: entryTtl / 2,
 	}
 
 	pathfs := fuse.NewPathNodeFs(ufs,
@@ -181,14 +182,15 @@ func TestUnionFsChtimes(t *testing.T) {
 	defer clean()
 
 	writeToFile(wd+"/ro/file", "a")
-	err := os.Chtimes(wd+"/ro/file", 42e9, 43e9)
+	err := os.Chtimes(wd+"/ro/file", time.Unix(42, 0), time.Unix(43, 0))
 	CheckSuccess(err)
 
-	err = os.Chtimes(wd+"/mnt/file", 82e9, 83e9)
+	err = os.Chtimes(wd+"/mnt/file", time.Unix(82, 0), time.Unix(83, 0))
 	CheckSuccess(err)
 
 	fi, err := os.Lstat(wd + "/mnt/file")
-	if fi.Atime_ns != 82e9 || fi.Mtime_ns != 83e9 {
+	stat := fuse.ToStatT(fi)
+	if stat.Atim.Sec != 82 || stat.Mtim.Sec != 83 {
 		t.Error("Incorrect timestamp", fi)
 	}
 }
@@ -200,13 +202,13 @@ func TestUnionFsChmod(t *testing.T) {
 	ro_fn := wd + "/ro/file"
 	m_fn := wd + "/mnt/file"
 	writeToFile(ro_fn, "a")
-	err := os.Chmod(m_fn, 07070)
+	err := os.Chmod(m_fn, 00070)
 	CheckSuccess(err)
 
 	fi, err := os.Lstat(m_fn)
 	CheckSuccess(err)
-	if fi.Mode&07777 != 07270 {
-		t.Errorf("Unexpected mode found: %o", fi.Mode)
+	if fi.Mode()&07777 != 00270 {
+		t.Errorf("Unexpected mode found: %o", uint32(fi.Mode().Perm()))
 	}
 	_, err = os.Lstat(wd + "/rw/file")
 	if err != nil {
@@ -377,7 +379,7 @@ func TestUnionFsMkdirPromote(t *testing.T) {
 	CheckSuccess(err)
 	fi, _ := os.Lstat(wd + "/rw/subdir/subdir2/dir3")
 	CheckSuccess(err)
-	if fi == nil || !fi.IsDirectory() {
+	if fi == nil || !fi.IsDir() {
 		t.Error("is not a directory: ", fi)
 	}
 }
@@ -469,12 +471,12 @@ func TestUnionFsRenameDirBasic(t *testing.T) {
 		t.Fatalf("%s/mnt/dir should have disappeared: %v", wd, fi)
 	}
 
-	if fi, _ := os.Lstat(wd + "/mnt/renamed"); fi == nil || !fi.IsDirectory() {
+	if fi, _ := os.Lstat(wd + "/mnt/renamed"); fi == nil || !fi.IsDir() {
 		t.Fatalf("%s/mnt/renamed should be directory: %v", wd, fi)
 	}
 
 	entries, err := ioutil.ReadDir(wd + "/mnt/renamed")
-	if err != nil || len(entries) != 1 || entries[0].Name != "subdir" {
+	if err != nil || len(entries) != 1 || entries[0].Name() != "subdir" {
 		t.Errorf("readdir(%s/mnt/renamed) should have one entry: %v, err %v", wd, entries, err)
 	}
 
@@ -517,7 +519,7 @@ func TestUnionFsRenameDirWithDeletions(t *testing.T) {
 	CheckSuccess(err)
 	freezeRo(wd + "/ro")
 
-	if fi, _ := os.Lstat(wd + "/mnt/dir/subdir/file.txt"); fi == nil || !fi.IsRegular() {
+	if fi, _ := os.Lstat(wd + "/mnt/dir/subdir/file.txt"); fi == nil || fi.Mode()&os.ModeType != 0 {
 		t.Fatalf("%s/mnt/dir/subdir/file.txt should be file: %v", wd, fi)
 	}
 
@@ -535,7 +537,7 @@ func TestUnionFsRenameDirWithDeletions(t *testing.T) {
 		t.Fatalf("%s/mnt/dir should have disappeared: %v", wd, fi)
 	}
 
-	if fi, _ := os.Lstat(wd + "/mnt/renamed"); fi == nil || !fi.IsDirectory() {
+	if fi, _ := os.Lstat(wd + "/mnt/renamed"); fi == nil || !fi.IsDir() {
 		t.Fatalf("%s/mnt/renamed should be directory: %v", wd, fi)
 	}
 
@@ -566,7 +568,7 @@ func TestUnionFsRenameSymlink(t *testing.T) {
 		t.Fatalf("%s/mnt/link should have disappeared: %v", wd, fi)
 	}
 
-	if fi, _ := os.Lstat(wd + "/mnt/renamed"); fi == nil || !fi.IsSymlink() {
+	if fi, _ := os.Lstat(wd + "/mnt/renamed"); fi == nil || fi.Mode()&os.ModeSymlink == 0 {
 		t.Fatalf("%s/mnt/renamed should be link: %v", wd, fi)
 	}
 
@@ -586,8 +588,8 @@ func TestUnionFsWritableDir(t *testing.T) {
 
 	fi, err := os.Lstat(wd + "/mnt/subdir")
 	CheckSuccess(err)
-	if fi.Permission()&0222 == 0 {
-		t.Errorf("unexpected permission %o", fi.Permission())
+	if fi.Mode().Perm()&0222 == 0 {
+		t.Errorf("unexpected permission %o", fi.Mode().Perm())
 	}
 }
 
@@ -625,8 +627,11 @@ func TestUnionFsLink(t *testing.T) {
 
 	fi1, err := os.Lstat(wd + "/mnt/file")
 	CheckSuccess(err)
-	if fi1.Ino != fi2.Ino {
-		t.Errorf("inode numbers should be equal for linked files %v, %v", fi1.Ino, fi2.Ino)
+
+	s1 := fuse.ToStatT(fi1)
+	s2 := fuse.ToStatT(fi2)
+	if s1.Ino != s2.Ino {
+		t.Errorf("inode numbers should be equal for linked files %v, %v", s1.Ino, s2.Ino)
 	}
 	c, err := ioutil.ReadFile(wd + "/mnt/linked")
 	if string(c) != content {
@@ -666,14 +671,14 @@ func TestUnionFsCopyChmod(t *testing.T) {
 
 	fi, err := os.Lstat(fn)
 	CheckSuccess(err)
-	if fi.Mode&0111 == 0 {
-		t.Errorf("1st attr error %o", fi.Mode)
+	if fi.Mode()&0111 == 0 {
+		t.Errorf("1st attr error %o", fi.Mode())
 	}
-	time.Sleep(entryTtl * 1.1e9)
+	time.Sleep(entryTtl)
 	fi, err = os.Lstat(fn)
 	CheckSuccess(err)
-	if fi.Mode&0111 == 0 {
-		t.Errorf("uncached attr error %o", fi.Mode)
+	if fi.Mode()&0111 == 0 {
+		t.Errorf("uncached attr error %o", fi.Mode())
 	}
 }
 
@@ -694,15 +699,15 @@ func TestUnionFsTruncateTimestamp(t *testing.T) {
 	CheckSuccess(err)
 	time.Sleep(0.2e9)
 
-	truncTs := time.Nanoseconds()
+	truncTs := time.Now()
 	err = os.Truncate(fn, 3)
 	CheckSuccess(err)
 
 	fi, err := os.Lstat(fn)
 	CheckSuccess(err)
 
-	if abs(truncTs-fi.Mtime_ns) > 0.1e9 {
-		t.Error("timestamp drift", truncTs, fi.Mtime_ns)
+	if truncTs.Sub(fi.ModTime()) > 100*time.Millisecond {
+		t.Error("timestamp drift", truncTs, fi.ModTime())
 	}
 }
 
@@ -810,7 +815,7 @@ func TestUnionFsDropDeletionCache(t *testing.T) {
 	}
 
 	// Expire kernel entry.
-	time.Sleep(0.6e9 * entryTtl)
+	time.Sleep((6 * entryTtl) / 10)
 	err = ioutil.WriteFile(wd+"/mnt/.drop_cache", []byte(""), 0644)
 	CheckSuccess(err)
 	_, err = os.Lstat(wd + "/mnt/file")
@@ -894,7 +899,7 @@ func TestUnionFsDisappearing(t *testing.T) {
 
 	oldRoot := wrFs.Root
 	wrFs.Root = "/dev/null"
-	time.Sleep(1.5 * entryTtl * 1e9)
+	time.Sleep((3 * entryTtl) / 2)
 
 	_, err = ioutil.ReadDir(wd + "/mnt")
 	if err == nil {
@@ -910,7 +915,7 @@ func TestUnionFsDisappearing(t *testing.T) {
 
 	// Restore, and wait for caches to catch up.
 	wrFs.Root = oldRoot
-	time.Sleep(1.5 * entryTtl * 1e9)
+	time.Sleep((3 * entryTtl) / 2)
 
 	_, err = ioutil.ReadDir(wd + "/mnt")
 	if err != nil {
@@ -937,7 +942,7 @@ func TestUnionFsDeletedGetAttr(t *testing.T) {
 	err = os.Remove(wd + "/mnt/file")
 	CheckSuccess(err)
 
-	if fi, err := f.Stat(); err != nil || !fi.IsRegular() {
+	if fi, err := f.Stat(); err != nil || fi.Mode()&os.ModeType != 0 {
 		t.Fatalf("stat returned error or non-file: %v %v", err, fi)
 	}
 }
@@ -1033,8 +1038,8 @@ func TestUnionFsFlushSize(t *testing.T) {
 	f.Close()
 	fi, err = os.Lstat(fn)
 	CheckSuccess(err)
-	if fi.Size != int64(n) {
-		t.Errorf("got %d from Stat().Size, want %d", fi.Size, n)
+	if fi.Size() != int64(n) {
+		t.Errorf("got %d from Stat().Size, want %d", fi.Size(), n)
 	}
 }
 
@@ -1060,8 +1065,8 @@ func TestUnionFsFlushRename(t *testing.T) {
 
 	fi, err = os.Lstat(dst)
 	CheckSuccess(err)
-	if fi.Size != int64(n) {
-		t.Errorf("got %d from Stat().Size, want %d", fi.Size, n)
+	if fi.Size() != int64(n) {
+		t.Errorf("got %d from Stat().Size, want %d", fi.Size(), n)
 	}
 }
 
@@ -1078,8 +1083,8 @@ func TestUnionFsTruncGetAttr(t *testing.T) {
 	CheckSuccess(err)
 
 	fi, err := os.Lstat(wd + "/mnt/file")
-	if fi.Size != int64(len(c)) {
-		t.Fatalf("Length mismatch got %d want %d", fi.Size, len(c))
+	if fi.Size() != int64(len(c)) {
+		t.Fatalf("Length mismatch got %d want %d", fi.Size(), len(c))
 	}
 }
 
@@ -1103,11 +1108,11 @@ func TestUnionFsPromoteDirTimeStamp(t *testing.T) {
 
 	// TODO - need to update timestamps after promoteDirsTo calls,
 	// not during.
-	if false && fRo.Mtime_ns != fRw.Mtime_ns {
-		t.Errorf("Changed timestamps on promoted subdir: ro %d rw %d", fRo.Mtime_ns, fRw.Mtime_ns)
+	if false && fRo.ModTime().Equal(fRw.ModTime()) {
+		t.Errorf("Changed timestamps on promoted subdir: ro %d rw %d", fRo.ModTime(), fRw.ModTime())
 	}
 
-	if fRo.Mode|0200 != fRw.Mode {
-		t.Errorf("Changed mode ro: %o, rw: %o", fRo.Mode, fRw.Mode)
+	if fRo.Mode().Perm()|0200 != fRw.Mode().Perm() {
+		t.Errorf("Changed mode ro: %v, rw: %v", fRo.Mode(), fRw.Mode())
 	}
 }

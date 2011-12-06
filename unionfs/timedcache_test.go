@@ -38,10 +38,8 @@ func TestTimedCache(t *testing.T) {
 		return &i, true
 	}
 
-	var ttl int64
-
 	// This fails with 1e6 on some Opteron CPUs.
-	ttl = 1e8
+	ttl := 100 * time.Millisecond
 
 	cache := NewTimedCache(fetch, ttl)
 	v := cache.Get("n").(*int)
@@ -53,7 +51,7 @@ func TestTimedCache(t *testing.T) {
 	}
 
 	// The cache update is async.
-	time.Sleep(ttl / 10)
+	time.Sleep(time.Duration(ttl / 10))
 
 	w := cache.Get("n")
 	if v != w {
@@ -64,7 +62,7 @@ func TestTimedCache(t *testing.T) {
 		t.Errorf("fetch count fail: %d > 1", fetchCount)
 	}
 
-	time.Sleep(ttl * 2)
+	time.Sleep(time.Duration(ttl * 2))
 	cache.Purge()
 
 	w = cache.Get("n")

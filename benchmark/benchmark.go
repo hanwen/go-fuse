@@ -15,9 +15,9 @@ import (
 // Used for benchmarking.  Returns milliseconds.
 func BulkStat(parallelism int, files []string) float64 {
 	todo := make(chan string, len(files))
-	dts := make(chan int64, parallelism)
+	dts := make(chan time.Duration, parallelism)
 
-	allStart := time.Nanoseconds()
+	allStart := time.Now()
 
 	fmt.Printf("Statting %d files with %d threads\n", len(files), parallelism)
 	for i := 0; i < parallelism; i++ {
@@ -28,12 +28,12 @@ func BulkStat(parallelism int, files []string) float64 {
 					break
 				}
 
-				t := time.Nanoseconds()
+				t := time.Now()
 				_, err := os.Lstat(fn)
 				if err != nil {
 					log.Fatal("All stats should succeed:", err)
 				}
-				dts <- time.Nanoseconds() - t
+				dts <- time.Now().Sub(t)
 			}
 		}()
 	}
@@ -44,14 +44,14 @@ func BulkStat(parallelism int, files []string) float64 {
 
 	total := 0.0
 	for i := 0; i < len(files); i++ {
-		total += float64(<-dts) * 1e-6
+		total += (<-dts).Seconds() * 1e-3
 	}
 
-	allEnd := time.Nanoseconds()
+	allEnd := time.Now()
 	avg := total / float64(len(files))
 
 	fmt.Printf("Elapsed: %f sec. Average stat %f ms\n",
-		float64(allEnd-allStart)*1e-9, avg)
+		allEnd.Sub(allStart).Seconds(), avg)
 
 	return avg
 }
@@ -87,7 +87,7 @@ func AnalyzeBenchmarkRuns(times []float64) {
 		len(times), avg, 2*stddev, median, perc10, perc90)
 }
 
-func RunBulkStat(runs int, threads int, sleepTime float64, files []string) (results []float64) {
+func RunBulkStat(runs int, threads int, sleepTime time.Duration, files []string) (results []float64) {
 	runs++
 	for j := 0; j < runs; j++ {
 		result := BulkStat(threads, files)
@@ -99,7 +99,7 @@ func RunBulkStat(runs int, threads int, sleepTime float64, files []string) (resu
 
 		if j < runs-1 {
 			fmt.Printf("Sleeping %.2f seconds\n", sleepTime)
-			time.Sleep(int64(sleepTime * 1e9))
+			time.Sleep(sleepTime)
 		}
 	}
 	return results

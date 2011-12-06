@@ -7,6 +7,7 @@ import (
 	"github.com/hanwen/go-fuse/unionfs"
 	"log"
 	"os"
+	"time"
 )
 
 func main() {
@@ -27,9 +28,9 @@ func main() {
 	}
 
 	ufsOptions := unionfs.UnionFsOptions{
-		DeletionCacheTTLSecs: *delcache_ttl,
-		BranchCacheTTLSecs:   *branchcache_ttl,
-		DeletionDirName:      *deldirname,
+		DeletionCacheTTL: time.Duration(*delcache_ttl * float64(time.Second)),
+		BranchCacheTTL:   time.Duration(*branchcache_ttl * float64(time.Second)),
+		DeletionDirName:  *deldirname,
 	}
 
 	ufs, err := unionfs.NewUnionFsFromRoots(flag.Args()[1:], &ufsOptions, true)
@@ -39,9 +40,9 @@ func main() {
 	}
 	nodeFs := fuse.NewPathNodeFs(ufs, &fuse.PathNodeFsOptions{ClientInodes: true})
 	mOpts := fuse.FileSystemOptions{
-		EntryTimeout:    *entry_ttl,
-		AttrTimeout:     *entry_ttl,
-		NegativeTimeout: *negative_ttl,
+		EntryTimeout:    time.Duration(*entry_ttl * float64(time.Second)),
+		AttrTimeout:     time.Duration(*entry_ttl * float64(time.Second)),
+		NegativeTimeout: time.Duration(*negative_ttl * float64(time.Second)),
 		PortableInodes:  *portable,
 	}
 	mountState, _, err := fuse.MountNodeFileSystem(flag.Arg(0), nodeFs, &mOpts)

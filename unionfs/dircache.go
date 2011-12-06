@@ -31,9 +31,9 @@ func newDirnameMap(fs fuse.FileSystem, dir string) map[string]bool {
 // If called when the cache is expired, the filenames are read afresh in
 // the background.
 type DirCache struct {
-	dir   string
-	ttlNs int64
-	fs    fuse.FileSystem
+	dir string
+	ttl time.Duration
+	fs  fuse.FileSystem
 	// Protects data below.
 	lock sync.RWMutex
 
@@ -48,7 +48,7 @@ func (me *DirCache) setMap(newMap map[string]bool) {
 
 	me.names = newMap
 	me.updateRunning = false
-	_ = time.AfterFunc(me.ttlNs,
+	_ = time.AfterFunc(int64(me.ttl),
 		func() { me.DropCache() })
 }
 
@@ -95,11 +95,11 @@ func (me *DirCache) AddEntry(name string) {
 	me.names[name] = true
 }
 
-func NewDirCache(fs fuse.FileSystem, dir string, ttlNs int64) *DirCache {
+func NewDirCache(fs fuse.FileSystem, dir string, ttl time.Duration) *DirCache {
 	dc := new(DirCache)
 	dc.dir = dir
 	dc.fs = fs
-	dc.ttlNs = ttlNs
+	dc.ttl = ttl
 	return dc
 }
 

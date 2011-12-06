@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"time"
 )
 
 func main() {
@@ -39,6 +40,8 @@ func main() {
 		files = append(files, string(l))
 	}
 
-	results := fuse.RunBulkStat(*runs, *threads, *sleepTime, files)
+	d := time.Duration(*sleepTime * float64(time.Second))
+
+	results := fuse.RunBulkStat(*runs, *threads, d, files)
 	fuse.AnalyzeBenchmarkRuns(results)
 }

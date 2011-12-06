@@ -24,7 +24,7 @@ func HeaderToFileInfo(h *tar.Header) (*fuse.Attr, string) {
 	}
 	a.Uid = uint32(h.Uid)
 	a.Gid = uint32(h.Gid)
-	a.SetTimes(h.Atime, h.Mtime, h.Ctime)
+	a.SetTimes(&h.AccessTime, &h.ModTime, &h.ChangeTime)
 	return a, h.Name
 }
 

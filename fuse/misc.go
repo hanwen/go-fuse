@@ -6,11 +6,11 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"math"
 	"os"
 	"reflect"
 	"strings"
 	"syscall"
+	"time"
 	"unsafe"
 )
 
@@ -50,9 +50,10 @@ func ToStatus(err error) Status {
 	return OK
 }
 
-func splitNs(time float64, secs *uint64, nsecs *uint32) {
-	*nsecs = uint32(1e9 * (time - math.Trunc(time)))
-	*secs = uint64(math.Trunc(time))
+func splitDuration(dt time.Duration, secs *uint64, nsecs *uint32) {
+	ns := int64(dt)
+	*nsecs = uint32(ns % 1e9)
+	*secs = uint64(ns / 1e9)
 }
 
 // TODO - expose in Go's syscall package.

@@ -46,8 +46,8 @@ func TestOwnerDefault(t *testing.T) {
 	fi, err := os.Lstat(wd + "/foo")
 	CheckSuccess(err)
 
-	if fi.Uid != os.Getuid() || fi.Gid != os.Getgid() {
-		t.Fatal("Should use current uid for mount", fi.Uid, fi.Gid)
+	if int(ToStatT(fi).Uid) != os.Getuid() || int(ToStatT(fi).Gid) != os.Getgid() {
+		t.Fatal("Should use current uid for mount")
 	}
 }
 
@@ -57,8 +57,8 @@ func TestOwnerRoot(t *testing.T) {
 	fi, err := os.Lstat(wd + "/foo")
 	CheckSuccess(err)
 
-	if fi.Uid != _RANDOM_OWNER || fi.Gid != _RANDOM_OWNER {
-		t.Fatal("Should use FS owner uid", fi.Uid, fi.Gid)
+	if ToStatT(fi).Uid != _RANDOM_OWNER || ToStatT(fi).Gid != _RANDOM_OWNER {
+		t.Fatal("Should use FS owner uid")
 	}
 }
 
@@ -68,7 +68,7 @@ func TestOwnerOverride(t *testing.T) {
 	fi, err := os.Lstat(wd + "/foo")
 	CheckSuccess(err)
 
-	if fi.Uid != 42 || fi.Gid != 43 {
-		t.Fatal("Should use current uid for mount", fi.Uid, fi.Gid)
+	if ToStatT(fi).Uid != 42 || ToStatT(fi).Gid != 43 {
+		t.Fatal("Should use current uid for mount")
 	}
 }

@@ -19,7 +19,7 @@ func filePathHash(path string) string {
 
 	h := md5.New()
 	h.Write([]byte(dir))
-	return fmt.Sprintf("%x-%s", h.Sum()[:8], base)
+	return fmt.Sprintf("%x-%s", h.Sum(nil)[:8], base)
 }
 
 /*
@@ -70,9 +70,9 @@ type UnionFs struct {
 }
 
 type UnionFsOptions struct {
-	BranchCacheTTLSecs   float64
-	DeletionCacheTTLSecs float64
-	DeletionDirName      string
+	BranchCacheTTL   time.Duration
+	DeletionCacheTTL time.Duration
+	DeletionDirName  string
 }
 
 const (
@@ -91,10 +91,10 @@ func NewUnionFs(fileSystems []fuse.FileSystem, options UnionFsOptions) *UnionFs 
 		return nil
 	}
 
-	g.deletionCache = NewDirCache(writable, options.DeletionDirName, int64(options.DeletionCacheTTLSecs*1e9))
+	g.deletionCache = NewDirCache(writable, options.DeletionDirName, options.DeletionCacheTTL)
 	g.branchCache = NewTimedCache(
 		func(n string) (interface{}, bool) { return g.getBranchAttrNoCache(n), true },
-		int64(options.BranchCacheTTLSecs*1e9))
+		options.BranchCacheTTL)
 	g.branchCache.RecurringPurge()
 	return g
 }
@@ -138,7 +138,7 @@ func (me *UnionFs) createDeletionStore() (code fuse.Status) {
 		}
 	}
 
-	if !code.Ok() || !fi.IsDirectory() {
+	if !code.Ok() || !fi.IsDir() {
 		code = fuse.Status(syscall.EROFS)
 	}
 
@@ -310,7 +310,7 @@ func (me *UnionFs) Promote(name string, srcResult branchResult, context *fuse.Co
 		} else {
 			code = writable.Symlink(link, name, context)
 		}
-	} else if srcResult.attr.IsDirectory() {
+	} else if srcResult.attr.IsDir() {
 		code = writable.Mkdir(name, srcResult.attr.Mode&07777|0200, context)
 	} else {
 		log.Println("Unknown file type:", srcResult.attr)
@@ -366,7 +366,7 @@ func (me *UnionFs) Rmdir(path string, context *fuse.Context) (code fuse.Status) 
 	if r.code != fuse.OK {
 		return r.code
 	}
-	if !r.attr.IsDirectory() {
+	if !r.attr.IsDir() {
 		return fuse.Status(syscall.ENOTDIR)
 	}
 
@@ -460,8 +460,8 @@ func (me *UnionFs) Truncate(path string, size uint64, context *fuse.Context) (co
 	}
 	if code.Ok() {
 		r.attr.Size = size
-		now := time.Nanoseconds()
-		r.attr.SetTimes(-1, now, now)
+		now := time.Now()
+		r.attr.SetTimes(nil, &now, &now)
 		me.branchCache.Set(path, r)
 	}
 	return code
@@ -480,7 +480,7 @@ func (me *UnionFs) Utimens(name string, atime int64, mtime int64, context *fuse.
 		code = me.fileSystems[0].Utimens(name, atime, mtime, context)
 	}
 	if code.Ok() {
-		r.attr.SetTimes(atime, mtime, time.Nanoseconds())
+		r.attr.SetNs(atime, mtime, time.Now().UnixNano())
 		me.branchCache.Set(name, r)
 	}
 	return code
@@ -509,7 +509,8 @@ func (me *UnionFs) Chown(name string, uid uint32, gid uint32, context *fuse.Cont
 	}
 	r.attr.Uid = uid
 	r.attr.Gid = gid
-	r.attr.SetTimes(-1, -1, time.Nanoseconds())
+	now := time.Now()
+	r.attr.SetTimes(nil, nil, &now)
 	me.branchCache.Set(name, r)
 	return fuse.OK
 }
@@ -540,7 +541,8 @@ func (me *UnionFs) Chmod(name string, mode uint32, context *fuse.Context) (code 
 		me.fileSystems[0].Chmod(name, mode, context)
 	}
 	r.attr.Mode = (r.attr.Mode &^ permMask) | mode
-	r.attr.SetTimes(-1, -1, time.Nanoseconds())
+	now := time.Now()
+	r.attr.SetTimes(nil, nil, &now)
 	me.branchCache.Set(name, r)
 	return fuse.OK
 }
@@ -585,7 +587,7 @@ func (me *UnionFs) Readlink(name string, context *fuse.Context) (out string, cod
 
 func IsDir(fs fuse.FileSystem, name string) bool {
 	a, code := fs.GetAttr(name, nil)
-	return code.Ok() && a.IsDirectory()
+	return code.Ok() && a.IsDir()
 }
 
 func stripSlash(fn string) string {
@@ -604,7 +606,7 @@ func (me *UnionFs) promoteDirsTo(filename string) fuse.Status {
 		if !r.code.Ok() {
 			log.Println("path component does not exist", filename, dirName)
 		}
-		if !r.attr.IsDirectory() {
+		if !r.attr.IsDir() {
 			log.Println("path component is not a directory.", dirName, r)
 			return fuse.EPERM
 		}
@@ -646,11 +648,11 @@ func (me *UnionFs) Create(name string, flags uint32, mode uint32, context *fuse.
 		fuseFile = me.newUnionFsFile(fuseFile, 0)
 		me.removeDeletion(name)
 
-		now := time.Nanoseconds()
+		now := time.Now()
 		a := fuse.Attr{
 			Mode: fuse.S_IFREG | mode,
 		}
-		a.SetTimes(-1, now, now)
+		a.SetTimes(nil, &now, &now)
 		me.branchCache.Set(name, branchResult{&a, fuse.OK, 0})
 	}
 	return fuseFile, code
@@ -804,7 +806,7 @@ func (me *UnionFs) recursivePromote(path string, pathResult branchResult, contex
 		names = append(names, path)
 	}
 
-	if code.Ok() && pathResult.attr != nil && pathResult.attr.IsDirectory() {
+	if code.Ok() && pathResult.attr != nil && pathResult.attr.IsDir() {
 		var stream chan fuse.DirEntry
 		stream, code = me.OpenDir(path, context)
 		for e := range stream {
@@ -865,7 +867,7 @@ func (me *UnionFs) Rename(src string, dst string, context *fuse.Context) (code f
 		code = srcResult.code
 	}
 
-	if srcResult.attr.IsDirectory() {
+	if srcResult.attr.IsDir() {
 		return me.renameDirectory(srcResult, src, dst, context)
 	}
 
@@ -937,7 +939,8 @@ func (me *UnionFs) Open(name string, flags uint32, context *fuse.Context) (fuseF
 			return nil, code
 		}
 		r.branch = 0
-		r.attr.SetTimes(-1, time.Nanoseconds(), -1)
+		now := time.Now()
+		r.attr.SetTimes(nil, &now, nil)
 		me.branchCache.Set(name, r)
 	}
 	fuseFile, status = me.fileSystems[r.branch].Open(name, uint32(flags), context)
