@@ -6,12 +6,13 @@ import (
 	"log"
 	"os"
 	"testing"
+	"time"
 )
 
 var _ = log.Printf
 var CheckSuccess = fuse.CheckSuccess
 
-const testTtl = 0.1
+const testTtl = 100 * time.Millisecond
 
 func setupMzfs() (mountPoint string, cleanup func()) {
 	fs := NewMultiZipFs()

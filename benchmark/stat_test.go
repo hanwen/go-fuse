@@ -169,8 +169,8 @@ func BenchmarkGoFuseThreadedStat(b *testing.B) {
 
 	ttl := 100 * time.Millisecond
 	opts := fuse.FileSystemOptions{
-		EntryTimeout:    ttl.Seconds(),
-		AttrTimeout:     ttl.Seconds(),
+		EntryTimeout:    ttl,
+		AttrTimeout:     ttl,
 		NegativeTimeout: 0.0,
 	}
 	wd, clean := setupFs(fs, &opts)
