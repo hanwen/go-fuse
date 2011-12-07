@@ -224,7 +224,7 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 	}
 
 	out := []string{}
-	for k, _ := range unique {
+	for k := range unique {
 		out = append(out, k)
 	}
 

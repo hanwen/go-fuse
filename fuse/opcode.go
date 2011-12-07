@@ -335,7 +335,7 @@ func getHandler(o opcode) *operationHandler {
 
 func init() {
 	operationHandlers = make([]*operationHandler, _OPCODE_COUNT)
-	for i, _ := range operationHandlers {
+	for i := range operationHandlers {
 		operationHandlers[i] = &operationHandler{Name: "UNKNOWN"}
 	}
 

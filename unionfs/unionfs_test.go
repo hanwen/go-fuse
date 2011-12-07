@@ -252,7 +252,7 @@ func TestUnionFsDelete(t *testing.T) {
 		t.Fatal("Should have 1 deletion", names)
 	}
 
-	for k, _ := range names {
+	for k := range names {
 		c, err := ioutil.ReadFile(delPath + "/" + k)
 		CheckSuccess(err)
 		if string(c) != "file" {

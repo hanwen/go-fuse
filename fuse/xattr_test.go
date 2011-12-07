@@ -67,7 +67,7 @@ func (me *XAttrTestFs) ListXAttr(name string, context *Context) (data []string, 
 		return nil, ENOENT
 	}
 
-	for k, _ := range me.attrs {
+	for k := range me.attrs {
 		data = append(data, k)
 	}
 	return data, OK

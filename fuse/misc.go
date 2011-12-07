@@ -72,7 +72,6 @@ func asSlice(ptr unsafe.Pointer, byteCount uintptr) []byte {
 	return *(*[]byte)(unsafe.Pointer(h))
 }
 
-
 func Version() string {
 	if version != nil {
 		return *version

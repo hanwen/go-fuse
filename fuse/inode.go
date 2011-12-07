@@ -215,7 +215,7 @@ func (me *Inode) getMountDirEntries() (out []DirEntry) {
 	me.treeLock.RLock()
 	defer me.treeLock.RUnlock()
 
-	for k, _ := range me.mounts {
+	for k := range me.mounts {
 		out = append(out, DirEntry{
 			Name: k,
 			Mode: S_IFDIR,

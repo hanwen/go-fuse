@@ -365,7 +365,7 @@ func (me *AutoUnionFs) OpenDir(name string, context *fuse.Context) (stream chan 
 
 	stream = make(chan fuse.DirEntry, len(me.knownFileSystems)+5)
 	if name == _CONFIG {
-		for k, _ := range me.knownFileSystems {
+		for k := range me.knownFileSystems {
 			stream <- fuse.DirEntry{
 				Name: k,
 				Mode: syscall.S_IFLNK | 0644,

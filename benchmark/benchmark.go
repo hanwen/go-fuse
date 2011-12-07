@@ -41,7 +41,7 @@ func BulkStat(parallelism int, files []string) float64 {
 		todo <- v
 	}
 	close(todo)
-	
+
 	total := 0.0
 	for i := 0; i < parallelism; i++ {
 		total += float64(<-dts) / float64(time.Millisecond)

@@ -619,7 +619,7 @@ func (me *UnionFs) promoteDirsTo(filename string) fuse.Status {
 		dirName = stripSlash(dirName)
 	}
 
-	for i, _ := range todo {
+	for i := range todo {
 		j := len(todo) - i - 1
 		d := todo[j]
 		r := results[j]
@@ -718,7 +718,7 @@ func (me *UnionFs) OpenDir(directory string, context *fuse.Context) (stream chan
 	}()
 
 	entries := make([]map[string]uint32, len(me.fileSystems))
-	for i, _ := range me.fileSystems {
+	for i := range me.fileSystems {
 		entries[i] = make(map[string]uint32)
 	}
 

@@ -653,7 +653,7 @@ func TestLargeDirRead(t *testing.T) {
 	if total != created {
 		t.Errorf("readdir mismatch got %v wanted %v", total, created)
 	}
-	for k, _ := range nameSet {
+	for k := range nameSet {
 		_, ok := readSet[k]
 		if !ok {
 			t.Errorf("Name %v not found in output", k)

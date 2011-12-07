@@ -1,4 +1,5 @@
 package fuse
+
 import (
 	"syscall"
 	"testing"

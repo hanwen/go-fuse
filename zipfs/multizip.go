@@ -63,7 +63,7 @@ func (me *MultiZipFs) OpenDir(name string, context *fuse.Context) (stream chan f
 	}
 
 	if name == "config" {
-		for k, _ := range me.zips {
+		for k := range me.zips {
 			var d fuse.DirEntry
 			d.Name = k
 			d.Mode = fuse.S_IFLNK
