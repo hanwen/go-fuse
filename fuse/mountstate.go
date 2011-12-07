@@ -111,11 +111,6 @@ func (me *MountState) Unmount() (err error) {
 		delay = 2*delay + 5*time.Millisecond
 		time.Sleep(delay)
 	}
-	if err == nil {
-		me.mountPoint = ""
-		me.mountFile.Close()
-		me.mountFile = nil
-	}
 	return err
 }
 
@@ -178,6 +173,8 @@ func (me *MountState) recordStats(req *request) {
 func (me *MountState) Loop() {
 	me.loop()
 	me.mountFile.Close()
+	me.mountFile = nil
+	me.mountPoint = ""
 }
 
 func (me *MountState) loop() {
