@@ -17,41 +17,41 @@ func BulkStat(parallelism int, files []string) float64 {
 	todo := make(chan string, len(files))
 	dts := make(chan time.Duration, parallelism)
 
-	allStart := time.Now()
-
 	fmt.Printf("Statting %d files with %d threads\n", len(files), parallelism)
 	for i := 0; i < parallelism; i++ {
 		go func() {
+			t := time.Now()
 			for {
 				fn := <-todo
 				if fn == "" {
 					break
 				}
 
-				t := time.Now()
 				_, err := os.Lstat(fn)
 				if err != nil {
 					log.Fatal("All stats should succeed:", err)
 				}
-				dts <- time.Now().Sub(t)
 			}
+			dts <- time.Now().Sub(t)
 		}()
 	}
 
+	allStart := time.Now()
 	for _, v := range files {
 		todo <- v
 	}
-
+	close(todo)
+	
 	total := 0.0
-	for i := 0; i < len(files); i++ {
-		total += (<-dts).Seconds() * 1e-3
+	for i := 0; i < parallelism; i++ {
+		total += float64(<-dts) / float64(time.Millisecond)
 	}
 
-	allEnd := time.Now()
+	allDt := time.Now().Sub(allStart)
 	avg := total / float64(len(files))
 
 	fmt.Printf("Elapsed: %f sec. Average stat %f ms\n",
-		allEnd.Sub(allStart).Seconds(), avg)
+		allDt.Seconds(), avg)
 
 	return avg
 }

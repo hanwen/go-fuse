@@ -254,8 +254,8 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 	}
 
 	// Wait for the daemon to mount.
-	time.Sleep(0.2e9)
-	ttl := 1.0
+	time.Sleep(200 * time.Millisecond)
+	ttl := time.Second
 	log.Println("N = ", b.N)
 	threads := runtime.GOMAXPROCS(0)
 	results := TestingBOnePass(b, threads, time.Duration((ttl*12)/10), lines)
