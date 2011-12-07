@@ -31,10 +31,10 @@ MANUAL_GOFILES=api.go \
 	fsops.go \
 	readonlyfs.go \
 	request.go \
+	syscall.go \
 	typeprint.go \
 	types.go \
 	version.go \
-	xattr.go \
 
 GOFILES=$(MANUAL_GOFILES) version.gen.go
 
