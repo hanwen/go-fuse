@@ -32,22 +32,21 @@ func (code Status) Ok() bool {
 
 // Convert error back to Errno based errors.
 func ToStatus(err error) Status {
-	if err != nil {
-		switch t := err.(type) {
-		case syscall.Errno:
-			return Status(t)
-		case *os.SyscallError:
-			return Status(t.Errno.(syscall.Errno))
-		case *os.PathError:
-			return ToStatus(t.Err)
-		case *os.LinkError:
-			return ToStatus(t.Err)
-		default:
-			log.Println("can't convert error type:", err)
-			return ENOSYS
-		}
+	if err == nil {
+		return OK
 	}
-	return OK
+	switch t := err.(type) {
+	case syscall.Errno:
+		return Status(t)
+	case *os.SyscallError:
+		return Status(t.Errno.(syscall.Errno))
+	case *os.PathError:
+		return ToStatus(t.Err)
+	case *os.LinkError:
+		return ToStatus(t.Err)
+	}
+	log.Println("can't convert error type:", err)
+	return ENOSYS
 }
 
 func splitDuration(dt time.Duration, secs *uint64, nsecs *uint32) {
