@@ -153,14 +153,22 @@ func (a *Attr) ModTime() time.Time {
 }
 
 func ToStatT(f os.FileInfo) *syscall.Stat_t {
-	return f.(*os.FileStat).Sys.(*syscall.Stat_t)
+	s := f.(*os.FileStat).Sys
+	if s != nil {
+		return s.(*syscall.Stat_t)
+	}
+	return nil
 }
 
 func ToAttr(f os.FileInfo) *Attr {
 	if f == nil {
 		return nil
 	}
-	a := &Attr{}
-	a.FromStat(ToStatT(f))
-	return a
+	s := ToStatT(f)
+	if s != nil {
+		a := &Attr{}
+		a.FromStat(s)
+		return a
+	}
+	return nil
 }
