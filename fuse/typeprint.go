@@ -91,18 +91,6 @@ func (me *OpenIn) String() string {
 	return fmt.Sprintf("{%s}", flagString(openFlagNames, int(me.Flags), "O_RDONLY"))
 }
 
-/*
-type OsFileInfos []*s.FileInfo
-
-func (me OsFileInfos) String() string {
-	out := []string{}
-	for _, info := range me {
-		out = append(out, OsFileInfo(*info).String())
-	}
-	sort.Strings(out)
-	return fmt.Sprintf("[%v]", out)
-}
-*/
 func (me *SetAttrIn) String() string {
 	s := []string{}
 	if me.Valid&FATTR_MODE != 0 {
