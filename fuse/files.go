@@ -131,12 +131,13 @@ func (me *LoopbackFile) Chown(uid uint32, gid uint32) Status {
 }
 
 func (me *LoopbackFile) GetAttr() (*Attr, Status) {
-	fi, err := me.File.Stat()
+	st := syscall.Stat_t{}
+	err := syscall.Fstat(me.File.Fd(), &st)
 	if err != nil {
 		return nil, ToStatus(err)
 	}
 	a := &Attr{}
-	a.FromFileInfo(fi)
+	a.FromStat(&st)
 	return a, OK
 }
 
