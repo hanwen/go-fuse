@@ -40,7 +40,7 @@ func (me *FileSystemConnector) internalLookup(parent *Inode, name string, contex
 	} else {
 		fi, fsNode, code = parent.fsInode.Lookup(name, context)
 	}
-
+	
 	if child == nil && fsNode != nil {
 		child = fsNode.Inode()
 	}
@@ -50,6 +50,10 @@ func (me *FileSystemConnector) internalLookup(parent *Inode, name string, contex
 
 func (me *FileSystemConnector) Lookup(header *InHeader, name string) (out *EntryOut, code Status) {
 	parent := me.toInode(header.NodeId)
+	if !parent.IsDir() {
+		log.Printf("Lookup %q called on non-Directory node %d", name, header.NodeId) 
+		return nil, ENOTDIR
+	}
 	context := &header.Context
 	fi, child, code := me.internalLookup(parent, name, context)
 	if !code.Ok() {
