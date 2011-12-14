@@ -20,7 +20,7 @@ func Writev(fd int, packet [][]byte) (n int, err error) {
 	iovecs := make([]syscall.Iovec, 0, len(packet))
 
 	for _, v := range packet {
-		if v == nil || len(v) == 0 {
+		if len(v) == 0 {
 			continue
 		}
 		vec := syscall.Iovec{
