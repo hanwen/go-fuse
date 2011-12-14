@@ -161,26 +161,30 @@ func doWrite(state *MountState, req *request) {
 func doGetXAttr(state *MountState, req *request) {
 	input := (*GetXAttrIn)(req.inData)
 	var data []byte
-	if req.inHeader.opcode == _OP_GETXATTR {
-		data, req.status = state.fileSystem.GetXAttr(req.inHeader, req.filenames[0])
-	} else {
+	switch {
+	case req.inHeader.opcode == _OP_GETXATTR && input.Size == 0:
+		sz, code := state.fileSystem.GetXAttrSize(req.inHeader, req.filenames[0])
+		if code.Ok() {
+			out := &GetXAttrOut{
+			Size: uint32(sz),
+			}
+			req.outData = unsafe.Pointer(out)
+			req.status = ERANGE
+			return
+		}
+		req.status = code
+	case req.inHeader.opcode == _OP_GETXATTR:
+		data, req.status = state.fileSystem.GetXAttrData(req.inHeader, req.filenames[0])
+	default:
 		data, req.status = state.fileSystem.ListXAttr(req.inHeader)
 	}
 
-	if req.status != OK {
-		return
-	}
-
-	size := uint32(len(data))
-	if input.Size == 0 {
-		out := &GetXAttrOut{
-			Size: size,
-		}
-		req.outData = unsafe.Pointer(out)
-	}
-
-	if size > input.Size {
+	if len(data) > int(input.Size) {
 		req.status = ERANGE
+	}
+	
+	if !req.status.Ok() {
+		return
 	}
 
 	req.flatData = data

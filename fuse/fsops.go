@@ -289,7 +289,13 @@ func (me *FileSystemConnector) ReleaseDir(header *InHeader, input *ReleaseIn) {
 	me.considerDropInode(node)
 }
 
-func (me *FileSystemConnector) GetXAttr(header *InHeader, attribute string) (data []byte, code Status) {
+func (me *FileSystemConnector) GetXAttrSize(header *InHeader, attribute string) (sz int, code Status) {
+	node := me.toInode(header.NodeId)
+	data, c := node.fsInode.GetXAttr(attribute, &header.Context)
+	return len(data), c
+}
+
+func (me *FileSystemConnector) GetXAttrData(header *InHeader, attribute string) (data []byte, code Status) {
 	node := me.toInode(header.NodeId)
 	return node.fsInode.GetXAttr(attribute, &header.Context)
 }

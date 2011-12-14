@@ -228,9 +228,14 @@ func (me *LockingRawFileSystem) SetXAttr(header *InHeader, input *SetXAttrIn, at
 	return me.RawFileSystem.SetXAttr(header, input, attr, data)
 }
 
-func (me *LockingRawFileSystem) GetXAttr(header *InHeader, attr string) (data []byte, code Status) {
+func (me *LockingRawFileSystem) GetXAttrData(header *InHeader, attr string) (data []byte, code Status) {
 	defer me.locked()()
-	return me.RawFileSystem.GetXAttr(header, attr)
+	return me.RawFileSystem.GetXAttrData(header, attr)
+}
+
+func (me *LockingRawFileSystem) GetXAttrSize(header *InHeader, attr string) (sz int, code Status) {
+	defer me.locked()()
+	return me.RawFileSystem.GetXAttrSize(header, attr)
 }
 
 func (me *LockingRawFileSystem) ListXAttr(header *InHeader) (data []byte, code Status) {

@@ -157,8 +157,9 @@ func (me *LoopbackFileSystem) Create(path string, flags uint32, mode uint32, con
 }
 
 func (me *LoopbackFileSystem) GetXAttr(name string, attr string, context *Context) ([]byte, Status) {
-	data, errNo := GetXAttr(me.GetPath(name), attr)
-
+	data := make([]byte, 1024)
+	data, errNo := GetXAttr(me.GetPath(name), attr, data)
+	
 	return data, Status(errNo)
 }
 

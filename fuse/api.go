@@ -260,7 +260,8 @@ type RawFileSystem interface {
 	Access(header *InHeader, input *AccessIn) (code Status)
 
 	// Extended attributes.
-	GetXAttr(header *InHeader, attr string) (data []byte, code Status)
+	GetXAttrSize(header *InHeader, attr string) (sz int, code Status)
+	GetXAttrData(header *InHeader, attr string) (data []byte, code Status)
 	ListXAttr(header *InHeader) (attributes []byte, code Status)
 	SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) Status
 	RemoveXAttr(header *InHeader, attr string) (code Status)

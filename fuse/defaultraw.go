@@ -58,7 +58,11 @@ func (me *DefaultRawFileSystem) Link(header *InHeader, input *LinkIn, name strin
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFileSystem) GetXAttr(header *InHeader, attr string) (data []byte, code Status) {
+func (me *DefaultRawFileSystem) GetXAttrSize(header *InHeader, attr string) (size int, code Status) {
+	return 0, ENOSYS
+}
+
+func (me *DefaultRawFileSystem) GetXAttrData(header *InHeader, attr string) (data []byte, code Status) {
 	return nil, ENOSYS
 }
 

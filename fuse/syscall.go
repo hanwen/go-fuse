@@ -50,8 +50,7 @@ func getxattr(path string, attr string, dest []byte) (sz int, errno int) {
 	return int(size), int(errNo)
 }
 
-func GetXAttr(path string, attr string) (value []byte, errno int) {
-	dest := make([]byte, 1024)
+func GetXAttr(path string, attr string, dest []byte) (value []byte, errno int) {
 	sz, errno := getxattr(path, attr, dest)
 
 	for sz > cap(dest) && errno == 0 {

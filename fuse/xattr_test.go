@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"syscall"
 	"testing"
 )
 
@@ -86,6 +87,11 @@ func (me *XAttrTestFs) RemoveXAttr(name string, attr string, context *Context) S
 	return OK
 }
 
+func readXAttr(p, a string) (val []byte, errno int) {
+	val = make([]byte, 1024)
+	return GetXAttr(p, a, val)
+}
+
 func TestXAttrRead(t *testing.T) {
 	nm := "filename"
 
@@ -112,21 +118,20 @@ func TestXAttrRead(t *testing.T) {
 		t.Error("Unexpected stat error", err)
 	}
 
-	val, errno := GetXAttr(mounted, "noexist")
+	val, errno := readXAttr(mounted, "noexist")
 	if errno == 0 {
 		t.Error("Expected GetXAttr error", val)
 	}
 
 	attrs, errno := ListXAttr(mounted)
-
 	readback := make(map[string][]byte)
 	if errno != 0 {
 		t.Error("Unexpected ListXAttr error", errno)
 	} else {
 		for _, a := range attrs {
-			val, errno = GetXAttr(mounted, a)
+			val, errno = readXAttr(mounted, a)
 			if errno != 0 {
-				t.Error("Unexpected GetXAttr error", errno)
+				t.Error("Unexpected GetXAttr error", syscall.Errno(errno))
 			}
 			readback[a] = val
 		}
@@ -146,13 +151,13 @@ func TestXAttrRead(t *testing.T) {
 	if errno != 0 {
 		t.Error("Setxattr error", errno)
 	}
-	val, errno = GetXAttr(mounted, "third")
+	val, errno = readXAttr(mounted, "third")
 	if errno != 0 || string(val) != "value" {
 		t.Error("Read back set xattr:", errno, string(val))
 	}
 
 	Removexattr(mounted, "third")
-	val, errno = GetXAttr(mounted, "third")
+	val, errno = readXAttr(mounted, "third")
 	if errno != int(ENODATA) {
 		t.Error("Data not removed?", errno, val)
 	}
