@@ -102,7 +102,7 @@ func (me *TimedCache) RecurringPurge() {
 	}
 
 	me.Purge()
-	me.PurgeTimer = time.AfterFunc(int64(me.ttl*5),
+	me.PurgeTimer = time.AfterFunc(me.ttl*5,
 		func() { me.RecurringPurge() })
 }
 

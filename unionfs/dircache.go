@@ -48,7 +48,7 @@ func (me *DirCache) setMap(newMap map[string]bool) {
 
 	me.names = newMap
 	me.updateRunning = false
-	_ = time.AfterFunc(int64(me.ttl),
+	_ = time.AfterFunc(me.ttl,
 		func() { me.DropCache() })
 }
 
