@@ -66,11 +66,13 @@ func (me *LoopbackFileSystem) OpenDir(name string, context *Context) (stream cha
 		for {
 			infos, err := f.Readdir(want)
 			for i := range infos {
-				s := ToStatT(infos[i])
-				output <- DirEntry{
+				d := DirEntry{
 					Name: infos[i].Name(),
-					Mode: s.Mode,
 				}
+				if s := ToStatT(infos[i]); s != nil {
+					d.Mode = s.Mode
+				}
+				output <- d
 			}
 			if len(infos) < want || err == io.EOF {
 				break
