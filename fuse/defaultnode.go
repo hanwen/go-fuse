@@ -7,7 +7,6 @@ import (
 var _ = log.Println
 
 type DefaultNodeFileSystem struct {
-
 }
 
 func (me *DefaultNodeFileSystem) OnUnmount() {
@@ -39,6 +38,9 @@ func (me *DefaultFsNode) StatFs() *StatfsOut {
 func (me *DefaultFsNode) SetInode(node *Inode) {
 	if me.inode != nil {
 		panic("already have Inode")
+	}
+	if node == nil {
+		panic("SetInode called with nil Inode.")
 	}
 	me.inode = node
 }
