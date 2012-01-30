@@ -123,7 +123,7 @@ func (me *LoopbackFile) Truncate(size uint64) Status {
 // futimens missing from 6g runtime.
 
 func (me *LoopbackFile) Chmod(mode uint32) Status {
-	return ToStatus(me.File.Chmod(mode))
+	return ToStatus(me.File.Chmod(os.FileMode(mode)))
 }
 
 func (me *LoopbackFile) Chown(uid uint32, gid uint32) Status {

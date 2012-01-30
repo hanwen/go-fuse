@@ -141,7 +141,7 @@ func (me *testCase) TestReadThrough(t *testing.T) {
 	err := ioutil.WriteFile(ts.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
 
-	err = os.Chmod(ts.mountFile, mode)
+	err = os.Chmod(ts.mountFile, os.FileMode(mode))
 	CheckSuccess(err)
 
 	fi, err := os.Lstat(ts.mountFile)

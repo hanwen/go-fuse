@@ -32,7 +32,7 @@ func freezeRo(dir string) {
 		dir,
 		func(path string, fi os.FileInfo, err error) error {
 			newMode := uint32(fi.Mode().Perm()) &^ 0222
-			return os.Chmod(path, newMode)
+			return os.Chmod(path, os.FileMode(newMode))
 		})
 	CheckSuccess(err)
 }

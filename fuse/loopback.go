@@ -101,7 +101,7 @@ func (me *LoopbackFileSystem) Open(name string, flags uint32, context *Context) 
 }
 
 func (me *LoopbackFileSystem) Chmod(path string, mode uint32, context *Context) (code Status) {
-	err := os.Chmod(me.GetPath(path), mode)
+	err := os.Chmod(me.GetPath(path), os.FileMode(mode))
 	return ToStatus(err)
 }
 
@@ -127,7 +127,7 @@ func (me *LoopbackFileSystem) Mknod(name string, mode uint32, dev uint32, contex
 }
 
 func (me *LoopbackFileSystem) Mkdir(path string, mode uint32, context *Context) (code Status) {
-	return ToStatus(os.Mkdir(me.GetPath(path), mode))
+	return ToStatus(os.Mkdir(me.GetPath(path), os.FileMode(mode)))
 }
 
 // Don't use os.Remove, it removes twice (unlink followed by rmdir).
@@ -157,14 +157,14 @@ func (me *LoopbackFileSystem) Access(name string, mode uint32, context *Context)
 }
 
 func (me *LoopbackFileSystem) Create(path string, flags uint32, mode uint32, context *Context) (fuseFile File, code Status) {
-	f, err := os.OpenFile(me.GetPath(path), int(flags)|os.O_CREATE, mode)
+	f, err := os.OpenFile(me.GetPath(path), int(flags)|os.O_CREATE, os.FileMode(mode))
 	return &LoopbackFile{File: f}, ToStatus(err)
 }
 
 func (me *LoopbackFileSystem) GetXAttr(name string, attr string, context *Context) ([]byte, Status) {
 	data := make([]byte, 1024)
 	data, errNo := GetXAttr(me.GetPath(name), attr, data)
-	
+
 	return data, Status(errNo)
 }
 
