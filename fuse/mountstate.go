@@ -123,10 +123,16 @@ func NewMountState(fs RawFileSystem) *MountState {
 }
 
 func (me *MountState) Latencies() map[string]float64 {
+	if me.latencies == nil {
+		return nil
+	}
 	return me.latencies.Latencies(1e-3)
 }
 
 func (me *MountState) OperationCounts() map[string]int {
+	if me.latencies == nil {
+		return nil
+	}
 	return me.latencies.Counts()
 }
 
