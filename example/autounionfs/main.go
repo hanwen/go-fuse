@@ -59,5 +59,8 @@ func main() {
 	pathfs.Debug = *debug
 	conn.Debug = *debug
 	state.Debug = *debug
+
+	gofs.SetMountState(state)
+
 	state.Loop()
 }

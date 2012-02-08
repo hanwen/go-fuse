@@ -33,6 +33,8 @@ type AutoUnionFs struct {
 
 	nodeFs  *fuse.PathNodeFs
 	options *AutoUnionFsOptions
+
+	mountState *fuse.MountState
 }
 
 type AutoUnionFsOptions struct {
@@ -48,6 +50,7 @@ const (
 	_READONLY    = "READONLY"
 	_STATUS      = "status"
 	_CONFIG      = "config"
+	_DEBUG       = "debug"
 	_ROOT        = "root"
 	_VERSION     = "gounionfs_version"
 	_SCAN_CONFIG = ".scan_config"
@@ -277,6 +280,14 @@ func (me *AutoUnionFs) GetAttr(path string, context *fuse.Context) (*fuse.Attr, 
 		return a, fuse.OK
 	}
 
+	if path == filepath.Join(_STATUS, _DEBUG) {
+		a := &fuse.Attr{
+			Mode: fuse.S_IFREG | 0644,
+			Size: uint64(len(me.DebugData())),
+		}
+		return a, fuse.OK
+	}
+
 	if path == filepath.Join(_STATUS, _ROOT) {
 		a := &fuse.Attr{
 			Mode: syscall.S_IFLNK | 0644,
@@ -315,6 +326,10 @@ func (me *AutoUnionFs) StatusDir() (stream chan fuse.DirEntry, status fuse.Statu
 		Mode: fuse.S_IFREG | 0644,
 	}
 	stream <- fuse.DirEntry{
+		Name: _DEBUG,
+		Mode: fuse.S_IFREG | 0644,
+	}
+	stream <- fuse.DirEntry{
 		Name: _ROOT,
 		Mode: syscall.S_IFLNK | 0644,
 	}
@@ -323,7 +338,46 @@ func (me *AutoUnionFs) StatusDir() (stream chan fuse.DirEntry, status fuse.Statu
 	return stream, fuse.OK
 }
 
+// SetMountState stores the MountState, which is necessary for
+// retrieving debug data.
+func (me *AutoUnionFs) SetMountState(state *fuse.MountState) {
+	me.mountState = state
+}
+
+func (me *AutoUnionFs) DebugData() string {
+	if me.mountState == nil {
+		return "AutoUnionFs.mountState not set"
+	}
+	setting := me.mountState.KernelSettings()
+	msg := fmt.Sprintf(
+		"Version: %v\n" +
+		"Bufferpool: %v\n" +
+		"Kernel: %v\n",
+		fuse.Version(),
+		me.mountState.BufferPoolStats(),
+		&setting)
+
+	lat := me.mountState.Latencies()
+	if len(lat) > 0 {
+		msg += fmt.Sprintf("Latencies: %v\n", lat)
+	}
+
+	counts := me.mountState.OperationCounts()
+	if len(counts) > 0 {
+		msg += fmt.Sprintf("Op counts: %v\n", counts)
+	}
+
+	return msg
+}
+
 func (me *AutoUnionFs) Open(path string, flags uint32, context *fuse.Context) (fuse.File, fuse.Status) {
+	if path == filepath.Join(_STATUS, _DEBUG) {
+		if flags&fuse.O_ANYWRITE != 0 {
+			return nil, fuse.EPERM
+		}
+
+		return fuse.NewDataFile([]byte(me.DebugData())), fuse.OK
+	}
 	if path == filepath.Join(_STATUS, _VERSION) {
 		if flags&fuse.O_ANYWRITE != 0 {
 			return nil, fuse.EPERM

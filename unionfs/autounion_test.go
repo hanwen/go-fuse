@@ -59,6 +59,18 @@ func setup(t *testing.T) (workdir string, cleanup func()) {
 	}
 }
 
+func TestDebug(t *testing.T) {
+	wd, clean := setup(t)
+	defer clean()
+
+	c, err := ioutil.ReadFile(wd + "/mnt/status/debug")
+	CheckSuccess(err)
+	if len(c) == 0 {
+		t.Fatal("No debug found.")
+	}
+	log.Println("Found version:", string(c))
+}
+
 func TestVersion(t *testing.T) {
 	wd, clean := setup(t)
 	defer clean()
