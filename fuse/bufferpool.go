@@ -63,10 +63,10 @@ func (me *BufferPoolImpl) String() string {
 	result := []string{}
 	for exp, bufs := range me.buffersBySize {
 		if len(bufs) > 0 {
-			result = append(result, fmt.Sprintf("%d=%d\n", exp, len(bufs)))
+			result = append(result, fmt.Sprintf("%d=%d", exp, len(bufs)))
 		}
 	}
-	return fmt.Sprintf("created: %v\noutstanding %v\n%s",
+	return fmt.Sprintf("created: %d, outstanding %d. Sizes: %s",
 		me.createdBuffers, len(me.outstandingBuffers),
 		strings.Join(result, ", "))
 }
