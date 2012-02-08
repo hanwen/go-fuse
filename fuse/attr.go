@@ -134,12 +134,6 @@ func (a *Attr) FromStat(s *syscall.Stat_t) {
 	a.Blksize = uint32(s.Blksize)
 }
 
-func (a *Attr) FromFileInfo(fi os.FileInfo) {
-	stat := fi.(*os.FileStat)
-	sys := stat.Sys.(*syscall.Stat_t)
-	a.FromStat(sys)
-}
-
 func (a *Attr) ChangeTime() time.Time {
 	return time.Unix(int64(a.Ctime), int64(a.Ctimensec))
 }
@@ -153,9 +147,9 @@ func (a *Attr) ModTime() time.Time {
 }
 
 func ToStatT(f os.FileInfo) *syscall.Stat_t {
-	s := f.(*os.FileStat).Sys
+	s, _ := f.Sys().(*syscall.Stat_t)
 	if s != nil {
-		return s.(*syscall.Stat_t)
+		return s
 	}
 	return nil
 }

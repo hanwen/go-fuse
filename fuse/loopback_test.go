@@ -126,11 +126,12 @@ func TestTouch(t *testing.T) {
 	CheckSuccess(err)
 	err = os.Chtimes(ts.mountFile, time.Unix(42, 0), time.Unix(43, 0))
 	CheckSuccess(err)
-	fi, err := os.Lstat(ts.mountFile)
+
+	var stat syscall.Stat_t
+	err = syscall.Lstat(ts.mountFile, &stat)
 	CheckSuccess(err)
-	stat := fi.(*os.FileStat).Sys.(*syscall.Stat_t)
 	if stat.Atim.Sec != 42 || stat.Mtim.Sec != 43 {
-		t.Errorf("Got wrong timestamps %v", fi)
+		t.Errorf("Got wrong timestamps %v", stat)
 	}
 }
 
@@ -242,18 +243,17 @@ func TestLinkCreate(t *testing.T) {
 	err = os.Link(me.mountFile, mountSubfile)
 	CheckSuccess(err)
 
-	subStat, err := os.Lstat(mountSubfile)
+	var subStat, stat syscall.Stat_t
+	err = syscall.Lstat(mountSubfile, &subStat)
 	CheckSuccess(err)
-	stat, err := os.Lstat(me.mountFile)
+	err = syscall.Lstat(me.mountFile, &stat)
 	CheckSuccess(err)
 
-	subfi := ToStatT(subStat)
-	fi := ToStatT(stat)
-	if fi.Nlink != 2 {
-		t.Errorf("Expect 2 links: %v", fi)
+	if stat.Nlink != 2 {
+		t.Errorf("Expect 2 links: %v", stat)
 	}
-	if fi.Ino != subfi.Ino {
-		t.Errorf("Link succeeded, but inode numbers different: %v %v", fi.Ino, subfi.Ino)
+	if stat.Ino != subStat.Ino {
+		t.Errorf("Link succeeded, but inode numbers different: %v %v", stat.Ino, subStat.Ino)
 	}
 	readback, err := ioutil.ReadFile(mountSubfile)
 	CheckSuccess(err)
@@ -282,13 +282,12 @@ func TestLinkExisting(t *testing.T) {
 	err = os.Link(me.orig+"/file1", me.orig+"/file2")
 	CheckSuccess(err)
 
-	f1, err := os.Lstat(me.mnt + "/file1")
+	var s1, s2 syscall.Stat_t
+	err = syscall.Lstat(me.mnt + "/file1", &s1)
 	CheckSuccess(err)
-	f2, err := os.Lstat(me.mnt + "/file2")
+	err = syscall.Lstat(me.mnt + "/file2", &s2)
 	CheckSuccess(err)
 
-	s1 := ToStatT(f1)
-	s2 := ToStatT(f2)
 	if s1.Ino != s2.Ino {
 		t.Errorf("linked files should have identical inodes %v %v", s1.Ino, s2.Ino)
 	}
@@ -313,16 +312,14 @@ func TestLinkForget(t *testing.T) {
 	err = os.Link(me.orig+"/file1", me.orig+"/file2")
 	CheckSuccess(err)
 
-	f1, err := os.Lstat(me.mnt + "/file1")
+	var s1, s2 syscall.Stat_t
+	err = syscall.Lstat(me.mnt + "/file1", &s1)
 	CheckSuccess(err)
 
 	me.pathFs.ForgetClientInodes()
 
-	f2, err := os.Lstat(me.mnt + "/file2")
+	err = syscall.Lstat(me.mnt + "/file2", &s2)
 	CheckSuccess(err)
-
-	s1 := ToStatT(f1)
-	s2 := ToStatT(f2)
 	if s1.Ino == s2.Ino {
 		t.Error("After forget, we should not export links")
 	}

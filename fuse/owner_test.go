@@ -3,6 +3,7 @@ package fuse
 import (
 	"io/ioutil"
 	"os"
+	"syscall"
 	"testing"
 )
 
@@ -43,10 +44,12 @@ func setupOwnerTest(opts *FileSystemOptions) (workdir string, cleanup func()) {
 func TestOwnerDefault(t *testing.T) {
 	wd, cleanup := setupOwnerTest(NewFileSystemOptions())
 	defer cleanup()
-	fi, err := os.Lstat(wd + "/foo")
+
+	var stat syscall.Stat_t
+	err := syscall.Lstat(wd + "/foo", &stat)
 	CheckSuccess(err)
 
-	if int(ToStatT(fi).Uid) != os.Getuid() || int(ToStatT(fi).Gid) != os.Getgid() {
+	if int(stat.Uid) != os.Getuid() || int(stat.Gid) != os.Getgid() {
 		t.Fatal("Should use current uid for mount")
 	}
 }
@@ -54,10 +57,12 @@ func TestOwnerDefault(t *testing.T) {
 func TestOwnerRoot(t *testing.T) {
 	wd, cleanup := setupOwnerTest(&FileSystemOptions{})
 	defer cleanup()
-	fi, err := os.Lstat(wd + "/foo")
+
+	var st syscall.Stat_t
+	err := syscall.Lstat(wd + "/foo", &st)
 	CheckSuccess(err)
 
-	if ToStatT(fi).Uid != _RANDOM_OWNER || ToStatT(fi).Gid != _RANDOM_OWNER {
+	if st.Uid != _RANDOM_OWNER || st.Gid != _RANDOM_OWNER {
 		t.Fatal("Should use FS owner uid")
 	}
 }
@@ -65,10 +70,12 @@ func TestOwnerRoot(t *testing.T) {
 func TestOwnerOverride(t *testing.T) {
 	wd, cleanup := setupOwnerTest(&FileSystemOptions{Owner: &Owner{42, 43}})
 	defer cleanup()
-	fi, err := os.Lstat(wd + "/foo")
+
+	var stat syscall.Stat_t
+	err := syscall.Lstat(wd + "/foo", &stat)
 	CheckSuccess(err)
 
-	if ToStatT(fi).Uid != 42 || ToStatT(fi).Gid != 43 {
+	if stat.Uid != 42 || stat.Gid != 43 {
 		t.Fatal("Should use current uid for mount")
 	}
 }

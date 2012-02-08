@@ -35,17 +35,16 @@ func TestLinkAt(t *testing.T) {
 		t.Fatalf("Linkat %d", e)
 	}
 
-	f1, err := os.Lstat(dir + "/a")
+	var s1, s2 syscall.Stat_t
+	err := syscall.Lstat(dir + "/a", &s1)
 	if err != nil {
 		t.Fatalf("Lstat a: %v", err)
 	}
-	f2, err := os.Lstat(dir + "/b")
+	err = syscall.Lstat(dir + "/b", &s2)
 	if err != nil {
 		t.Fatalf("Lstat b: %v", err)
 	}
 
-	s1 := ToStatT(f1)
-	s2 := ToStatT(f2)
 	if s1.Ino != s2.Ino {
 		t.Fatal("Ino mismatch", s1, s2)
 	}
