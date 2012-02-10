@@ -18,11 +18,8 @@ do
   (cd $d && go test go-fuse/$d )
 done
 
-# TODO - reinstate the benchmark
-exit 1
-
-gomake -C benchmark cstatfs
+make -C benchmark
 for d in benchmark
 do
-  (cd $d && gotest -test.bench '.*' -test.cpu 1,2 )
+  go test go-fuse/benchmark -test.bench '.*' -test.cpu 1,2
 done
