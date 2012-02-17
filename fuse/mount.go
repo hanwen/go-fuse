@@ -19,8 +19,8 @@ func unixgramSocketpair() (l, r *os.File, err error) {
 		return nil, nil, os.NewSyscallError("socketpair",
 			err.(syscall.Errno))
 	}
-	l = os.NewFile(fd[0], "socketpair-half1")
-	r = os.NewFile(fd[1], "socketpair-half2")
+	l = os.NewFile(uintptr(fd[0]), "socketpair-half1")
+	r = os.NewFile(uintptr(fd[1]), "socketpair-half2")
 	return
 }
 
@@ -118,7 +118,7 @@ func getConnection(local *os.File) (f *os.File, err error) {
 	// n, oobn, recvflags, from, errno  - todo: error checking.
 	_, oobn, _, _,
 		err := syscall.Recvmsg(
-		local.Fd(), data[:], control[:], 0)
+		int(local.Fd()), data[:], control[:], 0)
 	if err != nil {
 		return
 	}
@@ -138,7 +138,7 @@ func getConnection(local *os.File) (f *os.File, err error) {
 		err = fmt.Errorf("getConnection: fd < 0: %d", fd)
 		return
 	}
-	f = os.NewFile(int(fd), "<fuseConnection>")
+	f = os.NewFile(uintptr(fd), "<fuseConnection>")
 	return
 }
 

@@ -113,11 +113,11 @@ func (me *LoopbackFile) Release() {
 }
 
 func (me *LoopbackFile) Fsync(*FsyncIn) (code Status) {
-	return ToStatus(syscall.Fsync(me.File.Fd()))
+	return ToStatus(syscall.Fsync(int(me.File.Fd())))
 }
 
 func (me *LoopbackFile) Truncate(size uint64) Status {
-	return ToStatus(syscall.Ftruncate(me.File.Fd(), int64(size)))
+	return ToStatus(syscall.Ftruncate(int(me.File.Fd()), int64(size)))
 }
 
 // futimens missing from 6g runtime.
@@ -132,7 +132,7 @@ func (me *LoopbackFile) Chown(uid uint32, gid uint32) Status {
 
 func (me *LoopbackFile) GetAttr() (*Attr, Status) {
 	st := syscall.Stat_t{}
-	err := syscall.Fstat(me.File.Fd(), &st)
+	err := syscall.Fstat(int(me.File.Fd()), &st)
 	if err != nil {
 		return nil, ToStatus(err)
 	}

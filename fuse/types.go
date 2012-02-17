@@ -1,9 +1,13 @@
 package fuse
 
+// #include <linux/fuse.h>
+import "C"
+
 import (
 	"os"
 	"syscall"
 )
+
 
 const (
 	FUSE_ROOT_ID = 1

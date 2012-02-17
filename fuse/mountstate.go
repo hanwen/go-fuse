@@ -272,7 +272,7 @@ func (me *MountState) write(req *request) Status {
 	if req.flatData == nil {
 		_, err = me.mountFile.Write(req.outHeaderBytes)
 	} else {
-		_, err = Writev(me.mountFile.Fd(),
+		_, err = Writev(int(me.mountFile.Fd()),
 			[][]byte{req.outHeaderBytes, req.flatData})
 	}
 

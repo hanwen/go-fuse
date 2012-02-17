@@ -39,7 +39,7 @@ func ToStatus(err error) Status {
 	case syscall.Errno:
 		return Status(t)
 	case *os.SyscallError:
-		return Status(t.Errno.(syscall.Errno))
+		return Status(t.Err.(syscall.Errno))
 	case *os.PathError:
 		return ToStatus(t.Err)
 	case *os.LinkError:
