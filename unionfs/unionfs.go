@@ -14,6 +14,7 @@ import (
 	"time"
 )
 
+
 func filePathHash(path string) string {
 	dir, base := filepath.Split(path)
 
@@ -65,6 +66,9 @@ type UnionFs struct {
 	// A file -> branch cache.
 	branchCache *TimedCache
 
+	// Map of files to hide.
+	hiddenFiles map[string]bool
+
 	options *UnionFsOptions
 	nodeFs  *fuse.PathNodeFs
 }
@@ -73,6 +77,7 @@ type UnionFsOptions struct {
 	BranchCacheTTL   time.Duration
 	DeletionCacheTTL time.Duration
 	DeletionDirName  string
+	HiddenFiles      []string
 }
 
 const (
@@ -96,6 +101,12 @@ func NewUnionFs(fileSystems []fuse.FileSystem, options UnionFsOptions) *UnionFs 
 		func(n string) (interface{}, bool) { return g.getBranchAttrNoCache(n), true },
 		options.BranchCacheTTL)
 	g.branchCache.RecurringPurge()
+
+	g.hiddenFiles = make(map[string]bool)
+	for _, name := range options.HiddenFiles {
+		g.hiddenFiles[name] = true
+	}
+
 	return g
 }
 
@@ -659,7 +670,8 @@ func (me *UnionFs) Create(name string, flags uint32, mode uint32, context *fuse.
 }
 
 func (me *UnionFs) GetAttr(name string, context *fuse.Context) (a *fuse.Attr, s fuse.Status) {
-	if name == _READONLY {
+	_, hidden := me.hiddenFiles[name]
+	if hidden {
 		return nil, fuse.ENOENT
 	}
 	if name == _DROP_CACHE {
@@ -778,8 +790,9 @@ func (me *UnionFs) OpenDir(directory string, context *fuse.Context) (stream chan
 	}
 	if directory == "" {
 		delete(results, me.options.DeletionDirName)
-		// HACK.
-		delete(results, _READONLY)
+		for name, _ := range me.hiddenFiles {
+			delete(results, name)
+		}
 	}
 
 	stream = make(chan fuse.DirEntry, len(results))

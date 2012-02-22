@@ -24,6 +24,7 @@ var testAOpts = AutoUnionFsOptions{
 		AttrTimeout:     entryTtl,
 		NegativeTimeout: 0,
 	},
+	HideReadonly: true,
 }
 
 func WriteFile(name string, contents string) {

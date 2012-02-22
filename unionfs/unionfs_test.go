@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -25,6 +26,7 @@ var testOpts = UnionFsOptions{
 	DeletionCacheTTL: entryTtl,
 	DeletionDirName:  "DELETIONS",
 	BranchCacheTTL:   entryTtl,
+	HiddenFiles: []string{ "hidden" },
 }
 
 func freezeRo(dir string) {
@@ -37,6 +39,8 @@ func freezeRo(dir string) {
 	CheckSuccess(err)
 }
 
+// Creates 3 directories on a temporary dir: /mnt with the overlayed
+// (unionfs) mount, rw with modifiable data, and ro on the bottom.
 func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 	// Make sure system setting does not affect test.
 	syscall.Umask(0)
@@ -60,8 +64,8 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 	// We configure timeouts are smaller, so we can check for
 	// UnionFs's cache consistency.
 	opts := &fuse.FileSystemOptions{
-		EntryTimeout:    entryTtl / 2,
-		AttrTimeout:     entryTtl / 2,
+		EntryTimeout:	 entryTtl / 2,
+		AttrTimeout:	 entryTtl / 2,
 		NegativeTimeout: entryTtl / 2,
 	}
 
@@ -298,7 +302,7 @@ func TestUnionFsBasic(t *testing.T) {
 	names = dirNames(wd + "/rw")
 	checkMapEq(t, names, map[string]bool{
 		testOpts.DeletionDirName: true,
-		"rw":                     true, "ro1": true,
+		"rw":			  true, "ro1": true,
 	})
 	names = dirNames(wd + "/rw/" + testOpts.DeletionDirName)
 	if len(names) != 0 {
@@ -742,6 +746,8 @@ func TestUnionFsRemoveAll(t *testing.T) {
 	}
 }
 
+// Warning: test fails under coreutils < 8.0 because of non-posix behaviour
+// of the "rm" tool -- which relies on behaviour that doesn't work in fuse.
 func TestUnionFsRmRf(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
@@ -757,6 +763,10 @@ func TestUnionFsRmRf(t *testing.T) {
 
 	bin, err := exec.LookPath("rm")
 	CheckSuccess(err)
+	command := fmt.Sprintf("%s -f %s/mnt/dir", bin, wd);
+	log.Printf("Command: %s", command)
+	names, _ := Readdirnames(wd + "/mnt/dir")
+	log.Printf("Contents of %s/mnt/dir: %s", wd, strings.Join(names, ", "))
 	cmd := exec.Command(bin, "-rf", wd+"/mnt/dir")
 	err = cmd.Run()
 	if err != nil {
@@ -769,7 +779,7 @@ func TestUnionFsRmRf(t *testing.T) {
 		}
 	}
 
-	names, err := Readdirnames(wd + "/rw/DELETIONS")
+	names, err = Readdirnames(wd + "/rw/DELETIONS")
 	CheckSuccess(err)
 	if len(names) != 3 {
 		t.Fatal("unexpected names", names)
@@ -876,8 +886,8 @@ func TestUnionFsDisappearing(t *testing.T) {
 	ufs := NewUnionFs(fses, testOpts)
 
 	opts := &fuse.FileSystemOptions{
-		EntryTimeout:    entryTtl,
-		AttrTimeout:     entryTtl,
+		EntryTimeout:	 entryTtl,
+		AttrTimeout:	 entryTtl,
 		NegativeTimeout: entryTtl,
 	}
 
@@ -1114,5 +1124,29 @@ func TestUnionFsPromoteDirTimeStamp(t *testing.T) {
 
 	if fRo.Mode().Perm()|0200 != fRw.Mode().Perm() {
 		t.Errorf("Changed mode ro: %v, rw: %v", fRo.Mode(), fRw.Mode())
+	}
+}
+
+func TestUnionFsCheckHiddenFiles(t *testing.T) {
+	wd, clean := setupUfs(t)
+	defer clean()
+
+	err := ioutil.WriteFile(wd+"/ro/hidden", []byte("bla"), 0644)
+	CheckSuccess(err)
+	err = ioutil.WriteFile(wd+"/ro/not_hidden", []byte("bla"), 0644)
+	CheckSuccess(err)
+	freezeRo(wd + "/ro")
+
+	fi, _ := os.Lstat(wd + "/mnt/hidden")
+	if fi != nil {
+		t.Fatal("Lstat() should have failed", fi)
+	}
+	_, err = os.Lstat(wd + "/mnt/not_hidden")
+	CheckSuccess(err)
+
+	names, err := Readdirnames(wd + "/mnt")
+	CheckSuccess(err)
+	if len(names) != 1 || names[0] != "not_hidden" {
+		t.Fatal("unexpected names", names)
 	}
 }

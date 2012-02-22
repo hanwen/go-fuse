@@ -17,6 +17,9 @@ func main() {
 	branchcache_ttl := flag.Float64("branchcache_ttl", 5.0, "Branch cache TTL in seconds.")
 	deldirname := flag.String(
 		"deletion_dirname", "GOUNIONFS_DELETIONS", "Directory name to use for deletions.")
+	hide_readonly_link := flag.Bool("hide_readonly_link", true,
+		"Hides READONLY link from the top mountpoints. " +
+		"Enabled by default.")
 	flag.Parse()
 
 	if *version {
@@ -45,6 +48,7 @@ func main() {
 		PathNodeFsOptions: fuse.PathNodeFsOptions{
 			ClientInodes: *hardlinks,
 		},
+		HideReadonly:     *hide_readonly_link,
 	}
 
 	fmt.Printf("AutoUnionFs - Go-FUSE Version %v.\n", fuse.Version())

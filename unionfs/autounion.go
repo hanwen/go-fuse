@@ -44,6 +44,9 @@ type AutoUnionFsOptions struct {
 
 	// If set, run updateKnownFses() after mounting.
 	UpdateOnMount bool
+
+	// If set hides the _READONLY file.
+	HideReadonly bool
 }
 
 const (
@@ -57,6 +60,9 @@ const (
 )
 
 func NewAutoUnionFs(directory string, options AutoUnionFsOptions) *AutoUnionFs {
+	if options.HideReadonly {
+		options.HiddenFiles = append(options.HiddenFiles, _READONLY)
+	}
 	a := new(AutoUnionFs)
 	a.knownFileSystems = make(map[string]knownFs)
 	a.nameRootMap = make(map[string]string)

@@ -21,6 +21,7 @@ func main() {
 	branchcache_ttl := flag.Float64("branchcache_ttl", 5.0, "Branch cache TTL in seconds.")
 	deldirname := flag.String(
 		"deletion_dirname", "GOUNIONFS_DELETIONS", "Directory name to use for deletions.")
+
 	flag.Parse()
 	if len(flag.Args()) < 2 {
 		fmt.Println("Usage:\n  unionfs MOUNTPOINT RW-DIRECTORY RO-DIRECTORY ...")
