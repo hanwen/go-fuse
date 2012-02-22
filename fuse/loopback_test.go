@@ -519,7 +519,7 @@ func TestFSync(t *testing.T) {
 	CheckSuccess(err)
 
 	// How to really test fsync ?
-	errNo := syscall.Fsync(f.Fd())
+	errNo := syscall.Fsync(int(f.Fd()))
 	if errNo != nil {
 		t.Errorf("fsync returned %v", errNo)
 	}
@@ -678,7 +678,7 @@ func TestIoctl(t *testing.T) {
 		os.O_WRONLY|os.O_CREATE, 0777)
 	defer f.Close()
 	CheckSuccess(err)
-	ioctl(f.Fd(), 0x5401, 42)
+	ioctl(int(f.Fd()), 0x5401, 42)
 }
 
 func clearStatfs(s *syscall.Statfs_t) {
@@ -727,7 +727,7 @@ func TestFStatFs(t *testing.T) {
 
 	empty := syscall.Statfs_t{}
 	s1 := empty
-	errno := syscall.Fstatfs(fOrig.Fd(), &s1)
+	errno := syscall.Fstatfs(int(fOrig.Fd()), &s1)
 	if errno != nil {
 		t.Fatal("statfs orig", err)
 	}
@@ -737,7 +737,7 @@ func TestFStatFs(t *testing.T) {
 	defer fMnt.Close()
 	s2 := empty
 
-	errno = syscall.Fstatfs(fMnt.Fd(), &s2)
+	errno = syscall.Fstatfs(int(fMnt.Fd()), &s2)
 	if errno != nil {
 		t.Fatal("statfs mnt", err)
 	}

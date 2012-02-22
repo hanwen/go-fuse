@@ -30,7 +30,7 @@ func TestLinkAt(t *testing.T) {
 	dir, _ := ioutil.TempDir("", "go-fuse")
 	ioutil.WriteFile(dir+"/a", []byte{42}, 0644)
 	f, _ := os.Open(dir)
-	e := Linkat(f.Fd(), "a", f.Fd(), "b")
+	e := Linkat(int(f.Fd()), "a", int(f.Fd()), "b")
 	if e != 0 {
 		t.Fatalf("Linkat %d", e)
 	}

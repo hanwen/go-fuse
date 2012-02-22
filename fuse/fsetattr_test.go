@@ -162,7 +162,7 @@ func TestFSetAttr(t *testing.T) {
 	_, err = f.WriteString("hello")
 	CheckSuccess(err)
 
-	code := syscall.Ftruncate(f.Fd(), 3)
+	code := syscall.Ftruncate(int(f.Fd()), 3)
 	if code != nil {
 		t.Error("truncate retval", os.NewSyscallError("Ftruncate", code))
 	}
