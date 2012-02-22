@@ -177,7 +177,7 @@ func (me *AutoUnionFs) getRoots(path string) []string {
 }
 
 func (me *AutoUnionFs) visit(path string, fi os.FileInfo, err error) error {
-	if fi.IsDir() {
+	if fi != nil && fi.IsDir() {
 		roots := me.getRoots(path)
 		if roots != nil {
 			me.addAutomaticFs(roots)
