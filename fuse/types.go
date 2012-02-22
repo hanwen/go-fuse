@@ -1,8 +1,5 @@
 package fuse
 
-// #include <linux/fuse.h>
-import "C"
-
 import (
 	"os"
 	"syscall"
