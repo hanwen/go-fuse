@@ -26,7 +26,7 @@ var testOpts = UnionFsOptions{
 	DeletionCacheTTL: entryTtl,
 	DeletionDirName:  "DELETIONS",
 	BranchCacheTTL:   entryTtl,
-	HiddenFiles: []string{ "hidden" },
+	HiddenFiles:      []string{"hidden"},
 }
 
 func freezeRo(dir string) {
@@ -64,8 +64,8 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 	// We configure timeouts are smaller, so we can check for
 	// UnionFs's cache consistency.
 	opts := &fuse.FileSystemOptions{
-		EntryTimeout:	 entryTtl / 2,
-		AttrTimeout:	 entryTtl / 2,
+		EntryTimeout:    entryTtl / 2,
+		AttrTimeout:     entryTtl / 2,
 		NegativeTimeout: entryTtl / 2,
 	}
 
@@ -302,7 +302,7 @@ func TestUnionFsBasic(t *testing.T) {
 	names = dirNames(wd + "/rw")
 	checkMapEq(t, names, map[string]bool{
 		testOpts.DeletionDirName: true,
-		"rw":			  true, "ro1": true,
+		"rw":                     true, "ro1": true,
 	})
 	names = dirNames(wd + "/rw/" + testOpts.DeletionDirName)
 	if len(names) != 0 {
@@ -763,7 +763,7 @@ func TestUnionFsRmRf(t *testing.T) {
 
 	bin, err := exec.LookPath("rm")
 	CheckSuccess(err)
-	command := fmt.Sprintf("%s -f %s/mnt/dir", bin, wd);
+	command := fmt.Sprintf("%s -f %s/mnt/dir", bin, wd)
 	log.Printf("Command: %s", command)
 	names, _ := Readdirnames(wd + "/mnt/dir")
 	log.Printf("Contents of %s/mnt/dir: %s", wd, strings.Join(names, ", "))
@@ -886,8 +886,8 @@ func TestUnionFsDisappearing(t *testing.T) {
 	ufs := NewUnionFs(fses, testOpts)
 
 	opts := &fuse.FileSystemOptions{
-		EntryTimeout:	 entryTtl,
-		AttrTimeout:	 entryTtl,
+		EntryTimeout:    entryTtl,
+		AttrTimeout:     entryTtl,
 		NegativeTimeout: entryTtl,
 	}
 

@@ -21,16 +21,16 @@ func init() {
 		RELEASE_FLUSH: "FLUSH",
 	}
 	openFlagNames = map[int]string{
-		os.O_WRONLY:   "WRONLY",
-		os.O_RDWR:     "RDWR",
-		os.O_APPEND:   "APPEND",
+		os.O_WRONLY:        "WRONLY",
+		os.O_RDWR:          "RDWR",
+		os.O_APPEND:        "APPEND",
 		syscall.O_ASYNC:    "ASYNC",
-		os.O_CREATE:   "CREAT",
-		os.O_EXCL:     "EXCL",
+		os.O_CREATE:        "CREAT",
+		os.O_EXCL:          "EXCL",
 		syscall.O_NOCTTY:   "NOCTTY",
 		syscall.O_NONBLOCK: "NONBLOCK",
-		os.O_SYNC:     "SYNC",
-		os.O_TRUNC:    "TRUNC",
+		os.O_SYNC:          "SYNC",
+		os.O_TRUNC:         "TRUNC",
 
 		syscall.O_CLOEXEC:   "CLOEXEC",
 		syscall.O_DIRECT:    "DIRECT",

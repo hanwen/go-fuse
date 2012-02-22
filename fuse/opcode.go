@@ -166,7 +166,7 @@ func doGetXAttr(state *MountState, req *request) {
 		sz, code := state.fileSystem.GetXAttrSize(req.inHeader, req.filenames[0])
 		if code.Ok() {
 			out := &GetXAttrOut{
-			Size: uint32(sz),
+				Size: uint32(sz),
 			}
 			req.outData = unsafe.Pointer(out)
 			req.status = ERANGE
@@ -182,7 +182,7 @@ func doGetXAttr(state *MountState, req *request) {
 	if len(data) > int(input.Size) {
 		req.status = ERANGE
 	}
-	
+
 	if !req.status.Ok() {
 		return
 	}

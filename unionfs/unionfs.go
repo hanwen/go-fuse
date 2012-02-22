@@ -14,7 +14,6 @@ import (
 	"time"
 )
 
-
 func filePathHash(path string) string {
 	dir, base := filepath.Split(path)
 

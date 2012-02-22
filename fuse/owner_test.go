@@ -46,7 +46,7 @@ func TestOwnerDefault(t *testing.T) {
 	defer cleanup()
 
 	var stat syscall.Stat_t
-	err := syscall.Lstat(wd + "/foo", &stat)
+	err := syscall.Lstat(wd+"/foo", &stat)
 	CheckSuccess(err)
 
 	if int(stat.Uid) != os.Getuid() || int(stat.Gid) != os.Getgid() {
@@ -59,7 +59,7 @@ func TestOwnerRoot(t *testing.T) {
 	defer cleanup()
 
 	var st syscall.Stat_t
-	err := syscall.Lstat(wd + "/foo", &st)
+	err := syscall.Lstat(wd+"/foo", &st)
 	CheckSuccess(err)
 
 	if st.Uid != _RANDOM_OWNER || st.Gid != _RANDOM_OWNER {
@@ -72,7 +72,7 @@ func TestOwnerOverride(t *testing.T) {
 	defer cleanup()
 
 	var stat syscall.Stat_t
-	err := syscall.Lstat(wd + "/foo", &stat)
+	err := syscall.Lstat(wd+"/foo", &stat)
 	CheckSuccess(err)
 
 	if stat.Uid != 42 || stat.Gid != 43 {

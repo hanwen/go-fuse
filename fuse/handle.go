@@ -33,6 +33,7 @@ type Handled struct {
 }
 
 const _ALREADY_MSG = "Object already has a handle"
+
 ////////////////////////////////////////////////////////////////
 // portable version using 32 bit integers.
 

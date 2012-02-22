@@ -82,7 +82,7 @@ func (me *AutoUnionFs) String() string {
 func (me *AutoUnionFs) OnMount(nodeFs *fuse.PathNodeFs) {
 	me.nodeFs = nodeFs
 	if me.options.UpdateOnMount {
-		time.AfterFunc(100 * time.Millisecond, func() { me.updateKnownFses() })
+		time.AfterFunc(100*time.Millisecond, func() { me.updateKnownFses() })
 	}
 }
 
@@ -356,9 +356,9 @@ func (me *AutoUnionFs) DebugData() string {
 	}
 	setting := me.mountState.KernelSettings()
 	msg := fmt.Sprintf(
-		"Version: %v\n" +
-		"Bufferpool: %v\n" +
-		"Kernel: %v\n",
+		"Version: %v\n"+
+			"Bufferpool: %v\n"+
+			"Kernel: %v\n",
 		fuse.Version(),
 		me.mountState.BufferPoolStats(),
 		&setting)

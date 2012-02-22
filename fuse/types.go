@@ -5,7 +5,6 @@ import (
 	"syscall"
 )
 
-
 const (
 	FUSE_ROOT_ID = 1
 

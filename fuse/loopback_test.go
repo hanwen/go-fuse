@@ -283,9 +283,9 @@ func TestLinkExisting(t *testing.T) {
 	CheckSuccess(err)
 
 	var s1, s2 syscall.Stat_t
-	err = syscall.Lstat(me.mnt + "/file1", &s1)
+	err = syscall.Lstat(me.mnt+"/file1", &s1)
 	CheckSuccess(err)
-	err = syscall.Lstat(me.mnt + "/file2", &s2)
+	err = syscall.Lstat(me.mnt+"/file2", &s2)
 	CheckSuccess(err)
 
 	if s1.Ino != s2.Ino {
@@ -313,12 +313,12 @@ func TestLinkForget(t *testing.T) {
 	CheckSuccess(err)
 
 	var s1, s2 syscall.Stat_t
-	err = syscall.Lstat(me.mnt + "/file1", &s1)
+	err = syscall.Lstat(me.mnt+"/file1", &s1)
 	CheckSuccess(err)
 
 	me.pathFs.ForgetClientInodes()
 
-	err = syscall.Lstat(me.mnt + "/file2", &s2)
+	err = syscall.Lstat(me.mnt+"/file2", &s2)
 	CheckSuccess(err)
 	if s1.Ino == s2.Ino {
 		t.Error("After forget, we should not export links")
