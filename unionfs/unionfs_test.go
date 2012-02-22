@@ -701,7 +701,7 @@ func TestUnionFsTruncateTimestamp(t *testing.T) {
 	fn := wd + "/mnt/y"
 	err := ioutil.WriteFile(fn, []byte(contents), 0644)
 	CheckSuccess(err)
-	time.Sleep(0.2e9)
+	time.Sleep(200 * time.Millisecond)
 
 	truncTs := time.Now()
 	err = os.Truncate(fn, 3)
