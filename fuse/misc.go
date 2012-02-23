@@ -32,9 +32,19 @@ func (code Status) Ok() bool {
 
 // Convert error back to Errno based errors.
 func ToStatus(err error) Status {
-	if err == nil {
+	switch err {
+	case nil:
 		return OK
+	case os.ErrPermission:
+		return EPERM
+	case os.ErrExist:
+		return Status(syscall.EEXIST)
+	case os.ErrNotExist:
+		return ENOENT
+	case os.ErrInvalid:
+		return EINVAL
 	}
+	
 	switch t := err.(type) {
 	case syscall.Errno:
 		return Status(t)

@@ -8,7 +8,7 @@ import (
 )
 
 func TestToStatus(t *testing.T) {
-	errNo := ToStatus(os.EPERM)
+	errNo := ToStatus(os.ErrPermission)
 	if errNo != EPERM {
 		t.Errorf("Wrong conversion %v != %v", errNo, syscall.EPERM)
 	}

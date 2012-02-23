@@ -47,11 +47,9 @@ func mount(mountPoint string, options string) (f *os.File, finalMountPoint strin
 
 	cmd := []string{fusermountBinary, mountPoint}
 	if options != "" {
-		log.Printf("o %q", options)
 		cmd = append(cmd, "-o")
 		cmd = append(cmd, options)
 	}
-
 	proc, err := os.StartProcess(fusermountBinary,
 		cmd,
 		&os.ProcAttr{
@@ -61,12 +59,13 @@ func mount(mountPoint string, options string) (f *os.File, finalMountPoint strin
 	if err != nil {
 		return
 	}
-	w, err := os.Wait(proc.Pid, 0)
+	
+	w, err := proc.Wait()
 	if err != nil {
 		return
 	}
-	if w.ExitStatus() != 0 {
-		err = fmt.Errorf("fusermount exited with code %d\n", w.ExitStatus())
+	if !w.Success() {
+		err = fmt.Errorf("fusermount exited with code %v\n", w.Sys())
 		return
 	}
 
@@ -83,9 +82,9 @@ func privilegedUnmount(mountPoint string) error {
 	if err != nil {
 		return err
 	}
-	w, err := os.Wait(proc.Pid, 0)
-	if w.ExitStatus() != 0 {
-		return fmt.Errorf("umount exited with code %d\n", w.ExitStatus())
+	w, err := proc.Wait()
+	if !w.Success() {
+		return fmt.Errorf("umount exited with code %v\n", w.Sys())
 	}
 	return err
 }
@@ -101,12 +100,12 @@ func unmount(mountPoint string) (err error) {
 	if err != nil {
 		return
 	}
-	w, err := os.Wait(proc.Pid, 0)
+	w, err := proc.Wait()
 	if err != nil {
 		return
 	}
-	if w.ExitStatus() != 0 {
-		return fmt.Errorf("fusermount -u exited with code %d\n", w.ExitStatus())
+	if !w.Success() {
+		return fmt.Errorf("fusermount -u exited with code %v\n", w.Sys())
 	}
 	return
 }
