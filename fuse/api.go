@@ -223,6 +223,13 @@ type MountOptions struct {
 	// Write size to use.  If 0, use default. This number is
 	// capped at the kernel maximum.
 	MaxWrite int
+
+	// If IgnoreSecurityLabels is set, all security related xattr
+	// requests will return NO_DATA without passing through the
+	// user defined filesystem.  You should only set this if you
+	// file system implements extended attributes, and you are not
+	// interested in security labels.
+	IgnoreSecurityLabels bool // ignoring labels should be provided as a fusermount mount option.
 }
 
 // DefaultFileSystem implements a FileSystem that returns ENOSYS for every operation.

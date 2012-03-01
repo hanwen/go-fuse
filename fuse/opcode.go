@@ -158,7 +158,20 @@ func doWrite(state *MountState, req *request) {
 	req.status = status
 }
 
+const _SECURITY_CAPABILITY = "security.capability"
+const _SECURITY_ACL = "system.posix_acl_access"
+const _SECURITY_ACL_DEFAULT = "system.posix_acl_default"
+
 func doGetXAttr(state *MountState, req *request) {
+	if state.opts.IgnoreSecurityLabels && req.inHeader.opcode == _OP_GETXATTR {
+		fn := req.filenames[0]
+		if fn == _SECURITY_CAPABILITY || fn == _SECURITY_ACL_DEFAULT ||
+			fn == _SECURITY_ACL {
+			req.status = ENODATA
+			return
+		}
+	}
+	
 	input := (*GetXAttrIn)(req.inData)
 	var data []byte
 	switch {
