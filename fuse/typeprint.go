@@ -207,6 +207,18 @@ func (me *AccessIn) String() string {
 	return fmt.Sprintf("{%s}", flagString(accessFlagName, int(me.Mask), ""))
 }
 
+func (me *SetXAttrIn) String() string {
+	return fmt.Sprintf("{sz %d f%o}", me.Size, me.Flags)
+}
+
+func (me *GetXAttrIn) String() string {
+	return fmt.Sprintf("{sz %d}", me.Size)
+}
+
+func (me *GetXAttrOut) String() string {
+	return fmt.Sprintf("{sz %d}", me.Size)
+}
+
 func (me *Kstatfs) String() string {
 	return fmt.Sprintf(
 		"{b%d f%d fs%d ff%d bs%d nl%d frs%d}",
