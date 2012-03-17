@@ -35,6 +35,7 @@ type AutoUnionFs struct {
 	options *AutoUnionFsOptions
 
 	mountState *fuse.MountState
+	connector  *fuse.FileSystemConnector
 }
 
 type AutoUnionFsOptions struct {
@@ -350,6 +351,10 @@ func (me *AutoUnionFs) SetMountState(state *fuse.MountState) {
 	me.mountState = state
 }
 
+func (me *AutoUnionFs) SetFileSystemConnector(conn *fuse.FileSystemConnector) {
+	me.connector = conn
+}
+
 func (me *AutoUnionFs) DebugData() string {
 	if me.mountState == nil {
 		return "AutoUnionFs.mountState not set"
@@ -373,6 +378,10 @@ func (me *AutoUnionFs) DebugData() string {
 		msg += fmt.Sprintf("Op counts: %v\n", counts)
 	}
 
+	if me.connector != nil {
+		msg += fmt.Sprintf("Live inodes: %d\n", me.connector.InodeHandleCount())
+	}
+	
 	return msg
 }
 
