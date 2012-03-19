@@ -59,7 +59,7 @@ func mount(mountPoint string, options string) (f *os.File, finalMountPoint strin
 	if err != nil {
 		return
 	}
-	
+
 	w, err := proc.Wait()
 	if err != nil {
 		return

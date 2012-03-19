@@ -11,7 +11,7 @@ func (me *DefaultRawFileSystem) Lookup(h *InHeader, name string) (out *EntryOut,
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFileSystem) Forget(h *InHeader, input *ForgetIn) {
+func (me *DefaultRawFileSystem) Forget(nodeID, nlookup uint64) {
 }
 
 func (me *DefaultRawFileSystem) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {

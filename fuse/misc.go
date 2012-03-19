@@ -44,7 +44,7 @@ func ToStatus(err error) Status {
 	case os.ErrInvalid:
 		return EINVAL
 	}
-	
+
 	switch t := err.(type) {
 	case syscall.Errno:
 		return Status(t)

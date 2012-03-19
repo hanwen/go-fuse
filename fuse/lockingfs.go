@@ -163,9 +163,9 @@ func (me *LockingRawFileSystem) Lookup(h *InHeader, name string) (out *EntryOut,
 	return me.RawFileSystem.Lookup(h, name)
 }
 
-func (me *LockingRawFileSystem) Forget(h *InHeader, input *ForgetIn) {
+func (me *LockingRawFileSystem) Forget(nodeID uint64, nlookup uint64) {
 	defer me.locked()()
-	me.RawFileSystem.Forget(h, input)
+	me.RawFileSystem.Forget(nodeID, nlookup)
 }
 
 func (me *LockingRawFileSystem) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {

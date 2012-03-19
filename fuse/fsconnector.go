@@ -137,7 +137,6 @@ func (me *FileSystemConnector) forgetUpdate(node *Inode, forgetCount int) {
 	me.recursiveConsiderDropInode(node)
 }
 
-
 // InodeCount returns the number of inodes registered with the kernel.
 func (me *FileSystemConnector) InodeHandleCount() int {
 	return me.inodeMap.Count()

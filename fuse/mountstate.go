@@ -248,10 +248,8 @@ func (me *MountState) handleRequest(req *request) {
 }
 
 func (me *MountState) write(req *request) Status {
-	// If we try to write OK, nil, we will get
-	// error:  writer: Writev [[16 0 0 0 0 0 0 0 17 0 0 0 0 0 0 0]]
-	// failed, err: writev: no such file or directory
-	if req.inHeader.opcode == _OP_FORGET {
+	// Forget does not wait for reply.
+	if req.inHeader.opcode == _OP_FORGET || req.inHeader.opcode == _OP_BATCH_FORGET {
 		return OK
 	}
 

@@ -231,3 +231,11 @@ func (me *WithFlags) String() string {
 		me.File, me.Description, flagString(openFlagNames, int(me.OpenFlags), "O_RDONLY"),
 		flagString(fuseOpenFlagNames, int(me.FuseFlags), ""))
 }
+
+func (me *ForgetIn) String() string {
+	return fmt.Sprintf("{%d}", me.Nlookup)
+}
+
+func (me *BatchForgetIn) String() string {
+	return fmt.Sprintf("{%d}", me.Count)
+}

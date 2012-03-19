@@ -248,7 +248,7 @@ type DefaultFile struct{}
 // Include DefaultRawFileSystem to inherit a null implementation.
 type RawFileSystem interface {
 	Lookup(header *InHeader, name string) (out *EntryOut, status Status)
-	Forget(header *InHeader, input *ForgetIn)
+	Forget(nodeid, nlookup uint64)
 
 	// Attributes.
 	GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status)

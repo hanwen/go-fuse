@@ -73,9 +73,9 @@ func (me *FileSystemConnector) Lookup(header *InHeader, name string) (out *Entry
 	return out, OK
 }
 
-func (me *FileSystemConnector) Forget(h *InHeader, input *ForgetIn) {
-	node := me.toInode(h.NodeId)
-	me.forgetUpdate(node, int(input.Nlookup))
+func (me *FileSystemConnector) Forget(nodeID, nlookup uint64) {
+	node := me.toInode(nodeID)
+	me.forgetUpdate(node, int(nlookup))
 }
 
 func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {

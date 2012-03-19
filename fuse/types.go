@@ -127,6 +127,16 @@ type ForgetIn struct {
 	Nlookup uint64
 }
 
+type ForgetOne struct {
+	NodeId  uint64
+	Nlookup uint64
+}
+
+type BatchForgetIn struct {
+	Count uint32
+	Dummy uint32
+}
+
 const (
 	// Mask for GetAttrIn.Flags. If set, GetAttrIn has a file handle set.
 	FUSE_GETATTR_FH = (1 << 0)
