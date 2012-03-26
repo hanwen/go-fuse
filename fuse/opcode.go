@@ -530,6 +530,7 @@ func init() {
 	for op, f := range map[opcode]castPointerFunc{
 		_OP_LOOKUP:       func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
 		_OP_OPEN:         func(ptr unsafe.Pointer) interface{} { return (*OpenOut)(ptr) },
+		_OP_OPENDIR:      func(ptr unsafe.Pointer) interface{} { return (*OpenOut)(ptr) },
 		_OP_GETATTR:      func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
 		_OP_CREATE:       func(ptr unsafe.Pointer) interface{} { return (*CreateOut)(ptr) },
 		_OP_LINK:         func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
