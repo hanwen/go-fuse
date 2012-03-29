@@ -307,7 +307,7 @@ func (me *FileSystemConnector) RemoveXAttr(header *InHeader, attr string) Status
 	return node.fsInode.RemoveXAttr(attr, &header.Context)
 }
 
-func (me *FileSystemConnector) SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) Status {
+func (me *FileSystemConnector) SetXAttr(header *InHeader, input *raw.SetXAttrIn, attr string, data []byte) Status {
 	node := me.toInode(header.NodeId)
 	return node.fsInode.SetXAttr(attr, data, int(input.Flags), &header.Context)
 }

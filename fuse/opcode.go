@@ -160,7 +160,7 @@ func doSetattr(state *MountState, req *request) {
 
 func doWrite(state *MountState, req *request) {
 	n, status := state.fileSystem.Write(req.inHeader, (*WriteIn)(req.inData), req.arg)
-	o := &WriteOut{
+	o := &raw.WriteOut{
 		Size: n,
 	}
 	req.outData = unsafe.Pointer(o)
@@ -181,13 +181,13 @@ func doGetXAttr(state *MountState, req *request) {
 		}
 	}
 
-	input := (*GetXAttrIn)(req.inData)
+	input := (*raw.GetXAttrIn)(req.inData)
 	var data []byte
 	switch {
 	case req.inHeader.opcode == _OP_GETXATTR && input.Size == 0:
 		sz, code := state.fileSystem.GetXAttrSize(req.inHeader, req.filenames[0])
 		if code.Ok() {
-			out := &GetXAttrOut{
+			out := &raw.GetXAttrOut{
 				Size: uint32(sz),
 			}
 			req.outData = unsafe.Pointer(out)
@@ -301,7 +301,7 @@ func doFsyncDir(state *MountState, req *request) {
 
 func doSetXAttr(state *MountState, req *request) {
 	splits := bytes.SplitN(req.arg, []byte{0}, 2)
-	req.status = state.fileSystem.SetXAttr(req.inHeader, (*SetXAttrIn)(req.inData), string(splits[0]), splits[1])
+	req.status = state.fileSystem.SetXAttr(req.inHeader, (*raw.SetXAttrIn)(req.inData), string(splits[0]), splits[1])
 }
 
 func doRemoveXAttr(state *MountState, req *request) {
@@ -401,9 +401,9 @@ func init() {
 		_OP_WRITE:        unsafe.Sizeof(WriteIn{}),
 		_OP_RELEASE:      unsafe.Sizeof(raw.ReleaseIn{}),
 		_OP_FSYNC:        unsafe.Sizeof(FsyncIn{}),
-		_OP_SETXATTR:     unsafe.Sizeof(SetXAttrIn{}),
-		_OP_GETXATTR:     unsafe.Sizeof(GetXAttrIn{}),
-		_OP_LISTXATTR:    unsafe.Sizeof(GetXAttrIn{}),
+		_OP_SETXATTR:     unsafe.Sizeof(raw.SetXAttrIn{}),
+		_OP_GETXATTR:     unsafe.Sizeof(raw.GetXAttrIn{}),
+		_OP_LISTXATTR:    unsafe.Sizeof(raw.GetXAttrIn{}),
 		_OP_FLUSH:        unsafe.Sizeof(FlushIn{}),
 		_OP_INIT:         unsafe.Sizeof(raw.InitIn{}),
 		_OP_OPENDIR:      unsafe.Sizeof(raw.OpenIn{}),
@@ -429,10 +429,10 @@ func init() {
 		_OP_MKDIR:        unsafe.Sizeof(EntryOut{}),
 		_OP_LINK:         unsafe.Sizeof(EntryOut{}),
 		_OP_OPEN:         unsafe.Sizeof(raw.OpenOut{}),
-		_OP_WRITE:        unsafe.Sizeof(WriteOut{}),
+		_OP_WRITE:        unsafe.Sizeof(raw.WriteOut{}),
 		_OP_STATFS:       unsafe.Sizeof(StatfsOut{}),
-		_OP_GETXATTR:     unsafe.Sizeof(GetXAttrOut{}),
-		_OP_LISTXATTR:    unsafe.Sizeof(GetXAttrOut{}),
+		_OP_GETXATTR:     unsafe.Sizeof(raw.GetXAttrOut{}),
+		_OP_LISTXATTR:    unsafe.Sizeof(raw.GetXAttrOut{}),
 		_OP_INIT:         unsafe.Sizeof(raw.InitOut{}),
 		_OP_OPENDIR:      unsafe.Sizeof(raw.OpenOut{}),
 		_OP_CREATE:       unsafe.Sizeof(CreateOut{}),

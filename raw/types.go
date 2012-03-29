@@ -212,3 +212,42 @@ type PollOut struct {
 type NotifyPollWakeupOut struct {
 	Kh uint64
 }
+
+type WriteOut struct {
+	Size    uint32
+	Padding uint32
+}
+
+type SetXAttrIn struct {
+	Size  uint32
+	Flags uint32
+}
+
+type GetXAttrIn struct {
+	Size    uint32
+	Padding uint32
+}
+
+type GetXAttrOut struct {
+	Size    uint32
+	Padding uint32
+}
+
+type FileLock struct {
+	Start uint64
+	End   uint64
+	Typ   uint32
+	Pid   uint32
+}
+
+type LkIn struct {
+	Fh      uint64
+	Owner   uint64
+	Lk      FileLock
+	LkFlags uint32
+	Padding uint32
+}
+
+type LkOut struct {
+	Lk FileLock
+}

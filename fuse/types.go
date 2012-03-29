@@ -107,13 +107,6 @@ type Kstatfs struct {
 	Spare   [6]uint32
 }
 
-type FileLock struct {
-	Start uint64
-	End   uint64
-	Typ   uint32
-	Pid   uint32
-}
-
 type EntryOut struct {
 	NodeId         uint64
 	Generation     uint64
@@ -179,11 +172,6 @@ type WriteIn struct {
 	Padding    uint32
 }
 
-type WriteOut struct {
-	Size    uint32
-	Padding uint32
-}
-
 type StatfsOut struct {
 	Kstatfs
 }
@@ -194,32 +182,6 @@ type FsyncIn struct {
 	Padding    uint32
 }
 
-type SetXAttrIn struct {
-	Size  uint32
-	Flags uint32
-}
-
-type GetXAttrIn struct {
-	Size    uint32
-	Padding uint32
-}
-
-type GetXAttrOut struct {
-	Size    uint32
-	Padding uint32
-}
-
-type LkIn struct {
-	Fh      uint64
-	Owner   uint64
-	Lk      FileLock
-	LkFlags uint32
-	Padding uint32
-}
-
-type LkOut struct {
-	Lk FileLock
-}
 
 // For AccessIn.Mask.
 const (

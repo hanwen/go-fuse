@@ -70,7 +70,7 @@ func (me *DefaultRawFileSystem) GetXAttrData(header *InHeader, attr string) (dat
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFileSystem) SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) Status {
+func (me *DefaultRawFileSystem) SetXAttr(header *InHeader, input *raw.SetXAttrIn, attr string, data []byte) Status {
 	return ENOSYS
 }
 

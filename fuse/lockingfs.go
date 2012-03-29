@@ -225,7 +225,7 @@ func (me *LockingRawFileSystem) Link(header *InHeader, input *raw.LinkIn, name s
 	return me.RawFileSystem.Link(header, input, name)
 }
 
-func (me *LockingRawFileSystem) SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) Status {
+func (me *LockingRawFileSystem) SetXAttr(header *InHeader, input *raw.SetXAttrIn, attr string, data []byte) Status {
 	defer me.locked()()
 	return me.RawFileSystem.SetXAttr(header, input, attr, data)
 }

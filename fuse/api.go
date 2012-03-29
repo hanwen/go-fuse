@@ -272,7 +272,7 @@ type RawFileSystem interface {
 	GetXAttrSize(header *InHeader, attr string) (sz int, code Status)
 	GetXAttrData(header *InHeader, attr string) (data []byte, code Status)
 	ListXAttr(header *InHeader) (attributes []byte, code Status)
-	SetXAttr(header *InHeader, input *SetXAttrIn, attr string, data []byte) Status
+	SetXAttr(header *InHeader, input *raw.SetXAttrIn, attr string, data []byte) Status
 	RemoveXAttr(header *InHeader, attr string) (code Status)
 
 	// File handling.

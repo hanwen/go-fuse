@@ -147,3 +147,15 @@ func (me *InitOut) String() string {
 		FlagString(initFlagNames, int(me.Flags), ""),
 		me.CongestionThreshold, me.MaxBackground, me.MaxWrite)
 }
+
+func (me *SetXAttrIn) String() string {
+	return fmt.Sprintf("{sz %d f%o}", me.Size, me.Flags)
+}
+
+func (me *GetXAttrIn) String() string {
+	return fmt.Sprintf("{sz %d}", me.Size)
+}
+
+func (me *GetXAttrOut) String() string {
+	return fmt.Sprintf("{sz %d}", me.Size)
+}
