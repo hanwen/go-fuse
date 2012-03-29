@@ -59,10 +59,6 @@ func (me *ReadIn) String() string {
 }
 
 
-func (me *FlushIn) String() string {
-	return fmt.Sprintf("{Fh %d}", me.Fh)
-}
-
 func (me *Kstatfs) String() string {
 	return fmt.Sprintf(
 		"{b%d f%d fs%d ff%d bs%d nl%d frs%d}",

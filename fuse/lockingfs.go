@@ -285,7 +285,7 @@ func (me *LockingRawFileSystem) Write(header *InHeader, input *WriteIn, data []b
 	return me.RawFileSystem.Write(header, input, data)
 }
 
-func (me *LockingRawFileSystem) Flush(header *InHeader, input *FlushIn) Status {
+func (me *LockingRawFileSystem) Flush(header *InHeader, input *raw.FlushIn) Status {
 	defer me.locked()()
 	return me.RawFileSystem.Flush(header, input)
 }

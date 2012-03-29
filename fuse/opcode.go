@@ -280,7 +280,7 @@ func doRead(state *MountState, req *request) {
 }
 
 func doFlush(state *MountState, req *request) {
-	req.status = state.fileSystem.Flush(req.inHeader, (*FlushIn)(req.inData))
+	req.status = state.fileSystem.Flush(req.inHeader, (*raw.FlushIn)(req.inData))
 }
 
 func doRelease(state *MountState, req *request) {
@@ -404,7 +404,7 @@ func init() {
 		_OP_SETXATTR:     unsafe.Sizeof(raw.SetXAttrIn{}),
 		_OP_GETXATTR:     unsafe.Sizeof(raw.GetXAttrIn{}),
 		_OP_LISTXATTR:    unsafe.Sizeof(raw.GetXAttrIn{}),
-		_OP_FLUSH:        unsafe.Sizeof(FlushIn{}),
+		_OP_FLUSH:        unsafe.Sizeof(raw.FlushIn{}),
 		_OP_INIT:         unsafe.Sizeof(raw.InitIn{}),
 		_OP_OPENDIR:      unsafe.Sizeof(raw.OpenIn{}),
 		_OP_READDIR:      unsafe.Sizeof(ReadIn{}),
@@ -548,7 +548,7 @@ func init() {
 
 	// Inputs.
 	for op, f := range map[opcode]castPointerFunc{
-		_OP_FLUSH:        func(ptr unsafe.Pointer) interface{} { return (*FlushIn)(ptr) },
+		_OP_FLUSH:        func(ptr unsafe.Pointer) interface{} { return (*raw.FlushIn)(ptr) },
 		_OP_GETATTR:      func(ptr unsafe.Pointer) interface{} { return (*raw.GetAttrIn)(ptr) },
 		_OP_SETATTR:      func(ptr unsafe.Pointer) interface{} { return (*raw.SetAttrIn)(ptr) },
 		_OP_INIT:         func(ptr unsafe.Pointer) interface{} { return (*raw.InitIn)(ptr) },

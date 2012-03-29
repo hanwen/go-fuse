@@ -121,13 +121,6 @@ type CreateOut struct {
 	raw.OpenOut
 }
 
-type FlushIn struct {
-	Fh        uint64
-	Unused    uint32
-	Padding   uint32
-	LockOwner uint64
-}
-
 const (
 	READ_LOCKOWNER = (1 << 1)
 )

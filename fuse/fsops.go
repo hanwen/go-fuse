@@ -348,7 +348,7 @@ func (me *FileSystemConnector) StatFs(header *InHeader) *StatfsOut {
 	return node.FsNode().StatFs()
 }
 
-func (me *FileSystemConnector) Flush(header *InHeader, input *FlushIn) Status {
+func (me *FileSystemConnector) Flush(header *InHeader, input *raw.FlushIn) Status {
 	node := me.toInode(header.NodeId)
 	opened := node.mount.getOpenedFile(input.Fh)
 	return opened.WithFlags.File.Flush()

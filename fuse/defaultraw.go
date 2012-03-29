@@ -113,7 +113,7 @@ func (me *DefaultRawFileSystem) Write(header *InHeader, input *WriteIn, data []b
 	return 0, ENOSYS
 }
 
-func (me *DefaultRawFileSystem) Flush(header *InHeader, input *FlushIn) Status {
+func (me *DefaultRawFileSystem) Flush(header *InHeader, input *raw.FlushIn) Status {
 	return OK
 }
 

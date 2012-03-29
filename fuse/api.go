@@ -282,7 +282,7 @@ type RawFileSystem interface {
 
 	Release(header *InHeader, input *raw.ReleaseIn)
 	Write(*InHeader, *WriteIn, []byte) (written uint32, code Status)
-	Flush(header *InHeader, input *FlushIn) Status
+	Flush(header *InHeader, input *raw.FlushIn) Status
 	Fsync(*InHeader, *raw.FsyncIn) (code Status)
 
 	// Directory handling

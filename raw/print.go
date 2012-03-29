@@ -176,3 +176,7 @@ func (me *CreateIn) String() string {
 		FlagString(OpenFlagNames, int(me.Flags), "O_RDONLY"), me.Umask)
 }
 
+func (me *FlushIn) String() string {
+	return fmt.Sprintf("{Fh %d}", me.Fh)
+}
+

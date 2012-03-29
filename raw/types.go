@@ -303,3 +303,10 @@ const (
 	NOTIFY_INVAL_ENTRY = -3
 	NOTIFY_CODE_MAX    = -4
 )
+
+type FlushIn struct {
+	Fh        uint64
+	Unused    uint32
+	Padding   uint32
+	LockOwner uint64
+}
