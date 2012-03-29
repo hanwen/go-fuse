@@ -1,5 +1,9 @@
 package fuse
 
+import (
+	"github.com/hanwen/go-fuse/raw"
+)
+
 func (me *DefaultRawFileSystem) Init(init *RawFsInit) {
 }
 
@@ -30,11 +34,11 @@ func (me *DefaultRawFileSystem) Readlink(header *InHeader) (out []byte, code Sta
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFileSystem) Mknod(header *InHeader, input *MknodIn, name string) (out *EntryOut, code Status) {
+func (me *DefaultRawFileSystem) Mknod(header *InHeader, input *raw.MknodIn, name string) (out *EntryOut, code Status) {
 	return new(EntryOut), ENOSYS
 }
 
-func (me *DefaultRawFileSystem) Mkdir(header *InHeader, input *MkdirIn, name string) (out *EntryOut, code Status) {
+func (me *DefaultRawFileSystem) Mkdir(header *InHeader, input *raw.MkdirIn, name string) (out *EntryOut, code Status) {
 	return nil, ENOSYS
 }
 
@@ -50,11 +54,11 @@ func (me *DefaultRawFileSystem) Symlink(header *InHeader, pointedTo string, link
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFileSystem) Rename(header *InHeader, input *RenameIn, oldName string, newName string) (code Status) {
+func (me *DefaultRawFileSystem) Rename(header *InHeader, input *raw.RenameIn, oldName string, newName string) (code Status) {
 	return ENOSYS
 }
 
-func (me *DefaultRawFileSystem) Link(header *InHeader, input *LinkIn, name string) (out *EntryOut, code Status) {
+func (me *DefaultRawFileSystem) Link(header *InHeader, input *raw.LinkIn, name string) (out *EntryOut, code Status) {
 	return nil, ENOSYS
 }
 

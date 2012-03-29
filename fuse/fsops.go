@@ -6,6 +6,8 @@ import (
 	"bytes"
 	"log"
 	"time"
+
+	"github.com/hanwen/go-fuse/raw"
 )
 
 var _ = log.Println
@@ -191,7 +193,7 @@ func (me *FileSystemConnector) Readlink(header *InHeader) (out []byte, code Stat
 	return n.fsInode.Readlink(&header.Context)
 }
 
-func (me *FileSystemConnector) Mknod(header *InHeader, input *MknodIn, name string) (out *EntryOut, code Status) {
+func (me *FileSystemConnector) Mknod(header *InHeader, input *raw.MknodIn, name string) (out *EntryOut, code Status) {
 	parent := me.toInode(header.NodeId)
 	fi, fsNode, code := parent.fsInode.Mknod(name, input.Mode, uint32(input.Rdev), &header.Context)
 	if code.Ok() {
@@ -200,7 +202,7 @@ func (me *FileSystemConnector) Mknod(header *InHeader, input *MknodIn, name stri
 	return out, code
 }
 
-func (me *FileSystemConnector) Mkdir(header *InHeader, input *MkdirIn, name string) (out *EntryOut, code Status) {
+func (me *FileSystemConnector) Mkdir(header *InHeader, input *raw.MkdirIn, name string) (out *EntryOut, code Status) {
 	parent := me.toInode(header.NodeId)
 	fi, fsInode, code := parent.fsInode.Mkdir(name, input.Mode, &header.Context)
 
@@ -229,7 +231,7 @@ func (me *FileSystemConnector) Symlink(header *InHeader, pointedTo string, linkN
 	return out, code
 }
 
-func (me *FileSystemConnector) Rename(header *InHeader, input *RenameIn, oldName string, newName string) (code Status) {
+func (me *FileSystemConnector) Rename(header *InHeader, input *raw.RenameIn, oldName string, newName string) (code Status) {
 	oldParent := me.toInode(header.NodeId)
 	isMountPoint := me.findMount(oldParent, oldName) != nil
 	if isMountPoint {
@@ -244,7 +246,7 @@ func (me *FileSystemConnector) Rename(header *InHeader, input *RenameIn, oldName
 	return oldParent.fsInode.Rename(oldName, newParent.fsInode, newName, &header.Context)
 }
 
-func (me *FileSystemConnector) Link(header *InHeader, input *LinkIn, name string) (out *EntryOut, code Status) {
+func (me *FileSystemConnector) Link(header *InHeader, input *raw.LinkIn, name string) (out *EntryOut, code Status) {
 	existing := me.toInode(input.Oldnodeid)
 	parent := me.toInode(header.NodeId)
 

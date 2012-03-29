@@ -6,6 +6,8 @@ import (
 	"log"
 	"reflect"
 	"unsafe"
+
+	"github.com/hanwen/go-fuse/raw"
 )
 
 var _ = log.Printf
@@ -217,12 +219,12 @@ func doGetAttr(state *MountState, req *request) {
 }
 
 func doForget(state *MountState, req *request) {
-	state.fileSystem.Forget(req.inHeader.NodeId, (*ForgetIn)(req.inData).Nlookup)
+	state.fileSystem.Forget(req.inHeader.NodeId, (*raw.ForgetIn)(req.inData).Nlookup)
 }
 
 func doBatchForget(state *MountState, req *request) {
-	in := (*BatchForgetIn)(req.inData)
-	wantBytes := uintptr(in.Count)*unsafe.Sizeof(BatchForgetIn{})
+	in := (*raw.BatchForgetIn)(req.inData)
+	wantBytes := uintptr(in.Count)*unsafe.Sizeof(raw.BatchForgetIn{})
 	if uintptr(len(req.arg)) < wantBytes {
 		// We have no return value to complain, so log an error.
 		log.Printf("Too few bytes for batch forget. Got %d bytes, want %d (%d entries)",
@@ -231,7 +233,7 @@ func doBatchForget(state *MountState, req *request) {
 
 	h := &reflect.SliceHeader{uintptr(unsafe.Pointer(&req.arg[0])), int(in.Count), int(in.Count)}
 
-	forgets := *(*[]ForgetOne)(unsafe.Pointer(h))
+	forgets := *(*[]raw.ForgetOne)(unsafe.Pointer(h))
 	for _, f := range forgets {
 		state.fileSystem.Forget(f.NodeId, f.Nlookup)
 	}
@@ -248,13 +250,13 @@ func doLookup(state *MountState, req *request) {
 }
 
 func doMknod(state *MountState, req *request) {
-	entryOut, s := state.fileSystem.Mknod(req.inHeader, (*MknodIn)(req.inData), req.filenames[0])
+	entryOut, s := state.fileSystem.Mknod(req.inHeader, (*raw.MknodIn)(req.inData), req.filenames[0])
 	req.status = s
 	req.outData = unsafe.Pointer(entryOut)
 }
 
 func doMkdir(state *MountState, req *request) {
-	entryOut, s := state.fileSystem.Mkdir(req.inHeader, (*MkdirIn)(req.inData), req.filenames[0])
+	entryOut, s := state.fileSystem.Mkdir(req.inHeader, (*raw.MkdirIn)(req.inData), req.filenames[0])
 	req.status = s
 	req.outData = unsafe.Pointer(entryOut)
 }
@@ -268,7 +270,7 @@ func doRmdir(state *MountState, req *request) {
 }
 
 func doLink(state *MountState, req *request) {
-	entryOut, s := state.fileSystem.Link(req.inHeader, (*LinkIn)(req.inData), req.filenames[0])
+	entryOut, s := state.fileSystem.Link(req.inHeader, (*raw.LinkIn)(req.inData), req.filenames[0])
 	req.status = s
 	req.outData = unsafe.Pointer(entryOut)
 }
@@ -317,7 +319,7 @@ func doSymlink(state *MountState, req *request) {
 }
 
 func doRename(state *MountState, req *request) {
-	req.status = state.fileSystem.Rename(req.inHeader, (*RenameIn)(req.inData), req.filenames[0], req.filenames[1])
+	req.status = state.fileSystem.Rename(req.inHeader, (*raw.RenameIn)(req.inData), req.filenames[0], req.filenames[1])
 }
 
 func doStatFs(state *MountState, req *request) {
@@ -386,14 +388,14 @@ func init() {
 	}
 
 	for op, sz := range map[opcode]uintptr{
-		_OP_FORGET:       unsafe.Sizeof(ForgetIn{}),
-		_OP_BATCH_FORGET: unsafe.Sizeof(BatchForgetIn{}),
+		_OP_FORGET:       unsafe.Sizeof(raw.ForgetIn{}),
+		_OP_BATCH_FORGET: unsafe.Sizeof(raw.BatchForgetIn{}),
 		_OP_GETATTR:      unsafe.Sizeof(GetAttrIn{}),
 		_OP_SETATTR:      unsafe.Sizeof(SetAttrIn{}),
-		_OP_MKNOD:        unsafe.Sizeof(MknodIn{}),
-		_OP_MKDIR:        unsafe.Sizeof(MkdirIn{}),
-		_OP_RENAME:       unsafe.Sizeof(RenameIn{}),
-		_OP_LINK:         unsafe.Sizeof(LinkIn{}),
+		_OP_MKNOD:        unsafe.Sizeof(raw.MknodIn{}),
+		_OP_MKDIR:        unsafe.Sizeof(raw.MkdirIn{}),
+		_OP_RENAME:       unsafe.Sizeof(raw.RenameIn{}),
+		_OP_LINK:         unsafe.Sizeof(raw.LinkIn{}),
 		_OP_OPEN:         unsafe.Sizeof(OpenIn{}),
 		_OP_READ:         unsafe.Sizeof(ReadIn{}),
 		_OP_WRITE:        unsafe.Sizeof(WriteIn{}),
@@ -552,15 +554,15 @@ func init() {
 		_OP_INIT:         func(ptr unsafe.Pointer) interface{} { return (*InitIn)(ptr) },
 		_OP_IOCTL:        func(ptr unsafe.Pointer) interface{} { return (*IoctlIn)(ptr) },
 		_OP_OPEN:         func(ptr unsafe.Pointer) interface{} { return (*OpenIn)(ptr) },
-		_OP_MKNOD:        func(ptr unsafe.Pointer) interface{} { return (*MknodIn)(ptr) },
+		_OP_MKNOD:        func(ptr unsafe.Pointer) interface{} { return (*raw.MknodIn)(ptr) },
 		_OP_CREATE:       func(ptr unsafe.Pointer) interface{} { return (*CreateIn)(ptr) },
 		_OP_READ:         func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
 		_OP_READDIR:      func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
 		_OP_ACCESS:       func(ptr unsafe.Pointer) interface{} { return (*AccessIn)(ptr) },
-		_OP_FORGET:       func(ptr unsafe.Pointer) interface{} { return (*ForgetIn)(ptr) },
-		_OP_BATCH_FORGET: func(ptr unsafe.Pointer) interface{} { return (*BatchForgetIn)(ptr) },
-		_OP_LINK:         func(ptr unsafe.Pointer) interface{} { return (*LinkIn)(ptr) },
-		_OP_MKDIR:        func(ptr unsafe.Pointer) interface{} { return (*MkdirIn)(ptr) },
+		_OP_FORGET:       func(ptr unsafe.Pointer) interface{} { return (*raw.ForgetIn)(ptr) },
+		_OP_BATCH_FORGET: func(ptr unsafe.Pointer) interface{} { return (*raw.BatchForgetIn)(ptr) },
+		_OP_LINK:         func(ptr unsafe.Pointer) interface{} { return (*raw.LinkIn)(ptr) },
+		_OP_MKDIR:        func(ptr unsafe.Pointer) interface{} { return (*raw.MkdirIn)(ptr) },
 		_OP_RELEASE:      func(ptr unsafe.Pointer) interface{} { return (*ReleaseIn)(ptr) },
 		_OP_RELEASEDIR:   func(ptr unsafe.Pointer) interface{} { return (*ReleaseIn)(ptr) },
 	} {

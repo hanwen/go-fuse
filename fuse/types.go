@@ -123,20 +123,6 @@ type EntryOut struct {
 	Attr
 }
 
-type ForgetIn struct {
-	Nlookup uint64
-}
-
-type ForgetOne struct {
-	NodeId  uint64
-	Nlookup uint64
-}
-
-type BatchForgetIn struct {
-	Count uint32
-	Dummy uint32
-}
-
 const (
 	// Mask for GetAttrIn.Flags. If set, GetAttrIn has a file handle set.
 	FUSE_GETATTR_FH = (1 << 0)
@@ -153,26 +139,6 @@ type AttrOut struct {
 	AttrValidNsec uint32
 	Dummy         uint32
 	Attr
-}
-
-type MknodIn struct {
-	Mode    uint32
-	Rdev    uint32
-	Umask   uint32
-	Padding uint32
-}
-
-type MkdirIn struct {
-	Mode  uint32
-	Umask uint32
-}
-
-type RenameIn struct {
-	Newdir uint64
-}
-
-type LinkIn struct {
-	Oldnodeid uint64
 }
 
 const ( // SetAttrIn.Valid

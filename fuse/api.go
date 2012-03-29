@@ -6,6 +6,8 @@ package fuse
 
 import (
 	"time"
+
+	"github.com/hanwen/go-fuse/raw"
 )
 
 // Types for users to implement.
@@ -255,12 +257,12 @@ type RawFileSystem interface {
 	SetAttr(header *InHeader, input *SetAttrIn) (out *AttrOut, code Status)
 
 	// Modifying structure.
-	Mknod(header *InHeader, input *MknodIn, name string) (out *EntryOut, code Status)
-	Mkdir(header *InHeader, input *MkdirIn, name string) (out *EntryOut, code Status)
+	Mknod(header *InHeader, input *raw.MknodIn, name string) (out *EntryOut, code Status)
+	Mkdir(header *InHeader, input *raw.MkdirIn, name string) (out *EntryOut, code Status)
 	Unlink(header *InHeader, name string) (code Status)
 	Rmdir(header *InHeader, name string) (code Status)
-	Rename(header *InHeader, input *RenameIn, oldName string, newName string) (code Status)
-	Link(header *InHeader, input *LinkIn, filename string) (out *EntryOut, code Status)
+	Rename(header *InHeader, input *raw.RenameIn, oldName string, newName string) (code Status)
+	Link(header *InHeader, input *raw.LinkIn, filename string) (out *EntryOut, code Status)
 
 	Symlink(header *InHeader, pointedTo string, linkName string) (out *EntryOut, code Status)
 	Readlink(header *InHeader) (out []byte, code Status)

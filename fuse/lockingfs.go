@@ -2,6 +2,8 @@ package fuse
 
 import (
 	"sync"
+
+	"github.com/hanwen/go-fuse/raw"
 )
 
 // This is a wrapper that makes a FileSystem threadsafe by
@@ -188,12 +190,12 @@ func (me *LockingRawFileSystem) Readlink(header *InHeader) (out []byte, code Sta
 	return me.RawFileSystem.Readlink(header)
 }
 
-func (me *LockingRawFileSystem) Mknod(header *InHeader, input *MknodIn, name string) (out *EntryOut, code Status) {
+func (me *LockingRawFileSystem) Mknod(header *InHeader, input *raw.MknodIn, name string) (out *EntryOut, code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Mknod(header, input, name)
 }
 
-func (me *LockingRawFileSystem) Mkdir(header *InHeader, input *MkdirIn, name string) (out *EntryOut, code Status) {
+func (me *LockingRawFileSystem) Mkdir(header *InHeader, input *raw.MkdirIn, name string) (out *EntryOut, code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Mkdir(header, input, name)
 }
@@ -213,12 +215,12 @@ func (me *LockingRawFileSystem) Symlink(header *InHeader, pointedTo string, link
 	return me.RawFileSystem.Symlink(header, pointedTo, linkName)
 }
 
-func (me *LockingRawFileSystem) Rename(header *InHeader, input *RenameIn, oldName string, newName string) (code Status) {
+func (me *LockingRawFileSystem) Rename(header *InHeader, input *raw.RenameIn, oldName string, newName string) (code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Rename(header, input, oldName, newName)
 }
 
-func (me *LockingRawFileSystem) Link(header *InHeader, input *LinkIn, name string) (out *EntryOut, code Status) {
+func (me *LockingRawFileSystem) Link(header *InHeader, input *raw.LinkIn, name string) (out *EntryOut, code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Link(header, input, name)
 }
