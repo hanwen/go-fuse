@@ -2,7 +2,6 @@ package unionfs
 
 import (
 	"fmt"
-	"github.com/hanwen/go-fuse/fuse"
 	"io/ioutil"
 	"log"
 	"os"
@@ -12,6 +11,9 @@ import (
 	"syscall"
 	"testing"
 	"time"
+	
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/raw"
 )
 
 var _ = fmt.Print
@@ -607,7 +609,7 @@ func TestUnionFsWriteAccess(t *testing.T) {
 	CheckSuccess(err)
 	freezeRo(wd + "/ro")
 
-	err = syscall.Access(wd+"/mnt/file", fuse.W_OK)
+	err = syscall.Access(wd+"/mnt/file", raw.W_OK)
 	if err != nil {
 		CheckSuccess(err)
 	}

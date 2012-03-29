@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/raw"
 	"log"
 	"os"
 	"path"
@@ -559,7 +560,7 @@ func (me *UnionFs) Chmod(name string, mode uint32, context *fuse.Context) (code 
 
 func (me *UnionFs) Access(name string, mode uint32, context *fuse.Context) (code fuse.Status) {
 	// We always allow writing.
-	mode = mode &^ fuse.W_OK
+	mode = mode &^ raw.W_OK
 	if name == "" {
 		return fuse.OK
 	}
