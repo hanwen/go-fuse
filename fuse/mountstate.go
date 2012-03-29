@@ -285,7 +285,7 @@ func (me *MountState) writeInodeNotify(entry *raw.NotifyInvalInodeOut) Status {
 			opcode: _OP_NOTIFY_INODE,
 		},
 		handler: operationHandlers[_OP_NOTIFY_INODE],
-		status:  NOTIFY_INVAL_INODE,
+		status:  raw.NOTIFY_INVAL_INODE,
 	}
 	req.outData = unsafe.Pointer(entry)
 	req.serialize()
@@ -303,7 +303,7 @@ func (me *MountState) writeEntryNotify(parent uint64, name string) Status {
 			opcode: _OP_NOTIFY_ENTRY,
 		},
 		handler: operationHandlers[_OP_NOTIFY_ENTRY],
-		status:  NOTIFY_INVAL_ENTRY,
+		status:  raw.NOTIFY_INVAL_ENTRY,
 	}
 	entry := &raw.NotifyInvalEntryOut{
 		Parent:  parent,

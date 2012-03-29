@@ -57,14 +57,6 @@ const (
 	EROFS   = Status(syscall.EROFS)
 )
 
-type NotifyCode int
-
-const (
-	NOTIFY_POLL        = -1
-	NOTIFY_INVAL_INODE = -2
-	NOTIFY_INVAL_ENTRY = -3
-	NOTIFY_CODE_MAX    = -4
-)
 
 type Attr struct {
 	Ino       uint64
