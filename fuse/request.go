@@ -6,6 +6,8 @@ import (
 	"log"
 	"strings"
 	"unsafe"
+
+	"github.com/hanwen/go-fuse/raw"
 )
 
 type request struct {
@@ -135,12 +137,12 @@ func (me *request) serialize() {
 		dataLength = 0
 	}
 
-	sizeOfOutHeader := unsafe.Sizeof(OutHeader{})
+	sizeOfOutHeader := unsafe.Sizeof(raw.OutHeader{})
 
 	me.outHeaderBytes = make([]byte, sizeOfOutHeader+dataLength)
-	outHeader := (*OutHeader)(unsafe.Pointer(&me.outHeaderBytes[0]))
+	outHeader := (*raw.OutHeader)(unsafe.Pointer(&me.outHeaderBytes[0]))
 	outHeader.Unique = me.inHeader.Unique
-	outHeader.Status = -me.status
+	outHeader.Status = int32(-me.status)
 	outHeader.Length = uint32(
 		int(sizeOfOutHeader) + int(dataLength) + int(len(me.flatData)))
 

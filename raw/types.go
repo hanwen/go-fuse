@@ -270,3 +270,9 @@ type FsyncIn struct {
 	FsyncFlags uint32
 	Padding    uint32
 }
+
+type OutHeader struct {
+	Length uint32
+	Status int32
+	Unique uint64
+}

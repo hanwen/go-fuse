@@ -176,7 +176,6 @@ type StatfsOut struct {
 	Kstatfs
 }
 
-
 type InHeader struct {
 	Length uint32
 	opcode
@@ -184,12 +183,6 @@ type InHeader struct {
 	NodeId uint64
 	Context
 	Padding uint32
-}
-
-type OutHeader struct {
-	Length uint32
-	Status Status
-	Unique uint64
 }
 
 type Dirent struct {
