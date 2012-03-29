@@ -29,7 +29,6 @@ func (fs *MemNodeFs) Root() FsNode {
 
 func (fs *MemNodeFs) newNode() *memNode {
 	fs.mutex.Lock()
-	defer fs.mutex.Unlock()
 	n := &memNode{
 		fs: fs,
 		id: fs.nextFree,
@@ -38,6 +37,7 @@ func (fs *MemNodeFs) newNode() *memNode {
 	n.info.SetNs(now, now, now)
 	n.info.Mode = S_IFDIR | 0777
 	fs.nextFree++
+	fs.mutex.Unlock()
 	return n
 }
 

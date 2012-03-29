@@ -49,7 +49,6 @@ func (m *portableHandleMap) Register(obj *Handled, asInt interface{}) (handle ui
 		panic(_ALREADY_MSG)
 	}
 	m.Lock()
-	defer m.Unlock()
 
 	if len(m.freeIds) == 0 {
 		handle = uint64(len(m.handles))
@@ -60,35 +59,39 @@ func (m *portableHandleMap) Register(obj *Handled, asInt interface{}) (handle ui
 		m.handles[handle] = obj
 	}
 	m.used++
+	m.Unlock()
 	return handle
 }
 
 func (m *portableHandleMap) Count() int {
 	m.RLock()
-	defer m.RUnlock()
-	return m.used
+	c :=  m.used
+	m.RUnlock()
+	return c
 }
 
 func (m *portableHandleMap) Decode(h uint64) *Handled {
 	m.RLock()
-	defer m.RUnlock()
-	return m.handles[h]
+	v := m.handles[h]
+	m.RUnlock()
+	return v
 }
 
 func (m *portableHandleMap) Forget(h uint64) *Handled {
 	m.Lock()
-	defer m.Unlock()
 	v := m.handles[h]
 	m.handles[h] = nil
 	m.freeIds = append(m.freeIds, h)
 	m.used--
+	m.Unlock()
 	return v
 }
 
 func (m *portableHandleMap) Has(h uint64) bool {
 	m.RLock()
-	defer m.RUnlock()
-	return m.handles[h] != nil
+	ok := m.handles[h] != nil
+	m.RUnlock()
+	return ok
 }
 
 // 32 bits version of HandleMap
@@ -99,31 +102,33 @@ type int32HandleMap struct {
 
 func (m *int32HandleMap) Register(obj *Handled, asInt interface{}) uint64 {
 	m.mutex.Lock()
-	defer m.mutex.Unlock()
 	handle := uint32(uintptr(unsafe.Pointer(obj)))
 	m.handles[handle] = obj
+	m.mutex.Unlock()
 	return uint64(handle)
 }
 
 func (m *int32HandleMap) Has(h uint64) bool {
 	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	return m.handles[uint32(h)] != nil
+	ok := m.handles[uint32(h)] != nil
+	m.mutex.Unlock()
+	return ok
 }
 
 func (m *int32HandleMap) Count() int {
 	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	return len(m.handles)
+	c := len(m.handles)
+	m.mutex.Unlock()
+	return c
 }
 
 func (m *int32HandleMap) Forget(handle uint64) *Handled {
 	val := m.Decode(handle)
 
 	m.mutex.Lock()
-	defer m.mutex.Unlock()
 	val.check = 0
 	delete(m.handles, uint32(handle))
+	m.mutex.Unlock()
 	return val
 }
 
@@ -185,8 +190,9 @@ func NewHandleMap(portable bool) (hm HandleMap) {
 
 func (m *int64HandleMap) Count() int {
 	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	return len(m.handles)
+	c := len(m.handles)
+	m.mutex.Unlock()
+	return c
 }
 
 func (m *int64HandleMap) Register(obj *Handled, asInterface interface{}) (handle uint64) {
@@ -228,16 +234,17 @@ func (m *int64HandleMap) Forget(handle uint64) (val *Handled) {
 	val = m.Decode(handle)
 
 	m.mutex.Lock()
-	defer m.mutex.Unlock()
 	delete(m.handles, handle)
 	val.check = 0
+	m.mutex.Unlock()
 	return val
 }
 
 func (m *int64HandleMap) Has(handle uint64) bool {
 	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	return m.handles[handle] != nil
+	ok := m.handles[handle] != nil
+	m.mutex.Unlock()
+	return ok
 }
 
 func (m *int64HandleMap) Decode(handle uint64) (val *Handled) {

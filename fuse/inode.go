@@ -75,24 +75,24 @@ func newInode(isDir bool, fsNode FsNode) *Inode {
 // Returns any open file, preferably a r/w one.
 func (n *Inode) AnyFile() (file File) {
 	n.openFilesMutex.Lock()
-	defer n.openFilesMutex.Unlock()
-
 	for _, f := range n.openFiles {
 		if file == nil || f.WithFlags.OpenFlags&O_ANYWRITE != 0 {
 			file = f.WithFlags.File
 		}
 	}
+	n.openFilesMutex.Unlock()
+
 	return file
 }
 
 func (n *Inode) Children() (out map[string]*Inode) {
 	n.treeLock.RLock()
-	defer n.treeLock.RUnlock()
-
 	out = map[string]*Inode{}
 	for k, v := range n.children {
 		out[k] = v
 	}
+	n.treeLock.RUnlock()
+
 	return out
 }
 
@@ -100,14 +100,14 @@ func (n *Inode) Children() (out map[string]*Inode) {
 // will skip mountpoints.
 func (n *Inode) FsChildren() (out map[string]*Inode) {
 	n.treeLock.RLock()
-	defer n.treeLock.RUnlock()
-
 	out = map[string]*Inode{}
 	for k, v := range n.children {
 		if v.mount == n.mount {
 			out[k] = v
 		}
 	}
+	n.treeLock.RUnlock()
+
 	return out
 }
 
@@ -119,12 +119,12 @@ func (n *Inode) FsNode() FsNode {
 // give mask.  Use mask==0 to return all files.
 func (n *Inode) Files(mask uint32) (files []WithFlags) {
 	n.openFilesMutex.Lock()
-	defer n.openFilesMutex.Unlock()
 	for _, f := range n.openFiles {
 		if mask == 0 || f.WithFlags.OpenFlags&mask != 0 {
 			files = append(files, f.WithFlags)
 		}
 	}
+	n.openFilesMutex.Unlock()
 	return files
 }
 
@@ -141,9 +141,10 @@ func (n *Inode) New(isDir bool, fsi FsNode) *Inode {
 
 func (n *Inode) GetChild(name string) (child *Inode) {
 	n.treeLock.RLock()
-	defer n.treeLock.RUnlock()
+	child = n.children[name]
+	n.treeLock.RUnlock()
 
-	return n.children[name]
+	return child
 }
 
 func (n *Inode) AddChild(name string, child *Inode) {
@@ -151,14 +152,15 @@ func (n *Inode) AddChild(name string, child *Inode) {
 		log.Panicf("adding nil child as %q", name)
 	}
 	n.treeLock.Lock()
-	defer n.treeLock.Unlock()
 	n.addChild(name, child)
+	n.treeLock.Unlock()
 }
 
 func (n *Inode) RmChild(name string) (ch *Inode) {
 	n.treeLock.Lock()
-	defer n.treeLock.Unlock()
-	return n.rmChild(name)
+	ch = n.rmChild(name)
+	n.treeLock.Unlock()
+	return
 }
 
 //////////////////////////////////////////////////////////////
@@ -210,20 +212,21 @@ func (n *Inode) canUnmount() bool {
 	}
 
 	n.openFilesMutex.Lock()
-	defer n.openFilesMutex.Unlock()
-	return len(n.openFiles) == 0
+	ok := len(n.openFiles) == 0
+	n.openFilesMutex.Unlock()
+	return ok
 }
 
 func (n *Inode) getMountDirEntries() (out []DirEntry) {
 	n.treeLock.RLock()
-	defer n.treeLock.RUnlock()
-
 	for k := range n.mounts {
 		out = append(out, DirEntry{
 			Name: k,
 			Mode: S_IFDIR,
 		})
 	}
+	n.treeLock.RUnlock()
+
 	return out
 }
 

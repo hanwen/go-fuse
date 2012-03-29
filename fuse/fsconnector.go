@@ -113,11 +113,12 @@ func (c *FileSystemConnector) toInode(nodeid uint64) *Inode {
 // Must run outside treeLock.  Returns the nodeId.
 func (c *FileSystemConnector) lookupUpdate(node *Inode) uint64 {
 	node.treeLock.Lock()
-	defer node.treeLock.Unlock()
 	if node.lookupCount == 0 {
 		node.nodeId = c.inodeMap.Register(&node.handled, node)
 	}
 	node.lookupCount += 1
+	node.treeLock.Unlock()
+	
 	return node.nodeId
 }
 
@@ -126,8 +127,6 @@ func (c *FileSystemConnector) forgetUpdate(node *Inode, forgetCount int) {
 	defer c.verify()
 
 	node.treeLock.Lock()
-	defer node.treeLock.Unlock()
-
 	node.lookupCount -= forgetCount
 	if node.lookupCount == 0 {
 		c.inodeMap.Forget(node.nodeId)
@@ -137,6 +136,7 @@ func (c *FileSystemConnector) forgetUpdate(node *Inode, forgetCount int) {
 	}
 
 	c.recursiveConsiderDropInode(node)
+	node.treeLock.Unlock()
 }
 
 // InodeCount returns the number of inodes registered with the kernel.
@@ -146,8 +146,8 @@ func (c *FileSystemConnector) InodeHandleCount() int {
 
 func (c *FileSystemConnector) considerDropInode(node *Inode) {
 	node.treeLock.Lock()
-	defer node.treeLock.Unlock()
 	c.recursiveConsiderDropInode(node)
+	node.treeLock.Unlock()
 }
 
 // Must hold treeLock.
@@ -176,8 +176,10 @@ func (c *FileSystemConnector) recursiveConsiderDropInode(n *Inode) (drop bool) {
 	}
 
 	n.openFilesMutex.Lock()
-	defer n.openFilesMutex.Unlock()
-	return len(n.openFiles) == 0
+	ok := len(n.openFiles) == 0
+	n.openFilesMutex.Unlock()
+	
+	return ok
 }
 
 // Finds a node within the currently known inodes, returns the last

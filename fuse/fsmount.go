@@ -95,8 +95,6 @@ func (m *fileSystemMount) unregisterFileHandle(handle uint64, node *Inode) *open
 	obj := m.openFiles.Forget(handle)
 	opened := (*openedFile)(unsafe.Pointer(obj))
 	node.openFilesMutex.Lock()
-	defer node.openFilesMutex.Unlock()
-
 	idx := -1
 	for i, v := range node.openFiles {
 		if v == opened {
@@ -108,13 +106,13 @@ func (m *fileSystemMount) unregisterFileHandle(handle uint64, node *Inode) *open
 	l := len(node.openFiles)
 	node.openFiles[idx] = node.openFiles[l-1]
 	node.openFiles = node.openFiles[:l-1]
+	node.openFilesMutex.Unlock()
 
 	return opened
 }
 
 func (m *fileSystemMount) registerFileHandle(node *Inode, dir rawDir, f File, flags uint32) (uint64, *openedFile) {
 	node.openFilesMutex.Lock()
-	defer node.openFilesMutex.Unlock()
 	b := &openedFile{
 		dir: dir,
 		WithFlags: WithFlags{
@@ -140,6 +138,7 @@ func (m *fileSystemMount) registerFileHandle(node *Inode, dir rawDir, f File, fl
 	}
 	node.openFiles = append(node.openFiles, b)
 	handle := m.openFiles.Register(&b.Handled, b)
+	node.openFilesMutex.Unlock()
 	return handle, b
 }
 

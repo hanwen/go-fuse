@@ -58,9 +58,9 @@ func (fs *PathNodeFs) ForgetClientInodes() {
 		return
 	}
 	fs.pathLock.Lock()
-	defer fs.pathLock.Unlock()
 	fs.clientInodeMap = map[uint64][]*clientInodePath{}
 	fs.root.forgetClientInodes()
+	fs.pathLock.Unlock()
 }
 
 // Rereads all inode numbers for all known files.

@@ -32,15 +32,16 @@ func NewLatencyMap() *LatencyMap {
 
 func (m *LatencyMap) AddMany(args []LatencyArg) {
 	m.Mutex.Lock()
-	defer m.Mutex.Unlock()
 	for _, v := range args {
 		m.add(v.Name, v.Arg, v.DtNs)
 	}
+	m.Mutex.Unlock()
 }
+
 func (m *LatencyMap) Add(name string, arg string, dtNs int64) {
 	m.Mutex.Lock()
-	defer m.Mutex.Unlock()
 	m.add(name, arg, dtNs)
+	m.Mutex.Unlock()
 }
 
 func (m *LatencyMap) add(name string, arg string, dtNs int64) {
@@ -62,40 +63,39 @@ func (m *LatencyMap) add(name string, arg string, dtNs int64) {
 }
 
 func (m *LatencyMap) Counts() map[string]int {
-	m.Mutex.Lock()
-	defer m.Mutex.Unlock()
-
 	r := make(map[string]int)
+	m.Mutex.Lock()
 	for k, v := range m.stats {
 		r[k] = v.count
 	}
+	m.Mutex.Unlock()
+
 	return r
 }
 
 // Latencies returns a map. Use 1e-3 for unit to get ms
 // results.
 func (m *LatencyMap) Latencies(unit float64) map[string]float64 {
-	m.Mutex.Lock()
-	defer m.Mutex.Unlock()
-
 	r := make(map[string]float64)
+	m.Mutex.Lock()
 	mult := 1 / (1e9 * unit)
 	for key, ent := range m.stats {
 		lat := mult * float64(ent.ns) / float64(ent.count)
 		r[key] = lat
 	}
+	m.Mutex.Unlock()
+
 	return r
 }
 
 func (m *LatencyMap) TopArgs(name string) []string {
 	m.Mutex.Lock()
-	defer m.Mutex.Unlock()
-
 	counts := m.secondaryStats[name]
 	results := make([]string, 0, len(counts))
 	for k, v := range counts {
 		results = append(results, fmt.Sprintf("% 9d %s", v, k))
 	}
+	m.Mutex.Unlock()
 	sort.Strings(results)
 	return results
 }

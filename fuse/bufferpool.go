@@ -104,8 +104,6 @@ func (p *BufferPoolImpl) AllocBuffer(size uint32) []byte {
 	psz := sz / PAGESIZE
 
 	p.lock.Lock()
-	defer p.lock.Unlock()
-
 	var b []byte
 
 	b = p.getBuffer(psz)
@@ -122,6 +120,8 @@ func (p *BufferPoolImpl) AllocBuffer(size uint32) []byte {
 	if paranoia && (p.createdBuffers > 50 || len(p.outstandingBuffers) > 50) {
 		panic("Leaking buffers")
 	}
+	p.lock.Unlock()
+
 
 	return b
 }
@@ -141,10 +141,10 @@ func (p *BufferPoolImpl) FreeBuffer(slice []byte) {
 	key := uintptr(unsafe.Pointer(&slice[0]))
 
 	p.lock.Lock()
-	defer p.lock.Unlock()
 	ok := p.outstandingBuffers[key]
 	if ok {
 		p.addBuffer(slice, psz)
 		delete(p.outstandingBuffers, key)
 	}
+	p.lock.Unlock()
 }
