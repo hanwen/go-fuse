@@ -251,3 +251,16 @@ type LkIn struct {
 type LkOut struct {
 	Lk FileLock
 }
+
+// For AccessIn.Mask.
+const (
+	X_OK = 1
+	W_OK = 2
+	R_OK = 4
+	F_OK = 0
+)
+
+type AccessIn struct {
+	Mask    uint32
+	Padding uint32
+}

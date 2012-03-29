@@ -266,7 +266,7 @@ type RawFileSystem interface {
 
 	Symlink(header *InHeader, pointedTo string, linkName string) (out *EntryOut, code Status)
 	Readlink(header *InHeader) (out []byte, code Status)
-	Access(header *InHeader, input *AccessIn) (code Status)
+	Access(header *InHeader, input *raw.AccessIn) (code Status)
 
 	// Extended attributes.
 	GetXAttrSize(header *InHeader, attr string) (sz int, code Status)

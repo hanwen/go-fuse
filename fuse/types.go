@@ -182,20 +182,6 @@ type FsyncIn struct {
 	Padding    uint32
 }
 
-
-// For AccessIn.Mask.
-const (
-	X_OK = 1
-	W_OK = 2
-	R_OK = 4
-	F_OK = 0
-)
-
-type AccessIn struct {
-	Mask    uint32
-	Padding uint32
-}
-
 type InHeader struct {
 	Length uint32
 	opcode

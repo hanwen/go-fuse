@@ -262,7 +262,7 @@ func (me *FileSystemConnector) Link(header *InHeader, input *raw.LinkIn, name st
 	return out, code
 }
 
-func (me *FileSystemConnector) Access(header *InHeader, input *AccessIn) (code Status) {
+func (me *FileSystemConnector) Access(header *InHeader, input *raw.AccessIn) (code Status) {
 	n := me.toInode(header.NodeId)
 	return n.fsInode.Access(input.Mask, &header.Context)
 }

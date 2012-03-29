@@ -309,7 +309,7 @@ func doRemoveXAttr(state *MountState, req *request) {
 }
 
 func doAccess(state *MountState, req *request) {
-	req.status = state.fileSystem.Access(req.inHeader, (*AccessIn)(req.inData))
+	req.status = state.fileSystem.Access(req.inHeader, (*raw.AccessIn)(req.inData))
 }
 
 func doSymlink(state *MountState, req *request) {
@@ -410,7 +410,7 @@ func init() {
 		_OP_READDIR:      unsafe.Sizeof(ReadIn{}),
 		_OP_RELEASEDIR:   unsafe.Sizeof(raw.ReleaseIn{}),
 		_OP_FSYNCDIR:     unsafe.Sizeof(FsyncIn{}),
-		_OP_ACCESS:       unsafe.Sizeof(AccessIn{}),
+		_OP_ACCESS:       unsafe.Sizeof(raw.AccessIn{}),
 		_OP_CREATE:       unsafe.Sizeof(CreateIn{}),
 		_OP_INTERRUPT:    unsafe.Sizeof(raw.InterruptIn{}),
 		_OP_BMAP:         unsafe.Sizeof(raw.BmapIn{}),
@@ -558,7 +558,7 @@ func init() {
 		_OP_CREATE:       func(ptr unsafe.Pointer) interface{} { return (*CreateIn)(ptr) },
 		_OP_READ:         func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
 		_OP_READDIR:      func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
-		_OP_ACCESS:       func(ptr unsafe.Pointer) interface{} { return (*AccessIn)(ptr) },
+		_OP_ACCESS:       func(ptr unsafe.Pointer) interface{} { return (*raw.AccessIn)(ptr) },
 		_OP_FORGET:       func(ptr unsafe.Pointer) interface{} { return (*raw.ForgetIn)(ptr) },
 		_OP_BATCH_FORGET: func(ptr unsafe.Pointer) interface{} { return (*raw.BatchForgetIn)(ptr) },
 		_OP_LINK:         func(ptr unsafe.Pointer) interface{} { return (*raw.LinkIn)(ptr) },

@@ -250,7 +250,7 @@ func (me *LockingRawFileSystem) RemoveXAttr(header *InHeader, attr string) Statu
 	return me.RawFileSystem.RemoveXAttr(header, attr)
 }
 
-func (me *LockingRawFileSystem) Access(header *InHeader, input *AccessIn) (code Status) {
+func (me *LockingRawFileSystem) Access(header *InHeader, input *raw.AccessIn) (code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Access(header, input)
 }

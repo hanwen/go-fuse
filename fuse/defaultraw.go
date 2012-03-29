@@ -82,7 +82,7 @@ func (me *DefaultRawFileSystem) RemoveXAttr(header *InHeader, attr string) Statu
 	return ENOSYS
 }
 
-func (me *DefaultRawFileSystem) Access(header *InHeader, input *AccessIn) (code Status) {
+func (me *DefaultRawFileSystem) Access(header *InHeader, input *raw.AccessIn) (code Status) {
 	return ENOSYS
 }
 

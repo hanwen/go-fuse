@@ -10,6 +10,7 @@ var initFlagNames map[int]string
 var releaseFlagNames map[int]string
 var OpenFlagNames map[int]string
 var FuseOpenFlagNames map[int]string
+var accessFlagName map[int]string
 
 func init() {
 	initFlagNames = map[int]string{
@@ -50,6 +51,12 @@ func init() {
 		FOPEN_KEEP_CACHE:  "CACHE",
 		FOPEN_NONSEEKABLE: "NONSEEK",
 	}
+	accessFlagName = map[int]string{
+		X_OK: "x",
+		W_OK: "w",
+		R_OK: "r",
+	}
+	
 }
 
 func FlagString(names map[int]string, fl int, def string) string {
@@ -159,3 +166,7 @@ func (me *GetXAttrIn) String() string {
 func (me *GetXAttrOut) String() string {
 	return fmt.Sprintf("{sz %d}", me.Size)
 }
+func (me *AccessIn) String() string {
+	return fmt.Sprintf("{%s}", FlagString(accessFlagName, int(me.Mask), ""))
+}
+
