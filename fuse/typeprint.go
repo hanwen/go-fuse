@@ -5,24 +5,11 @@ import (
 	"github.com/hanwen/go-fuse/raw"
 )
 
-var initFlagNames map[int]string
 var writeFlagNames map[int]string
 var readFlagNames map[int]string
 var accessFlagName map[int]string
 
 func init() {
-	initFlagNames = map[int]string{
-		CAP_ASYNC_READ:     "ASYNC_READ",
-		CAP_POSIX_LOCKS:    "POSIX_LOCKS",
-		CAP_FILE_OPS:       "FILE_OPS",
-		CAP_ATOMIC_O_TRUNC: "ATOMIC_O_TRUNC",
-		CAP_EXPORT_SUPPORT: "EXPORT_SUPPORT",
-		CAP_BIG_WRITES:     "BIG_WRITES",
-		CAP_DONT_MASK:      "DONT_MASK",
-		CAP_SPLICE_WRITE:   "SPLICE_WRITE",
-		CAP_SPLICE_MOVE:    "SPLICE_MOVE",
-		CAP_SPLICE_READ:    "SPLICE_READ",
-	}
 	writeFlagNames = map[int]string{
 		WRITE_CACHE:     "CACHE",
 		WRITE_LOCKOWNER: "LOCKOWNER",
@@ -74,17 +61,6 @@ func (me *CreateOut) String() string {
 	return fmt.Sprintf("{%v %v}", &me.EntryOut, &me.OpenOut)
 }
 
-func (me *InitIn) String() string {
-	return fmt.Sprintf("{%d.%d Ra 0x%x %s}",
-		me.Major, me.Minor, me.MaxReadAhead,
-		raw.FlagString(initFlagNames, int(me.Flags), ""))
-}
-func (me *InitOut) String() string {
-	return fmt.Sprintf("{%d.%d Ra 0x%x %s %d/%d Wr 0x%x}",
-		me.Major, me.Minor, me.MaxReadAhead,
-		raw.FlagString(initFlagNames, int(me.Flags), ""),
-		me.CongestionThreshold, me.MaxBackground, me.MaxWrite)
-}
 
 func (me *ReadIn) String() string {
 	return fmt.Sprintf("{Fh %d off %d sz %d %s L %d %s}",

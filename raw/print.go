@@ -6,11 +6,24 @@ import (
 	"syscall"
 )
 
+var initFlagNames map[int]string
 var releaseFlagNames map[int]string
 var OpenFlagNames map[int]string
 var FuseOpenFlagNames map[int]string
 
 func init() {
+	initFlagNames = map[int]string{
+		CAP_ASYNC_READ:     "ASYNC_READ",
+		CAP_POSIX_LOCKS:    "POSIX_LOCKS",
+		CAP_FILE_OPS:       "FILE_OPS",
+		CAP_ATOMIC_O_TRUNC: "ATOMIC_O_TRUNC",
+		CAP_EXPORT_SUPPORT: "EXPORT_SUPPORT",
+		CAP_BIG_WRITES:     "BIG_WRITES",
+		CAP_DONT_MASK:      "DONT_MASK",
+		CAP_SPLICE_WRITE:   "SPLICE_WRITE",
+		CAP_SPLICE_MOVE:    "SPLICE_MOVE",
+		CAP_SPLICE_READ:    "SPLICE_READ",
+	}
 	releaseFlagNames = map[int]string{
 		RELEASE_FLUSH: "FLUSH",
 	}
@@ -122,5 +135,15 @@ func (me *OpenOut) String() string {
 		FlagString(FuseOpenFlagNames, int(me.OpenFlags), ""))
 }
 
+func (me *InitIn) String() string {
+	return fmt.Sprintf("{%d.%d Ra 0x%x %s}",
+		me.Major, me.Minor, me.MaxReadAhead,
+		FlagString(initFlagNames, int(me.Flags), ""))
+}
 
-
+func (me *InitOut) String() string {
+	return fmt.Sprintf("{%d.%d Ra 0x%x %s %d/%d Wr 0x%x}",
+		me.Major, me.Minor, me.MaxReadAhead,
+		FlagString(initFlagNames, int(me.Flags), ""),
+		me.CongestionThreshold, me.MaxBackground, me.MaxWrite)
+}

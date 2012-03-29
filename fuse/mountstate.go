@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 	"unsafe"
+
+	"github.com/hanwen/go-fuse/raw"
 )
 
 const (
@@ -32,10 +34,10 @@ type MountState struct {
 	latencies *LatencyMap
 
 	opts           *MountOptions
-	kernelSettings InitIn
+	kernelSettings raw.InitIn
 }
 
-func (me *MountState) KernelSettings() InitIn {
+func (me *MountState) KernelSettings() raw.InitIn {
 	return me.kernelSettings
 }
 

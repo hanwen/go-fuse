@@ -292,7 +292,7 @@ type RawFileSystem interface {
 	FsyncDir(header *InHeader, input *FsyncIn) (code Status)
 
 	//
-	Ioctl(header *InHeader, input *IoctlIn) (output *IoctlOut, data []byte, code Status)
+	Ioctl(header *InHeader, input *raw.IoctlIn) (output *raw.IoctlOut, data []byte, code Status)
 	StatFs(header *InHeader) *StatfsOut
 
 	// Provide callbacks for pushing notifications to the kernel.

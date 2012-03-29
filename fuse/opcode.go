@@ -73,7 +73,7 @@ func doInit(state *MountState, req *request) {
 		OUR_MINOR_VERSION = 16
 	)
 
-	input := (*InitIn)(req.inData)
+	input := (*raw.InitIn)(req.inData)
 	if input.Major != FUSE_KERNEL_VERSION {
 		log.Printf("Major versions does not match. Given %d, want %d\n", input.Major, FUSE_KERNEL_VERSION)
 		req.status = EIO
@@ -86,8 +86,8 @@ func doInit(state *MountState, req *request) {
 	}
 
 	state.kernelSettings = *input
-	state.kernelSettings.Flags = input.Flags & (CAP_ASYNC_READ | CAP_BIG_WRITES | CAP_FILE_OPS)
-	out := &InitOut{
+	state.kernelSettings.Flags = input.Flags & (raw.CAP_ASYNC_READ | raw.CAP_BIG_WRITES | raw.CAP_FILE_OPS)
+	out := &raw.InitOut{
 		Major:               FUSE_KERNEL_VERSION,
 		Minor:               OUR_MINOR_VERSION,
 		MaxReadAhead:        input.MaxReadAhead,
@@ -333,7 +333,7 @@ func doStatFs(state *MountState, req *request) {
 }
 
 func doIoctl(state *MountState, req *request) {
-	out, data, stat := state.fileSystem.Ioctl(req.inHeader, (*IoctlIn)(req.inData))
+	out, data, stat := state.fileSystem.Ioctl(req.inHeader, (*raw.IoctlIn)(req.inData))
 	req.outData = unsafe.Pointer(out)
 	req.flatData = data
 	req.status = stat
@@ -405,17 +405,17 @@ func init() {
 		_OP_GETXATTR:     unsafe.Sizeof(GetXAttrIn{}),
 		_OP_LISTXATTR:    unsafe.Sizeof(GetXAttrIn{}),
 		_OP_FLUSH:        unsafe.Sizeof(FlushIn{}),
-		_OP_INIT:         unsafe.Sizeof(InitIn{}),
+		_OP_INIT:         unsafe.Sizeof(raw.InitIn{}),
 		_OP_OPENDIR:      unsafe.Sizeof(raw.OpenIn{}),
 		_OP_READDIR:      unsafe.Sizeof(ReadIn{}),
 		_OP_RELEASEDIR:   unsafe.Sizeof(raw.ReleaseIn{}),
 		_OP_FSYNCDIR:     unsafe.Sizeof(FsyncIn{}),
 		_OP_ACCESS:       unsafe.Sizeof(AccessIn{}),
 		_OP_CREATE:       unsafe.Sizeof(CreateIn{}),
-		_OP_INTERRUPT:    unsafe.Sizeof(InterruptIn{}),
-		_OP_BMAP:         unsafe.Sizeof(BmapIn{}),
-		_OP_IOCTL:        unsafe.Sizeof(IoctlIn{}),
-		_OP_POLL:         unsafe.Sizeof(PollIn{}),
+		_OP_INTERRUPT:    unsafe.Sizeof(raw.InterruptIn{}),
+		_OP_BMAP:         unsafe.Sizeof(raw.BmapIn{}),
+		_OP_IOCTL:        unsafe.Sizeof(raw.IoctlIn{}),
+		_OP_POLL:         unsafe.Sizeof(raw.PollIn{}),
 	} {
 		operationHandlers[op].InputSize = sz
 	}
@@ -433,12 +433,12 @@ func init() {
 		_OP_STATFS:       unsafe.Sizeof(StatfsOut{}),
 		_OP_GETXATTR:     unsafe.Sizeof(GetXAttrOut{}),
 		_OP_LISTXATTR:    unsafe.Sizeof(GetXAttrOut{}),
-		_OP_INIT:         unsafe.Sizeof(InitOut{}),
+		_OP_INIT:         unsafe.Sizeof(raw.InitOut{}),
 		_OP_OPENDIR:      unsafe.Sizeof(raw.OpenOut{}),
 		_OP_CREATE:       unsafe.Sizeof(CreateOut{}),
-		_OP_BMAP:         unsafe.Sizeof(BmapOut{}),
-		_OP_IOCTL:        unsafe.Sizeof(IoctlOut{}),
-		_OP_POLL:         unsafe.Sizeof(PollOut{}),
+		_OP_BMAP:         unsafe.Sizeof(raw.BmapOut{}),
+		_OP_IOCTL:        unsafe.Sizeof(raw.IoctlOut{}),
+		_OP_POLL:         unsafe.Sizeof(raw.PollOut{}),
 		_OP_NOTIFY_ENTRY: unsafe.Sizeof(NotifyInvalEntryOut{}),
 		_OP_NOTIFY_INODE: unsafe.Sizeof(NotifyInvalInodeOut{}),
 	} {
@@ -537,7 +537,7 @@ func init() {
 		_OP_CREATE:       func(ptr unsafe.Pointer) interface{} { return (*CreateOut)(ptr) },
 		_OP_LINK:         func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
 		_OP_SETATTR:      func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
-		_OP_INIT:         func(ptr unsafe.Pointer) interface{} { return (*InitOut)(ptr) },
+		_OP_INIT:         func(ptr unsafe.Pointer) interface{} { return (*raw.InitOut)(ptr) },
 		_OP_MKDIR:        func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
 		_OP_NOTIFY_ENTRY: func(ptr unsafe.Pointer) interface{} { return (*NotifyInvalEntryOut)(ptr) },
 		_OP_NOTIFY_INODE: func(ptr unsafe.Pointer) interface{} { return (*NotifyInvalInodeOut)(ptr) },
@@ -551,8 +551,8 @@ func init() {
 		_OP_FLUSH:        func(ptr unsafe.Pointer) interface{} { return (*FlushIn)(ptr) },
 		_OP_GETATTR:      func(ptr unsafe.Pointer) interface{} { return (*raw.GetAttrIn)(ptr) },
 		_OP_SETATTR:      func(ptr unsafe.Pointer) interface{} { return (*raw.SetAttrIn)(ptr) },
-		_OP_INIT:         func(ptr unsafe.Pointer) interface{} { return (*InitIn)(ptr) },
-		_OP_IOCTL:        func(ptr unsafe.Pointer) interface{} { return (*IoctlIn)(ptr) },
+		_OP_INIT:         func(ptr unsafe.Pointer) interface{} { return (*raw.InitIn)(ptr) },
+		_OP_IOCTL:        func(ptr unsafe.Pointer) interface{} { return (*raw.IoctlIn)(ptr) },
 		_OP_OPEN:         func(ptr unsafe.Pointer) interface{} { return (*raw.OpenIn)(ptr) },
 		_OP_MKNOD:        func(ptr unsafe.Pointer) interface{} { return (*raw.MknodIn)(ptr) },
 		_OP_CREATE:       func(ptr unsafe.Pointer) interface{} { return (*CreateIn)(ptr) },

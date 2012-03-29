@@ -2,6 +2,8 @@ package fuse
 
 import (
 	"log"
+
+	"github.com/hanwen/go-fuse/raw"
 )
 
 var _ = log.Println
@@ -57,6 +59,6 @@ func (me *DefaultFile) Chmod(perms uint32) Status {
 	return ENOSYS
 }
 
-func (me *DefaultFile) Ioctl(input *IoctlIn) (output *IoctlOut, data []byte, code Status) {
+func (me *DefaultFile) Ioctl(input *raw.IoctlIn) (output *raw.IoctlOut, data []byte, code Status) {
 	return nil, nil, ENOSYS
 }

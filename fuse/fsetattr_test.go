@@ -6,6 +6,8 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/hanwen/go-fuse/raw"
 )
 
 type MutableDataFile struct {
@@ -135,7 +137,7 @@ func setupFAttrTest(t *testing.T, fs FileSystem) (dir string, clean func()) {
 
 	// Trigger INIT.
 	os.Lstat(dir)
-	if state.KernelSettings().Flags&CAP_FILE_OPS == 0 {
+	if state.KernelSettings().Flags&raw.CAP_FILE_OPS == 0 {
 		t.Log("Mount does not support file operations")
 	}
 

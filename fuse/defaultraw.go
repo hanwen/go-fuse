@@ -90,11 +90,11 @@ func (me *DefaultRawFileSystem) Create(header *InHeader, input *CreateIn, name s
 	return 0, 0, nil, ENOSYS
 }
 
-func (me *DefaultRawFileSystem) Bmap(header *InHeader, input *BmapIn) (out *BmapOut, code Status) {
+func (me *DefaultRawFileSystem) Bmap(header *InHeader, input *raw.BmapIn) (out *raw.BmapOut, code Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFileSystem) Poll(header *InHeader, input *PollIn) (out *PollOut, code Status) {
+func (me *DefaultRawFileSystem) Poll(header *InHeader, input *raw.PollIn) (out *raw.PollOut, code Status) {
 	return nil, ENOSYS
 }
 
@@ -132,6 +132,6 @@ func (me *DefaultRawFileSystem) FsyncDir(header *InHeader, input *FsyncIn) (code
 	return ENOSYS
 }
 
-func (me *DefaultRawFileSystem) Ioctl(header *InHeader, input *IoctlIn) (output *IoctlOut, data []byte, code Status) {
+func (me *DefaultRawFileSystem) Ioctl(header *InHeader, input *raw.IoctlIn) (output *raw.IoctlOut, data []byte, code Status) {
 	return nil, nil, ENOSYS
 }
