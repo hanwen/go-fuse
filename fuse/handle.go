@@ -39,41 +39,34 @@ const _ALREADY_MSG = "Object already has a handle"
 
 type portableHandleMap struct {
 	sync.RWMutex
-	nextFree uint32
-	handles  map[uint64]*Handled
+	used    int
+	handles []*Handled
+	freeIds []uint64
 }
 
-func (m *portableHandleMap) Register(obj *Handled, asInt interface{}) uint64 {
+func (m *portableHandleMap) Register(obj *Handled, asInt interface{}) (handle uint64) {
 	if obj.check != 0 {
 		panic(_ALREADY_MSG)
 	}
 	m.Lock()
 	defer m.Unlock()
-	for {
-		h := uint64(m.nextFree)
-		m.nextFree++
-		// HACK - we make sure we start with 1, so we always
-		// assign root to 1.
-		if h < 1 {
-			continue
-		}
-		old := m.handles[h]
-		if old != nil {
-			continue
-		}
 
-		m.handles[h] = obj
-		obj.check = 0xbaabbaab
-		return h
+	if len(m.freeIds) == 0 {
+		handle = uint64(len(m.handles))
+		m.handles = append(m.handles, obj)
+	} else {
+		handle = m.freeIds[len(m.freeIds)-1]
+		m.freeIds = m.freeIds[:len(m.freeIds)-1]
+		m.handles[handle] = obj
 	}
-
-	return 0
+	m.used++
+	return handle
 }
 
 func (m *portableHandleMap) Count() int {
 	m.RLock()
 	defer m.RUnlock()
-	return len(m.handles)
+	return m.used
 }
 
 func (m *portableHandleMap) Decode(h uint64) *Handled {
@@ -86,8 +79,9 @@ func (m *portableHandleMap) Forget(h uint64) *Handled {
 	m.Lock()
 	defer m.Unlock()
 	v := m.handles[h]
-	v.check = 0
-	delete(m.handles, h)
+	m.handles[h] = nil
+	m.freeIds = append(m.freeIds, h)
+	m.used--
 	return v
 }
 
@@ -166,7 +160,8 @@ func (m *int64HandleMap) verify() {
 func NewHandleMap(portable bool) (hm HandleMap) {
 	if portable {
 		return &portableHandleMap{
-			handles: make(map[uint64]*Handled),
+			// Avoid handing out ID 0 and 1. 
+			handles: []*Handled{nil, nil},
 		}
 	}
 
