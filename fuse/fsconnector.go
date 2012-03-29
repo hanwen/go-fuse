@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 	"unsafe"
+
+	"github.com/hanwen/go-fuse/raw"
 )
 
 // Tests should set to true.
@@ -336,7 +338,7 @@ func (me *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) 
 	if n == 0 {
 		return OK
 	}
-	out := NotifyInvalInodeOut{
+	out := raw.NotifyInvalInodeOut{
 		Length: length,
 		Off:    off,
 		Ino:    n,

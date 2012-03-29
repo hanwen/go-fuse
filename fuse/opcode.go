@@ -439,8 +439,8 @@ func init() {
 		_OP_BMAP:         unsafe.Sizeof(raw.BmapOut{}),
 		_OP_IOCTL:        unsafe.Sizeof(raw.IoctlOut{}),
 		_OP_POLL:         unsafe.Sizeof(raw.PollOut{}),
-		_OP_NOTIFY_ENTRY: unsafe.Sizeof(NotifyInvalEntryOut{}),
-		_OP_NOTIFY_INODE: unsafe.Sizeof(NotifyInvalInodeOut{}),
+		_OP_NOTIFY_ENTRY: unsafe.Sizeof(raw.NotifyInvalEntryOut{}),
+		_OP_NOTIFY_INODE: unsafe.Sizeof(raw.NotifyInvalInodeOut{}),
 	} {
 		operationHandlers[op].OutputSize = sz
 	}
@@ -539,8 +539,8 @@ func init() {
 		_OP_SETATTR:      func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
 		_OP_INIT:         func(ptr unsafe.Pointer) interface{} { return (*raw.InitOut)(ptr) },
 		_OP_MKDIR:        func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
-		_OP_NOTIFY_ENTRY: func(ptr unsafe.Pointer) interface{} { return (*NotifyInvalEntryOut)(ptr) },
-		_OP_NOTIFY_INODE: func(ptr unsafe.Pointer) interface{} { return (*NotifyInvalInodeOut)(ptr) },
+		_OP_NOTIFY_ENTRY: func(ptr unsafe.Pointer) interface{} { return (*raw.NotifyInvalEntryOut)(ptr) },
+		_OP_NOTIFY_INODE: func(ptr unsafe.Pointer) interface{} { return (*raw.NotifyInvalInodeOut)(ptr) },
 		_OP_STATFS:       func(ptr unsafe.Pointer) interface{} { return (*StatfsOut)(ptr) },
 	} {
 		operationHandlers[op].DecodeOut = f

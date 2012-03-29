@@ -75,7 +75,7 @@ func (me *MountState) Mount(mountPoint string, opts *MountOptions) error {
 		return err
 	}
 	initParams := RawFsInit{
-		InodeNotify: func(n *NotifyInvalInodeOut) Status {
+		InodeNotify: func(n *raw.NotifyInvalInodeOut) Status {
 			return me.writeInodeNotify(n)
 		},
 		EntryNotify: func(parent uint64, n string) Status {
@@ -279,7 +279,7 @@ func (me *MountState) write(req *request) Status {
 	return ToStatus(err)
 }
 
-func (me *MountState) writeInodeNotify(entry *NotifyInvalInodeOut) Status {
+func (me *MountState) writeInodeNotify(entry *raw.NotifyInvalInodeOut) Status {
 	req := request{
 		inHeader: &InHeader{
 			opcode: _OP_NOTIFY_INODE,
@@ -305,7 +305,7 @@ func (me *MountState) writeEntryNotify(parent uint64, name string) Status {
 		handler: operationHandlers[_OP_NOTIFY_ENTRY],
 		status:  NOTIFY_INVAL_ENTRY,
 	}
-	entry := &NotifyInvalEntryOut{
+	entry := &raw.NotifyInvalEntryOut{
 		Parent:  parent,
 		NameLen: uint32(len(name)),
 	}

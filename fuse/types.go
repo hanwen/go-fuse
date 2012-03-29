@@ -184,15 +184,3 @@ type Dirent struct {
 	NameLen uint32
 	Typ     uint32
 }
-
-type NotifyInvalInodeOut struct {
-	Ino    uint64
-	Off    int64
-	Length int64
-}
-
-type NotifyInvalEntryOut struct {
-	Parent  uint64
-	NameLen uint32
-	Padding uint32
-}
