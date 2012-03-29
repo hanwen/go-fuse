@@ -170,17 +170,17 @@ func (me *LockingRawFileSystem) Forget(nodeID uint64, nlookup uint64) {
 	me.RawFileSystem.Forget(nodeID, nlookup)
 }
 
-func (me *LockingRawFileSystem) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
+func (me *LockingRawFileSystem) GetAttr(header *InHeader, input *raw.GetAttrIn) (out *AttrOut, code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.GetAttr(header, input)
 }
 
-func (me *LockingRawFileSystem) Open(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
+func (me *LockingRawFileSystem) Open(header *InHeader, input *raw.OpenIn) (flags uint32, handle uint64, status Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Open(header, input)
 }
 
-func (me *LockingRawFileSystem) SetAttr(header *InHeader, input *SetAttrIn) (out *AttrOut, code Status) {
+func (me *LockingRawFileSystem) SetAttr(header *InHeader, input *raw.SetAttrIn) (out *AttrOut, code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.SetAttr(header, input)
 }
@@ -260,17 +260,17 @@ func (me *LockingRawFileSystem) Create(header *InHeader, input *CreateIn, name s
 	return me.RawFileSystem.Create(header, input, name)
 }
 
-func (me *LockingRawFileSystem) OpenDir(header *InHeader, input *OpenIn) (flags uint32, h uint64, status Status) {
+func (me *LockingRawFileSystem) OpenDir(header *InHeader, input *raw.OpenIn) (flags uint32, h uint64, status Status) {
 	defer me.locked()()
 	return me.RawFileSystem.OpenDir(header, input)
 }
 
-func (me *LockingRawFileSystem) Release(header *InHeader, input *ReleaseIn) {
+func (me *LockingRawFileSystem) Release(header *InHeader, input *raw.ReleaseIn) {
 	defer me.locked()()
 	me.RawFileSystem.Release(header, input)
 }
 
-func (me *LockingRawFileSystem) ReleaseDir(header *InHeader, h *ReleaseIn) {
+func (me *LockingRawFileSystem) ReleaseDir(header *InHeader, h *raw.ReleaseIn) {
 	defer me.locked()()
 	me.RawFileSystem.ReleaseDir(header, h)
 }

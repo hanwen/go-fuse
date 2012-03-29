@@ -18,15 +18,15 @@ func (me *DefaultRawFileSystem) Lookup(h *InHeader, name string) (out *EntryOut,
 func (me *DefaultRawFileSystem) Forget(nodeID, nlookup uint64) {
 }
 
-func (me *DefaultRawFileSystem) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
+func (me *DefaultRawFileSystem) GetAttr(header *InHeader, input *raw.GetAttrIn) (out *AttrOut, code Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFileSystem) Open(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
+func (me *DefaultRawFileSystem) Open(header *InHeader, input *raw.OpenIn) (flags uint32, handle uint64, status Status) {
 	return 0, 0, OK
 }
 
-func (me *DefaultRawFileSystem) SetAttr(header *InHeader, input *SetAttrIn) (out *AttrOut, code Status) {
+func (me *DefaultRawFileSystem) SetAttr(header *InHeader, input *raw.SetAttrIn) (out *AttrOut, code Status) {
 	return nil, ENOSYS
 }
 
@@ -98,7 +98,7 @@ func (me *DefaultRawFileSystem) Poll(header *InHeader, input *PollIn) (out *Poll
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFileSystem) OpenDir(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
+func (me *DefaultRawFileSystem) OpenDir(header *InHeader, input *raw.OpenIn) (flags uint32, handle uint64, status Status) {
 	return 0, 0, ENOSYS
 }
 
@@ -106,7 +106,7 @@ func (me *DefaultRawFileSystem) Read(header *InHeader, input *ReadIn, bp BufferP
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFileSystem) Release(header *InHeader, input *ReleaseIn) {
+func (me *DefaultRawFileSystem) Release(header *InHeader, input *raw.ReleaseIn) {
 }
 
 func (me *DefaultRawFileSystem) Write(header *InHeader, input *WriteIn, data []byte) (written uint32, code Status) {
@@ -125,7 +125,7 @@ func (me *DefaultRawFileSystem) ReadDir(header *InHeader, input *ReadIn) (*DirEn
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFileSystem) ReleaseDir(header *InHeader, input *ReleaseIn) {
+func (me *DefaultRawFileSystem) ReleaseDir(header *InHeader, input *raw.ReleaseIn) {
 }
 
 func (me *DefaultRawFileSystem) FsyncDir(header *InHeader, input *FsyncIn) (code Status) {

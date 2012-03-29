@@ -7,6 +7,7 @@ import (
 	"os"
 	"sync"
 	"testing"
+	"github.com/hanwen/go-fuse/raw"
 )
 
 var _ = log.Println
@@ -22,7 +23,7 @@ func (me *cacheFs) Open(name string, flags uint32, context *Context) (fuseFile F
 	}
 	return &WithFlags{
 		File:      f,
-		FuseFlags: FOPEN_KEEP_CACHE,
+		FuseFlags: raw.FOPEN_KEEP_CACHE,
 	}, c
 
 }
@@ -111,7 +112,7 @@ func (me *nonseekFs) Open(name string, flags uint32, context *Context) (fuseFile
 	f := NewDataFile(data)
 	return &WithFlags{
 		File:      f,
-		FuseFlags: FOPEN_NONSEEKABLE,
+		FuseFlags: raw.FOPEN_NONSEEKABLE,
 	}, OK
 }
 

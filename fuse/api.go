@@ -253,8 +253,8 @@ type RawFileSystem interface {
 	Forget(nodeid, nlookup uint64)
 
 	// Attributes.
-	GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status)
-	SetAttr(header *InHeader, input *SetAttrIn) (out *AttrOut, code Status)
+	GetAttr(header *InHeader, input *raw.GetAttrIn) (out *AttrOut, code Status)
+	SetAttr(header *InHeader, input *raw.SetAttrIn) (out *AttrOut, code Status)
 
 	// Modifying structure.
 	Mknod(header *InHeader, input *raw.MknodIn, name string) (out *EntryOut, code Status)
@@ -277,18 +277,18 @@ type RawFileSystem interface {
 
 	// File handling.
 	Create(header *InHeader, input *CreateIn, name string) (flags uint32, handle uint64, out *EntryOut, code Status)
-	Open(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status)
+	Open(header *InHeader, input *raw.OpenIn) (flags uint32, handle uint64, status Status)
 	Read(*InHeader, *ReadIn, BufferPool) ([]byte, Status)
 
-	Release(header *InHeader, input *ReleaseIn)
+	Release(header *InHeader, input *raw.ReleaseIn)
 	Write(*InHeader, *WriteIn, []byte) (written uint32, code Status)
 	Flush(header *InHeader, input *FlushIn) Status
 	Fsync(*InHeader, *FsyncIn) (code Status)
 
 	// Directory handling
-	OpenDir(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status)
+	OpenDir(header *InHeader, input *raw.OpenIn) (flags uint32, handle uint64, status Status)
 	ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status)
-	ReleaseDir(header *InHeader, input *ReleaseIn)
+	ReleaseDir(header *InHeader, input *raw.ReleaseIn)
 	FsyncDir(header *InHeader, input *FsyncIn) (code Status)
 
 	//

@@ -80,11 +80,11 @@ func (me *FileSystemConnector) Forget(nodeID, nlookup uint64) {
 	me.forgetUpdate(node, int(nlookup))
 }
 
-func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out *AttrOut, code Status) {
+func (me *FileSystemConnector) GetAttr(header *InHeader, input *raw.GetAttrIn) (out *AttrOut, code Status) {
 	node := me.toInode(header.NodeId)
 
 	var f File
-	if input.Flags&FUSE_GETATTR_FH != 0 {
+	if input.Flags&raw.FUSE_GETATTR_FH != 0 {
 		if opened := node.mount.getOpenedFile(input.Fh); opened != nil {
 			f = opened.WithFlags.File
 		}
@@ -98,7 +98,7 @@ func (me *FileSystemConnector) GetAttr(header *InHeader, input *GetAttrIn) (out 
 	return out, OK
 }
 
-func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags uint32, handle uint64, code Status) {
+func (me *FileSystemConnector) OpenDir(header *InHeader, input *raw.OpenIn) (flags uint32, handle uint64, code Status) {
 	node := me.toInode(header.NodeId)
 	stream, err := node.fsInode.OpenDir(&header.Context)
 	if err != OK {
@@ -113,7 +113,7 @@ func (me *FileSystemConnector) OpenDir(header *InHeader, input *OpenIn) (flags u
 	h, opened := node.mount.registerFileHandle(node, de, nil, input.Flags)
 
 	// TODO - implement seekable directories
-	opened.FuseFlags |= FOPEN_NONSEEKABLE
+	opened.FuseFlags |= raw.FOPEN_NONSEEKABLE
 	return opened.FuseFlags, h, OK
 }
 
@@ -127,7 +127,7 @@ func (me *FileSystemConnector) ReadDir(header *InHeader, input *ReadIn) (*DirEnt
 	return de, OK
 }
 
-func (me *FileSystemConnector) Open(header *InHeader, input *OpenIn) (flags uint32, handle uint64, status Status) {
+func (me *FileSystemConnector) Open(header *InHeader, input *raw.OpenIn) (flags uint32, handle uint64, status Status) {
 	node := me.toInode(header.NodeId)
 	f, code := node.fsInode.Open(input.Flags, &header.Context)
 	if !code.Ok() {
@@ -137,37 +137,37 @@ func (me *FileSystemConnector) Open(header *InHeader, input *OpenIn) (flags uint
 	return opened.FuseFlags, h, OK
 }
 
-func (me *FileSystemConnector) SetAttr(header *InHeader, input *SetAttrIn) (out *AttrOut, code Status) {
+func (me *FileSystemConnector) SetAttr(header *InHeader, input *raw.SetAttrIn) (out *AttrOut, code Status) {
 	node := me.toInode(header.NodeId)
 	var f File
-	if input.Valid&FATTR_FH != 0 {
+	if input.Valid&raw.FATTR_FH != 0 {
 		opened := node.mount.getOpenedFile(input.Fh)
 		f = opened.WithFlags.File
 	}
 
-	if code.Ok() && input.Valid&FATTR_MODE != 0 {
+	if code.Ok() && input.Valid&raw.FATTR_MODE != 0 {
 		permissions := uint32(07777) & input.Mode
 		code = node.fsInode.Chmod(f, permissions, &header.Context)
 	}
-	if code.Ok() && (input.Valid&(FATTR_UID|FATTR_GID) != 0) {
+	if code.Ok() && (input.Valid&(raw.FATTR_UID|raw.FATTR_GID) != 0) {
 		code = node.fsInode.Chown(f, uint32(input.Uid), uint32(input.Gid), &header.Context)
 	}
-	if code.Ok() && input.Valid&FATTR_SIZE != 0 {
+	if code.Ok() && input.Valid&raw.FATTR_SIZE != 0 {
 		code = node.fsInode.Truncate(f, input.Size, &header.Context)
 	}
-	if code.Ok() && (input.Valid&(FATTR_ATIME|FATTR_MTIME|FATTR_ATIME_NOW|FATTR_MTIME_NOW) != 0) {
+	if code.Ok() && (input.Valid&(raw.FATTR_ATIME|raw.FATTR_MTIME|raw.FATTR_ATIME_NOW|raw.FATTR_MTIME_NOW) != 0) {
 		now := int64(0)
-		if input.Valid&FATTR_ATIME_NOW != 0 || input.Valid&FATTR_MTIME_NOW != 0 {
+		if input.Valid&raw.FATTR_ATIME_NOW != 0 || input.Valid&raw.FATTR_MTIME_NOW != 0 {
 			now = time.Now().UnixNano()
 		}
 
 		atime := int64(input.Atime*1e9) + int64(input.Atimensec)
-		if input.Valid&FATTR_ATIME_NOW != 0 {
+		if input.Valid&raw.FATTR_ATIME_NOW != 0 {
 			atime = now
 		}
 
 		mtime := int64(input.Mtime*1e9) + int64(input.Mtimensec)
-		if input.Valid&FATTR_MTIME_NOW != 0 {
+		if input.Valid&raw.FATTR_MTIME_NOW != 0 {
 			mtime = now
 		}
 
@@ -278,13 +278,13 @@ func (me *FileSystemConnector) Create(header *InHeader, input *CreateIn, name st
 	return opened.FuseFlags, handle, out, code
 }
 
-func (me *FileSystemConnector) Release(header *InHeader, input *ReleaseIn) {
+func (me *FileSystemConnector) Release(header *InHeader, input *raw.ReleaseIn) {
 	node := me.toInode(header.NodeId)
 	opened := node.mount.unregisterFileHandle(input.Fh, node)
 	opened.WithFlags.File.Release()
 }
 
-func (me *FileSystemConnector) ReleaseDir(header *InHeader, input *ReleaseIn) {
+func (me *FileSystemConnector) ReleaseDir(header *InHeader, input *raw.ReleaseIn) {
 	node := me.toInode(header.NodeId)
 	opened := node.mount.unregisterFileHandle(input.Fh, node)
 	opened.dir.Release()
