@@ -86,7 +86,7 @@ func (me *DefaultRawFileSystem) Access(header *InHeader, input *raw.AccessIn) (c
 	return ENOSYS
 }
 
-func (me *DefaultRawFileSystem) Create(header *InHeader, input *CreateIn, name string) (flags uint32, handle uint64, out *EntryOut, code Status) {
+func (me *DefaultRawFileSystem) Create(header *InHeader, input *raw.CreateIn, name string) (flags uint32, handle uint64, out *EntryOut, code Status) {
 	return 0, 0, nil, ENOSYS
 }
 

@@ -39,12 +39,6 @@ func (me *AttrOut) String() string {
 		me.AttrValid, me.AttrValidNsec, &me.Attr)
 }
 
-func (me *CreateIn) String() string {
-	return fmt.Sprintf(
-		"{0%o [%s] (0%o)}", me.Mode,
-		raw.FlagString(raw.OpenFlagNames, int(me.Flags), "O_RDONLY"), me.Umask)
-}
-
 func (me *EntryOut) String() string {
 	return fmt.Sprintf("{%d E%d.%09d A%d.%09d %v}",
 		me.NodeId, me.EntryValid, me.EntryValidNsec,

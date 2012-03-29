@@ -276,3 +276,10 @@ type OutHeader struct {
 	Status int32
 	Unique uint64
 }
+
+type CreateIn struct {
+	Flags   uint32
+	Mode    uint32
+	Umask   uint32
+	Padding uint32
+}

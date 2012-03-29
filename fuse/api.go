@@ -276,7 +276,7 @@ type RawFileSystem interface {
 	RemoveXAttr(header *InHeader, attr string) (code Status)
 
 	// File handling.
-	Create(header *InHeader, input *CreateIn, name string) (flags uint32, handle uint64, out *EntryOut, code Status)
+	Create(header *InHeader, input *raw.CreateIn, name string) (flags uint32, handle uint64, out *EntryOut, code Status)
 	Open(header *InHeader, input *raw.OpenIn) (flags uint32, handle uint64, status Status)
 	Read(*InHeader, *ReadIn, BufferPool) ([]byte, Status)
 

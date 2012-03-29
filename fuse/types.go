@@ -124,13 +124,6 @@ type AttrOut struct {
 	Attr
 }
 
-type CreateIn struct {
-	Flags   uint32
-	Mode    uint32
-	Umask   uint32
-	Padding uint32
-}
-
 type CreateOut struct {
 	EntryOut
 	raw.OpenOut

@@ -170,3 +170,9 @@ func (me *AccessIn) String() string {
 	return fmt.Sprintf("{%s}", FlagString(accessFlagName, int(me.Mask), ""))
 }
 
+func (me *CreateIn) String() string {
+	return fmt.Sprintf(
+		"{0%o [%s] (0%o)}", me.Mode,
+		FlagString(OpenFlagNames, int(me.Flags), "O_RDONLY"), me.Umask)
+}
+

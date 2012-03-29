@@ -267,7 +267,7 @@ func (me *FileSystemConnector) Access(header *InHeader, input *raw.AccessIn) (co
 	return n.fsInode.Access(input.Mask, &header.Context)
 }
 
-func (me *FileSystemConnector) Create(header *InHeader, input *CreateIn, name string) (flags uint32, h uint64, out *EntryOut, code Status) {
+func (me *FileSystemConnector) Create(header *InHeader, input *raw.CreateIn, name string) (flags uint32, h uint64, out *EntryOut, code Status) {
 	parent := me.toInode(header.NodeId)
 	f, fi, fsNode, code := parent.fsInode.Create(name, uint32(input.Flags), input.Mode, &header.Context)
 	if !code.Ok() {

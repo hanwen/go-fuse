@@ -255,7 +255,7 @@ func (me *LockingRawFileSystem) Access(header *InHeader, input *raw.AccessIn) (c
 	return me.RawFileSystem.Access(header, input)
 }
 
-func (me *LockingRawFileSystem) Create(header *InHeader, input *CreateIn, name string) (flags uint32, handle uint64, out *EntryOut, code Status) {
+func (me *LockingRawFileSystem) Create(header *InHeader, input *raw.CreateIn, name string) (flags uint32, handle uint64, out *EntryOut, code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Create(header, input, name)
 }

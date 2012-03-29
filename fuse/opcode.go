@@ -120,7 +120,7 @@ func doOpen(state *MountState, req *request) {
 }
 
 func doCreate(state *MountState, req *request) {
-	flags, handle, entry, status := state.fileSystem.Create(req.inHeader, (*CreateIn)(req.inData), req.filenames[0])
+	flags, handle, entry, status := state.fileSystem.Create(req.inHeader, (*raw.CreateIn)(req.inData), req.filenames[0])
 	req.status = status
 	if status.Ok() {
 		req.outData = unsafe.Pointer(&CreateOut{
@@ -411,7 +411,7 @@ func init() {
 		_OP_RELEASEDIR:   unsafe.Sizeof(raw.ReleaseIn{}),
 		_OP_FSYNCDIR:     unsafe.Sizeof(raw.FsyncIn{}),
 		_OP_ACCESS:       unsafe.Sizeof(raw.AccessIn{}),
-		_OP_CREATE:       unsafe.Sizeof(CreateIn{}),
+		_OP_CREATE:       unsafe.Sizeof(raw.CreateIn{}),
 		_OP_INTERRUPT:    unsafe.Sizeof(raw.InterruptIn{}),
 		_OP_BMAP:         unsafe.Sizeof(raw.BmapIn{}),
 		_OP_IOCTL:        unsafe.Sizeof(raw.IoctlIn{}),
@@ -555,7 +555,7 @@ func init() {
 		_OP_IOCTL:        func(ptr unsafe.Pointer) interface{} { return (*raw.IoctlIn)(ptr) },
 		_OP_OPEN:         func(ptr unsafe.Pointer) interface{} { return (*raw.OpenIn)(ptr) },
 		_OP_MKNOD:        func(ptr unsafe.Pointer) interface{} { return (*raw.MknodIn)(ptr) },
-		_OP_CREATE:       func(ptr unsafe.Pointer) interface{} { return (*CreateIn)(ptr) },
+		_OP_CREATE:       func(ptr unsafe.Pointer) interface{} { return (*raw.CreateIn)(ptr) },
 		_OP_READ:         func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
 		_OP_READDIR:      func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
 		_OP_ACCESS:       func(ptr unsafe.Pointer) interface{} { return (*raw.AccessIn)(ptr) },
