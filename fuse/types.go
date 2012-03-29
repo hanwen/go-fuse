@@ -176,11 +176,6 @@ type StatfsOut struct {
 	Kstatfs
 }
 
-type FsyncIn struct {
-	Fh         uint64
-	FsyncFlags uint32
-	Padding    uint32
-}
 
 type InHeader struct {
 	Length uint32

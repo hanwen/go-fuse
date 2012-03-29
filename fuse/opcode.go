@@ -288,7 +288,7 @@ func doRelease(state *MountState, req *request) {
 }
 
 func doFsync(state *MountState, req *request) {
-	req.status = state.fileSystem.Fsync(req.inHeader, (*FsyncIn)(req.inData))
+	req.status = state.fileSystem.Fsync(req.inHeader, (*raw.FsyncIn)(req.inData))
 }
 
 func doReleaseDir(state *MountState, req *request) {
@@ -296,7 +296,7 @@ func doReleaseDir(state *MountState, req *request) {
 }
 
 func doFsyncDir(state *MountState, req *request) {
-	req.status = state.fileSystem.FsyncDir(req.inHeader, (*FsyncIn)(req.inData))
+	req.status = state.fileSystem.FsyncDir(req.inHeader, (*raw.FsyncIn)(req.inData))
 }
 
 func doSetXAttr(state *MountState, req *request) {
@@ -400,7 +400,7 @@ func init() {
 		_OP_READ:         unsafe.Sizeof(ReadIn{}),
 		_OP_WRITE:        unsafe.Sizeof(WriteIn{}),
 		_OP_RELEASE:      unsafe.Sizeof(raw.ReleaseIn{}),
-		_OP_FSYNC:        unsafe.Sizeof(FsyncIn{}),
+		_OP_FSYNC:        unsafe.Sizeof(raw.FsyncIn{}),
 		_OP_SETXATTR:     unsafe.Sizeof(raw.SetXAttrIn{}),
 		_OP_GETXATTR:     unsafe.Sizeof(raw.GetXAttrIn{}),
 		_OP_LISTXATTR:    unsafe.Sizeof(raw.GetXAttrIn{}),
@@ -409,7 +409,7 @@ func init() {
 		_OP_OPENDIR:      unsafe.Sizeof(raw.OpenIn{}),
 		_OP_READDIR:      unsafe.Sizeof(ReadIn{}),
 		_OP_RELEASEDIR:   unsafe.Sizeof(raw.ReleaseIn{}),
-		_OP_FSYNCDIR:     unsafe.Sizeof(FsyncIn{}),
+		_OP_FSYNCDIR:     unsafe.Sizeof(raw.FsyncIn{}),
 		_OP_ACCESS:       unsafe.Sizeof(raw.AccessIn{}),
 		_OP_CREATE:       unsafe.Sizeof(CreateIn{}),
 		_OP_INTERRUPT:    unsafe.Sizeof(raw.InterruptIn{}),

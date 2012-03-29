@@ -117,7 +117,7 @@ func (me *DefaultRawFileSystem) Flush(header *InHeader, input *FlushIn) Status {
 	return OK
 }
 
-func (me *DefaultRawFileSystem) Fsync(header *InHeader, input *FsyncIn) (code Status) {
+func (me *DefaultRawFileSystem) Fsync(header *InHeader, input *raw.FsyncIn) (code Status) {
 	return ENOSYS
 }
 
@@ -128,7 +128,7 @@ func (me *DefaultRawFileSystem) ReadDir(header *InHeader, input *ReadIn) (*DirEn
 func (me *DefaultRawFileSystem) ReleaseDir(header *InHeader, input *raw.ReleaseIn) {
 }
 
-func (me *DefaultRawFileSystem) FsyncDir(header *InHeader, input *FsyncIn) (code Status) {
+func (me *DefaultRawFileSystem) FsyncDir(header *InHeader, input *raw.FsyncIn) (code Status) {
 	return ENOSYS
 }
 

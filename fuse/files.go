@@ -72,7 +72,7 @@ func (me *DevNullFile) Flush() Status {
 	return OK
 }
 
-func (me *DevNullFile) Fsync(*FsyncIn) (code Status) {
+func (me *DevNullFile) Fsync(flags int) (code Status) {
 	return OK
 }
 
@@ -112,7 +112,7 @@ func (me *LoopbackFile) Release() {
 	me.File.Close()
 }
 
-func (me *LoopbackFile) Fsync(*FsyncIn) (code Status) {
+func (me *LoopbackFile) Fsync(flags int) (code Status) {
 	return ToStatus(syscall.Fsync(int(me.File.Fd())))
 }
 
@@ -156,7 +156,7 @@ func (me *ReadOnlyFile) Write(input *WriteIn, data []byte) (uint32, Status) {
 	return 0, EPERM
 }
 
-func (me *ReadOnlyFile) Fsync(*FsyncIn) (code Status) {
+func (me *ReadOnlyFile) Fsync(flag int) (code Status) {
 	return OK
 }
 

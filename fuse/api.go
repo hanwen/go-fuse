@@ -165,7 +165,7 @@ type File interface {
 	Write(*WriteIn, []byte) (written uint32, code Status)
 	Flush() Status
 	Release()
-	Fsync(*FsyncIn) (code Status)
+	Fsync(flags int) (code Status)
 
 	// The methods below may be called on closed files, due to
 	// concurrency.  In that case, you should return EBADF.
@@ -283,13 +283,13 @@ type RawFileSystem interface {
 	Release(header *InHeader, input *raw.ReleaseIn)
 	Write(*InHeader, *WriteIn, []byte) (written uint32, code Status)
 	Flush(header *InHeader, input *FlushIn) Status
-	Fsync(*InHeader, *FsyncIn) (code Status)
+	Fsync(*InHeader, *raw.FsyncIn) (code Status)
 
 	// Directory handling
 	OpenDir(header *InHeader, input *raw.OpenIn) (flags uint32, handle uint64, status Status)
 	ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status)
 	ReleaseDir(header *InHeader, input *raw.ReleaseIn)
-	FsyncDir(header *InHeader, input *FsyncIn) (code Status)
+	FsyncDir(header *InHeader, input *raw.FsyncIn) (code Status)
 
 	//
 	Ioctl(header *InHeader, input *raw.IoctlIn) (output *raw.IoctlOut, data []byte, code Status)

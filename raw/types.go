@@ -264,3 +264,9 @@ type AccessIn struct {
 	Mask    uint32
 	Padding uint32
 }
+
+type FsyncIn struct {
+	Fh         uint64
+	FsyncFlags uint32
+	Padding    uint32
+}

@@ -290,7 +290,7 @@ func (me *LockingRawFileSystem) Flush(header *InHeader, input *FlushIn) Status {
 	return me.RawFileSystem.Flush(header, input)
 }
 
-func (me *LockingRawFileSystem) Fsync(header *InHeader, input *FsyncIn) (code Status) {
+func (me *LockingRawFileSystem) Fsync(header *InHeader, input *raw.FsyncIn) (code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Fsync(header, input)
 }
@@ -300,7 +300,7 @@ func (me *LockingRawFileSystem) ReadDir(header *InHeader, input *ReadIn) (*DirEn
 	return me.RawFileSystem.ReadDir(header, input)
 }
 
-func (me *LockingRawFileSystem) FsyncDir(header *InHeader, input *FsyncIn) (code Status) {
+func (me *LockingRawFileSystem) FsyncDir(header *InHeader, input *raw.FsyncIn) (code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.FsyncDir(header, input)
 }

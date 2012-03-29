@@ -39,7 +39,7 @@ func (me *DefaultFile) GetAttr() (*Attr, Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultFile) Fsync(*FsyncIn) (code Status) {
+func (me *DefaultFile) Fsync(flags int) (code Status) {
 	return ENOSYS
 }
 

@@ -56,10 +56,6 @@ func (me *MutableDataFile) GetAttr() (*Attr, Status) {
 	return me.getAttr(), OK
 }
 
-func (me *MutableDataFile) Fsync(*FsyncIn) (code Status) {
-	return OK
-}
-
 func (me *MutableDataFile) Utimens(atimeNs int64, mtimeNs int64) Status {
 	me.Attr.SetNs(atimeNs, mtimeNs, -1)
 	return OK
