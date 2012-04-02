@@ -33,23 +33,6 @@ func (me *Attr) String() string {
 		me.Ctime, me.Ctimensec)
 }
 
-func (me *AttrOut) String() string {
-	return fmt.Sprintf(
-		"{A%d.%09d %v}",
-		me.AttrValid, me.AttrValidNsec, &me.Attr)
-}
-
-func (me *EntryOut) String() string {
-	return fmt.Sprintf("{%d E%d.%09d A%d.%09d %v}",
-		me.NodeId, me.EntryValid, me.EntryValidNsec,
-		me.AttrValid, me.AttrValidNsec, &me.Attr)
-}
-
-func (me *CreateOut) String() string {
-	return fmt.Sprintf("{%v %v}", &me.EntryOut, &me.OpenOut)
-}
-
-
 func (me *ReadIn) String() string {
 	return fmt.Sprintf("{Fh %d off %d sz %d %s L %d %s}",
 		me.Fh, me.Offset, me.Size,
@@ -57,7 +40,6 @@ func (me *ReadIn) String() string {
 		me.LockOwner,
 		raw.FlagString(raw.OpenFlagNames, int(me.Flags), "RDONLY"))
 }
-
 
 func (me *Kstatfs) String() string {
 	return fmt.Sprintf(

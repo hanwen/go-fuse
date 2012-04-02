@@ -58,28 +58,9 @@ const (
 )
 
 
-type Attr struct {
-	Ino       uint64
-	Size      uint64
-	Blocks    uint64
-	Atime     uint64
-	Mtime     uint64
-	Ctime     uint64
-	Atimensec uint32
-	Mtimensec uint32
-	Ctimensec uint32
-	Mode      uint32
-	Nlink     uint32
-	Owner
-	Rdev    uint32
-	Blksize uint32
-	Padding uint32
-}
+type Attr raw.Attr
 
-type Owner struct {
-	Uid uint32
-	Gid uint32
-}
+type Owner raw.Owner
 
 type Context struct {
 	Owner
@@ -97,28 +78,6 @@ type Kstatfs struct {
 	Frsize  uint32
 	Padding uint32
 	Spare   [6]uint32
-}
-
-type EntryOut struct {
-	NodeId         uint64
-	Generation     uint64
-	EntryValid     uint64
-	AttrValid      uint64
-	EntryValidNsec uint32
-	AttrValidNsec  uint32
-	Attr
-}
-
-type AttrOut struct {
-	AttrValid     uint64
-	AttrValidNsec uint32
-	Dummy         uint32
-	Attr
-}
-
-type CreateOut struct {
-	EntryOut
-	raw.OpenOut
 }
 
 const (

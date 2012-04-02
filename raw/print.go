@@ -180,3 +180,19 @@ func (me *FlushIn) String() string {
 	return fmt.Sprintf("{Fh %d}", me.Fh)
 }
 
+func (me *AttrOut) String() string {
+	return fmt.Sprintf(
+		"{A%d.%09d %v}",
+		me.AttrValid, me.AttrValidNsec, &me.Attr)
+}
+
+func (me *EntryOut) String() string {
+	return fmt.Sprintf("{%d E%d.%09d A%d.%09d %v}",
+		me.NodeId, me.EntryValid, me.EntryValidNsec,
+		me.AttrValid, me.AttrValidNsec, &me.Attr)
+}
+
+func (me *CreateOut) String() string {
+	return fmt.Sprintf("{%v %v}", &me.EntryOut, &me.OpenOut)
+}
+

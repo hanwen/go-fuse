@@ -11,14 +11,14 @@ func (me *DefaultRawFileSystem) StatFs(h *InHeader) *StatfsOut {
 	return nil
 }
 
-func (me *DefaultRawFileSystem) Lookup(h *InHeader, name string) (out *EntryOut, code Status) {
+func (me *DefaultRawFileSystem) Lookup(h *InHeader, name string) (out *raw.EntryOut, code Status) {
 	return nil, ENOSYS
 }
 
 func (me *DefaultRawFileSystem) Forget(nodeID, nlookup uint64) {
 }
 
-func (me *DefaultRawFileSystem) GetAttr(header *InHeader, input *raw.GetAttrIn) (out *AttrOut, code Status) {
+func (me *DefaultRawFileSystem) GetAttr(header *InHeader, input *raw.GetAttrIn) (out *raw.AttrOut, code Status) {
 	return nil, ENOSYS
 }
 
@@ -26,7 +26,7 @@ func (me *DefaultRawFileSystem) Open(header *InHeader, input *raw.OpenIn) (flags
 	return 0, 0, OK
 }
 
-func (me *DefaultRawFileSystem) SetAttr(header *InHeader, input *raw.SetAttrIn) (out *AttrOut, code Status) {
+func (me *DefaultRawFileSystem) SetAttr(header *InHeader, input *raw.SetAttrIn) (out *raw.AttrOut, code Status) {
 	return nil, ENOSYS
 }
 
@@ -34,11 +34,11 @@ func (me *DefaultRawFileSystem) Readlink(header *InHeader) (out []byte, code Sta
 	return nil, ENOSYS
 }
 
-func (me *DefaultRawFileSystem) Mknod(header *InHeader, input *raw.MknodIn, name string) (out *EntryOut, code Status) {
-	return new(EntryOut), ENOSYS
+func (me *DefaultRawFileSystem) Mknod(header *InHeader, input *raw.MknodIn, name string) (out *raw.EntryOut, code Status) {
+	return new(raw.EntryOut), ENOSYS
 }
 
-func (me *DefaultRawFileSystem) Mkdir(header *InHeader, input *raw.MkdirIn, name string) (out *EntryOut, code Status) {
+func (me *DefaultRawFileSystem) Mkdir(header *InHeader, input *raw.MkdirIn, name string) (out *raw.EntryOut, code Status) {
 	return nil, ENOSYS
 }
 
@@ -50,7 +50,7 @@ func (me *DefaultRawFileSystem) Rmdir(header *InHeader, name string) (code Statu
 	return ENOSYS
 }
 
-func (me *DefaultRawFileSystem) Symlink(header *InHeader, pointedTo string, linkName string) (out *EntryOut, code Status) {
+func (me *DefaultRawFileSystem) Symlink(header *InHeader, pointedTo string, linkName string) (out *raw.EntryOut, code Status) {
 	return nil, ENOSYS
 }
 
@@ -58,7 +58,7 @@ func (me *DefaultRawFileSystem) Rename(header *InHeader, input *raw.RenameIn, ol
 	return ENOSYS
 }
 
-func (me *DefaultRawFileSystem) Link(header *InHeader, input *raw.LinkIn, name string) (out *EntryOut, code Status) {
+func (me *DefaultRawFileSystem) Link(header *InHeader, input *raw.LinkIn, name string) (out *raw.EntryOut, code Status) {
 	return nil, ENOSYS
 }
 
@@ -86,7 +86,7 @@ func (me *DefaultRawFileSystem) Access(header *InHeader, input *raw.AccessIn) (c
 	return ENOSYS
 }
 
-func (me *DefaultRawFileSystem) Create(header *InHeader, input *raw.CreateIn, name string) (flags uint32, handle uint64, out *EntryOut, code Status) {
+func (me *DefaultRawFileSystem) Create(header *InHeader, input *raw.CreateIn, name string) (flags uint32, handle uint64, out *raw.EntryOut, code Status) {
 	return 0, 0, nil, ENOSYS
 }
 

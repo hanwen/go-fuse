@@ -4,6 +4,8 @@ import (
 	"log"
 	"sync"
 	"unsafe"
+	
+	"github.com/hanwen/go-fuse/raw"
 )
 
 var _ = log.Println
@@ -53,27 +55,27 @@ func (me *fileSystemMount) mountName() string {
 	return ""
 }
 
-func (me *fileSystemMount) setOwner(attr *Attr) {
+func (me *fileSystemMount) setOwner(attr *raw.Attr) {
 	if me.options.Owner != nil {
-		attr.Owner = *me.options.Owner
+		attr.Owner = *(*raw.Owner)(me.options.Owner)
 	}
 }
 
-func (me *fileSystemMount) fileInfoToEntry(attr *Attr) (out *EntryOut) {
-	out = &EntryOut{}
+func (me *fileSystemMount) attrToEntry(attr *raw.Attr) (out *raw.EntryOut) {
+	out = &raw.EntryOut{}
 	out.Attr = *attr
 
 	splitDuration(me.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
 	splitDuration(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	me.setOwner(&out.Attr)
-	if !attr.IsDir() && attr.Nlink == 0 {
+	if attr.Mode & S_IFDIR == 0 && attr.Nlink == 0 {
 		out.Nlink = 1
 	}
 	return out
 }
 
-func (me *fileSystemMount) fillAttr(a *Attr, nodeId uint64) (out *AttrOut) {
-	out = &AttrOut{}
+func (me *fileSystemMount) fillAttr(a *raw.Attr, nodeId uint64) (out *raw.AttrOut) {
+	out = &raw.AttrOut{}
 	out.Attr = *a
 	splitDuration(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	me.setOwner(&out.Attr)
@@ -142,9 +144,9 @@ func (me *fileSystemMount) registerFileHandle(node *Inode, dir rawDir, f File, f
 }
 
 // Creates a return entry for a non-existent path.
-func (me *fileSystemMount) negativeEntry() (*EntryOut, Status) {
+func (me *fileSystemMount) negativeEntry() (*raw.EntryOut, Status) {
 	if me.options.NegativeTimeout > 0.0 {
-		out := new(EntryOut)
+		out := new(raw.EntryOut)
 		out.NodeId = 0
 		splitDuration(me.options.NegativeTimeout, &out.EntryValid, &out.EntryValidNsec)
 		return out, OK

@@ -123,8 +123,8 @@ func doCreate(state *MountState, req *request) {
 	flags, handle, entry, status := state.fileSystem.Create(req.inHeader, (*raw.CreateIn)(req.inData), req.filenames[0])
 	req.status = status
 	if status.Ok() {
-		req.outData = unsafe.Pointer(&CreateOut{
-			EntryOut: *entry,
+		req.outData = unsafe.Pointer(&raw.CreateOut{
+			raw.EntryOut: *entry,
 			raw.OpenOut: raw.OpenOut{
 				Fh:        handle,
 				OpenFlags: flags,
@@ -421,13 +421,13 @@ func init() {
 	}
 
 	for op, sz := range map[opcode]uintptr{
-		_OP_LOOKUP:       unsafe.Sizeof(EntryOut{}),
-		_OP_GETATTR:      unsafe.Sizeof(AttrOut{}),
-		_OP_SETATTR:      unsafe.Sizeof(AttrOut{}),
-		_OP_SYMLINK:      unsafe.Sizeof(EntryOut{}),
-		_OP_MKNOD:        unsafe.Sizeof(EntryOut{}),
-		_OP_MKDIR:        unsafe.Sizeof(EntryOut{}),
-		_OP_LINK:         unsafe.Sizeof(EntryOut{}),
+		_OP_LOOKUP:       unsafe.Sizeof(raw.EntryOut{}),
+		_OP_GETATTR:      unsafe.Sizeof(raw.AttrOut{}),
+		_OP_SETATTR:      unsafe.Sizeof(raw.AttrOut{}),
+		_OP_SYMLINK:      unsafe.Sizeof(raw.EntryOut{}),
+		_OP_MKNOD:        unsafe.Sizeof(raw.EntryOut{}),
+		_OP_MKDIR:        unsafe.Sizeof(raw.EntryOut{}),
+		_OP_LINK:         unsafe.Sizeof(raw.EntryOut{}),
 		_OP_OPEN:         unsafe.Sizeof(raw.OpenOut{}),
 		_OP_WRITE:        unsafe.Sizeof(raw.WriteOut{}),
 		_OP_STATFS:       unsafe.Sizeof(StatfsOut{}),
@@ -435,7 +435,7 @@ func init() {
 		_OP_LISTXATTR:    unsafe.Sizeof(raw.GetXAttrOut{}),
 		_OP_INIT:         unsafe.Sizeof(raw.InitOut{}),
 		_OP_OPENDIR:      unsafe.Sizeof(raw.OpenOut{}),
-		_OP_CREATE:       unsafe.Sizeof(CreateOut{}),
+		_OP_CREATE:       unsafe.Sizeof(raw.CreateOut{}),
 		_OP_BMAP:         unsafe.Sizeof(raw.BmapOut{}),
 		_OP_IOCTL:        unsafe.Sizeof(raw.IoctlOut{}),
 		_OP_POLL:         unsafe.Sizeof(raw.PollOut{}),
@@ -530,15 +530,15 @@ func init() {
 
 	// Outputs.
 	for op, f := range map[opcode]castPointerFunc{
-		_OP_LOOKUP:       func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
+		_OP_LOOKUP:       func(ptr unsafe.Pointer) interface{} { return (*raw.EntryOut)(ptr) },
 		_OP_OPEN:         func(ptr unsafe.Pointer) interface{} { return (*raw.OpenOut)(ptr) },
 		_OP_OPENDIR:      func(ptr unsafe.Pointer) interface{} { return (*raw.OpenOut)(ptr) },
-		_OP_GETATTR:      func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
-		_OP_CREATE:       func(ptr unsafe.Pointer) interface{} { return (*CreateOut)(ptr) },
-		_OP_LINK:         func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
-		_OP_SETATTR:      func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
+		_OP_GETATTR:      func(ptr unsafe.Pointer) interface{} { return (*raw.AttrOut)(ptr) },
+		_OP_CREATE:       func(ptr unsafe.Pointer) interface{} { return (*raw.CreateOut)(ptr) },
+		_OP_LINK:         func(ptr unsafe.Pointer) interface{} { return (*raw.EntryOut)(ptr) },
+		_OP_SETATTR:      func(ptr unsafe.Pointer) interface{} { return (*raw.AttrOut)(ptr) },
 		_OP_INIT:         func(ptr unsafe.Pointer) interface{} { return (*raw.InitOut)(ptr) },
-		_OP_MKDIR:        func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
+		_OP_MKDIR:        func(ptr unsafe.Pointer) interface{} { return (*raw.EntryOut)(ptr) },
 		_OP_NOTIFY_ENTRY: func(ptr unsafe.Pointer) interface{} { return (*raw.NotifyInvalEntryOut)(ptr) },
 		_OP_NOTIFY_INODE: func(ptr unsafe.Pointer) interface{} { return (*raw.NotifyInvalInodeOut)(ptr) },
 		_OP_STATFS:       func(ptr unsafe.Pointer) interface{} { return (*StatfsOut)(ptr) },

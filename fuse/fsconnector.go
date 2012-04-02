@@ -79,9 +79,9 @@ func (me *FileSystemConnector) verify() {
 }
 
 // Generate EntryOut and increase the lookup count for an inode.
-func (me *FileSystemConnector) childLookup(fi *Attr, fsi FsNode) (out *EntryOut) {
+func (me *FileSystemConnector) childLookup(fi *raw.Attr, fsi FsNode) (out *raw.EntryOut) {
 	n := fsi.Inode()
-	out = n.mount.fileInfoToEntry(fi)
+	out = n.mount.attrToEntry(fi)
 	out.Ino = me.lookupUpdate(n)
 	out.NodeId = out.Ino
 	if out.Nlink == 0 {

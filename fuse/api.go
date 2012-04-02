@@ -249,22 +249,22 @@ type DefaultFile struct{}
 //
 // Include DefaultRawFileSystem to inherit a null implementation.
 type RawFileSystem interface {
-	Lookup(header *InHeader, name string) (out *EntryOut, status Status)
+	Lookup(header *InHeader, name string) (out *raw.EntryOut, status Status)
 	Forget(nodeid, nlookup uint64)
 
 	// Attributes.
-	GetAttr(header *InHeader, input *raw.GetAttrIn) (out *AttrOut, code Status)
-	SetAttr(header *InHeader, input *raw.SetAttrIn) (out *AttrOut, code Status)
+	GetAttr(header *InHeader, input *raw.GetAttrIn) (out *raw.AttrOut, code Status)
+	SetAttr(header *InHeader, input *raw.SetAttrIn) (out *raw.AttrOut, code Status)
 
 	// Modifying structure.
-	Mknod(header *InHeader, input *raw.MknodIn, name string) (out *EntryOut, code Status)
-	Mkdir(header *InHeader, input *raw.MkdirIn, name string) (out *EntryOut, code Status)
+	Mknod(header *InHeader, input *raw.MknodIn, name string) (out *raw.EntryOut, code Status)
+	Mkdir(header *InHeader, input *raw.MkdirIn, name string) (out *raw.EntryOut, code Status)
 	Unlink(header *InHeader, name string) (code Status)
 	Rmdir(header *InHeader, name string) (code Status)
 	Rename(header *InHeader, input *raw.RenameIn, oldName string, newName string) (code Status)
-	Link(header *InHeader, input *raw.LinkIn, filename string) (out *EntryOut, code Status)
+	Link(header *InHeader, input *raw.LinkIn, filename string) (out *raw.EntryOut, code Status)
 
-	Symlink(header *InHeader, pointedTo string, linkName string) (out *EntryOut, code Status)
+	Symlink(header *InHeader, pointedTo string, linkName string) (out *raw.EntryOut, code Status)
 	Readlink(header *InHeader) (out []byte, code Status)
 	Access(header *InHeader, input *raw.AccessIn) (code Status)
 
@@ -276,7 +276,7 @@ type RawFileSystem interface {
 	RemoveXAttr(header *InHeader, attr string) (code Status)
 
 	// File handling.
-	Create(header *InHeader, input *raw.CreateIn, name string) (flags uint32, handle uint64, out *EntryOut, code Status)
+	Create(header *InHeader, input *raw.CreateIn, name string) (flags uint32, handle uint64, out *raw.EntryOut, code Status)
 	Open(header *InHeader, input *raw.OpenIn) (flags uint32, handle uint64, status Status)
 	Read(*InHeader, *ReadIn, BufferPool) ([]byte, Status)
 
