@@ -12,7 +12,8 @@ import (
 
 var _ = fmt.Print
 
-// For FileSystemConnector.  The connector determines inodes.
+// DirEntry is a type for PathFileSystem and NodeFileSystem to return
+// directory contents in.
 type DirEntry struct {
 	Mode uint32
 	Name string
@@ -40,14 +41,14 @@ func (me *DirEntryList) Add(name []byte, inode uint64, mode uint32) bool {
 	lastLen := me.buf.Len()
 	(*me.offset)++
 
-	dirent := Dirent{
+	dirent := raw.Dirent{
 		Off:     *me.offset,
 		Ino:     inode,
 		NameLen: uint32(len(name)),
 		Typ:     ModeToType(mode),
 	}
 
-	_, err := me.buf.Write(asSlice(unsafe.Pointer(&dirent), unsafe.Sizeof(Dirent{})))
+	_, err := me.buf.Write(asSlice(unsafe.Pointer(&dirent), unsafe.Sizeof(raw.Dirent{})))
 	if err != nil {
 		panic("Serialization of Dirent failed")
 	}

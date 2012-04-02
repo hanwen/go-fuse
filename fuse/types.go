@@ -79,9 +79,3 @@ type WriteIn struct {
 	Padding    uint32
 }
 
-type Dirent struct {
-	Ino     uint64
-	Off     uint64
-	NameLen uint32
-	Typ     uint32
-}
