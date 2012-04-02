@@ -160,7 +160,7 @@ func NewLockingRawFileSystem(rfs RawFileSystem) *LockingRawFileSystem {
 	return l
 }
 
-func (me *LockingRawFileSystem) Lookup(h *InHeader, name string) (out *raw.EntryOut, code Status) {
+func (me *LockingRawFileSystem) Lookup(h *raw.InHeader, name string) (out *raw.EntryOut, code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Lookup(h, name)
 }
@@ -170,137 +170,137 @@ func (me *LockingRawFileSystem) Forget(nodeID uint64, nlookup uint64) {
 	me.RawFileSystem.Forget(nodeID, nlookup)
 }
 
-func (me *LockingRawFileSystem) GetAttr(header *InHeader, input *raw.GetAttrIn) (out *raw.AttrOut, code Status) {
+func (me *LockingRawFileSystem) GetAttr(header *raw.InHeader, input *raw.GetAttrIn) (out *raw.AttrOut, code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.GetAttr(header, input)
 }
 
-func (me *LockingRawFileSystem) Open(header *InHeader, input *raw.OpenIn) (flags uint32, handle uint64, status Status) {
+func (me *LockingRawFileSystem) Open(header *raw.InHeader, input *raw.OpenIn) (flags uint32, handle uint64, status Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Open(header, input)
 }
 
-func (me *LockingRawFileSystem) SetAttr(header *InHeader, input *raw.SetAttrIn) (out *raw.AttrOut, code Status) {
+func (me *LockingRawFileSystem) SetAttr(header *raw.InHeader, input *raw.SetAttrIn) (out *raw.AttrOut, code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.SetAttr(header, input)
 }
 
-func (me *LockingRawFileSystem) Readlink(header *InHeader) (out []byte, code Status) {
+func (me *LockingRawFileSystem) Readlink(header *raw.InHeader) (out []byte, code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Readlink(header)
 }
 
-func (me *LockingRawFileSystem) Mknod(header *InHeader, input *raw.MknodIn, name string) (out *raw.EntryOut, code Status) {
+func (me *LockingRawFileSystem) Mknod(header *raw.InHeader, input *raw.MknodIn, name string) (out *raw.EntryOut, code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Mknod(header, input, name)
 }
 
-func (me *LockingRawFileSystem) Mkdir(header *InHeader, input *raw.MkdirIn, name string) (out *raw.EntryOut, code Status) {
+func (me *LockingRawFileSystem) Mkdir(header *raw.InHeader, input *raw.MkdirIn, name string) (out *raw.EntryOut, code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Mkdir(header, input, name)
 }
 
-func (me *LockingRawFileSystem) Unlink(header *InHeader, name string) (code Status) {
+func (me *LockingRawFileSystem) Unlink(header *raw.InHeader, name string) (code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Unlink(header, name)
 }
 
-func (me *LockingRawFileSystem) Rmdir(header *InHeader, name string) (code Status) {
+func (me *LockingRawFileSystem) Rmdir(header *raw.InHeader, name string) (code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Rmdir(header, name)
 }
 
-func (me *LockingRawFileSystem) Symlink(header *InHeader, pointedTo string, linkName string) (out *raw.EntryOut, code Status) {
+func (me *LockingRawFileSystem) Symlink(header *raw.InHeader, pointedTo string, linkName string) (out *raw.EntryOut, code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Symlink(header, pointedTo, linkName)
 }
 
-func (me *LockingRawFileSystem) Rename(header *InHeader, input *raw.RenameIn, oldName string, newName string) (code Status) {
+func (me *LockingRawFileSystem) Rename(header *raw.InHeader, input *raw.RenameIn, oldName string, newName string) (code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Rename(header, input, oldName, newName)
 }
 
-func (me *LockingRawFileSystem) Link(header *InHeader, input *raw.LinkIn, name string) (out *raw.EntryOut, code Status) {
+func (me *LockingRawFileSystem) Link(header *raw.InHeader, input *raw.LinkIn, name string) (out *raw.EntryOut, code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Link(header, input, name)
 }
 
-func (me *LockingRawFileSystem) SetXAttr(header *InHeader, input *raw.SetXAttrIn, attr string, data []byte) Status {
+func (me *LockingRawFileSystem) SetXAttr(header *raw.InHeader, input *raw.SetXAttrIn, attr string, data []byte) Status {
 	defer me.locked()()
 	return me.RawFileSystem.SetXAttr(header, input, attr, data)
 }
 
-func (me *LockingRawFileSystem) GetXAttrData(header *InHeader, attr string) (data []byte, code Status) {
+func (me *LockingRawFileSystem) GetXAttrData(header *raw.InHeader, attr string) (data []byte, code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.GetXAttrData(header, attr)
 }
 
-func (me *LockingRawFileSystem) GetXAttrSize(header *InHeader, attr string) (sz int, code Status) {
+func (me *LockingRawFileSystem) GetXAttrSize(header *raw.InHeader, attr string) (sz int, code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.GetXAttrSize(header, attr)
 }
 
-func (me *LockingRawFileSystem) ListXAttr(header *InHeader) (data []byte, code Status) {
+func (me *LockingRawFileSystem) ListXAttr(header *raw.InHeader) (data []byte, code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.ListXAttr(header)
 }
 
-func (me *LockingRawFileSystem) RemoveXAttr(header *InHeader, attr string) Status {
+func (me *LockingRawFileSystem) RemoveXAttr(header *raw.InHeader, attr string) Status {
 	defer me.locked()()
 	return me.RawFileSystem.RemoveXAttr(header, attr)
 }
 
-func (me *LockingRawFileSystem) Access(header *InHeader, input *raw.AccessIn) (code Status) {
+func (me *LockingRawFileSystem) Access(header *raw.InHeader, input *raw.AccessIn) (code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Access(header, input)
 }
 
-func (me *LockingRawFileSystem) Create(header *InHeader, input *raw.CreateIn, name string) (flags uint32, handle uint64, out *raw.EntryOut, code Status) {
+func (me *LockingRawFileSystem) Create(header *raw.InHeader, input *raw.CreateIn, name string) (flags uint32, handle uint64, out *raw.EntryOut, code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Create(header, input, name)
 }
 
-func (me *LockingRawFileSystem) OpenDir(header *InHeader, input *raw.OpenIn) (flags uint32, h uint64, status Status) {
+func (me *LockingRawFileSystem) OpenDir(header *raw.InHeader, input *raw.OpenIn) (flags uint32, h uint64, status Status) {
 	defer me.locked()()
 	return me.RawFileSystem.OpenDir(header, input)
 }
 
-func (me *LockingRawFileSystem) Release(header *InHeader, input *raw.ReleaseIn) {
+func (me *LockingRawFileSystem) Release(header *raw.InHeader, input *raw.ReleaseIn) {
 	defer me.locked()()
 	me.RawFileSystem.Release(header, input)
 }
 
-func (me *LockingRawFileSystem) ReleaseDir(header *InHeader, h *raw.ReleaseIn) {
+func (me *LockingRawFileSystem) ReleaseDir(header *raw.InHeader, h *raw.ReleaseIn) {
 	defer me.locked()()
 	me.RawFileSystem.ReleaseDir(header, h)
 }
 
-func (me *LockingRawFileSystem) Read(header *InHeader, input *ReadIn, bp BufferPool) ([]byte, Status) {
+func (me *LockingRawFileSystem) Read(header *raw.InHeader, input *ReadIn, bp BufferPool) ([]byte, Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Read(header, input, bp)
 }
 
-func (me *LockingRawFileSystem) Write(header *InHeader, input *WriteIn, data []byte) (written uint32, code Status) {
+func (me *LockingRawFileSystem) Write(header *raw.InHeader, input *WriteIn, data []byte) (written uint32, code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Write(header, input, data)
 }
 
-func (me *LockingRawFileSystem) Flush(header *InHeader, input *raw.FlushIn) Status {
+func (me *LockingRawFileSystem) Flush(header *raw.InHeader, input *raw.FlushIn) Status {
 	defer me.locked()()
 	return me.RawFileSystem.Flush(header, input)
 }
 
-func (me *LockingRawFileSystem) Fsync(header *InHeader, input *raw.FsyncIn) (code Status) {
+func (me *LockingRawFileSystem) Fsync(header *raw.InHeader, input *raw.FsyncIn) (code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.Fsync(header, input)
 }
 
-func (me *LockingRawFileSystem) ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status) {
+func (me *LockingRawFileSystem) ReadDir(header *raw.InHeader, input *ReadIn) (*DirEntryList, Status) {
 	defer me.locked()()
 	return me.RawFileSystem.ReadDir(header, input)
 }
 
-func (me *LockingRawFileSystem) FsyncDir(header *InHeader, input *raw.FsyncIn) (code Status) {
+func (me *LockingRawFileSystem) FsyncDir(header *raw.InHeader, input *raw.FsyncIn) (code Status) {
 	defer me.locked()()
 	return me.RawFileSystem.FsyncDir(header, input)
 }

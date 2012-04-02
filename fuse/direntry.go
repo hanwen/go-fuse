@@ -6,6 +6,8 @@ import (
 	"bytes"
 	"fmt"
 	"unsafe"
+
+	"github.com/hanwen/go-fuse/raw"
 )
 
 var _ = fmt.Print
@@ -31,7 +33,7 @@ func (me *DirEntryList) AddString(name string, inode uint64, mode uint32) bool {
 }
 
 func (me *DirEntryList) AddDirEntry(e DirEntry) bool {
-	return me.Add([]byte(e.Name), uint64(FUSE_UNKNOWN_INO), e.Mode)
+	return me.Add([]byte(e.Name), uint64(raw.FUSE_UNKNOWN_INO), e.Mode)
 }
 
 func (me *DirEntryList) Add(name []byte, inode uint64, mode uint32) bool {

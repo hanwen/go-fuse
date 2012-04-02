@@ -103,7 +103,7 @@ func (me *FileSystemConnector) findMount(parent *Inode, name string) (mount *fil
 }
 
 func (me *FileSystemConnector) toInode(nodeid uint64) *Inode {
-	if nodeid == FUSE_ROOT_ID {
+	if nodeid == raw.FUSE_ROOT_ID {
 		return me.rootNode
 	}
 	i := (*Inode)(unsafe.Pointer(me.inodeMap.Decode(nodeid)))
@@ -333,7 +333,7 @@ func (me *FileSystemConnector) Unmount(node *Inode) Status {
 func (me *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) Status {
 	n := node.nodeId
 	if node == me.rootNode {
-		n = FUSE_ROOT_ID
+		n = raw.FUSE_ROOT_ID
 	}
 	if n == 0 {
 		return OK
@@ -349,7 +349,7 @@ func (me *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) 
 func (me *FileSystemConnector) EntryNotify(dir *Inode, name string) Status {
 	n := dir.nodeId
 	if dir == me.rootNode {
-		n = FUSE_ROOT_ID
+		n = raw.FUSE_ROOT_ID
 	}
 	if n == 0 {
 		return OK

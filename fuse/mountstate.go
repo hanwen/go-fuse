@@ -166,7 +166,7 @@ func (me *MountState) recordStats(req *request) {
 		endNs := time.Now().UnixNano()
 		dt := endNs - req.startNs
 
-		opname := operationName(req.inHeader.opcode)
+		opname := operationName(req.inHeader.Opcode)
 		me.latencies.AddMany(
 			[]LatencyArg{
 				{opname, "", dt},
@@ -234,7 +234,7 @@ func (me *MountState) handleRequest(req *request) {
 	}
 
 	if req.status.Ok() && req.handler.Func == nil {
-		log.Printf("Unimplemented opcode %v", req.inHeader.opcode)
+		log.Printf("Unimplemented opcode %v", operationName(req.inHeader.Opcode))
 		req.status = ENOSYS
 	}
 
@@ -245,13 +245,13 @@ func (me *MountState) handleRequest(req *request) {
 	errNo := me.write(req)
 	if errNo != 0 {
 		log.Printf("writer: Write/Writev %v failed, err: %v. opcode: %v",
-			req.outHeaderBytes, errNo, operationName(req.inHeader.opcode))
+			req.outHeaderBytes, errNo, operationName(req.inHeader.Opcode))
 	}
 }
 
 func (me *MountState) write(req *request) Status {
 	// Forget does not wait for reply.
-	if req.inHeader.opcode == _OP_FORGET || req.inHeader.opcode == _OP_BATCH_FORGET {
+	if req.inHeader.Opcode == _OP_FORGET || req.inHeader.Opcode == _OP_BATCH_FORGET {
 		return OK
 	}
 
@@ -281,8 +281,8 @@ func (me *MountState) write(req *request) Status {
 
 func (me *MountState) writeInodeNotify(entry *raw.NotifyInvalInodeOut) Status {
 	req := request{
-		inHeader: &InHeader{
-			opcode: _OP_NOTIFY_INODE,
+		inHeader: &raw.InHeader{
+			Opcode: _OP_NOTIFY_INODE,
 		},
 		handler: operationHandlers[_OP_NOTIFY_INODE],
 		status:  raw.NOTIFY_INVAL_INODE,
@@ -299,8 +299,8 @@ func (me *MountState) writeInodeNotify(entry *raw.NotifyInvalInodeOut) Status {
 
 func (me *MountState) writeEntryNotify(parent uint64, name string) Status {
 	req := request{
-		inHeader: &InHeader{
-			opcode: _OP_NOTIFY_ENTRY,
+		inHeader: &raw.InHeader{
+			Opcode: _OP_NOTIFY_ENTRY,
 		},
 		handler: operationHandlers[_OP_NOTIFY_ENTRY],
 		status:  raw.NOTIFY_INVAL_ENTRY,

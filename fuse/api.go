@@ -249,51 +249,51 @@ type DefaultFile struct{}
 //
 // Include DefaultRawFileSystem to inherit a null implementation.
 type RawFileSystem interface {
-	Lookup(header *InHeader, name string) (out *raw.EntryOut, status Status)
+	Lookup(header *raw.InHeader, name string) (out *raw.EntryOut, status Status)
 	Forget(nodeid, nlookup uint64)
 
 	// Attributes.
-	GetAttr(header *InHeader, input *raw.GetAttrIn) (out *raw.AttrOut, code Status)
-	SetAttr(header *InHeader, input *raw.SetAttrIn) (out *raw.AttrOut, code Status)
+	GetAttr(header *raw.InHeader, input *raw.GetAttrIn) (out *raw.AttrOut, code Status)
+	SetAttr(header *raw.InHeader, input *raw.SetAttrIn) (out *raw.AttrOut, code Status)
 
 	// Modifying structure.
-	Mknod(header *InHeader, input *raw.MknodIn, name string) (out *raw.EntryOut, code Status)
-	Mkdir(header *InHeader, input *raw.MkdirIn, name string) (out *raw.EntryOut, code Status)
-	Unlink(header *InHeader, name string) (code Status)
-	Rmdir(header *InHeader, name string) (code Status)
-	Rename(header *InHeader, input *raw.RenameIn, oldName string, newName string) (code Status)
-	Link(header *InHeader, input *raw.LinkIn, filename string) (out *raw.EntryOut, code Status)
+	Mknod(header *raw.InHeader, input *raw.MknodIn, name string) (out *raw.EntryOut, code Status)
+	Mkdir(header *raw.InHeader, input *raw.MkdirIn, name string) (out *raw.EntryOut, code Status)
+	Unlink(header *raw.InHeader, name string) (code Status)
+	Rmdir(header *raw.InHeader, name string) (code Status)
+	Rename(header *raw.InHeader, input *raw.RenameIn, oldName string, newName string) (code Status)
+	Link(header *raw.InHeader, input *raw.LinkIn, filename string) (out *raw.EntryOut, code Status)
 
-	Symlink(header *InHeader, pointedTo string, linkName string) (out *raw.EntryOut, code Status)
-	Readlink(header *InHeader) (out []byte, code Status)
-	Access(header *InHeader, input *raw.AccessIn) (code Status)
+	Symlink(header *raw.InHeader, pointedTo string, linkName string) (out *raw.EntryOut, code Status)
+	Readlink(header *raw.InHeader) (out []byte, code Status)
+	Access(header *raw.InHeader, input *raw.AccessIn) (code Status)
 
 	// Extended attributes.
-	GetXAttrSize(header *InHeader, attr string) (sz int, code Status)
-	GetXAttrData(header *InHeader, attr string) (data []byte, code Status)
-	ListXAttr(header *InHeader) (attributes []byte, code Status)
-	SetXAttr(header *InHeader, input *raw.SetXAttrIn, attr string, data []byte) Status
-	RemoveXAttr(header *InHeader, attr string) (code Status)
+	GetXAttrSize(header *raw.InHeader, attr string) (sz int, code Status)
+	GetXAttrData(header *raw.InHeader, attr string) (data []byte, code Status)
+	ListXAttr(header *raw.InHeader) (attributes []byte, code Status)
+	SetXAttr(header *raw.InHeader, input *raw.SetXAttrIn, attr string, data []byte) Status
+	RemoveXAttr(header *raw.InHeader, attr string) (code Status)
 
 	// File handling.
-	Create(header *InHeader, input *raw.CreateIn, name string) (flags uint32, handle uint64, out *raw.EntryOut, code Status)
-	Open(header *InHeader, input *raw.OpenIn) (flags uint32, handle uint64, status Status)
-	Read(*InHeader, *ReadIn, BufferPool) ([]byte, Status)
+	Create(header *raw.InHeader, input *raw.CreateIn, name string) (flags uint32, handle uint64, out *raw.EntryOut, code Status)
+	Open(header *raw.InHeader, input *raw.OpenIn) (flags uint32, handle uint64, status Status)
+	Read(*raw.InHeader, *ReadIn, BufferPool) ([]byte, Status)
 
-	Release(header *InHeader, input *raw.ReleaseIn)
-	Write(*InHeader, *WriteIn, []byte) (written uint32, code Status)
-	Flush(header *InHeader, input *raw.FlushIn) Status
-	Fsync(*InHeader, *raw.FsyncIn) (code Status)
+	Release(header *raw.InHeader, input *raw.ReleaseIn)
+	Write(*raw.InHeader, *WriteIn, []byte) (written uint32, code Status)
+	Flush(header *raw.InHeader, input *raw.FlushIn) Status
+	Fsync(*raw.InHeader, *raw.FsyncIn) (code Status)
 
 	// Directory handling
-	OpenDir(header *InHeader, input *raw.OpenIn) (flags uint32, handle uint64, status Status)
-	ReadDir(header *InHeader, input *ReadIn) (*DirEntryList, Status)
-	ReleaseDir(header *InHeader, input *raw.ReleaseIn)
-	FsyncDir(header *InHeader, input *raw.FsyncIn) (code Status)
+	OpenDir(header *raw.InHeader, input *raw.OpenIn) (flags uint32, handle uint64, status Status)
+	ReadDir(header *raw.InHeader, input *ReadIn) (*DirEntryList, Status)
+	ReleaseDir(header *raw.InHeader, input *raw.ReleaseIn)
+	FsyncDir(header *raw.InHeader, input *raw.FsyncIn) (code Status)
 
 	//
-	Ioctl(header *InHeader, input *raw.IoctlIn) (output *raw.IoctlOut, data []byte, code Status)
-	StatFs(header *InHeader) *StatfsOut
+	Ioctl(header *raw.InHeader, input *raw.IoctlIn) (output *raw.IoctlOut, data []byte, code Status)
+	StatFs(header *raw.InHeader) *StatfsOut
 
 	// Provide callbacks for pushing notifications to the kernel.
 	Init(params *RawFsInit)

@@ -13,55 +13,53 @@ import (
 var _ = log.Printf
 var _ = fmt.Printf
 
-type opcode int
-
 const (
-	_OP_LOOKUP       = opcode(1)
-	_OP_FORGET       = opcode(2)
-	_OP_GETATTR      = opcode(3)
-	_OP_SETATTR      = opcode(4)
-	_OP_READLINK     = opcode(5)
-	_OP_SYMLINK      = opcode(6)
-	_OP_MKNOD        = opcode(8)
-	_OP_MKDIR        = opcode(9)
-	_OP_UNLINK       = opcode(10)
-	_OP_RMDIR        = opcode(11)
-	_OP_RENAME       = opcode(12)
-	_OP_LINK         = opcode(13)
-	_OP_OPEN         = opcode(14)
-	_OP_READ         = opcode(15)
-	_OP_WRITE        = opcode(16)
-	_OP_STATFS       = opcode(17)
-	_OP_RELEASE      = opcode(18)
-	_OP_FSYNC        = opcode(20)
-	_OP_SETXATTR     = opcode(21)
-	_OP_GETXATTR     = opcode(22)
-	_OP_LISTXATTR    = opcode(23)
-	_OP_REMOVEXATTR  = opcode(24)
-	_OP_FLUSH        = opcode(25)
-	_OP_INIT         = opcode(26)
-	_OP_OPENDIR      = opcode(27)
-	_OP_READDIR      = opcode(28)
-	_OP_RELEASEDIR   = opcode(29)
-	_OP_FSYNCDIR     = opcode(30)
-	_OP_GETLK        = opcode(31)
-	_OP_SETLK        = opcode(32)
-	_OP_SETLKW       = opcode(33)
-	_OP_ACCESS       = opcode(34)
-	_OP_CREATE       = opcode(35)
-	_OP_INTERRUPT    = opcode(36)
-	_OP_BMAP         = opcode(37)
-	_OP_DESTROY      = opcode(38)
-	_OP_IOCTL        = opcode(39)
-	_OP_POLL         = opcode(40)
-	_OP_NOTIFY_REPLY = opcode(41)
-	_OP_BATCH_FORGET = opcode(42)
+	_OP_LOOKUP       = int32(1)
+	_OP_FORGET       = int32(2)
+	_OP_GETATTR      = int32(3)
+	_OP_SETATTR      = int32(4)
+	_OP_READLINK     = int32(5)
+	_OP_SYMLINK      = int32(6)
+	_OP_MKNOD        = int32(8)
+	_OP_MKDIR        = int32(9)
+	_OP_UNLINK       = int32(10)
+	_OP_RMDIR        = int32(11)
+	_OP_RENAME       = int32(12)
+	_OP_LINK         = int32(13)
+	_OP_OPEN         = int32(14)
+	_OP_READ         = int32(15)
+	_OP_WRITE        = int32(16)
+	_OP_STATFS       = int32(17)
+	_OP_RELEASE      = int32(18)
+	_OP_FSYNC        = int32(20)
+	_OP_SETXATTR     = int32(21)
+	_OP_GETXATTR     = int32(22)
+	_OP_LISTXATTR    = int32(23)
+	_OP_REMOVEXATTR  = int32(24)
+	_OP_FLUSH        = int32(25)
+	_OP_INIT         = int32(26)
+	_OP_OPENDIR      = int32(27)
+	_OP_READDIR      = int32(28)
+	_OP_RELEASEDIR   = int32(29)
+	_OP_FSYNCDIR     = int32(30)
+	_OP_GETLK        = int32(31)
+	_OP_SETLK        = int32(32)
+	_OP_SETLKW       = int32(33)
+	_OP_ACCESS       = int32(34)
+	_OP_CREATE       = int32(35)
+	_OP_INTERRUPT    = int32(36)
+	_OP_BMAP         = int32(37)
+	_OP_DESTROY      = int32(38)
+	_OP_IOCTL        = int32(39)
+	_OP_POLL         = int32(40)
+	_OP_NOTIFY_REPLY = int32(41)
+	_OP_BATCH_FORGET = int32(42)
 
 	// Ugh - what will happen if FUSE introduces a new opcode here?
-	_OP_NOTIFY_ENTRY = opcode(51)
-	_OP_NOTIFY_INODE = opcode(52)
+	_OP_NOTIFY_ENTRY = int32(51)
+	_OP_NOTIFY_INODE = int32(52)
 
-	_OPCODE_COUNT = opcode(53)
+	_OPCODE_COUNT = int32(53)
 )
 
 ////////////////////////////////////////////////////////////////
@@ -172,7 +170,7 @@ const _SECURITY_ACL = "system.posix_acl_access"
 const _SECURITY_ACL_DEFAULT = "system.posix_acl_default"
 
 func doGetXAttr(state *MountState, req *request) {
-	if state.opts.IgnoreSecurityLabels && req.inHeader.opcode == _OP_GETXATTR {
+	if state.opts.IgnoreSecurityLabels && req.inHeader.Opcode == _OP_GETXATTR {
 		fn := req.filenames[0]
 		if fn == _SECURITY_CAPABILITY || fn == _SECURITY_ACL_DEFAULT ||
 			fn == _SECURITY_ACL {
@@ -184,7 +182,7 @@ func doGetXAttr(state *MountState, req *request) {
 	input := (*raw.GetXAttrIn)(req.inData)
 	var data []byte
 	switch {
-	case req.inHeader.opcode == _OP_GETXATTR && input.Size == 0:
+	case req.inHeader.Opcode == _OP_GETXATTR && input.Size == 0:
 		sz, code := state.fileSystem.GetXAttrSize(req.inHeader, req.filenames[0])
 		if code.Ok() {
 			out := &raw.GetXAttrOut{
@@ -195,7 +193,7 @@ func doGetXAttr(state *MountState, req *request) {
 			return
 		}
 		req.status = code
-	case req.inHeader.opcode == _OP_GETXATTR:
+	case req.inHeader.Opcode == _OP_GETXATTR:
 		data, req.status = state.fileSystem.GetXAttrData(req.inHeader, req.filenames[0])
 	default:
 		data, req.status = state.fileSystem.ListXAttr(req.inHeader)
@@ -357,7 +355,7 @@ type operationHandler struct {
 
 var operationHandlers []*operationHandler
 
-func operationName(op opcode) string {
+func operationName(op int32) string {
 	h := getHandler(op)
 	if h == nil {
 		return "unknown"
@@ -365,11 +363,7 @@ func operationName(op opcode) string {
 	return h.Name
 }
 
-func (op opcode) String() string {
-	return operationName(op)
-}
-
-func getHandler(o opcode) *operationHandler {
+func getHandler(o int32) *operationHandler {
 	if o >= _OPCODE_COUNT {
 		return nil
 	}
@@ -382,12 +376,12 @@ func init() {
 		operationHandlers[i] = &operationHandler{Name: "UNKNOWN"}
 	}
 
-	fileOps := []opcode{_OP_READLINK, _OP_NOTIFY_ENTRY}
+	fileOps := []int32{_OP_READLINK, _OP_NOTIFY_ENTRY}
 	for _, op := range fileOps {
 		operationHandlers[op].FileNameOut = true
 	}
 
-	for op, sz := range map[opcode]uintptr{
+	for op, sz := range map[int32]uintptr{
 		_OP_FORGET:       unsafe.Sizeof(raw.ForgetIn{}),
 		_OP_BATCH_FORGET: unsafe.Sizeof(raw.BatchForgetIn{}),
 		_OP_GETATTR:      unsafe.Sizeof(raw.GetAttrIn{}),
@@ -420,7 +414,7 @@ func init() {
 		operationHandlers[op].InputSize = sz
 	}
 
-	for op, sz := range map[opcode]uintptr{
+	for op, sz := range map[int32]uintptr{
 		_OP_LOOKUP:       unsafe.Sizeof(raw.EntryOut{}),
 		_OP_GETATTR:      unsafe.Sizeof(raw.AttrOut{}),
 		_OP_SETATTR:      unsafe.Sizeof(raw.AttrOut{}),
@@ -445,7 +439,7 @@ func init() {
 		operationHandlers[op].OutputSize = sz
 	}
 
-	for op, v := range map[opcode]string{
+	for op, v := range map[int32]string{
 		_OP_LOOKUP:       "LOOKUP",
 		_OP_FORGET:       "FORGET",
 		_OP_BATCH_FORGET: "BATCH_FORGET",
@@ -491,7 +485,7 @@ func init() {
 		operationHandlers[op].Name = v
 	}
 
-	for op, v := range map[opcode]operationFunc{
+	for op, v := range map[int32]operationFunc{
 		_OP_OPEN:         doOpen,
 		_OP_READDIR:      doReadDir,
 		_OP_WRITE:        doWrite,
@@ -529,7 +523,7 @@ func init() {
 	}
 
 	// Outputs.
-	for op, f := range map[opcode]castPointerFunc{
+	for op, f := range map[int32]castPointerFunc{
 		_OP_LOOKUP:       func(ptr unsafe.Pointer) interface{} { return (*raw.EntryOut)(ptr) },
 		_OP_OPEN:         func(ptr unsafe.Pointer) interface{} { return (*raw.OpenOut)(ptr) },
 		_OP_OPENDIR:      func(ptr unsafe.Pointer) interface{} { return (*raw.OpenOut)(ptr) },
@@ -547,7 +541,7 @@ func init() {
 	}
 
 	// Inputs.
-	for op, f := range map[opcode]castPointerFunc{
+	for op, f := range map[int32]castPointerFunc{
 		_OP_FLUSH:        func(ptr unsafe.Pointer) interface{} { return (*raw.FlushIn)(ptr) },
 		_OP_GETATTR:      func(ptr unsafe.Pointer) interface{} { return (*raw.GetAttrIn)(ptr) },
 		_OP_SETATTR:      func(ptr unsafe.Pointer) interface{} { return (*raw.SetAttrIn)(ptr) },
@@ -570,7 +564,7 @@ func init() {
 	}
 
 	// File name args.
-	for op, count := range map[opcode]int{
+	for op, count := range map[int32]int{
 		_OP_CREATE:      1,
 		_OP_GETXATTR:    1,
 		_OP_LINK:        1,

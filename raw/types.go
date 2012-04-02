@@ -1,3 +1,6 @@
+// The raw package contains types and constants used for the FUSE wire
+// protocol.
+
 package raw
 
 
@@ -349,4 +352,18 @@ type AttrOut struct {
 type CreateOut struct {
 	EntryOut
 	OpenOut
+}
+
+type Context struct {
+	Owner
+	Pid uint32
+}
+
+type InHeader struct {
+	Length uint32
+	Opcode int32
+	Unique uint64
+	NodeId uint64
+	Context
+	Padding uint32
 }

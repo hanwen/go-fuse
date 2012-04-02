@@ -14,7 +14,7 @@ type request struct {
 	inputBuf []byte
 
 	// These split up inputBuf.
-	inHeader  *InHeader      // generic header
+	inHeader  *raw.InHeader      // generic header
 	inData    unsafe.Pointer // per op data
 	arg       []byte         // flat data.
 	filenames []string       // filename arguments
@@ -51,8 +51,8 @@ func (me *request) InputDebug() string {
 		names += fmt.Sprintf(" %d bytes", len(me.arg))
 	}
 
-	return fmt.Sprintf("Dispatch: %v, NodeId: %v.%v%v",
-		me.inHeader.opcode, me.inHeader.NodeId, val, names)
+	return fmt.Sprintf("Dispatch: %s, NodeId: %v.%v%v",
+		operationName(me.inHeader.Opcode), me.inHeader.NodeId, val, names)
 }
 
 func (me *request) OutputDebug() string {
@@ -81,29 +81,29 @@ func (me *request) OutputDebug() string {
 		}
 	}
 
-	return fmt.Sprintf("Serialize: %v code: %v value: %v%v",
-		me.inHeader.opcode, me.status, dataStr, flatStr)
+	return fmt.Sprintf("Serialize: %s code: %v value: %v%v",
+		operationName(me.inHeader.Opcode), me.status, dataStr, flatStr)
 }
 
 func (me *request) parse() {
-	inHSize := int(unsafe.Sizeof(InHeader{}))
+	inHSize := int(unsafe.Sizeof(raw.InHeader{}))
 	if len(me.inputBuf) < inHSize {
 		log.Printf("Short read for input header: %v", me.inputBuf)
 		return
 	}
 
-	me.inHeader = (*InHeader)(unsafe.Pointer(&me.inputBuf[0]))
+	me.inHeader = (*raw.InHeader)(unsafe.Pointer(&me.inputBuf[0]))
 	me.arg = me.inputBuf[inHSize:]
 
-	me.handler = getHandler(me.inHeader.opcode)
+	me.handler = getHandler(me.inHeader.Opcode)
 	if me.handler == nil {
-		log.Printf("Unknown opcode %v", me.inHeader.opcode)
+		log.Printf("Unknown opcode %d", me.inHeader.Opcode)
 		me.status = ENOSYS
 		return
 	}
 
 	if len(me.arg) < int(me.handler.InputSize) {
-		log.Printf("Short read for %v: %v", me.inHeader.opcode, me.arg)
+		log.Printf("Short read for %v: %v", operationName(me.inHeader.Opcode), me.arg)
 		me.status = EIO
 		return
 	}
