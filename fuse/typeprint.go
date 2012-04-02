@@ -41,13 +41,6 @@ func (me *ReadIn) String() string {
 		raw.FlagString(raw.OpenFlagNames, int(me.Flags), "RDONLY"))
 }
 
-func (me *Kstatfs) String() string {
-	return fmt.Sprintf(
-		"{b%d f%d fs%d ff%d bs%d nl%d frs%d}",
-		me.Blocks, me.Bfree, me.Bavail, me.Files, me.Ffree,
-		me.Bsize, me.NameLen, me.Frsize)
-}
-
 func (me *WithFlags) String() string {
 	return fmt.Sprintf("File %s (%s) %s %s",
 		me.File, me.Description, raw.FlagString(raw.OpenFlagNames, int(me.OpenFlags), "O_RDONLY"),

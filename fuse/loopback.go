@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"syscall"
 	"time"
+
+	"github.com/hanwen/go-fuse/raw"
 )
 
 var _ = fmt.Println
@@ -187,7 +189,7 @@ func (me *LoopbackFileSystem) StatFs(name string) *StatfsOut {
 	err := syscall.Statfs(me.GetPath(name), &s)
 	if err == nil {
 		return &StatfsOut{
-			Kstatfs{
+			raw.Kstatfs{
 				Blocks:  s.Blocks,
 				Bsize:   uint32(s.Bsize),
 				Bfree:   s.Bfree,

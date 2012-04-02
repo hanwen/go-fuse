@@ -48,18 +48,7 @@ type Owner raw.Owner
 
 type Context raw.Context
 
-type Kstatfs struct {
-	Blocks  uint64
-	Bfree   uint64
-	Bavail  uint64
-	Files   uint64
-	Ffree   uint64
-	Bsize   uint32
-	NameLen uint32
-	Frsize  uint32
-	Padding uint32
-	Spare   [6]uint32
-}
+type StatfsOut raw.StatfsOut
 
 const (
 	READ_LOCKOWNER = (1 << 1)
@@ -88,10 +77,6 @@ type WriteIn struct {
 	LockOwner  uint64
 	Flags      uint32
 	Padding    uint32
-}
-
-type StatfsOut struct {
-	Kstatfs
 }
 
 type Dirent struct {
