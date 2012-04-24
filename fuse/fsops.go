@@ -45,6 +45,9 @@ func (me *FileSystemConnector) internalLookup(parent *Inode, name string, contex
 
 	if child == nil && fsNode != nil {
 		child = fsNode.Inode()
+		if child == nil {
+			log.Panicf("Lookup %q returned child without Inode: %v", name, fsNode)
+		}
 	}
 
 	return fi, child, code
@@ -65,7 +68,7 @@ func (me *FileSystemConnector) Lookup(header *raw.InHeader, name string) (out *r
 		return nil, code
 	}
 	if child == nil {
-		log.Println("HUH", name)
+		log.Println("Lookup returned OK with nil child", name)
 	}
 
 	rawAttr := (*raw.Attr)(fi)
@@ -363,3 +366,4 @@ func (me *FileSystemConnector) Flush(header *raw.InHeader, input *raw.FlushIn) S
 	opened := node.mount.getOpenedFile(input.Fh)
 	return opened.WithFlags.File.Flush()
 }
+
