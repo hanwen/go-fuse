@@ -112,6 +112,10 @@ func (me *LoopbackFile) Release() {
 	me.File.Close()
 }
 
+func (me *LoopbackFile) Flush() Status {
+	return OK
+}
+
 func (me *LoopbackFile) Fsync(flags int) (code Status) {
 	return ToStatus(syscall.Fsync(int(me.File.Fd())))
 }
