@@ -147,6 +147,9 @@ func (me *Inode) GetChild(name string) (child *Inode) {
 }
 
 func (me *Inode) AddChild(name string, child *Inode) {
+	if child == nil {
+		log.Panicf("adding nil child as %q", name)
+	}
 	me.treeLock.Lock()
 	defer me.treeLock.Unlock()
 	me.addChild(name, child)
