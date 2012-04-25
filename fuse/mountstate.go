@@ -144,10 +144,13 @@ func (me *MountState) BufferPoolStats() string {
 }
 
 func (me *MountState) newRequest() *request {
-	return &request{
-		status:   OK,
-		inputBuf: me.buffers.AllocBuffer(uint32(me.opts.MaxWrite + 4096)),
+	r := &request{
+		status:             OK,
+		pool:               me.buffers,
+		bufferPoolInputBuf: me.buffers.AllocBuffer(uint32(me.opts.MaxWrite + 4096)),
 	}
+	r.inputBuf = r.bufferPoolInputBuf
+	return r
 }
 
 func (me *MountState) readRequest(req *request) Status {
@@ -211,14 +214,9 @@ func (me *MountState) loop() {
 		// many blocking calls.
 		go func(r *request) {
 			me.handleRequest(r)
-			me.discardRequest(r)
+			r.Discard()
 		}(req)
 	}
-}
-
-func (me *MountState) discardRequest(req *request) {
-	me.buffers.FreeBuffer(req.flatData)
-	me.buffers.FreeBuffer(req.inputBuf)
 }
 
 func (me *MountState) handleRequest(req *request) {

@@ -10,13 +10,31 @@ import (
 	"github.com/hanwen/go-fuse/raw"
 )
 
+func (req *request) Discard() {
+	req.pool.FreeBuffer(req.flatData)
+	req.pool.FreeBuffer(req.bufferPoolInputBuf)
+}
+
+// The largest input without data is 128 (setattr). This also fits small
+// requests with short filenames.
+const SMALL_BUF_THRESHOLD = 128
+
 type request struct {
+	// the input, if obtained through bufferpool
+	bufferPoolInputBuf []byte
+	pool               BufferPool
+
+	// If we have a small input, we quickly copy it to here,
+	// and give back the large buffer to buffer pool.
+	smallInputBuf [SMALL_BUF_THRESHOLD]byte
+	
 	inputBuf []byte
 
 	// These split up inputBuf.
 	inHeader  *raw.InHeader      // generic header
 	inData    unsafe.Pointer // per op data
 	arg       []byte         // flat data.
+	
 	filenames []string       // filename arguments
 
 	// Unstructured data, a pointer to the relevant XxxxOut struct.
@@ -85,6 +103,7 @@ func (me *request) OutputDebug() string {
 		operationName(me.inHeader.Opcode), me.status, dataStr, flatStr)
 }
 
+
 func (me *request) parse() {
 	inHSize := int(unsafe.Sizeof(raw.InHeader{}))
 	if len(me.inputBuf) < inHSize {
@@ -92,6 +111,16 @@ func (me *request) parse() {
 		return
 	}
 
+	// We return the input buffer early if possible. Only write
+	// requests require a large input buffer, so if we hang onto
+	// the large buffer, we create unnecessary memory pressure.
+	if len(me.inputBuf) < SMALL_BUF_THRESHOLD {
+		copy(me.smallInputBuf[:], me.inputBuf)
+		me.inputBuf = me.smallInputBuf[:len(me.inputBuf)]
+		me.pool.FreeBuffer(me.bufferPoolInputBuf)
+		me.bufferPoolInputBuf = nil
+	}
+	
 	me.inHeader = (*raw.InHeader)(unsafe.Pointer(&me.inputBuf[0]))
 	me.arg = me.inputBuf[inHSize:]
 
