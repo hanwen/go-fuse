@@ -155,7 +155,7 @@ func (fs *AutoUnionFs) rmFs(name string) (code fuse.Status) {
 
 func (fs *AutoUnionFs) addFs(name string, roots []string) (code fuse.Status) {
 	if name == _CONFIG || name == _STATUS || name == _SCAN_CONFIG {
-		log.Println("Illegal name for overlay", roots)
+		log.Printf("Illegal name %q for overlay: %v", name, roots)
 		return fuse.EINVAL
 	}
 	return fs.createFs(name, roots)
@@ -373,7 +373,7 @@ func (fs *AutoUnionFs) DebugData() string {
 	if fs.connector != nil {
 		msg += fmt.Sprintf("Live inodes: %d\n", fs.connector.InodeHandleCount())
 	}
-	
+
 	return msg
 }
 
