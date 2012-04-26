@@ -20,6 +20,9 @@ func main() {
 	hide_readonly_link := flag.Bool("hide_readonly_link", true,
 		"Hides READONLY link from the top mountpoints. "+
 			"Enabled by default.")
+	portableInodes := flag.Bool("portable-inodes", false,
+		"Use sequential 32-bit inode numbers.")
+
 	flag.Parse()
 
 	if *version {
@@ -50,11 +53,13 @@ func main() {
 		},
 		HideReadonly: *hide_readonly_link,
 	}
-
+	fsOpts := fuse.FileSystemOptions{
+		PortableInodes: *portableInodes,
+	}
 	fmt.Printf("AutoUnionFs - Go-FUSE Version %v.\n", fuse.Version())
 	gofs := unionfs.NewAutoUnionFs(flag.Arg(1), options)
 	pathfs := fuse.NewPathNodeFs(gofs, nil)
-	state, conn, err := fuse.MountNodeFileSystem(flag.Arg(0), pathfs, nil)
+	state, conn, err := fuse.MountNodeFileSystem(flag.Arg(0), pathfs, &fsOpts)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)
@@ -66,7 +71,7 @@ func main() {
 
 	gofs.SetMountState(state)
 	gofs.SetFileSystemConnector(conn)
-	
+
 	state.Loop()
 	time.Sleep(1 *time.Second)
 }
