@@ -202,3 +202,18 @@ func (me *Kstatfs) String() string {
 		me.Blocks, me.Bfree, me.Bavail, me.Files, me.Ffree,
 		me.Bsize, me.NameLen, me.Frsize)
 }
+
+func (a *Attr) String() string {
+	return fmt.Sprintf(
+		"{M0%o S=%d L=%d "+
+			"%d:%d "+
+			"%d*%d %d:%d "+
+			"A %d.%09d "+
+			"M %d.%09d "+
+			"C %d.%09d}",
+		a.Mode, a.Size, a.Nlink,
+		a.Uid, a.Gid,
+		a.Blocks, a.Blksize,
+		a.Rdev, a.Ino, a.Atime, a.Atimensec, a.Mtime, a.Mtimensec,
+		a.Ctime, a.Ctimensec)
+}
