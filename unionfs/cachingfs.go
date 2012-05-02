@@ -107,36 +107,36 @@ func NewCachingFileSystem(fs fuse.FileSystem, ttl time.Duration) *CachingFileSys
 	return c
 }
 
-func (me *CachingFileSystem) DropCache() {
-	for _, c := range []*TimedCache{me.attributes, me.dirs, me.links, me.xattr} {
+func (fs *CachingFileSystem) DropCache() {
+	for _, c := range []*TimedCache{fs.attributes, fs.dirs, fs.links, fs.xattr} {
 		c.DropAll(nil)
 	}
 }
 
-func (me *CachingFileSystem) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
+func (fs *CachingFileSystem) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	if name == _DROP_CACHE {
 		return &fuse.Attr{
 			Mode: fuse.S_IFREG | 0777,
 		}, fuse.OK
 	}
 
-	r := me.attributes.Get(name).(*attrResponse)
+	r := fs.attributes.Get(name).(*attrResponse)
 	return r.Attr, r.Status
 }
 
-func (me *CachingFileSystem) GetXAttr(name string, attr string, context *fuse.Context) ([]byte, fuse.Status) {
+func (fs *CachingFileSystem) GetXAttr(name string, attr string, context *fuse.Context) ([]byte, fuse.Status) {
 	key := name + _XATTRSEP + attr
-	r := me.xattr.Get(key).(*xattrResponse)
+	r := fs.xattr.Get(key).(*xattrResponse)
 	return r.data, r.Status
 }
 
-func (me *CachingFileSystem) Readlink(name string, context *fuse.Context) (string, fuse.Status) {
-	r := me.links.Get(name).(*linkResponse)
+func (fs *CachingFileSystem) Readlink(name string, context *fuse.Context) (string, fuse.Status) {
+	r := fs.links.Get(name).(*linkResponse)
 	return r.linkContent, r.Status
 }
 
-func (me *CachingFileSystem) OpenDir(name string, context *fuse.Context) (stream chan fuse.DirEntry, status fuse.Status) {
-	r := me.dirs.Get(name).(*dirResponse)
+func (fs *CachingFileSystem) OpenDir(name string, context *fuse.Context) (stream chan fuse.DirEntry, status fuse.Status) {
+	r := fs.dirs.Get(name).(*dirResponse)
 	if r.Status.Ok() {
 		stream = make(chan fuse.DirEntry, len(r.entries))
 		for _, d := range r.entries {
@@ -149,14 +149,14 @@ func (me *CachingFileSystem) OpenDir(name string, context *fuse.Context) (stream
 	return nil, r.Status
 }
 
-func (me *CachingFileSystem) String() string {
-	return fmt.Sprintf("CachingFileSystem(%v)", me.FileSystem)
+func (fs *CachingFileSystem) String() string {
+	return fmt.Sprintf("CachingFileSystem(%v)", fs.FileSystem)
 }
 
-func (me *CachingFileSystem) Open(name string, flags uint32, context *fuse.Context) (f fuse.File, status fuse.Status) {
+func (fs *CachingFileSystem) Open(name string, flags uint32, context *fuse.Context) (f fuse.File, status fuse.Status) {
 	if flags&fuse.O_ANYWRITE != 0 && name == _DROP_CACHE {
-		log.Println("Dropping cache for", me)
-		me.DropCache()
+		log.Println("Dropping cache for", fs)
+		fs.DropCache()
 	}
-	return me.FileSystem.Open(name, flags, context)
+	return fs.FileSystem.Open(name, flags, context)
 }

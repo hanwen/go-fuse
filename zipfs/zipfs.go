@@ -19,23 +19,23 @@ type ZipFile struct {
 	*zip.File
 }
 
-func (me *ZipFile) Stat() *fuse.Attr {
+func (f *ZipFile) Stat() *fuse.Attr {
 	// TODO - do something intelligent with timestamps.
 	return &fuse.Attr{
 		Mode: fuse.S_IFREG | 0444,
-		Size: uint64(me.File.UncompressedSize),
+		Size: uint64(f.File.UncompressedSize),
 	}
 }
 
-func (me *ZipFile) Data() []byte {
-	zf := (*me)
+func (f *ZipFile) Data() []byte {
+	zf := (*f)
 	rc, err := zf.Open()
 	if err != nil {
 		panic(err)
 	}
-	dest := bytes.NewBuffer(make([]byte, 0, me.UncompressedSize))
+	dest := bytes.NewBuffer(make([]byte, 0, f.UncompressedSize))
 
-	_, err = io.CopyN(dest, rc, int64(me.UncompressedSize))
+	_, err = io.CopyN(dest, rc, int64(f.UncompressedSize))
 	if err != nil {
 		panic(err)
 	}

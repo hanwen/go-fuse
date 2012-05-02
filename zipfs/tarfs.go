@@ -33,14 +33,14 @@ type TarFile struct {
 	tar.Header
 }
 
-func (me *TarFile) Stat() *fuse.Attr {
-	fi, _ := HeaderToFileInfo(&me.Header)
+func (f *TarFile) Stat() *fuse.Attr {
+	fi, _ := HeaderToFileInfo(&f.Header)
 	fi.Mode |= syscall.S_IFREG
 	return fi
 }
 
-func (me *TarFile) Data() []byte {
-	return me.data
+func (f *TarFile) Data() []byte {
+	return f.data
 }
 
 func NewTarTree(r io.Reader) map[string]MemFile {

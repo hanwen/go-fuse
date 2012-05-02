@@ -42,57 +42,57 @@ type DirCache struct {
 	updateRunning bool
 }
 
-func (me *DirCache) setMap(newMap map[string]bool) {
-	me.lock.Lock()
-	defer me.lock.Unlock()
+func (c *DirCache) setMap(newMap map[string]bool) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 
-	me.names = newMap
-	me.updateRunning = false
-	_ = time.AfterFunc(me.ttl,
-		func() { me.DropCache() })
+	c.names = newMap
+	c.updateRunning = false
+	_ = time.AfterFunc(c.ttl,
+		func() { c.DropCache() })
 }
 
-func (me *DirCache) DropCache() {
-	me.lock.Lock()
-	defer me.lock.Unlock()
-	me.names = nil
+func (c *DirCache) DropCache() {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	c.names = nil
 }
 
 // Try to refresh: if another update is already running, do nothing,
 // otherwise, read the directory and set it.
-func (me *DirCache) maybeRefresh() {
-	me.lock.Lock()
-	defer me.lock.Unlock()
-	if me.updateRunning {
+func (c *DirCache) maybeRefresh() {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if c.updateRunning {
 		return
 	}
-	me.updateRunning = true
+	c.updateRunning = true
 	go func() {
-		newmap := newDirnameMap(me.fs, me.dir)
-		me.setMap(newmap)
+		newmap := newDirnameMap(c.fs, c.dir)
+		c.setMap(newmap)
 	}()
 }
 
-func (me *DirCache) RemoveEntry(name string) {
-	me.lock.Lock()
-	defer me.lock.Unlock()
-	if me.names == nil {
-		go me.maybeRefresh()
+func (c *DirCache) RemoveEntry(name string) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if c.names == nil {
+		go c.maybeRefresh()
 		return
 	}
 
-	delete(me.names, name)
+	delete(c.names, name)
 }
 
-func (me *DirCache) AddEntry(name string) {
-	me.lock.Lock()
-	defer me.lock.Unlock()
-	if me.names == nil {
-		go me.maybeRefresh()
+func (c *DirCache) AddEntry(name string) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if c.names == nil {
+		go c.maybeRefresh()
 		return
 	}
 
-	me.names[name] = true
+	c.names[name] = true
 }
 
 func NewDirCache(fs fuse.FileSystem, dir string, ttl time.Duration) *DirCache {
@@ -103,14 +103,14 @@ func NewDirCache(fs fuse.FileSystem, dir string, ttl time.Duration) *DirCache {
 	return dc
 }
 
-func (me *DirCache) HasEntry(name string) (mapPresent bool, found bool) {
-	me.lock.RLock()
-	defer me.lock.RUnlock()
+func (c *DirCache) HasEntry(name string) (mapPresent bool, found bool) {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 
-	if me.names == nil {
-		go me.maybeRefresh()
+	if c.names == nil {
+		go c.maybeRefresh()
 		return false, false
 	}
 
-	return true, me.names[name]
+	return true, c.names[name]
 }

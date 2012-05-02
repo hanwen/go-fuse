@@ -42,79 +42,79 @@ func NewTimedCache(fetcher TimedCacheFetcher, ttl time.Duration) *TimedCache {
 	return l
 }
 
-func (me *TimedCache) Get(name string) interface{} {
-	me.cacheMapMutex.RLock()
-	info, ok := me.cacheMap[name]
-	me.cacheMapMutex.RUnlock()
+func (c *TimedCache) Get(name string) interface{} {
+	c.cacheMapMutex.RLock()
+	info, ok := c.cacheMap[name]
+	c.cacheMapMutex.RUnlock()
 
-	valid := ok && (me.ttl <= 0 || info.expiry.After(time.Now()))
+	valid := ok && (c.ttl <= 0 || info.expiry.After(time.Now()))
 	if valid {
 		return info.data
 	}
-	return me.GetFresh(name)
+	return c.GetFresh(name)
 }
 
-func (me *TimedCache) Set(name string, val interface{}) {
-	me.cacheMapMutex.Lock()
-	defer me.cacheMapMutex.Unlock()
+func (c *TimedCache) Set(name string, val interface{}) {
+	c.cacheMapMutex.Lock()
+	defer c.cacheMapMutex.Unlock()
 
-	me.cacheMap[name] = &cacheEntry{
+	c.cacheMap[name] = &cacheEntry{
 		data:   val,
-		expiry: time.Now().Add(me.ttl),
+		expiry: time.Now().Add(c.ttl),
 	}
 }
 
-func (me *TimedCache) DropEntry(name string) {
-	me.cacheMapMutex.Lock()
-	defer me.cacheMapMutex.Unlock()
+func (c *TimedCache) DropEntry(name string) {
+	c.cacheMapMutex.Lock()
+	defer c.cacheMapMutex.Unlock()
 
-	delete(me.cacheMap, name)
+	delete(c.cacheMap, name)
 }
 
-func (me *TimedCache) GetFresh(name string) interface{} {
-	data, ok := me.fetch(name)
+func (c *TimedCache) GetFresh(name string) interface{} {
+	data, ok := c.fetch(name)
 	if ok {
-		me.Set(name, data)
+		c.Set(name, data)
 	}
 	return data
 }
 
 // Drop all expired entries.
-func (me *TimedCache) Purge() {
-	keys := make([]string, 0, len(me.cacheMap))
+func (c *TimedCache) Purge() {
+	keys := make([]string, 0, len(c.cacheMap))
 	now := time.Now()
 
-	me.cacheMapMutex.Lock()
-	defer me.cacheMapMutex.Unlock()
-	for k, v := range me.cacheMap {
+	c.cacheMapMutex.Lock()
+	defer c.cacheMapMutex.Unlock()
+	for k, v := range c.cacheMap {
 		if now.After(v.expiry) {
 			keys = append(keys, k)
 		}
 	}
 	for _, k := range keys {
-		delete(me.cacheMap, k)
+		delete(c.cacheMap, k)
 	}
 }
 
-func (me *TimedCache) RecurringPurge() {
-	if me.ttl <= 0 {
+func (c *TimedCache) RecurringPurge() {
+	if c.ttl <= 0 {
 		return
 	}
 
-	me.Purge()
-	me.PurgeTimer = time.AfterFunc(me.ttl*5,
-		func() { me.RecurringPurge() })
+	c.Purge()
+	c.PurgeTimer = time.AfterFunc(c.ttl*5,
+		func() { c.RecurringPurge() })
 }
 
-func (me *TimedCache) DropAll(names []string) {
-	me.cacheMapMutex.Lock()
-	defer me.cacheMapMutex.Unlock()
+func (c *TimedCache) DropAll(names []string) {
+	c.cacheMapMutex.Lock()
+	defer c.cacheMapMutex.Unlock()
 
 	if names == nil {
-		me.cacheMap = make(map[string]*cacheEntry, len(me.cacheMap))
+		c.cacheMap = make(map[string]*cacheEntry, len(c.cacheMap))
 	} else {
 		for _, nm := range names {
-			delete(me.cacheMap, nm)
+			delete(c.cacheMap, nm)
 		}
 	}
 }

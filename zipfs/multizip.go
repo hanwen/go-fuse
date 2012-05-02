@@ -42,19 +42,19 @@ func NewMultiZipFs() *MultiZipFs {
 	return m
 }
 
-func (me *MultiZipFs) String() string {
+func (fs *MultiZipFs) String() string {
 	return "MultiZipFs"
 }
 
-func (me *MultiZipFs) OnMount(nodeFs *fuse.PathNodeFs) {
-	me.nodeFs = nodeFs
+func (fs *MultiZipFs) OnMount(nodeFs *fuse.PathNodeFs) {
+	fs.nodeFs = nodeFs
 }
 
-func (me *MultiZipFs) OpenDir(name string, context *fuse.Context) (stream chan fuse.DirEntry, code fuse.Status) {
-	me.lock.RLock()
-	defer me.lock.RUnlock()
+func (fs *MultiZipFs) OpenDir(name string, context *fuse.Context) (stream chan fuse.DirEntry, code fuse.Status) {
+	fs.lock.RLock()
+	defer fs.lock.RUnlock()
 
-	stream = make(chan fuse.DirEntry, len(me.zips)+2)
+	stream = make(chan fuse.DirEntry, len(fs.zips)+2)
 	if name == "" {
 		var d fuse.DirEntry
 		d.Name = "config"
@@ -63,7 +63,7 @@ func (me *MultiZipFs) OpenDir(name string, context *fuse.Context) (stream chan f
 	}
 
 	if name == "config" {
-		for k := range me.zips {
+		for k := range fs.zips {
 			var d fuse.DirEntry
 			d.Name = k
 			d.Mode = fuse.S_IFLNK
@@ -75,7 +75,7 @@ func (me *MultiZipFs) OpenDir(name string, context *fuse.Context) (stream chan f
 	return stream, fuse.OK
 }
 
-func (me *MultiZipFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
+func (fs *MultiZipFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	a := &fuse.Attr{}
 	if name == "" {
 		// Should not write in top dir.
@@ -97,11 +97,11 @@ func (me *MultiZipFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, f
 		submode = fuse.S_IFLNK | 0600
 	}
 
-	me.lock.RLock()
-	defer me.lock.RUnlock()
+	fs.lock.RLock()
+	defer fs.lock.RUnlock()
 
 	a.Mode = submode
-	_, hasDir := me.zips[base]
+	_, hasDir := fs.zips[base]
 	if hasDir {
 		return a, fuse.OK
 	}
@@ -109,20 +109,20 @@ func (me *MultiZipFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, f
 	return nil, fuse.ENOENT
 }
 
-func (me *MultiZipFs) Unlink(name string, context *fuse.Context) (code fuse.Status) {
+func (fs *MultiZipFs) Unlink(name string, context *fuse.Context) (code fuse.Status) {
 	dir, basename := filepath.Split(name)
 	if dir == CONFIG_PREFIX {
-		me.lock.Lock()
-		defer me.lock.Unlock()
+		fs.lock.Lock()
+		defer fs.lock.Unlock()
 
-		zfs, ok := me.zips[basename]
+		zfs, ok := fs.zips[basename]
 		if ok {
-			code = me.nodeFs.UnmountNode(zfs.Root().Inode())
+			code = fs.nodeFs.UnmountNode(zfs.Root().Inode())
 			if !code.Ok() {
 				return code
 			}
-			delete(me.zips, basename)
-			delete(me.dirZipFileMap, basename)
+			delete(fs.zips, basename)
+			delete(fs.dirZipFileMap, basename)
 			return fuse.OK
 		} else {
 			return fuse.ENOENT
@@ -131,48 +131,48 @@ func (me *MultiZipFs) Unlink(name string, context *fuse.Context) (code fuse.Stat
 	return fuse.EPERM
 }
 
-func (me *MultiZipFs) Readlink(path string, context *fuse.Context) (val string, code fuse.Status) {
+func (fs *MultiZipFs) Readlink(path string, context *fuse.Context) (val string, code fuse.Status) {
 	dir, base := filepath.Split(path)
 	if dir != CONFIG_PREFIX {
 		return "", fuse.ENOENT
 	}
 
-	me.lock.Lock()
-	defer me.lock.Unlock()
+	fs.lock.Lock()
+	defer fs.lock.Unlock()
 
-	zipfile, ok := me.dirZipFileMap[base]
+	zipfile, ok := fs.dirZipFileMap[base]
 	if !ok {
 		return "", fuse.ENOENT
 	}
 	return zipfile, fuse.OK
 
 }
-func (me *MultiZipFs) Symlink(value string, linkName string, context *fuse.Context) (code fuse.Status) {
+func (fs *MultiZipFs) Symlink(value string, linkName string, context *fuse.Context) (code fuse.Status) {
 	dir, base := filepath.Split(linkName)
 	if dir != CONFIG_PREFIX {
 		return fuse.EPERM
 	}
 
-	me.lock.Lock()
-	defer me.lock.Unlock()
+	fs.lock.Lock()
+	defer fs.lock.Unlock()
 
-	_, ok := me.dirZipFileMap[base]
+	_, ok := fs.dirZipFileMap[base]
 	if ok {
 		return fuse.EBUSY
 	}
 
-	fs, err := NewArchiveFileSystem(value)
+	afs, err := NewArchiveFileSystem(value)
 	if err != nil {
 		log.Println("NewZipArchiveFileSystem failed.", err)
 		return fuse.EINVAL
 	}
 
-	code = me.nodeFs.Mount(base, fs, nil)
+	code = fs.nodeFs.Mount(base, afs, nil)
 	if !code.Ok() {
 		return code
 	}
 
-	me.dirZipFileMap[base] = value
-	me.zips[base] = fs
+	fs.dirZipFileMap[base] = value
+	fs.zips[base] = afs
 	return fuse.OK
 }

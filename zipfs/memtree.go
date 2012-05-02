@@ -30,24 +30,24 @@ func NewMemTreeFs() *MemTreeFs {
 	return d
 }
 
-func (me *MemTreeFs) OnMount(conn *fuse.FileSystemConnector) {
-	for k, v := range me.files {
-		me.addFile(k, v)
+func (fs *MemTreeFs) OnMount(conn *fuse.FileSystemConnector) {
+	for k, v := range fs.files {
+		fs.addFile(k, v)
 	}
-	me.files = nil
+	fs.files = nil
 }
 
-func (me *MemTreeFs) Root() fuse.FsNode {
-	return &me.root
+func (fs *MemTreeFs) Root() fuse.FsNode {
+	return &fs.root
 }
 
-func (me *memNode) Print(indent int) {
+func (n *memNode) Print(indent int) {
 	s := ""
 	for i := 0; i < indent; i++ {
 		s = s + " "
 	}
 
-	children := me.Inode().Children()
+	children := n.Inode().Children()
 	for k, v := range children {
 		if v.IsDir() {
 			fmt.Println(s + k + ":")
@@ -62,12 +62,12 @@ func (me *memNode) Print(indent int) {
 }
 
 // We construct the tree at mount, so we never need to look anything up.
-func (me *memNode) Lookup(name string, c *fuse.Context) (fi *fuse.Attr, node fuse.FsNode, code fuse.Status) {
+func (n *memNode) Lookup(name string, c *fuse.Context) (fi *fuse.Attr, node fuse.FsNode, code fuse.Status) {
 	return nil, nil, fuse.ENOENT
 }
 
-func (me *memNode) OpenDir(context *fuse.Context) (stream chan fuse.DirEntry, code fuse.Status) {
-	children := me.Inode().Children()
+func (n *memNode) OpenDir(context *fuse.Context) (stream chan fuse.DirEntry, code fuse.Status) {
+	children := n.Inode().Children()
 	stream = make(chan fuse.DirEntry, len(children))
 	for k, v := range children {
 		mode := fuse.S_IFREG | 0666
@@ -83,32 +83,32 @@ func (me *memNode) OpenDir(context *fuse.Context) (stream chan fuse.DirEntry, co
 	return stream, fuse.OK
 }
 
-func (me *memNode) Open(flags uint32, context *fuse.Context) (fuseFile fuse.File, code fuse.Status) {
+func (n *memNode) Open(flags uint32, context *fuse.Context) (fuseFile fuse.File, code fuse.Status) {
 	if flags&fuse.O_ANYWRITE != 0 {
 		return nil, fuse.EPERM
 	}
 
-	return fuse.NewDataFile(me.file.Data()), fuse.OK
+	return fuse.NewDataFile(n.file.Data()), fuse.OK
 }
 
-func (me *memNode) Deletable() bool {
+func (n *memNode) Deletable() bool {
 	return false
 }
 
-func (me *memNode) GetAttr(file fuse.File, context *fuse.Context) (*fuse.Attr, fuse.Status) {
-	if me.Inode().IsDir() {
+func (n *memNode) GetAttr(file fuse.File, context *fuse.Context) (*fuse.Attr, fuse.Status) {
+	if n.Inode().IsDir() {
 		return &fuse.Attr{
 			Mode: fuse.S_IFDIR | 0777,
 		}, fuse.OK
 	}
 
-	return me.file.Stat(), fuse.OK
+	return n.file.Stat(), fuse.OK
 }
 
-func (me *MemTreeFs) addFile(name string, f MemFile) {
+func (n *MemTreeFs) addFile(name string, f MemFile) {
 	comps := strings.Split(name, "/")
 
-	node := me.root.Inode()
+	node := n.root.Inode()
 	for i, c := range comps {
 		child := node.GetChild(c)
 		if child == nil {
