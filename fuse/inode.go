@@ -9,7 +9,7 @@ var _ = log.Println
 
 // The inode reflects the kernel's idea of the inode.  Inodes may be
 // created automatically when the kernel does lookups inode, or by
-// explicitly by calling Inode.CreateChild().
+// explicitly by calling Inode.New().
 type Inode struct {
 	handled Handled
 
