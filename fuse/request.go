@@ -15,18 +15,16 @@ func (req *request) Discard() {
 	req.pool.FreeBuffer(req.bufferPoolInputBuf)
 }
 
-// The largest input without data is 128 (setattr). This also fits small
-// requests with short filenames.
-const SMALL_BUF_THRESHOLD = 128
-
 type request struct {
 	// the input, if obtained through bufferpool
 	bufferPoolInputBuf []byte
 	pool               BufferPool
 
-	// If we have a small input, we quickly copy it to here,
-	// and give back the large buffer to buffer pool.
-	smallInputBuf [SMALL_BUF_THRESHOLD]byte
+	// If we have a small input, we quickly copy it to here, and
+	// give back the large buffer to buffer pool.  The largest
+	// input without data is 128 (setattr). 128 also fits small
+	// requests with short filenames.
+	smallInputBuf [128]byte
 	
 	inputBuf []byte
 
@@ -103,6 +101,18 @@ func (me *request) OutputDebug() string {
 		operationName(me.inHeader.Opcode), me.status, dataStr, flatStr)
 }
 
+// setInput returns true if it takes ownership of the argument, false if not.
+func (me *request) setInput(input []byte) bool {
+	if len(input) < len(me.smallInputBuf) {
+		copy(me.smallInputBuf[:], input)
+		me.inputBuf = me.smallInputBuf[:len(input)]
+		return false
+	} 
+	me.inputBuf = input
+	me.bufferPoolInputBuf = input
+	
+	return true
+}
 
 func (me *request) parse() {
 	inHSize := int(unsafe.Sizeof(raw.InHeader{}))
@@ -111,16 +121,6 @@ func (me *request) parse() {
 		return
 	}
 
-	// We return the input buffer early if possible. Only write
-	// requests require a large input buffer, so if we hang onto
-	// the large buffer, we create unnecessary memory pressure.
-	if len(me.inputBuf) < SMALL_BUF_THRESHOLD {
-		copy(me.smallInputBuf[:], me.inputBuf)
-		me.inputBuf = me.smallInputBuf[:len(me.inputBuf)]
-		me.pool.FreeBuffer(me.bufferPoolInputBuf)
-		me.bufferPoolInputBuf = nil
-	}
-	
 	me.inHeader = (*raw.InHeader)(unsafe.Pointer(&me.inputBuf[0]))
 	me.arg = me.inputBuf[inHSize:]
 

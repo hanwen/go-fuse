@@ -145,23 +145,9 @@ func (me *MountState) BufferPoolStats() string {
 
 func (me *MountState) newRequest() *request {
 	r := &request{
-		status:             OK,
 		pool:               me.buffers,
-		bufferPoolInputBuf: me.buffers.AllocBuffer(uint32(me.opts.MaxWrite + 4096)),
 	}
-	r.inputBuf = r.bufferPoolInputBuf
 	return r
-}
-
-func (me *MountState) readRequest(req *request) Status {
-	n, err := me.mountFile.Read(req.inputBuf)
-	// If we start timing before the read, we may take into
-	// account waiting for input into the timing.
-	if me.latencies != nil {
-		req.startNs = time.Now().UnixNano()
-	}
-	req.inputBuf = req.inputBuf[0:n]
-	return ToStatus(err)
 }
 
 func (me *MountState) recordStats(req *request) {
@@ -189,10 +175,16 @@ func (me *MountState) Loop() {
 }
 
 func (me *MountState) loop() {
+	var dest []byte
 	for {
-		req := me.newRequest()
-		errNo := me.readRequest(req)
-		if !errNo.Ok() {
+		if dest == nil {
+			dest = me.buffers.AllocBuffer(uint32(me.opts.MaxWrite + 4096))
+		}
+		
+		n, err := me.mountFile.Read(dest)
+		if err != nil {
+			errNo := ToStatus(err)
+		
 			// Retry.
 			if errNo == ENOENT {
 				continue
@@ -205,6 +197,14 @@ func (me *MountState) loop() {
 
 			log.Printf("Failed to read from fuse conn: %v", errNo)
 			break
+		}
+		
+		req := me.newRequest()
+		if me.latencies != nil {
+			req.startNs = time.Now().UnixNano()
+		}
+		if req.setInput(dest[:n]) {
+			dest = nil
 		}
 
 		// When closely analyzing timings, the context switch
