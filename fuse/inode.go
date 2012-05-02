@@ -73,11 +73,11 @@ func newInode(isDir bool, fsNode FsNode) *Inode {
 // public methods.
 
 // Returns any open file, preferably a r/w one.
-func (me *Inode) AnyFile() (file File) {
-	me.openFilesMutex.Lock()
-	defer me.openFilesMutex.Unlock()
+func (n *Inode) AnyFile() (file File) {
+	n.openFilesMutex.Lock()
+	defer n.openFilesMutex.Unlock()
 
-	for _, f := range me.openFiles {
+	for _, f := range n.openFiles {
 		if file == nil || f.WithFlags.OpenFlags&O_ANYWRITE != 0 {
 			file = f.WithFlags.File
 		}
@@ -85,12 +85,12 @@ func (me *Inode) AnyFile() (file File) {
 	return file
 }
 
-func (me *Inode) Children() (out map[string]*Inode) {
-	me.treeLock.RLock()
-	defer me.treeLock.RUnlock()
+func (n *Inode) Children() (out map[string]*Inode) {
+	n.treeLock.RLock()
+	defer n.treeLock.RUnlock()
 
 	out = map[string]*Inode{}
-	for k, v := range me.children {
+	for k, v := range n.children {
 		out[k] = v
 	}
 	return out
@@ -98,29 +98,29 @@ func (me *Inode) Children() (out map[string]*Inode) {
 
 // FsChildren returns all the children from the same filesystem.  It
 // will skip mountpoints.
-func (me *Inode) FsChildren() (out map[string]*Inode) {
-	me.treeLock.RLock()
-	defer me.treeLock.RUnlock()
+func (n *Inode) FsChildren() (out map[string]*Inode) {
+	n.treeLock.RLock()
+	defer n.treeLock.RUnlock()
 
 	out = map[string]*Inode{}
-	for k, v := range me.children {
-		if v.mount == me.mount {
+	for k, v := range n.children {
+		if v.mount == n.mount {
 			out[k] = v
 		}
 	}
 	return out
 }
 
-func (me *Inode) FsNode() FsNode {
-	return me.fsInode
+func (n *Inode) FsNode() FsNode {
+	return n.fsInode
 }
 
 // Files() returns an opens file that have bits in common with the
 // give mask.  Use mask==0 to return all files.
-func (me *Inode) Files(mask uint32) (files []WithFlags) {
-	me.openFilesMutex.Lock()
-	defer me.openFilesMutex.Unlock()
-	for _, f := range me.openFiles {
+func (n *Inode) Files(mask uint32) (files []WithFlags) {
+	n.openFilesMutex.Lock()
+	defer n.openFilesMutex.Unlock()
+	for _, f := range n.openFiles {
 		if mask == 0 || f.WithFlags.OpenFlags&mask != 0 {
 			files = append(files, f.WithFlags)
 		}
@@ -128,77 +128,77 @@ func (me *Inode) Files(mask uint32) (files []WithFlags) {
 	return files
 }
 
-func (me *Inode) IsDir() bool {
-	return me.children != nil
+func (n *Inode) IsDir() bool {
+	return n.children != nil
 }
 
-func (me *Inode) New(isDir bool, fsi FsNode) *Inode {
+func (n *Inode) New(isDir bool, fsi FsNode) *Inode {
 	ch := newInode(isDir, fsi)
-	ch.mount = me.mount
-	ch.treeLock = me.treeLock
+	ch.mount = n.mount
+	ch.treeLock = n.treeLock
 	return ch
 }
 
-func (me *Inode) GetChild(name string) (child *Inode) {
-	me.treeLock.RLock()
-	defer me.treeLock.RUnlock()
+func (n *Inode) GetChild(name string) (child *Inode) {
+	n.treeLock.RLock()
+	defer n.treeLock.RUnlock()
 
-	return me.children[name]
+	return n.children[name]
 }
 
-func (me *Inode) AddChild(name string, child *Inode) {
+func (n *Inode) AddChild(name string, child *Inode) {
 	if child == nil {
 		log.Panicf("adding nil child as %q", name)
 	}
-	me.treeLock.Lock()
-	defer me.treeLock.Unlock()
-	me.addChild(name, child)
+	n.treeLock.Lock()
+	defer n.treeLock.Unlock()
+	n.addChild(name, child)
 }
 
-func (me *Inode) RmChild(name string) (ch *Inode) {
-	me.treeLock.Lock()
-	defer me.treeLock.Unlock()
-	return me.rmChild(name)
+func (n *Inode) RmChild(name string) (ch *Inode) {
+	n.treeLock.Lock()
+	defer n.treeLock.Unlock()
+	return n.rmChild(name)
 }
 
 //////////////////////////////////////////////////////////////
 // private
 
 // Must be called with treeLock for the mount held.
-func (me *Inode) addChild(name string, child *Inode) {
+func (n *Inode) addChild(name string, child *Inode) {
 	if paranoia {
-		ch := me.children[name]
+		ch := n.children[name]
 		if ch != nil {
 			log.Panicf("Already have an Inode with same name: %v: %v", name, ch)
 		}
 	}
-	me.children[name] = child
+	n.children[name] = child
 }
 
 // Must be called with treeLock for the mount held.
-func (me *Inode) rmChild(name string) (ch *Inode) {
-	ch = me.children[name]
+func (n *Inode) rmChild(name string) (ch *Inode) {
+	ch = n.children[name]
 	if ch != nil {
-		delete(me.children, name)
+		delete(n.children, name)
 	}
 	return ch
 }
 
 // Can only be called on untouched inodes.
-func (me *Inode) mountFs(fs NodeFileSystem, opts *FileSystemOptions) {
-	me.mountPoint = &fileSystemMount{
+func (n *Inode) mountFs(fs NodeFileSystem, opts *FileSystemOptions) {
+	n.mountPoint = &fileSystemMount{
 		fs:         fs,
 		openFiles:  NewHandleMap(false),
-		mountInode: me,
+		mountInode: n,
 		options:    opts,
 	}
-	me.mount = me.mountPoint
-	me.treeLock = &me.mountPoint.treeLock
+	n.mount = n.mountPoint
+	n.treeLock = &n.mountPoint.treeLock
 }
 
 // Must be called with treeLock held.
-func (me *Inode) canUnmount() bool {
-	for _, v := range me.children {
+func (n *Inode) canUnmount() bool {
+	for _, v := range n.children {
 		if v.mountPoint != nil {
 			// This access may be out of date, but it is no
 			// problem to err on the safe side.
@@ -209,16 +209,16 @@ func (me *Inode) canUnmount() bool {
 		}
 	}
 
-	me.openFilesMutex.Lock()
-	defer me.openFilesMutex.Unlock()
-	return len(me.openFiles) == 0
+	n.openFilesMutex.Lock()
+	defer n.openFilesMutex.Unlock()
+	return len(n.openFiles) == 0
 }
 
-func (me *Inode) getMountDirEntries() (out []DirEntry) {
-	me.treeLock.RLock()
-	defer me.treeLock.RUnlock()
+func (n *Inode) getMountDirEntries() (out []DirEntry) {
+	n.treeLock.RLock()
+	defer n.treeLock.RUnlock()
 
-	for k := range me.mounts {
+	for k := range n.mounts {
 		out = append(out, DirEntry{
 			Name: k,
 			Mode: S_IFDIR,
@@ -229,33 +229,33 @@ func (me *Inode) getMountDirEntries() (out []DirEntry) {
 
 const initDirSize = 20
 
-func (me *Inode) verify(cur *fileSystemMount) {
-	if me.lookupCount < 0 {
-		log.Panicf("negative lookup count %d on node %d", me.lookupCount, me.nodeId)
+func (n *Inode) verify(cur *fileSystemMount) {
+	if n.lookupCount < 0 {
+		log.Panicf("negative lookup count %d on node %d", n.lookupCount, n.nodeId)
 	}
-	if (me.lookupCount == 0) != (me.nodeId == 0) {
-		log.Panicf("kernel registration mismatch: lookup %d id %d", me.lookupCount, me.nodeId)
+	if (n.lookupCount == 0) != (n.nodeId == 0) {
+		log.Panicf("kernel registration mismatch: lookup %d id %d", n.lookupCount, n.nodeId)
 	}
-	if me.mountPoint != nil {
-		if me != me.mountPoint.mountInode {
-			log.Panicf("mountpoint mismatch %v %v", me, me.mountPoint.mountInode)
+	if n.mountPoint != nil {
+		if n != n.mountPoint.mountInode {
+			log.Panicf("mountpoint mismatch %v %v", n, n.mountPoint.mountInode)
 		}
-		cur = me.mountPoint
+		cur = n.mountPoint
 	}
-	if me.mount != cur {
-		log.Panicf("me.mount not set correctly %v %v", me.mount, cur)
+	if n.mount != cur {
+		log.Panicf("n.mount not set correctly %v %v", n.mount, cur)
 	}
 
-	for name, m := range me.mounts {
-		if m.mountInode != me.children[name] {
+	for name, m := range n.mounts {
+		if m.mountInode != n.children[name] {
 			log.Panicf("mountpoint parent mismatch: node:%v name:%v ch:%v",
-				me.mountPoint, name, me.children)
+				n.mountPoint, name, n.children)
 		}
 	}
 
-	for n, ch := range me.children {
+	for nm, ch := range n.children {
 		if ch == nil {
-			log.Panicf("Found nil child: %q", n)
+			log.Panicf("Found nil child: %q", nm)
 		}
 		ch.verify(cur)
 	}

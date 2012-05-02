@@ -11,102 +11,102 @@ type PrefixFileSystem struct {
 	Prefix string
 }
 
-func (me *PrefixFileSystem) prefixed(n string) string {
-	return filepath.Join(me.Prefix, n)
+func (fs *PrefixFileSystem) prefixed(n string) string {
+	return filepath.Join(fs.Prefix, n)
 }
 
-func (me *PrefixFileSystem) GetAttr(name string, context *Context) (*Attr, Status) {
-	return me.FileSystem.GetAttr(me.prefixed(name), context)
+func (fs *PrefixFileSystem) GetAttr(name string, context *Context) (*Attr, Status) {
+	return fs.FileSystem.GetAttr(fs.prefixed(name), context)
 }
 
-func (me *PrefixFileSystem) Readlink(name string, context *Context) (string, Status) {
-	return me.FileSystem.Readlink(me.prefixed(name), context)
+func (fs *PrefixFileSystem) Readlink(name string, context *Context) (string, Status) {
+	return fs.FileSystem.Readlink(fs.prefixed(name), context)
 }
 
-func (me *PrefixFileSystem) Mknod(name string, mode uint32, dev uint32, context *Context) Status {
-	return me.FileSystem.Mknod(me.prefixed(name), mode, dev, context)
+func (fs *PrefixFileSystem) Mknod(name string, mode uint32, dev uint32, context *Context) Status {
+	return fs.FileSystem.Mknod(fs.prefixed(name), mode, dev, context)
 }
 
-func (me *PrefixFileSystem) Mkdir(name string, mode uint32, context *Context) Status {
-	return me.FileSystem.Mkdir(me.prefixed(name), mode, context)
+func (fs *PrefixFileSystem) Mkdir(name string, mode uint32, context *Context) Status {
+	return fs.FileSystem.Mkdir(fs.prefixed(name), mode, context)
 }
 
-func (me *PrefixFileSystem) Unlink(name string, context *Context) (code Status) {
-	return me.FileSystem.Unlink(me.prefixed(name), context)
+func (fs *PrefixFileSystem) Unlink(name string, context *Context) (code Status) {
+	return fs.FileSystem.Unlink(fs.prefixed(name), context)
 }
 
-func (me *PrefixFileSystem) Rmdir(name string, context *Context) (code Status) {
-	return me.FileSystem.Rmdir(me.prefixed(name), context)
+func (fs *PrefixFileSystem) Rmdir(name string, context *Context) (code Status) {
+	return fs.FileSystem.Rmdir(fs.prefixed(name), context)
 }
 
-func (me *PrefixFileSystem) Symlink(value string, linkName string, context *Context) (code Status) {
-	return me.FileSystem.Symlink(value, me.prefixed(linkName), context)
+func (fs *PrefixFileSystem) Symlink(value string, linkName string, context *Context) (code Status) {
+	return fs.FileSystem.Symlink(value, fs.prefixed(linkName), context)
 }
 
-func (me *PrefixFileSystem) Rename(oldName string, newName string, context *Context) (code Status) {
-	return me.FileSystem.Rename(me.prefixed(oldName), me.prefixed(newName), context)
+func (fs *PrefixFileSystem) Rename(oldName string, newName string, context *Context) (code Status) {
+	return fs.FileSystem.Rename(fs.prefixed(oldName), fs.prefixed(newName), context)
 }
 
-func (me *PrefixFileSystem) Link(oldName string, newName string, context *Context) (code Status) {
-	return me.FileSystem.Link(me.prefixed(oldName), me.prefixed(newName), context)
+func (fs *PrefixFileSystem) Link(oldName string, newName string, context *Context) (code Status) {
+	return fs.FileSystem.Link(fs.prefixed(oldName), fs.prefixed(newName), context)
 }
 
-func (me *PrefixFileSystem) Chmod(name string, mode uint32, context *Context) (code Status) {
-	return me.FileSystem.Chmod(me.prefixed(name), mode, context)
+func (fs *PrefixFileSystem) Chmod(name string, mode uint32, context *Context) (code Status) {
+	return fs.FileSystem.Chmod(fs.prefixed(name), mode, context)
 }
 
-func (me *PrefixFileSystem) Chown(name string, uid uint32, gid uint32, context *Context) (code Status) {
-	return me.FileSystem.Chown(me.prefixed(name), uid, gid, context)
+func (fs *PrefixFileSystem) Chown(name string, uid uint32, gid uint32, context *Context) (code Status) {
+	return fs.FileSystem.Chown(fs.prefixed(name), uid, gid, context)
 }
 
-func (me *PrefixFileSystem) Truncate(name string, offset uint64, context *Context) (code Status) {
-	return me.FileSystem.Truncate(me.prefixed(name), offset, context)
+func (fs *PrefixFileSystem) Truncate(name string, offset uint64, context *Context) (code Status) {
+	return fs.FileSystem.Truncate(fs.prefixed(name), offset, context)
 }
 
-func (me *PrefixFileSystem) Open(name string, flags uint32, context *Context) (file File, code Status) {
-	return me.FileSystem.Open(me.prefixed(name), flags, context)
+func (fs *PrefixFileSystem) Open(name string, flags uint32, context *Context) (file File, code Status) {
+	return fs.FileSystem.Open(fs.prefixed(name), flags, context)
 }
 
-func (me *PrefixFileSystem) OpenDir(name string, context *Context) (stream chan DirEntry, status Status) {
-	return me.FileSystem.OpenDir(me.prefixed(name), context)
+func (fs *PrefixFileSystem) OpenDir(name string, context *Context) (stream chan DirEntry, status Status) {
+	return fs.FileSystem.OpenDir(fs.prefixed(name), context)
 }
 
-func (me *PrefixFileSystem) OnMount(nodeFs *PathNodeFs) {
-	me.FileSystem.OnMount(nodeFs)
+func (fs *PrefixFileSystem) OnMount(nodeFs *PathNodeFs) {
+	fs.FileSystem.OnMount(nodeFs)
 }
 
-func (me *PrefixFileSystem) OnUnmount() {
-	me.FileSystem.OnUnmount()
+func (fs *PrefixFileSystem) OnUnmount() {
+	fs.FileSystem.OnUnmount()
 }
 
-func (me *PrefixFileSystem) Access(name string, mode uint32, context *Context) (code Status) {
-	return me.FileSystem.Access(me.prefixed(name), mode, context)
+func (fs *PrefixFileSystem) Access(name string, mode uint32, context *Context) (code Status) {
+	return fs.FileSystem.Access(fs.prefixed(name), mode, context)
 }
 
-func (me *PrefixFileSystem) Create(name string, flags uint32, mode uint32, context *Context) (file File, code Status) {
-	return me.FileSystem.Create(me.prefixed(name), flags, mode, context)
+func (fs *PrefixFileSystem) Create(name string, flags uint32, mode uint32, context *Context) (file File, code Status) {
+	return fs.FileSystem.Create(fs.prefixed(name), flags, mode, context)
 }
 
-func (me *PrefixFileSystem) Utimens(name string, AtimeNs int64, CtimeNs int64, context *Context) (code Status) {
-	return me.FileSystem.Utimens(me.prefixed(name), AtimeNs, CtimeNs, context)
+func (fs *PrefixFileSystem) Utimens(name string, AtimeNs int64, CtimeNs int64, context *Context) (code Status) {
+	return fs.FileSystem.Utimens(fs.prefixed(name), AtimeNs, CtimeNs, context)
 }
 
-func (me *PrefixFileSystem) GetXAttr(name string, attr string, context *Context) ([]byte, Status) {
-	return me.FileSystem.GetXAttr(me.prefixed(name), attr, context)
+func (fs *PrefixFileSystem) GetXAttr(name string, attr string, context *Context) ([]byte, Status) {
+	return fs.FileSystem.GetXAttr(fs.prefixed(name), attr, context)
 }
 
-func (me *PrefixFileSystem) SetXAttr(name string, attr string, data []byte, flags int, context *Context) Status {
-	return me.FileSystem.SetXAttr(me.prefixed(name), attr, data, flags, context)
+func (fs *PrefixFileSystem) SetXAttr(name string, attr string, data []byte, flags int, context *Context) Status {
+	return fs.FileSystem.SetXAttr(fs.prefixed(name), attr, data, flags, context)
 }
 
-func (me *PrefixFileSystem) ListXAttr(name string, context *Context) ([]string, Status) {
-	return me.FileSystem.ListXAttr(me.prefixed(name), context)
+func (fs *PrefixFileSystem) ListXAttr(name string, context *Context) ([]string, Status) {
+	return fs.FileSystem.ListXAttr(fs.prefixed(name), context)
 }
 
-func (me *PrefixFileSystem) RemoveXAttr(name string, attr string, context *Context) Status {
-	return me.FileSystem.RemoveXAttr(me.prefixed(name), attr, context)
+func (fs *PrefixFileSystem) RemoveXAttr(name string, attr string, context *Context) Status {
+	return fs.FileSystem.RemoveXAttr(fs.prefixed(name), attr, context)
 }
 
-func (me *PrefixFileSystem) String() string {
-	return fmt.Sprintf("PrefixFileSystem(%s,%s)", me.FileSystem.String(), me.Prefix)
+func (fs *PrefixFileSystem) String() string {
+	return fmt.Sprintf("PrefixFileSystem(%s,%s)", fs.FileSystem.String(), fs.Prefix)
 }

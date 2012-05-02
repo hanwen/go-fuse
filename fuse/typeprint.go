@@ -18,7 +18,7 @@ func init() {
 	}
 }
 
-func (me *Attr) String() string {
+func (a *Attr) String() string {
 	return fmt.Sprintf(
 		"{M0%o S=%d L=%d "+
 			"%d:%d "+
@@ -26,11 +26,11 @@ func (me *Attr) String() string {
 			"A %d.%09d "+
 			"M %d.%09d "+
 			"C %d.%09d}",
-		me.Mode, me.Size, me.Nlink,
-		me.Uid, me.Gid,
-		me.Blocks, me.Blksize,
-		me.Rdev, me.Ino, me.Atime, me.Atimensec, me.Mtime, me.Mtimensec,
-		me.Ctime, me.Ctimensec)
+		a.Mode, a.Size, a.Nlink,
+		a.Uid, a.Gid,
+		a.Blocks, a.Blksize,
+		a.Rdev, a.Ino, a.Atime, a.Atimensec, a.Mtime, a.Mtimensec,
+		a.Ctime, a.Ctimensec)
 }
 
 func (me *ReadIn) String() string {

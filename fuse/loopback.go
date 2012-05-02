@@ -32,12 +32,12 @@ func NewLoopbackFileSystem(root string) (out *LoopbackFileSystem) {
 	return out
 }
 
-func (me *LoopbackFileSystem) GetPath(relPath string) string {
-	return filepath.Join(me.Root, relPath)
+func (fs *LoopbackFileSystem) GetPath(relPath string) string {
+	return filepath.Join(fs.Root, relPath)
 }
 
-func (me *LoopbackFileSystem) GetAttr(name string, context *Context) (a *Attr, code Status) {
-	fullPath := me.GetPath(name)
+func (fs *LoopbackFileSystem) GetAttr(name string, context *Context) (a *Attr, code Status) {
+	fullPath := fs.GetPath(name)
 	var err error = nil
 	st := syscall.Stat_t{}
 	if name == "" {
@@ -55,10 +55,10 @@ func (me *LoopbackFileSystem) GetAttr(name string, context *Context) (a *Attr, c
 	return a, OK
 }
 
-func (me *LoopbackFileSystem) OpenDir(name string, context *Context) (stream chan DirEntry, status Status) {
+func (fs *LoopbackFileSystem) OpenDir(name string, context *Context) (stream chan DirEntry, status Status) {
 	// What other ways beyond O_RDONLY are there to open
 	// directories?
-	f, err := os.Open(me.GetPath(name))
+	f, err := os.Open(fs.GetPath(name))
 	if err != nil {
 		return nil, ToStatus(err)
 	}
@@ -94,99 +94,99 @@ func (me *LoopbackFileSystem) OpenDir(name string, context *Context) (stream cha
 	return output, OK
 }
 
-func (me *LoopbackFileSystem) Open(name string, flags uint32, context *Context) (fuseFile File, status Status) {
-	f, err := os.OpenFile(me.GetPath(name), int(flags), 0)
+func (fs *LoopbackFileSystem) Open(name string, flags uint32, context *Context) (fuseFile File, status Status) {
+	f, err := os.OpenFile(fs.GetPath(name), int(flags), 0)
 	if err != nil {
 		return nil, ToStatus(err)
 	}
 	return &LoopbackFile{File: f}, OK
 }
 
-func (me *LoopbackFileSystem) Chmod(path string, mode uint32, context *Context) (code Status) {
-	err := os.Chmod(me.GetPath(path), os.FileMode(mode))
+func (fs *LoopbackFileSystem) Chmod(path string, mode uint32, context *Context) (code Status) {
+	err := os.Chmod(fs.GetPath(path), os.FileMode(mode))
 	return ToStatus(err)
 }
 
-func (me *LoopbackFileSystem) Chown(path string, uid uint32, gid uint32, context *Context) (code Status) {
-	return ToStatus(os.Chown(me.GetPath(path), int(uid), int(gid)))
+func (fs *LoopbackFileSystem) Chown(path string, uid uint32, gid uint32, context *Context) (code Status) {
+	return ToStatus(os.Chown(fs.GetPath(path), int(uid), int(gid)))
 }
 
-func (me *LoopbackFileSystem) Truncate(path string, offset uint64, context *Context) (code Status) {
-	return ToStatus(os.Truncate(me.GetPath(path), int64(offset)))
+func (fs *LoopbackFileSystem) Truncate(path string, offset uint64, context *Context) (code Status) {
+	return ToStatus(os.Truncate(fs.GetPath(path), int64(offset)))
 }
 
-func (me *LoopbackFileSystem) Utimens(path string, AtimeNs int64, MtimeNs int64, context *Context) (code Status) {
-	return ToStatus(os.Chtimes(me.GetPath(path), time.Unix(0, AtimeNs), time.Unix(0, MtimeNs)))
+func (fs *LoopbackFileSystem) Utimens(path string, AtimeNs int64, MtimeNs int64, context *Context) (code Status) {
+	return ToStatus(os.Chtimes(fs.GetPath(path), time.Unix(0, AtimeNs), time.Unix(0, MtimeNs)))
 }
 
-func (me *LoopbackFileSystem) Readlink(name string, context *Context) (out string, code Status) {
-	f, err := os.Readlink(me.GetPath(name))
+func (fs *LoopbackFileSystem) Readlink(name string, context *Context) (out string, code Status) {
+	f, err := os.Readlink(fs.GetPath(name))
 	return f, ToStatus(err)
 }
 
-func (me *LoopbackFileSystem) Mknod(name string, mode uint32, dev uint32, context *Context) (code Status) {
-	return ToStatus(syscall.Mknod(me.GetPath(name), mode, int(dev)))
+func (fs *LoopbackFileSystem) Mknod(name string, mode uint32, dev uint32, context *Context) (code Status) {
+	return ToStatus(syscall.Mknod(fs.GetPath(name), mode, int(dev)))
 }
 
-func (me *LoopbackFileSystem) Mkdir(path string, mode uint32, context *Context) (code Status) {
-	return ToStatus(os.Mkdir(me.GetPath(path), os.FileMode(mode)))
+func (fs *LoopbackFileSystem) Mkdir(path string, mode uint32, context *Context) (code Status) {
+	return ToStatus(os.Mkdir(fs.GetPath(path), os.FileMode(mode)))
 }
 
 // Don't use os.Remove, it removes twice (unlink followed by rmdir).
-func (me *LoopbackFileSystem) Unlink(name string, context *Context) (code Status) {
-	return ToStatus(syscall.Unlink(me.GetPath(name)))
+func (fs *LoopbackFileSystem) Unlink(name string, context *Context) (code Status) {
+	return ToStatus(syscall.Unlink(fs.GetPath(name)))
 }
 
-func (me *LoopbackFileSystem) Rmdir(name string, context *Context) (code Status) {
-	return ToStatus(syscall.Rmdir(me.GetPath(name)))
+func (fs *LoopbackFileSystem) Rmdir(name string, context *Context) (code Status) {
+	return ToStatus(syscall.Rmdir(fs.GetPath(name)))
 }
 
-func (me *LoopbackFileSystem) Symlink(pointedTo string, linkName string, context *Context) (code Status) {
-	return ToStatus(os.Symlink(pointedTo, me.GetPath(linkName)))
+func (fs *LoopbackFileSystem) Symlink(pointedTo string, linkName string, context *Context) (code Status) {
+	return ToStatus(os.Symlink(pointedTo, fs.GetPath(linkName)))
 }
 
-func (me *LoopbackFileSystem) Rename(oldPath string, newPath string, context *Context) (code Status) {
-	err := os.Rename(me.GetPath(oldPath), me.GetPath(newPath))
+func (fs *LoopbackFileSystem) Rename(oldPath string, newPath string, context *Context) (code Status) {
+	err := os.Rename(fs.GetPath(oldPath), fs.GetPath(newPath))
 	return ToStatus(err)
 }
 
-func (me *LoopbackFileSystem) Link(orig string, newName string, context *Context) (code Status) {
-	return ToStatus(os.Link(me.GetPath(orig), me.GetPath(newName)))
+func (fs *LoopbackFileSystem) Link(orig string, newName string, context *Context) (code Status) {
+	return ToStatus(os.Link(fs.GetPath(orig), fs.GetPath(newName)))
 }
 
-func (me *LoopbackFileSystem) Access(name string, mode uint32, context *Context) (code Status) {
-	return ToStatus(syscall.Access(me.GetPath(name), mode))
+func (fs *LoopbackFileSystem) Access(name string, mode uint32, context *Context) (code Status) {
+	return ToStatus(syscall.Access(fs.GetPath(name), mode))
 }
 
-func (me *LoopbackFileSystem) Create(path string, flags uint32, mode uint32, context *Context) (fuseFile File, code Status) {
-	f, err := os.OpenFile(me.GetPath(path), int(flags)|os.O_CREATE, os.FileMode(mode))
+func (fs *LoopbackFileSystem) Create(path string, flags uint32, mode uint32, context *Context) (fuseFile File, code Status) {
+	f, err := os.OpenFile(fs.GetPath(path), int(flags)|os.O_CREATE, os.FileMode(mode))
 	return &LoopbackFile{File: f}, ToStatus(err)
 }
 
-func (me *LoopbackFileSystem) GetXAttr(name string, attr string, context *Context) ([]byte, Status) {
+func (fs *LoopbackFileSystem) GetXAttr(name string, attr string, context *Context) ([]byte, Status) {
 	data := make([]byte, 1024)
-	data, errNo := GetXAttr(me.GetPath(name), attr, data)
+	data, errNo := GetXAttr(fs.GetPath(name), attr, data)
 
 	return data, Status(errNo)
 }
 
-func (me *LoopbackFileSystem) ListXAttr(name string, context *Context) ([]string, Status) {
-	data, errNo := ListXAttr(me.GetPath(name))
+func (fs *LoopbackFileSystem) ListXAttr(name string, context *Context) ([]string, Status) {
+	data, errNo := ListXAttr(fs.GetPath(name))
 
 	return data, Status(errNo)
 }
 
-func (me *LoopbackFileSystem) RemoveXAttr(name string, attr string, context *Context) Status {
-	return Status(Removexattr(me.GetPath(name), attr))
+func (fs *LoopbackFileSystem) RemoveXAttr(name string, attr string, context *Context) Status {
+	return Status(Removexattr(fs.GetPath(name), attr))
 }
 
-func (me *LoopbackFileSystem) String() string {
-	return fmt.Sprintf("LoopbackFileSystem(%s)", me.Root)
+func (fs *LoopbackFileSystem) String() string {
+	return fmt.Sprintf("LoopbackFileSystem(%s)", fs.Root)
 }
 
-func (me *LoopbackFileSystem) StatFs(name string) *StatfsOut {
+func (fs *LoopbackFileSystem) StatFs(name string) *StatfsOut {
 	s := syscall.Statfs_t{}
-	err := syscall.Statfs(me.GetPath(name), &s)
+	err := syscall.Statfs(fs.GetPath(name), &s)
 	if err == nil {
 		return &StatfsOut{
 			raw.Kstatfs{

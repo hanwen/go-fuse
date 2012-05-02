@@ -31,45 +31,45 @@ func (me FileMode) String() string {
 	return "0"
 }
 
-func (me FileMode) IsFifo() bool { return (uint32(me) & syscall.S_IFMT) == syscall.S_IFIFO }
+func (m FileMode) IsFifo() bool { return (uint32(m) & syscall.S_IFMT) == syscall.S_IFIFO }
 
 // IsChar reports whether the FileInfo describes a character special file.
-func (me FileMode) IsChar() bool { return (uint32(me) & syscall.S_IFMT) == syscall.S_IFCHR }
+func (m FileMode) IsChar() bool { return (uint32(m) & syscall.S_IFMT) == syscall.S_IFCHR }
 
 // IsDir reports whether the FileInfo describes a directory.
-func (me FileMode) IsDir() bool { return (uint32(me) & syscall.S_IFMT) == syscall.S_IFDIR }
+func (m FileMode) IsDir() bool { return (uint32(m) & syscall.S_IFMT) == syscall.S_IFDIR }
 
 // IsBlock reports whether the FileInfo describes a block special file.
-func (me FileMode) IsBlock() bool { return (uint32(me) & syscall.S_IFMT) == syscall.S_IFBLK }
+func (m FileMode) IsBlock() bool { return (uint32(m) & syscall.S_IFMT) == syscall.S_IFBLK }
 
 // IsRegular reports whether the FileInfo describes a regular file.
-func (me FileMode) IsRegular() bool { return (uint32(me) & syscall.S_IFMT) == syscall.S_IFREG }
+func (m FileMode) IsRegular() bool { return (uint32(m) & syscall.S_IFMT) == syscall.S_IFREG }
 
 // IsSymlink reports whether the FileInfo describes a symbolic link.
-func (me FileMode) IsSymlink() bool { return (uint32(me) & syscall.S_IFMT) == syscall.S_IFLNK }
+func (m FileMode) IsSymlink() bool { return (uint32(m) & syscall.S_IFMT) == syscall.S_IFLNK }
 
 // IsSocket reports whether the FileInfo describes a socket.
-func (me FileMode) IsSocket() bool { return (uint32(me) & syscall.S_IFMT) == syscall.S_IFSOCK }
+func (m FileMode) IsSocket() bool { return (uint32(m) & syscall.S_IFMT) == syscall.S_IFSOCK }
 
-func (me *Attr) IsFifo() bool { return (uint32(me.Mode) & syscall.S_IFMT) == syscall.S_IFIFO }
+func (a *Attr) IsFifo() bool { return (uint32(a.Mode) & syscall.S_IFMT) == syscall.S_IFIFO }
 
 // IsChar reports whether the FileInfo describes a character special file.
-func (me *Attr) IsChar() bool { return (uint32(me.Mode) & syscall.S_IFMT) == syscall.S_IFCHR }
+func (a *Attr) IsChar() bool { return (uint32(a.Mode) & syscall.S_IFMT) == syscall.S_IFCHR }
 
 // IsDir reports whether the FileInfo describes a directory.
-func (me *Attr) IsDir() bool { return (uint32(me.Mode) & syscall.S_IFMT) == syscall.S_IFDIR }
+func (a *Attr) IsDir() bool { return (uint32(a.Mode) & syscall.S_IFMT) == syscall.S_IFDIR }
 
 // IsBlock reports whether the FileInfo describes a block special file.
-func (me *Attr) IsBlock() bool { return (uint32(me.Mode) & syscall.S_IFMT) == syscall.S_IFBLK }
+func (a *Attr) IsBlock() bool { return (uint32(a.Mode) & syscall.S_IFMT) == syscall.S_IFBLK }
 
 // IsRegular reports whether the FileInfo describes a regular file.
-func (me *Attr) IsRegular() bool { return (uint32(me.Mode) & syscall.S_IFMT) == syscall.S_IFREG }
+func (a *Attr) IsRegular() bool { return (uint32(a.Mode) & syscall.S_IFMT) == syscall.S_IFREG }
 
 // IsSymlink reports whether the FileInfo describes a symbolic link.
-func (me *Attr) IsSymlink() bool { return (uint32(me.Mode) & syscall.S_IFMT) == syscall.S_IFLNK }
+func (a *Attr) IsSymlink() bool { return (uint32(a.Mode) & syscall.S_IFMT) == syscall.S_IFLNK }
 
 // IsSocket reports whether the FileInfo describes a socket.
-func (me *Attr) IsSocket() bool { return (uint32(me.Mode) & syscall.S_IFMT) == syscall.S_IFSOCK }
+func (a *Attr) IsSocket() bool { return (uint32(a.Mode) & syscall.S_IFMT) == syscall.S_IFSOCK }
 
 func (a *Attr) Atimens() int64 {
 	return int64(1e9*a.Atime) + int64(a.Atimensec)

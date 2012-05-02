@@ -17,17 +17,17 @@ type DataFile struct {
 	DefaultFile
 }
 
-func (me *DataFile) String() string {
-	l := len(me.data)
+func (f *DataFile) String() string {
+	l := len(f.data)
 	if l > 10 {
 		l = 10
 	}
 
-	return fmt.Sprintf("DataFile(%x)", me.data[:l])
+	return fmt.Sprintf("DataFile(%x)", f.data[:l])
 }
 
-func (me *DataFile) GetAttr() (*Attr, Status) {
-	return &Attr{Mode: S_IFREG | 0644, Size: uint64(len(me.data))}, OK
+func (f *DataFile) GetAttr() (*Attr, Status) {
+	return &Attr{Mode: S_IFREG | 0644, Size: uint64(len(f.data))}, OK
 }
 
 func NewDataFile(data []byte) *DataFile {
@@ -36,13 +36,13 @@ func NewDataFile(data []byte) *DataFile {
 	return f
 }
 
-func (me *DataFile) Read(input *ReadIn, bp BufferPool) ([]byte, Status) {
+func (f *DataFile) Read(input *ReadIn, bp BufferPool) ([]byte, Status) {
 	end := int(input.Offset) + int(input.Size)
-	if end > len(me.data) {
-		end = len(me.data)
+	if end > len(f.data) {
+		end = len(f.data)
 	}
 
-	return me.data[input.Offset:end], OK
+	return f.data[input.Offset:end], OK
 }
 
 ////////////////
@@ -56,27 +56,27 @@ func NewDevNullFile() *DevNullFile {
 	return new(DevNullFile)
 }
 
-func (me *DevNullFile) String() string {
+func (f *DevNullFile) String() string {
 	return "DevNullFile"
 }
 
-func (me *DevNullFile) Read(input *ReadIn, bp BufferPool) ([]byte, Status) {
+func (f *DevNullFile) Read(input *ReadIn, bp BufferPool) ([]byte, Status) {
 	return []byte{}, OK
 }
 
-func (me *DevNullFile) Write(input *WriteIn, content []byte) (uint32, Status) {
+func (f *DevNullFile) Write(input *WriteIn, content []byte) (uint32, Status) {
 	return uint32(len(content)), OK
 }
 
-func (me *DevNullFile) Flush() Status {
+func (f *DevNullFile) Flush() Status {
 	return OK
 }
 
-func (me *DevNullFile) Fsync(flags int) (code Status) {
+func (f *DevNullFile) Fsync(flags int) (code Status) {
 	return OK
 }
 
-func (me *DevNullFile) Truncate(size uint64) (code Status) {
+func (f *DevNullFile) Truncate(size uint64) (code Status) {
 	return OK
 }
 
@@ -89,54 +89,54 @@ type LoopbackFile struct {
 	DefaultFile
 }
 
-func (me *LoopbackFile) String() string {
-	return fmt.Sprintf("LoopbackFile(%s)", me.File.Name())
+func (f *LoopbackFile) String() string {
+	return fmt.Sprintf("LoopbackFile(%s)", f.File.Name())
 }
 
-func (me *LoopbackFile) Read(input *ReadIn, buffers BufferPool) ([]byte, Status) {
+func (f *LoopbackFile) Read(input *ReadIn, buffers BufferPool) ([]byte, Status) {
 	slice := buffers.AllocBuffer(input.Size)
 
-	n, err := me.File.ReadAt(slice, int64(input.Offset))
+	n, err := f.File.ReadAt(slice, int64(input.Offset))
 	if err == io.EOF {
 		err = nil
 	}
 	return slice[:n], ToStatus(err)
 }
 
-func (me *LoopbackFile) Write(input *WriteIn, data []byte) (uint32, Status) {
-	n, err := me.File.WriteAt(data, int64(input.Offset))
+func (f *LoopbackFile) Write(input *WriteIn, data []byte) (uint32, Status) {
+	n, err := f.File.WriteAt(data, int64(input.Offset))
 	return uint32(n), ToStatus(err)
 }
 
-func (me *LoopbackFile) Release() {
-	me.File.Close()
+func (f *LoopbackFile) Release() {
+	f.File.Close()
 }
 
-func (me *LoopbackFile) Flush() Status {
+func (f *LoopbackFile) Flush() Status {
 	return OK
 }
 
-func (me *LoopbackFile) Fsync(flags int) (code Status) {
-	return ToStatus(syscall.Fsync(int(me.File.Fd())))
+func (f *LoopbackFile) Fsync(flags int) (code Status) {
+	return ToStatus(syscall.Fsync(int(f.File.Fd())))
 }
 
-func (me *LoopbackFile) Truncate(size uint64) Status {
-	return ToStatus(syscall.Ftruncate(int(me.File.Fd()), int64(size)))
+func (f *LoopbackFile) Truncate(size uint64) Status {
+	return ToStatus(syscall.Ftruncate(int(f.File.Fd()), int64(size)))
 }
 
 // futimens missing from 6g runtime.
 
-func (me *LoopbackFile) Chmod(mode uint32) Status {
-	return ToStatus(me.File.Chmod(os.FileMode(mode)))
+func (f *LoopbackFile) Chmod(mode uint32) Status {
+	return ToStatus(f.File.Chmod(os.FileMode(mode)))
 }
 
-func (me *LoopbackFile) Chown(uid uint32, gid uint32) Status {
-	return ToStatus(me.File.Chown(int(uid), int(gid)))
+func (f *LoopbackFile) Chown(uid uint32, gid uint32) Status {
+	return ToStatus(f.File.Chown(int(uid), int(gid)))
 }
 
-func (me *LoopbackFile) GetAttr() (*Attr, Status) {
+func (f *LoopbackFile) GetAttr() (*Attr, Status) {
 	st := syscall.Stat_t{}
-	err := syscall.Fstat(int(me.File.Fd()), &st)
+	err := syscall.Fstat(int(f.File.Fd()), &st)
 	if err != nil {
 		return nil, ToStatus(err)
 	}
@@ -152,26 +152,26 @@ type ReadOnlyFile struct {
 	File
 }
 
-func (me *ReadOnlyFile) String() string {
-	return fmt.Sprintf("ReadOnlyFile(%s)", me.File.String())
+func (f *ReadOnlyFile) String() string {
+	return fmt.Sprintf("ReadOnlyFile(%s)", f.File.String())
 }
 
-func (me *ReadOnlyFile) Write(input *WriteIn, data []byte) (uint32, Status) {
+func (f *ReadOnlyFile) Write(input *WriteIn, data []byte) (uint32, Status) {
 	return 0, EPERM
 }
 
-func (me *ReadOnlyFile) Fsync(flag int) (code Status) {
+func (f *ReadOnlyFile) Fsync(flag int) (code Status) {
 	return OK
 }
 
-func (me *ReadOnlyFile) Truncate(size uint64) Status {
+func (f *ReadOnlyFile) Truncate(size uint64) Status {
 	return EPERM
 }
 
-func (me *ReadOnlyFile) Chmod(mode uint32) Status {
+func (f *ReadOnlyFile) Chmod(mode uint32) Status {
 	return EPERM
 }
 
-func (me *ReadOnlyFile) Chown(uid uint32, gid uint32) Status {
+func (f *ReadOnlyFile) Chown(uid uint32, gid uint32) Status {
 	return EPERM
 }

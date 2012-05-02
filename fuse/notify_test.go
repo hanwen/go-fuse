@@ -16,12 +16,12 @@ type NotifyFs struct {
 	exist bool
 }
 
-func (me *NotifyFs) GetAttr(name string, context *Context) (*Attr, Status) {
+func (fs *NotifyFs) GetAttr(name string, context *Context) (*Attr, Status) {
 	if name == "" {
 		return &Attr{Mode: S_IFDIR | 0755}, OK
 	}
-	if name == "file" || (name == "dir/file" && me.exist) {
-		return &Attr{Mode: S_IFREG | 0644, Size: me.size}, OK
+	if name == "file" || (name == "dir/file" && fs.exist) {
+		return &Attr{Mode: S_IFREG | 0644, Size: fs.size}, OK
 	}
 	if name == "dir" {
 		return &Attr{Mode: S_IFDIR | 0755}, OK
@@ -29,7 +29,7 @@ func (me *NotifyFs) GetAttr(name string, context *Context) (*Attr, Status) {
 	return nil, ENOENT
 }
 
-func (me *NotifyFs) Open(name string, f uint32, context *Context) (File, Status) {
+func (fs *NotifyFs) Open(name string, f uint32, context *Context) (File, Status) {
 	return NewDataFile([]byte{42}), OK
 }
 
@@ -63,10 +63,10 @@ func NewNotifyTest() *NotifyTest {
 	return me
 }
 
-func (me *NotifyTest) Clean() {
-	err := me.state.Unmount()
+func (t *NotifyTest) Clean() {
+	err := t.state.Unmount()
 	if err == nil {
-		os.RemoveAll(me.dir)
+		os.RemoveAll(t.dir)
 	}
 }
 

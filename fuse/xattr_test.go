@@ -27,63 +27,63 @@ func NewXAttrFs(nm string, m map[string][]byte) *XAttrTestFs {
 	return x
 }
 
-func (me *XAttrTestFs) GetAttr(name string, context *Context) (*Attr, Status) {
+func (fs *XAttrTestFs) GetAttr(name string, context *Context) (*Attr, Status) {
 	a := &Attr{}
 	if name == "" || name == "/" {
 		a.Mode = S_IFDIR | 0700
 		return a, OK
 	}
-	if name == me.filename {
+	if name == fs.filename {
 		a.Mode = S_IFREG | 0600
 		return a, OK
 	}
 	return nil, ENOENT
 }
 
-func (me *XAttrTestFs) SetXAttr(name string, attr string, data []byte, flags int, context *Context) Status {
-	me.tester.Log("SetXAttr", name, attr, string(data), flags)
-	if name != me.filename {
+func (fs *XAttrTestFs) SetXAttr(name string, attr string, data []byte, flags int, context *Context) Status {
+	fs.tester.Log("SetXAttr", name, attr, string(data), flags)
+	if name != fs.filename {
 		return ENOENT
 	}
 	dest := make([]byte, len(data))
 	copy(dest, data)
-	me.attrs[attr] = dest
+	fs.attrs[attr] = dest
 	return OK
 }
 
-func (me *XAttrTestFs) GetXAttr(name string, attr string, context *Context) ([]byte, Status) {
-	if name != me.filename {
+func (fs *XAttrTestFs) GetXAttr(name string, attr string, context *Context) ([]byte, Status) {
+	if name != fs.filename {
 		return nil, ENOENT
 	}
-	v, ok := me.attrs[attr]
+	v, ok := fs.attrs[attr]
 	if !ok {
 		return nil, ENODATA
 	}
-	me.tester.Log("GetXAttr", string(v))
+	fs.tester.Log("GetXAttr", string(v))
 	return v, OK
 }
 
-func (me *XAttrTestFs) ListXAttr(name string, context *Context) (data []string, code Status) {
-	if name != me.filename {
+func (fs *XAttrTestFs) ListXAttr(name string, context *Context) (data []string, code Status) {
+	if name != fs.filename {
 		return nil, ENOENT
 	}
 
-	for k := range me.attrs {
+	for k := range fs.attrs {
 		data = append(data, k)
 	}
 	return data, OK
 }
 
-func (me *XAttrTestFs) RemoveXAttr(name string, attr string, context *Context) Status {
-	if name != me.filename {
+func (fs *XAttrTestFs) RemoveXAttr(name string, attr string, context *Context) Status {
+	if name != fs.filename {
 		return ENOENT
 	}
-	_, ok := me.attrs[attr]
-	me.tester.Log("RemoveXAttr", name, attr, ok)
+	_, ok := fs.attrs[attr]
+	fs.tester.Log("RemoveXAttr", name, attr, ok)
 	if !ok {
 		return ENODATA
 	}
-	delete(me.attrs, attr)
+	delete(fs.attrs, attr)
 	return OK
 }
 

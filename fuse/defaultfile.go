@@ -8,57 +8,57 @@ import (
 
 var _ = log.Println
 
-func (me *DefaultFile) SetInode(*Inode) {
+func (f *DefaultFile) SetInode(*Inode) {
 }
 
-func (me *DefaultFile) InnerFile() File {
+func (f *DefaultFile) InnerFile() File {
 	return nil
 }
 
-func (me *DefaultFile) String() string {
+func (f *DefaultFile) String() string {
 	return "DefaultFile"
 }
 
-func (me *DefaultFile) Read(*ReadIn, BufferPool) ([]byte, Status) {
+func (f *DefaultFile) Read(*ReadIn, BufferPool) ([]byte, Status) {
 	return []byte(""), ENOSYS
 }
 
-func (me *DefaultFile) Write(*WriteIn, []byte) (uint32, Status) {
+func (f *DefaultFile) Write(*WriteIn, []byte) (uint32, Status) {
 	return 0, ENOSYS
 }
 
-func (me *DefaultFile) Flush() Status {
+func (f *DefaultFile) Flush() Status {
 	return OK
 }
 
-func (me *DefaultFile) Release() {
+func (f *DefaultFile) Release() {
 
 }
 
-func (me *DefaultFile) GetAttr() (*Attr, Status) {
+func (f *DefaultFile) GetAttr() (*Attr, Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultFile) Fsync(flags int) (code Status) {
+func (f *DefaultFile) Fsync(flags int) (code Status) {
 	return ENOSYS
 }
 
-func (me *DefaultFile) Utimens(atimeNs int64, mtimeNs int64) Status {
+func (f *DefaultFile) Utimens(atimeNs int64, mtimeNs int64) Status {
 	return ENOSYS
 }
 
-func (me *DefaultFile) Truncate(size uint64) Status {
+func (f *DefaultFile) Truncate(size uint64) Status {
 	return ENOSYS
 }
 
-func (me *DefaultFile) Chown(uid uint32, gid uint32) Status {
+func (f *DefaultFile) Chown(uid uint32, gid uint32) Status {
 	return ENOSYS
 }
 
-func (me *DefaultFile) Chmod(perms uint32) Status {
+func (f *DefaultFile) Chmod(perms uint32) Status {
 	return ENOSYS
 }
 
-func (me *DefaultFile) Ioctl(input *raw.IoctlIn) (output *raw.IoctlOut, data []byte, code Status) {
+func (f *DefaultFile) Ioctl(input *raw.IoctlIn) (output *raw.IoctlOut, data []byte, code Status) {
 	return nil, nil, ENOSYS
 }

@@ -52,29 +52,29 @@ type request struct {
 	handler *operationHandler
 }
 
-func (me *request) InputDebug() string {
+func (r *request) InputDebug() string {
 	val := " "
-	if me.handler.DecodeIn != nil {
-		val = fmt.Sprintf(" data: %v ", me.handler.DecodeIn(me.inData))
+	if r.handler.DecodeIn != nil {
+		val = fmt.Sprintf(" data: %v ", r.handler.DecodeIn(r.inData))
 	}
 
 	names := ""
-	if me.filenames != nil {
-		names = fmt.Sprintf("names: %v", me.filenames)
+	if r.filenames != nil {
+		names = fmt.Sprintf("names: %v", r.filenames)
 	}
 
-	if len(me.arg) > 0 {
-		names += fmt.Sprintf(" %d bytes", len(me.arg))
+	if len(r.arg) > 0 {
+		names += fmt.Sprintf(" %d bytes", len(r.arg))
 	}
 
 	return fmt.Sprintf("Dispatch: %s, NodeId: %v.%v%v",
-		operationName(me.inHeader.Opcode), me.inHeader.NodeId, val, names)
+		operationName(r.inHeader.Opcode), r.inHeader.NodeId, val, names)
 }
 
-func (me *request) OutputDebug() string {
+func (r *request) OutputDebug() string {
 	var val interface{}
-	if me.handler.DecodeOut != nil && me.outData != nil {
-		val = me.handler.DecodeOut(me.outData)
+	if r.handler.DecodeOut != nil && r.outData != nil {
+		val = r.handler.DecodeOut(r.outData)
 	}
 
 	dataStr := ""
@@ -84,96 +84,96 @@ func (me *request) OutputDebug() string {
 
 	max := 1024
 	if len(dataStr) > max {
-		dataStr = dataStr[:max] + fmt.Sprintf(" ...trimmed (response size %d)", len(me.outHeaderBytes))
+		dataStr = dataStr[:max] + fmt.Sprintf(" ...trimmed (response size %d)", len(r.outHeaderBytes))
 	}
 
 	flatStr := ""
-	if len(me.flatData) > 0 {
-		if me.handler.FileNameOut {
-			s := strings.TrimRight(string(me.flatData), "\x00")
+	if len(r.flatData) > 0 {
+		if r.handler.FileNameOut {
+			s := strings.TrimRight(string(r.flatData), "\x00")
 			flatStr = fmt.Sprintf(" %q", s)
 		} else {
-			flatStr = fmt.Sprintf(" %d bytes data\n", len(me.flatData))
+			flatStr = fmt.Sprintf(" %d bytes data\n", len(r.flatData))
 		}
 	}
 
 	return fmt.Sprintf("Serialize: %s code: %v value: %v%v",
-		operationName(me.inHeader.Opcode), me.status, dataStr, flatStr)
+		operationName(r.inHeader.Opcode), r.status, dataStr, flatStr)
 }
 
 // setInput returns true if it takes ownership of the argument, false if not.
-func (me *request) setInput(input []byte) bool {
-	if len(input) < len(me.smallInputBuf) {
-		copy(me.smallInputBuf[:], input)
-		me.inputBuf = me.smallInputBuf[:len(input)]
+func (r *request) setInput(input []byte) bool {
+	if len(input) < len(r.smallInputBuf) {
+		copy(r.smallInputBuf[:], input)
+		r.inputBuf = r.smallInputBuf[:len(input)]
 		return false
 	} 
-	me.inputBuf = input
-	me.bufferPoolInputBuf = input
+	r.inputBuf = input
+	r.bufferPoolInputBuf = input
 	
 	return true
 }
 
-func (me *request) parse() {
+func (r *request) parse() {
 	inHSize := int(unsafe.Sizeof(raw.InHeader{}))
-	if len(me.inputBuf) < inHSize {
-		log.Printf("Short read for input header: %v", me.inputBuf)
+	if len(r.inputBuf) < inHSize {
+		log.Printf("Short read for input header: %v", r.inputBuf)
 		return
 	}
 
-	me.inHeader = (*raw.InHeader)(unsafe.Pointer(&me.inputBuf[0]))
-	me.arg = me.inputBuf[inHSize:]
+	r.inHeader = (*raw.InHeader)(unsafe.Pointer(&r.inputBuf[0]))
+	r.arg = r.inputBuf[inHSize:]
 
-	me.handler = getHandler(me.inHeader.Opcode)
-	if me.handler == nil {
-		log.Printf("Unknown opcode %d", me.inHeader.Opcode)
-		me.status = ENOSYS
+	r.handler = getHandler(r.inHeader.Opcode)
+	if r.handler == nil {
+		log.Printf("Unknown opcode %d", r.inHeader.Opcode)
+		r.status = ENOSYS
 		return
 	}
 
-	if len(me.arg) < int(me.handler.InputSize) {
-		log.Printf("Short read for %v: %v", operationName(me.inHeader.Opcode), me.arg)
-		me.status = EIO
+	if len(r.arg) < int(r.handler.InputSize) {
+		log.Printf("Short read for %v: %v", operationName(r.inHeader.Opcode), r.arg)
+		r.status = EIO
 		return
 	}
 
-	if me.handler.InputSize > 0 {
-		me.inData = unsafe.Pointer(&me.arg[0])
-		me.arg = me.arg[me.handler.InputSize:]
+	if r.handler.InputSize > 0 {
+		r.inData = unsafe.Pointer(&r.arg[0])
+		r.arg = r.arg[r.handler.InputSize:]
 	}
 
-	count := me.handler.FileNames
+	count := r.handler.FileNames
 	if count > 0 {
 		if count == 1 {
-			me.filenames = []string{string(me.arg[:len(me.arg)-1])}
+			r.filenames = []string{string(r.arg[:len(r.arg)-1])}
 		} else {
-			names := bytes.SplitN(me.arg[:len(me.arg)-1], []byte{0}, count)
-			me.filenames = make([]string, len(names))
+			names := bytes.SplitN(r.arg[:len(r.arg)-1], []byte{0}, count)
+			r.filenames = make([]string, len(names))
 			for i, n := range names {
-				me.filenames[i] = string(n)
+				r.filenames[i] = string(n)
 			}
 			if len(names) != count {
 				log.Println("filename argument mismatch", names, count)
-				me.status = EIO
+				r.status = EIO
 			}
 		}
 	}
 }
 
-func (me *request) serialize() {
-	dataLength := me.handler.OutputSize
-	if me.outData == nil || me.status > OK {
+func (r *request) serialize() {
+	dataLength := r.handler.OutputSize
+	if r.outData == nil || r.status > OK {
 		dataLength = 0
 	}
 
 	sizeOfOutHeader := unsafe.Sizeof(raw.OutHeader{})
 
-	me.outHeaderBytes = make([]byte, sizeOfOutHeader+dataLength)
-	outHeader := (*raw.OutHeader)(unsafe.Pointer(&me.outHeaderBytes[0]))
-	outHeader.Unique = me.inHeader.Unique
-	outHeader.Status = int32(-me.status)
+	r.outHeaderBytes = make([]byte, sizeOfOutHeader+dataLength)
+	outHeader := (*raw.OutHeader)(unsafe.Pointer(&r.outHeaderBytes[0]))
+	outHeader.Unique = r.inHeader.Unique
+	outHeader.Status = int32(-r.status)
 	outHeader.Length = uint32(
-		int(sizeOfOutHeader) + int(dataLength) + int(len(me.flatData)))
+		int(sizeOfOutHeader) + int(dataLength) + int(len(r.flatData)))
 
-	copy(me.outHeaderBytes[sizeOfOutHeader:], asSlice(me.outData, dataLength))
+	copy(r.outHeaderBytes[sizeOfOutHeader:], asSlice(r.outData, dataLength))
 }

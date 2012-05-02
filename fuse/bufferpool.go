@@ -24,11 +24,11 @@ func NewGcBufferPool() *GcBufferPool {
 	return &GcBufferPool{}
 }
 
-func (me *GcBufferPool) AllocBuffer(size uint32) []byte {
+func (p *GcBufferPool) AllocBuffer(size uint32) []byte {
 	return make([]byte, size)
 }
 
-func (me *GcBufferPool) FreeBuffer(slice []byte) {
+func (p *GcBufferPool) FreeBuffer(slice []byte) {
 }
 
 // BufferPool implements a pool of buffers that returns slices with
@@ -55,27 +55,27 @@ func NewBufferPool() *BufferPoolImpl {
 	return bp
 }
 
-func (me *BufferPoolImpl) String() string {
-	me.lock.Lock()
-	defer me.lock.Unlock()
+func (p *BufferPoolImpl) String() string {
+	p.lock.Lock()
+	defer p.lock.Unlock()
 
 	result := []string{}
-	for exp, bufs := range me.buffersBySize {
+	for exp, bufs := range p.buffersBySize {
 		if len(bufs) > 0 {
 			result = append(result, fmt.Sprintf("%d=%d", exp, len(bufs)))
 		}
 	}
 	return fmt.Sprintf("created: %d, outstanding %d. Sizes: %s",
-		me.createdBuffers, len(me.outstandingBuffers),
+		p.createdBuffers, len(p.outstandingBuffers),
 		strings.Join(result, ", "))
 }
 
-func (me *BufferPoolImpl) getBuffer(pageCount int) []byte {
-	for ; pageCount < len(me.buffersBySize); pageCount++ {
-		bufferList := me.buffersBySize[pageCount]
+func (p *BufferPoolImpl) getBuffer(pageCount int) []byte {
+	for ; pageCount < len(p.buffersBySize); pageCount++ {
+		bufferList := p.buffersBySize[pageCount]
 		if len(bufferList) > 0 {
 			result := bufferList[len(bufferList)-1]
-			me.buffersBySize[pageCount] = me.buffersBySize[pageCount][:len(bufferList)-1]
+			p.buffersBySize[pageCount] = p.buffersBySize[pageCount][:len(bufferList)-1]
 			return result
 		}
 	}
@@ -83,16 +83,16 @@ func (me *BufferPoolImpl) getBuffer(pageCount int) []byte {
 	return nil
 }
 
-func (me *BufferPoolImpl) addBuffer(slice []byte, pages int) {
-	for len(me.buffersBySize) <= int(pages) {
-		me.buffersBySize = append(me.buffersBySize, make([][]byte, 0))
+func (p *BufferPoolImpl) addBuffer(slice []byte, pages int) {
+	for len(p.buffersBySize) <= int(pages) {
+		p.buffersBySize = append(p.buffersBySize, make([][]byte, 0))
 	}
-	me.buffersBySize[pages] = append(me.buffersBySize[pages], slice)
+	p.buffersBySize[pages] = append(p.buffersBySize[pages], slice)
 }
 
 // AllocBuffer creates a buffer of at least the given size. After use,
 // it should be deallocated with FreeBuffer().
-func (me *BufferPoolImpl) AllocBuffer(size uint32) []byte {
+func (p *BufferPoolImpl) AllocBuffer(size uint32) []byte {
 	sz := int(size)
 	if sz < PAGESIZE {
 		sz = PAGESIZE
@@ -103,23 +103,23 @@ func (me *BufferPoolImpl) AllocBuffer(size uint32) []byte {
 	}
 	psz := sz / PAGESIZE
 
-	me.lock.Lock()
-	defer me.lock.Unlock()
+	p.lock.Lock()
+	defer p.lock.Unlock()
 
 	var b []byte
 
-	b = me.getBuffer(psz)
+	b = p.getBuffer(psz)
 	if b == nil {
-		me.createdBuffers++
+		p.createdBuffers++
 		b = make([]byte, size, psz*PAGESIZE)
 	} else {
 		b = b[:size]
 	}
 
-	me.outstandingBuffers[uintptr(unsafe.Pointer(&b[0]))] = true
+	p.outstandingBuffers[uintptr(unsafe.Pointer(&b[0]))] = true
 
 	// For testing should not have more than 20 buffers outstanding.
-	if paranoia && (me.createdBuffers > 50 || len(me.outstandingBuffers) > 50) {
+	if paranoia && (p.createdBuffers > 50 || len(p.outstandingBuffers) > 50) {
 		panic("Leaking buffers")
 	}
 
@@ -129,7 +129,7 @@ func (me *BufferPoolImpl) AllocBuffer(size uint32) []byte {
 // FreeBuffer takes back a buffer if it was allocated through
 // AllocBuffer.  It is not an error to call FreeBuffer() on a slice
 // obtained elsewhere.
-func (me *BufferPoolImpl) FreeBuffer(slice []byte) {
+func (p *BufferPoolImpl) FreeBuffer(slice []byte) {
 	if slice == nil {
 		return
 	}
@@ -140,11 +140,11 @@ func (me *BufferPoolImpl) FreeBuffer(slice []byte) {
 	slice = slice[:psz]
 	key := uintptr(unsafe.Pointer(&slice[0]))
 
-	me.lock.Lock()
-	defer me.lock.Unlock()
-	ok := me.outstandingBuffers[key]
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	ok := p.outstandingBuffers[key]
 	if ok {
-		me.addBuffer(slice, psz)
-		delete(me.outstandingBuffers, key)
+		p.addBuffer(slice, psz)
+		delete(p.outstandingBuffers, key)
 	}
 }

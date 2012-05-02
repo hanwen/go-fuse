@@ -29,46 +29,46 @@ func NewDirEntryList(max int, off *uint64) *DirEntryList {
 	return &DirEntryList{maxSize: max, offset: off}
 }
 
-func (me *DirEntryList) AddString(name string, inode uint64, mode uint32) bool {
-	return me.Add([]byte(name), inode, mode)
+func (l *DirEntryList) AddString(name string, inode uint64, mode uint32) bool {
+	return l.Add([]byte(name), inode, mode)
 }
 
-func (me *DirEntryList) AddDirEntry(e DirEntry) bool {
-	return me.Add([]byte(e.Name), uint64(raw.FUSE_UNKNOWN_INO), e.Mode)
+func (l *DirEntryList) AddDirEntry(e DirEntry) bool {
+	return l.Add([]byte(e.Name), uint64(raw.FUSE_UNKNOWN_INO), e.Mode)
 }
 
-func (me *DirEntryList) Add(name []byte, inode uint64, mode uint32) bool {
-	lastLen := me.buf.Len()
-	(*me.offset)++
+func (l *DirEntryList) Add(name []byte, inode uint64, mode uint32) bool {
+	lastLen := l.buf.Len()
+	(*l.offset)++
 
 	dirent := raw.Dirent{
-		Off:     *me.offset,
+		Off:     *l.offset,
 		Ino:     inode,
 		NameLen: uint32(len(name)),
 		Typ:     ModeToType(mode),
 	}
 
-	_, err := me.buf.Write(asSlice(unsafe.Pointer(&dirent), unsafe.Sizeof(raw.Dirent{})))
+	_, err := l.buf.Write(asSlice(unsafe.Pointer(&dirent), unsafe.Sizeof(raw.Dirent{})))
 	if err != nil {
 		panic("Serialization of Dirent failed")
 	}
-	me.buf.Write(name)
+	l.buf.Write(name)
 
 	padding := 8 - len(name)&7
 	if padding < 8 {
-		me.buf.Write(make([]byte, padding))
+		l.buf.Write(make([]byte, padding))
 	}
 
-	if me.buf.Len() > me.maxSize {
-		me.buf.Truncate(lastLen)
-		(*me.offset)--
+	if l.buf.Len() > l.maxSize {
+		l.buf.Truncate(lastLen)
+		(*l.offset)--
 		return false
 	}
 	return true
 }
 
-func (me *DirEntryList) Bytes() []byte {
-	return me.buf.Bytes()
+func (l *DirEntryList) Bytes() []byte {
+	return l.buf.Bytes()
 }
 
 ////////////////////////////////////////////////////////////////
@@ -85,36 +85,36 @@ type connectorDir struct {
 	lastOffset uint64
 }
 
-func (me *connectorDir) ReadDir(input *ReadIn) (*DirEntryList, Status) {
-	if me.stream == nil && len(me.extra) == 0 {
+func (d *connectorDir) ReadDir(input *ReadIn) (*DirEntryList, Status) {
+	if d.stream == nil && len(d.extra) == 0 {
 		return nil, OK
 	}
 
-	list := NewDirEntryList(int(input.Size), &me.lastOffset)
-	if me.leftOver.Name != "" {
-		success := list.AddDirEntry(me.leftOver)
+	list := NewDirEntryList(int(input.Size), &d.lastOffset)
+	if d.leftOver.Name != "" {
+		success := list.AddDirEntry(d.leftOver)
 		if !success {
 			panic("No space for single entry.")
 		}
-		me.leftOver.Name = ""
+		d.leftOver.Name = ""
 	}
-	for len(me.extra) > 0 {
-		e := me.extra[len(me.extra)-1]
-		me.extra = me.extra[:len(me.extra)-1]
+	for len(d.extra) > 0 {
+		e := d.extra[len(d.extra)-1]
+		d.extra = d.extra[:len(d.extra)-1]
 		success := list.AddDirEntry(e)
 		if !success {
-			me.leftOver = e
+			d.leftOver = e
 			return list, OK
 		}
 	}
 	for {
-		d, isOpen := <-me.stream
+		de, isOpen := <-d.stream
 		if !isOpen {
-			me.stream = nil
+			d.stream = nil
 			break
 		}
-		if !list.AddDirEntry(d) {
-			me.leftOver = d
+		if !list.AddDirEntry(de) {
+			d.leftOver = de
 			break
 		}
 	}
@@ -122,9 +122,9 @@ func (me *connectorDir) ReadDir(input *ReadIn) (*DirEntryList, Status) {
 }
 
 // Read everything so we make goroutines exit.
-func (me *connectorDir) Release() {
-	for ok := true; ok && me.stream != nil; {
-		_, ok = <-me.stream
+func (d *connectorDir) Release() {
+	for ok := true; ok && d.stream != nil; {
+		_, ok = <-d.stream
 		if !ok {
 			break
 		}

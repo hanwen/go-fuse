@@ -19,25 +19,25 @@ type MemNodeFs struct {
 	nextFree int
 }
 
-func (me *MemNodeFs) String() string {
-	return fmt.Sprintf("MemNodeFs(%s)", me.backingStorePrefix)
+func (fs *MemNodeFs) String() string {
+	return fmt.Sprintf("MemNodeFs(%s)", fs.backingStorePrefix)
 }
 
-func (me *MemNodeFs) Root() FsNode {
-	return me.root
+func (fs *MemNodeFs) Root() FsNode {
+	return fs.root
 }
 
-func (me *MemNodeFs) newNode() *memNode {
-	me.mutex.Lock()
-	defer me.mutex.Unlock()
+func (fs *MemNodeFs) newNode() *memNode {
+	fs.mutex.Lock()
+	defer fs.mutex.Unlock()
 	n := &memNode{
-		fs: me,
-		id: me.nextFree,
+		fs: fs,
+		id: fs.nextFree,
 	}
 	now := time.Now().UnixNano()
 	n.info.SetNs(now, now, now)
 	n.info.Mode = S_IFDIR | 0777
-	me.nextFree++
+	fs.nextFree++
 	return n
 }
 
@@ -48,7 +48,7 @@ func NewMemNodeFs(prefix string) *MemNodeFs {
 	return me
 }
 
-func (me *MemNodeFs) Filename(n *Inode) string {
+func (fs *MemNodeFs) Filename(n *Inode) string {
 	mn := n.FsNode().(*memNode)
 	return mn.filename()
 }
@@ -62,75 +62,75 @@ type memNode struct {
 	info Attr
 }
 
-func (me *memNode) newNode(isdir bool) *memNode {
-	n := me.fs.newNode()
-	me.Inode().New(isdir, n)
-	return n
+func (n *memNode) newNode(isdir bool) *memNode {
+	newNode := n.fs.newNode()
+	n.Inode().New(isdir, newNode)
+	return newNode
 }
 
-func (me *memNode) filename() string {
-	return fmt.Sprintf("%s%d", me.fs.backingStorePrefix, me.id)
+func (n *memNode) filename() string {
+	return fmt.Sprintf("%s%d", n.fs.backingStorePrefix, n.id)
 }
 
-func (me *memNode) Deletable() bool {
+func (n *memNode) Deletable() bool {
 	return false
 }
 
-func (me *memNode) Readlink(c *Context) ([]byte, Status) {
-	return []byte(me.link), OK
+func (n *memNode) Readlink(c *Context) ([]byte, Status) {
+	return []byte(n.link), OK
 }
 
-func (me *memNode) Mkdir(name string, mode uint32, context *Context) (fi *Attr, newNode FsNode, code Status) {
-	n := me.newNode(true)
-	n.info.Mode = mode | S_IFDIR
-	me.Inode().AddChild(name, n.Inode())
-	return &n.info, n, OK
+func (n *memNode) Mkdir(name string, mode uint32, context *Context) (fi *Attr, newNode FsNode, code Status) {
+	ch := n.newNode(true)
+	ch.info.Mode = mode | S_IFDIR
+	n.Inode().AddChild(name, ch.Inode())
+	return &ch.info, ch, OK
 }
 
-func (me *memNode) Unlink(name string, context *Context) (code Status) {
-	ch := me.Inode().RmChild(name)
+func (n *memNode) Unlink(name string, context *Context) (code Status) {
+	ch := n.Inode().RmChild(name)
 	if ch == nil {
 		return ENOENT
 	}
 	return OK
 }
 
-func (me *memNode) Rmdir(name string, context *Context) (code Status) {
-	return me.Unlink(name, context)
+func (n *memNode) Rmdir(name string, context *Context) (code Status) {
+	return n.Unlink(name, context)
 }
 
-func (me *memNode) Symlink(name string, content string, context *Context) (fi *Attr, newNode FsNode, code Status) {
-	n := me.newNode(false)
-	n.info.Mode = S_IFLNK | 0777
-	n.link = content
-	me.Inode().AddChild(name, n.Inode())
+func (n *memNode) Symlink(name string, content string, context *Context) (fi *Attr, newNode FsNode, code Status) {
+	ch := n.newNode(false)
+	ch.info.Mode = S_IFLNK | 0777
+	ch.link = content
+	n.Inode().AddChild(name, ch.Inode())
 
-	return &n.info, n, OK
+	return &ch.info, ch, OK
 }
 
-func (me *memNode) Rename(oldName string, newParent FsNode, newName string, context *Context) (code Status) {
-	ch := me.Inode().RmChild(oldName)
+func (n *memNode) Rename(oldName string, newParent FsNode, newName string, context *Context) (code Status) {
+	ch := n.Inode().RmChild(oldName)
 	newParent.Inode().RmChild(newName)
 	newParent.Inode().AddChild(newName, ch)
 	return OK
 }
 
-func (me *memNode) Link(name string, existing FsNode, context *Context) (fi *Attr, newNode FsNode, code Status) {
-	me.Inode().AddChild(name, existing.Inode())
+func (n *memNode) Link(name string, existing FsNode, context *Context) (fi *Attr, newNode FsNode, code Status) {
+	n.Inode().AddChild(name, existing.Inode())
 	fi, code = existing.GetAttr(nil, context)
 	return fi, existing, code
 }
 
-func (me *memNode) Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *Attr, newNode FsNode, code Status) {
-	n := me.newNode(false)
-	n.info.Mode = mode | S_IFREG
+func (n *memNode) Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *Attr, newNode FsNode, code Status) {
+	ch := n.newNode(false)
+	ch.info.Mode = mode | S_IFREG
 
 	f, err := os.Create(n.filename())
 	if err != nil {
 		return nil, nil, nil, ToStatus(err)
 	}
-	me.Inode().AddChild(name, n.Inode())
-	return n.newFile(f), &n.info, n, OK
+	n.Inode().AddChild(name, ch.Inode())
+	return ch.newFile(f), &ch.info, ch, OK
 }
 
 type memNodeFile struct {
@@ -138,71 +138,71 @@ type memNodeFile struct {
 	node *memNode
 }
 
-func (me *memNodeFile) String() string {
-	return fmt.Sprintf("memNodeFile(%s)", me.LoopbackFile.String())
+func (n *memNodeFile) String() string {
+	return fmt.Sprintf("memNodeFile(%s)", n.LoopbackFile.String())
 }
 
-func (me *memNodeFile) InnerFile() File {
-	return &me.LoopbackFile
+func (n *memNodeFile) InnerFile() File {
+	return &n.LoopbackFile
 }
 
-func (me *memNodeFile) Flush() Status {
-	code := me.LoopbackFile.Flush()
-	fi, _ := me.LoopbackFile.GetAttr()
-	me.node.info.Size = fi.Size
-	me.node.info.Blocks = fi.Blocks
+func (n *memNodeFile) Flush() Status {
+	code := n.LoopbackFile.Flush()
+	fi, _ := n.LoopbackFile.GetAttr()
+	n.node.info.Size = fi.Size
+	n.node.info.Blocks = fi.Blocks
 	return code
 }
 
-func (me *memNode) newFile(f *os.File) File {
+func (n *memNode) newFile(f *os.File) File {
 	return &memNodeFile{
 		LoopbackFile: LoopbackFile{File: f},
-		node:         me,
+		node:         n,
 	}
 }
 
-func (me *memNode) Open(flags uint32, context *Context) (file File, code Status) {
-	f, err := os.OpenFile(me.filename(), int(flags), 0666)
+func (n *memNode) Open(flags uint32, context *Context) (file File, code Status) {
+	f, err := os.OpenFile(n.filename(), int(flags), 0666)
 	if err != nil {
 		return nil, ToStatus(err)
 	}
 
-	return me.newFile(f), OK
+	return n.newFile(f), OK
 }
 
-func (me *memNode) GetAttr(file File, context *Context) (fi *Attr, code Status) {
-	return &me.info, OK
+func (n *memNode) GetAttr(file File, context *Context) (fi *Attr, code Status) {
+	return &n.info, OK
 }
 
-func (me *memNode) Truncate(file File, size uint64, context *Context) (code Status) {
+func (n *memNode) Truncate(file File, size uint64, context *Context) (code Status) {
 	if file != nil {
 		code = file.Truncate(size)
 	} else {
-		err := os.Truncate(me.filename(), int64(size))
+		err := os.Truncate(n.filename(), int64(size))
 		code = ToStatus(err)
 	}
 	if code.Ok() {
-		me.info.SetNs(-1, -1, time.Now().UnixNano())
+		n.info.SetNs(-1, -1, time.Now().UnixNano())
 		// TODO - should update mtime too?
-		me.info.Size = size
+		n.info.Size = size
 	}
 	return code
 }
 
-func (me *memNode) Utimens(file File, atime int64, mtime int64, context *Context) (code Status) {
-	me.info.SetNs(int64(atime), int64(mtime), time.Now().UnixNano())
+func (n *memNode) Utimens(file File, atime int64, mtime int64, context *Context) (code Status) {
+	n.info.SetNs(int64(atime), int64(mtime), time.Now().UnixNano())
 	return OK
 }
 
-func (me *memNode) Chmod(file File, perms uint32, context *Context) (code Status) {
-	me.info.Mode = (me.info.Mode ^ 07777) | perms
-	me.info.SetNs(-1, -1, time.Now().UnixNano())
+func (n *memNode) Chmod(file File, perms uint32, context *Context) (code Status) {
+	n.info.Mode = (n.info.Mode ^ 07777) | perms
+	n.info.SetNs(-1, -1, time.Now().UnixNano())
 	return OK
 }
 
-func (me *memNode) Chown(file File, uid uint32, gid uint32, context *Context) (code Status) {
-	me.info.Uid = uid
-	me.info.Gid = gid
-	me.info.SetNs(-1, -1, time.Now().UnixNano())
+func (n *memNode) Chown(file File, uid uint32, gid uint32, context *Context) (code Status) {
+	n.info.Uid = uid
+	n.info.Gid = gid
+	n.info.SetNs(-1, -1, time.Now().UnixNano())
 	return OK
 }

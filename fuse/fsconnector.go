@@ -53,36 +53,36 @@ func NewFileSystemOptions() *FileSystemOptions {
 	}
 }
 
-func NewFileSystemConnector(nodeFs NodeFileSystem, opts *FileSystemOptions) (me *FileSystemConnector) {
-	me = new(FileSystemConnector)
+func NewFileSystemConnector(nodeFs NodeFileSystem, opts *FileSystemOptions) (c *FileSystemConnector) {
+	c = new(FileSystemConnector)
 	if opts == nil {
 		opts = NewFileSystemOptions()
 	}
-	me.inodeMap = NewHandleMap(opts.PortableInodes)
-	me.rootNode = newInode(true, nodeFs.Root())
+	c.inodeMap = NewHandleMap(opts.PortableInodes)
+	c.rootNode = newInode(true, nodeFs.Root())
 
-	me.verify()
-	me.MountRoot(nodeFs, opts)
+	c.verify()
+	c.MountRoot(nodeFs, opts)
 
 	// FUSE does not issue a LOOKUP for 1 (obviously), but it does
 	// issue a forget.  This lookupUpdate is to make the counts match.
-	me.lookupUpdate(me.rootNode)
-	return me
+	c.lookupUpdate(c.rootNode)
+	return c
 }
 
-func (me *FileSystemConnector) verify() {
+func (c *FileSystemConnector) verify() {
 	if !paranoia {
 		return
 	}
-	root := me.rootNode
-	root.verify(me.rootNode.mountPoint)
+	root := c.rootNode
+	root.verify(c.rootNode.mountPoint)
 }
 
 // Generate EntryOut and increase the lookup count for an inode.
-func (me *FileSystemConnector) childLookup(fi *raw.Attr, fsi FsNode) (out *raw.EntryOut) {
+func (c *FileSystemConnector) childLookup(fi *raw.Attr, fsi FsNode) (out *raw.EntryOut) {
 	n := fsi.Inode()
 	out = n.mount.attrToEntry(fi)
-	out.Ino = me.lookupUpdate(n)
+	out.Ino = c.lookupUpdate(n)
 	out.NodeId = out.Ino
 	if out.Nlink == 0 {
 		// With Nlink == 0, newer kernels will refuse link
@@ -92,7 +92,7 @@ func (me *FileSystemConnector) childLookup(fi *raw.Attr, fsi FsNode) (out *raw.E
 	return out
 }
 
-func (me *FileSystemConnector) findMount(parent *Inode, name string) (mount *fileSystemMount) {
+func (c *FileSystemConnector) findMount(parent *Inode, name string) (mount *fileSystemMount) {
 	parent.treeLock.RLock()
 	defer parent.treeLock.RUnlock()
 	if parent.mounts == nil {
@@ -102,61 +102,61 @@ func (me *FileSystemConnector) findMount(parent *Inode, name string) (mount *fil
 	return parent.mounts[name]
 }
 
-func (me *FileSystemConnector) toInode(nodeid uint64) *Inode {
+func (c *FileSystemConnector) toInode(nodeid uint64) *Inode {
 	if nodeid == raw.FUSE_ROOT_ID {
-		return me.rootNode
+		return c.rootNode
 	}
-	i := (*Inode)(unsafe.Pointer(me.inodeMap.Decode(nodeid)))
+	i := (*Inode)(unsafe.Pointer(c.inodeMap.Decode(nodeid)))
 	return i
 }
 
 // Must run outside treeLock.  Returns the nodeId.
-func (me *FileSystemConnector) lookupUpdate(node *Inode) uint64 {
+func (c *FileSystemConnector) lookupUpdate(node *Inode) uint64 {
 	node.treeLock.Lock()
 	defer node.treeLock.Unlock()
 	if node.lookupCount == 0 {
-		node.nodeId = me.inodeMap.Register(&node.handled, node)
+		node.nodeId = c.inodeMap.Register(&node.handled, node)
 	}
 	node.lookupCount += 1
 	return node.nodeId
 }
 
 // Must run outside treeLock.
-func (me *FileSystemConnector) forgetUpdate(node *Inode, forgetCount int) {
-	defer me.verify()
+func (c *FileSystemConnector) forgetUpdate(node *Inode, forgetCount int) {
+	defer c.verify()
 
 	node.treeLock.Lock()
 	defer node.treeLock.Unlock()
 
 	node.lookupCount -= forgetCount
 	if node.lookupCount == 0 {
-		me.inodeMap.Forget(node.nodeId)
+		c.inodeMap.Forget(node.nodeId)
 		node.nodeId = 0
 	} else if node.lookupCount < 0 {
-		log.Panicf("lookupCount underflow: %d: %v", node.lookupCount, me)
+		log.Panicf("lookupCount underflow: %d: %v", node.lookupCount, c)
 	}
 
-	me.recursiveConsiderDropInode(node)
+	c.recursiveConsiderDropInode(node)
 }
 
 // InodeCount returns the number of inodes registered with the kernel.
-func (me *FileSystemConnector) InodeHandleCount() int {
-	return me.inodeMap.Count()
+func (c *FileSystemConnector) InodeHandleCount() int {
+	return c.inodeMap.Count()
 }
 
-func (me *FileSystemConnector) considerDropInode(node *Inode) {
+func (c *FileSystemConnector) considerDropInode(node *Inode) {
 	node.treeLock.Lock()
 	defer node.treeLock.Unlock()
-	me.recursiveConsiderDropInode(node)
+	c.recursiveConsiderDropInode(node)
 }
 
 // Must hold treeLock.
-func (me *FileSystemConnector) recursiveConsiderDropInode(n *Inode) (drop bool) {
+func (c *FileSystemConnector) recursiveConsiderDropInode(n *Inode) (drop bool) {
 	delChildren := []string{}
 	for k, v := range n.children {
 		// Only consider children from the same mount, or
 		// already unmounted mountpoints.
-		if v.mountPoint == nil && me.recursiveConsiderDropInode(v) {
+		if v.mountPoint == nil && c.recursiveConsiderDropInode(v) {
 			delChildren = append(delChildren, k)
 		}
 	}
@@ -171,7 +171,7 @@ func (me *FileSystemConnector) recursiveConsiderDropInode(n *Inode) (drop bool) 
 	if len(n.children) > 0 || n.lookupCount > 0 || !n.FsNode().Deletable() {
 		return false
 	}
-	if n == me.rootNode || n.mountPoint != nil {
+	if n == c.rootNode || n.mountPoint != nil {
 		return false
 	}
 
@@ -183,9 +183,9 @@ func (me *FileSystemConnector) recursiveConsiderDropInode(n *Inode) (drop bool) 
 // Finds a node within the currently known inodes, returns the last
 // known node and the remaining unknown path components.  If parent is
 // nil, start from FUSE mountpoint.
-func (me *FileSystemConnector) Node(parent *Inode, fullPath string) (*Inode, []string) {
+func (c *FileSystemConnector) Node(parent *Inode, fullPath string) (*Inode, []string) {
 	if parent == nil {
-		parent = me.rootNode
+		parent = c.rootNode
 	}
 	if fullPath == "" {
 		return parent, nil
@@ -221,13 +221,13 @@ func (me *FileSystemConnector) Node(parent *Inode, fullPath string) (*Inode, []s
 	return node, nil
 }
 
-func (me *FileSystemConnector) LookupNode(parent *Inode, path string) *Inode {
+func (c *FileSystemConnector) LookupNode(parent *Inode, path string) *Inode {
 	if path == "" {
 		return parent
 	}
 	components := strings.Split(path, "/")
 	for _, r := range components {
-		_, child, _ := me.internalLookup(parent, r, nil)
+		_, child, _ := c.internalLookup(parent, r, nil)
 		if child == nil {
 			return nil
 		}
@@ -240,11 +240,11 @@ func (me *FileSystemConnector) LookupNode(parent *Inode, path string) *Inode {
 
 ////////////////////////////////////////////////////////////////
 
-func (me *FileSystemConnector) MountRoot(nodeFs NodeFileSystem, opts *FileSystemOptions) {
-	me.rootNode.mountFs(nodeFs, opts)
-	me.rootNode.mount.connector = me
-	nodeFs.OnMount(me)
-	me.verify()
+func (c *FileSystemConnector) MountRoot(nodeFs NodeFileSystem, opts *FileSystemOptions) {
+	c.rootNode.mountFs(nodeFs, opts)
+	c.rootNode.mount.connector = c
+	nodeFs.OnMount(c)
+	c.verify()
 }
 
 // Mount() generates a synthetic directory node, and mounts the file
@@ -258,7 +258,7 @@ func (me *FileSystemConnector) MountRoot(nodeFs NodeFileSystem, opts *FileSystem
 // ENOENT: the directory containing the mount point does not exist.
 //
 // EBUSY: the intended mount point already exists.
-func (me *FileSystemConnector) Mount(parent *Inode, name string, nodeFs NodeFileSystem, opts *FileSystemOptions) Status {
+func (c *FileSystemConnector) Mount(parent *Inode, name string, nodeFs NodeFileSystem, opts *FileSystemOptions) Status {
 	parent.treeLock.Lock()
 	defer parent.treeLock.Unlock()
 	node := parent.children[name]
@@ -268,11 +268,11 @@ func (me *FileSystemConnector) Mount(parent *Inode, name string, nodeFs NodeFile
 
 	node = newInode(true, nodeFs.Root())
 	if opts == nil {
-		opts = me.rootNode.mountPoint.options
+		opts = c.rootNode.mountPoint.options
 	}
 
 	node.mountFs(nodeFs, opts)
-	node.mount.connector = me
+	node.mount.connector = c
 	parent.addChild(name, node)
 
 	if parent.mounts == nil {
@@ -280,12 +280,12 @@ func (me *FileSystemConnector) Mount(parent *Inode, name string, nodeFs NodeFile
 	}
 	parent.mounts[name] = node.mountPoint
 	node.mountPoint.parentInode = parent
-	if me.Debug {
+	if c.Debug {
 		log.Println("Mount: ", nodeFs, "on subdir", name,
 			"parent", parent.nodeId)
 	}
-	me.verify()
-	nodeFs.OnMount(me)
+	c.verify()
+	nodeFs.OnMount(c)
 	return OK
 }
 
@@ -296,7 +296,7 @@ func (me *FileSystemConnector) Mount(parent *Inode, name string, nodeFs NodeFile
 // EINVAL: path does not exist, or is not a mount point.
 //
 // EBUSY: there are open files, or submounts below this node.
-func (me *FileSystemConnector) Unmount(node *Inode) Status {
+func (c *FileSystemConnector) Unmount(node *Inode) Status {
 	if node.mountPoint == nil {
 		log.Println("not a mountpoint:", node.nodeId)
 		return EINVAL
@@ -325,14 +325,14 @@ func (me *FileSystemConnector) Unmount(node *Inode) Status {
 	delete(parentNode.children, name)
 	mount.fs.OnUnmount()
 
-	me.EntryNotify(parentNode, name)
+	c.EntryNotify(parentNode, name)
 
 	return OK
 }
 
-func (me *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) Status {
+func (c *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) Status {
 	n := node.nodeId
-	if node == me.rootNode {
+	if node == c.rootNode {
 		n = raw.FUSE_ROOT_ID
 	}
 	if n == 0 {
@@ -343,16 +343,16 @@ func (me *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) 
 		Off:    off,
 		Ino:    n,
 	}
-	return me.fsInit.InodeNotify(&out)
+	return c.fsInit.InodeNotify(&out)
 }
 
-func (me *FileSystemConnector) EntryNotify(dir *Inode, name string) Status {
+func (c *FileSystemConnector) EntryNotify(dir *Inode, name string) Status {
 	n := dir.nodeId
-	if dir == me.rootNode {
+	if dir == c.rootNode {
 		n = raw.FUSE_ROOT_ID
 	}
 	if n == 0 {
 		return OK
 	}
-	return me.fsInit.EntryNotify(n, name)
+	return c.fsInit.EntryNotify(n, name)
 }

@@ -9,18 +9,18 @@ var _ = log.Println
 type DefaultNodeFileSystem struct {
 }
 
-func (me *DefaultNodeFileSystem) OnUnmount() {
+func (fs *DefaultNodeFileSystem) OnUnmount() {
 }
 
-func (me *DefaultNodeFileSystem) OnMount(conn *FileSystemConnector) {
+func (fs *DefaultNodeFileSystem) OnMount(conn *FileSystemConnector) {
 
 }
 
-func (me *DefaultNodeFileSystem) Root() FsNode {
+func (fs *DefaultNodeFileSystem) Root() FsNode {
 	return new(DefaultFsNode)
 }
 
-func (me *DefaultNodeFileSystem) String() string {
+func (fs *DefaultNodeFileSystem) String() string {
 	return "DefaultNodeFileSystem"
 }
 
@@ -31,81 +31,81 @@ type DefaultFsNode struct {
 	inode *Inode
 }
 
-func (me *DefaultFsNode) StatFs() *StatfsOut {
+func (n *DefaultFsNode) StatFs() *StatfsOut {
 	return nil
 }
 
-func (me *DefaultFsNode) SetInode(node *Inode) {
-	if me.inode != nil {
+func (n *DefaultFsNode) SetInode(node *Inode) {
+	if n.inode != nil {
 		panic("already have Inode")
 	}
 	if node == nil {
 		panic("SetInode called with nil Inode.")
 	}
-	me.inode = node
+	n.inode = node
 }
 
-func (me *DefaultFsNode) Deletable() bool {
+func (n *DefaultFsNode) Deletable() bool {
 	return true
 }
 
-func (me *DefaultFsNode) Inode() *Inode {
-	return me.inode
+func (n *DefaultFsNode) Inode() *Inode {
+	return n.inode
 }
 
-func (me *DefaultFsNode) OnForget() {
+func (n *DefaultFsNode) OnForget() {
 }
 
-func (me *DefaultFsNode) Lookup(name string, context *Context) (fi *Attr, node FsNode, code Status) {
+func (n *DefaultFsNode) Lookup(name string, context *Context) (fi *Attr, node FsNode, code Status) {
 	return nil, nil, ENOENT
 }
 
-func (me *DefaultFsNode) Access(mode uint32, context *Context) (code Status) {
+func (n *DefaultFsNode) Access(mode uint32, context *Context) (code Status) {
 	return ENOSYS
 }
 
-func (me *DefaultFsNode) Readlink(c *Context) ([]byte, Status) {
+func (n *DefaultFsNode) Readlink(c *Context) ([]byte, Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultFsNode) Mknod(name string, mode uint32, dev uint32, context *Context) (fi *Attr, newNode FsNode, code Status) {
+func (n *DefaultFsNode) Mknod(name string, mode uint32, dev uint32, context *Context) (fi *Attr, newNode FsNode, code Status) {
 	return nil, nil, ENOSYS
 }
-func (me *DefaultFsNode) Mkdir(name string, mode uint32, context *Context) (fi *Attr, newNode FsNode, code Status) {
+func (n *DefaultFsNode) Mkdir(name string, mode uint32, context *Context) (fi *Attr, newNode FsNode, code Status) {
 	return nil, nil, ENOSYS
 }
-func (me *DefaultFsNode) Unlink(name string, context *Context) (code Status) {
+func (n *DefaultFsNode) Unlink(name string, context *Context) (code Status) {
 	return ENOSYS
 }
-func (me *DefaultFsNode) Rmdir(name string, context *Context) (code Status) {
+func (n *DefaultFsNode) Rmdir(name string, context *Context) (code Status) {
 	return ENOSYS
 }
-func (me *DefaultFsNode) Symlink(name string, content string, context *Context) (fi *Attr, newNode FsNode, code Status) {
+func (n *DefaultFsNode) Symlink(name string, content string, context *Context) (fi *Attr, newNode FsNode, code Status) {
 	return nil, nil, ENOSYS
 }
 
-func (me *DefaultFsNode) Rename(oldName string, newParent FsNode, newName string, context *Context) (code Status) {
+func (n *DefaultFsNode) Rename(oldName string, newParent FsNode, newName string, context *Context) (code Status) {
 	return ENOSYS
 }
 
-func (me *DefaultFsNode) Link(name string, existing FsNode, context *Context) (fi *Attr, newNode FsNode, code Status) {
+func (n *DefaultFsNode) Link(name string, existing FsNode, context *Context) (fi *Attr, newNode FsNode, code Status) {
 	return nil, nil, ENOSYS
 }
 
-func (me *DefaultFsNode) Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *Attr, newNode FsNode, code Status) {
+func (n *DefaultFsNode) Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *Attr, newNode FsNode, code Status) {
 	return nil, nil, nil, ENOSYS
 }
 
-func (me *DefaultFsNode) Open(flags uint32, context *Context) (file File, code Status) {
+func (n *DefaultFsNode) Open(flags uint32, context *Context) (file File, code Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultFsNode) Flush(file File, openFlags uint32, context *Context) (code Status) {
+func (n *DefaultFsNode) Flush(file File, openFlags uint32, context *Context) (code Status) {
 	return ENOSYS
 }
 
-func (me *DefaultFsNode) OpenDir(context *Context) (chan DirEntry, Status) {
-	ch := me.Inode().Children()
+func (n *DefaultFsNode) OpenDir(context *Context) (chan DirEntry, Status) {
+	ch := n.Inode().Children()
 	s := make(chan DirEntry, len(ch))
 	for name, child := range ch {
 		fi, code := child.FsNode().GetAttr(nil, context)
@@ -117,41 +117,41 @@ func (me *DefaultFsNode) OpenDir(context *Context) (chan DirEntry, Status) {
 	return s, OK
 }
 
-func (me *DefaultFsNode) GetXAttr(attribute string, context *Context) (data []byte, code Status) {
+func (n *DefaultFsNode) GetXAttr(attribute string, context *Context) (data []byte, code Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultFsNode) RemoveXAttr(attr string, context *Context) Status {
+func (n *DefaultFsNode) RemoveXAttr(attr string, context *Context) Status {
 	return ENOSYS
 }
 
-func (me *DefaultFsNode) SetXAttr(attr string, data []byte, flags int, context *Context) Status {
+func (n *DefaultFsNode) SetXAttr(attr string, data []byte, flags int, context *Context) Status {
 	return ENOSYS
 }
 
-func (me *DefaultFsNode) ListXAttr(context *Context) (attrs []string, code Status) {
+func (n *DefaultFsNode) ListXAttr(context *Context) (attrs []string, code Status) {
 	return nil, ENOSYS
 }
 
-func (me *DefaultFsNode) GetAttr(file File, context *Context) (fi *Attr, code Status) {
-	if me.Inode().IsDir() {
+func (n *DefaultFsNode) GetAttr(file File, context *Context) (fi *Attr, code Status) {
+	if n.Inode().IsDir() {
 		return &Attr{Mode: S_IFDIR | 0755}, OK
 	}
 	return &Attr{Mode: S_IFREG | 0644}, OK
 }
 
-func (me *DefaultFsNode) Chmod(file File, perms uint32, context *Context) (code Status) {
+func (n *DefaultFsNode) Chmod(file File, perms uint32, context *Context) (code Status) {
 	return ENOSYS
 }
 
-func (me *DefaultFsNode) Chown(file File, uid uint32, gid uint32, context *Context) (code Status) {
+func (n *DefaultFsNode) Chown(file File, uid uint32, gid uint32, context *Context) (code Status) {
 	return ENOSYS
 }
 
-func (me *DefaultFsNode) Truncate(file File, size uint64, context *Context) (code Status) {
+func (n *DefaultFsNode) Truncate(file File, size uint64, context *Context) (code Status) {
 	return ENOSYS
 }
 
-func (me *DefaultFsNode) Utimens(file File, atime int64, mtime int64, context *Context) (code Status) {
+func (n *DefaultFsNode) Utimens(file File, atime int64, mtime int64, context *Context) (code Status) {
 	return ENOSYS
 }

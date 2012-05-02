@@ -16,8 +16,8 @@ type cacheFs struct {
 	*LoopbackFileSystem
 }
 
-func (me *cacheFs) Open(name string, flags uint32, context *Context) (fuseFile File, status Status) {
-	f, c := me.LoopbackFileSystem.Open(name, flags, context)
+func (fs *cacheFs) Open(name string, flags uint32, context *Context) (fuseFile File, status Status) {
+	f, c := fs.LoopbackFileSystem.Open(name, flags, context)
 	if !c.Ok() {
 		return f, c
 	}
@@ -96,19 +96,19 @@ type nonseekFs struct {
 	Length int
 }
 
-func (me *nonseekFs) GetAttr(name string, context *Context) (fi *Attr, status Status) {
+func (fs *nonseekFs) GetAttr(name string, context *Context) (fi *Attr, status Status) {
 	if name == "file" {
 		return &Attr{Mode: S_IFREG | 0644}, OK
 	}
 	return nil, ENOENT
 }
 
-func (me *nonseekFs) Open(name string, flags uint32, context *Context) (fuseFile File, status Status) {
+func (fs *nonseekFs) Open(name string, flags uint32, context *Context) (fuseFile File, status Status) {
 	if name != "file" {
 		return nil, ENOENT
 	}
 
-	data := bytes.Repeat([]byte{42}, me.Length)
+	data := bytes.Repeat([]byte{42}, fs.Length)
 	f := NewDataFile(data)
 	return &WithFlags{
 		File:      f,

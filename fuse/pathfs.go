@@ -40,64 +40,64 @@ type PathNodeFs struct {
 	options *PathNodeFsOptions
 }
 
-func (me *PathNodeFs) Mount(path string, nodeFs NodeFileSystem, opts *FileSystemOptions) Status {
+func (fs *PathNodeFs) Mount(path string, nodeFs NodeFileSystem, opts *FileSystemOptions) Status {
 	dir, name := filepath.Split(path)
 	if dir != "" {
 		dir = filepath.Clean(dir)
 	}
-	parent := me.LookupNode(dir)
+	parent := fs.LookupNode(dir)
 	if parent == nil {
 		return ENOENT
 	}
-	return me.connector.Mount(parent, name, nodeFs, opts)
+	return fs.connector.Mount(parent, name, nodeFs, opts)
 }
 
 // Forgets all known information on client inodes.
-func (me *PathNodeFs) ForgetClientInodes() {
-	if !me.options.ClientInodes {
+func (fs *PathNodeFs) ForgetClientInodes() {
+	if !fs.options.ClientInodes {
 		return
 	}
-	me.pathLock.Lock()
-	defer me.pathLock.Unlock()
-	me.clientInodeMap = map[uint64][]*clientInodePath{}
-	me.root.forgetClientInodes()
+	fs.pathLock.Lock()
+	defer fs.pathLock.Unlock()
+	fs.clientInodeMap = map[uint64][]*clientInodePath{}
+	fs.root.forgetClientInodes()
 }
 
 // Rereads all inode numbers for all known files.
-func (me *PathNodeFs) RereadClientInodes() {
-	if !me.options.ClientInodes {
+func (fs *PathNodeFs) RereadClientInodes() {
+	if !fs.options.ClientInodes {
 		return
 	}
-	me.ForgetClientInodes()
-	me.root.updateClientInodes()
+	fs.ForgetClientInodes()
+	fs.root.updateClientInodes()
 }
 
-func (me *PathNodeFs) UnmountNode(node *Inode) Status {
-	return me.connector.Unmount(node)
+func (fs *PathNodeFs) UnmountNode(node *Inode) Status {
+	return fs.connector.Unmount(node)
 }
 
-func (me *PathNodeFs) Unmount(path string) Status {
-	node := me.Node(path)
+func (fs *PathNodeFs) Unmount(path string) Status {
+	node := fs.Node(path)
 	if node == nil {
 		return ENOENT
 	}
-	return me.connector.Unmount(node)
+	return fs.connector.Unmount(node)
 }
 
-func (me *PathNodeFs) OnUnmount() {
+func (fs *PathNodeFs) OnUnmount() {
 }
 
-func (me *PathNodeFs) String() string {
-	return fmt.Sprintf("PathNodeFs(%v)", me.fs)
+func (fs *PathNodeFs) String() string {
+	return fmt.Sprintf("PathNodeFs(%v)", fs.fs)
 }
 
-func (me *PathNodeFs) OnMount(conn *FileSystemConnector) {
-	me.connector = conn
-	me.fs.OnMount(me)
+func (fs *PathNodeFs) OnMount(conn *FileSystemConnector) {
+	fs.connector = conn
+	fs.fs.OnMount(fs)
 }
 
-func (me *PathNodeFs) Node(name string) *Inode {
-	n, rest := me.LastNode(name)
+func (fs *PathNodeFs) Node(name string) *Inode {
+	n, rest := fs.LastNode(name)
 	if len(rest) > 0 {
 		return nil
 	}
@@ -105,45 +105,45 @@ func (me *PathNodeFs) Node(name string) *Inode {
 }
 
 // Like node, but use Lookup to discover inodes we may not have yet.
-func (me *PathNodeFs) LookupNode(name string) *Inode {
-	return me.connector.LookupNode(me.Root().Inode(), name)
+func (fs *PathNodeFs) LookupNode(name string) *Inode {
+	return fs.connector.LookupNode(fs.Root().Inode(), name)
 }
 
-func (me *PathNodeFs) Path(node *Inode) string {
+func (fs *PathNodeFs) Path(node *Inode) string {
 	pNode := node.FsNode().(*pathInode)
 	return pNode.GetPath()
 }
 
-func (me *PathNodeFs) LastNode(name string) (*Inode, []string) {
-	return me.connector.Node(me.Root().Inode(), name)
+func (fs *PathNodeFs) LastNode(name string) (*Inode, []string) {
+	return fs.connector.Node(fs.Root().Inode(), name)
 }
 
-func (me *PathNodeFs) FileNotify(path string, off int64, length int64) Status {
-	node, r := me.connector.Node(me.root.Inode(), path)
+func (fs *PathNodeFs) FileNotify(path string, off int64, length int64) Status {
+	node, r := fs.connector.Node(fs.root.Inode(), path)
 	if len(r) > 0 {
 		return ENOENT
 	}
-	return me.connector.FileNotify(node, off, length)
+	return fs.connector.FileNotify(node, off, length)
 }
 
-func (me *PathNodeFs) EntryNotify(dir string, name string) Status {
-	node, rest := me.connector.Node(me.root.Inode(), dir)
+func (fs *PathNodeFs) EntryNotify(dir string, name string) Status {
+	node, rest := fs.connector.Node(fs.root.Inode(), dir)
 	if len(rest) > 0 {
 		return ENOENT
 	}
-	return me.connector.EntryNotify(node, name)
+	return fs.connector.EntryNotify(node, name)
 }
 
-func (me *PathNodeFs) Notify(path string) Status {
-	node, rest := me.connector.Node(me.root.Inode(), path)
+func (fs *PathNodeFs) Notify(path string) Status {
+	node, rest := fs.connector.Node(fs.root.Inode(), path)
 	if len(rest) > 0 {
-		return me.connector.EntryNotify(node, rest[0])
+		return fs.connector.EntryNotify(node, rest[0])
 	}
-	return me.connector.FileNotify(node, 0, 0)
+	return fs.connector.FileNotify(node, 0, 0)
 }
 
-func (me *PathNodeFs) AllFiles(name string, mask uint32) []WithFlags {
-	n := me.Node(name)
+func (fs *PathNodeFs) AllFiles(name string, mask uint32) []WithFlags {
+	n := fs.Node(name)
 	if n == nil {
 		return nil
 	}
@@ -158,18 +158,18 @@ func NewPathNodeFs(fs FileSystem, opts *PathNodeFsOptions) *PathNodeFs {
 		opts = &PathNodeFsOptions{}
 	}
 
-	me := &PathNodeFs{
+	pfs := &PathNodeFs{
 		fs:             fs,
 		root:           root,
 		clientInodeMap: map[uint64][]*clientInodePath{},
 		options:        opts,
 	}
-	root.pathFs = me
-	return me
+	root.pathFs = pfs
+	return pfs
 }
 
-func (me *PathNodeFs) Root() FsNode {
-	return me.root
+func (fs *PathNodeFs) Root() FsNode {
+	return fs.root
 }
 
 // This is a combination of dentry (entry in the file/directory and
@@ -191,33 +191,33 @@ type pathInode struct {
 }
 
 // Drop all known client inodes. Must have the treeLock.
-func (me *pathInode) forgetClientInodes() {
-	me.clientInode = 0
-	for _, ch := range me.Inode().FsChildren() {
+func (n *pathInode) forgetClientInodes() {
+	n.clientInode = 0
+	for _, ch := range n.Inode().FsChildren() {
 		ch.FsNode().(*pathInode).forgetClientInodes()
 	}
 }
 
 // Reread all client nodes below this node.  Must run outside the treeLock.
-func (me *pathInode) updateClientInodes() {
-	me.GetAttr(nil, nil)
-	for _, ch := range me.Inode().FsChildren() {
+func (n *pathInode) updateClientInodes() {
+	n.GetAttr(nil, nil)
+	for _, ch := range n.Inode().FsChildren() {
 		ch.FsNode().(*pathInode).updateClientInodes()
 	}
 }
 
-func (me *pathInode) LockTree() func() {
-	me.pathFs.pathLock.Lock()
-	return func() { me.pathFs.pathLock.Unlock() }
+func (n *pathInode) LockTree() func() {
+	n.pathFs.pathLock.Lock()
+	return func() { n.pathFs.pathLock.Unlock() }
 }
 
-func (me *pathInode) RLockTree() func() {
-	me.pathFs.pathLock.RLock()
-	return func() { me.pathFs.pathLock.RUnlock() }
+func (n *pathInode) RLockTree() func() {
+	n.pathFs.pathLock.RLock()
+	return func() { n.pathFs.pathLock.RUnlock() }
 }
 
-func (me *pathInode) fillNewChildAttr(path string, child *pathInode, c *Context) (fi *Attr, code Status) {
-	fi, _ = me.fs.GetAttr(path, c)
+func (n *pathInode) fillNewChildAttr(path string, child *pathInode, c *Context) (fi *Attr, code Status) {
+	fi, _ = n.fs.GetAttr(path, c)
 	if fi != nil && fi.Ino > 0 {
 		child.clientInode = fi.Ino
 	}
@@ -232,55 +232,55 @@ func (me *pathInode) fillNewChildAttr(path string, child *pathInode, c *Context)
 // GetPath returns the path relative to the mount governing this
 // inode.  It returns nil for mount if the file was deleted or the
 // filesystem unmounted.
-func (me *pathInode) GetPath() (path string) {
-	defer me.RLockTree()()
+func (n *pathInode) GetPath() (path string) {
+	defer n.RLockTree()()
 
 	rev_components := make([]string, 0, 10)
-	n := me
-	for ; n.Parent != nil; n = n.Parent {
-		rev_components = append(rev_components, n.Name)
+	p := n
+	for ; p.Parent != nil; p = p.Parent {
+		rev_components = append(rev_components, p.Name)
 	}
-	if n != me.pathFs.root {
+	if p != p.pathFs.root {
 		return ".deleted"
 	}
-	p := ReverseJoin(rev_components, "/")
-	if me.pathFs.Debug {
-		log.Printf("Inode %d = %q (%s)", me.Inode().nodeId, p, me.fs.String())
+	path = ReverseJoin(rev_components, "/")
+	if n.pathFs.Debug {
+		log.Printf("Inode %d = %q (%s)", n.Inode().nodeId, path, n.fs.String())
 	}
 
-	return p
+	return path
 }
 
-func (me *pathInode) addChild(name string, child *pathInode) {
-	me.Inode().AddChild(name, child.Inode())
-	child.Parent = me
+func (n *pathInode) addChild(name string, child *pathInode) {
+	n.Inode().AddChild(name, child.Inode())
+	child.Parent = n
 	child.Name = name
 
-	if child.clientInode > 0 && me.pathFs.options.ClientInodes {
-		defer me.LockTree()()
-		m := me.pathFs.clientInodeMap[child.clientInode]
+	if child.clientInode > 0 && n.pathFs.options.ClientInodes {
+		defer n.LockTree()()
+		m := n.pathFs.clientInodeMap[child.clientInode]
 		e := &clientInodePath{
-			me, name, child,
+			n, name, child,
 		}
 		m = append(m, e)
-		me.pathFs.clientInodeMap[child.clientInode] = m
+		n.pathFs.clientInodeMap[child.clientInode] = m
 	}
 }
 
-func (me *pathInode) rmChild(name string) *pathInode {
-	childInode := me.Inode().RmChild(name)
+func (n *pathInode) rmChild(name string) *pathInode {
+	childInode := n.Inode().RmChild(name)
 	if childInode == nil {
 		return nil
 	}
 	ch := childInode.FsNode().(*pathInode)
 
-	if ch.clientInode > 0 && me.pathFs.options.ClientInodes {
-		defer me.LockTree()()
-		m := me.pathFs.clientInodeMap[ch.clientInode]
+	if ch.clientInode > 0 && n.pathFs.options.ClientInodes {
+		defer n.LockTree()()
+		m := n.pathFs.clientInodeMap[ch.clientInode]
 
 		idx := -1
 		for i, v := range m {
-			if v.parent == me && v.name == name {
+			if v.parent == n && v.name == name {
 				idx = i
 				break
 			}
@@ -294,7 +294,7 @@ func (me *pathInode) rmChild(name string) *pathInode {
 			ch.Name = m[0].name
 			return ch
 		} else {
-			delete(me.pathFs.clientInodeMap, ch.clientInode)
+			delete(n.pathFs.clientInodeMap, ch.clientInode)
 		}
 	}
 
@@ -306,214 +306,214 @@ func (me *pathInode) rmChild(name string) *pathInode {
 
 // Handle a change in clientInode number for an other wise unchanged
 // pathInode.
-func (me *pathInode) setClientInode(ino uint64) {
-	if ino == me.clientInode || !me.pathFs.options.ClientInodes {
+func (n *pathInode) setClientInode(ino uint64) {
+	if ino == n.clientInode || !n.pathFs.options.ClientInodes {
 		return
 	}
-	defer me.LockTree()()
-	if me.clientInode != 0 {
-		delete(me.pathFs.clientInodeMap, me.clientInode)
+	defer n.LockTree()()
+	if n.clientInode != 0 {
+		delete(n.pathFs.clientInodeMap, n.clientInode)
 	}
 
-	me.clientInode = ino
-	if me.Parent != nil {
+	n.clientInode = ino
+	if n.Parent != nil {
 		e := &clientInodePath{
-			me.Parent, me.Name, me,
+			n.Parent, n.Name, n,
 		}
-		me.pathFs.clientInodeMap[ino] = append(me.pathFs.clientInodeMap[ino], e)
+		n.pathFs.clientInodeMap[ino] = append(n.pathFs.clientInodeMap[ino], e)
 	}
 }
 
-func (me *pathInode) OnForget() {
-	if me.clientInode == 0 || !me.pathFs.options.ClientInodes {
+func (n *pathInode) OnForget() {
+	if n.clientInode == 0 || !n.pathFs.options.ClientInodes {
 		return
 	}
-	defer me.LockTree()()
-	delete(me.pathFs.clientInodeMap, me.clientInode)
+	defer n.LockTree()()
+	delete(n.pathFs.clientInodeMap, n.clientInode)
 }
 
 ////////////////////////////////////////////////////////////////
 // FS operations
 
-func (me *pathInode) StatFs() *StatfsOut {
-	return me.fs.StatFs(me.GetPath())
+func (n *pathInode) StatFs() *StatfsOut {
+	return n.fs.StatFs(n.GetPath())
 }
 
-func (me *pathInode) Readlink(c *Context) ([]byte, Status) {
-	path := me.GetPath()
+func (n *pathInode) Readlink(c *Context) ([]byte, Status) {
+	path := n.GetPath()
 
-	val, err := me.fs.Readlink(path, c)
+	val, err := n.fs.Readlink(path, c)
 	return []byte(val), err
 }
 
-func (me *pathInode) Access(mode uint32, context *Context) (code Status) {
-	p := me.GetPath()
-	return me.fs.Access(p, mode, context)
+func (n *pathInode) Access(mode uint32, context *Context) (code Status) {
+	p := n.GetPath()
+	return n.fs.Access(p, mode, context)
 }
 
-func (me *pathInode) GetXAttr(attribute string, context *Context) (data []byte, code Status) {
-	return me.fs.GetXAttr(me.GetPath(), attribute, context)
+func (n *pathInode) GetXAttr(attribute string, context *Context) (data []byte, code Status) {
+	return n.fs.GetXAttr(n.GetPath(), attribute, context)
 }
 
-func (me *pathInode) RemoveXAttr(attr string, context *Context) Status {
-	p := me.GetPath()
-	return me.fs.RemoveXAttr(p, attr, context)
+func (n *pathInode) RemoveXAttr(attr string, context *Context) Status {
+	p := n.GetPath()
+	return n.fs.RemoveXAttr(p, attr, context)
 }
 
-func (me *pathInode) SetXAttr(attr string, data []byte, flags int, context *Context) Status {
-	return me.fs.SetXAttr(me.GetPath(), attr, data, flags, context)
+func (n *pathInode) SetXAttr(attr string, data []byte, flags int, context *Context) Status {
+	return n.fs.SetXAttr(n.GetPath(), attr, data, flags, context)
 }
 
-func (me *pathInode) ListXAttr(context *Context) (attrs []string, code Status) {
-	return me.fs.ListXAttr(me.GetPath(), context)
+func (n *pathInode) ListXAttr(context *Context) (attrs []string, code Status) {
+	return n.fs.ListXAttr(n.GetPath(), context)
 }
 
-func (me *pathInode) Flush(file File, openFlags uint32, context *Context) (code Status) {
+func (n *pathInode) Flush(file File, openFlags uint32, context *Context) (code Status) {
 	return file.Flush()
 }
 
-func (me *pathInode) OpenDir(context *Context) (chan DirEntry, Status) {
-	return me.fs.OpenDir(me.GetPath(), context)
+func (n *pathInode) OpenDir(context *Context) (chan DirEntry, Status) {
+	return n.fs.OpenDir(n.GetPath(), context)
 }
 
-func (me *pathInode) Mknod(name string, mode uint32, dev uint32, context *Context) (fi *Attr, newNode FsNode, code Status) {
-	fullPath := filepath.Join(me.GetPath(), name)
-	code = me.fs.Mknod(fullPath, mode, dev, context)
+func (n *pathInode) Mknod(name string, mode uint32, dev uint32, context *Context) (fi *Attr, newNode FsNode, code Status) {
+	fullPath := filepath.Join(n.GetPath(), name)
+	code = n.fs.Mknod(fullPath, mode, dev, context)
 	if code.Ok() {
-		pNode := me.createChild(false)
+		pNode := n.createChild(false)
 		newNode = pNode
-		fi, code = me.fillNewChildAttr(fullPath, pNode, context)
-		me.addChild(name, pNode)
+		fi, code = n.fillNewChildAttr(fullPath, pNode, context)
+		n.addChild(name, pNode)
 	}
 	return
 }
 
-func (me *pathInode) Mkdir(name string, mode uint32, context *Context) (fi *Attr, newNode FsNode, code Status) {
-	fullPath := filepath.Join(me.GetPath(), name)
-	code = me.fs.Mkdir(fullPath, mode, context)
+func (n *pathInode) Mkdir(name string, mode uint32, context *Context) (fi *Attr, newNode FsNode, code Status) {
+	fullPath := filepath.Join(n.GetPath(), name)
+	code = n.fs.Mkdir(fullPath, mode, context)
 	if code.Ok() {
-		pNode := me.createChild(true)
+		pNode := n.createChild(true)
 		newNode = pNode
-		fi, code = me.fillNewChildAttr(fullPath, pNode, context)
-		me.addChild(name, pNode)
+		fi, code = n.fillNewChildAttr(fullPath, pNode, context)
+		n.addChild(name, pNode)
 	}
 	return
 }
 
-func (me *pathInode) Unlink(name string, context *Context) (code Status) {
-	code = me.fs.Unlink(filepath.Join(me.GetPath(), name), context)
+func (n *pathInode) Unlink(name string, context *Context) (code Status) {
+	code = n.fs.Unlink(filepath.Join(n.GetPath(), name), context)
 	if code.Ok() {
-		me.rmChild(name)
+		n.rmChild(name)
 	}
 	return code
 }
 
-func (me *pathInode) Rmdir(name string, context *Context) (code Status) {
-	code = me.fs.Rmdir(filepath.Join(me.GetPath(), name), context)
+func (n *pathInode) Rmdir(name string, context *Context) (code Status) {
+	code = n.fs.Rmdir(filepath.Join(n.GetPath(), name), context)
 	if code.Ok() {
-		me.rmChild(name)
+		n.rmChild(name)
 	}
 	return code
 }
 
-func (me *pathInode) Symlink(name string, content string, context *Context) (fi *Attr, newNode FsNode, code Status) {
-	fullPath := filepath.Join(me.GetPath(), name)
-	code = me.fs.Symlink(content, fullPath, context)
+func (n *pathInode) Symlink(name string, content string, context *Context) (fi *Attr, newNode FsNode, code Status) {
+	fullPath := filepath.Join(n.GetPath(), name)
+	code = n.fs.Symlink(content, fullPath, context)
 	if code.Ok() {
-		pNode := me.createChild(false)
+		pNode := n.createChild(false)
 		newNode = pNode
-		fi, code = me.fillNewChildAttr(fullPath, pNode, context)
-		me.addChild(name, pNode)
+		fi, code = n.fillNewChildAttr(fullPath, pNode, context)
+		n.addChild(name, pNode)
 	}
 	return
 }
 
-func (me *pathInode) Rename(oldName string, newParent FsNode, newName string, context *Context) (code Status) {
+func (n *pathInode) Rename(oldName string, newParent FsNode, newName string, context *Context) (code Status) {
 	p := newParent.(*pathInode)
-	oldPath := filepath.Join(me.GetPath(), oldName)
+	oldPath := filepath.Join(n.GetPath(), oldName)
 	newPath := filepath.Join(p.GetPath(), newName)
-	code = me.fs.Rename(oldPath, newPath, context)
+	code = n.fs.Rename(oldPath, newPath, context)
 	if code.Ok() {
-		ch := me.rmChild(oldName)
+		ch := n.rmChild(oldName)
 		p.rmChild(newName)
 		p.addChild(newName, ch)
 	}
 	return code
 }
 
-func (me *pathInode) Link(name string, existingFsnode FsNode, context *Context) (fi *Attr, newNode FsNode, code Status) {
-	if !me.pathFs.options.ClientInodes {
+func (n *pathInode) Link(name string, existingFsnode FsNode, context *Context) (fi *Attr, newNode FsNode, code Status) {
+	if !n.pathFs.options.ClientInodes {
 		return nil, nil, ENOSYS
 	}
 
-	newPath := filepath.Join(me.GetPath(), name)
+	newPath := filepath.Join(n.GetPath(), name)
 	existing := existingFsnode.(*pathInode)
 	oldPath := existing.GetPath()
-	code = me.fs.Link(oldPath, newPath, context)
+	code = n.fs.Link(oldPath, newPath, context)
 	if code.Ok() {
-		fi, code = me.fs.GetAttr(newPath, context)
+		fi, code = n.fs.GetAttr(newPath, context)
 	}
 
 	if code.Ok() {
 		if existing.clientInode != 0 && existing.clientInode == fi.Ino {
 			newNode = existing
-			me.addChild(name, existing)
+			n.addChild(name, existing)
 		} else {
-			pNode := me.createChild(false)
+			pNode := n.createChild(false)
 			newNode = pNode
 			pNode.clientInode = fi.Ino
-			me.addChild(name, pNode)
+			n.addChild(name, pNode)
 		}
 	}
 	return
 }
 
-func (me *pathInode) Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *Attr, newNode FsNode, code Status) {
-	fullPath := filepath.Join(me.GetPath(), name)
-	file, code = me.fs.Create(fullPath, flags, mode, context)
+func (n *pathInode) Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *Attr, newNode FsNode, code Status) {
+	fullPath := filepath.Join(n.GetPath(), name)
+	file, code = n.fs.Create(fullPath, flags, mode, context)
 	if code.Ok() {
-		pNode := me.createChild(false)
+		pNode := n.createChild(false)
 		newNode = pNode
-		fi, code = me.fillNewChildAttr(fullPath, pNode, context)
-		me.addChild(name, pNode)
+		fi, code = n.fillNewChildAttr(fullPath, pNode, context)
+		n.addChild(name, pNode)
 	}
 	return
 }
 
-func (me *pathInode) createChild(isDir bool) *pathInode {
+func (n *pathInode) createChild(isDir bool) *pathInode {
 	i := new(pathInode)
-	i.fs = me.fs
-	i.pathFs = me.pathFs
+	i.fs = n.fs
+	i.pathFs = n.pathFs
 
-	me.Inode().New(isDir, i)
+	n.Inode().New(isDir, i)
 	return i
 }
 
-func (me *pathInode) Open(flags uint32, context *Context) (file File, code Status) {
-	file, code = me.fs.Open(me.GetPath(), flags, context)
-	if me.pathFs.Debug {
+func (n *pathInode) Open(flags uint32, context *Context) (file File, code Status) {
+	file, code = n.fs.Open(n.GetPath(), flags, context)
+	if n.pathFs.Debug {
 		file = &WithFlags{
 			File:        file,
-			Description: me.GetPath(),
+			Description: n.GetPath(),
 		}
 	}
 	return
 }
 
-func (me *pathInode) Lookup(name string, context *Context) (fi *Attr, node FsNode, code Status) {
-	fullPath := filepath.Join(me.GetPath(), name)
-	fi, code = me.fs.GetAttr(fullPath, context)
+func (n *pathInode) Lookup(name string, context *Context) (fi *Attr, node FsNode, code Status) {
+	fullPath := filepath.Join(n.GetPath(), name)
+	fi, code = n.fs.GetAttr(fullPath, context)
 	if code.Ok() {
-		node = me.findChild(fi, name, fullPath)
+		node = n.findChild(fi, name, fullPath)
 	}
 
 	return
 }
 
-func (me *pathInode) findChild(fi *Attr, name string, fullPath string) (out *pathInode) {
+func (n *pathInode) findChild(fi *Attr, name string, fullPath string) (out *pathInode) {
 	if fi.Ino > 0 {
-		unlock := me.RLockTree()
-		v := me.pathFs.clientInodeMap[fi.Ino]
+		unlock := n.RLockTree()
+		v := n.pathFs.clientInodeMap[fi.Ino]
 		if len(v) > 0 {
 			out = v[0].node
 
@@ -525,18 +525,18 @@ func (me *pathInode) findChild(fi *Attr, name string, fullPath string) (out *pat
 	}
 
 	if out == nil {
-		out = me.createChild(fi.IsDir())
+		out = n.createChild(fi.IsDir())
 		out.clientInode = fi.Ino
-		me.addChild(name, out)
+		n.addChild(name, out)
 	}
 
 	return out
 }
 
-func (me *pathInode) GetAttr(file File, context *Context) (fi *Attr, code Status) {
+func (n *pathInode) GetAttr(file File, context *Context) (fi *Attr, code Status) {
 	if file == nil {
 		// called on a deleted files.
-		file = me.inode.AnyFile()
+		file = n.inode.AnyFile()
 	}
 
 	if file != nil {
@@ -544,11 +544,11 @@ func (me *pathInode) GetAttr(file File, context *Context) (fi *Attr, code Status
 	}
 
 	if file == nil || code == ENOSYS || code == EBADF {
-		fi, code = me.fs.GetAttr(me.GetPath(), context)
+		fi, code = n.fs.GetAttr(n.GetPath(), context)
 	}
 
 	if fi != nil {
-		me.setClientInode(fi.Ino)
+		n.setClientInode(fi.Ino)
 	}
 
 	if fi != nil && !fi.IsDir() && fi.Nlink == 0 {
@@ -557,8 +557,8 @@ func (me *pathInode) GetAttr(file File, context *Context) (fi *Attr, code Status
 	return fi, code
 }
 
-func (me *pathInode) Chmod(file File, perms uint32, context *Context) (code Status) {
-	files := me.inode.Files(O_ANYWRITE)
+func (n *pathInode) Chmod(file File, perms uint32, context *Context) (code Status) {
+	files := n.inode.Files(O_ANYWRITE)
 	for _, f := range files {
 		// TODO - pass context
 		code = f.Chmod(perms)
@@ -568,13 +568,13 @@ func (me *pathInode) Chmod(file File, perms uint32, context *Context) (code Stat
 	}
 
 	if len(files) == 0 || code == ENOSYS || code == EBADF {
-		code = me.fs.Chmod(me.GetPath(), perms, context)
+		code = n.fs.Chmod(n.GetPath(), perms, context)
 	}
 	return code
 }
 
-func (me *pathInode) Chown(file File, uid uint32, gid uint32, context *Context) (code Status) {
-	files := me.inode.Files(O_ANYWRITE)
+func (n *pathInode) Chown(file File, uid uint32, gid uint32, context *Context) (code Status) {
+	files := n.inode.Files(O_ANYWRITE)
 	for _, f := range files {
 		// TODO - pass context
 		code = f.Chown(uid, gid)
@@ -584,13 +584,13 @@ func (me *pathInode) Chown(file File, uid uint32, gid uint32, context *Context) 
 	}
 	if len(files) == 0 || code == ENOSYS || code == EBADF {
 		// TODO - can we get just FATTR_GID but not FATTR_UID ?
-		code = me.fs.Chown(me.GetPath(), uid, gid, context)
+		code = n.fs.Chown(n.GetPath(), uid, gid, context)
 	}
 	return code
 }
 
-func (me *pathInode) Truncate(file File, size uint64, context *Context) (code Status) {
-	files := me.inode.Files(O_ANYWRITE)
+func (n *pathInode) Truncate(file File, size uint64, context *Context) (code Status) {
+	files := n.inode.Files(O_ANYWRITE)
 	for _, f := range files {
 		// TODO - pass context
 		code = f.Truncate(size)
@@ -599,13 +599,13 @@ func (me *pathInode) Truncate(file File, size uint64, context *Context) (code St
 		}
 	}
 	if len(files) == 0 || code == ENOSYS || code == EBADF {
-		code = me.fs.Truncate(me.GetPath(), size, context)
+		code = n.fs.Truncate(n.GetPath(), size, context)
 	}
 	return code
 }
 
-func (me *pathInode) Utimens(file File, atime int64, mtime int64, context *Context) (code Status) {
-	files := me.inode.Files(O_ANYWRITE)
+func (n *pathInode) Utimens(file File, atime int64, mtime int64, context *Context) (code Status) {
+	files := n.inode.Files(O_ANYWRITE)
 	for _, f := range files {
 		// TODO - pass context
 		code = f.Utimens(atime, mtime)
@@ -614,7 +614,7 @@ func (me *pathInode) Utimens(file File, atime int64, mtime int64, context *Conte
 		}
 	}
 	if len(files) == 0 || code == ENOSYS || code == EBADF {
-		code = me.fs.Utimens(me.GetPath(), atime, mtime, context)
+		code = n.fs.Utimens(n.GetPath(), atime, mtime, context)
 	}
 	return code
 }

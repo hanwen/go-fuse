@@ -18,62 +18,62 @@ type MutableDataFile struct {
 	GetAttrCalled bool
 }
 
-func (me *MutableDataFile) String() string {
+func (f *MutableDataFile) String() string {
 	return "MutableDataFile"
 }
 
-func (me *MutableDataFile) Read(r *ReadIn, bp BufferPool) ([]byte, Status) {
-	return me.data[r.Offset : r.Offset+uint64(r.Size)], OK
+func (f *MutableDataFile) Read(r *ReadIn, bp BufferPool) ([]byte, Status) {
+	return f.data[r.Offset : r.Offset+uint64(r.Size)], OK
 }
 
-func (me *MutableDataFile) Write(w *WriteIn, d []byte) (uint32, Status) {
+func (f *MutableDataFile) Write(w *WriteIn, d []byte) (uint32, Status) {
 	end := uint64(w.Size) + w.Offset
-	if int(end) > len(me.data) {
-		data := make([]byte, len(me.data), end)
-		copy(data, me.data)
-		me.data = data
+	if int(end) > len(f.data) {
+		data := make([]byte, len(f.data), end)
+		copy(data, f.data)
+		f.data = data
 	}
-	copy(me.data[w.Offset:end], d)
+	copy(f.data[w.Offset:end], d)
 	return w.Size, OK
 }
 
-func (me *MutableDataFile) Flush() Status {
+func (f *MutableDataFile) Flush() Status {
 	return OK
 }
 
-func (me *MutableDataFile) Release() {
+func (f *MutableDataFile) Release() {
 
 }
 
-func (me *MutableDataFile) getAttr() *Attr {
-	f := me.Attr
-	f.Size = uint64(len(me.data))
-	return &f
+func (f *MutableDataFile) getAttr() *Attr {
+	a := f.Attr
+	a.Size = uint64(len(f.data))
+	return &a
 }
 
-func (me *MutableDataFile) GetAttr() (*Attr, Status) {
-	me.GetAttrCalled = true
-	return me.getAttr(), OK
+func (f *MutableDataFile) GetAttr() (*Attr, Status) {
+	f.GetAttrCalled = true
+	return f.getAttr(), OK
 }
 
-func (me *MutableDataFile) Utimens(atimeNs int64, mtimeNs int64) Status {
-	me.Attr.SetNs(atimeNs, mtimeNs, -1)
+func (f *MutableDataFile) Utimens(atimeNs int64, mtimeNs int64) Status {
+	f.Attr.SetNs(atimeNs, mtimeNs, -1)
 	return OK
 }
 
-func (me *MutableDataFile) Truncate(size uint64) Status {
-	me.data = me.data[:size]
+func (f *MutableDataFile) Truncate(size uint64) Status {
+	f.data = f.data[:size]
 	return OK
 }
 
-func (me *MutableDataFile) Chown(uid uint32, gid uint32) Status {
-	me.Attr.Uid = uid
-	me.Attr.Gid = gid
+func (f *MutableDataFile) Chown(uid uint32, gid uint32) Status {
+	f.Attr.Uid = uid
+	f.Attr.Gid = gid
 	return OK
 }
 
-func (me *MutableDataFile) Chmod(perms uint32) Status {
-	me.Attr.Mode = (me.Attr.Mode &^ 07777) | perms
+func (f *MutableDataFile) Chmod(perms uint32) Status {
+	f.Attr.Mode = (f.Attr.Mode &^ 07777) | perms
 	return OK
 }
 
@@ -84,34 +84,34 @@ type FSetAttrFs struct {
 	file *MutableDataFile
 }
 
-func (me *FSetAttrFs) GetXAttr(name string, attr string, context *Context) ([]byte, Status) {
+func (fs *FSetAttrFs) GetXAttr(name string, attr string, context *Context) ([]byte, Status) {
 	return nil, ENODATA
 }
 
-func (me *FSetAttrFs) GetAttr(name string, context *Context) (*Attr, Status) {
+func (fs *FSetAttrFs) GetAttr(name string, context *Context) (*Attr, Status) {
 	if name == "" {
 		return &Attr{Mode: S_IFDIR | 0700}, OK
 	}
-	if name == "file" && me.file != nil {
-		a := me.file.getAttr()
+	if name == "file" && fs.file != nil {
+		a := fs.file.getAttr()
 		a.Mode |= S_IFREG
 		return a, OK
 	}
 	return nil, ENOENT
 }
 
-func (me *FSetAttrFs) Open(name string, flags uint32, context *Context) (File, Status) {
+func (fs *FSetAttrFs) Open(name string, flags uint32, context *Context) (File, Status) {
 	if name == "file" {
-		return me.file, OK
+		return fs.file, OK
 	}
 	return nil, ENOENT
 }
 
-func (me *FSetAttrFs) Create(name string, flags uint32, mode uint32, context *Context) (File, Status) {
+func (fs *FSetAttrFs) Create(name string, flags uint32, mode uint32, context *Context) (File, Status) {
 	if name == "file" {
 		f := NewFile()
-		me.file = f
-		me.file.Attr.Mode = mode
+		fs.file = f
+		fs.file.Attr.Mode = mode
 		return f, OK
 	}
 	return nil, ENOENT

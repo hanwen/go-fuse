@@ -45,9 +45,9 @@ type fileSystemMount struct {
 }
 
 // Must called with lock for parent held.
-func (me *fileSystemMount) mountName() string {
-	for k, v := range me.parentInode.mounts {
-		if me == v {
+func (m *fileSystemMount) mountName() string {
+	for k, v := range m.parentInode.mounts {
+		if m == v {
 			return k
 		}
 	}
@@ -55,44 +55,44 @@ func (me *fileSystemMount) mountName() string {
 	return ""
 }
 
-func (me *fileSystemMount) setOwner(attr *raw.Attr) {
-	if me.options.Owner != nil {
-		attr.Owner = *(*raw.Owner)(me.options.Owner)
+func (m *fileSystemMount) setOwner(attr *raw.Attr) {
+	if m.options.Owner != nil {
+		attr.Owner = *(*raw.Owner)(m.options.Owner)
 	}
 }
 
-func (me *fileSystemMount) attrToEntry(attr *raw.Attr) (out *raw.EntryOut) {
+func (m *fileSystemMount) attrToEntry(attr *raw.Attr) (out *raw.EntryOut) {
 	out = &raw.EntryOut{}
 	out.Attr = *attr
 
-	splitDuration(me.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
-	splitDuration(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
-	me.setOwner(&out.Attr)
+	splitDuration(m.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
+	splitDuration(m.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
+	m.setOwner(&out.Attr)
 	if attr.Mode & S_IFDIR == 0 && attr.Nlink == 0 {
 		out.Nlink = 1
 	}
 	return out
 }
 
-func (me *fileSystemMount) fillAttr(a *raw.Attr, nodeId uint64) (out *raw.AttrOut) {
+func (m *fileSystemMount) fillAttr(a *raw.Attr, nodeId uint64) (out *raw.AttrOut) {
 	out = &raw.AttrOut{}
 	out.Attr = *a
-	splitDuration(me.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
-	me.setOwner(&out.Attr)
+	splitDuration(m.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
+	m.setOwner(&out.Attr)
 	out.Ino = nodeId
 	return out
 }
 
-func (me *fileSystemMount) getOpenedFile(h uint64) *openedFile {
-	b := (*openedFile)(unsafe.Pointer(me.openFiles.Decode(h)))
-	if me.connector.Debug && b.WithFlags.Description != "" {
+func (m *fileSystemMount) getOpenedFile(h uint64) *openedFile {
+	b := (*openedFile)(unsafe.Pointer(m.openFiles.Decode(h)))
+	if m.connector.Debug && b.WithFlags.Description != "" {
 		log.Printf("File %d = %q", h, b.WithFlags.Description)
 	}
 	return b
 }
 
-func (me *fileSystemMount) unregisterFileHandle(handle uint64, node *Inode) *openedFile {
-	obj := me.openFiles.Forget(handle)
+func (m *fileSystemMount) unregisterFileHandle(handle uint64, node *Inode) *openedFile {
+	obj := m.openFiles.Forget(handle)
 	opened := (*openedFile)(unsafe.Pointer(obj))
 	node.openFilesMutex.Lock()
 	defer node.openFilesMutex.Unlock()
@@ -112,7 +112,7 @@ func (me *fileSystemMount) unregisterFileHandle(handle uint64, node *Inode) *ope
 	return opened
 }
 
-func (me *fileSystemMount) registerFileHandle(node *Inode, dir rawDir, f File, flags uint32) (uint64, *openedFile) {
+func (m *fileSystemMount) registerFileHandle(node *Inode, dir rawDir, f File, flags uint32) (uint64, *openedFile) {
 	node.openFilesMutex.Lock()
 	defer node.openFilesMutex.Unlock()
 	b := &openedFile{
@@ -139,16 +139,16 @@ func (me *fileSystemMount) registerFileHandle(node *Inode, dir rawDir, f File, f
 		b.WithFlags.File.SetInode(node)
 	}
 	node.openFiles = append(node.openFiles, b)
-	handle := me.openFiles.Register(&b.Handled, b)
+	handle := m.openFiles.Register(&b.Handled, b)
 	return handle, b
 }
 
 // Creates a return entry for a non-existent path.
-func (me *fileSystemMount) negativeEntry() (*raw.EntryOut, Status) {
-	if me.options.NegativeTimeout > 0.0 {
+func (m *fileSystemMount) negativeEntry() (*raw.EntryOut, Status) {
+	if m.options.NegativeTimeout > 0.0 {
 		out := new(raw.EntryOut)
 		out.NodeId = 0
-		splitDuration(me.options.NegativeTimeout, &out.EntryValid, &out.EntryValidNsec)
+		splitDuration(m.options.NegativeTimeout, &out.EntryValid, &out.EntryValidNsec)
 		return out, OK
 	}
 	return nil, ENOENT

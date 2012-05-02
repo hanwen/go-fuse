@@ -96,14 +96,14 @@ func NewTestCase(t *testing.T) *testCase {
 }
 
 // Unmount and del.
-func (me *testCase) Cleanup() {
-	err := me.state.Unmount()
+func (tc *testCase) Cleanup() {
+	err := tc.state.Unmount()
 	CheckSuccess(err)
-	os.RemoveAll(me.tmpDir)
+	os.RemoveAll(tc.tmpDir)
 }
 
-func (me *testCase) rootNode() *Inode {
-	return me.pathFs.Root().Inode()
+func (tc *testCase) rootNode() *Inode {
+	return tc.pathFs.Root().Inode()
 }
 
 ////////////////
@@ -135,7 +135,7 @@ func TestTouch(t *testing.T) {
 	}
 }
 
-func (me *testCase) TestReadThrough(t *testing.T) {
+func (tc *testCase) TestReadThrough(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
@@ -166,26 +166,26 @@ func (me *testCase) TestReadThrough(t *testing.T) {
 }
 
 func TestRemove(t *testing.T) {
-	me := NewTestCase(t)
-	defer me.Cleanup()
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
 
-	err := ioutil.WriteFile(me.origFile, []byte(contents), 0700)
+	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
 
-	err = os.Remove(me.mountFile)
+	err = os.Remove(tc.mountFile)
 	CheckSuccess(err)
-	_, err = os.Lstat(me.origFile)
+	_, err = os.Lstat(tc.origFile)
 	if err == nil {
 		t.Errorf("Lstat() after delete should have generated error.")
 	}
 }
 
 func TestWriteThrough(t *testing.T) {
-	me := NewTestCase(t)
-	defer me.Cleanup()
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
 
 	// Create (for write), write.
-	f, err := os.OpenFile(me.mountFile, os.O_WRONLY|os.O_CREATE, 0644)
+	f, err := os.OpenFile(tc.mountFile, os.O_WRONLY|os.O_CREATE, 0644)
 	CheckSuccess(err)
 	defer f.Close()
 
@@ -195,12 +195,12 @@ func TestWriteThrough(t *testing.T) {
 		t.Errorf("Write mismatch: %v of %v", n, len(contents))
 	}
 
-	fi, err := os.Lstat(me.origFile)
+	fi, err := os.Lstat(tc.origFile)
 	if fi.Mode().Perm() != 0644 {
 		t.Errorf("create mode error %o", fi.Mode()&0777)
 	}
 
-	f, err = os.Open(me.origFile)
+	f, err = os.Open(tc.origFile)
 	CheckSuccess(err)
 	defer f.Close()
 
@@ -214,39 +214,39 @@ func TestWriteThrough(t *testing.T) {
 }
 
 func TestMkdirRmdir(t *testing.T) {
-	me := NewTestCase(t)
-	defer me.Cleanup()
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
 
 	// Mkdir/Rmdir.
-	err := os.Mkdir(me.mountSubdir, 0777)
+	err := os.Mkdir(tc.mountSubdir, 0777)
 	CheckSuccess(err)
-	fi, err := os.Lstat(me.origSubdir)
+	fi, err := os.Lstat(tc.origSubdir)
 	if !fi.IsDir() {
 		t.Errorf("Not a directory: %v", fi)
 	}
 
-	err = os.Remove(me.mountSubdir)
+	err = os.Remove(tc.mountSubdir)
 	CheckSuccess(err)
 }
 
 func TestLinkCreate(t *testing.T) {
-	me := NewTestCase(t)
-	defer me.Cleanup()
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
 
-	err := ioutil.WriteFile(me.origFile, []byte(contents), 0700)
+	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
-	err = os.Mkdir(me.origSubdir, 0777)
+	err = os.Mkdir(tc.origSubdir, 0777)
 	CheckSuccess(err)
 
 	// Link.
-	mountSubfile := filepath.Join(me.mountSubdir, "subfile")
-	err = os.Link(me.mountFile, mountSubfile)
+	mountSubfile := filepath.Join(tc.mountSubdir, "subfile")
+	err = os.Link(tc.mountFile, mountSubfile)
 	CheckSuccess(err)
 
 	var subStat, stat syscall.Stat_t
 	err = syscall.Lstat(mountSubfile, &subStat)
 	CheckSuccess(err)
-	err = syscall.Lstat(me.mountFile, &stat)
+	err = syscall.Lstat(tc.mountFile, &stat)
 	CheckSuccess(err)
 
 	if stat.Nlink != 2 {
@@ -262,7 +262,7 @@ func TestLinkCreate(t *testing.T) {
 		t.Errorf("Content error: got %q want %q", string(readback), contents)
 	}
 
-	err = os.Remove(me.mountFile)
+	err = os.Remove(tc.mountFile)
 	CheckSuccess(err)
 
 	_, err = ioutil.ReadFile(mountSubfile)
@@ -272,27 +272,27 @@ func TestLinkCreate(t *testing.T) {
 // Deal correctly with hard links implied by matching client inode
 // numbers.
 func TestLinkExisting(t *testing.T) {
-	me := NewTestCase(t)
-	defer me.Cleanup()
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
 
 	c := "hello"
 
-	err := ioutil.WriteFile(me.orig+"/file1", []byte(c), 0644)
+	err := ioutil.WriteFile(tc.orig+"/file1", []byte(c), 0644)
 	CheckSuccess(err)
-	err = os.Link(me.orig+"/file1", me.orig+"/file2")
+	err = os.Link(tc.orig+"/file1", tc.orig+"/file2")
 	CheckSuccess(err)
 
 	var s1, s2 syscall.Stat_t
-	err = syscall.Lstat(me.mnt+"/file1", &s1)
+	err = syscall.Lstat(tc.mnt+"/file1", &s1)
 	CheckSuccess(err)
-	err = syscall.Lstat(me.mnt+"/file2", &s2)
+	err = syscall.Lstat(tc.mnt+"/file2", &s2)
 	CheckSuccess(err)
 
 	if s1.Ino != s2.Ino {
 		t.Errorf("linked files should have identical inodes %v %v", s1.Ino, s2.Ino)
 	}
 
-	c1, err := ioutil.ReadFile(me.mnt + "/file1")
+	c1, err := ioutil.ReadFile(tc.mnt + "/file1")
 	CheckSuccess(err)
 	if string(c1) != c {
 		t.Errorf("Content mismatch relative to original.")
@@ -302,23 +302,23 @@ func TestLinkExisting(t *testing.T) {
 // Deal correctly with hard links implied by matching client inode
 // numbers.
 func TestLinkForget(t *testing.T) {
-	me := NewTestCase(t)
-	defer me.Cleanup()
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
 
 	c := "hello"
 
-	err := ioutil.WriteFile(me.orig+"/file1", []byte(c), 0644)
+	err := ioutil.WriteFile(tc.orig+"/file1", []byte(c), 0644)
 	CheckSuccess(err)
-	err = os.Link(me.orig+"/file1", me.orig+"/file2")
+	err = os.Link(tc.orig+"/file1", tc.orig+"/file2")
 	CheckSuccess(err)
 
 	var s1, s2 syscall.Stat_t
-	err = syscall.Lstat(me.mnt+"/file1", &s1)
+	err = syscall.Lstat(tc.mnt+"/file1", &s1)
 	CheckSuccess(err)
 
-	me.pathFs.ForgetClientInodes()
+	tc.pathFs.ForgetClientInodes()
 
-	err = syscall.Lstat(me.mnt+"/file2", &s2)
+	err = syscall.Lstat(tc.mnt+"/file2", &s2)
 	CheckSuccess(err)
 	if s1.Ino == s2.Ino {
 		t.Error("After forget, we should not export links")
@@ -326,20 +326,20 @@ func TestLinkForget(t *testing.T) {
 }
 
 func TestSymlink(t *testing.T) {
-	me := NewTestCase(t)
-	defer me.Cleanup()
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
 
 	t.Log("testing symlink/readlink.")
-	err := ioutil.WriteFile(me.origFile, []byte(contents), 0700)
+	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
 
 	linkFile := "symlink-file"
 	orig := "hello.txt"
-	err = os.Symlink(orig, filepath.Join(me.mnt, linkFile))
+	err = os.Symlink(orig, filepath.Join(tc.mnt, linkFile))
 
 	CheckSuccess(err)
 
-	origLink := filepath.Join(me.orig, linkFile)
+	origLink := filepath.Join(tc.orig, linkFile)
 	fi, err := os.Lstat(origLink)
 	CheckSuccess(err)
 
@@ -348,7 +348,7 @@ func TestSymlink(t *testing.T) {
 		return
 	}
 
-	read, err := os.Readlink(filepath.Join(me.mnt, linkFile))
+	read, err := os.Readlink(filepath.Join(tc.mnt, linkFile))
 	CheckSuccess(err)
 
 	if read != orig {
@@ -357,21 +357,21 @@ func TestSymlink(t *testing.T) {
 }
 
 func TestRename(t *testing.T) {
-	me := NewTestCase(t)
-	defer me.Cleanup()
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
 
 	t.Log("Testing rename.")
-	err := ioutil.WriteFile(me.origFile, []byte(contents), 0700)
+	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
-	sd := me.mnt + "/testRename"
+	sd := tc.mnt + "/testRename"
 	err = os.MkdirAll(sd, 0777)
 
 	subFile := sd + "/subfile"
-	err = os.Rename(me.mountFile, subFile)
+	err = os.Rename(tc.mountFile, subFile)
 	CheckSuccess(err)
-	f, _ := os.Lstat(me.origFile)
+	f, _ := os.Lstat(tc.origFile)
 	if f != nil {
-		t.Errorf("original %v still exists.", me.origFile)
+		t.Errorf("original %v still exists.", tc.origFile)
 	}
 	f, _ = os.Lstat(subFile)
 	if f == nil {
@@ -381,12 +381,12 @@ func TestRename(t *testing.T) {
 
 // Flaky test, due to rename race condition.
 func TestDelRename(t *testing.T) {
-	me := NewTestCase(t)
-	defer me.Cleanup()
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
 
 	t.Log("Testing del+rename.")
 
-	sd := me.mnt + "/testDelRename"
+	sd := tc.mnt + "/testDelRename"
 	err := os.MkdirAll(sd, 0755)
 	CheckSuccess(err)
 
@@ -410,12 +410,12 @@ func TestDelRename(t *testing.T) {
 }
 
 func TestOverwriteRename(t *testing.T) {
-	me := NewTestCase(t)
-	defer me.Cleanup()
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
 
 	t.Log("Testing rename overwrite.")
 
-	sd := me.mnt + "/testOverwriteRename"
+	sd := tc.mnt + "/testOverwriteRename"
 	err := os.MkdirAll(sd, 0755)
 	CheckSuccess(err)
 
@@ -436,54 +436,54 @@ func TestAccess(t *testing.T) {
 		t.Log("Skipping TestAccess() as root.")
 		return
 	}
-	me := NewTestCase(t)
-	defer me.Cleanup()
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
 
-	err := ioutil.WriteFile(me.origFile, []byte(contents), 0700)
+	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
-	err = os.Chmod(me.origFile, 0)
+	err = os.Chmod(tc.origFile, 0)
 	CheckSuccess(err)
 	// Ugh - copied from unistd.h
 	const W_OK uint32 = 2
 
-	errCode := syscall.Access(me.mountFile, W_OK)
+	errCode := syscall.Access(tc.mountFile, W_OK)
 	if errCode != syscall.EACCES {
 		t.Errorf("Expected EACCES for non-writable, %v %v", errCode, syscall.EACCES)
 	}
-	err = os.Chmod(me.origFile, 0222)
+	err = os.Chmod(tc.origFile, 0222)
 	CheckSuccess(err)
-	errCode = syscall.Access(me.mountFile, W_OK)
+	errCode = syscall.Access(tc.mountFile, W_OK)
 	if errCode != nil {
 		t.Errorf("Expected no error code for writable. %v", errCode)
 	}
 }
 
 func TestMknod(t *testing.T) {
-	me := NewTestCase(t)
-	defer me.Cleanup()
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
 
 	t.Log("Testing mknod.")
-	errNo := syscall.Mknod(me.mountFile, syscall.S_IFIFO|0777, 0)
+	errNo := syscall.Mknod(tc.mountFile, syscall.S_IFIFO|0777, 0)
 	if errNo != nil {
 		t.Errorf("Mknod %v", errNo)
 	}
-	fi, _ := os.Lstat(me.origFile)
+	fi, _ := os.Lstat(tc.origFile)
 	if fi == nil || fi.Mode()&os.ModeNamedPipe == 0 {
 		t.Errorf("Expected FIFO filetype.")
 	}
 }
 
 func TestReaddir(t *testing.T) {
-	me := NewTestCase(t)
-	defer me.Cleanup()
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
 
 	t.Log("Testing readdir.")
-	err := ioutil.WriteFile(me.origFile, []byte(contents), 0700)
+	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
-	err = os.Mkdir(me.origSubdir, 0777)
+	err = os.Mkdir(tc.origSubdir, 0777)
 	CheckSuccess(err)
 
-	dir, err := os.Open(me.mnt)
+	dir, err := os.Open(tc.mnt)
 	CheckSuccess(err)
 	infos, err := dir.Readdir(10)
 	CheckSuccess(err)
@@ -507,14 +507,14 @@ func TestReaddir(t *testing.T) {
 }
 
 func TestFSync(t *testing.T) {
-	me := NewTestCase(t)
-	defer me.Cleanup()
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
 
 	t.Log("Testing fsync.")
-	err := ioutil.WriteFile(me.origFile, []byte(contents), 0700)
+	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
 
-	f, err := os.OpenFile(me.mountFile, os.O_WRONLY, 0)
+	f, err := os.OpenFile(tc.mountFile, os.O_WRONLY, 0)
 	_, err = f.WriteString("hello there")
 	CheckSuccess(err)
 
@@ -527,11 +527,11 @@ func TestFSync(t *testing.T) {
 }
 
 func TestLargeRead(t *testing.T) {
-	me := NewTestCase(t)
-	defer me.Cleanup()
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
 
 	t.Log("Testing large read.")
-	name := filepath.Join(me.orig, "large")
+	name := filepath.Join(tc.orig, "large")
 	f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE, 0777)
 	CheckSuccess(err)
 
@@ -550,7 +550,7 @@ func TestLargeRead(t *testing.T) {
 	CheckSuccess(err)
 
 	// Read in one go.
-	g, err := os.Open(filepath.Join(me.mnt, "large"))
+	g, err := os.Open(filepath.Join(tc.mnt, "large"))
 	CheckSuccess(err)
 	readSlice := make([]byte, len(slice))
 	m, err := g.Read(readSlice)
@@ -568,7 +568,7 @@ func TestLargeRead(t *testing.T) {
 	g.Close()
 
 	// Read in chunks
-	g, err = os.Open(filepath.Join(me.mnt, "large"))
+	g, err = os.Open(filepath.Join(tc.mnt, "large"))
 	CheckSuccess(err)
 	defer g.Close()
 	readSlice = make([]byte, 4096)
@@ -599,15 +599,15 @@ func randomLengthString(length int) string {
 }
 
 func TestLargeDirRead(t *testing.T) {
-	me := NewTestCase(t)
-	defer me.Cleanup()
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
 
 	t.Log("Testing large readdir.")
 	created := 100
 
 	names := make([]string, created)
 
-	subdir := filepath.Join(me.orig, "readdirSubdir")
+	subdir := filepath.Join(tc.orig, "readdirSubdir")
 	os.Mkdir(subdir, 0700)
 	longname := "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
@@ -628,7 +628,7 @@ func TestLargeDirRead(t *testing.T) {
 		names[i] = name
 	}
 
-	dir, err := os.Open(filepath.Join(me.mnt, "readdirSubdir"))
+	dir, err := os.Open(filepath.Join(tc.mnt, "readdirSubdir"))
 	CheckSuccess(err)
 	defer dir.Close()
 

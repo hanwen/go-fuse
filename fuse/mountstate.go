@@ -37,16 +37,16 @@ type MountState struct {
 	kernelSettings raw.InitIn
 }
 
-func (me *MountState) KernelSettings() raw.InitIn {
-	return me.kernelSettings
+func (ms *MountState) KernelSettings() raw.InitIn {
+	return ms.kernelSettings
 }
 
-func (me *MountState) MountPoint() string {
-	return me.mountPoint
+func (ms *MountState) MountPoint() string {
+	return ms.mountPoint
 }
 
 // Mount filesystem on mountPoint.
-func (me *MountState) Mount(mountPoint string, opts *MountOptions) error {
+func (ms *MountState) Mount(mountPoint string, opts *MountOptions) error {
 	if opts == nil {
 		opts = &MountOptions{
 			MaxBackground: _DEFAULT_BACKGROUND_TASKS,
@@ -63,7 +63,7 @@ func (me *MountState) Mount(mountPoint string, opts *MountOptions) error {
 		o.MaxWrite = MAX_KERNEL_WRITE
 	}
 	opts = &o
-	me.opts = &o
+	ms.opts = &o
 
 	optStrs := opts.Options
 	if opts.AllowOther {
@@ -76,33 +76,33 @@ func (me *MountState) Mount(mountPoint string, opts *MountOptions) error {
 	}
 	initParams := RawFsInit{
 		InodeNotify: func(n *raw.NotifyInvalInodeOut) Status {
-			return me.writeInodeNotify(n)
+			return ms.writeInodeNotify(n)
 		},
 		EntryNotify: func(parent uint64, n string) Status {
-			return me.writeEntryNotify(parent, n)
+			return ms.writeEntryNotify(parent, n)
 		},
 	}
-	me.fileSystem.Init(&initParams)
-	me.mountPoint = mp
-	me.mountFile = file
+	ms.fileSystem.Init(&initParams)
+	ms.mountPoint = mp
+	ms.mountFile = file
 	return nil
 }
 
-func (me *MountState) SetRecordStatistics(record bool) {
+func (ms *MountState) SetRecordStatistics(record bool) {
 	if record {
-		me.latencies = NewLatencyMap()
+		ms.latencies = NewLatencyMap()
 	} else {
-		me.latencies = nil
+		ms.latencies = nil
 	}
 }
 
-func (me *MountState) Unmount() (err error) {
-	if me.mountPoint == "" {
+func (ms *MountState) Unmount() (err error) {
+	if ms.mountPoint == "" {
 		return nil
 	}
 	delay := time.Duration(0)
 	for try := 0; try < 5; try++ {
-		err = unmount(me.mountPoint)
+		err = unmount(ms.mountPoint)
 		if err == nil {
 			break
 		}
@@ -113,50 +113,50 @@ func (me *MountState) Unmount() (err error) {
 		delay = 2*delay + 5*time.Millisecond
 		time.Sleep(delay)
 	}
-	me.mountPoint = ""
+	ms.mountPoint = ""
 	return err
 }
 
 func NewMountState(fs RawFileSystem) *MountState {
-	me := new(MountState)
-	me.mountPoint = ""
-	me.fileSystem = fs
-	me.buffers = NewBufferPool()
-	return me
+	ms := new(MountState)
+	ms.mountPoint = ""
+	ms.fileSystem = fs
+	ms.buffers = NewBufferPool()
+	return ms
 }
 
-func (me *MountState) Latencies() map[string]float64 {
-	if me.latencies == nil {
+func (ms *MountState) Latencies() map[string]float64 {
+	if ms.latencies == nil {
 		return nil
 	}
-	return me.latencies.Latencies(1e-3)
+	return ms.latencies.Latencies(1e-3)
 }
 
-func (me *MountState) OperationCounts() map[string]int {
-	if me.latencies == nil {
+func (ms *MountState) OperationCounts() map[string]int {
+	if ms.latencies == nil {
 		return nil
 	}
-	return me.latencies.Counts()
+	return ms.latencies.Counts()
 }
 
-func (me *MountState) BufferPoolStats() string {
-	return me.buffers.String()
+func (ms *MountState) BufferPoolStats() string {
+	return ms.buffers.String()
 }
 
-func (me *MountState) newRequest() *request {
+func (ms *MountState) newRequest() *request {
 	r := &request{
-		pool:               me.buffers,
+		pool:               ms.buffers,
 	}
 	return r
 }
 
-func (me *MountState) recordStats(req *request) {
-	if me.latencies != nil {
+func (ms *MountState) recordStats(req *request) {
+	if ms.latencies != nil {
 		endNs := time.Now().UnixNano()
 		dt := endNs - req.startNs
 
 		opname := operationName(req.inHeader.Opcode)
-		me.latencies.AddMany(
+		ms.latencies.AddMany(
 			[]LatencyArg{
 				{opname, "", dt},
 				{opname + "-write", "", endNs - req.preWriteNs}})
@@ -168,20 +168,20 @@ func (me *MountState) recordStats(req *request) {
 // goroutine.
 //
 // Each filesystem operation executes in a separate goroutine.
-func (me *MountState) Loop() {
-	me.loop()
-	me.mountFile.Close()
-	me.mountFile = nil
+func (ms *MountState) Loop() {
+	ms.loop()
+	ms.mountFile.Close()
+	ms.mountFile = nil
 }
 
-func (me *MountState) loop() {
+func (ms *MountState) loop() {
 	var dest []byte
 	for {
 		if dest == nil {
-			dest = me.buffers.AllocBuffer(uint32(me.opts.MaxWrite + 4096))
+			dest = ms.buffers.AllocBuffer(uint32(ms.opts.MaxWrite + 4096))
 		}
 		
-		n, err := me.mountFile.Read(dest)
+		n, err := ms.mountFile.Read(dest)
 		if err != nil {
 			errNo := ToStatus(err)
 		
@@ -199,8 +199,8 @@ func (me *MountState) loop() {
 			break
 		}
 		
-		req := me.newRequest()
-		if me.latencies != nil {
+		req := ms.newRequest()
+		if ms.latencies != nil {
 			req.startNs = time.Now().UnixNano()
 		}
 		if req.setInput(dest[:n]) {
@@ -213,21 +213,21 @@ func (me *MountState) loop() {
 		// which will lock up the FS if the daemon has too
 		// many blocking calls.
 		go func(r *request) {
-			me.handleRequest(r)
+			ms.handleRequest(r)
 			r.Discard()
 		}(req)
 	}
 }
 
-func (me *MountState) handleRequest(req *request) {
-	defer me.recordStats(req)
+func (ms *MountState) handleRequest(req *request) {
+	defer ms.recordStats(req)
 
 	req.parse()
 	if req.handler == nil {
 		req.status = ENOSYS
 	}
 
-	if req.status.Ok() && me.Debug {
+	if req.status.Ok() && ms.Debug {
 		log.Println(req.InputDebug())
 	}
 
@@ -237,28 +237,28 @@ func (me *MountState) handleRequest(req *request) {
 	}
 
 	if req.status.Ok() {
-		req.handler.Func(me, req)
+		req.handler.Func(ms, req)
 	}
 
-	errNo := me.write(req)
+	errNo := ms.write(req)
 	if errNo != 0 {
 		log.Printf("writer: Write/Writev %v failed, err: %v. opcode: %v",
 			req.outHeaderBytes, errNo, operationName(req.inHeader.Opcode))
 	}
 }
 
-func (me *MountState) write(req *request) Status {
+func (ms *MountState) write(req *request) Status {
 	// Forget does not wait for reply.
 	if req.inHeader.Opcode == _OP_FORGET || req.inHeader.Opcode == _OP_BATCH_FORGET {
 		return OK
 	}
 
 	req.serialize()
-	if me.Debug {
+	if ms.Debug {
 		log.Println(req.OutputDebug())
 	}
 
-	if me.latencies != nil {
+	if ms.latencies != nil {
 		req.preWriteNs = time.Now().UnixNano()
 	}
 
@@ -268,16 +268,16 @@ func (me *MountState) write(req *request) Status {
 
 	var err error
 	if req.flatData == nil {
-		_, err = me.mountFile.Write(req.outHeaderBytes)
+		_, err = ms.mountFile.Write(req.outHeaderBytes)
 	} else {
-		_, err = Writev(int(me.mountFile.Fd()),
+		_, err = Writev(int(ms.mountFile.Fd()),
 			[][]byte{req.outHeaderBytes, req.flatData})
 	}
 
 	return ToStatus(err)
 }
 
-func (me *MountState) writeInodeNotify(entry *raw.NotifyInvalInodeOut) Status {
+func (ms *MountState) writeInodeNotify(entry *raw.NotifyInvalInodeOut) Status {
 	req := request{
 		inHeader: &raw.InHeader{
 			Opcode: _OP_NOTIFY_INODE,
@@ -287,15 +287,15 @@ func (me *MountState) writeInodeNotify(entry *raw.NotifyInvalInodeOut) Status {
 	}
 	req.outData = unsafe.Pointer(entry)
 	req.serialize()
-	result := me.write(&req)
+	result := ms.write(&req)
 
-	if me.Debug {
+	if ms.Debug {
 		log.Println("Response: INODE_NOTIFY", result)
 	}
 	return result
 }
 
-func (me *MountState) writeEntryNotify(parent uint64, name string) Status {
+func (ms *MountState) writeEntryNotify(parent uint64, name string) Status {
 	req := request{
 		inHeader: &raw.InHeader{
 			Opcode: _OP_NOTIFY_ENTRY,
@@ -314,9 +314,9 @@ func (me *MountState) writeEntryNotify(parent uint64, name string) Status {
 	req.outData = unsafe.Pointer(entry)
 	req.flatData = nameBytes
 	req.serialize()
-	result := me.write(&req)
+	result := ms.write(&req)
 
-	if me.Debug {
+	if ms.Debug {
 		log.Printf("Response: ENTRY_NOTIFY: %v", result)
 	}
 	return result

@@ -43,26 +43,26 @@ type portableHandleMap struct {
 	handles  map[uint64]*Handled
 }
 
-func (me *portableHandleMap) Register(obj *Handled, asInt interface{}) uint64 {
+func (m *portableHandleMap) Register(obj *Handled, asInt interface{}) uint64 {
 	if obj.check != 0 {
 		panic(_ALREADY_MSG)
 	}
-	me.Lock()
-	defer me.Unlock()
+	m.Lock()
+	defer m.Unlock()
 	for {
-		h := uint64(me.nextFree)
-		me.nextFree++
+		h := uint64(m.nextFree)
+		m.nextFree++
 		// HACK - we make sure we start with 1, so we always
 		// assign root to 1.
 		if h < 1 {
 			continue
 		}
-		old := me.handles[h]
+		old := m.handles[h]
 		if old != nil {
 			continue
 		}
 
-		me.handles[h] = obj
+		m.handles[h] = obj
 		obj.check = 0xbaabbaab
 		return h
 	}
@@ -70,31 +70,31 @@ func (me *portableHandleMap) Register(obj *Handled, asInt interface{}) uint64 {
 	return 0
 }
 
-func (me *portableHandleMap) Count() int {
-	me.RLock()
-	defer me.RUnlock()
-	return len(me.handles)
+func (m *portableHandleMap) Count() int {
+	m.RLock()
+	defer m.RUnlock()
+	return len(m.handles)
 }
 
-func (me *portableHandleMap) Decode(h uint64) *Handled {
-	me.RLock()
-	defer me.RUnlock()
-	return me.handles[h]
+func (m *portableHandleMap) Decode(h uint64) *Handled {
+	m.RLock()
+	defer m.RUnlock()
+	return m.handles[h]
 }
 
-func (me *portableHandleMap) Forget(h uint64) *Handled {
-	me.Lock()
-	defer me.Unlock()
-	v := me.handles[h]
+func (m *portableHandleMap) Forget(h uint64) *Handled {
+	m.Lock()
+	defer m.Unlock()
+	v := m.handles[h]
 	v.check = 0
-	delete(me.handles, h)
+	delete(m.handles, h)
 	return v
 }
 
-func (me *portableHandleMap) Has(h uint64) bool {
-	me.RLock()
-	defer me.RUnlock()
-	return me.handles[h] != nil
+func (m *portableHandleMap) Has(h uint64) bool {
+	m.RLock()
+	defer m.RUnlock()
+	return m.handles[h] != nil
 }
 
 // 32 bits version of HandleMap
@@ -103,37 +103,37 @@ type int32HandleMap struct {
 	handles map[uint32]*Handled
 }
 
-func (me *int32HandleMap) Register(obj *Handled, asInt interface{}) uint64 {
-	me.mutex.Lock()
-	defer me.mutex.Unlock()
+func (m *int32HandleMap) Register(obj *Handled, asInt interface{}) uint64 {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	handle := uint32(uintptr(unsafe.Pointer(obj)))
-	me.handles[handle] = obj
+	m.handles[handle] = obj
 	return uint64(handle)
 }
 
-func (me *int32HandleMap) Has(h uint64) bool {
-	me.mutex.Lock()
-	defer me.mutex.Unlock()
-	return me.handles[uint32(h)] != nil
+func (m *int32HandleMap) Has(h uint64) bool {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	return m.handles[uint32(h)] != nil
 }
 
-func (me *int32HandleMap) Count() int {
-	me.mutex.Lock()
-	defer me.mutex.Unlock()
-	return len(me.handles)
+func (m *int32HandleMap) Count() int {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	return len(m.handles)
 }
 
-func (me *int32HandleMap) Forget(handle uint64) *Handled {
-	val := me.Decode(handle)
+func (m *int32HandleMap) Forget(handle uint64) *Handled {
+	val := m.Decode(handle)
 
-	me.mutex.Lock()
-	defer me.mutex.Unlock()
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	val.check = 0
-	delete(me.handles, uint32(handle))
+	delete(m.handles, uint32(handle))
 	return val
 }
 
-func (me *int32HandleMap) Decode(handle uint64) *Handled {
+func (m *int32HandleMap) Decode(handle uint64) *Handled {
 	val := (*Handled)(unsafe.Pointer(uintptr(handle & ((1 << 32) - 1))))
 	return val
 }
@@ -147,15 +147,15 @@ type int64HandleMap struct {
 
 var baseAddress uint64
 
-func (me *int64HandleMap) verify() {
+func (m *int64HandleMap) verify() {
 	if !paranoia {
 		return
 	}
 
-	me.mutex.Lock()
-	defer me.mutex.Unlock()
-	for k, v := range me.handles {
-		if me.Decode(k) != v {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	for k, v := range m.handles {
+		if m.Decode(k) != v {
 			panic("handle map out of sync")
 		}
 	}
@@ -188,17 +188,17 @@ func NewHandleMap(portable bool) (hm HandleMap) {
 	return nil
 }
 
-func (me *int64HandleMap) Count() int {
-	me.mutex.Lock()
-	defer me.mutex.Unlock()
-	return len(me.handles)
+func (m *int64HandleMap) Count() int {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	return len(m.handles)
 }
 
-func (me *int64HandleMap) Register(obj *Handled, asInterface interface{}) (handle uint64) {
-	defer me.verify()
+func (m *int64HandleMap) Register(obj *Handled, asInterface interface{}) (handle uint64) {
+	defer m.verify()
 
-	me.mutex.Lock()
-	defer me.mutex.Unlock()
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 
 	handle = uint64(uintptr(unsafe.Pointer(obj)))
 
@@ -212,9 +212,9 @@ func (me *int64HandleMap) Register(obj *Handled, asInterface interface{}) (handl
 	handle -= baseAddress
 	handle >>= 3
 
-	check := me.nextFree
-	me.nextFree++
-	me.nextFree = me.nextFree & (1<<(64-48+3) - 1)
+	check := m.nextFree
+	m.nextFree++
+	m.nextFree = m.nextFree & (1<<(64-48+3) - 1)
 
 	handle |= uint64(check) << (48 - 3)
 	if obj.check != 0 {
@@ -223,29 +223,29 @@ func (me *int64HandleMap) Register(obj *Handled, asInterface interface{}) (handl
 	obj.check = check
 
 	obj.object = asInterface
-	me.handles[handle] = obj
+	m.handles[handle] = obj
 	return handle
 }
 
-func (me *int64HandleMap) Forget(handle uint64) (val *Handled) {
-	defer me.verify()
+func (m *int64HandleMap) Forget(handle uint64) (val *Handled) {
+	defer m.verify()
 
-	val = me.Decode(handle)
+	val = m.Decode(handle)
 
-	me.mutex.Lock()
-	defer me.mutex.Unlock()
-	delete(me.handles, handle)
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	delete(m.handles, handle)
 	val.check = 0
 	return val
 }
 
-func (me *int64HandleMap) Has(handle uint64) bool {
-	me.mutex.Lock()
-	defer me.mutex.Unlock()
-	return me.handles[handle] != nil
+func (m *int64HandleMap) Has(handle uint64) bool {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	return m.handles[handle] != nil
 }
 
-func (me *int64HandleMap) Decode(handle uint64) (val *Handled) {
+func (m *int64HandleMap) Decode(handle uint64) (val *Handled) {
 	ptrBits := uintptr(handle & (1<<45 - 1))
 	check := uint32(handle >> 45)
 	val = (*Handled)(unsafe.Pointer(ptrBits<<3 + uintptr(baseAddress)))
