@@ -26,11 +26,9 @@ func (me *HelloFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse
 	return nil, fuse.ENOENT
 }
 
-func (me *HelloFs) OpenDir(name string, context *fuse.Context) (c chan fuse.DirEntry, code fuse.Status) {
+func (me *HelloFs) OpenDir(name string, context *fuse.Context) (c []fuse.DirEntry, code fuse.Status) {
 	if name == "" {
-		c = make(chan fuse.DirEntry, 1)
-		c <- fuse.DirEntry{Name: "file.txt", Mode: fuse.S_IFREG}
-		close(c)
+		c = []fuse.DirEntry{{Name: "file.txt", Mode: fuse.S_IFREG}}
 		return c, fuse.OK
 	}
 	return nil, fuse.ENOENT

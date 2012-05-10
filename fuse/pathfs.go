@@ -372,7 +372,7 @@ func (n *pathInode) Flush(file File, openFlags uint32, context *Context) (code S
 	return file.Flush()
 }
 
-func (n *pathInode) OpenDir(context *Context) (chan DirEntry, Status) {
+func (n *pathInode) OpenDir(context *Context) ([]DirEntry, Status) {
 	return n.fs.OpenDir(n.GetPath(), context)
 }
 

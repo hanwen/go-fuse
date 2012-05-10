@@ -326,22 +326,14 @@ func (fs *AutoUnionFs) GetAttr(path string, context *fuse.Context) (*fuse.Attr, 
 	return nil, fuse.ENOENT
 }
 
-func (fs *AutoUnionFs) StatusDir() (stream chan fuse.DirEntry, status fuse.Status) {
-	stream = make(chan fuse.DirEntry, 10)
-	stream <- fuse.DirEntry{
-		Name: _VERSION,
-		Mode: fuse.S_IFREG | 0644,
-	}
-	stream <- fuse.DirEntry{
-		Name: _DEBUG,
-		Mode: fuse.S_IFREG | 0644,
-	}
-	stream <- fuse.DirEntry{
-		Name: _ROOT,
-		Mode: syscall.S_IFLNK | 0644,
+func (fs *AutoUnionFs) StatusDir() (stream []fuse.DirEntry, status fuse.Status) {
+	stream = make([]fuse.DirEntry, 0, 10)
+	stream = []fuse.DirEntry{
+		{Name: _VERSION, Mode: fuse.S_IFREG | 0644},
+		{Name: _DEBUG, Mode: fuse.S_IFREG | 0644},
+		{Name: _ROOT, Mode: syscall.S_IFLNK | 0644},
 	}
 
-	close(stream)
 	return stream, fuse.OK
 }
 
@@ -416,7 +408,7 @@ func (fs *AutoUnionFs) Truncate(name string, offset uint64, context *fuse.Contex
 	return fuse.OK
 }
 
-func (fs *AutoUnionFs) OpenDir(name string, context *fuse.Context) (stream chan fuse.DirEntry, status fuse.Status) {
+func (fs *AutoUnionFs) OpenDir(name string, context *fuse.Context) (stream []fuse.DirEntry, status fuse.Status) {
 	switch name {
 	case _STATUS:
 		return fs.StatusDir()
@@ -432,27 +424,26 @@ func (fs *AutoUnionFs) OpenDir(name string, context *fuse.Context) (stream chan 
 	fs.lock.RLock()
 	defer fs.lock.RUnlock()
 
-	stream = make(chan fuse.DirEntry, len(fs.knownFileSystems)+5)
+	stream = make( []fuse.DirEntry, 0, len(fs.knownFileSystems)+5)
 	if name == _CONFIG {
 		for k := range fs.knownFileSystems {
-			stream <- fuse.DirEntry{
+			stream = append(stream, fuse.DirEntry{
 				Name: k,
 				Mode: syscall.S_IFLNK | 0644,
-			}
+			})
 		}
 	}
 
 	if name == "" {
-		stream <- fuse.DirEntry{
+		stream = append(stream, fuse.DirEntry{
 			Name: _CONFIG,
 			Mode: uint32(fuse.S_IFDIR | 0755),
-		}
-		stream <- fuse.DirEntry{
+		},
+		fuse.DirEntry{
 			Name: _STATUS,
 			Mode: uint32(fuse.S_IFDIR | 0755),
-		}
+		})
 	}
-	close(stream)
 	return stream, status
 }
 

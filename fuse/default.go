@@ -71,7 +71,7 @@ func (fs *DefaultFileSystem) Open(name string, flags uint32, context *Context) (
 	return nil, ENOSYS
 }
 
-func (fs *DefaultFileSystem) OpenDir(name string, context *Context) (stream chan DirEntry, status Status) {
+func (fs *DefaultFileSystem) OpenDir(name string, context *Context) (stream []DirEntry, status Status) {
 	return nil, ENOSYS
 }
 

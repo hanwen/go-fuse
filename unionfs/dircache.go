@@ -18,7 +18,7 @@ func newDirnameMap(fs fuse.FileSystem, dir string) map[string]bool {
 	}
 
 	result := make(map[string]bool)
-	for e := range stream {
+	for _, e := range stream {
 		if e.Mode&fuse.S_IFREG != 0 {
 			result[e.Name] = true
 		}

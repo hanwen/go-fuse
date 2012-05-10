@@ -46,17 +46,10 @@ func readDir(fs fuse.FileSystem, name string) *dirResponse {
 	origStream, code := fs.OpenDir(name, nil)
 
 	r := &dirResponse{nil, code}
-	if code != fuse.OK {
+	if !code.Ok() {
 		return r
 	}
-
-	for {
-		d, ok := <-origStream
-		if !ok {
-			break
-		}
-		r.entries = append(r.entries, d)
-	}
+	r.entries = origStream 
 	return r
 }
 
@@ -135,18 +128,9 @@ func (fs *CachingFileSystem) Readlink(name string, context *fuse.Context) (strin
 	return r.linkContent, r.Status
 }
 
-func (fs *CachingFileSystem) OpenDir(name string, context *fuse.Context) (stream chan fuse.DirEntry, status fuse.Status) {
+func (fs *CachingFileSystem) OpenDir(name string, context *fuse.Context) (stream []fuse.DirEntry, status fuse.Status) {
 	r := fs.dirs.Get(name).(*dirResponse)
-	if r.Status.Ok() {
-		stream = make(chan fuse.DirEntry, len(r.entries))
-		for _, d := range r.entries {
-			stream <- d
-		}
-		close(stream)
-		return stream, r.Status
-	}
-
-	return nil, r.Status
+	return r.entries, r.Status
 }
 
 func (fs *CachingFileSystem) String() string {

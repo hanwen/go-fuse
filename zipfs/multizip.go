@@ -18,6 +18,7 @@ import (
 )
 
 var _ = log.Printf
+var _ = (fuse.FileSystem)((*MultiZipFs)(nil))
 
 const (
 	CONFIG_PREFIX = "config/"
@@ -50,16 +51,16 @@ func (fs *MultiZipFs) OnMount(nodeFs *fuse.PathNodeFs) {
 	fs.nodeFs = nodeFs
 }
 
-func (fs *MultiZipFs) OpenDir(name string, context *fuse.Context) (stream chan fuse.DirEntry, code fuse.Status) {
+func (fs *MultiZipFs) OpenDir(name string, context *fuse.Context) (stream []fuse.DirEntry, code fuse.Status) {
 	fs.lock.RLock()
 	defer fs.lock.RUnlock()
 
-	stream = make(chan fuse.DirEntry, len(fs.zips)+2)
+	stream = make([]fuse.DirEntry, 0, len(fs.zips)+2)
 	if name == "" {
 		var d fuse.DirEntry
 		d.Name = "config"
 		d.Mode = fuse.S_IFDIR | 0700
-		stream <- fuse.DirEntry(d)
+		stream = append(stream, fuse.DirEntry(d))
 	}
 
 	if name == "config" {
@@ -67,11 +68,10 @@ func (fs *MultiZipFs) OpenDir(name string, context *fuse.Context) (stream chan f
 			var d fuse.DirEntry
 			d.Name = k
 			d.Mode = fuse.S_IFLNK
-			stream <- fuse.DirEntry(d)
+			stream = append(stream, fuse.DirEntry(d))
 		}
 	}
 
-	close(stream)
 	return stream, fuse.OK
 }
 

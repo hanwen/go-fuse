@@ -59,7 +59,7 @@ type FsNode interface {
 	// Files
 	Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *Attr, newNode FsNode, code Status)
 	Open(flags uint32, context *Context) (file File, code Status)
-	OpenDir(context *Context) (chan DirEntry, Status)
+	OpenDir(context *Context) ([]DirEntry, Status)
 
 	// XAttrs
 	GetXAttr(attribute string, context *Context) (data []byte, code Status)
@@ -129,7 +129,7 @@ type FileSystem interface {
 	Create(name string, flags uint32, mode uint32, context *Context) (file File, code Status)
 
 	// Directory handling
-	OpenDir(name string, context *Context) (stream chan DirEntry, code Status)
+	OpenDir(name string, context *Context) (stream []DirEntry, code Status)
 
 	// Symlinks.
 	Symlink(value string, linkName string, context *Context) (code Status)

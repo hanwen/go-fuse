@@ -50,17 +50,12 @@ func (me *StatFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.
 	return e, fuse.OK
 }
 
-func (me *StatFs) OpenDir(name string, context *fuse.Context) (stream chan fuse.DirEntry, status fuse.Status) {
+func (me *StatFs) OpenDir(name string, context *fuse.Context) (stream []fuse.DirEntry, status fuse.Status) {
 	entries := me.dirs[name]
 	if entries == nil {
 		return nil, fuse.ENOENT
 	}
-	stream = make(chan fuse.DirEntry, len(entries))
-	for _, e := range entries {
-		stream <- e
-	}
-	close(stream)
-	return stream, fuse.OK
+	return entries, fuse.OK
 }
 
 func NewStatFs() *StatFs {

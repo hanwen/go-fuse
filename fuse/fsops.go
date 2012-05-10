@@ -103,6 +103,7 @@ func (c *FileSystemConnector) GetAttr(header *raw.InHeader, input *raw.GetAttrIn
 
 	out = node.mount.fillAttr(rawAttr, header.NodeId)
 	return out, OK
+
 }
 
 func (c *FileSystemConnector) OpenDir(header *raw.InHeader, input *raw.OpenIn) (flags uint32, handle uint64, code Status) {
@@ -112,11 +113,10 @@ func (c *FileSystemConnector) OpenDir(header *raw.InHeader, input *raw.OpenIn) (
 		return 0, 0, err
 	}
 
+	stream = append(stream, node.getMountDirEntries()...)
 	de := &connectorDir{
-		extra:  node.getMountDirEntries(),
-		stream: stream,
+		stream: append(stream, DirEntry{S_IFDIR, "."}, DirEntry{S_IFDIR, ".."}),
 	}
-	de.extra = append(de.extra, DirEntry{S_IFDIR, "."}, DirEntry{S_IFDIR, ".."})
 	h, opened := node.mount.registerFileHandle(node, de, nil, input.Flags)
 
 	// TODO - implement seekable directories

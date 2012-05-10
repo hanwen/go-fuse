@@ -67,7 +67,7 @@ func (fs *PrefixFileSystem) Open(name string, flags uint32, context *Context) (f
 	return fs.FileSystem.Open(fs.prefixed(name), flags, context)
 }
 
-func (fs *PrefixFileSystem) OpenDir(name string, context *Context) (stream chan DirEntry, status Status) {
+func (fs *PrefixFileSystem) OpenDir(name string, context *Context) (stream []DirEntry, status Status) {
 	return fs.FileSystem.OpenDir(fs.prefixed(name), context)
 }
 

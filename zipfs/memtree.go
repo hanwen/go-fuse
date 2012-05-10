@@ -66,20 +66,19 @@ func (n *memNode) Lookup(name string, c *fuse.Context) (fi *fuse.Attr, node fuse
 	return nil, nil, fuse.ENOENT
 }
 
-func (n *memNode) OpenDir(context *fuse.Context) (stream chan fuse.DirEntry, code fuse.Status) {
+func (n *memNode) OpenDir(context *fuse.Context) (stream []fuse.DirEntry, code fuse.Status) {
 	children := n.Inode().Children()
-	stream = make(chan fuse.DirEntry, len(children))
+	stream = make([]fuse.DirEntry, 0, len(children))
 	for k, v := range children {
 		mode := fuse.S_IFREG | 0666
 		if v.IsDir() {
 			mode = fuse.S_IFDIR | 0777
 		}
-		stream <- fuse.DirEntry{
+		stream = append(stream, fuse.DirEntry{
 			Name: k,
 			Mode: uint32(mode),
-		}
+		})
 	}
-	close(stream)
 	return stream, fuse.OK
 }
 

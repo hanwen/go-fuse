@@ -55,7 +55,9 @@ func (fs *LoopbackFileSystem) GetAttr(name string, context *Context) (a *Attr, c
 	return a, OK
 }
 
-func (fs *LoopbackFileSystem) OpenDir(name string, context *Context) (stream chan DirEntry, status Status) {
+var _ = (FileSystem)((*LoopbackFileSystem)(nil))
+
+func (fs *LoopbackFileSystem) OpenDir(name string, context *Context) (stream []DirEntry, status Status) {
 	// What other ways beyond O_RDONLY are there to open
 	// directories?
 	f, err := os.Open(fs.GetPath(name))
@@ -63,33 +65,30 @@ func (fs *LoopbackFileSystem) OpenDir(name string, context *Context) (stream cha
 		return nil, ToStatus(err)
 	}
 	want := 500
-	output := make(chan DirEntry, want)
-	go func() {
-		for {
-			infos, err := f.Readdir(want)
-			for i := range infos {
-				n := infos[i].Name()
-				d := DirEntry{
-					Name: n,
-				}
-				if s := ToStatT(infos[i]); s != nil {
-					d.Mode = s.Mode
-				} else {
-					log.Println("ReadDir entry %q for %q has no stat info", n, name)
-				}
-				output <- d
+	output := make([]DirEntry, 0, want)
+	for {
+		infos, err := f.Readdir(want)
+		for i := range infos {
+			n := infos[i].Name()
+			d := DirEntry{
+				Name: n,
 			}
-			if len(infos) < want || err == io.EOF {
-				break
+			if s := ToStatT(infos[i]); s != nil {
+				d.Mode = s.Mode
+			} else {
+				log.Println("ReadDir entry %q for %q has no stat info", n, name)
 			}
-			if err != nil {
-				log.Println("Readdir() returned err:", err)
-				break
-			}
+			output = append(output, d)
 		}
-		close(output)
-		f.Close()
-	}()
+		if len(infos) < want || err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Println("Readdir() returned err:", err)
+			break
+		}
+	}
+	f.Close()
 
 	return output, OK
 }

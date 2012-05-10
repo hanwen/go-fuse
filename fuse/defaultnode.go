@@ -104,16 +104,15 @@ func (n *DefaultFsNode) Flush(file File, openFlags uint32, context *Context) (co
 	return ENOSYS
 }
 
-func (n *DefaultFsNode) OpenDir(context *Context) (chan DirEntry, Status) {
+func (n *DefaultFsNode) OpenDir(context *Context) ([]DirEntry, Status) {
 	ch := n.Inode().Children()
-	s := make(chan DirEntry, len(ch))
+	s := make([]DirEntry, len(ch))
 	for name, child := range ch {
 		fi, code := child.FsNode().GetAttr(nil, context)
 		if code.Ok() {
-			s <- DirEntry{Name: name, Mode: fi.Mode}
+			s = append(s, DirEntry{Name: name, Mode: fi.Mode})
 		}
 	}
-	close(s)
 	return s, OK
 }
 

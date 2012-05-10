@@ -59,7 +59,7 @@ func TestCachingFs(t *testing.T) {
 	}
 
 	results := make(map[string]uint32)
-	for v := range stream {
+	for _, v := range stream {
 		results[v.Name] = v.Mode &^ 07777
 	}
 	expected := map[string]uint32{

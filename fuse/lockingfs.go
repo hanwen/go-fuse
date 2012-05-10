@@ -91,7 +91,7 @@ func (fs *LockingFileSystem) Open(name string, flags uint32, context *Context) (
 	return fs.FileSystem.Open(name, flags, context)
 }
 
-func (fs *LockingFileSystem) OpenDir(name string, context *Context) (stream chan DirEntry, status Status) {
+func (fs *LockingFileSystem) OpenDir(name string, context *Context) (stream []DirEntry, status Status) {
 	defer fs.locked()()
 	return fs.FileSystem.OpenDir(name, context)
 }

@@ -65,7 +65,7 @@ func (fs *ReadonlyFileSystem) Open(name string, flags uint32, context *Context) 
 	return &ReadOnlyFile{file}, code
 }
 
-func (fs *ReadonlyFileSystem) OpenDir(name string, context *Context) (stream chan DirEntry, status Status) {
+func (fs *ReadonlyFileSystem) OpenDir(name string, context *Context) (stream []DirEntry, status Status) {
 	return fs.FileSystem.OpenDir(name, context)
 }
 

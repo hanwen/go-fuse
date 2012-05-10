@@ -79,14 +79,14 @@ type rawDir interface {
 }
 
 type connectorDir struct {
-	extra      []DirEntry
-	stream     chan DirEntry
+	stream     []DirEntry
 	leftOver   DirEntry
 	lastOffset uint64
 }
 
+// TODO - use index into []stream for seeking correctly.
 func (d *connectorDir) ReadDir(input *ReadIn) (*DirEntryList, Status) {
-	if d.stream == nil && len(d.extra) == 0 {
+	if d.stream == nil {
 		return nil, OK
 	}
 
@@ -98,35 +98,17 @@ func (d *connectorDir) ReadDir(input *ReadIn) (*DirEntryList, Status) {
 		}
 		d.leftOver.Name = ""
 	}
-	for len(d.extra) > 0 {
-		e := d.extra[len(d.extra)-1]
-		d.extra = d.extra[:len(d.extra)-1]
+	for len(d.stream) > 0 {
+		e := d.stream[len(d.stream)-1]
 		success := list.AddDirEntry(e)
 		if !success {
-			d.leftOver = e
 			return list, OK
 		}
-	}
-	for {
-		de, isOpen := <-d.stream
-		if !isOpen {
-			d.stream = nil
-			break
-		}
-		if !list.AddDirEntry(de) {
-			d.leftOver = de
-			break
-		}
+		d.stream = d.stream[:len(d.stream)-1]
 	}
 	return list, OK
 }
 
 // Read everything so we make goroutines exit.
 func (d *connectorDir) Release() {
-	for ok := true; ok && d.stream != nil; {
-		_, ok = <-d.stream
-		if !ok {
-			break
-		}
-	}
 }

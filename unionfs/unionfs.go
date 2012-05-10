@@ -431,11 +431,11 @@ func (fs *UnionFs) Mkdir(path string, mode uint32, context *fuse.Context) (code 
 		fs.branchCache.Set(path, branchResult{attr, fuse.OK, 0})
 	}
 
-	var stream chan fuse.DirEntry
+	var stream []fuse.DirEntry
 	stream, code = fs.OpenDir(path, context)
 	if code.Ok() {
 		// This shouldn't happen, but let's be safe.
-		for entry := range stream {
+		for _, entry := range stream {
 			fs.putDeletion(filepath.Join(path, entry.Name))
 		}
 	}
@@ -712,7 +712,7 @@ func (fs *UnionFs) GetXAttr(name string, attr string, context *fuse.Context) ([]
 	return nil, fuse.ENOENT
 }
 
-func (fs *UnionFs) OpenDir(directory string, context *fuse.Context) (stream chan fuse.DirEntry, status fuse.Status) {
+func (fs *UnionFs) OpenDir(directory string, context *fuse.Context) (stream []fuse.DirEntry, status fuse.Status) {
 	dirBranch := fs.getBranch(directory)
 	if dirBranch.branch < 0 {
 		return nil, fuse.ENOENT
@@ -741,11 +741,7 @@ func (fs *UnionFs) OpenDir(directory string, context *fuse.Context) (stream chan
 			go func(j int, pfs fuse.FileSystem) {
 				ch, s := pfs.OpenDir(directory, context)
 				statuses[j] = s
-				for s.Ok() {
-					v, ok := <-ch
-					if !ok {
-						break
-					}
+				for _, v := range ch {
 					entries[j][v.Name] = v.Mode
 				}
 				wg.Done()
@@ -795,14 +791,13 @@ func (fs *UnionFs) OpenDir(directory string, context *fuse.Context) (stream chan
 		}
 	}
 
-	stream = make(chan fuse.DirEntry, len(results))
+	stream = make([]fuse.DirEntry, 0, len(results))
 	for k, v := range results {
-		stream <- fuse.DirEntry{
+		stream = append(stream, fuse.DirEntry{
 			Name: k,
 			Mode: v,
-		}
+		})
 	}
-	close(stream)
 	return stream, fuse.OK
 }
 
@@ -820,9 +815,9 @@ func (fs *UnionFs) recursivePromote(path string, pathResult branchResult, contex
 	}
 
 	if code.Ok() && pathResult.attr != nil && pathResult.attr.IsDir() {
-		var stream chan fuse.DirEntry
+		var stream []fuse.DirEntry
 		stream, code = fs.OpenDir(path, context)
-		for e := range stream {
+		for _, e := range stream {
 			if !code.Ok() {
 				break
 			}
