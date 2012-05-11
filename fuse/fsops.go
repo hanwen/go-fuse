@@ -114,6 +114,7 @@ func (c *FileSystemConnector) OpenDir(header *raw.InHeader, input *raw.OpenIn) (
 	}
 	stream = append(stream, node.getMountDirEntries()...)
 	de := &connectorDir{
+		node: node.FsNode(),
 		stream: append(stream, DirEntry{S_IFDIR, "."}, DirEntry{S_IFDIR, ".."}),
 	}
 	h, opened := node.mount.registerFileHandle(node, de, nil, input.Flags)

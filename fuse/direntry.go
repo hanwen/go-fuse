@@ -79,16 +79,26 @@ type rawDir interface {
 }
 
 type connectorDir struct {
+	node       FsNode 
 	stream     []DirEntry
+	lastOffset uint64
 }
 
-func (d *connectorDir) ReadDir(input *ReadIn) (*DirEntryList, Status) {
+func (d *connectorDir) ReadDir(input *ReadIn) (list *DirEntryList, code Status) {
 	if d.stream == nil {
 		return nil, OK
 	}
+	// rewinddir() should be as if reopening directory.
+	// TODO - test this.
+	if d.lastOffset > 0 && input.Offset == 0 {
+		d.stream, code = d.node.OpenDir(nil)
+		if !code.Ok() {
+			return nil, code
+		}
+	}
 
 	off := input.Offset
-	list := NewDirEntryList(int(input.Size), off)
+	list = NewDirEntryList(int(input.Size), off)
 
 	todo := d.stream[off:]
 	for _, e := range todo {
@@ -96,6 +106,7 @@ func (d *connectorDir) ReadDir(input *ReadIn) (*DirEntryList, Status) {
 			break
 		}
 	}
+	d.lastOffset = list.offset
 	return list, OK
 }
 
