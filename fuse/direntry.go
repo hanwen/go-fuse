@@ -4,13 +4,13 @@ package fuse
 
 import (
 	"bytes"
-	"fmt"
+	"log"
 	"unsafe"
 
 	"github.com/hanwen/go-fuse/raw"
 )
 
-var _ = fmt.Print
+var _ = log.Print
 
 // DirEntry is a type for PathFileSystem and NodeFileSystem to return
 // directory contents in.
@@ -21,11 +21,11 @@ type DirEntry struct {
 
 type DirEntryList struct {
 	buf     bytes.Buffer
-	offset  *uint64
+	offset  uint64
 	maxSize int
 }
 
-func NewDirEntryList(max int, off *uint64) *DirEntryList {
+func NewDirEntryList(max int, off uint64) *DirEntryList {
 	return &DirEntryList{maxSize: max, offset: off}
 }
 
@@ -39,10 +39,10 @@ func (l *DirEntryList) AddDirEntry(e DirEntry) bool {
 
 func (l *DirEntryList) Add(name []byte, inode uint64, mode uint32) bool {
 	lastLen := l.buf.Len()
-	(*l.offset)++
 
+	l.offset++
 	dirent := raw.Dirent{
-		Off:     *l.offset,
+		Off:     l.offset,
 		Ino:     inode,
 		NameLen: uint32(len(name)),
 		Typ:     ModeToType(mode),
@@ -61,7 +61,7 @@ func (l *DirEntryList) Add(name []byte, inode uint64, mode uint32) bool {
 
 	if l.buf.Len() > l.maxSize {
 		l.buf.Truncate(lastLen)
-		(*l.offset)--
+		l.offset--
 		return false
 	}
 	return true
@@ -80,31 +80,21 @@ type rawDir interface {
 
 type connectorDir struct {
 	stream     []DirEntry
-	leftOver   DirEntry
-	lastOffset uint64
 }
 
-// TODO - use index into []stream for seeking correctly.
 func (d *connectorDir) ReadDir(input *ReadIn) (*DirEntryList, Status) {
 	if d.stream == nil {
 		return nil, OK
 	}
 
-	list := NewDirEntryList(int(input.Size), &d.lastOffset)
-	if d.leftOver.Name != "" {
-		success := list.AddDirEntry(d.leftOver)
-		if !success {
-			panic("No space for single entry.")
+	off := input.Offset
+	list := NewDirEntryList(int(input.Size), off)
+
+	todo := d.stream[off:]
+	for _, e := range todo {
+		if !list.AddDirEntry(e) {
+			break
 		}
-		d.leftOver.Name = ""
-	}
-	for len(d.stream) > 0 {
-		e := d.stream[len(d.stream)-1]
-		success := list.AddDirEntry(e)
-		if !success {
-			return list, OK
-		}
-		d.stream = d.stream[:len(d.stream)-1]
 	}
 	return list, OK
 }

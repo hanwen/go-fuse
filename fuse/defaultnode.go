@@ -106,7 +106,7 @@ func (n *DefaultFsNode) Flush(file File, openFlags uint32, context *Context) (co
 
 func (n *DefaultFsNode) OpenDir(context *Context) ([]DirEntry, Status) {
 	ch := n.Inode().Children()
-	s := make([]DirEntry, len(ch))
+	s := make([]DirEntry, 0, len(ch))
 	for name, child := range ch {
 		fi, code := child.FsNode().GetAttr(nil, context)
 		if code.Ok() {

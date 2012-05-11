@@ -112,15 +112,11 @@ func (c *FileSystemConnector) OpenDir(header *raw.InHeader, input *raw.OpenIn) (
 	if err != OK {
 		return 0, 0, err
 	}
-
 	stream = append(stream, node.getMountDirEntries()...)
 	de := &connectorDir{
 		stream: append(stream, DirEntry{S_IFDIR, "."}, DirEntry{S_IFDIR, ".."}),
 	}
 	h, opened := node.mount.registerFileHandle(node, de, nil, input.Flags)
-
-	// TODO - implement seekable directories
-	opened.FuseFlags |= raw.FOPEN_NONSEEKABLE
 	return opened.FuseFlags, h, OK
 }
 
