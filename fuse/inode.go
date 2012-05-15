@@ -87,7 +87,7 @@ func (n *Inode) AnyFile() (file File) {
 
 func (n *Inode) Children() (out map[string]*Inode) {
 	n.treeLock.RLock()
-	out = map[string]*Inode{}
+	out = make(map[string]*Inode, len(n.children))
 	for k, v := range n.children {
 		out[k] = v
 	}
