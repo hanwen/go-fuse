@@ -144,13 +144,8 @@ func (c *FileSystemConnector) InodeHandleCount() int {
 	return c.inodeMap.Count()
 }
 
-func (c *FileSystemConnector) considerDropInode(node *Inode) {
-	node.treeLock.Lock()
-	c.recursiveConsiderDropInode(node)
-	node.treeLock.Unlock()
-}
-
 // Must hold treeLock.
+
 func (c *FileSystemConnector) recursiveConsiderDropInode(n *Inode) (drop bool) {
 	delChildren := []string{}
 	for k, v := range n.children {

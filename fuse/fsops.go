@@ -298,7 +298,6 @@ func (c *FileSystemConnector) ReleaseDir(header *raw.InHeader, input *raw.Releas
 	node := c.toInode(header.NodeId)
 	opened := node.mount.unregisterFileHandle(input.Fh, node)
 	opened.dir.Release()
-	c.considerDropInode(node)
 }
 
 func (c *FileSystemConnector) GetXAttrSize(header *raw.InHeader, attribute string) (sz int, code Status) {
