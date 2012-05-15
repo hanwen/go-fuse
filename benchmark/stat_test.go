@@ -234,7 +234,10 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 	log.Println("Written:", f.Name())
 	mountPoint, _ := ioutil.TempDir("", "stat_test")
 	wd, _ := os.Getwd()
-	cmd := exec.Command(wd+"/cstatfs", mountPoint)
+	cmd := exec.Command(wd+"/cstatfs",
+		"-o",
+		"entry_timeout=0.1,attr_timeout=0.1,ac_attr_timeout=0.0,negative_timeout=0.0",
+		mountPoint)
 	cmd.Env = append(os.Environ(), fmt.Sprintf("STATFS_INPUT=%s", f.Name()))
 	cmd.Start()
 
@@ -250,7 +253,7 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 
 	// Wait for the daemon to mount.
 	time.Sleep(200 * time.Millisecond)
-	ttl := time.Second
+	ttl := time.Millisecond * 100
 	log.Println("N = ", b.N)
 	threads := runtime.GOMAXPROCS(0)
 	results := TestingBOnePass(b, threads, time.Duration((ttl*12)/10), lines)

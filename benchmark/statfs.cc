@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
     exit(2);
   }
       
-    global->readFrom(in);
+  global->readFrom(in);
   struct fuse_operations statfs_oper  = {0};
   statfs_oper.getattr = &global_getattr;
   return fuse_main(argc, argv, &statfs_oper, NULL);
