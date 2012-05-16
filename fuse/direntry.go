@@ -74,7 +74,7 @@ func (l *DirEntryList) Bytes() []byte {
 ////////////////////////////////////////////////////////////////
 
 type rawDir interface {
-	ReadDir(input *ReadIn) (*DirEntryList, Status)
+	ReadDir(out *DirEntryList, input *ReadIn) (Status)
 	Release()
 }
 
@@ -84,30 +84,27 @@ type connectorDir struct {
 	lastOffset uint64
 }
 
-func (d *connectorDir) ReadDir(input *ReadIn) (list *DirEntryList, code Status) {
+func (d *connectorDir) ReadDir(list *DirEntryList, input *ReadIn) (code Status) {
 	if d.stream == nil {
-		return nil, OK
+		return OK
 	}
 	// rewinddir() should be as if reopening directory.
 	// TODO - test this.
 	if d.lastOffset > 0 && input.Offset == 0 {
 		d.stream, code = d.node.OpenDir(nil)
 		if !code.Ok() {
-			return nil, code
+			return code
 		}
 	}
 
-	off := input.Offset
-	list = NewDirEntryList(int(input.Size), off)
-
-	todo := d.stream[off:]
+	todo := d.stream[input.Offset:]
 	for _, e := range todo {
 		if !list.AddDirEntry(e) {
 			break
 		}
 	}
 	d.lastOffset = list.offset
-	return list, OK
+	return OK
 }
 
 // Read everything so we make goroutines exit.

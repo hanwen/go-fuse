@@ -12,6 +12,12 @@ import (
 
 var _ = log.Print
 
+var xattrGolden = map[string][]byte{
+	"user.attr1": []byte("val1"),
+	"user.attr2": []byte("val2")}
+var xattrFilename = "filename"
+
+
 type XAttrTestFs struct {
 	tester   *testing.T
 	filename string
@@ -92,13 +98,8 @@ func readXAttr(p, a string) (val []byte, errno int) {
 	return GetXAttr(p, a, val)
 }
 
-func TestXAttrRead(t *testing.T) {
-	nm := "filename"
-
-	golden := map[string][]byte{
-		"user.attr1": []byte("val1"),
-		"user.attr2": []byte("val2")}
-	xfs := NewXAttrFs(nm, golden)
+func xattrTestCase(t *testing.T, nm string) (mountPoint string, cleanup func()) {
+	xfs := NewXAttrFs(nm, xattrGolden)
 	xfs.tester = t
 	mountPoint, err := ioutil.TempDir("", "go-fuse")
 	CheckSuccess(err)
@@ -108,12 +109,18 @@ func TestXAttrRead(t *testing.T) {
 	state, _, err := MountNodeFileSystem(mountPoint, nfs, nil)
 	CheckSuccess(err)
 	state.Debug = VerboseTest()
-	defer state.Unmount()
 
 	go state.Loop()
+	return mountPoint, func() { state.Unmount() }
+}
 
+func TestXAttrNoExist(t *testing.T) {
+	nm := xattrFilename
+	mountPoint, clean := xattrTestCase(t, nm)
+	defer clean()
+		
 	mounted := filepath.Join(mountPoint, nm)
-	_, err = os.Lstat(mounted)
+	_, err := os.Lstat(mounted)
 	if err != nil {
 		t.Error("Unexpected stat error", err)
 	}
@@ -122,27 +129,34 @@ func TestXAttrRead(t *testing.T) {
 	if errno == 0 {
 		t.Error("Expected GetXAttr error", val)
 	}
+}
 
+func TestXAttrRead(t *testing.T) {
+	nm := xattrFilename
+	mountPoint, clean := xattrTestCase(t, nm)
+	defer clean()
+
+	mounted := filepath.Join(mountPoint, nm)
 	attrs, errno := ListXAttr(mounted)
 	readback := make(map[string][]byte)
 	if errno != 0 {
 		t.Error("Unexpected ListXAttr error", errno)
 	} else {
 		for _, a := range attrs {
-			val, errno = readXAttr(mounted, a)
+			val, errno := readXAttr(mounted, a)
 			if errno != 0 {
-				t.Error("Unexpected GetXAttr error", syscall.Errno(errno))
+				t.Errorf("GetXAttr(%q) failed: %v", a, syscall.Errno(errno))
 			}
 			readback[a] = val
 		}
 	}
 
-	if len(readback) != len(golden) {
-		t.Error("length mismatch", golden, readback)
+	if len(readback) != len(xattrGolden) {
+		t.Error("length mismatch", xattrGolden, readback)
 	} else {
 		for k, v := range readback {
-			if bytes.Compare(golden[k], v) != 0 {
-				t.Error("val mismatch", k, v, golden[k])
+			if bytes.Compare(xattrGolden[k], v) != 0 {
+				t.Error("val mismatch", k, v, xattrGolden[k])
 			}
 		}
 	}
@@ -151,7 +165,7 @@ func TestXAttrRead(t *testing.T) {
 	if errno != 0 {
 		t.Error("Setxattr error", errno)
 	}
-	val, errno = readXAttr(mounted, "third")
+	val, errno := readXAttr(mounted, "third")
 	if errno != 0 || string(val) != "value" {
 		t.Error("Read back set xattr:", errno, string(val))
 	}

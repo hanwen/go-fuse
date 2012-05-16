@@ -103,36 +103,25 @@ func doInit(state *MountState, req *request) {
 }
 
 func doOpen(state *MountState, req *request) {
-	flags, handle, status := state.fileSystem.Open(req.inHeader, (*raw.OpenIn)(req.inData))
+	out := (*raw.OpenOut)(req.outData)
+	status := state.fileSystem.Open(out, req.inHeader, (*raw.OpenIn)(req.inData))
 	req.status = status
 	if status != OK {
 		return
 	}
-
-	out := &raw.OpenOut{
-		Fh:        handle,
-		OpenFlags: flags,
-	}
-
-	req.outData = unsafe.Pointer(out)
 }
 
 func doCreate(state *MountState, req *request) {
-	flags, handle, entry, status := state.fileSystem.Create(req.inHeader, (*raw.CreateIn)(req.inData), req.filenames[0])
+	out := (*raw.CreateOut)(req.outData)
+	status := state.fileSystem.Create(out, req.inHeader, (*raw.CreateIn)(req.inData), req.filenames[0])
 	req.status = status
-	if status.Ok() {
-		req.outData = unsafe.Pointer(&raw.CreateOut{
-			raw.EntryOut: *entry,
-			raw.OpenOut: raw.OpenOut{
-				Fh:        handle,
-				OpenFlags: flags,
-			},
-		})
-	}
 }
 
 func doReadDir(state *MountState, req *request) {
-	entries, code := state.fileSystem.ReadDir(req.inHeader, (*ReadIn)(req.inData))
+	in := (*ReadIn)(req.inData)
+	entries := NewDirEntryList(int(in.Size), uint64(in.Offset))
+	
+	code := state.fileSystem.ReadDir(entries, req.inHeader, in)
 	if entries != nil {
 		req.flatData = entries.Bytes()
 	}
@@ -140,28 +129,20 @@ func doReadDir(state *MountState, req *request) {
 }
 
 func doOpenDir(state *MountState, req *request) {
-	flags, handle, status := state.fileSystem.OpenDir(req.inHeader, (*raw.OpenIn)(req.inData))
+	out := (*raw.OpenOut)(req.outData)
+	status := state.fileSystem.OpenDir(out, req.inHeader, (*raw.OpenIn)(req.inData))
 	req.status = status
-	if status.Ok() {
-		req.outData = unsafe.Pointer(&raw.OpenOut{
-			Fh:        handle,
-			OpenFlags: flags,
-		})
-	}
 }
 
 func doSetattr(state *MountState, req *request) {
-	o, s := state.fileSystem.SetAttr(req.inHeader, (*raw.SetAttrIn)(req.inData))
-	req.outData = unsafe.Pointer(o)
-	req.status = s
+	out := (*raw.AttrOut)(req.outData)
+	req.status = state.fileSystem.SetAttr(out, req.inHeader, (*raw.SetAttrIn)(req.inData))
 }
 
 func doWrite(state *MountState, req *request) {
 	n, status := state.fileSystem.Write(req.inHeader, (*WriteIn)(req.inData), req.arg)
-	o := &raw.WriteOut{
-		Size: n,
-	}
-	req.outData = unsafe.Pointer(o)
+	o := (*raw.WriteOut)(req.outData)
+	o.Size = n
 	req.status = status
 }
 
@@ -183,19 +164,19 @@ func doGetXAttr(state *MountState, req *request) {
 	var data []byte
 	switch {
 	case req.inHeader.Opcode == _OP_GETXATTR && input.Size == 0:
+		out := (*raw.GetXAttrOut)(req.outData)
 		sz, code := state.fileSystem.GetXAttrSize(req.inHeader, req.filenames[0])
 		if code.Ok() {
-			out := &raw.GetXAttrOut{
-				Size: uint32(sz),
-			}
-			req.outData = unsafe.Pointer(out)
+			out.Size = uint32(sz)
 			req.status = ERANGE
 			return
 		}
 		req.status = code
 	case req.inHeader.Opcode == _OP_GETXATTR:
+		req.outData = nil
 		data, req.status = state.fileSystem.GetXAttrData(req.inHeader, req.filenames[0])
 	default:
+		req.outData = nil
 		data, req.status = state.fileSystem.ListXAttr(req.inHeader)
 	}
 
@@ -211,9 +192,9 @@ func doGetXAttr(state *MountState, req *request) {
 }
 
 func doGetAttr(state *MountState, req *request) {
-	attrOut, s := state.fileSystem.GetAttr(req.inHeader, (*raw.GetAttrIn)(req.inData))
+	attrOut := (*raw.AttrOut)(req.outData)
+	s := state.fileSystem.GetAttr(attrOut, req.inHeader, (*raw.GetAttrIn)(req.inData))
 	req.status = s
-	req.outData = unsafe.Pointer(attrOut)
 }
 
 func doForget(state *MountState, req *request) {
@@ -242,21 +223,21 @@ func doReadlink(state *MountState, req *request) {
 }
 
 func doLookup(state *MountState, req *request) {
-	lookupOut, s := state.fileSystem.Lookup(req.inHeader, req.filenames[0])
+	lookupOut := (*raw.EntryOut)(req.outData)
+	s := state.fileSystem.Lookup(lookupOut, req.inHeader, req.filenames[0])
 	req.status = s
 	req.outData = unsafe.Pointer(lookupOut)
 }
 
 func doMknod(state *MountState, req *request) {
-	entryOut, s := state.fileSystem.Mknod(req.inHeader, (*raw.MknodIn)(req.inData), req.filenames[0])
-	req.status = s
-	req.outData = unsafe.Pointer(entryOut)
+	out := (*raw.EntryOut)(req.outData)
+	
+	req.status = state.fileSystem.Mknod(out, req.inHeader, (*raw.MknodIn)(req.inData), req.filenames[0])
 }
 
 func doMkdir(state *MountState, req *request) {
-	entryOut, s := state.fileSystem.Mkdir(req.inHeader, (*raw.MkdirIn)(req.inData), req.filenames[0])
-	req.status = s
-	req.outData = unsafe.Pointer(entryOut)
+	out := (*raw.EntryOut)(req.outData)
+	req.status = state.fileSystem.Mkdir(out, req.inHeader, (*raw.MkdirIn)(req.inData), req.filenames[0])
 }
 
 func doUnlink(state *MountState, req *request) {
@@ -268,9 +249,8 @@ func doRmdir(state *MountState, req *request) {
 }
 
 func doLink(state *MountState, req *request) {
-	entryOut, s := state.fileSystem.Link(req.inHeader, (*raw.LinkIn)(req.inData), req.filenames[0])
-	req.status = s
-	req.outData = unsafe.Pointer(entryOut)
+	out := (*raw.EntryOut)(req.outData)
+	req.status = state.fileSystem.Link(out, req.inHeader, (*raw.LinkIn)(req.inData), req.filenames[0])
 }
 
 func doRead(state *MountState, req *request) {
@@ -311,9 +291,8 @@ func doAccess(state *MountState, req *request) {
 }
 
 func doSymlink(state *MountState, req *request) {
-	entryOut, s := state.fileSystem.Symlink(req.inHeader, req.filenames[1], req.filenames[0])
-	req.status = s
-	req.outData = unsafe.Pointer(entryOut)
+	out := (*raw.EntryOut)(req.outData)
+	req.status = state.fileSystem.Symlink(out, req.inHeader, req.filenames[1], req.filenames[0])
 }
 
 func doRename(state *MountState, req *request) {
@@ -321,20 +300,8 @@ func doRename(state *MountState, req *request) {
 }
 
 func doStatFs(state *MountState, req *request) {
-	stat := state.fileSystem.StatFs(req.inHeader)
-	if stat != nil {
-		req.outData = unsafe.Pointer(stat)
-		req.status = OK
-	} else {
-		req.status = ENOSYS
-	}
-}
-
-func doIoctl(state *MountState, req *request) {
-	out, data, stat := state.fileSystem.Ioctl(req.inHeader, (*raw.IoctlIn)(req.inData))
-	req.outData = unsafe.Pointer(out)
-	req.flatData = data
-	req.status = stat
+	stat := (*StatfsOut)(req.outData)
+	req.status = state.fileSystem.StatFs(stat, req.inHeader)
 }
 
 ////////////////////////////////////////////////////////////////
@@ -517,7 +484,6 @@ func init() {
 		_OP_SYMLINK:      doSymlink,
 		_OP_RENAME:       doRename,
 		_OP_STATFS:       doStatFs,
-		_OP_IOCTL:        doIoctl,
 	} {
 		operationHandlers[op].Func = v
 	}

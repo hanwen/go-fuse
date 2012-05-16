@@ -10,8 +10,6 @@ import (
 func TestRawFs(t *testing.T) {
 	var iface RawFileSystem
 
-	iface = new(DefaultRawFileSystem)
-
 	_ = iface
 }
 

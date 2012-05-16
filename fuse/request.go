@@ -10,6 +10,9 @@ import (
 	"github.com/hanwen/go-fuse/raw"
 )
 
+var sizeOfOutHeader = unsafe.Sizeof(raw.OutHeader{})
+var zeroOutBuf [160]byte
+
 func (req *request) Discard() {
 	req.pool.FreeBuffer(req.flatData)
 	req.pool.FreeBuffer(req.bufferPoolInputBuf)
@@ -158,6 +161,9 @@ func (r *request) parse() {
 			}
 		}
 	}
+
+	r.outBuf = zeroOutBuf
+	r.outData = unsafe.Pointer(&r.outBuf[sizeOfOutHeader])
 }
 
 func (r *request) serialize() (header []byte, data []byte) {
@@ -177,3 +183,4 @@ func (r *request) serialize() (header []byte, data []byte) {
 	copy(header[sizeOfOutHeader:], asSlice(r.outData, dataLength))
 	return header, r.flatData
 }
+

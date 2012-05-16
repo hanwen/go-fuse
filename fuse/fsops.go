@@ -53,31 +53,31 @@ func (c *FileSystemConnector) internalLookup(parent *Inode, name string, context
 	return fi, child, code
 }
 
-func (c *FileSystemConnector) Lookup(header *raw.InHeader, name string) (out *raw.EntryOut, code Status) {
+func (c *FileSystemConnector) Lookup(out *raw.EntryOut, header *raw.InHeader, name string) (code Status) {
 	parent := c.toInode(header.NodeId)
 	if !parent.IsDir() {
 		log.Printf("Lookup %q called on non-Directory node %d", name, header.NodeId)
-		return nil, ENOTDIR
+		return ENOTDIR
 	}
 	context := (*Context)(&header.Context)
 	fi, child, code := c.internalLookup(parent, name, context)
+	if code == ENOENT && parent.mount.negativeEntry(out) {
+		return OK
+	}
 	if !code.Ok() {
-		if code == ENOENT {
-			return parent.mount.negativeEntry()
-		}
-		return nil, code
+		return code
 	}
 	if child == nil {
 		log.Println("Lookup returned OK with nil child", name)
 	}
 
 	rawAttr := (*raw.Attr)(fi)
-	out = child.mount.attrToEntry(rawAttr)
+	child.mount.attrToEntry(out, rawAttr)
 	out.NodeId = c.lookupUpdate(child)
 	out.Generation = 1
 	out.Ino = out.NodeId
 
-	return out, OK
+	return OK
 }
 
 func (c *FileSystemConnector) Forget(nodeID, nlookup uint64) {
@@ -85,7 +85,7 @@ func (c *FileSystemConnector) Forget(nodeID, nlookup uint64) {
 	c.forgetUpdate(node, int(nlookup))
 }
 
-func (c *FileSystemConnector) GetAttr(header *raw.InHeader, input *raw.GetAttrIn) (out *raw.AttrOut, code Status) {
+func (c *FileSystemConnector) GetAttr(out *raw.AttrOut, header *raw.InHeader, input *raw.GetAttrIn) (code Status) {
 	node := c.toInode(header.NodeId)
 
 	var f File
@@ -97,20 +97,19 @@ func (c *FileSystemConnector) GetAttr(header *raw.InHeader, input *raw.GetAttrIn
 
 	fi, code := node.fsInode.GetAttr(f, (*Context)(&header.Context))
 	if !code.Ok() {
-		return nil, code
+		return code
 	}
 	rawAttr := (*raw.Attr)(fi)
 
-	out = node.mount.fillAttr(rawAttr, header.NodeId)
-	return out, OK
-
+	node.mount.fillAttr(out, rawAttr, header.NodeId)
+	return OK
 }
 
-func (c *FileSystemConnector) OpenDir(header *raw.InHeader, input *raw.OpenIn) (flags uint32, handle uint64, code Status) {
+func (c *FileSystemConnector) OpenDir(out *raw.OpenOut, header *raw.InHeader, input *raw.OpenIn) (code Status) {
 	node := c.toInode(header.NodeId)
 	stream, err := node.fsInode.OpenDir((*Context)(&header.Context))
 	if err != OK {
-		return 0, 0, err
+		return err
 	}
 	stream = append(stream, node.getMountDirEntries()...)
 	de := &connectorDir{
@@ -118,30 +117,30 @@ func (c *FileSystemConnector) OpenDir(header *raw.InHeader, input *raw.OpenIn) (
 		stream: append(stream, DirEntry{S_IFDIR, "."}, DirEntry{S_IFDIR, ".."}),
 	}
 	h, opened := node.mount.registerFileHandle(node, de, nil, input.Flags)
-	return opened.FuseFlags, h, OK
+	out.OpenFlags = opened.FuseFlags
+	out.Fh = h
+	return OK
 }
 
-func (c *FileSystemConnector) ReadDir(header *raw.InHeader, input *ReadIn) (*DirEntryList, Status) {
+func (c *FileSystemConnector) ReadDir(l *DirEntryList, header *raw.InHeader, input *ReadIn) (Status) {
 	node := c.toInode(header.NodeId)
 	opened := node.mount.getOpenedFile(input.Fh)
-	de, code := opened.dir.ReadDir(input)
-	if code != OK {
-		return nil, code
-	}
-	return de, OK
+	return opened.dir.ReadDir(l, input)
 }
 
-func (c *FileSystemConnector) Open(header *raw.InHeader, input *raw.OpenIn) (flags uint32, handle uint64, status Status) {
+func (c *FileSystemConnector) Open(out *raw.OpenOut, header *raw.InHeader, input *raw.OpenIn) (status Status) {
 	node := c.toInode(header.NodeId)
 	f, code := node.fsInode.Open(input.Flags, (*Context)(&header.Context))
 	if !code.Ok() {
-		return 0, 0, code
+		return code
 	}
 	h, opened := node.mount.registerFileHandle(node, nil, f, input.Flags)
-	return opened.FuseFlags, h, OK
+	out.OpenFlags = opened.FuseFlags
+	out.Fh = h
+	return OK
 }
 
-func (c *FileSystemConnector) SetAttr(header *raw.InHeader, input *raw.SetAttrIn) (out *raw.AttrOut, code Status) {
+func (c *FileSystemConnector) SetAttr(out *raw.AttrOut, header *raw.InHeader, input *raw.SetAttrIn) (code Status) {
 	node := c.toInode(header.NodeId)
 	var f File
 	if input.Valid&raw.FATTR_FH != 0 {
@@ -179,7 +178,7 @@ func (c *FileSystemConnector) SetAttr(header *raw.InHeader, input *raw.SetAttrIn
 	}
 
 	if !code.Ok() {
-		return nil, code
+		return code
 	}
 
 	// Must call GetAttr(); the filesystem may override some of
@@ -188,9 +187,9 @@ func (c *FileSystemConnector) SetAttr(header *raw.InHeader, input *raw.SetAttrIn
 
 	if code.Ok() {
 		rawAttr := (*raw.Attr)(fi)
-		out = node.mount.fillAttr(rawAttr, header.NodeId)
+		node.mount.fillAttr(out, rawAttr, header.NodeId)
 	}
-	return out, code
+	return code
 }
 
 func (c *FileSystemConnector) Readlink(header *raw.InHeader) (out []byte, code Status) {
@@ -198,25 +197,25 @@ func (c *FileSystemConnector) Readlink(header *raw.InHeader) (out []byte, code S
 	return n.fsInode.Readlink((*Context)(&header.Context))
 }
 
-func (c *FileSystemConnector) Mknod(header *raw.InHeader, input *raw.MknodIn, name string) (out *raw.EntryOut, code Status) {
+func (c *FileSystemConnector) Mknod(out *raw.EntryOut, header *raw.InHeader, input *raw.MknodIn, name string) (code Status) {
 	parent := c.toInode(header.NodeId)
 	fi, fsNode, code := parent.fsInode.Mknod(name, input.Mode, uint32(input.Rdev), (*Context)(&header.Context))
 	rawAttr := (*raw.Attr)(fi)
 	if code.Ok() {
-		out = c.childLookup(rawAttr, fsNode)
+		c.childLookup(out, rawAttr, fsNode)
 	}
-	return out, code
+	return code
 }
 
-func (c *FileSystemConnector) Mkdir(header *raw.InHeader, input *raw.MkdirIn, name string) (out *raw.EntryOut, code Status) {
+func (c *FileSystemConnector) Mkdir(out *raw.EntryOut, header *raw.InHeader, input *raw.MkdirIn, name string) (code Status) {
 	parent := c.toInode(header.NodeId)
 	fi, fsInode, code := parent.fsInode.Mkdir(name, input.Mode, (*Context)(&header.Context))
 
 	if code.Ok() {
 		rawAttr := (*raw.Attr)(fi)
-		out = c.childLookup(rawAttr, fsInode)
+		c.childLookup(out, rawAttr, fsInode)
 	}
-	return out, code
+	return code
 }
 
 func (c *FileSystemConnector) Unlink(header *raw.InHeader, name string) (code Status) {
@@ -229,14 +228,14 @@ func (c *FileSystemConnector) Rmdir(header *raw.InHeader, name string) (code Sta
 	return parent.fsInode.Rmdir(name, (*Context)(&header.Context))
 }
 
-func (c *FileSystemConnector) Symlink(header *raw.InHeader, pointedTo string, linkName string) (out *raw.EntryOut, code Status) {
+func (c *FileSystemConnector) Symlink(out *raw.EntryOut, header *raw.InHeader, pointedTo string, linkName string) (code Status) {
 	parent := c.toInode(header.NodeId)
 	fi, fsNode, code := parent.fsInode.Symlink(linkName, pointedTo, (*Context)(&header.Context))
 	if code.Ok() {
 		rawAttr := (*raw.Attr)(fi)
-		out = c.childLookup(rawAttr, fsNode)
+		c.childLookup(out, rawAttr, fsNode)
 	}
-	return out, code
+	return code
 }
 
 func (c *FileSystemConnector) Rename(header *raw.InHeader, input *raw.RenameIn, oldName string, newName string) (code Status) {
@@ -254,21 +253,21 @@ func (c *FileSystemConnector) Rename(header *raw.InHeader, input *raw.RenameIn, 
 	return oldParent.fsInode.Rename(oldName, newParent.fsInode, newName, (*Context)(&header.Context))
 }
 
-func (c *FileSystemConnector) Link(header *raw.InHeader, input *raw.LinkIn, name string) (out *raw.EntryOut, code Status) {
+func (c *FileSystemConnector) Link(out *raw.EntryOut, header *raw.InHeader, input *raw.LinkIn, name string) (code Status) {
 	existing := c.toInode(input.Oldnodeid)
 	parent := c.toInode(header.NodeId)
 
 	if existing.mount != parent.mount {
-		return nil, EXDEV
+		return EXDEV
 	}
 
 	fi, fsInode, code := parent.fsInode.Link(name, existing.fsInode, (*Context)(&header.Context))
 	if code.Ok() {
 		rawAttr := (*raw.Attr)(fi)
-		out = c.childLookup(rawAttr, fsInode)
+		c.childLookup(out, rawAttr, fsInode)
 	}
 
-	return out, code
+	return code
 }
 
 func (c *FileSystemConnector) Access(header *raw.InHeader, input *raw.AccessIn) (code Status) {
@@ -276,16 +275,19 @@ func (c *FileSystemConnector) Access(header *raw.InHeader, input *raw.AccessIn) 
 	return n.fsInode.Access(input.Mask, (*Context)(&header.Context))
 }
 
-func (c *FileSystemConnector) Create(header *raw.InHeader, input *raw.CreateIn, name string) (flags uint32, h uint64, out *raw.EntryOut, code Status) {
+func (c *FileSystemConnector) Create(out *raw.CreateOut, header *raw.InHeader, input *raw.CreateIn, name string) (code Status) {
 	parent := c.toInode(header.NodeId)
 	f, fi, fsNode, code := parent.fsInode.Create(name, uint32(input.Flags), input.Mode, (*Context)(&header.Context))
 	if !code.Ok() {
-		return 0, 0, nil, code
+		return code
 	}
 	rawAttr := (*raw.Attr)(fi)
-	out = c.childLookup(rawAttr, fsNode)
+	c.childLookup(&out.EntryOut, rawAttr, fsNode)
 	handle, opened := parent.mount.registerFileHandle(fsNode.Inode(), nil, f, input.Flags)
-	return opened.FuseFlags, handle, out, code
+
+	out.OpenOut.OpenFlags = opened.FuseFlags
+	out.OpenOut.Fh = handle
+	return code
 }
 
 func (c *FileSystemConnector) Release(header *raw.InHeader, input *raw.ReleaseIn) {
@@ -352,9 +354,14 @@ func (c *FileSystemConnector) Read(header *raw.InHeader, input *ReadIn, bp Buffe
 	return opened.WithFlags.File.Read(input, bp)
 }
 
-func (c *FileSystemConnector) StatFs(header *raw.InHeader) *StatfsOut {
+func (c *FileSystemConnector) StatFs(out *StatfsOut, header *raw.InHeader) Status {
 	node := c.toInode(header.NodeId)
-	return node.FsNode().StatFs()
+	s := node.FsNode().StatFs()
+	if s == nil {
+		return ENOSYS
+	}
+	*out = *s
+	return OK
 }
 
 func (c *FileSystemConnector) Flush(header *raw.InHeader, input *raw.FlushIn) Status {

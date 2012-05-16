@@ -61,8 +61,7 @@ func (m *fileSystemMount) setOwner(attr *raw.Attr) {
 	}
 }
 
-func (m *fileSystemMount) attrToEntry(attr *raw.Attr) (out *raw.EntryOut) {
-	out = &raw.EntryOut{}
+func (m *fileSystemMount) attrToEntry(out *raw.EntryOut, attr *raw.Attr) () {
 	out.Attr = *attr
 
 	splitDuration(m.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
@@ -71,16 +70,13 @@ func (m *fileSystemMount) attrToEntry(attr *raw.Attr) (out *raw.EntryOut) {
 	if attr.Mode & S_IFDIR == 0 && attr.Nlink == 0 {
 		out.Nlink = 1
 	}
-	return out
 }
 
-func (m *fileSystemMount) fillAttr(a *raw.Attr, nodeId uint64) (out *raw.AttrOut) {
-	out = &raw.AttrOut{}
+func (m *fileSystemMount) fillAttr(out *raw.AttrOut, a *raw.Attr, nodeId uint64) {
 	out.Attr = *a
 	splitDuration(m.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	m.setOwner(&out.Attr)
 	out.Ino = nodeId
-	return out
 }
 
 func (m *fileSystemMount) getOpenedFile(h uint64) *openedFile {
@@ -143,12 +139,11 @@ func (m *fileSystemMount) registerFileHandle(node *Inode, dir rawDir, f File, fl
 }
 
 // Creates a return entry for a non-existent path.
-func (m *fileSystemMount) negativeEntry() (*raw.EntryOut, Status) {
+func (m *fileSystemMount) negativeEntry(out *raw.EntryOut) bool {
 	if m.options.NegativeTimeout > 0.0 {
-		out := new(raw.EntryOut)
 		out.NodeId = 0
 		splitDuration(m.options.NegativeTimeout, &out.EntryValid, &out.EntryValidNsec)
-		return out, OK
+		return true
 	}
-	return nil, ENOENT
+	return false
 }
