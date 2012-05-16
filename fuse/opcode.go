@@ -119,12 +119,11 @@ func doCreate(state *MountState, req *request) {
 
 func doReadDir(state *MountState, req *request) {
 	in := (*ReadIn)(req.inData)
-	entries := NewDirEntryList(int(in.Size), uint64(in.Offset))
+	buf := state.buffers.AllocBuffer(in.Size)
+	entries := NewDirEntryList(buf, uint64(in.Offset))
 	
 	code := state.fileSystem.ReadDir(entries, req.inHeader, in)
-	if entries != nil {
-		req.flatData = entries.Bytes()
-	}
+	req.flatData = entries.Bytes()
 	req.status = code
 }
 

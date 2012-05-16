@@ -11,6 +11,7 @@ import (
 )
 
 var _ = log.Print
+var eightPadding [8]byte
 
 // DirEntry is a type for PathFileSystem and NodeFileSystem to return
 // directory contents in.
@@ -20,13 +21,17 @@ type DirEntry struct {
 }
 
 type DirEntryList struct {
-	buf     bytes.Buffer
+	buf     *bytes.Buffer
 	offset  uint64
 	maxSize int
 }
 
-func NewDirEntryList(max int, off uint64) *DirEntryList {
-	return &DirEntryList{maxSize: max, offset: off}
+func NewDirEntryList(data []byte, off uint64) *DirEntryList {
+	return &DirEntryList{
+		buf: bytes.NewBuffer(data[:0]),
+		maxSize: len(data),
+		offset: off,
+	}
 }
 
 func (l *DirEntryList) AddString(name string, inode uint64, mode uint32) bool {
@@ -38,31 +43,35 @@ func (l *DirEntryList) AddDirEntry(e DirEntry) bool {
 }
 
 func (l *DirEntryList) Add(name []byte, inode uint64, mode uint32) bool {
-	lastLen := l.buf.Len()
-
-	l.offset++
 	dirent := raw.Dirent{
-		Off:     l.offset,
+		Off:     l.offset+1,
 		Ino:     inode,
 		NameLen: uint32(len(name)),
 		Typ:     ModeToType(mode),
 	}
 
+	padding := 8 - len(name)&7
+	if padding == 8 {
+		padding = 0
+	}
+	
+	delta := padding + int(unsafe.Sizeof(raw.Dirent{})) + len(name)
+	newLen := delta + l.buf.Len()
+	if newLen > l.maxSize {
+		return false
+	}
 	_, err := l.buf.Write(asSlice(unsafe.Pointer(&dirent), unsafe.Sizeof(raw.Dirent{})))
 	if err != nil {
 		panic("Serialization of Dirent failed")
 	}
 	l.buf.Write(name)
-
-	padding := 8 - len(name)&7
-	if padding < 8 {
-		l.buf.Write(make([]byte, padding))
+	if padding > 0 {
+		l.buf.Write(eightPadding[:padding])
 	}
+	l.offset = dirent.Off
 
-	if l.buf.Len() > l.maxSize {
-		l.buf.Truncate(lastLen)
-		l.offset--
-		return false
+	if l.buf.Len() != newLen {
+		log.Panicf("newLen mismatch %d %d", l.buf.Len(), newLen)
 	}
 	return true
 }
