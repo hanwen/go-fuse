@@ -40,9 +40,9 @@ type request struct {
 	status   Status
 	flatData []byte
 
-	// Header + structured data for what we send back to the kernel.
-	// May be followed by flatData.
-	outHeaderBytes []byte
+	// Space to keep header + structured data for what we send
+	// back to the kernel.
+	outBuf         [160]byte
 
 	// Start timestamp for timing info.
 	startNs    int64
@@ -84,7 +84,7 @@ func (r *request) OutputDebug() string {
 
 	max := 1024
 	if len(dataStr) > max {
-		dataStr = dataStr[:max] + fmt.Sprintf(" ...trimmed (response size %d)", len(r.outHeaderBytes))
+		dataStr = dataStr[:max] + fmt.Sprintf(" ...trimmed")
 	}
 
 	flatStr := ""
@@ -160,20 +160,20 @@ func (r *request) parse() {
 	}
 }
 
-func (r *request) serialize() {
+func (r *request) serialize() (header []byte, data []byte) {
 	dataLength := r.handler.OutputSize
 	if r.outData == nil || r.status > OK {
 		dataLength = 0
 	}
 
 	sizeOfOutHeader := unsafe.Sizeof(raw.OutHeader{})
-
-	r.outHeaderBytes = make([]byte, sizeOfOutHeader+dataLength)
-	outHeader := (*raw.OutHeader)(unsafe.Pointer(&r.outHeaderBytes[0]))
-	outHeader.Unique = r.inHeader.Unique
-	outHeader.Status = int32(-r.status)
-	outHeader.Length = uint32(
+	header = r.outBuf[:sizeOfOutHeader+dataLength]
+	o := (*raw.OutHeader)(unsafe.Pointer(&header[0]))
+	o.Unique = r.inHeader.Unique
+	o.Status = int32(-r.status)
+	o.Length = uint32(
 		int(sizeOfOutHeader) + int(dataLength) + int(len(r.flatData)))
 
-	copy(r.outHeaderBytes[sizeOfOutHeader:], asSlice(r.outData, dataLength))
+	copy(header[sizeOfOutHeader:], asSlice(r.outData, dataLength))
+	return header, r.flatData
 }

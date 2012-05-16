@@ -579,4 +579,12 @@ func init() {
 	} {
 		operationHandlers[op].FileNames = count
 	}
+
+	var r request
+	sizeOfOutHeader := unsafe.Sizeof(raw.OutHeader{})
+	for code, h := range operationHandlers {
+		if h.OutputSize + sizeOfOutHeader > unsafe.Sizeof(r.outBuf) {
+			log.Panicf("request output buffer too small: code %v, sz %d + %d %v", code, h.OutputSize, sizeOfOutHeader, h)
+		}
+	}
 }

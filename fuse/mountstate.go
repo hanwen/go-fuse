@@ -242,8 +242,8 @@ func (ms *MountState) handleRequest(req *request) {
 
 	errNo := ms.write(req)
 	if errNo != 0 {
-		log.Printf("writer: Write/Writev %v failed, err: %v. opcode: %v",
-			req.outHeaderBytes, errNo, operationName(req.inHeader.Opcode))
+		log.Printf("writer: Write/Writev failed, err: %v. opcode: %v",
+			errNo, operationName(req.inHeader.Opcode))
 	}
 }
 
@@ -253,7 +253,7 @@ func (ms *MountState) write(req *request) Status {
 		return OK
 	}
 
-	req.serialize()
+	header, data := req.serialize()
 	if ms.Debug {
 		log.Println(req.OutputDebug())
 	}
@@ -262,16 +262,14 @@ func (ms *MountState) write(req *request) Status {
 		req.preWriteNs = time.Now().UnixNano()
 	}
 
-	if req.outHeaderBytes == nil {
+	if header == nil {
 		return OK
 	}
-
 	var err error
-	if req.flatData == nil {
-		_, err = ms.mountFile.Write(req.outHeaderBytes)
+	if data == nil {
+		_, err = ms.mountFile.Write(header)
 	} else {
-		_, err = Writev(int(ms.mountFile.Fd()),
-			[][]byte{req.outHeaderBytes, req.flatData})
+		_, err = Writev(int(ms.mountFile.Fd()), [][]byte{header, data})
 	}
 
 	return ToStatus(err)
@@ -286,7 +284,6 @@ func (ms *MountState) writeInodeNotify(entry *raw.NotifyInvalInodeOut) Status {
 		status:  raw.NOTIFY_INVAL_INODE,
 	}
 	req.outData = unsafe.Pointer(entry)
-	req.serialize()
 	result := ms.write(&req)
 
 	if ms.Debug {
@@ -313,7 +310,6 @@ func (ms *MountState) writeEntryNotify(parent uint64, name string) Status {
 	nameBytes := []byte(name + "\000")
 	req.outData = unsafe.Pointer(entry)
 	req.flatData = nameBytes
-	req.serialize()
 	result := ms.write(&req)
 
 	if ms.Debug {
