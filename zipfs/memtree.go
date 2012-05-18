@@ -61,11 +61,6 @@ func (n *memNode) Print(indent int) {
 	}
 }
 
-// We construct the tree at mount, so we never need to look anything up.
-func (n *memNode) Lookup(name string, c *fuse.Context) (fi *fuse.Attr, node fuse.FsNode, code fuse.Status) {
-	return nil, nil, fuse.ENOENT
-}
-
 func (n *memNode) OpenDir(context *fuse.Context) (stream []fuse.DirEntry, code fuse.Status) {
 	children := n.Inode().Children()
 	stream = make([]fuse.DirEntry, 0, len(children))
@@ -94,14 +89,13 @@ func (n *memNode) Deletable() bool {
 	return false
 }
 
-func (n *memNode) GetAttr(file fuse.File, context *fuse.Context) (*fuse.Attr, fuse.Status) {
+func (n *memNode) GetAttr(out *fuse.Attr, file fuse.File, context *fuse.Context) (fuse.Status) {
 	if n.Inode().IsDir() {
-		return &fuse.Attr{
-			Mode: fuse.S_IFDIR | 0777,
-		}, fuse.OK
+		out.Mode= fuse.S_IFDIR | 0777
+		return fuse.OK
 	}
-
-	return n.file.Stat(), fuse.OK
+	*out = *n.file.Stat()
+	return fuse.OK
 }
 
 func (n *MemTreeFs) addFile(name string, f MemFile) {

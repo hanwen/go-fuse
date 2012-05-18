@@ -200,7 +200,7 @@ func (n *pathInode) forgetClientInodes() {
 
 // Reread all client nodes below this node.  Must run outside the treeLock.
 func (n *pathInode) updateClientInodes() {
-	n.GetAttr(nil, nil)
+	n.GetAttr(&Attr{}, nil, nil)
 	for _, ch := range n.Inode().FsChildren() {
 		ch.FsNode().(*pathInode).updateClientInodes()
 	}
@@ -214,19 +214,6 @@ func (n *pathInode) LockTree() func() {
 func (n *pathInode) RLockTree() func() {
 	n.pathFs.pathLock.RLock()
 	return func() { n.pathFs.pathLock.RUnlock() }
-}
-
-func (n *pathInode) fillNewChildAttr(path string, child *pathInode, c *Context) (fi *Attr, code Status) {
-	fi, _ = n.fs.GetAttr(path, c)
-	if fi != nil && fi.Ino > 0 {
-		child.clientInode = fi.Ino
-	}
-
-	if fi == nil {
-		log.Println("fillNewChildAttr found nil FileInfo", path)
-		return nil, ENOENT
-	}
-	return fi, OK
 }
 
 // GetPath returns the path relative to the mount governing this
@@ -376,25 +363,23 @@ func (n *pathInode) OpenDir(context *Context) ([]DirEntry, Status) {
 	return n.fs.OpenDir(n.GetPath(), context)
 }
 
-func (n *pathInode) Mknod(name string, mode uint32, dev uint32, context *Context) (fi *Attr, newNode FsNode, code Status) {
+func (n *pathInode) Mknod(name string, mode uint32, dev uint32, context *Context) (newNode FsNode, code Status) {
 	fullPath := filepath.Join(n.GetPath(), name)
 	code = n.fs.Mknod(fullPath, mode, dev, context)
 	if code.Ok() {
 		pNode := n.createChild(false)
 		newNode = pNode
-		fi, code = n.fillNewChildAttr(fullPath, pNode, context)
 		n.addChild(name, pNode)
 	}
 	return
 }
 
-func (n *pathInode) Mkdir(name string, mode uint32, context *Context) (fi *Attr, newNode FsNode, code Status) {
+func (n *pathInode) Mkdir(name string, mode uint32, context *Context) (newNode FsNode, code Status) {
 	fullPath := filepath.Join(n.GetPath(), name)
 	code = n.fs.Mkdir(fullPath, mode, context)
 	if code.Ok() {
 		pNode := n.createChild(true)
 		newNode = pNode
-		fi, code = n.fillNewChildAttr(fullPath, pNode, context)
 		n.addChild(name, pNode)
 	}
 	return
@@ -416,13 +401,12 @@ func (n *pathInode) Rmdir(name string, context *Context) (code Status) {
 	return code
 }
 
-func (n *pathInode) Symlink(name string, content string, context *Context) (fi *Attr, newNode FsNode, code Status) {
+func (n *pathInode) Symlink(name string, content string, context *Context) (newNode FsNode, code Status) {
 	fullPath := filepath.Join(n.GetPath(), name)
 	code = n.fs.Symlink(content, fullPath, context)
 	if code.Ok() {
 		pNode := n.createChild(false)
 		newNode = pNode
-		fi, code = n.fillNewChildAttr(fullPath, pNode, context)
 		n.addChild(name, pNode)
 	}
 	return
@@ -441,40 +425,41 @@ func (n *pathInode) Rename(oldName string, newParent FsNode, newName string, con
 	return code
 }
 
-func (n *pathInode) Link(name string, existingFsnode FsNode, context *Context) (fi *Attr, newNode FsNode, code Status) {
+func (n *pathInode) Link(name string, existingFsnode FsNode, context *Context) (newNode FsNode, code Status) {
 	if !n.pathFs.options.ClientInodes {
-		return nil, nil, ENOSYS
+		return nil, ENOSYS
 	}
 
 	newPath := filepath.Join(n.GetPath(), name)
 	existing := existingFsnode.(*pathInode)
 	oldPath := existing.GetPath()
 	code = n.fs.Link(oldPath, newPath, context)
+
+	var a *Attr
 	if code.Ok() {
-		fi, code = n.fs.GetAttr(newPath, context)
+		a, code = n.fs.GetAttr(newPath, context)
 	}
 
 	if code.Ok() {
-		if existing.clientInode != 0 && existing.clientInode == fi.Ino {
+		if existing.clientInode != 0 && existing.clientInode == a.Ino {
 			newNode = existing
 			n.addChild(name, existing)
 		} else {
 			pNode := n.createChild(false)
 			newNode = pNode
-			pNode.clientInode = fi.Ino
+			pNode.clientInode = a.Ino
 			n.addChild(name, pNode)
 		}
 	}
 	return
 }
 
-func (n *pathInode) Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *Attr, newNode FsNode, code Status) {
+func (n *pathInode) Create(name string, flags uint32, mode uint32, context *Context) (file File, newNode FsNode, code Status) {
 	fullPath := filepath.Join(n.GetPath(), name)
 	file, code = n.fs.Create(fullPath, flags, mode, context)
 	if code.Ok() {
 		pNode := n.createChild(false)
 		newNode = pNode
-		fi, code = n.fillNewChildAttr(fullPath, pNode, context)
 		n.addChild(name, pNode)
 	}
 	return
@@ -500,14 +485,15 @@ func (n *pathInode) Open(flags uint32, context *Context) (file File, code Status
 	return
 }
 
-func (n *pathInode) Lookup(name string, context *Context) (fi *Attr, node FsNode, code Status) {
+func (n *pathInode) Lookup(out *Attr, name string, context *Context) (node FsNode, code Status) {
 	fullPath := filepath.Join(n.GetPath(), name)
-	fi, code = n.fs.GetAttr(fullPath, context)
+	fi, code := n.fs.GetAttr(fullPath, context)
 	if code.Ok() {
 		node = n.findChild(fi, name, fullPath)
+		*out = *fi
 	}
 
-	return
+	return node, code
 }
 
 func (n *pathInode) findChild(fi *Attr, name string, fullPath string) (out *pathInode) {
@@ -533,7 +519,8 @@ func (n *pathInode) findChild(fi *Attr, name string, fullPath string) (out *path
 	return out
 }
 
-func (n *pathInode) GetAttr(file File, context *Context) (fi *Attr, code Status) {
+func (n *pathInode) GetAttr(out *Attr, file File, context *Context) (code Status) {
+	var fi *Attr
 	if file == nil {
 		// called on a deleted files.
 		file = n.inode.AnyFile()
@@ -541,10 +528,12 @@ func (n *pathInode) GetAttr(file File, context *Context) (fi *Attr, code Status)
 
 	if file != nil {
 		fi, code = file.GetAttr()
+		*out = *fi
 	}
 
 	if file == nil || code == ENOSYS || code == EBADF {
 		fi, code = n.fs.GetAttr(n.GetPath(), context)
+		*out = *fi
 	}
 
 	if fi != nil {
@@ -554,7 +543,7 @@ func (n *pathInode) GetAttr(file File, context *Context) (fi *Attr, code Status)
 	if fi != nil && !fi.IsDir() && fi.Nlink == 0 {
 		fi.Nlink = 1
 	}
-	return fi, code
+	return code
 }
 
 func (n *pathInode) Chmod(file File, perms uint32, context *Context) (code Status) {

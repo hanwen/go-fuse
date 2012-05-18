@@ -61,19 +61,16 @@ func (m *fileSystemMount) setOwner(attr *raw.Attr) {
 	}
 }
 
-func (m *fileSystemMount) attrToEntry(out *raw.EntryOut, attr *raw.Attr) () {
-	out.Attr = *attr
-
+func (m *fileSystemMount) fillEntry(out *raw.EntryOut) {
 	splitDuration(m.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
 	splitDuration(m.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	m.setOwner(&out.Attr)
-	if attr.Mode & S_IFDIR == 0 && attr.Nlink == 0 {
+	if out.Mode & S_IFDIR == 0 && out.Nlink == 0 {
 		out.Nlink = 1
 	}
 }
 
-func (m *fileSystemMount) fillAttr(out *raw.AttrOut, a *raw.Attr, nodeId uint64) {
-	out.Attr = *a
+func (m *fileSystemMount) fillAttr(out *raw.AttrOut, nodeId uint64) {
 	splitDuration(m.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	m.setOwner(&out.Attr)
 	out.Ino = nodeId

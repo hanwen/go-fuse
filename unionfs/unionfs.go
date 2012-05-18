@@ -357,7 +357,8 @@ func (fs *UnionFs) Link(orig string, newName string, context *fuse.Context) (cod
 		// to see the Inode number.
 		fs.branchCache.GetFresh(orig)
 		inode := fs.nodeFs.Node(orig)
-		inode.FsNode().GetAttr(nil, nil)
+		var a fuse.Attr
+		inode.FsNode().GetAttr(&a, nil, nil)
 	}
 	if code.Ok() {
 		code = fs.promoteDirsTo(newName)

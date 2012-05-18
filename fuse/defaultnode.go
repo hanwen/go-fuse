@@ -31,6 +31,8 @@ type DefaultFsNode struct {
 	inode *Inode
 }
 
+var _ =  FsNode((*DefaultFsNode)(nil))
+
 func (n *DefaultFsNode) StatFs() *StatfsOut {
 	return nil
 }
@@ -56,8 +58,8 @@ func (n *DefaultFsNode) Inode() *Inode {
 func (n *DefaultFsNode) OnForget() {
 }
 
-func (n *DefaultFsNode) Lookup(name string, context *Context) (fi *Attr, node FsNode, code Status) {
-	return nil, nil, ENOENT
+func (n *DefaultFsNode) Lookup(out *Attr, name string, context *Context) (node FsNode, code Status) {
+	return nil, ENOENT
 }
 
 func (n *DefaultFsNode) Access(mode uint32, context *Context) (code Status) {
@@ -68,11 +70,11 @@ func (n *DefaultFsNode) Readlink(c *Context) ([]byte, Status) {
 	return nil, ENOSYS
 }
 
-func (n *DefaultFsNode) Mknod(name string, mode uint32, dev uint32, context *Context) (fi *Attr, newNode FsNode, code Status) {
-	return nil, nil, ENOSYS
+func (n *DefaultFsNode) Mknod(name string, mode uint32, dev uint32, context *Context) (newNode FsNode, code Status) {
+	return nil, ENOSYS
 }
-func (n *DefaultFsNode) Mkdir(name string, mode uint32, context *Context) (fi *Attr, newNode FsNode, code Status) {
-	return nil, nil, ENOSYS
+func (n *DefaultFsNode) Mkdir(name string, mode uint32, context *Context) (newNode FsNode, code Status) {
+	return nil, ENOSYS
 }
 func (n *DefaultFsNode) Unlink(name string, context *Context) (code Status) {
 	return ENOSYS
@@ -80,20 +82,20 @@ func (n *DefaultFsNode) Unlink(name string, context *Context) (code Status) {
 func (n *DefaultFsNode) Rmdir(name string, context *Context) (code Status) {
 	return ENOSYS
 }
-func (n *DefaultFsNode) Symlink(name string, content string, context *Context) (fi *Attr, newNode FsNode, code Status) {
-	return nil, nil, ENOSYS
+func (n *DefaultFsNode) Symlink(name string, content string, context *Context) (newNode FsNode, code Status) {
+	return nil, ENOSYS
 }
 
 func (n *DefaultFsNode) Rename(oldName string, newParent FsNode, newName string, context *Context) (code Status) {
 	return ENOSYS
 }
 
-func (n *DefaultFsNode) Link(name string, existing FsNode, context *Context) (fi *Attr, newNode FsNode, code Status) {
-	return nil, nil, ENOSYS
+func (n *DefaultFsNode) Link(name string, existing FsNode, context *Context) (newNode FsNode, code Status) {
+	return nil, ENOSYS
 }
 
-func (n *DefaultFsNode) Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *Attr, newNode FsNode, code Status) {
-	return nil, nil, nil, ENOSYS
+func (n *DefaultFsNode) Create(name string, flags uint32, mode uint32, context *Context) (file File, newNode FsNode, code Status) {
+	return nil, nil, ENOSYS
 }
 
 func (n *DefaultFsNode) Open(flags uint32, context *Context) (file File, code Status) {
@@ -108,9 +110,10 @@ func (n *DefaultFsNode) OpenDir(context *Context) ([]DirEntry, Status) {
 	ch := n.Inode().Children()
 	s := make([]DirEntry, 0, len(ch))
 	for name, child := range ch {
-		fi, code := child.FsNode().GetAttr(nil, context)
+		var a Attr
+		code := child.FsNode().GetAttr(&a, nil, context)
 		if code.Ok() {
-			s = append(s, DirEntry{Name: name, Mode: fi.Mode})
+			s = append(s, DirEntry{Name: name, Mode: a.Mode})
 		}
 	}
 	return s, OK
@@ -132,11 +135,13 @@ func (n *DefaultFsNode) ListXAttr(context *Context) (attrs []string, code Status
 	return nil, ENOSYS
 }
 
-func (n *DefaultFsNode) GetAttr(file File, context *Context) (fi *Attr, code Status) {
+func (n *DefaultFsNode) GetAttr(out *Attr, file File, context *Context) (code Status) {
 	if n.Inode().IsDir() {
-		return &Attr{Mode: S_IFDIR | 0755}, OK
+		out.Mode = S_IFDIR | 0755
+	} else {
+		out.Mode = S_IFREG | 0644
 	}
-	return &Attr{Mode: S_IFREG | 0644}, OK
+	return OK
 }
 
 func (n *DefaultFsNode) Chmod(file File, perms uint32, context *Context) (code Status) {

@@ -31,7 +31,7 @@ type FsNode interface {
 	Inode() *Inode
 	SetInode(node *Inode)
 
-	Lookup(name string, context *Context) (fi *Attr, node FsNode, code Status)
+	Lookup(out *Attr, name string, context *Context) (node FsNode, code Status)
 
 	// Deletable() should return true if this inode may be
 	// discarded from the children list. This will be called from
@@ -48,16 +48,16 @@ type FsNode interface {
 	Readlink(c *Context) ([]byte, Status)
 
 	// Namespace operations
-	Mknod(name string, mode uint32, dev uint32, context *Context) (fi *Attr, newNode FsNode, code Status)
-	Mkdir(name string, mode uint32, context *Context) (fi *Attr, newNode FsNode, code Status)
+	Mknod(name string, mode uint32, dev uint32, context *Context) (newNode FsNode, code Status)
+	Mkdir(name string, mode uint32, context *Context) (newNode FsNode, code Status)
 	Unlink(name string, context *Context) (code Status)
 	Rmdir(name string, context *Context) (code Status)
-	Symlink(name string, content string, context *Context) (fi *Attr, newNode FsNode, code Status)
+	Symlink(name string, content string, context *Context) (newNode FsNode, code Status)
 	Rename(oldName string, newParent FsNode, newName string, context *Context) (code Status)
-	Link(name string, existing FsNode, context *Context) (fi *Attr, newNode FsNode, code Status)
+	Link(name string, existing FsNode, context *Context) (newNode FsNode, code Status)
 
 	// Files
-	Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *Attr, newNode FsNode, code Status)
+	Create(name string, flags uint32, mode uint32, context *Context) (file File, newNode FsNode, code Status)
 	Open(flags uint32, context *Context) (file File, code Status)
 	OpenDir(context *Context) ([]DirEntry, Status)
 
@@ -68,7 +68,7 @@ type FsNode interface {
 	ListXAttr(context *Context) (attrs []string, code Status)
 
 	// Attributes
-	GetAttr(file File, context *Context) (fi *Attr, code Status)
+	GetAttr(out *Attr, file File, context *Context) (code Status)
 	Chmod(file File, perms uint32, context *Context) (code Status)
 	Chown(file File, uid uint32, gid uint32, context *Context) (code Status)
 	Truncate(file File, size uint64, context *Context) (code Status)

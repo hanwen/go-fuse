@@ -80,11 +80,11 @@ func (n *memNode) Readlink(c *Context) ([]byte, Status) {
 	return []byte(n.link), OK
 }
 
-func (n *memNode) Mkdir(name string, mode uint32, context *Context) (fi *Attr, newNode FsNode, code Status) {
+func (n *memNode) Mkdir(name string, mode uint32, context *Context) (newNode FsNode, code Status) {
 	ch := n.newNode(true)
 	ch.info.Mode = mode | S_IFDIR
 	n.Inode().AddChild(name, ch.Inode())
-	return &ch.info, ch, OK
+	return ch, OK
 }
 
 func (n *memNode) Unlink(name string, context *Context) (code Status) {
@@ -99,13 +99,13 @@ func (n *memNode) Rmdir(name string, context *Context) (code Status) {
 	return n.Unlink(name, context)
 }
 
-func (n *memNode) Symlink(name string, content string, context *Context) (fi *Attr, newNode FsNode, code Status) {
+func (n *memNode) Symlink(name string, content string, context *Context) (newNode FsNode, code Status) {
 	ch := n.newNode(false)
 	ch.info.Mode = S_IFLNK | 0777
 	ch.link = content
 	n.Inode().AddChild(name, ch.Inode())
 
-	return &ch.info, ch, OK
+	return ch, OK
 }
 
 func (n *memNode) Rename(oldName string, newParent FsNode, newName string, context *Context) (code Status) {
@@ -115,22 +115,21 @@ func (n *memNode) Rename(oldName string, newParent FsNode, newName string, conte
 	return OK
 }
 
-func (n *memNode) Link(name string, existing FsNode, context *Context) (fi *Attr, newNode FsNode, code Status) {
+func (n *memNode) Link(name string, existing FsNode, context *Context) (newNode FsNode, code Status) {
 	n.Inode().AddChild(name, existing.Inode())
-	fi, code = existing.GetAttr(nil, context)
-	return fi, existing, code
+	return existing, code
 }
 
-func (n *memNode) Create(name string, flags uint32, mode uint32, context *Context) (file File, fi *Attr, newNode FsNode, code Status) {
+func (n *memNode) Create(name string, flags uint32, mode uint32, context *Context) (file File, newNode FsNode, code Status) {
 	ch := n.newNode(false)
 	ch.info.Mode = mode | S_IFREG
 
 	f, err := os.Create(n.filename())
 	if err != nil {
-		return nil, nil, nil, ToStatus(err)
+		return nil, nil, ToStatus(err)
 	}
 	n.Inode().AddChild(name, ch.Inode())
-	return ch.newFile(f), &ch.info, ch, OK
+	return ch.newFile(f), ch, OK
 }
 
 type memNodeFile struct {
@@ -170,8 +169,9 @@ func (n *memNode) Open(flags uint32, context *Context) (file File, code Status) 
 	return n.newFile(f), OK
 }
 
-func (n *memNode) GetAttr(file File, context *Context) (fi *Attr, code Status) {
-	return &n.info, OK
+func (n *memNode) GetAttr(fi *Attr, file File, context *Context) (code Status) {
+	*fi = n.info
+	return OK
 }
 
 func (n *memNode) Truncate(file File, size uint64, context *Context) (code Status) {
