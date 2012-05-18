@@ -147,9 +147,10 @@ func (n *memNodeFile) InnerFile() File {
 
 func (n *memNodeFile) Flush() Status {
 	code := n.LoopbackFile.Flush()
-	fi, _ := n.LoopbackFile.GetAttr()
-	n.node.info.Size = fi.Size
-	n.node.info.Blocks = fi.Blocks
+	var a Attr
+	n.LoopbackFile.GetAttr(&a)
+	n.node.info.Size = a.Size
+	n.node.info.Blocks = a.Blocks
 	return code
 }
 

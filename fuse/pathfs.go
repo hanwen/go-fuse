@@ -527,8 +527,7 @@ func (n *pathInode) GetAttr(out *Attr, file File, context *Context) (code Status
 	}
 
 	if file != nil {
-		fi, code = file.GetAttr()
-		*out = *fi
+		code = file.GetAttr(out)
 	}
 
 	if file == nil || code == ENOSYS || code == EBADF {

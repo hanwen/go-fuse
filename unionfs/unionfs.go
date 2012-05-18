@@ -1007,12 +1007,10 @@ func (fs *unionFsFile) SetInode(node *fuse.Inode) {
 	fs.node = node
 }
 
-func (fs *unionFsFile) GetAttr() (*fuse.Attr, fuse.Status) {
-	fi, code := fs.File.GetAttr()
-	if fi != nil {
-		f := *fi
-		fi = &f
-		fi.Mode |= 0200
+func (fs *unionFsFile) GetAttr(out *fuse.Attr) fuse.Status {
+	code := fs.File.GetAttr(out)
+	if code.Ok() {
+		out.Mode |= 0200
 	}
-	return fi, code
+	return code
 }

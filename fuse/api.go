@@ -170,7 +170,7 @@ type File interface {
 	// The methods below may be called on closed files, due to
 	// concurrency.  In that case, you should return EBADF.
 	Truncate(size uint64) Status
-	GetAttr() (*Attr, Status)
+	GetAttr(out *Attr) (Status)
 	Chown(uid uint32, gid uint32) Status
 	Chmod(perms uint32) Status
 	Utimens(atimeNs int64, mtimeNs int64) Status

@@ -35,8 +35,8 @@ func (f *DefaultFile) Release() {
 
 }
 
-func (f *DefaultFile) GetAttr() (*Attr, Status) {
-	return nil, ENOSYS
+func (f *DefaultFile) GetAttr(*Attr) Status {
+	return ENOSYS
 }
 
 func (f *DefaultFile) Fsync(flags int) (code Status) {

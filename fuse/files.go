@@ -26,8 +26,10 @@ func (f *DataFile) String() string {
 	return fmt.Sprintf("DataFile(%x)", f.data[:l])
 }
 
-func (f *DataFile) GetAttr() (*Attr, Status) {
-	return &Attr{Mode: S_IFREG | 0644, Size: uint64(len(f.data))}, OK
+func (f *DataFile) GetAttr(out *Attr) Status {
+	out.Mode = S_IFREG | 0644
+	out.Size = uint64(len(f.data))
+	return OK
 }
 
 func NewDataFile(data []byte) *DataFile {
@@ -51,6 +53,8 @@ func (f *DataFile) Read(input *ReadIn, bp BufferPool) ([]byte, Status) {
 type DevNullFile struct {
 	DefaultFile
 }
+
+var _ = (File)((*DevNullFile)(nil))
 
 func NewDevNullFile() *DevNullFile {
 	return new(DevNullFile)
@@ -134,15 +138,14 @@ func (f *LoopbackFile) Chown(uid uint32, gid uint32) Status {
 	return ToStatus(f.File.Chown(int(uid), int(gid)))
 }
 
-func (f *LoopbackFile) GetAttr() (*Attr, Status) {
+func (f *LoopbackFile) GetAttr(a *Attr) Status {
 	st := syscall.Stat_t{}
 	err := syscall.Fstat(int(f.File.Fd()), &st)
 	if err != nil {
-		return nil, ToStatus(err)
+		return ToStatus(err)
 	}
-	a := &Attr{}
 	a.FromStat(&st)
-	return a, OK
+	return OK
 }
 
 ////////////////////////////////////////////////////////////////
