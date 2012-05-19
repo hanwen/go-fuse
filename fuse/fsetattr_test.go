@@ -45,15 +45,15 @@ func (f *MutableDataFile) Release() {
 
 }
 
-func (f *MutableDataFile) getAttr() *Attr {
-	a := f.Attr
-	a.Size = uint64(len(f.data))
-	return &a
+func (f *MutableDataFile) getAttr(out *Attr) {
+	*out = f.Attr
+	out.Size = uint64(len(f.data))
 }
 
-func (f *MutableDataFile) GetAttr() (*Attr, Status) {
+func (f *MutableDataFile) GetAttr(out *Attr) Status {
 	f.GetAttrCalled = true
-	return f.getAttr(), OK
+	f.getAttr(out)
+	return OK
 }
 
 func (f *MutableDataFile) Utimens(atimeNs int64, mtimeNs int64) Status {
@@ -93,9 +93,10 @@ func (fs *FSetAttrFs) GetAttr(name string, context *Context) (*Attr, Status) {
 		return &Attr{Mode: S_IFDIR | 0700}, OK
 	}
 	if name == "file" && fs.file != nil {
-		a := fs.file.getAttr()
+		var a Attr
+		fs.file.getAttr(&a)
 		a.Mode |= S_IFREG
-		return a, OK
+		return &a, OK
 	}
 	return nil, ENOENT
 }
