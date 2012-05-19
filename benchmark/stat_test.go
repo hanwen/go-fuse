@@ -17,11 +17,14 @@ import (
 )
 
 var CheckSuccess = fuse.CheckSuccess
+var delay = 0 * time.Microsecond
+
 
 type StatFs struct {
 	fuse.DefaultFileSystem
 	entries map[string]*fuse.Attr
 	dirs    map[string][]fuse.DirEntry
+	delay   time.Duration
 }
 
 func (me *StatFs) add(name string, a *fuse.Attr) {
@@ -46,6 +49,10 @@ func (me *StatFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.
 	e := me.entries[name]
 	if e == nil {
 		return nil, fuse.ENOENT
+	}
+
+	if me.delay > 0 {
+		time.Sleep(me.delay)
 	}
 	return e, fuse.OK
 }
@@ -152,6 +159,7 @@ func GetTestLines() []string {
 func BenchmarkGoFuseThreadedStat(b *testing.B) {
 	b.StopTimer()
 	fs := NewStatFs()
+	fs.delay = delay
 	files := GetTestLines()
 	for _, fn := range files {
 		fs.add(fn, &fuse.Attr{Mode: fuse.S_IFREG | 0644})
@@ -239,7 +247,9 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 		"-o",
 		"entry_timeout=0.0,attr_timeout=0.0,ac_attr_timeout=0.0,negative_timeout=0.0",
 		mountPoint)
-	cmd.Env = append(os.Environ(), fmt.Sprintf("STATFS_INPUT=%s", f.Name()))
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("STATFS_INPUT=%s", f.Name()),
+		fmt.Sprintf("STATFS_DELAY_USEC=%d", delay / time.Microsecond))
 	cmd.Start()
 
 	bin, err := exec.LookPath("fusermount")

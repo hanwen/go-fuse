@@ -18,7 +18,9 @@ extern "C" {
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <unistd.h>
 
+useconds_t delay_usec;
 
 class StatFs {
 public:
@@ -42,6 +44,10 @@ public:
       statbuf->st_mode = S_IFREG | 0666;
     }
 
+    if (delay_usec > 0) {
+      usleep(delay_usec);
+    }
+                         
     return 0;
   }
   
@@ -80,8 +86,13 @@ int main(int argc, char *argv[])
     fprintf(stderr, "pass file in $STATFS_INPUT\n");
     exit(2);
   }
-      
+  
   global->readFrom(in);
+  in = getenv("STATFS_DELAY_USEC");
+  if (in != NULL) {
+    delay_usec = atoi(in);
+  }
+  
   struct fuse_operations statfs_oper  = {0};
   statfs_oper.getattr = &global_getattr;
   return fuse_main(argc, argv, &statfs_oper, NULL);
