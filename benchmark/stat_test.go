@@ -164,8 +164,8 @@ func BenchmarkGoFuseThreadedStat(b *testing.B) {
 
 	ttl := 100 * time.Millisecond
 	opts := fuse.FileSystemOptions{
-		EntryTimeout:    ttl,
-		AttrTimeout:     ttl,
+		EntryTimeout:    0.0,
+		AttrTimeout:     0.0,
 		NegativeTimeout: 0.0,
 	}
 	wd, clean := setupFs(fs, &opts)
@@ -236,7 +236,7 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 	wd, _ := os.Getwd()
 	cmd := exec.Command(wd+"/cstatfs",
 		"-o",
-		"entry_timeout=0.1,attr_timeout=0.1,ac_attr_timeout=0.0,negative_timeout=0.0",
+		"entry_timeout=0.0,attr_timeout=0.0,ac_attr_timeout=0.0,negative_timeout=0.0",
 		mountPoint)
 	cmd.Env = append(os.Environ(), fmt.Sprintf("STATFS_INPUT=%s", f.Name()))
 	cmd.Start()
