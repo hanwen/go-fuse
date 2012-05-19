@@ -182,6 +182,7 @@ func BenchmarkGoFuseThreadedStat(b *testing.B) {
 }
 
 func TestingBOnePass(b *testing.B, threads int, sleepTime time.Duration, files []string) (results []float64) {
+	runtime.GC()
 	runs := b.N + 1
 	for j := 0; j < runs; j++ {
 		if j > 0 {
