@@ -34,15 +34,11 @@ func NewDirEntryList(data []byte, off uint64) *DirEntryList {
 	}
 }
 
-func (l *DirEntryList) AddString(name string, inode uint64, mode uint32) bool {
-	return l.Add([]byte(name), inode, mode)
-}
-
 func (l *DirEntryList) AddDirEntry(e DirEntry) bool {
-	return l.Add([]byte(e.Name), uint64(raw.FUSE_UNKNOWN_INO), e.Mode)
+	return l.Add(e.Name, uint64(raw.FUSE_UNKNOWN_INO), e.Mode)
 }
 
-func (l *DirEntryList) Add(name []byte, inode uint64, mode uint32) bool {
+func (l *DirEntryList) Add(name string, inode uint64, mode uint32) bool {
 	dirent := raw.Dirent{
 		Off:     l.offset+1,
 		Ino:     inode,
@@ -64,7 +60,7 @@ func (l *DirEntryList) Add(name []byte, inode uint64, mode uint32) bool {
 	if err != nil {
 		panic("Serialization of Dirent failed")
 	}
-	l.buf.Write(name)
+	l.buf.WriteString(name)
 	if padding > 0 {
 		l.buf.Write(eightPadding[:padding])
 	}
