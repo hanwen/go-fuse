@@ -17,15 +17,12 @@ var _ = fmt.Println
 
 // TODO - handle symlinks.
 
-func HeaderToFileInfo(h *tar.Header) (*fuse.Attr, string) {
-	a := &fuse.Attr{
-		Mode: uint32(h.Mode),
-		Size: uint64(h.Size),
-	}
-	a.Uid = uint32(h.Uid)
-	a.Gid = uint32(h.Gid)
-	a.SetTimes(&h.AccessTime, &h.ModTime, &h.ChangeTime)
-	return a, h.Name
+func HeaderToFileInfo(out *fuse.Attr, h *tar.Header) {
+	out.Mode = uint32(h.Mode)
+	out.Size = uint64(h.Size)
+	out.Uid = uint32(h.Uid)
+	out.Gid = uint32(h.Gid)
+	out.SetTimes(&h.AccessTime, &h.ModTime, &h.ChangeTime)
 }
 
 type TarFile struct {
@@ -33,10 +30,9 @@ type TarFile struct {
 	tar.Header
 }
 
-func (f *TarFile) Stat() *fuse.Attr {
-	fi, _ := HeaderToFileInfo(&f.Header)
-	fi.Mode |= syscall.S_IFREG
-	return fi
+func (f *TarFile) Stat(out *fuse.Attr) {
+	HeaderToFileInfo(out, &f.Header)
+	out.Mode |= syscall.S_IFREG
 }
 
 func (f *TarFile) Data() []byte {

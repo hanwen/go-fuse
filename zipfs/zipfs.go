@@ -19,12 +19,10 @@ type ZipFile struct {
 	*zip.File
 }
 
-func (f *ZipFile) Stat() *fuse.Attr {
+func (f *ZipFile) Stat(out *fuse.Attr) {
 	// TODO - do something intelligent with timestamps.
-	return &fuse.Attr{
-		Mode: fuse.S_IFREG | 0444,
-		Size: uint64(f.File.UncompressedSize),
-	}
+	out.Mode = fuse.S_IFREG | 0444
+	out.Size = uint64(f.File.UncompressedSize)
 }
 
 func (f *ZipFile) Data() []byte {

@@ -7,7 +7,7 @@ import (
 )
 
 type MemFile interface {
-	Stat() *fuse.Attr
+	Stat(out *fuse.Attr)
 	Data() []byte
 }
 
@@ -94,7 +94,7 @@ func (n *memNode) GetAttr(out *fuse.Attr, file fuse.File, context *fuse.Context)
 		out.Mode= fuse.S_IFDIR | 0777
 		return fuse.OK
 	}
-	*out = *n.file.Stat()
+	n.file.Stat(out)
 	return fuse.OK
 }
 
