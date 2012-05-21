@@ -3,7 +3,6 @@ package fuse
 // all of the code for DirEntryList.
 
 import (
-	"bytes"
 	"log"
 	"unsafe"
 
@@ -12,6 +11,7 @@ import (
 
 var _ = log.Print
 var eightPadding [8]byte
+const direntSize = int(unsafe.Sizeof(raw.Dirent{}))
 
 // DirEntry is a type for PathFileSystem and NodeFileSystem to return
 // directory contents in.
@@ -21,15 +21,13 @@ type DirEntry struct {
 }
 
 type DirEntryList struct {
-	buf     *bytes.Buffer
+	buf     []byte
 	offset  uint64
-	maxSize int
 }
 
 func NewDirEntryList(data []byte, off uint64) *DirEntryList {
 	return &DirEntryList{
-		buf: bytes.NewBuffer(data[:0]),
-		maxSize: len(data),
+		buf:     data[:0],
 		offset: off,
 	}
 }
@@ -39,41 +37,34 @@ func (l *DirEntryList) AddDirEntry(e DirEntry) bool {
 }
 
 func (l *DirEntryList) Add(name string, inode uint64, mode uint32) bool {
-	dirent := raw.Dirent{
-		Off:     l.offset+1,
-		Ino:     inode,
-		NameLen: uint32(len(name)),
-		Typ:     ModeToType(mode),
-	}
+	padding := (8 - len(name)&7)&7
+	delta := padding + direntSize + len(name)
+	oldLen := len(l.buf)
+	newLen := delta + oldLen
 
-	padding := 8 - len(name)&7
-	if padding == 8 {
-		padding = 0
-	}
-	
-	delta := padding + int(unsafe.Sizeof(raw.Dirent{})) + len(name)
-	newLen := delta + l.buf.Len()
-	if newLen > l.maxSize {
+	if newLen > cap(l.buf) {
 		return false
 	}
-	_, err := l.buf.Write(asSlice(unsafe.Pointer(&dirent), unsafe.Sizeof(raw.Dirent{})))
-	if err != nil {
-		panic("Serialization of Dirent failed")
-	}
-	l.buf.WriteString(name)
+	l.buf = l.buf[:newLen]
+	dirent := (*raw.Dirent)(unsafe.Pointer(&l.buf[oldLen]))
+	dirent.Off = l.offset+1
+	dirent.Ino = inode
+	dirent.NameLen= uint32(len(name))
+	dirent.Typ = ModeToType(mode)
+	oldLen += direntSize
+	copy(l.buf[oldLen:], name)
+	oldLen += len(name)
+	
 	if padding > 0 {
-		l.buf.Write(eightPadding[:padding])
+		copy(l.buf[oldLen:], eightPadding[:padding])
 	}
+	
 	l.offset = dirent.Off
-
-	if l.buf.Len() != newLen {
-		log.Panicf("newLen mismatch %d %d", l.buf.Len(), newLen)
-	}
 	return true
 }
 
 func (l *DirEntryList) Bytes() []byte {
-	return l.buf.Bytes()
+	return l.buf
 }
 
 ////////////////////////////////////////////////////////////////
