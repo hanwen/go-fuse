@@ -532,7 +532,6 @@ func (n *pathInode) GetAttr(out *Attr, file File, context *Context) (code Status
 
 	if file == nil || code == ENOSYS || code == EBADF {
 		fi, code = n.fs.GetAttr(n.GetPath(), context)
-		*out = *fi
 	}
 
 	if fi != nil {
@@ -541,6 +540,10 @@ func (n *pathInode) GetAttr(out *Attr, file File, context *Context) (code Status
 
 	if fi != nil && !fi.IsDir() && fi.Nlink == 0 {
 		fi.Nlink = 1
+	}
+
+	if fi != nil {
+		*out = *fi
 	}
 	return code
 }
