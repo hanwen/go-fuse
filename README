@@ -76,11 +76,12 @@ Automated code is under benchmark/ directory. A simple C version of
 the same FS gives a FUSE baseline
 
 Data points (Go-FUSE version May 2012), 1000 files, high level
-interface, all kernel caching turned off:
+interface, all kernel caching turned off, median stat time:
 
 platform                    libfuse     Go-FUSE      difference (%)
 
 Lenovo T60/Fedora17 (1cpu)  349us       379us        9% slower
+Lenovo T400/Lucid   (1cpu)  133us       140us        5% slower
 
 
 CREDITS
