@@ -56,7 +56,7 @@ func BulkStat(parallelism int, files []string) float64 {
 	return avg
 }
 
-func AnalyzeBenchmarkRuns(times []float64) {
+func AnalyzeBenchmarkRuns(label string, times []float64) {
 	sorted := times
 	sort.Float64s(sorted)
 
@@ -80,22 +80,18 @@ func AnalyzeBenchmarkRuns(times []float64) {
 	perc10 := sorted[int(n*0.1)]
 
 	fmt.Printf(
-		"%d samples\n"+
-			"avg %.3f ms 2sigma %.3f "+
+		"%s: %d samples\n"+
+			"avg %.3fms 2sigma %.3fms "+
 			"median %.3fms\n"+
 			"10%%tile %.3fms, 90%%tile %.3fms\n",
+		label,
 		len(times), avg, 2*stddev, median, perc10, perc90)
 }
 
 func RunBulkStat(runs int, threads int, sleepTime time.Duration, files []string) (results []float64) {
-	runs++
 	for j := 0; j < runs; j++ {
 		result := BulkStat(threads, files)
-		if j > 0 {
-			results = append(results, result)
-		} else {
-			fmt.Println("Ignoring first run to preheat caches.")
-		}
+		results = append(results, result)
 
 		if j < runs-1 {
 			fmt.Printf("Sleeping %.2f seconds\n", sleepTime)

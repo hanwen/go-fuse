@@ -183,37 +183,29 @@ func BenchmarkGoFuseThreadedStat(b *testing.B) {
 		files[i] = filepath.Join(wd, l)
 	}
 
-	log.Println("N = ", b.N)
 	threads := runtime.GOMAXPROCS(0)
 	results := TestingBOnePass(b, threads, time.Duration((ttl*120)/100), files)
-	AnalyzeBenchmarkRuns(results)
+	AnalyzeBenchmarkRuns("Go-FUSE", results)
 }
 
 func TestingBOnePass(b *testing.B, threads int, sleepTime time.Duration, files []string) (results []float64) {
 	runtime.GC()
-	runs := b.N + 1
-	for j := 0; j < runs; j++ {
-		if j > 0 {
-			b.StartTimer()
+	todo := b.N
+	for todo > 0 {
+		if len(files) > todo {
+			files = files[:todo]
 		}
+		b.StartTimer()
 		result := BulkStat(threads, files)
-		if j > 0 {
-			b.StopTimer()
-			results = append(results, result)
-		} else {
-			fmt.Println("Ignoring first run to preheat caches.")
-		}
-
-		if j < runs-1 {
-			fmt.Printf("Sleeping %.2f seconds\n", sleepTime.Seconds())
-			time.Sleep(sleepTime)
-		}
+		todo -= len(files)
+		b.StopTimer()
+		results = append(results, result)
 	}
 	return results
 }
 
 func BenchmarkCFuseThreadedStat(b *testing.B) {
-	log.Println("benchmarking CFuse")
+	b.StopTimer()
 
 	lines := GetTestLines()
 	unique := map[string]int{}
@@ -240,7 +232,6 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 	}
 	f.Close()
 
-	log.Println("Written:", f.Name())
 	mountPoint, _ := ioutil.TempDir("", "stat_test")
 	wd, _ := os.Getwd()
 	cmd := exec.Command(wd+"/cstatfs",
@@ -265,8 +256,7 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 	// Wait for the daemon to mount.
 	time.Sleep(200 * time.Millisecond)
 	ttl := time.Millisecond * 100
-	log.Println("N = ", b.N)
 	threads := runtime.GOMAXPROCS(0)
 	results := TestingBOnePass(b, threads, time.Duration((ttl*12)/10), lines)
-	AnalyzeBenchmarkRuns(results)
+	AnalyzeBenchmarkRuns("CFuse", results)
 }
