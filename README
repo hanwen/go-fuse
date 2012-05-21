@@ -19,7 +19,7 @@ subdirectories of the FUSE mount.
 
 * Both NodeFileSystem and PathFileSystem support manipulation of true
   hardlinks.
-  
+
 * Includes two fleshed out examples, zipfs and unionfs.
 
 
@@ -82,6 +82,7 @@ platform                    libfuse     Go-FUSE      difference (%)
 
 Lenovo T60/Fedora17 (1cpu)  349us       379us        9% slower
 Lenovo T400/Lucid   (1cpu)  133us       140us        5% slower
+Dell T3500/Lucid    (1cpu)   78us        78us        0%
 
 
 CREDITS
