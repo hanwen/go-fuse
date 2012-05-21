@@ -124,7 +124,7 @@ func (n *memNode) Create(name string, flags uint32, mode uint32, context *Contex
 	ch := n.newNode(false)
 	ch.info.Mode = mode | S_IFREG
 
-	f, err := os.Create(n.filename())
+	f, err := os.Create(ch.filename())
 	if err != nil {
 		return nil, nil, ToStatus(err)
 	}

@@ -40,6 +40,20 @@ func setupMemNodeTest(t *testing.T) (wd string, fs *MemNodeFs, clean func()) {
 
 }
 
+func TestMemNodeFsWrite(t *testing.T) {
+	wd, _, clean := setupMemNodeTest(t)
+	defer clean()
+
+	want := "hello"
+	err := ioutil.WriteFile(wd+"/test", []byte(want), 0644)
+	CheckSuccess(err)
+
+	content, err := ioutil.ReadFile(wd +"/test")
+	if string(content) != want {
+		t.Fatalf("content mismatch: got %q, want %q", content, want)
+	}
+}
+
 func TestMemNodeFs(t *testing.T) {
 	wd, _, clean := setupMemNodeTest(t)
 	defer clean()
