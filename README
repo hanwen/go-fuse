@@ -75,13 +75,12 @@ We use threaded stats over a read-only filesystem for benchmarking.
 Automated code is under benchmark/ directory. A simple C version of
 the same FS gives a FUSE baseline
 
-Data points (median time per stat, Go-FUSE version May 2012), 1000
-files, high level interface, all kernel caching turned off:
+Data points (Go-FUSE version May 2012), 1000 files, high level
+interface, all kernel caching turned off:
 
 platform                    libfuse     Go-FUSE      difference (%)
 
-Lenovo T60/Fedora17 (2cpu)  346us       572us        35% slower
-Lenovo T400/Lucid (2cpu)    152us       256us        68% slower
+Lenovo T60/Fedora17 (1cpu)  349us       379us        9% slower
 
 
 CREDITS

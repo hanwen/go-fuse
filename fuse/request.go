@@ -55,6 +55,21 @@ type request struct {
 	handler *operationHandler
 }
 
+func (r *request) clear() {
+	r.bufferPoolInputBuf = nil
+	r.inputBuf = nil
+	r.inHeader = nil
+	r.inData = nil
+	r.arg = nil
+	r.filenames = nil
+	r.outData = nil
+	r.status = OK
+	r.flatData = nil
+	r.preWriteNs = 0
+	r.startNs = 0
+	r.handler = nil
+}
+
 func (r *request) InputDebug() string {
 	val := " "
 	if r.handler.DecodeIn != nil {

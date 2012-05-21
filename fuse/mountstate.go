@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -35,6 +36,10 @@ type MountState struct {
 
 	opts           *MountOptions
 	kernelSettings raw.InitIn
+
+	// Number of loops blocked on reading; used to control amount
+	// of concurrency.
+	readers int32
 }
 
 func (ms *MountState) KernelSettings() raw.InitIn {
@@ -171,17 +176,23 @@ func (ms *MountState) recordStats(req *request) {
 func (ms *MountState) Loop() {
 	ms.loop()
 	ms.mountFile.Close()
-	ms.mountFile = nil
 }
 
+const _MAX_READERS = 10
 func (ms *MountState) loop() {
 	var dest []byte
+	var req *request
 	for {
 		if dest == nil {
 			dest = ms.buffers.AllocBuffer(uint32(ms.opts.MaxWrite + 4096))
 		}
-		
+		if atomic.AddInt32(&ms.readers, 0) > _MAX_READERS {
+			break
+		}
+
+		atomic.AddInt32(&ms.readers, 1)
 		n, err := ms.mountFile.Read(dest)
+		readers := atomic.AddInt32(&ms.readers, -1)
 		if err != nil {
 			errNo := ToStatus(err)
 		
@@ -190,8 +201,8 @@ func (ms *MountState) loop() {
 				continue
 			}
 
+			// Unmount.
 			if errNo == ENODEV {
-				// Unmount.
 				break
 			}
 
@@ -199,7 +210,13 @@ func (ms *MountState) loop() {
 			break
 		}
 		
-		req := ms.newRequest()
+		if readers <= 0 {
+			go ms.loop()
+		}
+
+		if req == nil {
+			req = ms.newRequest()
+		}
 		if ms.latencies != nil {
 			req.startNs = time.Now().UnixNano()
 		}
@@ -207,19 +224,15 @@ func (ms *MountState) loop() {
 			dest = nil
 		}
 
-		// When closely analyzing timings, the context switch
-		// generates some delay.  While unfortunate, the
-		// alternative is to have a fixed goroutine pool,
-		// which will lock up the FS if the daemon has too
-		// many blocking calls.
-		go func(r *request) {
-			ms.handleRequest(r)
-			r.Discard()
-		}(req)
+		ms.handleRequest(req)
+		req.clear()
 	}
-}
 
+	ms.buffers.FreeBuffer(dest)
+}
+	
 func (ms *MountState) handleRequest(req *request) {
+	defer req.Discard()
 	defer ms.recordStats(req)
 
 	req.parse()
