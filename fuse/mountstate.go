@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 	"unsafe"
@@ -40,6 +41,9 @@ type MountState struct {
 	// Number of loops blocked on reading; used to control amount
 	// of concurrency.
 	readers int32
+
+	// Number of loops total. Needed for clean shutdown.
+	loops sync.WaitGroup
 }
 
 func (ms *MountState) KernelSettings() raw.InitIn {
@@ -174,7 +178,9 @@ func (ms *MountState) recordStats(req *request) {
 //
 // Each filesystem operation executes in a separate goroutine.
 func (ms *MountState) Loop() {
+	ms.loops.Add(1)
 	ms.loop()
+	ms.loops.Wait()
 	ms.mountFile.Close()
 }
 
@@ -211,6 +217,7 @@ func (ms *MountState) loop() {
 		}
 		
 		if readers <= 0 {
+			ms.loops.Add(1)
 			go ms.loop()
 		}
 
@@ -229,6 +236,7 @@ func (ms *MountState) loop() {
 	}
 
 	ms.buffers.FreeBuffer(dest)
+	ms.loops.Done()
 }
 	
 func (ms *MountState) handleRequest(req *request) {
