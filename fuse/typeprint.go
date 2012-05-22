@@ -32,4 +32,6 @@ func (me *WithFlags) String() string {
 		raw.FlagString(raw.FuseOpenFlagNames, int(me.FuseFlags), ""))
 }
 
-
+func (a *Attr) String() string {
+	return ((*raw.Attr)(a)).String()
+}
