@@ -27,17 +27,6 @@ func (req *request) AllocOut(size uint32) []byte {
 }
 
 type request struct {
-	// the input, if obtained through bufferpool
-	bufferPoolInputBuf  []byte
-	bufferPoolOutputBuf []byte
-	pool               BufferPool
-
-	// If we have a small input, we quickly copy it to here, and
-	// give back the large buffer to buffer pool.  The largest
-	// input without data is 128 (setattr). 128 also fits small
-	// requests with short filenames.
-	smallInputBuf [128]byte
-	
 	inputBuf []byte
 
 	// These split up inputBuf.
@@ -52,16 +41,27 @@ type request struct {
 	status   Status
 	flatData []byte
 
-	// Space to keep header + structured data for what we send
-	// back to the kernel.
-	outBuf         [160]byte
-
 	// Start timestamp for timing info.
 	startNs    int64
 	preWriteNs int64
 
 	// All information pertaining to opcode of this request.
 	handler *operationHandler
+
+	// Request storage. For large inputs and outputs, use data
+	// obtained through bufferpool.
+	bufferPoolInputBuf  []byte
+	bufferPoolOutputBuf []byte
+	pool               BufferPool
+
+	// For small pieces of data, we use the following inlines
+	// arrays:
+	//
+	// Output header and structured data.
+	outBuf         [160]byte
+	
+	// Input, if small enough to fit here.
+	smallInputBuf [128]byte
 }
 
 func (r *request) clear() {
