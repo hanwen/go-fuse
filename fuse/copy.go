@@ -27,31 +27,27 @@ func CopyFile(srcFs, destFs FileSystem, srcFile, destFile string, context *Conte
 	defer dst.Release()
 	defer dst.Flush()
 
-	bp := NewBufferPool()
-	r := ReadIn{
-		Size: 128 * (1 << 10),
-	}
+	buf := make([]byte, 128 * (1 << 10))
+	off := int64(0)
 	for {
-		data, code := src.Read(&r, bp)
+		data, code := src.Read(buf, off)
 		if !code.Ok() {
 			return code
 		}
 		if len(data) == 0 {
 			break
 		}
-		n, code := dst.Write(&w, data)
+		n, code := dst.Write(data, off)
 		if !code.Ok() {
 			return code
 		}
 		if int(n) < len(data) {
 			return EIO
 		}
-		if len(data) < int(r.Size) {
+		if len(data) < len(buf) {
 			break
 		}
-		r.Offset += uint64(len(data))
-		w.Offset += uint64(len(data))
-		bp.FreeBuffer(data)
+		off += int64(len(data))
 	}
 	return OK
 }

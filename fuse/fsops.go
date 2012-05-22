@@ -347,13 +347,14 @@ func (c *FileSystemConnector) ListXAttr(header *raw.InHeader) (data []byte, code
 func (c *FileSystemConnector) Write(header *raw.InHeader, input *WriteIn, data []byte) (written uint32, code Status) {
 	node := c.toInode(header.NodeId)
 	opened := node.mount.getOpenedFile(input.Fh)
-	return opened.WithFlags.File.Write(input, data)
+	return opened.WithFlags.File.Write(data, int64(input.Offset))
 }
 
-func (c *FileSystemConnector) Read(header *raw.InHeader, input *ReadIn, bp BufferPool) ([]byte, Status) {
+func (c *FileSystemConnector) Read(header *raw.InHeader, input *ReadIn, buf []byte) ([]byte, Status) {
 	node := c.toInode(header.NodeId)
 	opened := node.mount.getOpenedFile(input.Fh)
-	return opened.WithFlags.File.Read(input, bp)
+	
+	return opened.WithFlags.File.Read(buf, int64(input.Offset))
 }
 
 func (c *FileSystemConnector) StatFs(out *StatfsOut, header *raw.InHeader) Status {

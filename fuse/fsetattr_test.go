@@ -22,19 +22,19 @@ func (f *MutableDataFile) String() string {
 	return "MutableDataFile"
 }
 
-func (f *MutableDataFile) Read(r *ReadIn, bp BufferPool) ([]byte, Status) {
-	return f.data[r.Offset : r.Offset+uint64(r.Size)], OK
+func (f *MutableDataFile) Read(buf []byte, off int64) ([]byte, Status) {
+	return f.data[off : off+int64(len(buf))], OK
 }
 
-func (f *MutableDataFile) Write(w *WriteIn, d []byte) (uint32, Status) {
-	end := uint64(w.Size) + w.Offset
+func (f *MutableDataFile) Write(d []byte, off int64) (uint32, Status) {
+	end := int64(len(d)) + off
 	if int(end) > len(f.data) {
 		data := make([]byte, len(f.data), end)
 		copy(data, f.data)
 		f.data = data
 	}
-	copy(f.data[w.Offset:end], d)
-	return w.Size, OK
+	copy(f.data[off:end], d)
+	return uint32(end - off), OK
 }
 
 func (f *MutableDataFile) Flush() Status {

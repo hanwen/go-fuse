@@ -276,9 +276,9 @@ func (fs *LockingRawFileSystem) ReleaseDir(header *raw.InHeader, h *raw.ReleaseI
 	fs.RawFileSystem.ReleaseDir(header, h)
 }
 
-func (fs *LockingRawFileSystem) Read(header *raw.InHeader, input *ReadIn, bp BufferPool) ([]byte, Status) {
+func (fs *LockingRawFileSystem) Read(header *raw.InHeader, input *ReadIn, buf []byte) ([]byte, Status) {
 	defer fs.locked()()
-	return fs.RawFileSystem.Read(header, input, bp)
+	return fs.RawFileSystem.Read(header, input, buf)
 }
 
 func (fs *LockingRawFileSystem) Write(header *raw.InHeader, input *WriteIn, data []byte) (written uint32, code Status) {

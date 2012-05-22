@@ -19,11 +19,11 @@ func (f *DefaultFile) String() string {
 	return "DefaultFile"
 }
 
-func (f *DefaultFile) Read(*ReadIn, BufferPool) ([]byte, Status) {
-	return []byte(""), ENOSYS
+func (f *DefaultFile) Read(buf []byte, off int64) ([]byte, Status) {
+	return nil, ENOSYS
 }
 
-func (f *DefaultFile) Write(*WriteIn, []byte) (uint32, Status) {
+func (f *DefaultFile) Write(data []byte, off int64) (uint32, Status) {
 	return 0, ENOSYS
 }
 

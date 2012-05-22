@@ -257,7 +257,7 @@ func (fs *UnionFs) putDeletion(name string) (code fuse.Status) {
 	}
 	defer f.Release()
 	defer f.Flush()
-	n, code := f.Write(&fuse.WriteIn{}, []byte(name))
+	n, code := f.Write([]byte(name), 0)
 	if int(n) != len(name) || !code.Ok() {
 		panic(fmt.Sprintf("Error for writing %v: %v, %v (exp %v) %v", name, marker, n, len(name), code))
 	}

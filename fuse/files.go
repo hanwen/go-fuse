@@ -17,6 +17,8 @@ type DataFile struct {
 	DefaultFile
 }
 
+var _ = (File)((*DataFile)(nil))
+
 func (f *DataFile) String() string {
 	l := len(f.data)
 	if l > 10 {
@@ -38,13 +40,13 @@ func NewDataFile(data []byte) *DataFile {
 	return f
 }
 
-func (f *DataFile) Read(input *ReadIn, bp BufferPool) ([]byte, Status) {
-	end := int(input.Offset) + int(input.Size)
+func (f *DataFile) Read(buf []byte, off int64) ([]byte, Status) {
+	end := int(off) + int(len(buf))
 	if end > len(f.data) {
 		end = len(f.data)
 	}
 
-	return f.data[input.Offset:end], OK
+	return f.data[off:end], OK
 }
 
 ////////////////
@@ -64,11 +66,11 @@ func (f *DevNullFile) String() string {
 	return "DevNullFile"
 }
 
-func (f *DevNullFile) Read(input *ReadIn, bp BufferPool) ([]byte, Status) {
-	return []byte{}, OK
+func (f *DevNullFile) Read(buf []byte, off int64) ([]byte, Status) {
+	return nil, OK
 }
 
-func (f *DevNullFile) Write(input *WriteIn, content []byte) (uint32, Status) {
+func (f *DevNullFile) Write(content []byte, off int64) (uint32, Status) {
 	return uint32(len(content)), OK
 }
 
@@ -97,18 +99,16 @@ func (f *LoopbackFile) String() string {
 	return fmt.Sprintf("LoopbackFile(%s)", f.File.Name())
 }
 
-func (f *LoopbackFile) Read(input *ReadIn, buffers BufferPool) ([]byte, Status) {
-	slice := buffers.AllocBuffer(input.Size)
-
-	n, err := f.File.ReadAt(slice, int64(input.Offset))
+func (f *LoopbackFile) Read(buf []byte, off int64) ([]byte, Status) {
+	n, err := f.File.ReadAt(buf, off)
 	if err == io.EOF {
 		err = nil
 	}
-	return slice[:n], ToStatus(err)
+	return buf[:n], ToStatus(err)
 }
 
-func (f *LoopbackFile) Write(input *WriteIn, data []byte) (uint32, Status) {
-	n, err := f.File.WriteAt(data, int64(input.Offset))
+func (f *LoopbackFile) Write(data []byte, off int64) (uint32, Status) {
+	n, err := f.File.WriteAt(data, off)
 	return uint32(n), ToStatus(err)
 }
 
@@ -159,7 +159,7 @@ func (f *ReadOnlyFile) String() string {
 	return fmt.Sprintf("ReadOnlyFile(%s)", f.File.String())
 }
 
-func (f *ReadOnlyFile) Write(input *WriteIn, data []byte) (uint32, Status) {
+func (f *ReadOnlyFile) Write(data []byte, off int64) (uint32, Status) {
 	return 0, EPERM
 }
 
