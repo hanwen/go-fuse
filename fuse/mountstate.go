@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -38,12 +37,10 @@ type MountState struct {
 	opts           *MountOptions
 	kernelSettings raw.InitIn
 
-	// Number of loops blocked on reading; used to control amount
-	// of concurrency.
-	readers int32
-
-	// Number of loops total. Needed for clean shutdown.
-	loops sync.WaitGroup
+	reqMu   sync.Mutex
+	reqPool []*request
+	readPool [][]byte
+	reqReaders int
 }
 
 func (ms *MountState) KernelSettings() raw.InitIn {
@@ -152,11 +149,67 @@ func (ms *MountState) BufferPoolStats() string {
 	return ms.buffers.String()
 }
 
-func (ms *MountState) newRequest() *request {
-	r := &request{
-		pool:               ms.buffers,
+const _MAX_READERS = 10
+func (ms *MountState) readRequest() (req *request, code Status) {
+	var dest []byte
+
+	ms.reqMu.Lock()
+	l := len(ms.reqPool)
+	if l > 0 {
+		req = ms.reqPool[l-1]
+		ms.reqPool = ms.reqPool[:l-1]
+	} else {
+		req = new(request)
 	}
-	return r
+	l = len(ms.readPool)
+	if l > 0 {
+		dest = ms.readPool[l-1]
+		ms.readPool = ms.readPool[:l-1]
+	} else {
+		dest = make([]byte, ms.opts.MaxWrite + 4096)
+	}
+	ms.reqReaders++
+	ms.reqMu.Unlock()
+
+	n, err := ms.mountFile.Read(dest)
+	if err != nil {
+		code = ToStatus(err)
+		ms.reqMu.Lock()
+		ms.reqPool = append(ms.reqPool, req)
+		ms.reqReaders--
+		ms.reqMu.Unlock()
+		return nil, code
+	}
+
+	gobbled := req.setInput(dest[:n])
+
+	ms.reqMu.Lock()
+	if !gobbled {
+		ms.readPool = append(ms.readPool, dest)
+		dest = nil
+	}
+	ms.reqReaders--
+	ms.reqMu.Unlock()
+	
+	return req, OK
+}
+
+func (ms *MountState) returnRequest(req *request) {
+	ms.recordStats(req)
+	
+	if req.bufferPoolOutputBuf != nil {
+		ms.buffers.FreeBuffer(req.bufferPoolOutputBuf)
+		req.bufferPoolOutputBuf = nil
+	}
+
+	req.clear()
+	ms.reqMu.Lock()
+	if req.bufferPoolOutputBuf != nil {
+		ms.readPool = append(ms.readPool, req.bufferPoolInputBuf)
+		req.bufferPoolInputBuf = nil
+	}
+	ms.reqPool = append(ms.reqPool, req)
+	ms.reqMu.Unlock()
 }
 
 func (ms *MountState) recordStats(req *request) {
@@ -178,70 +231,35 @@ func (ms *MountState) recordStats(req *request) {
 //
 // Each filesystem operation executes in a separate goroutine.
 func (ms *MountState) Loop() {
-	ms.loops.Add(1)
 	ms.loop()
-	ms.loops.Wait()
 	ms.mountFile.Close()
 }
 
-const _MAX_READERS = 10
 func (ms *MountState) loop() {
-	var dest []byte
-	var req *request
+	exit:
 	for {
-		if dest == nil {
-			dest = ms.buffers.AllocBuffer(uint32(ms.opts.MaxWrite + 4096))
-		}
-		if atomic.AddInt32(&ms.readers, 0) > _MAX_READERS {
-			break
-		}
-
-		atomic.AddInt32(&ms.readers, 1)
-		n, err := ms.mountFile.Read(dest)
-		readers := atomic.AddInt32(&ms.readers, -1)
-		if err != nil {
-			errNo := ToStatus(err)
-		
-			// Retry.
-			if errNo == ENOENT {
-				continue
-			}
-
-			// Unmount.
-			if errNo == ENODEV {
-				break
-			}
-
+		req, errNo := ms.readRequest()
+		switch errNo {
+		case OK:
+		case ENOENT: 
+			continue
+		case ENODEV:
+			// unmount
+			break exit
+		default: // some other error? 
 			log.Printf("Failed to read from fuse conn: %v", errNo)
 			break
 		}
-		
-		if readers <= 0 {
-			ms.loops.Add(1)
-			go ms.loop()
-		}
 
-		if req == nil {
-			req = ms.newRequest()
-		}
 		if ms.latencies != nil {
 			req.startNs = time.Now().UnixNano()
 		}
-		if req.setInput(dest[:n]) {
-			dest = nil
-		}
-
-		ms.handleRequest(req)
-		req.clear()
+		go ms.handleRequest(req)
 	}
-
-	ms.buffers.FreeBuffer(dest)
-	ms.loops.Done()
 }
 	
 func (ms *MountState) handleRequest(req *request) {
-	defer req.Discard()
-	defer ms.recordStats(req)
+	defer ms.returnRequest(req)
 
 	req.parse()
 	if req.handler == nil {
@@ -267,6 +285,15 @@ func (ms *MountState) handleRequest(req *request) {
 			errNo, operationName(req.inHeader.Opcode))
 	}
 }
+
+func (ms *MountState) AllocOut(req *request, size uint32) []byte {
+	if req.bufferPoolOutputBuf != nil {
+		ms.buffers.FreeBuffer(req.bufferPoolOutputBuf)
+	}
+	req.bufferPoolOutputBuf = ms.buffers.AllocBuffer(size)
+	return req.bufferPoolOutputBuf
+}
+
 
 func (ms *MountState) write(req *request) Status {
 	// Forget does not wait for reply.

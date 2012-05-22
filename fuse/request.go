@@ -13,19 +13,6 @@ import (
 var sizeOfOutHeader = unsafe.Sizeof(raw.OutHeader{})
 var zeroOutBuf [160]byte
 
-func (req *request) Discard() {
-	req.pool.FreeBuffer(req.bufferPoolOutputBuf)
-	req.pool.FreeBuffer(req.bufferPoolInputBuf)
-}
-
-func (req *request) AllocOut(size uint32) []byte {
-	if req.bufferPoolOutputBuf != nil {
-		req.pool.FreeBuffer(req.bufferPoolOutputBuf)
-	}
-	req.bufferPoolOutputBuf = req.pool.AllocBuffer(size)
-	return req.pool.AllocBuffer(size)
-}
-
 type request struct {
 	inputBuf []byte
 
@@ -52,7 +39,6 @@ type request struct {
 	// obtained through bufferpool.
 	bufferPoolInputBuf  []byte
 	bufferPoolOutputBuf []byte
-	pool               BufferPool
 
 	// For small pieces of data, we use the following inlines
 	// arrays:
@@ -65,7 +51,6 @@ type request struct {
 }
 
 func (r *request) clear() {
-	r.bufferPoolInputBuf = nil
 	r.inputBuf = nil
 	r.inHeader = nil
 	r.inData = nil

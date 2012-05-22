@@ -119,7 +119,7 @@ func doCreate(state *MountState, req *request) {
 
 func doReadDir(state *MountState, req *request) {
 	in := (*ReadIn)(req.inData)
-	buf := req.AllocOut(in.Size)
+	buf := state.AllocOut(req, in.Size)
 	entries := NewDirEntryList(buf, uint64(in.Offset))
 	
 	code := state.fileSystem.ReadDir(entries, req.inHeader, in)
@@ -254,7 +254,7 @@ func doLink(state *MountState, req *request) {
 
 func doRead(state *MountState, req *request) {
 	in := (*ReadIn)(req.inData)
-	buf := req.AllocOut(in.Size)
+	buf := state.AllocOut(req, in.Size)
 	req.flatData, req.status = state.fileSystem.Read(req.inHeader, in, buf)
 }
 
