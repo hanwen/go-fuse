@@ -41,6 +41,7 @@ type MountState struct {
 	reqPool []*request
 	readPool [][]byte
 	reqReaders int
+	outstandingReadBufs int
 }
 
 func (ms *MountState) KernelSettings() raw.InitIn {
@@ -168,6 +169,7 @@ func (ms *MountState) readRequest() (req *request, code Status) {
 	} else {
 		dest = make([]byte, ms.opts.MaxWrite + 4096)
 	}
+	ms.outstandingReadBufs++
 	ms.reqReaders++
 	ms.reqMu.Unlock()
 
@@ -185,18 +187,19 @@ func (ms *MountState) readRequest() (req *request, code Status) {
 
 	ms.reqMu.Lock()
 	if !gobbled {
+		ms.outstandingReadBufs--
 		ms.readPool = append(ms.readPool, dest)
 		dest = nil
 	}
 	ms.reqReaders--
 	ms.reqMu.Unlock()
-	
+
 	return req, OK
 }
 
 func (ms *MountState) returnRequest(req *request) {
 	ms.recordStats(req)
-	
+
 	if req.bufferPoolOutputBuf != nil {
 		ms.buffers.FreeBuffer(req.bufferPoolOutputBuf)
 		req.bufferPoolOutputBuf = nil
@@ -206,6 +209,7 @@ func (ms *MountState) returnRequest(req *request) {
 	ms.reqMu.Lock()
 	if req.bufferPoolOutputBuf != nil {
 		ms.readPool = append(ms.readPool, req.bufferPoolInputBuf)
+		ms.outstandingReadBufs--
 		req.bufferPoolInputBuf = nil
 	}
 	ms.reqPool = append(ms.reqPool, req)
@@ -241,12 +245,12 @@ func (ms *MountState) loop() {
 		req, errNo := ms.readRequest()
 		switch errNo {
 		case OK:
-		case ENOENT: 
+		case ENOENT:
 			continue
 		case ENODEV:
 			// unmount
 			break exit
-		default: // some other error? 
+		default: // some other error?
 			log.Printf("Failed to read from fuse conn: %v", errNo)
 			break
 		}
@@ -257,7 +261,7 @@ func (ms *MountState) loop() {
 		go ms.handleRequest(req)
 	}
 }
-	
+
 func (ms *MountState) handleRequest(req *request) {
 	defer ms.returnRequest(req)
 

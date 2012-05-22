@@ -44,8 +44,8 @@ func TestMemoryPressure(t *testing.T) {
 
 	// Wait for FS to get ready.
 	os.Lstat(dir)
-	
-	var wg sync.WaitGroup 
+
+	var wg sync.WaitGroup
 	for i := 0; i < 10 * _MAX_READERS; i++ {
 		wg.Add(1)
 		go func(x int) {
@@ -58,9 +58,12 @@ func TestMemoryPressure(t *testing.T) {
 		}(i)
 	}
 	time.Sleep(100 * time.Millisecond)
-	created := state.buffers.createdBuffers
+	created := state.buffers.createdBuffers + state.outstandingReadBufs
+	t.Logf("Have %d read bufs", state.outstandingReadBufs)
 	if created > 2 * _MAX_READERS {
 		t.Errorf("created %d buffers, max reader %d", created, _MAX_READERS)
 	}
+
+
 	wg.Wait()
 }
