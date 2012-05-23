@@ -1,6 +1,7 @@
 package fuse
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -42,6 +43,8 @@ type MountState struct {
 	readPool [][]byte
 	reqReaders int
 	outstandingReadBufs int
+
+	loops sync.WaitGroup
 }
 
 func (ms *MountState) KernelSettings() raw.InitIn {
@@ -120,6 +123,8 @@ func (ms *MountState) Unmount() (err error) {
 		delay = 2*delay + 5*time.Millisecond
 		time.Sleep(delay)
 	}
+	// Wait for event loops to exit.
+	ms.loops.Wait()
 	ms.mountPoint = ""
 	return err
 }
@@ -147,14 +152,31 @@ func (ms *MountState) OperationCounts() map[string]int {
 }
 
 func (ms *MountState) BufferPoolStats() string {
-	return ms.buffers.String()
+	s := ms.buffers.String()
+
+	var r int 
+	ms.reqMu.Lock()
+	r = len(ms.readPool) + ms.reqReaders
+	ms.reqMu.Unlock()
+
+	s += fmt.Sprintf("read buffers: %d (sz %d )",
+		r, ms.opts.MaxWrite/PAGESIZE + 1)
+	return s
 }
 
-const _MAX_READERS = 10
-func (ms *MountState) readRequest() (req *request, code Status) {
+// What is a good number?  Maybe the number of CPUs?
+const _MAX_READERS = 2
+
+// Returns a new request, or error. In case exitIdle is given, returns
+// nil, OK if we have too many readers already.
+func (ms *MountState) readRequest(exitIdle bool) (req *request, code Status) {
 	var dest []byte
 
 	ms.reqMu.Lock()
+	if ms.reqReaders > _MAX_READERS {
+		ms.reqMu.Unlock()
+		return nil, OK
+	}
 	l := len(ms.reqPool)
 	if l > 0 {
 		req = ms.reqPool[l-1]
@@ -167,7 +189,7 @@ func (ms *MountState) readRequest() (req *request, code Status) {
 		dest = ms.readPool[l-1]
 		ms.readPool = ms.readPool[:l-1]
 	} else {
-		dest = make([]byte, ms.opts.MaxWrite + 4096)
+		dest = make([]byte, ms.opts.MaxWrite + PAGESIZE)
 	}
 	ms.outstandingReadBufs++
 	ms.reqReaders++
@@ -192,6 +214,10 @@ func (ms *MountState) readRequest() (req *request, code Status) {
 		dest = nil
 	}
 	ms.reqReaders--
+	if ms.reqReaders <= 0 {
+		ms.loops.Add(1)
+		go ms.loop(true)
+	}
 	ms.reqMu.Unlock()
 
 	return req, OK
@@ -235,30 +261,36 @@ func (ms *MountState) recordStats(req *request) {
 //
 // Each filesystem operation executes in a separate goroutine.
 func (ms *MountState) Loop() {
-	ms.loop()
+	ms.loops.Add(1)
+	ms.loop(false)
+	ms.loops.Wait()
 	ms.mountFile.Close()
 }
 
-func (ms *MountState) loop() {
+func (ms *MountState) loop(exitIdle bool) {
+	defer ms.loops.Done()
 	exit:
 	for {
-		req, errNo := ms.readRequest()
+		req, errNo := ms.readRequest(exitIdle)
 		switch errNo {
 		case OK:
-		case ENOENT:
+			if req == nil {
+				break exit
+			}
+		case ENOENT: 
 			continue
 		case ENODEV:
 			// unmount
 			break exit
 		default: // some other error?
 			log.Printf("Failed to read from fuse conn: %v", errNo)
-			break
+			break exit
 		}
 
 		if ms.latencies != nil {
 			req.startNs = time.Now().UnixNano()
 		}
-		go ms.handleRequest(req)
+		ms.handleRequest(req)
 	}
 }
 
