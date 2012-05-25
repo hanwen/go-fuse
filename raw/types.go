@@ -126,6 +126,8 @@ const (
 	CAP_SPLICE_WRITE   = (1 << 7)
 	CAP_SPLICE_MOVE    = (1 << 8)
 	CAP_SPLICE_READ    = (1 << 9)
+	CAP_FLOCK_LOCKS    = (1 << 10)
+	CAP_IOCTL_DIR      = (1 << 11)
 )
 
 type InitIn struct {

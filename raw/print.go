@@ -24,6 +24,8 @@ func init() {
 		CAP_SPLICE_WRITE:   "SPLICE_WRITE",
 		CAP_SPLICE_MOVE:    "SPLICE_MOVE",
 		CAP_SPLICE_READ:    "SPLICE_READ",
+		CAP_FLOCK_LOCKS: "FLOCK_LOCKS",
+		CAP_IOCTL_DIR: "IOCTL_DIR",
 	}
 	releaseFlagNames = map[int]string{
 		RELEASE_FLUSH: "FLUSH",
