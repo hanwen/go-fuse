@@ -170,10 +170,9 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 		lines[i] = filepath.Join(mountPoint, l)
 	}
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	os.Lstat(mountPoint)
 	threads := runtime.GOMAXPROCS(0)
 	results := TestingBOnePass(b, threads, lines)
 	AnalyzeBenchmarkRuns("CFuse", results)
 }
-

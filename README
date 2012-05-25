@@ -80,8 +80,8 @@ interface, all kernel caching turned off, median stat time:
 platform                    libfuse     Go-FUSE      difference (%)
 
 Lenovo T60/Fedora17 (1cpu)  349us       355us        2% slower
-//Lenovo T400/Lucid   (1cpu)  133us       140us        5% slower
-//Dell T3500/Lucid    (1cpu)   78us        78us        0%
+Lenovo T400/Lucid   (1cpu)  138us       140us        5% slower
+Dell T3500/Lucid    (1cpu)   72us        76us        5% slower
 
 
 CREDITS
@@ -101,8 +101,6 @@ KNOWN PROBLEMS
 Grep source code for TODO.  Major topics:
 
 * Support for umask in Create
-
-* Use splice for transporting data, use io.Reader in API.
 
 * Missing support for network FS file locking: FUSE_GETLK, FUSE_SETLK,
   FUSE_SETLKW
