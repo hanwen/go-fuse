@@ -12,6 +12,8 @@ type ReadResult struct {
 	// If Data is nil and Status OK, splice from the following
 	// file.
 	Fd   uintptr
+
+	// Offset within Fd, or -1 to use current offset.
 	FdOff  int64
 	FdSize int
 }
@@ -47,6 +49,6 @@ func (r *ReadResult) Read(buf []byte) Status {
 	r.Fd = 0
 	r.FdOff = 0
 	r.FdSize = 0
-	
+
 	return r.Status
 }

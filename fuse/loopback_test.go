@@ -139,13 +139,14 @@ func TestReadLarge(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
-	content := make([]byte, 1024*1024)
+	// Add a bit more to test the splicing at the end.
+	content := make([]byte, 1024*1024 + 43)
 	for i := range content {
 		content[i] = byte(i)
 	}
 	err := ioutil.WriteFile(ts.origFile, []byte(content), 0644)
 	CheckSuccess(err)
-	
+
 	back, err := ioutil.ReadFile(ts.mountFile)
 	CheckSuccess(err)
 	if bytes.Compare(content, back) != 0 {

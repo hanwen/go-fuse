@@ -3,6 +3,7 @@ package fuse
 import (
 	"fmt"
 	"log"
+	"io"
 	"os"
 	"strings"
 	"sync"
@@ -156,7 +157,7 @@ func (ms *MountState) OperationCounts() map[string]int {
 func (ms *MountState) BufferPoolStats() string {
 	s := ms.buffers.String()
 
-	var r int 
+	var r int
 	ms.reqMu.Lock()
 	r = len(ms.readPool) + ms.reqReaders
 	ms.reqMu.Unlock()
@@ -279,7 +280,7 @@ func (ms *MountState) loop(exitIdle bool) {
 			if req == nil {
 				break exit
 			}
-		case ENOENT: 
+		case ENOENT:
 			continue
 		case ENODEV:
 			// unmount
@@ -326,7 +327,7 @@ func (ms *MountState) handleRequest(req *request) {
 func (ms *MountState) AllocOut(req *request, size uint32) []byte {
 	if cap(req.bufferPoolOutputBuf) >= int(size) {
 		req.bufferPoolOutputBuf = req.bufferPoolOutputBuf[:size]
-		return req.bufferPoolOutputBuf 
+		return req.bufferPoolOutputBuf
 	}
 	if req.bufferPoolOutputBuf != nil {
 		ms.buffers.FreeBuffer(req.bufferPoolOutputBuf)
@@ -364,6 +365,7 @@ func (ms *MountState) write(req *request) Status {
 		if err := ms.TrySplice(header, req); err == nil {
 			return OK
 		} else {
+			log.Println("Splice error", err)
 			buf := ms.AllocOut(req, uint32(req.flatData.FdSize))
 			req.flatData.Read(buf)
 			header = req.serializeHeader()
@@ -385,25 +387,45 @@ func (ms *MountState) TrySplice(header []byte, req *request) error {
 	if !finalSplice.Grow(total) {
 		return fmt.Errorf("splice.Grow failed.")
 	}
-	
+
 	_, err = finalSplice.Write(header)
 	if err != nil {
 		return err
 	}
 
-	n, err := finalSplice.LoadFromAt(req.flatData.Fd, req.flatData.FdSize, req.flatData.FdOff)
+	var n int
+	if req.flatData.FdOff < 0 {
+		n, err = finalSplice.LoadFrom(req.flatData.Fd, req.flatData.FdSize)
+	} else {
+		n, err = finalSplice.LoadFromAt(req.flatData.Fd, req.flatData.FdSize, req.flatData.FdOff)
+	}
+	if err == io.EOF || (err == nil && n < req.flatData.FdSize && n > 0) {
+		discard := make([]byte, len(header))
+		_, err = finalSplice.Read(discard)
+		if err != nil {
+			return err
+		}
+
+		// TODO - fix debug output.
+		req.flatData.FdSize = n
+		req.flatData.Fd = finalSplice.ReadFd()
+		req.flatData.FdOff = -1
+		header = req.serializeHeader()
+		return ms.TrySplice(header, req)
+	}
+
 	if err != nil {
-		// TODO - handle EOF.
 		// TODO - extract the data from splice.
 		return err
 	}
+
 	if n != req.flatData.FdSize {
-		return fmt.Errorf("Size mismatch %d %d", n, req.flatData.FdSize)		
+		return fmt.Errorf("splice: wrote %d, want %d", n, req.flatData.FdSize)
 	}
 
 	_, err = finalSplice.WriteTo(ms.mountFile.Fd(), total)
 	if err != nil {
-		return fmt.Errorf("Splice write %v", err)
+		return fmt.Errorf("splice write: %v", err)
 	}
 	return nil
 }

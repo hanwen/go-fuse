@@ -52,6 +52,14 @@ func (p *Pair) Read(d []byte) (n int, err error) {
 	return p.r.Read(d)
 }
 
+func (p *Pair) ReadFd() uintptr {
+	return p.r.Fd()
+}
+
+func (p *Pair) WriteFd() uintptr {
+	return p.w.Fd()
+}
+
 func (p *Pair) Write(d []byte) (n int, err error) {
 	return p.w.Write(d)
 }
