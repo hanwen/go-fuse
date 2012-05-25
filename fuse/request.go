@@ -171,7 +171,7 @@ func (r *request) parse() {
 		}
 	}
 
-	r.outBuf = zeroOutBuf
+	copy(r.outBuf[:r.handler.OutputSize], zeroOutBuf[:r.handler.OutputSize])
 	r.outData = unsafe.Pointer(&r.outBuf[sizeOfOutHeader])
 }
 
@@ -189,7 +189,9 @@ func (r *request) serialize() (header []byte, data []byte) {
 	o.Length = uint32(
 		int(sizeOfOutHeader) + int(dataLength) + int(len(r.flatData)))
 
-	copy(header[sizeOfOutHeader:], asSlice(r.outData, dataLength))
+	var asSlice []byte
+	toSlice(&asSlice, r.outData, dataLength)
+	copy(header[sizeOfOutHeader:], asSlice)
 	return header, r.flatData
 }
 

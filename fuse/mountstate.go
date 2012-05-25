@@ -295,8 +295,6 @@ func (ms *MountState) loop(exitIdle bool) {
 }
 
 func (ms *MountState) handleRequest(req *request) {
-	defer ms.returnRequest(req)
-
 	req.parse()
 	if req.handler == nil {
 		req.status = ENOSYS
@@ -320,6 +318,7 @@ func (ms *MountState) handleRequest(req *request) {
 		log.Printf("writer: Write/Writev failed, err: %v. opcode: %v",
 			errNo, operationName(req.inHeader.Opcode))
 	}
+	ms.returnRequest(req)
 }
 
 func (ms *MountState) AllocOut(req *request, size uint32) []byte {

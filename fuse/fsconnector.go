@@ -94,12 +94,12 @@ func (c *FileSystemConnector) childLookup(out *raw.EntryOut, fsi FsNode)  {
 
 func (c *FileSystemConnector) findMount(parent *Inode, name string) (mount *fileSystemMount) {
 	parent.treeLock.RLock()
-	defer parent.treeLock.RUnlock()
-	if parent.mounts == nil {
-		return nil
+	if parent.mounts != nil {
+		mount = parent.mounts[name]
 	}
+	parent.treeLock.RUnlock()
 
-	return parent.mounts[name]
+	return 
 }
 
 func (c *FileSystemConnector) toInode(nodeid uint64) *Inode {

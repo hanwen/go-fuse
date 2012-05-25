@@ -75,9 +75,9 @@ func CheckSuccess(e error) {
 }
 
 // Thanks to Andrew Gerrand for this hack.
-func asSlice(ptr unsafe.Pointer, byteCount uintptr) []byte {
-	h := &reflect.SliceHeader{uintptr(ptr), int(byteCount), int(byteCount)}
-	return *(*[]byte)(unsafe.Pointer(h))
+func toSlice(dest *[]byte, ptr unsafe.Pointer, byteCount uintptr) {
+	h := (*reflect.SliceHeader)(unsafe.Pointer(dest))
+	*h = reflect.SliceHeader{uintptr(ptr), int(byteCount), int(byteCount)}
 }
 
 func Version() string {
