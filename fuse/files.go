@@ -2,7 +2,6 @@ package fuse
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"syscall"
 )
@@ -40,13 +39,15 @@ func NewDataFile(data []byte) *DataFile {
 	return f
 }
 
-func (f *DataFile) Read(buf []byte, off int64) ([]byte, Status) {
+func (f *DataFile) Read(buf []byte, off int64) (res ReadResult) {
 	end := int(off) + int(len(buf))
 	if end > len(f.data) {
 		end = len(f.data)
 	}
 
-	return f.data[off:end], OK
+	res.Data = f.data[off:end]
+	res.Status = OK
+	return res
 }
 
 ////////////////
@@ -66,8 +67,8 @@ func (f *DevNullFile) String() string {
 	return "DevNullFile"
 }
 
-func (f *DevNullFile) Read(buf []byte, off int64) ([]byte, Status) {
-	return nil, OK
+func (f *DevNullFile) Read(buf []byte, off int64) ReadResult {
+	return ReadResult{}
 }
 
 func (f *DevNullFile) Write(content []byte, off int64) (uint32, Status) {
@@ -99,12 +100,13 @@ func (f *LoopbackFile) String() string {
 	return fmt.Sprintf("LoopbackFile(%s)", f.File.Name())
 }
 
-func (f *LoopbackFile) Read(buf []byte, off int64) ([]byte, Status) {
-	n, err := f.File.ReadAt(buf, off)
-	if err == io.EOF {
-		err = nil
+func (f *LoopbackFile) Read(buf []byte, off int64) (res ReadResult) {
+	return ReadResult{
+		Fd: f.File.Fd(),
+		FdOff: off,
+		FdSize:len(buf),
+		Status: OK,
 	}
-	return buf[:n], ToStatus(err)
 }
 
 func (f *LoopbackFile) Write(data []byte, off int64) (uint32, Status) {

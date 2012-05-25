@@ -26,8 +26,8 @@ type request struct {
 	// Unstructured data, a pointer to the relevant XxxxOut struct.
 	outData  unsafe.Pointer
 	status   Status
-	flatData []byte
-
+	flatData ReadResult
+	
 	// Start timestamp for timing info.
 	startNs    int64
 	preWriteNs int64
@@ -58,7 +58,7 @@ func (r *request) clear() {
 	r.filenames = nil
 	r.outData = nil
 	r.status = OK
-	r.flatData = nil
+	r.flatData.Clear()
 	r.preWriteNs = 0
 	r.startNs = 0
 	r.handler = nil
@@ -100,12 +100,12 @@ func (r *request) OutputDebug() string {
 	}
 
 	flatStr := ""
-	if len(r.flatData) > 0 {
+	if r.flatData.Size() > 0 {
 		if r.handler.FileNameOut {
-			s := strings.TrimRight(string(r.flatData), "\x00")
+			s := strings.TrimRight(string(r.flatData.Data), "\x00")
 			flatStr = fmt.Sprintf(" %q", s)
 		} else {
-			flatStr = fmt.Sprintf(" %d bytes data\n", len(r.flatData))
+			flatStr = fmt.Sprintf(" %d bytes data\n", r.flatData.Size())
 		}
 	}
 
@@ -175,7 +175,7 @@ func (r *request) parse() {
 	r.outData = unsafe.Pointer(&r.outBuf[sizeOfOutHeader])
 }
 
-func (r *request) serialize() (header []byte, data []byte) {
+func (r *request) serializeHeader() (header []byte) {
 	dataLength := r.handler.OutputSize
 	if r.outData == nil || r.status > OK {
 		dataLength = 0
@@ -187,11 +187,11 @@ func (r *request) serialize() (header []byte, data []byte) {
 	o.Unique = r.inHeader.Unique
 	o.Status = int32(-r.status)
 	o.Length = uint32(
-		int(sizeOfOutHeader) + int(dataLength) + int(len(r.flatData)))
+		int(sizeOfOutHeader) + int(dataLength) + r.flatData.Size())
 
 	var asSlice []byte
 	toSlice(&asSlice, r.outData, dataLength)
 	copy(header[sizeOfOutHeader:], asSlice)
-	return header, r.flatData
+	return header
 }
 

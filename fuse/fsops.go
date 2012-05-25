@@ -350,7 +350,7 @@ func (c *FileSystemConnector) Write(header *raw.InHeader, input *WriteIn, data [
 	return opened.WithFlags.File.Write(data, int64(input.Offset))
 }
 
-func (c *FileSystemConnector) Read(header *raw.InHeader, input *ReadIn, buf []byte) ([]byte, Status) {
+func (c *FileSystemConnector) Read(header *raw.InHeader, input *ReadIn, buf []byte) (ReadResult) {
 	node := c.toInode(header.NodeId)
 	opened := node.mount.getOpenedFile(input.Fh)
 	

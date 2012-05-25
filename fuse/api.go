@@ -77,6 +77,7 @@ type FsNode interface {
 	StatFs() *StatfsOut
 }
 
+
 // A filesystem API that uses paths rather than inodes.  A minimal
 // file system should have at least a functional GetAttr method.
 // Typically, each call happens in its own goroutine, so take care to
@@ -161,7 +162,7 @@ type File interface {
 	// the inner file here.
 	InnerFile() File
 
-	Read(dest []byte, off int64) ([]byte, Status)
+	Read(dest []byte, off int64) ReadResult
 	Write(data []byte, off int64) (written uint32, code Status)
 	Flush() Status
 	Release()
@@ -278,7 +279,7 @@ type RawFileSystem interface {
 	// File handling.
 	Create(out *raw.CreateOut, header *raw.InHeader, input *raw.CreateIn, name string) (code Status)
 	Open(out *raw.OpenOut, header *raw.InHeader, input *raw.OpenIn) (status Status)
-	Read(*raw.InHeader, *ReadIn, []byte) ([]byte, Status)
+	Read(*raw.InHeader, *ReadIn, []byte) ReadResult 
 
 	Release(header *raw.InHeader, input *raw.ReleaseIn)
 	Write(*raw.InHeader, *WriteIn, []byte) (written uint32, code Status)

@@ -30,24 +30,26 @@ func CopyFile(srcFs, destFs FileSystem, srcFile, destFile string, context *Conte
 	buf := make([]byte, 128 * (1 << 10))
 	off := int64(0)
 	for {
-		data, code := src.Read(buf, off)
-		if !code.Ok() {
-			return code
+		res := src.Read(buf, off)
+		if !res.Ok() {
+			return res.Status
 		}
-		if len(data) == 0 {
+		res.Read(buf)
+		
+		if len(res.Data) == 0 {
 			break
 		}
-		n, code := dst.Write(data, off)
+		n, code := dst.Write(res.Data, off)
 		if !code.Ok() {
 			return code
 		}
-		if int(n) < len(data) {
+		if int(n) < len(res.Data) {
 			return EIO
 		}
-		if len(data) < len(buf) {
+		if len(res.Data) < len(buf) {
 			break
 		}
-		off += int64(len(data))
+		off += int64(len(res.Data))
 	}
 	return OK
 }

@@ -322,6 +322,10 @@ func (ms *MountState) handleRequest(req *request) {
 }
 
 func (ms *MountState) AllocOut(req *request, size uint32) []byte {
+	if cap(req.bufferPoolOutputBuf) >= int(size) {
+		req.bufferPoolOutputBuf = req.bufferPoolOutputBuf[:size]
+		return req.bufferPoolOutputBuf 
+	}
 	if req.bufferPoolOutputBuf != nil {
 		ms.buffers.FreeBuffer(req.bufferPoolOutputBuf)
 	}
@@ -336,7 +340,7 @@ func (ms *MountState) write(req *request) Status {
 		return OK
 	}
 
-	header, data := req.serialize()
+	header := req.serializeHeader()
 	if ms.Debug {
 		log.Println(req.OutputDebug())
 	}
@@ -348,14 +352,28 @@ func (ms *MountState) write(req *request) Status {
 	if header == nil {
 		return OK
 	}
-	var err error
-	if data == nil {
-		_, err = ms.mountFile.Write(header)
-	} else {
-		_, err = Writev(int(ms.mountFile.Fd()), [][]byte{header, data})
+
+	if req.flatData.Size() == 0 {
+		_, err := ms.mountFile.Write(header)
+		return ToStatus(err)
 	}
 
+	if req.flatData.FdSize > 0 {
+		if ms.TrySplice(req) {
+			return OK
+		} else {
+			buf := ms.AllocOut(req, uint32(req.flatData.FdSize))
+			req.flatData.Read(buf)
+		}
+	}
+
+	_, err := Writev(int(ms.mountFile.Fd()), [][]byte{header, req.flatData.Data})
 	return ToStatus(err)
+}
+
+func (ms *MountState) TrySplice(req *request) bool {
+	// TODO - implement.
+	return false
 }
 
 func (ms *MountState) writeInodeNotify(entry *raw.NotifyInvalInodeOut) Status {
@@ -392,7 +410,7 @@ func (ms *MountState) writeEntryNotify(parent uint64, name string) Status {
 	// terminating null byte is missing.
 	nameBytes := []byte(name + "\000")
 	req.outData = unsafe.Pointer(entry)
-	req.flatData = nameBytes
+	req.flatData.Data = nameBytes
 	result := ms.write(&req)
 
 	if ms.Debug {

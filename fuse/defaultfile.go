@@ -8,6 +8,8 @@ import (
 
 var _ = log.Println
 
+var _ = (File)((*DefaultFile)(nil))
+
 func (f *DefaultFile) SetInode(*Inode) {
 }
 
@@ -19,8 +21,8 @@ func (f *DefaultFile) String() string {
 	return "DefaultFile"
 }
 
-func (f *DefaultFile) Read(buf []byte, off int64) ([]byte, Status) {
-	return nil, ENOSYS
+func (f *DefaultFile) Read(buf []byte, off int64) ReadResult {
+	return ReadResult{Status: ENOSYS}
 }
 
 func (f *DefaultFile) Write(data []byte, off int64) (uint32, Status) {
