@@ -4,9 +4,8 @@ GO-FUSE: native bindings for the FUSE kernel module.
 
 HIGHLIGHTS
 
-* High speed: about 50% slower than libfuse, using the gc
-compiler.  For most real world applications, the difference will be
-negligible.
+* High speed: as fast as libfuse using the gc compiler for single
+threaded loads.
 
 * Supports in-process mounting of different FileSystems onto
 subdirectories of the FUSE mount.
@@ -80,9 +79,9 @@ interface, all kernel caching turned off, median stat time:
 
 platform                    libfuse     Go-FUSE      difference (%)
 
-Lenovo T60/Fedora17 (1cpu)  349us       379us        9% slower
-Lenovo T400/Lucid   (1cpu)  133us       140us        5% slower
-Dell T3500/Lucid    (1cpu)   78us        78us        0%
+Lenovo T60/Fedora17 (1cpu)  349us       355us        2% slower
+//Lenovo T400/Lucid   (1cpu)  133us       140us        5% slower
+//Dell T3500/Lucid    (1cpu)   78us        78us        0%
 
 
 CREDITS

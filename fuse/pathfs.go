@@ -219,18 +219,42 @@ func (n *pathInode) RLockTree() func() {
 // GetPath returns the path relative to the mount governing this
 // inode.  It returns nil for mount if the file was deleted or the
 // filesystem unmounted.
-func (n *pathInode) GetPath() (path string) {
-	defer n.RLockTree()()
+func (n *pathInode) GetPath() string {
+	if n == n.pathFs.root {
+		return ""
+	}
+	
+	pathLen := 0
 
-	rev_components := make([]string, 0, 10)
+	// The simple solution is to collect names, and reverse join
+	// them, them, but since this is a hot path, we take some
+	// effort to avoid allocations.
+	 
+	n.pathFs.pathLock.RLock()
 	p := n
 	for ; p.Parent != nil; p = p.Parent {
-		rev_components = append(rev_components, p.Name)
+		pathLen += len(p.Name) + 1
 	}
+	pathLen--
+	
 	if p != p.pathFs.root {
+		n.pathFs.pathLock.RUnlock()
 		return ".deleted"
 	}
-	path = ReverseJoin(rev_components, "/")
+	
+	pathBytes := make([]byte, pathLen)
+	end := len(pathBytes)
+	for p = n; p.Parent != nil; p = p.Parent {
+		l := len(p.Name)
+		copy(pathBytes[end - l:], p.Name)
+		end -= len(p.Name) + 1
+		if end > 0 {
+			pathBytes[end] = '/'
+		}
+	}
+	n.pathFs.pathLock.RUnlock()
+
+	path := string(pathBytes)
 	if n.pathFs.Debug {
 		log.Printf("Inode %d = %q (%s)", n.Inode().nodeId, path, n.fs.String())
 	}
