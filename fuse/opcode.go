@@ -160,23 +160,28 @@ func doGetXAttr(state *MountState, req *request) {
 	}
 
 	input := (*raw.GetXAttrIn)(req.inData)
-	var data []byte
-	switch {
-	case req.inHeader.Opcode == _OP_GETXATTR && input.Size == 0:
+
+	if req.inHeader.Opcode == _OP_GETXATTR && input.Size == 0 {
 		out := (*raw.GetXAttrOut)(req.outData)
 		sz, code := state.fileSystem.GetXAttrSize(req.inHeader, req.filenames[0])
 		if code.Ok() {
 			out.Size = uint32(sz)
 			req.status = ERANGE
-			return
 		}
 		req.status = code
-	case req.inHeader.Opcode == _OP_GETXATTR:
-		req.outData = nil
+		return
+	}
+	
+	req.outData = nil	
+	var data []byte
+	switch req.inHeader.Opcode {
+	case _OP_GETXATTR:
 		data, req.status = state.fileSystem.GetXAttrData(req.inHeader, req.filenames[0])
-	default:
-		req.outData = nil
+	case _OP_LISTXATTR:
 		data, req.status = state.fileSystem.ListXAttr(req.inHeader)
+	default:
+		log.Panicf("xattr opcode %v", req.inHeader.Opcode)
+		req.status = ENOSYS
 	}
 
 	if len(data) > int(input.Size) {
@@ -511,6 +516,8 @@ func init() {
 	for op, f := range map[int32]castPointerFunc{
 		_OP_FLUSH:        func(ptr unsafe.Pointer) interface{} { return (*raw.FlushIn)(ptr) },
 		_OP_GETATTR:      func(ptr unsafe.Pointer) interface{} { return (*raw.GetAttrIn)(ptr) },
+		_OP_GETXATTR:     func(ptr unsafe.Pointer) interface{} { return (*raw.GetXAttrIn)(ptr) },
+		_OP_LISTXATTR:    func(ptr unsafe.Pointer) interface{} { return (*raw.GetXAttrIn)(ptr) },
 		_OP_SETATTR:      func(ptr unsafe.Pointer) interface{} { return (*raw.SetAttrIn)(ptr) },
 		_OP_INIT:         func(ptr unsafe.Pointer) interface{} { return (*raw.InitIn)(ptr) },
 		_OP_IOCTL:        func(ptr unsafe.Pointer) interface{} { return (*raw.IoctlIn)(ptr) },
