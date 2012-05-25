@@ -4,7 +4,7 @@ import (
 	"log"
 	"sync"
 	"unsafe"
-	
+
 	"github.com/hanwen/go-fuse/raw"
 )
 
@@ -65,7 +65,7 @@ func (m *fileSystemMount) fillEntry(out *raw.EntryOut) {
 	splitDuration(m.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
 	splitDuration(m.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	m.setOwner(&out.Attr)
-	if out.Mode & S_IFDIR == 0 && out.Nlink == 0 {
+	if out.Mode&S_IFDIR == 0 && out.Nlink == 0 {
 		out.Nlink = 1
 	}
 }

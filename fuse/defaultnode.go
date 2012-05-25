@@ -31,7 +31,7 @@ type DefaultFsNode struct {
 	inode *Inode
 }
 
-var _ =  FsNode((*DefaultFsNode)(nil))
+var _ = FsNode((*DefaultFsNode)(nil))
 
 func (n *DefaultFsNode) StatFs() *StatfsOut {
 	return nil

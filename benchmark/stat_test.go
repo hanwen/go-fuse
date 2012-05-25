@@ -157,7 +157,7 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 		mountPoint)
 	cmd.Env = append(os.Environ(),
 		fmt.Sprintf("STATFS_INPUT=%s", f.Name()),
-		fmt.Sprintf("STATFS_DELAY_USEC=%d", delay / time.Microsecond))
+		fmt.Sprintf("STATFS_DELAY_USEC=%d", delay/time.Microsecond))
 	cmd.Start()
 
 	bin, err := exec.LookPath("fusermount")

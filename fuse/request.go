@@ -17,17 +17,17 @@ type request struct {
 	inputBuf []byte
 
 	// These split up inputBuf.
-	inHeader  *raw.InHeader      // generic header
-	inData    unsafe.Pointer // per op data
-	arg       []byte         // flat data.
-	
-	filenames []string       // filename arguments
+	inHeader *raw.InHeader  // generic header
+	inData   unsafe.Pointer // per op data
+	arg      []byte         // flat data.
+
+	filenames []string // filename arguments
 
 	// Unstructured data, a pointer to the relevant XxxxOut struct.
 	outData  unsafe.Pointer
 	status   Status
 	flatData ReadResult
-	
+
 	// Start timestamp for timing info.
 	startNs    int64
 	preWriteNs int64
@@ -44,8 +44,8 @@ type request struct {
 	// arrays:
 	//
 	// Output header and structured data.
-	outBuf         [160]byte
-	
+	outBuf [160]byte
+
 	// Input, if small enough to fit here.
 	smallInputBuf [128]byte
 }
@@ -123,10 +123,10 @@ func (r *request) setInput(input []byte) bool {
 		copy(r.smallInputBuf[:], input)
 		r.inputBuf = r.smallInputBuf[:len(input)]
 		return false
-	} 
+	}
 	r.inputBuf = input
 	r.bufferPoolInputBuf = input
-	
+
 	return true
 }
 
@@ -198,4 +198,3 @@ func (r *request) serializeHeader() (header []byte) {
 	copy(header[sizeOfOutHeader:], asSlice)
 	return header
 }
-

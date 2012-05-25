@@ -12,9 +12,8 @@ import (
 
 var _ = log.Println
 
-
 var maxPipeSize int
-var resizable bool 
+var resizable bool
 
 func Resizable() bool {
 	return resizable
@@ -86,4 +85,3 @@ func newSplicePair() (p *Pair, err error) {
 	}
 	return p, nil
 }
-

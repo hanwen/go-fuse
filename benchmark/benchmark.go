@@ -13,7 +13,6 @@ import (
 	"time"
 )
 
-
 func ReadLines(name string) []string {
 	f, err := os.Open(name)
 	if err != nil {

@@ -223,30 +223,30 @@ func (n *pathInode) GetPath() string {
 	if n == n.pathFs.root {
 		return ""
 	}
-	
+
 	pathLen := 0
 
 	// The simple solution is to collect names, and reverse join
 	// them, them, but since this is a hot path, we take some
 	// effort to avoid allocations.
-	 
+
 	n.pathFs.pathLock.RLock()
 	p := n
 	for ; p.Parent != nil; p = p.Parent {
 		pathLen += len(p.Name) + 1
 	}
 	pathLen--
-	
+
 	if p != p.pathFs.root {
 		n.pathFs.pathLock.RUnlock()
 		return ".deleted"
 	}
-	
+
 	pathBytes := make([]byte, pathLen)
 	end := len(pathBytes)
 	for p = n; p.Parent != nil; p = p.Parent {
 		l := len(p.Name)
-		copy(pathBytes[end - l:], p.Name)
+		copy(pathBytes[end-l:], p.Name)
 		end -= len(p.Name) + 1
 		if end > 0 {
 			pathBytes[end] = '/'

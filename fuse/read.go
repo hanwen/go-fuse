@@ -11,7 +11,7 @@ type ReadResult struct {
 
 	// If Data is nil and Status OK, splice from the following
 	// file.
-	Fd   uintptr
+	Fd uintptr
 
 	// Offset within Fd, or -1 to use current offset.
 	FdOff  int64

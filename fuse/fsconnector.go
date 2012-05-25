@@ -79,7 +79,7 @@ func (c *FileSystemConnector) verify() {
 }
 
 // Generate EntryOut and increase the lookup count for an inode.
-func (c *FileSystemConnector) childLookup(out *raw.EntryOut, fsi FsNode)  {
+func (c *FileSystemConnector) childLookup(out *raw.EntryOut, fsi FsNode) {
 	n := fsi.Inode()
 	fsi.GetAttr((*Attr)(&out.Attr), nil, nil)
 	n.mount.fillEntry(out)
@@ -99,7 +99,7 @@ func (c *FileSystemConnector) findMount(parent *Inode, name string) (mount *file
 	}
 	parent.treeLock.RUnlock()
 
-	return 
+	return
 }
 
 func (c *FileSystemConnector) toInode(nodeid uint64) *Inode {
@@ -118,7 +118,7 @@ func (c *FileSystemConnector) lookupUpdate(node *Inode) uint64 {
 	}
 	node.lookupCount += 1
 	node.treeLock.Unlock()
-	
+
 	return node.nodeId
 }
 
@@ -173,7 +173,7 @@ func (c *FileSystemConnector) recursiveConsiderDropInode(n *Inode) (drop bool) {
 	n.openFilesMutex.Lock()
 	ok := len(n.openFiles) == 0
 	n.openFilesMutex.Unlock()
-	
+
 	return ok
 }
 

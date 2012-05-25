@@ -45,7 +45,7 @@ func main() {
 			log.Fatalf("os.Create: %v", err)
 		}
 	}
-	
+
 	var fs fuse.NodeFileSystem
 	fs, err = zipfs.NewArchiveFileSystem(flag.Arg(1))
 	if err != nil {
@@ -54,7 +54,7 @@ func main() {
 	}
 
 	opts := &fuse.FileSystemOptions{
-		AttrTimeout: time.Duration(*ttl * float64(time.Second)),
+		AttrTimeout:  time.Duration(*ttl * float64(time.Second)),
 		EntryTimeout: time.Duration(*ttl * float64(time.Second)),
 	}
 	state, _, err := fuse.MountNodeFileSystem(flag.Arg(0), fs, opts)
@@ -62,7 +62,7 @@ func main() {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)
 	}
- 	
+
 	state.SetRecordStatistics(*latencies)
 	state.Debug = *debug
 	runtime.GC()
@@ -77,7 +77,7 @@ func main() {
 		cmd.Stdout = os.Stdout
 		cmd.Start()
 	}
-	
+
 	state.Loop()
 	if memProfFile != nil {
 		pprof.WriteHeapProfile(memProfFile)

@@ -49,7 +49,7 @@ func readDir(fs fuse.FileSystem, name string) *dirResponse {
 	if !code.Ok() {
 		return r
 	}
-	r.entries = origStream 
+	r.entries = origStream
 	return r
 }
 

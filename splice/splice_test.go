@@ -9,7 +9,7 @@ func TestPairSize(t *testing.T) {
 	p, _ := Get()
 	defer Done(p)
 	p.MaxGrow()
-	b := make([]byte, p.Cap() + 100)
+	b := make([]byte, p.Cap()+100)
 	for i := range b {
 		b[i] = byte(i)
 	}
@@ -24,9 +24,5 @@ func TestPairSize(t *testing.T) {
 	if err == nil {
 		t.Fatalf("should give error on exceeding capacity")
 	}
-	
+
 }
-
-
-
-

@@ -102,9 +102,9 @@ func (f *LoopbackFile) String() string {
 
 func (f *LoopbackFile) Read(buf []byte, off int64) (res ReadResult) {
 	return ReadResult{
-		Fd: f.File.Fd(),
-		FdOff: off,
-		FdSize:len(buf),
+		Fd:     f.File.Fd(),
+		FdOff:  off,
+		FdSize: len(buf),
 		Status: OK,
 	}
 }

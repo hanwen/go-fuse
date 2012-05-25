@@ -89,9 +89,9 @@ func (n *memNode) Deletable() bool {
 	return false
 }
 
-func (n *memNode) GetAttr(out *fuse.Attr, file fuse.File, context *fuse.Context) (fuse.Status) {
+func (n *memNode) GetAttr(out *fuse.Attr, file fuse.File, context *fuse.Context) fuse.Status {
 	if n.Inode().IsDir() {
-		out.Mode= fuse.S_IFDIR | 0777
+		out.Mode = fuse.S_IFDIR | 0777
 		return fuse.OK
 	}
 	n.file.Stat(out)

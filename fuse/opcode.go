@@ -67,9 +67,9 @@ const (
 
 func doInit(state *MountState, req *request) {
 	const (
-		FUSE_KERNEL_VERSION       = 7
+		FUSE_KERNEL_VERSION   = 7
 		MINIMUM_MINOR_VERSION = 13
-		OUR_MINOR_VERSION = 16
+		OUR_MINOR_VERSION     = 16
 	)
 
 	input := (*raw.InitIn)(req.inData)
@@ -93,7 +93,7 @@ func doInit(state *MountState, req *request) {
 			state.opts.MaxWrite = maxW
 		}
 	}
-	
+
 	out := &raw.InitOut{
 		Major:               FUSE_KERNEL_VERSION,
 		Minor:               OUR_MINOR_VERSION,
@@ -106,7 +106,7 @@ func doInit(state *MountState, req *request) {
 	if out.Minor > input.Minor {
 		out.Minor = input.Minor
 	}
-	
+
 	req.outData = unsafe.Pointer(out)
 	req.status = OK
 }
@@ -130,7 +130,7 @@ func doReadDir(state *MountState, req *request) {
 	in := (*ReadIn)(req.inData)
 	buf := state.AllocOut(req, in.Size)
 	entries := NewDirEntryList(buf, uint64(in.Offset))
-	
+
 	code := state.fileSystem.ReadDir(entries, req.inHeader, in)
 	req.flatData.Data = entries.Bytes()
 	req.status = code
@@ -180,8 +180,8 @@ func doGetXAttr(state *MountState, req *request) {
 		req.status = code
 		return
 	}
-	
-	req.outData = nil	
+
+	req.outData = nil
 	var data []byte
 	switch req.inHeader.Opcode {
 	case _OP_GETXATTR:
@@ -216,7 +216,7 @@ func doForget(state *MountState, req *request) {
 
 func doBatchForget(state *MountState, req *request) {
 	in := (*raw.BatchForgetIn)(req.inData)
-	wantBytes := uintptr(in.Count)*unsafe.Sizeof(raw.BatchForgetIn{})
+	wantBytes := uintptr(in.Count) * unsafe.Sizeof(raw.BatchForgetIn{})
 	if uintptr(len(req.arg)) < wantBytes {
 		// We have no return value to complain, so log an error.
 		log.Printf("Too few bytes for batch forget. Got %d bytes, want %d (%d entries)",
@@ -244,7 +244,7 @@ func doLookup(state *MountState, req *request) {
 
 func doMknod(state *MountState, req *request) {
 	out := (*raw.EntryOut)(req.outData)
-	
+
 	req.status = state.fileSystem.Mknod(out, req.inHeader, (*raw.MknodIn)(req.inData), req.filenames[0])
 }
 
@@ -568,7 +568,7 @@ func init() {
 	var r request
 	sizeOfOutHeader := unsafe.Sizeof(raw.OutHeader{})
 	for code, h := range operationHandlers {
-		if h.OutputSize + sizeOfOutHeader > unsafe.Sizeof(r.outBuf) {
+		if h.OutputSize+sizeOfOutHeader > unsafe.Sizeof(r.outBuf) {
 			log.Panicf("request output buffer too small: code %v, sz %d + %d %v", code, h.OutputSize, sizeOfOutHeader, h)
 		}
 	}

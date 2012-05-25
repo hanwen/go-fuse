@@ -24,7 +24,7 @@ func (f *MutableDataFile) String() string {
 
 func (f *MutableDataFile) Read(buf []byte, off int64) (r ReadResult) {
 	r.Data = f.data[off : off+int64(len(buf))]
-	return r	
+	return r
 }
 
 func (f *MutableDataFile) Write(d []byte, off int64) (uint32, Status) {

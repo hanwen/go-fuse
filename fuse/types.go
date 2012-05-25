@@ -1,9 +1,9 @@
 package fuse
 
 import (
+	"github.com/hanwen/go-fuse/raw"
 	"os"
 	"syscall"
-	"github.com/hanwen/go-fuse/raw"
 )
 
 const (
@@ -41,7 +41,6 @@ const (
 	EROFS   = Status(syscall.EROFS)
 )
 
-
 type Attr raw.Attr
 
 type Owner raw.Owner
@@ -78,4 +77,3 @@ type WriteIn struct {
 	Flags      uint32
 	Padding    uint32
 }
-

@@ -48,7 +48,7 @@ func TestMemNodeFsWrite(t *testing.T) {
 	err := ioutil.WriteFile(wd+"/test", []byte(want), 0644)
 	CheckSuccess(err)
 
-	content, err := ioutil.ReadFile(wd +"/test")
+	content, err := ioutil.ReadFile(wd + "/test")
 	if string(content) != want {
 		t.Fatalf("content mismatch: got %q, want %q", content, want)
 	}

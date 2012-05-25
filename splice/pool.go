@@ -1,4 +1,5 @@
 package splice
+
 import (
 	"sync"
 )
@@ -46,7 +47,6 @@ func (me *pairPool) used() int {
 	return me.usedCount
 }
 
-
 func (me *pairPool) get() (p *Pair, err error) {
 	me.Lock()
 	defer me.Unlock()
@@ -58,7 +58,7 @@ func (me *pairPool) get() (p *Pair, err error) {
 		me.unused = me.unused[:l-1]
 		return p, nil
 	}
-	
+
 	return newSplicePair()
 }
 

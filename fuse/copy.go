@@ -27,7 +27,7 @@ func CopyFile(srcFs, destFs FileSystem, srcFile, destFile string, context *Conte
 	defer dst.Release()
 	defer dst.Flush()
 
-	buf := make([]byte, 128 * (1 << 10))
+	buf := make([]byte, 128*(1<<10))
 	off := int64(0)
 	for {
 		res := src.Read(buf, off)
@@ -35,7 +35,7 @@ func CopyFile(srcFs, destFs FileSystem, srcFile, destFile string, context *Conte
 			return res.Status
 		}
 		res.Read(buf)
-		
+
 		if len(res.Data) == 0 {
 			break
 		}

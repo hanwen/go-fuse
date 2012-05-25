@@ -46,7 +46,7 @@ func TestMemoryPressure(t *testing.T) {
 	os.Lstat(dir)
 
 	var wg sync.WaitGroup
-	for i := 0; i < 10 * _MAX_READERS; i++ {
+	for i := 0; i < 10*_MAX_READERS; i++ {
 		wg.Add(1)
 		go func(x int) {
 			fn := fmt.Sprintf("%s/%ddir/file%d", dir, x, x)
@@ -60,10 +60,9 @@ func TestMemoryPressure(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	created := state.buffers.createdBuffers + state.outstandingReadBufs
 	t.Logf("Have %d read bufs", state.outstandingReadBufs)
-	if created > 2 * _MAX_READERS {
+	if created > 2*_MAX_READERS {
 		t.Errorf("created %d buffers, max reader %d", created, _MAX_READERS)
 	}
-
 
 	wg.Wait()
 }

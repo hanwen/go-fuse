@@ -73,5 +73,5 @@ func main() {
 	gofs.SetFileSystemConnector(conn)
 
 	state.Loop()
-	time.Sleep(1 *time.Second)
+	time.Sleep(1 * time.Second)
 }

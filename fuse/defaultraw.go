@@ -6,7 +6,6 @@ import (
 
 var _ = RawFileSystem((*DefaultRawFileSystem)(nil))
 
-
 func (fs *DefaultRawFileSystem) Init(init *RawFsInit) {
 }
 
@@ -116,7 +115,7 @@ func (fs *DefaultRawFileSystem) Fsync(header *raw.InHeader, input *raw.FsyncIn) 
 	return ENOSYS
 }
 
-func (fs *DefaultRawFileSystem) ReadDir(l *DirEntryList, header *raw.InHeader, input *ReadIn) ( Status) {
+func (fs *DefaultRawFileSystem) ReadDir(l *DirEntryList, header *raw.InHeader, input *ReadIn) Status {
 	return ENOSYS
 }
 

@@ -2,8 +2,8 @@ package fuse
 
 import (
 	"fmt"
-	"log"
 	"io"
+	"log"
 	"os"
 	"strings"
 	"sync"
@@ -40,14 +40,14 @@ type MountState struct {
 	opts           *MountOptions
 	kernelSettings raw.InitIn
 
-	reqMu   sync.Mutex
-	reqPool []*request
-	readPool [][]byte
-	reqReaders int
+	reqMu               sync.Mutex
+	reqPool             []*request
+	readPool            [][]byte
+	reqReaders          int
 	outstandingReadBufs int
 
-	canSplice    bool
-	loops sync.WaitGroup
+	canSplice bool
+	loops     sync.WaitGroup
 }
 
 func (ms *MountState) KernelSettings() raw.InitIn {
@@ -163,7 +163,7 @@ func (ms *MountState) BufferPoolStats() string {
 	ms.reqMu.Unlock()
 
 	s += fmt.Sprintf(" read buffers: %d (sz %d )",
-		r, ms.opts.MaxWrite/PAGESIZE + 1)
+		r, ms.opts.MaxWrite/PAGESIZE+1)
 	return s
 }
 
@@ -192,7 +192,7 @@ func (ms *MountState) readRequest(exitIdle bool) (req *request, code Status) {
 		dest = ms.readPool[l-1]
 		ms.readPool = ms.readPool[:l-1]
 	} else {
-		dest = make([]byte, ms.opts.MaxWrite + PAGESIZE)
+		dest = make([]byte, ms.opts.MaxWrite+PAGESIZE)
 	}
 	ms.outstandingReadBufs++
 	ms.reqReaders++
@@ -272,7 +272,7 @@ func (ms *MountState) Loop() {
 
 func (ms *MountState) loop(exitIdle bool) {
 	defer ms.loops.Done()
-	exit:
+exit:
 	for {
 		req, errNo := ms.readRequest(exitIdle)
 		switch errNo {
@@ -335,7 +335,6 @@ func (ms *MountState) AllocOut(req *request, size uint32) []byte {
 	req.bufferPoolOutputBuf = ms.buffers.AllocBuffer(size)
 	return req.bufferPoolOutputBuf
 }
-
 
 func (ms *MountState) write(req *request) Status {
 	// Forget does not wait for reply.

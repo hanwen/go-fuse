@@ -65,7 +65,7 @@ func (m *portableHandleMap) Register(obj *Handled, asInt interface{}) (handle ui
 
 func (m *portableHandleMap) Count() int {
 	m.RLock()
-	c :=  m.used
+	c := m.used
 	m.RUnlock()
 	return c
 }

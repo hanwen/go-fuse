@@ -114,7 +114,7 @@ func (c *FileSystemConnector) OpenDir(out *raw.OpenOut, header *raw.InHeader, in
 	}
 	stream = append(stream, node.getMountDirEntries()...)
 	de := &connectorDir{
-		node: node.FsNode(),
+		node:   node.FsNode(),
 		stream: append(stream, DirEntry{S_IFDIR, "."}, DirEntry{S_IFDIR, ".."}),
 	}
 	h, opened := node.mount.registerFileHandle(node, de, nil, input.Flags)
@@ -123,7 +123,7 @@ func (c *FileSystemConnector) OpenDir(out *raw.OpenOut, header *raw.InHeader, in
 	return OK
 }
 
-func (c *FileSystemConnector) ReadDir(l *DirEntryList, header *raw.InHeader, input *ReadIn) (Status) {
+func (c *FileSystemConnector) ReadDir(l *DirEntryList, header *raw.InHeader, input *ReadIn) Status {
 	node := c.toInode(header.NodeId)
 	opened := node.mount.getOpenedFile(input.Fh)
 	return opened.dir.ReadDir(l, input)
@@ -350,10 +350,10 @@ func (c *FileSystemConnector) Write(header *raw.InHeader, input *WriteIn, data [
 	return opened.WithFlags.File.Write(data, int64(input.Offset))
 }
 
-func (c *FileSystemConnector) Read(header *raw.InHeader, input *ReadIn, buf []byte) (ReadResult) {
+func (c *FileSystemConnector) Read(header *raw.InHeader, input *ReadIn, buf []byte) ReadResult {
 	node := c.toInode(header.NodeId)
 	opened := node.mount.getOpenedFile(input.Fh)
-	
+
 	return opened.WithFlags.File.Read(buf, int64(input.Offset))
 }
 
@@ -372,4 +372,3 @@ func (c *FileSystemConnector) Flush(header *raw.InHeader, input *raw.FlushIn) St
 	opened := node.mount.getOpenedFile(input.Fh)
 	return opened.WithFlags.File.Flush()
 }
-

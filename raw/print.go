@@ -1,4 +1,5 @@
 package raw
+
 import (
 	"fmt"
 	"os"
@@ -24,8 +25,8 @@ func init() {
 		CAP_SPLICE_WRITE:   "SPLICE_WRITE",
 		CAP_SPLICE_MOVE:    "SPLICE_MOVE",
 		CAP_SPLICE_READ:    "SPLICE_READ",
-		CAP_FLOCK_LOCKS: "FLOCK_LOCKS",
-		CAP_IOCTL_DIR: "IOCTL_DIR",
+		CAP_FLOCK_LOCKS:    "FLOCK_LOCKS",
+		CAP_IOCTL_DIR:      "IOCTL_DIR",
 	}
 	releaseFlagNames = map[int]string{
 		RELEASE_FLUSH: "FLUSH",
@@ -58,7 +59,7 @@ func init() {
 		W_OK: "w",
 		R_OK: "r",
 	}
-	
+
 }
 
 func FlagString(names map[int]string, fl int, def string) string {
@@ -78,7 +79,7 @@ func FlagString(names map[int]string, fl int, def string) string {
 
 	return strings.Join(s, ",")
 }
-	
+
 func (me *ForgetIn) String() string {
 	return fmt.Sprintf("{%d}", me.Nlookup)
 }
@@ -86,7 +87,6 @@ func (me *ForgetIn) String() string {
 func (me *BatchForgetIn) String() string {
 	return fmt.Sprintf("{%d}", me.Count)
 }
-
 
 func (me *MkdirIn) String() string {
 	return fmt.Sprintf("{0%o (0%o)}", me.Mode, me.Umask)
@@ -126,7 +126,6 @@ func (me *SetAttrIn) String() string {
 func (me *GetAttrIn) String() string {
 	return fmt.Sprintf("{Fh %d}", me.Fh)
 }
-
 
 func (me *ReleaseIn) String() string {
 	return fmt.Sprintf("{Fh %d %s %s L%d}",

@@ -2,12 +2,12 @@ package fuse
 
 import (
 	"bytes"
+	"github.com/hanwen/go-fuse/raw"
 	"io/ioutil"
 	"log"
 	"os"
 	"sync"
 	"testing"
-	"github.com/hanwen/go-fuse/raw"
 )
 
 var _ = log.Println

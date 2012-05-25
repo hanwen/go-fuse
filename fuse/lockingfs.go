@@ -296,7 +296,7 @@ func (fs *LockingRawFileSystem) Fsync(header *raw.InHeader, input *raw.FsyncIn) 
 	return fs.RawFileSystem.Fsync(header, input)
 }
 
-func (fs *LockingRawFileSystem) ReadDir(out *DirEntryList, header *raw.InHeader, input *ReadIn) (Status) {
+func (fs *LockingRawFileSystem) ReadDir(out *DirEntryList, header *raw.InHeader, input *ReadIn) Status {
 	defer fs.locked()()
 	return fs.RawFileSystem.ReadDir(out, header, input)
 }

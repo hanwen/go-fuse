@@ -3,7 +3,6 @@
 
 package raw
 
-
 type ForgetIn struct {
 	Nlookup uint64
 }
@@ -18,7 +17,6 @@ type BatchForgetIn struct {
 	Dummy uint32
 }
 
-
 type MkdirIn struct {
 	Mode  uint32
 	Umask uint32
@@ -31,7 +29,7 @@ type RenameIn struct {
 type LinkIn struct {
 	Oldnodeid uint64
 }
-	
+
 type MknodIn struct {
 	Mode    uint32
 	Rdev    uint32
@@ -85,7 +83,6 @@ type GetAttrIn struct {
 	Dummy uint32
 	Fh    uint64
 }
-
 
 const RELEASE_FLUSH = (1 << 0)
 
@@ -289,7 +286,6 @@ type CreateIn struct {
 	Padding uint32
 }
 
-
 type NotifyInvalInodeOut struct {
 	Ino    uint64
 	Off    int64
@@ -369,7 +365,6 @@ type InHeader struct {
 	Context
 	Padding uint32
 }
-
 
 type Kstatfs struct {
 	Blocks  uint64

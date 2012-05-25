@@ -17,7 +17,6 @@ var xattrGolden = map[string][]byte{
 	"user.attr2": []byte("val2")}
 var xattrFilename = "filename"
 
-
 type XAttrTestFs struct {
 	tester   *testing.T
 	filename string
@@ -118,7 +117,7 @@ func TestXAttrNoExist(t *testing.T) {
 	nm := xattrFilename
 	mountPoint, clean := xattrTestCase(t, nm)
 	defer clean()
-		
+
 	mounted := filepath.Join(mountPoint, nm)
 	_, err := os.Lstat(mounted)
 	if err != nil {

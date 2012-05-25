@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/benchmark"
+	"github.com/hanwen/go-fuse/fuse"
 	"io"
 	"log"
 	"os"
@@ -52,7 +52,7 @@ func main() {
 	}
 	nfs := fuse.NewPathNodeFs(fs, nil)
 	opts := &fuse.FileSystemOptions{
-		AttrTimeout: time.Duration(*ttl * float64(time.Second)),
+		AttrTimeout:  time.Duration(*ttl * float64(time.Second)),
 		EntryTimeout: time.Duration(*ttl * float64(time.Second)),
 	}
 	state, _, err := fuse.MountNodeFileSystem(flag.Arg(0), nfs, opts)
@@ -60,7 +60,7 @@ func main() {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)
 	}
- 	
+
 	state.SetRecordStatistics(*latencies)
 	state.Debug = *debug
 	runtime.GC()
@@ -75,7 +75,7 @@ func main() {
 		cmd.Stdout = os.Stdout
 		cmd.Start()
 	}
-	
+
 	state.Loop()
 	if memProfFile != nil {
 		pprof.WriteHeapProfile(memProfFile)

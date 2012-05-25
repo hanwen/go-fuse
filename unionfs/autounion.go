@@ -424,7 +424,7 @@ func (fs *AutoUnionFs) OpenDir(name string, context *fuse.Context) (stream []fus
 	fs.lock.RLock()
 	defer fs.lock.RUnlock()
 
-	stream = make( []fuse.DirEntry, 0, len(fs.knownFileSystems)+5)
+	stream = make([]fuse.DirEntry, 0, len(fs.knownFileSystems)+5)
 	if name == _CONFIG {
 		for k := range fs.knownFileSystems {
 			stream = append(stream, fuse.DirEntry{
@@ -439,10 +439,10 @@ func (fs *AutoUnionFs) OpenDir(name string, context *fuse.Context) (stream []fus
 			Name: _CONFIG,
 			Mode: uint32(fuse.S_IFDIR | 0755),
 		},
-		fuse.DirEntry{
-			Name: _STATUS,
-			Mode: uint32(fuse.S_IFDIR | 0755),
-		})
+			fuse.DirEntry{
+				Name: _STATUS,
+				Mode: uint32(fuse.S_IFDIR | 0755),
+			})
 	}
 	return stream, status
 }

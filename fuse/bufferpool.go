@@ -122,7 +122,6 @@ func (p *BufferPoolImpl) AllocBuffer(size uint32) []byte {
 	}
 	p.lock.Unlock()
 
-
 	return b
 }
 

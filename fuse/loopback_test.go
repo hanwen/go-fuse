@@ -140,7 +140,7 @@ func TestReadLarge(t *testing.T) {
 	defer ts.Cleanup()
 
 	// Add a bit more to test the splicing at the end.
-	content := make([]byte, 1024*1024 + 43)
+	content := make([]byte, 1024*1024+43)
 	for i := range content {
 		content[i] = byte(i)
 	}
