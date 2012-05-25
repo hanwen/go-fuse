@@ -8,6 +8,7 @@ import (
 	"unsafe"
 
 	"github.com/hanwen/go-fuse/raw"
+	"github.com/hanwen/go-fuse/splice"
 )
 
 var _ = log.Printf
@@ -85,6 +86,14 @@ func doInit(state *MountState, req *request) {
 
 	state.kernelSettings = *input
 	state.kernelSettings.Flags = input.Flags & (raw.CAP_ASYNC_READ | raw.CAP_BIG_WRITES | raw.CAP_FILE_OPS)
+	if input.Minor >= 13 {
+		state.canSplice = true
+		maxW := splice.MaxPipeSize() - 4096
+		if !splice.Resizable() && state.opts.MaxWrite > maxW {
+			state.opts.MaxWrite = maxW
+		}
+	}
+	
 	out := &raw.InitOut{
 		Major:               FUSE_KERNEL_VERSION,
 		Minor:               OUR_MINOR_VERSION,
@@ -261,10 +270,6 @@ func doRead(state *MountState, req *request) {
 	in := (*ReadIn)(req.inData)
 	buf := state.AllocOut(req, in.Size)
 	res := state.fileSystem.Read(req.inHeader, in, buf)
-	if res.Ok() {
-		res.Read(buf)
-	}
-	
 	req.flatData = res
 	req.status = res.Status
 }

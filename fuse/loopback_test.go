@@ -135,7 +135,25 @@ func TestTouch(t *testing.T) {
 	}
 }
 
-func (tc *testCase) TestReadThrough(t *testing.T) {
+func TestReadLarge(t *testing.T) {
+	ts := NewTestCase(t)
+	defer ts.Cleanup()
+
+	content := make([]byte, 1024*1024)
+	for i := range content {
+		content[i] = byte(i)
+	}
+	err := ioutil.WriteFile(ts.origFile, []byte(content), 0644)
+	CheckSuccess(err)
+	
+	back, err := ioutil.ReadFile(ts.mountFile)
+	CheckSuccess(err)
+	if bytes.Compare(content, back) != 0 {
+		t.Errorf("content comparison failed")
+	}
+}
+
+func TestReadThrough(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()
 

@@ -105,7 +105,11 @@ func (r *request) OutputDebug() string {
 			s := strings.TrimRight(string(r.flatData.Data), "\x00")
 			flatStr = fmt.Sprintf(" %q", s)
 		} else {
-			flatStr = fmt.Sprintf(" %d bytes data\n", r.flatData.Size())
+			spl := ""
+			if r.flatData.FdSize > 0 {
+				spl = " (splice)"
+			}
+			flatStr = fmt.Sprintf(" %d bytes data%s\n", r.flatData.Size(), spl)
 		}
 	}
 

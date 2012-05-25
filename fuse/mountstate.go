@@ -10,6 +10,7 @@ import (
 	"unsafe"
 
 	"github.com/hanwen/go-fuse/raw"
+	"github.com/hanwen/go-fuse/splice"
 )
 
 const (
@@ -44,6 +45,7 @@ type MountState struct {
 	reqReaders int
 	outstandingReadBufs int
 
+	canSplice    bool
 	loops sync.WaitGroup
 }
 
@@ -159,7 +161,7 @@ func (ms *MountState) BufferPoolStats() string {
 	r = len(ms.readPool) + ms.reqReaders
 	ms.reqMu.Unlock()
 
-	s += fmt.Sprintf("read buffers: %d (sz %d )",
+	s += fmt.Sprintf(" read buffers: %d (sz %d )",
 		r, ms.opts.MaxWrite/PAGESIZE + 1)
 	return s
 }
@@ -359,11 +361,12 @@ func (ms *MountState) write(req *request) Status {
 	}
 
 	if req.flatData.FdSize > 0 {
-		if ms.TrySplice(req) {
+		if err := ms.TrySplice(header, req); err == nil {
 			return OK
 		} else {
 			buf := ms.AllocOut(req, uint32(req.flatData.FdSize))
 			req.flatData.Read(buf)
+			header = req.serializeHeader()
 		}
 	}
 
@@ -371,9 +374,38 @@ func (ms *MountState) write(req *request) Status {
 	return ToStatus(err)
 }
 
-func (ms *MountState) TrySplice(req *request) bool {
-	// TODO - implement.
-	return false
+func (ms *MountState) TrySplice(header []byte, req *request) error {
+	finalSplice, err := splice.Get()
+	if err != nil {
+		return err
+	}
+	defer splice.Done(finalSplice)
+
+	total := len(header) + req.flatData.FdSize
+	if !finalSplice.Grow(total) {
+		return fmt.Errorf("splice.Grow failed.")
+	}
+	
+	_, err = finalSplice.Write(header)
+	if err != nil {
+		return err
+	}
+
+	n, err := finalSplice.LoadFromAt(req.flatData.Fd, req.flatData.FdSize, req.flatData.FdOff)
+	if err != nil {
+		// TODO - handle EOF.
+		// TODO - extract the data from splice.
+		return err
+	}
+	if n != req.flatData.FdSize {
+		return fmt.Errorf("Size mismatch %d %d", n, req.flatData.FdSize)		
+	}
+
+	_, err = finalSplice.WriteTo(ms.mountFile.Fd(), total)
+	if err != nil {
+		return fmt.Errorf("Splice write %v", err)
+	}
+	return nil
 }
 
 func (ms *MountState) writeInodeNotify(entry *raw.NotifyInvalInodeOut) Status {
