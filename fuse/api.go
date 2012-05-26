@@ -232,6 +232,9 @@ type MountOptions struct {
 	// file system implements extended attributes, and you are not
 	// interested in security labels.
 	IgnoreSecurityLabels bool // ignoring labels should be provided as a fusermount mount option.
+
+	// If given, use this buffer pool instead of the global one.
+	Buffers BufferPool
 }
 
 // DefaultFileSystem implements a FileSystem that returns ENOSYS for every operation.

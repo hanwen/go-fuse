@@ -33,7 +33,12 @@ func TestMemoryPressure(t *testing.T) {
 	CheckSuccess(err)
 	nfs := NewPathNodeFs(fs, nil)
 	o := &FileSystemOptions{PortableInodes: true}
-	state, _, err := MountNodeFileSystem(dir, nfs, o)
+
+	conn := NewFileSystemConnector(nfs, o)
+	state := NewMountState(conn)
+	bufs := NewBufferPool()
+	
+	err = state.Mount(dir, &MountOptions{Buffers: bufs})
 	if err != nil {
 		t.Fatalf("mount failed: %v", err)
 	}
@@ -58,7 +63,8 @@ func TestMemoryPressure(t *testing.T) {
 		}(i)
 	}
 	time.Sleep(100 * time.Millisecond)
-	created := state.buffers.createdBuffers + state.outstandingReadBufs
+	created := bufs.createdBuffers + state.outstandingReadBufs
+
 	t.Logf("Have %d read bufs", state.outstandingReadBufs)
 	if created > 2*_MAX_READERS {
 		t.Errorf("created %d buffers, max reader %d", created, _MAX_READERS)

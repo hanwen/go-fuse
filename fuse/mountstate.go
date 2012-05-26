@@ -32,9 +32,6 @@ type MountState struct {
 	// Dump debug info onto stdout.
 	Debug bool
 
-	// For efficient reads and writes.
-	buffers *BufferPoolImpl
-
 	latencies *LatencyMap
 
 	opts           *MountOptions
@@ -66,6 +63,9 @@ func (ms *MountState) Mount(mountPoint string, opts *MountOptions) error {
 		}
 	}
 	o := *opts
+	if o.Buffers == nil {
+		o.Buffers = defaultBufferPool
+	}
 	if o.MaxWrite < 0 {
 		o.MaxWrite = 0
 	}
@@ -136,7 +136,6 @@ func NewMountState(fs RawFileSystem) *MountState {
 	ms := new(MountState)
 	ms.mountPoint = ""
 	ms.fileSystem = fs
-	ms.buffers = NewBufferPool()
 	return ms
 }
 
@@ -155,7 +154,7 @@ func (ms *MountState) OperationCounts() map[string]int {
 }
 
 func (ms *MountState) BufferPoolStats() string {
-	s := ms.buffers.String()
+	s := ms.opts.Buffers.String()
 
 	var r int
 	ms.reqMu.Lock()
@@ -230,7 +229,7 @@ func (ms *MountState) returnRequest(req *request) {
 	ms.recordStats(req)
 
 	if req.bufferPoolOutputBuf != nil {
-		ms.buffers.FreeBuffer(req.bufferPoolOutputBuf)
+		ms.opts.Buffers.FreeBuffer(req.bufferPoolOutputBuf)
 		req.bufferPoolOutputBuf = nil
 	}
 
@@ -330,9 +329,9 @@ func (ms *MountState) AllocOut(req *request, size uint32) []byte {
 		return req.bufferPoolOutputBuf
 	}
 	if req.bufferPoolOutputBuf != nil {
-		ms.buffers.FreeBuffer(req.bufferPoolOutputBuf)
+		ms.opts.Buffers.FreeBuffer(req.bufferPoolOutputBuf)
 	}
-	req.bufferPoolOutputBuf = ms.buffers.AllocBuffer(size)
+	req.bufferPoolOutputBuf = ms.opts.Buffers.AllocBuffer(size)
 	return req.bufferPoolOutputBuf
 }
 
@@ -469,4 +468,9 @@ func (ms *MountState) writeEntryNotify(parent uint64, name string) Status {
 		log.Printf("Response: ENTRY_NOTIFY: %v", result)
 	}
 	return result
+}
+
+var defaultBufferPool BufferPool
+func init() {
+	defaultBufferPool = NewBufferPool()
 }
