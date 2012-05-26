@@ -43,8 +43,6 @@ func ReadLines(name string) []string {
 func BulkStat(parallelism int, files []string) float64 {
 	todo := make(chan string, len(files))
 	dts := make(chan time.Duration, parallelism)
-
-	fmt.Printf("Statting %d files with %d threads\n", len(files), parallelism)
 	for i := 0; i < parallelism; i++ {
 		go func() {
 			t := time.Now()
@@ -108,11 +106,11 @@ func AnalyzeBenchmarkRuns(label string, times []float64) {
 
 	fmt.Printf(
 		"%s: %d samples\n"+
-			"avg %.3fms 2sigma %.3fms "+
-			"median %.3fms\n"+
-			"10%%tile %.3fms, 90%%tile %.3fms\n",
+		"avg %.3fms +/- %.0f%% "+
+		"median %.3fms, 10%%tiles: [-%.0f%%, +%.0f%%]\n",
 		label,
-		len(times), avg, 2*stddev, median, perc10, perc90)
+		len(times), avg, 100.0 * 2*stddev/avg,
+		median, 100*(median - perc10)/median, 100*(perc90-median)/median)
 }
 
 func RunBulkStat(runs int, threads int, sleepTime time.Duration, files []string) (results []float64) {

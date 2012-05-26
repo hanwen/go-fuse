@@ -101,7 +101,7 @@ func BenchmarkGoFuseThreadedStat(b *testing.B) {
 
 	threads := runtime.GOMAXPROCS(0)
 	results := TestingBOnePass(b, threads, files)
-	AnalyzeBenchmarkRuns("Go-FUSE", results)
+	AnalyzeBenchmarkRuns(fmt.Sprintf("Go-FUSE %d CPUs", threads), results)
 }
 
 func TestingBOnePass(b *testing.B, threads int, files []string) (results []float64) {
@@ -174,5 +174,5 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 	os.Lstat(mountPoint)
 	threads := runtime.GOMAXPROCS(0)
 	results := TestingBOnePass(b, threads, lines)
-	AnalyzeBenchmarkRuns("CFuse", results)
+	AnalyzeBenchmarkRuns(fmt.Sprintf("CFuse on %d CPUS", threads), results)
 }
