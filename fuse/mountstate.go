@@ -459,7 +459,9 @@ func (ms *MountState) writeEntryNotify(parent uint64, name string) Status {
 
 	// Many versions of FUSE generate stacktraces if the
 	// terminating null byte is missing.
-	nameBytes := []byte(name + "\000")
+	nameBytes := make([]byte, len(name)+1)
+	copy(nameBytes, name)
+	nameBytes[len(nameBytes)-1] = '\000'
 	req.outData = unsafe.Pointer(entry)
 	req.flatData.Data = nameBytes
 	result := ms.write(&req)
