@@ -63,8 +63,9 @@ func (me *pairPool) get() (p *Pair, err error) {
 	return newSplicePair()
 }
 
+var discardBuffer [32*1024]byte
 func DiscardAll(r io.Reader) {
-	buf := make([]byte, 32*1024)
+	buf := discardBuffer[:]
 	for {
 		n, _ := r.Read(buf)
 		if n < len(buf) {
