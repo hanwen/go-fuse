@@ -135,25 +135,6 @@ func TestTouch(t *testing.T) {
 	}
 }
 
-func TestReadLarge(t *testing.T) {
-	ts := NewTestCase(t)
-	defer ts.Cleanup()
-
-	// Add a bit more to test the splicing at the end.
-	content := make([]byte, 1024*1024+43)
-	for i := range content {
-		content[i] = byte(i)
-	}
-	err := ioutil.WriteFile(ts.origFile, []byte(content), 0644)
-	CheckSuccess(err)
-
-	back, err := ioutil.ReadFile(ts.mountFile)
-	CheckSuccess(err)
-	if bytes.Compare(content, back) != 0 {
-		t.Errorf("content comparison failed")
-	}
-}
-
 func TestReadThrough(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()
@@ -545,63 +526,22 @@ func TestFSync(t *testing.T) {
 	f.Close()
 }
 
-func TestLargeRead(t *testing.T) {
-	tc := NewTestCase(t)
-	defer tc.Cleanup()
+func TestReadLarge(t *testing.T) {
+	ts := NewTestCase(t)
+	defer ts.Cleanup()
 
-	t.Log("Testing large read.")
-	name := filepath.Join(tc.orig, "large")
-	f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE, 0777)
-	CheckSuccess(err)
-
-	b := bytes.NewBuffer(nil)
-
-	for i := 0; i < 20*1024; i++ {
-		b.WriteString("bla")
+	// Add a bit more to test the splicing at the end.
+	content := make([]byte, 1024*1024+43)
+	for i := range content {
+		content[i] = byte(i)
 	}
-	b.WriteString("something extra to not be round")
-
-	slice := b.Bytes()
-	n, err := f.Write(slice)
+	err := ioutil.WriteFile(ts.origFile, []byte(content), 0644)
 	CheckSuccess(err)
 
-	err = f.Close()
+	back, err := ioutil.ReadFile(ts.mountFile)
 	CheckSuccess(err)
-
-	// Read in one go.
-	g, err := os.Open(filepath.Join(tc.mnt, "large"))
-	CheckSuccess(err)
-	readSlice := make([]byte, len(slice))
-	m, err := g.Read(readSlice)
-	if m != n {
-		t.Errorf("read mismatch %v %v", m, n)
-	}
-	for i, v := range readSlice {
-		if slice[i] != v {
-			t.Errorf("char mismatch %v %v %v", i, slice[i], v)
-			break
-		}
-	}
-
-	CheckSuccess(err)
-	g.Close()
-
-	// Read in chunks
-	g, err = os.Open(filepath.Join(tc.mnt, "large"))
-	CheckSuccess(err)
-	defer g.Close()
-	readSlice = make([]byte, 4096)
-	total := 0
-	for {
-		m, err := g.Read(readSlice)
-		if m == 0 && err == io.EOF {
-			break
-		}
-		CheckSuccess(err)
-		total += m
-	}
-	if total != len(slice) {
-		t.Errorf("slice error %d", total)
+	if bytes.Compare(content, back) != 0 {
+		t.Errorf("content comparison failed")
 	}
 }
 

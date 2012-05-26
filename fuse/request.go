@@ -179,7 +179,7 @@ func (r *request) parse() {
 	r.outData = unsafe.Pointer(&r.outBuf[sizeOfOutHeader])
 }
 
-func (r *request) serializeHeader() (header []byte) {
+func (r *request) serializeHeader(dataSize int) (header []byte) {
 	dataLength := r.handler.OutputSize
 	if r.outData == nil || r.status > OK {
 		dataLength = 0
@@ -191,7 +191,7 @@ func (r *request) serializeHeader() (header []byte) {
 	o.Unique = r.inHeader.Unique
 	o.Status = int32(-r.status)
 	o.Length = uint32(
-		int(sizeOfOutHeader) + int(dataLength) + r.flatData.Size())
+		int(sizeOfOutHeader) + int(dataLength) + dataSize)
 
 	var asSlice []byte
 	toSlice(&asSlice, r.outData, dataLength)
