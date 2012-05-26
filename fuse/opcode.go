@@ -127,7 +127,7 @@ func doCreate(state *MountState, req *request) {
 }
 
 func doReadDir(state *MountState, req *request) {
-	in := (*ReadIn)(req.inData)
+	in := (*raw.ReadIn)(req.inData)
 	buf := state.AllocOut(req, in.Size)
 	entries := NewDirEntryList(buf, uint64(in.Offset))
 
@@ -148,7 +148,7 @@ func doSetattr(state *MountState, req *request) {
 }
 
 func doWrite(state *MountState, req *request) {
-	n, status := state.fileSystem.Write(req.inHeader, (*WriteIn)(req.inData), req.arg)
+	n, status := state.fileSystem.Write(req.inHeader, (*raw.WriteIn)(req.inData), req.arg)
 	o := (*raw.WriteOut)(req.outData)
 	o.Size = n
 	req.status = status
@@ -267,7 +267,7 @@ func doLink(state *MountState, req *request) {
 }
 
 func doRead(state *MountState, req *request) {
-	in := (*ReadIn)(req.inData)
+	in := (*raw.ReadIn)(req.inData)
 	buf := state.AllocOut(req, in.Size)
 	res := state.fileSystem.Read(req.inHeader, in, buf)
 	req.flatData = res
@@ -379,8 +379,8 @@ func init() {
 		_OP_RENAME:       unsafe.Sizeof(raw.RenameIn{}),
 		_OP_LINK:         unsafe.Sizeof(raw.LinkIn{}),
 		_OP_OPEN:         unsafe.Sizeof(raw.OpenIn{}),
-		_OP_READ:         unsafe.Sizeof(ReadIn{}),
-		_OP_WRITE:        unsafe.Sizeof(WriteIn{}),
+		_OP_READ:         unsafe.Sizeof(raw.ReadIn{}),
+		_OP_WRITE:        unsafe.Sizeof(raw.WriteIn{}),
 		_OP_RELEASE:      unsafe.Sizeof(raw.ReleaseIn{}),
 		_OP_FSYNC:        unsafe.Sizeof(raw.FsyncIn{}),
 		_OP_SETXATTR:     unsafe.Sizeof(raw.SetXAttrIn{}),
@@ -389,7 +389,7 @@ func init() {
 		_OP_FLUSH:        unsafe.Sizeof(raw.FlushIn{}),
 		_OP_INIT:         unsafe.Sizeof(raw.InitIn{}),
 		_OP_OPENDIR:      unsafe.Sizeof(raw.OpenIn{}),
-		_OP_READDIR:      unsafe.Sizeof(ReadIn{}),
+		_OP_READDIR:      unsafe.Sizeof(raw.ReadIn{}),
 		_OP_RELEASEDIR:   unsafe.Sizeof(raw.ReleaseIn{}),
 		_OP_FSYNCDIR:     unsafe.Sizeof(raw.FsyncIn{}),
 		_OP_ACCESS:       unsafe.Sizeof(raw.AccessIn{}),
@@ -540,8 +540,8 @@ func init() {
 		_OP_OPEN:         func(ptr unsafe.Pointer) interface{} { return (*raw.OpenIn)(ptr) },
 		_OP_MKNOD:        func(ptr unsafe.Pointer) interface{} { return (*raw.MknodIn)(ptr) },
 		_OP_CREATE:       func(ptr unsafe.Pointer) interface{} { return (*raw.CreateIn)(ptr) },
-		_OP_READ:         func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
-		_OP_READDIR:      func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
+		_OP_READ:         func(ptr unsafe.Pointer) interface{} { return (*raw.ReadIn)(ptr) },
+		_OP_READDIR:      func(ptr unsafe.Pointer) interface{} { return (*raw.ReadIn)(ptr) },
 		_OP_ACCESS:       func(ptr unsafe.Pointer) interface{} { return (*raw.AccessIn)(ptr) },
 		_OP_FORGET:       func(ptr unsafe.Pointer) interface{} { return (*raw.ForgetIn)(ptr) },
 		_OP_BATCH_FORGET: func(ptr unsafe.Pointer) interface{} { return (*raw.BatchForgetIn)(ptr) },

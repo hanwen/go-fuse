@@ -278,16 +278,16 @@ type RawFileSystem interface {
 	// File handling.
 	Create(out *raw.CreateOut, header *raw.InHeader, input *raw.CreateIn, name string) (code Status)
 	Open(out *raw.OpenOut, header *raw.InHeader, input *raw.OpenIn) (status Status)
-	Read(*raw.InHeader, *ReadIn, []byte) ReadResult
+	Read(*raw.InHeader, *raw.ReadIn, []byte) ReadResult
 
 	Release(header *raw.InHeader, input *raw.ReleaseIn)
-	Write(*raw.InHeader, *WriteIn, []byte) (written uint32, code Status)
+	Write(*raw.InHeader, *raw.WriteIn, []byte) (written uint32, code Status)
 	Flush(header *raw.InHeader, input *raw.FlushIn) Status
 	Fsync(*raw.InHeader, *raw.FsyncIn) (code Status)
 
 	// Directory handling
 	OpenDir(out *raw.OpenOut, header *raw.InHeader, input *raw.OpenIn) (status Status)
-	ReadDir(out *DirEntryList, header *raw.InHeader, input *ReadIn) Status
+	ReadDir(out *DirEntryList, header *raw.InHeader, input *raw.ReadIn) Status
 	ReleaseDir(header *raw.InHeader, input *raw.ReleaseIn)
 	FsyncDir(header *raw.InHeader, input *raw.FsyncIn) (code Status)
 

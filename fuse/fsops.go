@@ -123,7 +123,7 @@ func (c *FileSystemConnector) OpenDir(out *raw.OpenOut, header *raw.InHeader, in
 	return OK
 }
 
-func (c *FileSystemConnector) ReadDir(l *DirEntryList, header *raw.InHeader, input *ReadIn) Status {
+func (c *FileSystemConnector) ReadDir(l *DirEntryList, header *raw.InHeader, input *raw.ReadIn) Status {
 	node := c.toInode(header.NodeId)
 	opened := node.mount.getOpenedFile(input.Fh)
 	return opened.dir.ReadDir(l, input)
@@ -344,13 +344,13 @@ func (c *FileSystemConnector) ListXAttr(header *raw.InHeader) (data []byte, code
 ////////////////
 // files.
 
-func (c *FileSystemConnector) Write(header *raw.InHeader, input *WriteIn, data []byte) (written uint32, code Status) {
+func (c *FileSystemConnector) Write(header *raw.InHeader, input *raw.WriteIn, data []byte) (written uint32, code Status) {
 	node := c.toInode(header.NodeId)
 	opened := node.mount.getOpenedFile(input.Fh)
 	return opened.WithFlags.File.Write(data, int64(input.Offset))
 }
 
-func (c *FileSystemConnector) Read(header *raw.InHeader, input *ReadIn, buf []byte) ReadResult {
+func (c *FileSystemConnector) Read(header *raw.InHeader, input *raw.ReadIn, buf []byte) ReadResult {
 	node := c.toInode(header.NodeId)
 	opened := node.mount.getOpenedFile(input.Fh)
 

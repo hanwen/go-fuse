@@ -12,8 +12,18 @@ var releaseFlagNames map[int]string
 var OpenFlagNames map[int]string
 var FuseOpenFlagNames map[int]string
 var accessFlagName map[int]string
+var writeFlagNames map[int]string
+var readFlagNames map[int]string
+
 
 func init() {
+	writeFlagNames = map[int]string{
+		WRITE_CACHE:     "CACHE",
+		WRITE_LOCKOWNER: "LOCKOWNER",
+	}
+	readFlagNames = map[int]string{
+		READ_LOCKOWNER: "LOCKOWNER",
+	}
 	initFlagNames = map[int]string{
 		CAP_ASYNC_READ:     "ASYNC_READ",
 		CAP_POSIX_LOCKS:    "POSIX_LOCKS",
@@ -217,4 +227,20 @@ func (a *Attr) String() string {
 		a.Blocks, a.Blksize,
 		a.Rdev, a.Ino, a.Atime, a.Atimensec, a.Mtime, a.Mtimensec,
 		a.Ctime, a.Ctimensec)
+}
+
+func (me *ReadIn) String() string {
+	return fmt.Sprintf("{Fh %d off %d sz %d %s L %d %s}",
+		me.Fh, me.Offset, me.Size,
+		FlagString(readFlagNames, int(me.ReadFlags), ""),
+		me.LockOwner,
+		FlagString(OpenFlagNames, int(me.Flags), "RDONLY"))
+}
+
+func (me *WriteIn) String() string {
+	return fmt.Sprintf("{Fh %d off %d sz %d %s L %d %s}",
+		me.Fh, me.Offset, me.Size,
+		FlagString(writeFlagNames, int(me.WriteFlags), ""),
+		me.LockOwner,
+		FlagString(OpenFlagNames, int(me.Flags), "RDONLY"))
 }

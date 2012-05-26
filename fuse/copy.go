@@ -17,10 +17,7 @@ func CopyFile(srcFs, destFs FileSystem, srcFile, destFile string, context *Conte
 		return code
 	}
 
-	w := WriteIn{
-		Flags: uint32(os.O_WRONLY | os.O_CREATE | os.O_TRUNC),
-	}
-	dst, code := destFs.Create(destFile, w.Flags, attr.Mode, context)
+	dst, code := destFs.Create(destFile, uint32(os.O_WRONLY | os.O_CREATE | os.O_TRUNC), attr.Mode, context)
 	if !code.Ok() {
 		return code
 	}

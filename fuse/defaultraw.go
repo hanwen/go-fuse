@@ -96,14 +96,14 @@ func (fs *DefaultRawFileSystem) OpenDir(out *raw.OpenOut, header *raw.InHeader, 
 	return ENOSYS
 }
 
-func (fs *DefaultRawFileSystem) Read(header *raw.InHeader, input *ReadIn, buf []byte) ReadResult {
+func (fs *DefaultRawFileSystem) Read(header *raw.InHeader, input *raw.ReadIn, buf []byte) ReadResult {
 	return ReadResult{}
 }
 
 func (fs *DefaultRawFileSystem) Release(header *raw.InHeader, input *raw.ReleaseIn) {
 }
 
-func (fs *DefaultRawFileSystem) Write(header *raw.InHeader, input *WriteIn, data []byte) (written uint32, code Status) {
+func (fs *DefaultRawFileSystem) Write(header *raw.InHeader, input *raw.WriteIn, data []byte) (written uint32, code Status) {
 	return 0, ENOSYS
 }
 
@@ -115,7 +115,7 @@ func (fs *DefaultRawFileSystem) Fsync(header *raw.InHeader, input *raw.FsyncIn) 
 	return ENOSYS
 }
 
-func (fs *DefaultRawFileSystem) ReadDir(l *DirEntryList, header *raw.InHeader, input *ReadIn) Status {
+func (fs *DefaultRawFileSystem) ReadDir(l *DirEntryList, header *raw.InHeader, input *raw.ReadIn) Status {
 	return ENOSYS
 }
 

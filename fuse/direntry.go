@@ -73,7 +73,7 @@ func (l *DirEntryList) Bytes() []byte {
 ////////////////////////////////////////////////////////////////
 
 type rawDir interface {
-	ReadDir(out *DirEntryList, input *ReadIn) Status
+	ReadDir(out *DirEntryList, input *raw.ReadIn) Status
 	Release()
 }
 
@@ -83,7 +83,7 @@ type connectorDir struct {
 	lastOffset uint64
 }
 
-func (d *connectorDir) ReadDir(list *DirEntryList, input *ReadIn) (code Status) {
+func (d *connectorDir) ReadDir(list *DirEntryList, input *raw.ReadIn) (code Status) {
 	if d.stream == nil {
 		return OK
 	}
