@@ -525,6 +525,19 @@ func TestFSync(t *testing.T) {
 	f.Close()
 }
 
+func TestReadZero(t *testing.T) {
+	ts := NewTestCase(t)
+	defer ts.Cleanup()
+	err := ioutil.WriteFile(ts.origFile, []byte{}, 0644)
+	CheckSuccess(err)
+
+	back, err := ioutil.ReadFile(ts.mountFile)
+	CheckSuccess(err)
+	if len(back) != 0 {
+		t.Errorf("content length: got %d want %d", len(back), 0)
+	}
+}
+
 func TestReadLarge(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()

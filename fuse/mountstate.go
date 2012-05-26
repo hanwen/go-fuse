@@ -399,7 +399,7 @@ func (ms *MountState) TrySplice(header []byte, req *request,
 	} else {
 		n, err = finalSplice.LoadFromAt(fd, size, off)
 	}
-	if err == io.EOF || (err == nil && n < size && n > 0) {
+	if err == io.EOF || (err == nil && n < size) {
 		discard := make([]byte, len(header))
 		_, err = finalSplice.Read(discard)
 		if err != nil {
