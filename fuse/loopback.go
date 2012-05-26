@@ -76,7 +76,7 @@ func (fs *LoopbackFileSystem) OpenDir(name string, context *Context) (stream []D
 			if s := ToStatT(infos[i]); s != nil {
 				d.Mode = s.Mode
 			} else {
-				log.Println("ReadDir entry %q for %q has no stat info", n, name)
+				log.Printf("ReadDir entry %q for %q has no stat info", n, name)
 			}
 			output = append(output, d)
 		}
