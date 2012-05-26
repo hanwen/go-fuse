@@ -321,6 +321,10 @@ func doStatFs(state *MountState, req *request) {
 	req.status = state.fileSystem.StatFs(stat, req.inHeader)
 }
 
+func doIoctl(state *MountState, req *request) {
+	req.status = ENOSYS
+}
+
 ////////////////////////////////////////////////////////////////
 
 type operationFunc func(*MountState, *request)
@@ -501,6 +505,7 @@ func init() {
 		_OP_SYMLINK:      doSymlink,
 		_OP_RENAME:       doRename,
 		_OP_STATFS:       doStatFs,
+		_OP_IOCTL:        doIoctl,
 	} {
 		operationHandlers[op].Func = v
 	}
