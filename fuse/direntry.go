@@ -23,12 +23,14 @@ type DirEntry struct {
 
 type DirEntryList struct {
 	buf    []byte
+	size   int
 	offset uint64
 }
 
 func NewDirEntryList(data []byte, off uint64) *DirEntryList {
 	return &DirEntryList{
 		buf:    data[:0],
+		size:   len(data),
 		offset: off,
 	}
 }
@@ -43,7 +45,7 @@ func (l *DirEntryList) Add(name string, inode uint64, mode uint32) bool {
 	oldLen := len(l.buf)
 	newLen := delta + oldLen
 
-	if newLen > cap(l.buf) {
+	if newLen > l.size {
 		return false
 	}
 	l.buf = l.buf[:newLen]
