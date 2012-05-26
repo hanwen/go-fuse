@@ -21,7 +21,6 @@ var _ = log.Println
 ////////////////
 // state for our testcase, mostly constants
 
-const contents string = "ABC"
 const mode uint32 = 0757
 
 type testCase struct {
@@ -121,6 +120,7 @@ func TestTouch(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
+	contents := []byte{1,2,3}
 	err := ioutil.WriteFile(ts.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
 	err = os.Chtimes(ts.mountFile, time.Unix(42, 0), time.Unix(43, 0))
@@ -138,7 +138,8 @@ func TestReadThrough(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
-	err := ioutil.WriteFile(ts.origFile, []byte(contents), 0700)
+	content := RandomData(125)
+	err := ioutil.WriteFile(ts.origFile, content, 0700)
 	CheckSuccess(err)
 
 	err = os.Chmod(ts.mountFile, os.FileMode(mode))
@@ -158,16 +159,14 @@ func TestReadThrough(t *testing.T) {
 	var buf [1024]byte
 	slice := buf[:]
 	n, err := f.Read(slice)
-
-	if len(slice[:n]) != len(contents) {
-		t.Errorf("Content error %v", slice)
-	}
+	CompareSlices(t, slice[:n], content)
 }
 
 func TestRemove(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
+	contents := []byte{1,2,3}
 	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
 
@@ -188,10 +187,11 @@ func TestWriteThrough(t *testing.T) {
 	CheckSuccess(err)
 	defer f.Close()
 
-	n, err := f.WriteString(contents)
+	content := RandomData(125)
+	n, err := f.Write(content)
 	CheckSuccess(err)
-	if n != len(contents) {
-		t.Errorf("Write mismatch: %v of %v", n, len(contents))
+	if n != len(content) {
+		t.Errorf("Write mismatch: %v of %v", n, len(content))
 	}
 
 	fi, err := os.Lstat(tc.origFile)
@@ -207,9 +207,7 @@ func TestWriteThrough(t *testing.T) {
 	slice := buf[:]
 	n, err = f.Read(slice)
 	CheckSuccess(err)
-	if string(slice[:n]) != contents {
-		t.Errorf("write contents error. Got: %v, expect: %v", string(slice[:n]), contents)
-	}
+	CompareSlices(t, slice[:n], content)
 }
 
 func TestMkdirRmdir(t *testing.T) {
@@ -232,7 +230,8 @@ func TestLinkCreate(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
-	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
+	content := RandomData(125)
+	err := ioutil.WriteFile(tc.origFile, content, 0700)
 	CheckSuccess(err)
 	err = os.Mkdir(tc.origSubdir, 0777)
 	CheckSuccess(err)
@@ -256,10 +255,7 @@ func TestLinkCreate(t *testing.T) {
 	}
 	readback, err := ioutil.ReadFile(mountSubfile)
 	CheckSuccess(err)
-
-	if string(readback) != contents {
-		t.Errorf("Content error: got %q want %q", string(readback), contents)
-	}
+	CompareSlices(t, readback, content)
 
 	err = os.Remove(tc.mountFile)
 	CheckSuccess(err)
@@ -274,9 +270,9 @@ func TestLinkExisting(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
-	c := "hello"
+	c := RandomData(5)
 
-	err := ioutil.WriteFile(tc.orig+"/file1", []byte(c), 0644)
+	err := ioutil.WriteFile(tc.orig+"/file1", c, 0644)
 	CheckSuccess(err)
 	err = os.Link(tc.orig+"/file1", tc.orig+"/file2")
 	CheckSuccess(err)
@@ -291,11 +287,9 @@ func TestLinkExisting(t *testing.T) {
 		t.Errorf("linked files should have identical inodes %v %v", s1.Ino, s2.Ino)
 	}
 
-	c1, err := ioutil.ReadFile(tc.mnt + "/file1")
+	back, err := ioutil.ReadFile(tc.mnt + "/file1")
 	CheckSuccess(err)
-	if string(c1) != c {
-		t.Errorf("Content mismatch relative to original.")
-	}
+	CompareSlices(t, back, c) 
 }
 
 // Deal correctly with hard links implied by matching client inode
@@ -329,6 +323,7 @@ func TestSymlink(t *testing.T) {
 	defer tc.Cleanup()
 
 	t.Log("testing symlink/readlink.")
+	contents := []byte{1,2,3}
 	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
 
@@ -359,7 +354,7 @@ func TestRename(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
-	t.Log("Testing rename.")
+	contents := []byte{1,2,3}
 	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
 	sd := tc.mnt + "/testRename"
@@ -438,6 +433,7 @@ func TestAccess(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
+	contents := []byte{1,2,3}
 	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
 	err = os.Chmod(tc.origFile, 0)
@@ -476,7 +472,7 @@ func TestReaddir(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
-	t.Log("Testing readdir.")
+	contents := []byte{1,2,3}
 	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
 	err = os.Mkdir(tc.origSubdir, 0777)
@@ -509,7 +505,7 @@ func TestFSync(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
-	t.Log("Testing fsync.")
+	contents := []byte{1,2,3}
 	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
 
@@ -518,9 +514,9 @@ func TestFSync(t *testing.T) {
 	CheckSuccess(err)
 
 	// How to really test fsync ?
-	errNo := syscall.Fsync(int(f.Fd()))
-	if errNo != nil {
-		t.Errorf("fsync returned %v", errNo)
+	err = syscall.Fsync(int(f.Fd()))
+	if err != nil {
+		t.Errorf("fsync returned: %v", err)
 	}
 	f.Close()
 }
@@ -538,14 +534,11 @@ func TestReadZero(t *testing.T) {
 	}
 }
 
-func TestReadLarge(t *testing.T) {
-	ts := NewTestCase(t)
-	defer ts.Cleanup()
-
+func RandomData(size int) []byte {
 	// Make blocks that are not period on 1024 bytes, so we can
 	// catch errors due to misalignments. 
 	block := make([]byte, 1023)
-	content := make([]byte, 385*1023)
+	content := make([]byte, size)
 	for i := range block {
 		block[i] = byte(i)
 	}
@@ -559,22 +552,35 @@ func TestReadLarge(t *testing.T) {
 		copy(content[start:], block)
 		start += len(block)
 	}
-	
-	
+	return content
+}
+
+func CompareSlices(t *testing.T, got, want []byte) {
+	if len(got) != len(want) {
+		t.Errorf("content length: got %d want %d", len(got), len(want))
+	}
+	for i := range want {
+		if i >= len(got) {
+			break
+		}
+		if want[i] != got[i] {
+			t.Errorf("content mismatch byte %d, got %d want %d.", i,  got[i], want[i])
+			break
+		}
+	}
+}
+
+func TestReadLarge(t *testing.T) {
+	ts := NewTestCase(t)
+	defer ts.Cleanup()
+
+	content := RandomData(385*1023)
 	err := ioutil.WriteFile(ts.origFile, []byte(content), 0644)
 	CheckSuccess(err)
 
 	back, err := ioutil.ReadFile(ts.mountFile)
 	CheckSuccess(err)
-	if len(back) != len(content) {
-		t.Errorf("content length: got %d want %d", len(back), len(content))
-	}
-	for i := range content {
-		if content[i] != back[i] {
-			t.Errorf("content mismatch byte %d, got %d want %d.", i,  back[i], content[i])
-			break
-		}
-	}
+	CompareSlices(t, back, content)
 }
 
 func randomLengthString(length int) string {

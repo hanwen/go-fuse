@@ -22,9 +22,13 @@ func (f *MutableDataFile) String() string {
 	return "MutableDataFile"
 }
 
-func (f *MutableDataFile) Read(buf []byte, off int64) (r ReadResult) {
-	r.Data = f.data[off : off+int64(len(buf))]
-	return r
+func (f *MutableDataFile) Read(buf []byte, off int64) ReadResult {
+	end := int(off)+len(buf)
+	if end > len(f.data) {
+		end = len(f.data)
+	}
+	
+	return ReadResult{Data: f.data[off:end]}
 }
 
 func (f *MutableDataFile) Write(d []byte, off int64) (uint32, Status) {
@@ -32,9 +36,11 @@ func (f *MutableDataFile) Write(d []byte, off int64) (uint32, Status) {
 	if int(end) > len(f.data) {
 		data := make([]byte, len(f.data), end)
 		copy(data, f.data)
-		f.data = data
+		f.data = data[:end]
 	}
 	copy(f.data[off:end], d)
+	f.Attr.Size = uint64(len(f.data))
+	
 	return uint32(end - off), OK
 }
 
@@ -80,6 +86,7 @@ func (f *MutableDataFile) Chmod(perms uint32) Status {
 
 ////////////////
 
+// This FS only supports a single r/w file called "/file".
 type FSetAttrFs struct {
 	DefaultFileSystem
 	file *MutableDataFile
@@ -146,6 +153,22 @@ func setupFAttrTest(t *testing.T, fs FileSystem) (dir string, clean func()) {
 	}
 }
 
+func TestDataReadLarge(t *testing.T) {
+	fs := &FSetAttrFs{}
+	dir, clean := setupFAttrTest(t, fs)
+	defer clean()
+
+	content := RandomData(385*1023)
+	fn := dir + "/file"
+	err := ioutil.WriteFile(fn, []byte(content), 0644)
+	CheckSuccess(err)
+
+	back, err := ioutil.ReadFile(fn)
+	CheckSuccess(err)
+	CompareSlices(t, back, content)
+}
+
+
 func TestFSetAttr(t *testing.T) {
 	fs := &FSetAttrFs{}
 	dir, clean := setupFAttrTest(t, fs)
@@ -192,3 +215,4 @@ func TestFSetAttr(t *testing.T) {
 	}
 	// TODO - test chown if run as root.
 }
+
