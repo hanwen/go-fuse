@@ -1,7 +1,6 @@
 package fuse
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -530,18 +529,38 @@ func TestReadLarge(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
-	// Add a bit more to test the splicing at the end.
-	content := make([]byte, 1024*1024+43)
-	for i := range content {
-		content[i] = byte(i)
+	// Make blocks that are not period on 1024 bytes, so we can
+	// catch errors due to misalignments. 
+	block := make([]byte, 1023)
+	content := make([]byte, 385*1023)
+	for i := range block {
+		block[i] = byte(i)
 	}
+	start := 0
+	for start < len(content) {
+		left := len(content) - start
+		if left < len(block) {
+			block = block[:left]
+		}
+			
+		copy(content[start:], block)
+		start += len(block)
+	}
+	
+	
 	err := ioutil.WriteFile(ts.origFile, []byte(content), 0644)
 	CheckSuccess(err)
 
 	back, err := ioutil.ReadFile(ts.mountFile)
 	CheckSuccess(err)
-	if bytes.Compare(content, back) != 0 {
-		t.Errorf("content comparison failed")
+	if len(back) != len(content) {
+		t.Errorf("content length: got %d want %d", len(back), len(content))
+	}
+	for i := range content {
+		if content[i] != back[i] {
+			t.Errorf("content mismatch byte %d, got %d want %d.", i,  back[i], content[i])
+			break
+		}
 	}
 }
 

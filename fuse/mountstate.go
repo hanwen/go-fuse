@@ -364,7 +364,7 @@ func (ms *MountState) write(req *request) Status {
 		if err := ms.TrySplice(header, req, req.flatData.Fd, req.flatData.FdSize, req.flatData.FdOff); err == nil {
 			return OK
 		} else {
-			log.Println("Splice error", err)
+			log.Println("TrySplice:", err)
 			buf := ms.AllocOut(req, uint32(req.flatData.FdSize))
 			req.flatData.Read(buf)
 			header = req.serializeHeader(req.flatData.Size())
@@ -406,9 +406,8 @@ func (ms *MountState) TrySplice(header []byte, req *request,
 			return err
 		}
 
-		// TODO - fix debug output.
 		header = req.serializeHeader(n)
-		return ms.TrySplice(header, req, fd, n, -1)
+		return ms.TrySplice(header, req, finalSplice.ReadFd(), n, -1)
 	}
 
 	if err != nil {
@@ -417,7 +416,7 @@ func (ms *MountState) TrySplice(header []byte, req *request,
 	}
 
 	if n != size {
-		return fmt.Errorf("splice: wrote %d, want %d", n, req.flatData.FdSize)
+		return fmt.Errorf("wrote %d, want %d", n, req.flatData.FdSize)
 	}
 
 	_, err = finalSplice.WriteTo(ms.mountFile.Fd(), total)
