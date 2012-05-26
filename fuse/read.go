@@ -7,11 +7,12 @@ import (
 
 // The result of Read is an array of bytes, but for performance
 // reasons, we can also return data as a file-descriptor/offset/size
-// tuple.  If the backing store for the file system is another
-// filesystem, this reduces the amount of copying and memory in use.
+// tuple.  If the backing store for a file is another filesystem, this
+// reduces the amount of copying between the kernel and the FUSE
+// server
 //
 // If at any point,  the raw data is needed, ReadResult.Read() will
-// load the raw data. 
+// load the raw data into the Data member.
 type ReadResult struct {
 	// Errno code for the read.
 	Status
