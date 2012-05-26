@@ -108,9 +108,12 @@ Grep source code for TODO.  Major topics:
 * Missing support for FUSE_INTERRUPT, CUSE, BMAP, POLL, IOCTL
 
 * In the path API, renames are racy; See also:
-  http://sourceforge.net/mailarchive/message.php?msg_id=27550667
 
+    http://sourceforge.net/mailarchive/message.php?msg_id=27550667
+  
+  Don't use the path API if you care about correctness. 
 
+  
 LICENSE
 
 Like Go, this library is distributed under the new BSD license.  See
