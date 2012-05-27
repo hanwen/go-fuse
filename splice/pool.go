@@ -75,10 +75,10 @@ func DiscardAll(r io.Reader) {
 }
 
 func (me *pairPool) done(p *Pair) {
+	DiscardAll(p.r)
+	
 	me.Lock()
 	defer me.Unlock()
-
-	DiscardAll(p.r)
 	me.usedCount--
 	me.unused = append(me.unused, p)
 }
