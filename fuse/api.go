@@ -251,6 +251,10 @@ type MountOptions struct {
 
 	// If given, use this buffer pool instead of the global one.
 	Buffers BufferPool
+
+	// If RememberInodes is set, we will never forget inodes.
+	// This may be useful for NFS.
+	RememberInodes bool
 }
 
 // DefaultFileSystem implements a FileSystem that returns ENOSYS for every operation.

@@ -211,7 +211,9 @@ func doGetAttr(state *MountState, req *request) {
 }
 
 func doForget(state *MountState, req *request) {
-	state.fileSystem.Forget(req.inHeader.NodeId, (*raw.ForgetIn)(req.inData).Nlookup)
+	if !state.opts.RememberInodes {
+		state.fileSystem.Forget(req.inHeader.NodeId, (*raw.ForgetIn)(req.inData).Nlookup)
+	}
 }
 
 func doBatchForget(state *MountState, req *request) {
