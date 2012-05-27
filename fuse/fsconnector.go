@@ -8,6 +8,7 @@ import (
 	"log"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -42,6 +43,9 @@ type FileSystemConnector struct {
 
 	// The root of the FUSE file system.
 	rootNode *Inode
+
+	// Used as the generation inodes.
+	generation uint64
 }
 
 func NewFileSystemOptions() *FileSystemOptions {
@@ -61,13 +65,21 @@ func NewFileSystemConnector(nodeFs NodeFileSystem, opts *FileSystemOptions) (c *
 	c.inodeMap = NewHandleMap(opts.PortableInodes)
 	c.rootNode = newInode(true, nodeFs.Root())
 
+	// Make sure we don't reuse generation numbers.
+	c.generation = uint64(time.Now().UnixNano())
+
 	c.verify()
 	c.MountRoot(nodeFs, opts)
 
 	// FUSE does not issue a LOOKUP for 1 (obviously), but it does
 	// issue a forget.  This lookupUpdate is to make the counts match.
 	c.lookupUpdate(c.rootNode)
+	
 	return c
+}
+
+func (c *FileSystemConnector) nextGeneration() uint64 {
+	return atomic.AddUint64(&c.generation, 1)
 }
 
 func (c *FileSystemConnector) verify() {

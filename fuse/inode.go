@@ -13,6 +13,10 @@ var _ = log.Println
 type Inode struct {
 	handled Handled
 
+	// Generation number of the inode. Each (re)use of an inode
+	// should have a unique generation number.
+	generation     uint64
+	
 	// Number of open files and its protection.
 	openFilesMutex sync.Mutex
 	openFiles      []*openedFile
@@ -136,6 +140,7 @@ func (n *Inode) New(isDir bool, fsi FsNode) *Inode {
 	ch := newInode(isDir, fsi)
 	ch.mount = n.mount
 	ch.treeLock = n.treeLock
+	n.generation = ch.mount.connector.nextGeneration()
 	return ch
 }
 

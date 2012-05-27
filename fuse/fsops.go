@@ -75,7 +75,7 @@ func (c *FileSystemConnector) Lookup(out *raw.EntryOut, header *raw.InHeader, na
 
 	child.mount.fillEntry(out)
 	out.NodeId = c.lookupUpdate(child)
-	out.Generation = 1
+	out.Generation = child.generation
 	out.Ino = out.NodeId
 
 	return OK
