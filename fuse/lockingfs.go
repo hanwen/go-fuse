@@ -16,6 +16,8 @@ type LockingFileSystem struct {
 	lock sync.Mutex
 }
 
+var _ = ((FileSystem)((*LockingFileSystem)(nil)))
+
 func NewLockingFileSystem(pfs FileSystem) *LockingFileSystem {
 	l := new(LockingFileSystem)
 	l.FileSystem = pfs
@@ -276,7 +278,7 @@ func (fs *LockingRawFileSystem) ReleaseDir(header *raw.InHeader, h *raw.ReleaseI
 	fs.RawFileSystem.ReleaseDir(header, h)
 }
 
-func (fs *LockingRawFileSystem) Read(header *raw.InHeader, input *raw.ReadIn, buf []byte) ReadResult {
+func (fs *LockingRawFileSystem) Read(header *raw.InHeader, input *raw.ReadIn, buf []byte) (ReadResult, Status) {
 	defer fs.locked()()
 	return fs.RawFileSystem.Read(header, input, buf)
 }

@@ -96,8 +96,8 @@ func (fs *DefaultRawFileSystem) OpenDir(out *raw.OpenOut, header *raw.InHeader, 
 	return ENOSYS
 }
 
-func (fs *DefaultRawFileSystem) Read(header *raw.InHeader, input *raw.ReadIn, buf []byte) ReadResult {
-	return ReadResult{}
+func (fs *DefaultRawFileSystem) Read(header *raw.InHeader, input *raw.ReadIn, buf []byte) (ReadResult, Status) {
+	return ReadResult{}, ENOSYS
 }
 
 func (fs *DefaultRawFileSystem) Release(header *raw.InHeader, input *raw.ReleaseIn) {

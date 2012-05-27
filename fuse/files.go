@@ -39,15 +39,14 @@ func NewDataFile(data []byte) *DataFile {
 	return f
 }
 
-func (f *DataFile) Read(buf []byte, off int64) (res ReadResult) {
+func (f *DataFile) Read(buf []byte, off int64) (res ReadResult, code Status) {
 	end := int(off) + int(len(buf))
 	if end > len(f.data) {
 		end = len(f.data)
 	}
 
 	res.Data = f.data[off:end]
-	res.Status = OK
-	return res
+	return res, OK
 }
 
 ////////////////
@@ -67,8 +66,8 @@ func (f *DevNullFile) String() string {
 	return "DevNullFile"
 }
 
-func (f *DevNullFile) Read(buf []byte, off int64) ReadResult {
-	return ReadResult{}
+func (f *DevNullFile) Read(buf []byte, off int64) (ReadResult, Status) {
+	return ReadResult{}, OK
 }
 
 func (f *DevNullFile) Write(content []byte, off int64) (uint32, Status) {
@@ -100,13 +99,12 @@ func (f *LoopbackFile) String() string {
 	return fmt.Sprintf("LoopbackFile(%s)", f.File.Name())
 }
 
-func (f *LoopbackFile) Read(buf []byte, off int64) (res ReadResult) {
+func (f *LoopbackFile) Read(buf []byte, off int64) (res ReadResult, code Status) {
 	return ReadResult{
 		Fd:     f.File.Fd(),
 		FdOff:  off,
 		FdSize: len(buf),
-		Status: OK,
-	}
+	}, OK
 }
 
 func (f *LoopbackFile) Write(data []byte, off int64) (uint32, Status) {

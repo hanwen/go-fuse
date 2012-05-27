@@ -14,9 +14,6 @@ import (
 // If at any point,  the raw data is needed, ReadResult.Read() will
 // load the raw data into the Data member.
 type ReadResult struct {
-	// Errno code for the read.
-	Status
-
 	// Raw bytes for the read.
 	Data []byte
 
@@ -46,11 +43,10 @@ func (r *ReadResult) Size() int {
 // Reads raw bytes from file descriptor if necessary, using the passed
 // buffer as storage.
 func (r *ReadResult) Read(buf []byte) Status {
-	if r.Data != nil || !r.Ok() {
-		return r.Status
+	if r.Data != nil {
+		return OK
 	}
 	if len(buf) < r.FdSize {
-		r.Status = ERANGE
 		return ERANGE
 	}
 
@@ -58,13 +54,13 @@ func (r *ReadResult) Read(buf []byte) Status {
 	if err == io.EOF {
 		err = nil
 	}
-	r.Status = ToStatus(err)
-	if r.Ok() {
+	code := ToStatus(err)
+	if code.Ok() {
 		r.Data = buf[:n]
 	}
 	r.Fd = 0
 	r.FdOff = 0
 	r.FdSize = 0
 
-	return r.Status
+	return code
 }

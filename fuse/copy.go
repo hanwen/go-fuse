@@ -27,9 +27,9 @@ func CopyFile(srcFs, destFs FileSystem, srcFile, destFile string, context *Conte
 	buf := make([]byte, 128*(1<<10))
 	off := int64(0)
 	for {
-		res := src.Read(buf, off)
-		if !res.Ok() {
-			return res.Status
+		res, code := src.Read(buf, off)
+		if !code.Ok() {
+			return code
 		}
 		res.Read(buf)
 

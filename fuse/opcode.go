@@ -269,9 +269,7 @@ func doLink(state *MountState, req *request) {
 func doRead(state *MountState, req *request) {
 	in := (*raw.ReadIn)(req.inData)
 	buf := state.AllocOut(req, in.Size)
-	res := state.fileSystem.Read(req.inHeader, in, buf)
-	req.flatData = res
-	req.status = res.Status
+	req.flatData, req.status = state.fileSystem.Read(req.inHeader, in, buf)
 }
 
 func doFlush(state *MountState, req *request) {

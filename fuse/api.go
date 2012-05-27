@@ -161,7 +161,7 @@ type File interface {
 	// the inner file here.
 	InnerFile() File
 
-	Read(dest []byte, off int64) ReadResult
+	Read(dest []byte, off int64) (ReadResult, Status)
 	Write(data []byte, off int64) (written uint32, code Status)
 	Flush() Status
 	Release()
@@ -281,7 +281,7 @@ type RawFileSystem interface {
 	// File handling.
 	Create(out *raw.CreateOut, header *raw.InHeader, input *raw.CreateIn, name string) (code Status)
 	Open(out *raw.OpenOut, header *raw.InHeader, input *raw.OpenIn) (status Status)
-	Read(*raw.InHeader, *raw.ReadIn, []byte) ReadResult
+	Read(*raw.InHeader, *raw.ReadIn, []byte) (ReadResult, Status)
 
 	Release(header *raw.InHeader, input *raw.ReleaseIn)
 	Write(*raw.InHeader, *raw.WriteIn, []byte) (written uint32, code Status)

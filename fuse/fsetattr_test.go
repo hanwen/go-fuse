@@ -22,13 +22,13 @@ func (f *MutableDataFile) String() string {
 	return "MutableDataFile"
 }
 
-func (f *MutableDataFile) Read(buf []byte, off int64) ReadResult {
+func (f *MutableDataFile) Read(buf []byte, off int64) (ReadResult, Status) {
 	end := int(off)+len(buf)
 	if end > len(f.data) {
 		end = len(f.data)
 	}
 	
-	return ReadResult{Data: f.data[off:end]}
+	return ReadResult{Data: f.data[off:end]}, OK
 }
 
 func (f *MutableDataFile) Write(d []byte, off int64) (uint32, Status) {
