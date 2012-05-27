@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 	"testing"
@@ -567,6 +568,41 @@ func CompareSlices(t *testing.T, got, want []byte) {
 			t.Errorf("content mismatch byte %d, got %d want %d.", i,  got[i], want[i])
 			break
 		}
+	}
+}
+
+// Check that reading large files doesn't lead to large allocations.
+func TestReadLargeMemCheck(t *testing.T) {
+	ts := NewTestCase(t)
+	defer ts.Cleanup()
+
+	content := RandomData(385*1023)
+	err := ioutil.WriteFile(ts.origFile, []byte(content), 0644)
+	CheckSuccess(err)
+
+	f, err := os.Open(ts.mountFile)
+	CheckSuccess(err)
+	buf := make([]byte, len(content)+1024)
+	f.Read(buf)
+	CheckSuccess(err)
+	f.Close()
+	runtime.GC()
+	var before, after runtime.MemStats
+
+	N := 100
+	runtime.ReadMemStats(&before)
+	for i := 0; i < N; i++ {
+		f, _ := os.Open(ts.mountFile)
+		f.Read(buf)
+		f.Close()
+	}
+	runtime.ReadMemStats(&after)
+	delta := int((after.TotalAlloc - before.TotalAlloc))
+	delta = (delta - 40000)/ N
+
+	limit := 5000
+	if delta > limit {
+		t.Errorf("bytes per loop: %d, limit %d", delta, limit)
 	}
 }
 
