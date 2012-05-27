@@ -5,6 +5,11 @@ import (
 	"syscall"
 )
 
+type ReadResult interface {
+	Bytes(buf []byte) []byte
+	Size() int
+}
+
 // The result of Read is an array of bytes, but for performance
 // reasons, we can also return data as a file-descriptor/offset/size
 // tuple.  If the backing store for a file is another filesystem, this
@@ -13,54 +18,49 @@ import (
 //
 // If at any point,  the raw data is needed, ReadResult.Read() will
 // load the raw data into the Data member.
-type ReadResult struct {
+type ReadResultData struct {
 	// Raw bytes for the read.
 	Data []byte
+}
 
+func (r *ReadResultData) Size() int {
+	return len(r.Data)
+}
+
+func (r *ReadResultData) Bytes(buf []byte) []byte {
+	return r.Data
+}
+
+type ReadResultFd struct {
 	// If Data is nil and Status OK, splice from the following
 	// file.
 	Fd uintptr
 
 	// Offset within Fd, or -1 to use current offset.
-	FdOff  int64
+	Off  int64
 
 	// Size of data to be loaded. Actual data available may be
 	// less at the EOF.
-	FdSize int
-}
-
-func (r *ReadResult) Clear() {
-	*r = ReadResult{}
-}
-
-func (r *ReadResult) Size() int {
-	if r.Data != nil {
-		return len(r.Data)
-	}
-	return r.FdSize
+	Sz int
 }
 
 // Reads raw bytes from file descriptor if necessary, using the passed
 // buffer as storage.
-func (r *ReadResult) Read(buf []byte) Status {
-	if r.Data != nil {
-		return OK
-	}
-	if len(buf) < r.FdSize {
-		return ERANGE
+func (r *ReadResultFd) Bytes(buf []byte) []byte {
+	sz := r.Sz
+	if len(buf) < sz {
+		sz = len(buf)
 	}
 
-	n, err := syscall.Pread(int(r.Fd), buf[:r.FdSize], r.FdOff)
+	n, err := syscall.Pread(int(r.Fd), buf[:sz], r.Off)
 	if err == io.EOF {
 		err = nil
 	}
-	code := ToStatus(err)
-	if code.Ok() {
-		r.Data = buf[:n]
-	}
-	r.Fd = 0
-	r.FdOff = 0
-	r.FdSize = 0
-
-	return code
+	// TODO - error handling?
+	return buf[:n]
 }
+
+func (r *ReadResultFd) Size() int {
+	return r.Sz
+}
+

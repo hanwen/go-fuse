@@ -132,7 +132,7 @@ func doReadDir(state *MountState, req *request) {
 	entries := NewDirEntryList(buf, uint64(in.Offset))
 
 	code := state.fileSystem.ReadDir(entries, req.inHeader, in)
-	req.flatData.Data = entries.Bytes()
+	req.flatData = entries.Bytes()
 	req.status = code
 }
 
@@ -201,7 +201,7 @@ func doGetXAttr(state *MountState, req *request) {
 		return
 	}
 
-	req.flatData.Data = data
+	req.flatData = data
 }
 
 func doGetAttr(state *MountState, req *request) {
@@ -232,7 +232,7 @@ func doBatchForget(state *MountState, req *request) {
 }
 
 func doReadlink(state *MountState, req *request) {
-	req.flatData.Data, req.status = state.fileSystem.Readlink(req.inHeader)
+	req.flatData, req.status = state.fileSystem.Readlink(req.inHeader)
 }
 
 func doLookup(state *MountState, req *request) {
@@ -269,7 +269,15 @@ func doLink(state *MountState, req *request) {
 func doRead(state *MountState, req *request) {
 	in := (*raw.ReadIn)(req.inData)
 	buf := state.AllocOut(req, in.Size)
-	req.flatData, req.status = state.fileSystem.Read(req.inHeader, in, buf)
+
+	var r ReadResult
+	r, req.status = state.fileSystem.Read(req.inHeader, in, buf)
+	if fd, ok := r.(*ReadResultFd); ok {
+		req.fdData = fd
+		req.flatData = nil
+	} else if r != nil {
+		req.flatData = r.Bytes(buf)
+	}
 }
 
 func doFlush(state *MountState, req *request) {

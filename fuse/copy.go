@@ -31,22 +31,22 @@ func CopyFile(srcFs, destFs FileSystem, srcFile, destFile string, context *Conte
 		if !code.Ok() {
 			return code
 		}
-		res.Read(buf)
+		data := res.Bytes(buf)
 
-		if len(res.Data) == 0 {
+		if len(data) == 0 {
 			break
 		}
-		n, code := dst.Write(res.Data, off)
+		n, code := dst.Write(data, off)
 		if !code.Ok() {
 			return code
 		}
-		if int(n) < len(res.Data) {
+		if int(n) < len(data) {
 			return EIO
 		}
-		if len(res.Data) < len(buf) {
+		if len(data) < len(buf) {
 			break
 		}
-		off += int64(len(res.Data))
+		off += int64(len(data))
 	}
 	return OK
 }

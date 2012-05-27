@@ -341,7 +341,7 @@ func (ms *MountState) write(req *request) Status {
 		return OK
 	}
 
-	header := req.serializeHeader(req.flatData.Size())
+	header := req.serializeHeader(req.flatDataSize())
 	if ms.Debug {
 		log.Println(req.OutputDebug())
 	}
@@ -354,59 +354,65 @@ func (ms *MountState) write(req *request) Status {
 		return OK
 	}
 
-	if req.flatData.Size() == 0 {
+	if req.flatDataSize() == 0 {
 		_, err := ms.mountFile.Write(header)
 		return ToStatus(err)
 	}
 
-	if req.flatData.FdSize > 0 {
-		if err := ms.TrySplice(header, req, req.flatData.Fd, req.flatData.FdSize, req.flatData.FdOff); err == nil {
+	if req.fdData != nil {
+		if err := ms.TrySplice(header, req, req.fdData); err == nil {
 			return OK
 		} else {
 			log.Println("TrySplice:", err)
-			buf := ms.AllocOut(req, uint32(req.flatData.FdSize))
-			req.flatData.Read(buf)
-			header = req.serializeHeader(req.flatData.Size())
+			sz := req.flatDataSize()
+			buf := ms.AllocOut(req, uint32(sz))
+			req.flatData = req.fdData.Bytes(buf)
+			header = req.serializeHeader(req.flatDataSize())
 		}
 	}
 
-	_, err := Writev(int(ms.mountFile.Fd()), [][]byte{header, req.flatData.Data})
+	_, err := Writev(int(ms.mountFile.Fd()), [][]byte{header, req.flatData})
 	return ToStatus(err)
 }
 
-func (ms *MountState) TrySplice(header []byte, req *request,
-	fd uintptr, size int, off int64) error {
-	finalSplice, err := splice.Get()
+func (ms *MountState) TrySplice(header []byte, req *request, fdData *ReadResultFd) error {
+	pair, err := splice.Get()
 	if err != nil {
 		return err
 	}
-	defer splice.Done(finalSplice)
+	defer splice.Done(pair)
 
-	total := len(header) + size
-	if !finalSplice.Grow(total) {
+	total := len(header) + fdData.Size()
+	if !pair.Grow(total) {
 		return fmt.Errorf("splice.Grow failed.")
 	}
 
-	_, err = finalSplice.Write(header)
+	_, err = pair.Write(header)
 	if err != nil {
 		return err
 	}
 
 	var n int
-	if off < 0 {
-		n, err = finalSplice.LoadFrom(fd, size)
+	if fdData.Off < 0 {
+		n, err = pair.LoadFrom(fdData.Fd, fdData.Size())
 	} else {
-		n, err = finalSplice.LoadFromAt(fd, size, off)
+		n, err = pair.LoadFromAt(fdData.Fd, fdData.Size(), fdData.Off)
 	}
-	if err == io.EOF || (err == nil && n < size) {
+	if err == io.EOF || (err == nil && n < fdData.Size()) {
 		discard := make([]byte, len(header))
-		_, err = finalSplice.Read(discard)
+		_, err = pair.Read(discard)
 		if err != nil {
 			return err
 		}
 
 		header = req.serializeHeader(n)
-		return ms.TrySplice(header, req, finalSplice.ReadFd(), n, -1)
+
+		newFd := ReadResultFd{
+			Fd: pair.ReadFd(),
+			Off: -1,
+			Sz: n,
+		}
+		return ms.TrySplice(header, req, &newFd)
 	}
 
 	if err != nil {
@@ -414,11 +420,11 @@ func (ms *MountState) TrySplice(header []byte, req *request,
 		return err
 	}
 
-	if n != size {
-		return fmt.Errorf("wrote %d, want %d", n, req.flatData.FdSize)
+	if n != fdData.Size() {
+		return fmt.Errorf("wrote %d, want %d", n, fdData.Size())
 	}
 
-	_, err = finalSplice.WriteTo(ms.mountFile.Fd(), total)
+	_, err = pair.WriteTo(ms.mountFile.Fd(), total)
 	if err != nil {
 		return fmt.Errorf("splice write: %v", err)
 	}
@@ -461,7 +467,7 @@ func (ms *MountState) writeEntryNotify(parent uint64, name string) Status {
 	copy(nameBytes, name)
 	nameBytes[len(nameBytes)-1] = '\000'
 	req.outData = unsafe.Pointer(entry)
-	req.flatData.Data = nameBytes
+	req.flatData = nameBytes
 	result := ms.write(&req)
 
 	if ms.Debug {

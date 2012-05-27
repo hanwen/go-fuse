@@ -22,7 +22,7 @@ func (f *DefaultFile) String() string {
 }
 
 func (f *DefaultFile) Read(buf []byte, off int64) (ReadResult, Status) {
-	return ReadResult{}, ENOSYS
+	return &ReadResultData{}, ENOSYS
 }
 
 func (f *DefaultFile) Write(data []byte, off int64) (uint32, Status) {

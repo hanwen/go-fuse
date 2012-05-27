@@ -26,7 +26,8 @@ type request struct {
 	// Unstructured data, a pointer to the relevant XxxxOut struct.
 	outData  unsafe.Pointer
 	status   Status
-	flatData ReadResult
+	flatData []byte
+	fdData   *ReadResultFd
 
 	// Start timestamp for timing info.
 	startNs    int64
@@ -58,7 +59,8 @@ func (r *request) clear() {
 	r.filenames = nil
 	r.outData = nil
 	r.status = OK
-	r.flatData.Clear()
+	r.flatData = nil
+	r.fdData = nil
 	r.preWriteNs = 0
 	r.startNs = 0
 	r.handler = nil
@@ -100,16 +102,16 @@ func (r *request) OutputDebug() string {
 	}
 
 	flatStr := ""
-	if r.flatData.Size() > 0 {
+	if r.flatDataSize() > 0 {
 		if r.handler.FileNameOut {
-			s := strings.TrimRight(string(r.flatData.Data), "\x00")
+			s := strings.TrimRight(string(r.flatData), "\x00")
 			flatStr = fmt.Sprintf(" %q", s)
 		} else {
 			spl := ""
-			if r.flatData.FdSize > 0 {
+			if r.fdData != nil  {
 				spl = " (splice)"
 			}
-			flatStr = fmt.Sprintf(" %d bytes data%s\n", r.flatData.Size(), spl)
+			flatStr = fmt.Sprintf(" %d bytes data%s\n", r.flatDataSize(), spl)
 		}
 	}
 
@@ -197,4 +199,11 @@ func (r *request) serializeHeader(dataSize int) (header []byte) {
 	toSlice(&asSlice, r.outData, dataLength)
 	copy(header[sizeOfOutHeader:], asSlice)
 	return header
+}
+
+func (r *request) flatDataSize() int {
+	if r.fdData != nil {
+		return r.fdData.Size()
+	}
+	return len(r.flatData)
 }
