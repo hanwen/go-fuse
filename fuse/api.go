@@ -144,6 +144,7 @@ type PathNodeFsOptions struct {
 	ClientInodes bool
 }
 
+
 // A File object should be returned from FileSystem.Open and
 // FileSystem.Create.  Include DefaultFile into the struct to inherit
 // a default null implementation.  
@@ -174,6 +175,21 @@ type File interface {
 	Chown(uid uint32, gid uint32) Status
 	Chmod(perms uint32) Status
 	Utimens(atimeNs int64, mtimeNs int64) Status
+}
+
+// The result of Read is an array of bytes, but for performance
+// reasons, we can also return data as a file-descriptor/offset/size
+// tuple.  If the backing store for a file is another filesystem, this
+// reduces the amount of copying between the kernel and the FUSE
+// server.  The ReadResult interface captures both cases.
+type ReadResult interface {
+	// Returns the raw bytes for the read, possibly using the
+	// passed buffer. The buffer should be larger than the return
+	// value from Size.
+	Bytes(buf []byte) []byte
+
+	// Size returns how many bytes this return value takes at most.
+	Size() int
 }
 
 // Wrap a File return in this to set FUSE flags.  Also used internally
