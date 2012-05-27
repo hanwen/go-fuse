@@ -19,6 +19,7 @@ var _ = log.Print
 func main() {
 	// Scans the arg list and sets up flags
 	debug := flag.Bool("debug", false, "print debugging messages.")
+	other := flag.Bool("allow-other", false, "mount with -o allowother.")
 	flag.Parse()
 	if flag.NArg() < 2 {
 		// TODO - where to get program name?
@@ -46,7 +47,10 @@ func main() {
 	mountPoint := flag.Arg(0)
 
 	fmt.Println("Mounting")
-	err := state.Mount(mountPoint, nil)
+	mOpts := &fuse.MountOptions{
+		AllowOther: *other,
+	}
+	err := state.Mount(mountPoint, mOpts)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)
