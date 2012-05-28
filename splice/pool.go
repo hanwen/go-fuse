@@ -21,6 +21,10 @@ func Get() (*Pair, error) {
 	return splicePool.get()
 }
 
+func Total() int {
+	return splicePool.total()
+}
+
 func Used() int {
 	return splicePool.used()
 }
@@ -35,17 +39,26 @@ func newSplicePairPool() *pairPool {
 
 func (me *pairPool) clear() {
 	me.Lock()
-	defer me.Unlock()
 	for _, p := range me.unused {
 		p.Close()
 	}
 	me.unused = me.unused[:0]
+	me.Unlock()
 }
 
-func (me *pairPool) used() int {
+func (me *pairPool) used() (n int) {
 	me.Lock()
-	defer me.Unlock()
-	return me.usedCount
+	n = me.usedCount
+	me.Unlock()
+
+	return n
+}
+
+func (me *pairPool) total() int {
+	me.Lock()
+	n :=  me.usedCount + len(me.unused)
+	me.Unlock()
+	return n
 }
 
 func (me *pairPool) get() (p *Pair, err error) {
@@ -79,9 +92,9 @@ func (me *pairPool) done(p *Pair) {
 	DiscardAll(p.r)
 
 	me.Lock()
-	defer me.Unlock()
 	me.usedCount--
 	me.unused = append(me.unused, p)
+	me.Unlock()
 }
 
 func init() {
