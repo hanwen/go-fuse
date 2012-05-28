@@ -37,7 +37,7 @@ func TestMemoryPressure(t *testing.T) {
 	conn := NewFileSystemConnector(nfs, o)
 	state := NewMountState(conn)
 	bufs := NewBufferPool()
-	
+
 	err = state.Mount(dir, &MountOptions{Buffers: bufs})
 	if err != nil {
 		t.Fatalf("mount failed: %v", err)

@@ -23,11 +23,11 @@ func (f *MutableDataFile) String() string {
 }
 
 func (f *MutableDataFile) Read(buf []byte, off int64) (ReadResult, Status) {
-	end := int(off)+len(buf)
+	end := int(off) + len(buf)
 	if end > len(f.data) {
 		end = len(f.data)
 	}
-	
+
 	return &ReadResultData{Data: f.data[off:end]}, OK
 }
 
@@ -40,7 +40,7 @@ func (f *MutableDataFile) Write(d []byte, off int64) (uint32, Status) {
 	}
 	copy(f.data[off:end], d)
 	f.Attr.Size = uint64(len(f.data))
-	
+
 	return uint32(end - off), OK
 }
 
@@ -158,7 +158,7 @@ func TestDataReadLarge(t *testing.T) {
 	dir, clean := setupFAttrTest(t, fs)
 	defer clean()
 
-	content := RandomData(385*1023)
+	content := RandomData(385 * 1023)
 	fn := dir + "/file"
 	err := ioutil.WriteFile(fn, []byte(content), 0644)
 	CheckSuccess(err)
@@ -167,7 +167,6 @@ func TestDataReadLarge(t *testing.T) {
 	CheckSuccess(err)
 	CompareSlices(t, back, content)
 }
-
 
 func TestFSetAttr(t *testing.T) {
 	fs := &FSetAttrFs{}
@@ -215,4 +214,3 @@ func TestFSetAttr(t *testing.T) {
 	}
 	// TODO - test chown if run as root.
 }
-

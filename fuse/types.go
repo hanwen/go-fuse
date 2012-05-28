@@ -48,4 +48,3 @@ type Owner raw.Owner
 type Context raw.Context
 
 type StatfsOut raw.StatfsOut
-

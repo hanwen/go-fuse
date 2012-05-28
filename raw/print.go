@@ -15,7 +15,6 @@ var accessFlagName map[int]string
 var writeFlagNames map[int]string
 var readFlagNames map[int]string
 
-
 func init() {
 	writeFlagNames = map[int]string{
 		WRITE_CACHE:     "CACHE",

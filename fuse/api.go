@@ -144,7 +144,6 @@ type PathNodeFsOptions struct {
 	ClientInodes bool
 }
 
-
 // A File object should be returned from FileSystem.Open and
 // FileSystem.Create.  Include DefaultFile into the struct to inherit
 // a default null implementation.  

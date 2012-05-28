@@ -106,11 +106,11 @@ func AnalyzeBenchmarkRuns(label string, times []float64) {
 
 	fmt.Printf(
 		"%s: %d samples\n"+
-		"avg %.3fms +/- %.0f%% "+
-		"median %.3fms, 10%%tiles: [-%.0f%%, +%.0f%%]\n",
+			"avg %.3fms +/- %.0f%% "+
+			"median %.3fms, 10%%tiles: [-%.0f%%, +%.0f%%]\n",
 		label,
-		len(times), avg, 100.0 * 2*stddev/avg,
-		median, 100*(median - perc10)/median, 100*(perc90-median)/median)
+		len(times), avg, 100.0*2*stddev/avg,
+		median, 100*(median-perc10)/median, 100*(perc90-median)/median)
 }
 
 func RunBulkStat(runs int, threads int, sleepTime time.Duration, files []string) (results []float64) {

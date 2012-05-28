@@ -74,7 +74,7 @@ func NewFileSystemConnector(nodeFs NodeFileSystem, opts *FileSystemOptions) (c *
 	// FUSE does not issue a LOOKUP for 1 (obviously), but it does
 	// issue a forget.  This lookupUpdate is to make the counts match.
 	c.lookupUpdate(c.rootNode)
-	
+
 	return c
 }
 

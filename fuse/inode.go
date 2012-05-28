@@ -15,8 +15,8 @@ type Inode struct {
 
 	// Generation number of the inode. Each (re)use of an inode
 	// should have a unique generation number.
-	generation     uint64
-	
+	generation uint64
+
 	// Number of open files and its protection.
 	openFilesMutex sync.Mutex
 	openFiles      []*openedFile

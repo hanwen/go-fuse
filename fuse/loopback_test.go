@@ -121,7 +121,7 @@ func TestTouch(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
-	contents := []byte{1,2,3}
+	contents := []byte{1, 2, 3}
 	err := ioutil.WriteFile(ts.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
 	err = os.Chtimes(ts.mountFile, time.Unix(42, 0), time.Unix(43, 0))
@@ -167,7 +167,7 @@ func TestRemove(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
-	contents := []byte{1,2,3}
+	contents := []byte{1, 2, 3}
 	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
 
@@ -290,7 +290,7 @@ func TestLinkExisting(t *testing.T) {
 
 	back, err := ioutil.ReadFile(tc.mnt + "/file1")
 	CheckSuccess(err)
-	CompareSlices(t, back, c) 
+	CompareSlices(t, back, c)
 }
 
 // Deal correctly with hard links implied by matching client inode
@@ -324,7 +324,7 @@ func TestSymlink(t *testing.T) {
 	defer tc.Cleanup()
 
 	t.Log("testing symlink/readlink.")
-	contents := []byte{1,2,3}
+	contents := []byte{1, 2, 3}
 	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
 
@@ -355,7 +355,7 @@ func TestRename(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
-	contents := []byte{1,2,3}
+	contents := []byte{1, 2, 3}
 	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
 	sd := tc.mnt + "/testRename"
@@ -434,7 +434,7 @@ func TestAccess(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
-	contents := []byte{1,2,3}
+	contents := []byte{1, 2, 3}
 	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
 	err = os.Chmod(tc.origFile, 0)
@@ -473,7 +473,7 @@ func TestReaddir(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
-	contents := []byte{1,2,3}
+	contents := []byte{1, 2, 3}
 	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
 	err = os.Mkdir(tc.origSubdir, 0777)
@@ -506,7 +506,7 @@ func TestFSync(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
-	contents := []byte{1,2,3}
+	contents := []byte{1, 2, 3}
 	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
 	CheckSuccess(err)
 
@@ -549,7 +549,7 @@ func RandomData(size int) []byte {
 		if left < len(block) {
 			block = block[:left]
 		}
-			
+
 		copy(content[start:], block)
 		start += len(block)
 	}
@@ -565,7 +565,7 @@ func CompareSlices(t *testing.T, got, want []byte) {
 			break
 		}
 		if want[i] != got[i] {
-			t.Errorf("content mismatch byte %d, got %d want %d.", i,  got[i], want[i])
+			t.Errorf("content mismatch byte %d, got %d want %d.", i, got[i], want[i])
 			break
 		}
 	}
@@ -576,7 +576,7 @@ func TestReadLargeMemCheck(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
-	content := RandomData(385*1023)
+	content := RandomData(385 * 1023)
 	err := ioutil.WriteFile(ts.origFile, []byte(content), 0644)
 	CheckSuccess(err)
 
@@ -598,7 +598,7 @@ func TestReadLargeMemCheck(t *testing.T) {
 	}
 	runtime.ReadMemStats(&after)
 	delta := int((after.TotalAlloc - before.TotalAlloc))
-	delta = (delta - 40000)/ N
+	delta = (delta - 40000) / N
 
 	limit := 5000
 	if delta > limit {
@@ -610,7 +610,7 @@ func TestReadLarge(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
-	content := RandomData(385*1023)
+	content := RandomData(385 * 1023)
 	err := ioutil.WriteFile(ts.origFile, []byte(content), 0644)
 	CheckSuccess(err)
 

@@ -5,8 +5,6 @@ import (
 	"syscall"
 )
 
-
-
 // ReadResultData is the read return for returning bytes directly.
 type ReadResultData struct {
 	// Raw bytes for the read.
@@ -27,7 +25,7 @@ type ReadResultFd struct {
 	Fd uintptr
 
 	// Offset within Fd, or -1 to use current offset.
-	Off  int64
+	Off int64
 
 	// Size of data to be loaded. Actual data available may be
 	// less at the EOF.
@@ -53,4 +51,3 @@ func (r *ReadResultFd) Bytes(buf []byte) []byte {
 func (r *ReadResultFd) Size() int {
 	return r.Sz
 }
-

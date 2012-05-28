@@ -63,7 +63,8 @@ func (me *pairPool) get() (p *Pair, err error) {
 	return newSplicePair()
 }
 
-var discardBuffer [32*1024]byte
+var discardBuffer [32 * 1024]byte
+
 func DiscardAll(r io.Reader) {
 	buf := discardBuffer[:]
 	for {
@@ -76,7 +77,7 @@ func DiscardAll(r io.Reader) {
 
 func (me *pairPool) done(p *Pair) {
 	DiscardAll(p.r)
-	
+
 	me.Lock()
 	defer me.Unlock()
 	me.usedCount--

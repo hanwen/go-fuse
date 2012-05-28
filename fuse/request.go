@@ -108,7 +108,7 @@ func (r *request) OutputDebug() string {
 			flatStr = fmt.Sprintf(" %q", s)
 		} else {
 			spl := ""
-			if r.fdData != nil  {
+			if r.fdData != nil {
 				spl = " (splice)"
 			}
 			flatStr = fmt.Sprintf(" %d bytes data%s\n", r.flatDataSize(), spl)

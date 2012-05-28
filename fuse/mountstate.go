@@ -408,9 +408,9 @@ func (ms *MountState) TrySplice(header []byte, req *request, fdData *ReadResultF
 		header = req.serializeHeader(n)
 
 		newFd := ReadResultFd{
-			Fd: pair.ReadFd(),
+			Fd:  pair.ReadFd(),
 			Off: -1,
-			Sz: n,
+			Sz:  n,
 		}
 		return ms.TrySplice(header, req, &newFd)
 	}
@@ -477,6 +477,7 @@ func (ms *MountState) writeEntryNotify(parent uint64, name string) Status {
 }
 
 var defaultBufferPool BufferPool
+
 func init() {
 	defaultBufferPool = NewBufferPool()
 }
