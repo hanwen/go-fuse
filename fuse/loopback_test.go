@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"testing"
 	"time"
+	"unsafe"
 )
 
 var _ = strings.Join
@@ -537,7 +538,7 @@ func TestReadZero(t *testing.T) {
 
 func RandomData(size int) []byte {
 	// Make blocks that are not period on 1024 bytes, so we can
-	// catch errors due to misalignments. 
+	// catch errors due to misalignments.
 	block := make([]byte, 1023)
 	content := make([]byte, size)
 	for i := range block {
@@ -601,6 +602,9 @@ func TestReadLargeMemCheck(t *testing.T) {
 	delta = (delta - 40000) / N
 
 	limit := 5000
+	if unsafe.Sizeof(uintptr(0)) == 8 {
+		limit = 10000
+	}
 	if delta > limit {
 		t.Errorf("bytes per loop: %d, limit %d", delta, limit)
 	}
