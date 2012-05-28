@@ -366,7 +366,7 @@ type InHeader struct {
 	Padding uint32
 }
 
-type Kstatfs struct {
+type StatfsOut struct {
 	Blocks  uint64
 	Bfree   uint64
 	Bavail  uint64
@@ -377,10 +377,6 @@ type Kstatfs struct {
 	Frsize  uint32
 	Padding uint32
 	Spare   [6]uint32
-}
-
-type StatfsOut struct {
-	Kstatfs
 }
 
 type Dirent struct {

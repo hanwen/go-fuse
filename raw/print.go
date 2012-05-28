@@ -207,7 +207,7 @@ func (me *CreateOut) String() string {
 	return fmt.Sprintf("{%v %v}", &me.EntryOut, &me.OpenOut)
 }
 
-func (me *Kstatfs) String() string {
+func (me *StatfsOut) String() string {
 	return fmt.Sprintf(
 		"{b%d f%d fs%d ff%d bs%d nl%d frs%d}",
 		me.Blocks, me.Bfree, me.Bavail, me.Files, me.Ffree,

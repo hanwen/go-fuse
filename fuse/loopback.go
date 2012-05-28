@@ -1,7 +1,3 @@
-// A FUSE filesystem that shunts all request to an underlying file
-// system.  Its main purpose is to provide test coverage without
-// having to build an actual synthetic filesystem.
-
 package fuse
 
 import (
@@ -12,16 +8,16 @@ import (
 	"path/filepath"
 	"syscall"
 	"time"
-
-	"github.com/hanwen/go-fuse/raw"
 )
 
 var _ = fmt.Println
 var _ = log.Println
 
+// A FUSE filesystem that shunts all request to an underlying file
+// system.  Its main purpose is to provide test coverage without
+// having to build an actual synthetic filesystem.
 type LoopbackFileSystem struct {
 	Root string
-
 	DefaultFileSystem
 }
 
@@ -188,16 +184,14 @@ func (fs *LoopbackFileSystem) StatFs(name string) *StatfsOut {
 	err := syscall.Statfs(fs.GetPath(name), &s)
 	if err == nil {
 		return &StatfsOut{
-			raw.Kstatfs{
-				Blocks:  s.Blocks,
-				Bsize:   uint32(s.Bsize),
-				Bfree:   s.Bfree,
-				Bavail:  s.Bavail,
-				Files:   s.Files,
-				Ffree:   s.Ffree,
-				Frsize:  uint32(s.Frsize),
-				NameLen: uint32(s.Namelen),
-			},
+			Blocks:  s.Blocks,
+			Bsize:   uint32(s.Bsize),
+			Bfree:   s.Bfree,
+			Bavail:  s.Bavail,
+			Files:   s.Files,
+			Ffree:   s.Ffree,
+			Frsize:  uint32(s.Frsize),
+			NameLen: uint32(s.Namelen),
 		}
 	}
 	return nil
