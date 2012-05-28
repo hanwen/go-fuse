@@ -2,11 +2,17 @@ package fuse
 
 import (
 	"github.com/hanwen/go-fuse/raw"
+
+	"os"
 )
 
 var _ = RawFileSystem((*DefaultRawFileSystem)(nil))
 
 func (fs *DefaultRawFileSystem) Init(init *RawFsInit) {
+}
+
+func (fs *DefaultRawFileSystem) String() string {
+	return os.Args[0]
 }
 
 func (fs *DefaultRawFileSystem) StatFs(out *StatfsOut, h *raw.InHeader) Status {

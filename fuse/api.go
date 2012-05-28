@@ -146,7 +146,7 @@ type PathNodeFsOptions struct {
 
 // A File object should be returned from FileSystem.Open and
 // FileSystem.Create.  Include DefaultFile into the struct to inherit
-// a default null implementation.  
+// a default null implementation.
 //
 // TODO - should File be thread safe?
 // TODO - should we pass a *Context argument?
@@ -254,6 +254,10 @@ type MountOptions struct {
 	// If RememberInodes is set, we will never forget inodes.
 	// This may be useful for NFS.
 	RememberInodes bool
+
+	// The Name will show up on the output of the mount. Keep this string
+	// small.
+	Name string
 }
 
 // DefaultFileSystem implements a FileSystem that returns ENOSYS for every operation.
@@ -271,6 +275,8 @@ type DefaultFile struct{}
 //
 // Include DefaultRawFileSystem to inherit a null implementation.
 type RawFileSystem interface {
+	String() string
+
 	Lookup(out *raw.EntryOut, header *raw.InHeader, name string) (status Status)
 	Forget(nodeid, nlookup uint64)
 

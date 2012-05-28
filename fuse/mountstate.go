@@ -55,6 +55,8 @@ func (ms *MountState) MountPoint() string {
 	return ms.mountPoint
 }
 
+const _MAX_NAME_LEN = 20
+
 // Mount filesystem on mountPoint.
 func (ms *MountState) Mount(mountPoint string, opts *MountOptions) error {
 	if opts == nil {
@@ -82,6 +84,17 @@ func (ms *MountState) Mount(mountPoint string, opts *MountOptions) error {
 	if opts.AllowOther {
 		optStrs = append(optStrs, "allow_other")
 	}
+
+	name := opts.Name
+	if name == "" {
+		name = ms.fileSystem.String()
+		l := len(name)
+		if l > _MAX_NAME_LEN {
+			l = _MAX_NAME_LEN
+		}
+		name = strings.Replace(name[:l], ",", ";", -1)
+	}
+	optStrs = append(optStrs, "subtype=" + name)
 
 	file, mp, err := mount(mountPoint, strings.Join(optStrs, ","))
 	if err != nil {

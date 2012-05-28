@@ -23,11 +23,16 @@ type MemTreeFs struct {
 	fuse.DefaultNodeFileSystem
 	root  memNode
 	files map[string]MemFile
+	Name  string
 }
 
 func NewMemTreeFs() *MemTreeFs {
 	d := new(MemTreeFs)
 	return d
+}
+
+func (fs *MemTreeFs) String() string {
+	return fs.Name
 }
 
 func (fs *MemTreeFs) OnMount(conn *fuse.FileSystemConnector) {

@@ -12,6 +12,13 @@ import (
 
 var _ = log.Println
 
+func (c *FileSystemConnector) String() string {
+	if c.rootNode == nil || c.rootNode.mount == nil {
+		return "go-fuse:unmounted"
+	}
+	return c.rootNode.mount.fs.String()
+}
+
 func (c *FileSystemConnector) Init(fsInit *RawFsInit) {
 	c.fsInit = *fsInit
 }

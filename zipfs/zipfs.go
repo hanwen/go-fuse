@@ -61,7 +61,10 @@ func NewZipTree(name string) (map[string]MemFile, error) {
 }
 
 func NewArchiveFileSystem(name string) (mfs *MemTreeFs, err error) {
-	mfs = &MemTreeFs{}
+	mfs = &MemTreeFs{
+		Name: fmt.Sprintf("fs(%s)", name),
+	}
+
 	if strings.HasSuffix(name, ".zip") {
 		mfs.files, err = NewZipTree(name)
 	}
