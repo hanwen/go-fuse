@@ -1,17 +1,20 @@
-// FileSystemConnector's implementation of RawFileSystem
-
 package fuse
+
+// This file contains FileSystemConnector's implementation of
+// RawFileSystem
 
 import (
 	"bytes"
+	"fmt"
 	"log"
-	"reflect"
+	"strings"
 	"time"
 
 	"github.com/hanwen/go-fuse/raw"
 )
 
 var _ = log.Println
+
 
 func (c *FileSystemConnector) String() string {
 	if c.rootNode == nil || c.rootNode.mount == nil {
@@ -21,7 +24,8 @@ func (c *FileSystemConnector) String() string {
 	fs := c.rootNode.mount.fs
 	name := fs.String()
 	if name == "DefaultNodeFileSystem" {
-		name = reflect.TypeOf(fs).Name()
+		name = fmt.Sprintf("%T", fs)
+		name = strings.TrimLeft(name, "*")
 	}
 	return name
 }
