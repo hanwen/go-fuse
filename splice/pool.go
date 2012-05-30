@@ -29,8 +29,14 @@ func Used() int {
 	return splicePool.used()
 }
 
+// Return pipe pair to pool
 func Done(p *Pair) {
 	splicePool.done(p)
+}
+
+// Closes and discards pipe pair.
+func Drop(p *Pair) {
+	splicePool.drop(p)
 }
 
 func newSplicePairPool() *pairPool {
@@ -59,6 +65,13 @@ func (me *pairPool) total() int {
 	n :=  me.usedCount + len(me.unused)
 	me.Unlock()
 	return n
+}
+
+func (me *pairPool) drop(p *Pair) {
+	p.Close()
+	me.Lock()
+	me.usedCount--
+	me.Unlock()
 }
 
 func (me *pairPool) get() (p *Pair, err error) {
