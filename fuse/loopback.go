@@ -176,7 +176,7 @@ func (fs *LoopbackFileSystem) RemoveXAttr(name string, attr string, context *Con
 }
 
 func (fs *LoopbackFileSystem) String() string {
-	return fmt.Sprintf("LoopbackFileSystem(%s)", fs.Root)
+	return fmt.Sprintf("LoopbackFs(%s)", fs.Root)
 }
 
 func (fs *LoopbackFileSystem) StatFs(name string) *StatfsOut {
