@@ -1,9 +1,9 @@
 package fuse
 
 import (
-	"fmt"
 	"log"
 	"path/filepath"
+	"reflect"
 	"sync"
 )
 
@@ -88,7 +88,11 @@ func (fs *PathNodeFs) OnUnmount() {
 }
 
 func (fs *PathNodeFs) String() string {
-	return fmt.Sprintf("PathNodeFs(%v)", fs.fs)
+	name := fs.fs.String()
+	if name == "DefaultFileSystem" {
+		name = reflect.TypeOf(fs.fs).Name()
+	}
+	return name
 }
 
 func (fs *PathNodeFs) OnMount(conn *FileSystemConnector) {

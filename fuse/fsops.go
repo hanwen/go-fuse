@@ -5,6 +5,7 @@ package fuse
 import (
 	"bytes"
 	"log"
+	"reflect"
 	"time"
 
 	"github.com/hanwen/go-fuse/raw"
@@ -16,7 +17,13 @@ func (c *FileSystemConnector) String() string {
 	if c.rootNode == nil || c.rootNode.mount == nil {
 		return "go-fuse:unmounted"
 	}
-	return c.rootNode.mount.fs.String()
+
+	fs := c.rootNode.mount.fs
+	name := fs.String()
+	if name == "DefaultNodeFileSystem" {
+		name = reflect.TypeOf(fs).Name()
+	}
+	return name
 }
 
 func (c *FileSystemConnector) Init(fsInit *RawFsInit) {
