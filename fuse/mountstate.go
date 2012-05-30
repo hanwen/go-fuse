@@ -152,11 +152,8 @@ func NewMountState(fs RawFileSystem) *MountState {
 	return ms
 }
 
-func (ms *MountState) Latencies() map[string]float64 {
-	if ms.latencies == nil {
-		return nil
-	}
-	return ms.latencies.Latencies(1e-3)
+func (ms *MountState) Latencies() *LatencyMap {
+	return ms.latencies
 }
 
 func (ms *MountState) OperationCounts() map[string]int {
@@ -220,6 +217,9 @@ func (ms *MountState) readRequest(exitIdle bool) (req *request, code Status) {
 		return nil, code
 	}
 
+	if ms.latencies != nil {
+		req.startNs = time.Now().UnixNano()
+	}
 	gobbled := req.setInput(dest[:n])
 
 	ms.reqMu.Lock()
@@ -259,14 +259,9 @@ func (ms *MountState) returnRequest(req *request) {
 
 func (ms *MountState) recordStats(req *request) {
 	if ms.latencies != nil {
-		endNs := time.Now().UnixNano()
-		dt := endNs - req.startNs
-
+		dt := time.Now().UnixNano() - req.startNs
 		opname := operationName(req.inHeader.Opcode)
-		ms.latencies.AddMany(
-			[]LatencyArg{
-				{opname, "", dt},
-				{opname + "-write", "", endNs - req.preWriteNs}})
+		ms.latencies.Add(opname, dt)
 	}
 }
 
@@ -302,9 +297,6 @@ exit:
 			break exit
 		}
 
-		if ms.latencies != nil {
-			req.startNs = time.Now().UnixNano()
-		}
 		ms.handleRequest(req)
 	}
 }
@@ -357,10 +349,6 @@ func (ms *MountState) write(req *request) Status {
 	header := req.serializeHeader(req.flatDataSize())
 	if ms.Debug {
 		log.Println(req.OutputDebug())
-	}
-
-	if ms.latencies != nil {
-		req.preWriteNs = time.Now().UnixNano()
 	}
 
 	if header == nil {

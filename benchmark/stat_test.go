@@ -28,10 +28,17 @@ func setupFs(fs fuse.FileSystem) (string, func()) {
 	if err != nil {
 		panic(fmt.Sprintf("cannot mount %v", err)) // ugh - benchmark has no error methods.
 	}
+	state.SetRecordStatistics(true)
 	// state.Debug = true
 	go state.Loop()
 
 	return mountPoint, func() {
+		lc, lns := state.Latencies().Get("LOOKUP")
+		gc, gns := state.Latencies().Get("GETATTR")
+		fmt.Printf("GETATTR %dus/call n=%d, LOOKUP %dus/call n=%d\n",
+			gns / int64(1000 * lc), gc,
+			lns / int64(1000 * lc), lc)
+		
 		err := state.Unmount()
 		if err != nil {
 			log.Println("error during unmount", err)
@@ -110,7 +117,6 @@ func TestingBOnePass(b *testing.B, threads int, files []string) (results []float
 	runtime.ReadMemStats(&before)
 	
 	todo := b.N
-
 	for todo > 0 {
 		if len(files) > todo {
 			files = files[:todo]
@@ -126,6 +132,13 @@ func TestingBOnePass(b *testing.B, threads int, files []string) (results []float
 	fmt.Printf("GC count %d, total GC time: %d ns/file\n",
 		after.NumGC-before.NumGC, (after.PauseTotalNs-before.PauseTotalNs)/uint64(b.N))
 	return results
+}
+
+// Add this so we can estimate impact on latency numbers. 
+func BenchmarkTimeNow(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		time.Now()
+	}
 }
 
 func BenchmarkCFuseThreadedStat(b *testing.B) {

@@ -79,9 +79,16 @@ interface, all kernel caching turned off, median stat time:
 
 platform                    libfuse     Go-FUSE      difference (%)
 
-Lenovo T60/Fedora17 (1cpu)  349us       355us        2% slower
+Lenovo T60/Fedora16 (1cpu)  349us       355us        2% slower
 Lenovo T400/Lucid   (1cpu)  138us       140us        5% slower
 Dell T3500/Lucid    (1cpu)   72us        76us        5% slower
+
+On T60, for each file we have
+- Client side latency is 360us
+- 106us of this is server side latency (4.5x lookup 23us, 1x getattr 4us) 
+- 16.5us is due to latency measurements.
+- 3us is due to garbage collection.
+
 
 
 CREDITS
