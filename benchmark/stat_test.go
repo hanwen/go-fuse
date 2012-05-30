@@ -106,6 +106,9 @@ func BenchmarkGoFuseThreadedStat(b *testing.B) {
 
 func TestingBOnePass(b *testing.B, threads int, files []string) (results []float64) {
 	runtime.GC()
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	
 	todo := b.N
 
 	for todo > 0 {
@@ -118,6 +121,10 @@ func TestingBOnePass(b *testing.B, threads int, files []string) (results []float
 		b.StopTimer()
 		results = append(results, result)
 	}
+	runtime.ReadMemStats(&after)
+	
+	fmt.Printf("GC count %d, total GC time: %d ns/file\n",
+		after.NumGC-before.NumGC, (after.PauseTotalNs-before.PauseTotalNs)/uint64(b.N))
 	return results
 }
 
