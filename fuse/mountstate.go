@@ -380,7 +380,7 @@ func (ms *MountState) write(req *request) Status {
 			sz := req.flatDataSize()
 			buf := ms.AllocOut(req, uint32(sz))
 			req.flatData = req.fdData.Bytes(buf)
-			header = req.serializeHeader(req.flatDataSize())
+			header = req.serializeHeader(len(req.flatData))
 		}
 	}
 
