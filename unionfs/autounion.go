@@ -361,16 +361,6 @@ func (fs *AutoUnionFs) DebugData() string {
 		fs.mountState.BufferPoolStats(),
 		&setting)
 
-	lat := fs.mountState.Latencies()
-	if len(lat) > 0 {
-		msg += fmt.Sprintf("Latencies: %v\n", lat)
-	}
-
-	counts := fs.mountState.OperationCounts()
-	if len(counts) > 0 {
-		msg += fmt.Sprintf("Op counts: %v\n", counts)
-	}
-
 	if fs.connector != nil {
 		msg += fmt.Sprintf("Live inodes: %d\n", fs.connector.InodeHandleCount())
 	}

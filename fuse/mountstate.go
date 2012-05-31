@@ -156,13 +156,6 @@ func (ms *MountState) Latencies() *LatencyMap {
 	return ms.latencies
 }
 
-func (ms *MountState) OperationCounts() map[string]int {
-	if ms.latencies == nil {
-		return nil
-	}
-	return ms.latencies.Counts()
-}
-
 func (ms *MountState) BufferPoolStats() string {
 	s := ms.opts.Buffers.String()
 
