@@ -3,12 +3,15 @@ package fuse
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
-	"strings"
+	"regexp"
 	"sync"
 	"testing"
 	"time"
 )
+
+var _ = log.Println
 
 // This test checks that highly concurrent loads don't use a lot of
 // memory if it is not needed: The input buffer needs to accomodata
@@ -16,18 +19,27 @@ import (
 // processing writes.
 type DelayFs struct {
 	DefaultFileSystem
+
+	fileRegex  *regexp.Regexp
+	dirRegex  *regexp.Regexp
 }
 
 func (d *DelayFs) GetAttr(name string, c *Context) (*Attr, Status) {
-	if name == "" || strings.HasSuffix(name, "dir") {
+	if name == "" || d.dirRegex.MatchString(name) {
 		return &Attr{Mode: S_IFDIR | 0755}, OK
 	}
-	time.Sleep(time.Second)
-	return &Attr{Mode: S_IFREG | 0644}, OK
+	if d.fileRegex.MatchString(name) {
+		time.Sleep(time.Second)
+		return &Attr{Mode: S_IFREG | 0644}, OK
+	}
+	return nil, ENOENT
 }
 
 func TestMemoryPressure(t *testing.T) {
-	fs := &DelayFs{}
+	fs := &DelayFs{
+		fileRegex: regexp.MustCompile("^dir[0-9]*/file[0-9]*$"),
+		dirRegex: regexp.MustCompile("^dir[0-9]*$"),
+	}
 
 	dir, err := ioutil.TempDir("", "go-fuse")
 	CheckSuccess(err)
@@ -54,7 +66,7 @@ func TestMemoryPressure(t *testing.T) {
 	for i := 0; i < 10*_MAX_READERS; i++ {
 		wg.Add(1)
 		go func(x int) {
-			fn := fmt.Sprintf("%s/%ddir/file%d", dir, x, x)
+			fn := fmt.Sprintf("%s/dir%d/file%d", dir, x, x)
 			_, err := os.Lstat(fn)
 			if err != nil {
 				t.Errorf("parallel stat %q: %v", fn, err)
@@ -66,7 +78,7 @@ func TestMemoryPressure(t *testing.T) {
 	created := bufs.createdBuffers + state.outstandingReadBufs
 
 	t.Logf("Have %d read bufs", state.outstandingReadBufs)
-	if created > 2*_MAX_READERS {
+	if created > _MAX_READERS {
 		t.Errorf("created %d buffers, max reader %d", created, _MAX_READERS)
 	}
 
