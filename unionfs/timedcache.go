@@ -96,16 +96,6 @@ func (c *TimedCache) Purge() {
 	}
 }
 
-func (c *TimedCache) RecurringPurge() {
-	if c.ttl <= 0 {
-		return
-	}
-
-	c.Purge()
-	c.PurgeTimer = time.AfterFunc(c.ttl*5,
-		func() { c.RecurringPurge() })
-}
-
 func (c *TimedCache) DropAll(names []string) {
 	c.cacheMapMutex.Lock()
 	defer c.cacheMapMutex.Unlock()

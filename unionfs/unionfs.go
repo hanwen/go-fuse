@@ -100,7 +100,6 @@ func NewUnionFs(fileSystems []fuse.FileSystem, options UnionFsOptions) *UnionFs 
 	g.branchCache = NewTimedCache(
 		func(n string) (interface{}, bool) { return g.getBranchAttrNoCache(n), true },
 		options.BranchCacheTTL)
-	g.branchCache.RecurringPurge()
 
 	g.hiddenFiles = make(map[string]bool)
 	for _, name := range options.HiddenFiles {
