@@ -323,6 +323,9 @@ func (c *FileSystemConnector) Unmount(node *Inode) Status {
 		return EBUSY
 	}
 
+	node.treeLock.Lock()
+	defer node.treeLock.Unlock()
+
 	mountInode := mount.mountInode
 	if !mountInode.canUnmount() {
 		return EBUSY
