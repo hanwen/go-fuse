@@ -15,7 +15,6 @@ import (
 
 var _ = log.Println
 
-
 func (c *FileSystemConnector) String() string {
 	if c.rootNode == nil || c.rootNode.mount == nil {
 		return "go-fuse:unmounted"

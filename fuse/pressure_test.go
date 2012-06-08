@@ -20,7 +20,7 @@ var _ = log.Println
 type DelayFs struct {
 	DefaultFileSystem
 
-	fileRegex  *regexp.Regexp
+	fileRegex *regexp.Regexp
 	dirRegex  *regexp.Regexp
 }
 
@@ -38,7 +38,7 @@ func (d *DelayFs) GetAttr(name string, c *Context) (*Attr, Status) {
 func TestMemoryPressure(t *testing.T) {
 	fs := &DelayFs{
 		fileRegex: regexp.MustCompile("^dir[0-9]*/file[0-9]*$"),
-		dirRegex: regexp.MustCompile("^dir[0-9]*$"),
+		dirRegex:  regexp.MustCompile("^dir[0-9]*$"),
 	}
 
 	dir, err := ioutil.TempDir("", "go-fuse")

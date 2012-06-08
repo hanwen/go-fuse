@@ -94,7 +94,7 @@ func (ms *MountState) Mount(mountPoint string, opts *MountOptions) error {
 		}
 		name = strings.Replace(name[:l], ",", ";", -1)
 	}
-	optStrs = append(optStrs, "subtype=" + name)
+	optStrs = append(optStrs, "subtype="+name)
 
 	file, mp, err := mount(mountPoint, strings.Join(optStrs, ","))
 	if err != nil {

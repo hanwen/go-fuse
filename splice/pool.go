@@ -62,7 +62,7 @@ func (me *pairPool) used() (n int) {
 
 func (me *pairPool) total() int {
 	me.Lock()
-	n :=  me.usedCount + len(me.unused)
+	n := me.usedCount + len(me.unused)
 	me.Unlock()
 	return n
 }

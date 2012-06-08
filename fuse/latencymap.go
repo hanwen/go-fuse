@@ -11,7 +11,7 @@ type latencyMapEntry struct {
 
 type LatencyMap struct {
 	sync.Mutex
-	stats          map[string]*latencyMapEntry
+	stats map[string]*latencyMapEntry
 }
 
 func NewLatencyMap() *LatencyMap {

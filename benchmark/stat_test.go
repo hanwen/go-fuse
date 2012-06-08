@@ -36,9 +36,9 @@ func setupFs(fs fuse.FileSystem) (string, func()) {
 		lc, lns := state.Latencies().Get("LOOKUP")
 		gc, gns := state.Latencies().Get("GETATTR")
 		fmt.Printf("GETATTR %dus/call n=%d, LOOKUP %dus/call n=%d\n",
-			gns / int64(1000 * lc), gc,
-			lns / int64(1000 * lc), lc)
-		
+			gns/int64(1000*lc), gc,
+			lns/int64(1000*lc), lc)
+
 		err := state.Unmount()
 		if err != nil {
 			log.Println("error during unmount", err)
@@ -115,7 +115,7 @@ func TestingBOnePass(b *testing.B, threads int, files []string) (results []float
 	runtime.GC()
 	var before, after runtime.MemStats
 	runtime.ReadMemStats(&before)
-	
+
 	todo := b.N
 	for todo > 0 {
 		if len(files) > todo {
@@ -128,7 +128,7 @@ func TestingBOnePass(b *testing.B, threads int, files []string) (results []float
 		results = append(results, result)
 	}
 	runtime.ReadMemStats(&after)
-	
+
 	fmt.Printf("GC count %d, total GC time: %d ns/file\n",
 		after.NumGC-before.NumGC, (after.PauseTotalNs-before.PauseTotalNs)/uint64(b.N))
 	return results
