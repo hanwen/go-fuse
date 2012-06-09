@@ -249,6 +249,9 @@ func (n *Inode) verify(cur *fileSystemMount) {
 			log.Panicf("mountpoint mismatch %v %v", n, n.mountPoint.mountInode)
 		}
 		cur = n.mountPoint
+
+		cur.treeLock.Lock()
+		defer cur.treeLock.Unlock()
 	}
 	if n.mount != cur {
 		log.Panicf("n.mount not set correctly %v %v", n.mount, cur)

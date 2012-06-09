@@ -82,6 +82,8 @@ func (c *FileSystemConnector) nextGeneration() uint64 {
 	return atomic.AddUint64(&c.generation, 1)
 }
 
+// This verifies invariants of the data structure.  This routine
+// acquires tree locks as it walks the inode tree.
 func (c *FileSystemConnector) verify() {
 	if !paranoia {
 		return
@@ -136,8 +138,6 @@ func (c *FileSystemConnector) lookupUpdate(node *Inode) uint64 {
 
 // Must run outside treeLock.
 func (c *FileSystemConnector) forgetUpdate(node *Inode, forgetCount int) {
-	defer c.verify()
-
 	node.treeLock.Lock()
 	node.lookupCount -= forgetCount
 	if node.lookupCount == 0 {
@@ -149,6 +149,7 @@ func (c *FileSystemConnector) forgetUpdate(node *Inode, forgetCount int) {
 
 	c.recursiveConsiderDropInode(node)
 	node.treeLock.Unlock()
+	c.verify()
 }
 
 // InodeCount returns the number of inodes registered with the kernel.
@@ -269,6 +270,7 @@ func (c *FileSystemConnector) MountRoot(nodeFs NodeFileSystem, opts *FileSystemO
 //
 // EBUSY: the intended mount point already exists.
 func (c *FileSystemConnector) Mount(parent *Inode, name string, nodeFs NodeFileSystem, opts *FileSystemOptions) Status {
+	defer c.verify()
 	parent.treeLock.Lock()
 	defer parent.treeLock.Unlock()
 	node := parent.children[name]
@@ -294,7 +296,6 @@ func (c *FileSystemConnector) Mount(parent *Inode, name string, nodeFs NodeFileS
 		log.Println("Mount: ", nodeFs, "on subdir", name,
 			"parent", parent.nodeId)
 	}
-	c.verify()
 	nodeFs.OnMount(c)
 	return OK
 }
