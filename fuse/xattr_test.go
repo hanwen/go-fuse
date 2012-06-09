@@ -28,7 +28,10 @@ type XAttrTestFs struct {
 func NewXAttrFs(nm string, m map[string][]byte) *XAttrTestFs {
 	x := new(XAttrTestFs)
 	x.filename = nm
-	x.attrs = m
+	x.attrs = make(map[string][]byte, len(m))
+	for k, v := range m {
+		x.attrs[k] = v
+	}
 	return x
 }
 
