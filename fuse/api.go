@@ -26,11 +26,17 @@ type NodeFileSystem interface {
 	String() string
 }
 
+// The FsNode implements the basic functionality of inodes; this is
+// where the majority of the FS code for a typical filesystem will be.
 type FsNode interface {
-	// The following are called by the FileSystemConnector
+	// Inode and SetInode are basic getter/setters.  They are
+	// called by the FileSystemConnector. You get them for free by
+	// embedding DefaultFsNode.
 	Inode() *Inode
 	SetInode(node *Inode)
 
+	// Lookup finds a child node to this node; it is only called
+	// for directory FsNodes.
 	Lookup(out *Attr, name string, context *Context) (node FsNode, code Status)
 
 	// Deletable() should return true if this inode may be
@@ -47,7 +53,7 @@ type FsNode interface {
 	Access(mode uint32, context *Context) (code Status)
 	Readlink(c *Context) ([]byte, Status)
 
-	// Namespace operations
+	// Namespace operations; these are only called on directory FsNodes.
 	Mknod(name string, mode uint32, dev uint32, context *Context) (newNode FsNode, code Status)
 	Mkdir(name string, mode uint32, context *Context) (newNode FsNode, code Status)
 	Unlink(name string, context *Context) (code Status)
