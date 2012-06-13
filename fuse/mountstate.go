@@ -107,6 +107,9 @@ func (ms *MountState) Mount(mountPoint string, opts *MountOptions) error {
 		EntryNotify: func(parent uint64, n string) Status {
 			return ms.writeEntryNotify(parent, n)
 		},
+		DeleteNotify: func(parent uint64, child uint64, n string) Status {
+			return ms.writeDeleteNotify(parent, child, n)
+		},
 	}
 	ms.fileSystem.Init(&initParams)
 	ms.mountPoint = mp
@@ -438,6 +441,39 @@ func (ms *MountState) writeInodeNotify(entry *raw.NotifyInvalInodeOut) Status {
 
 	if ms.Debug {
 		log.Println("Response: INODE_NOTIFY", result)
+	}
+	return result
+}
+
+func (ms *MountState) writeDeleteNotify(parent uint64, child uint64, name string) Status {
+	if ms.kernelSettings.Minor < 18 {
+		return ms.writeEntryNotify(parent, name)
+	}
+	
+	req := request{
+		inHeader: &raw.InHeader{
+			Opcode: _OP_NOTIFY_DELETE,
+		},
+		handler: operationHandlers[_OP_NOTIFY_DELETE],
+		status:  raw.NOTIFY_INVAL_DELETE,
+	}
+	entry := &raw.NotifyInvalDeleteOut{
+		Parent:  parent,
+		Child: child, 
+		NameLen: uint32(len(name)),
+	}
+
+	// Many versions of FUSE generate stacktraces if the
+	// terminating null byte is missing.
+	nameBytes := make([]byte, len(name)+1)
+	copy(nameBytes, name)
+	nameBytes[len(nameBytes)-1] = '\000'
+	req.outData = unsafe.Pointer(entry)
+	req.flatData = nameBytes
+	result := ms.write(&req)
+
+	if ms.Debug {
+		log.Printf("Response: DELETE_NOTIFY: %v", result)
 	}
 	return result
 }

@@ -3,7 +3,6 @@ package fuse
 import (
 	"bytes"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"syscall"
@@ -79,39 +78,28 @@ func TestDeleteNotify(t *testing.T) {
 	}
 
 	defer func() {
-		log.Println("killing process...")
 		cmd.Process.Kill()
-		cmd.Wait()
-		log.Println("waited")
 		time.Sleep(100*time.Millisecond)
 	}()
 
-	// Wait until we see the subprocess moving.
-	deadline := time.Now().Add(2 * time.Second)
-	for {
-		_, err := os.Lstat(mnt + "/testdir/testfile")
-		if err == nil {
-			break
-		}
-		if time.Now().After(deadline) {
-			t.Fatal("timeout; process did not start?")
-		}
-		time.Sleep(10 * time.Millisecond)
+	// Wait until tail opened the file.
+	time.Sleep(100*time.Millisecond)
+	err = os.Remove(mnt + "/testdir/testfile")
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	// Simulate deletion+mkdir coming from the network
 	close(flip.ok)
-	fs.Root().Inode().RmChild("testdir")
+	oldCh := fs.Root().Inode().RmChild("testdir")
 	_, code = fs.Root().Inode().FsNode().Mkdir("testdir", 0755, nil)
 	if !code.Ok() {
 		t.Fatal("mkdir status", code)
 	}
-	conn.EntryNotify(fs.Root().Inode(), "testdir")
+	conn.DeleteNotify(fs.Root().Inode(), oldCh, "testdir")
 
-	fi, err := os.Lstat(mnt + "/testdir")
-	log.Println("lsta", fi, err)
+	_, err = os.Lstat(mnt + "/testdir")
 	if err != nil {
 		t.Fatalf("lstat after del + mkdir failed: %v", err)
 	}
-	t.Log(fi)
 }

@@ -370,3 +370,14 @@ func (c *FileSystemConnector) EntryNotify(dir *Inode, name string) Status {
 	}
 	return c.fsInit.EntryNotify(n, name)
 }
+
+func (c *FileSystemConnector) DeleteNotify(dir *Inode, child *Inode, name string) Status {
+	n := dir.nodeId
+	if dir == c.rootNode {
+		n = raw.FUSE_ROOT_ID
+	}
+	if n == 0 {
+		return OK
+	}
+	return c.fsInit.DeleteNotify(n, child.nodeId, name)
+}

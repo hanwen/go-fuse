@@ -59,8 +59,9 @@ const (
 	// Ugh - what will happen if FUSE introduces a new opcode here?
 	_OP_NOTIFY_ENTRY = int32(51)
 	_OP_NOTIFY_INODE = int32(52)
+	_OP_NOTIFY_DELETE = int32(53)
 
-	_OPCODE_COUNT = int32(53)
+	_OPCODE_COUNT = int32(54)
 )
 
 ////////////////////////////////////////////////////////////////
@@ -372,7 +373,7 @@ func init() {
 		operationHandlers[i] = &operationHandler{Name: "UNKNOWN"}
 	}
 
-	fileOps := []int32{_OP_READLINK, _OP_NOTIFY_ENTRY}
+	fileOps := []int32{_OP_READLINK, _OP_NOTIFY_ENTRY, _OP_NOTIFY_DELETE}
 	for _, op := range fileOps {
 		operationHandlers[op].FileNameOut = true
 	}
@@ -431,6 +432,7 @@ func init() {
 		_OP_POLL:         unsafe.Sizeof(raw.PollOut{}),
 		_OP_NOTIFY_ENTRY: unsafe.Sizeof(raw.NotifyInvalEntryOut{}),
 		_OP_NOTIFY_INODE: unsafe.Sizeof(raw.NotifyInvalInodeOut{}),
+		_OP_NOTIFY_DELETE: unsafe.Sizeof(raw.NotifyInvalDeleteOut{}),
 	} {
 		operationHandlers[op].OutputSize = sz
 	}
@@ -477,6 +479,7 @@ func init() {
 		_OP_POLL:         "POLL",
 		_OP_NOTIFY_ENTRY: "NOTIFY_ENTRY",
 		_OP_NOTIFY_INODE: "NOTIFY_INODE",
+		_OP_NOTIFY_DELETE: "NOTIFY_DELETE",
 	} {
 		operationHandlers[op].Name = v
 	}
@@ -531,6 +534,7 @@ func init() {
 		_OP_MKDIR:        func(ptr unsafe.Pointer) interface{} { return (*raw.EntryOut)(ptr) },
 		_OP_NOTIFY_ENTRY: func(ptr unsafe.Pointer) interface{} { return (*raw.NotifyInvalEntryOut)(ptr) },
 		_OP_NOTIFY_INODE: func(ptr unsafe.Pointer) interface{} { return (*raw.NotifyInvalInodeOut)(ptr) },
+		_OP_NOTIFY_DELETE: func(ptr unsafe.Pointer) interface{} { return (*raw.NotifyInvalDeleteOut)(ptr) },
 		_OP_STATFS:       func(ptr unsafe.Pointer) interface{} { return (*StatfsOut)(ptr) },
 	} {
 		operationHandlers[op].DecodeOut = f

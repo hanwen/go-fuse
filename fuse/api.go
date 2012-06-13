@@ -349,4 +349,5 @@ type DefaultRawFileSystem struct{}
 type RawFsInit struct {
 	InodeNotify func(*raw.NotifyInvalInodeOut) Status
 	EntryNotify func(parent uint64, name string) Status
+	DeleteNotify func(parent uint64, child uint64, name string) Status
 }
