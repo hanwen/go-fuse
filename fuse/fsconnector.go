@@ -339,7 +339,7 @@ func (c *FileSystemConnector) Unmount(node *Inode) Status {
 	delete(parentNode.children, name)
 	mount.fs.OnUnmount()
 
-	c.EntryNotify(parentNode, name)
+	c.DeleteNotify(parentNode, mountInode, name)
 
 	return OK
 }
