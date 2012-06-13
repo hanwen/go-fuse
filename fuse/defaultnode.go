@@ -38,12 +38,6 @@ func (n *DefaultFsNode) StatFs() *StatfsOut {
 }
 
 func (n *DefaultFsNode) SetInode(node *Inode) {
-	if n.inode != nil {
-		panic("already have Inode")
-	}
-	if node == nil {
-		panic("SetInode called with nil Inode.")
-	}
 	n.inode = node
 }
 
