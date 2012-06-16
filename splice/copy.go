@@ -1,6 +1,7 @@
 package splice
 
 import (
+	"fmt"
 	"io"
 	"os"
 )
@@ -22,7 +23,7 @@ func SpliceCopy(dst *os.File, src *os.File, p *Pair) (int64, error) {
 			return total, err
 		}
 		if m < n {
-			panic("m<n")
+			return total, err
 		}
 		if int(n) < p.size {
 			break
