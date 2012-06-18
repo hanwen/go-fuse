@@ -66,6 +66,12 @@ func TestDeleteNotify(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Do the test here, so we surely have state.KernelSettings()
+	if state.KernelSettings().Minor < 18 {
+		t.Log("Kernel does not support deletion notify; aborting test.")
+		return
+	}
 	buf := bytes.Buffer{}
 	cmd := exec.Command("/usr/bin/tail", "-f", "testfile")
 	cmd.Dir = mnt + "/testdir"
