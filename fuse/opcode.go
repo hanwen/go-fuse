@@ -279,7 +279,7 @@ func doRead(state *MountState, req *request) {
 		req.fdData = fd
 		req.flatData = nil
 	} else if r != nil {
-		req.flatData = r.Bytes(buf)
+		req.flatData, req.status = r.Bytes(buf)
 	}
 }
 

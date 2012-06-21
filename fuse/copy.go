@@ -31,7 +31,10 @@ func CopyFile(srcFs, destFs FileSystem, srcFile, destFile string, context *Conte
 		if !code.Ok() {
 			return code
 		}
-		data := res.Bytes(buf)
+		data, code := res.Bytes(buf)
+		if !code.Ok() {
+			return code
+		}
 
 		if len(data) == 0 {
 			break

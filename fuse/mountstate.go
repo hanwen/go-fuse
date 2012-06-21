@@ -363,7 +363,7 @@ func (ms *MountState) write(req *request) Status {
 			log.Println("TrySplice:", err)
 			sz := req.flatDataSize()
 			buf := ms.AllocOut(req, uint32(sz))
-			req.flatData = req.fdData.Bytes(buf)
+			req.flatData, req.status = req.fdData.Bytes(buf)
 			header = req.serializeHeader(len(req.flatData))
 		}
 	}
@@ -449,7 +449,7 @@ func (ms *MountState) writeDeleteNotify(parent uint64, child uint64, name string
 	if ms.kernelSettings.Minor < 18 {
 		return ms.writeEntryNotify(parent, name)
 	}
-	
+
 	req := request{
 		inHeader: &raw.InHeader{
 			Opcode: _OP_NOTIFY_DELETE,
@@ -459,7 +459,7 @@ func (ms *MountState) writeDeleteNotify(parent uint64, child uint64, name string
 	}
 	entry := &raw.NotifyInvalDeleteOut{
 		Parent:  parent,
-		Child: child, 
+		Child: child,
 		NameLen: uint32(len(name)),
 	}
 

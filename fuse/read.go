@@ -15,8 +15,8 @@ func (r *ReadResultData) Size() int {
 	return len(r.Data)
 }
 
-func (r *ReadResultData) Bytes(buf []byte) []byte {
-	return r.Data
+func (r *ReadResultData) Bytes(buf []byte) ([]byte, Status) {
+	return r.Data, OK
 }
 
 // ReadResultFd is the read return for zero-copy file data.
@@ -34,7 +34,7 @@ type ReadResultFd struct {
 
 // Reads raw bytes from file descriptor if necessary, using the passed
 // buffer as storage.
-func (r *ReadResultFd) Bytes(buf []byte) []byte {
+func (r *ReadResultFd) Bytes(buf []byte) ([]byte, Status) {
 	sz := r.Sz
 	if len(buf) < sz {
 		sz = len(buf)
@@ -44,8 +44,12 @@ func (r *ReadResultFd) Bytes(buf []byte) []byte {
 	if err == io.EOF {
 		err = nil
 	}
-	// TODO - error handling?
-	return buf[:n]
+
+	if n < 0 {
+		n = 0
+	}
+
+	return buf[:n], ToStatus(err)
 }
 
 func (r *ReadResultFd) Size() int {
