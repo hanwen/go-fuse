@@ -447,8 +447,9 @@ func TestUnionFsRename(t *testing.T) {
 			t.Errorf("Should have lost file1")
 		}
 		_, err = os.Lstat(wd + "/mnt/file2")
-		CheckSuccess(err)
-
+		if err != nil {
+			t.Errorf("Should have gotten file2: %v", err)
+		}
 		err = os.Rename(wd+"/mnt/file2", wd+"/mnt/file1")
 		CheckSuccess(err)
 
@@ -457,8 +458,9 @@ func TestUnionFsRename(t *testing.T) {
 			t.Errorf("Should have lost file2")
 		}
 		_, err = os.Lstat(wd + "/mnt/file1")
-		CheckSuccess(err)
-
+		if err != nil {
+			t.Errorf("Should have gotten file1: %v", err)
+		}
 		clean()
 	}
 }
