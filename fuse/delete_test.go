@@ -26,7 +26,7 @@ func (f *flipNode) GetAttr(out *Attr, file File, c *Context) Status {
 }
 
 func TestDeleteNotify(t *testing.T) {
-	dir, err := ioutil.TempDir("","")
+	dir, err := ioutil.TempDir("", "")
 	if err != nil {
 		t.Fatalf("TempDir failed %v", err)
 	}
@@ -57,12 +57,12 @@ func TestDeleteNotify(t *testing.T) {
 	ch.FsNode().(*memNode).SetInode(nil)
 	flip := flipNode{
 		memNode: ch.FsNode().(*memNode),
-		ok: make(chan int),
+		ok:      make(chan int),
 	}
 	newCh := fs.Root().Inode().New(true, &flip)
 	fs.Root().Inode().AddChild("testdir", newCh)
 
-	err = ioutil.WriteFile(mnt + "/testdir/testfile", []byte{42}, 0644)
+	err = ioutil.WriteFile(mnt+"/testdir/testfile", []byte{42}, 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,11 +85,11 @@ func TestDeleteNotify(t *testing.T) {
 
 	defer func() {
 		cmd.Process.Kill()
-		time.Sleep(100*time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 	}()
 
 	// Wait until tail opened the file.
-	time.Sleep(100*time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	err = os.Remove(mnt + "/testdir/testfile")
 	if err != nil {
 		t.Fatal(err)

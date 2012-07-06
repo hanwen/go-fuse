@@ -347,7 +347,7 @@ type DefaultRawFileSystem struct{}
 // will give the correct result for Lstat (ENOENT), but the kernel
 // will still issue file Open() on the inode.
 type RawFsInit struct {
-	InodeNotify func(*raw.NotifyInvalInodeOut) Status
-	EntryNotify func(parent uint64, name string) Status
+	InodeNotify  func(*raw.NotifyInvalInodeOut) Status
+	EntryNotify  func(parent uint64, name string) Status
 	DeleteNotify func(parent uint64, child uint64, name string) Status
 }

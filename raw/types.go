@@ -298,22 +298,21 @@ type NotifyInvalEntryOut struct {
 	Padding uint32
 }
 
-
 type NotifyInvalDeleteOut struct {
-	Parent uint64;
-	Child uint64;
-	NameLen uint32;
-	Padding uint32;
+	Parent  uint64
+	Child   uint64
+	NameLen uint32
+	Padding uint32
 }
 
 const (
-	NOTIFY_POLL        = -1
-	NOTIFY_INVAL_INODE = -2
-	NOTIFY_INVAL_ENTRY = -3
-	NOTIFY_STORE = -4
-	NOTIFY_RETRIEVE = -5
+	NOTIFY_POLL         = -1
+	NOTIFY_INVAL_INODE  = -2
+	NOTIFY_INVAL_ENTRY  = -3
+	NOTIFY_STORE        = -4
+	NOTIFY_RETRIEVE     = -5
 	NOTIFY_INVAL_DELETE = -6
-	NOTIFY_CODE_MAX    = -6
+	NOTIFY_CODE_MAX     = -6
 )
 
 type FlushIn struct {

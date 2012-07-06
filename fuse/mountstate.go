@@ -459,7 +459,7 @@ func (ms *MountState) writeDeleteNotify(parent uint64, child uint64, name string
 	}
 	entry := &raw.NotifyInvalDeleteOut{
 		Parent:  parent,
-		Child: child,
+		Child:   child,
 		NameLen: uint32(len(name)),
 	}
 
