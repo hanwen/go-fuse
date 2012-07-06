@@ -1,7 +1,6 @@
 package splice
 
 import (
-	"fmt"
 	"io"
 	"os"
 )
