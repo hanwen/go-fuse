@@ -106,16 +106,6 @@ func (c *FileSystemConnector) childLookup(out *raw.EntryOut, fsi FsNode) {
 	}
 }
 
-func (c *FileSystemConnector) findMount(parent *Inode, name string) (mount *fileSystemMount) {
-	parent.treeLock.RLock()
-	if parent.mounts != nil {
-		mount = parent.mounts[name]
-	}
-	parent.treeLock.RUnlock()
-
-	return
-}
-
 func (c *FileSystemConnector) toInode(nodeid uint64) *Inode {
 	if nodeid == raw.FUSE_ROOT_ID {
 		return c.rootNode
@@ -287,10 +277,6 @@ func (c *FileSystemConnector) Mount(parent *Inode, name string, nodeFs NodeFileS
 	node.mount.connector = c
 	parent.addChild(name, node)
 
-	if parent.mounts == nil {
-		parent.mounts = make(map[string]*fileSystemMount)
-	}
-	parent.mounts[name] = node.mountPoint
 	node.mountPoint.parentInode = parent
 	if c.Debug {
 		log.Println("Mount: ", nodeFs, "on subdir", name,
@@ -335,7 +321,6 @@ func (c *FileSystemConnector) Unmount(node *Inode) Status {
 	mount.mountInode = nil
 	mountInode.mountPoint = nil
 
-	delete(parentNode.mounts, name)
 	delete(parentNode.children, name)
 	mount.fs.OnUnmount()
 

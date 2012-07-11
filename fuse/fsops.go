@@ -45,11 +45,11 @@ func (c *FileSystemConnector) lookupMountUpdate(out *Attr, mount *fileSystemMoun
 }
 
 func (c *FileSystemConnector) internalLookup(out *Attr, parent *Inode, name string, context *Context) (node *Inode, code Status) {
-	if subMount := c.findMount(parent, name); subMount != nil {
-		return c.lookupMountUpdate(out, subMount)
+	child := parent.GetChild(name)
+	if child != nil && child.mountPoint != nil {
+		return c.lookupMountUpdate(out, child.mountPoint)
 	}
 
-	child := parent.GetChild(name)
 	if child != nil {
 		parent = nil
 	}
@@ -259,8 +259,9 @@ func (c *FileSystemConnector) Symlink(out *raw.EntryOut, header *raw.InHeader, p
 
 func (c *FileSystemConnector) Rename(header *raw.InHeader, input *raw.RenameIn, oldName string, newName string) (code Status) {
 	oldParent := c.toInode(header.NodeId)
-	isMountPoint := c.findMount(oldParent, oldName) != nil
-	if isMountPoint {
+
+	child := oldParent.GetChild(oldName)
+	if child.mountPoint != nil {
 		return EBUSY
 	}
 

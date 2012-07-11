@@ -46,8 +46,8 @@ type fileSystemMount struct {
 
 // Must called with lock for parent held.
 func (m *fileSystemMount) mountName() string {
-	for k, v := range m.parentInode.mounts {
-		if m == v {
+	for k, v := range m.parentInode.children {
+		if m.mountInode == v {
 			return k
 		}
 	}

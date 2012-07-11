@@ -39,10 +39,6 @@ type Inode struct {
 	// All data below is protected by treeLock.
 	children map[string]*Inode
 
-	// Contains directories that function as mounts. The entries
-	// are duplicated in children.
-	mounts map[string]*fileSystemMount
-
 	// The nodeId is only used to communicate to the kernel.  If
 	// it is zero, it means the kernel does not know about this
 	// Inode.  You should probably never read nodeId, but always
@@ -224,11 +220,13 @@ func (n *Inode) canUnmount() bool {
 
 func (n *Inode) getMountDirEntries() (out []DirEntry) {
 	n.treeLock.RLock()
-	for k := range n.mounts {
-		out = append(out, DirEntry{
-			Name: k,
-			Mode: S_IFDIR,
-		})
+	for k, v := range n.children {
+		if v.mountPoint != nil {
+			out = append(out, DirEntry{
+				Name: k,
+				Mode: S_IFDIR,
+			})
+		}
 	}
 	n.treeLock.RUnlock()
 
@@ -255,13 +253,6 @@ func (n *Inode) verify(cur *fileSystemMount) {
 	}
 	if n.mount != cur {
 		log.Panicf("n.mount not set correctly %v %v", n.mount, cur)
-	}
-
-	for name, m := range n.mounts {
-		if m.mountInode != n.children[name] {
-			log.Panicf("mountpoint parent mismatch: node:%v name:%v ch:%v",
-				n.mountPoint, name, n.children)
-		}
 	}
 
 	for nm, ch := range n.children {
