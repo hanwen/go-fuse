@@ -17,14 +17,14 @@ func (p *Pair) MaxGrow() {
 }
 
 func (p *Pair) Grow(n int) bool {
+	if n <= p.size {
+		return true
+	}
 	if !resizable {
 		return false
 	}
 	if n > maxPipeSize {
 		return false
-	}
-	if n <= p.size {
-		return true
 	}
 
 	newsize, errNo := fcntl(p.r.Fd(), F_SETPIPE_SZ, n)
@@ -85,7 +85,7 @@ func (p *Pair) LoadFrom(fd uintptr, sz int) (int, error) {
 func (p *Pair) WriteTo(fd uintptr, n int) (int, error) {
 	m, err := syscall.Splice(int(p.r.Fd()), nil, int(fd), nil, int(n), 0)
 	if err != nil {
-		err = os.NewSyscallError("Splice write to: ", err)
+		err = os.NewSyscallError("Splice write", err)
 	}
 	return int(m), err
 }
