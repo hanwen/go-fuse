@@ -56,6 +56,7 @@ const (
 	_STATUS      = "status"
 	_CONFIG      = "config"
 	_DEBUG       = "debug"
+	_DEBUG_SETTING = "debug_setting"
 	_ROOT        = "root"
 	_VERSION     = "gounionfs_version"
 	_SCAN_CONFIG = ".scan_config"
@@ -215,10 +216,16 @@ func (fs *AutoUnionFs) Readlink(path string, context *fuse.Context) (out string,
 		return fs.root, fuse.OK
 	}
 
+	if comps[0] == _STATUS && comps[1] == _DEBUG_SETTING && fs.hasDebug() {
+		return "1", fuse.OK
+	}
+
 	if comps[0] != _CONFIG {
 		return "", fuse.ENOENT
 	}
+
 	name := comps[1]
+
 	fs.lock.RLock()
 	defer fs.lock.RUnlock()
 
@@ -241,6 +248,11 @@ func (fs *AutoUnionFs) Symlink(pointedTo string, linkName string, context *fuse.
 		return fuse.EPERM
 	}
 
+	if comps[0] == _STATUS && comps[1] == _DEBUG_SETTING {
+		fs.SetDebug(true)
+		return fuse.OK
+	}
+
 	if comps[0] == _CONFIG {
 		roots := fs.getRoots(pointedTo)
 		if roots == nil {
@@ -253,10 +265,27 @@ func (fs *AutoUnionFs) Symlink(pointedTo string, linkName string, context *fuse.
 	return fuse.EPERM
 }
 
+func (fs *AutoUnionFs) SetDebug(b bool) {
+	// Officially, this should use locking, but we don't care
+	// about race conditions here.
+	fs.nodeFs.Debug = b
+	fs.connector.Debug = b
+	fs.mountState.Debug = b
+}
+
+func (fs *AutoUnionFs) hasDebug() bool {
+	return fs.nodeFs.Debug
+}
+
 func (fs *AutoUnionFs) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 	comps := strings.Split(path, "/")
 	if len(comps) != 2 {
 		return fuse.EPERM
+	}
+
+	if comps[0] == _STATUS && comps[1] == _DEBUG_SETTING {
+		fs.SetDebug(false)
+		return fuse.OK
 	}
 
 	if comps[0] == _CONFIG && comps[1] != _SCAN_CONFIG {
@@ -278,6 +307,12 @@ func (fs *AutoUnionFs) GetAttr(path string, context *fuse.Context) (*fuse.Attr, 
 			Mode: fuse.S_IFDIR | 0755,
 		}
 		return a, fuse.OK
+	}
+
+	if path == filepath.Join(_STATUS, _DEBUG_SETTING) && fs.hasDebug() {
+		return &fuse.Attr{
+			Mode: fuse.S_IFLNK | 0644,
+		}, fuse.OK
 	}
 
 	if path == filepath.Join(_STATUS, _VERSION) {
@@ -334,7 +369,9 @@ func (fs *AutoUnionFs) StatusDir() (stream []fuse.DirEntry, status fuse.Status) 
 		{Name: _DEBUG, Mode: fuse.S_IFREG | 0644},
 		{Name: _ROOT, Mode: syscall.S_IFLNK | 0644},
 	}
-
+	if fs.hasDebug() {
+		stream = append(stream, fuse.DirEntry{Name: _DEBUG_SETTING, Mode: fuse.S_IFLNK | 0644})
+	}
 	return stream, fuse.OK
 }
 
