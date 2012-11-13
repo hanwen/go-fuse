@@ -173,15 +173,24 @@ func doGetXAttr(state *MountState, req *request) {
 
 	input := (*raw.GetXAttrIn)(req.inData)
 
-	if req.inHeader.Opcode == _OP_GETXATTR && input.Size == 0 {
+	if input.Size == 0 {
 		out := (*raw.GetXAttrOut)(req.outData)
-		sz, code := state.fileSystem.GetXAttrSize(req.inHeader, req.filenames[0])
-		if code.Ok() {
-			out.Size = uint32(sz)
-			req.status = ERANGE
+		switch req.inHeader.Opcode {
+		case _OP_GETXATTR:
+			sz, code := state.fileSystem.GetXAttrSize(req.inHeader, req.filenames[0])
+			if code.Ok() {
+				out.Size = uint32(sz)
+			}
+			req.status = code
+			return
+		case _OP_LISTXATTR:
+			data, code := state.fileSystem.ListXAttr(req.inHeader)
+			if code.Ok() {
+				out.Size = uint32(len(data))
+			}
+			req.status = code
+			return
 		}
-		req.status = code
-		return
 	}
 
 	req.outData = nil
