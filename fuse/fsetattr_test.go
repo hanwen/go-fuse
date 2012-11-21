@@ -130,7 +130,7 @@ func NewFile() *MutableDataFile {
 	return &MutableDataFile{}
 }
 
-func setupFAttrTest(t *testing.T, fs FileSystem) (dir string, clean func()) {
+func setupFAttrTest(t *testing.T, fs FileSystem) (dir string, clean func(), sync func()) {
 	dir, err := ioutil.TempDir("", "go-fuse")
 	CheckSuccess(err)
 	nfs := NewPathNodeFs(fs, nil)
@@ -150,12 +150,14 @@ func setupFAttrTest(t *testing.T, fs FileSystem) (dir string, clean func()) {
 		if state.Unmount() == nil {
 			os.RemoveAll(dir)
 		}
+	}, func() {
+		state.ThreadSanitizerSync()
 	}
 }
 
 func TestDataReadLarge(t *testing.T) {
 	fs := &FSetAttrFs{}
-	dir, clean := setupFAttrTest(t, fs)
+	dir, clean, _ := setupFAttrTest(t, fs)
 	defer clean()
 
 	content := RandomData(385 * 1023)
@@ -170,7 +172,7 @@ func TestDataReadLarge(t *testing.T) {
 
 func TestFSetAttr(t *testing.T) {
 	fs := &FSetAttrFs{}
-	dir, clean := setupFAttrTest(t, fs)
+	dir, clean, sync := setupFAttrTest(t, fs)
 	defer clean()
 
 	fn := dir + "/file"
@@ -184,6 +186,7 @@ func TestFSetAttr(t *testing.T) {
 	_, err = f.WriteString("hello")
 	CheckSuccess(err)
 
+	sync()
 	code := syscall.Ftruncate(int(f.Fd()), 3)
 	if code != nil {
 		t.Error("truncate retval", os.NewSyscallError("Ftruncate", code))

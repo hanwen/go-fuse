@@ -912,6 +912,7 @@ func TestUnionFsDisappearing(t *testing.T) {
 	CheckSuccess(err)
 
 	oldRoot := wrFs.Root
+	state.ThreadSanitizerSync()
 	wrFs.Root = "/dev/null"
 	time.Sleep((3 * entryTtl) / 2)
 
