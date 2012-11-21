@@ -144,8 +144,6 @@ type int64HandleMap struct {
 	nextFree uint32
 }
 
-var baseAddress uint64
-
 func (m *int64HandleMap) verify() {
 	if !paranoia {
 		return
@@ -165,7 +163,7 @@ func (m *int64HandleMap) verify() {
 func NewHandleMap(portable bool) (hm HandleMap) {
 	if portable {
 		return &portableHandleMap{
-			// Avoid handing out ID 0 and 1. 
+			// Avoid handing out ID 0 and 1.
 			handles: []*Handled{nil, nil},
 		}
 	}
@@ -210,7 +208,6 @@ func (m *int64HandleMap) Register(obj *Handled, asInterface interface{}) (handle
 	if handle&0x7 != 0 {
 		panic("unaligned ptr")
 	}
-	handle -= baseAddress
 	handle >>= 3
 
 	check := m.nextFree
@@ -250,19 +247,11 @@ func (m *int64HandleMap) Has(handle uint64) bool {
 func (m *int64HandleMap) Decode(handle uint64) (val *Handled) {
 	ptrBits := uintptr(handle & (1<<45 - 1))
 	check := uint32(handle >> 45)
-	val = (*Handled)(unsafe.Pointer(ptrBits<<3 + uintptr(baseAddress)))
-
+	val = (*Handled)(unsafe.Pointer(ptrBits<<3))
 	if val.check != check {
 		msg := fmt.Sprintf("handle check mismatch; handle has 0x%x, object has 0x%x: %v",
 			check, val.check, val.object)
 		panic(msg)
 	}
 	return val
-}
-
-func init() {
-	// TODO - figure out a way to discover this nicely.  This is
-	// depends in a pretty fragile way on the 6g allocator
-	// characteristics.
-	baseAddress = uint64(0xf800000000)
 }
