@@ -3,6 +3,7 @@ package fuse
 import (
 	"fmt"
 	"os"
+	"sync"
 	"syscall"
 )
 
@@ -91,6 +92,8 @@ func (f *DevNullFile) Truncate(size uint64) (code Status) {
 type LoopbackFile struct {
 	File *os.File
 
+	// os.File is threadsafe, except for close, which writes into the fd.
+	lock sync.Mutex
 	DefaultFile
 }
 
@@ -99,20 +102,27 @@ func (f *LoopbackFile) String() string {
 }
 
 func (f *LoopbackFile) Read(buf []byte, off int64) (res ReadResult, code Status) {
-	return &ReadResultFd{
+	f.lock.Lock()
+	r := &ReadResultFd{
 		Fd:  f.File.Fd(),
 		Off: off,
 		Sz:  len(buf),
-	}, OK
+	}
+	f.lock.Unlock()
+	return r, OK
 }
 
 func (f *LoopbackFile) Write(data []byte, off int64) (uint32, Status) {
+	f.lock.Lock()
 	n, err := f.File.WriteAt(data, off)
+	f.lock.Unlock()
 	return uint32(n), ToStatus(err)
 }
 
 func (f *LoopbackFile) Release() {
+	f.lock.Lock()
 	f.File.Close()
+	f.lock.Unlock()
 }
 
 func (f *LoopbackFile) Flush() Status {
@@ -120,30 +130,49 @@ func (f *LoopbackFile) Flush() Status {
 }
 
 func (f *LoopbackFile) Fsync(flags int) (code Status) {
-	return ToStatus(syscall.Fsync(int(f.File.Fd())))
+	f.lock.Lock()
+	r := ToStatus(syscall.Fsync(int(f.File.Fd())))
+	f.lock.Unlock()
+
+	return r
 }
 
 func (f *LoopbackFile) Truncate(size uint64) Status {
-	return ToStatus(syscall.Ftruncate(int(f.File.Fd()), int64(size)))
+	f.lock.Lock()
+	r := ToStatus(syscall.Ftruncate(int(f.File.Fd()), int64(size)))
+	f.lock.Unlock()
+
+	return r
 }
 
 // futimens missing from 6g runtime.
 
 func (f *LoopbackFile) Chmod(mode uint32) Status {
-	return ToStatus(f.File.Chmod(os.FileMode(mode)))
+	f.lock.Lock()
+	r := ToStatus(f.File.Chmod(os.FileMode(mode)))
+	f.lock.Unlock()
+
+	return r
 }
 
 func (f *LoopbackFile) Chown(uid uint32, gid uint32) Status {
-	return ToStatus(f.File.Chown(int(uid), int(gid)))
+	f.lock.Lock()
+	r := ToStatus(f.File.Chown(int(uid), int(gid)))
+	f.lock.Unlock()
+
+	return r
 }
 
 func (f *LoopbackFile) GetAttr(a *Attr) Status {
 	st := syscall.Stat_t{}
+	f.lock.Lock()
 	err := syscall.Fstat(int(f.File.Fd()), &st)
+	f.lock.Unlock()
 	if err != nil {
 		return ToStatus(err)
 	}
 	a.FromStat(&st)
+
 	return OK
 }
 
