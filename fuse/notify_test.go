@@ -78,13 +78,17 @@ func TestInodeNotify(t *testing.T) {
 	dir := test.dir
 
 	fs.size = 42
+	test.state.ThreadSanitizerSync()
+
 	fi, err := os.Lstat(dir + "/file")
 	CheckSuccess(err)
 	if fi.Mode()&os.ModeType != 0 || fi.Size() != 42 {
 		t.Error(fi)
 	}
 
+	test.state.ThreadSanitizerSync()
 	fs.size = 666
+
 	fi, err = os.Lstat(dir + "/file")
 	CheckSuccess(err)
 	if fi.Mode()&os.ModeType != 0 || fi.Size() == 666 {
