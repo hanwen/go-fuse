@@ -99,6 +99,6 @@ func TestMultiZipFs(t *testing.T) {
 
 	fi, err = os.Stat(mountPoint + "/zipmount")
 	if err == nil {
-		t.Error("stat should fail after unmount.", fi)
+		t.Errorf("stat should fail after unmount, got %#v", fi)
 	}
 }
