@@ -92,7 +92,10 @@ func (f *DevNullFile) Truncate(size uint64) (code Status) {
 type LoopbackFile struct {
 	File *os.File
 
-	// os.File is threadsafe, except for close, which writes into the fd.
+	// os.File is not threadsafe. Although fd themselves are
+	// constant during the lifetime of an open file, the OS may
+	// reuse the fd number after it is closed. When combined with
+	// threads,
 	lock sync.Mutex
 	DefaultFile
 }
@@ -119,6 +122,7 @@ func (f *LoopbackFile) Write(data []byte, off int64) (uint32, Status) {
 	return uint32(n), ToStatus(err)
 }
 
+// TODO - should bring back close error back to user space.
 func (f *LoopbackFile) Release() {
 	f.lock.Lock()
 	f.File.Close()
