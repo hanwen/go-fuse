@@ -293,7 +293,10 @@ func (ms *MountState) Loop() {
 	ms.loops.Add(1)
 	ms.loop(false)
 	ms.loops.Wait()
+
+	ms.reqMu.Lock()
 	ms.mountFile.Close()
+	ms.reqMu.Unlock()
 }
 
 func (ms *MountState) loop(exitIdle bool) {
@@ -460,7 +463,11 @@ func (ms *MountState) writeInodeNotify(entry *raw.NotifyInvalInodeOut) Status {
 		status:  raw.NOTIFY_INVAL_INODE,
 	}
 	req.outData = unsafe.Pointer(entry)
+
+	// Protect against concurrent close.
+	ms.reqMu.Lock()
 	result := ms.write(&req)
+	ms.reqMu.Unlock()
 
 	if ms.Debug {
 		log.Println("Response: INODE_NOTIFY", result)
@@ -493,7 +500,11 @@ func (ms *MountState) writeDeleteNotify(parent uint64, child uint64, name string
 	nameBytes[len(nameBytes)-1] = '\000'
 	req.outData = unsafe.Pointer(entry)
 	req.flatData = nameBytes
+
+	// Protect against concurrent close.
+	ms.reqMu.Lock()
 	result := ms.write(&req)
+	ms.reqMu.Unlock()
 
 	if ms.Debug {
 		log.Printf("Response: DELETE_NOTIFY: %v", result)
@@ -521,7 +532,11 @@ func (ms *MountState) writeEntryNotify(parent uint64, name string) Status {
 	nameBytes[len(nameBytes)-1] = '\000'
 	req.outData = unsafe.Pointer(entry)
 	req.flatData = nameBytes
+
+	// Protect against concurrent close.
+	ms.reqMu.Lock()
 	result := ms.write(&req)
+	ms.reqMu.Unlock()
 
 	if ms.Debug {
 		log.Printf("Response: ENTRY_NOTIFY: %v", result)
