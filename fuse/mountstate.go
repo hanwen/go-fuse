@@ -35,13 +35,13 @@ type MountState struct {
 	latencies *LatencyMap
 
 	opts           *MountOptions
-	kernelSettings raw.InitIn
 
 	reqMu               sync.Mutex
 	reqPool             []*request
 	readPool            [][]byte
 	reqReaders          int
 	outstandingReadBufs int
+	kernelSettings raw.InitIn
 
 	canSplice bool
 	loops     sync.WaitGroup
@@ -66,7 +66,11 @@ func (ms *MountState) ThreadSanitizerSync() {
 }
 
 func (ms *MountState) KernelSettings() raw.InitIn {
-	return ms.kernelSettings
+	ms.reqMu.Lock()
+	s := ms.kernelSettings
+	ms.reqMu.Unlock()
+
+	return s
 }
 
 func (ms *MountState) MountPoint() string {
@@ -153,7 +157,7 @@ func (ms *MountState) Unmount() (err error) {
 		if err == nil {
 			break
 		}
-		
+
 		fmt.Fprintf(os.Stderr, "umount failed; retrying\n")
 		// Sleep for a bit. This is not pretty, but there is
 		// no way we can be certain that the kernel thinks all

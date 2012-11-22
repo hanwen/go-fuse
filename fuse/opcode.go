@@ -85,6 +85,7 @@ func doInit(state *MountState, req *request) {
 		return
 	}
 
+	state.reqMu.Lock()
 	state.kernelSettings = *input
 	state.kernelSettings.Flags = input.Flags & (raw.CAP_ASYNC_READ | raw.CAP_BIG_WRITES | raw.CAP_FILE_OPS)
 	if input.Minor >= 13 {
@@ -94,6 +95,7 @@ func doInit(state *MountState, req *request) {
 			state.opts.MaxWrite = maxW
 		}
 	}
+	state.reqMu.Unlock()
 
 	out := &raw.InitOut{
 		Major:               FUSE_KERNEL_VERSION,
