@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -147,11 +148,16 @@ func (n *memNodeFile) InnerFile() File {
 
 func (n *memNodeFile) Flush() Status {
 	code := n.LoopbackFile.Flush()
-	var a Attr
-	n.LoopbackFile.GetAttr(&a)
-	n.node.info.Size = a.Size
-	n.node.info.Blocks = a.Blocks
-	return code
+
+	if !code.Ok() {
+		return code
+	}
+
+	st := syscall.Stat_t{}
+	err := syscall.Stat(n.node.filename(), &st)
+	n.node.info.Size = uint64(st.Size)
+	n.node.info.Blocks = uint64(st.Blocks)
+	return ToStatus(err)
 }
 
 func (n *memNode) newFile(f *os.File) File {

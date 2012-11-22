@@ -122,7 +122,6 @@ func (f *LoopbackFile) Write(data []byte, off int64) (uint32, Status) {
 	return uint32(n), ToStatus(err)
 }
 
-// TODO - should bring back close error back to user space.
 func (f *LoopbackFile) Release() {
 	f.lock.Lock()
 	f.File.Close()
@@ -130,7 +129,19 @@ func (f *LoopbackFile) Release() {
 }
 
 func (f *LoopbackFile) Flush() Status {
-	return OK
+	f.lock.Lock()
+
+	// Since Flush() may be called for each dup'd fd, we don't
+	// want to really close the file, we just want to flush. This
+	// is achieved by closing a dup'd fd.
+	newFd, err := syscall.Dup(int(f.File.Fd()))
+	f.lock.Unlock()
+
+	if err != nil {
+		return ToStatus(err)
+	}
+	err = syscall.Close(newFd)
+	return ToStatus(err)
 }
 
 func (f *LoopbackFile) Fsync(flags int) (code Status) {

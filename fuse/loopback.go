@@ -43,6 +43,7 @@ func (fs *LoopbackFileSystem) GetAttr(name string, context *Context) (a *Attr, c
 	} else {
 		err = syscall.Lstat(fullPath, &st)
 	}
+
 	if err != nil {
 		return nil, ToStatus(err)
 	}
