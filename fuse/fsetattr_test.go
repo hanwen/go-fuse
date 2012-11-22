@@ -186,23 +186,26 @@ func TestFSetAttr(t *testing.T) {
 	_, err = f.WriteString("hello")
 	CheckSuccess(err)
 
-	sync()
 	code := syscall.Ftruncate(int(f.Fd()), 3)
 	if code != nil {
 		t.Error("truncate retval", os.NewSyscallError("Ftruncate", code))
 	}
+
+	sync()
 	if len(fs.file.data) != 3 {
 		t.Error("truncate")
 	}
 
 	err = f.Chmod(024)
 	CheckSuccess(err)
+	sync()
 	if fs.file.Attr.Mode&07777 != 024 {
 		t.Error("chmod")
 	}
 
 	err = os.Chtimes(fn, time.Unix(0, 100e3), time.Unix(0, 101e3))
 	CheckSuccess(err)
+	sync()
 	if fs.file.Attr.Atimensec != 100e3 || fs.file.Attr.Mtimensec != 101e3 {
 		t.Errorf("Utimens: atime %d != 100e3 mtime %d != 101e3",
 			fs.file.Attr.Atimensec, fs.file.Attr.Mtimensec)
