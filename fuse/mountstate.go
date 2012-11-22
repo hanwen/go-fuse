@@ -34,14 +34,14 @@ type MountState struct {
 
 	latencies *LatencyMap
 
-	opts           *MountOptions
+	opts *MountOptions
 
 	reqMu               sync.Mutex
 	reqPool             []*request
 	readPool            [][]byte
 	reqReaders          int
 	outstandingReadBufs int
-	kernelSettings raw.InitIn
+	kernelSettings      raw.InitIn
 
 	canSplice bool
 	loops     sync.WaitGroup

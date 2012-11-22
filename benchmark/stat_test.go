@@ -134,7 +134,7 @@ func TestingBOnePass(b *testing.B, threads int, files []string) (results []float
 	return results
 }
 
-// Add this so we can estimate impact on latency numbers. 
+// Add this so we can estimate impact on latency numbers.
 func BenchmarkTimeNow(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		time.Now()

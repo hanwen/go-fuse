@@ -247,7 +247,7 @@ func (m *int64HandleMap) Has(handle uint64) bool {
 func (m *int64HandleMap) Decode(handle uint64) (val *Handled) {
 	ptrBits := uintptr(handle & (1<<45 - 1))
 	check := uint32(handle >> 45)
-	val = (*Handled)(unsafe.Pointer(ptrBits<<3))
+	val = (*Handled)(unsafe.Pointer(ptrBits << 3))
 	if val.check != check {
 		msg := fmt.Sprintf("handle check mismatch; handle has 0x%x, object has 0x%x: %v",
 			check, val.check, val.object)

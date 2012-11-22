@@ -52,14 +52,14 @@ type AutoUnionFsOptions struct {
 }
 
 const (
-	_READONLY    = "READONLY"
-	_STATUS      = "status"
-	_CONFIG      = "config"
-	_DEBUG       = "debug"
+	_READONLY      = "READONLY"
+	_STATUS        = "status"
+	_CONFIG        = "config"
+	_DEBUG         = "debug"
 	_DEBUG_SETTING = "debug_setting"
-	_ROOT        = "root"
-	_VERSION     = "gounionfs_version"
-	_SCAN_CONFIG = ".scan_config"
+	_ROOT          = "root"
+	_VERSION       = "gounionfs_version"
+	_SCAN_CONFIG   = ".scan_config"
 )
 
 func NewAutoUnionFs(directory string, options AutoUnionFsOptions) *AutoUnionFs {

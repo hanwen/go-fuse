@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 )
 
-// PrefixFileSystem adds a path prefix to incoming calls. 
+// PrefixFileSystem adds a path prefix to incoming calls.
 type PrefixFileSystem struct {
 	FileSystem
 	Prefix string

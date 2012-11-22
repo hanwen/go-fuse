@@ -147,12 +147,12 @@ func setupFAttrTest(t *testing.T, fs FileSystem) (dir string, clean func(), sync
 	}
 
 	return dir, func() {
-		if state.Unmount() == nil {
-			os.RemoveAll(dir)
+			if state.Unmount() == nil {
+				os.RemoveAll(dir)
+			}
+		}, func() {
+			state.ThreadSanitizerSync()
 		}
-	}, func() {
-		state.ThreadSanitizerSync()
-	}
 }
 
 func TestDataReadLarge(t *testing.T) {
