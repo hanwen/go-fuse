@@ -911,9 +911,10 @@ func TestUnionFsDisappearing(t *testing.T) {
 	err = os.Remove(wd + "/mnt/file")
 	CheckSuccess(err)
 
-	oldRoot := wrFs.Root
 	state.ThreadSanitizerSync()
+	oldRoot := wrFs.Root
 	wrFs.Root = "/dev/null"
+	state.ThreadSanitizerSync()
 	time.Sleep((3 * entryTtl) / 2)
 
 	_, err = ioutil.ReadDir(wd + "/mnt")
@@ -930,6 +931,7 @@ func TestUnionFsDisappearing(t *testing.T) {
 
 	// Restore, and wait for caches to catch up.
 	wrFs.Root = oldRoot
+	state.ThreadSanitizerSync()
 	time.Sleep((3 * entryTtl) / 2)
 
 	_, err = ioutil.ReadDir(wd + "/mnt")
