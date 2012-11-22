@@ -315,19 +315,29 @@ func (c *FileSystemConnector) Unmount(node *Inode) Status {
 	node.treeLock.Lock()
 	defer node.treeLock.Unlock()
 
-	mountInode := mount.mountInode
-	if !mountInode.canUnmount() {
+	if mount.mountInode != node {
+		log.Panicf("got two different mount inodes %v vs %v",
+			mount.mountInode.nodeId, node.nodeId)
+	}
+
+	if !node.canUnmount() {
 		return EBUSY
 	}
 
 	mount.mountInode = nil
 	// TODO - racy.
-	mountInode.mountPoint = nil
+	node.mountPoint = nil
 
 	delete(parentNode.children, name)
 	mount.fs.OnUnmount()
 
-	c.fsInit.DeleteNotify(parentNode.nodeId, mountInode.nodeId, name)
+	parentId := parentNode.nodeId
+	if parentNode == c.rootNode {
+		// TODO - test coverage. Currently covered by zipfs/multizip_test.go
+		parentId = raw.FUSE_ROOT_ID
+	}
+
+	c.fsInit.DeleteNotify(parentId, node.nodeId, name)
 	return OK
 }
 
@@ -363,22 +373,27 @@ func (c *FileSystemConnector) EntryNotify(dir *Inode, name string) Status {
 }
 
 func (c *FileSystemConnector) DeleteNotify(dir *Inode, child *Inode, name string) Status {
-	dir.treeLock.RLock()
-	n := dir.nodeId
+	var nId uint64
 	var chId uint64
+
+	dir.treeLock.RLock()
+	if dir == c.rootNode {
+		nId = raw.FUSE_ROOT_ID
+	} else {
+		nId = dir.nodeId
+	}
+
 	if child.treeLock != dir.treeLock {
 		child.treeLock.RLock()
 		chId = child.nodeId
 		child.treeLock.RUnlock()
+	} else {
+		chId = child.nodeId
 	}
-
 	dir.treeLock.RUnlock()
 
-	if dir == c.rootNode {
-		n = raw.FUSE_ROOT_ID
-	}
-	if n == 0 {
+	if nId == 0 {
 		return OK
 	}
-	return c.fsInit.DeleteNotify(n, chId, name)
+	return c.fsInit.DeleteNotify(nId, chId, name)
 }
