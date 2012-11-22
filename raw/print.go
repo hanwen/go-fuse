@@ -243,3 +243,15 @@ func (me *WriteIn) String() string {
 		me.LockOwner,
 		FlagString(OpenFlagNames, int(me.Flags), "RDONLY"))
 }
+
+func (o *NotifyInvalEntryOut) String() string {
+	return fmt.Sprintf("{parent %d sz %d}", o.Parent, o.NameLen)
+}
+
+func (o *NotifyInvalInodeOut) String() string {
+	return fmt.Sprintf("{ino %d off %d sz %d}", o.Ino, o.Off, o.Length)
+}
+
+func (o *NotifyInvalDeleteOut) String() string {
+	return fmt.Sprintf("{parent %d ch %d sz %d}", o.Parent, o.Child, o.NameLen)
+}
