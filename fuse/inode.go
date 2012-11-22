@@ -41,8 +41,8 @@ type Inode struct {
 
 	// The nodeId is only used to communicate to the kernel.  If
 	// it is zero, it means the kernel does not know about this
-	// Inode.  You should probably never read nodeId, but always
-	// do lookupUpdate() on the node instead.
+	// Inode.  Only forget/lookup/notify methods should nodeId
+	// directly.
 	nodeId uint64
 
 	// lookupCount registers how often the kernel got this inode

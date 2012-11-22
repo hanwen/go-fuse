@@ -27,7 +27,10 @@ func TestMountOnExisting(t *testing.T) {
 		t.Fatal("expect OK:", code)
 	}
 
-	ts.pathFs.Unmount("mnt")
+	code = ts.pathFs.Unmount("mnt")
+	if !code.Ok() {
+		t.Errorf("Unmount failed: %v", code)
+	}
 }
 
 func TestMountRename(t *testing.T) {

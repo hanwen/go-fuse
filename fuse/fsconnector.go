@@ -121,9 +121,10 @@ func (c *FileSystemConnector) lookupUpdate(node *Inode) uint64 {
 		node.nodeId = c.inodeMap.Register(&node.handled, node)
 	}
 	node.lookupCount += 1
+	id := node.nodeId
 	node.treeLock.Unlock()
 
-	return node.nodeId
+	return id
 }
 
 // Must run outside treeLock.
@@ -294,6 +295,7 @@ func (c *FileSystemConnector) Mount(parent *Inode, name string, nodeFs NodeFileS
 //
 // EBUSY: there are open files, or submounts below this node.
 func (c *FileSystemConnector) Unmount(node *Inode) Status {
+	// TODO - racy.
 	if node.mountPoint == nil {
 		log.Println("not a mountpoint:", node.nodeId)
 		return EINVAL
@@ -324,13 +326,14 @@ func (c *FileSystemConnector) Unmount(node *Inode) Status {
 	delete(parentNode.children, name)
 	mount.fs.OnUnmount()
 
-	c.DeleteNotify(parentNode, mountInode, name)
-
+	c.fsInit.DeleteNotify(parentNode.nodeId, mountInode.nodeId, name)
 	return OK
 }
 
 func (c *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) Status {
+	node.treeLock.RLock()
 	n := node.nodeId
+	node.treeLock.RUnlock()
 	if node == c.rootNode {
 		n = raw.FUSE_ROOT_ID
 	}
@@ -346,7 +349,9 @@ func (c *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) S
 }
 
 func (c *FileSystemConnector) EntryNotify(dir *Inode, name string) Status {
+	dir.treeLock.RLock()
 	n := dir.nodeId
+	dir.treeLock.RUnlock()
 	if dir == c.rootNode {
 		n = raw.FUSE_ROOT_ID
 	}
@@ -357,12 +362,22 @@ func (c *FileSystemConnector) EntryNotify(dir *Inode, name string) Status {
 }
 
 func (c *FileSystemConnector) DeleteNotify(dir *Inode, child *Inode, name string) Status {
+	dir.treeLock.RLock()
 	n := dir.nodeId
+	var chId uint64
+	if child.treeLock != dir.treeLock {
+		child.treeLock.RLock()
+		chId = child.nodeId
+		child.treeLock.RUnlock()
+	}
+	
+	dir.treeLock.RUnlock()
+	
 	if dir == c.rootNode {
 		n = raw.FUSE_ROOT_ID
 	}
 	if n == 0 {
 		return OK
 	}
-	return c.fsInit.DeleteNotify(n, child.nodeId, name)
+	return c.fsInit.DeleteNotify(n, chId, name)
 }

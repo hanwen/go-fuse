@@ -153,7 +153,8 @@ func (ms *MountState) Unmount() (err error) {
 		if err == nil {
 			break
 		}
-
+		
+		fmt.Fprintf(os.Stderr, "umount failed; retrying\n")
 		// Sleep for a bit. This is not pretty, but there is
 		// no way we can be certain that the kernel thinks all
 		// open files have already been closed.
