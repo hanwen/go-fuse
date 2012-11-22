@@ -110,6 +110,8 @@ func TestEntryNotify(t *testing.T) {
 	dir := test.dir
 	test.fs.size = 42
 	test.fs.exist = false
+	test.state.ThreadSanitizerSync()
+
 	fn := dir + "/dir/file"
 	fi, _ := os.Lstat(fn)
 	if fi != nil {
@@ -117,6 +119,7 @@ func TestEntryNotify(t *testing.T) {
 	}
 
 	test.fs.exist = true
+	test.state.ThreadSanitizerSync()
 	fi, _ = os.Lstat(fn)
 	if fi != nil {
 		t.Errorf("negative entry should have been cached: %#v", fi)
