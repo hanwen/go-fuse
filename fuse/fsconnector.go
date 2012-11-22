@@ -321,6 +321,7 @@ func (c *FileSystemConnector) Unmount(node *Inode) Status {
 	}
 
 	mount.mountInode = nil
+	// TODO - racy.
 	mountInode.mountPoint = nil
 
 	delete(parentNode.children, name)
@@ -370,9 +371,9 @@ func (c *FileSystemConnector) DeleteNotify(dir *Inode, child *Inode, name string
 		chId = child.nodeId
 		child.treeLock.RUnlock()
 	}
-	
+
 	dir.treeLock.RUnlock()
-	
+
 	if dir == c.rootNode {
 		n = raw.FUSE_ROOT_ID
 	}
