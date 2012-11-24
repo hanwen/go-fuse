@@ -20,7 +20,7 @@ import (
 //
 // This structure is thread-safe.
 type HandleMap interface {
-	Register(obj *Handled, asInt interface{}) uint64
+	Register(obj *Handled) uint64
 	Count() int
 	Decode(uint64) *Handled
 	Forget(uint64) *Handled
@@ -29,7 +29,6 @@ type HandleMap interface {
 
 type Handled struct {
 	check  uint32
-	object interface{}
 }
 
 const _ALREADY_MSG = "Object already has a handle"
@@ -44,7 +43,7 @@ type portableHandleMap struct {
 	freeIds []uint64
 }
 
-func (m *portableHandleMap) Register(obj *Handled, asInt interface{}) (handle uint64) {
+func (m *portableHandleMap) Register(obj *Handled) (handle uint64) {
 	if obj.check != 0 {
 		panic(_ALREADY_MSG)
 	}
@@ -100,7 +99,7 @@ type int32HandleMap struct {
 	handles map[uint32]*Handled
 }
 
-func (m *int32HandleMap) Register(obj *Handled, asInt interface{}) uint64 {
+func (m *int32HandleMap) Register(obj *Handled) uint64 {
 	m.mutex.Lock()
 	handle := uint32(uintptr(unsafe.Pointer(obj)))
 	m.handles[handle] = obj
@@ -193,7 +192,7 @@ func (m *int64HandleMap) Count() int {
 	return c
 }
 
-func (m *int64HandleMap) Register(obj *Handled, asInterface interface{}) (handle uint64) {
+func (m *int64HandleMap) Register(obj *Handled) (handle uint64) {
 	defer m.verify()
 
 	m.mutex.Lock()
@@ -219,8 +218,6 @@ func (m *int64HandleMap) Register(obj *Handled, asInterface interface{}) (handle
 		panic(_ALREADY_MSG)
 	}
 	obj.check = check
-
-	obj.object = asInterface
 	m.handles[handle] = obj
 	return handle
 }
@@ -249,8 +246,8 @@ func (m *int64HandleMap) Decode(handle uint64) (val *Handled) {
 	check := uint32(handle >> 45)
 	val = (*Handled)(unsafe.Pointer(ptrBits << 3))
 	if val.check != check {
-		msg := fmt.Sprintf("handle check mismatch; handle has 0x%x, object has 0x%x: %v",
-			check, val.check, val.object)
+		msg := fmt.Sprintf("handle check mismatch; handle has 0x%x, object has 0x%x",
+			check, val.check)
 		panic(msg)
 	}
 	return val

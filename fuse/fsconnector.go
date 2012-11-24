@@ -118,7 +118,7 @@ func (c *FileSystemConnector) toInode(nodeid uint64) *Inode {
 func (c *FileSystemConnector) lookupUpdate(node *Inode) uint64 {
 	node.treeLock.Lock()
 	if node.lookupCount == 0 {
-		node.nodeId = c.inodeMap.Register(&node.handled, node)
+		node.nodeId = c.inodeMap.Register(&node.handled)
 	}
 	node.lookupCount += 1
 	id := node.nodeId

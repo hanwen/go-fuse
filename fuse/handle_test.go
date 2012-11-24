@@ -29,10 +29,10 @@ func TestHandleMapDoubleRegister(t *testing.T) {
 	defer markSeen(t, "already has a handle")
 	hm := NewHandleMap(false)
 	obj := &Handled{}
-	hm.Register(obj, obj)
+	hm.Register(obj)
 	v := &Handled{}
-	hm.Register(v, v)
-	hm.Register(v, v)
+	hm.Register(v)
+	hm.Register(v)
 	t.Error("Double register did not panic")
 }
 
@@ -47,7 +47,7 @@ func TestHandleMapUnaligned(t *testing.T) {
 	v := (*Handled)(unsafe.Pointer(&b[1]))
 
 	defer markSeen(t, "unaligned")
-	hm.Register(v, v)
+	hm.Register(v)
 	t.Error("Unaligned register did not panic")
 }
 
@@ -62,7 +62,7 @@ func TestHandleMapPointerLayout(t *testing.T) {
 	p := uintptr(bogus)
 	v := (*Handled)(unsafe.Pointer(p))
 	defer markSeen(t, "48")
-	hm.Register(v, v)
+	hm.Register(v)
 	t.Error("bogus register did not panic")
 }
 
@@ -70,7 +70,7 @@ func TestHandleMapBasic(t *testing.T) {
 	for _, portable := range []bool{true, false} {
 		v := new(Handled)
 		hm := NewHandleMap(portable)
-		h := hm.Register(v, v)
+		h := hm.Register(v)
 		t.Logf("Got handle 0x%x", h)
 		if !hm.Has(h) {
 			t.Fatal("Does not have handle")
@@ -98,7 +98,7 @@ func TestHandleMapMultiple(t *testing.T) {
 	hm := NewHandleMap(false)
 	for i := 0; i < 10; i++ {
 		v := &Handled{}
-		h := hm.Register(v, v)
+		h := hm.Register(v)
 		if hm.Decode(h) != v {
 			t.Fatal("address mismatch")
 		}
@@ -117,7 +117,7 @@ func TestHandleMapCheckFail(t *testing.T) {
 
 	v := new(Handled)
 	hm := NewHandleMap(false)
-	h := hm.Register(v, v)
+	h := hm.Register(v)
 	hm.Decode(h | (uint64(1) << 63))
 	t.Error("Borked decode did not panic")
 }
