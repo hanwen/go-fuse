@@ -23,12 +23,24 @@ type HandleMap interface {
 	Register(obj *Handled) uint64
 	Count() int
 	Decode(uint64) *Handled
-	Forget(uint64) *Handled
+	Forget(handle uint64, count int) (bool, *Handled)
+	Handle(obj* Handled) uint64
 	Has(uint64) bool
 }
 
 type Handled struct {
 	check  uint32
+	handle uint64
+	count  int
+}
+
+func (h *Handled) verify() {
+	if h.count < 0 {
+		log.Panicf("negative lookup count %d", h.count)
+	}
+	if (h.count == 0) != (h.handle == 0) {
+		log.Panicf("registration mismatch: lookup %d id %d", h.count, h.handle)
+	}
 }
 
 const _ALREADY_MSG = "Object already has a handle"
@@ -44,22 +56,39 @@ type portableHandleMap struct {
 }
 
 func (m *portableHandleMap) Register(obj *Handled) (handle uint64) {
-	if obj.check != 0 {
-		panic(_ALREADY_MSG)
-	}
 	m.Lock()
+	if obj.count == 0 {
+		if obj.check != 0 {
+			panic(_ALREADY_MSG)
+		}
 
-	if len(m.freeIds) == 0 {
-		handle = uint64(len(m.handles))
-		m.handles = append(m.handles, obj)
+		if len(m.freeIds) == 0 {
+			handle = uint64(len(m.handles))
+			m.handles = append(m.handles, obj)
+		} else {
+			handle = m.freeIds[len(m.freeIds)-1]
+			m.freeIds = m.freeIds[:len(m.freeIds)-1]
+			m.handles[handle] = obj
+		}
+		m.used++
+		obj.handle = handle
 	} else {
-		handle = m.freeIds[len(m.freeIds)-1]
-		m.freeIds = m.freeIds[:len(m.freeIds)-1]
-		m.handles[handle] = obj
+		handle = obj.handle
 	}
-	m.used++
+	obj.count++
 	m.Unlock()
 	return handle
+}
+
+func (m *portableHandleMap) Handle(obj *Handled) (h uint64) {
+	m.RLock()
+	if obj.count == 0 {
+		h = 0
+	} else {
+		h = obj.handle
+	}
+	m.RUnlock()
+	return h
 }
 
 func (m *portableHandleMap) Count() int {
@@ -76,14 +105,21 @@ func (m *portableHandleMap) Decode(h uint64) *Handled {
 	return v
 }
 
-func (m *portableHandleMap) Forget(h uint64) *Handled {
+func (m *portableHandleMap) Forget(h uint64, count int) (forgotten bool, obj *Handled) {
 	m.Lock()
-	v := m.handles[h]
-	m.handles[h] = nil
-	m.freeIds = append(m.freeIds, h)
-	m.used--
+	obj = m.handles[h]
+	obj.count -= count
+	if obj.count < 0 {
+		panic("underflow")
+	} else if obj.count == 0 {
+		m.handles[h] = nil
+		m.freeIds = append(m.freeIds, h)
+		m.used--
+		forgotten = true
+		obj.handle = 0
+	} 
 	m.Unlock()
-	return v
+	return forgotten, obj
 }
 
 func (m *portableHandleMap) Has(h uint64) bool {
@@ -99,10 +135,15 @@ type int32HandleMap struct {
 	handles map[uint32]*Handled
 }
 
-func (m *int32HandleMap) Register(obj *Handled) uint64 {
+func (m *int32HandleMap) Register(obj *Handled) (handle uint64) {
 	m.mutex.Lock()
-	handle := uint32(uintptr(unsafe.Pointer(obj)))
-	m.handles[handle] = obj
+	h := uint32(uintptr(unsafe.Pointer(obj)))
+	if obj.count == 0 {
+		m.handles[h] = obj
+		obj.handle = uint64(h)
+	}
+	handle = uint64(h)
+	obj.count++
 	m.mutex.Unlock()
 	return uint64(handle)
 }
@@ -114,6 +155,15 @@ func (m *int32HandleMap) Has(h uint64) bool {
 	return ok
 }
 
+func (m *int32HandleMap) Handle(obj *Handled) uint64 {
+	if obj.count == 0 {
+		return 0
+	}
+	
+	h := uint32(uintptr(unsafe.Pointer(obj)))
+	return uint64(h)
+}
+
 func (m *int32HandleMap) Count() int {
 	m.mutex.Lock()
 	c := len(m.handles)
@@ -121,14 +171,21 @@ func (m *int32HandleMap) Count() int {
 	return c
 }
 
-func (m *int32HandleMap) Forget(handle uint64) *Handled {
-	val := m.Decode(handle)
+func (m *int32HandleMap) Forget(handle uint64, count int) (forgotten bool, obj *Handled) {
+	obj = m.Decode(handle)
 
 	m.mutex.Lock()
-	val.check = 0
-	delete(m.handles, uint32(handle))
+	obj.count -= count
+	if obj.count == 0 {
+		obj.check = 0
+		delete(m.handles, uint32(handle))
+		forgotten = true
+	} else if obj.count < 0 {
+		panic("underflow")
+	}
+	obj.handle = 0
 	m.mutex.Unlock()
-	return val
+	return forgotten, obj
 }
 
 func (m *int32HandleMap) Decode(handle uint64) *Handled {
@@ -196,42 +253,66 @@ func (m *int64HandleMap) Register(obj *Handled) (handle uint64) {
 	defer m.verify()
 
 	m.mutex.Lock()
-	defer m.mutex.Unlock()
+	if obj.count == 0 {
+		handle = uint64(uintptr(unsafe.Pointer(obj)))
 
-	handle = uint64(uintptr(unsafe.Pointer(obj)))
+		rest := (handle &^ (1<<48 - 1))
+		if rest != 0 {
+			panic("more than 48 bits in address")
+		}
+		if handle&0x7 != 0 {
+			panic("unaligned ptr")
+		}
+		handle >>= 3
 
-	rest := (handle &^ (1<<48 - 1))
-	if rest != 0 {
-		panic("more than 48 bits in address")
+		check := m.nextFree
+		m.nextFree++
+		m.nextFree = m.nextFree & (1<<(64-48+3) - 1)
+
+		handle |= uint64(check) << (48 - 3)
+		if obj.check != 0 {
+			panic(_ALREADY_MSG)
+		}
+		obj.check = check
+		m.handles[handle] = obj
+	} else {
+		handle = m.Handle(obj)
 	}
-	if handle&0x7 != 0 {
-		panic("unaligned ptr")
-	}
-	handle >>= 3
+	obj.count ++
+	m.mutex.Unlock()
 
-	check := m.nextFree
-	m.nextFree++
-	m.nextFree = m.nextFree & (1<<(64-48+3) - 1)
-
-	handle |= uint64(check) << (48 - 3)
-	if obj.check != 0 {
-		panic(_ALREADY_MSG)
-	}
-	obj.check = check
-	m.handles[handle] = obj
 	return handle
 }
 
-func (m *int64HandleMap) Forget(handle uint64) (val *Handled) {
+func (m *int64HandleMap) Handle(obj *Handled) (handle uint64) {
+	if obj.count == 0 {
+		return 0
+	}
+	
+	handle = uint64(uintptr(unsafe.Pointer(obj)))
+	handle >>= 3
+	handle |= uint64(obj.check) << (48 - 3)
+	return handle
+}
+
+
+func (m *int64HandleMap) Forget(handle uint64, count int) (forgotten bool, obj *Handled) {
 	defer m.verify()
 
-	val = m.Decode(handle)
+	obj = m.Decode(handle)
 
 	m.mutex.Lock()
-	delete(m.handles, handle)
-	val.check = 0
+	obj.count -= count
+	if obj.count == 0 {
+		delete(m.handles, handle)
+		obj.check = 0
+		obj.handle = 0
+		forgotten = true
+	} else if obj.count < 0 {
+		panic("underflow")
+	}
 	m.mutex.Unlock()
-	return val
+	return forgotten, obj
 }
 
 func (m *int64HandleMap) Has(handle uint64) bool {

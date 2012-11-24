@@ -68,6 +68,7 @@ func TestHandleMapPointerLayout(t *testing.T) {
 
 func TestHandleMapBasic(t *testing.T) {
 	for _, portable := range []bool{true, false} {
+		t.Log("portable:", portable)
 		v := new(Handled)
 		hm := NewHandleMap(portable)
 		h := hm.Register(v)
@@ -75,13 +76,16 @@ func TestHandleMapBasic(t *testing.T) {
 		if !hm.Has(h) {
 			t.Fatal("Does not have handle")
 		}
+		if hm.Handle(v) != h {
+			t.Fatalf("handle mismatch, got %x want %x", hm.Handle(v), h)
+		}
 		if hm.Decode(h) != v {
 			t.Fatal("address mismatch")
 		}
 		if hm.Count() != 1 {
 			t.Fatal("count error")
 		}
-		hm.Forget(h)
+		hm.Forget(h, 1)
 		if hm.Count() != 0 {
 			t.Fatal("count error")
 		}

@@ -262,7 +262,7 @@ func (n *pathInode) GetPath() string {
 
 	path := string(pathBytes)
 	if n.pathFs.Debug {
-		log.Printf("Inode %d = %q (%s)", n.Inode().nodeId, path, n.fs.String())
+		log.Printf("Inode %d = %q (%s)", n.Inode().handled.handle, path, n.fs.String())
 	}
 
 	return path

@@ -85,7 +85,7 @@ func (m *fileSystemMount) getOpenedFile(h uint64) *openedFile {
 }
 
 func (m *fileSystemMount) unregisterFileHandle(handle uint64, node *Inode) *openedFile {
-	obj := m.openFiles.Forget(handle)
+	_, obj := m.openFiles.Forget(handle, 1)
 	opened := (*openedFile)(unsafe.Pointer(obj))
 	node.openFilesMutex.Lock()
 	idx := -1

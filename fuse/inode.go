@@ -39,22 +39,6 @@ type Inode struct {
 	// All data below is protected by treeLock.
 	children map[string]*Inode
 
-	// The nodeId is only used to communicate to the kernel.  If
-	// it is zero, it means the kernel does not know about this
-	// Inode.  Only forget/lookup/notify methods should nodeId
-	// directly.
-	nodeId uint64
-
-	// lookupCount registers how often the kernel got this inode
-	// back for a Lookup operation. This number is a reference
-	// count, and the Forget operation lists how many references to drop.
-	//
-	// The lookupCount is exclusively used for managing the
-	// lifetime of nodeId variable.  It is ok for a node to have 0
-	// == lookupCount.  This can happen if the inode return false
-	// for Deletable().
-	lookupCount int
-
 	// Non-nil if this inode is a mountpoint, ie. the Root of a
 	// NodeFileSystem.
 	mountPoint *fileSystemMount
@@ -236,12 +220,7 @@ func (n *Inode) getMountDirEntries() (out []DirEntry) {
 const initDirSize = 20
 
 func (n *Inode) verify(cur *fileSystemMount) {
-	if n.lookupCount < 0 {
-		log.Panicf("negative lookup count %d on node %d", n.lookupCount, n.nodeId)
-	}
-	if (n.lookupCount == 0) != (n.nodeId == 0) {
-		log.Panicf("kernel registration mismatch: lookup %d id %d", n.lookupCount, n.nodeId)
-	}
+	n.handled.verify()
 	if n.mountPoint != nil {
 		if n != n.mountPoint.mountInode {
 			log.Panicf("mountpoint mismatch %v %v", n, n.mountPoint.mountInode)

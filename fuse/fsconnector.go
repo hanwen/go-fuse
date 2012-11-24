@@ -115,31 +115,26 @@ func (c *FileSystemConnector) toInode(nodeid uint64) *Inode {
 }
 
 // Must run outside treeLock.  Returns the nodeId.
-func (c *FileSystemConnector) lookupUpdate(node *Inode) uint64 {
-	node.treeLock.Lock()
-	if node.lookupCount == 0 {
-		node.nodeId = c.inodeMap.Register(&node.handled)
-	}
-	node.lookupCount += 1
-	id := node.nodeId
-	node.treeLock.Unlock()
-
+func (c *FileSystemConnector) lookupUpdate(node *Inode) (id uint64) {
+	id = c.inodeMap.Register(&node.handled)
+	c.verify()
 	return id
 }
 
 // Must run outside treeLock.
-func (c *FileSystemConnector) forgetUpdate(node *Inode, forgetCount int) {
-	node.treeLock.Lock()
-	node.lookupCount -= forgetCount
-	if node.lookupCount == 0 {
-		c.inodeMap.Forget(node.nodeId)
-		node.nodeId = 0
-	} else if node.lookupCount < 0 {
-		log.Panicf("lookupCount underflow: %d: %v", node.lookupCount, c)
+func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
+	if nodeID == raw.FUSE_ROOT_ID {
+		// We never got a lookup for root, so don't try to forget root.
+		return
 	}
-
-	c.recursiveConsiderDropInode(node)
-	node.treeLock.Unlock()
+	
+	if forgotten, handled := c.inodeMap.Forget(nodeID, forgetCount); forgotten {
+		node := (*Inode)(unsafe.Pointer(handled))
+		node.treeLock.Lock()
+		c.recursiveConsiderDropInode(node)
+		node.treeLock.Unlock()
+	}
+	// TODO - try to drop children even forget was not successful.
 	c.verify()
 }
 
@@ -167,7 +162,7 @@ func (c *FileSystemConnector) recursiveConsiderDropInode(n *Inode) (drop bool) {
 		ch.fsInode.OnForget()
 	}
 
-	if len(n.children) > 0 || n.lookupCount > 0 || !n.FsNode().Deletable() {
+	if len(n.children) > 0 || !n.FsNode().Deletable() {
 		return false
 	}
 	if n == c.rootNode || n.mountPoint != nil {
@@ -281,7 +276,7 @@ func (c *FileSystemConnector) Mount(parent *Inode, name string, nodeFs NodeFileS
 	node.mountPoint.parentInode = parent
 	if c.Debug {
 		log.Println("Mount: ", nodeFs, "on subdir", name,
-			"parent", parent.nodeId)
+			"parent", c.inodeMap.Handle(&parent.handled))
 	}
 	nodeFs.OnMount(c)
 	return OK
@@ -297,7 +292,7 @@ func (c *FileSystemConnector) Mount(parent *Inode, name string, nodeFs NodeFileS
 func (c *FileSystemConnector) Unmount(node *Inode) Status {
 	// TODO - racy.
 	if node.mountPoint == nil {
-		log.Println("not a mountpoint:", node.nodeId)
+		log.Println("not a mountpoint:", c.inodeMap.Handle(&node.handled))
 		return EINVAL
 	}
 
@@ -317,7 +312,8 @@ func (c *FileSystemConnector) Unmount(node *Inode) Status {
 
 	if mount.mountInode != node {
 		log.Panicf("got two different mount inodes %v vs %v",
-			mount.mountInode.nodeId, node.nodeId)
+			c.inodeMap.Handle(&mount.mountInode.handled),
+			c.inodeMap.Handle(&node.handled))
 	}
 
 	if !node.canUnmount() {
@@ -331,69 +327,63 @@ func (c *FileSystemConnector) Unmount(node *Inode) Status {
 	delete(parentNode.children, name)
 	mount.fs.OnUnmount()
 
-	parentId := parentNode.nodeId
+	parentId := c.inodeMap.Handle(&parentNode.handled)
 	if parentNode == c.rootNode {
 		// TODO - test coverage. Currently covered by zipfs/multizip_test.go
 		parentId = raw.FUSE_ROOT_ID
 	}
 
-	c.fsInit.DeleteNotify(parentId, node.nodeId, name)
+	c.fsInit.DeleteNotify(parentId, c.inodeMap.Handle(&node.handled), name)
 	return OK
 }
 
 func (c *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) Status {
-	node.treeLock.RLock()
-	n := node.nodeId
-	node.treeLock.RUnlock()
+	var nId uint64
 	if node == c.rootNode {
-		n = raw.FUSE_ROOT_ID
+		nId = raw.FUSE_ROOT_ID
+	} else {
+		nId = c.inodeMap.Handle(&node.handled)
 	}
-	if n == 0 {
+		
+	if nId == 0 {
 		return OK
 	}
 	out := raw.NotifyInvalInodeOut{
 		Length: length,
 		Off:    off,
-		Ino:    n,
+		Ino:    nId,
 	}
 	return c.fsInit.InodeNotify(&out)
 }
 
-func (c *FileSystemConnector) EntryNotify(dir *Inode, name string) Status {
-	dir.treeLock.RLock()
-	n := dir.nodeId
-	dir.treeLock.RUnlock()
-	if dir == c.rootNode {
-		n = raw.FUSE_ROOT_ID
-	}
-	if n == 0 {
-		return OK
-	}
-	return c.fsInit.EntryNotify(n, name)
-}
-
-func (c *FileSystemConnector) DeleteNotify(dir *Inode, child *Inode, name string) Status {
-	var nId uint64
-	var chId uint64
-
-	dir.treeLock.RLock()
-	if dir == c.rootNode {
+func (c *FileSystemConnector) EntryNotify(node *Inode, name string) Status {
+	var nId uint64 
+	if node == c.rootNode {
 		nId = raw.FUSE_ROOT_ID
 	} else {
-		nId = dir.nodeId
+		nId = c.inodeMap.Handle(&node.handled)
 	}
-
-	if child.treeLock != dir.treeLock {
-		child.treeLock.RLock()
-		chId = child.nodeId
-		child.treeLock.RUnlock()
-	} else {
-		chId = child.nodeId
-	}
-	dir.treeLock.RUnlock()
 
 	if nId == 0 {
 		return OK
 	}
+	return c.fsInit.EntryNotify(nId, name)
+}
+
+func (c *FileSystemConnector) DeleteNotify(dir *Inode, child *Inode, name string) Status {
+	var nId uint64
+
+	if dir == c.rootNode {
+		nId = raw.FUSE_ROOT_ID
+	} else {
+		nId = c.inodeMap.Handle(&dir.handled)
+	}
+
+	if nId == 0 {
+		return OK
+	}
+
+	chId := c.inodeMap.Handle(&child.handled)
+	
 	return c.fsInit.DeleteNotify(nId, chId, name)
 }

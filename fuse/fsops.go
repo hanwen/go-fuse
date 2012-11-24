@@ -99,8 +99,7 @@ func (c *FileSystemConnector) Lookup(out *raw.EntryOut, header *raw.InHeader, na
 }
 
 func (c *FileSystemConnector) Forget(nodeID, nlookup uint64) {
-	node := c.toInode(nodeID)
-	c.forgetUpdate(node, int(nlookup))
+	c.forgetUpdate(nodeID, int(nlookup))
 }
 
 func (c *FileSystemConnector) GetAttr(out *raw.AttrOut, header *raw.InHeader, input *raw.GetAttrIn) (code Status) {
