@@ -55,6 +55,13 @@ type portableHandleMap struct {
 	freeIds []uint64
 }
 
+func newPortableHandleMap() *portableHandleMap {
+	return &portableHandleMap{
+		// Avoid handing out ID 0 and 1.
+		handles: []*Handled{nil, nil},
+	}
+}
+
 func (m *portableHandleMap) Register(obj *Handled) (handle uint64) {
 	m.Lock()
 	if obj.count == 0 {
@@ -192,6 +199,11 @@ func (m *int32HandleMap) Decode(handle uint64) *Handled {
 	val := (*Handled)(unsafe.Pointer(uintptr(handle & ((1 << 32) - 1))))
 	return val
 }
+func newInt32HandleMap() *int32HandleMap {
+	return &int32HandleMap{
+		handles: make(map[uint32]*Handled),
+	}
+}
 
 // 64 bits version of HandleMap
 type int64HandleMap struct {
@@ -214,29 +226,28 @@ func (m *int64HandleMap) verify() {
 	}
 }
 
+func newInt64HandleMap() *int64HandleMap {
+	return &int64HandleMap{
+		handles:  make(map[uint64]*Handled),
+		nextFree: 1, // to make tests easier.
+	}
+}
+
 // NewHandleMap creates a new HandleMap.  If verify is given, we
 // use remaining bits in the handle to store sanity check bits.
 func NewHandleMap(portable bool) (hm HandleMap) {
 	if portable {
-		return &portableHandleMap{
-			// Avoid handing out ID 0 and 1.
-			handles: []*Handled{nil, nil},
-		}
+		return newPortableHandleMap()
 	}
 
 	var obj *Handled
 	switch unsafe.Sizeof(obj) {
 	case 8:
-		return &int64HandleMap{
-			handles:  make(map[uint64]*Handled),
-			nextFree: 1, // to make tests easier.
-		}
+		return newInt64HandleMap()
 	case 4:
-		return &int32HandleMap{
-			handles: make(map[uint32]*Handled),
-		}
+		return newInt32HandleMap() 
 	default:
-		log.Println("Unknown size.")
+		log.Fatalf("Unknown size.")
 	}
 
 	return nil
