@@ -20,22 +20,6 @@ func markSeen(t *testing.T, substr string) {
 	}
 }
 
-func TestHandleMapDoubleRegister(t *testing.T) {
-	if unsafe.Sizeof(t) < 8 {
-		t.Log("skipping test for 32 bits")
-		return
-	}
-	t.Log("TestDoubleRegister")
-	defer markSeen(t, "already has a handle")
-	hm := NewHandleMap(false)
-	obj := &Handled{}
-	hm.Register(obj)
-	v := &Handled{}
-	hm.Register(v)
-	hm.Register(v)
-	t.Error("Double register did not panic")
-}
-
 func TestHandleMapUnaligned(t *testing.T) {
 	if unsafe.Sizeof(t) < 8 {
 		t.Log("skipping test for 32 bits")
@@ -51,19 +35,46 @@ func TestHandleMapUnaligned(t *testing.T) {
 	t.Error("Unaligned register did not panic")
 }
 
-func TestHandleMapPointerLayout(t *testing.T) {
-	if unsafe.Sizeof(t) < 8 {
-		t.Log("skipping test for 32 bits")
-		return
-	}
+func TestHandleMapLookupCount(t *testing.T) {
+	for _, portable := range []bool{true, false} {
+		t.Log("portable:", portable)
+		v := new(Handled)
+		hm := NewHandleMap(portable)
+		h1 := hm.Register(v)
+		h2 := hm.Register(v)
 
-	hm := NewHandleMap(false)
-	bogus := uint64(1) << uint32((8 * (unsafe.Sizeof(t) - 1)))
-	p := uintptr(bogus)
-	v := (*Handled)(unsafe.Pointer(p))
-	defer markSeen(t, "48")
-	hm.Register(v)
-	t.Error("bogus register did not panic")
+		if h1 != h2 {
+			t.Fatalf("double register should reuse handle: got %d want %d.", h2, h1)
+		}
+
+		hm.Register(v)
+
+		forgotten, obj := hm.Forget(h1, 1)
+		if forgotten {
+			t.Fatalf("single forget unref forget object.")
+		}
+
+		if obj != v {
+			t.Fatalf("should return input object.")
+		}
+
+		if !hm.Has(h1) {
+			t.Fatalf("handlemap.Has() returned false for live object.")
+		}
+
+		forgotten, obj = hm.Forget(h1, 2)
+		if !forgotten {
+			t.Fatalf("unref did not forget object.")
+		}
+
+		if obj != v {
+			t.Fatalf("should return input object.")
+		}
+
+		if hm.Has(h1) {
+			t.Fatalf("handlemap.Has() returned false for live object.")
+		}
+	}
 }
 
 func TestHandleMapBasic(t *testing.T) {

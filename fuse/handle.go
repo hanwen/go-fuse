@@ -124,7 +124,7 @@ func (m *portableHandleMap) Forget(h uint64, count int) (forgotten bool, obj *Ha
 		m.used--
 		forgotten = true
 		obj.handle = 0
-	} 
+	}
 	m.Unlock()
 	return forgotten, obj
 }
@@ -166,7 +166,7 @@ func (m *int32HandleMap) Handle(obj *Handled) uint64 {
 	if obj.count == 0 {
 		return 0
 	}
-	
+
 	h := uint32(uintptr(unsafe.Pointer(obj)))
 	return uint64(h)
 }
@@ -245,7 +245,7 @@ func NewHandleMap(portable bool) (hm HandleMap) {
 	case 8:
 		return newInt64HandleMap()
 	case 4:
-		return newInt32HandleMap() 
+		return newInt32HandleMap()
 	default:
 		log.Fatalf("Unknown size.")
 	}
@@ -285,6 +285,7 @@ func (m *int64HandleMap) Register(obj *Handled) (handle uint64) {
 			panic(_ALREADY_MSG)
 		}
 		obj.check = check
+		obj.handle = handle
 		m.handles[handle] = obj
 	} else {
 		handle = m.Handle(obj)
@@ -299,7 +300,7 @@ func (m *int64HandleMap) Handle(obj *Handled) (handle uint64) {
 	if obj.count == 0 {
 		return 0
 	}
-	
+
 	handle = uint64(uintptr(unsafe.Pointer(obj)))
 	handle >>= 3
 	handle |= uint64(obj.check) << (48 - 3)
