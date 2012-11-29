@@ -67,17 +67,21 @@ func GetXAttr(path string, attr string, dest []byte) (value []byte, errno int) {
 
 func listxattr(path string, dest []byte) (sz int, errno int) {
 	pathbs := syscall.StringBytePtr(path)
+	var destPointer unsafe.Pointer
+	if len(dest) > 0 {
+		destPointer = unsafe.Pointer(&dest[0])
+	}
 	size, _, errNo := syscall.Syscall(
 		syscall.SYS_LISTXATTR,
 		uintptr(unsafe.Pointer(pathbs)),
-		uintptr(unsafe.Pointer(&dest[0])),
+		uintptr(destPointer),
 		uintptr(len(dest)))
 
 	return int(size), int(errNo)
 }
 
 func ListXAttr(path string) (attributes []string, errno int) {
-	dest := make([]byte, 1024)
+	dest := make([]byte, 0)
 	sz, errno := listxattr(path, dest)
 	if errno != 0 {
 		return nil, errno
