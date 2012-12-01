@@ -2,6 +2,7 @@ package fuse
 
 import (
 	"log"
+	"time"
 
 	"github.com/hanwen/go-fuse/raw"
 )
@@ -45,7 +46,7 @@ func (f *DefaultFile) Fsync(flags int) (code Status) {
 	return ENOSYS
 }
 
-func (f *DefaultFile) Utimens(atimeNs int64, mtimeNs int64) Status {
+func (f *DefaultFile) Utimens(atime *time.Time, mtime *time.Time) Status {
 	return ENOSYS
 }
 

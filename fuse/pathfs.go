@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 )
 
 var _ = log.Println
@@ -625,7 +626,7 @@ func (n *pathInode) Truncate(file File, size uint64, context *Context) (code Sta
 	return code
 }
 
-func (n *pathInode) Utimens(file File, atime int64, mtime int64, context *Context) (code Status) {
+func (n *pathInode) Utimens(file File, atime *time.Time, mtime *time.Time, context *Context) (code Status) {
 	files := n.inode.Files(O_ANYWRITE)
 	for _, f := range files {
 		// TODO - pass context

@@ -2,6 +2,7 @@ package fuse
 
 import (
 	"sync"
+	"time"
 
 	"github.com/hanwen/go-fuse/raw"
 )
@@ -118,9 +119,9 @@ func (fs *LockingFileSystem) Create(name string, flags uint32, mode uint32, cont
 	return fs.FileSystem.Create(name, flags, mode, context)
 }
 
-func (fs *LockingFileSystem) Utimens(name string, AtimeNs int64, CtimeNs int64, context *Context) (code Status) {
+func (fs *LockingFileSystem) Utimens(name string, Atime *time.Time, Mtime *time.Time, context *Context) (code Status) {
 	defer fs.locked()()
-	return fs.FileSystem.Utimens(name, AtimeNs, CtimeNs, context)
+	return fs.FileSystem.Utimens(name, Atime, Mtime, context)
 }
 
 func (fs *LockingFileSystem) GetXAttr(name string, attr string, context *Context) ([]byte, Status) {

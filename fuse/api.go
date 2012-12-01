@@ -78,7 +78,7 @@ type FsNode interface {
 	Chmod(file File, perms uint32, context *Context) (code Status)
 	Chown(file File, uid uint32, gid uint32, context *Context) (code Status)
 	Truncate(file File, size uint64, context *Context) (code Status)
-	Utimens(file File, atime int64, mtime int64, context *Context) (code Status)
+	Utimens(file File, atime *time.Time, mtime *time.Time, context *Context) (code Status)
 
 	StatFs() *StatfsOut
 }
@@ -105,7 +105,7 @@ type FileSystem interface {
 	// These should update the file's ctime too.
 	Chmod(name string, mode uint32, context *Context) (code Status)
 	Chown(name string, uid uint32, gid uint32, context *Context) (code Status)
-	Utimens(name string, AtimeNs int64, MtimeNs int64, context *Context) (code Status)
+	Utimens(name string, Atime *time.Time, Mtime *time.Time, context *Context) (code Status)
 
 	Truncate(name string, size uint64, context *Context) (code Status)
 
@@ -179,7 +179,7 @@ type File interface {
 	GetAttr(out *Attr) Status
 	Chown(uid uint32, gid uint32) Status
 	Chmod(perms uint32) Status
-	Utimens(atimeNs int64, mtimeNs int64) Status
+	Utimens(atime *time.Time, mtime *time.Time) Status
 }
 
 // The result of Read is an array of bytes, but for performance

@@ -176,19 +176,26 @@ func (c *FileSystemConnector) SetAttr(out *raw.AttrOut, header *raw.InHeader, in
 		code = node.fsInode.Truncate(f, input.Size, (*Context)(&header.Context))
 	}
 	if code.Ok() && (input.Valid&(raw.FATTR_ATIME|raw.FATTR_MTIME|raw.FATTR_ATIME_NOW|raw.FATTR_MTIME_NOW) != 0) {
-		now := int64(0)
-		if input.Valid&raw.FATTR_ATIME_NOW != 0 || input.Valid&raw.FATTR_MTIME_NOW != 0 {
-			now = time.Now().UnixNano()
+		now := time.Now()
+		var atime *time.Time
+		var mtime *time.Time
+
+		if input.Valid&raw.FATTR_ATIME != 0 {
+			if input.Valid&raw.FATTR_ATIME_NOW != 0 {
+				atime = &now
+			} else {
+				t := time.Unix(int64(input.Atime), int64(input.Atimensec))
+				atime = &t
+			}
 		}
 
-		atime := int64(input.Atime*1e9) + int64(input.Atimensec)
-		if input.Valid&raw.FATTR_ATIME_NOW != 0 {
-			atime = now
-		}
-
-		mtime := int64(input.Mtime*1e9) + int64(input.Mtimensec)
-		if input.Valid&raw.FATTR_MTIME_NOW != 0 {
-			mtime = now
+		if input.Valid&raw.FATTR_MTIME != 0 {
+			if input.Valid&raw.FATTR_MTIME_NOW != 0 {
+				mtime = &now
+			} else {
+				t := time.Unix(int64(input.Mtime), int64(input.Mtimensec))
+				mtime = &t
+			}
 		}
 
 		code = node.fsInode.Utimens(f, atime, mtime, (*Context)(&header.Context))

@@ -1,6 +1,8 @@
 package fuse
 
-import ()
+import (
+	"time"
+)
 
 // DefaultFileSystem
 func (fs *DefaultFileSystem) GetAttr(name string, context *Context) (*Attr, Status) {
@@ -89,7 +91,7 @@ func (fs *DefaultFileSystem) Create(name string, flags uint32, mode uint32, cont
 	return nil, ENOSYS
 }
 
-func (fs *DefaultFileSystem) Utimens(name string, AtimeNs int64, CtimeNs int64, context *Context) (code Status) {
+func (fs *DefaultFileSystem) Utimens(name string, Atime *time.Time, Mtime *time.Time, context *Context) (code Status) {
 	return ENOSYS
 }
 

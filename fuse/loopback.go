@@ -111,8 +111,16 @@ func (fs *LoopbackFileSystem) Truncate(path string, offset uint64, context *Cont
 	return ToStatus(os.Truncate(fs.GetPath(path), int64(offset)))
 }
 
-func (fs *LoopbackFileSystem) Utimens(path string, AtimeNs int64, MtimeNs int64, context *Context) (code Status) {
-	return ToStatus(os.Chtimes(fs.GetPath(path), time.Unix(0, AtimeNs), time.Unix(0, MtimeNs)))
+func (fs *LoopbackFileSystem) Utimens(path string, Atime *time.Time, Mtime *time.Time, context *Context) (code Status) {
+	var a time.Time
+	if Atime != nil {
+		a = *Atime
+	}
+	var m time.Time
+	if Mtime != nil {
+		m = *Mtime
+	}
+	return ToStatus(os.Chtimes(fs.GetPath(path), a, m))
 }
 
 func (fs *LoopbackFileSystem) Readlink(name string, context *Context) (out string, code Status) {

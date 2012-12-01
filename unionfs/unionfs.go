@@ -281,8 +281,9 @@ func (fs *UnionFs) Promote(name string, srcResult branchResult, context *fuse.Co
 			code = writable.Chmod(name, srcResult.attr.Mode&07777|0200, context)
 		}
 		if code.Ok() {
-			code = writable.Utimens(name, srcResult.attr.Atimens(),
-				srcResult.attr.Mtimens(), context)
+			aTime := srcResult.attr.AccessTime()
+			mTime := srcResult.attr.ModTime()
+			code = writable.Utimens(name, &aTime, &mTime, context)
 		}
 
 		files := fs.nodeFs.AllFiles(name, 0)
@@ -478,7 +479,7 @@ func (fs *UnionFs) Truncate(path string, size uint64, context *fuse.Context) (co
 	return code
 }
 
-func (fs *UnionFs) Utimens(name string, atime int64, mtime int64, context *fuse.Context) (code fuse.Status) {
+func (fs *UnionFs) Utimens(name string, atime *time.Time, mtime *time.Time, context *fuse.Context) (code fuse.Status) {
 	name = stripSlash(name)
 	r := fs.getBranch(name)
 
@@ -491,7 +492,8 @@ func (fs *UnionFs) Utimens(name string, atime int64, mtime int64, context *fuse.
 		code = fs.fileSystems[0].Utimens(name, atime, mtime, context)
 	}
 	if code.Ok() {
-		r.attr.SetNs(atime, mtime, time.Now().UnixNano())
+		now := time.Now()
+		r.attr.SetTimes(atime, mtime, &now)
 		fs.branchCache.Set(name, r)
 	}
 	return code
@@ -640,7 +642,9 @@ func (fs *UnionFs) promoteDirsTo(filename string) fuse.Status {
 			return fuse.EPERM
 		}
 
-		fs.fileSystems[0].Utimens(d, r.attr.Atimens(), r.attr.Mtimens(), nil)
+		aTime := r.attr.AccessTime()
+		mTime := r.attr.ModTime()
+		fs.fileSystems[0].Utimens(d, &aTime, &mTime, nil)
 		r.branch = 0
 		fs.branchCache.Set(d, r)
 	}

@@ -2,6 +2,7 @@ package fuse
 
 import (
 	"log"
+	"time"
 )
 
 var _ = log.Println
@@ -150,6 +151,6 @@ func (n *DefaultFsNode) Truncate(file File, size uint64, context *Context) (code
 	return ENOSYS
 }
 
-func (n *DefaultFsNode) Utimens(file File, atime int64, mtime int64, context *Context) (code Status) {
+func (n *DefaultFsNode) Utimens(file File, atime *time.Time, mtime *time.Time, context *Context) (code Status) {
 	return ENOSYS
 }

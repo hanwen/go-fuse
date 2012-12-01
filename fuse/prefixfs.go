@@ -3,6 +3,7 @@ package fuse
 import (
 	"fmt"
 	"path/filepath"
+	"time"
 )
 
 // PrefixFileSystem adds a path prefix to incoming calls.
@@ -87,8 +88,8 @@ func (fs *PrefixFileSystem) Create(name string, flags uint32, mode uint32, conte
 	return fs.FileSystem.Create(fs.prefixed(name), flags, mode, context)
 }
 
-func (fs *PrefixFileSystem) Utimens(name string, AtimeNs int64, CtimeNs int64, context *Context) (code Status) {
-	return fs.FileSystem.Utimens(fs.prefixed(name), AtimeNs, CtimeNs, context)
+func (fs *PrefixFileSystem) Utimens(name string, Atime *time.Time, Mtime *time.Time, context *Context) (code Status) {
+	return fs.FileSystem.Utimens(fs.prefixed(name), Atime, Mtime, context)
 }
 
 func (fs *PrefixFileSystem) GetXAttr(name string, attr string, context *Context) ([]byte, Status) {

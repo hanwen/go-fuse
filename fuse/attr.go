@@ -71,48 +71,18 @@ func (a *Attr) IsSymlink() bool { return (uint32(a.Mode) & syscall.S_IFMT) == sy
 // IsSocket reports whether the FileInfo describes a socket.
 func (a *Attr) IsSocket() bool { return (uint32(a.Mode) & syscall.S_IFMT) == syscall.S_IFSOCK }
 
-func (a *Attr) Atimens() int64 {
-	return int64(1e9*a.Atime) + int64(a.Atimensec)
-}
-
-func (a *Attr) Mtimens() int64 {
-	return int64(1e9*a.Mtime) + int64(a.Mtimensec)
-}
-
-func (a *Attr) Ctimens() int64 {
-	return int64(1e9*a.Ctime) + int64(a.Ctimensec)
-}
-
-func (a *Attr) SetNs(atimens int64, mtimens int64, ctimens int64) {
-	if atimens >= 0 {
-		a.Atime = uint64(atimens / 1e9)
-		a.Atimensec = uint32(atimens % 1e9)
-	}
-	if mtimens >= 0 {
-		a.Mtime = uint64(mtimens / 1e9)
-		a.Mtimensec = uint32(mtimens % 1e9)
-	}
-	if atimens >= 0 {
-		a.Ctime = uint64(ctimens / 1e9)
-		a.Ctimensec = uint32(ctimens % 1e9)
-	}
-}
-
 func (a *Attr) SetTimes(access *time.Time, mod *time.Time, chstatus *time.Time) {
 	if access != nil {
-		atimens := access.UnixNano()
-		a.Atime = uint64(atimens / 1e9)
-		a.Atimensec = uint32(atimens % 1e9)
+		a.Atime = uint64(access.Unix())
+		a.Atimensec = uint32(access.Nanosecond())
 	}
 	if mod != nil {
-		mtimens := mod.UnixNano()
-		a.Mtime = uint64(mtimens / 1e9)
-		a.Mtimensec = uint32(mtimens % 1e9)
+		a.Mtime = uint64(mod.Unix())
+		a.Mtimensec = uint32(mod.Nanosecond())
 	}
 	if chstatus != nil {
-		ctimens := chstatus.UnixNano()
-		a.Ctime = uint64(ctimens / 1e9)
-		a.Ctimensec = uint32(ctimens % 1e9)
+		a.Ctime = uint64(chstatus.Unix())
+		a.Ctimensec = uint32(chstatus.Nanosecond())
 	}
 }
 

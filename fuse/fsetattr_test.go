@@ -63,8 +63,8 @@ func (f *MutableDataFile) GetAttr(out *Attr) Status {
 	return OK
 }
 
-func (f *MutableDataFile) Utimens(atimeNs int64, mtimeNs int64) Status {
-	f.Attr.SetNs(atimeNs, mtimeNs, -1)
+func (f *MutableDataFile) Utimens(atime *time.Time, mtime *time.Time) Status {
+	f.Attr.SetTimes(atime, mtime, nil)
 	return OK
 }
 
