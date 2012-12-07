@@ -2,12 +2,15 @@ package fuse
 
 import (
 	"fmt"
+	"time"
 )
 
 // This is a wrapper that only exposes read-only operations.
 type ReadonlyFileSystem struct {
 	FileSystem
 }
+
+var _ = (FileSystem)((*ReadonlyFileSystem) (nil))
 
 func (fs *ReadonlyFileSystem) GetAttr(name string, context *Context) (*Attr, Status) {
 	return fs.FileSystem.GetAttr(name, context)
@@ -89,7 +92,7 @@ func (fs *ReadonlyFileSystem) Create(name string, flags uint32, mode uint32, con
 	return nil, EPERM
 }
 
-func (fs *ReadonlyFileSystem) Utimens(name string, AtimeNs int64, CtimeNs int64, context *Context) (code Status) {
+func (fs *ReadonlyFileSystem) Utimens(name string, atime *time.Time, ctime *time.Time, context *Context) (code Status) {
 	return EPERM
 }
 
