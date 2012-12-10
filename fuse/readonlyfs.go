@@ -89,7 +89,7 @@ func (fs *ReadonlyFileSystem) Create(name string, flags uint32, mode uint32, con
 	return nil, EPERM
 }
 
-func (fs *ReadonlyFileSystem) Utimens(name string, AtimeNs int64, CtimeNs int64, context *Context) (code Status) {
+func (fs *ReadonlyFileSystem) Utimens(name string, Atime *time.Time, MTime *time.Time, context *Context) (code Status) {
 	return EPERM
 }
 
