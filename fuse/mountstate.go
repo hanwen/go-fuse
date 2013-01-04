@@ -2,7 +2,6 @@ package fuse
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"strings"
@@ -11,7 +10,6 @@ import (
 	"unsafe"
 
 	"github.com/hanwen/go-fuse/raw"
-	"github.com/hanwen/go-fuse/splice"
 )
 
 const (
@@ -383,10 +381,10 @@ func (ms *MountState) write(req *request) Status {
 	}
 
 	if req.fdData != nil {
-		if err := ms.TrySplice(header, req, req.fdData); err == nil {
+		if err := ms.trySplice(header, req, req.fdData); err == nil {
 			return OK
 		} else {
-			log.Println("TrySplice:", err)
+			log.Println("trySplice:", err)
 			sz := req.flatDataSize()
 			buf := ms.AllocOut(req, uint32(sz))
 			req.flatData, req.status = req.fdData.Bytes(buf)
@@ -396,62 +394,6 @@ func (ms *MountState) write(req *request) Status {
 
 	_, err := Writev(int(ms.mountFile.Fd()), [][]byte{header, req.flatData})
 	return ToStatus(err)
-}
-
-func (ms *MountState) TrySplice(header []byte, req *request, fdData *ReadResultFd) error {
-	pair, err := splice.Get()
-	if err != nil {
-		return err
-	}
-	defer splice.Done(pair)
-
-	total := len(header) + fdData.Size()
-	if !pair.Grow(total) {
-		return fmt.Errorf("splice.Grow failed.")
-	}
-
-	_, err = pair.Write(header)
-	if err != nil {
-		return err
-	}
-
-	var n int
-	if fdData.Off < 0 {
-		n, err = pair.LoadFrom(fdData.Fd, fdData.Size())
-	} else {
-		n, err = pair.LoadFromAt(fdData.Fd, fdData.Size(), fdData.Off)
-	}
-	if err == io.EOF || (err == nil && n < fdData.Size()) {
-		discard := make([]byte, len(header))
-		_, err = pair.Read(discard)
-		if err != nil {
-			return err
-		}
-
-		header = req.serializeHeader(n)
-
-		newFd := ReadResultFd{
-			Fd:  pair.ReadFd(),
-			Off: -1,
-			Sz:  n,
-		}
-		return ms.TrySplice(header, req, &newFd)
-	}
-
-	if err != nil {
-		// TODO - extract the data from splice.
-		return err
-	}
-
-	if n != fdData.Size() {
-		return fmt.Errorf("wrote %d, want %d", n, fdData.Size())
-	}
-
-	_, err = pair.WriteTo(ms.mountFile.Fd(), total)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func (ms *MountState) writeInodeNotify(entry *raw.NotifyInvalInodeOut) Status {

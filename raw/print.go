@@ -54,9 +54,9 @@ func init() {
 
 		syscall.O_CLOEXEC:   "CLOEXEC",
 		syscall.O_DIRECT:    "DIRECT",
-		syscall.O_DIRECTORY: "DIRECTORY",
-		syscall.O_LARGEFILE: "LARGEFILE",
-		syscall.O_NOATIME:   "NOATIME",
+		syscall.O_DIRECTORY: "DIRECTORY",	
+		syscall_O_LARGEFILE: "LARGEFILE",
+		syscall_O_NOATIME:   "NOATIME",
 	}
 	FuseOpenFlagNames = map[int]string{
 		FOPEN_DIRECT_IO:   "DIRECT",

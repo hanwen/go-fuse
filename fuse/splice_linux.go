@@ -1,0 +1,73 @@
+package fuse
+
+import (
+	"fmt"
+	"io"
+	
+	"github.com/hanwen/go-fuse/splice"
+)
+
+func (s *MountState) setSplice() {
+	s.canSplice = true
+	maxW := splice.MaxPipeSize() - 4096
+	if !splice.Resizable() && s.opts.MaxWrite > maxW {
+		s.opts.MaxWrite = maxW
+	}
+}
+
+
+func (ms *MountState) trySplice(header []byte, req *request, fdData *ReadResultFd) error {
+	pair, err := splice.Get()
+	if err != nil {
+		return err
+	}
+	defer splice.Done(pair)
+
+	total := len(header) + fdData.Size()
+	if !pair.Grow(total) {
+		return fmt.Errorf("splice.Grow failed.")
+	}
+
+	_, err = pair.Write(header)
+	if err != nil {
+		return err
+	}
+
+	var n int
+	if fdData.Off < 0 {
+		n, err = pair.LoadFrom(fdData.Fd, fdData.Size())
+	} else {
+		n, err = pair.LoadFromAt(fdData.Fd, fdData.Size(), fdData.Off)
+	}
+	if err == io.EOF || (err == nil && n < fdData.Size()) {
+		discard := make([]byte, len(header))
+		_, err = pair.Read(discard)
+		if err != nil {
+			return err
+		}
+
+		header = req.serializeHeader(n)
+
+		newFd := ReadResultFd{
+			Fd:  pair.ReadFd(),
+			Off: -1,
+			Sz:  n,
+		}
+		return ms.trySplice(header, req, &newFd)
+	}
+
+	if err != nil {
+		// TODO - extract the data from splice.
+		return err
+	}
+
+	if n != fdData.Size() {
+		return fmt.Errorf("wrote %d, want %d", n, fdData.Size())
+	}
+
+	_, err = pair.WriteTo(ms.mountFile.Fd(), total)
+	if err != nil {
+		return err
+	}
+	return nil
+}
