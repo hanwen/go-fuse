@@ -45,6 +45,10 @@ type Attr raw.Attr
 
 type Owner raw.Owner
 
-type Context raw.Context
+// Context contains assorted per-request data
+type Context struct {
+	NodeId uint64
+	*raw.Context
+}
 
 type StatfsOut raw.StatfsOut

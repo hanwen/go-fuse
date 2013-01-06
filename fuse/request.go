@@ -49,6 +49,8 @@ type request struct {
 
 	// Input, if small enough to fit here.
 	smallInputBuf [128]byte
+
+	context Context
 }
 
 func (r *request) clear() {
@@ -179,6 +181,8 @@ func (r *request) parse() {
 
 	copy(r.outBuf[:r.handler.OutputSize], zeroOutBuf[:r.handler.OutputSize])
 	r.outData = unsafe.Pointer(&r.outBuf[sizeOfOutHeader])
+	r.context.Context = &r.inHeader.Context
+	r.context.NodeId = r.inHeader.NodeId
 }
 
 func (r *request) serializeHeader(dataSize int) (header []byte) {
