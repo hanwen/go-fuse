@@ -100,7 +100,8 @@ CREDITS
 
 BUGS
 
-Yes, probably.  Report them through golang-nuts@googlegroups.com.
+Yes, probably.  Report them through
+https://github.com/hanwen/go-fuse/issues
 
 
 KNOWN PROBLEMS
