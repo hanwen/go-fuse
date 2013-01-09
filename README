@@ -85,7 +85,7 @@ Dell T3500/Lucid    (1cpu)   72us        76us        5% slower
 
 On T60, for each file we have
 - Client side latency is 360us
-- 106us of this is server side latency (4.5x lookup 23us, 1x getattr 4us) 
+- 106us of this is server side latency (4.5x lookup 23us, 1x getattr 4us)
 - 16.5us is due to latency measurements.
 - 3us is due to garbage collection.
 
@@ -108,6 +108,8 @@ KNOWN PROBLEMS
 
 Grep source code for TODO.  Major topics:
 
+* Support for MacOS and FreeBSD.
+
 * Support for umask in Create
 
 * Missing support for network FS file locking: FUSE_GETLK, FUSE_SETLK,
@@ -118,10 +120,10 @@ Grep source code for TODO.  Major topics:
 * In the path API, renames are racy; See also:
 
     http://sourceforge.net/mailarchive/message.php?msg_id=27550667
-  
-  Don't use the path API if you care about correctness. 
 
-  
+  Don't use the path API if you care about correctness.
+
+
 LICENSE
 
 Like Go, this library is distributed under the new BSD license.  See
