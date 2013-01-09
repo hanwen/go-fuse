@@ -279,13 +279,12 @@ func doRead(state *MountState, req *request) {
 	in := (*raw.ReadIn)(req.inData)
 	buf := state.AllocOut(req, in.Size)
 
-	var r ReadResult
-	r, req.status = state.fileSystem.Read(&req.context, in, buf)
-	if fd, ok := r.(*ReadResultFd); ok {
+	req.readResult, req.status = state.fileSystem.Read(&req.context, in, buf)
+	if fd, ok := req.readResult.(*ReadResultFd); ok {
 		req.fdData = fd
 		req.flatData = nil
-	} else if r != nil {
-		req.flatData, req.status = r.Bytes(buf)
+	} else if req.readResult != nil {
+		req.flatData, req.status = req.readResult.Bytes(buf)
 	}
 }
 

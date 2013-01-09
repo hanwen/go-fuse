@@ -29,6 +29,10 @@ type request struct {
 	flatData []byte
 	fdData   *ReadResultFd
 
+	// In case of read, keep read result here so we can call
+	// Done() on it.
+	readResult ReadResult
+
 	// Start timestamp for timing info.
 	startNs    int64
 	preWriteNs int64
@@ -66,6 +70,7 @@ func (r *request) clear() {
 	r.preWriteNs = 0
 	r.startNs = 0
 	r.handler = nil
+	r.readResult = nil
 }
 
 func (r *request) InputDebug() string {

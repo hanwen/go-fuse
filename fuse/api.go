@@ -195,6 +195,9 @@ type ReadResult interface {
 
 	// Size returns how many bytes this return value takes at most.
 	Size() int
+
+	// Done() is called after sending the data to the kernel.
+	Done()
 }
 
 // Wrap a File return in this to set FUSE flags.  Also used internally

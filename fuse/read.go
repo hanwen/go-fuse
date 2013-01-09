@@ -15,6 +15,9 @@ func (r *ReadResultData) Size() int {
 	return len(r.Data)
 }
 
+func (r *ReadResultData) Done() {
+}
+
 func (r *ReadResultData) Bytes(buf []byte) ([]byte, Status) {
 	return r.Data, OK
 }
@@ -54,4 +57,7 @@ func (r *ReadResultFd) Bytes(buf []byte) ([]byte, Status) {
 
 func (r *ReadResultFd) Size() int {
 	return r.Sz
+}
+
+func (r *ReadResultFd) Done() {
 }

@@ -382,6 +382,7 @@ func (ms *MountState) write(req *request) Status {
 
 	if req.fdData != nil {
 		if err := ms.trySplice(header, req, req.fdData); err == nil {
+			req.readResult.Done()
 			return OK
 		} else {
 			log.Println("trySplice:", err)
@@ -393,6 +394,9 @@ func (ms *MountState) write(req *request) Status {
 	}
 
 	_, err := Writev(int(ms.mountFile.Fd()), [][]byte{header, req.flatData})
+	if req.readResult != nil {
+		req.readResult.Done()
+	}
 	return ToStatus(err)
 }
 
