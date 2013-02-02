@@ -98,6 +98,10 @@ func (d *connectorDir) ReadDir(list *DirEntryList, input *raw.ReadIn) (code Stat
 
 	todo := d.stream[input.Offset:]
 	for _, e := range todo {
+		if e.Name == "" {
+			log.Printf("got emtpy directory entry, mode %o.", e.Mode)
+			continue
+		}
 		if !list.AddDirEntry(e) {
 			break
 		}
