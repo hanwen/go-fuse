@@ -12,6 +12,11 @@ import (
 // succeed.
 func newDirnameMap(fs fuse.FileSystem, dir string) map[string]bool {
 	stream, code := fs.OpenDir(dir, nil)
+	if code == fuse.ENOENT {
+		// The directory not existing is not an error.
+		return map[string]bool{}
+	}
+
 	if !code.Ok() {
 		log.Printf("newDirnameMap(%v): %v %v", fs, dir, code)
 		return nil
