@@ -283,7 +283,7 @@ func doRead(state *MountState, req *request) {
 	if fd, ok := req.readResult.(*ReadResultFd); ok {
 		req.fdData = fd
 		req.flatData = nil
-	} else if req.readResult != nil {
+	} else if req.readResult != nil && req.status.Ok() {
 		req.flatData, req.status = req.readResult.Bytes(buf)
 	}
 }
