@@ -4,6 +4,8 @@ import (
 	"time"
 )
 
+var _ = FileSystem((*DefaultFileSystem)(nil))
+
 // DefaultFileSystem
 func (fs *DefaultFileSystem) GetAttr(name string, context *Context) (*Attr, Status) {
 	return nil, ENOSYS

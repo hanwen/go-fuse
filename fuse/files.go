@@ -100,6 +100,8 @@ type LoopbackFile struct {
 	DefaultFile
 }
 
+var _ = (File)((*LoopbackFile)(nil))
+
 func (f *LoopbackFile) String() string {
 	return fmt.Sprintf("LoopbackFile(%s)", f.File.Name())
 }
@@ -197,6 +199,9 @@ func (f *LoopbackFile) GetAttr(a *Attr) Status {
 type ReadOnlyFile struct {
 	File
 }
+
+var _ = (File)((*ReadOnlyFile)(nil))
+
 
 func (f *ReadOnlyFile) String() string {
 	return fmt.Sprintf("ReadOnlyFile(%s)", f.File.String())
