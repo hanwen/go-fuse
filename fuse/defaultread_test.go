@@ -29,9 +29,8 @@ func (fs *DefaultReadFS) Open(name string, f uint32, context *Context) (File, St
 	return &DefaultFile{}, OK
 }
 
-
 func defaultReadTest() (root string, cleanup func()) {
-	fs := &NotifyFs{}
+	fs := &DefaultReadFS{}
 	var err error
 	dir, err := ioutil.TempDir("", "go-fuse")
 	CheckSuccess(err)
