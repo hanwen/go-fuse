@@ -1,4 +1,7 @@
 package fuse
+import (
+	"syscall"
+)
 
 func (a *Attr) FromStat(s *syscall.Stat_t) {
 	a.Ino = uint64(s.Ino)

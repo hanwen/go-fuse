@@ -1,6 +1,7 @@
 package fuse
 
 import (
+	"fmt"
 	"syscall"
 )
 
