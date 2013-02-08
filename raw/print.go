@@ -212,7 +212,7 @@ func (me *StatfsOut) String() string {
 
 func (a *Attr) String() string {
 	return fmt.Sprintf(
-		"{M0%o S=%d L=%d "+
+		"{M0%o SZ=%d L=%d "+
 			"%d:%d "+
 			"%d*%d %d:%d "+
 			"A %d.%09d "+
