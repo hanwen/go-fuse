@@ -2,8 +2,6 @@ package unionfs
 
 import (
 	"fmt"
-	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/splice"
 	"io/ioutil"
 	"log"
 	"os"
@@ -12,6 +10,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/hanwen/go-fuse/fuse"
 )
 
 type knownFs struct {
@@ -400,10 +400,6 @@ func (fs *AutoUnionFs) DebugData() string {
 
 	if fs.connector != nil {
 		msg += fmt.Sprintf("Live inodes: %d\n", fs.connector.InodeHandleCount())
-	}
-	pairs := splice.Total()
-	if pairs > 0 {
-		msg += fmt.Sprintf("Pipes: %d\n", pairs)
 	}
 
 	return msg
