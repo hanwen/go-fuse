@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -116,7 +117,15 @@ func (ms *MountState) Mount(mountPoint string, opts *MountOptions) error {
 	}
 	optStrs = append(optStrs, "subtype="+name)
 
-	file, mp, err := mount(mountPoint, strings.Join(optStrs, ","))
+	mountPoint = filepath.Clean(mountPoint)
+	if !filepath.IsAbs(mountPoint) {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		mountPoint = filepath.Clean(filepath.Join(cwd, mountPoint))
+	}
+	file, err := mount(mountPoint, strings.Join(optStrs, ","))
 	if err != nil {
 		return err
 	}
@@ -132,7 +141,7 @@ func (ms *MountState) Mount(mountPoint string, opts *MountOptions) error {
 		},
 	}
 	ms.fileSystem.Init(&initParams)
-	ms.mountPoint = mp
+	ms.mountPoint = mountPoint
 	ms.mountFile = file
 	return nil
 }

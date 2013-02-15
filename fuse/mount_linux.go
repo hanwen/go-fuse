@@ -26,7 +26,7 @@ func unixgramSocketpair() (l, r *os.File, err error) {
 
 // Create a FUSE FS on the specified mount point.  The returned
 // mount point is always absolute.
-func mount(mountPoint string, options string) (f *os.File, finalMountPoint string, err error) {
+func mount(mountPoint string, options string) (f *os.File, err error) {
 	local, remote, err := unixgramSocketpair()
 	if err != nil {
 		return
@@ -34,16 +34,6 @@ func mount(mountPoint string, options string) (f *os.File, finalMountPoint strin
 
 	defer local.Close()
 	defer remote.Close()
-
-	mountPoint = filepath.Clean(mountPoint)
-	if !filepath.IsAbs(mountPoint) {
-		cwd := ""
-		cwd, err = os.Getwd()
-		if err != nil {
-			return
-		}
-		mountPoint = filepath.Clean(filepath.Join(cwd, mountPoint))
-	}
 
 	cmd := []string{fusermountBinary, mountPoint}
 	if options != "" {
@@ -69,9 +59,7 @@ func mount(mountPoint string, options string) (f *os.File, finalMountPoint strin
 		return
 	}
 
-	f, err = getConnection(local)
-	finalMountPoint = mountPoint
-	return
+	return getConnection(local)
 }
 
 func privilegedUnmount(mountPoint string) error {
