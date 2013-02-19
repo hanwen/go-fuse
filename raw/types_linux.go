@@ -21,3 +21,22 @@ type Attr struct {
 type SetAttrIn struct {
 	SetAttrInCommon
 }
+
+const (
+	// Mask for GetAttrIn.Flags. If set, GetAttrIn has a file handle set.
+	FUSE_GETATTR_FH = (1 << 0)
+)
+
+type GetAttrIn struct {
+	Flags_ uint32
+	Dummy uint32
+	Fh_    uint64
+}
+
+func (g *GetAttrIn) Flags() uint32 {
+	return g.Flags_ 
+}
+
+func (g *GetAttrIn) Fh() uint64 {
+	return g.Fh_
+}

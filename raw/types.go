@@ -73,17 +73,6 @@ type SetAttrInCommon struct {
 	Unused5 uint32
 }
 
-const (
-	// Mask for GetAttrIn.Flags. If set, GetAttrIn has a file handle set.
-	FUSE_GETATTR_FH = (1 << 0)
-)
-
-type GetAttrIn struct {
-	Flags uint32
-	Dummy uint32
-	Fh    uint64
-}
-
 const RELEASE_FLUSH = (1 << 0)
 
 type ReleaseIn struct {

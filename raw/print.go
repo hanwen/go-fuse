@@ -129,10 +129,6 @@ func (me *SetAttrIn) String() string {
 	return fmt.Sprintf("{%s}", strings.Join(s, ", "))
 }
 
-func (me *GetAttrIn) String() string {
-	return fmt.Sprintf("{Fh %d}", me.Fh)
-}
-
 func (me *ReleaseIn) String() string {
 	return fmt.Sprintf("{Fh %d %s %s L%d}",
 		me.Fh, FlagString(OpenFlagNames, int(me.Flags), ""),

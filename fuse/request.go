@@ -11,7 +11,7 @@ import (
 )
 
 var sizeOfOutHeader = unsafe.Sizeof(raw.OutHeader{})
-var zeroOutBuf [160]byte
+var zeroOutBuf [outputHeaderSize]byte
 
 type request struct {
 	inputBuf []byte
@@ -49,7 +49,7 @@ type request struct {
 	// arrays:
 	//
 	// Output header and structured data.
-	outBuf [160]byte
+	outBuf [outputHeaderSize]byte
 
 	// Input, if small enough to fit here.
 	smallInputBuf [128]byte

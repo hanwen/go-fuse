@@ -66,20 +66,14 @@ const (
 ////////////////////////////////////////////////////////////////
 
 func doInit(state *MountState, req *request) {
-	const (
-		FUSE_KERNEL_VERSION   = 7
-		MINIMUM_MINOR_VERSION = 13
-		OUR_MINOR_VERSION     = 16
-	)
-
 	input := (*raw.InitIn)(req.inData)
-	if input.Major != FUSE_KERNEL_VERSION {
-		log.Printf("Major versions does not match. Given %d, want %d\n", input.Major, FUSE_KERNEL_VERSION)
+	if input.Major != _FUSE_KERNEL_VERSION {
+		log.Printf("Major versions does not match. Given %d, want %d\n", input.Major, _FUSE_KERNEL_VERSION)
 		req.status = EIO
 		return
 	}
-	if input.Minor < MINIMUM_MINOR_VERSION {
-		log.Printf("Minor version is less than we support. Given %d, want at least %d\n", input.Minor, MINIMUM_MINOR_VERSION)
+	if input.Minor < _MINIMUM_MINOR_VERSION {
+		log.Printf("Minor version is less than we support. Given %d, want at least %d\n", input.Minor, _MINIMUM_MINOR_VERSION)
 		req.status = EIO
 		return
 	}
@@ -93,8 +87,8 @@ func doInit(state *MountState, req *request) {
 	state.reqMu.Unlock()
 
 	out := &raw.InitOut{
-		Major:               FUSE_KERNEL_VERSION,
-		Minor:               OUR_MINOR_VERSION,
+		Major:               _FUSE_KERNEL_VERSION,
+		Minor:               _OUR_MINOR_VERSION,
 		MaxReadAhead:        input.MaxReadAhead,
 		Flags:               state.kernelSettings.Flags,
 		MaxWrite:            uint32(state.opts.MaxWrite),
@@ -339,6 +333,10 @@ func doIoctl(state *MountState, req *request) {
 	req.status = ENOSYS
 }
 
+func doDestroy(state *MountState, req *request) {
+	req.status = OK
+}
+
 ////////////////////////////////////////////////////////////////
 
 type operationFunc func(*MountState, *request)
@@ -522,6 +520,7 @@ func init() {
 		_OP_RENAME:       doRename,
 		_OP_STATFS:       doStatFs,
 		_OP_IOCTL:        doIoctl,
+		_OP_DESTROY: 	  doDestroy,
 	} {
 		operationHandlers[op].Func = v
 	}

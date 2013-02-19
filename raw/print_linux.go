@@ -25,3 +25,7 @@ func (a *Attr) String() string {
 		a.Rdev, a.Ino, a.Atime, a.Atimensec, a.Mtime, a.Mtimensec,
 		a.Ctime, a.Ctimensec)
 }
+
+func (me *GetAttrIn) String() string {
+	return fmt.Sprintf("{Fh %d}", me.Fh_)
+}

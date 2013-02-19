@@ -105,8 +105,8 @@ func (c *FileSystemConnector) GetAttr(out *raw.AttrOut, context *Context, input 
 	node := c.toInode(context.NodeId)
 
 	var f File
-	if input.Flags&raw.FUSE_GETATTR_FH != 0 {
-		if opened := node.mount.getOpenedFile(input.Fh); opened != nil {
+	if input.Flags() & raw.FUSE_GETATTR_FH != 0 {
+		if opened := node.mount.getOpenedFile(input.Fh()); opened != nil {
 			f = opened.WithFlags.File
 		}
 	}
