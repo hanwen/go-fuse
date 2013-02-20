@@ -49,3 +49,10 @@ func (g *GetAttrIn) Flags() uint32 {
 func (g *GetAttrIn) Fh() uint64 {
 	return 0
 }
+
+type ReadIn struct {
+	Fh        uint64
+	Offset    uint64
+	Size      uint32
+	ReadFlags uint32
+}

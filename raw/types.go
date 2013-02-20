@@ -367,19 +367,10 @@ type Dirent struct {
 	Typ     uint32
 }
 
+
 const (
 	READ_LOCKOWNER = (1 << 1)
 )
-
-type ReadIn struct {
-	Fh        uint64
-	Offset    uint64
-	Size      uint32
-	ReadFlags uint32
-	LockOwner uint64
-	Flags     uint32
-	Padding   uint32
-}
 
 const (
 	WRITE_CACHE     = (1 << 0)

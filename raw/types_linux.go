@@ -40,3 +40,14 @@ func (g *GetAttrIn) Flags() uint32 {
 func (g *GetAttrIn) Fh() uint64 {
 	return g.Fh_
 }
+
+
+type ReadIn struct {
+	Fh        uint64
+	Offset    uint64
+	Size      uint32
+	ReadFlags uint32
+	LockOwner uint64
+	Flags     uint32
+	Padding   uint32
+}

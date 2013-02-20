@@ -29,3 +29,11 @@ func (a *Attr) String() string {
 func (me *GetAttrIn) String() string {
 	return fmt.Sprintf("{Fh %d}", me.Fh_)
 }
+
+func (me *ReadIn) String() string {
+	return fmt.Sprintf("{Fh %d off %d sz %d %s L %d %s}",
+		me.Fh, me.Offset, me.Size,
+		FlagString(readFlagNames, int(me.ReadFlags), ""),
+		me.LockOwner,
+		FlagString(OpenFlagNames, int(me.Flags), "RDONLY"))
+}
