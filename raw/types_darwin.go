@@ -56,3 +56,10 @@ type ReadIn struct {
 	Size      uint32
 	ReadFlags uint32
 }
+
+type WriteIn struct {
+	Fh         uint64
+	Offset     uint64
+	Size       uint32
+	WriteFlags uint32
+}

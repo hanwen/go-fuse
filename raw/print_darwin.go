@@ -27,3 +27,8 @@ func (me *ReadIn) String() string {
 		FlagString(readFlagNames, int(me.ReadFlags), ""))
 }
 
+func (me *WriteIn) String() string {
+	return fmt.Sprintf("{Fh %d off %d sz %d %s}",
+		me.Fh, me.Offset, me.Size,
+		FlagString(writeFlagNames, int(me.WriteFlags), ""))
+}

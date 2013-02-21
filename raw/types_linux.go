@@ -51,3 +51,14 @@ type ReadIn struct {
 	Flags     uint32
 	Padding   uint32
 }
+
+
+type WriteIn struct {
+	Fh         uint64
+	Offset     uint64
+	Size       uint32
+	WriteFlags uint32
+	LockOwner  uint64
+	Flags      uint32
+	Padding    uint32
+}

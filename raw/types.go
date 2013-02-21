@@ -92,6 +92,8 @@ const (
 	FOPEN_DIRECT_IO   = (1 << 0)
 	FOPEN_KEEP_CACHE  = (1 << 1)
 	FOPEN_NONSEEKABLE = (1 << 2)
+
+	
 )
 
 type OpenOut struct {
@@ -367,7 +369,6 @@ type Dirent struct {
 	Typ     uint32
 }
 
-
 const (
 	READ_LOCKOWNER = (1 << 1)
 )
@@ -376,13 +377,3 @@ const (
 	WRITE_CACHE     = (1 << 0)
 	WRITE_LOCKOWNER = (1 << 1)
 )
-
-type WriteIn struct {
-	Fh         uint64
-	Offset     uint64
-	Size       uint32
-	WriteFlags uint32
-	LockOwner  uint64
-	Flags      uint32
-	Padding    uint32
-}

@@ -37,3 +37,11 @@ func (me *ReadIn) String() string {
 		me.LockOwner,
 		FlagString(OpenFlagNames, int(me.Flags), "RDONLY"))
 }
+
+func (me *WriteIn) String() string {
+	return fmt.Sprintf("{Fh %d off %d sz %d %s L %d %s}",
+		me.Fh, me.Offset, me.Size,
+		FlagString(writeFlagNames, int(me.WriteFlags), ""),
+		me.LockOwner,
+		FlagString(OpenFlagNames, int(me.Flags), "RDONLY"))
+}
