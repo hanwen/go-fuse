@@ -24,8 +24,8 @@ func (ms *MountState) trySplice(header []byte, req *request, fdData *ReadResultF
 	defer splice.Done(pair)
 
 	total := len(header) + fdData.Size()
-	if !pair.Grow(total) {
-		return fmt.Errorf("splice.Grow failed.")
+	if err := pair.Grow(total); err != nil {
+		return err
 	}
 
 	_, err = pair.Write(header)

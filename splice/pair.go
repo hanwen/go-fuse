@@ -1,6 +1,7 @@
 package splice
 
 import (
+	"fmt"
 	"os"
 )
 
@@ -10,27 +11,28 @@ type Pair struct {
 }
 
 func (p *Pair) MaxGrow() {
-	for p.Grow(2 * p.size) {
+	for p.Grow(2 * p.size) == nil {
 	}
 }
 
-func (p *Pair) Grow(n int) bool {
+
+func (p *Pair) Grow(n int) error {
 	if n <= p.size {
-		return true
+		return nil
 	}
 	if !resizable {
-		return false
+		return fmt.Errorf("splice: want %d bytes, but not resizable", n)
 	}
 	if n > maxPipeSize {
-		return false
+		return fmt.Errorf("splice: want %d bytes, max pipe size %d", n, maxPipeSize)
 	}
 
 	newsize, errNo := fcntl(p.r.Fd(), F_SETPIPE_SZ, n)
 	if errNo != 0 {
-		return false
+		return fmt.Errorf("splice: fcntl returned %v", errNo)
 	}
 	p.size = newsize
-	return true
+	return nil
 }
 
 func (p *Pair) Cap() int {
