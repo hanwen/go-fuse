@@ -91,6 +91,8 @@ func NewTestCase(t *testing.T) *testCase {
 
 	// Unthreaded, but in background.
 	go me.state.Loop()
+
+	me.state.WaitMount()
 	return me
 }
 

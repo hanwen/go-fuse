@@ -35,6 +35,8 @@ type MountState struct {
 
 	opts *MountOptions
 
+	started             chan struct {}
+	
 	reqMu               sync.Mutex
 	reqPool             []*request
 	readPool            [][]byte
@@ -182,6 +184,7 @@ func NewMountState(fs RawFileSystem) *MountState {
 	ms := new(MountState)
 	ms.mountPoint = ""
 	ms.fileSystem = fs
+	ms.started = make(chan struct{})
 	return ms
 }
 
@@ -385,7 +388,11 @@ func (ms *MountState) write(req *request) Status {
 		return OK
 	}
 
-	return ms.systemWrite(req, header)
+	s := ms.systemWrite(req, header)
+	if req.inHeader.Opcode == _OP_INIT {
+		close(ms.started)
+	}
+	return s
 }
 
 func (ms *MountState) writeInodeNotify(entry *raw.NotifyInvalInodeOut) Status {
@@ -482,4 +489,11 @@ var defaultBufferPool BufferPool
 
 func init() {
 	defaultBufferPool = NewBufferPool()
+}
+
+// Wait for the first request to be served. Use this to avoid racing
+// between accessing the (empty) mountpoint, and the OS trying to
+// setup the user-space mount.
+func (ms *MountState) WaitMount() {
+	<-ms.started
 }
