@@ -8,11 +8,7 @@ import (
 )
 
 func (s *MountState) setSplice() {
-	s.canSplice = true
-	maxW := splice.MaxPipeSize() - 4096
-	if !splice.Resizable() && s.opts.MaxWrite > maxW {
-		s.opts.MaxWrite = maxW
-	}
+	s.canSplice = splice.Resizable()
 }
 
 
