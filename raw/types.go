@@ -116,6 +116,9 @@ const (
 	CAP_SPLICE_READ    = (1 << 9)
 	CAP_FLOCK_LOCKS    = (1 << 10)
 	CAP_IOCTL_DIR      = (1 << 11)
+	CAP_AUTO_INVAL_DATA = (1 << 12)
+	CAP_READDIRPLUS = (1 << 13)
+	CAP_READDIRPLUS_AUTO = (1 << 14)
 )
 
 type InitIn struct {
@@ -377,3 +380,11 @@ const (
 	WRITE_CACHE     = (1 << 0)
 	WRITE_LOCKOWNER = (1 << 1)
 )
+
+type FallocateIn struct {
+	Fh uint64
+	Offset uint64
+	Length uint64
+	Mode uint32
+	Padding uint32
+}

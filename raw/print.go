@@ -36,6 +36,10 @@ func init() {
 		CAP_SPLICE_READ:    "SPLICE_READ",
 		CAP_FLOCK_LOCKS:    "FLOCK_LOCKS",
 		CAP_IOCTL_DIR:      "IOCTL_DIR",
+		CAP_AUTO_INVAL_DATA: "AUTO_INVAL_DATA",
+		CAP_READDIRPLUS:     "READDIRPLUS",
+		CAP_READDIRPLUS_AUTO: "READDIRPLUS_AUTO",
+
 	}
 	releaseFlagNames = map[int]string{
 		RELEASE_FLUSH: "FLUSH",
@@ -216,4 +220,9 @@ func (o *NotifyInvalInodeOut) String() string {
 
 func (o *NotifyInvalDeleteOut) String() string {
 	return fmt.Sprintf("{parent %d ch %d sz %d}", o.Parent, o.Child, o.NameLen)
+}
+
+func (f *FallocateIn) String() string {
+	return fmt.Sprintf("{Fh %d off %d sz %d mod 0%o}",
+		f.Fh, f.Offset, f.Length, f.Mode)
 }
