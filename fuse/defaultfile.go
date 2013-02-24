@@ -65,3 +65,7 @@ func (f *DefaultFile) Chmod(perms uint32) Status {
 func (f *DefaultFile) Ioctl(input *raw.IoctlIn) (output *raw.IoctlOut, data []byte, code Status) {
 	return nil, nil, ENOSYS
 }
+
+func (f *DefaultFile) Allocate(off uint64, size uint64, mode uint32) (code Status) {
+	return ENOSYS
+}

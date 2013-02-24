@@ -54,13 +54,14 @@ const (
 	_OP_POLL         = int32(40)
 	_OP_NOTIFY_REPLY = int32(41)
 	_OP_BATCH_FORGET = int32(42)
+	_OP_FALLOCATE    = int32(43) // protocol version 19.
 
 	// Ugh - what will happen if FUSE introduces a new opcode here?
-	_OP_NOTIFY_ENTRY  = int32(51)
-	_OP_NOTIFY_INODE  = int32(52)
-	_OP_NOTIFY_DELETE = int32(53)
+	_OP_NOTIFY_ENTRY  = int32(100)
+	_OP_NOTIFY_INODE  = int32(101)
+	_OP_NOTIFY_DELETE = int32(102) // protocol version 18
 
-	_OPCODE_COUNT = int32(54)
+	_OPCODE_COUNT = int32(103)
 )
 
 ////////////////////////////////////////////////////////////////
@@ -337,6 +338,10 @@ func doDestroy(state *MountState, req *request) {
 	req.status = OK
 }
 
+func doFallocate(state *MountState, req *request) {
+	req.status = state.fileSystem.Fallocate(&req.context, (*raw.FallocateIn)(req.inData))
+}
+
 ////////////////////////////////////////////////////////////////
 
 type operationFunc func(*MountState, *request)
@@ -410,6 +415,7 @@ func init() {
 		_OP_BMAP:         unsafe.Sizeof(raw.BmapIn{}),
 		_OP_IOCTL:        unsafe.Sizeof(raw.IoctlIn{}),
 		_OP_POLL:         unsafe.Sizeof(raw.PollIn{}),
+		_OP_FALLOCATE:    unsafe.Sizeof(raw.FallocateIn{}),
 	} {
 		operationHandlers[op].InputSize = sz
 	}
@@ -483,6 +489,7 @@ func init() {
 		_OP_NOTIFY_ENTRY:  "NOTIFY_ENTRY",
 		_OP_NOTIFY_INODE:  "NOTIFY_INODE",
 		_OP_NOTIFY_DELETE: "NOTIFY_DELETE",
+		_OP_FALLOCATE:     "FALLOCATE",
 	} {
 		operationHandlers[op].Name = v
 	}
@@ -521,6 +528,7 @@ func init() {
 		_OP_STATFS:       doStatFs,
 		_OP_IOCTL:        doIoctl,
 		_OP_DESTROY: 	  doDestroy,
+		_OP_FALLOCATE:    doFallocate,
 	} {
 		operationHandlers[op].Func = v
 	}
@@ -565,6 +573,7 @@ func init() {
 		_OP_MKDIR:        func(ptr unsafe.Pointer) interface{} { return (*raw.MkdirIn)(ptr) },
 		_OP_RELEASE:      func(ptr unsafe.Pointer) interface{} { return (*raw.ReleaseIn)(ptr) },
 		_OP_RELEASEDIR:   func(ptr unsafe.Pointer) interface{} { return (*raw.ReleaseIn)(ptr) },
+		_OP_FALLOCATE:    func(ptr unsafe.Pointer) interface{} { return (*raw.FallocateIn)(ptr) },
 	} {
 		operationHandlers[op].DecodeIn = f
 	}

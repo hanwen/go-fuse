@@ -332,6 +332,11 @@ func (fs *LockingRawFileSystem) StatFs(out *StatfsOut, context *Context) (code S
 	return fs.RawFS.StatFs(out, context)
 }
 
+func (fs *LockingRawFileSystem) Fallocate(c *Context, in *raw.FallocateIn) (code Status) {
+	defer fs.locked()()
+	return fs.RawFS.Fallocate(c, in)
+}
+
 func (fs *LockingRawFileSystem) String() string {
 	defer fs.locked()()
 	return fmt.Sprintf("Locked(%s)", fs.RawFS.String())

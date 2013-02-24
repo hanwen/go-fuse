@@ -79,6 +79,7 @@ type FsNode interface {
 	Chown(file File, uid uint32, gid uint32, context *Context) (code Status)
 	Truncate(file File, size uint64, context *Context) (code Status)
 	Utimens(file File, atime *time.Time, mtime *time.Time, context *Context) (code Status)
+	Fallocate(file File, off uint64, size uint64, mode uint32, context *Context) (code Status)
 
 	StatFs() *StatfsOut
 }
@@ -180,6 +181,7 @@ type File interface {
 	Chown(uid uint32, gid uint32) Status
 	Chmod(perms uint32) Status
 	Utimens(atime *time.Time, mtime *time.Time) Status
+	Allocate(off uint64, size uint64, mode uint32) (code Status)
 }
 
 // The result of Read is an array of bytes, but for performance
@@ -321,6 +323,7 @@ type RawFileSystem interface {
 	Write(*Context, *raw.WriteIn, []byte) (written uint32, code Status)
 	Flush(context *Context, input *raw.FlushIn) Status
 	Fsync(*Context, *raw.FsyncIn) (code Status)
+	Fallocate(Context *Context, in *raw.FallocateIn) (code Status)
 
 	// Directory handling
 	OpenDir(out *raw.OpenOut, context *Context, input *raw.OpenIn) (status Status)

@@ -640,3 +640,23 @@ func (n *pathInode) Utimens(file File, atime *time.Time, mtime *time.Time, conte
 	}
 	return code
 }
+
+func (n *pathInode) Fallocate(file File, off uint64, size uint64, mode uint32, context *Context) (code Status) {
+	if file != nil {
+		code = file.Allocate(off, size, mode)
+		if code.Ok() {
+			return code
+		}
+	}
+	
+	files := n.inode.Files(O_ANYWRITE)
+	for _, f := range files {
+		// TODO - pass context
+		code = f.Allocate(off, size, mode)
+		if code.Ok() {
+			return code
+		}
+	}
+
+	return code
+}

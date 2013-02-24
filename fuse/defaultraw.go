@@ -131,3 +131,7 @@ func (fs *DefaultRawFileSystem) ReleaseDir(context *Context, input *raw.ReleaseI
 func (fs *DefaultRawFileSystem) FsyncDir(context *Context, input *raw.FsyncIn) (code Status) {
 	return ENOSYS
 }
+
+func (fs *DefaultRawFileSystem) Fallocate(context *Context, in *raw.FallocateIn) (code Status) {
+	return ENOSYS
+}

@@ -214,6 +214,13 @@ func (c *FileSystemConnector) SetAttr(out *raw.AttrOut, context *Context, input 
 	return code
 }
 
+func (c *FileSystemConnector) Fallocate(context *Context, in *raw.FallocateIn) (code Status) {
+	n := c.toInode(context.NodeId)
+	opened := n.mount.getOpenedFile(in.Fh)
+	
+	return n.fsInode.Fallocate(opened, in.Offset, in.Length, in.Mode, context)
+}
+
 func (c *FileSystemConnector) Readlink(context *Context) (out []byte, code Status) {
 	n := c.toInode(context.NodeId)
 	return n.fsInode.Readlink(context)

@@ -154,3 +154,7 @@ func (n *DefaultFsNode) Truncate(file File, size uint64, context *Context) (code
 func (n *DefaultFsNode) Utimens(file File, atime *time.Time, mtime *time.Time, context *Context) (code Status) {
 	return ENOSYS
 }
+
+func (n *DefaultFsNode) Fallocate(file File, off uint64, size uint64, mode uint32, context *Context) (code Status) {
+	return ENOSYS
+}
