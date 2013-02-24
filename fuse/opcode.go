@@ -55,6 +55,7 @@ const (
 	_OP_NOTIFY_REPLY = int32(41)
 	_OP_BATCH_FORGET = int32(42)
 	_OP_FALLOCATE    = int32(43) // protocol version 19.
+	_OP_READDIRPLUS  = int32(44) // protocol version 21.
 
 	// Ugh - what will happen if FUSE introduces a new opcode here?
 	_OP_NOTIFY_ENTRY  = int32(100)
@@ -490,6 +491,7 @@ func init() {
 		_OP_NOTIFY_INODE:  "NOTIFY_INODE",
 		_OP_NOTIFY_DELETE: "NOTIFY_DELETE",
 		_OP_FALLOCATE:     "FALLOCATE",
+		_OP_READDIRPLUS:   "READDIRPLUS",
 	} {
 		operationHandlers[op].Name = v
 	}
