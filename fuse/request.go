@@ -116,7 +116,7 @@ func (r *request) OutputDebug() string {
 		} else {
 			spl := ""
 			if r.fdData != nil {
-				spl = " (splice)"
+				spl = " (fd data)"
 			}
 			flatStr = fmt.Sprintf(" %d bytes data%s\n", r.flatDataSize(), spl)
 		}

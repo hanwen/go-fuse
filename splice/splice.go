@@ -32,8 +32,9 @@ func init() {
 	content, err := ioutil.ReadFile("/proc/sys/fs/pipe-max-size")
 	if err != nil {
 		maxPipeSize = DefaultPipeSize
+	} else {
+		fmt.Sscan(string(content), &maxPipeSize)
 	}
-	fmt.Sscan(string(content), &maxPipeSize)
 
 	r, w, err := os.Pipe()
 	if err != nil {
