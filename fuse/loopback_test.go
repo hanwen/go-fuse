@@ -125,20 +125,28 @@ func TestReadThrough(t *testing.T) {
 
 	content := RandomData(125)
 	err := ioutil.WriteFile(ts.origFile, content, 0700)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf(" failed: %v", err)
+	}
 
 	err = os.Chmod(ts.mountFile, os.FileMode(mode))
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf(" failed: %v", err)
+	}
 
 	fi, err := os.Lstat(ts.mountFile)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf(" failed: %v", err)
+	}
 	if uint32(fi.Mode().Perm()) != mode {
 		t.Errorf("Wrong mode %o != %o", int(fi.Mode().Perm()), mode)
 	}
 
 	// Open (for read), read.
 	f, err := os.Open(ts.mountFile)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf(" failed: %v", err)
+	}
 	defer f.Close()
 
 	var buf [1024]byte
@@ -153,10 +161,14 @@ func TestRemove(t *testing.T) {
 
 	contents := []byte{1, 2, 3}
 	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	err = os.Remove(tc.mountFile)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Remove failed: %v", err)
+	}
 	_, err = os.Lstat(tc.origFile)
 	if err == nil {
 		t.Errorf("Lstat() after delete should have generated error.")
@@ -169,12 +181,16 @@ func TestWriteThrough(t *testing.T) {
 
 	// Create (for write), write.
 	f, err := os.OpenFile(tc.mountFile, os.O_WRONLY|os.O_CREATE, 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("OpenFile failed: %v", err)
+	}
 	defer f.Close()
 
 	content := RandomData(125)
 	n, err := f.Write(content)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Write failed: %v", err)
+	}
 	if n != len(content) {
 		t.Errorf("Write mismatch: %v of %v", n, len(content))
 	}
@@ -185,13 +201,17 @@ func TestWriteThrough(t *testing.T) {
 	}
 
 	f, err = os.Open(tc.origFile)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
 	defer f.Close()
 
 	var buf [1024]byte
 	slice := buf[:]
 	n, err = f.Read(slice)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Read failed: %v", err)
+	}
 	CompareSlices(t, slice[:n], content)
 }
 
@@ -201,14 +221,18 @@ func TestMkdirRmdir(t *testing.T) {
 
 	// Mkdir/Rmdir.
 	err := os.Mkdir(tc.mountSubdir, 0777)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 	fi, err := os.Lstat(tc.origSubdir)
 	if !fi.IsDir() {
 		t.Errorf("Not a directory: %v", fi)
 	}
 
 	err = os.Remove(tc.mountSubdir)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Remove failed: %v", err)
+	}
 }
 
 func TestLinkCreate(t *testing.T) {
@@ -217,20 +241,30 @@ func TestLinkCreate(t *testing.T) {
 
 	content := RandomData(125)
 	err := ioutil.WriteFile(tc.origFile, content, 0700)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 	err = os.Mkdir(tc.origSubdir, 0777)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 
 	// Link.
 	mountSubfile := filepath.Join(tc.mountSubdir, "subfile")
 	err = os.Link(tc.mountFile, mountSubfile)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Link failed: %v", err)
+	}
 
 	var subStat, stat syscall.Stat_t
 	err = syscall.Lstat(mountSubfile, &subStat)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 	err = syscall.Lstat(tc.mountFile, &stat)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 
 	if stat.Nlink != 2 {
 		t.Errorf("Expect 2 links: %v", stat)
@@ -239,14 +273,20 @@ func TestLinkCreate(t *testing.T) {
 		t.Errorf("Link succeeded, but inode numbers different: %v %v", stat.Ino, subStat.Ino)
 	}
 	readback, err := ioutil.ReadFile(mountSubfile)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("ReadFile failed: %v", err)
+	}
 	CompareSlices(t, readback, content)
 
 	err = os.Remove(tc.mountFile)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Remove failed: %v", err)
+	}
 
 	_, err = ioutil.ReadFile(mountSubfile)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("ReadFile failed: %v", err)
+	}
 }
 
 // Deal correctly with hard links implied by matching client inode
@@ -258,22 +298,32 @@ func TestLinkExisting(t *testing.T) {
 	c := RandomData(5)
 
 	err := ioutil.WriteFile(tc.orig+"/file1", c, 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 	err = os.Link(tc.orig+"/file1", tc.orig+"/file2")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Link failed: %v", err)
+	}
 
 	var s1, s2 syscall.Stat_t
 	err = syscall.Lstat(tc.mnt+"/file1", &s1)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 	err = syscall.Lstat(tc.mnt+"/file2", &s2)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 
 	if s1.Ino != s2.Ino {
 		t.Errorf("linked files should have identical inodes %v %v", s1.Ino, s2.Ino)
 	}
 
 	back, err := ioutil.ReadFile(tc.mnt + "/file1")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("ReadFile failed: %v", err)
+	}
 	CompareSlices(t, back, c)
 }
 
@@ -286,18 +336,26 @@ func TestLinkForget(t *testing.T) {
 	c := "hello"
 
 	err := ioutil.WriteFile(tc.orig+"/file1", []byte(c), 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 	err = os.Link(tc.orig+"/file1", tc.orig+"/file2")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Link failed: %v", err)
+	}
 
 	var s1, s2 syscall.Stat_t
 	err = syscall.Lstat(tc.mnt+"/file1", &s1)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 
 	tc.pathFs.ForgetClientInodes()
 
 	err = syscall.Lstat(tc.mnt+"/file2", &s2)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 	if s1.Ino == s2.Ino {
 		t.Error("After forget, we should not export links")
 	}
@@ -310,17 +368,23 @@ func TestSymlink(t *testing.T) {
 	t.Log("testing symlink/readlink.")
 	contents := []byte{1, 2, 3}
 	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	linkFile := "symlink-file"
 	orig := "hello.txt"
 	err = os.Symlink(orig, filepath.Join(tc.mnt, linkFile))
 
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Symlink failed: %v", err)
+	}
 
 	origLink := filepath.Join(tc.orig, linkFile)
 	fi, err := os.Lstat(origLink)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 
 	if fi.Mode()&os.ModeSymlink == 0 {
 		t.Errorf("not a symlink: %v", fi)
@@ -328,7 +392,9 @@ func TestSymlink(t *testing.T) {
 	}
 
 	read, err := os.Readlink(filepath.Join(tc.mnt, linkFile))
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Readlink failed: %v", err)
+	}
 
 	if read != orig {
 		t.Errorf("unexpected symlink value '%v'", read)
@@ -341,13 +407,17 @@ func TestRename(t *testing.T) {
 
 	contents := []byte{1, 2, 3}
 	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 	sd := tc.mnt + "/testRename"
 	err = os.MkdirAll(sd, 0777)
 
 	subFile := sd + "/subfile"
 	err = os.Rename(tc.mountFile, subFile)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Rename failed: %v", err)
+	}
 	f, _ := os.Lstat(tc.origFile)
 	if f != nil {
 		t.Errorf("original %v still exists.", tc.origFile)
@@ -367,25 +437,37 @@ func TestDelRename(t *testing.T) {
 
 	sd := tc.mnt + "/testDelRename"
 	err := os.MkdirAll(sd, 0755)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("MkdirAll failed: %v", err)
+	}
 
 	d := sd + "/dest"
 	err = ioutil.WriteFile(d, []byte("blabla"), 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	f, err := os.Open(d)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
 	defer f.Close()
 
 	err = os.Remove(d)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Remove failed: %v", err)
+	}
 
 	s := sd + "/src"
 	err = ioutil.WriteFile(s, []byte("blabla"), 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	err = os.Rename(s, d)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Rename failed: %v", err)
+	}
 }
 
 func TestOverwriteRename(t *testing.T) {
@@ -396,18 +478,26 @@ func TestOverwriteRename(t *testing.T) {
 
 	sd := tc.mnt + "/testOverwriteRename"
 	err := os.MkdirAll(sd, 0755)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("MkdirAll failed: %v", err)
+	}
 
 	d := sd + "/dest"
 	err = ioutil.WriteFile(d, []byte("blabla"), 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	s := sd + "/src"
 	err = ioutil.WriteFile(s, []byte("blabla"), 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	err = os.Rename(s, d)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Rename failed: %v", err)
+	}
 }
 
 func TestAccess(t *testing.T) {
@@ -420,9 +510,13 @@ func TestAccess(t *testing.T) {
 
 	contents := []byte{1, 2, 3}
 	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 	err = os.Chmod(tc.origFile, 0)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Chmod failed: %v", err)
+	}
 	// Ugh - copied from unistd.h
 	const W_OK uint32 = 2
 
@@ -431,7 +525,9 @@ func TestAccess(t *testing.T) {
 		t.Errorf("Expected EACCES for non-writable, %v %v", errCode, syscall.EACCES)
 	}
 	err = os.Chmod(tc.origFile, 0222)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Chmod failed: %v", err)
+	}
 	errCode = syscall.Access(tc.mountFile, W_OK)
 	if errCode != nil {
 		t.Errorf("Expected no error code for writable. %v", errCode)
@@ -459,14 +555,22 @@ func TestReaddir(t *testing.T) {
 
 	contents := []byte{1, 2, 3}
 	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf(" failed: %v", err)
+	}
 	err = os.Mkdir(tc.origSubdir, 0777)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 
 	dir, err := os.Open(tc.mnt)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
 	infos, err := dir.Readdir(10)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Readdir failed: %v", err)
+	}
 
 	wanted := map[string]bool{
 		"hello.txt": true,
@@ -492,11 +596,15 @@ func TestFSync(t *testing.T) {
 
 	contents := []byte{1, 2, 3}
 	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	f, err := os.OpenFile(tc.mountFile, os.O_WRONLY, 0)
 	_, err = f.WriteString("hello there")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteString failed: %v", err)
+	}
 
 	// How to really test fsync ?
 	err = syscall.Fsync(int(f.Fd()))
@@ -510,10 +618,14 @@ func TestReadZero(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()
 	err := ioutil.WriteFile(ts.origFile, []byte{}, 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	back, err := ioutil.ReadFile(ts.mountFile)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("ReadFile failed: %v", err)
+	}
 	if len(back) != 0 {
 		t.Errorf("content length: got %d want %d", len(back), 0)
 	}
@@ -562,13 +674,19 @@ func TestReadLargeMemCheck(t *testing.T) {
 
 	content := RandomData(385 * 1023)
 	err := ioutil.WriteFile(ts.origFile, []byte(content), 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	f, err := os.Open(ts.mountFile)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
 	buf := make([]byte, len(content)+1024)
 	f.Read(buf)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Read failed: %v", err)
+	}
 	f.Close()
 	runtime.GC()
 	var before, after runtime.MemStats
@@ -592,10 +710,14 @@ func TestReadLarge(t *testing.T) {
 
 	content := RandomData(385 * 1023)
 	err := ioutil.WriteFile(ts.origFile, []byte(content), 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	back, err := ioutil.ReadFile(ts.mountFile)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("ReadFile failed: %v", err)
+	}
 	CompareSlices(t, back, content)
 }
 
@@ -634,7 +756,9 @@ func TestLargeDirRead(t *testing.T) {
 		nameSet[base] = true
 
 		f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE, 0777)
-		CheckSuccess(err)
+		if err != nil {
+			t.Fatalf("OpenFile failed: %v", err)
+		}
 		f.WriteString("bla")
 		f.Close()
 
@@ -642,7 +766,9 @@ func TestLargeDirRead(t *testing.T) {
 	}
 
 	dir, err := os.Open(filepath.Join(tc.mnt, "readdirSubdir"))
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
 	defer dir.Close()
 
 	// Chunked read.
@@ -653,7 +779,9 @@ func TestLargeDirRead(t *testing.T) {
 		if len(namesRead) == 0 || err == io.EOF {
 			break
 		}
-		CheckSuccess(err)
+		if err != nil {
+			t.Fatalf("Readdirnames failed: %v", err)
+		}
 		for _, v := range namesRead {
 			readSet[v] = true
 		}
@@ -676,11 +804,17 @@ func TestRootDir(t *testing.T) {
 	defer ts.Cleanup()
 
 	d, err := os.Open(ts.mnt)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
 	_, err = d.Readdirnames(-1)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Readdirnames failed: %v", err)
+	}
 	err = d.Close()
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Close failed: %v", err)
+	}
 }
 
 func TestIoctl(t *testing.T) {
@@ -689,8 +823,10 @@ func TestIoctl(t *testing.T) {
 
 	f, err := os.OpenFile(filepath.Join(ts.mnt, "hello.txt"),
 		os.O_WRONLY|os.O_CREATE, 0777)
+	if err != nil {
+		t.Fatalf("OpenFile failed: %v", err)
+	}
 	defer f.Close()
-	CheckSuccess(err)
 	ioctl(int(f.Fd()), 0x5401, 42)
 }
 
@@ -726,7 +862,9 @@ func TestFStatFs(t *testing.T) {
 	defer ts.Cleanup()
 
 	fOrig, err := os.OpenFile(ts.orig+"/file", os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("OpenFile failed: %v", err)
+	}
 	defer fOrig.Close()
 
 	empty := syscall.Statfs_t{}
@@ -737,7 +875,9 @@ func TestFStatFs(t *testing.T) {
 	}
 
 	fMnt, err := os.OpenFile(ts.mnt+"/file", os.O_RDWR, 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("OpenFile failed: %v", err)
+	}
 	defer fMnt.Close()
 	s2 := empty
 
@@ -755,28 +895,40 @@ func TestFStatFs(t *testing.T) {
 
 func TestOriginalIsSymlink(t *testing.T) {
 	tmpDir, err := ioutil.TempDir("", "go-fuse")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("TempDir failed: %v", err)
+	}
 	defer os.RemoveAll(tmpDir)
 	orig := tmpDir + "/orig"
 	err = os.Mkdir(orig, 0755)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 	link := tmpDir + "/link"
 	mnt := tmpDir + "/mnt"
 	err = os.Mkdir(mnt, 0755)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 	err = os.Symlink("orig", link)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Symlink failed: %v", err)
+	}
 
 	fs := NewLoopbackFileSystem(link)
 	nfs := NewPathNodeFs(fs, nil)
 	state, _, err := MountNodeFileSystem(mnt, nfs, nil)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("MountNodeFileSystem failed: %v", err)
+	}
 	defer state.Unmount()
 
 	go state.Loop()
 
 	_, err = os.Lstat(mnt)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 }
 
 func TestDoubleOpen(t *testing.T) {
@@ -784,14 +936,20 @@ func TestDoubleOpen(t *testing.T) {
 	defer ts.Cleanup()
 
 	err := ioutil.WriteFile(ts.orig+"/file", []byte("blabla"), 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	roFile, err := os.Open(ts.mnt + "/file")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf(" failed: %v", err)
+	}
 	defer roFile.Close()
 
 	rwFile, err := os.OpenFile(ts.mnt+"/file", os.O_WRONLY|os.O_TRUNC, 0666)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("OpenFile failed: %v", err)
+	}
 	defer rwFile.Close()
 }
 
@@ -807,7 +965,9 @@ func TestUmask(t *testing.T) {
 	cmd.Run()
 
 	fi, err := os.Lstat(fn)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 
 	expect := mask ^ 0777
 	got := int(fi.Mode().Perm())
@@ -820,12 +980,18 @@ func TestFallocate(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()
 	rwFile, err := os.OpenFile(ts.mnt+"/file", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("OpenFile failed: %v", err)
+	}
 	defer rwFile.Close()
 	err = syscall.Fallocate(int(rwFile.Fd()), 0, 1024, 4096)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Fallocate failed: %v", err)
+	}
 	fi, err := os.Lstat(ts.orig + "/file")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 	if fi.Size() < (1024+4096) {
 		t.Fatalf("fallocate should have changed file size. Got %d bytes",
 			fi.Size())
