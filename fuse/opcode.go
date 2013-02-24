@@ -57,7 +57,7 @@ const (
 	_OP_FALLOCATE    = int32(43) // protocol version 19.
 	_OP_READDIRPLUS  = int32(44) // protocol version 21.
 
-	// Ugh - what will happen if FUSE introduces a new opcode here?
+	// The following entries don't have to be compatible across Go-FUSE versions.
 	_OP_NOTIFY_ENTRY  = int32(100)
 	_OP_NOTIFY_INODE  = int32(101)
 	_OP_NOTIFY_DELETE = int32(102) // protocol version 18
