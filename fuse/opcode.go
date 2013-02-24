@@ -82,7 +82,7 @@ func doInit(state *MountState, req *request) {
 
 	state.reqMu.Lock()
 	state.kernelSettings = *input
-	state.kernelSettings.Flags = input.Flags & (raw.CAP_ASYNC_READ | raw.CAP_BIG_WRITES | raw.CAP_FILE_OPS)
+	state.kernelSettings.Flags = input.Flags & (raw.CAP_ASYNC_READ | raw.CAP_BIG_WRITES | raw.CAP_FILE_OPS | raw.CAP_AUTO_INVAL_DATA)
 	if input.Minor >= 13 {
 		state.setSplice()
 	}
