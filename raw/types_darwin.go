@@ -19,6 +19,12 @@ type Attr struct {
 	Flags_   uint32 //  OS X
 }
 
+const (
+	FATTR_CRTIME =    (1 << 28)
+	FATTR_CHGTIME =   (1 << 29)
+	FATTR_BKUPTIME =  (1 << 30)
+	FATTR_FLAGS =     (1 << 31)
+)
 
 type SetAttrIn struct {
 	SetAttrInCommon
@@ -32,6 +38,11 @@ type SetAttrIn struct {
 	CrtimeNsec   uint32
 	Flags_       uint32 // see chflags(2)
 }
+
+const (
+	FOPEN_PURGE_ATTR =(1 << 30)
+	FOPEN_PURGE_UBC = (1 << 31)
+)
 
 // compat with linux.
 const (
@@ -62,4 +73,23 @@ type WriteIn struct {
 	Offset     uint64
 	Size       uint32
 	WriteFlags uint32
+}
+
+const (
+	CAP_CASE_INSENSITIVE = (1 << 29)
+	CAP_VOL_RENAME       = (1 << 30)
+	CAP_XTIMES           = (1 << 31)
+)
+
+type GetxtimesOut struct {
+	Bkuptime uint64
+	Crtime uint64
+	Bkuptimensec uint32
+	Crtimensec uint32
+}
+
+type  ExchangeIn struct {
+        Olddir uint64
+        Newdir uint64
+        Options uint64
 }

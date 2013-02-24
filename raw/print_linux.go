@@ -8,8 +8,11 @@ func init() {
 	OpenFlagNames[syscall.O_DIRECT] = "DIRECT"
 	OpenFlagNames[syscall.O_LARGEFILE] = "LARGEFILE"
 	OpenFlagNames[syscall_O_NOATIME] = "NOATIME"
-}
 
+	initFlagNames[CAP_XTIMES] = "XTIMES"
+	initFlagNames[CAP_VOL_RENAME] = "VOL_RENAME"
+	initFlagNames[CAP_CASE_INSENSITIVE] = "CASE_INSENSITIVE"
+}
 
 func (a *Attr) String() string {
 	return fmt.Sprintf(
