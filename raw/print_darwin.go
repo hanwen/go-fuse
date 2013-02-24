@@ -4,6 +4,12 @@ import (
 
 )
 
+func init() {
+	initFlagNames[CAP_XTIMES] = "XTIMES"
+	initFlagNames[CAP_VOL_RENAME] = "VOL_RENAME"
+	initFlagNames[CAP_CASE_INSENSITIVE] = "CASE_INSENSITIVE"
+}
+
 func (a *Attr) String() string {
 	return fmt.Sprintf(
 		"{M0%o SZ=%d L=%d "+
