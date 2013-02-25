@@ -7,23 +7,23 @@ import (
 	"syscall"
 )
 
-var initFlagNames map[int]string
-var releaseFlagNames map[int]string
-var OpenFlagNames map[int]string
-var FuseOpenFlagNames map[int]string
-var accessFlagName map[int]string
-var writeFlagNames map[int]string
-var readFlagNames map[int]string
+var initFlagNames map[int64]string
+var releaseFlagNames map[int64]string
+var OpenFlagNames map[int64]string
+var FuseOpenFlagNames map[int64]string
+var accessFlagName map[int64]string
+var writeFlagNames map[int64]string
+var readFlagNames map[int64]string
 
 func init() {
-	writeFlagNames = map[int]string{
+	writeFlagNames = map[int64]string{
 		WRITE_CACHE:     "CACHE",
 		WRITE_LOCKOWNER: "LOCKOWNER",
 	}
-	readFlagNames = map[int]string{
+	readFlagNames = map[int64]string{
 		READ_LOCKOWNER: "LOCKOWNER",
 	}
-	initFlagNames = map[int]string{
+	initFlagNames = map[int64]string{
 		CAP_ASYNC_READ:     "ASYNC_READ",
 		CAP_POSIX_LOCKS:    "POSIX_LOCKS",
 		CAP_FILE_OPS:       "FILE_OPS",
@@ -41,30 +41,30 @@ func init() {
 		CAP_READDIRPLUS_AUTO: "READDIRPLUS_AUTO",
 
 	}
-	releaseFlagNames = map[int]string{
+	releaseFlagNames = map[int64]string{
 		RELEASE_FLUSH: "FLUSH",
 	}
-	OpenFlagNames = map[int]string{
-		os.O_WRONLY:        "WRONLY",
-		os.O_RDWR:          "RDWR",
-		os.O_APPEND:        "APPEND",
-		syscall.O_ASYNC:    "ASYNC",
-		os.O_CREATE:        "CREAT",
-		os.O_EXCL:          "EXCL",
-		syscall.O_NOCTTY:   "NOCTTY",
-		syscall.O_NONBLOCK: "NONBLOCK",
-		os.O_SYNC:          "SYNC",
-		os.O_TRUNC:         "TRUNC",
+	OpenFlagNames = map[int64]string{
+		int64(os.O_WRONLY):        "WRONLY",
+		int64(os.O_RDWR):          "RDWR",
+		int64(os.O_APPEND):        "APPEND",
+		int64(syscall.O_ASYNC):    "ASYNC",
+		int64(os.O_CREATE):        "CREAT",
+		int64(os.O_EXCL):          "EXCL",
+		int64(syscall.O_NOCTTY):   "NOCTTY",
+		int64(syscall.O_NONBLOCK): "NONBLOCK",
+		int64(os.O_SYNC):          "SYNC",
+		int64(os.O_TRUNC):         "TRUNC",
 
-		syscall.O_CLOEXEC:   "CLOEXEC",
-		syscall.O_DIRECTORY: "DIRECTORY",
+		int64(syscall.O_CLOEXEC):   "CLOEXEC",
+		int64(syscall.O_DIRECTORY): "DIRECTORY",
 	}
-	FuseOpenFlagNames = map[int]string{
+	FuseOpenFlagNames = map[int64]string{
 		FOPEN_DIRECT_IO:   "DIRECT",
 		FOPEN_KEEP_CACHE:  "CACHE",
 		FOPEN_NONSEEKABLE: "NONSEEK",
 	}
-	accessFlagName = map[int]string{
+	accessFlagName = map[int64]string{
 		X_OK: "x",
 		W_OK: "w",
 		R_OK: "r",
@@ -72,7 +72,7 @@ func init() {
 
 }
 
-func FlagString(names map[int]string, fl int, def string) string {
+func FlagString(names map[int64]string, fl int64, def string) string {
 	s := []string{}
 	for k, v := range names {
 		if fl&k != 0 {
@@ -135,30 +135,30 @@ func (me *SetAttrIn) String() string {
 
 func (me *ReleaseIn) String() string {
 	return fmt.Sprintf("{Fh %d %s %s L%d}",
-		me.Fh, FlagString(OpenFlagNames, int(me.Flags), ""),
-		FlagString(releaseFlagNames, int(me.ReleaseFlags), ""),
+		me.Fh, FlagString(OpenFlagNames, int64(me.Flags), ""),
+		FlagString(releaseFlagNames, int64(me.ReleaseFlags), ""),
 		me.LockOwner)
 }
 
 func (me *OpenIn) String() string {
-	return fmt.Sprintf("{%s}", FlagString(OpenFlagNames, int(me.Flags), "O_RDONLY"))
+	return fmt.Sprintf("{%s}", FlagString(OpenFlagNames, int64(me.Flags), "O_RDONLY"))
 }
 
 func (me *OpenOut) String() string {
 	return fmt.Sprintf("{Fh %d %s}", me.Fh,
-		FlagString(FuseOpenFlagNames, int(me.OpenFlags), ""))
+		FlagString(FuseOpenFlagNames, int64(me.OpenFlags), ""))
 }
 
 func (me *InitIn) String() string {
 	return fmt.Sprintf("{%d.%d Ra 0x%x %s}",
 		me.Major, me.Minor, me.MaxReadAhead,
-		FlagString(initFlagNames, int(me.Flags), ""))
+		FlagString(initFlagNames, int64(me.Flags), ""))
 }
 
 func (me *InitOut) String() string {
 	return fmt.Sprintf("{%d.%d Ra 0x%x %s %d/%d Wr 0x%x}",
 		me.Major, me.Minor, me.MaxReadAhead,
-		FlagString(initFlagNames, int(me.Flags), ""),
+		FlagString(initFlagNames, int64(me.Flags), ""),
 		me.CongestionThreshold, me.MaxBackground, me.MaxWrite)
 }
 
@@ -174,13 +174,13 @@ func (me *GetXAttrOut) String() string {
 	return fmt.Sprintf("{sz %d}", me.Size)
 }
 func (me *AccessIn) String() string {
-	return fmt.Sprintf("{%s}", FlagString(accessFlagName, int(me.Mask), ""))
+	return fmt.Sprintf("{%s}", FlagString(accessFlagName, int64(me.Mask), ""))
 }
 
 func (me *CreateIn) String() string {
 	return fmt.Sprintf(
 		"{0%o [%s] (0%o)}", me.Mode,
-		FlagString(OpenFlagNames, int(me.Flags), "O_RDONLY"), me.Umask)
+		FlagString(OpenFlagNames, int64(me.Flags), "O_RDONLY"), me.Umask)
 }
 
 func (me *FlushIn) String() string {
