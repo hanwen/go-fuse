@@ -13,7 +13,9 @@ func TestMountOnExisting(t *testing.T) {
 	defer ts.Cleanup()
 
 	err := os.Mkdir(ts.mnt+"/mnt", 0777)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 	nfs := &DefaultNodeFileSystem{}
 	code := ts.connector.Mount(ts.rootNode(), "mnt", nfs, nil)
 	if code != EBUSY {
@@ -21,7 +23,9 @@ func TestMountOnExisting(t *testing.T) {
 	}
 
 	err = os.Remove(ts.mnt + "/mnt")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Remove failed: %v", err)
+	}
 	code = ts.connector.Mount(ts.rootNode(), "mnt", nfs, nil)
 	if !code.Ok() {
 		t.Fatal("expect OK:", code)
@@ -60,7 +64,9 @@ func TestMountReaddir(t *testing.T) {
 	}
 
 	entries, err := ioutil.ReadDir(ts.mnt)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("ReadDir failed: %v", err)
+	}
 	if len(entries) != 1 || entries[0].Name() != "mnt" {
 		t.Error("wrong readdir result", entries)
 	}
@@ -72,7 +78,9 @@ func TestRecursiveMount(t *testing.T) {
 	defer ts.Cleanup()
 
 	err := ioutil.WriteFile(ts.orig+"/hello.txt", []byte("blabla"), 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	fs := NewPathNodeFs(NewLoopbackFileSystem(ts.orig), nil)
 	code := ts.connector.Mount(ts.rootNode(), "mnt", fs, nil)
@@ -82,12 +90,18 @@ func TestRecursiveMount(t *testing.T) {
 
 	submnt := ts.mnt + "/mnt"
 	_, err = os.Lstat(submnt)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 	_, err = os.Lstat(filepath.Join(submnt, "hello.txt"))
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 
 	f, err := os.Open(filepath.Join(submnt, "hello.txt"))
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
 	t.Log("Attempting unmount, should fail")
 	code = ts.pathFs.Unmount("mnt")
 	if code != EBUSY {
@@ -116,15 +130,21 @@ func TestDeletedUnmount(t *testing.T) {
 		t.Fatal("Mount error", code)
 	}
 	f, err := os.Create(filepath.Join(submnt, "hello.txt"))
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
 
 	t.Log("Removing")
 	err = os.Remove(filepath.Join(submnt, "hello.txt"))
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Remove failed: %v", err)
+	}
 
 	t.Log("Removing")
 	_, err = f.Write([]byte("bla"))
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Write failed: %v", err)
+	}
 
 	code = ts.pathFs.Unmount("mnt")
 	if code != EBUSY {

@@ -13,8 +13,6 @@ import (
 var _ = fmt.Print
 var _ = log.Print
 
-var CheckSuccess = fuse.CheckSuccess
-
 const entryTtl = 100 * time.Millisecond
 
 var testAOpts = AutoUnionFsOptions{
@@ -27,29 +25,39 @@ var testAOpts = AutoUnionFsOptions{
 	HideReadonly: true,
 }
 
-func WriteFile(name string, contents string) {
+func WriteFile(t *testing.T, name string, contents string) {
 	err := ioutil.WriteFile(name, []byte(contents), 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 }
 
 func setup(t *testing.T) (workdir string, cleanup func()) {
 	wd, _ := ioutil.TempDir("", "")
 	err := os.Mkdir(wd+"/mnt", 0700)
-	fuse.CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 
 	err = os.Mkdir(wd+"/store", 0700)
-	fuse.CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 
 	os.Mkdir(wd+"/ro", 0700)
-	fuse.CheckSuccess(err)
-	WriteFile(wd+"/ro/file1", "file1")
-	WriteFile(wd+"/ro/file2", "file2")
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
+	WriteFile(t, wd+"/ro/file1", "file1")
+	WriteFile(t, wd+"/ro/file2", "file2")
 
 	fs := NewAutoUnionFs(wd+"/store", testAOpts)
 
 	nfs := fuse.NewPathNodeFs(fs, nil)
 	state, conn, err := fuse.MountNodeFileSystem(wd+"/mnt", nfs, &testAOpts.FileSystemOptions)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("MountNodeFileSystem failed: %v", err)
+	}
 	state.Debug = fuse.VerboseTest()
 	conn.Debug = fuse.VerboseTest()
 	go state.Loop()
@@ -65,7 +73,9 @@ func TestDebug(t *testing.T) {
 	defer clean()
 
 	c, err := ioutil.ReadFile(wd + "/mnt/status/debug")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("ReadFile failed: %v", err)
+	}
 	if len(c) == 0 {
 		t.Fatal("No debug found.")
 	}
@@ -77,7 +87,9 @@ func TestVersion(t *testing.T) {
 	defer clean()
 
 	c, err := ioutil.ReadFile(wd + "/mnt/status/gounionfs_version")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("ReadFile failed: %v", err)
+	}
 	if len(c) == 0 {
 		t.Fatal("No version found.")
 	}
@@ -89,25 +101,37 @@ func TestAutoFsSymlink(t *testing.T) {
 	defer clean()
 
 	err := os.Mkdir(wd+"/store/backing1", 0755)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 
 	err = os.Symlink(wd+"/ro", wd+"/store/backing1/READONLY")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Symlink failed: %v", err)
+	}
 
 	err = os.Symlink(wd+"/store/backing1", wd+"/mnt/config/manual1")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Symlink failed: %v", err)
+	}
 
 	fi, err := os.Lstat(wd + "/mnt/manual1/file1")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 
 	entries, err := ioutil.ReadDir(wd + "/mnt")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("ReadDir failed: %v", err)
+	}
 	if len(entries) != 3 {
 		t.Error("readdir mismatch", entries)
 	}
 
 	err = os.Remove(wd + "/mnt/config/manual1")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Remove failed: %v", err)
+	}
 
 	scan := wd + "/mnt/config/" + _SCAN_CONFIG
 	err = ioutil.WriteFile(scan, []byte("something"), 0644)
@@ -121,10 +145,14 @@ func TestAutoFsSymlink(t *testing.T) {
 	}
 
 	_, err = ioutil.ReadDir(wd + "/mnt/config")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("ReadDir failed: %v", err)
+	}
 
 	_, err = os.Lstat(wd + "/mnt/backing1/file1")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 }
 
 func TestDetectSymlinkedDirectories(t *testing.T) {
@@ -132,13 +160,19 @@ func TestDetectSymlinkedDirectories(t *testing.T) {
 	defer clean()
 
 	err := os.Mkdir(wd+"/backing1", 0755)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 
 	err = os.Symlink(wd+"/ro", wd+"/backing1/READONLY")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Symlink failed: %v", err)
+	}
 
 	err = os.Symlink(wd+"/backing1", wd+"/store/backing1")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Symlink failed: %v", err)
+	}
 
 	scan := wd + "/mnt/config/" + _SCAN_CONFIG
 	err = ioutil.WriteFile(scan, []byte("something"), 0644)
@@ -147,7 +181,9 @@ func TestDetectSymlinkedDirectories(t *testing.T) {
 	}
 
 	_, err = os.Lstat(wd + "/mnt/backing1")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 }
 
 func TestExplicitScan(t *testing.T) {
@@ -155,9 +191,13 @@ func TestExplicitScan(t *testing.T) {
 	defer clean()
 
 	err := os.Mkdir(wd+"/store/backing1", 0755)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 	os.Symlink(wd+"/ro", wd+"/store/backing1/READONLY")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Symlink failed: %v", err)
+	}
 
 	fi, _ := os.Lstat(wd + "/mnt/backing1")
 	if fi != nil {
@@ -186,17 +226,27 @@ func TestCreationChecks(t *testing.T) {
 	defer clean()
 
 	err := os.Mkdir(wd+"/store/foo", 0755)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 	os.Symlink(wd+"/ro", wd+"/store/foo/READONLY")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Symlink failed: %v", err)
+	}
 
 	err = os.Mkdir(wd+"/store/ws2", 0755)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 	os.Symlink(wd+"/ro", wd+"/store/ws2/READONLY")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Symlink failed: %v", err)
+	}
 
 	err = os.Symlink(wd+"/store/foo", wd+"/mnt/config/bar")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Symlink failed: %v", err)
+	}
 
 	err = os.Symlink(wd+"/store/foo", wd+"/mnt/config/foo")
 	code := fuse.ToStatus(err)

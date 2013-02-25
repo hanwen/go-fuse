@@ -104,12 +104,16 @@ func xattrTestCase(t *testing.T, nm string) (mountPoint string, cleanup func()) 
 	xfs := NewXAttrFs(nm, xattrGolden)
 	xfs.tester = t
 	mountPoint, err := ioutil.TempDir("", "go-fuse")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("TempDir failed: %v", err)
+	}
 	defer os.RemoveAll(mountPoint)
 
 	nfs := NewPathNodeFs(xfs, nil)
 	state, _, err := MountNodeFileSystem(mountPoint, nfs, nil)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("TempDir failed: %v", err)
+	}
 	state.Debug = VerboseTest()
 
 	go state.Loop()

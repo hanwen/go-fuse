@@ -41,12 +41,14 @@ type NotifyTest struct {
 	state     *MountState
 }
 
-func NewNotifyTest() *NotifyTest {
+func NewNotifyTest(t *testing.T) *NotifyTest {
 	me := &NotifyTest{}
 	me.fs = &NotifyFs{}
 	var err error
 	me.dir, err = ioutil.TempDir("", "go-fuse")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("TempDir failed: %v", err)
+	}
 	entryTtl := 100 * time.Millisecond
 	opts := &FileSystemOptions{
 		EntryTimeout:    entryTtl,
@@ -56,7 +58,9 @@ func NewNotifyTest() *NotifyTest {
 
 	me.pathfs = NewPathNodeFs(me.fs, nil)
 	me.state, me.connector, err = MountNodeFileSystem(me.dir, me.pathfs, opts)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("MountNodeFileSystem failed: %v", err)
+	}
 	me.state.Debug = VerboseTest()
 	go me.state.Loop()
 
@@ -71,7 +75,7 @@ func (t *NotifyTest) Clean() {
 }
 
 func TestInodeNotify(t *testing.T) {
-	test := NewNotifyTest()
+	test := NewNotifyTest(t)
 	defer test.Clean()
 
 	fs := test.fs
@@ -81,7 +85,9 @@ func TestInodeNotify(t *testing.T) {
 	test.state.ThreadSanitizerSync()
 
 	fi, err := os.Lstat(dir + "/file")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 	if fi.Mode()&os.ModeType != 0 || fi.Size() != 42 {
 		t.Error(fi)
 	}
@@ -90,7 +96,9 @@ func TestInodeNotify(t *testing.T) {
 	fs.size = 666
 
 	fi, err = os.Lstat(dir + "/file")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 	if fi.Mode()&os.ModeType != 0 || fi.Size() == 666 {
 		t.Error(fi)
 	}
@@ -101,14 +109,16 @@ func TestInodeNotify(t *testing.T) {
 	}
 
 	fi, err = os.Lstat(dir + "/file")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 	if fi.Mode()&os.ModeType != 0 || fi.Size() != 666 {
 		t.Error(fi)
 	}
 }
 
 func TestEntryNotify(t *testing.T) {
-	test := NewNotifyTest()
+	test := NewNotifyTest(t)
 	defer test.Clean()
 
 	dir := test.dir
@@ -135,5 +145,7 @@ func TestEntryNotify(t *testing.T) {
 	}
 
 	fi, err := os.Lstat(fn)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 }

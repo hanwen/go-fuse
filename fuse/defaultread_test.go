@@ -29,17 +29,21 @@ func (fs *DefaultReadFS) Open(name string, f uint32, context *Context) (File, St
 	return &DefaultFile{}, OK
 }
 
-func defaultReadTest() (root string, cleanup func()) {
+func defaultReadTest(t *testing.T) (root string, cleanup func()) {
 	fs := &DefaultReadFS{}
 	var err error
 	dir, err := ioutil.TempDir("", "go-fuse")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("TempDir failed: %v", err)
+	}
 	pathfs := NewPathNodeFs(fs, nil)
 	state, _, err := MountNodeFileSystem(dir, pathfs, nil)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("MountNodeFileSystem failed: %v", err)
+	}
 	state.Debug = VerboseTest()
 	go state.Loop()
-	
+
 	return dir, func() {
 		state.Unmount()
 		os.Remove(dir)
@@ -47,7 +51,7 @@ func defaultReadTest() (root string, cleanup func()) {
 }
 
 func TestDefaultRead(t *testing.T) {
-	root, clean := defaultReadTest()
+	root, clean := defaultReadTest(t)
 	defer clean()
 
 	_, err := ioutil.ReadFile(root + "/file")

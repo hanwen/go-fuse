@@ -1,6 +1,7 @@
 package fuse
+
 import (
-       "syscall"
+	"syscall"
 )
 
 func clearStatfs(s *syscall.Statfs_t) {

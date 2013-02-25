@@ -14,13 +14,19 @@ func TestTouch(t *testing.T) {
 
 	contents := []byte{1, 2, 3}
 	err := ioutil.WriteFile(ts.origFile, []byte(contents), 0700)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 	err = os.Chtimes(ts.mountFile, time.Unix(42, 0), time.Unix(43, 0))
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Chtimes failed: %v", err)
+	}
 
 	var stat syscall.Stat_t
 	err = syscall.Lstat(ts.mountFile, &stat)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 	if stat.Atim.Sec != 42 || stat.Mtim.Sec != 43 {
 		t.Errorf("Got wrong timestamps %v", stat)
 	}

@@ -8,10 +8,14 @@ import (
 
 func TestCopyFile(t *testing.T) {
 	d1, err := ioutil.TempDir("", "go-fuse")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("TempDir failed: %v", err)
+	}
 	defer os.RemoveAll(d1)
 	d2, err := ioutil.TempDir("", "go-fuse")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("TempDir failed: %v", err)
+	}
 	defer os.RemoveAll(d2)
 
 	fs1 := NewLoopbackFileSystem(d1)
@@ -20,7 +24,9 @@ func TestCopyFile(t *testing.T) {
 	content1 := "blabla"
 
 	err = ioutil.WriteFile(d1+"/file", []byte(content1), 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	code := CopyFile(fs1, fs2, "file", "file", nil)
 	if !code.Ok() {
@@ -35,7 +41,9 @@ func TestCopyFile(t *testing.T) {
 	content2 := "foobar"
 
 	err = ioutil.WriteFile(d2+"/file", []byte(content2), 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	// Copy back: should overwrite.
 	code = CopyFile(fs2, fs1, "file", "file", nil)

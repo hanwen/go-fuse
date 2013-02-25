@@ -11,7 +11,9 @@ var _ = log.Println
 
 func setupMemNodeTest(t *testing.T) (wd string, fs *MemNodeFs, clean func()) {
 	tmp, err := ioutil.TempDir("", "go-fuse")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("TempDir failed: %v", err)
+	}
 	back := tmp + "/backing"
 	os.Mkdir(back, 0700)
 	fs = NewMemNodeFs(back)
@@ -46,7 +48,9 @@ func TestMemNodeFsWrite(t *testing.T) {
 
 	want := "hello"
 	err := ioutil.WriteFile(wd+"/test", []byte(want), 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	content, err := ioutil.ReadFile(wd + "/test")
 	if string(content) != want {
@@ -59,10 +63,14 @@ func TestMemNodeFs(t *testing.T) {
 	defer clean()
 
 	err := ioutil.WriteFile(wd+"/test", []byte{42}, 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	fi, err := os.Lstat(wd + "/test")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 	if fi.Size() != 1 {
 		t.Errorf("Size after write incorrect: got %d want 1", fi.Size())
 	}
@@ -78,14 +86,20 @@ func TestMemNodeSetattr(t *testing.T) {
 	defer clean()
 
 	f, err := os.OpenFile(wd+"/test", os.O_CREATE|os.O_WRONLY, 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("OpenFile failed: %v", err)
+	}
 	defer f.Close()
 
 	err = f.Truncate(4096)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Truncate failed: %v", err)
+	}
 
 	fi, err := f.Stat()
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Stat failed: %v", err)
+	}
 	if fi.Size() != 4096 {
 		t.Errorf("Size should be 4096 after Truncate: %d", fi.Size())
 	}

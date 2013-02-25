@@ -71,12 +71,6 @@ func ModeToType(mode uint32) uint32 {
 	return (mode & 0170000) >> 12
 }
 
-func CheckSuccess(e error) {
-	if e != nil {
-		log.Panicf("Unexpected error: %v", e)
-	}
-}
-
 // Thanks to Andrew Gerrand for this hack.
 func toSlice(dest *[]byte, ptr unsafe.Pointer, byteCount uintptr) {
 	h := (*reflect.SliceHeader)(unsafe.Pointer(dest))

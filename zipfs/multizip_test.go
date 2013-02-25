@@ -10,11 +10,10 @@ import (
 )
 
 var _ = log.Printf
-var CheckSuccess = fuse.CheckSuccess
 
 const testTtl = 100 * time.Millisecond
 
-func setupMzfs() (mountPoint string, cleanup func()) {
+func setupMzfs(t *testing.T) (mountPoint string, cleanup func()) {
 	fs := NewMultiZipFs()
 	mountPoint, _ = ioutil.TempDir("", "")
 	nfs := fuse.NewPathNodeFs(fs, nil)
@@ -23,7 +22,9 @@ func setupMzfs() (mountPoint string, cleanup func()) {
 		AttrTimeout:     testTtl,
 		NegativeTimeout: 0.0,
 	})
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("MountNodeFileSystem failed: %v", err)
+	}
 	state.Debug = fuse.VerboseTest()
 	go state.Loop()
 
@@ -34,7 +35,7 @@ func setupMzfs() (mountPoint string, cleanup func()) {
 }
 
 func TestMultiZipReadonly(t *testing.T) {
-	mountPoint, cleanup := setupMzfs()
+	mountPoint, cleanup := setupMzfs(t)
 	defer cleanup()
 
 	_, err := os.Create(mountPoint + "/random")
@@ -49,19 +50,23 @@ func TestMultiZipReadonly(t *testing.T) {
 }
 
 func TestMultiZipFs(t *testing.T) {
-	mountPoint, cleanup := setupMzfs()
+	mountPoint, cleanup := setupMzfs(t)
 	defer cleanup()
 
 	zipFile := testZipFile()
 
 	entries, err := ioutil.ReadDir(mountPoint)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("ReadDir failed: %v", err)
+	}
 	if len(entries) != 1 || string(entries[0].Name()) != "config" {
 		t.Errorf("wrong names return. %v", entries)
 	}
 
 	err = os.Symlink(zipFile, mountPoint+"/config/zipmount")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Symlink failed: %v", err)
+	}
 
 	fi, err := os.Lstat(mountPoint + "/zipmount")
 	if !fi.IsDir() {
@@ -69,33 +74,43 @@ func TestMultiZipFs(t *testing.T) {
 	}
 
 	entries, err = ioutil.ReadDir(mountPoint)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("ReadDir failed: %v", err)
+	}
 	if len(entries) != 2 {
 		t.Error("Expect 2 entries", entries)
 	}
 
 	val, err := os.Readlink(mountPoint + "/config/zipmount")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Readlink failed: %v", err)
+	}
 	if val != zipFile {
 		t.Errorf("expected %v got %v", zipFile, val)
 	}
 
 	fi, err = os.Lstat(mountPoint + "/zipmount")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 	if !fi.IsDir() {
 		t.Fatal("expect directory for /zipmount, got %v", fi)
 	}
 
 	// Check that zipfs itself works.
 	fi, err = os.Stat(mountPoint + "/zipmount/subdir")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Stat failed: %v", err)
+	}
 	if !fi.IsDir() {
 		t.Error("directory type", fi)
 	}
 
 	// Removing the config dir unmount
 	err = os.Remove(mountPoint + "/config/zipmount")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Remove failed: %v", err)
+	}
 
 	fi, err = os.Stat(mountPoint + "/zipmount")
 	if err == nil {

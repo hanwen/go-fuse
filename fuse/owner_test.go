@@ -27,13 +27,15 @@ func (fs *ownerFs) GetAttr(name string, context *Context) (*Attr, Status) {
 	return a, OK
 }
 
-func setupOwnerTest(opts *FileSystemOptions) (workdir string, cleanup func()) {
+func setupOwnerTest(t *testing.T, opts *FileSystemOptions) (workdir string, cleanup func()) {
 	wd, err := ioutil.TempDir("", "go-fuse")
 
 	fs := &ownerFs{}
 	nfs := NewPathNodeFs(fs, nil)
 	state, _, err := MountNodeFileSystem(wd, nfs, opts)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("MountNodeFileSystem failed: %v", err)
+	}
 	go state.Loop()
 	return wd, func() {
 		state.Unmount()
@@ -42,12 +44,14 @@ func setupOwnerTest(opts *FileSystemOptions) (workdir string, cleanup func()) {
 }
 
 func TestOwnerDefault(t *testing.T) {
-	wd, cleanup := setupOwnerTest(NewFileSystemOptions())
+	wd, cleanup := setupOwnerTest(t, NewFileSystemOptions())
 	defer cleanup()
 
 	var stat syscall.Stat_t
 	err := syscall.Lstat(wd+"/foo", &stat)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 
 	if int(stat.Uid) != os.Getuid() || int(stat.Gid) != os.Getgid() {
 		t.Fatal("Should use current uid for mount")
@@ -55,12 +59,14 @@ func TestOwnerDefault(t *testing.T) {
 }
 
 func TestOwnerRoot(t *testing.T) {
-	wd, cleanup := setupOwnerTest(&FileSystemOptions{})
+	wd, cleanup := setupOwnerTest(t, &FileSystemOptions{})
 	defer cleanup()
 
 	var st syscall.Stat_t
 	err := syscall.Lstat(wd+"/foo", &st)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 
 	if st.Uid != _RANDOM_OWNER || st.Gid != _RANDOM_OWNER {
 		t.Fatal("Should use FS owner uid")
@@ -68,12 +74,14 @@ func TestOwnerRoot(t *testing.T) {
 }
 
 func TestOwnerOverride(t *testing.T) {
-	wd, cleanup := setupOwnerTest(&FileSystemOptions{Owner: &Owner{42, 43}})
+	wd, cleanup := setupOwnerTest(t, &FileSystemOptions{Owner: &Owner{42, 43}})
 	defer cleanup()
 
 	var stat syscall.Stat_t
 	err := syscall.Lstat(wd+"/foo", &stat)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 
 	if stat.Uid != 42 || stat.Gid != 43 {
 		t.Fatal("Should use current uid for mount")

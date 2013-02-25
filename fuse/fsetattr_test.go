@@ -132,10 +132,14 @@ func NewFile() *MutableDataFile {
 
 func setupFAttrTest(t *testing.T, fs FileSystem) (dir string, clean func(), sync func()) {
 	dir, err := ioutil.TempDir("", "go-fuse")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("TempDir failed: %v", err)
+	}
 	nfs := NewPathNodeFs(fs, nil)
 	state, _, err := MountNodeFileSystem(dir, nfs, nil)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("MountNodeFileSystem failed: %v", err)
+	}
 	state.Debug = VerboseTest()
 
 	go state.Loop()
@@ -163,10 +167,14 @@ func TestDataReadLarge(t *testing.T) {
 	content := RandomData(385 * 1023)
 	fn := dir + "/file"
 	err := ioutil.WriteFile(fn, []byte(content), 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	back, err := ioutil.ReadFile(fn)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("ReadFile failed: %v", err)
+	}
 	CompareSlices(t, back, content)
 }
 
@@ -178,13 +186,19 @@ func TestFSetAttr(t *testing.T) {
 	fn := dir + "/file"
 	f, err := os.OpenFile(fn, os.O_CREATE|os.O_WRONLY, 0755)
 
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("OpenFile failed: %v", err)
+	}
 	defer f.Close()
 	fi, err := f.Stat()
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Stat failed: %v", err)
+	}
 
 	_, err = f.WriteString("hello")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteString failed: %v", err)
+	}
 
 	code := syscall.Ftruncate(int(f.Fd()), 3)
 	if code != nil {
@@ -197,14 +211,18 @@ func TestFSetAttr(t *testing.T) {
 	}
 
 	err = f.Chmod(024)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Chmod failed: %v", err)
+	}
 	sync()
 	if fs.file.Attr.Mode&07777 != 024 {
 		t.Error("chmod")
 	}
 
 	err = os.Chtimes(fn, time.Unix(0, 100e3), time.Unix(0, 101e3))
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Chtimes failed: %v", err)
+	}
 	sync()
 	if fs.file.Attr.Atimensec != 100e3 || fs.file.Attr.Mtimensec != 101e3 {
 		t.Errorf("Utimens: atime %d != 100e3 mtime %d != 101e3",
@@ -212,7 +230,9 @@ func TestFSetAttr(t *testing.T) {
 	}
 
 	newFi, err := f.Stat()
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Stat failed: %v", err)
+	}
 	i1 := ToStatT(fi).Ino
 	i2 := ToStatT(newFi).Ino
 	if i1 != i2 {

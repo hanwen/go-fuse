@@ -55,7 +55,9 @@ func NewTestCase(t *testing.T) *testCase {
 
 	var err error
 	me.tmpDir, err = ioutil.TempDir("", "go-fuse")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("TempDir failed: %v", err)
+	}
 	me.orig = me.tmpDir + "/orig"
 	me.mnt = me.tmpDir + "/mnt"
 
@@ -99,7 +101,9 @@ func NewTestCase(t *testing.T) *testCase {
 // Unmount and del.
 func (tc *testCase) Cleanup() {
 	err := tc.state.Unmount()
-	CheckSuccess(err)
+	if err != nil {
+		tc.tester.Fatalf("Unmount failed: %v", err)
+	}
 	os.RemoveAll(tc.tmpDir)
 }
 
@@ -126,17 +130,17 @@ func TestReadThrough(t *testing.T) {
 	content := RandomData(125)
 	err := ioutil.WriteFile(ts.origFile, content, 0700)
 	if err != nil {
-		t.Fatalf(" failed: %v", err)
+		t.Fatalf("WriteFile failed: %v", err)
 	}
 
 	err = os.Chmod(ts.mountFile, os.FileMode(mode))
 	if err != nil {
-		t.Fatalf(" failed: %v", err)
+		t.Fatalf("Chmod failed: %v", err)
 	}
 
 	fi, err := os.Lstat(ts.mountFile)
 	if err != nil {
-		t.Fatalf(" failed: %v", err)
+		t.Fatalf("Lstat failed: %v", err)
 	}
 	if uint32(fi.Mode().Perm()) != mode {
 		t.Errorf("Wrong mode %o != %o", int(fi.Mode().Perm()), mode)
@@ -145,7 +149,7 @@ func TestReadThrough(t *testing.T) {
 	// Open (for read), read.
 	f, err := os.Open(ts.mountFile)
 	if err != nil {
-		t.Fatalf(" failed: %v", err)
+		t.Fatalf("Open failed: %v", err)
 	}
 	defer f.Close()
 
@@ -992,7 +996,7 @@ func TestFallocate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Lstat failed: %v", err)
 	}
-	if fi.Size() < (1024+4096) {
+	if fi.Size() < (1024 + 4096) {
 		t.Fatalf("fallocate should have changed file size. Got %d bytes",
 			fi.Size())
 	}

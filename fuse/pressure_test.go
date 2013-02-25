@@ -42,7 +42,9 @@ func TestMemoryPressure(t *testing.T) {
 	}
 
 	dir, err := ioutil.TempDir("", "go-fuse")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("TempDir failed: %v", err)
+	}
 	nfs := NewPathNodeFs(fs, nil)
 	o := &FileSystemOptions{PortableInodes: true}
 

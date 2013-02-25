@@ -28,9 +28,11 @@ func (fs *cacheFs) Open(name string, flags uint32, context *Context) (fuseFile F
 
 }
 
-func setupCacheTest() (string, *PathNodeFs, func()) {
+func setupCacheTest(t *testing.T) (string, *PathNodeFs, func()) {
 	dir, err := ioutil.TempDir("", "go-fuse")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("TempDir failed: %v", err)
+	}
 	os.Mkdir(dir+"/mnt", 0755)
 	os.Mkdir(dir+"/orig", 0755)
 
@@ -39,7 +41,9 @@ func setupCacheTest() (string, *PathNodeFs, func()) {
 	}
 	pfs := NewPathNodeFs(fs, nil)
 	state, conn, err := MountNodeFileSystem(dir+"/mnt", pfs, nil)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("MountNodeFileSystem failed: %v", err)
+	}
 	state.Debug = VerboseTest()
 	conn.Debug = VerboseTest()
 	pfs.Debug = VerboseTest()
@@ -54,26 +58,34 @@ func setupCacheTest() (string, *PathNodeFs, func()) {
 }
 
 func TestCacheFs(t *testing.T) {
-	wd, pathfs, clean := setupCacheTest()
+	wd, pathfs, clean := setupCacheTest(t)
 	defer clean()
 
 	content1 := "hello"
 	content2 := "qqqq"
 	err := ioutil.WriteFile(wd+"/orig/file.txt", []byte(content1), 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	c, err := ioutil.ReadFile(wd + "/mnt/file.txt")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("ReadFile failed: %v", err)
+	}
 
 	if string(c) != "hello" {
 		t.Fatalf("expect 'hello' %q", string(c))
 	}
 
 	err = ioutil.WriteFile(wd+"/orig/file.txt", []byte(content2), 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	c, err = ioutil.ReadFile(wd + "/mnt/file.txt")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("ReadFile failed: %v", err)
+	}
 
 	if string(c) != "hello" {
 		t.Fatalf("Page cache skipped: expect 'hello' %q", string(c))
@@ -85,7 +97,9 @@ func TestCacheFs(t *testing.T) {
 	}
 
 	c, err = ioutil.ReadFile(wd + "/mnt/file.txt")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("ReadFile failed: %v", err)
+	}
 	if string(c) != string(content2) {
 		t.Fatalf("Mismatch after notify expect '%s' %q", content2, string(c))
 	}
@@ -121,18 +135,24 @@ func TestNonseekable(t *testing.T) {
 	fs.Length = 200 * 1024
 
 	dir, err := ioutil.TempDir("", "go-fuse")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("failed: %v", err)
+	}
 	defer os.RemoveAll(dir)
 	nfs := NewPathNodeFs(fs, nil)
 	state, _, err := MountNodeFileSystem(dir, nfs, nil)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("failed: %v", err)
+	}
 	state.Debug = VerboseTest()
 	defer state.Unmount()
 
 	go state.Loop()
 
 	f, err := os.Open(dir + "/file")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("failed: %v", err)
+	}
 	defer f.Close()
 
 	b := make([]byte, 200)
@@ -144,7 +164,9 @@ func TestNonseekable(t *testing.T) {
 
 func TestGetAttrRace(t *testing.T) {
 	dir, err := ioutil.TempDir("", "go-fuse")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("failed: %v", err)
+	}
 	defer os.RemoveAll(dir)
 	os.Mkdir(dir+"/mnt", 0755)
 	os.Mkdir(dir+"/orig", 0755)
@@ -153,7 +175,9 @@ func TestGetAttrRace(t *testing.T) {
 	pfs := NewPathNodeFs(fs, nil)
 	state, conn, err := MountNodeFileSystem(dir+"/mnt", pfs,
 		&FileSystemOptions{})
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("MountNodeFileSystem failed: %v", err)
+	}
 	state.Debug = VerboseTest()
 	conn.Debug = VerboseTest()
 	pfs.Debug = VerboseTest()

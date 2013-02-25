@@ -18,9 +18,11 @@ func testZipFile() string {
 	return filepath.Join(dir, "test.zip")
 }
 
-func setupZipfs() (mountPoint string, cleanup func()) {
+func setupZipfs(t *testing.T) (mountPoint string, cleanup func()) {
 	zfs, err := NewArchiveFileSystem(testZipFile())
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("NewArchiveFileSystem failed: %v", err)
+	}
 
 	mountPoint, _ = ioutil.TempDir("", "")
 	state, _, err := fuse.MountNodeFileSystem(mountPoint, zfs, nil)
@@ -35,29 +37,37 @@ func setupZipfs() (mountPoint string, cleanup func()) {
 }
 
 func TestZipFs(t *testing.T) {
-	mountPoint, clean := setupZipfs()
+	mountPoint, clean := setupZipfs(t)
 	defer clean()
 	entries, err := ioutil.ReadDir(mountPoint)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("ReadDir failed: %v", err)
+	}
 
 	if len(entries) != 2 {
 		t.Error("wrong length", entries)
 	}
 	fi, err := os.Stat(mountPoint + "/subdir")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Stat failed: %v", err)
+	}
 	if !fi.IsDir() {
 		t.Error("directory type", fi)
 	}
 
 	fi, err = os.Stat(mountPoint + "/file.txt")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Stat failed: %v", err)
+	}
 
 	if fi.IsDir() {
 		t.Error("file type", fi)
 	}
 
 	f, err := os.Open(mountPoint + "/file.txt")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
 
 	b := make([]byte, 1024)
 	n, err := f.Read(b)
@@ -70,11 +80,13 @@ func TestZipFs(t *testing.T) {
 }
 
 func TestLinkCount(t *testing.T) {
-	mp, clean := setupZipfs()
+	mp, clean := setupZipfs(t)
 	defer clean()
 
 	fi, err := os.Stat(mp + "/file.txt")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Stat failed: %v", err)
+	}
 	if fuse.ToStatT(fi).Nlink != 1 {
 		t.Fatal("wrong link count", fuse.ToStatT(fi).Nlink)
 	}

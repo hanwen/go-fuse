@@ -31,14 +31,16 @@ var testOpts = UnionFsOptions{
 	HiddenFiles:      []string{"hidden"},
 }
 
-func freezeRo(dir string) {
+func freezeRo(t *testing.T, dir string) {
 	err := filepath.Walk(
 		dir,
 		func(path string, fi os.FileInfo, err error) error {
 			newMode := uint32(fi.Mode().Perm()) &^ 0222
 			return os.Chmod(path, os.FileMode(newMode))
 		})
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Walk failed: %v", err)
+	}
 }
 
 // Creates 3 directories on a temporary dir: /mnt with the overlayed
@@ -49,13 +51,19 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 
 	wd, _ := ioutil.TempDir("", "")
 	err := os.Mkdir(wd+"/mnt", 0700)
-	fuse.CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 
 	err = os.Mkdir(wd+"/rw", 0700)
-	fuse.CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 
 	os.Mkdir(wd+"/ro", 0700)
-	fuse.CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 
 	var fses []fuse.FileSystem
 	fses = append(fses, fuse.NewLoopbackFileSystem(wd+"/rw"))
@@ -74,7 +82,9 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 	pathfs := fuse.NewPathNodeFs(ufs,
 		&fuse.PathNodeFsOptions{ClientInodes: true})
 	state, conn, err := fuse.MountNodeFileSystem(wd+"/mnt", pathfs, opts)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("MountNodeFileSystem failed: %v", err)
+	}
 	conn.Debug = fuse.VerboseTest()
 	state.Debug = fuse.VerboseTest()
 	go state.Loop()
@@ -85,26 +95,29 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 	}
 }
 
-func writeToFile(path string, contents string) {
-	err := ioutil.WriteFile(path, []byte(contents), 0644)
-	CheckSuccess(err)
-}
-
-func readFromFile(path string) string {
+func readFromFile(t *testing.T, path string) string {
 	b, err := ioutil.ReadFile(path)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("ReadFile failed: %v", err)
+	}
 	return string(b)
 }
 
-func dirNames(path string) map[string]bool {
+func dirNames(t *testing.T, path string) map[string]bool {
 	f, err := os.Open(path)
-	fuse.CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
 
 	result := make(map[string]bool)
 	names, err := f.Readdirnames(-1)
-	fuse.CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Readdirnames failed: %v", err)
+	}
 	err = f.Close()
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Close failed: %v", err)
+	}
 
 	for _, nm := range names {
 		result[nm] = true
@@ -138,23 +151,24 @@ func fileExists(path string) bool {
 	return err == nil && f != nil
 }
 
-func remove(path string) {
-	err := os.Remove(path)
-	fuse.CheckSuccess(err)
-}
-
 func TestUnionFsAutocreateDeletionDir(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
 	err := os.Remove(wd + "/rw/DELETIONS")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Remove failed: %v", err)
+	}
 
 	err = os.Mkdir(wd+"/mnt/dir", 0755)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 
 	_, err = ioutil.ReadDir(wd + "/mnt/dir")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("ReadDir failed: %v", err)
+	}
 }
 
 func TestUnionFsSymlink(t *testing.T) {
@@ -162,10 +176,14 @@ func TestUnionFsSymlink(t *testing.T) {
 	defer clean()
 
 	err := os.Symlink("/foobar", wd+"/mnt/link")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Symlink failed: %v", err)
+	}
 
 	val, err := os.Readlink(wd + "/mnt/link")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Readlink failed: %v", err)
+	}
 
 	if val != "/foobar" {
 		t.Errorf("symlink mismatch: %v", val)
@@ -177,22 +195,30 @@ func TestUnionFsSymlinkPromote(t *testing.T) {
 	defer clean()
 
 	err := os.Mkdir(wd+"/ro/subdir", 0755)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 
 	err = os.Symlink("/foobar", wd+"/mnt/subdir/link")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Symlink failed: %v", err)
+	}
 }
 
 func TestUnionFsChtimes(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
-	writeToFile(wd+"/ro/file", "a")
+	WriteFile(t, wd+"/ro/file", "a")
 	err := os.Chtimes(wd+"/ro/file", time.Unix(42, 0), time.Unix(43, 0))
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Chtimes failed: %v", err)
+	}
 
 	err = os.Chtimes(wd+"/mnt/file", time.Unix(82, 0), time.Unix(83, 0))
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Chtimes failed: %v", err)
+	}
 
 	fi, err := os.Lstat(wd + "/mnt/file")
 	stat := fuse.ToStatT(fi)
@@ -207,12 +233,16 @@ func TestUnionFsChmod(t *testing.T) {
 
 	ro_fn := wd + "/ro/file"
 	m_fn := wd + "/mnt/file"
-	writeToFile(ro_fn, "a")
+	WriteFile(t, ro_fn, "a")
 	err := os.Chmod(m_fn, 00070)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Chmod failed: %v", err)
+	}
 
 	fi, err := os.Lstat(m_fn)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 	if fi.Mode()&07777 != 00270 {
 		t.Errorf("Unexpected mode found: %o", uint32(fi.Mode().Perm()))
 	}
@@ -228,7 +258,7 @@ func TestUnionFsChown(t *testing.T) {
 
 	ro_fn := wd + "/ro/file"
 	m_fn := wd + "/mnt/file"
-	writeToFile(ro_fn, "a")
+	WriteFile(t, ro_fn, "a")
 
 	err := os.Chown(m_fn, 0, 0)
 	code := fuse.ToStatus(err)
@@ -241,26 +271,32 @@ func TestUnionFsDelete(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
-	writeToFile(wd+"/ro/file", "a")
+	WriteFile(t, wd+"/ro/file", "a")
 	_, err := os.Lstat(wd + "/mnt/file")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 
 	err = os.Remove(wd + "/mnt/file")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Remove failed: %v", err)
+	}
 
 	_, err = os.Lstat(wd + "/mnt/file")
 	if err == nil {
 		t.Fatal("should have disappeared.")
 	}
 	delPath := wd + "/rw/" + testOpts.DeletionDirName
-	names := dirNames(delPath)
+	names := dirNames(t, delPath)
 	if len(names) != 1 {
 		t.Fatal("Should have 1 deletion", names)
 	}
 
 	for k := range names {
 		c, err := ioutil.ReadFile(delPath + "/" + k)
-		CheckSuccess(err)
+		if err != nil {
+			t.Fatalf("ReadFile failed: %v", err)
+		}
 		if string(c) != "file" {
 			t.Fatal("content mismatch", string(c))
 		}
@@ -271,58 +307,65 @@ func TestUnionFsBasic(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
-	writeToFile(wd+"/rw/rw", "a")
-	writeToFile(wd+"/ro/ro1", "a")
-	writeToFile(wd+"/ro/ro2", "b")
+	WriteFile(t, wd+"/rw/rw", "a")
+	WriteFile(t, wd+"/ro/ro1", "a")
+	WriteFile(t, wd+"/ro/ro2", "b")
 
-	names := dirNames(wd + "/mnt")
+	names := dirNames(t, wd+"/mnt")
 	expected := map[string]bool{
 		"rw": true, "ro1": true, "ro2": true,
 	}
 	checkMapEq(t, names, expected)
 
-	writeToFile(wd+"/mnt/new", "new contents")
+	WriteFile(t, wd+"/mnt/new", "new contents")
 	if !fileExists(wd + "/rw/new") {
 		t.Errorf("missing file in rw layer", names)
 	}
 
-	contents := readFromFile(wd + "/mnt/new")
+	contents := readFromFile(t, wd+"/mnt/new")
 	if contents != "new contents" {
 		t.Errorf("read mismatch: '%v'", contents)
 	}
-	writeToFile(wd+"/mnt/ro1", "promote me")
+	WriteFile(t, wd+"/mnt/ro1", "promote me")
 	if !fileExists(wd + "/rw/ro1") {
 		t.Errorf("missing file in rw layer", names)
 	}
 
-	remove(wd + "/mnt/new")
-	names = dirNames(wd + "/mnt")
+	err := os.Remove(wd + "/mnt/new")
+	if err != nil {
+		t.Fatalf("Remove failed: %v", err)
+	}
+
+	names = dirNames(t, wd+"/mnt")
 	checkMapEq(t, names, map[string]bool{
 		"rw": true, "ro1": true, "ro2": true,
 	})
 
-	names = dirNames(wd + "/rw")
+	names = dirNames(t, wd+"/rw")
 	checkMapEq(t, names, map[string]bool{
 		testOpts.DeletionDirName: true,
 		"rw": true, "ro1": true,
 	})
-	names = dirNames(wd + "/rw/" + testOpts.DeletionDirName)
+	names = dirNames(t, wd+"/rw/"+testOpts.DeletionDirName)
 	if len(names) != 0 {
 		t.Errorf("Expected 0 entry in %v", names)
 	}
 
-	remove(wd + "/mnt/ro1")
-	names = dirNames(wd + "/mnt")
+	err = os.Remove(wd + "/mnt/ro1")
+	if err != nil {
+		t.Fatalf("Remove failed: %v", err)
+	}
+	names = dirNames(t, wd+"/mnt")
 	checkMapEq(t, names, map[string]bool{
 		"rw": true, "ro2": true,
 	})
 
-	names = dirNames(wd + "/rw")
+	names = dirNames(t, wd+"/rw")
 	checkMapEq(t, names, map[string]bool{
 		"rw": true, testOpts.DeletionDirName: true,
 	})
 
-	names = dirNames(wd + "/rw/" + testOpts.DeletionDirName)
+	names = dirNames(t, wd+"/rw/"+testOpts.DeletionDirName)
 	if len(names) != 1 {
 		t.Errorf("Expected 1 entry in %v", names)
 	}
@@ -333,9 +376,11 @@ func TestUnionFsPromote(t *testing.T) {
 	defer clean()
 
 	err := os.Mkdir(wd+"/ro/subdir", 0755)
-	CheckSuccess(err)
-	writeToFile(wd+"/ro/subdir/file", "content")
-	writeToFile(wd+"/mnt/subdir/file", "other-content")
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
+	WriteFile(t, wd+"/ro/subdir/file", "content")
+	WriteFile(t, wd+"/mnt/subdir/file", "other-content")
 }
 
 func TestUnionFsCreate(t *testing.T) {
@@ -343,22 +388,30 @@ func TestUnionFsCreate(t *testing.T) {
 	defer clean()
 
 	err := os.MkdirAll(wd+"/ro/subdir/sub2", 0755)
-	CheckSuccess(err)
-	writeToFile(wd+"/mnt/subdir/sub2/file", "other-content")
+	if err != nil {
+		t.Fatalf("MkdirAll failed: %v", err)
+	}
+	WriteFile(t, wd+"/mnt/subdir/sub2/file", "other-content")
 	_, err = os.Lstat(wd + "/mnt/subdir/sub2/file")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 }
 
 func TestUnionFsOpenUndeletes(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
-	writeToFile(wd+"/ro/file", "X")
+	WriteFile(t, wd+"/ro/file", "X")
 	err := os.Remove(wd + "/mnt/file")
-	CheckSuccess(err)
-	writeToFile(wd+"/mnt/file", "X")
+	if err != nil {
+		t.Fatalf("Remove failed: %v", err)
+	}
+	WriteFile(t, wd+"/mnt/file", "X")
 	_, err = os.Lstat(wd + "/mnt/file")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 }
 
 func TestUnionFsMkdir(t *testing.T) {
@@ -367,10 +420,14 @@ func TestUnionFsMkdir(t *testing.T) {
 
 	dirname := wd + "/mnt/subdir"
 	err := os.Mkdir(dirname, 0755)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 
 	err = os.Remove(dirname)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Remove failed: %v", err)
+	}
 }
 
 func TestUnionFsMkdirPromote(t *testing.T) {
@@ -379,12 +436,18 @@ func TestUnionFsMkdirPromote(t *testing.T) {
 
 	dirname := wd + "/ro/subdir/subdir2"
 	err := os.MkdirAll(dirname, 0755)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("MkdirAll failed: %v", err)
+	}
 
 	err = os.Mkdir(wd+"/mnt/subdir/subdir2/dir3", 0755)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 	fi, _ := os.Lstat(wd + "/rw/subdir/subdir2/dir3")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 	if fi == nil || !fi.IsDir() {
 		t.Error("is not a directory: ", fi)
 	}
@@ -395,14 +458,20 @@ func TestUnionFsRmdirMkdir(t *testing.T) {
 	defer clean()
 
 	err := os.Mkdir(wd+"/ro/subdir", 0755)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 
 	dirname := wd + "/mnt/subdir"
 	err = os.Remove(dirname)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Remove failed: %v", err)
+	}
 
 	err = os.Mkdir(dirname, 0755)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 }
 
 func TestUnionFsRename(t *testing.T) {
@@ -427,20 +496,22 @@ func TestUnionFsRename(t *testing.T) {
 		t.Log("Config", i, c)
 		wd, clean := setupUfs(t)
 		if c.f1_ro {
-			writeToFile(wd+"/ro/file1", "c1")
+			WriteFile(t, wd+"/ro/file1", "c1")
 		}
 		if c.f1_rw {
-			writeToFile(wd+"/rw/file1", "c2")
+			WriteFile(t, wd+"/rw/file1", "c2")
 		}
 		if c.f2_ro {
-			writeToFile(wd+"/ro/file2", "c3")
+			WriteFile(t, wd+"/ro/file2", "c3")
 		}
 		if c.f2_rw {
-			writeToFile(wd+"/rw/file2", "c4")
+			WriteFile(t, wd+"/rw/file2", "c4")
 		}
 
 		err := os.Rename(wd+"/mnt/file1", wd+"/mnt/file2")
-		CheckSuccess(err)
+		if err != nil {
+			t.Fatalf("Rename failed: %v", err)
+		}
 
 		_, err = os.Lstat(wd + "/mnt/file1")
 		if err == nil {
@@ -451,7 +522,9 @@ func TestUnionFsRename(t *testing.T) {
 			t.Errorf("Should have gotten file2: %v", err)
 		}
 		err = os.Rename(wd+"/mnt/file2", wd+"/mnt/file1")
-		CheckSuccess(err)
+		if err != nil {
+			t.Fatalf("Rename failed: %v", err)
+		}
 
 		_, err = os.Lstat(wd + "/mnt/file2")
 		if err == nil {
@@ -470,10 +543,14 @@ func TestUnionFsRenameDirBasic(t *testing.T) {
 	defer clean()
 
 	err := os.MkdirAll(wd+"/ro/dir/subdir", 0755)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("MkdirAll failed: %v", err)
+	}
 
 	err = os.Rename(wd+"/mnt/dir", wd+"/mnt/renamed")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Rename failed: %v", err)
+	}
 
 	if fi, _ := os.Lstat(wd + "/mnt/dir"); fi != nil {
 		t.Fatalf("%s/mnt/dir should have disappeared: %v", wd, fi)
@@ -498,16 +575,22 @@ func TestUnionFsRenameDirAllSourcesGone(t *testing.T) {
 	defer clean()
 
 	err := os.MkdirAll(wd+"/ro/dir", 0755)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("MkdirAll failed: %v", err)
+	}
 
 	err = ioutil.WriteFile(wd+"/ro/dir/file.txt", []byte{42}, 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
-	freezeRo(wd + "/ro")
+	freezeRo(t, wd+"/ro")
 	err = os.Rename(wd+"/mnt/dir", wd+"/mnt/renamed")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Rename failed: %v", err)
+	}
 
-	names := dirNames(wd + "/rw/" + testOpts.DeletionDirName)
+	names := dirNames(t, wd+"/rw/"+testOpts.DeletionDirName)
 	if len(names) != 2 {
 		t.Errorf("Expected 2 entries in %v", names)
 	}
@@ -518,24 +601,34 @@ func TestUnionFsRenameDirWithDeletions(t *testing.T) {
 	defer clean()
 
 	err := os.MkdirAll(wd+"/ro/dir/subdir", 0755)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("MkdirAll failed: %v", err)
+	}
 
 	err = ioutil.WriteFile(wd+"/ro/dir/file.txt", []byte{42}, 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	err = ioutil.WriteFile(wd+"/ro/dir/subdir/file.txt", []byte{42}, 0644)
-	CheckSuccess(err)
-	freezeRo(wd + "/ro")
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+	freezeRo(t, wd+"/ro")
 
 	if fi, _ := os.Lstat(wd + "/mnt/dir/subdir/file.txt"); fi == nil || fi.Mode()&os.ModeType != 0 {
 		t.Fatalf("%s/mnt/dir/subdir/file.txt should be file: %v", wd, fi)
 	}
 
 	err = os.Remove(wd + "/mnt/dir/file.txt")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Remove failed: %v", err)
+	}
 
 	err = os.Rename(wd+"/mnt/dir", wd+"/mnt/renamed")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Rename failed: %v", err)
+	}
 
 	if fi, _ := os.Lstat(wd + "/mnt/dir/subdir/file.txt"); fi != nil {
 		t.Fatalf("%s/mnt/dir/subdir/file.txt should have disappeared: %v", wd, fi)
@@ -567,10 +660,14 @@ func TestUnionFsRenameSymlink(t *testing.T) {
 	defer clean()
 
 	err := os.Symlink("linktarget", wd+"/ro/link")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Symlink failed: %v", err)
+	}
 
 	err = os.Rename(wd+"/mnt/link", wd+"/mnt/renamed")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Rename failed: %v", err)
+	}
 
 	if fi, _ := os.Lstat(wd + "/mnt/link"); fi != nil {
 		t.Fatalf("%s/mnt/link should have disappeared: %v", wd, fi)
@@ -591,11 +688,15 @@ func TestUnionFsWritableDir(t *testing.T) {
 
 	dirname := wd + "/ro/subdir"
 	err := os.Mkdir(dirname, 0555)
-	CheckSuccess(err)
-	freezeRo(wd + "/ro")
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
+	freezeRo(t, wd+"/ro")
 
 	fi, err := os.Lstat(wd + "/mnt/subdir")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 	if fi.Mode().Perm()&0222 == 0 {
 		t.Errorf("unexpected permission %o", fi.Mode().Perm())
 	}
@@ -608,12 +709,16 @@ func TestUnionFsWriteAccess(t *testing.T) {
 	fn := wd + "/ro/file"
 	// No write perms.
 	err := ioutil.WriteFile(fn, []byte("foo"), 0444)
-	CheckSuccess(err)
-	freezeRo(wd + "/ro")
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+	freezeRo(t, wd+"/ro")
 
 	err = syscall.Access(wd+"/mnt/file", raw.W_OK)
 	if err != nil {
-		CheckSuccess(err)
+		if err != nil {
+			t.Fatalf("Access failed: %v", err)
+		}
 	}
 }
 
@@ -624,17 +729,25 @@ func TestUnionFsLink(t *testing.T) {
 	content := "blabla"
 	fn := wd + "/ro/file"
 	err := ioutil.WriteFile(fn, []byte(content), 0666)
-	CheckSuccess(err)
-	freezeRo(wd + "/ro")
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+	freezeRo(t, wd+"/ro")
 
 	err = os.Link(wd+"/mnt/file", wd+"/mnt/linked")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Link failed: %v", err)
+	}
 
 	fi2, err := os.Lstat(wd + "/mnt/linked")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 
 	fi1, err := os.Lstat(wd + "/mnt/file")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 
 	s1 := fuse.ToStatT(fi1)
 	s2 := fuse.ToStatT(fi2)
@@ -651,15 +764,15 @@ func TestUnionFsTruncate(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
-	writeToFile(wd+"/ro/file", "hello")
-	freezeRo(wd + "/ro")
+	WriteFile(t, wd+"/ro/file", "hello")
+	freezeRo(t, wd+"/ro")
 
 	os.Truncate(wd+"/mnt/file", 2)
-	content := readFromFile(wd + "/mnt/file")
+	content := readFromFile(t, wd+"/mnt/file")
 	if content != "he" {
 		t.Errorf("unexpected content %v", content)
 	}
-	content2 := readFromFile(wd + "/rw/file")
+	content2 := readFromFile(t, wd+"/rw/file")
 	if content2 != content {
 		t.Errorf("unexpected rw content %v", content2)
 	}
@@ -672,19 +785,27 @@ func TestUnionFsCopyChmod(t *testing.T) {
 	contents := "hello"
 	fn := wd + "/mnt/y"
 	err := ioutil.WriteFile(fn, []byte(contents), 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	err = os.Chmod(fn, 0755)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Chmod failed: %v", err)
+	}
 
 	fi, err := os.Lstat(fn)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 	if fi.Mode()&0111 == 0 {
 		t.Errorf("1st attr error %o", fi.Mode())
 	}
 	time.Sleep(entryTtl)
 	fi, err = os.Lstat(fn)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 	if fi.Mode()&0111 == 0 {
 		t.Errorf("uncached attr error %o", fi.Mode())
 	}
@@ -704,15 +825,21 @@ func TestUnionFsTruncateTimestamp(t *testing.T) {
 	contents := "hello"
 	fn := wd + "/mnt/y"
 	err := ioutil.WriteFile(fn, []byte(contents), 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 	time.Sleep(200 * time.Millisecond)
 
 	truncTs := time.Now()
 	err = os.Truncate(fn, 3)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Truncate failed: %v", err)
+	}
 
 	fi, err := os.Lstat(fn)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 
 	if truncTs.Sub(fi.ModTime()) > 100*time.Millisecond {
 		t.Error("timestamp drift", truncTs, fi.ModTime())
@@ -724,13 +851,17 @@ func TestUnionFsRemoveAll(t *testing.T) {
 	defer clean()
 
 	err := os.MkdirAll(wd+"/ro/dir/subdir", 0755)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("MkdirAll failed: %v", err)
+	}
 
 	contents := "hello"
 	fn := wd + "/ro/dir/subdir/y"
 	err = ioutil.WriteFile(fn, []byte(contents), 0644)
-	CheckSuccess(err)
-	freezeRo(wd + "/ro")
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+	freezeRo(t, wd+"/ro")
 
 	err = os.RemoveAll(wd + "/mnt/dir")
 	if err != nil {
@@ -744,7 +875,9 @@ func TestUnionFsRemoveAll(t *testing.T) {
 	}
 
 	names, err := Readdirnames(wd + "/rw/DELETIONS")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Readdirnames failed: %v", err)
+	}
 	if len(names) != 3 {
 		t.Fatal("unexpected names", names)
 	}
@@ -757,16 +890,22 @@ func TestUnionFsRmRf(t *testing.T) {
 	defer clean()
 
 	err := os.MkdirAll(wd+"/ro/dir/subdir", 0755)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("MkdirAll failed: %v", err)
+	}
 
 	contents := "hello"
 	fn := wd + "/ro/dir/subdir/y"
 	err = ioutil.WriteFile(fn, []byte(contents), 0644)
-	CheckSuccess(err)
-	freezeRo(wd + "/ro")
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+	freezeRo(t, wd+"/ro")
 
 	bin, err := exec.LookPath("rm")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("LookPath failed: %v", err)
+	}
 	command := fmt.Sprintf("%s -f %s/mnt/dir", bin, wd)
 	log.Printf("Command: %s", command)
 	names, _ := Readdirnames(wd + "/mnt/dir")
@@ -784,7 +923,9 @@ func TestUnionFsRmRf(t *testing.T) {
 	}
 
 	names, err = Readdirnames(wd + "/rw/DELETIONS")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Readdirnames failed: %v", err)
+	}
 	if len(names) != 3 {
 		t.Fatal("unexpected names", names)
 	}
@@ -805,20 +946,28 @@ func TestUnionFsDropDeletionCache(t *testing.T) {
 	defer clean()
 
 	err := ioutil.WriteFile(wd+"/ro/file", []byte("bla"), 0644)
-	CheckSuccess(err)
-	freezeRo(wd + "/ro")
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+	freezeRo(t, wd+"/ro")
 
 	_, err = os.Lstat(wd + "/mnt/file")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 	err = os.Remove(wd + "/mnt/file")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Remove failed: %v", err)
+	}
 	fi, _ := os.Lstat(wd + "/mnt/file")
 	if fi != nil {
 		t.Fatal("Lstat() should have failed", fi)
 	}
 
 	names, err := Readdirnames(wd + "/rw/DELETIONS")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Readdirnames failed: %v", err)
+	}
 	if len(names) != 1 {
 		t.Fatal("unexpected names", names)
 	}
@@ -831,7 +980,9 @@ func TestUnionFsDropDeletionCache(t *testing.T) {
 	// Expire kernel entry.
 	time.Sleep((6 * entryTtl) / 10)
 	err = ioutil.WriteFile(wd+"/mnt/.drop_cache", []byte(""), 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 	_, err = os.Lstat(wd + "/mnt/file")
 	if err != nil {
 		t.Fatal("Lstat() should have succeeded", err)
@@ -843,26 +994,36 @@ func TestUnionFsDropCache(t *testing.T) {
 	defer clean()
 
 	err := ioutil.WriteFile(wd+"/ro/file", []byte("bla"), 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	_, err = os.Lstat(wd + "/mnt/.drop_cache")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 
 	names, err := Readdirnames(wd + "/mnt")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Readdirnames failed: %v", err)
+	}
 	if len(names) != 1 || names[0] != "file" {
 		t.Fatal("unexpected names", names)
 	}
 
 	err = ioutil.WriteFile(wd+"/ro/file2", []byte("blabla"), 0644)
 	names2, err := Readdirnames(wd + "/mnt")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Readdirnames failed: %v", err)
+	}
 	if len(names2) != len(names) {
 		t.Fatal("mismatch", names2)
 	}
 
 	err = ioutil.WriteFile(wd+"/mnt/.drop_cache", []byte("does not matter"), 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 	names2, err = Readdirnames(wd + "/mnt")
 	if len(names2) != 2 {
 		t.Fatal("mismatch 2", names2)
@@ -875,13 +1036,19 @@ func TestUnionFsDisappearing(t *testing.T) {
 	wd, _ := ioutil.TempDir("", "")
 	defer os.RemoveAll(wd)
 	err := os.Mkdir(wd+"/mnt", 0700)
-	fuse.CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 
 	err = os.Mkdir(wd+"/rw", 0700)
-	fuse.CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 
 	os.Mkdir(wd+"/ro", 0700)
-	fuse.CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 
 	wrFs := fuse.NewLoopbackFileSystem(wd + "/rw")
 	var fses []fuse.FileSystem
@@ -897,7 +1064,9 @@ func TestUnionFsDisappearing(t *testing.T) {
 
 	nfs := fuse.NewPathNodeFs(ufs, nil)
 	state, _, err := fuse.MountNodeFileSystem(wd+"/mnt", nfs, opts)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("MountNodeFileSystem failed: %v", err)
+	}
 	defer state.Unmount()
 	state.Debug = fuse.VerboseTest()
 	go state.Loop()
@@ -905,11 +1074,15 @@ func TestUnionFsDisappearing(t *testing.T) {
 	log.Println("TestUnionFsDisappearing2")
 
 	err = ioutil.WriteFile(wd+"/ro/file", []byte("blabla"), 0644)
-	CheckSuccess(err)
-	freezeRo(wd + "/ro")
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+	freezeRo(t, wd+"/ro")
 
 	err = os.Remove(wd + "/mnt/file")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Remove failed: %v", err)
+	}
 
 	state.ThreadSanitizerSync()
 	oldRoot := wrFs.Root
@@ -949,15 +1122,21 @@ func TestUnionFsDeletedGetAttr(t *testing.T) {
 	defer clean()
 
 	err := ioutil.WriteFile(wd+"/ro/file", []byte("blabla"), 0644)
-	CheckSuccess(err)
-	freezeRo(wd + "/ro")
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+	freezeRo(t, wd+"/ro")
 
 	f, err := os.Open(wd + "/mnt/file")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
 	defer f.Close()
 
 	err = os.Remove(wd + "/mnt/file")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Remove failed: %v", err)
+	}
 
 	if fi, err := f.Stat(); err != nil || fi.Mode()&os.ModeType != 0 {
 		t.Fatalf("stat returned error or non-file: %v %v", err, fi)
@@ -968,31 +1147,43 @@ func TestUnionFsDoubleOpen(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 	err := ioutil.WriteFile(wd+"/ro/file", []byte("blablabla"), 0644)
-	CheckSuccess(err)
-	freezeRo(wd + "/ro")
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+	freezeRo(t, wd+"/ro")
 
 	roFile, err := os.Open(wd + "/mnt/file")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
 	defer roFile.Close()
 	rwFile, err := os.OpenFile(wd+"/mnt/file", os.O_WRONLY|os.O_TRUNC, 0666)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("OpenFile failed: %v", err)
+	}
 	defer rwFile.Close()
 
 	output, err := ioutil.ReadAll(roFile)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("ReadAll failed: %v", err)
+	}
 	if len(output) != 0 {
 		t.Errorf("After r/w truncation, r/o file should be empty too: %q", string(output))
 	}
 
 	want := "hello"
 	_, err = rwFile.Write([]byte(want))
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Write failed: %v", err)
+	}
 
 	b := make([]byte, 100)
 
 	roFile.Seek(0, 0)
 	n, err := roFile.Read(b)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Read failed: %v", err)
+	}
 	b = b[:n]
 
 	if string(b) != "hello" {
@@ -1002,23 +1193,33 @@ func TestUnionFsDoubleOpen(t *testing.T) {
 
 func TestUnionFsFdLeak(t *testing.T) {
 	beforeEntries, err := ioutil.ReadDir("/proc/self/fd")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("ReadDir failed: %v", err)
+	}
 
 	wd, clean := setupUfs(t)
 	err = ioutil.WriteFile(wd+"/ro/file", []byte("blablabla"), 0644)
-	CheckSuccess(err)
-	freezeRo(wd + "/ro")
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+	freezeRo(t, wd+"/ro")
 
 	contents, err := ioutil.ReadFile(wd + "/mnt/file")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("ReadFile failed: %v", err)
+	}
 
 	err = ioutil.WriteFile(wd+"/mnt/file", contents, 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 
 	clean()
 
 	afterEntries, err := ioutil.ReadDir("/proc/self/fd")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("ReadDir failed: %v", err)
+	}
 
 	if len(afterEntries) != len(beforeEntries) {
 		t.Errorf("/proc/self/fd changed size: after %v before %v", len(beforeEntries), len(afterEntries))
@@ -1045,16 +1246,24 @@ func TestUnionFsFlushSize(t *testing.T) {
 
 	fn := wd + "/mnt/file"
 	f, err := os.OpenFile(fn, os.O_WRONLY|os.O_CREATE, 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("OpenFile failed: %v", err)
+	}
 	fi, err := f.Stat()
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Stat failed: %v", err)
+	}
 
 	n, err := f.Write([]byte("hello"))
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Write failed: %v", err)
+	}
 
 	f.Close()
 	fi, err = os.Lstat(fn)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 	if fi.Size() != int64(n) {
 		t.Errorf("got %d from Stat().Size, want %d", fi.Size(), n)
 	}
@@ -1068,20 +1277,30 @@ func TestUnionFsFlushRename(t *testing.T) {
 
 	fn := wd + "/mnt/tmp"
 	f, err := os.OpenFile(fn, os.O_WRONLY|os.O_CREATE, 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("OpenFile failed: %v", err)
+	}
 	fi, err := f.Stat()
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Stat failed: %v", err)
+	}
 
 	n, err := f.Write([]byte("hello"))
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Write failed: %v", err)
+	}
 	f.Close()
 
 	dst := wd + "/mnt/file"
 	err = os.Rename(fn, dst)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Rename failed: %v", err)
+	}
 
 	fi, err = os.Lstat(dst)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 	if fi.Size() != int64(n) {
 		t.Errorf("got %d from Stat().Size, want %d", fi.Size(), n)
 	}
@@ -1093,11 +1312,17 @@ func TestUnionFsTruncGetAttr(t *testing.T) {
 
 	c := []byte("hello")
 	f, err := os.OpenFile(wd+"/mnt/file", os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("OpenFile failed: %v", err)
+	}
 	_, err = f.Write(c)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Write failed: %v", err)
+	}
 	err = f.Close()
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Close failed: %v", err)
+	}
 
 	fi, err := os.Lstat(wd + "/mnt/file")
 	if fi.Size() != int64(len(c)) {
@@ -1110,18 +1335,28 @@ func TestUnionFsPromoteDirTimeStamp(t *testing.T) {
 	defer clean()
 
 	err := os.Mkdir(wd+"/ro/subdir", 0750)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Mkdir failed: %v", err)
+	}
 	err = ioutil.WriteFile(wd+"/ro/subdir/file", []byte("hello"), 0644)
-	CheckSuccess(err)
-	freezeRo(wd + "/ro")
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+	freezeRo(t, wd+"/ro")
 
 	err = os.Chmod(wd+"/mnt/subdir/file", 0060)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Chmod failed: %v", err)
+	}
 
 	fRo, err := os.Lstat(wd + "/ro/subdir")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 	fRw, err := os.Lstat(wd + "/rw/subdir")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 
 	// TODO - need to update timestamps after promoteDirsTo calls,
 	// not during.
@@ -1139,20 +1374,28 @@ func TestUnionFsCheckHiddenFiles(t *testing.T) {
 	defer clean()
 
 	err := ioutil.WriteFile(wd+"/ro/hidden", []byte("bla"), 0644)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
 	err = ioutil.WriteFile(wd+"/ro/not_hidden", []byte("bla"), 0644)
-	CheckSuccess(err)
-	freezeRo(wd + "/ro")
+	if err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+	freezeRo(t, wd+"/ro")
 
 	fi, _ := os.Lstat(wd + "/mnt/hidden")
 	if fi != nil {
 		t.Fatal("Lstat() should have failed", fi)
 	}
 	_, err = os.Lstat(wd + "/mnt/not_hidden")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
 
 	names, err := Readdirnames(wd + "/mnt")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("Readdirnames failed: %v", err)
+	}
 	if len(names) != 1 || names[0] != "not_hidden" {
 		t.Fatal("unexpected names", names)
 	}
