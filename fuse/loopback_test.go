@@ -979,25 +979,3 @@ func TestUmask(t *testing.T) {
 		t.Errorf("got %o, expect mode %o for file %s", got, expect, fn)
 	}
 }
-
-func TestFallocate(t *testing.T) {
-	ts := NewTestCase(t)
-	defer ts.Cleanup()
-	rwFile, err := os.OpenFile(ts.mnt+"/file", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
-	if err != nil {
-		t.Fatalf("OpenFile failed: %v", err)
-	}
-	defer rwFile.Close()
-	err = syscall.Fallocate(int(rwFile.Fd()), 0, 1024, 4096)
-	if err != nil {
-		t.Fatalf("Fallocate failed: %v", err)
-	}
-	fi, err := os.Lstat(ts.orig + "/file")
-	if err != nil {
-		t.Fatalf("Lstat failed: %v", err)
-	}
-	if fi.Size() < (1024 + 4096) {
-		t.Fatalf("fallocate should have changed file size. Got %d bytes",
-			fi.Size())
-	}
-}
