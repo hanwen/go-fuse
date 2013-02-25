@@ -193,16 +193,6 @@ func (f *LoopbackFile) GetAttr(a *Attr) Status {
 	return OK
 }
 
-func (f *LoopbackFile) Allocate(off uint64, sz uint64, mode uint32) Status {
-	f.lock.Lock()
-	err := syscall.Fallocate(int(f.File.Fd()), mode, int64(off), int64(sz))
-	f.lock.Unlock()
-	if err != nil {
-		return ToStatus(err)
-	}
-	return OK
-}
-
 ////////////////////////////////////////////////////////////////
 
 // ReadOnlyFile is a wrapper that denies writable operations
