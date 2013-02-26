@@ -26,7 +26,7 @@ func unixgramSocketpair() (l, r *os.File, err error) {
 
 // Create a FUSE FS on the specified mount point.  The returned
 // mount point is always absolute.
-func mount(mountPoint string, options string) (f *os.File, err error) {
+func mount(mountPoint string, options string) (fd int, err error) {
 	local, remote, err := unixgramSocketpair()
 	if err != nil {
 		return
@@ -98,7 +98,7 @@ func unmount(mountPoint string) (err error) {
 	return
 }
 
-func getConnection(local *os.File) (f *os.File, err error) {
+func getConnection(local *os.File) (int, error) {
 	var data [4]byte
 	control := make([]byte, 4*256)
 
@@ -107,26 +107,22 @@ func getConnection(local *os.File) (f *os.File, err error) {
 		err := syscall.Recvmsg(
 		int(local.Fd()), data[:], control[:], 0)
 	if err != nil {
-		return
+		return 0, err
 	}
 
 	message := *(*syscall.Cmsghdr)(unsafe.Pointer(&control[0]))
 	fd := *(*int32)(unsafe.Pointer(uintptr(unsafe.Pointer(&control[0])) + syscall.SizeofCmsghdr))
 
 	if message.Type != 1 {
-		err = fmt.Errorf("getConnection: recvmsg returned wrong control type: %d", message.Type)
-		return
+		return 0, fmt.Errorf("getConnection: recvmsg returned wrong control type: %d", message.Type)
 	}
 	if oobn <= syscall.SizeofCmsghdr {
-		err = fmt.Errorf("getConnection: too short control message. Length: %d", oobn)
-		return
+		return 0, fmt.Errorf("getConnection: too short control message. Length: %d", oobn)
 	}
 	if fd < 0 {
-		err = fmt.Errorf("getConnection: fd < 0: %d", fd)
-		return
+		return 0, fmt.Errorf("getConnection: fd < 0: %d", fd)
 	}
-	f = os.NewFile(uintptr(fd), "<fuseConnection>")
-	return
+	return int(fd), nil
 }
 
 func init() {

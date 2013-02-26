@@ -1,10 +1,13 @@
 package fuse
+
 import (
 	"log"
+	"syscall"
 )
+
 func (ms *MountState) systemWrite(req *request, header []byte) Status {
 	if req.flatDataSize() == 0 {
-		_, err := ms.mountFile.Write(header)
+		_, err := syscall.Write(ms.mountFd, header)
 		return ToStatus(err)
 	}
 
@@ -24,7 +27,7 @@ func (ms *MountState) systemWrite(req *request, header []byte) Status {
 		header = req.serializeHeader(len(req.flatData))
 	}
 
-	_, err := Writev(int(ms.mountFile.Fd()), [][]byte{header, req.flatData})
+	_, err := Writev(ms.mountFd, [][]byte{header, req.flatData})
 	if req.readResult != nil {
 		req.readResult.Done()
 	}

@@ -61,7 +61,7 @@ func (ms *MountState) trySplice(header []byte, req *request, fdData *ReadResultF
 		return fmt.Errorf("wrote %d, want %d", n, fdData.Size())
 	}
 
-	_, err = pair.WriteTo(ms.mountFile.Fd(), total)
+	_, err = pair.WriteTo(uintptr(ms.mountFd), total)
 	if err != nil {
 		return err
 	}

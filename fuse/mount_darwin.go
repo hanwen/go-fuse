@@ -114,7 +114,7 @@ import (
 	"unsafe"
 )
 
-func mount(dir string, options string) (connection *os.File, err error) {
+func mount(dir string, options string) (int, error) {
 	errp := (**C.char)(C.malloc(16))
 	*errp = nil
 	defer C.free(unsafe.Pointer(errp))
@@ -124,7 +124,7 @@ func mount(dir string, options string) (connection *os.File, err error) {
 	if *errp != nil {
 		return nil, mountError(C.GoString(*errp))
 	}
-	return os.NewFile(uintptr(fd), "<fuseConnection>"), nil
+	return fd, nil
 }
 
 

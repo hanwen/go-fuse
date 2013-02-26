@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 	"unsafe"
 
@@ -26,7 +27,7 @@ type MountState struct {
 	fileSystem RawFileSystem
 
 	// I/O with kernel and daemon.
-	mountFile *os.File
+	mountFd int
 
 	// Dump debug info onto stdout.
 	Debug bool
@@ -127,7 +128,7 @@ func (ms *MountState) Mount(mountPoint string, opts *MountOptions) error {
 		}
 		mountPoint = filepath.Clean(filepath.Join(cwd, mountPoint))
 	}
-	file, err := mount(mountPoint, strings.Join(optStrs, ","))
+	fd, err := mount(mountPoint, strings.Join(optStrs, ","))
 	if err != nil {
 		return err
 	}
@@ -144,7 +145,7 @@ func (ms *MountState) Mount(mountPoint string, opts *MountOptions) error {
 	}
 	ms.fileSystem.Init(&initParams)
 	ms.mountPoint = mountPoint
-	ms.mountFile = file
+	ms.mountFd = fd
 	return nil
 }
 
@@ -236,7 +237,7 @@ func (ms *MountState) readRequest(exitIdle bool) (req *request, code Status) {
 	ms.reqReaders++
 	ms.reqMu.Unlock()
 
-	n, err := ms.mountFile.Read(dest)
+	n, err := syscall.Read(ms.mountFd, dest)
 	if err != nil {
 		code = ToStatus(err)
 		ms.reqMu.Lock()
@@ -305,7 +306,7 @@ func (ms *MountState) Loop() {
 	ms.loops.Wait()
 
 	ms.reqMu.Lock()
-	ms.mountFile.Close()
+	syscall.Close(ms.mountFd)
 	ms.reqMu.Unlock()
 }
 
