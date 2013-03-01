@@ -31,11 +31,17 @@ var testOpts = UnionFsOptions{
 	HiddenFiles:      []string{"hidden"},
 }
 
-func freezeRo(t *testing.T, dir string) {
+func setRecursiveWritable(t *testing.T, dir string, writable bool) {
 	err := filepath.Walk(
 		dir,
 		func(path string, fi os.FileInfo, err error) error {
-			newMode := uint32(fi.Mode().Perm()) &^ 0222
+			var newMode uint32
+			if writable {
+				newMode = uint32(fi.Mode().Perm()) | 0200
+			} else {
+				newMode = uint32(fi.Mode().Perm()) &^ 0222
+			}
+			if fi.Mode() | os.ModeSymlink != 0 { return nil }
 			return os.Chmod(path, os.FileMode(newMode))
 		})
 	if err != nil {
@@ -49,7 +55,7 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 	// Make sure system setting does not affect test.
 	syscall.Umask(0)
 
-	wd, _ := ioutil.TempDir("", "")
+	wd, _ := ioutil.TempDir("", "unionfs")
 	err := os.Mkdir(wd+"/mnt", 0700)
 	if err != nil {
 		t.Fatalf("Mkdir failed: %v", err)
@@ -90,7 +96,11 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 	go state.Loop()
 
 	return wd, func() {
-		state.Unmount()
+		err := state.Unmount()
+		if err != nil {
+			return 
+		}
+		setRecursiveWritable(t, wd, true)
 		os.RemoveAll(wd)
 	}
 }
@@ -584,7 +594,7 @@ func TestUnionFsRenameDirAllSourcesGone(t *testing.T) {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	freezeRo(t, wd+"/ro")
+	setRecursiveWritable(t, wd+"/ro", false)
 	err = os.Rename(wd+"/mnt/dir", wd+"/mnt/renamed")
 	if err != nil {
 		t.Fatalf("Rename failed: %v", err)
@@ -614,7 +624,7 @@ func TestUnionFsRenameDirWithDeletions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
-	freezeRo(t, wd+"/ro")
+	setRecursiveWritable(t, wd+"/ro", false)
 
 	if fi, _ := os.Lstat(wd + "/mnt/dir/subdir/file.txt"); fi == nil || fi.Mode()&os.ModeType != 0 {
 		t.Fatalf("%s/mnt/dir/subdir/file.txt should be file: %v", wd, fi)
@@ -691,7 +701,7 @@ func TestUnionFsWritableDir(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Mkdir failed: %v", err)
 	}
-	freezeRo(t, wd+"/ro")
+	setRecursiveWritable(t, wd+"/ro", false)
 
 	fi, err := os.Lstat(wd + "/mnt/subdir")
 	if err != nil {
@@ -712,7 +722,7 @@ func TestUnionFsWriteAccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
-	freezeRo(t, wd+"/ro")
+	setRecursiveWritable(t, wd+"/ro", false)
 
 	err = syscall.Access(wd+"/mnt/file", raw.W_OK)
 	if err != nil {
@@ -732,7 +742,7 @@ func TestUnionFsLink(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
-	freezeRo(t, wd+"/ro")
+	setRecursiveWritable(t, wd+"/ro", false)
 
 	err = os.Link(wd+"/mnt/file", wd+"/mnt/linked")
 	if err != nil {
@@ -765,7 +775,7 @@ func TestUnionFsTruncate(t *testing.T) {
 	defer clean()
 
 	WriteFile(t, wd+"/ro/file", "hello")
-	freezeRo(t, wd+"/ro")
+	setRecursiveWritable(t, wd+"/ro", false)
 
 	os.Truncate(wd+"/mnt/file", 2)
 	content := readFromFile(t, wd+"/mnt/file")
@@ -861,7 +871,7 @@ func TestUnionFsRemoveAll(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
-	freezeRo(t, wd+"/ro")
+	setRecursiveWritable(t, wd+"/ro", false)
 
 	err = os.RemoveAll(wd + "/mnt/dir")
 	if err != nil {
@@ -900,7 +910,7 @@ func TestUnionFsRmRf(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
-	freezeRo(t, wd+"/ro")
+	setRecursiveWritable(t, wd+"/ro", false)
 
 	bin, err := exec.LookPath("rm")
 	if err != nil {
@@ -949,7 +959,7 @@ func TestUnionFsDropDeletionCache(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
-	freezeRo(t, wd+"/ro")
+	setRecursiveWritable(t, wd+"/ro", false)
 
 	_, err = os.Lstat(wd + "/mnt/file")
 	if err != nil {
@@ -1077,7 +1087,7 @@ func TestUnionFsDisappearing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
-	freezeRo(t, wd+"/ro")
+	setRecursiveWritable(t, wd+"/ro", false)
 
 	err = os.Remove(wd + "/mnt/file")
 	if err != nil {
@@ -1125,7 +1135,7 @@ func TestUnionFsDeletedGetAttr(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
-	freezeRo(t, wd+"/ro")
+	setRecursiveWritable(t, wd+"/ro", false)
 
 	f, err := os.Open(wd + "/mnt/file")
 	if err != nil {
@@ -1150,7 +1160,7 @@ func TestUnionFsDoubleOpen(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
-	freezeRo(t, wd+"/ro")
+	setRecursiveWritable(t, wd+"/ro", false)
 
 	roFile, err := os.Open(wd + "/mnt/file")
 	if err != nil {
@@ -1202,7 +1212,7 @@ func TestUnionFsFdLeak(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
-	freezeRo(t, wd+"/ro")
+	setRecursiveWritable(t, wd+"/ro", false)
 
 	contents, err := ioutil.ReadFile(wd + "/mnt/file")
 	if err != nil {
@@ -1342,7 +1352,7 @@ func TestUnionFsPromoteDirTimeStamp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
-	freezeRo(t, wd+"/ro")
+	setRecursiveWritable(t, wd+"/ro", false)
 
 	err = os.Chmod(wd+"/mnt/subdir/file", 0060)
 	if err != nil {
@@ -1381,7 +1391,7 @@ func TestUnionFsCheckHiddenFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
-	freezeRo(t, wd+"/ro")
+	setRecursiveWritable(t, wd+"/ro", false)
 
 	fi, _ := os.Lstat(wd + "/mnt/hidden")
 	if fi != nil {
