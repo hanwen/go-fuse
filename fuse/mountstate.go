@@ -36,8 +36,8 @@ type MountState struct {
 
 	opts *MountOptions
 
-	started             chan struct {}
-	
+	started chan struct{}
+
 	reqMu               sync.Mutex
 	reqPool             []*request
 	readPool            [][]byte
@@ -360,7 +360,6 @@ func (ms *MountState) handleRequest(req *request) {
 	}
 	ms.returnRequest(req)
 }
-
 
 func (ms *MountState) AllocOut(req *request, size uint32) []byte {
 	if cap(req.bufferPoolOutputBuf) >= int(size) {

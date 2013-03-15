@@ -105,7 +105,7 @@ func (c *FileSystemConnector) GetAttr(out *raw.AttrOut, context *Context, input 
 	node := c.toInode(context.NodeId)
 
 	var f File
-	if input.Flags() & raw.FUSE_GETATTR_FH != 0 {
+	if input.Flags()&raw.FUSE_GETATTR_FH != 0 {
 		if opened := node.mount.getOpenedFile(input.Fh()); opened != nil {
 			f = opened.WithFlags.File
 		}
@@ -217,7 +217,7 @@ func (c *FileSystemConnector) SetAttr(out *raw.AttrOut, context *Context, input 
 func (c *FileSystemConnector) Fallocate(context *Context, in *raw.FallocateIn) (code Status) {
 	n := c.toInode(context.NodeId)
 	opened := n.mount.getOpenedFile(in.Fh)
-	
+
 	return n.fsInode.Fallocate(opened, in.Offset, in.Length, in.Mode, context)
 }
 

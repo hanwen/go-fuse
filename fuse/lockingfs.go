@@ -14,7 +14,7 @@ import (
 type LockingFileSystem struct {
 	// Should be public so people reusing can access the wrapped
 	// FS.
-	FS FileSystem
+	FS   FileSystem
 	lock sync.Mutex
 }
 
@@ -160,7 +160,7 @@ func (fs *LockingFileSystem) RemoveXAttr(name string, attr string, context *Cont
 
 type LockingRawFileSystem struct {
 	RawFS RawFileSystem
-	lock sync.Mutex
+	lock  sync.Mutex
 }
 
 var _ = (RawFileSystem)((*LockingRawFileSystem)(nil))

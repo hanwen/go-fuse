@@ -1,7 +1,7 @@
 package fuse
 
 import (
-       "syscall"
+	"syscall"
 )
 
 func (fs *LoopbackFileSystem) StatFs(name string) *StatfsOut {
@@ -9,14 +9,13 @@ func (fs *LoopbackFileSystem) StatFs(name string) *StatfsOut {
 	err := syscall.Statfs(fs.GetPath(name), &s)
 	if err == nil {
 		return &StatfsOut{
-			Blocks:  s.Blocks,
-			Bsize:   uint32(s.Bsize),
-			Bfree:   s.Bfree,
-			Bavail:  s.Bavail,
-			Files:   s.Files,
-			Ffree:   s.Ffree,
+			Blocks: s.Blocks,
+			Bsize:  uint32(s.Bsize),
+			Bfree:  s.Bfree,
+			Bavail: s.Bavail,
+			Files:  s.Files,
+			Ffree:  s.Ffree,
 		}
 	}
 	return nil
 }
-

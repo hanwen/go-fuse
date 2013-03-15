@@ -24,7 +24,7 @@ type HandleMap interface {
 	Count() int
 	Decode(uint64) *Handled
 	Forget(handle uint64, count int) (bool, *Handled)
-	Handle(obj* Handled) uint64
+	Handle(obj *Handled) uint64
 	Has(uint64) bool
 }
 
@@ -290,7 +290,7 @@ func (m *int64HandleMap) Register(obj *Handled) (handle uint64) {
 	} else {
 		handle = m.Handle(obj)
 	}
-	obj.count ++
+	obj.count++
 	m.mutex.Unlock()
 
 	return handle
@@ -306,7 +306,6 @@ func (m *int64HandleMap) Handle(obj *Handled) (handle uint64) {
 	handle |= uint64(obj.check) << (48 - 3)
 	return handle
 }
-
 
 func (m *int64HandleMap) Forget(handle uint64, count int) (forgotten bool, obj *Handled) {
 	defer m.verify()

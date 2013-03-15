@@ -202,7 +202,6 @@ type ReadOnlyFile struct {
 
 var _ = (File)((*ReadOnlyFile)(nil))
 
-
 func (f *ReadOnlyFile) String() string {
 	return fmt.Sprintf("ReadOnlyFile(%s)", f.File.String())
 }

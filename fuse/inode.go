@@ -28,14 +28,6 @@ type Inode struct {
 	// Unmount() when it is set to nil.
 	mount *fileSystemMount
 
-	// treeLock is a pointer to me.mount.treeLock.  We store it
-	// here for convenience.  Constant during lifetime of the
-	// inode.
-	//
-	// If multiple treeLocks must be acquired, the treeLocks
-	// closer to the root must be acquired first.
-	treeLock *sync.RWMutex
-
 	// All data below is protected by treeLock.
 	children map[string]*Inode
 
@@ -70,12 +62,12 @@ func (n *Inode) AnyFile() (file File) {
 }
 
 func (n *Inode) Children() (out map[string]*Inode) {
-	n.treeLock.RLock()
+	n.mount.treeLock.RLock()
 	out = make(map[string]*Inode, len(n.children))
 	for k, v := range n.children {
 		out[k] = v
 	}
-	n.treeLock.RUnlock()
+	n.mount.treeLock.RUnlock()
 
 	return out
 }
@@ -83,14 +75,14 @@ func (n *Inode) Children() (out map[string]*Inode) {
 // FsChildren returns all the children from the same filesystem.  It
 // will skip mountpoints.
 func (n *Inode) FsChildren() (out map[string]*Inode) {
-	n.treeLock.RLock()
+	n.mount.treeLock.RLock()
 	out = map[string]*Inode{}
 	for k, v := range n.children {
 		if v.mount == n.mount {
 			out[k] = v
 		}
 	}
-	n.treeLock.RUnlock()
+	n.mount.treeLock.RUnlock()
 
 	return out
 }
@@ -119,15 +111,15 @@ func (n *Inode) IsDir() bool {
 func (n *Inode) New(isDir bool, fsi FsNode) *Inode {
 	ch := newInode(isDir, fsi)
 	ch.mount = n.mount
-	ch.treeLock = n.treeLock
+	ch.mount.treeLock = n.mount.treeLock
 	n.generation = ch.mount.connector.nextGeneration()
 	return ch
 }
 
 func (n *Inode) GetChild(name string) (child *Inode) {
-	n.treeLock.RLock()
+	n.mount.treeLock.RLock()
 	child = n.children[name]
-	n.treeLock.RUnlock()
+	n.mount.treeLock.RUnlock()
 
 	return child
 }
@@ -136,15 +128,15 @@ func (n *Inode) AddChild(name string, child *Inode) {
 	if child == nil {
 		log.Panicf("adding nil child as %q", name)
 	}
-	n.treeLock.Lock()
+	n.mount.treeLock.Lock()
 	n.addChild(name, child)
-	n.treeLock.Unlock()
+	n.mount.treeLock.Unlock()
 }
 
 func (n *Inode) RmChild(name string) (ch *Inode) {
-	n.treeLock.Lock()
+	n.mount.treeLock.Lock()
 	ch = n.rmChild(name)
-	n.treeLock.Unlock()
+	n.mount.treeLock.Unlock()
 	return
 }
 
@@ -180,7 +172,6 @@ func (n *Inode) mountFs(fs NodeFileSystem, opts *FileSystemOptions) {
 		options:    opts,
 	}
 	n.mount = n.mountPoint
-	n.treeLock = &n.mountPoint.treeLock
 }
 
 // Must be called with treeLock held.
@@ -203,7 +194,7 @@ func (n *Inode) canUnmount() bool {
 }
 
 func (n *Inode) getMountDirEntries() (out []DirEntry) {
-	n.treeLock.RLock()
+	n.mount.treeLock.RLock()
 	for k, v := range n.children {
 		if v.mountPoint != nil {
 			out = append(out, DirEntry{
@@ -212,7 +203,7 @@ func (n *Inode) getMountDirEntries() (out []DirEntry) {
 			})
 		}
 	}
-	n.treeLock.RUnlock()
+	n.mount.treeLock.RUnlock()
 
 	return out
 }

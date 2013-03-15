@@ -529,7 +529,7 @@ func init() {
 		_OP_RENAME:       doRename,
 		_OP_STATFS:       doStatFs,
 		_OP_IOCTL:        doIoctl,
-		_OP_DESTROY: 	  doDestroy,
+		_OP_DESTROY:      doDestroy,
 		_OP_FALLOCATE:    doFallocate,
 	} {
 		operationHandlers[op].Func = v

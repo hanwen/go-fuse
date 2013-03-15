@@ -7,4 +7,3 @@ const (
 	_MINIMUM_MINOR_VERSION = 13
 	_OUR_MINOR_VERSION     = 20
 )
-

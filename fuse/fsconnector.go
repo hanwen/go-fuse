@@ -127,12 +127,12 @@ func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
 		// We never got a lookup for root, so don't try to forget root.
 		return
 	}
-	
+
 	if forgotten, handled := c.inodeMap.Forget(nodeID, forgetCount); forgotten {
 		node := (*Inode)(unsafe.Pointer(handled))
-		node.treeLock.Lock()
+		node.mount.treeLock.Lock()
 		c.recursiveConsiderDropInode(node)
-		node.treeLock.Unlock()
+		node.mount.treeLock.Unlock()
 	}
 	// TODO - try to drop children even forget was not successful.
 	c.verify()
@@ -193,8 +193,8 @@ func (c *FileSystemConnector) Node(parent *Inode, fullPath string) (*Inode, []st
 
 	node := parent
 	if node.mountPoint == nil {
-		node.treeLock.RLock()
-		defer node.treeLock.RUnlock()
+		node.mount.treeLock.RLock()
+		defer node.mount.treeLock.RUnlock()
 	}
 
 	for i, component := range comps {
@@ -203,8 +203,8 @@ func (c *FileSystemConnector) Node(parent *Inode, fullPath string) (*Inode, []st
 		}
 
 		if node.mountPoint != nil {
-			node.treeLock.RLock()
-			defer node.treeLock.RUnlock()
+			node.mount.treeLock.RLock()
+			defer node.mount.treeLock.RUnlock()
 		}
 
 		next := node.children[component]
@@ -257,8 +257,8 @@ func (c *FileSystemConnector) MountRoot(nodeFs NodeFileSystem, opts *FileSystemO
 // EBUSY: the intended mount point already exists.
 func (c *FileSystemConnector) Mount(parent *Inode, name string, nodeFs NodeFileSystem, opts *FileSystemOptions) Status {
 	defer c.verify()
-	parent.treeLock.Lock()
-	defer parent.treeLock.Unlock()
+	parent.mount.treeLock.Lock()
+	defer parent.mount.treeLock.Unlock()
 	node := parent.children[name]
 	if node != nil {
 		return EBUSY
@@ -298,8 +298,8 @@ func (c *FileSystemConnector) Unmount(node *Inode) Status {
 
 	// Must lock parent to update tree structure.
 	parentNode := node.mountPoint.parentInode
-	parentNode.treeLock.Lock()
-	defer parentNode.treeLock.Unlock()
+	parentNode.mount.treeLock.Lock()
+	defer parentNode.mount.treeLock.Unlock()
 
 	mount := node.mountPoint
 	name := node.mountPoint.mountName()
@@ -307,8 +307,8 @@ func (c *FileSystemConnector) Unmount(node *Inode) Status {
 		return EBUSY
 	}
 
-	node.treeLock.Lock()
-	defer node.treeLock.Unlock()
+	node.mount.treeLock.Lock()
+	defer node.mount.treeLock.Unlock()
 
 	if mount.mountInode != node {
 		log.Panicf("got two different mount inodes %v vs %v",
@@ -344,7 +344,7 @@ func (c *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) S
 	} else {
 		nId = c.inodeMap.Handle(&node.handled)
 	}
-		
+
 	if nId == 0 {
 		return OK
 	}
@@ -357,7 +357,7 @@ func (c *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) S
 }
 
 func (c *FileSystemConnector) EntryNotify(node *Inode, name string) Status {
-	var nId uint64 
+	var nId uint64
 	if node == c.rootNode {
 		nId = raw.FUSE_ROOT_ID
 	} else {
@@ -384,6 +384,6 @@ func (c *FileSystemConnector) DeleteNotify(dir *Inode, child *Inode, name string
 	}
 
 	chId := c.inodeMap.Handle(&child.handled)
-	
+
 	return c.fsInit.DeleteNotify(nId, chId, name)
 }

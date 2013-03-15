@@ -34,6 +34,9 @@ type fileSystemMount struct {
 
 	// Protects Children hashmaps within the mount.  treeLock
 	// should be acquired before openFilesLock.
+	//
+	// If multiple treeLocks must be acquired, the treeLocks
+	// closer to the root must be acquired first.
 	treeLock sync.RWMutex
 
 	// Manage filehandles of open files.

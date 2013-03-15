@@ -648,7 +648,7 @@ func (n *pathInode) Fallocate(file File, off uint64, size uint64, mode uint32, c
 			return code
 		}
 	}
-	
+
 	files := n.inode.Files(O_ANYWRITE)
 	for _, f := range files {
 		// TODO - pass context

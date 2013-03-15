@@ -6,7 +6,6 @@
 
 package fuse
 
-
 /*
 
 // Adapted from Plan 9 from User Space's src/cmd/9pfuse/fuse.c,
@@ -127,8 +126,8 @@ func mount(dir string, options string) (int, error) {
 	return fd, nil
 }
 
-
 type mountError string
+
 func (m mountError) Error() string {
 	return string(m)
 }
@@ -148,8 +147,8 @@ func unmount(mountPoint string) error {
 	return err
 }
 
-
 var umountBinary string
+
 func init() {
 	var err error
 	umountBinary, err = exec.LookPath("umount")
