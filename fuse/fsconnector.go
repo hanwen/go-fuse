@@ -296,6 +296,8 @@ func (c *FileSystemConnector) Unmount(node *Inode) Status {
 		return EINVAL
 	}
 
+	nodeId := c.inodeMap.Handle(&node.handled)
+
 	// Must lock parent to update tree structure.
 	parentNode := node.mountPoint.parentInode
 	parentNode.mount.treeLock.Lock()
@@ -320,10 +322,6 @@ func (c *FileSystemConnector) Unmount(node *Inode) Status {
 		return EBUSY
 	}
 
-	mount.mountInode = nil
-	// TODO - racy.
-	node.mountPoint = nil
-
 	delete(parentNode.children, name)
 	mount.fs.OnUnmount()
 
@@ -333,7 +331,30 @@ func (c *FileSystemConnector) Unmount(node *Inode) Status {
 		parentId = raw.FUSE_ROOT_ID
 	}
 
-	c.fsInit.DeleteNotify(parentId, c.inodeMap.Handle(&node.handled), name)
+	// We have to wait until the kernel has forgotten the
+	// mountpoint, so the write to node.mountPoint is no longer
+	// racy.
+	code := c.fsInit.DeleteNotify(parentId, c.inodeMap.Handle(&node.handled), name)
+	if code.Ok() {
+		mount.treeLock.Unlock()
+		parentNode.mount.treeLock.Unlock()
+		delay := 100 * time.Microsecond
+		for {
+			// This operation is rare, so we kludge it to avoid
+			// contention.
+			time.Sleep(delay)
+			delay = delay * 2 + 1
+			if !c.inodeMap.Has(nodeId) {
+				break
+			}
+		}
+		parentNode.mount.treeLock.Lock()
+		mount.treeLock.Lock()
+	}
+	
+	mount.mountInode = nil
+	node.mountPoint = nil
+	
 	return OK
 }
 
