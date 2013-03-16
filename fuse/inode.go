@@ -111,7 +111,6 @@ func (n *Inode) IsDir() bool {
 func (n *Inode) New(isDir bool, fsi FsNode) *Inode {
 	ch := newInode(isDir, fsi)
 	ch.mount = n.mount
-	ch.mount.treeLock = n.mount.treeLock
 	n.generation = ch.mount.connector.nextGeneration()
 	return ch
 }
