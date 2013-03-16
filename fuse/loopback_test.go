@@ -857,7 +857,7 @@ func TestStatFs(t *testing.T) {
 	clearStatfs(&s1)
 	clearStatfs(&s2)
 	if fmt.Sprintf("%v", s2) != fmt.Sprintf("%v", s1) {
-		t.Error("Mismatch", s1, s2)
+		t.Errorf("statfs mismatch %#v != %#v", s1, s2)
 	}
 }
 
@@ -893,7 +893,7 @@ func TestFStatFs(t *testing.T) {
 	clearStatfs(&s1)
 	clearStatfs(&s2)
 	if fmt.Sprintf("%v", s2) != fmt.Sprintf("%v", s1) {
-		t.Error("Mismatch", s1, s2)
+		t.Errorf("statfs mismatch: %#v != %#v", s1, s2)
 	}
 }
 
