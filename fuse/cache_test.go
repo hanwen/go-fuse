@@ -29,7 +29,7 @@ func (fs *cacheFs) Open(name string, flags uint32, context *Context) (fuseFile F
 }
 
 func setupCacheTest(t *testing.T) (string, *PathNodeFs, func()) {
-	dir, err := ioutil.TempDir("", "go-fuse")
+	dir, err := ioutil.TempDir("", "go-fuse-cachetest")
 	if err != nil {
 		t.Fatalf("TempDir failed: %v", err)
 	}
@@ -134,7 +134,7 @@ func TestNonseekable(t *testing.T) {
 	fs := &nonseekFs{}
 	fs.Length = 200 * 1024
 
-	dir, err := ioutil.TempDir("", "go-fuse")
+	dir, err := ioutil.TempDir("", "go-fuse-cache_test")
 	if err != nil {
 		t.Fatalf("failed: %v", err)
 	}
@@ -163,7 +163,7 @@ func TestNonseekable(t *testing.T) {
 }
 
 func TestGetAttrRace(t *testing.T) {
-	dir, err := ioutil.TempDir("", "go-fuse")
+	dir, err := ioutil.TempDir("", "go-fuse-cache_test")
 	if err != nil {
 		t.Fatalf("failed: %v", err)
 	}

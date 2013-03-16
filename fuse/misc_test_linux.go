@@ -8,7 +8,7 @@ import (
 )
 
 func TestLinkAt(t *testing.T) {
-	dir, _ := ioutil.TempDir("", "go-fuse")
+	dir, _ := ioutil.TempDir("", "go-fuse-misc_test")
 	ioutil.WriteFile(dir+"/a", []byte{42}, 0644)
 	f, _ := os.Open(dir)
 	e := Linkat(int(f.Fd()), "a", int(f.Fd()), "b")

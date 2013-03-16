@@ -103,11 +103,10 @@ func readXAttr(p, a string) (val []byte, errno int) {
 func xattrTestCase(t *testing.T, nm string) (mountPoint string, cleanup func()) {
 	xfs := NewXAttrFs(nm, xattrGolden)
 	xfs.tester = t
-	mountPoint, err := ioutil.TempDir("", "go-fuse")
+	mountPoint, err := ioutil.TempDir("", "go-fuse-xattr_test")
 	if err != nil {
 		t.Fatalf("TempDir failed: %v", err)
 	}
-	defer os.RemoveAll(mountPoint)
 
 	nfs := NewPathNodeFs(xfs, nil)
 	state, _, err := MountNodeFileSystem(mountPoint, nfs, nil)
@@ -117,7 +116,10 @@ func xattrTestCase(t *testing.T, nm string) (mountPoint string, cleanup func()) 
 	state.Debug = VerboseTest()
 
 	go state.Loop()
-	return mountPoint, func() { state.Unmount() }
+	return mountPoint, func() {
+		state.Unmount()
+		os.RemoveAll(mountPoint)
+	}
 }
 
 func TestXAttrNoExist(t *testing.T) {

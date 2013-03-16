@@ -41,10 +41,11 @@ func TestMemoryPressure(t *testing.T) {
 		dirRegex:  regexp.MustCompile("^dir[0-9]*$"),
 	}
 
-	dir, err := ioutil.TempDir("", "go-fuse")
+	dir, err := ioutil.TempDir("", "go-fuse-pressure_test")
 	if err != nil {
 		t.Fatalf("TempDir failed: %v", err)
 	}
+	defer os.RemoveAll(dir)
 	nfs := NewPathNodeFs(fs, nil)
 	o := &FileSystemOptions{PortableInodes: true}
 

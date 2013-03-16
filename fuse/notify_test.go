@@ -45,7 +45,7 @@ func NewNotifyTest(t *testing.T) *NotifyTest {
 	me := &NotifyTest{}
 	me.fs = &NotifyFs{}
 	var err error
-	me.dir, err = ioutil.TempDir("", "go-fuse")
+	me.dir, err = ioutil.TempDir("", "go-fuse-notify_test")
 	if err != nil {
 		t.Fatalf("TempDir failed: %v", err)
 	}

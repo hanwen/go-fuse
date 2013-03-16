@@ -898,7 +898,7 @@ func TestFStatFs(t *testing.T) {
 }
 
 func TestOriginalIsSymlink(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "go-fuse")
+	tmpDir, err := ioutil.TempDir("", "go-fuse-loopback_test")
 	if err != nil {
 		t.Fatalf("TempDir failed: %v", err)
 	}

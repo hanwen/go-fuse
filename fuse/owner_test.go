@@ -28,7 +28,7 @@ func (fs *ownerFs) GetAttr(name string, context *Context) (*Attr, Status) {
 }
 
 func setupOwnerTest(t *testing.T, opts *FileSystemOptions) (workdir string, cleanup func()) {
-	wd, err := ioutil.TempDir("", "go-fuse")
+	wd, err := ioutil.TempDir("", "go-fuse-owner_test")
 
 	fs := &ownerFs{}
 	nfs := NewPathNodeFs(fs, nil)

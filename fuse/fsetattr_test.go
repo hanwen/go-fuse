@@ -131,7 +131,7 @@ func NewFile() *MutableDataFile {
 }
 
 func setupFAttrTest(t *testing.T, fs FileSystem) (dir string, clean func(), sync func()) {
-	dir, err := ioutil.TempDir("", "go-fuse")
+	dir, err := ioutil.TempDir("", "go-fuse-fsetattr_test")
 	if err != nil {
 		t.Fatalf("TempDir failed: %v", err)
 	}

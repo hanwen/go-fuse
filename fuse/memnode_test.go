@@ -10,7 +10,7 @@ import (
 var _ = log.Println
 
 func setupMemNodeTest(t *testing.T) (wd string, fs *MemNodeFs, clean func()) {
-	tmp, err := ioutil.TempDir("", "go-fuse")
+	tmp, err := ioutil.TempDir("", "go-fuse-memnode_test")
 	if err != nil {
 		t.Fatalf("TempDir failed: %v", err)
 	}

@@ -26,7 +26,7 @@ func (f *flipNode) GetAttr(out *Attr, file File, c *Context) Status {
 }
 
 func TestDeleteNotify(t *testing.T) {
-	dir, err := ioutil.TempDir("", "")
+	dir, err := ioutil.TempDir("", "go-fuse-delete_test")
 	if err != nil {
 		t.Fatalf("TempDir failed %v", err)
 	}
