@@ -8,10 +8,7 @@ import (
 )
 
 // HandleMap translates objects in Go space to 64-bit handles that can
-// be given out to -say- the linux kernel.  It uses the free bits on
-// x64_64 (16+3) to do an extra sanity check on the data.  (Thanks to
-// Russ Cox for this suggestion).  In addition, it stores the object
-// in a map, so the Go runtime will not garbage collect it.
+// be given out to -say- the linux kernel. 
 //
 // The 32 bits version of this is a threadsafe wrapper around a map.
 //
@@ -205,7 +202,10 @@ func newInt32HandleMap() *int32HandleMap {
 	}
 }
 
-// 64 bits version of HandleMap
+// 64 bits version of HandleMap. It uses the free bits on x64_64
+// (16+3) to do an extra sanity check on the data.  (Thanks to Russ
+// Cox for this suggestion).  In addition, it stores the object in a
+// map, so the Go runtime will not garbage collect it.
 type int64HandleMap struct {
 	mutex    sync.Mutex
 	handles  map[uint64]*Handled
@@ -309,7 +309,6 @@ func (m *int64HandleMap) Handle(obj *Handled) (handle uint64) {
 
 func (m *int64HandleMap) Forget(handle uint64, count int) (forgotten bool, obj *Handled) {
 	defer m.verify()
-
 	obj = m.Decode(handle)
 
 	m.mutex.Lock()
