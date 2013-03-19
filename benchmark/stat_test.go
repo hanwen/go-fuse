@@ -14,8 +14,6 @@ import (
 	"time"
 )
 
-var CheckSuccess = fuse.CheckSuccess
-
 func setupFs(fs fuse.FileSystem) (string, func()) {
 	opts := &fuse.FileSystemOptions{
 		EntryTimeout:    0.0,
@@ -60,29 +58,39 @@ func TestNewStatFs(t *testing.T) {
 	defer clean()
 
 	names, err := ioutil.ReadDir(wd)
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("failed: %v", err)
+	}
 	if len(names) != 2 {
 		t.Error("readdir /", names)
 	}
 
 	fi, err := os.Lstat(wd + "/sub")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("failed: %v", err)
+	}
 	if !fi.IsDir() {
 		t.Error("mode", fi)
 	}
 	names, err = ioutil.ReadDir(wd + "/sub")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("failed: %v", err)
+	}
 	if len(names) != 2 {
 		t.Error("readdir /sub", names)
 	}
 	names, err = ioutil.ReadDir(wd + "/sub/dir")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("failed: %v", err)
+	}
 	if len(names) != 2 {
 		t.Error("readdir /sub/dir", names)
 	}
 
 	fi, err = os.Lstat(wd + "/sub/marine.txt")
-	CheckSuccess(err)
+	if err != nil {
+		t.Fatalf("failed: %v", err)
+	}
 	if fi.Mode()&os.ModeType != 0 {
 		t.Error("mode", fi)
 	}
@@ -163,7 +171,9 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 	}
 
 	f, err := ioutil.TempFile("", "")
-	CheckSuccess(err)
+	if err != nil {
+		b.Fatalf("failed: %v", err)
+	}
 	sort.Strings(out)
 	for _, k := range out {
 		f.Write([]byte(fmt.Sprintf("/%s\n", k)))
@@ -181,9 +191,13 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 	cmd.Start()
 
 	bin, err := exec.LookPath("fusermount")
-	CheckSuccess(err)
+	if err != nil {
+		b.Fatalf("failed: %v", err)
+	}
 	stop := exec.Command(bin, "-u", mountPoint)
-	CheckSuccess(err)
+	if err != nil {
+		b.Fatalf("failed: %v", err)
+	}
 	defer stop.Run()
 
 	for i, l := range lines {
