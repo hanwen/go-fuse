@@ -1,7 +1,7 @@
 package raw
+
 import (
 	"fmt"
-
 )
 
 func init() {

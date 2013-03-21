@@ -11,10 +11,9 @@ type Pair struct {
 }
 
 func (p *Pair) MaxGrow() {
-	for p.Grow(2 * p.size) == nil {
+	for p.Grow(2*p.size) == nil {
 	}
 }
-
 
 func (p *Pair) Grow(n int) error {
 	if n <= p.size {
@@ -63,5 +62,3 @@ func (p *Pair) WriteFd() uintptr {
 func (p *Pair) Write(d []byte) (n int, err error) {
 	return p.w.Write(d)
 }
-
-

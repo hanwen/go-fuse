@@ -343,7 +343,7 @@ func (c *FileSystemConnector) Unmount(node *Inode) Status {
 			// This operation is rare, so we kludge it to avoid
 			// contention.
 			time.Sleep(delay)
-			delay = delay * 2 + 1
+			delay = delay*2 + 1
 			if !c.inodeMap.Has(nodeId) {
 				break
 			}
@@ -351,10 +351,10 @@ func (c *FileSystemConnector) Unmount(node *Inode) Status {
 		parentNode.mount.treeLock.Lock()
 		mount.treeLock.Lock()
 	}
-	
+
 	mount.mountInode = nil
 	node.mountPoint = nil
-	
+
 	return OK
 }
 

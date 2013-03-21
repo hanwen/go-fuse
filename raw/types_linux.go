@@ -29,18 +29,17 @@ const (
 
 type GetAttrIn struct {
 	Flags_ uint32
-	Dummy uint32
+	Dummy  uint32
 	Fh_    uint64
 }
 
 func (g *GetAttrIn) Flags() uint32 {
-	return g.Flags_ 
+	return g.Flags_
 }
 
 func (g *GetAttrIn) Fh() uint64 {
 	return g.Fh_
 }
-
 
 type ReadIn struct {
 	Fh        uint64
@@ -51,7 +50,6 @@ type ReadIn struct {
 	Flags     uint32
 	Padding   uint32
 }
-
 
 type WriteIn struct {
 	Fh         uint64

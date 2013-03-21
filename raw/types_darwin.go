@@ -1,29 +1,29 @@
 package raw
 
 type Attr struct {
-	Ino       uint64
-	Size      uint64
-	Blocks    uint64
-	Atime     uint64
-	Mtime     uint64
-	Ctime     uint64
-	Crtime_    uint64  // OS X
-	Atimensec uint32
-	Mtimensec uint32
-	Ctimensec uint32
+	Ino         uint64
+	Size        uint64
+	Blocks      uint64
+	Atime       uint64
+	Mtime       uint64
+	Ctime       uint64
+	Crtime_     uint64 // OS X
+	Atimensec   uint32
+	Mtimensec   uint32
+	Ctimensec   uint32
 	Crtimensec_ uint32 // OS X
-	Mode      uint32
-	Nlink     uint32
+	Mode        uint32
+	Nlink       uint32
 	Owner
-	Rdev    uint32
-	Flags_   uint32 //  OS X
+	Rdev   uint32
+	Flags_ uint32 //  OS X
 }
 
 const (
-	FATTR_CRTIME =    (1 << 28)
-	FATTR_CHGTIME =   (1 << 29)
-	FATTR_BKUPTIME =  (1 << 30)
-	FATTR_FLAGS =     (1 << 31)
+	FATTR_CRTIME   = (1 << 28)
+	FATTR_CHGTIME  = (1 << 29)
+	FATTR_BKUPTIME = (1 << 30)
+	FATTR_FLAGS    = (1 << 31)
 )
 
 type SetAttrIn struct {
@@ -40,8 +40,8 @@ type SetAttrIn struct {
 }
 
 const (
-	FOPEN_PURGE_ATTR =(1 << 30)
-	FOPEN_PURGE_UBC = (1 << 31)
+	FOPEN_PURGE_ATTR = (1 << 30)
+	FOPEN_PURGE_UBC  = (1 << 31)
 )
 
 // compat with linux.
@@ -82,14 +82,14 @@ const (
 )
 
 type GetxtimesOut struct {
-	Bkuptime uint64
-	Crtime uint64
+	Bkuptime     uint64
+	Crtime       uint64
 	Bkuptimensec uint32
-	Crtimensec uint32
+	Crtimensec   uint32
 }
 
-type  ExchangeIn struct {
-        Olddir uint64
-        Newdir uint64
-        Options uint64
+type ExchangeIn struct {
+	Olddir  uint64
+	Newdir  uint64
+	Options uint64
 }

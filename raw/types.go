@@ -92,8 +92,6 @@ const (
 	FOPEN_DIRECT_IO   = (1 << 0)
 	FOPEN_KEEP_CACHE  = (1 << 1)
 	FOPEN_NONSEEKABLE = (1 << 2)
-
-	
 )
 
 type OpenOut struct {
@@ -104,20 +102,20 @@ type OpenOut struct {
 
 // To be set in InitIn/InitOut.Flags.
 const (
-	CAP_ASYNC_READ     = (1 << 0)
-	CAP_POSIX_LOCKS    = (1 << 1)
-	CAP_FILE_OPS       = (1 << 2)
-	CAP_ATOMIC_O_TRUNC = (1 << 3)
-	CAP_EXPORT_SUPPORT = (1 << 4)
-	CAP_BIG_WRITES     = (1 << 5)
-	CAP_DONT_MASK      = (1 << 6)
-	CAP_SPLICE_WRITE   = (1 << 7)
-	CAP_SPLICE_MOVE    = (1 << 8)
-	CAP_SPLICE_READ    = (1 << 9)
-	CAP_FLOCK_LOCKS    = (1 << 10)
-	CAP_IOCTL_DIR      = (1 << 11)
-	CAP_AUTO_INVAL_DATA = (1 << 12)
-	CAP_READDIRPLUS = (1 << 13)
+	CAP_ASYNC_READ       = (1 << 0)
+	CAP_POSIX_LOCKS      = (1 << 1)
+	CAP_FILE_OPS         = (1 << 2)
+	CAP_ATOMIC_O_TRUNC   = (1 << 3)
+	CAP_EXPORT_SUPPORT   = (1 << 4)
+	CAP_BIG_WRITES       = (1 << 5)
+	CAP_DONT_MASK        = (1 << 6)
+	CAP_SPLICE_WRITE     = (1 << 7)
+	CAP_SPLICE_MOVE      = (1 << 8)
+	CAP_SPLICE_READ      = (1 << 9)
+	CAP_FLOCK_LOCKS      = (1 << 10)
+	CAP_IOCTL_DIR        = (1 << 11)
+	CAP_AUTO_INVAL_DATA  = (1 << 12)
+	CAP_READDIRPLUS      = (1 << 13)
 	CAP_READDIRPLUS_AUTO = (1 << 14)
 )
 
@@ -382,9 +380,9 @@ const (
 )
 
 type FallocateIn struct {
-	Fh uint64
-	Offset uint64
-	Length uint64
-	Mode uint32
+	Fh      uint64
+	Offset  uint64
+	Length  uint64
+	Mode    uint32
 	Padding uint32
 }

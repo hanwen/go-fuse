@@ -9,8 +9,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"strings"
 	"strconv"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -44,7 +44,9 @@ func setRecursiveWritable(t *testing.T, dir string, writable bool) {
 			} else {
 				newMode = uint32(fi.Mode().Perm()) &^ 0222
 			}
-			if fi.Mode() | os.ModeSymlink != 0 { return nil }
+			if fi.Mode()|os.ModeSymlink != 0 {
+				return nil
+			}
 			return os.Chmod(path, os.FileMode(newMode))
 		})
 	if err != nil {
@@ -950,7 +952,7 @@ func TestUnionFsRmRf(t *testing.T) {
 	if err != nil {
 		t.Logf("ProgramVersion failed: %v", err)
 	}
-	if maj < 8 {		// assuming GNU coreutils.
+	if maj < 8 { // assuming GNU coreutils.
 		t.Skipf("Skipping test; GNU rm %d.%d is not POSIX compliant.", maj, min)
 	}
 	command := fmt.Sprintf("%s -f %s/mnt/dir", bin, wd)

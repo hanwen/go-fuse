@@ -78,7 +78,7 @@ func TestMemoryPressure(t *testing.T) {
 		}(i)
 	}
 	time.Sleep(100 * time.Millisecond)
-	
+
 	state.reqMu.Lock()
 	bufs.lock.Lock()
 	created := bufs.createdBuffers + state.outstandingReadBufs
@@ -87,7 +87,7 @@ func TestMemoryPressure(t *testing.T) {
 
 	t.Logf("Have %d read bufs", state.outstandingReadBufs)
 	// +1 due to batch forget?
-	if created > _MAX_READERS + 1 {
+	if created > _MAX_READERS+1 {
 		t.Errorf("created %d buffers, max reader %d", created, _MAX_READERS)
 	}
 

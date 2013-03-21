@@ -8,7 +8,7 @@ import (
 )
 
 // HandleMap translates objects in Go space to 64-bit handles that can
-// be given out to -say- the linux kernel. 
+// be given out to -say- the linux kernel.
 //
 // The 32 bits version of this is a threadsafe wrapper around a map.
 //
