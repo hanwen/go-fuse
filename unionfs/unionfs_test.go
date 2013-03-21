@@ -1,13 +1,16 @@
 package unionfs
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"strconv"
 	"syscall"
 	"testing"
 	"time"
@@ -98,7 +101,7 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 	return wd, func() {
 		err := state.Unmount()
 		if err != nil {
-			return 
+			return
 		}
 		setRecursiveWritable(t, wd, true)
 		os.RemoveAll(wd)
@@ -893,8 +896,34 @@ func TestUnionFsRemoveAll(t *testing.T) {
 	}
 }
 
-// Warning: test fails under coreutils < 8.0 because of non-posix behaviour
-// of the "rm" tool -- which relies on behaviour that doesn't work in fuse.
+func ProgramVersion(bin string) (major, minor int64, err error) {
+	cmd := exec.Command(bin, "--version")
+	buf := &bytes.Buffer{}
+	cmd.Stdout = buf
+	if err := cmd.Run(); err != nil {
+		return 0, 0, err
+	}
+	lines := strings.Split(buf.String(), "\n")
+	if len(lines) < 1 {
+		return 0, 0, fmt.Errorf("no output")
+	}
+	matches := regexp.MustCompile(".* ([0-9]+)\\.([0-9]+)").FindStringSubmatch(lines[0])
+
+	if matches == nil {
+		log.Println("no output")
+		return 0, 0, fmt.Errorf("no match for %q", lines[0])
+	}
+	major, err = strconv.ParseInt(matches[1], 10, 64)
+	if err != nil {
+		return 0, 0, err
+	}
+	minor, err = strconv.ParseInt(matches[2], 10, 64)
+	if err != nil {
+		return 0, 0, err
+	}
+	return major, minor, nil
+}
+
 func TestUnionFsRmRf(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
@@ -915,6 +944,14 @@ func TestUnionFsRmRf(t *testing.T) {
 	bin, err := exec.LookPath("rm")
 	if err != nil {
 		t.Fatalf("LookPath failed: %v", err)
+	}
+
+	maj, min, err := ProgramVersion(bin)
+	if err != nil {
+		t.Logf("ProgramVersion failed: %v", err)
+	}
+	if maj < 8 {		// assuming GNU coreutils.
+		t.Skipf("Skipping test; GNU rm %d.%d is not POSIX compliant.", maj, min)
 	}
 	command := fmt.Sprintf("%s -f %s/mnt/dir", bin, wd)
 	log.Printf("Command: %s", command)
