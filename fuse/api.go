@@ -1,7 +1,6 @@
 // The fuse package provides APIs to implement filesystems in
 // userspace.  Typically, each call of the API happens in its own
 // goroutine, so take care to make the file system thread-safe.
-
 package fuse
 
 import (
@@ -18,8 +17,18 @@ import (
 // to represent fits in memory: you can construct FsNode at mount
 // time, and the filesystem will be ready.
 type NodeFileSystem interface {
+	// OnUnmount is executed just before a submount is removed,
+	// and when the process receives a forget for the FUSE root
+	// node.
 	OnUnmount()
+
+	// OnMount is called just after a mount is executed, either
+	// when the root is mounted, or when other filesystem are
+	// mounted in-process. The passed-in FileSystemConnector gives
+	// access to Notify methods and Debug settings.
 	OnMount(conn *FileSystemConnector)
+
+	// Root should return the inode for root of this file system.
 	Root() FsNode
 
 	// Used for debug outputs
