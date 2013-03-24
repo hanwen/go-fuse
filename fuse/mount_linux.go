@@ -1,6 +1,7 @@
 package fuse
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os"
@@ -81,21 +82,15 @@ func unmount(mountPoint string) (err error) {
 	if os.Geteuid() == 0 {
 		return privilegedUnmount(mountPoint)
 	}
-	dir, _ := filepath.Split(mountPoint)
-	proc, err := os.StartProcess(fusermountBinary,
-		[]string{fusermountBinary, "-u", mountPoint},
-		&os.ProcAttr{Dir: dir, Files: []*os.File{nil, nil, os.Stderr}})
-	if err != nil {
-		return
+	errBuf := bytes.Buffer{}
+	cmd := exec.Command(fusermountBinary, "-u", mountPoint)
+	cmd.Stderr = &errBuf
+	err = cmd.Run()
+	if errBuf.Len() > 0 {
+		return fmt.Errorf("%s (code %v)\n",
+			errBuf.String(), err)
 	}
-	w, err := proc.Wait()
-	if err != nil {
-		return
-	}
-	if !w.Success() {
-		return fmt.Errorf("fusermount -u exited with code %v\n", w.Sys())
-	}
-	return
+	return err
 }
 
 func getConnection(local *os.File) (int, error) {
