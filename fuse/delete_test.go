@@ -76,7 +76,7 @@ func TestDeleteNotify(t *testing.T) {
 	cmd := exec.Command("/usr/bin/tail", "-f", "testfile")
 	cmd.Dir = mnt + "/testdir"
 	cmd.Stdin = &buf
-	cmd.Stdout = os.Stdout
+	cmd.Stdout = &bytes.Buffer{}
 	cmd.Stderr = os.Stderr
 	err = cmd.Start()
 	if err != nil {
