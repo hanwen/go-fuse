@@ -38,6 +38,8 @@ type FileSystemConnector struct {
 	// Callbacks for talking back to the kernel.
 	fsInit RawFsInit
 
+	nodeFs NodeFileSystem
+
 	// Translate between uint64 handles and *Inode.
 	inodeMap HandleMap
 
@@ -62,6 +64,7 @@ func NewFileSystemConnector(nodeFs NodeFileSystem, opts *FileSystemOptions) (c *
 	if opts == nil {
 		opts = NewFileSystemOptions()
 	}
+	c.nodeFs = nodeFs
 	c.inodeMap = NewHandleMap(opts.PortableInodes)
 	c.rootNode = newInode(true, nodeFs.Root())
 
@@ -124,7 +127,10 @@ func (c *FileSystemConnector) lookupUpdate(node *Inode) (id uint64) {
 // Must run outside treeLock.
 func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
 	if nodeID == raw.FUSE_ROOT_ID {
-		// We never got a lookup for root, so don't try to forget root.
+		c.nodeFs.OnUnmount()
+		
+		// We never got a lookup for root, so don't try to
+		// forget root.
 		return
 	}
 
