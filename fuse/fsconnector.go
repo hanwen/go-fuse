@@ -31,6 +31,10 @@ var paranoia = false
 // To achieve this, the connector only needs a pointer to the root
 // node.
 type FileSystemConnector struct {
+	// Used as the generation inodes. This must be 64-bit aligned,
+	// for sync/atomic on i386 to work properly.
+	generation uint64
+	
 	DefaultRawFileSystem
 
 	Debug bool
@@ -45,9 +49,6 @@ type FileSystemConnector struct {
 
 	// The root of the FUSE file system.
 	rootNode *Inode
-
-	// Used as the generation inodes.
-	generation uint64
 }
 
 func NewFileSystemOptions() *FileSystemOptions {
