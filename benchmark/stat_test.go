@@ -14,14 +14,14 @@ import (
 	"time"
 )
 
-func setupFs(fs fuse.FileSystem) (string, func()) {
+func setupFs(fs pathfs.FileSystem) (string, func()) {
 	opts := &fuse.FileSystemOptions{
 		EntryTimeout:    0.0,
 		AttrTimeout:     0.0,
 		NegativeTimeout: 0.0,
 	}
 	mountPoint, _ := ioutil.TempDir("", "stat_test")
-	nfs := fuse.NewPathNodeFs(fs, nil)
+	nfs := pathfs.NewPathNodeFs(fs, nil)
 	state, _, err := fuse.MountNodeFileSystem(mountPoint, nfs, opts)
 	if err != nil {
 		panic(fmt.Sprintf("cannot mount %v", err)) // ugh - benchmark has no error methods.

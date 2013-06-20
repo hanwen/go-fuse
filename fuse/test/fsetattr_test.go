@@ -7,8 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hanwen/go-fuse/raw"
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
+	"github.com/hanwen/go-fuse/raw"
 )
 
 type MutableDataFile struct {
@@ -89,7 +90,7 @@ func (f *MutableDataFile) Chmod(perms uint32) fuse.Status {
 
 // This FS only supports a single r/w file called "/file".
 type FSetAttrFs struct {
-	fuse.DefaultFileSystem
+	pathfs.DefaultFileSystem
 	file *MutableDataFile
 }
 
@@ -131,12 +132,12 @@ func NewFile() *MutableDataFile {
 	return &MutableDataFile{}
 }
 
-func setupFAttrTest(t *testing.T, fs fuse.FileSystem) (dir string, clean func(), sync func()) {
+func setupFAttrTest(t *testing.T, fs pathfs.FileSystem) (dir string, clean func(), sync func()) {
 	dir, err := ioutil.TempDir("", "go-fuse-fsetattr_test")
 	if err != nil {
 		t.Fatalf("TempDir failed: %v", err)
 	}
-	nfs := fuse.NewPathNodeFs(fs, nil)
+	nfs := pathfs.NewPathNodeFs(fs, nil)
 	state, _, err := fuse.MountNodeFileSystem(dir, nfs, nil)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)

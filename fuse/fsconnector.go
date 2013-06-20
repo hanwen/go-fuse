@@ -34,7 +34,7 @@ type FileSystemConnector struct {
 	// Used as the generation inodes. This must be 64-bit aligned,
 	// for sync/atomic on i386 to work properly.
 	generation uint64
-	
+
 	DefaultRawFileSystem
 
 	Debug bool
@@ -129,7 +129,7 @@ func (c *FileSystemConnector) lookupUpdate(node *Inode) (id uint64) {
 func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
 	if nodeID == raw.FUSE_ROOT_ID {
 		c.nodeFs.OnUnmount()
-		
+
 		// We never got a lookup for root, so don't try to
 		// forget root.
 		return

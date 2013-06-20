@@ -11,14 +11,16 @@ symlinking path/to/zipfile to /config/zipmount
 */
 
 import (
-	"github.com/hanwen/go-fuse/fuse"
 	"log"
 	"path/filepath"
 	"sync"
+
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
 var _ = log.Printf
-var _ = (fuse.FileSystem)((*MultiZipFs)(nil))
+var _ = (pathfs.FileSystem)((*MultiZipFs)(nil))
 
 const (
 	CONFIG_PREFIX = "config/"
@@ -32,8 +34,8 @@ type MultiZipFs struct {
 	zips          map[string]*MemTreeFs
 	dirZipFileMap map[string]string
 
-	nodeFs *fuse.PathNodeFs
-	fuse.DefaultFileSystem
+	nodeFs *pathfs.PathNodeFs
+	pathfs.DefaultFileSystem
 }
 
 func NewMultiZipFs() *MultiZipFs {
@@ -47,7 +49,7 @@ func (fs *MultiZipFs) String() string {
 	return "MultiZipFs"
 }
 
-func (fs *MultiZipFs) OnMount(nodeFs *fuse.PathNodeFs) {
+func (fs *MultiZipFs) OnMount(nodeFs *pathfs.PathNodeFs) {
 	fs.nodeFs = nodeFs
 }
 

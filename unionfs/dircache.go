@@ -1,16 +1,18 @@
 package unionfs
 
 import (
-	"github.com/hanwen/go-fuse/fuse"
 	"log"
 	"sync"
 	"time"
+
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
 // newDirnameMap reads the contents of the given directory. On error,
 // returns a nil map. This forces reloads in the DirCache until we
 // succeed.
-func newDirnameMap(fs fuse.FileSystem, dir string) map[string]bool {
+func newDirnameMap(fs pathfs.FileSystem, dir string) map[string]bool {
 	stream, code := fs.OpenDir(dir, nil)
 	if code == fuse.ENOENT {
 		// The directory not existing is not an error.
@@ -38,7 +40,7 @@ func newDirnameMap(fs fuse.FileSystem, dir string) map[string]bool {
 type DirCache struct {
 	dir string
 	ttl time.Duration
-	fs  fuse.FileSystem
+	fs  pathfs.FileSystem
 	// Protects data below.
 	lock sync.RWMutex
 
@@ -100,7 +102,7 @@ func (c *DirCache) AddEntry(name string) {
 	c.names[name] = true
 }
 
-func NewDirCache(fs fuse.FileSystem, dir string, ttl time.Duration) *DirCache {
+func NewDirCache(fs pathfs.FileSystem, dir string, ttl time.Duration) *DirCache {
 	dc := new(DirCache)
 	dc.dir = dir
 	dc.fs = fs

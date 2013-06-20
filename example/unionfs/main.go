@@ -3,11 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/unionfs"
 	"log"
 	"os"
 	"time"
+
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
+	"github.com/hanwen/go-fuse/unionfs"
 )
 
 func main() {
@@ -39,7 +41,7 @@ func main() {
 		log.Fatal("Cannot create UnionFs", err)
 		os.Exit(1)
 	}
-	nodeFs := fuse.NewPathNodeFs(ufs, &fuse.PathNodeFsOptions{ClientInodes: true})
+	nodeFs := pathfs.NewPathNodeFs(ufs, &pathfs.PathNodeFsOptions{ClientInodes: true})
 	mOpts := fuse.FileSystemOptions{
 		EntryTimeout:    time.Duration(*entry_ttl * float64(time.Second)),
 		AttrTimeout:     time.Duration(*entry_ttl * float64(time.Second)),

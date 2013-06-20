@@ -6,7 +6,6 @@ import (
 	"syscall"
 	"testing"
 	"time"
-
 )
 
 func TestTouch(t *testing.T) {

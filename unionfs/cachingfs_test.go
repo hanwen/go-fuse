@@ -2,12 +2,14 @@ package unionfs
 
 import (
 	"fmt"
-	"github.com/hanwen/go-fuse/fuse"
 	"io/ioutil"
 	"log"
 	"os"
 	"syscall"
 	"testing"
+
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
 var _ = fmt.Print
@@ -31,7 +33,7 @@ func TestCachingFs(t *testing.T) {
 	wd, _ := ioutil.TempDir("", "")
 	defer os.RemoveAll(wd)
 
-	fs := fuse.NewLoopbackFileSystem(wd)
+	fs := pathfs.NewLoopbackFileSystem(wd)
 	cfs := NewCachingFileSystem(fs, 0)
 
 	os.Mkdir(wd+"/orig", 0755)

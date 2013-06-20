@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
 	"github.com/hanwen/go-fuse/raw"
 )
 
@@ -76,10 +77,10 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 		t.Fatalf("Mkdir failed: %v", err)
 	}
 
-	var fses []fuse.FileSystem
-	fses = append(fses, fuse.NewLoopbackFileSystem(wd+"/rw"))
+	var fses []pathfs.FileSystem
+	fses = append(fses, pathfs.NewLoopbackFileSystem(wd+"/rw"))
 	fses = append(fses,
-		NewCachingFileSystem(fuse.NewLoopbackFileSystem(wd+"/ro"), 0))
+		NewCachingFileSystem(pathfs.NewLoopbackFileSystem(wd+"/ro"), 0))
 	ufs := NewUnionFs(fses, testOpts)
 
 	// We configure timeouts are smaller, so we can check for
@@ -90,8 +91,8 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 		NegativeTimeout: entryTtl / 2,
 	}
 
-	pathfs := fuse.NewPathNodeFs(ufs,
-		&fuse.PathNodeFsOptions{ClientInodes: true})
+	pathfs := pathfs.NewPathNodeFs(ufs,
+		&pathfs.PathNodeFsOptions{ClientInodes: true})
 	state, conn, err := fuse.MountNodeFileSystem(wd+"/mnt", pathfs, opts)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
@@ -1099,10 +1100,10 @@ func TestUnionFsDisappearing(t *testing.T) {
 		t.Fatalf("Mkdir failed: %v", err)
 	}
 
-	wrFs := fuse.NewLoopbackFileSystem(wd + "/rw")
-	var fses []fuse.FileSystem
+	wrFs := pathfs.NewLoopbackFileSystem(wd + "/rw")
+	var fses []pathfs.FileSystem
 	fses = append(fses, wrFs)
-	fses = append(fses, fuse.NewLoopbackFileSystem(wd+"/ro"))
+	fses = append(fses, pathfs.NewLoopbackFileSystem(wd+"/ro"))
 	ufs := NewUnionFs(fses, testOpts)
 
 	opts := &fuse.FileSystemOptions{
@@ -1111,7 +1112,7 @@ func TestUnionFsDisappearing(t *testing.T) {
 		NegativeTimeout: entryTtl,
 	}
 
-	nfs := fuse.NewPathNodeFs(ufs, nil)
+	nfs := pathfs.NewPathNodeFs(ufs, nil)
 	state, _, err := fuse.MountNodeFileSystem(wd+"/mnt", nfs, opts)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)

@@ -93,73 +93,6 @@ type FsNode interface {
 	StatFs() *StatfsOut
 }
 
-// A filesystem API that uses paths rather than inodes.  A minimal
-// file system should have at least a functional GetAttr method.
-// Typically, each call happens in its own goroutine, so take care to
-// make the file system thread-safe.
-//
-// Include DefaultFileSystem to provide a default null implementation of
-// required methods.
-type FileSystem interface {
-	// Used for pretty printing.
-	String() string
-
-	// Attributes.  This function is the main entry point, through
-	// which FUSE discovers which files and directories exist.
-	//
-	// If the filesystem wants to implement hard-links, it should
-	// return consistent non-zero FileInfo.Ino data.  Using
-	// hardlinks incurs a performance hit.
-	GetAttr(name string, context *Context) (*Attr, Status)
-
-	// These should update the file's ctime too.
-	Chmod(name string, mode uint32, context *Context) (code Status)
-	Chown(name string, uid uint32, gid uint32, context *Context) (code Status)
-	Utimens(name string, Atime *time.Time, Mtime *time.Time, context *Context) (code Status)
-
-	Truncate(name string, size uint64, context *Context) (code Status)
-
-	Access(name string, mode uint32, context *Context) (code Status)
-
-	// Tree structure
-	Link(oldName string, newName string, context *Context) (code Status)
-	Mkdir(name string, mode uint32, context *Context) Status
-	Mknod(name string, mode uint32, dev uint32, context *Context) Status
-	Rename(oldName string, newName string, context *Context) (code Status)
-	Rmdir(name string, context *Context) (code Status)
-	Unlink(name string, context *Context) (code Status)
-
-	// Extended attributes.
-	GetXAttr(name string, attribute string, context *Context) (data []byte, code Status)
-	ListXAttr(name string, context *Context) (attributes []string, code Status)
-	RemoveXAttr(name string, attr string, context *Context) Status
-	SetXAttr(name string, attr string, data []byte, flags int, context *Context) Status
-
-	// Called after mount.
-	OnMount(nodeFs *PathNodeFs)
-	OnUnmount()
-
-	// File handling.  If opening for writing, the file's mtime
-	// should be updated too.
-	Open(name string, flags uint32, context *Context) (file File, code Status)
-	Create(name string, flags uint32, mode uint32, context *Context) (file File, code Status)
-
-	// Directory handling
-	OpenDir(name string, context *Context) (stream []DirEntry, code Status)
-
-	// Symlinks.
-	Symlink(value string, linkName string, context *Context) (code Status)
-	Readlink(name string, context *Context) (string, Status)
-
-	StatFs(name string) *StatfsOut
-}
-
-type PathNodeFsOptions struct {
-	// If ClientInodes is set, use Inode returned from GetAttr to
-	// find hard-linked files.
-	ClientInodes bool
-}
-
 // A File object should be returned from FileSystem.Open and
 // FileSystem.Create.  Include DefaultFile into the struct to inherit
 // a default null implementation.
@@ -279,9 +212,6 @@ type MountOptions struct {
 	// small.
 	Name string
 }
-
-// DefaultFileSystem implements a FileSystem that returns ENOSYS for every operation.
-type DefaultFileSystem struct{}
 
 // DefaultFile returns ENOSYS for every operation.
 type DefaultFile struct{}

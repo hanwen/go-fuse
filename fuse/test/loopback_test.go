@@ -14,8 +14,9 @@ import (
 	"syscall"
 	"testing"
 	"time"
-	
+
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
 var _ = strings.Join
@@ -37,7 +38,7 @@ type testCase struct {
 	origSubdir  string
 	tester      *testing.T
 	state       *fuse.MountState
-	pathFs      *fuse.PathNodeFs
+	pathFs      *pathfs.PathNodeFs
 	connector   *fuse.FileSystemConnector
 }
 
@@ -70,12 +71,12 @@ func NewTestCase(t *testing.T) *testCase {
 	me.origFile = filepath.Join(me.orig, name)
 	me.origSubdir = filepath.Join(me.orig, subdir)
 
-	var pfs fuse.FileSystem
-	pfs = fuse.NewLoopbackFileSystem(me.orig)
-	pfs = fuse.NewLockingFileSystem(pfs)
+	var pfs pathfs.FileSystem
+	pfs = pathfs.NewLoopbackFileSystem(me.orig)
+	pfs = pathfs.NewLockingFileSystem(pfs)
 
 	var rfs fuse.RawFileSystem
-	me.pathFs = fuse.NewPathNodeFs(pfs, &fuse.PathNodeFsOptions{
+	me.pathFs = pathfs.NewPathNodeFs(pfs, &pathfs.PathNodeFsOptions{
 		ClientInodes: true})
 	me.connector = fuse.NewFileSystemConnector(me.pathFs,
 		&fuse.FileSystemOptions{
@@ -928,8 +929,8 @@ func TestOriginalIsSymlink(t *testing.T) {
 		t.Fatalf("Symlink failed: %v", err)
 	}
 
-	fs := fuse.NewLoopbackFileSystem(link)
-	nfs := fuse.NewPathNodeFs(fs, nil)
+	fs := pathfs.NewLoopbackFileSystem(link)
+	nfs := pathfs.NewPathNodeFs(fs, nil)
 	state, _, err := fuse.MountNodeFileSystem(mnt, nfs, nil)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)

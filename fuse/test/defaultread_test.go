@@ -7,12 +7,13 @@ import (
 	"testing"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
 var _ = log.Println
 
 type DefaultReadFS struct {
-	fuse.DefaultFileSystem
+	pathfs.DefaultFileSystem
 	size  uint64
 	exist bool
 }
@@ -38,7 +39,7 @@ func defaultReadTest(t *testing.T) (root string, cleanup func()) {
 	if err != nil {
 		t.Fatalf("TempDir failed: %v", err)
 	}
-	pathfs := fuse.NewPathNodeFs(fs, nil)
+	pathfs := pathfs.NewPathNodeFs(fs, nil)
 	state, _, err := fuse.MountNodeFileSystem(dir, pathfs, nil)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)

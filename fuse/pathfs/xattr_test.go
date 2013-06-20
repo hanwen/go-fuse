@@ -1,4 +1,4 @@
-package fuse
+package pathfs
 
 import (
 	"bytes"
@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"syscall"
 	"testing"
+
+	"github.com/hanwen/go-fuse/fuse"
 )
 
 var _ = log.Print
@@ -35,64 +37,64 @@ func NewXAttrFs(nm string, m map[string][]byte) *XAttrTestFs {
 	return x
 }
 
-func (fs *XAttrTestFs) GetAttr(name string, context *Context) (*Attr, Status) {
-	a := &Attr{}
+func (fs *XAttrTestFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
+	a := &fuse.Attr{}
 	if name == "" || name == "/" {
-		a.Mode = S_IFDIR | 0700
-		return a, OK
+		a.Mode = fuse.S_IFDIR | 0700
+		return a, fuse.OK
 	}
 	if name == fs.filename {
-		a.Mode = S_IFREG | 0600
-		return a, OK
+		a.Mode = fuse.S_IFREG | 0600
+		return a, fuse.OK
 	}
-	return nil, ENOENT
+	return nil, fuse.ENOENT
 }
 
-func (fs *XAttrTestFs) SetXAttr(name string, attr string, data []byte, flags int, context *Context) Status {
+func (fs *XAttrTestFs) SetXAttr(name string, attr string, data []byte, flags int, context *fuse.Context) fuse.Status {
 	fs.tester.Log("SetXAttr", name, attr, string(data), flags)
 	if name != fs.filename {
-		return ENOENT
+		return fuse.ENOENT
 	}
 	dest := make([]byte, len(data))
 	copy(dest, data)
 	fs.attrs[attr] = dest
-	return OK
+	return fuse.OK
 }
 
-func (fs *XAttrTestFs) GetXAttr(name string, attr string, context *Context) ([]byte, Status) {
+func (fs *XAttrTestFs) GetXAttr(name string, attr string, context *fuse.Context) ([]byte, fuse.Status) {
 	if name != fs.filename {
-		return nil, ENOENT
+		return nil, fuse.ENOENT
 	}
 	v, ok := fs.attrs[attr]
 	if !ok {
-		return nil, ENODATA
+		return nil, fuse.ENODATA
 	}
 	fs.tester.Log("GetXAttr", string(v))
-	return v, OK
+	return v, fuse.OK
 }
 
-func (fs *XAttrTestFs) ListXAttr(name string, context *Context) (data []string, code Status) {
+func (fs *XAttrTestFs) ListXAttr(name string, context *fuse.Context) (data []string, code fuse.Status) {
 	if name != fs.filename {
-		return nil, ENOENT
+		return nil, fuse.ENOENT
 	}
 
 	for k := range fs.attrs {
 		data = append(data, k)
 	}
-	return data, OK
+	return data, fuse.OK
 }
 
-func (fs *XAttrTestFs) RemoveXAttr(name string, attr string, context *Context) Status {
+func (fs *XAttrTestFs) RemoveXAttr(name string, attr string, context *fuse.Context) fuse.Status {
 	if name != fs.filename {
-		return ENOENT
+		return fuse.ENOENT
 	}
 	_, ok := fs.attrs[attr]
 	fs.tester.Log("RemoveXAttr", name, attr, ok)
 	if !ok {
-		return ENODATA
+		return fuse.ENODATA
 	}
 	delete(fs.attrs, attr)
-	return OK
+	return fuse.OK
 }
 
 func readXAttr(p, a string) (val []byte, errno int) {
@@ -109,11 +111,11 @@ func xattrTestCase(t *testing.T, nm string) (mountPoint string, cleanup func()) 
 	}
 
 	nfs := NewPathNodeFs(xfs, nil)
-	state, _, err := MountNodeFileSystem(mountPoint, nfs, nil)
+	state, _, err := fuse.MountNodeFileSystem(mountPoint, nfs, nil)
 	if err != nil {
 		t.Fatalf("TempDir failed: %v", err)
 	}
-	state.Debug = VerboseTest()
+	state.Debug = fuse.VerboseTest()
 
 	go state.Loop()
 	return mountPoint, func() {
@@ -180,7 +182,7 @@ func TestXAttrRead(t *testing.T) {
 
 	Removexattr(mounted, "third")
 	val, errno = readXAttr(mounted, "third")
-	if errno != int(ENODATA) {
+	if errno != int(fuse.ENODATA) {
 		t.Error("Data not removed?", errno, val)
 	}
 }

@@ -1,12 +1,14 @@
 package zipfs
 
 import (
-	"github.com/hanwen/go-fuse/fuse"
 	"io/ioutil"
 	"log"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
 var _ = log.Printf
@@ -16,7 +18,7 @@ const testTtl = 100 * time.Millisecond
 func setupMzfs(t *testing.T) (mountPoint string, cleanup func()) {
 	fs := NewMultiZipFs()
 	mountPoint, _ = ioutil.TempDir("", "")
-	nfs := fuse.NewPathNodeFs(fs, nil)
+	nfs := pathfs.NewPathNodeFs(fs, nil)
 	state, _, err := fuse.MountNodeFileSystem(mountPoint, nfs, &fuse.FileSystemOptions{
 		EntryTimeout:    testTtl,
 		AttrTimeout:     testTtl,

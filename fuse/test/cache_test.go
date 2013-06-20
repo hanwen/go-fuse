@@ -1,34 +1,37 @@
-package fuse
+package test
 
 import (
 	"bytes"
-	"github.com/hanwen/go-fuse/raw"
 	"io/ioutil"
 	"log"
 	"os"
 	"sync"
 	"testing"
+
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
+	"github.com/hanwen/go-fuse/raw"
 )
 
 var _ = log.Println
 
 type cacheFs struct {
-	*LoopbackFileSystem
+	*pathfs.LoopbackFileSystem
 }
 
-func (fs *cacheFs) Open(name string, flags uint32, context *Context) (fuseFile File, status Status) {
+func (fs *cacheFs) Open(name string, flags uint32, context *fuse.Context) (fuseFile fuse.File, status fuse.Status) {
 	f, c := fs.LoopbackFileSystem.Open(name, flags, context)
 	if !c.Ok() {
 		return f, c
 	}
-	return &WithFlags{
+	return &fuse.WithFlags{
 		File:      f,
 		FuseFlags: raw.FOPEN_KEEP_CACHE,
 	}, c
 
 }
 
-func setupCacheTest(t *testing.T) (string, *PathNodeFs, func()) {
+func setupCacheTest(t *testing.T) (string, *pathfs.PathNodeFs, func()) {
 	dir, err := ioutil.TempDir("", "go-fuse-cachetest")
 	if err != nil {
 		t.Fatalf("TempDir failed: %v", err)
@@ -37,16 +40,16 @@ func setupCacheTest(t *testing.T) (string, *PathNodeFs, func()) {
 	os.Mkdir(dir+"/orig", 0755)
 
 	fs := &cacheFs{
-		LoopbackFileSystem: NewLoopbackFileSystem(dir + "/orig"),
+		LoopbackFileSystem: pathfs.NewLoopbackFileSystem(dir + "/orig"),
 	}
-	pfs := NewPathNodeFs(fs, nil)
-	state, conn, err := MountNodeFileSystem(dir+"/mnt", pfs, nil)
+	pfs := pathfs.NewPathNodeFs(fs, nil)
+	state, conn, err := fuse.MountNodeFileSystem(dir+"/mnt", pfs, nil)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
-	state.Debug = VerboseTest()
-	conn.Debug = VerboseTest()
-	pfs.Debug = VerboseTest()
+	state.Debug = fuse.VerboseTest()
+	conn.Debug = fuse.VerboseTest()
+	pfs.Debug = fuse.VerboseTest()
 	go state.Loop()
 
 	return dir, pfs, func() {
@@ -106,28 +109,28 @@ func TestCacheFs(t *testing.T) {
 }
 
 type nonseekFs struct {
-	DefaultFileSystem
+	pathfs.DefaultFileSystem
 	Length int
 }
 
-func (fs *nonseekFs) GetAttr(name string, context *Context) (fi *Attr, status Status) {
+func (fs *nonseekFs) GetAttr(name string, context *fuse.Context) (fi *fuse.Attr, status fuse.Status) {
 	if name == "file" {
-		return &Attr{Mode: S_IFREG | 0644}, OK
+		return &fuse.Attr{Mode: fuse.S_IFREG | 0644}, fuse.OK
 	}
-	return nil, ENOENT
+	return nil, fuse.ENOENT
 }
 
-func (fs *nonseekFs) Open(name string, flags uint32, context *Context) (fuseFile File, status Status) {
+func (fs *nonseekFs) Open(name string, flags uint32, context *fuse.Context) (fuseFile fuse.File, status fuse.Status) {
 	if name != "file" {
-		return nil, ENOENT
+		return nil, fuse.ENOENT
 	}
 
 	data := bytes.Repeat([]byte{42}, fs.Length)
-	f := NewDataFile(data)
-	return &WithFlags{
+	f := fuse.NewDataFile(data)
+	return &fuse.WithFlags{
 		File:      f,
 		FuseFlags: raw.FOPEN_NONSEEKABLE,
-	}, OK
+	}, fuse.OK
 }
 
 func TestNonseekable(t *testing.T) {
@@ -139,12 +142,12 @@ func TestNonseekable(t *testing.T) {
 		t.Fatalf("failed: %v", err)
 	}
 	defer os.RemoveAll(dir)
-	nfs := NewPathNodeFs(fs, nil)
-	state, _, err := MountNodeFileSystem(dir, nfs, nil)
+	nfs := pathfs.NewPathNodeFs(fs, nil)
+	state, _, err := fuse.MountNodeFileSystem(dir, nfs, nil)
 	if err != nil {
 		t.Fatalf("failed: %v", err)
 	}
-	state.Debug = VerboseTest()
+	state.Debug = fuse.VerboseTest()
 	defer state.Unmount()
 
 	go state.Loop()
@@ -171,16 +174,16 @@ func TestGetAttrRace(t *testing.T) {
 	os.Mkdir(dir+"/mnt", 0755)
 	os.Mkdir(dir+"/orig", 0755)
 
-	fs := NewLoopbackFileSystem(dir + "/orig")
-	pfs := NewPathNodeFs(fs, nil)
-	state, conn, err := MountNodeFileSystem(dir+"/mnt", pfs,
-		&FileSystemOptions{})
+	fs := pathfs.NewLoopbackFileSystem(dir + "/orig")
+	pfs := pathfs.NewPathNodeFs(fs, nil)
+	state, conn, err := fuse.MountNodeFileSystem(dir+"/mnt", pfs,
+		&fuse.FileSystemOptions{})
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
-	state.Debug = VerboseTest()
-	conn.Debug = VerboseTest()
-	pfs.Debug = VerboseTest()
+	state.Debug = fuse.VerboseTest()
+	conn.Debug = fuse.VerboseTest()
+	pfs.Debug = fuse.VerboseTest()
 	go state.Loop()
 
 	defer state.Unmount()

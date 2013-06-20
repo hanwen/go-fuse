@@ -59,7 +59,7 @@ func TestDeleteNotify(t *testing.T) {
 	ch.FsNode().SetInode(nil)
 	flip := flipNode{
 		FsNode: ch.FsNode(),
-		ok:      make(chan int),
+		ok:     make(chan int),
 	}
 	newCh := fs.Root().Inode().New(true, &flip)
 	fs.Root().Inode().AddChild("testdir", newCh)

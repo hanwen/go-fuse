@@ -1,16 +1,18 @@
 package benchmark
 
 import (
-	"github.com/hanwen/go-fuse/fuse"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
 var delay = 0 * time.Microsecond
 
 type StatFs struct {
-	fuse.DefaultFileSystem
+	pathfs.DefaultFileSystem
 	entries map[string]*fuse.Attr
 	dirs    map[string][]fuse.DirEntry
 	delay   time.Duration

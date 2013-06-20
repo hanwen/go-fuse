@@ -1,10 +1,12 @@
-package fuse
+package pathfs
 
 import (
 	"io/ioutil"
 	"os"
 	"syscall"
 	"testing"
+
+	"github.com/hanwen/go-fuse/fuse"
 )
 
 type ownerFs struct {
@@ -13,26 +15,26 @@ type ownerFs struct {
 
 const _RANDOM_OWNER = 31415265
 
-func (fs *ownerFs) GetAttr(name string, context *Context) (*Attr, Status) {
+func (fs *ownerFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	if name == "" {
-		return &Attr{
-			Mode: S_IFDIR | 0755,
-		}, OK
+		return &fuse.Attr{
+			Mode: fuse.S_IFDIR | 0755,
+		}, fuse.OK
 	}
-	a := &Attr{
-		Mode: S_IFREG | 0644,
+	a := &fuse.Attr{
+		Mode: fuse.S_IFREG | 0644,
 	}
 	a.Uid = _RANDOM_OWNER
 	a.Gid = _RANDOM_OWNER
-	return a, OK
+	return a, fuse.OK
 }
 
-func setupOwnerTest(t *testing.T, opts *FileSystemOptions) (workdir string, cleanup func()) {
+func setupOwnerTest(t *testing.T, opts *fuse.FileSystemOptions) (workdir string, cleanup func()) {
 	wd, err := ioutil.TempDir("", "go-fuse-owner_test")
 
 	fs := &ownerFs{}
 	nfs := NewPathNodeFs(fs, nil)
-	state, _, err := MountNodeFileSystem(wd, nfs, opts)
+	state, _, err := fuse.MountNodeFileSystem(wd, nfs, opts)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
@@ -44,7 +46,7 @@ func setupOwnerTest(t *testing.T, opts *FileSystemOptions) (workdir string, clea
 }
 
 func TestOwnerDefault(t *testing.T) {
-	wd, cleanup := setupOwnerTest(t, NewFileSystemOptions())
+	wd, cleanup := setupOwnerTest(t, fuse.NewFileSystemOptions())
 	defer cleanup()
 
 	var stat syscall.Stat_t
@@ -59,7 +61,7 @@ func TestOwnerDefault(t *testing.T) {
 }
 
 func TestOwnerRoot(t *testing.T) {
-	wd, cleanup := setupOwnerTest(t, &FileSystemOptions{})
+	wd, cleanup := setupOwnerTest(t, &fuse.FileSystemOptions{})
 	defer cleanup()
 
 	var st syscall.Stat_t
@@ -74,7 +76,7 @@ func TestOwnerRoot(t *testing.T) {
 }
 
 func TestOwnerOverride(t *testing.T) {
-	wd, cleanup := setupOwnerTest(t, &FileSystemOptions{Owner: &Owner{42, 43}})
+	wd, cleanup := setupOwnerTest(t, &fuse.FileSystemOptions{Owner: &fuse.Owner{42, 43}})
 	defer cleanup()
 
 	var stat syscall.Stat_t

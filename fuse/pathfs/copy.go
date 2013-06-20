@@ -1,10 +1,12 @@
-package fuse
+package pathfs
 
 import (
 	"os"
+
+	"github.com/hanwen/go-fuse/fuse"
 )
 
-func CopyFile(srcFs, destFs FileSystem, srcFile, destFile string, context *Context) Status {
+func CopyFile(srcFs, destFs FileSystem, srcFile, destFile string, context *fuse.Context) fuse.Status {
 	src, code := srcFs.Open(srcFile, uint32(os.O_RDONLY), context)
 	if !code.Ok() {
 		return code
@@ -44,12 +46,12 @@ func CopyFile(srcFs, destFs FileSystem, srcFile, destFile string, context *Conte
 			return code
 		}
 		if int(n) < len(data) {
-			return EIO
+			return fuse.EIO
 		}
 		if len(data) < len(buf) {
 			break
 		}
 		off += int64(len(data))
 	}
-	return OK
+	return fuse.OK
 }

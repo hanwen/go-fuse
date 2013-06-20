@@ -1,4 +1,4 @@
-package fuse
+package pathfs
 
 import (
 	"io/ioutil"

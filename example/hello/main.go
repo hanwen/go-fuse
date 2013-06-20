@@ -4,12 +4,14 @@ package main
 
 import (
 	"flag"
-	"github.com/hanwen/go-fuse/fuse"
 	"log"
+
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
 type HelloFs struct {
-	fuse.DefaultFileSystem
+	pathfs.DefaultFileSystem
 }
 
 func (me *HelloFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
@@ -49,7 +51,7 @@ func main() {
 	if len(flag.Args()) < 1 {
 		log.Fatal("Usage:\n  hello MOUNTPOINT")
 	}
-	nfs := fuse.NewPathNodeFs(&HelloFs{}, nil)
+	nfs := pathfs.NewPathNodeFs(&HelloFs{}, nil)
 	state, _, err := fuse.MountNodeFileSystem(flag.Arg(0), nfs, nil)
 	if err != nil {
 		log.Fatal("Mount fail: %v\n", err)

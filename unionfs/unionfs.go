@@ -3,8 +3,6 @@ package unionfs
 import (
 	"crypto/md5"
 	"fmt"
-	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/raw"
 	"log"
 	"os"
 	"path"
@@ -13,6 +11,10 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
+	"github.com/hanwen/go-fuse/raw"
 )
 
 func filePathHash(path string) string {
@@ -55,10 +57,10 @@ func filePathHash(path string) string {
 
 */
 type UnionFs struct {
-	fuse.DefaultFileSystem
+	pathfs.DefaultFileSystem
 
 	// The same, but as interfaces.
-	fileSystems []fuse.FileSystem
+	fileSystems []pathfs.FileSystem
 
 	// A file-existence cache.
 	deletionCache *DirCache
@@ -70,7 +72,7 @@ type UnionFs struct {
 	hiddenFiles map[string]bool
 
 	options *UnionFsOptions
-	nodeFs  *fuse.PathNodeFs
+	nodeFs  *pathfs.PathNodeFs
 }
 
 type UnionFsOptions struct {
@@ -84,7 +86,7 @@ const (
 	_DROP_CACHE = ".drop_cache"
 )
 
-func NewUnionFs(fileSystems []fuse.FileSystem, options UnionFsOptions) *UnionFs {
+func NewUnionFs(fileSystems []pathfs.FileSystem, options UnionFsOptions) *UnionFs {
 	g := new(UnionFs)
 	g.options = &options
 	g.fileSystems = fileSystems
@@ -109,7 +111,7 @@ func NewUnionFs(fileSystems []fuse.FileSystem, options UnionFsOptions) *UnionFs 
 	return g
 }
 
-func (fs *UnionFs) OnMount(nodeFs *fuse.PathNodeFs) {
+func (fs *UnionFs) OnMount(nodeFs *pathfs.PathNodeFs) {
 	fs.nodeFs = nodeFs
 }
 
@@ -275,7 +277,7 @@ func (fs *UnionFs) Promote(name string, srcResult branchResult, context *fuse.Co
 	fs.promoteDirsTo(name)
 
 	if srcResult.attr.IsRegular() {
-		code = fuse.CopyFile(sourceFs, writable, name, name, context)
+		code = pathfs.CopyFile(sourceFs, writable, name, name, context)
 
 		if code.Ok() {
 			code = writable.Chmod(name, srcResult.attr.Mode&07777|0200, context)
@@ -598,7 +600,7 @@ func (fs *UnionFs) Readlink(name string, context *fuse.Context) (out string, cod
 	return "", fuse.ENOENT
 }
 
-func IsDir(fs fuse.FileSystem, name string) bool {
+func IsDir(fs pathfs.FileSystem, name string) bool {
 	a, code := fs.GetAttr(name, nil)
 	return code.Ok() && a.IsDir()
 }
@@ -742,7 +744,7 @@ func (fs *UnionFs) OpenDir(directory string, context *fuse.Context) (stream []fu
 	for i, l := range fs.fileSystems {
 		if i >= dirBranch.branch {
 			wg.Add(1)
-			go func(j int, pfs fuse.FileSystem) {
+			go func(j int, pfs pathfs.FileSystem) {
 				ch, s := pfs.OpenDir(directory, context)
 				statuses[j] = s
 				for _, v := range ch {

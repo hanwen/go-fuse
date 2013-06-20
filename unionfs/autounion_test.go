@@ -2,12 +2,14 @@ package unionfs
 
 import (
 	"fmt"
-	"github.com/hanwen/go-fuse/fuse"
 	"io/ioutil"
 	"log"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
 var _ = fmt.Print
@@ -53,7 +55,7 @@ func setup(t *testing.T) (workdir string, cleanup func()) {
 
 	fs := NewAutoUnionFs(wd+"/store", testAOpts)
 
-	nfs := fuse.NewPathNodeFs(fs, nil)
+	nfs := pathfs.NewPathNodeFs(fs, nil)
 	state, conn, err := fuse.MountNodeFileSystem(wd+"/mnt", nfs, &testAOpts.FileSystemOptions)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)

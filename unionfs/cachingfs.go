@@ -2,10 +2,12 @@ package unionfs
 
 import (
 	"fmt"
-	"github.com/hanwen/go-fuse/fuse"
 	"log"
 	"strings"
 	"time"
+
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
 var _ = fmt.Println
@@ -34,7 +36,7 @@ type linkResponse struct {
 
 // Caches filesystem metadata.
 type CachingFileSystem struct {
-	fuse.FileSystem
+	pathfs.FileSystem
 
 	attributes *TimedCache
 	dirs       *TimedCache
@@ -42,7 +44,7 @@ type CachingFileSystem struct {
 	xattr      *TimedCache
 }
 
-func readDir(fs fuse.FileSystem, name string) *dirResponse {
+func readDir(fs pathfs.FileSystem, name string) *dirResponse {
 	origStream, code := fs.OpenDir(name, nil)
 
 	r := &dirResponse{nil, code}
@@ -53,7 +55,7 @@ func readDir(fs fuse.FileSystem, name string) *dirResponse {
 	return r
 }
 
-func getAttr(fs fuse.FileSystem, name string) *attrResponse {
+func getAttr(fs pathfs.FileSystem, name string) *attrResponse {
 	a, code := fs.GetAttr(name, nil)
 	return &attrResponse{
 		Attr:   a,
@@ -61,7 +63,7 @@ func getAttr(fs fuse.FileSystem, name string) *attrResponse {
 	}
 }
 
-func getXAttr(fs fuse.FileSystem, nameAttr string) *xattrResponse {
+func getXAttr(fs pathfs.FileSystem, nameAttr string) *xattrResponse {
 	ns := strings.SplitN(nameAttr, _XATTRSEP, 2)
 	a, code := fs.GetXAttr(ns[0], ns[1], nil)
 	return &xattrResponse{
@@ -70,7 +72,7 @@ func getXAttr(fs fuse.FileSystem, nameAttr string) *xattrResponse {
 	}
 }
 
-func readLink(fs fuse.FileSystem, name string) *linkResponse {
+func readLink(fs pathfs.FileSystem, name string) *linkResponse {
 	a, code := fs.Readlink(name, nil)
 	return &linkResponse{
 		linkContent: a,
@@ -78,7 +80,7 @@ func readLink(fs fuse.FileSystem, name string) *linkResponse {
 	}
 }
 
-func NewCachingFileSystem(fs fuse.FileSystem, ttl time.Duration) *CachingFileSystem {
+func NewCachingFileSystem(fs pathfs.FileSystem, ttl time.Duration) *CachingFileSystem {
 	c := new(CachingFileSystem)
 	c.FileSystem = fs
 	c.attributes = NewTimedCache(func(n string) (interface{}, bool) {

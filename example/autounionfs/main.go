@@ -3,10 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/unionfs"
 	"os"
 	"time"
+
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
+	"github.com/hanwen/go-fuse/unionfs"
 )
 
 func main() {
@@ -48,7 +50,7 @@ func main() {
 			Owner:           fuse.CurrentOwner(),
 		},
 		UpdateOnMount: true,
-		PathNodeFsOptions: fuse.PathNodeFsOptions{
+		PathNodeFsOptions: pathfs.PathNodeFsOptions{
 			ClientInodes: *hardlinks,
 		},
 		HideReadonly: *hide_readonly_link,
@@ -58,7 +60,7 @@ func main() {
 	}
 	fmt.Printf("AutoUnionFs - Go-FUSE Version %v.\n", fuse.Version())
 	gofs := unionfs.NewAutoUnionFs(flag.Arg(1), options)
-	pathfs := fuse.NewPathNodeFs(gofs, nil)
+	pathfs := pathfs.NewPathNodeFs(gofs, nil)
 	state, conn, err := fuse.MountNodeFileSystem(flag.Arg(0), pathfs, &fsOpts)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)

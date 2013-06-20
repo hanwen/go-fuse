@@ -3,11 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/zipfs"
 	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
+	"github.com/hanwen/go-fuse/zipfs"
 )
 
 var _ = log.Printf
@@ -23,7 +25,7 @@ func main() {
 	}
 
 	fs := zipfs.NewMultiZipFs()
-	nfs := fuse.NewPathNodeFs(fs, nil)
+	nfs := pathfs.NewPathNodeFs(fs, nil)
 	state, _, err := fuse.MountNodeFileSystem(flag.Arg(0), nfs, nil)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)

@@ -1,20 +1,21 @@
 package unionfs
 
 import (
-	"github.com/hanwen/go-fuse/fuse"
 	"os"
+
+	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
 func NewUnionFsFromRoots(roots []string, opts *UnionFsOptions, roCaching bool) (*UnionFs, error) {
-	fses := make([]fuse.FileSystem, 0)
+	fses := make([]pathfs.FileSystem, 0)
 	for i, r := range roots {
-		var fs fuse.FileSystem
+		var fs pathfs.FileSystem
 		fi, err := os.Stat(r)
 		if err != nil {
 			return nil, err
 		}
 		if fi.IsDir() {
-			fs = fuse.NewLoopbackFileSystem(r)
+			fs = pathfs.NewLoopbackFileSystem(r)
 		}
 		if fs == nil {
 			return nil, err

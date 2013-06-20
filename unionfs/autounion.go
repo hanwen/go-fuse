@@ -12,11 +12,12 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
 type knownFs struct {
 	*UnionFs
-	*fuse.PathNodeFs
+	*pathfs.PathNodeFs
 }
 
 // Creates unions for all files under a given directory,
@@ -25,14 +26,14 @@ type knownFs struct {
 //
 // A union for A/B/C will placed under directory A-B-C.
 type AutoUnionFs struct {
-	fuse.DefaultFileSystem
+	pathfs.DefaultFileSystem
 
 	lock             sync.RWMutex
 	knownFileSystems map[string]knownFs
 	nameRootMap      map[string]string
 	root             string
 
-	nodeFs  *fuse.PathNodeFs
+	nodeFs  *pathfs.PathNodeFs
 	options *AutoUnionFsOptions
 
 	mountState *fuse.MountState
@@ -42,7 +43,7 @@ type AutoUnionFs struct {
 type AutoUnionFsOptions struct {
 	UnionFsOptions
 	fuse.FileSystemOptions
-	fuse.PathNodeFsOptions
+	pathfs.PathNodeFsOptions
 
 	// If set, run updateKnownFses() after mounting.
 	UpdateOnMount bool
@@ -82,7 +83,7 @@ func (fs *AutoUnionFs) String() string {
 	return fmt.Sprintf("AutoUnionFs(%s)", fs.root)
 }
 
-func (fs *AutoUnionFs) OnMount(nodeFs *fuse.PathNodeFs) {
+func (fs *AutoUnionFs) OnMount(nodeFs *pathfs.PathNodeFs) {
 	fs.nodeFs = nodeFs
 	if fs.options.UpdateOnMount {
 		time.AfterFunc(100*time.Millisecond, func() { fs.updateKnownFses() })
@@ -123,7 +124,7 @@ func (fs *AutoUnionFs) createFs(name string, roots []string) fuse.Status {
 	}
 
 	log.Printf("Adding workspace %v for roots %v", name, ufs.String())
-	nfs := fuse.NewPathNodeFs(ufs, &fs.options.PathNodeFsOptions)
+	nfs := pathfs.NewPathNodeFs(ufs, &fs.options.PathNodeFsOptions)
 	code := fs.nodeFs.Mount(name, nfs, &fs.options.FileSystemOptions)
 	if code.Ok() {
 		fs.knownFileSystems[name] = knownFs{

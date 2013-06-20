@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
 func TestMountOnExisting(t *testing.T) {
@@ -43,7 +44,7 @@ func TestMountRename(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
-	fs := fuse.NewPathNodeFs(fuse.NewLoopbackFileSystem(ts.orig), nil)
+	fs := pathfs.NewPathNodeFs(pathfs.NewLoopbackFileSystem(ts.orig), nil)
 	code := ts.connector.Mount(ts.rootNode(), "mnt", fs, nil)
 	if !code.Ok() {
 		t.Fatal("mount should succeed")
@@ -59,7 +60,7 @@ func TestMountReaddir(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
-	fs := fuse.NewPathNodeFs(fuse.NewLoopbackFileSystem(ts.orig), nil)
+	fs := pathfs.NewPathNodeFs(pathfs.NewLoopbackFileSystem(ts.orig), nil)
 	code := ts.connector.Mount(ts.rootNode(), "mnt", fs, nil)
 	if !code.Ok() {
 		t.Fatal("mount should succeed")
@@ -84,7 +85,7 @@ func TestRecursiveMount(t *testing.T) {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	fs := fuse.NewPathNodeFs(fuse.NewLoopbackFileSystem(ts.orig), nil)
+	fs := pathfs.NewPathNodeFs(pathfs.NewLoopbackFileSystem(ts.orig), nil)
 	code := ts.connector.Mount(ts.rootNode(), "mnt", fs, nil)
 	if !code.Ok() {
 		t.Fatal("mount should succeed")
@@ -126,7 +127,7 @@ func TestDeletedUnmount(t *testing.T) {
 	defer ts.Cleanup()
 
 	submnt := filepath.Join(ts.mnt, "mnt")
-	pfs2 := fuse.NewPathNodeFs(fuse.NewLoopbackFileSystem(ts.orig), nil)
+	pfs2 := pathfs.NewPathNodeFs(pathfs.NewLoopbackFileSystem(ts.orig), nil)
 	code := ts.connector.Mount(ts.rootNode(), "mnt", pfs2, nil)
 	if !code.Ok() {
 		t.Fatal("Mount error", code)

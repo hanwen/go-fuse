@@ -6,11 +6,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/hanwen/go-fuse/fuse"
 	"log"
 	"os"
 	"runtime"
 	"time"
+
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
 var _ = runtime.GOMAXPROCS
@@ -27,9 +29,9 @@ func main() {
 		os.Exit(2)
 	}
 
-	var finalFs fuse.FileSystem
+	var finalFs pathfs.FileSystem
 	orig := flag.Arg(1)
-	loopbackfs := fuse.NewLoopbackFileSystem(orig)
+	loopbackfs := pathfs.NewLoopbackFileSystem(orig)
 	finalFs = loopbackfs
 
 	opts := &fuse.FileSystemOptions{
@@ -39,7 +41,7 @@ func main() {
 		AttrTimeout:     time.Second,
 		EntryTimeout:    time.Second,
 	}
-	pathFs := fuse.NewPathNodeFs(finalFs, nil)
+	pathFs := pathfs.NewPathNodeFs(finalFs, nil)
 	conn := fuse.NewFileSystemConnector(pathFs, opts)
 	state := fuse.NewMountState(conn)
 	state.Debug = *debug

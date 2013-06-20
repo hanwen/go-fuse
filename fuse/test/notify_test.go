@@ -8,12 +8,13 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
 var _ = log.Println
 
 type NotifyFs struct {
-	fuse.DefaultFileSystem
+	pathfs.DefaultFileSystem
 	size  uint64
 	exist bool
 }
@@ -37,7 +38,7 @@ func (fs *NotifyFs) Open(name string, f uint32, context *fuse.Context) (fuse.Fil
 
 type NotifyTest struct {
 	fs        *NotifyFs
-	pathfs    *fuse.PathNodeFs
+	pathfs    *pathfs.PathNodeFs
 	connector *fuse.FileSystemConnector
 	dir       string
 	state     *fuse.MountState
@@ -58,7 +59,7 @@ func NewNotifyTest(t *testing.T) *NotifyTest {
 		NegativeTimeout: entryTtl,
 	}
 
-	me.pathfs = fuse.NewPathNodeFs(me.fs, nil)
+	me.pathfs = pathfs.NewPathNodeFs(me.fs, nil)
 	me.state, me.connector, err = fuse.MountNodeFileSystem(me.dir, me.pathfs, opts)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
