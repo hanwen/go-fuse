@@ -1,4 +1,4 @@
-package fuse
+package test
 
 import (
 	"bytes"
@@ -8,21 +8,23 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/hanwen/go-fuse/fuse"
 )
 
 type flipNode struct {
-	*memNode
+	fuse.FsNode
 	ok chan int
 }
 
-func (f *flipNode) GetAttr(out *Attr, file File, c *Context) Status {
+func (f *flipNode) GetAttr(out *fuse.Attr, file fuse.File, c *fuse.Context) fuse.Status {
 	select {
 	case <-f.ok:
 		// use a status that is easily recognizable.
-		return Status(syscall.EXDEV)
+		return fuse.Status(syscall.EXDEV)
 	default:
 	}
-	return f.memNode.GetAttr(out, file, c)
+	return f.FsNode.GetAttr(out, file, c)
 }
 
 func TestDeleteNotify(t *testing.T) {
@@ -31,10 +33,10 @@ func TestDeleteNotify(t *testing.T) {
 		t.Fatalf("TempDir failed %v", err)
 	}
 	defer os.RemoveAll(dir)
-	fs := NewMemNodeFs(dir + "/backing")
-	conn := NewFileSystemConnector(fs,
-		&FileSystemOptions{PortableInodes: true})
-	state := NewMountState(conn)
+	fs := fuse.NewMemNodeFs(dir + "/backing")
+	conn := fuse.NewFileSystemConnector(fs,
+		&fuse.FileSystemOptions{PortableInodes: true})
+	state := fuse.NewMountState(conn)
 	mnt := dir + "/mnt"
 	err = os.Mkdir(mnt, 0755)
 	if err != nil {
@@ -44,7 +46,7 @@ func TestDeleteNotify(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	state.Debug = VerboseTest()
+	state.Debug = fuse.VerboseTest()
 	go state.Loop()
 	defer state.Unmount()
 
@@ -54,9 +56,9 @@ func TestDeleteNotify(t *testing.T) {
 	}
 
 	ch := fs.Root().Inode().RmChild("testdir")
-	ch.FsNode().(*memNode).SetInode(nil)
+	ch.FsNode().SetInode(nil)
 	flip := flipNode{
-		memNode: ch.FsNode().(*memNode),
+		FsNode: ch.FsNode(),
 		ok:      make(chan int),
 	}
 	newCh := fs.Root().Inode().New(true, &flip)

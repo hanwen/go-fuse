@@ -5,9 +5,12 @@ import (
 	"log"
 	"os"
 	"testing"
+	"time"
 )
 
 var _ = log.Println
+
+const testTtl = 100 * time.Millisecond
 
 func setupMemNodeTest(t *testing.T) (wd string, fs *MemNodeFs, clean func()) {
 	tmp, err := ioutil.TempDir("", "go-fuse-memnode_test")

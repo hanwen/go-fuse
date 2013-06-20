@@ -1,4 +1,4 @@
-package fuse
+package test
 
 import (
 	"io/ioutil"
@@ -8,13 +8,14 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/raw"
+	"github.com/hanwen/go-fuse/fuse"
 )
 
 type MutableDataFile struct {
-	DefaultFile
+	fuse.DefaultFile
 
 	data []byte
-	Attr
+	fuse.Attr
 	GetAttrCalled bool
 }
 
@@ -22,16 +23,16 @@ func (f *MutableDataFile) String() string {
 	return "MutableDataFile"
 }
 
-func (f *MutableDataFile) Read(buf []byte, off int64) (ReadResult, Status) {
+func (f *MutableDataFile) Read(buf []byte, off int64) (fuse.ReadResult, fuse.Status) {
 	end := int(off) + len(buf)
 	if end > len(f.data) {
 		end = len(f.data)
 	}
 
-	return &ReadResultData{Data: f.data[off:end]}, OK
+	return &fuse.ReadResultData{Data: f.data[off:end]}, fuse.OK
 }
 
-func (f *MutableDataFile) Write(d []byte, off int64) (uint32, Status) {
+func (f *MutableDataFile) Write(d []byte, off int64) (uint32, fuse.Status) {
 	end := int64(len(d)) + off
 	if int(end) > len(f.data) {
 		data := make([]byte, len(f.data), end)
@@ -41,106 +42,106 @@ func (f *MutableDataFile) Write(d []byte, off int64) (uint32, Status) {
 	copy(f.data[off:end], d)
 	f.Attr.Size = uint64(len(f.data))
 
-	return uint32(end - off), OK
+	return uint32(end - off), fuse.OK
 }
 
-func (f *MutableDataFile) Flush() Status {
-	return OK
+func (f *MutableDataFile) Flush() fuse.Status {
+	return fuse.OK
 }
 
 func (f *MutableDataFile) Release() {
 
 }
 
-func (f *MutableDataFile) getAttr(out *Attr) {
+func (f *MutableDataFile) getAttr(out *fuse.Attr) {
 	*out = f.Attr
 	out.Size = uint64(len(f.data))
 }
 
-func (f *MutableDataFile) GetAttr(out *Attr) Status {
+func (f *MutableDataFile) GetAttr(out *fuse.Attr) fuse.Status {
 	f.GetAttrCalled = true
 	f.getAttr(out)
-	return OK
+	return fuse.OK
 }
 
-func (f *MutableDataFile) Utimens(atime *time.Time, mtime *time.Time) Status {
+func (f *MutableDataFile) Utimens(atime *time.Time, mtime *time.Time) fuse.Status {
 	f.Attr.SetTimes(atime, mtime, nil)
-	return OK
+	return fuse.OK
 }
 
-func (f *MutableDataFile) Truncate(size uint64) Status {
+func (f *MutableDataFile) Truncate(size uint64) fuse.Status {
 	f.data = f.data[:size]
-	return OK
+	return fuse.OK
 }
 
-func (f *MutableDataFile) Chown(uid uint32, gid uint32) Status {
+func (f *MutableDataFile) Chown(uid uint32, gid uint32) fuse.Status {
 	f.Attr.Uid = uid
 	f.Attr.Gid = gid
-	return OK
+	return fuse.OK
 }
 
-func (f *MutableDataFile) Chmod(perms uint32) Status {
+func (f *MutableDataFile) Chmod(perms uint32) fuse.Status {
 	f.Attr.Mode = (f.Attr.Mode &^ 07777) | perms
-	return OK
+	return fuse.OK
 }
 
 ////////////////
 
 // This FS only supports a single r/w file called "/file".
 type FSetAttrFs struct {
-	DefaultFileSystem
+	fuse.DefaultFileSystem
 	file *MutableDataFile
 }
 
-func (fs *FSetAttrFs) GetXAttr(name string, attr string, context *Context) ([]byte, Status) {
-	return nil, ENODATA
+func (fs *FSetAttrFs) GetXAttr(name string, attr string, context *fuse.Context) ([]byte, fuse.Status) {
+	return nil, fuse.ENODATA
 }
 
-func (fs *FSetAttrFs) GetAttr(name string, context *Context) (*Attr, Status) {
+func (fs *FSetAttrFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	if name == "" {
-		return &Attr{Mode: S_IFDIR | 0700}, OK
+		return &fuse.Attr{Mode: fuse.S_IFDIR | 0700}, fuse.OK
 	}
 	if name == "file" && fs.file != nil {
-		var a Attr
+		var a fuse.Attr
 		fs.file.getAttr(&a)
-		a.Mode |= S_IFREG
-		return &a, OK
+		a.Mode |= fuse.S_IFREG
+		return &a, fuse.OK
 	}
-	return nil, ENOENT
+	return nil, fuse.ENOENT
 }
 
-func (fs *FSetAttrFs) Open(name string, flags uint32, context *Context) (File, Status) {
+func (fs *FSetAttrFs) Open(name string, flags uint32, context *fuse.Context) (fuse.File, fuse.Status) {
 	if name == "file" {
-		return fs.file, OK
+		return fs.file, fuse.OK
 	}
-	return nil, ENOENT
+	return nil, fuse.ENOENT
 }
 
-func (fs *FSetAttrFs) Create(name string, flags uint32, mode uint32, context *Context) (File, Status) {
+func (fs *FSetAttrFs) Create(name string, flags uint32, mode uint32, context *fuse.Context) (fuse.File, fuse.Status) {
 	if name == "file" {
 		f := NewFile()
 		fs.file = f
 		fs.file.Attr.Mode = mode
-		return f, OK
+		return f, fuse.OK
 	}
-	return nil, ENOENT
+	return nil, fuse.ENOENT
 }
 
 func NewFile() *MutableDataFile {
 	return &MutableDataFile{}
 }
 
-func setupFAttrTest(t *testing.T, fs FileSystem) (dir string, clean func(), sync func()) {
+func setupFAttrTest(t *testing.T, fs fuse.FileSystem) (dir string, clean func(), sync func()) {
 	dir, err := ioutil.TempDir("", "go-fuse-fsetattr_test")
 	if err != nil {
 		t.Fatalf("TempDir failed: %v", err)
 	}
-	nfs := NewPathNodeFs(fs, nil)
-	state, _, err := MountNodeFileSystem(dir, nfs, nil)
+	nfs := fuse.NewPathNodeFs(fs, nil)
+	state, _, err := fuse.MountNodeFileSystem(dir, nfs, nil)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
-	state.Debug = VerboseTest()
+	state.Debug = fuse.VerboseTest()
 
 	go state.Loop()
 
@@ -233,8 +234,8 @@ func TestFSetAttr(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Stat failed: %v", err)
 	}
-	i1 := ToStatT(fi).Ino
-	i2 := ToStatT(newFi).Ino
+	i1 := fuse.ToStatT(fi).Ino
+	i2 := fuse.ToStatT(newFi).Ino
 	if i1 != i2 {
 		t.Errorf("f.Lstat().Ino = %d. Returned %d before.", i2, i1)
 	}

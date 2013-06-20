@@ -1,4 +1,4 @@
-package fuse
+package test
 
 import (
 	"fmt"
@@ -14,6 +14,8 @@ import (
 	"syscall"
 	"testing"
 	"time"
+	
+	"github.com/hanwen/go-fuse/fuse"
 )
 
 var _ = strings.Join
@@ -34,9 +36,9 @@ type testCase struct {
 	origFile    string
 	origSubdir  string
 	tester      *testing.T
-	state       *MountState
-	pathFs      *PathNodeFs
-	connector   *FileSystemConnector
+	state       *fuse.MountState
+	pathFs      *fuse.PathNodeFs
+	connector   *fuse.FileSystemConnector
 }
 
 const testTtl = 100 * time.Millisecond
@@ -45,7 +47,6 @@ const testTtl = 100 * time.Millisecond
 func NewTestCase(t *testing.T) *testCase {
 	me := &testCase{}
 	me.tester = t
-	paranoia = true
 
 	// Make sure system setting does not affect test.
 	syscall.Umask(0)
@@ -69,27 +70,27 @@ func NewTestCase(t *testing.T) *testCase {
 	me.origFile = filepath.Join(me.orig, name)
 	me.origSubdir = filepath.Join(me.orig, subdir)
 
-	var pfs FileSystem
-	pfs = NewLoopbackFileSystem(me.orig)
-	pfs = NewLockingFileSystem(pfs)
+	var pfs fuse.FileSystem
+	pfs = fuse.NewLoopbackFileSystem(me.orig)
+	pfs = fuse.NewLockingFileSystem(pfs)
 
-	var rfs RawFileSystem
-	me.pathFs = NewPathNodeFs(pfs, &PathNodeFsOptions{
+	var rfs fuse.RawFileSystem
+	me.pathFs = fuse.NewPathNodeFs(pfs, &fuse.PathNodeFsOptions{
 		ClientInodes: true})
-	me.connector = NewFileSystemConnector(me.pathFs,
-		&FileSystemOptions{
+	me.connector = fuse.NewFileSystemConnector(me.pathFs,
+		&fuse.FileSystemOptions{
 			EntryTimeout:    testTtl,
 			AttrTimeout:     testTtl,
 			NegativeTimeout: 0.0,
 		})
 	rfs = me.connector
-	rfs = NewLockingRawFileSystem(rfs)
+	rfs = fuse.NewLockingRawFileSystem(rfs)
 
-	me.connector.Debug = VerboseTest()
-	me.state = NewMountState(rfs)
+	me.connector.Debug = fuse.VerboseTest()
+	me.state = fuse.NewMountState(rfs)
 	me.state.Mount(me.mnt, nil)
 
-	me.state.Debug = VerboseTest()
+	me.state.Debug = fuse.VerboseTest()
 
 	// Unthreaded, but in background.
 	go me.state.Loop()
@@ -107,7 +108,7 @@ func (tc *testCase) Cleanup() {
 	os.RemoveAll(tc.tmpDir)
 }
 
-func (tc *testCase) rootNode() *Inode {
+func (tc *testCase) rootNode() *fuse.Inode {
 	return tc.pathFs.Root().Inode()
 }
 
@@ -821,6 +822,14 @@ func TestRootDir(t *testing.T) {
 	}
 }
 
+func ioctl(fd int, cmd int, arg uintptr) (int, int) {
+	r0, _, e1 := syscall.Syscall(
+		syscall.SYS_IOCTL, uintptr(fd), uintptr(cmd), uintptr(arg))
+	val := int(r0)
+	errno := int(e1)
+	return val, errno
+}
+
 func TestIoctl(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()
@@ -919,9 +928,9 @@ func TestOriginalIsSymlink(t *testing.T) {
 		t.Fatalf("Symlink failed: %v", err)
 	}
 
-	fs := NewLoopbackFileSystem(link)
-	nfs := NewPathNodeFs(fs, nil)
-	state, _, err := MountNodeFileSystem(mnt, nfs, nil)
+	fs := fuse.NewLoopbackFileSystem(link)
+	nfs := fuse.NewPathNodeFs(fs, nil)
+	state, _, err := fuse.MountNodeFileSystem(mnt, nfs, nil)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}

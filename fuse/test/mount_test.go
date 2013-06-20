@@ -1,4 +1,4 @@
-package fuse
+package test
 
 import (
 	"io/ioutil"
@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/hanwen/go-fuse/fuse"
 )
 
 func TestMountOnExisting(t *testing.T) {
@@ -16,9 +18,9 @@ func TestMountOnExisting(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Mkdir failed: %v", err)
 	}
-	nfs := &DefaultNodeFileSystem{}
+	nfs := &fuse.DefaultNodeFileSystem{}
 	code := ts.connector.Mount(ts.rootNode(), "mnt", nfs, nil)
-	if code != EBUSY {
+	if code != fuse.EBUSY {
 		t.Fatal("expect EBUSY:", code)
 	}
 
@@ -41,13 +43,13 @@ func TestMountRename(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
-	fs := NewPathNodeFs(NewLoopbackFileSystem(ts.orig), nil)
+	fs := fuse.NewPathNodeFs(fuse.NewLoopbackFileSystem(ts.orig), nil)
 	code := ts.connector.Mount(ts.rootNode(), "mnt", fs, nil)
 	if !code.Ok() {
 		t.Fatal("mount should succeed")
 	}
 	err := os.Rename(ts.mnt+"/mnt", ts.mnt+"/foobar")
-	if ToStatus(err) != EBUSY {
+	if fuse.ToStatus(err) != fuse.EBUSY {
 		t.Fatal("rename mount point should fail with EBUSY:", err)
 	}
 	ts.pathFs.Unmount("mnt")
@@ -57,7 +59,7 @@ func TestMountReaddir(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
-	fs := NewPathNodeFs(NewLoopbackFileSystem(ts.orig), nil)
+	fs := fuse.NewPathNodeFs(fuse.NewLoopbackFileSystem(ts.orig), nil)
 	code := ts.connector.Mount(ts.rootNode(), "mnt", fs, nil)
 	if !code.Ok() {
 		t.Fatal("mount should succeed")
@@ -82,7 +84,7 @@ func TestRecursiveMount(t *testing.T) {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	fs := NewPathNodeFs(NewLoopbackFileSystem(ts.orig), nil)
+	fs := fuse.NewPathNodeFs(fuse.NewLoopbackFileSystem(ts.orig), nil)
 	code := ts.connector.Mount(ts.rootNode(), "mnt", fs, nil)
 	if !code.Ok() {
 		t.Fatal("mount should succeed")
@@ -104,7 +106,7 @@ func TestRecursiveMount(t *testing.T) {
 	}
 	t.Log("Attempting unmount, should fail")
 	code = ts.pathFs.Unmount("mnt")
-	if code != EBUSY {
+	if code != fuse.EBUSY {
 		t.Error("expect EBUSY")
 	}
 
@@ -114,7 +116,7 @@ func TestRecursiveMount(t *testing.T) {
 
 	t.Log("Attempting unmount, should succeed")
 	code = ts.pathFs.Unmount("mnt")
-	if code != OK {
+	if code != fuse.OK {
 		t.Error("umount failed.", code)
 	}
 }
@@ -124,7 +126,7 @@ func TestDeletedUnmount(t *testing.T) {
 	defer ts.Cleanup()
 
 	submnt := filepath.Join(ts.mnt, "mnt")
-	pfs2 := NewPathNodeFs(NewLoopbackFileSystem(ts.orig), nil)
+	pfs2 := fuse.NewPathNodeFs(fuse.NewLoopbackFileSystem(ts.orig), nil)
 	code := ts.connector.Mount(ts.rootNode(), "mnt", pfs2, nil)
 	if !code.Ok() {
 		t.Fatal("Mount error", code)
@@ -147,7 +149,7 @@ func TestDeletedUnmount(t *testing.T) {
 	}
 
 	code = ts.pathFs.Unmount("mnt")
-	if code != EBUSY {
+	if code != fuse.EBUSY {
 		t.Error("expect EBUSY for unmount with open files", code)
 	}
 

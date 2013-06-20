@@ -1,32 +1,34 @@
-package fuse
+package test
 
 import (
 	"io/ioutil"
 	"log"
 	"os"
 	"testing"
+
+	"github.com/hanwen/go-fuse/fuse"
 )
 
 var _ = log.Println
 
 type DefaultReadFS struct {
-	DefaultFileSystem
+	fuse.DefaultFileSystem
 	size  uint64
 	exist bool
 }
 
-func (fs *DefaultReadFS) GetAttr(name string, context *Context) (*Attr, Status) {
+func (fs *DefaultReadFS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	if name == "" {
-		return &Attr{Mode: S_IFDIR | 0755}, OK
+		return &fuse.Attr{Mode: fuse.S_IFDIR | 0755}, fuse.OK
 	}
 	if name == "file" {
-		return &Attr{Mode: S_IFREG | 0644, Size: fs.size}, OK
+		return &fuse.Attr{Mode: fuse.S_IFREG | 0644, Size: fs.size}, fuse.OK
 	}
-	return nil, ENOENT
+	return nil, fuse.ENOENT
 }
 
-func (fs *DefaultReadFS) Open(name string, f uint32, context *Context) (File, Status) {
-	return &DefaultFile{}, OK
+func (fs *DefaultReadFS) Open(name string, f uint32, context *fuse.Context) (fuse.File, fuse.Status) {
+	return &fuse.DefaultFile{}, fuse.OK
 }
 
 func defaultReadTest(t *testing.T) (root string, cleanup func()) {
@@ -36,12 +38,12 @@ func defaultReadTest(t *testing.T) (root string, cleanup func()) {
 	if err != nil {
 		t.Fatalf("TempDir failed: %v", err)
 	}
-	pathfs := NewPathNodeFs(fs, nil)
-	state, _, err := MountNodeFileSystem(dir, pathfs, nil)
+	pathfs := fuse.NewPathNodeFs(fs, nil)
+	state, _, err := fuse.MountNodeFileSystem(dir, pathfs, nil)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
-	state.Debug = VerboseTest()
+	state.Debug = fuse.VerboseTest()
 	go state.Loop()
 
 	return dir, func() {

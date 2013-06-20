@@ -1,4 +1,4 @@
-package fuse
+package test
 
 import (
 	"io/ioutil"
@@ -6,39 +6,41 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/hanwen/go-fuse/fuse"
 )
 
 var _ = log.Println
 
 type NotifyFs struct {
-	DefaultFileSystem
+	fuse.DefaultFileSystem
 	size  uint64
 	exist bool
 }
 
-func (fs *NotifyFs) GetAttr(name string, context *Context) (*Attr, Status) {
+func (fs *NotifyFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	if name == "" {
-		return &Attr{Mode: S_IFDIR | 0755}, OK
+		return &fuse.Attr{Mode: fuse.S_IFDIR | 0755}, fuse.OK
 	}
 	if name == "file" || (name == "dir/file" && fs.exist) {
-		return &Attr{Mode: S_IFREG | 0644, Size: fs.size}, OK
+		return &fuse.Attr{Mode: fuse.S_IFREG | 0644, Size: fs.size}, fuse.OK
 	}
 	if name == "dir" {
-		return &Attr{Mode: S_IFDIR | 0755}, OK
+		return &fuse.Attr{Mode: fuse.S_IFDIR | 0755}, fuse.OK
 	}
-	return nil, ENOENT
+	return nil, fuse.ENOENT
 }
 
-func (fs *NotifyFs) Open(name string, f uint32, context *Context) (File, Status) {
-	return NewDataFile([]byte{42}), OK
+func (fs *NotifyFs) Open(name string, f uint32, context *fuse.Context) (fuse.File, fuse.Status) {
+	return fuse.NewDataFile([]byte{42}), fuse.OK
 }
 
 type NotifyTest struct {
 	fs        *NotifyFs
-	pathfs    *PathNodeFs
-	connector *FileSystemConnector
+	pathfs    *fuse.PathNodeFs
+	connector *fuse.FileSystemConnector
 	dir       string
-	state     *MountState
+	state     *fuse.MountState
 }
 
 func NewNotifyTest(t *testing.T) *NotifyTest {
@@ -50,18 +52,18 @@ func NewNotifyTest(t *testing.T) *NotifyTest {
 		t.Fatalf("TempDir failed: %v", err)
 	}
 	entryTtl := 100 * time.Millisecond
-	opts := &FileSystemOptions{
+	opts := &fuse.FileSystemOptions{
 		EntryTimeout:    entryTtl,
 		AttrTimeout:     entryTtl,
 		NegativeTimeout: entryTtl,
 	}
 
-	me.pathfs = NewPathNodeFs(me.fs, nil)
-	me.state, me.connector, err = MountNodeFileSystem(me.dir, me.pathfs, opts)
+	me.pathfs = fuse.NewPathNodeFs(me.fs, nil)
+	me.state, me.connector, err = fuse.MountNodeFileSystem(me.dir, me.pathfs, opts)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
-	me.state.Debug = VerboseTest()
+	me.state.Debug = fuse.VerboseTest()
 	go me.state.Loop()
 
 	return me

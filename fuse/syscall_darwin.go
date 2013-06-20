@@ -126,10 +126,3 @@ func Removexattr(path string, attr string) (errno int) {
 	return int(errNo)
 }
 
-func ioctl(fd int, cmd int, arg uintptr) (int, int) {
-	r0, _, e1 := syscall.Syscall(
-		syscall.SYS_IOCTL, uintptr(fd), uintptr(cmd), uintptr(arg))
-	val := int(r0)
-	errno := int(e1)
-	return val, errno
-}
