@@ -40,7 +40,7 @@ type FileSystemConnector struct {
 	nodeFs NodeFileSystem
 
 	// Translate between uint64 handles and *Inode.
-	inodeMap HandleMap
+	inodeMap handleMap
 
 	// The root of the FUSE file system.
 	rootNode *Inode
@@ -61,7 +61,7 @@ func NewFileSystemConnector(nodeFs NodeFileSystem, opts *FileSystemOptions) (c *
 		opts = NewFileSystemOptions()
 	}
 	c.nodeFs = nodeFs
-	c.inodeMap = NewHandleMap(opts.PortableInodes)
+	c.inodeMap = newHandleMap(opts.PortableInodes)
 	c.rootNode = newInode(true, nodeFs.Root())
 
 	// Make sure we don't reuse generation numbers.

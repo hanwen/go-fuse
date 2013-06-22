@@ -16,22 +16,22 @@ import (
 // you wish to export.
 //
 // This structure is thread-safe.
-type HandleMap interface {
-	Register(obj *Handled) uint64
+type handleMap interface {
+	Register(obj *handled) uint64
 	Count() int
-	Decode(uint64) *Handled
-	Forget(handle uint64, count int) (bool, *Handled)
-	Handle(obj *Handled) uint64
+	Decode(uint64) *handled
+	Forget(handle uint64, count int) (bool, *handled)
+	Handle(obj *handled) uint64
 	Has(uint64) bool
 }
 
-type Handled struct {
+type handled struct {
 	check  uint32
 	handle uint64
 	count  int
 }
 
-func (h *Handled) verify() {
+func (h *handled) verify() {
 	if h.count < 0 {
 		log.Panicf("negative lookup count %d", h.count)
 	}
@@ -48,18 +48,18 @@ const _ALREADY_MSG = "Object already has a handle"
 type portableHandleMap struct {
 	sync.RWMutex
 	used    int
-	handles []*Handled
+	handles []*handled
 	freeIds []uint64
 }
 
 func newPortableHandleMap() *portableHandleMap {
 	return &portableHandleMap{
 		// Avoid handing out ID 0 and 1.
-		handles: []*Handled{nil, nil},
+		handles: []*handled{nil, nil},
 	}
 }
 
-func (m *portableHandleMap) Register(obj *Handled) (handle uint64) {
+func (m *portableHandleMap) Register(obj *handled) (handle uint64) {
 	m.Lock()
 	if obj.count == 0 {
 		if obj.check != 0 {
@@ -84,7 +84,7 @@ func (m *portableHandleMap) Register(obj *Handled) (handle uint64) {
 	return handle
 }
 
-func (m *portableHandleMap) Handle(obj *Handled) (h uint64) {
+func (m *portableHandleMap) Handle(obj *handled) (h uint64) {
 	m.RLock()
 	if obj.count == 0 {
 		h = 0
@@ -102,14 +102,14 @@ func (m *portableHandleMap) Count() int {
 	return c
 }
 
-func (m *portableHandleMap) Decode(h uint64) *Handled {
+func (m *portableHandleMap) Decode(h uint64) *handled {
 	m.RLock()
 	v := m.handles[h]
 	m.RUnlock()
 	return v
 }
 
-func (m *portableHandleMap) Forget(h uint64, count int) (forgotten bool, obj *Handled) {
+func (m *portableHandleMap) Forget(h uint64, count int) (forgotten bool, obj *handled) {
 	m.Lock()
 	obj = m.handles[h]
 	obj.count -= count
@@ -136,10 +136,10 @@ func (m *portableHandleMap) Has(h uint64) bool {
 // 32 bits version of HandleMap
 type int32HandleMap struct {
 	mutex   sync.Mutex
-	handles map[uint32]*Handled
+	handles map[uint32]*handled
 }
 
-func (m *int32HandleMap) Register(obj *Handled) (handle uint64) {
+func (m *int32HandleMap) Register(obj *handled) (handle uint64) {
 	m.mutex.Lock()
 	h := uint32(uintptr(unsafe.Pointer(obj)))
 	if obj.count == 0 {
@@ -159,7 +159,7 @@ func (m *int32HandleMap) Has(h uint64) bool {
 	return ok
 }
 
-func (m *int32HandleMap) Handle(obj *Handled) uint64 {
+func (m *int32HandleMap) Handle(obj *handled) uint64 {
 	if obj.count == 0 {
 		return 0
 	}
@@ -175,7 +175,7 @@ func (m *int32HandleMap) Count() int {
 	return c
 }
 
-func (m *int32HandleMap) Forget(handle uint64, count int) (forgotten bool, obj *Handled) {
+func (m *int32HandleMap) Forget(handle uint64, count int) (forgotten bool, obj *handled) {
 	obj = m.Decode(handle)
 
 	m.mutex.Lock()
@@ -192,13 +192,13 @@ func (m *int32HandleMap) Forget(handle uint64, count int) (forgotten bool, obj *
 	return forgotten, obj
 }
 
-func (m *int32HandleMap) Decode(handle uint64) *Handled {
-	val := (*Handled)(unsafe.Pointer(uintptr(handle & ((1 << 32) - 1))))
+func (m *int32HandleMap) Decode(handle uint64) *handled {
+	val := (*handled)(unsafe.Pointer(uintptr(handle & ((1 << 32) - 1))))
 	return val
 }
 func newInt32HandleMap() *int32HandleMap {
 	return &int32HandleMap{
-		handles: make(map[uint32]*Handled),
+		handles: make(map[uint32]*handled),
 	}
 }
 
@@ -208,7 +208,7 @@ func newInt32HandleMap() *int32HandleMap {
 // map, so the Go runtime will not garbage collect it.
 type int64HandleMap struct {
 	mutex    sync.Mutex
-	handles  map[uint64]*Handled
+	handles  map[uint64]*handled
 	nextFree uint32
 }
 
@@ -228,19 +228,19 @@ func (m *int64HandleMap) verify() {
 
 func newInt64HandleMap() *int64HandleMap {
 	return &int64HandleMap{
-		handles:  make(map[uint64]*Handled),
+		handles:  make(map[uint64]*handled),
 		nextFree: 1, // to make tests easier.
 	}
 }
 
 // NewHandleMap creates a new HandleMap.  If verify is given, we
 // use remaining bits in the handle to store sanity check bits.
-func NewHandleMap(portable bool) (hm HandleMap) {
+func newHandleMap(portable bool) (hm handleMap) {
 	if portable {
 		return newPortableHandleMap()
 	}
 
-	var obj *Handled
+	var obj *handled
 	switch unsafe.Sizeof(obj) {
 	case 8:
 		return newInt64HandleMap()
@@ -260,7 +260,7 @@ func (m *int64HandleMap) Count() int {
 	return c
 }
 
-func (m *int64HandleMap) Register(obj *Handled) (handle uint64) {
+func (m *int64HandleMap) Register(obj *handled) (handle uint64) {
 	defer m.verify()
 
 	m.mutex.Lock()
@@ -296,7 +296,7 @@ func (m *int64HandleMap) Register(obj *Handled) (handle uint64) {
 	return handle
 }
 
-func (m *int64HandleMap) Handle(obj *Handled) (handle uint64) {
+func (m *int64HandleMap) Handle(obj *handled) (handle uint64) {
 	if obj.count == 0 {
 		return 0
 	}
@@ -307,7 +307,7 @@ func (m *int64HandleMap) Handle(obj *Handled) (handle uint64) {
 	return handle
 }
 
-func (m *int64HandleMap) Forget(handle uint64, count int) (forgotten bool, obj *Handled) {
+func (m *int64HandleMap) Forget(handle uint64, count int) (forgotten bool, obj *handled) {
 	defer m.verify()
 	obj = m.Decode(handle)
 
@@ -332,10 +332,10 @@ func (m *int64HandleMap) Has(handle uint64) bool {
 	return ok
 }
 
-func (m *int64HandleMap) Decode(handle uint64) (val *Handled) {
+func (m *int64HandleMap) Decode(handle uint64) (val *handled) {
 	ptrBits := uintptr(handle & (1<<45 - 1))
 	check := uint32(handle >> 45)
-	val = (*Handled)(unsafe.Pointer(ptrBits << 3))
+	val = (*handled)(unsafe.Pointer(ptrBits << 3))
 	if val.check != check {
 		msg := fmt.Sprintf("handle check mismatch; handle has 0x%x, object has 0x%x",
 			check, val.check)

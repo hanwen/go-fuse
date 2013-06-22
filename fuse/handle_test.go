@@ -25,10 +25,10 @@ func TestHandleMapUnaligned(t *testing.T) {
 		t.Log("skipping test for 32 bits")
 		return
 	}
-	hm := NewHandleMap(false)
+	hm := newHandleMap(false)
 
 	b := make([]byte, 100)
-	v := (*Handled)(unsafe.Pointer(&b[1]))
+	v := (*handled)(unsafe.Pointer(&b[1]))
 
 	defer markSeen(t, "unaligned")
 	hm.Register(v)
@@ -38,8 +38,8 @@ func TestHandleMapUnaligned(t *testing.T) {
 func TestHandleMapLookupCount(t *testing.T) {
 	for _, portable := range []bool{true, false} {
 		t.Log("portable:", portable)
-		v := new(Handled)
-		hm := NewHandleMap(portable)
+		v := new(handled)
+		hm := newHandleMap(portable)
 		h1 := hm.Register(v)
 		h2 := hm.Register(v)
 
@@ -80,8 +80,8 @@ func TestHandleMapLookupCount(t *testing.T) {
 func TestHandleMapBasic(t *testing.T) {
 	for _, portable := range []bool{true, false} {
 		t.Log("portable:", portable)
-		v := new(Handled)
-		hm := NewHandleMap(portable)
+		v := new(handled)
+		hm := newHandleMap(portable)
 		h := hm.Register(v)
 		t.Logf("Got handle 0x%x", h)
 		if !hm.Has(h) {
@@ -110,9 +110,9 @@ func TestHandleMapBasic(t *testing.T) {
 }
 
 func TestHandleMapMultiple(t *testing.T) {
-	hm := NewHandleMap(false)
+	hm := newHandleMap(false)
 	for i := 0; i < 10; i++ {
-		v := &Handled{}
+		v := &handled{}
 		h := hm.Register(v)
 		if hm.Decode(h) != v {
 			t.Fatal("address mismatch")
@@ -130,8 +130,8 @@ func TestHandleMapCheckFail(t *testing.T) {
 	}
 	defer markSeen(t, "check mismatch")
 
-	v := new(Handled)
-	hm := NewHandleMap(false)
+	v := new(handled)
+	hm := newHandleMap(false)
 	h := hm.Register(v)
 	hm.Decode(h | (uint64(1) << 63))
 	t.Error("Borked decode did not panic")

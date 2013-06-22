@@ -12,7 +12,7 @@ var _ = log.Println
 
 // openedFile stores either an open dir or an open file.
 type openedFile struct {
-	Handled
+	handled
 
 	WithFlags
 
@@ -40,7 +40,7 @@ type fileSystemMount struct {
 	treeLock sync.RWMutex
 
 	// Manage filehandles of open files.
-	openFiles HandleMap
+	openFiles handleMap
 
 	Debug bool
 
@@ -133,7 +133,7 @@ func (m *fileSystemMount) registerFileHandle(node *Inode, dir rawDir, f File, fl
 		b.WithFlags.File.SetInode(node)
 	}
 	node.openFiles = append(node.openFiles, b)
-	handle := m.openFiles.Register(&b.Handled)
+	handle := m.openFiles.Register(&b.handled)
 	node.openFilesMutex.Unlock()
 	return handle, b
 }

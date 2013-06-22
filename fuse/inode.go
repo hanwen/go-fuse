@@ -11,7 +11,7 @@ var _ = log.Println
 // created automatically when the kernel does lookups inode, or by
 // explicitly by calling Inode.New().
 type Inode struct {
-	handled Handled
+	handled handled
 
 	// Generation number of the inode. Each (re)use of an inode
 	// should have a unique generation number.
@@ -166,7 +166,7 @@ func (n *Inode) rmChild(name string) (ch *Inode) {
 func (n *Inode) mountFs(fs NodeFileSystem, opts *FileSystemOptions) {
 	n.mountPoint = &fileSystemMount{
 		fs:         fs,
-		openFiles:  NewHandleMap(false),
+		openFiles:  newHandleMap(false),
 		mountInode: n,
 		options:    opts,
 	}
