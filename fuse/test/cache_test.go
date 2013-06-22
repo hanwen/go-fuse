@@ -16,11 +16,11 @@ import (
 var _ = log.Println
 
 type cacheFs struct {
-	*pathfs.LoopbackFileSystem
+	pathfs.FileSystem
 }
 
 func (fs *cacheFs) Open(name string, flags uint32, context *fuse.Context) (fuseFile fuse.File, status fuse.Status) {
-	f, c := fs.LoopbackFileSystem.Open(name, flags, context)
+	f, c := fs.FileSystem.Open(name, flags, context)
 	if !c.Ok() {
 		return f, c
 	}
@@ -40,7 +40,7 @@ func setupCacheTest(t *testing.T) (string, *pathfs.PathNodeFs, func()) {
 	os.Mkdir(dir+"/orig", 0755)
 
 	fs := &cacheFs{
-		LoopbackFileSystem: pathfs.NewLoopbackFileSystem(dir + "/orig"),
+		pathfs.NewLoopbackFileSystem(dir + "/orig"),
 	}
 	pfs := pathfs.NewPathNodeFs(fs, nil)
 	state, conn, err := fuse.MountNodeFileSystem(dir+"/mnt", pfs, nil)
