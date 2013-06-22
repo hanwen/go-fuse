@@ -16,25 +16,29 @@ type BufferPool interface {
 	String() string
 }
 
-type GcBufferPool struct {
+type gcBufferPool struct {
 }
 
 // NewGcBufferPool is just a fallback to the standard allocation routines.
-func NewGcBufferPool() *GcBufferPool {
-	return &GcBufferPool{}
+func NewGcBufferPool() BufferPool {
+	return &gcBufferPool{}
 }
 
-func (p *GcBufferPool) AllocBuffer(size uint32) []byte {
+func (p *gcBufferPool) String() string {
+	return "gc"
+}
+
+func (p *gcBufferPool) AllocBuffer(size uint32) []byte {
 	return make([]byte, size)
 }
 
-func (p *GcBufferPool) FreeBuffer(slice []byte) {
+func (p *gcBufferPool) FreeBuffer(slice []byte) {
 }
 
 // BufferPool implements a pool of buffers that returns slices with
 // capacity of a multiple of PAGESIZE, which have possibly been used,
 // and may contain random contents.
-type BufferPoolImpl struct {
+type bufferPoolImpl struct {
 	lock sync.Mutex
 
 	// For each page size multiple a list of slice pointers.
@@ -48,14 +52,14 @@ type BufferPoolImpl struct {
 	createdBuffers int
 }
 
-func NewBufferPool() *BufferPoolImpl {
-	bp := new(BufferPoolImpl)
+func NewBufferPool() BufferPool {
+	bp := new(bufferPoolImpl)
 	bp.buffersBySize = make([][][]byte, 0, 32)
 	bp.outstandingBuffers = make(map[uintptr]bool)
 	return bp
 }
 
-func (p *BufferPoolImpl) String() string {
+func (p *bufferPoolImpl) String() string {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -70,7 +74,7 @@ func (p *BufferPoolImpl) String() string {
 		strings.Join(result, ", "))
 }
 
-func (p *BufferPoolImpl) getBuffer(pageCount int) []byte {
+func (p *bufferPoolImpl) getBuffer(pageCount int) []byte {
 	for ; pageCount < len(p.buffersBySize); pageCount++ {
 		bufferList := p.buffersBySize[pageCount]
 		if len(bufferList) > 0 {
@@ -83,7 +87,7 @@ func (p *BufferPoolImpl) getBuffer(pageCount int) []byte {
 	return nil
 }
 
-func (p *BufferPoolImpl) addBuffer(slice []byte, pages int) {
+func (p *bufferPoolImpl) addBuffer(slice []byte, pages int) {
 	for len(p.buffersBySize) <= int(pages) {
 		p.buffersBySize = append(p.buffersBySize, make([][]byte, 0))
 	}
@@ -92,7 +96,7 @@ func (p *BufferPoolImpl) addBuffer(slice []byte, pages int) {
 
 // AllocBuffer creates a buffer of at least the given size. After use,
 // it should be deallocated with FreeBuffer().
-func (p *BufferPoolImpl) AllocBuffer(size uint32) []byte {
+func (p *bufferPoolImpl) AllocBuffer(size uint32) []byte {
 	sz := int(size)
 	if sz < PAGESIZE {
 		sz = PAGESIZE
@@ -128,7 +132,7 @@ func (p *BufferPoolImpl) AllocBuffer(size uint32) []byte {
 // FreeBuffer takes back a buffer if it was allocated through
 // AllocBuffer.  It is not an error to call FreeBuffer() on a slice
 // obtained elsewhere.
-func (p *BufferPoolImpl) FreeBuffer(slice []byte) {
+func (p *bufferPoolImpl) FreeBuffer(slice []byte) {
 	if slice == nil {
 		return
 	}
