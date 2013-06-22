@@ -21,21 +21,16 @@ var paranoia = false
 // FilesystemConnector is a raw FUSE filesystem that manages
 // in-process mounts and inodes.  Its job is twofold:
 //
-// * It translates between the raw kernel interface (padded structs of
+// It translates between the raw kernel interface (padded structs of
 // int32 and int64) and the more abstract Go-ish NodeFileSystem
 // interface.
 //
-// * It manages mounting and unmounting of NodeFileSystems into the
-// directory hierarchy
-//
-// To achieve this, the connector only needs a pointer to the root
-// node.
+// It manages mounting and unmounting of NodeFileSystems into the
+// directory hierarchy.
 type FileSystemConnector struct {
 	// Used as the generation inodes. This must be 64-bit aligned,
 	// for sync/atomic on i386 to work properly.
 	generation uint64
-
-	DefaultRawFileSystem
 
 	debug bool
 
@@ -100,12 +95,11 @@ func (c *FileSystemConnector) verify() {
 	root.verify(c.rootNode.mountPoint)
 }
 
-// Generate EntryOut and increase the lookup count for an inode.
-func (c *FileSystemConnector) childLookup(out *raw.EntryOut, fsi FsNode) {
+func (c *rawBridge) childLookup(out *raw.EntryOut, fsi FsNode) {
 	n := fsi.Inode()
 	fsi.GetAttr((*Attr)(&out.Attr), nil, nil)
 	n.mount.fillEntry(out)
-	out.Ino = c.lookupUpdate(n)
+	out.Ino = c.fsConn().lookupUpdate(n)
 	out.NodeId = out.Ino
 	if out.Nlink == 0 {
 		// With Nlink == 0, newer kernels will refuse link
@@ -114,7 +108,7 @@ func (c *FileSystemConnector) childLookup(out *raw.EntryOut, fsi FsNode) {
 	}
 }
 
-func (c *FileSystemConnector) toInode(nodeid uint64) *Inode {
+func (c *rawBridge) toInode(nodeid uint64) *Inode {
 	if nodeid == raw.FUSE_ROOT_ID {
 		return c.rootNode
 	}

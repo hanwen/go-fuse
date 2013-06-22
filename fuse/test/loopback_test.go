@@ -84,7 +84,7 @@ func NewTestCase(t *testing.T) *testCase {
 			AttrTimeout:     testTtl,
 			NegativeTimeout: 0.0,
 		})
-	rfs = fuse.NewLockingRawFileSystem(me.connector)
+	rfs = fuse.NewLockingRawFileSystem(me.connector.RawFS())
 
 	me.connector.SetDebug(fuse.VerboseTest())
 	me.state = fuse.NewMountState(rfs)

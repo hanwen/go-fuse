@@ -30,7 +30,7 @@ func setupMemNodeTest(t *testing.T) (wd string, fs *MemNodeFs, clean func()) {
 			NegativeTimeout: 0.0,
 		})
 	connector.SetDebug(VerboseTest())
-	state := NewMountState(connector)
+	state := NewMountState(connector.RawFS())
 	state.Mount(mnt, nil)
 
 	//me.state.SetDebug(false)
