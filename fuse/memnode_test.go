@@ -29,12 +29,12 @@ func setupMemNodeTest(t *testing.T) (wd string, fs *MemNodeFs, clean func()) {
 			AttrTimeout:     testTtl,
 			NegativeTimeout: 0.0,
 		})
-	connector.Debug = VerboseTest()
+	connector.SetDebug(VerboseTest())
 	state := NewMountState(connector)
 	state.Mount(mnt, nil)
 
-	//me.state.Debug = false
-	state.Debug = VerboseTest()
+	//me.state.SetDebug(false)
+	state.SetDebug(VerboseTest())
 
 	// Unthreaded, but in background.
 	go state.Loop()

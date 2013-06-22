@@ -46,7 +46,7 @@ func TestDeleteNotify(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	state.Debug = fuse.VerboseTest()
+	state.SetDebug(fuse.VerboseTest())
 	go state.Loop()
 	defer state.Unmount()
 

@@ -53,6 +53,6 @@ func main() {
 		log.Fatal("Mount fail:", err)
 	}
 
-	mountState.Debug = *debug
+	mountState.SetDebug(*debug)
 	mountState.Loop()
 }

@@ -62,7 +62,7 @@ func main() {
 	}
 
 	state.SetRecordStatistics(*latencies)
-	state.Debug = *debug
+	state.SetDebug(*debug)
 	runtime.GC()
 	if profFile != nil {
 		pprof.StartCPUProfile(profFile)

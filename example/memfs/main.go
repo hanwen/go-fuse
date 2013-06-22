@@ -29,7 +29,7 @@ func main() {
 	fs := fuse.NewMemNodeFs(prefix)
 	conn := fuse.NewFileSystemConnector(fs, nil)
 	state := fuse.NewMountState(conn)
-	state.Debug = *debug
+	state.SetDebug(*debug)
 
 	fmt.Println("Mounting")
 	err := state.Mount(mountPoint, nil)

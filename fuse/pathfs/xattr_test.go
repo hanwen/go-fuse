@@ -115,7 +115,7 @@ func xattrTestCase(t *testing.T, nm string) (mountPoint string, cleanup func()) 
 	if err != nil {
 		t.Fatalf("TempDir failed: %v", err)
 	}
-	state.Debug = fuse.VerboseTest()
+	state.SetDebug(fuse.VerboseTest())
 
 	go state.Loop()
 	return mountPoint, func() {

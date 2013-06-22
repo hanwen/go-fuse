@@ -25,6 +25,10 @@ func (fs *DefaultNodeFileSystem) String() string {
 	return "DefaultNodeFileSystem"
 }
 
+func (fs *DefaultNodeFileSystem) SetDebug(dbg bool) {
+}
+
+
 ////////////////////////////////////////////////////////////////
 // FsNode default
 

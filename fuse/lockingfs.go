@@ -38,6 +38,11 @@ func (fs *lockingRawFileSystem) Lookup(out *raw.EntryOut, h *Context, name strin
 	return fs.RawFS.Lookup(out, h, name)
 }
 
+func (fs *lockingRawFileSystem) SetDebug(dbg bool) {
+	defer fs.locked()()
+	fs.RawFS.SetDebug(dbg)
+}
+
 func (fs *lockingRawFileSystem) Forget(nodeID uint64, nlookup uint64) {
 	defer fs.locked()()
 	fs.RawFS.Forget(nodeID, nlookup)

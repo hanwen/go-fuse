@@ -32,6 +32,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	state.Debug = *debug
+	state.SetDebug(*debug)
 	state.Loop()
 }

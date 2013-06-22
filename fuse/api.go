@@ -33,6 +33,9 @@ type NodeFileSystem interface {
 
 	// Used for debug outputs
 	String() string
+
+	// If called, provide debug output through the log package.
+	SetDebug(debug bool) 
 }
 
 // The FsNode implements the basic functionality of inodes; this is
@@ -226,6 +229,9 @@ type DefaultFile struct{}
 // Include DefaultRawFileSystem to inherit a null implementation.
 type RawFileSystem interface {
 	String() string
+
+	// If called, provide debug output through the log package.
+	SetDebug(debug bool) 
 
 	Lookup(out *raw.EntryOut, context *Context, name string) (status Status)
 	Forget(nodeid, nlookup uint64)

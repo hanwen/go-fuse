@@ -30,7 +30,7 @@ type MountState struct {
 	mountFd int
 
 	// Dump debug info onto stdout.
-	Debug bool
+	debug bool
 
 	latencies *LatencyMap
 
@@ -65,6 +65,10 @@ type MountState struct {
 func (ms *MountState) ThreadSanitizerSync() {
 	ms.reqMu.Lock()
 	ms.reqMu.Unlock()
+}
+
+func (ms *MountState) SetDebug(dbg bool) {
+	ms.debug = dbg
 }
 
 func (ms *MountState) KernelSettings() raw.InitIn {
@@ -342,7 +346,7 @@ func (ms *MountState) handleRequest(req *request) {
 		req.status = ENOSYS
 	}
 
-	if req.status.Ok() && ms.Debug {
+	if req.status.Ok() && ms.debug {
 		log.Println(req.InputDebug())
 	}
 
@@ -382,7 +386,7 @@ func (ms *MountState) write(req *request) Status {
 	}
 
 	header := req.serializeHeader(req.flatDataSize())
-	if ms.Debug {
+	if ms.debug {
 		log.Println(req.OutputDebug())
 	}
 
@@ -412,7 +416,7 @@ func (ms *MountState) writeInodeNotify(entry *raw.NotifyInvalInodeOut) Status {
 	result := ms.write(&req)
 	ms.reqMu.Unlock()
 
-	if ms.Debug {
+	if ms.debug {
 		log.Println("Response: INODE_NOTIFY", result)
 	}
 	return result
@@ -449,7 +453,7 @@ func (ms *MountState) writeDeleteNotify(parent uint64, child uint64, name string
 	result := ms.write(&req)
 	ms.reqMu.Unlock()
 
-	if ms.Debug {
+	if ms.debug {
 		log.Printf("Response: DELETE_NOTIFY: %v", result)
 	}
 	return result
@@ -481,7 +485,7 @@ func (ms *MountState) writeEntryNotify(parent uint64, name string) Status {
 	result := ms.write(&req)
 	ms.reqMu.Unlock()
 
-	if ms.Debug {
+	if ms.debug {
 		log.Printf("Response: ENTRY_NOTIFY: %v", result)
 	}
 	return result

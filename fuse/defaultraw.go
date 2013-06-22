@@ -15,6 +15,9 @@ func (fs *DefaultRawFileSystem) String() string {
 	return os.Args[0]
 }
 
+func (fs *DefaultRawFileSystem) SetDebug(dbg bool) {
+}
+
 func (fs *DefaultRawFileSystem) StatFs(out *StatfsOut, context *Context) Status {
 	return ENOSYS
 }

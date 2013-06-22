@@ -81,7 +81,7 @@ func (m *fileSystemMount) fillAttr(out *raw.AttrOut, nodeId uint64) {
 
 func (m *fileSystemMount) getOpenedFile(h uint64) *openedFile {
 	b := (*openedFile)(unsafe.Pointer(m.openFiles.Decode(h)))
-	if m.connector.Debug && b.WithFlags.Description != "" {
+	if m.connector.debug && b.WithFlags.Description != "" {
 		log.Printf("File %d = %q", h, b.WithFlags.Description)
 	}
 	return b

@@ -27,7 +27,7 @@ func setupFs(fs pathfs.FileSystem) (string, func()) {
 		panic(fmt.Sprintf("cannot mount %v", err)) // ugh - benchmark has no error methods.
 	}
 	state.SetRecordStatistics(true)
-	// state.Debug = true
+	// state.SetDebug(true)
 	go state.Loop()
 
 	return mountPoint, func() {

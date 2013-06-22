@@ -67,9 +67,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	pathfs.Debug = *debug
-	conn.Debug = *debug
-	state.Debug = *debug
+	pathfs.SetDebug(*debug)
+	conn.SetDebug(*debug)
+	state.SetDebug(*debug)
 
 	gofs.SetMountState(state)
 	gofs.SetFileSystemConnector(conn)

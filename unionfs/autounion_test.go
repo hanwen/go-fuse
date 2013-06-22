@@ -60,8 +60,8 @@ func setup(t *testing.T) (workdir string, cleanup func()) {
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
-	state.Debug = fuse.VerboseTest()
-	conn.Debug = fuse.VerboseTest()
+	state.SetDebug(fuse.VerboseTest())
+	conn.SetDebug(fuse.VerboseTest())
 	go state.Loop()
 
 	return wd, func() {

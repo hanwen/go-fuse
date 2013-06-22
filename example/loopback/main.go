@@ -44,7 +44,7 @@ func main() {
 	pathFs := pathfs.NewPathNodeFs(finalFs, nil)
 	conn := fuse.NewFileSystemConnector(pathFs, opts)
 	state := fuse.NewMountState(conn)
-	state.Debug = *debug
+	state.SetDebug(*debug)
 
 	mountPoint := flag.Arg(0)
 

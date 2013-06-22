@@ -37,7 +37,7 @@ type FileSystemConnector struct {
 
 	DefaultRawFileSystem
 
-	Debug bool
+	debug bool
 
 	// Callbacks for talking back to the kernel.
 	fsInit RawFsInit
@@ -80,6 +80,10 @@ func NewFileSystemConnector(nodeFs NodeFileSystem, opts *FileSystemOptions) (c *
 	c.lookupUpdate(c.rootNode)
 
 	return c
+}
+
+func (c *FileSystemConnector) SetDebug(debug bool) {
+	c.debug = debug
 }
 
 func (c *FileSystemConnector) nextGeneration() uint64 {
@@ -281,7 +285,7 @@ func (c *FileSystemConnector) Mount(parent *Inode, name string, nodeFs NodeFileS
 	parent.addChild(name, node)
 
 	node.mountPoint.parentInode = parent
-	if c.Debug {
+	if c.debug {
 		log.Println("Mount: ", nodeFs, "on subdir", name,
 			"parent", c.inodeMap.Handle(&parent.handled))
 	}

@@ -27,7 +27,8 @@ type knownFs struct {
 // A union for A/B/C will placed under directory A-B-C.
 type AutoUnionFs struct {
 	pathfs.DefaultFileSystem
-
+	debug bool
+	
 	lock             sync.RWMutex
 	knownFileSystems map[string]knownFs
 	nameRootMap      map[string]string
@@ -269,13 +270,14 @@ func (fs *AutoUnionFs) Symlink(pointedTo string, linkName string, context *fuse.
 func (fs *AutoUnionFs) SetDebug(b bool) {
 	// Officially, this should use locking, but we don't care
 	// about race conditions here.
-	fs.nodeFs.Debug = b
-	fs.connector.Debug = b
-	fs.mountState.Debug = b
+	fs.debug = b
+	fs.nodeFs.SetDebug(b)
+	fs.connector.SetDebug(b)
+	fs.mountState.SetDebug(b)
 }
 
 func (fs *AutoUnionFs) hasDebug() bool {
-	return fs.nodeFs.Debug
+	return fs.debug
 }
 
 func (fs *AutoUnionFs) Unlink(path string, context *fuse.Context) (code fuse.Status) {

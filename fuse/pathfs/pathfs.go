@@ -29,7 +29,7 @@ type clientInodePath struct {
 // linked files. The clientInode is never exported back to the kernel;
 // it is only used to maintain a list of all names of an inode.
 type PathNodeFs struct {
-	Debug     bool
+	debug     bool
 	fs        FileSystem
 	root      *pathInode
 	connector *fuse.FileSystemConnector
@@ -42,6 +42,10 @@ type PathNodeFs struct {
 	clientInodeMap map[uint64][]*clientInodePath
 
 	options *PathNodeFsOptions
+}
+
+func (fs *PathNodeFs) SetDebug(dbg bool) {
+	fs.debug = dbg
 }
 
 func (fs *PathNodeFs) Mount(path string, nodeFs fuse.NodeFileSystem, opts *fuse.FileSystemOptions) fuse.Status {
@@ -264,7 +268,7 @@ func (n *pathInode) GetPath() string {
 	n.pathFs.pathLock.RUnlock()
 
 	path := string(pathBytes)
-	if n.pathFs.Debug {
+	if n.pathFs.debug {
 		// TODO: print node ID.
 		log.Printf("Inode = %q (%s)", path, n.fs.String())
 	}
@@ -510,7 +514,7 @@ func (n *pathInode) createChild(isDir bool) *pathInode {
 
 func (n *pathInode) Open(flags uint32, context *fuse.Context) (file fuse.File, code fuse.Status) {
 	file, code = n.fs.Open(n.GetPath(), flags, context)
-	if n.pathFs.Debug {
+	if n.pathFs.debug {
 		file = &fuse.WithFlags{
 			File:        file,
 			Description: n.GetPath(),

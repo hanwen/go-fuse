@@ -47,9 +47,9 @@ func setupCacheTest(t *testing.T) (string, *pathfs.PathNodeFs, func()) {
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
-	state.Debug = fuse.VerboseTest()
-	conn.Debug = fuse.VerboseTest()
-	pfs.Debug = fuse.VerboseTest()
+	state.SetDebug(fuse.VerboseTest())
+	conn.SetDebug(fuse.VerboseTest())
+	pfs.SetDebug(fuse.VerboseTest())
 	go state.Loop()
 
 	return dir, pfs, func() {
@@ -147,7 +147,7 @@ func TestNonseekable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed: %v", err)
 	}
-	state.Debug = fuse.VerboseTest()
+	state.SetDebug(fuse.VerboseTest())
 	defer state.Unmount()
 
 	go state.Loop()
@@ -181,9 +181,9 @@ func TestGetAttrRace(t *testing.T) {
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
-	state.Debug = fuse.VerboseTest()
-	conn.Debug = fuse.VerboseTest()
-	pfs.Debug = fuse.VerboseTest()
+	state.SetDebug(fuse.VerboseTest())
+	conn.SetDebug(fuse.VerboseTest())
+	pfs.SetDebug(fuse.VerboseTest())
 	go state.Loop()
 
 	defer state.Unmount()
