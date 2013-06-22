@@ -36,7 +36,7 @@ func TestDeleteNotify(t *testing.T) {
 	fs := fuse.NewMemNodeFs(dir + "/backing")
 	conn := fuse.NewFileSystemConnector(fs,
 		&fuse.FileSystemOptions{PortableInodes: true})
-	state := fuse.NewMountState(conn)
+	state := fuse.NewMountState(conn.RawFS())
 	mnt := dir + "/mnt"
 	err = os.Mkdir(mnt, 0755)
 	if err != nil {

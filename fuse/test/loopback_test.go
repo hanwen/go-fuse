@@ -84,14 +84,13 @@ func NewTestCase(t *testing.T) *testCase {
 			AttrTimeout:     testTtl,
 			NegativeTimeout: 0.0,
 		})
-	rfs = me.connector
-	rfs = fuse.NewLockingRawFileSystem(rfs)
+	rfs = fuse.NewLockingRawFileSystem(me.connector)
 
-	me.connector.Debug = fuse.VerboseTest()
+	me.connector.SetDebug(fuse.VerboseTest())
 	me.state = fuse.NewMountState(rfs)
 	me.state.Mount(me.mnt, nil)
 
-	me.state.Debug = fuse.VerboseTest()
+	me.state.SetDebug(fuse.VerboseTest())
 
 	// Unthreaded, but in background.
 	go me.state.Loop()
