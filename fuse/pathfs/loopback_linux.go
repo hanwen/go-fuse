@@ -26,13 +26,14 @@ func (fs *loopbackFileSystem) StatFs(name string) *fuse.StatfsOut {
 }
 
 func (fs *loopbackFileSystem) ListXAttr(name string, context *fuse.Context) ([]string, fuse.Status) {
-	data, errNo := ListXAttr(fs.GetPath(name))
+	data, err := listXAttr(fs.GetPath(name))
 
-	return data, fuse.Status(errNo)
+	return data, fuse.ToStatus(err)
 }
 
 func (fs *loopbackFileSystem) RemoveXAttr(name string, attr string, context *fuse.Context) fuse.Status {
-	return fuse.Status(Removexattr(fs.GetPath(name), attr))
+	err := syscall.Removexattr(fs.GetPath(name), attr)
+	return fuse.ToStatus(err)
 }
 
 func (fs *loopbackFileSystem) String() string {
@@ -41,7 +42,7 @@ func (fs *loopbackFileSystem) String() string {
 
 func (fs *loopbackFileSystem) GetXAttr(name string, attr string, context *fuse.Context) ([]byte, fuse.Status) {
 	data := make([]byte, 1024)
-	data, errNo := GetXAttr(fs.GetPath(name), attr, data)
+	data, err := getXAttr(fs.GetPath(name), attr, data)
 
-	return data, fuse.Status(errNo)
+	return data, fuse.ToStatus(err)
 }

@@ -100,9 +100,9 @@ func (fs *XAttrTestFs) RemoveXAttr(name string, attr string, context *fuse.Conte
 	return fuse.OK
 }
 
-func readXAttr(p, a string) (val []byte, errno int) {
+func readXAttr(p, a string) (val []byte, err error) {
 	val = make([]byte, 1024)
-	return GetXAttr(p, a, val)
+	return getXAttr(p, a, val)
 }
 
 func xattrTestCase(t *testing.T, nm string) (mountPoint string, cleanup func()) {
@@ -138,8 +138,8 @@ func TestXAttrNoExist(t *testing.T) {
 		t.Error("Unexpected stat error", err)
 	}
 
-	val, errno := readXAttr(mounted, "noexist")
-	if errno == 0 {
+	val, err := readXAttr(mounted, "noexist")
+	if err == nil {
 		t.Error("Expected GetXAttr error", val)
 	}
 }
@@ -150,15 +150,15 @@ func TestXAttrRead(t *testing.T) {
 	defer clean()
 
 	mounted := filepath.Join(mountPoint, nm)
-	attrs, errno := ListXAttr(mounted)
+	attrs, err := listXAttr(mounted)
 	readback := make(map[string][]byte)
-	if errno != 0 {
-		t.Error("Unexpected ListXAttr error", errno)
+	if err != nil {
+		t.Error("Unexpected ListXAttr error", err)
 	} else {
 		for _, a := range attrs {
-			val, errno := readXAttr(mounted, a)
-			if errno != 0 {
-				t.Errorf("GetXAttr(%q) failed: %v", a, syscall.Errno(errno))
+			val, err := readXAttr(mounted, a)
+			if err != nil {
+				t.Errorf("GetXAttr(%q) failed: %v", a, err)
 			}
 			readback[a] = val
 		}
@@ -174,18 +174,18 @@ func TestXAttrRead(t *testing.T) {
 		}
 	}
 
-	errno = Setxattr(mounted, "third", []byte("value"), 0)
-	if errno != 0 {
-		t.Error("Setxattr error", errno)
+	err = syscall.Setxattr(mounted, "third", []byte("value"), 0)
+	if err != nil {
+		t.Error("Setxattr error", err)
 	}
-	val, errno := readXAttr(mounted, "third")
-	if errno != 0 || string(val) != "value" {
-		t.Error("Read back set xattr:", errno, string(val))
+	val, err := readXAttr(mounted, "third")
+	if err != nil || string(val) != "value" {
+		t.Error("Read back set xattr:", err, string(val))
 	}
 
-	Removexattr(mounted, "third")
-	val, errno = readXAttr(mounted, "third")
-	if errno != int(fuse.ENODATA) {
-		t.Error("Data not removed?", errno, val)
+	syscall.Removexattr(mounted, "third")
+	val, err = readXAttr(mounted, "third")
+	if err != syscall.ENODATA {
+		t.Error("Data not removed?", err, val)
 	}
 }
