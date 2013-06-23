@@ -1,21 +1,17 @@
 package fuse
 
 import (
-	"log"
 	"time"
 
 	"github.com/hanwen/go-fuse/raw"
 )
 
-var _ = log.Println
-
-var _ = (File)((*defaultFile)(nil))
-
 type defaultFile struct{}
 
-// DefaultFile returns ENOSYS for every operation.
+// NewDefaultFile returns a File instance that returns ENOSYS for
+// every operation.
 func NewDefaultFile() File {
-	return &defaultFile{}
+	return (*defaultFile)(nil)
 }
 
 func (f *defaultFile) SetInode(*Inode) {

@@ -12,7 +12,6 @@ import (
 var _ = log.Println
 
 type MemNodeFs struct {
-	DefaultNodeFileSystem
 	backingStorePrefix string
 	root               *memNode
 
@@ -28,9 +27,19 @@ func (fs *MemNodeFs) Root() FsNode {
 	return fs.root
 }
 
+func (fs *MemNodeFs) SetDebug(bool) {
+}
+
+func (fs *MemNodeFs) OnMount(*FileSystemConnector) {
+}
+
+func (fs *MemNodeFs) OnUnmount() {
+}
+
 func (fs *MemNodeFs) newNode() *memNode {
 	fs.mutex.Lock()
 	n := &memNode{
+		FsNode: NewDefaultFsNode(),
 		fs: fs,
 		id: fs.nextFree,
 	}
@@ -43,8 +52,9 @@ func (fs *MemNodeFs) newNode() *memNode {
 }
 
 func NewMemNodeFs(prefix string) *MemNodeFs {
-	me := &MemNodeFs{}
-	me.backingStorePrefix = prefix
+	me := &MemNodeFs{
+		backingStorePrefix: prefix,
+	}
 	me.root = me.newNode()
 	return me
 }
@@ -55,7 +65,7 @@ func (fs *MemNodeFs) Filename(n *Inode) string {
 }
 
 type memNode struct {
-	DefaultFsNode
+	FsNode
 	fs *MemNodeFs
 	id int
 

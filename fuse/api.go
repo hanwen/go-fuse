@@ -43,7 +43,8 @@ type NodeFileSystem interface {
 type FsNode interface {
 	// Inode and SetInode are basic getter/setters.  They are
 	// called by the FileSystemConnector. You get them for free by
-	// embedding DefaultFsNode.
+	// embedding the result of NewDefaultFsNode() in your node
+	// struct.
 	Inode() *Inode
 	SetInode(node *Inode)
 

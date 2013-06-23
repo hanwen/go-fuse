@@ -19,7 +19,7 @@ func TestMountOnExisting(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Mkdir failed: %v", err)
 	}
-	nfs := &fuse.DefaultNodeFileSystem{}
+	nfs := fuse.NewDefaultNodeFileSystem()
 	code := ts.connector.Mount(ts.rootNode(), "mnt", nfs, nil)
 	if code != fuse.EBUSY {
 		t.Fatal("expect EBUSY:", code)

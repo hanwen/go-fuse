@@ -56,8 +56,6 @@ type devNullFile struct {
 	File
 }
 
-var _ = (File)((*devNullFile)(nil))
-
 // NewDevNullFile returns a file that accepts any write, and always
 // returns EOF for reads.
 func NewDevNullFile() *devNullFile {

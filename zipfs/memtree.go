@@ -2,8 +2,9 @@ package zipfs
 
 import (
 	"fmt"
-	"github.com/hanwen/go-fuse/fuse"
 	"strings"
+
+	"github.com/hanwen/go-fuse/fuse"
 )
 
 type MemFile interface {
@@ -12,7 +13,7 @@ type MemFile interface {
 }
 
 type memNode struct {
-	fuse.DefaultFsNode
+	fuse.FsNode
 	file MemFile
 }
 
@@ -20,15 +21,17 @@ type memNode struct {
 // loaded in memory completely at startup, it does not need to inode
 // discovery through Lookup() at serve time.
 type MemTreeFs struct {
-	fuse.DefaultNodeFileSystem
+	fuse.NodeFileSystem
 	root  memNode
 	files map[string]MemFile
 	Name  string
 }
 
 func NewMemTreeFs() *MemTreeFs {
-	d := new(MemTreeFs)
-	return d
+	return &MemTreeFs{
+		NodeFileSystem: fuse.NewDefaultNodeFileSystem(),
+		root: memNode{FsNode: fuse.NewDefaultFsNode()},
+	}
 }
 
 func (fs *MemTreeFs) String() string {
@@ -110,7 +113,7 @@ func (n *MemTreeFs) addFile(name string, f MemFile) {
 	for i, c := range comps {
 		child := node.GetChild(c)
 		if child == nil {
-			fsnode := &memNode{}
+			fsnode := &memNode{FsNode: fuse.NewDefaultFsNode()}
 			if i == len(comps)-1 {
 				fsnode.file = f
 			}

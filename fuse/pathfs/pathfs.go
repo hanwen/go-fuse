@@ -199,8 +199,7 @@ type pathInode struct {
 	// This is to correctly resolve hardlinks of the underlying
 	// real filesystem.
 	clientInode uint64
-
-	fuse.DefaultFsNode
+	inode      *fuse.Inode
 }
 
 // Drop all known client inodes. Must have the treeLock.
@@ -209,6 +208,18 @@ func (n *pathInode) forgetClientInodes() {
 	for _, ch := range n.Inode().FsChildren() {
 		ch.FsNode().(*pathInode).forgetClientInodes()
 	}
+}
+
+func (fs *pathInode) Deletable() bool {
+	return true
+}
+
+func (n *pathInode) Inode() *fuse.Inode {
+	return n.inode
+}
+
+func (n *pathInode) SetInode(node *fuse.Inode) {
+	n.inode = node
 }
 
 // Reread all client nodes below this node.  Must run outside the treeLock.

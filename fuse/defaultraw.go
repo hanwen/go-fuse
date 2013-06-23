@@ -9,7 +9,7 @@ import (
 // NewDefaultRawFileSystem returns ENOSYS (not implemented) for all
 // operations.
 func NewDefaultRawFileSystem() RawFileSystem {
-	return &defaultRawFileSystem{}
+	return (*defaultRawFileSystem)(nil)
 }
 
 type defaultRawFileSystem struct{}
