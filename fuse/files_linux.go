@@ -24,16 +24,14 @@ func (f *loopbackFile) Utimens(a *time.Time, m *time.Time) Status {
 		tv[0].Usec = _UTIME_OMIT
 	} else {
 		n := a.UnixNano()
-		tv[0].Sec = n / 1e9
-		tv[0].Usec = (n % 1e9) / 1e3
+		tv[0] = syscall.NsecToTimeval(n)
  	}
 
 	if m == nil {
 		tv[1].Usec = _UTIME_OMIT
 	} else {
 		n := a.UnixNano()
-		tv[1].Sec = n / 1e9
-		tv[1].Usec = (n % 1e9) / 1e3
+		tv[1] = syscall.NsecToTimeval(n)
  	}
 	
 	err := syscall.Futimes(int(f.File.Fd()), tv)
