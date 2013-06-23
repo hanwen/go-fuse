@@ -34,7 +34,7 @@ func (f *dataFile) GetAttr(out *Attr) Status {
 	return OK
 }
 
-func NewDataFile(data []byte) *dataFile {
+func NewDataFile(data []byte) File {
 	f := new(dataFile)
 	f.data = data
 	f.File = NewDefaultFile()
@@ -58,7 +58,7 @@ type devNullFile struct {
 
 // NewDevNullFile returns a file that accepts any write, and always
 // returns EOF for reads.
-func NewDevNullFile() *devNullFile {
+func NewDevNullFile() File {
 	return &devNullFile{
 		File: NewDefaultFile(),
 	}
