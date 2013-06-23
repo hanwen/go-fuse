@@ -2,7 +2,6 @@ package test
 
 import (
 	"io/ioutil"
-	"log"
 	"os"
 	"testing"
 
@@ -10,10 +9,9 @@ import (
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
-var _ = log.Println
 
 type DefaultReadFS struct {
-	pathfs.DefaultFileSystem
+	pathfs.FileSystem
 	size  uint64
 	exist bool
 }
@@ -33,7 +31,10 @@ func (fs *DefaultReadFS) Open(name string, f uint32, context *fuse.Context) (fus
 }
 
 func defaultReadTest(t *testing.T) (root string, cleanup func()) {
-	fs := &DefaultReadFS{}
+	fs := &DefaultReadFS{
+		FileSystem: pathfs.NewDefaultFileSystem(),
+	}
+
 	var err error
 	dir, err := ioutil.TempDir("", "go-fuse")
 	if err != nil {

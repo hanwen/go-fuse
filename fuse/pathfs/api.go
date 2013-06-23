@@ -11,8 +11,8 @@ import (
 // Typically, each call happens in its own goroutine, so take care to
 // make the file system thread-safe.
 //
-// Include DefaultFileSystem to provide a default null implementation of
-// required methods.
+// NewDefaultFileSystem provides a null implementation of required
+// methods.
 type FileSystem interface {
 	// Used for pretty printing.
 	String() string

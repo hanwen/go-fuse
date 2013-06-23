@@ -14,7 +14,7 @@ import (
 var _ = log.Println
 
 type NotifyFs struct {
-	pathfs.DefaultFileSystem
+	pathfs.FileSystem
 	size  uint64
 	exist bool
 }
@@ -46,7 +46,7 @@ type NotifyTest struct {
 
 func NewNotifyTest(t *testing.T) *NotifyTest {
 	me := &NotifyTest{}
-	me.fs = &NotifyFs{}
+	me.fs = &NotifyFs{FileSystem: pathfs.NewDefaultFileSystem()}
 	var err error
 	me.dir, err = ioutil.TempDir("", "go-fuse-notify_test")
 	if err != nil {

@@ -24,13 +24,16 @@ type XAttrTestFs struct {
 	filename string
 	attrs    map[string][]byte
 
-	DefaultFileSystem
+	FileSystem
 }
 
 func NewXAttrFs(nm string, m map[string][]byte) *XAttrTestFs {
-	x := new(XAttrTestFs)
-	x.filename = nm
-	x.attrs = make(map[string][]byte, len(m))
+	x := &XAttrTestFs{
+		filename: nm,
+		attrs: make(map[string][]byte, len(m)),
+		FileSystem: NewDefaultFileSystem(),
+	}
+	
 	for k, v := range m {
 		x.attrs[k] = v
 	}

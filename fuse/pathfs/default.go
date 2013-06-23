@@ -6,106 +6,110 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-var _ = FileSystem((*DefaultFileSystem)(nil))
+// NewDefaultFileSystem creates a filesystem that responds ENOSYS for
+// all methods
+func NewDefaultFileSystem() FileSystem {
+	return (*defaultFileSystem)(nil)
+}
 
-// DefaultFileSystem implements a FileSystem that returns ENOSYS for every operation.
-type DefaultFileSystem struct{}
+// defaultFileSystem implements a FileSystem that returns ENOSYS for every operation.
+type defaultFileSystem struct{}
 
-// DefaultFileSystem
-func (fs *DefaultFileSystem) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
+// defaultFileSystem
+func (fs *defaultFileSystem) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
-func (fs *DefaultFileSystem) GetXAttr(name string, attr string, context *fuse.Context) ([]byte, fuse.Status) {
+func (fs *defaultFileSystem) GetXAttr(name string, attr string, context *fuse.Context) ([]byte, fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
-func (fs *DefaultFileSystem) SetXAttr(name string, attr string, data []byte, flags int, context *fuse.Context) fuse.Status {
+func (fs *defaultFileSystem) SetXAttr(name string, attr string, data []byte, flags int, context *fuse.Context) fuse.Status {
 	return fuse.ENOSYS
 }
 
-func (fs *DefaultFileSystem) ListXAttr(name string, context *fuse.Context) ([]string, fuse.Status) {
+func (fs *defaultFileSystem) ListXAttr(name string, context *fuse.Context) ([]string, fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
-func (fs *DefaultFileSystem) RemoveXAttr(name string, attr string, context *fuse.Context) fuse.Status {
+func (fs *defaultFileSystem) RemoveXAttr(name string, attr string, context *fuse.Context) fuse.Status {
 	return fuse.ENOSYS
 }
 
-func (fs *DefaultFileSystem) Readlink(name string, context *fuse.Context) (string, fuse.Status) {
+func (fs *defaultFileSystem) Readlink(name string, context *fuse.Context) (string, fuse.Status) {
 	return "", fuse.ENOSYS
 }
 
-func (fs *DefaultFileSystem) Mknod(name string, mode uint32, dev uint32, context *fuse.Context) fuse.Status {
+func (fs *defaultFileSystem) Mknod(name string, mode uint32, dev uint32, context *fuse.Context) fuse.Status {
 	return fuse.ENOSYS
 }
 
-func (fs *DefaultFileSystem) Mkdir(name string, mode uint32, context *fuse.Context) fuse.Status {
+func (fs *defaultFileSystem) Mkdir(name string, mode uint32, context *fuse.Context) fuse.Status {
 	return fuse.ENOSYS
 }
 
-func (fs *DefaultFileSystem) Unlink(name string, context *fuse.Context) (code fuse.Status) {
+func (fs *defaultFileSystem) Unlink(name string, context *fuse.Context) (code fuse.Status) {
 	return fuse.ENOSYS
 }
 
-func (fs *DefaultFileSystem) Rmdir(name string, context *fuse.Context) (code fuse.Status) {
+func (fs *defaultFileSystem) Rmdir(name string, context *fuse.Context) (code fuse.Status) {
 	return fuse.ENOSYS
 }
 
-func (fs *DefaultFileSystem) Symlink(value string, linkName string, context *fuse.Context) (code fuse.Status) {
+func (fs *defaultFileSystem) Symlink(value string, linkName string, context *fuse.Context) (code fuse.Status) {
 	return fuse.ENOSYS
 }
 
-func (fs *DefaultFileSystem) Rename(oldName string, newName string, context *fuse.Context) (code fuse.Status) {
+func (fs *defaultFileSystem) Rename(oldName string, newName string, context *fuse.Context) (code fuse.Status) {
 	return fuse.ENOSYS
 }
 
-func (fs *DefaultFileSystem) Link(oldName string, newName string, context *fuse.Context) (code fuse.Status) {
+func (fs *defaultFileSystem) Link(oldName string, newName string, context *fuse.Context) (code fuse.Status) {
 	return fuse.ENOSYS
 }
 
-func (fs *DefaultFileSystem) Chmod(name string, mode uint32, context *fuse.Context) (code fuse.Status) {
+func (fs *defaultFileSystem) Chmod(name string, mode uint32, context *fuse.Context) (code fuse.Status) {
 	return fuse.ENOSYS
 }
 
-func (fs *DefaultFileSystem) Chown(name string, uid uint32, gid uint32, context *fuse.Context) (code fuse.Status) {
+func (fs *defaultFileSystem) Chown(name string, uid uint32, gid uint32, context *fuse.Context) (code fuse.Status) {
 	return fuse.ENOSYS
 }
 
-func (fs *DefaultFileSystem) Truncate(name string, offset uint64, context *fuse.Context) (code fuse.Status) {
+func (fs *defaultFileSystem) Truncate(name string, offset uint64, context *fuse.Context) (code fuse.Status) {
 	return fuse.ENOSYS
 }
 
-func (fs *DefaultFileSystem) Open(name string, flags uint32, context *fuse.Context) (file fuse.File, code fuse.Status) {
+func (fs *defaultFileSystem) Open(name string, flags uint32, context *fuse.Context) (file fuse.File, code fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
-func (fs *DefaultFileSystem) OpenDir(name string, context *fuse.Context) (stream []fuse.DirEntry, status fuse.Status) {
+func (fs *defaultFileSystem) OpenDir(name string, context *fuse.Context) (stream []fuse.DirEntry, status fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
-func (fs *DefaultFileSystem) OnMount(nodeFs *PathNodeFs) {
+func (fs *defaultFileSystem) OnMount(nodeFs *PathNodeFs) {
 }
 
-func (fs *DefaultFileSystem) OnUnmount() {
+func (fs *defaultFileSystem) OnUnmount() {
 }
 
-func (fs *DefaultFileSystem) Access(name string, mode uint32, context *fuse.Context) (code fuse.Status) {
+func (fs *defaultFileSystem) Access(name string, mode uint32, context *fuse.Context) (code fuse.Status) {
 	return fuse.ENOSYS
 }
 
-func (fs *DefaultFileSystem) Create(name string, flags uint32, mode uint32, context *fuse.Context) (file fuse.File, code fuse.Status) {
+func (fs *defaultFileSystem) Create(name string, flags uint32, mode uint32, context *fuse.Context) (file fuse.File, code fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
-func (fs *DefaultFileSystem) Utimens(name string, Atime *time.Time, Mtime *time.Time, context *fuse.Context) (code fuse.Status) {
+func (fs *defaultFileSystem) Utimens(name string, Atime *time.Time, Mtime *time.Time, context *fuse.Context) (code fuse.Status) {
 	return fuse.ENOSYS
 }
 
-func (fs *DefaultFileSystem) String() string {
-	return "DefaultFileSystem"
+func (fs *defaultFileSystem) String() string {
+	return "defaultFileSystem"
 }
 
-func (fs *DefaultFileSystem) StatFs(name string) *fuse.StatfsOut {
+func (fs *defaultFileSystem) StatFs(name string) *fuse.StatfsOut {
 	return nil
 }

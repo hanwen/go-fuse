@@ -17,15 +17,18 @@ var _ = log.Println
 
 type loopbackFileSystem struct {
 	Root string
-	DefaultFileSystem
+
+	FileSystem
 }
 
 // A FUSE filesystem that shunts all request to an underlying file
 // system.  Its main purpose is to provide test coverage without
 // having to build a synthetic filesystem.
 func NewLoopbackFileSystem(root string) (out *loopbackFileSystem) {
-	out = new(loopbackFileSystem)
-	out.Root = root
+	out = &loopbackFileSystem{
+		FileSystem: NewDefaultFileSystem(),
+		Root: root,
+	}
 
 	return out
 }

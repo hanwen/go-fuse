@@ -90,7 +90,7 @@ func (f *MutableDataFile) Chmod(perms uint32) fuse.Status {
 
 // This FS only supports a single r/w file called "/file".
 type FSetAttrFs struct {
-	pathfs.DefaultFileSystem
+	pathfs.FileSystem
 	file *MutableDataFile
 }
 
@@ -162,7 +162,9 @@ func setupFAttrTest(t *testing.T, fs pathfs.FileSystem) (dir string, clean func(
 }
 
 func TestDataReadLarge(t *testing.T) {
-	fs := &FSetAttrFs{}
+	fs := &FSetAttrFs{
+		FileSystem: pathfs.NewDefaultFileSystem(),
+	}
 	dir, clean, _ := setupFAttrTest(t, fs)
 	defer clean()
 
@@ -181,7 +183,9 @@ func TestDataReadLarge(t *testing.T) {
 }
 
 func TestFSetAttr(t *testing.T) {
-	fs := &FSetAttrFs{}
+	fs := &FSetAttrFs{
+		FileSystem: pathfs.NewDefaultFileSystem(),
+	}
 	dir, clean, sync := setupFAttrTest(t, fs)
 	defer clean()
 

@@ -10,7 +10,7 @@ import (
 )
 
 type ownerFs struct {
-	DefaultFileSystem
+	FileSystem
 }
 
 const _RANDOM_OWNER = 31415265
@@ -32,7 +32,7 @@ func (fs *ownerFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse
 func setupOwnerTest(t *testing.T, opts *fuse.FileSystemOptions) (workdir string, cleanup func()) {
 	wd, err := ioutil.TempDir("", "go-fuse-owner_test")
 
-	fs := &ownerFs{}
+	fs := &ownerFs{NewDefaultFileSystem()}
 	nfs := NewPathNodeFs(fs, nil)
 	state, _, err := fuse.MountNodeFileSystem(wd, nfs, opts)
 	if err != nil {

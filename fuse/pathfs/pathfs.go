@@ -97,7 +97,7 @@ func (fs *PathNodeFs) OnUnmount() {
 
 func (fs *PathNodeFs) String() string {
 	name := fs.fs.String()
-	if name == "DefaultFileSystem" {
+	if name == "defaultFileSystem" {
 		name = fmt.Sprintf("%T", fs.fs)
 		name = strings.TrimLeft(name, "*")
 	}

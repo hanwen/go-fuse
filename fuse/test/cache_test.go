@@ -109,7 +109,7 @@ func TestCacheFs(t *testing.T) {
 }
 
 type nonseekFs struct {
-	pathfs.DefaultFileSystem
+	pathfs.FileSystem
 	Length int
 }
 
@@ -134,7 +134,7 @@ func (fs *nonseekFs) Open(name string, flags uint32, context *fuse.Context) (fus
 }
 
 func TestNonseekable(t *testing.T) {
-	fs := &nonseekFs{}
+	fs := &nonseekFs{FileSystem: pathfs.NewDefaultFileSystem()}
 	fs.Length = 200 * 1024
 
 	dir, err := ioutil.TempDir("", "go-fuse-cache_test")
