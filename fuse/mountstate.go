@@ -365,7 +365,7 @@ func (ms *MountState) handleRequest(req *request) {
 	ms.returnRequest(req)
 }
 
-func (ms *MountState) AllocOut(req *request, size uint32) []byte {
+func (ms *MountState) allocOut(req *request, size uint32) []byte {
 	if cap(req.bufferPoolOutputBuf) >= int(size) {
 		req.bufferPoolOutputBuf = req.bufferPoolOutputBuf[:size]
 		return req.bufferPoolOutputBuf

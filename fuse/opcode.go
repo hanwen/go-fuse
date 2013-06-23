@@ -122,7 +122,7 @@ func doCreate(state *MountState, req *request) {
 
 func doReadDir(state *MountState, req *request) {
 	in := (*raw.ReadIn)(req.inData)
-	buf := state.AllocOut(req, in.Size)
+	buf := state.allocOut(req, in.Size)
 	entries := NewDirEntryList(buf, uint64(in.Offset))
 
 	code := state.fileSystem.ReadDir(entries, &req.context, in)
@@ -273,7 +273,7 @@ func doLink(state *MountState, req *request) {
 
 func doRead(state *MountState, req *request) {
 	in := (*raw.ReadIn)(req.inData)
-	buf := state.AllocOut(req, in.Size)
+	buf := state.allocOut(req, in.Size)
 
 	req.readResult, req.status = state.fileSystem.Read(&req.context, in, buf)
 	if fd, ok := req.readResult.(*ReadResultFd); ok {

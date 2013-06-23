@@ -22,7 +22,7 @@ func (ms *MountState) systemWrite(req *request, header []byte) Status {
 		}
 
 		sz := req.flatDataSize()
-		buf := ms.AllocOut(req, uint32(sz))
+		buf := ms.allocOut(req, uint32(sz))
 		req.flatData, req.status = req.fdData.Bytes(buf)
 		header = req.serializeHeader(len(req.flatData))
 	}
