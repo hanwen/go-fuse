@@ -73,7 +73,7 @@ func (fs *readonlyFileSystem) Open(name string, flags uint32, context *fuse.Cont
 		return nil, fuse.EPERM
 	}
 	file, code = fs.FileSystem.Open(name, flags, context)
-	return &fuse.ReadOnlyFile{file}, code
+	return fuse.NewReadOnlyFile(file), code
 }
 
 func (fs *readonlyFileSystem) OpenDir(name string, context *fuse.Context) (stream []fuse.DirEntry, status fuse.Status) {

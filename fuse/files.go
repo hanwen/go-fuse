@@ -220,37 +220,41 @@ func (f *loopbackFile) Utimens(a *time.Time, m *time.Time) Status {
 
 ////////////////////////////////////////////////////////////////
 
-// ReadOnlyFile is a wrapper that denies writable operations
-type ReadOnlyFile struct {
+func NewReadOnlyFile(f File) File {
+	return &readOnlyFile{File: f}
+}
+
+// readOnlyFile is a wrapper that denies writable operations
+type readOnlyFile struct {
 	File
 }
 
-var _ = (File)((*ReadOnlyFile)(nil))
+var _ = (File)((*readOnlyFile)(nil))
 
-func (f *ReadOnlyFile) String() string {
-	return fmt.Sprintf("ReadOnlyFile(%s)", f.File.String())
+func (f *readOnlyFile) String() string {
+	return fmt.Sprintf("readOnlyFile(%s)", f.File.String())
 }
 
-func (f *ReadOnlyFile) Write(data []byte, off int64) (uint32, Status) {
+func (f *readOnlyFile) Write(data []byte, off int64) (uint32, Status) {
 	return 0, EPERM
 }
 
-func (f *ReadOnlyFile) Fsync(flag int) (code Status) {
+func (f *readOnlyFile) Fsync(flag int) (code Status) {
 	return OK
 }
 
-func (f *ReadOnlyFile) Truncate(size uint64) Status {
+func (f *readOnlyFile) Truncate(size uint64) Status {
 	return EPERM
 }
 
-func (f *ReadOnlyFile) Chmod(mode uint32) Status {
+func (f *readOnlyFile) Chmod(mode uint32) Status {
 	return EPERM
 }
 
-func (f *ReadOnlyFile) Chown(uid uint32, gid uint32) Status {
+func (f *readOnlyFile) Chown(uid uint32, gid uint32) Status {
 	return EPERM
 }
 
-func (f *ReadOnlyFile) Allocate(off uint64, sz uint64, mode uint32) Status {
+func (f *readOnlyFile) Allocate(off uint64, sz uint64, mode uint32) Status {
 	return EPERM
 }
