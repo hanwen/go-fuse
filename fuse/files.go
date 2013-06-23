@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"sync"
-	"time"
 	"syscall"
 )
 
@@ -212,11 +211,7 @@ func (f *loopbackFile) GetAttr(a *Attr) Status {
 	return OK
 }
 
-func (f *loopbackFile) Utimens(a *time.Time, m *time.Time) Status {
-	return ENOSYS
-}
-
-// Allocate implemented in files_linux.go
+// Allocate, Utimens implemented in files_linux.go
 
 ////////////////////////////////////////////////////////////////
 
