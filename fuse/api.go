@@ -223,7 +223,7 @@ type MountOptions struct {
 // interactions with open files, renames, and threading right etc. are
 // somewhat tricky and not very interesting.
 //
-// Include DefaultRawFileSystem to inherit a null implementation.
+// A null implementation is provided by NewDefaultRawFileSystem.
 type RawFileSystem interface {
 	String() string
 
@@ -279,9 +279,6 @@ type RawFileSystem interface {
 	// Provide callbacks for pushing notifications to the kernel.
 	Init(params *RawFsInit)
 }
-
-// DefaultRawFileSystem returns ENOSYS for every operation.
-type DefaultRawFileSystem struct{}
 
 // Talk back to FUSE.
 //
