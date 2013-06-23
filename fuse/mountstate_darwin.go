@@ -17,7 +17,7 @@ func (ms *MountState) systemWrite(req *request, header []byte) Status {
 		header = req.serializeHeader(len(req.flatData))
 	}
 
-	_, err := Writev(int(ms.mountFd), [][]byte{header, req.flatData})
+	_, err := writev(int(ms.mountFd), [][]byte{header, req.flatData})
 	if req.readResult != nil {
 		req.readResult.Done()
 	}
