@@ -602,11 +602,6 @@ func (fs *unionFS) Readlink(name string, context *fuse.Context) (out string, cod
 	return "", fuse.ENOENT
 }
 
-func IsDir(fs pathfs.FileSystem, name string) bool {
-	a, code := fs.GetAttr(name, nil)
-	return code.Ok() && a.IsDir()
-}
-
 func stripSlash(fn string) string {
 	return strings.TrimRight(fn, string(filepath.Separator))
 }
