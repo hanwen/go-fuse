@@ -97,7 +97,7 @@ func (fs *loopbackFileSystem) Open(name string, flags uint32, context *fuse.Cont
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	return &fuse.LoopbackFile{File: f}, fuse.OK
+	return fuse.NewLoopbackFile(f), fuse.OK
 }
 
 func (fs *loopbackFileSystem) Chmod(path string, mode uint32, context *fuse.Context) (code fuse.Status) {
@@ -166,5 +166,5 @@ func (fs *loopbackFileSystem) Access(name string, mode uint32, context *fuse.Con
 
 func (fs *loopbackFileSystem) Create(path string, flags uint32, mode uint32, context *fuse.Context) (fuseFile fuse.File, code fuse.Status) {
 	f, err := os.OpenFile(fs.GetPath(path), int(flags)|os.O_CREATE, os.FileMode(mode))
-	return &fuse.LoopbackFile{File: f}, fuse.ToStatus(err)
+	return fuse.NewLoopbackFile(f), fuse.ToStatus(err)
 }

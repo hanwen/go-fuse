@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 	"syscall"
 )
 
@@ -11,36 +12,37 @@ var _ = fmt.Println
 
 // DataFile is for implementing read-only filesystems.  This
 // assumes we already have the data in memory.
-type DataFile struct {
+type dataFile struct {
 	data []byte
 
-	DefaultFile
+	File
 }
 
-var _ = (File)((*DataFile)(nil))
+var _ = (File)((*dataFile)(nil))
 
-func (f *DataFile) String() string {
+func (f *dataFile) String() string {
 	l := len(f.data)
 	if l > 10 {
 		l = 10
 	}
 
-	return fmt.Sprintf("DataFile(%x)", f.data[:l])
+	return fmt.Sprintf("dataFile(%x)", f.data[:l])
 }
 
-func (f *DataFile) GetAttr(out *Attr) Status {
+func (f *dataFile) GetAttr(out *Attr) Status {
 	out.Mode = S_IFREG | 0644
 	out.Size = uint64(len(f.data))
 	return OK
 }
 
-func NewDataFile(data []byte) *DataFile {
-	f := new(DataFile)
+func NewDataFile(data []byte) *dataFile {
+	f := new(dataFile)
 	f.data = data
+	f.File = NewDefaultFile()
 	return f
 }
 
-func (f *DataFile) Read(buf []byte, off int64) (res ReadResult, code Status) {
+func (f *dataFile) Read(buf []byte, off int64) (res ReadResult, code Status) {
 	end := int(off) + int(len(buf))
 	if end > len(f.data) {
 		end = len(f.data)
@@ -51,62 +53,81 @@ func (f *DataFile) Read(buf []byte, off int64) (res ReadResult, code Status) {
 
 ////////////////
 
-// DevNullFile accepts any write, and always returns EOF.
-type DevNullFile struct {
-	DefaultFile
+type devNullFile struct {
+	File
 }
 
-var _ = (File)((*DevNullFile)(nil))
+var _ = (File)((*devNullFile)(nil))
 
-func NewDevNullFile() *DevNullFile {
-	return new(DevNullFile)
+// NewDevNullFile returns a file that accepts any write, and always
+// returns EOF for reads.
+func NewDevNullFile() *devNullFile {
+	return &devNullFile{
+		File: NewDefaultFile(),
+	}
 }
 
-func (f *DevNullFile) String() string {
-	return "DevNullFile"
+func (f *devNullFile) Allocate(off uint64, size uint64, mode uint32) (code Status) {
+	return OK
 }
 
-func (f *DevNullFile) Read(buf []byte, off int64) (ReadResult, Status) {
+func (f *devNullFile) String() string {
+	return "devNullFile"
+}
+
+func (f *devNullFile) Read(buf []byte, off int64) (ReadResult, Status) {
 	return &ReadResultData{}, OK
 }
 
-func (f *DevNullFile) Write(content []byte, off int64) (uint32, Status) {
+func (f *devNullFile) Write(content []byte, off int64) (uint32, Status) {
 	return uint32(len(content)), OK
 }
 
-func (f *DevNullFile) Flush() Status {
+func (f *devNullFile) Flush() Status {
 	return OK
 }
 
-func (f *DevNullFile) Fsync(flags int) (code Status) {
+func (f *devNullFile) Fsync(flags int) (code Status) {
 	return OK
 }
 
-func (f *DevNullFile) Truncate(size uint64) (code Status) {
+func (f *devNullFile) Truncate(size uint64) (code Status) {
 	return OK
 }
 
 ////////////////
 
 // LoopbackFile delegates all operations back to an underlying os.File.
-type LoopbackFile struct {
+func NewLoopbackFile(f *os.File) File {
+	return &loopbackFile{File: f}
+}
+	
+type loopbackFile struct {
 	File *os.File
 
 	// os.File is not threadsafe. Although fd themselves are
 	// constant during the lifetime of an open file, the OS may
-	// reuse the fd number after it is closed. When combined with
-	// threads,
+	// reuse the fd number after it is closed. When open races
+	// with another close, they may lead to confusion as which
+	// file gets written in the end.
 	lock sync.Mutex
-	DefaultFile
 }
 
-var _ = (File)((*LoopbackFile)(nil))
 
-func (f *LoopbackFile) String() string {
-	return fmt.Sprintf("LoopbackFile(%s)", f.File.Name())
+var _ = (File)((*loopbackFile)(nil))
+
+func (f *loopbackFile) InnerFile() File {
+	return nil
 }
 
-func (f *LoopbackFile) Read(buf []byte, off int64) (res ReadResult, code Status) {
+func (f *loopbackFile) SetInode(n *Inode) {
+}
+
+func (f *loopbackFile) String() string {
+	return fmt.Sprintf("loopbackFile(%s)", f.File.Name())
+}
+
+func (f *loopbackFile) Read(buf []byte, off int64) (res ReadResult, code Status) {
 	f.lock.Lock()
 	r := &ReadResultFd{
 		Fd:  f.File.Fd(),
@@ -117,20 +138,20 @@ func (f *LoopbackFile) Read(buf []byte, off int64) (res ReadResult, code Status)
 	return r, OK
 }
 
-func (f *LoopbackFile) Write(data []byte, off int64) (uint32, Status) {
+func (f *loopbackFile) Write(data []byte, off int64) (uint32, Status) {
 	f.lock.Lock()
 	n, err := f.File.WriteAt(data, off)
 	f.lock.Unlock()
 	return uint32(n), ToStatus(err)
 }
 
-func (f *LoopbackFile) Release() {
+func (f *loopbackFile) Release() {
 	f.lock.Lock()
 	f.File.Close()
 	f.lock.Unlock()
 }
 
-func (f *LoopbackFile) Flush() Status {
+func (f *loopbackFile) Flush() Status {
 	f.lock.Lock()
 
 	// Since Flush() may be called for each dup'd fd, we don't
@@ -146,7 +167,7 @@ func (f *LoopbackFile) Flush() Status {
 	return ToStatus(err)
 }
 
-func (f *LoopbackFile) Fsync(flags int) (code Status) {
+func (f *loopbackFile) Fsync(flags int) (code Status) {
 	f.lock.Lock()
 	r := ToStatus(syscall.Fsync(int(f.File.Fd())))
 	f.lock.Unlock()
@@ -154,7 +175,7 @@ func (f *LoopbackFile) Fsync(flags int) (code Status) {
 	return r
 }
 
-func (f *LoopbackFile) Truncate(size uint64) Status {
+func (f *loopbackFile) Truncate(size uint64) Status {
 	f.lock.Lock()
 	r := ToStatus(syscall.Ftruncate(int(f.File.Fd()), int64(size)))
 	f.lock.Unlock()
@@ -162,9 +183,7 @@ func (f *LoopbackFile) Truncate(size uint64) Status {
 	return r
 }
 
-// futimens missing from 6g runtime.
-
-func (f *LoopbackFile) Chmod(mode uint32) Status {
+func (f *loopbackFile) Chmod(mode uint32) Status {
 	f.lock.Lock()
 	r := ToStatus(f.File.Chmod(os.FileMode(mode)))
 	f.lock.Unlock()
@@ -172,7 +191,7 @@ func (f *LoopbackFile) Chmod(mode uint32) Status {
 	return r
 }
 
-func (f *LoopbackFile) Chown(uid uint32, gid uint32) Status {
+func (f *loopbackFile) Chown(uid uint32, gid uint32) Status {
 	f.lock.Lock()
 	r := ToStatus(f.File.Chown(int(uid), int(gid)))
 	f.lock.Unlock()
@@ -180,7 +199,7 @@ func (f *LoopbackFile) Chown(uid uint32, gid uint32) Status {
 	return r
 }
 
-func (f *LoopbackFile) GetAttr(a *Attr) Status {
+func (f *loopbackFile) GetAttr(a *Attr) Status {
 	st := syscall.Stat_t{}
 	f.lock.Lock()
 	err := syscall.Fstat(int(f.File.Fd()), &st)
@@ -192,6 +211,12 @@ func (f *LoopbackFile) GetAttr(a *Attr) Status {
 
 	return OK
 }
+
+func (f *loopbackFile) Utimens(a *time.Time, m *time.Time) Status {
+	return ENOSYS
+}
+
+// Allocate implemented in files_linux.go
 
 ////////////////////////////////////////////////////////////////
 

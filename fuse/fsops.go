@@ -21,6 +21,8 @@ func (c *FileSystemConnector) RawFS() RawFileSystem {
 }
 
 type rawBridge FileSystemConnector
+var _ = (RawFileSystem)((*rawBridge)(nil))
+
 
 func (c *rawBridge) Fsync(context *Context, input *raw.FsyncIn) Status {
 	return ENOSYS

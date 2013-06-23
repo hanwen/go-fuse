@@ -9,63 +9,70 @@ import (
 
 var _ = log.Println
 
-var _ = (File)((*DefaultFile)(nil))
+var _ = (File)((*defaultFile)(nil))
 
-func (f *DefaultFile) SetInode(*Inode) {
+type defaultFile struct{}
+
+// DefaultFile returns ENOSYS for every operation.
+func NewDefaultFile() File {
+	return &defaultFile{}
 }
 
-func (f *DefaultFile) InnerFile() File {
+func (f *defaultFile) SetInode(*Inode) {
+}
+
+func (f *defaultFile) InnerFile() File {
 	return nil
 }
 
-func (f *DefaultFile) String() string {
-	return "DefaultFile"
+func (f *defaultFile) String() string {
+	return "defaultFile"
 }
 
-func (f *DefaultFile) Read(buf []byte, off int64) (ReadResult, Status) {
+func (f *defaultFile) Read(buf []byte, off int64) (ReadResult, Status) {
 	return nil, ENOSYS
 }
 
-func (f *DefaultFile) Write(data []byte, off int64) (uint32, Status) {
+func (f *defaultFile) Write(data []byte, off int64) (uint32, Status) {
 	return 0, ENOSYS
 }
 
-func (f *DefaultFile) Flush() Status {
+func (f *defaultFile) Flush() Status {
 	return OK
 }
 
-func (f *DefaultFile) Release() {
+func (f *defaultFile) Release() {
 
 }
 
-func (f *DefaultFile) GetAttr(*Attr) Status {
+func (f *defaultFile) GetAttr(*Attr) Status {
 	return ENOSYS
 }
 
-func (f *DefaultFile) Fsync(flags int) (code Status) {
+func (f *defaultFile) Fsync(flags int) (code Status) {
 	return ENOSYS
 }
 
-func (f *DefaultFile) Utimens(atime *time.Time, mtime *time.Time) Status {
+func (f *defaultFile) Utimens(atime *time.Time, mtime *time.Time) Status {
 	return ENOSYS
 }
 
-func (f *DefaultFile) Truncate(size uint64) Status {
+func (f *defaultFile) Truncate(size uint64) Status {
 	return ENOSYS
 }
 
-func (f *DefaultFile) Chown(uid uint32, gid uint32) Status {
+func (f *defaultFile) Chown(uid uint32, gid uint32) Status {
 	return ENOSYS
 }
 
-func (f *DefaultFile) Chmod(perms uint32) Status {
+func (f *defaultFile) Chmod(perms uint32) Status {
 	return ENOSYS
 }
 
-func (f *DefaultFile) Ioctl(input *raw.IoctlIn) (output *raw.IoctlOut, data []byte, code Status) {
+func (f *defaultFile) Ioctl(input *raw.IoctlIn) (output *raw.IoctlOut, data []byte, code Status) {
 	return nil, nil, ENOSYS
 }
 
-func (f *DefaultFile) Allocate(off uint64, size uint64, mode uint32) (code Status) {
+func (f *defaultFile) Allocate(off uint64, size uint64, mode uint32) (code Status) {
 	return ENOSYS
 }

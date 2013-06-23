@@ -97,8 +97,8 @@ type FsNode interface {
 }
 
 // A File object should be returned from FileSystem.Open and
-// FileSystem.Create.  Include DefaultFile into the struct to inherit
-// a default null implementation.
+// FileSystem.Create.  Include the NewDefaultFile return value into
+// the struct to inherit a default null implementation.
 //
 // TODO - should File be thread safe?
 // TODO - should we pass a *Context argument?
@@ -215,9 +215,6 @@ type MountOptions struct {
 	// small.
 	Name string
 }
-
-// DefaultFile returns ENOSYS for every operation.
-type DefaultFile struct{}
 
 // RawFileSystem is an interface close to the FUSE wire protocol.
 //

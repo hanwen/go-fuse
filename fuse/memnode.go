@@ -134,20 +134,20 @@ func (n *memNode) Create(name string, flags uint32, mode uint32, context *Contex
 }
 
 type memNodeFile struct {
-	LoopbackFile
+	File
 	node *memNode
 }
 
 func (n *memNodeFile) String() string {
-	return fmt.Sprintf("memNodeFile(%s)", n.LoopbackFile.String())
+	return fmt.Sprintf("memNodeFile(%s)", n.File.String())
 }
 
 func (n *memNodeFile) InnerFile() File {
-	return &n.LoopbackFile
+	return n.File
 }
 
 func (n *memNodeFile) Flush() Status {
-	code := n.LoopbackFile.Flush()
+	code := n.File.Flush()
 
 	if !code.Ok() {
 		return code
@@ -162,7 +162,7 @@ func (n *memNodeFile) Flush() Status {
 
 func (n *memNode) newFile(f *os.File) File {
 	return &memNodeFile{
-		LoopbackFile: LoopbackFile{File: f},
+		File: NewLoopbackFile(f),
 		node:         n,
 	}
 }

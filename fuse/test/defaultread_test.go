@@ -29,7 +29,7 @@ func (fs *DefaultReadFS) GetAttr(name string, context *fuse.Context) (*fuse.Attr
 }
 
 func (fs *DefaultReadFS) Open(name string, f uint32, context *fuse.Context) (fuse.File, fuse.Status) {
-	return &fuse.DefaultFile{}, fuse.OK
+	return fuse.NewDefaultFile(), fuse.OK
 }
 
 func defaultReadTest(t *testing.T) (root string, cleanup func()) {

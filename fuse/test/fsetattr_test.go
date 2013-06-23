@@ -13,7 +13,7 @@ import (
 )
 
 type MutableDataFile struct {
-	fuse.DefaultFile
+	fuse.File
 
 	data []byte
 	fuse.Attr
@@ -129,7 +129,7 @@ func (fs *FSetAttrFs) Create(name string, flags uint32, mode uint32, context *fu
 }
 
 func NewFile() *MutableDataFile {
-	return &MutableDataFile{}
+	return &MutableDataFile{File: fuse.NewDefaultFile()}
 }
 
 func setupFAttrTest(t *testing.T, fs pathfs.FileSystem) (dir string, clean func(), sync func()) {
