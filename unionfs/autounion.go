@@ -16,8 +16,8 @@ import (
 )
 
 type knownFs struct {
-	*UnionFs
-	*pathfs.PathNodeFs
+	unionFS pathfs.FileSystem
+	nodeFS *pathfs.PathNodeFs
 }
 
 // Creates unions for all files under a given directory,
@@ -25,7 +25,7 @@ type knownFs struct {
 // D/READONLY symlink.
 //
 // A union for A/B/C will placed under directory A-B-C.
-type AutoUnionFs struct {
+type autoUnionFs struct {
 	pathfs.FileSystem
 	debug bool
 	
@@ -64,11 +64,19 @@ const (
 	_SCAN_CONFIG   = ".scan_config"
 )
 
-func NewAutoUnionFs(directory string, options AutoUnionFsOptions) *AutoUnionFs {
+// A pathfs.FileSystem that we can hookup with MountState and
+// FileSystemConnector
+type RootFileSystem interface {
+	SetMountState(state *fuse.MountState)
+	SetFileSystemConnector(conn *fuse.FileSystemConnector)
+	pathfs.FileSystem
+}
+	
+func NewAutoUnionFs(directory string, options AutoUnionFsOptions) RootFileSystem {
 	if options.HideReadonly {
 		options.HiddenFiles = append(options.HiddenFiles, _READONLY)
 	}
-	a := &AutoUnionFs{
+	a := &autoUnionFs{
 		knownFileSystems: make(map[string]knownFs),
 		nameRootMap: make(map[string]string),
 		options: &options,
@@ -83,18 +91,18 @@ func NewAutoUnionFs(directory string, options AutoUnionFsOptions) *AutoUnionFs {
 	return a
 }
 
-func (fs *AutoUnionFs) String() string {
-	return fmt.Sprintf("AutoUnionFs(%s)", fs.root)
+func (fs *autoUnionFs) String() string {
+	return fmt.Sprintf("autoUnionFs(%s)", fs.root)
 }
 
-func (fs *AutoUnionFs) OnMount(nodeFs *pathfs.PathNodeFs) {
+func (fs *autoUnionFs) OnMount(nodeFs *pathfs.PathNodeFs) {
 	fs.nodeFs = nodeFs
 	if fs.options.UpdateOnMount {
 		time.AfterFunc(100*time.Millisecond, func() { fs.updateKnownFses() })
 	}
 }
 
-func (fs *AutoUnionFs) addAutomaticFs(roots []string) {
+func (fs *autoUnionFs) addAutomaticFs(roots []string) {
 	relative := strings.TrimLeft(strings.Replace(roots[0], fs.root, "", -1), "/")
 	name := strings.Replace(relative, "/", "-", -1)
 
@@ -103,7 +111,7 @@ func (fs *AutoUnionFs) addAutomaticFs(roots []string) {
 	}
 }
 
-func (fs *AutoUnionFs) createFs(name string, roots []string) fuse.Status {
+func (fs *autoUnionFs) createFs(name string, roots []string) fuse.Status {
 	fs.lock.Lock()
 	defer fs.lock.Unlock()
 
@@ -116,7 +124,7 @@ func (fs *AutoUnionFs) createFs(name string, roots []string) fuse.Status {
 	}
 
 	known := fs.knownFileSystems[name]
-	if known.UnionFs != nil {
+	if known.unionFS != nil {
 		log.Println("Already have a workspace:", name)
 		return fuse.EBUSY
 	}
@@ -140,12 +148,12 @@ func (fs *AutoUnionFs) createFs(name string, roots []string) fuse.Status {
 	return code
 }
 
-func (fs *AutoUnionFs) rmFs(name string) (code fuse.Status) {
+func (fs *autoUnionFs) rmFs(name string) (code fuse.Status) {
 	fs.lock.Lock()
 	defer fs.lock.Unlock()
 
 	known := fs.knownFileSystems[name]
-	if known.UnionFs == nil {
+	if known.unionFS == nil {
 		return fuse.ENOENT
 	}
 
@@ -160,7 +168,7 @@ func (fs *AutoUnionFs) rmFs(name string) (code fuse.Status) {
 	return code
 }
 
-func (fs *AutoUnionFs) addFs(name string, roots []string) (code fuse.Status) {
+func (fs *autoUnionFs) addFs(name string, roots []string) (code fuse.Status) {
 	if name == _CONFIG || name == _STATUS || name == _SCAN_CONFIG {
 		log.Printf("Illegal name %q for overlay: %v", name, roots)
 		return fuse.EINVAL
@@ -168,7 +176,7 @@ func (fs *AutoUnionFs) addFs(name string, roots []string) (code fuse.Status) {
 	return fs.createFs(name, roots)
 }
 
-func (fs *AutoUnionFs) getRoots(path string) []string {
+func (fs *autoUnionFs) getRoots(path string) []string {
 	ro := filepath.Join(path, _READONLY)
 	fi, err := os.Lstat(ro)
 	fiDir, errDir := os.Stat(ro)
@@ -184,7 +192,7 @@ func (fs *AutoUnionFs) getRoots(path string) []string {
 	return nil
 }
 
-func (fs *AutoUnionFs) visit(path string, fi os.FileInfo, err error) error {
+func (fs *autoUnionFs) visit(path string, fi os.FileInfo, err error) error {
 	if fi != nil && fi.IsDir() {
 		roots := fs.getRoots(path)
 		if roots != nil {
@@ -194,7 +202,7 @@ func (fs *AutoUnionFs) visit(path string, fi os.FileInfo, err error) error {
 	return nil
 }
 
-func (fs *AutoUnionFs) updateKnownFses() {
+func (fs *autoUnionFs) updateKnownFses() {
 	log.Println("Looking for new filesystems")
 	// We unroll the first level of entries in the root manually in order
 	// to allow symbolic links on that level.
@@ -215,7 +223,7 @@ func (fs *AutoUnionFs) updateKnownFses() {
 	log.Println("Done looking")
 }
 
-func (fs *AutoUnionFs) Readlink(path string, context *fuse.Context) (out string, code fuse.Status) {
+func (fs *autoUnionFs) Readlink(path string, context *fuse.Context) (out string, code fuse.Status) {
 	comps := strings.Split(path, string(filepath.Separator))
 	if comps[0] == _STATUS && comps[1] == _ROOT {
 		return fs.root, fuse.OK
@@ -241,13 +249,13 @@ func (fs *AutoUnionFs) Readlink(path string, context *fuse.Context) (out string,
 	return "", fuse.ENOENT
 }
 
-func (fs *AutoUnionFs) getUnionFs(name string) *UnionFs {
+func (fs *autoUnionFs) getUnionFs(name string) pathfs.FileSystem {
 	fs.lock.RLock()
 	defer fs.lock.RUnlock()
-	return fs.knownFileSystems[name].UnionFs
+	return fs.knownFileSystems[name].unionFS
 }
 
-func (fs *AutoUnionFs) Symlink(pointedTo string, linkName string, context *fuse.Context) (code fuse.Status) {
+func (fs *autoUnionFs) Symlink(pointedTo string, linkName string, context *fuse.Context) (code fuse.Status) {
 	comps := strings.Split(linkName, "/")
 	if len(comps) != 2 {
 		return fuse.EPERM
@@ -270,7 +278,7 @@ func (fs *AutoUnionFs) Symlink(pointedTo string, linkName string, context *fuse.
 	return fuse.EPERM
 }
 
-func (fs *AutoUnionFs) SetDebug(b bool) {
+func (fs *autoUnionFs) SetDebug(b bool) {
 	// Officially, this should use locking, but we don't care
 	// about race conditions here.
 	fs.debug = b
@@ -279,11 +287,11 @@ func (fs *AutoUnionFs) SetDebug(b bool) {
 	fs.mountState.SetDebug(b)
 }
 
-func (fs *AutoUnionFs) hasDebug() bool {
+func (fs *autoUnionFs) hasDebug() bool {
 	return fs.debug
 }
 
-func (fs *AutoUnionFs) Unlink(path string, context *fuse.Context) (code fuse.Status) {
+func (fs *autoUnionFs) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 	comps := strings.Split(path, "/")
 	if len(comps) != 2 {
 		return fuse.EPERM
@@ -303,11 +311,11 @@ func (fs *AutoUnionFs) Unlink(path string, context *fuse.Context) (code fuse.Sta
 }
 
 // Must define this, because ENOSYS will suspend all GetXAttr calls.
-func (fs *AutoUnionFs) GetXAttr(name string, attr string, context *fuse.Context) ([]byte, fuse.Status) {
+func (fs *autoUnionFs) GetXAttr(name string, attr string, context *fuse.Context) ([]byte, fuse.Status) {
 	return nil, fuse.ENODATA
 }
 
-func (fs *AutoUnionFs) GetAttr(path string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
+func (fs *autoUnionFs) GetAttr(path string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	if path == "" || path == _CONFIG || path == _STATUS {
 		a := &fuse.Attr{
 			Mode: fuse.S_IFDIR | 0755,
@@ -368,7 +376,7 @@ func (fs *AutoUnionFs) GetAttr(path string, context *fuse.Context) (*fuse.Attr, 
 	return nil, fuse.ENOENT
 }
 
-func (fs *AutoUnionFs) StatusDir() (stream []fuse.DirEntry, status fuse.Status) {
+func (fs *autoUnionFs) StatusDir() (stream []fuse.DirEntry, status fuse.Status) {
 	stream = make([]fuse.DirEntry, 0, 10)
 	stream = []fuse.DirEntry{
 		{Name: _VERSION, Mode: fuse.S_IFREG | 0644},
@@ -383,17 +391,17 @@ func (fs *AutoUnionFs) StatusDir() (stream []fuse.DirEntry, status fuse.Status) 
 
 // SetMountState stores the MountState, which is necessary for
 // retrieving debug data.
-func (fs *AutoUnionFs) SetMountState(state *fuse.MountState) {
+func (fs *autoUnionFs) SetMountState(state *fuse.MountState) {
 	fs.mountState = state
 }
 
-func (fs *AutoUnionFs) SetFileSystemConnector(conn *fuse.FileSystemConnector) {
+func (fs *autoUnionFs) SetFileSystemConnector(conn *fuse.FileSystemConnector) {
 	fs.connector = conn
 }
 
-func (fs *AutoUnionFs) DebugData() string {
+func (fs *autoUnionFs) DebugData() string {
 	if fs.mountState == nil {
-		return "AutoUnionFs.mountState not set"
+		return "autoUnionFs.mountState not set"
 	}
 	setting := fs.mountState.KernelSettings()
 	msg := fmt.Sprintf(
@@ -411,7 +419,7 @@ func (fs *AutoUnionFs) DebugData() string {
 	return msg
 }
 
-func (fs *AutoUnionFs) Open(path string, flags uint32, context *fuse.Context) (fuse.File, fuse.Status) {
+func (fs *autoUnionFs) Open(path string, flags uint32, context *fuse.Context) (fuse.File, fuse.Status) {
 	if path == filepath.Join(_STATUS, _DEBUG) {
 		if flags&fuse.O_ANYWRITE != 0 {
 			return nil, fuse.EPERM
@@ -434,7 +442,7 @@ func (fs *AutoUnionFs) Open(path string, flags uint32, context *fuse.Context) (f
 	return nil, fuse.ENOENT
 }
 
-func (fs *AutoUnionFs) Truncate(name string, offset uint64, context *fuse.Context) (code fuse.Status) {
+func (fs *autoUnionFs) Truncate(name string, offset uint64, context *fuse.Context) (code fuse.Status) {
 	if name != filepath.Join(_CONFIG, _SCAN_CONFIG) {
 		log.Println("Huh? Truncating unsupported write file", name)
 		return fuse.EPERM
@@ -442,7 +450,7 @@ func (fs *AutoUnionFs) Truncate(name string, offset uint64, context *fuse.Contex
 	return fuse.OK
 }
 
-func (fs *AutoUnionFs) OpenDir(name string, context *fuse.Context) (stream []fuse.DirEntry, status fuse.Status) {
+func (fs *autoUnionFs) OpenDir(name string, context *fuse.Context) (stream []fuse.DirEntry, status fuse.Status) {
 	switch name {
 	case _STATUS:
 		return fs.StatusDir()
@@ -481,6 +489,6 @@ func (fs *AutoUnionFs) OpenDir(name string, context *fuse.Context) (stream []fus
 	return stream, status
 }
 
-func (fs *AutoUnionFs) StatFs(name string) *fuse.StatfsOut {
+func (fs *autoUnionFs) StatFs(name string) *fuse.StatfsOut {
 	return &fuse.StatfsOut{}
 }

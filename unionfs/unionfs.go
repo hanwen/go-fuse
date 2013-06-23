@@ -56,14 +56,14 @@ func filePathHash(path string) string {
  answer is-deleted queries quickly.
 
 */
-type UnionFs struct {
+type unionFS struct {
 	pathfs.FileSystem
 
 	// The same, but as interfaces.
 	fileSystems []pathfs.FileSystem
 
 	// A file-existence cache.
-	deletionCache *DirCache
+	deletionCache *dirCache
 
 	// A file -> branch cache.
 	branchCache *TimedCache
@@ -86,8 +86,8 @@ const (
 	_DROP_CACHE = ".drop_cache"
 )
 
-func NewUnionFs(fileSystems []pathfs.FileSystem, options UnionFsOptions) *UnionFs {
-	g := &UnionFs{
+func NewUnionFs(fileSystems []pathfs.FileSystem, options UnionFsOptions) pathfs.FileSystem {
+	g := &unionFS{
 		options: &options,
 		fileSystems: fileSystems,
 		FileSystem: pathfs.NewDefaultFileSystem(),
@@ -100,7 +100,7 @@ func NewUnionFs(fileSystems []pathfs.FileSystem, options UnionFsOptions) *UnionF
 		return nil
 	}
 
-	g.deletionCache = NewDirCache(writable, options.DeletionDirName, options.DeletionCacheTTL)
+	g.deletionCache = newDirCache(writable, options.DeletionDirName, options.DeletionCacheTTL)
 	g.branchCache = NewTimedCache(
 		func(n string) (interface{}, bool) { return g.getBranchAttrNoCache(n), true },
 		options.BranchCacheTTL)
@@ -113,7 +113,7 @@ func NewUnionFs(fileSystems []pathfs.FileSystem, options UnionFsOptions) *UnionF
 	return g
 }
 
-func (fs *UnionFs) OnMount(nodeFs *pathfs.PathNodeFs) {
+func (fs *unionFS) OnMount(nodeFs *pathfs.PathNodeFs) {
 	fs.nodeFs = nodeFs
 }
 
@@ -122,7 +122,7 @@ func (fs *UnionFs) OnMount(nodeFs *pathfs.PathNodeFs) {
 
 // The isDeleted() method tells us if a path has a marker in the deletion store.
 // It may return an error code if the store could not be accessed.
-func (fs *UnionFs) isDeleted(name string) (deleted bool, code fuse.Status) {
+func (fs *unionFS) isDeleted(name string) (deleted bool, code fuse.Status) {
 	marker := fs.deletionPath(name)
 	haveCache, found := fs.deletionCache.HasEntry(filepath.Base(marker))
 	if haveCache {
@@ -142,7 +142,7 @@ func (fs *UnionFs) isDeleted(name string) (deleted bool, code fuse.Status) {
 	return false, fuse.Status(syscall.EROFS)
 }
 
-func (fs *UnionFs) createDeletionStore() (code fuse.Status) {
+func (fs *unionFS) createDeletionStore() (code fuse.Status) {
 	writable := fs.fileSystems[0]
 	fi, code := writable.GetAttr(fs.options.DeletionDirName, nil)
 	if code == fuse.ENOENT {
@@ -159,7 +159,7 @@ func (fs *UnionFs) createDeletionStore() (code fuse.Status) {
 	return code
 }
 
-func (fs *UnionFs) getBranch(name string) branchResult {
+func (fs *unionFS) getBranch(name string) branchResult {
 	name = stripSlash(name)
 	r := fs.branchCache.Get(name)
 	return r.(branchResult)
@@ -175,7 +175,7 @@ func (fs branchResult) String() string {
 	return fmt.Sprintf("{%v %v branch %d}", fs.attr, fs.code, fs.branch)
 }
 
-func (fs *UnionFs) getBranchAttrNoCache(name string) branchResult {
+func (fs *unionFS) getBranchAttrNoCache(name string) branchResult {
 	name = stripSlash(name)
 
 	parent, base := path.Split(name)
@@ -213,11 +213,11 @@ func (fs *UnionFs) getBranchAttrNoCache(name string) branchResult {
 ////////////////
 // Deletion.
 
-func (fs *UnionFs) deletionPath(name string) string {
+func (fs *unionFS) deletionPath(name string) string {
 	return filepath.Join(fs.options.DeletionDirName, filePathHash(name))
 }
 
-func (fs *UnionFs) removeDeletion(name string) {
+func (fs *unionFS) removeDeletion(name string) {
 	marker := fs.deletionPath(name)
 	fs.deletionCache.RemoveEntry(path.Base(marker))
 
@@ -231,7 +231,7 @@ func (fs *UnionFs) removeDeletion(name string) {
 	}
 }
 
-func (fs *UnionFs) putDeletion(name string) (code fuse.Status) {
+func (fs *unionFS) putDeletion(name string) (code fuse.Status) {
 	code = fs.createDeletionStore()
 	if !code.Ok() {
 		return code
@@ -271,7 +271,7 @@ func (fs *UnionFs) putDeletion(name string) (code fuse.Status) {
 ////////////////
 // Promotion.
 
-func (fs *UnionFs) Promote(name string, srcResult branchResult, context *fuse.Context) (code fuse.Status) {
+func (fs *unionFS) Promote(name string, srcResult branchResult, context *fuse.Context) (code fuse.Status) {
 	writable := fs.fileSystems[0]
 	sourceFs := fs.fileSystems[srcResult.branch]
 
@@ -347,7 +347,7 @@ func (fs *UnionFs) Promote(name string, srcResult branchResult, context *fuse.Co
 ////////////////////////////////////////////////////////////////
 // Below: implement interface for a FileSystem.
 
-func (fs *UnionFs) Link(orig string, newName string, context *fuse.Context) (code fuse.Status) {
+func (fs *unionFS) Link(orig string, newName string, context *fuse.Context) (code fuse.Status) {
 	origResult := fs.getBranch(orig)
 	code = origResult.code
 	if code.Ok() && origResult.branch > 0 {
@@ -377,7 +377,7 @@ func (fs *UnionFs) Link(orig string, newName string, context *fuse.Context) (cod
 	return code
 }
 
-func (fs *UnionFs) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
+func (fs *unionFS) Rmdir(path string, context *fuse.Context) (code fuse.Status) {
 	r := fs.getBranch(path)
 	if r.code != fuse.OK {
 		return r.code
@@ -411,7 +411,7 @@ func (fs *UnionFs) Rmdir(path string, context *fuse.Context) (code fuse.Status) 
 	return code
 }
 
-func (fs *UnionFs) Mkdir(path string, mode uint32, context *fuse.Context) (code fuse.Status) {
+func (fs *unionFS) Mkdir(path string, mode uint32, context *fuse.Context) (code fuse.Status) {
 	deleted, code := fs.isDeleted(path)
 	if !code.Ok() {
 		return code
@@ -448,7 +448,7 @@ func (fs *UnionFs) Mkdir(path string, mode uint32, context *fuse.Context) (code 
 	return code
 }
 
-func (fs *UnionFs) Symlink(pointedTo string, linkName string, context *fuse.Context) (code fuse.Status) {
+func (fs *unionFS) Symlink(pointedTo string, linkName string, context *fuse.Context) (code fuse.Status) {
 	code = fs.promoteDirsTo(linkName)
 	if code.Ok() {
 		code = fs.fileSystems[0].Symlink(pointedTo, linkName, context)
@@ -460,7 +460,7 @@ func (fs *UnionFs) Symlink(pointedTo string, linkName string, context *fuse.Cont
 	return code
 }
 
-func (fs *UnionFs) Truncate(path string, size uint64, context *fuse.Context) (code fuse.Status) {
+func (fs *unionFS) Truncate(path string, size uint64, context *fuse.Context) (code fuse.Status) {
 	if path == _DROP_CACHE {
 		return fuse.OK
 	}
@@ -483,7 +483,7 @@ func (fs *UnionFs) Truncate(path string, size uint64, context *fuse.Context) (co
 	return code
 }
 
-func (fs *UnionFs) Utimens(name string, atime *time.Time, mtime *time.Time, context *fuse.Context) (code fuse.Status) {
+func (fs *unionFS) Utimens(name string, atime *time.Time, mtime *time.Time, context *fuse.Context) (code fuse.Status) {
 	name = stripSlash(name)
 	r := fs.getBranch(name)
 
@@ -503,7 +503,7 @@ func (fs *UnionFs) Utimens(name string, atime *time.Time, mtime *time.Time, cont
 	return code
 }
 
-func (fs *UnionFs) Chown(name string, uid uint32, gid uint32, context *fuse.Context) (code fuse.Status) {
+func (fs *unionFS) Chown(name string, uid uint32, gid uint32, context *fuse.Context) (code fuse.Status) {
 	name = stripSlash(name)
 	r := fs.getBranch(name)
 	if r.attr == nil || r.code != fuse.OK {
@@ -532,7 +532,7 @@ func (fs *UnionFs) Chown(name string, uid uint32, gid uint32, context *fuse.Cont
 	return fuse.OK
 }
 
-func (fs *UnionFs) Chmod(name string, mode uint32, context *fuse.Context) (code fuse.Status) {
+func (fs *unionFS) Chmod(name string, mode uint32, context *fuse.Context) (code fuse.Status) {
 	name = stripSlash(name)
 	r := fs.getBranch(name)
 	if r.attr == nil {
@@ -564,7 +564,7 @@ func (fs *UnionFs) Chmod(name string, mode uint32, context *fuse.Context) (code 
 	return fuse.OK
 }
 
-func (fs *UnionFs) Access(name string, mode uint32, context *fuse.Context) (code fuse.Status) {
+func (fs *unionFS) Access(name string, mode uint32, context *fuse.Context) (code fuse.Status) {
 	// We always allow writing.
 	mode = mode &^ raw.W_OK
 	if name == "" {
@@ -577,7 +577,7 @@ func (fs *UnionFs) Access(name string, mode uint32, context *fuse.Context) (code
 	return fuse.ENOENT
 }
 
-func (fs *UnionFs) Unlink(name string, context *fuse.Context) (code fuse.Status) {
+func (fs *unionFS) Unlink(name string, context *fuse.Context) (code fuse.Status) {
 	r := fs.getBranch(name)
 	if r.branch == 0 {
 		code = fs.fileSystems[0].Unlink(name, context)
@@ -594,7 +594,7 @@ func (fs *UnionFs) Unlink(name string, context *fuse.Context) (code fuse.Status)
 	return code
 }
 
-func (fs *UnionFs) Readlink(name string, context *fuse.Context) (out string, code fuse.Status) {
+func (fs *unionFS) Readlink(name string, context *fuse.Context) (out string, code fuse.Status) {
 	r := fs.getBranch(name)
 	if r.branch >= 0 {
 		return fs.fileSystems[r.branch].Readlink(name, context)
@@ -611,7 +611,7 @@ func stripSlash(fn string) string {
 	return strings.TrimRight(fn, string(filepath.Separator))
 }
 
-func (fs *UnionFs) promoteDirsTo(filename string) fuse.Status {
+func (fs *unionFS) promoteDirsTo(filename string) fuse.Status {
 	dirName, _ := filepath.Split(filename)
 	dirName = stripSlash(dirName)
 
@@ -655,7 +655,7 @@ func (fs *UnionFs) promoteDirsTo(filename string) fuse.Status {
 	return fuse.OK
 }
 
-func (fs *UnionFs) Create(name string, flags uint32, mode uint32, context *fuse.Context) (fuseFile fuse.File, code fuse.Status) {
+func (fs *unionFS) Create(name string, flags uint32, mode uint32, context *fuse.Context) (fuseFile fuse.File, code fuse.Status) {
 	writable := fs.fileSystems[0]
 
 	code = fs.promoteDirsTo(name)
@@ -677,7 +677,7 @@ func (fs *UnionFs) Create(name string, flags uint32, mode uint32, context *fuse.
 	return fuseFile, code
 }
 
-func (fs *UnionFs) GetAttr(name string, context *fuse.Context) (a *fuse.Attr, s fuse.Status) {
+func (fs *unionFS) GetAttr(name string, context *fuse.Context) (a *fuse.Attr, s fuse.Status) {
 	_, hidden := fs.hiddenFiles[name]
 	if hidden {
 		return nil, fuse.ENOENT
@@ -708,7 +708,7 @@ func (fs *UnionFs) GetAttr(name string, context *fuse.Context) (a *fuse.Attr, s 
 	return &fi, r.code
 }
 
-func (fs *UnionFs) GetXAttr(name string, attr string, context *fuse.Context) ([]byte, fuse.Status) {
+func (fs *unionFS) GetXAttr(name string, attr string, context *fuse.Context) ([]byte, fuse.Status) {
 	if name == _DROP_CACHE {
 		return nil, fuse.ENODATA
 	}
@@ -720,7 +720,7 @@ func (fs *UnionFs) GetXAttr(name string, attr string, context *fuse.Context) ([]
 	return nil, fuse.ENOENT
 }
 
-func (fs *UnionFs) OpenDir(directory string, context *fuse.Context) (stream []fuse.DirEntry, status fuse.Status) {
+func (fs *unionFS) OpenDir(directory string, context *fuse.Context) (stream []fuse.DirEntry, status fuse.Status) {
 	dirBranch := fs.getBranch(directory)
 	if dirBranch.branch < 0 {
 		return nil, fuse.ENOENT
@@ -812,7 +812,7 @@ func (fs *UnionFs) OpenDir(directory string, context *fuse.Context) (stream []fu
 // recursivePromote promotes path, and if a directory, everything
 // below that directory.  It returns a list of all promoted paths, in
 // full, including the path itself.
-func (fs *UnionFs) recursivePromote(path string, pathResult branchResult, context *fuse.Context) (names []string, code fuse.Status) {
+func (fs *unionFS) recursivePromote(path string, pathResult branchResult, context *fuse.Context) (names []string, code fuse.Status) {
 	names = []string{}
 	if pathResult.branch > 0 {
 		code = fs.Promote(path, pathResult, context)
@@ -843,7 +843,7 @@ func (fs *UnionFs) recursivePromote(path string, pathResult branchResult, contex
 	return names, code
 }
 
-func (fs *UnionFs) renameDirectory(srcResult branchResult, srcDir string, dstDir string, context *fuse.Context) (code fuse.Status) {
+func (fs *unionFS) renameDirectory(srcResult branchResult, srcDir string, dstDir string, context *fuse.Context) (code fuse.Status) {
 	names := []string{}
 	if code.Ok() {
 		names, code = fs.recursivePromote(srcDir, srcResult, context)
@@ -876,7 +876,7 @@ func (fs *UnionFs) renameDirectory(srcResult branchResult, srcDir string, dstDir
 	return code
 }
 
-func (fs *UnionFs) Rename(src string, dst string, context *fuse.Context) (code fuse.Status) {
+func (fs *unionFS) Rename(src string, dst string, context *fuse.Context) (code fuse.Status) {
 	srcResult := fs.getBranch(src)
 	code = srcResult.code
 	if code.Ok() {
@@ -910,15 +910,15 @@ func (fs *UnionFs) Rename(src string, dst string, context *fuse.Context) (code f
 	return code
 }
 
-func (fs *UnionFs) DropBranchCache(names []string) {
+func (fs *unionFS) DropBranchCache(names []string) {
 	fs.branchCache.DropAll(names)
 }
 
-func (fs *UnionFs) DropDeletionCache() {
+func (fs *unionFS) DropDeletionCache() {
 	fs.deletionCache.DropCache()
 }
 
-func (fs *UnionFs) DropSubFsCaches() {
+func (fs *unionFS) DropSubFsCaches() {
 	for _, fs := range fs.fileSystems {
 		a, code := fs.GetAttr(_DROP_CACHE, nil)
 		if code.Ok() && a.IsRegular() {
@@ -931,7 +931,7 @@ func (fs *UnionFs) DropSubFsCaches() {
 	}
 }
 
-func (fs *UnionFs) Open(name string, flags uint32, context *fuse.Context) (fuseFile fuse.File, status fuse.Status) {
+func (fs *unionFS) Open(name string, flags uint32, context *fuse.Context) (fuseFile fuse.File, status fuse.Status) {
 	if name == _DROP_CACHE {
 		if flags&fuse.O_ANYWRITE != 0 {
 			log.Println("Forced cache drop on", fs)
@@ -966,7 +966,7 @@ func (fs *UnionFs) Open(name string, flags uint32, context *fuse.Context) (fuseF
 	return fuseFile, status
 }
 
-func (fs *UnionFs) String() string {
+func (fs *unionFS) String() string {
 	names := []string{}
 	for _, fs := range fs.fileSystems {
 		names = append(names, fs.String())
@@ -974,13 +974,13 @@ func (fs *UnionFs) String() string {
 	return fmt.Sprintf("UnionFs(%v)", names)
 }
 
-func (fs *UnionFs) StatFs(name string) *fuse.StatfsOut {
+func (fs *unionFS) StatFs(name string) *fuse.StatfsOut {
 	return fs.fileSystems[0].StatFs("")
 }
 
 type unionFsFile struct {
 	fuse.File
-	ufs   *UnionFs
+	ufs   *unionFS
 	node  *fuse.Inode
 	layer int
 }
@@ -989,7 +989,7 @@ func (fs *unionFsFile) String() string {
 	return fmt.Sprintf("unionFsFile(%s)", fs.File.String())
 }
 
-func (fs *UnionFs) newUnionFsFile(f fuse.File, branch int) *unionFsFile {
+func (fs *unionFS) newUnionFsFile(f fuse.File, branch int) *unionFsFile {
 	return &unionFsFile{
 		File:  f,
 		ufs:   fs,

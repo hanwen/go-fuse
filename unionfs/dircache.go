@@ -10,7 +10,7 @@ import (
 )
 
 // newDirnameMap reads the contents of the given directory. On error,
-// returns a nil map. This forces reloads in the DirCache until we
+// returns a nil map. This forces reloads in the dirCache until we
 // succeed.
 func newDirnameMap(fs pathfs.FileSystem, dir string) map[string]bool {
 	stream, code := fs.OpenDir(dir, nil)
@@ -33,11 +33,11 @@ func newDirnameMap(fs pathfs.FileSystem, dir string) map[string]bool {
 	return result
 }
 
-// DirCache caches names in a directory for some time.
+// dirCache caches names in a directory for some time.
 //
 // If called when the cache is expired, the filenames are read afresh in
 // the background.
-type DirCache struct {
+type dirCache struct {
 	dir string
 	ttl time.Duration
 	fs  pathfs.FileSystem
@@ -49,7 +49,7 @@ type DirCache struct {
 	updateRunning bool
 }
 
-func (c *DirCache) setMap(newMap map[string]bool) {
+func (c *dirCache) setMap(newMap map[string]bool) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -59,7 +59,7 @@ func (c *DirCache) setMap(newMap map[string]bool) {
 		func() { c.DropCache() })
 }
 
-func (c *DirCache) DropCache() {
+func (c *dirCache) DropCache() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	c.names = nil
@@ -67,7 +67,7 @@ func (c *DirCache) DropCache() {
 
 // Try to refresh: if another update is already running, do nothing,
 // otherwise, read the directory and set it.
-func (c *DirCache) maybeRefresh() {
+func (c *dirCache) maybeRefresh() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if c.updateRunning {
@@ -80,7 +80,7 @@ func (c *DirCache) maybeRefresh() {
 	}()
 }
 
-func (c *DirCache) RemoveEntry(name string) {
+func (c *dirCache) RemoveEntry(name string) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if c.names == nil {
@@ -91,7 +91,7 @@ func (c *DirCache) RemoveEntry(name string) {
 	delete(c.names, name)
 }
 
-func (c *DirCache) AddEntry(name string) {
+func (c *dirCache) AddEntry(name string) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if c.names == nil {
@@ -102,15 +102,15 @@ func (c *DirCache) AddEntry(name string) {
 	c.names[name] = true
 }
 
-func NewDirCache(fs pathfs.FileSystem, dir string, ttl time.Duration) *DirCache {
-	dc := new(DirCache)
+func newDirCache(fs pathfs.FileSystem, dir string, ttl time.Duration) *dirCache {
+	dc := new(dirCache)
 	dc.dir = dir
 	dc.fs = fs
 	dc.ttl = ttl
 	return dc
 }
 
-func (c *DirCache) HasEntry(name string) (mapPresent bool, found bool) {
+func (c *dirCache) HasEntry(name string) (mapPresent bool, found bool) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 

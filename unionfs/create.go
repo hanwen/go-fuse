@@ -6,7 +6,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
-func NewUnionFsFromRoots(roots []string, opts *UnionFsOptions, roCaching bool) (*UnionFs, error) {
+func NewUnionFsFromRoots(roots []string, opts *UnionFsOptions, roCaching bool) (pathfs.FileSystem, error) {
 	fses := make([]pathfs.FileSystem, 0)
 	for i, r := range roots {
 		var fs pathfs.FileSystem
