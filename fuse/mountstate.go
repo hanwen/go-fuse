@@ -32,7 +32,7 @@ type MountState struct {
 	// Dump debug info onto stdout.
 	debug bool
 
-	latencies *LatencyMap
+	latencies LatencyMap
 
 	opts *MountOptions
 
@@ -153,12 +153,14 @@ func (ms *MountState) Mount(mountPoint string, opts *MountOptions) error {
 	return nil
 }
 
-func (ms *MountState) SetRecordStatistics(record bool) {
-	if record {
-		ms.latencies = NewLatencyMap()
-	} else {
-		ms.latencies = nil
-	}
+// This type may be provided for recording latencies of each FUSE
+// operation.
+type LatencyMap interface {
+	Add(name string, dt time.Duration)
+}
+
+func (ms *MountState) RecordLatencies(l LatencyMap) {
+	ms.latencies = l
 }
 
 func (ms *MountState) Unmount() (err error) {
@@ -193,10 +195,6 @@ func NewMountState(fs RawFileSystem) *MountState {
 	ms.fileSystem = fs
 	ms.started = make(chan struct{})
 	return ms
-}
-
-func (ms *MountState) Latencies() *LatencyMap {
-	return ms.latencies
 }
 
 func (ms *MountState) BufferPoolStats() string {
@@ -254,7 +252,7 @@ func (ms *MountState) readRequest(exitIdle bool) (req *request, code Status) {
 	}
 
 	if ms.latencies != nil {
-		req.startNs = time.Now().UnixNano()
+		req.startTime = time.Now()
 	}
 	gobbled := req.setInput(dest[:n])
 
@@ -295,7 +293,7 @@ func (ms *MountState) returnRequest(req *request) {
 
 func (ms *MountState) recordStats(req *request) {
 	if ms.latencies != nil {
-		dt := time.Now().UnixNano() - req.startNs
+		dt := time.Now().Sub(req.startTime)
 		opname := operationName(req.inHeader.Opcode)
 		ms.latencies.Add(opname, dt)
 	}

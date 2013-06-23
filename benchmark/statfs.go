@@ -12,7 +12,7 @@ import (
 var delay = 0 * time.Microsecond
 
 type StatFs struct {
-	pathfs.DefaultFileSystem
+	pathfs.FileSystem
 	entries map[string]*fuse.Attr
 	dirs    map[string][]fuse.DirEntry
 	delay   time.Duration
@@ -62,6 +62,7 @@ func (me *StatFs) OpenDir(name string, context *fuse.Context) (stream []fuse.Dir
 
 func NewStatFs() *StatFs {
 	return &StatFs{
+		FileSystem: pathfs.NewDefaultFileSystem(),
 		entries: make(map[string]*fuse.Attr),
 		dirs:    make(map[string][]fuse.DirEntry),
 	}

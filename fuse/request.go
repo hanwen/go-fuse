@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 	"unsafe"
 
 	"github.com/hanwen/go-fuse/raw"
@@ -34,8 +35,7 @@ type request struct {
 	readResult ReadResult
 
 	// Start timestamp for timing info.
-	startNs    int64
-	preWriteNs int64
+	startTime time.Time
 
 	// All information pertaining to opcode of this request.
 	handler *operationHandler
@@ -67,8 +67,7 @@ func (r *request) clear() {
 	r.status = OK
 	r.flatData = nil
 	r.fdData = nil
-	r.preWriteNs = 0
-	r.startNs = 0
+	r.startTime = time.Time{}
 	r.handler = nil
 	r.readResult = nil
 }

@@ -2,7 +2,6 @@ package benchmark
 
 import (
 	"fmt"
-	"github.com/hanwen/go-fuse/fuse"
 	"io/ioutil"
 	"log"
 	"os"
@@ -12,6 +11,9 @@ import (
 	"sort"
 	"testing"
 	"time"
+
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
 func setupFs(fs pathfs.FileSystem) (string, func()) {
@@ -26,16 +28,18 @@ func setupFs(fs pathfs.FileSystem) (string, func()) {
 	if err != nil {
 		panic(fmt.Sprintf("cannot mount %v", err)) // ugh - benchmark has no error methods.
 	}
-	state.SetRecordStatistics(true)
+	lmap := NewLatencyMap()
+	
+	state.RecordLatencies(lmap)
 	// state.SetDebug(true)
 	go state.Loop()
 
 	return mountPoint, func() {
-		lc, lns := state.Latencies().Get("LOOKUP")
-		gc, gns := state.Latencies().Get("GETATTR")
-		fmt.Printf("GETATTR %dus/call n=%d, LOOKUP %dus/call n=%d\n",
-			gns/int64(1000*lc), gc,
-			lns/int64(1000*lc), lc)
+		lc, lns := lmap.Get("LOOKUP")
+		gc, gns := lmap.Get("GETATTR")
+		fmt.Printf("GETATTR %v/call n=%d, LOOKUP %v/call n=%d\n",
+			gns/time.Duration(gc), gc,
+			lns/time.Duration(lc), lc)
 
 		err := state.Unmount()
 		if err != nil {

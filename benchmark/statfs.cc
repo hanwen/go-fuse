@@ -1,4 +1,4 @@
-//
+// +build !cgo
 // g++ -Wall `pkg-config fuse --cflags --libs` statfs.cc -o statfs
 
 #include <unordered_map>
