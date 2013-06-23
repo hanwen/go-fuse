@@ -16,22 +16,25 @@ var _ = fmt.Println
 var _ = log.Println
 
 type loopbackFileSystem struct {
-	Root string
-
+	// TODO - this should need default fill in.
 	FileSystem
+	Root string
 }
 
 // A FUSE filesystem that shunts all request to an underlying file
 // system.  Its main purpose is to provide test coverage without
 // having to build a synthetic filesystem.
-func NewLoopbackFileSystem(root string) (out *loopbackFileSystem) {
-	out = &loopbackFileSystem{
+func NewLoopbackFileSystem(root string) FileSystem {
+	return &loopbackFileSystem{
 		FileSystem: NewDefaultFileSystem(),
 		Root: root,
 	}
-
-	return out
 }
+
+func (fs *loopbackFileSystem) OnMount(nodeFs *PathNodeFs) {
+}
+
+func (fs *loopbackFileSystem) OnUnmount() {}
 
 func (fs *loopbackFileSystem) GetPath(relPath string) string {
 	return filepath.Join(fs.Root, relPath)
