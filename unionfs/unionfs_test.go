@@ -1135,8 +1135,9 @@ func TestUnionFsDisappearing(t *testing.T) {
 	}
 
 	state.ThreadSanitizerSync()
-	oldRoot := wrFs.Root
-	wrFs.Root = "/dev/null"
+	// TODO - this is racy. Instead, have a custom FS that will
+	// switch based on input from a channel
+	fses[0] = pathfs.NewLoopbackFileSystem("/dev/null")
 	state.ThreadSanitizerSync()
 	time.Sleep((3 * entryTtl) / 2)
 
@@ -1153,7 +1154,7 @@ func TestUnionFsDisappearing(t *testing.T) {
 	log.Println("expected write failure:", err)
 
 	// Restore, and wait for caches to catch up.
-	wrFs.Root = oldRoot
+	fses[0] = pathfs.NewLoopbackFileSystem(wd + "/rw")
 	state.ThreadSanitizerSync()
 	time.Sleep((3 * entryTtl) / 2)
 

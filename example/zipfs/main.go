@@ -20,7 +20,6 @@ var _ = log.Printf
 func main() {
 	// Scans the arg list and sets up flags
 	debug := flag.Bool("debug", false, "print debugging messages.")
-	latencies := flag.Bool("latencies", false, "record operation latencies.")
 	profile := flag.String("profile", "", "record cpu profile.")
 	mem_profile := flag.String("mem-profile", "", "record memory profile.")
 	command := flag.String("run", "", "run this command after mounting.")
@@ -63,7 +62,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	state.SetRecordStatistics(*latencies)
 	state.SetDebug(*debug)
 	runtime.GC()
 	if profFile != nil {

@@ -11,7 +11,7 @@ import (
 )
 
 type HelloFs struct {
-	pathfs.DefaultFileSystem
+	pathfs.FileSystem
 }
 
 func (me *HelloFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
@@ -51,7 +51,7 @@ func main() {
 	if len(flag.Args()) < 1 {
 		log.Fatal("Usage:\n  hello MOUNTPOINT")
 	}
-	nfs := pathfs.NewPathNodeFs(&HelloFs{}, nil)
+	nfs := pathfs.NewPathNodeFs(&HelloFs{FileSystem: pathfs.NewDefaultFileSystem()}, nil)
 	state, _, err := fuse.MountNodeFileSystem(flag.Arg(0), nfs, nil)
 	if err != nil {
 		log.Fatal("Mount fail: %v\n", err)

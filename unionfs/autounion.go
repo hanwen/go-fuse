@@ -26,7 +26,7 @@ type knownFs struct {
 //
 // A union for A/B/C will placed under directory A-B-C.
 type AutoUnionFs struct {
-	pathfs.DefaultFileSystem
+	pathfs.FileSystem
 	debug bool
 	
 	lock             sync.RWMutex
@@ -68,10 +68,13 @@ func NewAutoUnionFs(directory string, options AutoUnionFsOptions) *AutoUnionFs {
 	if options.HideReadonly {
 		options.HiddenFiles = append(options.HiddenFiles, _READONLY)
 	}
-	a := new(AutoUnionFs)
-	a.knownFileSystems = make(map[string]knownFs)
-	a.nameRootMap = make(map[string]string)
-	a.options = &options
+	a := &AutoUnionFs{
+		knownFileSystems: make(map[string]knownFs),
+		nameRootMap: make(map[string]string),
+		options: &options,
+		FileSystem: pathfs.NewDefaultFileSystem(),
+	}
+	
 	directory, err := filepath.Abs(directory)
 	if err != nil {
 		panic("filepath.Abs returned err")

@@ -57,7 +57,7 @@ func filePathHash(path string) string {
 
 */
 type UnionFs struct {
-	pathfs.DefaultFileSystem
+	pathfs.FileSystem
 
 	// The same, but as interfaces.
 	fileSystems []pathfs.FileSystem
@@ -87,9 +87,11 @@ const (
 )
 
 func NewUnionFs(fileSystems []pathfs.FileSystem, options UnionFsOptions) *UnionFs {
-	g := new(UnionFs)
-	g.options = &options
-	g.fileSystems = fileSystems
+	g := &UnionFs{
+		options: &options,
+		fileSystems: fileSystems,
+		FileSystem: pathfs.NewDefaultFileSystem(),
+	}
 
 	writable := g.fileSystems[0]
 	code := g.createDeletionStore()

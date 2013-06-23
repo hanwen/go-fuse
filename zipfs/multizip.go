@@ -35,13 +35,15 @@ type MultiZipFs struct {
 	dirZipFileMap map[string]string
 
 	nodeFs *pathfs.PathNodeFs
-	pathfs.DefaultFileSystem
+	pathfs.FileSystem
 }
 
 func NewMultiZipFs() *MultiZipFs {
-	m := new(MultiZipFs)
-	m.zips = make(map[string]*MemTreeFs)
-	m.dirZipFileMap = make(map[string]string)
+	m := &MultiZipFs{
+		zips: make(map[string]*MemTreeFs),
+		dirZipFileMap: make(map[string]string),
+		FileSystem: pathfs.NewDefaultFileSystem(),
+	}
 	return m
 }
 
