@@ -2,7 +2,6 @@ package nodefs
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"sync"
 	"syscall"
@@ -11,9 +10,17 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-var _ = log.Println
+// NewMemNodeFs creates an in-memory node-based filesystem. Files are
+// written into a backing store under the given prefix.
+func NewMemNodeFs(prefix string) FileSystem {
+	fs := &memNodeFs{
+		backingStorePrefix: prefix,
+	}
+	fs.root = fs.newNode()
+	return fs
+}
 
-type MemNodeFs struct {
+type memNodeFs struct {
 	backingStorePrefix string
 	root               *memNode
 
@@ -21,24 +28,24 @@ type MemNodeFs struct {
 	nextFree int
 }
 
-func (fs *MemNodeFs) String() string {
+func (fs *memNodeFs) String() string {
 	return fmt.Sprintf("MemNodeFs(%s)", fs.backingStorePrefix)
 }
 
-func (fs *MemNodeFs) Root() Node {
+func (fs *memNodeFs) Root() Node {
 	return fs.root
 }
 
-func (fs *MemNodeFs) SetDebug(bool) {
+func (fs *memNodeFs) SetDebug(bool) {
 }
 
-func (fs *MemNodeFs) OnMount(*FileSystemConnector) {
+func (fs *memNodeFs) OnMount(*FileSystemConnector) {
 }
 
-func (fs *MemNodeFs) OnUnmount() {
+func (fs *memNodeFs) OnUnmount() {
 }
 
-func (fs *MemNodeFs) newNode() *memNode {
+func (fs *memNodeFs) newNode() *memNode {
 	fs.mutex.Lock()
 	n := &memNode{
 		Node: NewDefaultNode(),
@@ -53,22 +60,14 @@ func (fs *MemNodeFs) newNode() *memNode {
 	return n
 }
 
-func NewMemNodeFs(prefix string) *MemNodeFs {
-	me := &MemNodeFs{
-		backingStorePrefix: prefix,
-	}
-	me.root = me.newNode()
-	return me
-}
-
-func (fs *MemNodeFs) Filename(n *Inode) string {
+func (fs *memNodeFs) Filename(n *Inode) string {
 	mn := n.Node().(*memNode)
 	return mn.filename()
 }
 
 type memNode struct {
 	Node
-	fs *MemNodeFs
+	fs *memNodeFs
 	id int
 
 	link string

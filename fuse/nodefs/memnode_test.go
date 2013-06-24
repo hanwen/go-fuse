@@ -14,7 +14,7 @@ var _ = log.Println
 
 const testTtl = 100 * time.Millisecond
 
-func setupMemNodeTest(t *testing.T) (wd string, fs *MemNodeFs, clean func()) {
+func setupMemNodeTest(t *testing.T) (wd string, fs FileSystem, clean func()) {
 	tmp, err := ioutil.TempDir("", "go-fuse-memnode_test")
 	if err != nil {
 		t.Fatalf("TempDir failed: %v", err)
