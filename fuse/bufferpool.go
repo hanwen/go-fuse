@@ -7,7 +7,6 @@ import (
 	"unsafe"
 )
 
-
 var paranoia bool
 
 type BufferPool interface {

@@ -38,13 +38,13 @@ type autoUnionFs struct {
 	nodeFs  *pathfs.PathNodeFs
 	options *AutoUnionFsOptions
 
-	mountState *fuse.MountState
+	mountState *fuse.Server
 	connector  *nodefs.FileSystemConnector
 }
 
 type AutoUnionFsOptions struct {
 	UnionFsOptions
-	
+
 	nodefs.Options
 	pathfs.PathNodeFsOptions
 
@@ -69,7 +69,7 @@ const (
 // A pathfs.FileSystem that we can hookup with MountState and
 // FileSystemConnector
 type RootFileSystem interface {
-	SetMountState(state *fuse.MountState)
+	SetMountState(state *fuse.Server)
 	SetFileSystemConnector(conn *nodefs.FileSystemConnector)
 	pathfs.FileSystem
 }
@@ -393,7 +393,7 @@ func (fs *autoUnionFs) StatusDir() (stream []fuse.DirEntry, status fuse.Status) 
 
 // SetMountState stores the MountState, which is necessary for
 // retrieving debug data.
-func (fs *autoUnionFs) SetMountState(state *fuse.MountState) {
+func (fs *autoUnionFs) SetMountState(state *fuse.Server) {
 	fs.mountState = state
 }
 

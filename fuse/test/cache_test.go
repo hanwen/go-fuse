@@ -51,7 +51,7 @@ func setupCacheTest(t *testing.T) (string, *pathfs.PathNodeFs, func()) {
 	state.SetDebug(fuse.VerboseTest())
 	conn.SetDebug(fuse.VerboseTest())
 	pfs.SetDebug(fuse.VerboseTest())
-	go state.Loop()
+	go state.Serve()
 
 	return dir, pfs, func() {
 		err := state.Unmount()
@@ -151,7 +151,7 @@ func TestNonseekable(t *testing.T) {
 	state.SetDebug(fuse.VerboseTest())
 	defer state.Unmount()
 
-	go state.Loop()
+	go state.Serve()
 
 	f, err := os.Open(dir + "/file")
 	if err != nil {
@@ -185,7 +185,7 @@ func TestGetAttrRace(t *testing.T) {
 	state.SetDebug(fuse.VerboseTest())
 	conn.SetDebug(fuse.VerboseTest())
 	pfs.SetDebug(fuse.VerboseTest())
-	go state.Loop()
+	go state.Serve()
 
 	defer state.Unmount()
 

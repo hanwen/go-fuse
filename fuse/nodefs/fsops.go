@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hanwen/go-fuse/raw"
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/raw"
 )
 
 var _ = log.Println
@@ -38,7 +38,7 @@ func (c *rawBridge) FsyncDir(context *fuse.Context, input *raw.FsyncIn) fuse.Sta
 func (c *rawBridge) fsConn() *FileSystemConnector {
 	return (*FileSystemConnector)(c)
 }
-	
+
 func (c *rawBridge) String() string {
 	if c.rootNode == nil || c.rootNode.mount == nil {
 		return "go-fuse:unmounted"
@@ -153,7 +153,7 @@ func (c *rawBridge) OpenDir(out *raw.OpenOut, context *fuse.Context, input *raw.
 	}
 	stream = append(stream, node.getMountDirEntries()...)
 	de := &connectorDir{
-		node:   node.Node(),
+		node: node.Node(),
 		stream: append(stream,
 			fuse.DirEntry{fuse.S_IFDIR, "."},
 			fuse.DirEntry{fuse.S_IFDIR, ".."}),

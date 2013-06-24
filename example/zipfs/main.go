@@ -75,7 +75,7 @@ func main() {
 		cmd.Start()
 	}
 
-	state.Loop()
+	state.Serve()
 	if memProfFile != nil {
 		pprof.WriteHeapProfile(memProfFile)
 	}

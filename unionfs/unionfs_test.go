@@ -100,7 +100,7 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 	}
 	conn.SetDebug(fuse.VerboseTest())
 	state.SetDebug(fuse.VerboseTest())
-	go state.Loop()
+	go state.Serve()
 
 	return wd, func() {
 		err := state.Unmount()
@@ -1120,7 +1120,7 @@ func TestUnionFsDisappearing(t *testing.T) {
 	}
 	defer state.Unmount()
 	state.SetDebug(fuse.VerboseTest())
-	go state.Loop()
+	go state.Serve()
 
 	log.Println("TestUnionFsDisappearing2")
 

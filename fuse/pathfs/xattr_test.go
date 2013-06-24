@@ -121,7 +121,7 @@ func xattrTestCase(t *testing.T, nm string) (mountPoint string, cleanup func()) 
 	}
 	state.SetDebug(fuse.VerboseTest())
 
-	go state.Loop()
+	go state.Serve()
 	return mountPoint, func() {
 		state.Unmount()
 		os.RemoveAll(mountPoint)

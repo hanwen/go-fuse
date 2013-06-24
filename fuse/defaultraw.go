@@ -14,7 +14,6 @@ func NewDefaultRawFileSystem() RawFileSystem {
 
 type defaultRawFileSystem struct{}
 
-
 func (fs *defaultRawFileSystem) Init(init *RawFsInit) {
 }
 

@@ -53,9 +53,9 @@ func main() {
 		log.Fatal("Usage:\n  hello MOUNTPOINT")
 	}
 	nfs := pathfs.NewPathNodeFs(&HelloFs{FileSystem: pathfs.NewDefaultFileSystem()}, nil)
-	state, _, err := nodefs.MountFileSystem(flag.Arg(0), nfs, nil)
+	server, _, err := nodefs.MountFileSystem(flag.Arg(0), nfs, nil)
 	if err != nil {
 		log.Fatal("Mount fail: %v\n", err)
 	}
-	state.Loop()
+	server.Serve()
 }

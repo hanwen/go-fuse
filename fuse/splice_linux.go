@@ -7,11 +7,11 @@ import (
 	"github.com/hanwen/go-fuse/splice"
 )
 
-func (s *MountState) setSplice() {
+func (s *Server) setSplice() {
 	s.canSplice = splice.Resizable()
 }
 
-func (ms *MountState) trySplice(header []byte, req *request, fdData *ReadResultFd) error {
+func (ms *Server) trySplice(header []byte, req *request, fdData *ReadResultFd) error {
 	pair, err := splice.Get()
 	if err != nil {
 		return err

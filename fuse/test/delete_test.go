@@ -37,18 +37,18 @@ func TestDeleteNotify(t *testing.T) {
 	fs := nodefs.NewMemNodeFs(dir + "/backing")
 	conn := nodefs.NewFileSystemConnector(fs,
 		&nodefs.Options{PortableInodes: true})
-	state := fuse.NewMountState(conn.RawFS())
 	mnt := dir + "/mnt"
 	err = os.Mkdir(mnt, 0755)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = state.Mount(mnt, nil)
+
+	state, err := fuse.NewServer(conn.RawFS(), mnt, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	state.SetDebug(fuse.VerboseTest())
-	go state.Loop()
+	go state.Serve()
 	defer state.Unmount()
 
 	_, code := fs.Root().Mkdir("testdir", 0755, nil)

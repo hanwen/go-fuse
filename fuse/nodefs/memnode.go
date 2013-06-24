@@ -49,8 +49,8 @@ func (fs *memNodeFs) newNode() *memNode {
 	fs.mutex.Lock()
 	n := &memNode{
 		Node: NewDefaultNode(),
-		fs: fs,
-		id: fs.nextFree,
+		fs:   fs,
+		id:   fs.nextFree,
 	}
 	now := time.Now()
 	n.info.SetTimes(&now, &now, &now)
@@ -174,7 +174,7 @@ func (n *memNodeFile) Flush() fuse.Status {
 func (n *memNode) newFile(f *os.File) File {
 	return &memNodeFile{
 		File: NewLoopbackFile(f),
-		node:         n,
+		node: n,
 	}
 }
 

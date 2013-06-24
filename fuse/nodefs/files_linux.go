@@ -1,8 +1,8 @@
 package nodefs
 
 import (
-	"time"
 	"syscall"
+	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
 )
@@ -27,15 +27,15 @@ func (f *loopbackFile) Utimens(a *time.Time, m *time.Time) fuse.Status {
 	} else {
 		n := a.UnixNano()
 		tv[0] = syscall.NsecToTimeval(n)
- 	}
+	}
 
 	if m == nil {
 		tv[1].Usec = _UTIME_OMIT
 	} else {
 		n := a.UnixNano()
 		tv[1] = syscall.NsecToTimeval(n)
- 	}
-	
+	}
+
 	err := syscall.Futimes(int(f.File.Fd()), tv)
-	return fuse.ToStatus(err)	
+	return fuse.ToStatus(err)
 }

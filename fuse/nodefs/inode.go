@@ -7,7 +7,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-
 // The inode reflects the kernel's idea of the inode.  Inodes may be
 // created automatically when the kernel does lookups inode, or by
 // explicitly by calling Inode.New().

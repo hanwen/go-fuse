@@ -3,8 +3,8 @@ package nodefs
 import (
 	"time"
 
-	"github.com/hanwen/go-fuse/raw"
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/raw"
 )
 
 type defaultFile struct{}

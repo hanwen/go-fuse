@@ -25,16 +25,12 @@ func main() {
 	prefix := flag.Arg(1)
 	fs := nodefs.NewMemNodeFs(prefix)
 	conn := nodefs.NewFileSystemConnector(fs, nil)
-	state := fuse.NewMountState(conn.RawFS())
-	state.SetDebug(*debug)
-
-	fmt.Println("Mounting")
-	err := state.Mount(mountPoint, nil)
+	server, err := fuse.NewServer(conn.RawFS(),mountPoint, nil)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)
 	}
-
+	server.SetDebug(*debug)
 	fmt.Println("Mounted!")
-	state.Loop()
+	server.Serve()
 }

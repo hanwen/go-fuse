@@ -6,7 +6,7 @@ sh genversion.sh fuse/version.gen.go
 for target in "clean" "install" ; do
   for d in raw fuse fuse/pathfs fuse/test zipfs unionfs \
     example/hello example/loopback example/zipfs \
-    example/multizip example/unionfs \
+    example/multizip example/unionfs example/memfs \
     example/autounionfs ; \
   do
     go ${target} go-fuse/${d}

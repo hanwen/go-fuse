@@ -42,7 +42,7 @@ type NotifyTest struct {
 	pathfs    *pathfs.PathNodeFs
 	connector *nodefs.FileSystemConnector
 	dir       string
-	state     *fuse.MountState
+	state     *fuse.Server
 }
 
 func NewNotifyTest(t *testing.T) *NotifyTest {
@@ -66,7 +66,7 @@ func NewNotifyTest(t *testing.T) *NotifyTest {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
 	me.state.SetDebug(fuse.VerboseTest())
-	go me.state.Loop()
+	go me.state.Serve()
 
 	return me
 }

@@ -67,7 +67,7 @@ const (
 
 ////////////////////////////////////////////////////////////////
 
-func doInit(state *MountState, req *request) {
+func doInit(state *Server, req *request) {
 	input := (*raw.InitIn)(req.inData)
 	if input.Major != _FUSE_KERNEL_VERSION {
 		log.Printf("Major versions does not match. Given %d, want %d\n", input.Major, _FUSE_KERNEL_VERSION)
@@ -105,7 +105,7 @@ func doInit(state *MountState, req *request) {
 	req.status = OK
 }
 
-func doOpen(state *MountState, req *request) {
+func doOpen(state *Server, req *request) {
 	out := (*raw.OpenOut)(req.outData)
 	status := state.fileSystem.Open(out, &req.context, (*raw.OpenIn)(req.inData))
 	req.status = status
@@ -114,13 +114,13 @@ func doOpen(state *MountState, req *request) {
 	}
 }
 
-func doCreate(state *MountState, req *request) {
+func doCreate(state *Server, req *request) {
 	out := (*raw.CreateOut)(req.outData)
 	status := state.fileSystem.Create(out, &req.context, (*raw.CreateIn)(req.inData), req.filenames[0])
 	req.status = status
 }
 
-func doReadDir(state *MountState, req *request) {
+func doReadDir(state *Server, req *request) {
 	in := (*raw.ReadIn)(req.inData)
 	buf := state.allocOut(req, in.Size)
 	entries := NewDirEntryList(buf, uint64(in.Offset))
@@ -130,18 +130,18 @@ func doReadDir(state *MountState, req *request) {
 	req.status = code
 }
 
-func doOpenDir(state *MountState, req *request) {
+func doOpenDir(state *Server, req *request) {
 	out := (*raw.OpenOut)(req.outData)
 	status := state.fileSystem.OpenDir(out, &req.context, (*raw.OpenIn)(req.inData))
 	req.status = status
 }
 
-func doSetattr(state *MountState, req *request) {
+func doSetattr(state *Server, req *request) {
 	out := (*raw.AttrOut)(req.outData)
 	req.status = state.fileSystem.SetAttr(out, &req.context, (*raw.SetAttrIn)(req.inData))
 }
 
-func doWrite(state *MountState, req *request) {
+func doWrite(state *Server, req *request) {
 	n, status := state.fileSystem.Write(&req.context, (*raw.WriteIn)(req.inData), req.arg)
 	o := (*raw.WriteOut)(req.outData)
 	o.Size = n
@@ -152,7 +152,7 @@ const _SECURITY_CAPABILITY = "security.capability"
 const _SECURITY_ACL = "system.posix_acl_access"
 const _SECURITY_ACL_DEFAULT = "system.posix_acl_default"
 
-func doGetXAttr(state *MountState, req *request) {
+func doGetXAttr(state *Server, req *request) {
 	if state.opts.IgnoreSecurityLabels && req.inHeader.Opcode == _OP_GETXATTR {
 		fn := req.filenames[0]
 		if fn == _SECURITY_CAPABILITY || fn == _SECURITY_ACL_DEFAULT ||
@@ -207,19 +207,19 @@ func doGetXAttr(state *MountState, req *request) {
 	req.flatData = data
 }
 
-func doGetAttr(state *MountState, req *request) {
+func doGetAttr(state *Server, req *request) {
 	attrOut := (*raw.AttrOut)(req.outData)
 	s := state.fileSystem.GetAttr(attrOut, &req.context, (*raw.GetAttrIn)(req.inData))
 	req.status = s
 }
 
-func doForget(state *MountState, req *request) {
+func doForget(state *Server, req *request) {
 	if !state.opts.RememberInodes {
 		state.fileSystem.Forget(req.inHeader.NodeId, (*raw.ForgetIn)(req.inData).Nlookup)
 	}
 }
 
-func doBatchForget(state *MountState, req *request) {
+func doBatchForget(state *Server, req *request) {
 	in := (*raw.BatchForgetIn)(req.inData)
 	wantBytes := uintptr(in.Count) * unsafe.Sizeof(raw.BatchForgetIn{})
 	if uintptr(len(req.arg)) < wantBytes {
@@ -236,42 +236,42 @@ func doBatchForget(state *MountState, req *request) {
 	}
 }
 
-func doReadlink(state *MountState, req *request) {
+func doReadlink(state *Server, req *request) {
 	req.flatData, req.status = state.fileSystem.Readlink(&req.context)
 }
 
-func doLookup(state *MountState, req *request) {
+func doLookup(state *Server, req *request) {
 	lookupOut := (*raw.EntryOut)(req.outData)
 	s := state.fileSystem.Lookup(lookupOut, &req.context, req.filenames[0])
 	req.status = s
 	req.outData = unsafe.Pointer(lookupOut)
 }
 
-func doMknod(state *MountState, req *request) {
+func doMknod(state *Server, req *request) {
 	out := (*raw.EntryOut)(req.outData)
 
 	req.status = state.fileSystem.Mknod(out, &req.context, (*raw.MknodIn)(req.inData), req.filenames[0])
 }
 
-func doMkdir(state *MountState, req *request) {
+func doMkdir(state *Server, req *request) {
 	out := (*raw.EntryOut)(req.outData)
 	req.status = state.fileSystem.Mkdir(out, &req.context, (*raw.MkdirIn)(req.inData), req.filenames[0])
 }
 
-func doUnlink(state *MountState, req *request) {
+func doUnlink(state *Server, req *request) {
 	req.status = state.fileSystem.Unlink(&req.context, req.filenames[0])
 }
 
-func doRmdir(state *MountState, req *request) {
+func doRmdir(state *Server, req *request) {
 	req.status = state.fileSystem.Rmdir(&req.context, req.filenames[0])
 }
 
-func doLink(state *MountState, req *request) {
+func doLink(state *Server, req *request) {
 	out := (*raw.EntryOut)(req.outData)
 	req.status = state.fileSystem.Link(out, &req.context, (*raw.LinkIn)(req.inData), req.filenames[0])
 }
 
-func doRead(state *MountState, req *request) {
+func doRead(state *Server, req *request) {
 	in := (*raw.ReadIn)(req.inData)
 	buf := state.allocOut(req, in.Size)
 
@@ -284,68 +284,68 @@ func doRead(state *MountState, req *request) {
 	}
 }
 
-func doFlush(state *MountState, req *request) {
+func doFlush(state *Server, req *request) {
 	req.status = state.fileSystem.Flush(&req.context, (*raw.FlushIn)(req.inData))
 }
 
-func doRelease(state *MountState, req *request) {
+func doRelease(state *Server, req *request) {
 	state.fileSystem.Release(&req.context, (*raw.ReleaseIn)(req.inData))
 }
 
-func doFsync(state *MountState, req *request) {
+func doFsync(state *Server, req *request) {
 	req.status = state.fileSystem.Fsync(&req.context, (*raw.FsyncIn)(req.inData))
 }
 
-func doReleaseDir(state *MountState, req *request) {
+func doReleaseDir(state *Server, req *request) {
 	state.fileSystem.ReleaseDir(&req.context, (*raw.ReleaseIn)(req.inData))
 }
 
-func doFsyncDir(state *MountState, req *request) {
+func doFsyncDir(state *Server, req *request) {
 	req.status = state.fileSystem.FsyncDir(&req.context, (*raw.FsyncIn)(req.inData))
 }
 
-func doSetXAttr(state *MountState, req *request) {
+func doSetXAttr(state *Server, req *request) {
 	splits := bytes.SplitN(req.arg, []byte{0}, 2)
 	req.status = state.fileSystem.SetXAttr(&req.context, (*raw.SetXAttrIn)(req.inData), string(splits[0]), splits[1])
 }
 
-func doRemoveXAttr(state *MountState, req *request) {
+func doRemoveXAttr(state *Server, req *request) {
 	req.status = state.fileSystem.RemoveXAttr(&req.context, req.filenames[0])
 }
 
-func doAccess(state *MountState, req *request) {
+func doAccess(state *Server, req *request) {
 	req.status = state.fileSystem.Access(&req.context, (*raw.AccessIn)(req.inData))
 }
 
-func doSymlink(state *MountState, req *request) {
+func doSymlink(state *Server, req *request) {
 	out := (*raw.EntryOut)(req.outData)
 	req.status = state.fileSystem.Symlink(out, &req.context, req.filenames[1], req.filenames[0])
 }
 
-func doRename(state *MountState, req *request) {
+func doRename(state *Server, req *request) {
 	req.status = state.fileSystem.Rename(&req.context, (*raw.RenameIn)(req.inData), req.filenames[0], req.filenames[1])
 }
 
-func doStatFs(state *MountState, req *request) {
+func doStatFs(state *Server, req *request) {
 	stat := (*raw.StatfsOut)(req.outData)
 	req.status = state.fileSystem.StatFs(stat, &req.context)
 }
 
-func doIoctl(state *MountState, req *request) {
+func doIoctl(state *Server, req *request) {
 	req.status = ENOSYS
 }
 
-func doDestroy(state *MountState, req *request) {
+func doDestroy(state *Server, req *request) {
 	req.status = OK
 }
 
-func doFallocate(state *MountState, req *request) {
+func doFallocate(state *Server, req *request) {
 	req.status = state.fileSystem.Fallocate(&req.context, (*raw.FallocateIn)(req.inData))
 }
 
 ////////////////////////////////////////////////////////////////
 
-type operationFunc func(*MountState, *request)
+type operationFunc func(*Server, *request)
 type castPointerFunc func(unsafe.Pointer) interface{}
 
 type operationHandler struct {

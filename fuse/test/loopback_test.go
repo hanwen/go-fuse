@@ -38,7 +38,7 @@ type testCase struct {
 	origFile    string
 	origSubdir  string
 	tester      *testing.T
-	state       *fuse.MountState
+	state       *fuse.Server
 	pathFs      *pathfs.PathNodeFs
 	connector   *nodefs.FileSystemConnector
 }
@@ -88,13 +88,15 @@ func NewTestCase(t *testing.T) *testCase {
 	rfs = fuse.NewLockingRawFileSystem(me.connector.RawFS())
 
 	me.connector.SetDebug(fuse.VerboseTest())
-	me.state = fuse.NewMountState(rfs)
-	me.state.Mount(me.mnt, nil)
+	me.state, err = fuse.NewServer(rfs, me.mnt, nil)
+	if err != nil {
+		t.Fatal("NewServer:", err)
+	}
 
 	me.state.SetDebug(fuse.VerboseTest())
 
 	// Unthreaded, but in background.
-	go me.state.Loop()
+	go me.state.Serve()
 
 	me.state.WaitMount()
 	return me
@@ -937,7 +939,7 @@ func TestOriginalIsSymlink(t *testing.T) {
 	}
 	defer state.Unmount()
 
-	go state.Loop()
+	go state.Serve()
 
 	_, err = os.Lstat(mnt)
 	if err != nil {

@@ -4,10 +4,10 @@ import (
 	"fmt"
 )
 
-func (s *MountState) setSplice() {
+func (s *Server) setSplice() {
 	panic("darwin has no splice.")
 }
 
-func (ms *MountState) trySplice(header []byte, req *request, fdData *ReadResultFd) error {
+func (ms *Server) trySplice(header []byte, req *request, fdData *ReadResultFd) error {
 	return fmt.Errorf("unimplemented")
 }

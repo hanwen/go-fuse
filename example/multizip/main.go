@@ -33,5 +33,5 @@ func main() {
 	}
 
 	state.SetDebug(*debug)
-	state.Loop()
+	state.Serve()
 }

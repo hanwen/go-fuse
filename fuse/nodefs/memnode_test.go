@@ -32,14 +32,16 @@ func setupMemNodeTest(t *testing.T) (wd string, fs FileSystem, clean func()) {
 			NegativeTimeout: 0.0,
 		})
 	connector.SetDebug(fuse.VerboseTest())
-	state := fuse.NewMountState(connector.RawFS())
-	state.Mount(mnt, nil)
-
+	state, err := fuse.NewServer(connector.RawFS(), mnt, nil)
+	if err != nil {
+		t.Fatal("NewServer", err)
+	}
+	
 	//me.state.SetDebug(false)
 	state.SetDebug(fuse.VerboseTest())
 
 	// Unthreaded, but in background.
-	go state.Loop()
+	go state.Serve()
 	return mnt, fs, func() {
 		state.Unmount()
 		os.RemoveAll(tmp)

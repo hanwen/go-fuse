@@ -54,5 +54,5 @@ func main() {
 	}
 
 	mountState.SetDebug(*debug)
-	mountState.Loop()
+	mountState.Serve()
 }

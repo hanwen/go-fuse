@@ -100,7 +100,7 @@ func (f *devNullFile) Truncate(size uint64) (code fuse.Status) {
 func NewLoopbackFile(f *os.File) File {
 	return &loopbackFile{File: f}
 }
-	
+
 type loopbackFile struct {
 	File *os.File
 
@@ -111,7 +111,6 @@ type loopbackFile struct {
 	// file gets written in the end.
 	lock sync.Mutex
 }
-
 
 var _ = (File)((*loopbackFile)(nil))
 

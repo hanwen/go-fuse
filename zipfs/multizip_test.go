@@ -29,7 +29,7 @@ func setupMzfs(t *testing.T) (mountPoint string, cleanup func()) {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
 	state.SetDebug(fuse.VerboseTest())
-	go state.Loop()
+	go state.Serve()
 
 	return mountPoint, func() {
 		state.Unmount()

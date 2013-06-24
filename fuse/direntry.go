@@ -22,8 +22,8 @@ type DirEntry struct {
 }
 
 type DirEntryList struct {
-	buf    []byte
-	size   int
+	buf  []byte
+	size int
 
 	// TODO - hide this again.
 	Offset uint64
@@ -74,5 +74,3 @@ func (l *DirEntryList) Bytes() []byte {
 }
 
 ////////////////////////////////////////////////////////////////
-
-

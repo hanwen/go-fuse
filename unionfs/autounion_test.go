@@ -63,7 +63,7 @@ func setup(t *testing.T) (workdir string, cleanup func()) {
 	}
 	state.SetDebug(fuse.VerboseTest())
 	conn.SetDebug(fuse.VerboseTest())
-	go state.Loop()
+	go state.Serve()
 
 	return wd, func() {
 		state.Unmount()

@@ -32,7 +32,7 @@ func setupFs(fs pathfs.FileSystem) (string, func()) {
 
 	state.RecordLatencies(lmap)
 	// state.SetDebug(true)
-	go state.Loop()
+	go state.Serve()
 
 	return mountPoint, func() {
 		lc, lns := lmap.Get("LOOKUP")

@@ -2,7 +2,7 @@ package nodefs
 
 import (
 	"time"
-	
+
 	"github.com/hanwen/go-fuse/fuse"
 )
 

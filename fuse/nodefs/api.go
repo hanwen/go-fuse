@@ -33,7 +33,7 @@ type FileSystem interface {
 	String() string
 
 	// If called, provide debug output through the log package.
-	SetDebug(debug bool) 
+	SetDebug(debug bool)
 }
 
 // The Node implements the basic functionality of inodes; this is
@@ -128,7 +128,6 @@ type File interface {
 	Allocate(off uint64, size uint64, mode uint32) (code fuse.Status)
 }
 
-
 // Wrap a File return in this to set FUSE flags.  Also used internally
 // to store open file data.
 type WithFlags struct {
@@ -143,7 +142,6 @@ type WithFlags struct {
 	// O_RDWR, O_TRUNCATE, etc.
 	OpenFlags uint32
 }
-
 
 // Options contains time out options for a node FileSystem.  The
 // default copied from libfuse and set in NewMountOptions() is

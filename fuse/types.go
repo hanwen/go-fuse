@@ -50,4 +50,3 @@ type Context struct {
 	NodeId uint64
 	*raw.Context
 }
-

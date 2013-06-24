@@ -19,9 +19,9 @@ const (
 	MAX_KERNEL_WRITE = 128 * 1024
 )
 
-// MountState contains the logic for reading from the FUSE device and
+// Server contains the logic for reading from the FUSE device and
 // translating it to RawFileSystem interface calls.
-type MountState struct {
+type Server struct {
 	// Empty if unmounted.
 	mountPoint string
 	fileSystem RawFileSystem
@@ -54,7 +54,7 @@ type MountState struct {
 // filesystem internally, so thread-sanitizer does not get confused.
 //
 //   fs := SomeFSObj{ReadCalled: false}
-//   ms := NewMountState(fs)
+//   ms := NewServer(fs)
 //   ms.Mount("/mnt", nil)
 //   ..
 //   ioutil.ReadFile("/mnt/file")
@@ -62,16 +62,16 @@ type MountState struct {
 //   mountstate.ThreadSanitizerSync()
 //   if fs.ReadCalled { ...  // no race condition here.
 //
-func (ms *MountState) ThreadSanitizerSync() {
+func (ms *Server) ThreadSanitizerSync() {
 	ms.reqMu.Lock()
 	ms.reqMu.Unlock()
 }
 
-func (ms *MountState) SetDebug(dbg bool) {
+func (ms *Server) SetDebug(dbg bool) {
 	ms.debug = dbg
 }
 
-func (ms *MountState) KernelSettings() raw.InitIn {
+func (ms *Server) KernelSettings() raw.InitIn {
 	ms.reqMu.Lock()
 	s := ms.kernelSettings
 	ms.reqMu.Unlock()
@@ -79,79 +79,11 @@ func (ms *MountState) KernelSettings() raw.InitIn {
 	return s
 }
 
-func (ms *MountState) MountPoint() string {
+func (ms *Server) MountPoint() string {
 	return ms.mountPoint
 }
 
 const _MAX_NAME_LEN = 20
-
-// Mount filesystem on mountPoint.
-func (ms *MountState) Mount(mountPoint string, opts *MountOptions) error {
-	if opts == nil {
-		opts = &MountOptions{
-			MaxBackground: _DEFAULT_BACKGROUND_TASKS,
-		}
-	}
-	o := *opts
-	if o.Buffers == nil {
-		o.Buffers = defaultBufferPool
-	}
-	if o.MaxWrite < 0 {
-		o.MaxWrite = 0
-	}
-	if o.MaxWrite == 0 {
-		o.MaxWrite = 1 << 16
-	}
-	if o.MaxWrite > MAX_KERNEL_WRITE {
-		o.MaxWrite = MAX_KERNEL_WRITE
-	}
-	opts = &o
-	ms.opts = &o
-
-	optStrs := opts.Options
-	if opts.AllowOther {
-		optStrs = append(optStrs, "allow_other")
-	}
-
-	name := opts.Name
-	if name == "" {
-		name = ms.fileSystem.String()
-		l := len(name)
-		if l > _MAX_NAME_LEN {
-			l = _MAX_NAME_LEN
-		}
-		name = strings.Replace(name[:l], ",", ";", -1)
-	}
-	optStrs = append(optStrs, "subtype="+name)
-
-	mountPoint = filepath.Clean(mountPoint)
-	if !filepath.IsAbs(mountPoint) {
-		cwd, err := os.Getwd()
-		if err != nil {
-			return err
-		}
-		mountPoint = filepath.Clean(filepath.Join(cwd, mountPoint))
-	}
-	fd, err := mount(mountPoint, strings.Join(optStrs, ","))
-	if err != nil {
-		return err
-	}
-	initParams := RawFsInit{
-		InodeNotify: func(n *raw.NotifyInvalInodeOut) Status {
-			return ms.writeInodeNotify(n)
-		},
-		EntryNotify: func(parent uint64, n string) Status {
-			return ms.writeEntryNotify(parent, n)
-		},
-		DeleteNotify: func(parent uint64, child uint64, n string) Status {
-			return ms.writeDeleteNotify(parent, child, n)
-		},
-	}
-	ms.fileSystem.Init(&initParams)
-	ms.mountPoint = mountPoint
-	ms.mountFd = fd
-	return nil
-}
 
 // This type may be provided for recording latencies of each FUSE
 // operation.
@@ -159,11 +91,11 @@ type LatencyMap interface {
 	Add(name string, dt time.Duration)
 }
 
-func (ms *MountState) RecordLatencies(l LatencyMap) {
+func (ms *Server) RecordLatencies(l LatencyMap) {
 	ms.latencies = l
 }
 
-func (ms *MountState) Unmount() (err error) {
+func (ms *Server) Unmount() (err error) {
 	if ms.mountPoint == "" {
 		return nil
 	}
@@ -189,15 +121,79 @@ func (ms *MountState) Unmount() (err error) {
 	return err
 }
 
-func NewMountState(fs RawFileSystem) *MountState {
-	ms := new(MountState)
-	ms.mountPoint = ""
-	ms.fileSystem = fs
-	ms.started = make(chan struct{})
-	return ms
+// NewServer creates a server and attaches it to the given directory.
+func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server, error) {
+	if opts == nil {
+		opts = &MountOptions{
+			MaxBackground: _DEFAULT_BACKGROUND_TASKS,
+		}
+	}
+	o := *opts
+	if o.Buffers == nil {
+		o.Buffers = defaultBufferPool
+	}
+	if o.MaxWrite < 0 {
+		o.MaxWrite = 0
+	}
+	if o.MaxWrite == 0 {
+		o.MaxWrite = 1 << 16
+	}
+	if o.MaxWrite > MAX_KERNEL_WRITE {
+		o.MaxWrite = MAX_KERNEL_WRITE
+	}
+	opts = &o
+	ms := &Server{
+		fileSystem: fs,
+		started: make(chan struct{}),
+		opts: &o,
+	}
+	
+	optStrs := opts.Options
+	if opts.AllowOther {
+		optStrs = append(optStrs, "allow_other")
+	}
+
+	name := opts.Name
+	if name == "" {
+		name = ms.fileSystem.String()
+		l := len(name)
+		if l > _MAX_NAME_LEN {
+			l = _MAX_NAME_LEN
+		}
+		name = strings.Replace(name[:l], ",", ";", -1)
+	}
+	optStrs = append(optStrs, "subtype="+name)
+
+	mountPoint = filepath.Clean(mountPoint)
+	if !filepath.IsAbs(mountPoint) {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+		mountPoint = filepath.Clean(filepath.Join(cwd, mountPoint))
+	}
+	fd, err := mount(mountPoint, strings.Join(optStrs, ","))
+	if err != nil {
+		return nil, err
+	}
+	initParams := RawFsInit{
+		InodeNotify: func(n *raw.NotifyInvalInodeOut) Status {
+			return ms.writeInodeNotify(n)
+		},
+		EntryNotify: func(parent uint64, n string) Status {
+			return ms.writeEntryNotify(parent, n)
+		},
+		DeleteNotify: func(parent uint64, child uint64, n string) Status {
+			return ms.writeDeleteNotify(parent, child, n)
+		},
+	}
+	ms.fileSystem.Init(&initParams)
+	ms.mountPoint = mountPoint
+	ms.mountFd = fd
+	return ms, nil
 }
 
-func (ms *MountState) BufferPoolStats() string {
+func (ms *Server) BufferPoolStats() string {
 	s := ms.opts.Buffers.String()
 
 	var r int
@@ -215,7 +211,7 @@ const _MAX_READERS = 2
 
 // Returns a new request, or error. In case exitIdle is given, returns
 // nil, OK if we have too many readers already.
-func (ms *MountState) readRequest(exitIdle bool) (req *request, code Status) {
+func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 	var dest []byte
 
 	ms.reqMu.Lock()
@@ -272,7 +268,7 @@ func (ms *MountState) readRequest(exitIdle bool) (req *request, code Status) {
 	return req, OK
 }
 
-func (ms *MountState) returnRequest(req *request) {
+func (ms *Server) returnRequest(req *request) {
 	ms.recordStats(req)
 
 	if req.bufferPoolOutputBuf != nil {
@@ -291,7 +287,7 @@ func (ms *MountState) returnRequest(req *request) {
 	ms.reqMu.Unlock()
 }
 
-func (ms *MountState) recordStats(req *request) {
+func (ms *Server) recordStats(req *request) {
 	if ms.latencies != nil {
 		dt := time.Now().Sub(req.startTime)
 		opname := operationName(req.inHeader.Opcode)
@@ -304,7 +300,7 @@ func (ms *MountState) recordStats(req *request) {
 // goroutine.
 //
 // Each filesystem operation executes in a separate goroutine.
-func (ms *MountState) Loop() {
+func (ms *Server) Serve() {
 	ms.loops.Add(1)
 	ms.loop(false)
 	ms.loops.Wait()
@@ -314,7 +310,7 @@ func (ms *MountState) Loop() {
 	ms.reqMu.Unlock()
 }
 
-func (ms *MountState) loop(exitIdle bool) {
+func (ms *Server) loop(exitIdle bool) {
 	defer ms.loops.Done()
 exit:
 	for {
@@ -338,7 +334,7 @@ exit:
 	}
 }
 
-func (ms *MountState) handleRequest(req *request) {
+func (ms *Server) handleRequest(req *request) {
 	req.parse()
 	if req.handler == nil {
 		req.status = ENOSYS
@@ -365,7 +361,7 @@ func (ms *MountState) handleRequest(req *request) {
 	ms.returnRequest(req)
 }
 
-func (ms *MountState) allocOut(req *request, size uint32) []byte {
+func (ms *Server) allocOut(req *request, size uint32) []byte {
 	if cap(req.bufferPoolOutputBuf) >= int(size) {
 		req.bufferPoolOutputBuf = req.bufferPoolOutputBuf[:size]
 		return req.bufferPoolOutputBuf
@@ -377,7 +373,7 @@ func (ms *MountState) allocOut(req *request, size uint32) []byte {
 	return req.bufferPoolOutputBuf
 }
 
-func (ms *MountState) write(req *request) Status {
+func (ms *Server) write(req *request) Status {
 	// Forget does not wait for reply.
 	if req.inHeader.Opcode == _OP_FORGET || req.inHeader.Opcode == _OP_BATCH_FORGET {
 		return OK
@@ -399,7 +395,7 @@ func (ms *MountState) write(req *request) Status {
 	return s
 }
 
-func (ms *MountState) writeInodeNotify(entry *raw.NotifyInvalInodeOut) Status {
+func (ms *Server) writeInodeNotify(entry *raw.NotifyInvalInodeOut) Status {
 	req := request{
 		inHeader: &raw.InHeader{
 			Opcode: _OP_NOTIFY_INODE,
@@ -420,7 +416,7 @@ func (ms *MountState) writeInodeNotify(entry *raw.NotifyInvalInodeOut) Status {
 	return result
 }
 
-func (ms *MountState) writeDeleteNotify(parent uint64, child uint64, name string) Status {
+func (ms *Server) writeDeleteNotify(parent uint64, child uint64, name string) Status {
 	if ms.kernelSettings.Minor < 18 {
 		return ms.writeEntryNotify(parent, name)
 	}
@@ -457,7 +453,7 @@ func (ms *MountState) writeDeleteNotify(parent uint64, child uint64, name string
 	return result
 }
 
-func (ms *MountState) writeEntryNotify(parent uint64, name string) Status {
+func (ms *Server) writeEntryNotify(parent uint64, name string) Status {
 	req := request{
 		inHeader: &raw.InHeader{
 			Opcode: _OP_NOTIFY_ENTRY,
@@ -498,6 +494,6 @@ func init() {
 // Wait for the first request to be served. Use this to avoid racing
 // between accessing the (empty) mountpoint, and the OS trying to
 // setup the user-space mount.
-func (ms *MountState) WaitMount() {
+func (ms *Server) WaitMount() {
 	<-ms.started
 }

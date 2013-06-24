@@ -74,7 +74,7 @@ type RawFileSystem interface {
 	String() string
 
 	// If called, provide debug output through the log package.
-	SetDebug(debug bool) 
+	SetDebug(debug bool)
 
 	Lookup(out *raw.EntryOut, context *Context, name string) (status Status)
 	Forget(nodeid, nlookup uint64)

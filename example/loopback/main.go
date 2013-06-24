@@ -44,21 +44,17 @@ func main() {
 	}
 	pathFs := pathfs.NewPathNodeFs(finalFs, nil)
 	conn := nodefs.NewFileSystemConnector(pathFs, opts)
-	state := fuse.NewMountState(conn.RawFS())
-	state.SetDebug(*debug)
-
 	mountPoint := flag.Arg(0)
-
-	fmt.Println("Mounting")
 	mOpts := &fuse.MountOptions{
 		AllowOther: *other,
 	}
-	err := state.Mount(mountPoint, mOpts)
+	state, err := fuse.NewServer(conn.RawFS(),mountPoint, mOpts)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)
 	}
+	state.SetDebug(*debug)
 
 	fmt.Println("Mounted!")
-	state.Loop()
+	state.Serve()
 }

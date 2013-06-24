@@ -10,4 +10,3 @@ func (me *WithFlags) String() string {
 		me.File, me.Description, raw.FlagString(raw.OpenFlagNames, int64(me.OpenFlags), "O_RDONLY"),
 		raw.FlagString(raw.FuseOpenFlagNames, int64(me.FuseFlags), ""))
 }
-

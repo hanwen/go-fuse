@@ -30,7 +30,7 @@ func setupZipfs(t *testing.T) (mountPoint string, cleanup func()) {
 	state, _, err := nodefs.MountFileSystem(mountPoint, zfs, nil)
 
 	state.SetDebug(fuse.VerboseTest())
-	go state.Loop()
+	go state.Serve()
 
 	return mountPoint, func() {
 		state.Unmount()
