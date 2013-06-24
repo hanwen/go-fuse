@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 	"github.com/hanwen/go-fuse/raw"
 )
@@ -19,12 +20,12 @@ type cacheFs struct {
 	pathfs.FileSystem
 }
 
-func (fs *cacheFs) Open(name string, flags uint32, context *fuse.Context) (fuseFile fuse.File, status fuse.Status) {
+func (fs *cacheFs) Open(name string, flags uint32, context *fuse.Context) (fuseFile nodefs.File, status fuse.Status) {
 	f, c := fs.FileSystem.Open(name, flags, context)
 	if !c.Ok() {
 		return f, c
 	}
-	return &fuse.WithFlags{
+	return &nodefs.WithFlags{
 		File:      f,
 		FuseFlags: raw.FOPEN_KEEP_CACHE,
 	}, c
@@ -43,7 +44,7 @@ func setupCacheTest(t *testing.T) (string, *pathfs.PathNodeFs, func()) {
 		pathfs.NewLoopbackFileSystem(dir + "/orig"),
 	}
 	pfs := pathfs.NewPathNodeFs(fs, nil)
-	state, conn, err := fuse.MountNodeFileSystem(dir+"/mnt", pfs, nil)
+	state, conn, err := nodefs.MountFileSystem(dir+"/mnt", pfs, nil)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
@@ -120,14 +121,14 @@ func (fs *nonseekFs) GetAttr(name string, context *fuse.Context) (fi *fuse.Attr,
 	return nil, fuse.ENOENT
 }
 
-func (fs *nonseekFs) Open(name string, flags uint32, context *fuse.Context) (fuseFile fuse.File, status fuse.Status) {
+func (fs *nonseekFs) Open(name string, flags uint32, context *fuse.Context) (fuseFile nodefs.File, status fuse.Status) {
 	if name != "file" {
 		return nil, fuse.ENOENT
 	}
 
 	data := bytes.Repeat([]byte{42}, fs.Length)
-	f := fuse.NewDataFile(data)
-	return &fuse.WithFlags{
+	f := nodefs.NewDataFile(data)
+	return &nodefs.WithFlags{
 		File:      f,
 		FuseFlags: raw.FOPEN_NONSEEKABLE,
 	}, fuse.OK
@@ -143,7 +144,7 @@ func TestNonseekable(t *testing.T) {
 	}
 	defer os.RemoveAll(dir)
 	nfs := pathfs.NewPathNodeFs(fs, nil)
-	state, _, err := fuse.MountNodeFileSystem(dir, nfs, nil)
+	state, _, err := nodefs.MountFileSystem(dir, nfs, nil)
 	if err != nil {
 		t.Fatalf("failed: %v", err)
 	}
@@ -176,8 +177,8 @@ func TestGetAttrRace(t *testing.T) {
 
 	fs := pathfs.NewLoopbackFileSystem(dir + "/orig")
 	pfs := pathfs.NewPathNodeFs(fs, nil)
-	state, conn, err := fuse.MountNodeFileSystem(dir+"/mnt", pfs,
-		&fuse.FileSystemOptions{})
+	state, conn, err := nodefs.MountFileSystem(dir+"/mnt", pfs,
+		&nodefs.Options{})
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}

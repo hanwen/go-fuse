@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 	"github.com/hanwen/go-fuse/raw"
 )
@@ -88,9 +89,9 @@ const (
 
 func NewUnionFs(fileSystems []pathfs.FileSystem, options UnionFsOptions) pathfs.FileSystem {
 	g := &unionFS{
-		options: &options,
+		options:     &options,
 		fileSystems: fileSystems,
-		FileSystem: pathfs.NewDefaultFileSystem(),
+		FileSystem:  pathfs.NewDefaultFileSystem(),
 	}
 
 	writable := g.fileSystems[0]
@@ -247,7 +248,7 @@ func (fs *unionFS) putDeletion(name string) (code fuse.Status) {
 		return fuse.OK
 	}
 
-	var f fuse.File
+	var f nodefs.File
 	if code == fuse.ENOENT {
 		f, code = writable.Create(marker, uint32(os.O_TRUNC|os.O_WRONLY), 0644, nil)
 	} else {
@@ -362,7 +363,7 @@ func (fs *unionFS) Link(orig string, newName string, context *fuse.Context) (cod
 		fs.branchCache.GetFresh(orig)
 		inode := fs.nodeFs.Node(orig)
 		var a fuse.Attr
-		inode.FsNode().GetAttr(&a, nil, nil)
+		inode.Node().GetAttr(&a, nil, nil)
 	}
 	if code.Ok() {
 		code = fs.promoteDirsTo(newName)
@@ -650,7 +651,7 @@ func (fs *unionFS) promoteDirsTo(filename string) fuse.Status {
 	return fuse.OK
 }
 
-func (fs *unionFS) Create(name string, flags uint32, mode uint32, context *fuse.Context) (fuseFile fuse.File, code fuse.Status) {
+func (fs *unionFS) Create(name string, flags uint32, mode uint32, context *fuse.Context) (fuseFile nodefs.File, code fuse.Status) {
 	writable := fs.fileSystems[0]
 
 	code = fs.promoteDirsTo(name)
@@ -926,7 +927,7 @@ func (fs *unionFS) DropSubFsCaches() {
 	}
 }
 
-func (fs *unionFS) Open(name string, flags uint32, context *fuse.Context) (fuseFile fuse.File, status fuse.Status) {
+func (fs *unionFS) Open(name string, flags uint32, context *fuse.Context) (fuseFile nodefs.File, status fuse.Status) {
 	if name == _DROP_CACHE {
 		if flags&fuse.O_ANYWRITE != 0 {
 			log.Println("Forced cache drop on", fs)
@@ -935,7 +936,7 @@ func (fs *unionFS) Open(name string, flags uint32, context *fuse.Context) (fuseF
 			fs.DropSubFsCaches()
 			fs.nodeFs.ForgetClientInodes()
 		}
-		return fuse.NewDevNullFile(), fuse.OK
+		return nodefs.NewDevNullFile(), fuse.OK
 	}
 	r := fs.getBranch(name)
 	if r.branch < 0 {
@@ -969,14 +970,14 @@ func (fs *unionFS) String() string {
 	return fmt.Sprintf("UnionFs(%v)", names)
 }
 
-func (fs *unionFS) StatFs(name string) *fuse.StatfsOut {
+func (fs *unionFS) StatFs(name string) *nodefs.StatfsOut {
 	return fs.fileSystems[0].StatFs("")
 }
 
 type unionFsFile struct {
-	fuse.File
+	nodefs.File
 	ufs   *unionFS
-	node  *fuse.Inode
+	node  *nodefs.Inode
 	layer int
 }
 
@@ -984,7 +985,7 @@ func (fs *unionFsFile) String() string {
 	return fmt.Sprintf("unionFsFile(%s)", fs.File.String())
 }
 
-func (fs *unionFS) newUnionFsFile(f fuse.File, branch int) *unionFsFile {
+func (fs *unionFS) newUnionFsFile(f nodefs.File, branch int) *unionFsFile {
 	return &unionFsFile{
 		File:  f,
 		ufs:   fs,
@@ -992,7 +993,7 @@ func (fs *unionFS) newUnionFsFile(f fuse.File, branch int) *unionFsFile {
 	}
 }
 
-func (fs *unionFsFile) InnerFile() (file fuse.File) {
+func (fs *unionFsFile) InnerFile() (file nodefs.File) {
 	return fs.File
 }
 
@@ -1005,7 +1006,7 @@ func (fs *unionFsFile) Flush() (code fuse.Status) {
 	return code
 }
 
-func (fs *unionFsFile) SetInode(node *fuse.Inode) {
+func (fs *unionFsFile) SetInode(node *nodefs.Inode) {
 	fs.node = node
 }
 

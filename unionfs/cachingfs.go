@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
@@ -139,7 +140,7 @@ func (fs *cachingFileSystem) String() string {
 	return fmt.Sprintf("cachingFileSystem(%v)", fs.FileSystem)
 }
 
-func (fs *cachingFileSystem) Open(name string, flags uint32, context *fuse.Context) (f fuse.File, status fuse.Status) {
+func (fs *cachingFileSystem) Open(name string, flags uint32, context *fuse.Context) (f nodefs.File, status fuse.Status) {
 	if flags&fuse.O_ANYWRITE != 0 && name == _DROP_CACHE {
 		log.Println("Dropping cache for", fs)
 		fs.DropCache()

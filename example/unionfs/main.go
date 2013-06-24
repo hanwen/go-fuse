@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 	"github.com/hanwen/go-fuse/unionfs"
 )
@@ -42,13 +42,13 @@ func main() {
 		os.Exit(1)
 	}
 	nodeFs := pathfs.NewPathNodeFs(ufs, &pathfs.PathNodeFsOptions{ClientInodes: true})
-	mOpts := fuse.FileSystemOptions{
+	mOpts := nodefs.Options{
 		EntryTimeout:    time.Duration(*entry_ttl * float64(time.Second)),
 		AttrTimeout:     time.Duration(*entry_ttl * float64(time.Second)),
 		NegativeTimeout: time.Duration(*negative_ttl * float64(time.Second)),
 		PortableInodes:  *portable,
 	}
-	mountState, _, err := fuse.MountNodeFileSystem(flag.Arg(0), nodeFs, &mOpts)
+	mountState, _, err := nodefs.MountFileSystem(flag.Arg(0), nodeFs, &mOpts)
 	if err != nil {
 		log.Fatal("Mount fail:", err)
 	}

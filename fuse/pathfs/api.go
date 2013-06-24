@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 )
 
 // A filesystem API that uses paths rather than inodes.  A minimal
@@ -54,8 +55,8 @@ type FileSystem interface {
 
 	// File handling.  If opening for writing, the file's mtime
 	// should be updated too.
-	Open(name string, flags uint32, context *fuse.Context) (file fuse.File, code fuse.Status)
-	Create(name string, flags uint32, mode uint32, context *fuse.Context) (file fuse.File, code fuse.Status)
+	Open(name string, flags uint32, context *fuse.Context) (file nodefs.File, code fuse.Status)
+	Create(name string, flags uint32, mode uint32, context *fuse.Context) (file nodefs.File, code fuse.Status)
 
 	// Directory handling
 	OpenDir(name string, context *fuse.Context) (stream []fuse.DirEntry, code fuse.Status)
@@ -64,7 +65,7 @@ type FileSystem interface {
 	Symlink(value string, linkName string, context *fuse.Context) (code fuse.Status)
 	Readlink(name string, context *fuse.Context) (string, fuse.Status)
 
-	StatFs(name string) *fuse.StatfsOut
+	StatFs(name string) *nodefs.StatfsOut
 }
 
 type PathNodeFsOptions struct {

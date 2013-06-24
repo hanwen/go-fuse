@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
@@ -39,7 +40,7 @@ type testCase struct {
 	tester      *testing.T
 	state       *fuse.MountState
 	pathFs      *pathfs.PathNodeFs
-	connector   *fuse.FileSystemConnector
+	connector   *nodefs.FileSystemConnector
 }
 
 const testTtl = 100 * time.Millisecond
@@ -78,8 +79,8 @@ func NewTestCase(t *testing.T) *testCase {
 	var rfs fuse.RawFileSystem
 	me.pathFs = pathfs.NewPathNodeFs(pfs, &pathfs.PathNodeFsOptions{
 		ClientInodes: true})
-	me.connector = fuse.NewFileSystemConnector(me.pathFs,
-		&fuse.FileSystemOptions{
+	me.connector = nodefs.NewFileSystemConnector(me.pathFs,
+		&nodefs.Options{
 			EntryTimeout:    testTtl,
 			AttrTimeout:     testTtl,
 			NegativeTimeout: 0.0,
@@ -108,7 +109,7 @@ func (tc *testCase) Cleanup() {
 	os.RemoveAll(tc.tmpDir)
 }
 
-func (tc *testCase) rootNode() *fuse.Inode {
+func (tc *testCase) rootNode() *nodefs.Inode {
 	return tc.pathFs.Root().Inode()
 }
 
@@ -930,7 +931,7 @@ func TestOriginalIsSymlink(t *testing.T) {
 
 	fs := pathfs.NewLoopbackFileSystem(link)
 	nfs := pathfs.NewPathNodeFs(fs, nil)
-	state, _, err := fuse.MountNodeFileSystem(mnt, nfs, nil)
+	state, _, err := nodefs.MountFileSystem(mnt, nfs, nil)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}

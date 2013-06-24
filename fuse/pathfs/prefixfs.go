@@ -6,12 +6,13 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 )
 
 // PrefixFileSystem adds a path prefix to incoming calls.
 type prefixFileSystem struct {
 	FileSystem FileSystem
-	Prefix string
+	Prefix     string
 }
 
 func NewPrefixFileSystem(fs FileSystem, prefix string) FileSystem {
@@ -70,7 +71,7 @@ func (fs *prefixFileSystem) Truncate(name string, offset uint64, context *fuse.C
 	return fs.FileSystem.Truncate(fs.prefixed(name), offset, context)
 }
 
-func (fs *prefixFileSystem) Open(name string, flags uint32, context *fuse.Context) (file fuse.File, code fuse.Status) {
+func (fs *prefixFileSystem) Open(name string, flags uint32, context *fuse.Context) (file nodefs.File, code fuse.Status) {
 	return fs.FileSystem.Open(fs.prefixed(name), flags, context)
 }
 
@@ -90,7 +91,7 @@ func (fs *prefixFileSystem) Access(name string, mode uint32, context *fuse.Conte
 	return fs.FileSystem.Access(fs.prefixed(name), mode, context)
 }
 
-func (fs *prefixFileSystem) Create(name string, flags uint32, mode uint32, context *fuse.Context) (file fuse.File, code fuse.Status) {
+func (fs *prefixFileSystem) Create(name string, flags uint32, mode uint32, context *fuse.Context) (file nodefs.File, code fuse.Status) {
 	return fs.FileSystem.Create(fs.prefixed(name), flags, mode, context)
 }
 
@@ -118,6 +119,6 @@ func (fs *prefixFileSystem) String() string {
 	return fmt.Sprintf("prefixFileSystem(%s,%s)", fs.FileSystem.String(), fs.Prefix)
 }
 
-func (fs *prefixFileSystem) StatFs(name string) *fuse.StatfsOut {
+func (fs *prefixFileSystem) StatFs(name string) *nodefs.StatfsOut {
 	return fs.FileSystem.StatFs(fs.prefixed(name))
 }

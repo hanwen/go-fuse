@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
@@ -19,7 +20,7 @@ const entryTtl = 100 * time.Millisecond
 
 var testAOpts = AutoUnionFsOptions{
 	UnionFsOptions: testOpts,
-	FileSystemOptions: fuse.FileSystemOptions{
+	Options: nodefs.Options{
 		EntryTimeout:    entryTtl,
 		AttrTimeout:     entryTtl,
 		NegativeTimeout: 0,
@@ -56,7 +57,7 @@ func setup(t *testing.T) (workdir string, cleanup func()) {
 	fs := NewAutoUnionFs(wd+"/store", testAOpts)
 
 	nfs := pathfs.NewPathNodeFs(fs, nil)
-	state, conn, err := fuse.MountNodeFileSystem(wd+"/mnt", nfs, &testAOpts.FileSystemOptions)
+	state, conn, err := nodefs.MountFileSystem(wd+"/mnt", nfs, &testAOpts.Options)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}

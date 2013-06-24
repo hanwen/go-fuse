@@ -10,21 +10,22 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 )
 
 type flipNode struct {
-	fuse.FsNode
+	nodefs.Node
 	ok chan int
 }
 
-func (f *flipNode) GetAttr(out *fuse.Attr, file fuse.File, c *fuse.Context) fuse.Status {
+func (f *flipNode) GetAttr(out *fuse.Attr, file nodefs.File, c *fuse.Context) fuse.Status {
 	select {
 	case <-f.ok:
 		// use a status that is easily recognizable.
 		return fuse.Status(syscall.EXDEV)
 	default:
 	}
-	return f.FsNode.GetAttr(out, file, c)
+	return f.Node.GetAttr(out, file, c)
 }
 
 func TestDeleteNotify(t *testing.T) {
@@ -33,9 +34,9 @@ func TestDeleteNotify(t *testing.T) {
 		t.Fatalf("TempDir failed %v", err)
 	}
 	defer os.RemoveAll(dir)
-	fs := fuse.NewMemNodeFs(dir + "/backing")
-	conn := fuse.NewFileSystemConnector(fs,
-		&fuse.FileSystemOptions{PortableInodes: true})
+	fs := nodefs.NewMemNodeFs(dir + "/backing")
+	conn := nodefs.NewFileSystemConnector(fs,
+		&nodefs.Options{PortableInodes: true})
 	state := fuse.NewMountState(conn.RawFS())
 	mnt := dir + "/mnt"
 	err = os.Mkdir(mnt, 0755)
@@ -56,10 +57,10 @@ func TestDeleteNotify(t *testing.T) {
 	}
 
 	ch := fs.Root().Inode().RmChild("testdir")
-	ch.FsNode().SetInode(nil)
+	ch.Node().SetInode(nil)
 	flip := flipNode{
-		FsNode: ch.FsNode(),
-		ok:     make(chan int),
+		Node: ch.Node(),
+		ok:   make(chan int),
 	}
 	newCh := fs.Root().Inode().New(true, &flip)
 	fs.Root().Inode().AddChild("testdir", newCh)
@@ -100,7 +101,7 @@ func TestDeleteNotify(t *testing.T) {
 	// Simulate deletion+mkdir coming from the network
 	close(flip.ok)
 	oldCh := fs.Root().Inode().RmChild("testdir")
-	_, code = fs.Root().Inode().FsNode().Mkdir("testdir", 0755, nil)
+	_, code = fs.Root().Inode().Node().Mkdir("testdir", 0755, nil)
 	if !code.Ok() {
 		t.Fatal("mkdir status", code)
 	}

@@ -1,10 +1,11 @@
-package fuse
+package nodefs
 
 import (
 	"log"
 	"sync"
 	"unsafe"
 
+	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/raw"
 )
 
@@ -21,7 +22,7 @@ type openedFile struct {
 
 type fileSystemMount struct {
 	// The file system we mounted here.
-	fs NodeFileSystem
+	fs FileSystem
 
 	// Node that we were mounted on.
 	mountInode *Inode
@@ -30,7 +31,7 @@ type fileSystemMount struct {
 	parentInode *Inode
 
 	// Options for the mount.
-	options *FileSystemOptions
+	options *Options
 
 	// Protects Children hashmaps within the mount.  treeLock
 	// should be acquired before openFilesLock.
@@ -68,7 +69,7 @@ func (m *fileSystemMount) fillEntry(out *raw.EntryOut) {
 	splitDuration(m.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
 	splitDuration(m.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	m.setOwner(&out.Attr)
-	if out.Mode&S_IFDIR == 0 && out.Nlink == 0 {
+	if out.Mode&fuse.S_IFDIR == 0 && out.Nlink == 0 {
 		out.Nlink = 1
 	}
 }

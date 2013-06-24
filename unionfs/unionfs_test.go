@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 	"github.com/hanwen/go-fuse/raw"
 )
@@ -85,7 +86,7 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 
 	// We configure timeouts are smaller, so we can check for
 	// UnionFs's cache consistency.
-	opts := &fuse.FileSystemOptions{
+	opts := &nodefs.Options{
 		EntryTimeout:    entryTtl / 2,
 		AttrTimeout:     entryTtl / 2,
 		NegativeTimeout: entryTtl / 2,
@@ -93,7 +94,7 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 
 	pathfs := pathfs.NewPathNodeFs(ufs,
 		&pathfs.PathNodeFsOptions{ClientInodes: true})
-	state, conn, err := fuse.MountNodeFileSystem(wd+"/mnt", pathfs, opts)
+	state, conn, err := nodefs.MountFileSystem(wd+"/mnt", pathfs, opts)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
@@ -1106,14 +1107,14 @@ func TestUnionFsDisappearing(t *testing.T) {
 	fses = append(fses, pathfs.NewLoopbackFileSystem(wd+"/ro"))
 	ufs := NewUnionFs(fses, testOpts)
 
-	opts := &fuse.FileSystemOptions{
+	opts := &nodefs.Options{
 		EntryTimeout:    entryTtl,
 		AttrTimeout:     entryTtl,
 		NegativeTimeout: entryTtl,
 	}
 
 	nfs := pathfs.NewPathNodeFs(ufs, nil)
-	state, _, err := fuse.MountNodeFileSystem(wd+"/mnt", nfs, opts)
+	state, _, err := nodefs.MountFileSystem(wd+"/mnt", nfs, opts)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}

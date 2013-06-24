@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
@@ -34,7 +35,7 @@ func main() {
 	loopbackfs := pathfs.NewLoopbackFileSystem(orig)
 	finalFs = loopbackfs
 
-	opts := &fuse.FileSystemOptions{
+	opts := &nodefs.Options{
 		// These options are to be compatible with libfuse defaults,
 		// making benchmarking easier.
 		NegativeTimeout: time.Second,
@@ -42,7 +43,7 @@ func main() {
 		EntryTimeout:    time.Second,
 	}
 	pathFs := pathfs.NewPathNodeFs(finalFs, nil)
-	conn := fuse.NewFileSystemConnector(pathFs, opts)
+	conn := nodefs.NewFileSystemConnector(pathFs, opts)
 	state := fuse.NewMountState(conn.RawFS())
 	state.SetDebug(*debug)
 

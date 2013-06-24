@@ -1,12 +1,14 @@
 package zipfs
 
 import (
-	"github.com/hanwen/go-fuse/fuse"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
+
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 )
 
 func testZipFile() string {
@@ -25,7 +27,7 @@ func setupZipfs(t *testing.T) (mountPoint string, cleanup func()) {
 	}
 
 	mountPoint, _ = ioutil.TempDir("", "")
-	state, _, err := fuse.MountNodeFileSystem(mountPoint, zfs, nil)
+	state, _, err := nodefs.MountFileSystem(mountPoint, zfs, nil)
 
 	state.SetDebug(fuse.VerboseTest())
 	go state.Loop()

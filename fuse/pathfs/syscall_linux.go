@@ -40,4 +40,3 @@ func listXAttr(path string) (attributes []string, err error) {
 	}
 	return attributes, err
 }
-

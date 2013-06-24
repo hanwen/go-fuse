@@ -1,24 +1,26 @@
-package fuse
+package nodefs
 
 import (
 	"time"
 	"syscall"
+
+	"github.com/hanwen/go-fuse/fuse"
 )
 
-func (f *loopbackFile) Allocate(off uint64, sz uint64, mode uint32) Status {
+func (f *loopbackFile) Allocate(off uint64, sz uint64, mode uint32) fuse.Status {
 	f.lock.Lock()
 	err := syscall.Fallocate(int(f.File.Fd()), mode, int64(off), int64(sz))
 	f.lock.Unlock()
 	if err != nil {
-		return ToStatus(err)
+		return fuse.ToStatus(err)
 	}
-	return OK
+	return fuse.OK
 }
 
 const _UTIME_NOW = ((1 << 30) - 1)
 const _UTIME_OMIT = ((1 << 30) - 2)
 
-func (f *loopbackFile) Utimens(a *time.Time, m *time.Time) Status {
+func (f *loopbackFile) Utimens(a *time.Time, m *time.Time) fuse.Status {
 	tv := make([]syscall.Timeval, 2)
 	if a == nil {
 		tv[0].Usec = _UTIME_OMIT
@@ -35,5 +37,5 @@ func (f *loopbackFile) Utimens(a *time.Time, m *time.Time) Status {
  	}
 	
 	err := syscall.Futimes(int(f.File.Fd()), tv)
-	return ToStatus(err)	
+	return fuse.ToStatus(err)	
 }

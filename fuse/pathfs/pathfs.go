@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 )
 
 var _ = log.Println
@@ -32,7 +33,7 @@ type PathNodeFs struct {
 	debug     bool
 	fs        FileSystem
 	root      *pathInode
-	connector *fuse.FileSystemConnector
+	connector *nodefs.FileSystemConnector
 
 	// protects clientInodeMap and pathInode.Parent pointers
 	pathLock sync.RWMutex
@@ -48,7 +49,7 @@ func (fs *PathNodeFs) SetDebug(dbg bool) {
 	fs.debug = dbg
 }
 
-func (fs *PathNodeFs) Mount(path string, nodeFs fuse.NodeFileSystem, opts *fuse.FileSystemOptions) fuse.Status {
+func (fs *PathNodeFs) Mount(path string, nodeFs nodefs.FileSystem, opts *nodefs.Options) fuse.Status {
 	dir, name := filepath.Split(path)
 	if dir != "" {
 		dir = filepath.Clean(dir)
@@ -80,7 +81,7 @@ func (fs *PathNodeFs) RereadClientInodes() {
 	fs.root.updateClientInodes()
 }
 
-func (fs *PathNodeFs) UnmountNode(node *fuse.Inode) fuse.Status {
+func (fs *PathNodeFs) UnmountNode(node *nodefs.Inode) fuse.Status {
 	return fs.connector.Unmount(node)
 }
 
@@ -104,12 +105,12 @@ func (fs *PathNodeFs) String() string {
 	return name
 }
 
-func (fs *PathNodeFs) OnMount(conn *fuse.FileSystemConnector) {
+func (fs *PathNodeFs) OnMount(conn *nodefs.FileSystemConnector) {
 	fs.connector = conn
 	fs.fs.OnMount(fs)
 }
 
-func (fs *PathNodeFs) Node(name string) *fuse.Inode {
+func (fs *PathNodeFs) Node(name string) *nodefs.Inode {
 	n, rest := fs.LastNode(name)
 	if len(rest) > 0 {
 		return nil
@@ -118,16 +119,16 @@ func (fs *PathNodeFs) Node(name string) *fuse.Inode {
 }
 
 // Like node, but use Lookup to discover inodes we may not have yet.
-func (fs *PathNodeFs) LookupNode(name string) *fuse.Inode {
+func (fs *PathNodeFs) LookupNode(name string) *nodefs.Inode {
 	return fs.connector.LookupNode(fs.Root().Inode(), name)
 }
 
-func (fs *PathNodeFs) Path(node *fuse.Inode) string {
-	pNode := node.FsNode().(*pathInode)
+func (fs *PathNodeFs) Path(node *nodefs.Inode) string {
+	pNode := node.Node().(*pathInode)
 	return pNode.GetPath()
 }
 
-func (fs *PathNodeFs) LastNode(name string) (*fuse.Inode, []string) {
+func (fs *PathNodeFs) LastNode(name string) (*nodefs.Inode, []string) {
 	return fs.connector.Node(fs.Root().Inode(), name)
 }
 
@@ -155,7 +156,8 @@ func (fs *PathNodeFs) Notify(path string) fuse.Status {
 	return fs.connector.FileNotify(node, 0, 0)
 }
 
-func (fs *PathNodeFs) AllFiles(name string, mask uint32) []fuse.WithFlags {
+func (fs *PathNodeFs) AllFiles(name string, mask uint32) []nodefs.WithFlags {
+
 	n := fs.Node(name)
 	if n == nil {
 		return nil
@@ -181,7 +183,7 @@ func NewPathNodeFs(fs FileSystem, opts *PathNodeFsOptions) *PathNodeFs {
 	return pfs
 }
 
-func (fs *PathNodeFs) Root() fuse.FsNode {
+func (fs *PathNodeFs) Root() nodefs.Node {
 	return fs.root
 }
 
@@ -199,14 +201,14 @@ type pathInode struct {
 	// This is to correctly resolve hardlinks of the underlying
 	// real filesystem.
 	clientInode uint64
-	inode      *fuse.Inode
+	inode       *nodefs.Inode
 }
 
 // Drop all known client inodes. Must have the treeLock.
 func (n *pathInode) forgetClientInodes() {
 	n.clientInode = 0
 	for _, ch := range n.Inode().FsChildren() {
-		ch.FsNode().(*pathInode).forgetClientInodes()
+		ch.Node().(*pathInode).forgetClientInodes()
 	}
 }
 
@@ -214,11 +216,11 @@ func (fs *pathInode) Deletable() bool {
 	return true
 }
 
-func (n *pathInode) Inode() *fuse.Inode {
+func (n *pathInode) Inode() *nodefs.Inode {
 	return n.inode
 }
 
-func (n *pathInode) SetInode(node *fuse.Inode) {
+func (n *pathInode) SetInode(node *nodefs.Inode) {
 	n.inode = node
 }
 
@@ -226,7 +228,7 @@ func (n *pathInode) SetInode(node *fuse.Inode) {
 func (n *pathInode) updateClientInodes() {
 	n.GetAttr(&fuse.Attr{}, nil, nil)
 	for _, ch := range n.Inode().FsChildren() {
-		ch.FsNode().(*pathInode).updateClientInodes()
+		ch.Node().(*pathInode).updateClientInodes()
 	}
 }
 
@@ -308,7 +310,7 @@ func (n *pathInode) rmChild(name string) *pathInode {
 	if childInode == nil {
 		return nil
 	}
-	ch := childInode.FsNode().(*pathInode)
+	ch := childInode.Node().(*pathInode)
 
 	if ch.clientInode > 0 && n.pathFs.options.ClientInodes {
 		defer n.LockTree()()
@@ -371,7 +373,7 @@ func (n *pathInode) OnForget() {
 ////////////////////////////////////////////////////////////////
 // FS operations
 
-func (n *pathInode) StatFs() *fuse.StatfsOut {
+func (n *pathInode) StatFs() *nodefs.StatfsOut {
 	return n.fs.StatFs(n.GetPath())
 }
 
@@ -404,7 +406,7 @@ func (n *pathInode) ListXAttr(context *fuse.Context) (attrs []string, code fuse.
 	return n.fs.ListXAttr(n.GetPath(), context)
 }
 
-func (n *pathInode) Flush(file fuse.File, openFlags uint32, context *fuse.Context) (code fuse.Status) {
+func (n *pathInode) Flush(file nodefs.File, openFlags uint32, context *fuse.Context) (code fuse.Status) {
 	return file.Flush()
 }
 
@@ -412,7 +414,7 @@ func (n *pathInode) OpenDir(context *fuse.Context) ([]fuse.DirEntry, fuse.Status
 	return n.fs.OpenDir(n.GetPath(), context)
 }
 
-func (n *pathInode) Mknod(name string, mode uint32, dev uint32, context *fuse.Context) (newNode fuse.FsNode, code fuse.Status) {
+func (n *pathInode) Mknod(name string, mode uint32, dev uint32, context *fuse.Context) (newNode nodefs.Node, code fuse.Status) {
 	fullPath := filepath.Join(n.GetPath(), name)
 	code = n.fs.Mknod(fullPath, mode, dev, context)
 	if code.Ok() {
@@ -423,7 +425,7 @@ func (n *pathInode) Mknod(name string, mode uint32, dev uint32, context *fuse.Co
 	return
 }
 
-func (n *pathInode) Mkdir(name string, mode uint32, context *fuse.Context) (newNode fuse.FsNode, code fuse.Status) {
+func (n *pathInode) Mkdir(name string, mode uint32, context *fuse.Context) (newNode nodefs.Node, code fuse.Status) {
 	fullPath := filepath.Join(n.GetPath(), name)
 	code = n.fs.Mkdir(fullPath, mode, context)
 	if code.Ok() {
@@ -450,7 +452,7 @@ func (n *pathInode) Rmdir(name string, context *fuse.Context) (code fuse.Status)
 	return code
 }
 
-func (n *pathInode) Symlink(name string, content string, context *fuse.Context) (newNode fuse.FsNode, code fuse.Status) {
+func (n *pathInode) Symlink(name string, content string, context *fuse.Context) (newNode nodefs.Node, code fuse.Status) {
 	fullPath := filepath.Join(n.GetPath(), name)
 	code = n.fs.Symlink(content, fullPath, context)
 	if code.Ok() {
@@ -461,7 +463,7 @@ func (n *pathInode) Symlink(name string, content string, context *fuse.Context) 
 	return
 }
 
-func (n *pathInode) Rename(oldName string, newParent fuse.FsNode, newName string, context *fuse.Context) (code fuse.Status) {
+func (n *pathInode) Rename(oldName string, newParent nodefs.Node, newName string, context *fuse.Context) (code fuse.Status) {
 	p := newParent.(*pathInode)
 	oldPath := filepath.Join(n.GetPath(), oldName)
 	newPath := filepath.Join(p.GetPath(), newName)
@@ -474,7 +476,7 @@ func (n *pathInode) Rename(oldName string, newParent fuse.FsNode, newName string
 	return code
 }
 
-func (n *pathInode) Link(name string, existingFsnode fuse.FsNode, context *fuse.Context) (newNode fuse.FsNode, code fuse.Status) {
+func (n *pathInode) Link(name string, existingFsnode nodefs.Node, context *fuse.Context) (newNode nodefs.Node, code fuse.Status) {
 	if !n.pathFs.options.ClientInodes {
 		return nil, fuse.ENOSYS
 	}
@@ -503,7 +505,7 @@ func (n *pathInode) Link(name string, existingFsnode fuse.FsNode, context *fuse.
 	return
 }
 
-func (n *pathInode) Create(name string, flags uint32, mode uint32, context *fuse.Context) (file fuse.File, newNode fuse.FsNode, code fuse.Status) {
+func (n *pathInode) Create(name string, flags uint32, mode uint32, context *fuse.Context) (file nodefs.File, newNode nodefs.Node, code fuse.Status) {
 	fullPath := filepath.Join(n.GetPath(), name)
 	file, code = n.fs.Create(fullPath, flags, mode, context)
 	if code.Ok() {
@@ -523,10 +525,10 @@ func (n *pathInode) createChild(isDir bool) *pathInode {
 	return i
 }
 
-func (n *pathInode) Open(flags uint32, context *fuse.Context) (file fuse.File, code fuse.Status) {
+func (n *pathInode) Open(flags uint32, context *fuse.Context) (file nodefs.File, code fuse.Status) {
 	file, code = n.fs.Open(n.GetPath(), flags, context)
 	if n.pathFs.debug {
-		file = &fuse.WithFlags{
+		file = &nodefs.WithFlags{
 			File:        file,
 			Description: n.GetPath(),
 		}
@@ -534,7 +536,7 @@ func (n *pathInode) Open(flags uint32, context *fuse.Context) (file fuse.File, c
 	return
 }
 
-func (n *pathInode) Lookup(out *fuse.Attr, name string, context *fuse.Context) (node fuse.FsNode, code fuse.Status) {
+func (n *pathInode) Lookup(out *fuse.Attr, name string, context *fuse.Context) (node nodefs.Node, code fuse.Status) {
 	fullPath := filepath.Join(n.GetPath(), name)
 	fi, code := n.fs.GetAttr(fullPath, context)
 	if code.Ok() {
@@ -568,7 +570,7 @@ func (n *pathInode) findChild(fi *fuse.Attr, name string, fullPath string) (out 
 	return out
 }
 
-func (n *pathInode) GetAttr(out *fuse.Attr, file fuse.File, context *fuse.Context) (code fuse.Status) {
+func (n *pathInode) GetAttr(out *fuse.Attr, file nodefs.File, context *fuse.Context) (code fuse.Status) {
 	var fi *fuse.Attr
 	if file == nil {
 		// called on a deleted files.
@@ -597,7 +599,7 @@ func (n *pathInode) GetAttr(out *fuse.Attr, file fuse.File, context *fuse.Contex
 	return code
 }
 
-func (n *pathInode) Chmod(file fuse.File, perms uint32, context *fuse.Context) (code fuse.Status) {
+func (n *pathInode) Chmod(file nodefs.File, perms uint32, context *fuse.Context) (code fuse.Status) {
 	files := n.Inode().Files(fuse.O_ANYWRITE)
 	for _, f := range files {
 		// TODO - pass context
@@ -613,7 +615,7 @@ func (n *pathInode) Chmod(file fuse.File, perms uint32, context *fuse.Context) (
 	return code
 }
 
-func (n *pathInode) Chown(file fuse.File, uid uint32, gid uint32, context *fuse.Context) (code fuse.Status) {
+func (n *pathInode) Chown(file nodefs.File, uid uint32, gid uint32, context *fuse.Context) (code fuse.Status) {
 	files := n.Inode().Files(fuse.O_ANYWRITE)
 	for _, f := range files {
 		// TODO - pass context
@@ -629,7 +631,7 @@ func (n *pathInode) Chown(file fuse.File, uid uint32, gid uint32, context *fuse.
 	return code
 }
 
-func (n *pathInode) Truncate(file fuse.File, size uint64, context *fuse.Context) (code fuse.Status) {
+func (n *pathInode) Truncate(file nodefs.File, size uint64, context *fuse.Context) (code fuse.Status) {
 	files := n.Inode().Files(fuse.O_ANYWRITE)
 	for _, f := range files {
 		// TODO - pass context
@@ -644,7 +646,7 @@ func (n *pathInode) Truncate(file fuse.File, size uint64, context *fuse.Context)
 	return code
 }
 
-func (n *pathInode) Utimens(file fuse.File, atime *time.Time, mtime *time.Time, context *fuse.Context) (code fuse.Status) {
+func (n *pathInode) Utimens(file nodefs.File, atime *time.Time, mtime *time.Time, context *fuse.Context) (code fuse.Status) {
 	files := n.Inode().Files(fuse.O_ANYWRITE)
 	for _, f := range files {
 		// TODO - pass context
@@ -659,7 +661,7 @@ func (n *pathInode) Utimens(file fuse.File, atime *time.Time, mtime *time.Time, 
 	return code
 }
 
-func (n *pathInode) Fallocate(file fuse.File, off uint64, size uint64, mode uint32, context *fuse.Context) (code fuse.Status) {
+func (n *pathInode) Fallocate(file nodefs.File, off uint64, size uint64, mode uint32, context *fuse.Context) (code fuse.Status) {
 	if file != nil {
 		code = file.Allocate(off, size, mode)
 		if code.Ok() {

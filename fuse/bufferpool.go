@@ -2,13 +2,13 @@ package fuse
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"sync"
 	"unsafe"
 )
 
-var _ = log.Println
+
+var paranoia bool
 
 type BufferPool interface {
 	AllocBuffer(size uint32) []byte

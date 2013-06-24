@@ -51,4 +51,3 @@ type Context struct {
 	*raw.Context
 }
 
-type StatfsOut raw.StatfsOut

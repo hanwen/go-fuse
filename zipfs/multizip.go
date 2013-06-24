@@ -40,9 +40,9 @@ type MultiZipFs struct {
 
 func NewMultiZipFs() *MultiZipFs {
 	m := &MultiZipFs{
-		zips: make(map[string]*MemTreeFs),
+		zips:          make(map[string]*MemTreeFs),
 		dirZipFileMap: make(map[string]string),
-		FileSystem: pathfs.NewDefaultFileSystem(),
+		FileSystem:    pathfs.NewDefaultFileSystem(),
 	}
 	return m
 }

@@ -24,17 +24,20 @@ type DirEntry struct {
 type DirEntryList struct {
 	buf    []byte
 	size   int
-	offset uint64
+
+	// TODO - hide this again.
+	Offset uint64
 }
 
 func NewDirEntryList(data []byte, off uint64) *DirEntryList {
 	return &DirEntryList{
 		buf:    data[:0],
 		size:   len(data),
-		offset: off,
+		Offset: off,
 	}
 }
 
+// AddDirEntry tries to add an entry.
 func (l *DirEntryList) AddDirEntry(e DirEntry) bool {
 	return l.Add(e.Name, uint64(raw.FUSE_UNKNOWN_INO), e.Mode)
 }
@@ -50,7 +53,7 @@ func (l *DirEntryList) Add(name string, inode uint64, mode uint32) bool {
 	}
 	l.buf = l.buf[:newLen]
 	dirent := (*raw.Dirent)(unsafe.Pointer(&l.buf[oldLen]))
-	dirent.Off = l.offset + 1
+	dirent.Off = l.Offset + 1
 	dirent.Ino = inode
 	dirent.NameLen = uint32(len(name))
 	dirent.Typ = ModeToType(mode)
@@ -62,7 +65,7 @@ func (l *DirEntryList) Add(name string, inode uint64, mode uint32) bool {
 		copy(l.buf[oldLen:], eightPadding[:padding])
 	}
 
-	l.offset = dirent.Off
+	l.Offset = dirent.Off
 	return true
 }
 
@@ -72,44 +75,4 @@ func (l *DirEntryList) Bytes() []byte {
 
 ////////////////////////////////////////////////////////////////
 
-type rawDir interface {
-	ReadDir(out *DirEntryList, input *raw.ReadIn) Status
-	Release()
-}
 
-type connectorDir struct {
-	node       FsNode
-	stream     []DirEntry
-	lastOffset uint64
-}
-
-func (d *connectorDir) ReadDir(list *DirEntryList, input *raw.ReadIn) (code Status) {
-	if d.stream == nil {
-		return OK
-	}
-	// rewinddir() should be as if reopening directory.
-	// TODO - test this.
-	if d.lastOffset > 0 && input.Offset == 0 {
-		d.stream, code = d.node.OpenDir(nil)
-		if !code.Ok() {
-			return code
-		}
-	}
-
-	todo := d.stream[input.Offset:]
-	for _, e := range todo {
-		if e.Name == "" {
-			log.Printf("got emtpy directory entry, mode %o.", e.Mode)
-			continue
-		}
-		if !list.AddDirEntry(e) {
-			break
-		}
-	}
-	d.lastOffset = list.offset
-	return OK
-}
-
-// Read everything so we make goroutines exit.
-func (d *connectorDir) Release() {
-}

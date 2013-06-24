@@ -327,7 +327,7 @@ func doRename(state *MountState, req *request) {
 }
 
 func doStatFs(state *MountState, req *request) {
-	stat := (*StatfsOut)(req.outData)
+	stat := (*raw.StatfsOut)(req.outData)
 	req.status = state.fileSystem.StatFs(stat, &req.context)
 }
 
@@ -431,7 +431,7 @@ func init() {
 		_OP_LINK:          unsafe.Sizeof(raw.EntryOut{}),
 		_OP_OPEN:          unsafe.Sizeof(raw.OpenOut{}),
 		_OP_WRITE:         unsafe.Sizeof(raw.WriteOut{}),
-		_OP_STATFS:        unsafe.Sizeof(StatfsOut{}),
+		_OP_STATFS:        unsafe.Sizeof(raw.StatfsOut{}),
 		_OP_GETXATTR:      unsafe.Sizeof(raw.GetXAttrOut{}),
 		_OP_LISTXATTR:     unsafe.Sizeof(raw.GetXAttrOut{}),
 		_OP_INIT:          unsafe.Sizeof(raw.InitOut{}),
@@ -549,7 +549,7 @@ func init() {
 		_OP_NOTIFY_ENTRY:  func(ptr unsafe.Pointer) interface{} { return (*raw.NotifyInvalEntryOut)(ptr) },
 		_OP_NOTIFY_INODE:  func(ptr unsafe.Pointer) interface{} { return (*raw.NotifyInvalInodeOut)(ptr) },
 		_OP_NOTIFY_DELETE: func(ptr unsafe.Pointer) interface{} { return (*raw.NotifyInvalDeleteOut)(ptr) },
-		_OP_STATFS:        func(ptr unsafe.Pointer) interface{} { return (*StatfsOut)(ptr) },
+		_OP_STATFS:        func(ptr unsafe.Pointer) interface{} { return (*raw.StatfsOut)(ptr) },
 	} {
 		operationHandlers[op].DecodeOut = f
 	}

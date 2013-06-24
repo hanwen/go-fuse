@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 )
 
 type ownerFs struct {
@@ -29,12 +30,12 @@ func (fs *ownerFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse
 	return a, fuse.OK
 }
 
-func setupOwnerTest(t *testing.T, opts *fuse.FileSystemOptions) (workdir string, cleanup func()) {
+func setupOwnerTest(t *testing.T, opts *nodefs.Options) (workdir string, cleanup func()) {
 	wd, err := ioutil.TempDir("", "go-fuse-owner_test")
 
 	fs := &ownerFs{NewDefaultFileSystem()}
 	nfs := NewPathNodeFs(fs, nil)
-	state, _, err := fuse.MountNodeFileSystem(wd, nfs, opts)
+	state, _, err := nodefs.MountFileSystem(wd, nfs, opts)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
@@ -46,7 +47,7 @@ func setupOwnerTest(t *testing.T, opts *fuse.FileSystemOptions) (workdir string,
 }
 
 func TestOwnerDefault(t *testing.T) {
-	wd, cleanup := setupOwnerTest(t, fuse.NewFileSystemOptions())
+	wd, cleanup := setupOwnerTest(t, nodefs.NewOptions())
 	defer cleanup()
 
 	var stat syscall.Stat_t
@@ -61,7 +62,7 @@ func TestOwnerDefault(t *testing.T) {
 }
 
 func TestOwnerRoot(t *testing.T) {
-	wd, cleanup := setupOwnerTest(t, &fuse.FileSystemOptions{})
+	wd, cleanup := setupOwnerTest(t, &nodefs.Options{})
 	defer cleanup()
 
 	var st syscall.Stat_t
@@ -76,7 +77,7 @@ func TestOwnerRoot(t *testing.T) {
 }
 
 func TestOwnerOverride(t *testing.T) {
-	wd, cleanup := setupOwnerTest(t, &fuse.FileSystemOptions{Owner: &fuse.Owner{42, 43}})
+	wd, cleanup := setupOwnerTest(t, &nodefs.Options{Owner: &fuse.Owner{42, 43}})
 	defer cleanup()
 
 	var stat syscall.Stat_t

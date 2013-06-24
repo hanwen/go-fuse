@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
@@ -32,14 +33,14 @@ func (fs *NotifyFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fus
 	return nil, fuse.ENOENT
 }
 
-func (fs *NotifyFs) Open(name string, f uint32, context *fuse.Context) (fuse.File, fuse.Status) {
-	return fuse.NewDataFile([]byte{42}), fuse.OK
+func (fs *NotifyFs) Open(name string, f uint32, context *fuse.Context) (nodefs.File, fuse.Status) {
+	return nodefs.NewDataFile([]byte{42}), fuse.OK
 }
 
 type NotifyTest struct {
 	fs        *NotifyFs
 	pathfs    *pathfs.PathNodeFs
-	connector *fuse.FileSystemConnector
+	connector *nodefs.FileSystemConnector
 	dir       string
 	state     *fuse.MountState
 }
@@ -53,14 +54,14 @@ func NewNotifyTest(t *testing.T) *NotifyTest {
 		t.Fatalf("TempDir failed: %v", err)
 	}
 	entryTtl := 100 * time.Millisecond
-	opts := &fuse.FileSystemOptions{
+	opts := &nodefs.Options{
 		EntryTimeout:    entryTtl,
 		AttrTimeout:     entryTtl,
 		NegativeTimeout: entryTtl,
 	}
 
 	me.pathfs = pathfs.NewPathNodeFs(me.fs, nil)
-	me.state, me.connector, err = fuse.MountNodeFileSystem(me.dir, me.pathfs, opts)
+	me.state, me.connector, err = nodefs.MountFileSystem(me.dir, me.pathfs, opts)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}

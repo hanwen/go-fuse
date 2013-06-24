@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 )
-
 
 // NewReadonlyFileSystem returns a wrapper that only exposes read-only
 // operations.
@@ -68,12 +68,12 @@ func (fs *readonlyFileSystem) Truncate(name string, offset uint64, context *fuse
 	return fuse.EPERM
 }
 
-func (fs *readonlyFileSystem) Open(name string, flags uint32, context *fuse.Context) (file fuse.File, code fuse.Status) {
+func (fs *readonlyFileSystem) Open(name string, flags uint32, context *fuse.Context) (file nodefs.File, code fuse.Status) {
 	if flags&fuse.O_ANYWRITE != 0 {
 		return nil, fuse.EPERM
 	}
 	file, code = fs.FileSystem.Open(name, flags, context)
-	return fuse.NewReadOnlyFile(file), code
+	return nodefs.NewReadOnlyFile(file), code
 }
 
 func (fs *readonlyFileSystem) OpenDir(name string, context *fuse.Context) (stream []fuse.DirEntry, status fuse.Status) {
@@ -96,7 +96,7 @@ func (fs *readonlyFileSystem) Access(name string, mode uint32, context *fuse.Con
 	return fs.FileSystem.Access(name, mode, context)
 }
 
-func (fs *readonlyFileSystem) Create(name string, flags uint32, mode uint32, context *fuse.Context) (file fuse.File, code fuse.Status) {
+func (fs *readonlyFileSystem) Create(name string, flags uint32, mode uint32, context *fuse.Context) (file nodefs.File, code fuse.Status) {
 	return nil, fuse.EPERM
 }
 

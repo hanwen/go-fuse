@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
@@ -19,7 +20,7 @@ func setupMzfs(t *testing.T) (mountPoint string, cleanup func()) {
 	fs := NewMultiZipFs()
 	mountPoint, _ = ioutil.TempDir("", "")
 	nfs := pathfs.NewPathNodeFs(fs, nil)
-	state, _, err := fuse.MountNodeFileSystem(mountPoint, nfs, &fuse.FileSystemOptions{
+	state, _, err := nodefs.MountFileSystem(mountPoint, nfs, &nodefs.Options{
 		EntryTimeout:    testTtl,
 		AttrTimeout:     testTtl,
 		NegativeTimeout: 0.0,

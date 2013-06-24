@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
@@ -19,7 +20,7 @@ func TestMountOnExisting(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Mkdir failed: %v", err)
 	}
-	nfs := fuse.NewDefaultNodeFileSystem()
+	nfs := nodefs.NewDefaultFileSystem()
 	code := ts.connector.Mount(ts.rootNode(), "mnt", nfs, nil)
 	if code != fuse.EBUSY {
 		t.Fatal("expect EBUSY:", code)

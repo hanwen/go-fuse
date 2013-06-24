@@ -1,11 +1,12 @@
-package fuse
+package nodefs
 
 import (
 	"log"
 	"sync"
+
+	"github.com/hanwen/go-fuse/fuse"
 )
 
-var _ = log.Println
 
 // The inode reflects the kernel's idea of the inode.  Inodes may be
 // created automatically when the kernel does lookups inode, or by
@@ -21,7 +22,7 @@ type Inode struct {
 	openFilesMutex sync.Mutex
 	openFiles      []*openedFile
 
-	fsInode FsNode
+	fsInode Node
 
 	// Each inode belongs to exactly one fileSystemMount. This
 	// pointer is constant during the lifetime, except upon
@@ -36,7 +37,7 @@ type Inode struct {
 	mountPoint *fileSystemMount
 }
 
-func newInode(isDir bool, fsNode FsNode) *Inode {
+func newInode(isDir bool, fsNode Node) *Inode {
 	me := new(Inode)
 	if isDir {
 		me.children = make(map[string]*Inode, initDirSize)
@@ -52,7 +53,7 @@ func newInode(isDir bool, fsNode FsNode) *Inode {
 func (n *Inode) AnyFile() (file File) {
 	n.openFilesMutex.Lock()
 	for _, f := range n.openFiles {
-		if file == nil || f.WithFlags.OpenFlags&O_ANYWRITE != 0 {
+		if file == nil || f.WithFlags.OpenFlags&fuse.O_ANYWRITE != 0 {
 			file = f.WithFlags.File
 		}
 	}
@@ -87,7 +88,7 @@ func (n *Inode) FsChildren() (out map[string]*Inode) {
 	return out
 }
 
-func (n *Inode) FsNode() FsNode {
+func (n *Inode) Node() Node {
 	return n.fsInode
 }
 
@@ -108,7 +109,7 @@ func (n *Inode) IsDir() bool {
 	return n.children != nil
 }
 
-func (n *Inode) New(isDir bool, fsi FsNode) *Inode {
+func (n *Inode) New(isDir bool, fsi Node) *Inode {
 	ch := newInode(isDir, fsi)
 	ch.mount = n.mount
 	n.generation = ch.mount.connector.nextGeneration()
@@ -163,7 +164,7 @@ func (n *Inode) rmChild(name string) (ch *Inode) {
 }
 
 // Can only be called on untouched inodes.
-func (n *Inode) mountFs(fs NodeFileSystem, opts *FileSystemOptions) {
+func (n *Inode) mountFs(fs FileSystem, opts *Options) {
 	n.mountPoint = &fileSystemMount{
 		fs:         fs,
 		openFiles:  newHandleMap(false),
@@ -192,13 +193,13 @@ func (n *Inode) canUnmount() bool {
 	return ok
 }
 
-func (n *Inode) getMountDirEntries() (out []DirEntry) {
+func (n *Inode) getMountDirEntries() (out []fuse.DirEntry) {
 	n.mount.treeLock.RLock()
 	for k, v := range n.children {
 		if v.mountPoint != nil {
-			out = append(out, DirEntry{
+			out = append(out, fuse.DirEntry{
 				Name: k,
-				Mode: S_IFDIR,
+				Mode: fuse.S_IFDIR,
 			})
 		}
 	}

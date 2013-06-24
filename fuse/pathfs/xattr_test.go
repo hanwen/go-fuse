@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 )
 
 var _ = log.Print
@@ -29,11 +30,11 @@ type XAttrTestFs struct {
 
 func NewXAttrFs(nm string, m map[string][]byte) *XAttrTestFs {
 	x := &XAttrTestFs{
-		filename: nm,
-		attrs: make(map[string][]byte, len(m)),
+		filename:   nm,
+		attrs:      make(map[string][]byte, len(m)),
 		FileSystem: NewDefaultFileSystem(),
 	}
-	
+
 	for k, v := range m {
 		x.attrs[k] = v
 	}
@@ -114,7 +115,7 @@ func xattrTestCase(t *testing.T, nm string) (mountPoint string, cleanup func()) 
 	}
 
 	nfs := NewPathNodeFs(xfs, nil)
-	state, _, err := fuse.MountNodeFileSystem(mountPoint, nfs, nil)
+	state, _, err := nodefs.MountFileSystem(mountPoint, nfs, nil)
 	if err != nil {
 		t.Fatalf("TempDir failed: %v", err)
 	}

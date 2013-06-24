@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 )
 
 type lockingFileSystem struct {
@@ -29,7 +30,7 @@ func (fs *lockingFileSystem) String() string {
 	return fs.FS.String()
 }
 
-func (fs *lockingFileSystem) StatFs(name string) *fuse.StatfsOut {
+func (fs *lockingFileSystem) StatFs(name string) *nodefs.StatfsOut {
 	defer fs.locked()()
 	return fs.FS.StatFs(name)
 }
@@ -99,7 +100,7 @@ func (fs *lockingFileSystem) Truncate(name string, offset uint64, context *fuse.
 	return fs.FS.Truncate(name, offset, context)
 }
 
-func (fs *lockingFileSystem) Open(name string, flags uint32, context *fuse.Context) (file fuse.File, code fuse.Status) {
+func (fs *lockingFileSystem) Open(name string, flags uint32, context *fuse.Context) (file nodefs.File, code fuse.Status) {
 	return fs.FS.Open(name, flags, context)
 }
 
@@ -123,7 +124,7 @@ func (fs *lockingFileSystem) Access(name string, mode uint32, context *fuse.Cont
 	return fs.FS.Access(name, mode, context)
 }
 
-func (fs *lockingFileSystem) Create(name string, flags uint32, mode uint32, context *fuse.Context) (file fuse.File, code fuse.Status) {
+func (fs *lockingFileSystem) Create(name string, flags uint32, mode uint32, context *fuse.Context) (file nodefs.File, code fuse.Status) {
 	defer fs.locked()()
 	return fs.FS.Create(name, flags, mode, context)
 }

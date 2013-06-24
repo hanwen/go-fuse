@@ -3,8 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/zipfs"
 	"io"
 	"log"
 	"os"
@@ -13,9 +11,10 @@ import (
 	"runtime/pprof"
 	"strings"
 	"time"
-)
 
-var _ = log.Printf
+	"github.com/hanwen/go-fuse/fuse/nodefs"
+	"github.com/hanwen/go-fuse/zipfs"
+)
 
 func main() {
 	// Scans the arg list and sets up flags
@@ -45,18 +44,18 @@ func main() {
 		}
 	}
 
-	var fs fuse.NodeFileSystem
+	var fs nodefs.FileSystem
 	fs, err = zipfs.NewArchiveFileSystem(flag.Arg(1))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "NewArchiveFileSystem failed: %v\n", err)
 		os.Exit(1)
 	}
 
-	opts := &fuse.FileSystemOptions{
+	opts := &nodefs.Options{
 		AttrTimeout:  time.Duration(*ttl * float64(time.Second)),
 		EntryTimeout: time.Duration(*ttl * float64(time.Second)),
 	}
-	state, _, err := fuse.MountNodeFileSystem(flag.Arg(0), fs, opts)
+	state, _, err := nodefs.MountFileSystem(flag.Arg(0), fs, opts)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)

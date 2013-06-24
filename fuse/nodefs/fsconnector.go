@@ -1,4 +1,4 @@
-package fuse
+package nodefs
 
 // This file contains the internal logic of the
 // FileSystemConnector. The functions for satisfying the raw interface
@@ -13,6 +13,7 @@ import (
 	"unsafe"
 
 	"github.com/hanwen/go-fuse/raw"
+	"github.com/hanwen/go-fuse/fuse"
 )
 
 // Tests should set to true.
@@ -35,9 +36,9 @@ type FileSystemConnector struct {
 	debug bool
 
 	// Callbacks for talking back to the kernel.
-	fsInit RawFsInit
+	fsInit fuse.RawFsInit
 
-	nodeFs NodeFileSystem
+	nodeFs FileSystem
 
 	// Translate between uint64 handles and *Inode.
 	inodeMap handleMap
@@ -46,19 +47,19 @@ type FileSystemConnector struct {
 	rootNode *Inode
 }
 
-func NewFileSystemOptions() *FileSystemOptions {
-	return &FileSystemOptions{
+func NewOptions() *Options {
+	return &Options{
 		NegativeTimeout: 0,
 		AttrTimeout:     time.Second,
 		EntryTimeout:    time.Second,
-		Owner:           CurrentOwner(),
+		Owner:           fuse.CurrentOwner(),
 	}
 }
 
-func NewFileSystemConnector(nodeFs NodeFileSystem, opts *FileSystemOptions) (c *FileSystemConnector) {
+func NewFileSystemConnector(nodeFs FileSystem, opts *Options) (c *FileSystemConnector) {
 	c = new(FileSystemConnector)
 	if opts == nil {
-		opts = NewFileSystemOptions()
+		opts = NewOptions()
 	}
 	c.nodeFs = nodeFs
 	c.inodeMap = newHandleMap(opts.PortableInodes)
@@ -95,9 +96,9 @@ func (c *FileSystemConnector) verify() {
 	root.verify(c.rootNode.mountPoint)
 }
 
-func (c *rawBridge) childLookup(out *raw.EntryOut, fsi FsNode) {
+func (c *rawBridge) childLookup(out *raw.EntryOut, fsi Node) {
 	n := fsi.Inode()
-	fsi.GetAttr((*Attr)(&out.Attr), nil, nil)
+	fsi.GetAttr((*fuse.Attr)(&out.Attr), nil, nil)
 	n.mount.fillEntry(out)
 	out.Ino = c.fsConn().lookupUpdate(n)
 	out.NodeId = out.Ino
@@ -167,7 +168,7 @@ func (c *FileSystemConnector) recursiveConsiderDropInode(n *Inode) (drop bool) {
 		ch.fsInode.OnForget()
 	}
 
-	if len(n.children) > 0 || !n.FsNode().Deletable() {
+	if len(n.children) > 0 || !n.Node().Deletable() {
 		return false
 	}
 	if n == c.rootNode || n.mountPoint != nil {
@@ -228,7 +229,7 @@ func (c *FileSystemConnector) LookupNode(parent *Inode, path string) *Inode {
 	}
 	components := strings.Split(path, "/")
 	for _, r := range components {
-		var a Attr
+		var a fuse.Attr
 		child, _ := c.internalLookup(&a, parent, r, nil)
 		if child == nil {
 			return nil
@@ -242,7 +243,7 @@ func (c *FileSystemConnector) LookupNode(parent *Inode, path string) *Inode {
 
 ////////////////////////////////////////////////////////////////
 
-func (c *FileSystemConnector) MountRoot(nodeFs NodeFileSystem, opts *FileSystemOptions) {
+func (c *FileSystemConnector) MountRoot(nodeFs FileSystem, opts *Options) {
 	c.rootNode.mountFs(nodeFs, opts)
 	c.rootNode.mount.connector = c
 	nodeFs.OnMount(c)
@@ -260,13 +261,13 @@ func (c *FileSystemConnector) MountRoot(nodeFs NodeFileSystem, opts *FileSystemO
 // ENOENT: the directory containing the mount point does not exist.
 //
 // EBUSY: the intended mount point already exists.
-func (c *FileSystemConnector) Mount(parent *Inode, name string, nodeFs NodeFileSystem, opts *FileSystemOptions) Status {
+func (c *FileSystemConnector) Mount(parent *Inode, name string, nodeFs FileSystem, opts *Options) fuse.Status {
 	defer c.verify()
 	parent.mount.treeLock.Lock()
 	defer parent.mount.treeLock.Unlock()
 	node := parent.children[name]
 	if node != nil {
-		return EBUSY
+		return fuse.EBUSY
 	}
 
 	node = newInode(true, nodeFs.Root())
@@ -284,7 +285,7 @@ func (c *FileSystemConnector) Mount(parent *Inode, name string, nodeFs NodeFileS
 			"parent", c.inodeMap.Handle(&parent.handled))
 	}
 	nodeFs.OnMount(c)
-	return OK
+	return fuse.OK
 }
 
 // Unmount() tries to unmount the given inode.
@@ -294,11 +295,11 @@ func (c *FileSystemConnector) Mount(parent *Inode, name string, nodeFs NodeFileS
 // EINVAL: path does not exist, or is not a mount point.
 //
 // EBUSY: there are open files, or submounts below this node.
-func (c *FileSystemConnector) Unmount(node *Inode) Status {
+func (c *FileSystemConnector) Unmount(node *Inode) fuse.Status {
 	// TODO - racy.
 	if node.mountPoint == nil {
 		log.Println("not a mountpoint:", c.inodeMap.Handle(&node.handled))
-		return EINVAL
+		return fuse.EINVAL
 	}
 
 	nodeId := c.inodeMap.Handle(&node.handled)
@@ -311,7 +312,7 @@ func (c *FileSystemConnector) Unmount(node *Inode) Status {
 	mount := node.mountPoint
 	name := node.mountPoint.mountName()
 	if mount.openFiles.Count() > 0 {
-		return EBUSY
+		return fuse.EBUSY
 	}
 
 	node.mount.treeLock.Lock()
@@ -324,7 +325,7 @@ func (c *FileSystemConnector) Unmount(node *Inode) Status {
 	}
 
 	if !node.canUnmount() {
-		return EBUSY
+		return fuse.EBUSY
 	}
 
 	delete(parentNode.children, name)
@@ -360,10 +361,10 @@ func (c *FileSystemConnector) Unmount(node *Inode) Status {
 	mount.mountInode = nil
 	node.mountPoint = nil
 
-	return OK
+	return fuse.OK
 }
 
-func (c *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) Status {
+func (c *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) fuse.Status {
 	var nId uint64
 	if node == c.rootNode {
 		nId = raw.FUSE_ROOT_ID
@@ -372,7 +373,7 @@ func (c *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) S
 	}
 
 	if nId == 0 {
-		return OK
+		return fuse.OK
 	}
 	out := raw.NotifyInvalInodeOut{
 		Length: length,
@@ -382,7 +383,7 @@ func (c *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) S
 	return c.fsInit.InodeNotify(&out)
 }
 
-func (c *FileSystemConnector) EntryNotify(node *Inode, name string) Status {
+func (c *FileSystemConnector) EntryNotify(node *Inode, name string) fuse.Status {
 	var nId uint64
 	if node == c.rootNode {
 		nId = raw.FUSE_ROOT_ID
@@ -391,12 +392,12 @@ func (c *FileSystemConnector) EntryNotify(node *Inode, name string) Status {
 	}
 
 	if nId == 0 {
-		return OK
+		return fuse.OK
 	}
 	return c.fsInit.EntryNotify(nId, name)
 }
 
-func (c *FileSystemConnector) DeleteNotify(dir *Inode, child *Inode, name string) Status {
+func (c *FileSystemConnector) DeleteNotify(dir *Inode, child *Inode, name string) fuse.Status {
 	var nId uint64
 
 	if dir == c.rootNode {
@@ -406,7 +407,7 @@ func (c *FileSystemConnector) DeleteNotify(dir *Inode, child *Inode, name string
 	}
 
 	if nId == 0 {
-		return OK
+		return fuse.OK
 	}
 
 	chId := c.inodeMap.Handle(&child.handled)

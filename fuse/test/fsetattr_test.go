@@ -8,12 +8,13 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 	"github.com/hanwen/go-fuse/raw"
 )
 
 type MutableDataFile struct {
-	fuse.File
+	nodefs.File
 
 	data []byte
 	fuse.Attr
@@ -111,14 +112,14 @@ func (fs *FSetAttrFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, f
 	return nil, fuse.ENOENT
 }
 
-func (fs *FSetAttrFs) Open(name string, flags uint32, context *fuse.Context) (fuse.File, fuse.Status) {
+func (fs *FSetAttrFs) Open(name string, flags uint32, context *fuse.Context) (nodefs.File, fuse.Status) {
 	if name == "file" {
 		return fs.file, fuse.OK
 	}
 	return nil, fuse.ENOENT
 }
 
-func (fs *FSetAttrFs) Create(name string, flags uint32, mode uint32, context *fuse.Context) (fuse.File, fuse.Status) {
+func (fs *FSetAttrFs) Create(name string, flags uint32, mode uint32, context *fuse.Context) (nodefs.File, fuse.Status) {
 	if name == "file" {
 		f := NewFile()
 		fs.file = f
@@ -129,7 +130,7 @@ func (fs *FSetAttrFs) Create(name string, flags uint32, mode uint32, context *fu
 }
 
 func NewFile() *MutableDataFile {
-	return &MutableDataFile{File: fuse.NewDefaultFile()}
+	return &MutableDataFile{File: nodefs.NewDefaultFile()}
 }
 
 func setupFAttrTest(t *testing.T, fs pathfs.FileSystem) (dir string, clean func(), sync func()) {
@@ -138,7 +139,7 @@ func setupFAttrTest(t *testing.T, fs pathfs.FileSystem) (dir string, clean func(
 		t.Fatalf("TempDir failed: %v", err)
 	}
 	nfs := pathfs.NewPathNodeFs(fs, nil)
-	state, _, err := fuse.MountNodeFileSystem(dir, nfs, nil)
+	state, _, err := nodefs.MountFileSystem(dir, nfs, nil)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}

@@ -5,14 +5,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/hanwen/go-fuse/fuse"
-	"log"
 	"os"
-	"runtime"
-)
 
-var _ = runtime.GOMAXPROCS
-var _ = log.Print
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
+)
 
 func main() {
 	// Scans the arg list and sets up flags
@@ -26,9 +23,9 @@ func main() {
 
 	mountPoint := flag.Arg(0)
 	prefix := flag.Arg(1)
-	fs := fuse.NewMemNodeFs(prefix)
-	conn := fuse.NewFileSystemConnector(fs, nil)
-	state := fuse.NewMountState(conn)
+	fs := nodefs.NewMemNodeFs(prefix)
+	conn := nodefs.NewFileSystemConnector(fs, nil)
+	state := fuse.NewMountState(conn.RawFS())
 	state.SetDebug(*debug)
 
 	fmt.Println("Mounting")

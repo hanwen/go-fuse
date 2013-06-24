@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 )
 
 var _ = fmt.Println
@@ -27,7 +28,7 @@ type loopbackFileSystem struct {
 func NewLoopbackFileSystem(root string) FileSystem {
 	return &loopbackFileSystem{
 		FileSystem: NewDefaultFileSystem(),
-		Root: root,
+		Root:       root,
 	}
 }
 
@@ -98,12 +99,12 @@ func (fs *loopbackFileSystem) OpenDir(name string, context *fuse.Context) (strea
 	return output, fuse.OK
 }
 
-func (fs *loopbackFileSystem) Open(name string, flags uint32, context *fuse.Context) (fuseFile fuse.File, status fuse.Status) {
+func (fs *loopbackFileSystem) Open(name string, flags uint32, context *fuse.Context) (fuseFile nodefs.File, status fuse.Status) {
 	f, err := os.OpenFile(fs.GetPath(name), int(flags), 0)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
-	return fuse.NewLoopbackFile(f), fuse.OK
+	return nodefs.NewLoopbackFile(f), fuse.OK
 }
 
 func (fs *loopbackFileSystem) Chmod(path string, mode uint32, context *fuse.Context) (code fuse.Status) {
@@ -170,7 +171,7 @@ func (fs *loopbackFileSystem) Access(name string, mode uint32, context *fuse.Con
 	return fuse.ToStatus(syscall.Access(fs.GetPath(name), mode))
 }
 
-func (fs *loopbackFileSystem) Create(path string, flags uint32, mode uint32, context *fuse.Context) (fuseFile fuse.File, code fuse.Status) {
+func (fs *loopbackFileSystem) Create(path string, flags uint32, mode uint32, context *fuse.Context) (fuseFile nodefs.File, code fuse.Status) {
 	f, err := os.OpenFile(fs.GetPath(path), int(flags)|os.O_CREATE, os.FileMode(mode))
-	return fuse.NewLoopbackFile(f), fuse.ToStatus(err)
+	return nodefs.NewLoopbackFile(f), fuse.ToStatus(err)
 }

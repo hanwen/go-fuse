@@ -12,12 +12,13 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
 type knownFs struct {
 	unionFS pathfs.FileSystem
-	nodeFS *pathfs.PathNodeFs
+	nodeFS  *pathfs.PathNodeFs
 }
 
 // Creates unions for all files under a given directory,
@@ -28,7 +29,7 @@ type knownFs struct {
 type autoUnionFs struct {
 	pathfs.FileSystem
 	debug bool
-	
+
 	lock             sync.RWMutex
 	knownFileSystems map[string]knownFs
 	nameRootMap      map[string]string
@@ -38,12 +39,13 @@ type autoUnionFs struct {
 	options *AutoUnionFsOptions
 
 	mountState *fuse.MountState
-	connector  *fuse.FileSystemConnector
+	connector  *nodefs.FileSystemConnector
 }
 
 type AutoUnionFsOptions struct {
 	UnionFsOptions
-	fuse.FileSystemOptions
+	
+	nodefs.Options
 	pathfs.PathNodeFsOptions
 
 	// If set, run updateKnownFses() after mounting.
@@ -68,21 +70,21 @@ const (
 // FileSystemConnector
 type RootFileSystem interface {
 	SetMountState(state *fuse.MountState)
-	SetFileSystemConnector(conn *fuse.FileSystemConnector)
+	SetFileSystemConnector(conn *nodefs.FileSystemConnector)
 	pathfs.FileSystem
 }
-	
+
 func NewAutoUnionFs(directory string, options AutoUnionFsOptions) RootFileSystem {
 	if options.HideReadonly {
 		options.HiddenFiles = append(options.HiddenFiles, _READONLY)
 	}
 	a := &autoUnionFs{
 		knownFileSystems: make(map[string]knownFs),
-		nameRootMap: make(map[string]string),
-		options: &options,
-		FileSystem: pathfs.NewDefaultFileSystem(),
+		nameRootMap:      make(map[string]string),
+		options:          &options,
+		FileSystem:       pathfs.NewDefaultFileSystem(),
 	}
-	
+
 	directory, err := filepath.Abs(directory)
 	if err != nil {
 		panic("filepath.Abs returned err")
@@ -137,7 +139,7 @@ func (fs *autoUnionFs) createFs(name string, roots []string) fuse.Status {
 
 	log.Printf("Adding workspace %v for roots %v", name, ufs.String())
 	nfs := pathfs.NewPathNodeFs(ufs, &fs.options.PathNodeFsOptions)
-	code := fs.nodeFs.Mount(name, nfs, &fs.options.FileSystemOptions)
+	code := fs.nodeFs.Mount(name, nfs, &fs.options.Options)
 	if code.Ok() {
 		fs.knownFileSystems[name] = knownFs{
 			ufs,
@@ -395,7 +397,7 @@ func (fs *autoUnionFs) SetMountState(state *fuse.MountState) {
 	fs.mountState = state
 }
 
-func (fs *autoUnionFs) SetFileSystemConnector(conn *fuse.FileSystemConnector) {
+func (fs *autoUnionFs) SetFileSystemConnector(conn *nodefs.FileSystemConnector) {
 	fs.connector = conn
 }
 
@@ -419,25 +421,25 @@ func (fs *autoUnionFs) DebugData() string {
 	return msg
 }
 
-func (fs *autoUnionFs) Open(path string, flags uint32, context *fuse.Context) (fuse.File, fuse.Status) {
+func (fs *autoUnionFs) Open(path string, flags uint32, context *fuse.Context) (nodefs.File, fuse.Status) {
 	if path == filepath.Join(_STATUS, _DEBUG) {
 		if flags&fuse.O_ANYWRITE != 0 {
 			return nil, fuse.EPERM
 		}
 
-		return fuse.NewDataFile([]byte(fs.DebugData())), fuse.OK
+		return nodefs.NewDataFile([]byte(fs.DebugData())), fuse.OK
 	}
 	if path == filepath.Join(_STATUS, _VERSION) {
 		if flags&fuse.O_ANYWRITE != 0 {
 			return nil, fuse.EPERM
 		}
-		return fuse.NewDataFile([]byte(fuse.Version())), fuse.OK
+		return nodefs.NewDataFile([]byte(fuse.Version())), fuse.OK
 	}
 	if path == filepath.Join(_CONFIG, _SCAN_CONFIG) {
 		if flags&fuse.O_ANYWRITE != 0 {
 			fs.updateKnownFses()
 		}
-		return fuse.NewDevNullFile(), fuse.OK
+		return nodefs.NewDevNullFile(), fuse.OK
 	}
 	return nil, fuse.ENOENT
 }
@@ -489,6 +491,6 @@ func (fs *autoUnionFs) OpenDir(name string, context *fuse.Context) (stream []fus
 	return stream, status
 }
 
-func (fs *autoUnionFs) StatFs(name string) *fuse.StatfsOut {
-	return &fuse.StatfsOut{}
+func (fs *autoUnionFs) StatFs(name string) *nodefs.StatfsOut {
+	return &nodefs.StatfsOut{}
 }

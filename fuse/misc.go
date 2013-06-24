@@ -9,7 +9,6 @@ import (
 	"os"
 	"reflect"
 	"syscall"
-	"time"
 	"unsafe"
 )
 
@@ -59,12 +58,6 @@ func ToStatus(err error) Status {
 	}
 	log.Println("can't convert error type:", err)
 	return ENOSYS
-}
-
-func splitDuration(dt time.Duration, secs *uint64, nsecs *uint32) {
-	ns := int64(dt)
-	*nsecs = uint32(ns % 1e9)
-	*secs = uint64(ns / 1e9)
 }
 
 func ModeToType(mode uint32) uint32 {

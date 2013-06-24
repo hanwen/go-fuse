@@ -1,10 +1,12 @@
-package fuse
+package nodefs
 
 import (
 	"fmt"
 	"os"
 	"sync"
 	"syscall"
+
+	"github.com/hanwen/go-fuse/fuse"
 )
 
 var _ = fmt.Println
@@ -28,10 +30,10 @@ func (f *dataFile) String() string {
 	return fmt.Sprintf("dataFile(%x)", f.data[:l])
 }
 
-func (f *dataFile) GetAttr(out *Attr) Status {
-	out.Mode = S_IFREG | 0644
+func (f *dataFile) GetAttr(out *fuse.Attr) fuse.Status {
+	out.Mode = fuse.S_IFREG | 0644
 	out.Size = uint64(len(f.data))
-	return OK
+	return fuse.OK
 }
 
 func NewDataFile(data []byte) File {
@@ -41,13 +43,13 @@ func NewDataFile(data []byte) File {
 	return f
 }
 
-func (f *dataFile) Read(buf []byte, off int64) (res ReadResult, code Status) {
+func (f *dataFile) Read(buf []byte, off int64) (res fuse.ReadResult, code fuse.Status) {
 	end := int(off) + int(len(buf))
 	if end > len(f.data) {
 		end = len(f.data)
 	}
 
-	return &ReadResultData{f.data[off:end]}, OK
+	return &fuse.ReadResultData{f.data[off:end]}, fuse.OK
 }
 
 ////////////////
@@ -64,32 +66,32 @@ func NewDevNullFile() File {
 	}
 }
 
-func (f *devNullFile) Allocate(off uint64, size uint64, mode uint32) (code Status) {
-	return OK
+func (f *devNullFile) Allocate(off uint64, size uint64, mode uint32) (code fuse.Status) {
+	return fuse.OK
 }
 
 func (f *devNullFile) String() string {
 	return "devNullFile"
 }
 
-func (f *devNullFile) Read(buf []byte, off int64) (ReadResult, Status) {
-	return &ReadResultData{}, OK
+func (f *devNullFile) Read(buf []byte, off int64) (fuse.ReadResult, fuse.Status) {
+	return &fuse.ReadResultData{}, fuse.OK
 }
 
-func (f *devNullFile) Write(content []byte, off int64) (uint32, Status) {
-	return uint32(len(content)), OK
+func (f *devNullFile) Write(content []byte, off int64) (uint32, fuse.Status) {
+	return uint32(len(content)), fuse.OK
 }
 
-func (f *devNullFile) Flush() Status {
-	return OK
+func (f *devNullFile) Flush() fuse.Status {
+	return fuse.OK
 }
 
-func (f *devNullFile) Fsync(flags int) (code Status) {
-	return OK
+func (f *devNullFile) Fsync(flags int) (code fuse.Status) {
+	return fuse.OK
 }
 
-func (f *devNullFile) Truncate(size uint64) (code Status) {
-	return OK
+func (f *devNullFile) Truncate(size uint64) (code fuse.Status) {
+	return fuse.OK
 }
 
 ////////////////
@@ -124,22 +126,22 @@ func (f *loopbackFile) String() string {
 	return fmt.Sprintf("loopbackFile(%s)", f.File.Name())
 }
 
-func (f *loopbackFile) Read(buf []byte, off int64) (res ReadResult, code Status) {
+func (f *loopbackFile) Read(buf []byte, off int64) (res fuse.ReadResult, code fuse.Status) {
 	f.lock.Lock()
-	r := &ReadResultFd{
+	r := &fuse.ReadResultFd{
 		Fd:  f.File.Fd(),
 		Off: off,
 		Sz:  len(buf),
 	}
 	f.lock.Unlock()
-	return r, OK
+	return r, fuse.OK
 }
 
-func (f *loopbackFile) Write(data []byte, off int64) (uint32, Status) {
+func (f *loopbackFile) Write(data []byte, off int64) (uint32, fuse.Status) {
 	f.lock.Lock()
 	n, err := f.File.WriteAt(data, off)
 	f.lock.Unlock()
-	return uint32(n), ToStatus(err)
+	return uint32(n), fuse.ToStatus(err)
 }
 
 func (f *loopbackFile) Release() {
@@ -148,7 +150,7 @@ func (f *loopbackFile) Release() {
 	f.lock.Unlock()
 }
 
-func (f *loopbackFile) Flush() Status {
+func (f *loopbackFile) Flush() fuse.Status {
 	f.lock.Lock()
 
 	// Since Flush() may be called for each dup'd fd, we don't
@@ -158,55 +160,55 @@ func (f *loopbackFile) Flush() Status {
 	f.lock.Unlock()
 
 	if err != nil {
-		return ToStatus(err)
+		return fuse.ToStatus(err)
 	}
 	err = syscall.Close(newFd)
-	return ToStatus(err)
+	return fuse.ToStatus(err)
 }
 
-func (f *loopbackFile) Fsync(flags int) (code Status) {
+func (f *loopbackFile) Fsync(flags int) (code fuse.Status) {
 	f.lock.Lock()
-	r := ToStatus(syscall.Fsync(int(f.File.Fd())))
+	r := fuse.ToStatus(syscall.Fsync(int(f.File.Fd())))
 	f.lock.Unlock()
 
 	return r
 }
 
-func (f *loopbackFile) Truncate(size uint64) Status {
+func (f *loopbackFile) Truncate(size uint64) fuse.Status {
 	f.lock.Lock()
-	r := ToStatus(syscall.Ftruncate(int(f.File.Fd()), int64(size)))
+	r := fuse.ToStatus(syscall.Ftruncate(int(f.File.Fd()), int64(size)))
 	f.lock.Unlock()
 
 	return r
 }
 
-func (f *loopbackFile) Chmod(mode uint32) Status {
+func (f *loopbackFile) Chmod(mode uint32) fuse.Status {
 	f.lock.Lock()
-	r := ToStatus(f.File.Chmod(os.FileMode(mode)))
+	r := fuse.ToStatus(f.File.Chmod(os.FileMode(mode)))
 	f.lock.Unlock()
 
 	return r
 }
 
-func (f *loopbackFile) Chown(uid uint32, gid uint32) Status {
+func (f *loopbackFile) Chown(uid uint32, gid uint32) fuse.Status {
 	f.lock.Lock()
-	r := ToStatus(f.File.Chown(int(uid), int(gid)))
+	r := fuse.ToStatus(f.File.Chown(int(uid), int(gid)))
 	f.lock.Unlock()
 
 	return r
 }
 
-func (f *loopbackFile) GetAttr(a *Attr) Status {
+func (f *loopbackFile) GetAttr(a *fuse.Attr) fuse.Status {
 	st := syscall.Stat_t{}
 	f.lock.Lock()
 	err := syscall.Fstat(int(f.File.Fd()), &st)
 	f.lock.Unlock()
 	if err != nil {
-		return ToStatus(err)
+		return fuse.ToStatus(err)
 	}
 	a.FromStat(&st)
 
-	return OK
+	return fuse.OK
 }
 
 // Allocate, Utimens implemented in files_linux.go
@@ -228,26 +230,26 @@ func (f *readOnlyFile) String() string {
 	return fmt.Sprintf("readOnlyFile(%s)", f.File.String())
 }
 
-func (f *readOnlyFile) Write(data []byte, off int64) (uint32, Status) {
-	return 0, EPERM
+func (f *readOnlyFile) Write(data []byte, off int64) (uint32, fuse.Status) {
+	return 0, fuse.EPERM
 }
 
-func (f *readOnlyFile) Fsync(flag int) (code Status) {
-	return OK
+func (f *readOnlyFile) Fsync(flag int) (code fuse.Status) {
+	return fuse.OK
 }
 
-func (f *readOnlyFile) Truncate(size uint64) Status {
-	return EPERM
+func (f *readOnlyFile) Truncate(size uint64) fuse.Status {
+	return fuse.EPERM
 }
 
-func (f *readOnlyFile) Chmod(mode uint32) Status {
-	return EPERM
+func (f *readOnlyFile) Chmod(mode uint32) fuse.Status {
+	return fuse.EPERM
 }
 
-func (f *readOnlyFile) Chown(uid uint32, gid uint32) Status {
-	return EPERM
+func (f *readOnlyFile) Chown(uid uint32, gid uint32) fuse.Status {
+	return fuse.EPERM
 }
 
-func (f *readOnlyFile) Allocate(off uint64, sz uint64, mode uint32) Status {
-	return EPERM
+func (f *readOnlyFile) Allocate(off uint64, sz uint64, mode uint32) fuse.Status {
+	return fuse.EPERM
 }

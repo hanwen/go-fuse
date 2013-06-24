@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 )
 
 // NewDefaultFileSystem creates a filesystem that responds ENOSYS for
@@ -80,7 +81,7 @@ func (fs *defaultFileSystem) Truncate(name string, offset uint64, context *fuse.
 	return fuse.ENOSYS
 }
 
-func (fs *defaultFileSystem) Open(name string, flags uint32, context *fuse.Context) (file fuse.File, code fuse.Status) {
+func (fs *defaultFileSystem) Open(name string, flags uint32, context *fuse.Context) (file nodefs.File, code fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
@@ -98,7 +99,7 @@ func (fs *defaultFileSystem) Access(name string, mode uint32, context *fuse.Cont
 	return fuse.ENOSYS
 }
 
-func (fs *defaultFileSystem) Create(name string, flags uint32, mode uint32, context *fuse.Context) (file fuse.File, code fuse.Status) {
+func (fs *defaultFileSystem) Create(name string, flags uint32, mode uint32, context *fuse.Context) (file nodefs.File, code fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
@@ -110,6 +111,6 @@ func (fs *defaultFileSystem) String() string {
 	return "defaultFileSystem"
 }
 
-func (fs *defaultFileSystem) StatFs(name string) *fuse.StatfsOut {
+func (fs *defaultFileSystem) StatFs(name string) *nodefs.StatfsOut {
 	return nil
 }

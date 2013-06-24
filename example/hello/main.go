@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
@@ -36,14 +37,14 @@ func (me *HelloFs) OpenDir(name string, context *fuse.Context) (c []fuse.DirEntr
 	return nil, fuse.ENOENT
 }
 
-func (me *HelloFs) Open(name string, flags uint32, context *fuse.Context) (file fuse.File, code fuse.Status) {
+func (me *HelloFs) Open(name string, flags uint32, context *fuse.Context) (file nodefs.File, code fuse.Status) {
 	if name != "file.txt" {
 		return nil, fuse.ENOENT
 	}
 	if flags&fuse.O_ANYWRITE != 0 {
 		return nil, fuse.EPERM
 	}
-	return fuse.NewDataFile([]byte(name)), fuse.OK
+	return nodefs.NewDataFile([]byte(name)), fuse.OK
 }
 
 func main() {
@@ -52,7 +53,7 @@ func main() {
 		log.Fatal("Usage:\n  hello MOUNTPOINT")
 	}
 	nfs := pathfs.NewPathNodeFs(&HelloFs{FileSystem: pathfs.NewDefaultFileSystem()}, nil)
-	state, _, err := fuse.MountNodeFileSystem(flag.Arg(0), nfs, nil)
+	state, _, err := nodefs.MountFileSystem(flag.Arg(0), nfs, nil)
 	if err != nil {
 		log.Fatal("Mount fail: %v\n", err)
 	}

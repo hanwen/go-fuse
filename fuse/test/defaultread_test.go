@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
-
 
 type DefaultReadFS struct {
 	pathfs.FileSystem
@@ -26,8 +26,8 @@ func (fs *DefaultReadFS) GetAttr(name string, context *fuse.Context) (*fuse.Attr
 	return nil, fuse.ENOENT
 }
 
-func (fs *DefaultReadFS) Open(name string, f uint32, context *fuse.Context) (fuse.File, fuse.Status) {
-	return fuse.NewDefaultFile(), fuse.OK
+func (fs *DefaultReadFS) Open(name string, f uint32, context *fuse.Context) (nodefs.File, fuse.Status) {
+	return nodefs.NewDefaultFile(), fuse.OK
 }
 
 func defaultReadTest(t *testing.T) (root string, cleanup func()) {
@@ -41,7 +41,7 @@ func defaultReadTest(t *testing.T) (root string, cleanup func()) {
 		t.Fatalf("TempDir failed: %v", err)
 	}
 	pathfs := pathfs.NewPathNodeFs(fs, nil)
-	state, _, err := fuse.MountNodeFileSystem(dir, pathfs, nil)
+	state, _, err := nodefs.MountFileSystem(dir, pathfs, nil)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}

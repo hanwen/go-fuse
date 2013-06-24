@@ -1,4 +1,4 @@
-package fuse
+package nodefs
 
 import (
 	"io/ioutil"
@@ -6,6 +6,8 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/hanwen/go-fuse/fuse"
 )
 
 var _ = log.Println
@@ -24,17 +26,17 @@ func setupMemNodeTest(t *testing.T) (wd string, fs *MemNodeFs, clean func()) {
 	os.Mkdir(mnt, 0700)
 
 	connector := NewFileSystemConnector(fs,
-		&FileSystemOptions{
+		&Options{
 			EntryTimeout:    testTtl,
 			AttrTimeout:     testTtl,
 			NegativeTimeout: 0.0,
 		})
-	connector.SetDebug(VerboseTest())
-	state := NewMountState(connector.RawFS())
+	connector.SetDebug(fuse.VerboseTest())
+	state := fuse.NewMountState(connector.RawFS())
 	state.Mount(mnt, nil)
 
 	//me.state.SetDebug(false)
-	state.SetDebug(VerboseTest())
+	state.SetDebug(fuse.VerboseTest())
 
 	// Unthreaded, but in background.
 	go state.Loop()

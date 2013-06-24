@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 	"github.com/hanwen/go-fuse/unionfs"
 )
@@ -43,7 +44,7 @@ func main() {
 	}
 	options := unionfs.AutoUnionFsOptions{
 		UnionFsOptions: ufsOptions,
-		FileSystemOptions: fuse.FileSystemOptions{
+		Options: nodefs.Options{
 			EntryTimeout:    time.Second,
 			AttrTimeout:     time.Second,
 			NegativeTimeout: time.Second,
@@ -55,13 +56,13 @@ func main() {
 		},
 		HideReadonly: *hide_readonly_link,
 	}
-	fsOpts := fuse.FileSystemOptions{
+	fsOpts := nodefs.Options{
 		PortableInodes: *portableInodes,
 	}
 	fmt.Printf("AutoUnionFs - Go-FUSE Version %v.\n", fuse.Version())
 	gofs := unionfs.NewAutoUnionFs(flag.Arg(1), options)
 	pathfs := pathfs.NewPathNodeFs(gofs, nil)
-	state, conn, err := fuse.MountNodeFileSystem(flag.Arg(0), pathfs, &fsOpts)
+	state, conn, err := nodefs.MountFileSystem(flag.Arg(0), pathfs, &fsOpts)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)

@@ -189,7 +189,7 @@ func (fs *lockingRawFileSystem) Init(params *RawFsInit) {
 	fs.RawFS.Init(params)
 }
 
-func (fs *lockingRawFileSystem) StatFs(out *StatfsOut, context *Context) (code Status) {
+func (fs *lockingRawFileSystem) StatFs(out *raw.StatfsOut, context *Context) (code Status) {
 	defer fs.locked()()
 	return fs.RawFS.StatFs(out, context)
 }
