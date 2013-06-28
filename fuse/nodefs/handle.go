@@ -288,7 +288,7 @@ func (m *int64HandleMap) Register(obj *handled) (handle uint64) {
 		obj.handle = handle
 		m.handles[handle] = obj
 	} else {
-		handle = m.Handle(obj)
+		handle = m.handle(obj)
 	}
 	obj.count++
 	m.mutex.Unlock()
@@ -296,7 +296,7 @@ func (m *int64HandleMap) Register(obj *handled) (handle uint64) {
 	return handle
 }
 
-func (m *int64HandleMap) Handle(obj *handled) (handle uint64) {
+func (m *int64HandleMap) handle(obj *handled) (handle uint64) {
 	if obj.count == 0 {
 		return 0
 	}
@@ -306,6 +306,13 @@ func (m *int64HandleMap) Handle(obj *handled) (handle uint64) {
 	handle |= uint64(obj.check) << (48 - 3)
 	return handle
 }
+
+func (m *int64HandleMap) Handle(obj *handled) (handle uint64) {
+	m.mutex.Lock()
+	m.mutex.Unlock()
+	return m.handle(obj)
+}
+
 
 func (m *int64HandleMap) Forget(handle uint64, count int) (forgotten bool, obj *handled) {
 	defer m.verify()

@@ -49,24 +49,6 @@ type Server struct {
 	loops     sync.WaitGroup
 }
 
-// Use this method to make synchronization between accessing a
-// filesystem object through the operating system, and accessing a
-// filesystem internally, so thread-sanitizer does not get confused.
-//
-//   fs := SomeFSObj{ReadCalled: false}
-//   ms := NewServer(fs)
-//   ms.Mount("/mnt", nil)
-//   ..
-//   ioutil.ReadFile("/mnt/file")
-//
-//   mountstate.ThreadSanitizerSync()
-//   if fs.ReadCalled { ...  // no race condition here.
-//
-func (ms *Server) ThreadSanitizerSync() {
-	ms.reqMu.Lock()
-	ms.reqMu.Unlock()
-}
-
 func (ms *Server) SetDebug(dbg bool) {
 	ms.debug = dbg
 }

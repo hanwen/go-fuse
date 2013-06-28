@@ -15,7 +15,7 @@ done
 
 for d in fuse zipfs unionfs
 do
-  (cd $d && go test go-fuse/$d )
+  (cd $d && go test go-fuse/$d && go test -race go-fuse/$d)
 done
 
 make -C benchmark
