@@ -133,7 +133,7 @@ func NewFile() *MutableDataFile {
 	return &MutableDataFile{File: nodefs.NewDefaultFile()}
 }
 
-func setupFAttrTest(t *testing.T, fs pathfs.FileSystem) (dir string, clean func(), sync func()) {
+func setupFAttrTest(t *testing.T, fs pathfs.FileSystem) (dir string, clean func()) {
 	dir, err := ioutil.TempDir("", "go-fuse-fsetattr_test")
 	if err != nil {
 		t.Fatalf("TempDir failed: %v", err)
@@ -157,8 +157,6 @@ func setupFAttrTest(t *testing.T, fs pathfs.FileSystem) (dir string, clean func(
 			if state.Unmount() == nil {
 				os.RemoveAll(dir)
 			}
-		}, func() {
-			state.ThreadSanitizerSync()
 		}
 }
 
@@ -166,7 +164,7 @@ func TestDataReadLarge(t *testing.T) {
 	fs := &FSetAttrFs{
 		FileSystem: pathfs.NewDefaultFileSystem(),
 	}
-	dir, clean, _ := setupFAttrTest(t, fs)
+	dir, clean := setupFAttrTest(t, fs)
 	defer clean()
 
 	content := RandomData(385 * 1023)
@@ -184,10 +182,10 @@ func TestDataReadLarge(t *testing.T) {
 }
 
 func TestFSetAttr(t *testing.T) {
-	fs := &FSetAttrFs{
+	fs := pathfs.NewLockingFileSystem(&FSetAttrFs{
 		FileSystem: pathfs.NewDefaultFileSystem(),
-	}
-	dir, clean, sync := setupFAttrTest(t, fs)
+	})
+	dir, clean := setupFAttrTest(t, fs)
 	defer clean()
 
 	fn := dir + "/file"
@@ -212,28 +210,32 @@ func TestFSetAttr(t *testing.T) {
 		t.Error("truncate retval", os.NewSyscallError("Ftruncate", code))
 	}
 
-	sync()
-	if len(fs.file.data) != 3 {
-		t.Error("truncate")
+	a, status := fs.GetAttr("file", nil)
+	if !status.Ok() || a.Size != 3 {
+		t.Errorf("truncate: size %d, status %v", a.Size, status)
 	}
 
 	err = f.Chmod(024)
 	if err != nil {
 		t.Fatalf("Chmod failed: %v", err)
 	}
-	sync()
-	if fs.file.Attr.Mode&07777 != 024 {
-		t.Error("chmod")
+
+	a, status = fs.GetAttr("file", nil)
+	if !status.Ok() || a.Mode&07777 != 024 {
+		t.Errorf("chmod: %o, status %v", a.Mode & 0777, status)
 	}
 
 	err = os.Chtimes(fn, time.Unix(0, 100e3), time.Unix(0, 101e3))
 	if err != nil {
 		t.Fatalf("Chtimes failed: %v", err)
 	}
-	sync()
-	if fs.file.Attr.Atimensec != 100e3 || fs.file.Attr.Mtimensec != 101e3 {
+
+	a, status = fs.GetAttr("file", nil)
+	if !status.Ok() {
+		t.Errorf("GetAttr: %v", status)
+	} else if a.Atimensec != 100e3 || a.Mtimensec != 101e3 {
 		t.Errorf("Utimens: atime %d != 100e3 mtime %d != 101e3",
-			fs.file.Attr.Atimensec, fs.file.Attr.Mtimensec)
+			a.Atimensec, a.Mtimensec)
 	}
 
 	newFi, err := f.Stat()
