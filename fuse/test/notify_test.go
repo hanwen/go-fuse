@@ -2,7 +2,6 @@ package test
 
 import (
 	"io/ioutil"
-	"log"
 	"os"
 	"testing"
 	"time"
@@ -12,20 +11,47 @@ import (
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
-var _ = log.Println
-
 type NotifyFs struct {
 	pathfs.FileSystem
 	size  uint64
 	exist bool
+
+	sizeChan  chan uint64
+	existChan chan bool
+}
+
+func newNotifyFs() *NotifyFs {
+	return &NotifyFs{
+		FileSystem: pathfs.NewDefaultFileSystem(),
+		sizeChan:   make(chan uint64, 1),
+		existChan:  make(chan bool, 1),
+	}
+}
+
+func (fs *NotifyFs) Exists() bool {
+	select {
+	case s := <-fs.existChan:
+		fs.exist = s
+	default:
+	}
+	return fs.exist
+}
+
+func (fs *NotifyFs) Size() uint64 {
+	select {
+	case s := <-fs.sizeChan:
+		fs.size = s
+	default:
+	}
+	return fs.size
 }
 
 func (fs *NotifyFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	if name == "" {
 		return &fuse.Attr{Mode: fuse.S_IFDIR | 0755}, fuse.OK
 	}
-	if name == "file" || (name == "dir/file" && fs.exist) {
-		return &fuse.Attr{Mode: fuse.S_IFREG | 0644, Size: fs.size}, fuse.OK
+	if name == "file" || (name == "dir/file" && fs.Exists()) {
+		return &fuse.Attr{Mode: fuse.S_IFREG | 0644, Size: fs.Size()}, fuse.OK
 	}
 	if name == "dir" {
 		return &fuse.Attr{Mode: fuse.S_IFDIR | 0755}, fuse.OK
@@ -47,7 +73,7 @@ type NotifyTest struct {
 
 func NewNotifyTest(t *testing.T) *NotifyTest {
 	me := &NotifyTest{}
-	me.fs = &NotifyFs{FileSystem: pathfs.NewDefaultFileSystem()}
+	me.fs = newNotifyFs()
 	var err error
 	me.dir, err = ioutil.TempDir("", "go-fuse-notify_test")
 	if err != nil {
@@ -85,8 +111,7 @@ func TestInodeNotify(t *testing.T) {
 	fs := test.fs
 	dir := test.dir
 
-	fs.size = 42
-	test.state.ThreadSanitizerSync()
+	fs.sizeChan <- 42
 
 	fi, err := os.Lstat(dir + "/file")
 	if err != nil {
@@ -96,8 +121,7 @@ func TestInodeNotify(t *testing.T) {
 		t.Error(fi)
 	}
 
-	test.state.ThreadSanitizerSync()
-	fs.size = 666
+	fs.sizeChan <- 666
 
 	fi, err = os.Lstat(dir + "/file")
 	if err != nil {
@@ -126,9 +150,8 @@ func TestEntryNotify(t *testing.T) {
 	defer test.Clean()
 
 	dir := test.dir
-	test.fs.size = 42
-	test.fs.exist = false
-	test.state.ThreadSanitizerSync()
+	test.fs.sizeChan <- 42
+	test.fs.existChan <- false
 
 	fn := dir + "/dir/file"
 	fi, _ := os.Lstat(fn)
@@ -136,8 +159,7 @@ func TestEntryNotify(t *testing.T) {
 		t.Errorf("File should not exist, %#v", fi)
 	}
 
-	test.fs.exist = true
-	test.state.ThreadSanitizerSync()
+	test.fs.existChan <- true
 	fi, _ = os.Lstat(fn)
 	if fi != nil {
 		t.Errorf("negative entry should have been cached: %#v", fi)
