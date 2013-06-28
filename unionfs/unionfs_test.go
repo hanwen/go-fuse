@@ -1081,6 +1081,47 @@ func TestUnionFsDropCache(t *testing.T) {
 	}
 }
 
+type disappearingFS struct {
+	pathfs.FileSystem
+	
+	normal pathfs.FileSystem
+	nop pathfs.FileSystem
+	visible bool
+	visibleChan chan bool 
+}
+
+func (d *disappearingFS) fs() pathfs.FileSystem {
+	select {
+	case v := <-d.visibleChan:
+		d.visible = v
+		if v {
+			d.FileSystem = d.normal
+		} else {
+			d.FileSystem = d.nop
+		}
+	default:
+	}
+	return d.FileSystem
+}
+
+func (d *disappearingFS) GetAttr(name string, context *fuse.Context) (a *fuse.Attr, s fuse.Status) {
+	return d.fs().GetAttr(name, context)
+}
+
+func (d *disappearingFS) OpenDir(name string, context *fuse.Context) ([]fuse.DirEntry, fuse.Status) {
+	return d.fs().OpenDir(name, context)
+}
+	
+func newDisappearingFS(fs, nop pathfs.FileSystem) *disappearingFS {
+	return &disappearingFS{
+		visibleChan: make(chan bool, 1),
+		visible: true,
+		normal: fs,
+		nop: nop,
+		FileSystem: fs, 
+	}
+}
+
 func TestUnionFsDisappearing(t *testing.T) {
 	// This init is like setupUfs, but we want access to the
 	// writable Fs.
@@ -1101,9 +1142,10 @@ func TestUnionFsDisappearing(t *testing.T) {
 		t.Fatalf("Mkdir failed: %v", err)
 	}
 
-	wrFs := pathfs.NewLoopbackFileSystem(wd + "/rw")
+	wrFs := newDisappearingFS(pathfs.NewLoopbackFileSystem(wd + "/rw"),
+		pathfs.NewLoopbackFileSystem("/dev/null"))
 	var fses []pathfs.FileSystem
-	fses = append(fses, wrFs)
+	fses = append(fses, pathfs.NewLockingFileSystem(wrFs))
 	fses = append(fses, pathfs.NewLoopbackFileSystem(wd+"/ro"))
 	ufs := NewUnionFs(fses, testOpts)
 
@@ -1135,11 +1177,7 @@ func TestUnionFsDisappearing(t *testing.T) {
 		t.Fatalf("Remove failed: %v", err)
 	}
 
-	state.ThreadSanitizerSync()
-	// TODO - this is racy. Instead, have a custom FS that will
-	// switch based on input from a channel
-	fses[0] = pathfs.NewLoopbackFileSystem("/dev/null")
-	state.ThreadSanitizerSync()
+	wrFs.visibleChan <- false
 	time.Sleep((3 * entryTtl) / 2)
 
 	_, err = ioutil.ReadDir(wd + "/mnt")
@@ -1155,8 +1193,7 @@ func TestUnionFsDisappearing(t *testing.T) {
 	log.Println("expected write failure:", err)
 
 	// Restore, and wait for caches to catch up.
-	fses[0] = pathfs.NewLoopbackFileSystem(wd + "/rw")
-	state.ThreadSanitizerSync()
+	wrFs.visibleChan <- true
 	time.Sleep((3 * entryTtl) / 2)
 
 	_, err = ioutil.ReadDir(wd + "/mnt")
