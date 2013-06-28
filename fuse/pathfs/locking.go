@@ -15,8 +15,6 @@ type lockingFileSystem struct {
 	lock sync.Mutex
 }
 
-var _ = ((FileSystem)((*lockingFileSystem)(nil)))
-
 // NewLockingFileSystem is a wrapper that makes a FileSystem
 // threadsafe by serializing each operation.
 func NewLockingFileSystem(pfs FileSystem) FileSystem {
@@ -101,7 +99,9 @@ func (fs *lockingFileSystem) Truncate(name string, offset uint64, context *fuse.
 }
 
 func (fs *lockingFileSystem) Open(name string, flags uint32, context *fuse.Context) (file nodefs.File, code fuse.Status) {
-	return fs.FS.Open(name, flags, context)
+	file, code = fs.FS.Open(name, flags, context)
+	file = nodefs.NewLockingFile(&fs.lock, file)
+	return
 }
 
 func (fs *lockingFileSystem) OpenDir(name string, context *fuse.Context) (stream []fuse.DirEntry, status fuse.Status) {
@@ -126,7 +126,10 @@ func (fs *lockingFileSystem) Access(name string, mode uint32, context *fuse.Cont
 
 func (fs *lockingFileSystem) Create(name string, flags uint32, mode uint32, context *fuse.Context) (file nodefs.File, code fuse.Status) {
 	defer fs.locked()()
-	return fs.FS.Create(name, flags, mode, context)
+	file, code = fs.FS.Create(name, flags, mode, context)
+
+	file = nodefs.NewLockingFile(&fs.lock, file)
+	return file, code
 }
 
 func (fs *lockingFileSystem) Utimens(name string, Atime *time.Time, Mtime *time.Time, context *fuse.Context) (code fuse.Status) {
