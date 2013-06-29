@@ -319,7 +319,7 @@ exit:
 	}
 }
 
-func (ms *Server) getInFlight(unique uint64) *request {
+func (ms *Server) interruptRequest(unique uint64) bool {
 	ms.reqMu.Lock()
 	defer ms.reqMu.Unlock()
 	for _, req := range ms.reqPool {
@@ -330,10 +330,14 @@ func (ms *Server) getInFlight(unique uint64) *request {
 			continue
 		}
 		if req.inHeader.Unique == unique {
-			return req
+			select {
+			case req.context.Interrupted <- true:
+			default:
+			}
+			return true
 		}
 	}
-	return nil
+	return false
 }
 
 func (ms *Server) handleRequest(req *request) {
@@ -350,19 +354,12 @@ func (ms *Server) handleRequest(req *request) {
 	}
 
 	if req.status.Ok() && (req.inHeader.Opcode == _OP_INTERRUPT) {
-		interreq := ms.getInFlight((*raw.InterruptIn)(req.inData).Unique)
-		if interreq != nil {
-			select {
-			case interreq.context.Interrupted <- true:
-			default:
-			}
-			ms.returnRequest(req)
-		} else {
+		if !ms.interruptRequest((*raw.InterruptIn)(req.inData).Unique) {
 			time.Sleep(500 * time.Millisecond)
 			req.status = Status(syscall.EAGAIN)
 			ms.write(req)
-			ms.returnRequest(req)
 		}
+		ms.returnRequest(req)
 	} else {
 		if req.status.Ok() && req.handler.Func == nil {
 			log.Printf("Unimplemented opcode %v", operationName(req.inHeader.Opcode))
