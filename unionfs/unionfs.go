@@ -232,7 +232,7 @@ func (fs *unionFS) removeDeletion(name string) {
 	}
 }
 
-func (fs *unionFS) putDeletion(name string) (code fuse.Status) {
+func (fs *unionFS) putDeletion(name string, context *fuse.Context) (code fuse.Status) {
 	code = fs.createDeletionStore()
 	if !code.Ok() {
 		return code
@@ -261,7 +261,7 @@ func (fs *unionFS) putDeletion(name string) (code fuse.Status) {
 	}
 	defer f.Release()
 	defer f.Flush()
-	n, code := f.Write([]byte(name), 0)
+	n, code := f.Write([]byte(name), 0, context)
 	if int(n) != len(name) || !code.Ok() {
 		panic(fmt.Sprintf("Error for writing %v: %v, %v (exp %v) %v", name, marker, n, len(name), code))
 	}
@@ -397,7 +397,7 @@ func (fs *unionFS) Rmdir(path string, context *fuse.Context) (code fuse.Status) 
 	}
 
 	if r.branch > 0 {
-		code = fs.putDeletion(path)
+		code = fs.putDeletion(path, context)
 		return code
 	}
 	code = fs.fileSystems[0].Rmdir(path, context)
@@ -407,7 +407,7 @@ func (fs *unionFS) Rmdir(path string, context *fuse.Context) (code fuse.Status) 
 
 	r = fs.branchCache.GetFresh(path).(branchResult)
 	if r.branch > 0 {
-		code = fs.putDeletion(path)
+		code = fs.putDeletion(path, context)
 	}
 	return code
 }
@@ -442,7 +442,7 @@ func (fs *unionFS) Mkdir(path string, mode uint32, context *fuse.Context) (code 
 	if code.Ok() {
 		// This shouldn't happen, but let's be safe.
 		for _, entry := range stream {
-			fs.putDeletion(filepath.Join(path, entry.Name))
+			fs.putDeletion(filepath.Join(path, entry.Name), context)
 		}
 	}
 
@@ -590,7 +590,7 @@ func (fs *unionFS) Unlink(name string, context *fuse.Context) (code fuse.Status)
 
 	if r.branch > 0 {
 		// It would be nice to do the putDeletion async.
-		code = fs.putDeletion(name)
+		code = fs.putDeletion(name, context)
 	}
 	return code
 }
@@ -865,7 +865,7 @@ func (fs *unionFS) renameDirectory(srcResult branchResult, srcDir string, dstDir
 
 			srcResult = fs.branchCache.GetFresh(srcName).(branchResult)
 			if srcResult.branch > 0 {
-				code = fs.putDeletion(srcName)
+				code = fs.putDeletion(srcName, context)
 			}
 		}
 	}
@@ -900,7 +900,7 @@ func (fs *unionFS) Rename(src string, dst string, context *fuse.Context) (code f
 
 		srcResult := fs.branchCache.GetFresh(src)
 		if srcResult.(branchResult).branch > 0 {
-			code = fs.putDeletion(src)
+			code = fs.putDeletion(src, context)
 		}
 	}
 	return code

@@ -26,11 +26,11 @@ func (f *defaultFile) String() string {
 	return "defaultFile"
 }
 
-func (f *defaultFile) Read(buf []byte, off int64) (fuse.ReadResult, fuse.Status) {
+func (f *defaultFile) Read(buf []byte, off int64, context *fuse.Context) (fuse.ReadResult, fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
-func (f *defaultFile) Write(data []byte, off int64) (uint32, fuse.Status) {
+func (f *defaultFile) Write(data []byte, off int64, context *fuse.Context) (uint32, fuse.Status) {
 	return 0, fuse.ENOSYS
 }
 

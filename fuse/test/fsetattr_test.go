@@ -25,7 +25,7 @@ func (f *MutableDataFile) String() string {
 	return "MutableDataFile"
 }
 
-func (f *MutableDataFile) Read(buf []byte, off int64) (fuse.ReadResult, fuse.Status) {
+func (f *MutableDataFile) Read(buf []byte, off int64, context *fuse.Context) (fuse.ReadResult, fuse.Status) {
 	end := int(off) + len(buf)
 	if end > len(f.data) {
 		end = len(f.data)
@@ -34,7 +34,7 @@ func (f *MutableDataFile) Read(buf []byte, off int64) (fuse.ReadResult, fuse.Sta
 	return &fuse.ReadResultData{Data: f.data[off:end]}, fuse.OK
 }
 
-func (f *MutableDataFile) Write(d []byte, off int64) (uint32, fuse.Status) {
+func (f *MutableDataFile) Write(d []byte, off int64, context *fuse.Context) (uint32, fuse.Status) {
 	end := int64(len(d)) + off
 	if int(end) > len(f.data) {
 		data := make([]byte, len(f.data), end)

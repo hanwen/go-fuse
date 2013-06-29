@@ -403,14 +403,14 @@ func (c *rawBridge) ListXAttr(context *fuse.Context) (data []byte, code fuse.Sta
 func (c *rawBridge) Write(context *fuse.Context, input *raw.WriteIn, data []byte) (written uint32, code fuse.Status) {
 	node := c.toInode(context.NodeId)
 	opened := node.mount.getOpenedFile(input.Fh)
-	return opened.WithFlags.File.Write(data, int64(input.Offset))
+	return opened.WithFlags.File.Write(data, int64(input.Offset), context)
 }
 
 func (c *rawBridge) Read(context *fuse.Context, input *raw.ReadIn, buf []byte) (fuse.ReadResult, fuse.Status) {
 	node := c.toInode(context.NodeId)
 	opened := node.mount.getOpenedFile(input.Fh)
 
-	return opened.WithFlags.File.Read(buf, int64(input.Offset))
+	return opened.WithFlags.File.Read(buf, int64(input.Offset), context)
 }
 
 func (c *rawBridge) StatFs(out *raw.StatfsOut, context *fuse.Context) fuse.Status {

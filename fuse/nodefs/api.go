@@ -112,8 +112,8 @@ type File interface {
 	// the inner file here.
 	InnerFile() File
 
-	Read(dest []byte, off int64) (fuse.ReadResult, fuse.Status)
-	Write(data []byte, off int64) (written uint32, code fuse.Status)
+	Read(dest []byte, off int64, context *fuse.Context) (fuse.ReadResult, fuse.Status)
+	Write(data []byte, off int64, context *fuse.Context) (written uint32, code fuse.Status)
 	Flush() fuse.Status
 	Release()
 	Fsync(flags int) (code fuse.Status)

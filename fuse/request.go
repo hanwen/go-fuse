@@ -15,6 +15,8 @@ var sizeOfOutHeader = unsafe.Sizeof(raw.OutHeader{})
 var zeroOutBuf [outputHeaderSize]byte
 
 type request struct {
+	inUse bool
+
 	inputBuf []byte
 
 	// These split up inputBuf.
@@ -70,6 +72,10 @@ func (r *request) clear() {
 	r.startTime = time.Time{}
 	r.handler = nil
 	r.readResult = nil
+	select {
+	case <-r.context.Interrupted:
+	default:
+	}
 }
 
 func (r *request) InputDebug() string {

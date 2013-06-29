@@ -48,5 +48,6 @@ type Owner raw.Owner
 // Context contains assorted per-request data
 type Context struct {
 	NodeId uint64
+	Interrupted chan bool
 	*raw.Context
 }

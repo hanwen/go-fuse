@@ -40,6 +40,7 @@ type Server struct {
 
 	reqMu               sync.Mutex
 	reqPool             []*request
+	reqFree             []*request
 	readPool            [][]byte
 	reqReaders          int
 	outstandingReadBufs int
@@ -129,7 +130,6 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		started: make(chan struct{}),
 		opts: &o,
 	}
-	
 	optStrs := opts.Options
 	if opts.AllowOther {
 		optStrs = append(optStrs, "allow_other")
@@ -201,13 +201,16 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 		ms.reqMu.Unlock()
 		return nil, OK
 	}
-	l := len(ms.reqPool)
-	if l > 0 {
-		req = ms.reqPool[l-1]
-		ms.reqPool = ms.reqPool[:l-1]
-	} else {
+	l := len(ms.reqFree)
+	if l <= 0 {
 		req = new(request)
+		req.context.Interrupted = make(chan bool, 1)
+		ms.reqPool = append(ms.reqPool, req)
+	} else {
+		req = ms.reqFree[l-1]
+		ms.reqFree = ms.reqFree[:l-1]
 	}
+	req.inUse = true
 	l = len(ms.readPool)
 	if l > 0 {
 		dest = ms.readPool[l-1]
@@ -223,7 +226,8 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 	if err != nil {
 		code = ToStatus(err)
 		ms.reqMu.Lock()
-		ms.reqPool = append(ms.reqPool, req)
+		req.inUse = false
+		ms.reqFree = append(ms.reqFree, req)
 		ms.reqReaders--
 		ms.reqMu.Unlock()
 		return nil, code
@@ -258,14 +262,15 @@ func (ms *Server) returnRequest(req *request) {
 		req.bufferPoolOutputBuf = nil
 	}
 
-	req.clear()
 	ms.reqMu.Lock()
+	req.clear()
 	if req.bufferPoolOutputBuf != nil {
 		ms.readPool = append(ms.readPool, req.bufferPoolInputBuf)
 		ms.outstandingReadBufs--
 		req.bufferPoolInputBuf = nil
 	}
-	ms.reqPool = append(ms.reqPool, req)
+	req.inUse = false
+	ms.reqFree = append(ms.reqFree, req)
 	ms.reqMu.Unlock()
 }
 
@@ -316,6 +321,23 @@ exit:
 	}
 }
 
+func (ms *Server) getInFlight(unique uint64) *request {
+	ms.reqMu.Lock()
+	defer ms.reqMu.Unlock()
+	for _, req := range ms.reqPool {
+		if !req.inUse {
+			continue
+		}
+		if req.inHeader == nil {
+			continue
+		}
+		if req.inHeader.Unique == unique {
+			return req
+		}
+	}
+	return nil
+}
+
 func (ms *Server) handleRequest(req *request) {
 	req.parse()
 	if req.handler == nil {
@@ -326,21 +348,38 @@ func (ms *Server) handleRequest(req *request) {
 		log.Println(req.InputDebug())
 	}
 
-	if req.status.Ok() && req.handler.Func == nil {
-		log.Printf("Unimplemented opcode %v", operationName(req.inHeader.Opcode))
-		req.status = ENOSYS
-	}
+	if req.status.Ok() && (req.inHeader.Opcode == _OP_INTERRUPT) {
+		interreq := ms.getInFlight((*raw.InterruptIn)(req.inData).Unique)
+		if interreq != nil {
+			select {
+			case interreq.context.Interrupted <- true:
+			default:
+			}
+			ms.returnRequest(req)
+		} else {
+			log.Println("Requesting interrupt repeat")
+			time.Sleep(500 * time.Millisecond)
+			req.status = Status(syscall.EAGAIN)
+			ms.write(req)
+			ms.returnRequest(req)
+		}
+	} else {
+		if req.status.Ok() && req.handler.Func == nil {
+			log.Printf("Unimplemented opcode %v", operationName(req.inHeader.Opcode))
+			req.status = ENOSYS
+		}
 
-	if req.status.Ok() {
-		req.handler.Func(ms, req)
-	}
+		if req.status.Ok() {
+			req.handler.Func(ms, req)
+		}
 
-	errNo := ms.write(req)
-	if errNo != 0 {
-		log.Printf("writer: Write/Writev failed, err: %v. opcode: %v",
-			errNo, operationName(req.inHeader.Opcode))
+		errNo := ms.write(req)
+		if errNo != 0 {
+			log.Printf("writer: Write/Writev failed, err: %v. opcode: %v",
+				errNo, operationName(req.inHeader.Opcode))
+		}
+		ms.returnRequest(req)
 	}
-	ms.returnRequest(req)
 }
 
 func (ms *Server) allocOut(req *request, size uint32) []byte {

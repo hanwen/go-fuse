@@ -43,7 +43,7 @@ func NewDataFile(data []byte) File {
 	return f
 }
 
-func (f *dataFile) Read(buf []byte, off int64) (res fuse.ReadResult, code fuse.Status) {
+func (f *dataFile) Read(buf []byte, off int64, context *fuse.Context) (res fuse.ReadResult, code fuse.Status) {
 	end := int(off) + int(len(buf))
 	if end > len(f.data) {
 		end = len(f.data)
@@ -74,11 +74,11 @@ func (f *devNullFile) String() string {
 	return "devNullFile"
 }
 
-func (f *devNullFile) Read(buf []byte, off int64) (fuse.ReadResult, fuse.Status) {
+func (f *devNullFile) Read(buf []byte, off int64, context *fuse.Context) (fuse.ReadResult, fuse.Status) {
 	return &fuse.ReadResultData{}, fuse.OK
 }
 
-func (f *devNullFile) Write(content []byte, off int64) (uint32, fuse.Status) {
+func (f *devNullFile) Write(content []byte, off int64, context *fuse.Context) (uint32, fuse.Status) {
 	return uint32(len(content)), fuse.OK
 }
 
@@ -125,7 +125,7 @@ func (f *loopbackFile) String() string {
 	return fmt.Sprintf("loopbackFile(%s)", f.File.Name())
 }
 
-func (f *loopbackFile) Read(buf []byte, off int64) (res fuse.ReadResult, code fuse.Status) {
+func (f *loopbackFile) Read(buf []byte, off int64, context *fuse.Context) (res fuse.ReadResult, code fuse.Status) {
 	f.lock.Lock()
 	r := &fuse.ReadResultFd{
 		Fd:  f.File.Fd(),
@@ -136,7 +136,7 @@ func (f *loopbackFile) Read(buf []byte, off int64) (res fuse.ReadResult, code fu
 	return r, fuse.OK
 }
 
-func (f *loopbackFile) Write(data []byte, off int64) (uint32, fuse.Status) {
+func (f *loopbackFile) Write(data []byte, off int64, context *fuse.Context) (uint32, fuse.Status) {
 	f.lock.Lock()
 	n, err := f.File.WriteAt(data, off)
 	f.lock.Unlock()
@@ -229,7 +229,7 @@ func (f *readOnlyFile) String() string {
 	return fmt.Sprintf("readOnlyFile(%s)", f.File.String())
 }
 
-func (f *readOnlyFile) Write(data []byte, off int64) (uint32, fuse.Status) {
+func (f *readOnlyFile) Write(data []byte, off int64, context *fuse.Context) (uint32, fuse.Status) {
 	return 0, fuse.EPERM
 }
 
