@@ -18,7 +18,7 @@ type lockingFile struct {
 func NewLockingFile(mu *sync.Mutex, f File) File {
 	return &lockingFile{
 		mu: mu,
-		file: f, 
+		file: f,
 	}
 }
 
@@ -33,16 +33,16 @@ func (f *lockingFile) String() string {
 	return fmt.Sprintf("lockingFile(%s)", f.file.String())
 }
 
-func (f *lockingFile) Read(buf []byte, off int64) (fuse.ReadResult, fuse.Status) {
+func (f *lockingFile) Read(buf []byte, off int64, context *fuse.Context) (fuse.ReadResult, fuse.Status) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.file.Read(buf, off)
+	return f.file.Read(buf, off, context)
 }
 
-func (f *lockingFile) Write(data []byte, off int64) (uint32, fuse.Status) {
+func (f *lockingFile) Write(data []byte, off int64, context *fuse.Context) (uint32, fuse.Status) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.file.Write(data, off)
+	return f.file.Write(data, off, context)
 }
 
 func (f *lockingFile) Flush() fuse.Status {
