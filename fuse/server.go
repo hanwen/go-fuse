@@ -357,7 +357,6 @@ func (ms *Server) handleRequest(req *request) {
 			}
 			ms.returnRequest(req)
 		} else {
-			log.Println("Requesting interrupt repeat")
 			time.Sleep(500 * time.Millisecond)
 			req.status = Status(syscall.EAGAIN)
 			ms.write(req)
