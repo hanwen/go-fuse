@@ -210,7 +210,6 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 		req = ms.reqFree[l-1]
 		ms.reqFree = ms.reqFree[:l-1]
 	}
-	req.inUse = true
 	l = len(ms.readPool)
 	if l > 0 {
 		dest = ms.readPool[l-1]
@@ -226,7 +225,6 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 	if err != nil {
 		code = ToStatus(err)
 		ms.reqMu.Lock()
-		req.inUse = false
 		ms.reqFree = append(ms.reqFree, req)
 		ms.reqReaders--
 		ms.reqMu.Unlock()
@@ -340,6 +338,9 @@ func (ms *Server) getInFlight(unique uint64) *request {
 
 func (ms *Server) handleRequest(req *request) {
 	req.parse()
+	ms.reqMu.Lock()
+	req.inUse = true
+	ms.reqMu.Unlock()
 	if req.handler == nil {
 		req.status = ENOSYS
 	}
