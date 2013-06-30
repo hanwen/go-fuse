@@ -30,6 +30,8 @@ type DirEntryList struct {
 	offset uint64
 }
 
+// NewDirEntryList creates a DirEntryList with the given data buffer
+// and offset.
 func NewDirEntryList(data []byte, off uint64) *DirEntryList {
 	return &DirEntryList{
 		buf:    data[:0],
@@ -79,9 +81,14 @@ func (l *DirEntryList) Add(prefix []byte, name string, inode uint64, mode uint32
 // and its corresponding lookup. Pass a null EntryOut if the lookup
 // data should be ignored.
 func (l *DirEntryList) AddDirLookupEntry(e DirEntry, entryOut *raw.EntryOut) (bool, uint64) {
+	ino := uint64(raw.FUSE_UNKNOWN_INO)
+	if entryOut.Ino > 0 {
+		ino = entryOut.Ino
+	}
 	var lookup []byte
 	toSlice(&lookup, unsafe.Pointer(entryOut), unsafe.Sizeof(raw.EntryOut{}))
-	return l.Add(lookup, e.Name, uint64(raw.FUSE_UNKNOWN_INO), e.Mode)
+
+	return l.Add(lookup, e.Name, ino, e.Mode)
 }
 
 func (l *DirEntryList) bytes() []byte {
