@@ -76,7 +76,7 @@ func (d *connectorDir) ReadDirPlus(list *fuse.DirEntryList, input *raw.ReadIn, c
 			log.Printf("got empty directory entry, mode %o.", e.Mode)
 			continue
 		}
-		if !list.AddDirLookupEntry(e, &d.lookups[i]) {
+		if !list.AddDirLookupEntry(e, &d.lookups[input.Offset+uint64(i)]) {
 			break
 		}
 	}
