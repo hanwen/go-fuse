@@ -122,8 +122,9 @@ func (f *loopbackFile) String() string {
 }
 
 func (f *loopbackFile) Read(buf []byte, off int64) (res fuse.ReadResult, code fuse.Status) {
-	// TODO - this is racy. The lock should be taken when the Fd is spliced.
 	f.lock.Lock()
+	// This is not racy by virtue of the kernel properly
+	// synchronizing the open/write/close.
 	r := fuse.ReadResultFd(f.File.Fd(), off, len(buf))
 	f.lock.Unlock()
 	return r, fuse.OK
