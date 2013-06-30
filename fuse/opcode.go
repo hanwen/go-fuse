@@ -82,7 +82,9 @@ func doInit(state *Server, req *request) {
 
 	state.reqMu.Lock()
 	state.kernelSettings = *input
-	state.kernelSettings.Flags = input.Flags & (raw.CAP_ASYNC_READ | raw.CAP_BIG_WRITES | raw.CAP_FILE_OPS | raw.CAP_AUTO_INVAL_DATA)
+	state.kernelSettings.Flags = input.Flags & (raw.CAP_ASYNC_READ | raw.CAP_BIG_WRITES | raw.CAP_FILE_OPS |
+		raw.CAP_AUTO_INVAL_DATA | raw.CAP_READDIRPLUS)
+
 	if input.Minor >= 13 {
 		state.setSplice()
 	}
@@ -126,6 +128,16 @@ func doReadDir(state *Server, req *request) {
 	entries := NewDirEntryList(buf, uint64(in.Offset))
 
 	code := state.fileSystem.ReadDir(entries, &req.context, in)
+	req.flatData = entries.Bytes()
+	req.status = code
+}
+
+func doReadDirPlus(server *Server, req *request) {
+	in := (*raw.ReadIn)(req.inData)
+	buf := server.allocOut(req, in.Size)
+	entries := NewDirEntryList(buf, uint64(in.Offset))
+
+	code := server.fileSystem.ReadDirPlus(entries, &req.context, in)
 	req.flatData = entries.Bytes()
 	req.status = code
 }
@@ -417,6 +429,7 @@ func init() {
 		_OP_IOCTL:        unsafe.Sizeof(raw.IoctlIn{}),
 		_OP_POLL:         unsafe.Sizeof(raw.PollIn{}),
 		_OP_FALLOCATE:    unsafe.Sizeof(raw.FallocateIn{}),
+		_OP_READDIRPLUS:  unsafe.Sizeof(raw.ReadIn{}),
 	} {
 		operationHandlers[op].InputSize = sz
 	}
@@ -531,6 +544,7 @@ func init() {
 		_OP_IOCTL:        doIoctl,
 		_OP_DESTROY:      doDestroy,
 		_OP_FALLOCATE:    doFallocate,
+		_OP_READDIRPLUS:  doReadDirPlus,
 	} {
 		operationHandlers[op].Func = v
 	}
@@ -576,6 +590,7 @@ func init() {
 		_OP_RELEASE:      func(ptr unsafe.Pointer) interface{} { return (*raw.ReleaseIn)(ptr) },
 		_OP_RELEASEDIR:   func(ptr unsafe.Pointer) interface{} { return (*raw.ReleaseIn)(ptr) },
 		_OP_FALLOCATE:    func(ptr unsafe.Pointer) interface{} { return (*raw.FallocateIn)(ptr) },
+		_OP_READDIRPLUS:  func(ptr unsafe.Pointer) interface{} { return (*raw.ReadIn)(ptr) },
 	} {
 		operationHandlers[op].DecodeIn = f
 	}

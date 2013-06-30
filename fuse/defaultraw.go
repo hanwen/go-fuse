@@ -134,6 +134,10 @@ func (fs *defaultRawFileSystem) ReadDir(l *DirEntryList, context *Context, input
 	return ENOSYS
 }
 
+func (fs *defaultRawFileSystem) ReadDirPlus(l *DirEntryList, context *Context, input *raw.ReadIn) Status {
+	return ENOSYS
+}
+
 func (fs *defaultRawFileSystem) ReleaseDir(context *Context, input *raw.ReleaseIn) {
 }
 

@@ -3,13 +3,12 @@ package fuse
 // all of the code for DirEntryList.
 
 import (
-	"log"
+	"fmt"
 	"unsafe"
 
 	"github.com/hanwen/go-fuse/raw"
 )
 
-var _ = log.Print
 var eightPadding [8]byte
 
 const direntSize = int(unsafe.Sizeof(raw.Dirent{}))
@@ -19,6 +18,10 @@ const direntSize = int(unsafe.Sizeof(raw.Dirent{}))
 type DirEntry struct {
 	Mode uint32
 	Name string
+}
+
+func (d DirEntry) String() string {
+	return fmt.Sprintf("%o: %q", d.Mode, d.Name)
 }
 
 type DirEntryList struct {
@@ -39,12 +42,12 @@ func NewDirEntryList(data []byte, off uint64) *DirEntryList {
 
 // AddDirEntry tries to add an entry.
 func (l *DirEntryList) AddDirEntry(e DirEntry) bool {
-	return l.Add(e.Name, uint64(raw.FUSE_UNKNOWN_INO), e.Mode)
+	return l.Add(nil, e.Name, uint64(raw.FUSE_UNKNOWN_INO), e.Mode)
 }
 
-func (l *DirEntryList) Add(name string, inode uint64, mode uint32) bool {
+func (l *DirEntryList) Add(prefix []byte, name string, inode uint64, mode uint32) bool {
 	padding := (8 - len(name)&7) & 7
-	delta := padding + direntSize + len(name)
+	delta := padding + direntSize + len(name) + len(prefix)
 	oldLen := len(l.buf)
 	newLen := delta + oldLen
 
@@ -52,6 +55,8 @@ func (l *DirEntryList) Add(name string, inode uint64, mode uint32) bool {
 		return false
 	}
 	l.buf = l.buf[:newLen]
+	copy(l.buf[oldLen:], prefix)
+	oldLen += len(prefix)
 	dirent := (*raw.Dirent)(unsafe.Pointer(&l.buf[oldLen]))
 	dirent.Off = l.Offset + 1
 	dirent.Ino = inode
@@ -67,6 +72,12 @@ func (l *DirEntryList) Add(name string, inode uint64, mode uint32) bool {
 
 	l.Offset = dirent.Off
 	return true
+}
+
+func (l *DirEntryList) AddDirLookupEntry(e DirEntry, entryOut *raw.EntryOut) bool {
+	var lookup []byte
+	toSlice(&lookup, unsafe.Pointer(entryOut), unsafe.Sizeof(raw.EntryOut{}))
+	return l.Add(lookup, e.Name, uint64(raw.FUSE_UNKNOWN_INO), e.Mode)
 }
 
 func (l *DirEntryList) Bytes() []byte {

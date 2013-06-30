@@ -157,6 +157,7 @@ func (c *rawBridge) OpenDir(out *raw.OpenOut, context *fuse.Context, input *raw.
 		stream: append(stream,
 			fuse.DirEntry{fuse.S_IFDIR, "."},
 			fuse.DirEntry{fuse.S_IFDIR, ".."}),
+		rawFS: c,
 	}
 	h, opened := node.mount.registerFileHandle(node, de, nil, input.Flags)
 	out.OpenFlags = opened.FuseFlags
@@ -167,7 +168,13 @@ func (c *rawBridge) OpenDir(out *raw.OpenOut, context *fuse.Context, input *raw.
 func (c *rawBridge) ReadDir(l *fuse.DirEntryList, context *fuse.Context, input *raw.ReadIn) fuse.Status {
 	node := c.toInode(context.NodeId)
 	opened := node.mount.getOpenedFile(input.Fh)
-	return opened.dir.ReadDir(l, input)
+	return opened.dir.ReadDir(l, input, context)
+}
+
+func (c *rawBridge) ReadDirPlus(l *fuse.DirEntryList, context *fuse.Context, input *raw.ReadIn) fuse.Status {
+	node := c.toInode(context.NodeId)
+	opened := node.mount.getOpenedFile(input.Fh)
+	return opened.dir.ReadDirPlus(l, input, context)
 }
 
 func (c *rawBridge) Open(out *raw.OpenOut, context *fuse.Context, input *raw.OpenIn) (status fuse.Status) {

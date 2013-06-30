@@ -179,6 +179,11 @@ func (fs *lockingRawFileSystem) ReadDir(out *DirEntryList, header *Context, inpu
 	return fs.RawFS.ReadDir(out, header, input)
 }
 
+func (fs *lockingRawFileSystem) ReadDirPlus(out *DirEntryList, header *Context, input *raw.ReadIn) Status {
+	defer fs.locked()()
+	return fs.RawFS.ReadDirPlus(out, header, input)
+}
+
 func (fs *lockingRawFileSystem) FsyncDir(header *Context, input *raw.FsyncIn) (code Status) {
 	defer fs.locked()()
 	return fs.RawFS.FsyncDir(header, input)

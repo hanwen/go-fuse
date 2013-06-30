@@ -61,7 +61,7 @@ type MountOptions struct {
 	// small.
 	Name string
 
-	// If set, wrap the file system in a single-threaded wrapper.
+	// If set, wrap the file system in a single-threaded locking wrapper.
 	SingleThreaded bool
 }
 
@@ -119,6 +119,7 @@ type RawFileSystem interface {
 	// Directory handling
 	OpenDir(out *raw.OpenOut, context *Context, input *raw.OpenIn) (status Status)
 	ReadDir(out *DirEntryList, context *Context, input *raw.ReadIn) Status
+	ReadDirPlus(out *DirEntryList, context *Context, input *raw.ReadIn) Status
 	ReleaseDir(context *Context, input *raw.ReleaseIn)
 	FsyncDir(context *Context, input *raw.FsyncIn) (code Status)
 
