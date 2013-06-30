@@ -65,7 +65,7 @@ func NewFileSystemConnector(nodeFs FileSystem, opts *Options) (c *FileSystemConn
 	c.generation = uint64(time.Now().UnixNano())
 
 	c.verify()
-	c.MountRoot(nodeFs, opts)
+	c.mountRoot(nodeFs, opts)
 
 	// FUSE does not issue a LOOKUP for 1 (obviously), but it does
 	// issue a forget.  This lookupUpdate is to make the counts match.
@@ -241,7 +241,7 @@ func (c *FileSystemConnector) LookupNode(parent *Inode, path string) *Inode {
 	return parent
 }
 
-func (c *FileSystemConnector) MountRoot(nodeFs FileSystem, opts *Options) {
+func (c *FileSystemConnector) mountRoot(nodeFs FileSystem, opts *Options) {
 	c.rootNode.mountFs(nodeFs, opts)
 	c.rootNode.mount.connector = c
 	nodeFs.OnMount(c)
