@@ -19,15 +19,9 @@ import (
 // Tests should set to true.
 var paranoia = false
 
-// FilesystemConnector is a raw FUSE filesystem that manages
-// in-process mounts and inodes.  Its job is twofold:
-//
-// It translates between the raw kernel interface (padded structs of
-// int32 and int64) and the more abstract Go-ish NodeFileSystem
-// interface.
-//
-// It manages mounting and unmounting of NodeFileSystems into the
-// directory hierarchy.
+// FilesystemConnector that translates the raw FUSE protocol
+// (serialized structs of uint32/uint64) to operations on Go objects
+// representing files and directories.
 type FileSystemConnector struct {
 	// Used as the generation inodes. This must be 64-bit aligned,
 	// for sync/atomic on i386 to work properly.
@@ -47,6 +41,8 @@ type FileSystemConnector struct {
 	rootNode *Inode
 }
 
+// NewOptions generates FUSE options that correspond to libfuse's
+// defaults.
 func NewOptions() *Options {
 	return &Options{
 		NegativeTimeout: 0,
@@ -78,6 +74,7 @@ func NewFileSystemConnector(nodeFs FileSystem, opts *Options) (c *FileSystemConn
 	return c
 }
 
+// SetDebug toggles printing of debug information.
 func (c *FileSystemConnector) SetDebug(debug bool) {
 	c.debug = debug
 }
@@ -224,6 +221,9 @@ func (c *FileSystemConnector) Node(parent *Inode, fullPath string) (*Inode, []st
 }
 
 func (c *FileSystemConnector) LookupNode(parent *Inode, path string) *Inode {
+	// TODO - this is broken. The internalLookups will cause
+	// Nlookup increments that the kernel does not know about.
+
 	if path == "" {
 		return parent
 	}
@@ -240,8 +240,6 @@ func (c *FileSystemConnector) LookupNode(parent *Inode, path string) *Inode {
 
 	return parent
 }
-
-////////////////////////////////////////////////////////////////
 
 func (c *FileSystemConnector) MountRoot(nodeFs FileSystem, opts *Options) {
 	c.rootNode.mountFs(nodeFs, opts)
