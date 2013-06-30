@@ -49,10 +49,8 @@ func (f *dataFile) Read(buf []byte, off int64) (res fuse.ReadResult, code fuse.S
 		end = len(f.data)
 	}
 
-	return &fuse.ReadResultData{f.data[off:end]}, fuse.OK
+	return fuse.ReadResultData(f.data[off:end]), fuse.OK
 }
-
-////////////////
 
 type devNullFile struct {
 	File
@@ -75,7 +73,7 @@ func (f *devNullFile) String() string {
 }
 
 func (f *devNullFile) Read(buf []byte, off int64) (fuse.ReadResult, fuse.Status) {
-	return &fuse.ReadResultData{}, fuse.OK
+	return fuse.ReadResultData(nil), fuse.OK
 }
 
 func (f *devNullFile) Write(content []byte, off int64) (uint32, fuse.Status) {
@@ -126,12 +124,9 @@ func (f *loopbackFile) String() string {
 }
 
 func (f *loopbackFile) Read(buf []byte, off int64) (res fuse.ReadResult, code fuse.Status) {
+	// TODO - this is racy. The lock should be taken when the Fd is spliced.
 	f.lock.Lock()
-	r := &fuse.ReadResultFd{
-		Fd:  f.File.Fd(),
-		Off: off,
-		Sz:  len(buf),
-	}
+	r := fuse.ReadResultFd(f.File.Fd(), off, len(buf))
 	f.lock.Unlock()
 	return r, fuse.OK
 }

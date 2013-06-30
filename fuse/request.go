@@ -28,7 +28,7 @@ type request struct {
 	outData  unsafe.Pointer
 	status   Status
 	flatData []byte
-	fdData   *ReadResultFd
+	fdData   *readResultFd
 
 	// In case of read, keep read result here so we can call
 	// Done() on it.

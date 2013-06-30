@@ -112,7 +112,7 @@ func (fs *defaultRawFileSystem) OpenDir(out *raw.OpenOut, context *Context, inpu
 }
 
 func (fs *defaultRawFileSystem) Read(context *Context, input *raw.ReadIn, buf []byte) (ReadResult, Status) {
-	return &ReadResultData{}, ENOSYS
+	return nil, ENOSYS
 }
 
 func (fs *defaultRawFileSystem) Release(context *Context, input *raw.ReleaseIn) {

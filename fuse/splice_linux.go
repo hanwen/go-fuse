@@ -11,7 +11,7 @@ func (s *Server) setSplice() {
 	s.canSplice = splice.Resizable()
 }
 
-func (ms *Server) trySplice(header []byte, req *request, fdData *ReadResultFd) error {
+func (ms *Server) trySplice(header []byte, req *request, fdData *readResultFd) error {
 	pair, err := splice.Get()
 	if err != nil {
 		return err
@@ -43,7 +43,7 @@ func (ms *Server) trySplice(header []byte, req *request, fdData *ReadResultFd) e
 
 		header = req.serializeHeader(n)
 
-		newFd := ReadResultFd{
+		newFd := readResultFd{
 			Fd:  pair.ReadFd(),
 			Off: -1,
 			Sz:  n,

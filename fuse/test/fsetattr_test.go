@@ -31,7 +31,7 @@ func (f *MutableDataFile) Read(buf []byte, off int64) (fuse.ReadResult, fuse.Sta
 		end = len(f.data)
 	}
 
-	return &fuse.ReadResultData{Data: f.data[off:end]}, fuse.OK
+	return fuse.ReadResultData(f.data[off:end]), fuse.OK
 }
 
 func (f *MutableDataFile) Write(d []byte, off int64) (uint32, fuse.Status) {

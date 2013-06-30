@@ -288,7 +288,7 @@ func doRead(state *Server, req *request) {
 	buf := state.allocOut(req, in.Size)
 
 	req.readResult, req.status = state.fileSystem.Read(&req.context, in, buf)
-	if fd, ok := req.readResult.(*ReadResultFd); ok {
+	if fd, ok := req.readResult.(*readResultFd); ok {
 		req.fdData = fd
 		req.flatData = nil
 	} else if req.readResult != nil && req.status.Ok() {
