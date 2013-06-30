@@ -98,9 +98,6 @@ type Node interface {
 // A File object should be returned from FileSystem.Open and
 // FileSystem.Create.  Include the NewDefaultFile return value into
 // the struct to inherit a default null implementation.
-//
-// TODO - should File be thread safe?
-// TODO - should we pass a *fuse.Context argument?
 type File interface {
 	// Called upon registering the filehandle in the inode.
 	SetInode(*Inode)

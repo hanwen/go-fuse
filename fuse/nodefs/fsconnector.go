@@ -19,9 +19,9 @@ import (
 // Tests should set to true.
 var paranoia = false
 
-// FilesystemConnector that translates the raw FUSE protocol
-// (serialized structs of uint32/uint64) to operations on Go objects
-// representing files and directories.
+// FilesystemConnector translates the raw FUSE protocol (serialized
+// structs of uint32/uint64) to operations on Go objects representing
+// files and directories.
 type FileSystemConnector struct {
 	// Used as the generation inodes. This must be 64-bit aligned,
 	// for sync/atomic on i386 to work properly.
@@ -52,6 +52,8 @@ func NewOptions() *Options {
 	}
 }
 
+// NewFileSystemConnector creates a FileSystemConnector with the given
+// options.
 func NewFileSystemConnector(nodeFs FileSystem, opts *Options) (c *FileSystemConnector) {
 	c = new(FileSystemConnector)
 	if opts == nil {
@@ -220,6 +222,8 @@ func (c *FileSystemConnector) Node(parent *Inode, fullPath string) (*Inode, []st
 	return node, nil
 }
 
+// Follows the path from the given parent. The path should be '/'
+// separated without leading slash.
 func (c *FileSystemConnector) LookupNode(parent *Inode, path string) *Inode {
 	// TODO - this is broken. The internalLookups will cause
 	// Nlookup increments that the kernel does not know about.
@@ -251,14 +255,10 @@ func (c *FileSystemConnector) mountRoot(nodeFs FileSystem, opts *Options) {
 // Mount() generates a synthetic directory node, and mounts the file
 // system there.  If opts is nil, the mount options of the root file
 // system are inherited.  The encompassing filesystem should pretend
-// the mount point does not exist.  If it does, it will generate an
-// Inode with the same, which will cause Mount() to return EBUSY.
+// the mount point does not exist.
 //
-// Return values:
-//
-// ENOENT: the directory containing the mount point does not exist.
-//
-// EBUSY: the intended mount point already exists.
+// It returns ENOENT if the directory containing the mount point does
+// not exist, and EBUSY if the intended mount point already exists.
 func (c *FileSystemConnector) Mount(parent *Inode, name string, nodeFs FileSystem, opts *Options) fuse.Status {
 	defer c.verify()
 	parent.mount.treeLock.Lock()
@@ -286,13 +286,9 @@ func (c *FileSystemConnector) Mount(parent *Inode, name string, nodeFs FileSyste
 	return fuse.OK
 }
 
-// Unmount() tries to unmount the given inode.
-//
-// Returns the following error codes:
-//
-// EINVAL: path does not exist, or is not a mount point.
-//
-// EBUSY: there are open files, or submounts below this node.
+// Unmount() tries to unmount the given inode.  It returns EINVAL if the
+// path does not exist, or is not a mount point, and EBUSY if there
+// are open files or submounts below this node.
 func (c *FileSystemConnector) Unmount(node *Inode) fuse.Status {
 	// TODO - racy.
 	if node.mountPoint == nil {
@@ -362,6 +358,9 @@ func (c *FileSystemConnector) Unmount(node *Inode) fuse.Status {
 	return fuse.OK
 }
 
+// FileNotify notifies the kernel that data and metadata of this inode
+// has changed.  After this call completes, the kernel will issue a
+// new GetAttr requests for metadata and new Read calls for content.
 func (c *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) fuse.Status {
 	var nId uint64
 	if node == c.rootNode {
@@ -376,6 +375,9 @@ func (c *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) f
 	return c.server.InodeNotify(nId, off, length)
 }
 
+// EntryNotify makes the kernel forget the entry data from the given
+// name from a directory.  After this call, the kernel will issue a
+// new lookup request for the given name when necessary.
 func (c *FileSystemConnector) EntryNotify(node *Inode, name string) fuse.Status {
 	var nId uint64
 	if node == c.rootNode {
@@ -390,6 +392,8 @@ func (c *FileSystemConnector) EntryNotify(node *Inode, name string) fuse.Status 
 	return c.server.EntryNotify(nId, name)
 }
 
+// DeleteNotify signals to the kernel that the named entry in dir for
+// the child disappeared.
 func (c *FileSystemConnector) DeleteNotify(dir *Inode, child *Inode, name string) fuse.Status {
 	var nId uint64
 
