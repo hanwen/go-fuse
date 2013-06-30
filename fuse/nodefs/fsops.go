@@ -363,8 +363,7 @@ func (c *rawBridge) Release(context *fuse.Context, input *raw.ReleaseIn) {
 
 func (c *rawBridge) ReleaseDir(context *fuse.Context, input *raw.ReleaseIn) {
 	node := c.toInode(context.NodeId)
-	opened := node.mount.unregisterFileHandle(input.Fh, node)
-	opened.dir.Release()
+	node.mount.unregisterFileHandle(input.Fh, node)
 }
 
 func (c *rawBridge) GetXAttrSize(context *fuse.Context, attribute string) (sz int, code fuse.Status) {

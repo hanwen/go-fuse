@@ -85,12 +85,7 @@ func (d *connectorDir) ReadDirPlus(list *fuse.DirEntryList, input *raw.ReadIn, c
 
 }
 
-// Read everything so we make goroutines exit.
-func (d *connectorDir) Release() {
-}
-
 type rawDir interface {
 	ReadDir(out *fuse.DirEntryList, input *raw.ReadIn, c *fuse.Context) fuse.Status
 	ReadDirPlus(out *fuse.DirEntryList, input *raw.ReadIn, c *fuse.Context) fuse.Status
-	Release()
 }

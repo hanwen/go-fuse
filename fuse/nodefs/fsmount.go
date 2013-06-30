@@ -17,7 +17,7 @@ type openedFile struct {
 
 	WithFlags
 
-	dir rawDir
+	dir *connectorDir
 }
 
 type fileSystemMount struct {
@@ -108,7 +108,7 @@ func (m *fileSystemMount) unregisterFileHandle(handle uint64, node *Inode) *open
 	return opened
 }
 
-func (m *fileSystemMount) registerFileHandle(node *Inode, dir rawDir, f File, flags uint32) (uint64, *openedFile) {
+func (m *fileSystemMount) registerFileHandle(node *Inode, dir *connectorDir, f File, flags uint32) (uint64, *openedFile) {
 	node.openFilesMutex.Lock()
 	b := &openedFile{
 		dir: dir,
