@@ -19,8 +19,6 @@ type dataFile struct {
 	File
 }
 
-var _ = (File)((*dataFile)(nil))
-
 func (f *dataFile) String() string {
 	l := len(f.data)
 	if l > 10 {
