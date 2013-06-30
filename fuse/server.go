@@ -64,10 +64,6 @@ func (ms *Server) KernelSettings() raw.InitIn {
 	return s
 }
 
-func (ms *Server) MountPoint() string {
-	return ms.mountPoint
-}
-
 const _MAX_NAME_LEN = 20
 
 // This type may be provided for recording latencies of each FUSE
