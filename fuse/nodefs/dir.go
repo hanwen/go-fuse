@@ -34,11 +34,12 @@ func (d *connectorDir) ReadDir(list *fuse.DirEntryList, input *raw.ReadIn, conte
 			log.Printf("got emtpy directory entry, mode %o.", e.Mode)
 			continue
 		}
-		if !list.AddDirEntry(e) {
+		ok, off := list.AddDirEntry(e)
+		d.lastOffset = off
+		if !ok {
 			break
 		}
 	}
-	d.lastOffset = list.Offset
 	return fuse.OK
 }
 
@@ -76,11 +77,12 @@ func (d *connectorDir) ReadDirPlus(list *fuse.DirEntryList, input *raw.ReadIn, c
 			log.Printf("got empty directory entry, mode %o.", e.Mode)
 			continue
 		}
-		if !list.AddDirLookupEntry(e, &d.lookups[input.Offset+uint64(i)]) {
+		ok, off := list.AddDirLookupEntry(e, &d.lookups[input.Offset+uint64(i)])
+		d.lastOffset = off
+		if !ok {
 			break
 		}
 	}
-	d.lastOffset = list.Offset
 	return fuse.OK
 
 }

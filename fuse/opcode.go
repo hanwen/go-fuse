@@ -128,7 +128,7 @@ func doReadDir(state *Server, req *request) {
 	entries := NewDirEntryList(buf, uint64(in.Offset))
 
 	code := state.fileSystem.ReadDir(entries, &req.context, in)
-	req.flatData = entries.Bytes()
+	req.flatData = entries.bytes()
 	req.status = code
 }
 
@@ -138,7 +138,7 @@ func doReadDirPlus(server *Server, req *request) {
 	entries := NewDirEntryList(buf, uint64(in.Offset))
 
 	code := server.fileSystem.ReadDirPlus(entries, &req.context, in)
-	req.flatData = entries.Bytes()
+	req.flatData = entries.bytes()
 	req.status = code
 }
 
