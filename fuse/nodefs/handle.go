@@ -114,7 +114,7 @@ func (m *portableHandleMap) Forget(h uint64, count int) (forgotten bool, obj *ha
 	obj = m.handles[h]
 	obj.count -= count
 	if obj.count < 0 {
-		panic("underflow")
+		log.Panicf("underflow: handle %d, count %d, object %d", h, count, obj.count)
 	} else if obj.count == 0 {
 		m.handles[h] = nil
 		m.freeIds = append(m.freeIds, h)
@@ -185,7 +185,7 @@ func (m *int32HandleMap) Forget(handle uint64, count int) (forgotten bool, obj *
 		delete(m.handles, uint32(handle))
 		forgotten = true
 	} else if obj.count < 0 {
-		panic("underflow")
+		log.Panicf("underflow: handle %d count %d, obj %d", handle, count, obj.count)
 	}
 	obj.handle = 0
 	m.mutex.Unlock()
@@ -325,7 +325,7 @@ func (m *int64HandleMap) Forget(handle uint64, count int) (forgotten bool, obj *
 		obj.handle = 0
 		forgotten = true
 	} else if obj.count < 0 {
-		panic("underflow")
+		log.Panicf("underflow: handle %d count %d, %d", handle, count, obj.count)
 	}
 	m.mutex.Unlock()
 	return forgotten, obj
