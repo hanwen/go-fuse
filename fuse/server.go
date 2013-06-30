@@ -53,6 +53,9 @@ func (ms *Server) SetDebug(dbg bool) {
 	ms.debug = dbg
 }
 
+// KernelSettings returns the Init message from the kernel, so
+// filesystems can adapt to availability of features of the kernel
+// driver.
 func (ms *Server) KernelSettings() raw.InitIn {
 	ms.reqMu.Lock()
 	s := ms.kernelSettings
@@ -73,6 +76,8 @@ type LatencyMap interface {
 	Add(name string, dt time.Duration)
 }
 
+// RecordLatencies switches on collection of timing for each request
+// coming from the kernel.P assing a nil argument switches off the
 func (ms *Server) RecordLatencies(l LatencyMap) {
 	ms.latencies = l
 }
@@ -175,7 +180,9 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 	return ms, nil
 }
 
-func (ms *Server) BufferPoolStats() string {
+// DebugData returns internal status information for debugging
+// purposes.
+func (ms *Server) DebugData() string {
 	s := ms.opts.Buffers.String()
 
 	var r int
@@ -250,6 +257,7 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 	return req, OK
 }
 
+// returnRequest returns a request to the pool of unused requests.
 func (ms *Server) returnRequest(req *request) {
 	ms.recordStats(req)
 
@@ -277,7 +285,7 @@ func (ms *Server) recordStats(req *request) {
 	}
 }
 
-// Loop initiates the FUSE loop. Normally, callers should run Loop()
+// Serve initiates the FUSE loop. Normally, callers should run Serve()
 // and wait for it to exit, but tests will want to run this in a
 // goroutine.
 //
@@ -473,9 +481,9 @@ func init() {
 	defaultBufferPool = NewBufferPool()
 }
 
-// Wait for the first request to be served. Use this to avoid racing
-// between accessing the (empty) mountpoint, and the OS trying to
-// setup the user-space mount.
+// WaitMount waits for the first request to be served. Use this to
+// avoid racing between accessing the (empty) mountpoint, and the OS
+// trying to setup the user-space mount.
 func (ms *Server) WaitMount() {
 	<-ms.started
 }

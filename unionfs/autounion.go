@@ -411,7 +411,7 @@ func (fs *autoUnionFs) DebugData() string {
 			"Bufferpool: %v\n"+
 			"Kernel: %v\n",
 		fuse.Version(),
-		fs.mountState.BufferPoolStats(),
+		fs.mountState.DebugData(),
 		&setting)
 
 	if fs.connector != nil {
