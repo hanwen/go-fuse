@@ -78,6 +78,9 @@ func (ms *Server) RecordLatencies(l LatencyMap) {
 	ms.latencies = l
 }
 
+// Unmount calls fusermount -u on the mount. This has the effect of
+// shutting down the filesystem. After the Server is unmounted, it
+// should be discarded.
 func (ms *Server) Unmount() (err error) {
 	if ms.mountPoint == "" {
 		return nil
@@ -112,6 +115,10 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		}
 	}
 	o := *opts
+	if o.SingleThreaded {
+		fs = NewLockingRawFileSystem(fs)
+	}
+
 	if o.Buffers == nil {
 		o.Buffers = defaultBufferPool
 	}

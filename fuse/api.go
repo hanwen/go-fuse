@@ -57,9 +57,12 @@ type MountOptions struct {
 	// This may be useful for NFS.
 	RememberInodes bool
 
-	// The Name will show up on the output of the mount. Keep this string
+	// The name will show up on the output of the mount. Keep this string
 	// small.
 	Name string
+
+	// If set, wrap the file system in a single-threaded wrapper.
+	SingleThreaded bool
 }
 
 // RawFileSystem is an interface close to the FUSE wire protocol.

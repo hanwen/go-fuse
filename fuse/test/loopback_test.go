@@ -76,7 +76,6 @@ func NewTestCase(t *testing.T) *testCase {
 	pfs = pathfs.NewLoopbackFileSystem(me.orig)
 	pfs = pathfs.NewLockingFileSystem(pfs)
 
-	var rfs fuse.RawFileSystem
 	me.pathFs = pathfs.NewPathNodeFs(pfs, &pathfs.PathNodeFsOptions{
 		ClientInodes: true})
 	me.connector = nodefs.NewFileSystemConnector(me.pathFs,
@@ -85,10 +84,9 @@ func NewTestCase(t *testing.T) *testCase {
 			AttrTimeout:     testTtl,
 			NegativeTimeout: 0.0,
 		})
-	rfs = fuse.NewLockingRawFileSystem(me.connector.RawFS())
-
 	me.connector.SetDebug(fuse.VerboseTest())
-	me.state, err = fuse.NewServer(rfs, me.mnt, nil)
+	me.state, err = fuse.NewServer(
+		me.connector.RawFS(), me.mnt, &fuse.MountOptions{SingleThreaded: true})
 	if err != nil {
 		t.Fatal("NewServer:", err)
 	}
