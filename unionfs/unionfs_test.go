@@ -1083,11 +1083,11 @@ func TestUnionFsDropCache(t *testing.T) {
 
 type disappearingFS struct {
 	pathfs.FileSystem
-	
-	normal pathfs.FileSystem
-	nop pathfs.FileSystem
-	visible bool
-	visibleChan chan bool 
+
+	normal      pathfs.FileSystem
+	nop         pathfs.FileSystem
+	visible     bool
+	visibleChan chan bool
 }
 
 func (d *disappearingFS) fs() pathfs.FileSystem {
@@ -1111,14 +1111,14 @@ func (d *disappearingFS) GetAttr(name string, context *fuse.Context) (a *fuse.At
 func (d *disappearingFS) OpenDir(name string, context *fuse.Context) ([]fuse.DirEntry, fuse.Status) {
 	return d.fs().OpenDir(name, context)
 }
-	
+
 func newDisappearingFS(fs, nop pathfs.FileSystem) *disappearingFS {
 	return &disappearingFS{
 		visibleChan: make(chan bool, 1),
-		visible: true,
-		normal: fs,
-		nop: nop,
-		FileSystem: fs, 
+		visible:     true,
+		normal:      fs,
+		nop:         nop,
+		FileSystem:  fs,
 	}
 }
 
@@ -1142,7 +1142,7 @@ func TestUnionFsDisappearing(t *testing.T) {
 		t.Fatalf("Mkdir failed: %v", err)
 	}
 
-	wrFs := newDisappearingFS(pathfs.NewLoopbackFileSystem(wd + "/rw"),
+	wrFs := newDisappearingFS(pathfs.NewLoopbackFileSystem(wd+"/rw"),
 		pathfs.NewLoopbackFileSystem("/dev/null"))
 	var fses []pathfs.FileSystem
 	fses = append(fses, pathfs.NewLockingFileSystem(wrFs))

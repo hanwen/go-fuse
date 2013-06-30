@@ -2,14 +2,14 @@ package nodefs
 
 import (
 	"fmt"
-	"time"
 	"sync"
+	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
 )
 
 type lockingFile struct {
-	mu *sync.Mutex
+	mu   *sync.Mutex
 	file File
 }
 
@@ -17,8 +17,8 @@ type lockingFile struct {
 // every operation.
 func NewLockingFile(mu *sync.Mutex, f File) File {
 	return &lockingFile{
-		mu: mu,
-		file: f, 
+		mu:   mu,
+		file: f,
 	}
 }
 

@@ -313,7 +313,6 @@ func (m *int64HandleMap) Handle(obj *handled) (handle uint64) {
 	return m.handle(obj)
 }
 
-
 func (m *int64HandleMap) Forget(handle uint64, count int) (forgotten bool, obj *handled) {
 	defer m.verify()
 	obj = m.Decode(handle)

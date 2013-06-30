@@ -36,7 +36,7 @@ func setupMemNodeTest(t *testing.T) (wd string, fs FileSystem, clean func()) {
 	if err != nil {
 		t.Fatal("NewServer", err)
 	}
-	
+
 	//me.state.SetDebug(false)
 	state.SetDebug(fuse.VerboseTest())
 

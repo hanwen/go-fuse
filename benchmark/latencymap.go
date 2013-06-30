@@ -50,4 +50,3 @@ func (m *LatencyMap) Counts() map[string]int {
 
 	return r
 }
-

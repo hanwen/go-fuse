@@ -127,10 +127,10 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 	opts = &o
 	ms := &Server{
 		fileSystem: fs,
-		started: make(chan struct{}),
-		opts: &o,
+		started:    make(chan struct{}),
+		opts:       &o,
 	}
-	
+
 	optStrs := opts.Options
 	if opts.AllowOther {
 		optStrs = append(optStrs, "allow_other")

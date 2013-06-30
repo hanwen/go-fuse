@@ -48,7 +48,7 @@ func main() {
 	mOpts := &fuse.MountOptions{
 		AllowOther: *other,
 	}
-	state, err := fuse.NewServer(conn.RawFS(),mountPoint, mOpts)
+	state, err := fuse.NewServer(conn.RawFS(), mountPoint, mOpts)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)

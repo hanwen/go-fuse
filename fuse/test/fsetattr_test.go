@@ -154,10 +154,10 @@ func setupFAttrTest(t *testing.T, fs pathfs.FileSystem) (dir string, clean func(
 	}
 
 	return dir, func() {
-			if state.Unmount() == nil {
-				os.RemoveAll(dir)
-			}
+		if state.Unmount() == nil {
+			os.RemoveAll(dir)
 		}
+	}
 }
 
 func TestDataReadLarge(t *testing.T) {
@@ -222,7 +222,7 @@ func TestFSetAttr(t *testing.T) {
 
 	a, status = fs.GetAttr("file", nil)
 	if !status.Ok() || a.Mode&07777 != 024 {
-		t.Errorf("chmod: %o, status %v", a.Mode & 0777, status)
+		t.Errorf("chmod: %o, status %v", a.Mode&0777, status)
 	}
 
 	err = os.Chtimes(fn, time.Unix(0, 100e3), time.Unix(0, 101e3))
