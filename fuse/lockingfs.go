@@ -15,8 +15,6 @@ type lockingRawFileSystem struct {
 	lock  sync.Mutex
 }
 
-var _ = (RawFileSystem)((*lockingRawFileSystem)(nil))
-
 // Returns a Wrap
 func NewLockingRawFileSystem(fs RawFileSystem) RawFileSystem {
 	return &lockingRawFileSystem{
@@ -189,9 +187,9 @@ func (fs *lockingRawFileSystem) FsyncDir(header *Context, input *raw.FsyncIn) (c
 	return fs.RawFS.FsyncDir(header, input)
 }
 
-func (fs *lockingRawFileSystem) Init(params *RawFsInit) {
+func (fs *lockingRawFileSystem) Init(s *Server) {
 	defer fs.locked()()
-	fs.RawFS.Init(params)
+	fs.RawFS.Init(s)
 }
 
 func (fs *lockingRawFileSystem) StatFs(out *raw.StatfsOut, context *Context) (code Status) {

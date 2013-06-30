@@ -126,23 +126,16 @@ type RawFileSystem interface {
 	//
 	StatFs(out *raw.StatfsOut, context *Context) (code Status)
 
-	// Provide callbacks for pushing notifications to the kernel.
-	Init(params *RawFsInit)
+	// This is called on processing the first request. This call
+	// is intended so the filesystem can talk back to the kernel
+	// (through notify methods) and has access to debug data.
+	Init(*Server)
 }
 
 // Talk back to FUSE.
 //
-// InodeNotify invalidates the information associated with the inode
-// (ie. data cache, attributes, etc.)
 //
-// EntryNotify should be used if the existence status of an entry changes,
-// (ie. to notify of creation or deletion of the file).
 //
 // Somewhat confusingly, InodeNotify for a file that stopped to exist
 // will give the correct result for Lstat (ENOENT), but the kernel
 // will still issue file Open() on the inode.
-type RawFsInit struct {
-	InodeNotify  func(*raw.NotifyInvalInodeOut) Status
-	EntryNotify  func(parent uint64, name string) Status
-	DeleteNotify func(parent uint64, child uint64, name string) Status
-}

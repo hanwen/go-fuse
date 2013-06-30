@@ -14,7 +14,7 @@ func NewDefaultRawFileSystem() RawFileSystem {
 
 type defaultRawFileSystem struct{}
 
-func (fs *defaultRawFileSystem) Init(init *RawFsInit) {
+func (fs *defaultRawFileSystem) Init(*Server) {
 }
 
 func (fs *defaultRawFileSystem) String() string {

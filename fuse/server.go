@@ -166,18 +166,8 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 	if err != nil {
 		return nil, err
 	}
-	initParams := RawFsInit{
-		InodeNotify: func(n *raw.NotifyInvalInodeOut) Status {
-			return ms.writeInodeNotify(n)
-		},
-		EntryNotify: func(parent uint64, n string) Status {
-			return ms.writeEntryNotify(parent, n)
-		},
-		DeleteNotify: func(parent uint64, child uint64, n string) Status {
-			return ms.writeDeleteNotify(parent, child, n)
-		},
-	}
-	ms.fileSystem.Init(&initParams)
+
+	ms.fileSystem.Init(ms)
 	ms.mountPoint = mountPoint
 	ms.mountFd = fd
 	return ms, nil
@@ -388,7 +378,14 @@ func (ms *Server) write(req *request) Status {
 	return s
 }
 
-func (ms *Server) writeInodeNotify(entry *raw.NotifyInvalInodeOut) Status {
+// InodeNotify invalidates the information associated with the inode
+// (ie. data cache, attributes, etc.)
+func (ms *Server) InodeNotify(node uint64, off int64, length int64) Status {
+	entry := &raw.NotifyInvalInodeOut{
+		Ino:    node,
+		Off:    off,
+		Length: length,
+	}
 	req := request{
 		inHeader: &raw.InHeader{
 			Opcode: _OP_NOTIFY_INODE,
@@ -409,9 +406,13 @@ func (ms *Server) writeInodeNotify(entry *raw.NotifyInvalInodeOut) Status {
 	return result
 }
 
-func (ms *Server) writeDeleteNotify(parent uint64, child uint64, name string) Status {
+// DeleteNotify notifies the kernel that an entry is removed from a
+// directory.  In many cases, this is equivalent to EntryNotify,
+// except when the directory is in use, eg. as working directory of
+// some process.
+func (ms *Server) DeleteNotify(parent uint64, child uint64, name string) Status {
 	if ms.kernelSettings.Minor < 18 {
-		return ms.writeEntryNotify(parent, name)
+		return ms.EntryNotify(parent, name)
 	}
 
 	req := request{
@@ -446,7 +447,9 @@ func (ms *Server) writeDeleteNotify(parent uint64, child uint64, name string) St
 	return result
 }
 
-func (ms *Server) writeEntryNotify(parent uint64, name string) Status {
+// EntryNotify should be used if the existence status of an entry
+// within a directory changes.
+func (ms *Server) EntryNotify(parent uint64, name string) Status {
 	req := request{
 		inHeader: &raw.InHeader{
 			Opcode: _OP_NOTIFY_ENTRY,

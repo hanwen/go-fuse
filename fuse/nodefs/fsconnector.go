@@ -36,7 +36,7 @@ type FileSystemConnector struct {
 	debug bool
 
 	// Callbacks for talking back to the kernel.
-	fsInit fuse.RawFsInit
+	server *fuse.Server
 
 	nodeFs FileSystem
 
@@ -340,7 +340,7 @@ func (c *FileSystemConnector) Unmount(node *Inode) fuse.Status {
 	// We have to wait until the kernel has forgotten the
 	// mountpoint, so the write to node.mountPoint is no longer
 	// racy.
-	code := c.fsInit.DeleteNotify(parentId, c.inodeMap.Handle(&node.handled), name)
+	code := c.server.DeleteNotify(parentId, c.inodeMap.Handle(&node.handled), name)
 	if code.Ok() {
 		mount.treeLock.Unlock()
 		parentNode.mount.treeLock.Unlock()
@@ -375,12 +375,7 @@ func (c *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) f
 	if nId == 0 {
 		return fuse.OK
 	}
-	out := raw.NotifyInvalInodeOut{
-		Length: length,
-		Off:    off,
-		Ino:    nId,
-	}
-	return c.fsInit.InodeNotify(&out)
+	return c.server.InodeNotify(nId, off, length)
 }
 
 func (c *FileSystemConnector) EntryNotify(node *Inode, name string) fuse.Status {
@@ -394,7 +389,7 @@ func (c *FileSystemConnector) EntryNotify(node *Inode, name string) fuse.Status 
 	if nId == 0 {
 		return fuse.OK
 	}
-	return c.fsInit.EntryNotify(nId, name)
+	return c.server.EntryNotify(nId, name)
 }
 
 func (c *FileSystemConnector) DeleteNotify(dir *Inode, child *Inode, name string) fuse.Status {
@@ -412,5 +407,5 @@ func (c *FileSystemConnector) DeleteNotify(dir *Inode, child *Inode, name string
 
 	chId := c.inodeMap.Handle(&child.handled)
 
-	return c.fsInit.DeleteNotify(nId, chId, name)
+	return c.server.DeleteNotify(nId, chId, name)
 }

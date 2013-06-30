@@ -53,8 +53,8 @@ func (c *rawBridge) String() string {
 	return name
 }
 
-func (c *rawBridge) Init(fsInit *fuse.RawFsInit) {
-	c.fsInit = *fsInit
+func (c *rawBridge) Init(s *fuse.Server) {
+	c.server = s
 }
 
 func (c *FileSystemConnector) lookupMountUpdate(out *fuse.Attr, mount *fileSystemMount) (node *Inode, code fuse.Status) {
