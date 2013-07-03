@@ -37,9 +37,6 @@ type autoUnionFs struct {
 
 	nodeFs  *pathfs.PathNodeFs
 	options *AutoUnionFsOptions
-
-	mountState *fuse.Server
-	connector  *nodefs.FileSystemConnector
 }
 
 type AutoUnionFsOptions struct {
@@ -66,15 +63,7 @@ const (
 	_SCAN_CONFIG   = ".scan_config"
 )
 
-// A pathfs.FileSystem that we can hookup with MountState and
-// FileSystemConnector
-type RootFileSystem interface {
-	SetMountState(state *fuse.Server)
-	SetFileSystemConnector(conn *nodefs.FileSystemConnector)
-	pathfs.FileSystem
-}
-
-func NewAutoUnionFs(directory string, options AutoUnionFsOptions) RootFileSystem {
+func NewAutoUnionFs(directory string, options AutoUnionFsOptions) pathfs.FileSystem {
 	if options.HideReadonly {
 		options.HiddenFiles = append(options.HiddenFiles, _READONLY)
 	}
@@ -285,8 +274,10 @@ func (fs *autoUnionFs) SetDebug(b bool) {
 	// about race conditions here.
 	fs.debug = b
 	fs.nodeFs.SetDebug(b)
-	fs.connector.SetDebug(b)
-	fs.mountState.SetDebug(b)
+
+	conn := fs.nodeFs.Connector()
+	conn.SetDebug(b)
+	conn.Server().SetDebug(b)
 }
 
 func (fs *autoUnionFs) hasDebug() bool {
@@ -391,31 +382,22 @@ func (fs *autoUnionFs) StatusDir() (stream []fuse.DirEntry, status fuse.Status) 
 	return stream, fuse.OK
 }
 
-// SetMountState stores the MountState, which is necessary for
-// retrieving debug data.
-func (fs *autoUnionFs) SetMountState(state *fuse.Server) {
-	fs.mountState = state
-}
-
-func (fs *autoUnionFs) SetFileSystemConnector(conn *nodefs.FileSystemConnector) {
-	fs.connector = conn
-}
-
 func (fs *autoUnionFs) DebugData() string {
-	if fs.mountState == nil {
+	conn := fs.nodeFs.Connector()
+	if conn.Server() == nil {
 		return "autoUnionFs.mountState not set"
 	}
-	setting := fs.mountState.KernelSettings()
+	setting := conn.Server().KernelSettings()
 	msg := fmt.Sprintf(
 		"Version: %v\n"+
 			"Bufferpool: %v\n"+
 			"Kernel: %v\n",
 		fuse.Version(),
-		fs.mountState.DebugData(),
+		conn.Server().DebugData(),
 		&setting)
 
-	if fs.connector != nil {
-		msg += fmt.Sprintf("Live inodes: %d\n", fs.connector.InodeHandleCount())
+	if conn != nil {
+		msg += fmt.Sprintf("Live inodes: %d\n", conn.InodeHandleCount())
 	}
 
 	return msg

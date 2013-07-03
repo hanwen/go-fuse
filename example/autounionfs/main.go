@@ -72,9 +72,6 @@ func main() {
 	conn.SetDebug(*debug)
 	state.SetDebug(*debug)
 
-	gofs.SetMountState(state)
-	gofs.SetFileSystemConnector(conn)
-
 	state.Serve()
 	time.Sleep(1 * time.Second)
 }

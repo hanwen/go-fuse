@@ -105,6 +105,10 @@ func (fs *PathNodeFs) String() string {
 	return name
 }
 
+func (fs *PathNodeFs) Connector() *nodefs.FileSystemConnector {
+	return fs.connector
+}
+
 func (fs *PathNodeFs) OnMount(conn *nodefs.FileSystemConnector) {
 	fs.connector = conn
 	fs.fs.OnMount(fs)

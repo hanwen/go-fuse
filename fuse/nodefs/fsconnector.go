@@ -76,6 +76,11 @@ func NewFileSystemConnector(nodeFs FileSystem, opts *Options) (c *FileSystemConn
 	return c
 }
 
+// Server returns the fuse.Server that talking to the kernel.
+func (c *FileSystemConnector) Server() *fuse.Server {
+	return c.server
+}
+
 // SetDebug toggles printing of debug information.
 func (c *FileSystemConnector) SetDebug(debug bool) {
 	c.debug = debug
