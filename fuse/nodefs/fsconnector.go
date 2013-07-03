@@ -227,18 +227,18 @@ func (c *FileSystemConnector) Node(parent *Inode, fullPath string) (*Inode, []st
 	return node, nil
 }
 
-// Follows the path from the given parent. The path should be '/'
-// separated without leading slash.
+// Follows the path from the given parent, doing lookups as
+// necesary. The path should be '/' separated without leading slash.
 func (c *FileSystemConnector) LookupNode(parent *Inode, path string) *Inode {
-	// TODO - this is broken. The internalLookups will cause
-	// Nlookup increments that the kernel does not know about.
-
 	if path == "" {
 		return parent
 	}
+
 	components := strings.Split(path, "/")
 	for _, r := range components {
 		var a fuse.Attr
+		// This will not affect inode ID lookup counts, which
+		// are only update in response to kernel requests.
 		child, _ := c.internalLookup(&a, parent, r, nil)
 		if child == nil {
 			return nil

@@ -122,7 +122,7 @@ func (fs *PathNodeFs) Node(name string) *nodefs.Inode {
 	return n
 }
 
-// Like node, but use Lookup to discover inodes we may not have yet.
+// Like Node, but use Lookup to discover inodes we may not have yet.
 func (fs *PathNodeFs) LookupNode(name string) *nodefs.Inode {
 	return fs.connector.LookupNode(fs.Root().Inode(), name)
 }
