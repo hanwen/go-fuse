@@ -39,6 +39,8 @@ const (
 	EBADF   = Status(syscall.EBADF)
 	ENODEV  = Status(syscall.ENODEV)
 	EROFS   = Status(syscall.EROFS)
+	EINTR   = Status(syscall.EINTR)
+	EAGAIN  = Status(syscall.EAGAIN)
 )
 
 type Attr raw.Attr
@@ -47,7 +49,7 @@ type Owner raw.Owner
 
 // Context contains assorted per-request data
 type Context struct {
-	NodeId uint64
+	NodeId      uint64
 	Interrupted chan struct{} // This channel is closed if the request is interrupted
 	*raw.Context
 }

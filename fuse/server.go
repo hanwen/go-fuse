@@ -39,8 +39,9 @@ type Server struct {
 	started chan struct{}
 
 	reqMu               sync.Mutex
-	reqPool             []*request
-	reqFree             []*request
+	reqPool             []*request // list of all request structs, in use and not
+	reqFree             []*request // list of request structs not in use
+	reqIntr             []*request // list of suspended interrupt requests
 	readPool            [][]byte
 	reqReaders          int
 	outstandingReadBufs int
@@ -127,8 +128,8 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 	opts = &o
 	ms := &Server{
 		fileSystem: fs,
-		started: make(chan struct{}),
-		opts: &o,
+		started:    make(chan struct{}),
+		opts:       &o,
 	}
 	optStrs := opts.Options
 	if opts.AllowOther {
@@ -319,7 +320,10 @@ exit:
 	}
 }
 
-func (ms *Server) interruptRequest(unique uint64) bool {
+// Tries to signal an existing request of an interruption, if no request can be found push the interrupt request into a list.
+// Returns true if the interrupt request was dealt with and can be disposed
+func (ms *Server) interruptRequest(ireq *request) bool {
+	unique := (*raw.InterruptIn)(ireq.inData).Unique
 	ms.reqMu.Lock()
 	defer ms.reqMu.Unlock()
 	for _, req := range ms.reqPool {
@@ -335,14 +339,71 @@ func (ms *Server) interruptRequest(unique uint64) bool {
 			return true
 		}
 	}
+	ms.reqIntr = append(ms.reqIntr, ireq)
+	return false
+}
+
+// Checks that a newly received request was previously interrupted.
+// If there is an unfulfilled interrupt request returns EAGAIN for it.
+// Returns true if the request was interrupted and should not be processed
+func (ms *Server) checkInterrupted(req *request) bool {
+	if req.inHeader.Opcode == _OP_INTERRUPT {
+		ms.reqMu.Lock()
+		req.inUse = true
+		ms.reqMu.Unlock()
+		return false
+	}
+
+	var interruptReq *request = nil
+	found := false
+
+	ms.reqMu.Lock()
+	for i, ireq := range ms.reqIntr {
+		if (*raw.InterruptIn)(ireq.inData).Unique == req.inHeader.Unique {
+			interruptReq = ireq
+			copy(ms.reqIntr[i:], ms.reqIntr[i+1:])
+			ms.reqIntr = ms.reqIntr[:len(ms.reqIntr)-1]
+			found = true
+			break
+		}
+	}
+	req.inUse = true
+	if !found && len(ms.reqIntr) > 0 {
+		interruptReq = ms.reqIntr[0]
+		copy(ms.reqIntr, ms.reqIntr[1:])
+		ms.reqIntr = ms.reqIntr[:len(ms.reqIntr)-1]
+	}
+	ms.reqMu.Unlock()
+
+	if found {
+		req.status = EINTR
+		errNo := ms.write(req)
+		if errNo != 0 {
+			log.Printf("writer: Write/Writev failed, err: %v. opcode: %v",
+				errNo, operationName(req.inHeader.Opcode))
+		}
+
+		ms.returnRequest(req)
+		ms.returnRequest(interruptReq)
+		return true
+	}
+
+	if interruptReq != nil {
+		interruptReq.status = EAGAIN
+		ms.write(interruptReq)
+		ms.returnRequest(interruptReq)
+	}
+
 	return false
 }
 
 func (ms *Server) handleRequest(req *request) {
 	req.parse()
-	ms.reqMu.Lock()
-	req.inUse = true
-	ms.reqMu.Unlock()
+
+	if ms.checkInterrupted(req) {
+		return
+	}
+
 	if req.handler == nil {
 		req.status = ENOSYS
 	}
@@ -352,12 +413,9 @@ func (ms *Server) handleRequest(req *request) {
 	}
 
 	if req.status.Ok() && (req.inHeader.Opcode == _OP_INTERRUPT) {
-		if !ms.interruptRequest((*raw.InterruptIn)(req.inData).Unique) {
-			time.Sleep(500 * time.Millisecond)
-			req.status = Status(syscall.EAGAIN)
-			ms.write(req)
+		if ms.interruptRequest(req) {
+			ms.returnRequest(req)
 		}
-		ms.returnRequest(req)
 	} else {
 		if req.status.Ok() && req.handler.Func == nil {
 			log.Printf("Unimplemented opcode %v", operationName(req.inHeader.Opcode))
