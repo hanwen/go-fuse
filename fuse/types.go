@@ -48,6 +48,6 @@ type Owner raw.Owner
 // Context contains assorted per-request data
 type Context struct {
 	NodeId uint64
-	Interrupted chan bool
+	Interrupted chan struct{} // This channel is closed if the request is interrupted
 	*raw.Context
 }

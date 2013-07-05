@@ -56,6 +56,7 @@ type request struct {
 	// Input, if small enough to fit here.
 	smallInputBuf [128]byte
 
+	wasInterrupted bool
 	context Context
 }
 
@@ -72,10 +73,10 @@ func (r *request) clear() {
 	r.startTime = time.Time{}
 	r.handler = nil
 	r.readResult = nil
-	select {
-	case <-r.context.Interrupted:
-	default:
+	if r.wasInterrupted {
+		r.context.Interrupted = make(chan struct{})
 	}
+	r.wasInterrupted = false
 }
 
 func (r *request) InputDebug() string {

@@ -204,7 +204,7 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 	l := len(ms.reqFree)
 	if l <= 0 {
 		req = new(request)
-		req.context.Interrupted = make(chan bool, 1)
+		req.context.Interrupted = make(chan struct{})
 		ms.reqPool = append(ms.reqPool, req)
 	} else {
 		req = ms.reqFree[l-1]
@@ -261,13 +261,13 @@ func (ms *Server) returnRequest(req *request) {
 	}
 
 	ms.reqMu.Lock()
+	req.inUse = false
 	req.clear()
 	if req.bufferPoolOutputBuf != nil {
 		ms.readPool = append(ms.readPool, req.bufferPoolInputBuf)
 		ms.outstandingReadBufs--
 		req.bufferPoolInputBuf = nil
 	}
-	req.inUse = false
 	ms.reqFree = append(ms.reqFree, req)
 	ms.reqMu.Unlock()
 }
@@ -330,10 +330,8 @@ func (ms *Server) interruptRequest(unique uint64) bool {
 			continue
 		}
 		if req.inHeader.Unique == unique {
-			select {
-			case req.context.Interrupted <- true:
-			default:
-			}
+			close(req.context.Interrupted)
+			req.wasInterrupted = true
 			return true
 		}
 	}
