@@ -33,10 +33,14 @@ type GetAttrIn struct {
 	Fh_    uint64
 }
 
+// Flags accesses the flags. This is a method, because OSXFuse does not
+// have GetAttrIn flags.
 func (g *GetAttrIn) Flags() uint32 {
 	return g.Flags_
 }
 
+// Fh accesses the file handle. This is a method, because OSXFuse does not
+// have GetAttrIn flags.
 func (g *GetAttrIn) Fh() uint64 {
 	return g.Fh_
 }
