@@ -126,16 +126,8 @@ type RawFileSystem interface {
 	//
 	StatFs(out *raw.StatfsOut, context *Context) (code Status)
 
-	// This is called on processing the first request. This call
-	// is intended so the filesystem can talk back to the kernel
-	// (through notify methods) and has access to debug data.
+	// This is called on processing the first request. The
+	// filesystem implementation can use the server argument to
+	// talk back to the kernel (through notify methods).
 	Init(*Server)
 }
-
-// Talk back to FUSE.
-//
-//
-//
-// Somewhat confusingly, InodeNotify for a file that stopped to exist
-// will give the correct result for Lstat (ENOENT), but the kernel
-// will still issue file Open() on the inode.

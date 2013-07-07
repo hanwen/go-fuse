@@ -21,6 +21,7 @@ const (
 	_DEFAULT_BACKGROUND_TASKS = 12
 )
 
+// Status is the errno number that a FUSE call returns to the kernel.
 type Status int32
 
 const (
