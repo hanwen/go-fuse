@@ -24,6 +24,8 @@ func (d DirEntry) String() string {
 	return fmt.Sprintf("%o: %q", d.Mode, d.Name)
 }
 
+// DirEntryList holds the return value for READDIR and READDIRPLUS
+// opcodes.
 type DirEntryList struct {
 	buf    []byte
 	size   int
