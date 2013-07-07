@@ -62,6 +62,8 @@ func (g *GetAttrIn) Fh() uint64 {
 }
 
 type ReadIn struct {
+	InHeader
+
 	Fh        uint64
 	Offset    uint64
 	Size      uint32
@@ -69,6 +71,7 @@ type ReadIn struct {
 }
 
 type WriteIn struct {
+	InHeader
 	Fh         uint64
 	Offset     uint64
 	Size       uint32
@@ -89,6 +92,7 @@ type GetxtimesOut struct {
 }
 
 type ExchangeIn struct {
+	InHeader
 	Olddir  uint64
 	Newdir  uint64
 	Options uint64

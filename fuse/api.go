@@ -79,52 +79,52 @@ type RawFileSystem interface {
 	// If called, provide debug output through the log package.
 	SetDebug(debug bool)
 
-	Lookup(out *raw.EntryOut, context *Context, name string) (status Status)
+	Lookup(header *raw.InHeader, name string, out *raw.EntryOut) (status Status)
 	Forget(nodeid, nlookup uint64)
 
 	// Attributes.
-	GetAttr(out *raw.AttrOut, context *Context, input *raw.GetAttrIn) (code Status)
-	SetAttr(out *raw.AttrOut, context *Context, input *raw.SetAttrIn) (code Status)
+	GetAttr(input *raw.GetAttrIn, out *raw.AttrOut) (code Status)
+	SetAttr(input *raw.SetAttrIn, out *raw.AttrOut) (code Status)
 
 	// Modifying structure.
-	Mknod(out *raw.EntryOut, context *Context, input *raw.MknodIn, name string) (code Status)
-	Mkdir(out *raw.EntryOut, context *Context, input *raw.MkdirIn, name string) (code Status)
-	Unlink(context *Context, name string) (code Status)
-	Rmdir(context *Context, name string) (code Status)
-	Rename(context *Context, input *raw.RenameIn, oldName string, newName string) (code Status)
-	Link(out *raw.EntryOut, context *Context, input *raw.LinkIn, filename string) (code Status)
+	Mknod(input *raw.MknodIn, name string, out *raw.EntryOut) (code Status)
+	Mkdir(input *raw.MkdirIn, name string, out *raw.EntryOut) (code Status)
+	Unlink(header *raw.InHeader, name string) (code Status)
+	Rmdir(header *raw.InHeader, name string) (code Status)
+	Rename(input *raw.RenameIn, oldName string, newName string) (code Status)
+	Link(input *raw.LinkIn, filename string, out *raw.EntryOut) (code Status)
 
-	Symlink(out *raw.EntryOut, context *Context, pointedTo string, linkName string) (code Status)
-	Readlink(context *Context) (out []byte, code Status)
-	Access(context *Context, input *raw.AccessIn) (code Status)
+	Symlink(header *raw.InHeader, pointedTo string, linkName string, out *raw.EntryOut) (code Status)
+	Readlink(header *raw.InHeader) (out []byte, code Status)
+	Access(input *raw.AccessIn) (code Status)
 
 	// Extended attributes.
-	GetXAttrSize(context *Context, attr string) (sz int, code Status)
-	GetXAttrData(context *Context, attr string) (data []byte, code Status)
-	ListXAttr(context *Context) (attributes []byte, code Status)
-	SetXAttr(context *Context, input *raw.SetXAttrIn, attr string, data []byte) Status
-	RemoveXAttr(context *Context, attr string) (code Status)
+	GetXAttrSize(header *raw.InHeader, attr string) (sz int, code Status)
+	GetXAttrData(header *raw.InHeader, attr string) (data []byte, code Status)
+	ListXAttr(header *raw.InHeader) (attributes []byte, code Status)
+	SetXAttr(input *raw.SetXAttrIn, attr string, data []byte) Status
+	RemoveXAttr(header *raw.InHeader, attr string) (code Status)
 
 	// File handling.
-	Create(out *raw.CreateOut, context *Context, input *raw.CreateIn, name string) (code Status)
-	Open(out *raw.OpenOut, context *Context, input *raw.OpenIn) (status Status)
-	Read(*Context, *raw.ReadIn, []byte) (ReadResult, Status)
+	Create(input *raw.CreateIn, name string, out *raw.CreateOut) (code Status)
+	Open(input *raw.OpenIn, out *raw.OpenOut) (status Status)
+	Read(input *raw.ReadIn, buf []byte) (ReadResult, Status)
 
-	Release(context *Context, input *raw.ReleaseIn)
-	Write(*Context, *raw.WriteIn, []byte) (written uint32, code Status)
-	Flush(context *Context, input *raw.FlushIn) Status
-	Fsync(*Context, *raw.FsyncIn) (code Status)
-	Fallocate(Context *Context, in *raw.FallocateIn) (code Status)
+	Release(input *raw.ReleaseIn)
+	Write(input *raw.WriteIn, data []byte) (written uint32, code Status)
+	Flush(input *raw.FlushIn) Status
+	Fsync(input *raw.FsyncIn) (code Status)
+	Fallocate(input *raw.FallocateIn) (code Status)
 
 	// Directory handling
-	OpenDir(out *raw.OpenOut, context *Context, input *raw.OpenIn) (status Status)
-	ReadDir(out *DirEntryList, context *Context, input *raw.ReadIn) Status
-	ReadDirPlus(out *DirEntryList, context *Context, input *raw.ReadIn) Status
-	ReleaseDir(context *Context, input *raw.ReleaseIn)
-	FsyncDir(context *Context, input *raw.FsyncIn) (code Status)
+	OpenDir(input *raw.OpenIn, out *raw.OpenOut) (status Status)
+	ReadDir(input *raw.ReadIn, out *DirEntryList) Status
+	ReadDirPlus(input *raw.ReadIn, out *DirEntryList) Status
+	ReleaseDir(input *raw.ReleaseIn)
+	FsyncDir(input *raw.FsyncIn) (code Status)
 
 	//
-	StatFs(out *raw.StatfsOut, context *Context) (code Status)
+	StatFs(input *raw.InHeader, out *raw.StatfsOut) (code Status)
 
 	// This is called on processing the first request. The
 	// filesystem implementation can use the server argument to

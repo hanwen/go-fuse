@@ -141,7 +141,7 @@ func (r *request) parse() {
 	}
 
 	r.inHeader = (*raw.InHeader)(unsafe.Pointer(&r.inputBuf[0]))
-	r.arg = r.inputBuf[inHSize:]
+	r.arg = r.inputBuf[:]
 
 	r.handler = getHandler(r.inHeader.Opcode)
 	if r.handler == nil {
@@ -159,6 +159,8 @@ func (r *request) parse() {
 	if r.handler.InputSize > 0 {
 		r.inData = unsafe.Pointer(&r.arg[0])
 		r.arg = r.arg[r.handler.InputSize:]
+	} else {
+		r.arg = r.arg[inHSize:]
 	}
 
 	count := r.handler.FileNames
@@ -180,8 +182,6 @@ func (r *request) parse() {
 
 	copy(r.outBuf[:r.handler.OutputSize], zeroOutBuf[:r.handler.OutputSize])
 	r.outData = unsafe.Pointer(&r.outBuf[sizeOfOutHeader])
-	r.context.Context = &r.inHeader.Context
-	r.context.NodeId = r.inHeader.NodeId
 }
 
 func (r *request) serializeHeader(dataSize int) (header []byte) {

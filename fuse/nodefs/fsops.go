@@ -23,7 +23,7 @@ func (c *FileSystemConnector) RawFS() fuse.RawFileSystem {
 
 type rawBridge FileSystemConnector
 
-func (c *rawBridge) Fsync(context *fuse.Context, input *raw.FsyncIn) fuse.Status {
+func (c *rawBridge) Fsync(input *raw.FsyncIn) fuse.Status {
 	return fuse.ENOSYS
 }
 
@@ -31,7 +31,7 @@ func (c *rawBridge) SetDebug(debug bool) {
 	c.fsConn().SetDebug(debug)
 }
 
-func (c *rawBridge) FsyncDir(context *fuse.Context, input *raw.FsyncIn) fuse.Status {
+func (c *rawBridge) FsyncDir(input *raw.FsyncIn) fuse.Status {
 	return fuse.ENOSYS
 }
 
@@ -68,7 +68,7 @@ func (c *FileSystemConnector) lookupMountUpdate(out *fuse.Attr, mount *fileSyste
 	return mount.mountInode, fuse.OK
 }
 
-func (c *FileSystemConnector) internalLookup(out *fuse.Attr, parent *Inode, name string, context *fuse.Context) (node *Inode, code fuse.Status) {
+func (c *FileSystemConnector) internalLookup(out *fuse.Attr, parent *Inode, name string, header *raw.InHeader) (node *Inode, code fuse.Status) {
 	child := parent.GetChild(name)
 	if child != nil && child.mountPoint != nil {
 		return c.lookupMountUpdate(out, child.mountPoint)
@@ -79,10 +79,10 @@ func (c *FileSystemConnector) internalLookup(out *fuse.Attr, parent *Inode, name
 	}
 	var fsNode Node
 	if child != nil {
-		code = child.fsInode.GetAttr(out, nil, context)
+		code = child.fsInode.GetAttr(out, nil, context(header))
 		fsNode = child.Node()
 	} else {
-		fsNode, code = parent.fsInode.Lookup(out, name, context)
+		fsNode, code = parent.fsInode.Lookup(out, name, context(header))
 	}
 
 	if child == nil && fsNode != nil {
@@ -95,14 +95,14 @@ func (c *FileSystemConnector) internalLookup(out *fuse.Attr, parent *Inode, name
 	return child, code
 }
 
-func (c *rawBridge) Lookup(out *raw.EntryOut, context *fuse.Context, name string) (code fuse.Status) {
-	parent := c.toInode(context.NodeId)
+func (c *rawBridge) Lookup(header *raw.InHeader, name string, out *raw.EntryOut) (code fuse.Status) {
+	parent := c.toInode(header.NodeId)
 	if !parent.IsDir() {
-		log.Printf("Lookup %q called on non-Directory node %d", name, context.NodeId)
+		log.Printf("Lookup %q called on non-Directory node %d", name, header.NodeId)
 		return fuse.ENOTDIR
 	}
 	outAttr := (*fuse.Attr)(&out.Attr)
-	child, code := c.fsConn().internalLookup(outAttr, parent, name, context)
+	child, code := c.fsConn().internalLookup(outAttr, parent, name, header)
 	if code == fuse.ENOENT && parent.mount.negativeEntry(out) {
 		return fuse.OK
 	}
@@ -125,8 +125,8 @@ func (c *rawBridge) Forget(nodeID, nlookup uint64) {
 	c.fsConn().forgetUpdate(nodeID, int(nlookup))
 }
 
-func (c *rawBridge) GetAttr(out *raw.AttrOut, context *fuse.Context, input *raw.GetAttrIn) (code fuse.Status) {
-	node := c.toInode(context.NodeId)
+func (c *rawBridge) GetAttr(input *raw.GetAttrIn, out *raw.AttrOut) (code fuse.Status) {
+	node := c.toInode(input.NodeId)
 
 	var f File
 	if input.Flags()&raw.FUSE_GETATTR_FH != 0 {
@@ -136,18 +136,18 @@ func (c *rawBridge) GetAttr(out *raw.AttrOut, context *fuse.Context, input *raw.
 	}
 
 	dest := (*fuse.Attr)(&out.Attr)
-	code = node.fsInode.GetAttr(dest, f, context)
+	code = node.fsInode.GetAttr(dest, f, context(&input.InHeader))
 	if !code.Ok() {
 		return code
 	}
 
-	node.mount.fillAttr(out, context.NodeId)
+	node.mount.fillAttr(out, input.NodeId)
 	return fuse.OK
 }
 
-func (c *rawBridge) OpenDir(out *raw.OpenOut, context *fuse.Context, input *raw.OpenIn) (code fuse.Status) {
-	node := c.toInode(context.NodeId)
-	stream, err := node.fsInode.OpenDir(context)
+func (c *rawBridge) OpenDir(input *raw.OpenIn, out *raw.OpenOut) (code fuse.Status) {
+	node := c.toInode(input.NodeId)
+	stream, err := node.fsInode.OpenDir(context(&input.InHeader))
 	if err != fuse.OK {
 		return err
 	}
@@ -165,21 +165,25 @@ func (c *rawBridge) OpenDir(out *raw.OpenOut, context *fuse.Context, input *raw.
 	return fuse.OK
 }
 
-func (c *rawBridge) ReadDir(l *fuse.DirEntryList, context *fuse.Context, input *raw.ReadIn) fuse.Status {
-	node := c.toInode(context.NodeId)
+func (c *rawBridge) ReadDir(input *raw.ReadIn, out *fuse.DirEntryList) fuse.Status {
+	node := c.toInode(input.NodeId)
 	opened := node.mount.getOpenedFile(input.Fh)
-	return opened.dir.ReadDir(l, input, context)
+	return opened.dir.ReadDir(input, out)
 }
 
-func (c *rawBridge) ReadDirPlus(l *fuse.DirEntryList, context *fuse.Context, input *raw.ReadIn) fuse.Status {
-	node := c.toInode(context.NodeId)
+func (c *rawBridge) ReadDirPlus(input *raw.ReadIn, out *fuse.DirEntryList) fuse.Status {
+	node := c.toInode(input.NodeId)
 	opened := node.mount.getOpenedFile(input.Fh)
-	return opened.dir.ReadDirPlus(l, input, context)
+	return opened.dir.ReadDirPlus(input, out)
 }
 
-func (c *rawBridge) Open(out *raw.OpenOut, context *fuse.Context, input *raw.OpenIn) (status fuse.Status) {
-	node := c.toInode(context.NodeId)
-	f, code := node.fsInode.Open(input.Flags, context)
+func context(header *raw.InHeader) *fuse.Context {
+	return (*fuse.Context)(&header.Context)
+}
+
+func (c *rawBridge) Open(input *raw.OpenIn, out *raw.OpenOut) (status fuse.Status) {
+	node := c.toInode(input.NodeId)
+	f, code := node.fsInode.Open(input.Flags, context(&input.InHeader))
 	if !code.Ok() {
 		return code
 	}
@@ -189,8 +193,11 @@ func (c *rawBridge) Open(out *raw.OpenOut, context *fuse.Context, input *raw.Ope
 	return fuse.OK
 }
 
-func (c *rawBridge) SetAttr(out *raw.AttrOut, context *fuse.Context, input *raw.SetAttrIn) (code fuse.Status) {
-	node := c.toInode(context.NodeId)
+func (c *rawBridge) SetAttr(input *raw.SetAttrIn, out *raw.AttrOut) (code fuse.Status) {
+	node := c.toInode(input.NodeId)
+
+	ctx := context(&input.InHeader)
+
 	var f File
 	if input.Valid&raw.FATTR_FH != 0 {
 		opened := node.mount.getOpenedFile(input.Fh)
@@ -199,13 +206,13 @@ func (c *rawBridge) SetAttr(out *raw.AttrOut, context *fuse.Context, input *raw.
 
 	if code.Ok() && input.Valid&raw.FATTR_MODE != 0 {
 		permissions := uint32(07777) & input.Mode
-		code = node.fsInode.Chmod(f, permissions, context)
+		code = node.fsInode.Chmod(f, permissions, ctx)
 	}
 	if code.Ok() && (input.Valid&(raw.FATTR_UID|raw.FATTR_GID) != 0) {
-		code = node.fsInode.Chown(f, uint32(input.Uid), uint32(input.Gid), context)
+		code = node.fsInode.Chown(f, uint32(input.Uid), uint32(input.Gid), ctx)
 	}
 	if code.Ok() && input.Valid&raw.FATTR_SIZE != 0 {
-		code = node.fsInode.Truncate(f, input.Size, context)
+		code = node.fsInode.Truncate(f, input.Size, ctx)
 	}
 	if code.Ok() && (input.Valid&(raw.FATTR_ATIME|raw.FATTR_MTIME|raw.FATTR_ATIME_NOW|raw.FATTR_MTIME_NOW) != 0) {
 		now := time.Now()
@@ -230,7 +237,7 @@ func (c *rawBridge) SetAttr(out *raw.AttrOut, context *fuse.Context, input *raw.
 			}
 		}
 
-		code = node.fsInode.Utimens(f, atime, mtime, context)
+		code = node.fsInode.Utimens(f, atime, mtime, ctx)
 	}
 
 	if !code.Ok() {
@@ -240,28 +247,28 @@ func (c *rawBridge) SetAttr(out *raw.AttrOut, context *fuse.Context, input *raw.
 	// Must call GetAttr(); the filesystem may override some of
 	// the changes we effect here.
 	attr := (*fuse.Attr)(&out.Attr)
-	code = node.fsInode.GetAttr(attr, nil, context)
+	code = node.fsInode.GetAttr(attr, nil, ctx)
 	if code.Ok() {
-		node.mount.fillAttr(out, context.NodeId)
+		node.mount.fillAttr(out, input.NodeId)
 	}
 	return code
 }
 
-func (c *rawBridge) Fallocate(context *fuse.Context, in *raw.FallocateIn) (code fuse.Status) {
-	n := c.toInode(context.NodeId)
+func (c *rawBridge) Fallocate(in *raw.FallocateIn) (code fuse.Status) {
+	n := c.toInode(in.NodeId)
 	opened := n.mount.getOpenedFile(in.Fh)
 
-	return n.fsInode.Fallocate(opened, in.Offset, in.Length, in.Mode, context)
+	return n.fsInode.Fallocate(opened, in.Offset, in.Length, in.Mode, context(&in.InHeader))
 }
 
-func (c *rawBridge) Readlink(context *fuse.Context) (out []byte, code fuse.Status) {
-	n := c.toInode(context.NodeId)
-	return n.fsInode.Readlink(context)
+func (c *rawBridge) Readlink(header *raw.InHeader) (out []byte, code fuse.Status) {
+	n := c.toInode(header.NodeId)
+	return n.fsInode.Readlink(context(header))
 }
 
-func (c *rawBridge) Mknod(out *raw.EntryOut, context *fuse.Context, input *raw.MknodIn, name string) (code fuse.Status) {
-	parent := c.toInode(context.NodeId)
-	ctx := context
+func (c *rawBridge) Mknod(input *raw.MknodIn, name string, out *raw.EntryOut) (code fuse.Status) {
+	parent := c.toInode(input.NodeId)
+	ctx := context(&input.InHeader)
 	fsNode, code := parent.fsInode.Mknod(name, input.Mode, uint32(input.Rdev), ctx)
 	if code.Ok() {
 		c.childLookup(out, fsNode)
@@ -270,9 +277,9 @@ func (c *rawBridge) Mknod(out *raw.EntryOut, context *fuse.Context, input *raw.M
 	return code
 }
 
-func (c *rawBridge) Mkdir(out *raw.EntryOut, context *fuse.Context, input *raw.MkdirIn, name string) (code fuse.Status) {
-	parent := c.toInode(context.NodeId)
-	ctx := context
+func (c *rawBridge) Mkdir(input *raw.MkdirIn, name string, out *raw.EntryOut) (code fuse.Status) {
+	parent := c.toInode(input.NodeId)
+	ctx := context(&input.InHeader)
 	fsNode, code := parent.fsInode.Mkdir(name, input.Mode, ctx)
 	if code.Ok() {
 		c.childLookup(out, fsNode)
@@ -281,19 +288,19 @@ func (c *rawBridge) Mkdir(out *raw.EntryOut, context *fuse.Context, input *raw.M
 	return code
 }
 
-func (c *rawBridge) Unlink(context *fuse.Context, name string) (code fuse.Status) {
-	parent := c.toInode(context.NodeId)
-	return parent.fsInode.Unlink(name, context)
+func (c *rawBridge) Unlink(header *raw.InHeader, name string) (code fuse.Status) {
+	parent := c.toInode(header.NodeId)
+	return parent.fsInode.Unlink(name, context(header))
 }
 
-func (c *rawBridge) Rmdir(context *fuse.Context, name string) (code fuse.Status) {
-	parent := c.toInode(context.NodeId)
-	return parent.fsInode.Rmdir(name, context)
+func (c *rawBridge) Rmdir(header *raw.InHeader, name string) (code fuse.Status) {
+	parent := c.toInode(header.NodeId)
+	return parent.fsInode.Rmdir(name, context(header))
 }
 
-func (c *rawBridge) Symlink(out *raw.EntryOut, context *fuse.Context, pointedTo string, linkName string) (code fuse.Status) {
-	parent := c.toInode(context.NodeId)
-	ctx := context
+func (c *rawBridge) Symlink(header *raw.InHeader, pointedTo string, linkName string, out *raw.EntryOut) (code fuse.Status) {
+	parent := c.toInode(header.NodeId)
+	ctx := context(header)
 	fsNode, code := parent.fsInode.Symlink(linkName, pointedTo, ctx)
 	if code.Ok() {
 		c.childLookup(out, fsNode)
@@ -302,8 +309,8 @@ func (c *rawBridge) Symlink(out *raw.EntryOut, context *fuse.Context, pointedTo 
 	return code
 }
 
-func (c *rawBridge) Rename(context *fuse.Context, input *raw.RenameIn, oldName string, newName string) (code fuse.Status) {
-	oldParent := c.toInode(context.NodeId)
+func (c *rawBridge) Rename(input *raw.RenameIn, oldName string, newName string) (code fuse.Status) {
+	oldParent := c.toInode(input.NodeId)
 
 	child := oldParent.GetChild(oldName)
 	if child.mountPoint != nil {
@@ -315,17 +322,17 @@ func (c *rawBridge) Rename(context *fuse.Context, input *raw.RenameIn, oldName s
 		return fuse.EXDEV
 	}
 
-	return oldParent.fsInode.Rename(oldName, newParent.fsInode, newName, context)
+	return oldParent.fsInode.Rename(oldName, newParent.fsInode, newName, context(&input.InHeader))
 }
 
-func (c *rawBridge) Link(out *raw.EntryOut, context *fuse.Context, input *raw.LinkIn, name string) (code fuse.Status) {
+func (c *rawBridge) Link(input *raw.LinkIn, name string, out *raw.EntryOut) (code fuse.Status) {
 	existing := c.toInode(input.Oldnodeid)
-	parent := c.toInode(context.NodeId)
+	parent := c.toInode(input.NodeId)
 
 	if existing.mount != parent.mount {
 		return fuse.EXDEV
 	}
-	ctx := context
+	ctx := context(&input.InHeader)
 	fsNode, code := parent.fsInode.Link(name, existing.fsInode, ctx)
 	if code.Ok() {
 		c.childLookup(out, fsNode)
@@ -335,14 +342,14 @@ func (c *rawBridge) Link(out *raw.EntryOut, context *fuse.Context, input *raw.Li
 	return code
 }
 
-func (c *rawBridge) Access(context *fuse.Context, input *raw.AccessIn) (code fuse.Status) {
-	n := c.toInode(context.NodeId)
-	return n.fsInode.Access(input.Mask, context)
+func (c *rawBridge) Access(input *raw.AccessIn) (code fuse.Status) {
+	n := c.toInode(input.NodeId)
+	return n.fsInode.Access(input.Mask, context(&input.InHeader))
 }
 
-func (c *rawBridge) Create(out *raw.CreateOut, context *fuse.Context, input *raw.CreateIn, name string) (code fuse.Status) {
-	parent := c.toInode(context.NodeId)
-	f, fsNode, code := parent.fsInode.Create(name, uint32(input.Flags), input.Mode, context)
+func (c *rawBridge) Create(input *raw.CreateIn, name string, out *raw.CreateOut) (code fuse.Status) {
+	parent := c.toInode(input.NodeId)
+	f, fsNode, code := parent.fsInode.Create(name, uint32(input.Flags), input.Mode, context(&input.InHeader))
 	if !code.Ok() {
 		return code
 	}
@@ -355,41 +362,41 @@ func (c *rawBridge) Create(out *raw.CreateOut, context *fuse.Context, input *raw
 	return code
 }
 
-func (c *rawBridge) Release(context *fuse.Context, input *raw.ReleaseIn) {
-	node := c.toInode(context.NodeId)
+func (c *rawBridge) Release(input *raw.ReleaseIn) {
+	node := c.toInode(input.NodeId)
 	opened := node.mount.unregisterFileHandle(input.Fh, node)
 	opened.WithFlags.File.Release()
 }
 
-func (c *rawBridge) ReleaseDir(context *fuse.Context, input *raw.ReleaseIn) {
-	node := c.toInode(context.NodeId)
+func (c *rawBridge) ReleaseDir(input *raw.ReleaseIn) {
+	node := c.toInode(input.NodeId)
 	node.mount.unregisterFileHandle(input.Fh, node)
 }
 
-func (c *rawBridge) GetXAttrSize(context *fuse.Context, attribute string) (sz int, code fuse.Status) {
-	node := c.toInode(context.NodeId)
-	data, errno := node.fsInode.GetXAttr(attribute, context)
+func (c *rawBridge) GetXAttrSize(header *raw.InHeader, attribute string) (sz int, code fuse.Status) {
+	node := c.toInode(header.NodeId)
+	data, errno := node.fsInode.GetXAttr(attribute, context(header))
 	return len(data), errno
 }
 
-func (c *rawBridge) GetXAttrData(context *fuse.Context, attribute string) (data []byte, code fuse.Status) {
-	node := c.toInode(context.NodeId)
-	return node.fsInode.GetXAttr(attribute, context)
+func (c *rawBridge) GetXAttrData(header *raw.InHeader, attribute string) (data []byte, code fuse.Status) {
+	node := c.toInode(header.NodeId)
+	return node.fsInode.GetXAttr(attribute, context(header))
 }
 
-func (c *rawBridge) RemoveXAttr(context *fuse.Context, attr string) fuse.Status {
-	node := c.toInode(context.NodeId)
-	return node.fsInode.RemoveXAttr(attr, context)
+func (c *rawBridge) RemoveXAttr(header *raw.InHeader, attr string) fuse.Status {
+	node := c.toInode(header.NodeId)
+	return node.fsInode.RemoveXAttr(attr, context(header))
 }
 
-func (c *rawBridge) SetXAttr(context *fuse.Context, input *raw.SetXAttrIn, attr string, data []byte) fuse.Status {
-	node := c.toInode(context.NodeId)
-	return node.fsInode.SetXAttr(attr, data, int(input.Flags), context)
+func (c *rawBridge) SetXAttr(input *raw.SetXAttrIn, attr string, data []byte) fuse.Status {
+	node := c.toInode(input.NodeId)
+	return node.fsInode.SetXAttr(attr, data, int(input.Flags), context(&input.InHeader))
 }
 
-func (c *rawBridge) ListXAttr(context *fuse.Context) (data []byte, code fuse.Status) {
-	node := c.toInode(context.NodeId)
-	attrs, code := node.fsInode.ListXAttr(context)
+func (c *rawBridge) ListXAttr(header *raw.InHeader) (data []byte, code fuse.Status) {
+	node := c.toInode(header.NodeId)
+	attrs, code := node.fsInode.ListXAttr(context(header))
 	if code != fuse.OK {
 		return nil, code
 	}
@@ -406,21 +413,21 @@ func (c *rawBridge) ListXAttr(context *fuse.Context) (data []byte, code fuse.Sta
 ////////////////
 // files.
 
-func (c *rawBridge) Write(context *fuse.Context, input *raw.WriteIn, data []byte) (written uint32, code fuse.Status) {
-	node := c.toInode(context.NodeId)
+func (c *rawBridge) Write(input *raw.WriteIn, data []byte) (written uint32, code fuse.Status) {
+	node := c.toInode(input.NodeId)
 	opened := node.mount.getOpenedFile(input.Fh)
 	return opened.WithFlags.File.Write(data, int64(input.Offset))
 }
 
-func (c *rawBridge) Read(context *fuse.Context, input *raw.ReadIn, buf []byte) (fuse.ReadResult, fuse.Status) {
-	node := c.toInode(context.NodeId)
+func (c *rawBridge) Read(input *raw.ReadIn, buf []byte) (fuse.ReadResult, fuse.Status) {
+	node := c.toInode(input.NodeId)
 	opened := node.mount.getOpenedFile(input.Fh)
 
 	return opened.WithFlags.File.Read(buf, int64(input.Offset))
 }
 
-func (c *rawBridge) StatFs(out *raw.StatfsOut, context *fuse.Context) fuse.Status {
-	node := c.toInode(context.NodeId)
+func (c *rawBridge) StatFs(header *raw.InHeader, out *raw.StatfsOut) fuse.Status {
+	node := c.toInode(header.NodeId)
 	s := node.Node().StatFs()
 	if s == nil {
 		return fuse.ENOSYS
@@ -429,8 +436,8 @@ func (c *rawBridge) StatFs(out *raw.StatfsOut, context *fuse.Context) fuse.Statu
 	return fuse.OK
 }
 
-func (c *rawBridge) Flush(context *fuse.Context, input *raw.FlushIn) fuse.Status {
-	node := c.toInode(context.NodeId)
+func (c *rawBridge) Flush(input *raw.FlushIn) fuse.Status {
+	node := c.toInode(input.NodeId)
 	opened := node.mount.getOpenedFile(input.Fh)
 	return opened.WithFlags.File.Flush()
 }

@@ -4,6 +4,8 @@
 package raw
 
 type ForgetIn struct {
+	InHeader
+
 	Nlookup uint64
 }
 
@@ -13,24 +15,29 @@ type ForgetOne struct {
 }
 
 type BatchForgetIn struct {
+	InHeader
 	Count uint32
 	Dummy uint32
 }
 
 type MkdirIn struct {
+	InHeader
 	Mode  uint32
 	Umask uint32
 }
 
 type RenameIn struct {
+	InHeader
 	Newdir uint64
 }
 
 type LinkIn struct {
+	InHeader
 	Oldnodeid uint64
 }
 
 type MknodIn struct {
+	InHeader
 	Mode    uint32
 	Rdev    uint32
 	Umask   uint32
@@ -56,6 +63,8 @@ const ( // SetAttrIn.Valid
 )
 
 type SetAttrInCommon struct {
+	InHeader
+
 	Valid     uint32
 	Padding   uint32
 	Fh        uint64
@@ -76,6 +85,7 @@ type SetAttrInCommon struct {
 const RELEASE_FLUSH = (1 << 0)
 
 type ReleaseIn struct {
+	InHeader
 	Fh           uint64
 	Flags        uint32
 	ReleaseFlags uint32
@@ -83,6 +93,7 @@ type ReleaseIn struct {
 }
 
 type OpenIn struct {
+	InHeader
 	Flags  uint32
 	Unused uint32
 }
@@ -120,6 +131,8 @@ const (
 )
 
 type InitIn struct {
+	InHeader
+
 	Major        uint32
 	Minor        uint32
 	MaxReadAhead uint32
@@ -137,6 +150,7 @@ type InitOut struct {
 }
 
 type CuseInitIn struct {
+	InHeader
 	Major  uint32
 	Minor  uint32
 	Unused uint32
@@ -156,10 +170,12 @@ type CuseInitOut struct {
 }
 
 type InterruptIn struct {
+	InHeader
 	Unique uint64
 }
 
 type BmapIn struct {
+	InHeader
 	Block     uint64
 	Blocksize uint32
 	Padding   uint32
@@ -176,6 +192,7 @@ const (
 )
 
 type IoctlIn struct {
+	InHeader
 	Fh      uint64
 	Flags   uint32
 	Cmd     uint32
@@ -192,6 +209,7 @@ type IoctlOut struct {
 }
 
 type PollIn struct {
+	InHeader
 	Fh      uint64
 	Kh      uint64
 	Flags   uint32
@@ -213,11 +231,13 @@ type WriteOut struct {
 }
 
 type SetXAttrIn struct {
+	InHeader
 	Size  uint32
 	Flags uint32
 }
 
 type GetXAttrIn struct {
+	InHeader
 	Size    uint32
 	Padding uint32
 }
@@ -235,6 +255,7 @@ type FileLock struct {
 }
 
 type LkIn struct {
+	InHeader
 	Fh      uint64
 	Owner   uint64
 	Lk      FileLock
@@ -255,11 +276,13 @@ const (
 )
 
 type AccessIn struct {
+	InHeader
 	Mask    uint32
 	Padding uint32
 }
 
 type FsyncIn struct {
+	InHeader
 	Fh         uint64
 	FsyncFlags uint32
 	Padding    uint32
@@ -272,6 +295,7 @@ type OutHeader struct {
 }
 
 type CreateIn struct {
+	InHeader
 	Flags   uint32
 	Mode    uint32
 	Umask   uint32
@@ -308,6 +332,7 @@ const (
 )
 
 type FlushIn struct {
+	InHeader
 	Fh        uint64
 	Unused    uint32
 	Padding   uint32
@@ -380,6 +405,7 @@ const (
 )
 
 type FallocateIn struct {
+	InHeader
 	Fh      uint64
 	Offset  uint64
 	Length  uint64

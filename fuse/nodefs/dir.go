@@ -15,14 +15,14 @@ type connectorDir struct {
 	lookups    []raw.EntryOut
 }
 
-func (d *connectorDir) ReadDir(list *fuse.DirEntryList, input *raw.ReadIn, context *fuse.Context) (code fuse.Status) {
+func (d *connectorDir) ReadDir(input *raw.ReadIn, out *fuse.DirEntryList) (code fuse.Status) {
 	if d.stream == nil {
 		return fuse.OK
 	}
 	// rewinddir() should be as if reopening directory.
 	// TODO - test this.
 	if d.lastOffset > 0 && input.Offset == 0 {
-		d.stream, code = d.node.OpenDir(context)
+		d.stream, code = d.node.OpenDir((*fuse.Context)(&input.Context))
 		if !code.Ok() {
 			return code
 		}
@@ -34,7 +34,7 @@ func (d *connectorDir) ReadDir(list *fuse.DirEntryList, input *raw.ReadIn, conte
 			log.Printf("got emtpy directory entry, mode %o.", e.Mode)
 			continue
 		}
-		ok, off := list.AddDirEntry(e)
+		ok, off := out.AddDirEntry(e)
 		d.lastOffset = off
 		if !ok {
 			break
@@ -43,14 +43,14 @@ func (d *connectorDir) ReadDir(list *fuse.DirEntryList, input *raw.ReadIn, conte
 	return fuse.OK
 }
 
-func (d *connectorDir) ReadDirPlus(list *fuse.DirEntryList, input *raw.ReadIn, context *fuse.Context) (code fuse.Status) {
+func (d *connectorDir) ReadDirPlus(input *raw.ReadIn, out *fuse.DirEntryList) (code fuse.Status) {
 	if d.stream == nil {
 		return fuse.OK
 	}
 
 	// rewinddir() should be as if reopening directory.
 	if d.lastOffset > 0 && input.Offset == 0 {
-		d.stream, code = d.node.OpenDir(context)
+		d.stream, code = d.node.OpenDir((*fuse.Context)(&input.Context))
 		if !code.Ok() {
 			return code
 		}
@@ -64,7 +64,7 @@ func (d *connectorDir) ReadDirPlus(list *fuse.DirEntryList, input *raw.ReadIn, c
 				continue
 			}
 			// We ignore the return value
-			code := d.rawFS.Lookup(&d.lookups[i], context, n.Name)
+			code := d.rawFS.Lookup(&input.InHeader, n.Name, &d.lookups[i])
 			if !code.Ok() {
 				d.lookups[i] = raw.EntryOut{}
 			}
@@ -77,7 +77,7 @@ func (d *connectorDir) ReadDirPlus(list *fuse.DirEntryList, input *raw.ReadIn, c
 			log.Printf("got empty directory entry, mode %o.", e.Mode)
 			continue
 		}
-		ok, off := list.AddDirLookupEntry(e, &d.lookups[input.Offset+uint64(i)])
+		ok, off := out.AddDirLookupEntry(e, &d.lookups[input.Offset+uint64(i)])
 		d.lastOffset = off
 		if !ok {
 			break
