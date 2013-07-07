@@ -67,7 +67,7 @@ const (
 
 ////////////////////////////////////////////////////////////////
 
-func doInit(state *Server, req *request) {
+func doInit(server *Server, req *request) {
 	input := (*raw.InitIn)(req.inData)
 	if input.Major != _FUSE_KERNEL_VERSION {
 		log.Printf("Major versions does not match. Given %d, want %d\n", input.Major, _FUSE_KERNEL_VERSION)
@@ -80,24 +80,24 @@ func doInit(state *Server, req *request) {
 		return
 	}
 
-	state.reqMu.Lock()
-	state.kernelSettings = *input
-	state.kernelSettings.Flags = input.Flags & (raw.CAP_ASYNC_READ | raw.CAP_BIG_WRITES | raw.CAP_FILE_OPS |
+	server.reqMu.Lock()
+	server.kernelSettings = *input
+	server.kernelSettings.Flags = input.Flags & (raw.CAP_ASYNC_READ | raw.CAP_BIG_WRITES | raw.CAP_FILE_OPS |
 		raw.CAP_AUTO_INVAL_DATA | raw.CAP_READDIRPLUS)
 
 	if input.Minor >= 13 {
-		state.setSplice()
+		server.setSplice()
 	}
-	state.reqMu.Unlock()
+	server.reqMu.Unlock()
 
 	out := &raw.InitOut{
 		Major:               _FUSE_KERNEL_VERSION,
 		Minor:               _OUR_MINOR_VERSION,
 		MaxReadAhead:        input.MaxReadAhead,
-		Flags:               state.kernelSettings.Flags,
-		MaxWrite:            uint32(state.opts.MaxWrite),
-		CongestionThreshold: uint16(state.opts.MaxBackground * 3 / 4),
-		MaxBackground:       uint16(state.opts.MaxBackground),
+		Flags:               server.kernelSettings.Flags,
+		MaxWrite:            uint32(server.opts.MaxWrite),
+		CongestionThreshold: uint16(server.opts.MaxBackground * 3 / 4),
+		MaxBackground:       uint16(server.opts.MaxBackground),
 	}
 	if out.Minor > input.Minor {
 		out.Minor = input.Minor
@@ -107,27 +107,27 @@ func doInit(state *Server, req *request) {
 	req.status = OK
 }
 
-func doOpen(state *Server, req *request) {
+func doOpen(server *Server, req *request) {
 	out := (*raw.OpenOut)(req.outData)
-	status := state.fileSystem.Open(out, &req.context, (*raw.OpenIn)(req.inData))
+	status := server.fileSystem.Open(out, &req.context, (*raw.OpenIn)(req.inData))
 	req.status = status
 	if status != OK {
 		return
 	}
 }
 
-func doCreate(state *Server, req *request) {
+func doCreate(server *Server, req *request) {
 	out := (*raw.CreateOut)(req.outData)
-	status := state.fileSystem.Create(out, &req.context, (*raw.CreateIn)(req.inData), req.filenames[0])
+	status := server.fileSystem.Create(out, &req.context, (*raw.CreateIn)(req.inData), req.filenames[0])
 	req.status = status
 }
 
-func doReadDir(state *Server, req *request) {
+func doReadDir(server *Server, req *request) {
 	in := (*raw.ReadIn)(req.inData)
-	buf := state.allocOut(req, in.Size)
+	buf := server.allocOut(req, in.Size)
 	entries := NewDirEntryList(buf, uint64(in.Offset))
 
-	code := state.fileSystem.ReadDir(entries, &req.context, in)
+	code := server.fileSystem.ReadDir(entries, &req.context, in)
 	req.flatData = entries.bytes()
 	req.status = code
 }
@@ -142,19 +142,19 @@ func doReadDirPlus(server *Server, req *request) {
 	req.status = code
 }
 
-func doOpenDir(state *Server, req *request) {
+func doOpenDir(server *Server, req *request) {
 	out := (*raw.OpenOut)(req.outData)
-	status := state.fileSystem.OpenDir(out, &req.context, (*raw.OpenIn)(req.inData))
+	status := server.fileSystem.OpenDir(out, &req.context, (*raw.OpenIn)(req.inData))
 	req.status = status
 }
 
-func doSetattr(state *Server, req *request) {
+func doSetattr(server *Server, req *request) {
 	out := (*raw.AttrOut)(req.outData)
-	req.status = state.fileSystem.SetAttr(out, &req.context, (*raw.SetAttrIn)(req.inData))
+	req.status = server.fileSystem.SetAttr(out, &req.context, (*raw.SetAttrIn)(req.inData))
 }
 
-func doWrite(state *Server, req *request) {
-	n, status := state.fileSystem.Write(&req.context, (*raw.WriteIn)(req.inData), req.arg)
+func doWrite(server *Server, req *request) {
+	n, status := server.fileSystem.Write(&req.context, (*raw.WriteIn)(req.inData), req.arg)
 	o := (*raw.WriteOut)(req.outData)
 	o.Size = n
 	req.status = status
@@ -164,8 +164,8 @@ const _SECURITY_CAPABILITY = "security.capability"
 const _SECURITY_ACL = "system.posix_acl_access"
 const _SECURITY_ACL_DEFAULT = "system.posix_acl_default"
 
-func doGetXAttr(state *Server, req *request) {
-	if state.opts.IgnoreSecurityLabels && req.inHeader.Opcode == _OP_GETXATTR {
+func doGetXAttr(server *Server, req *request) {
+	if server.opts.IgnoreSecurityLabels && req.inHeader.Opcode == _OP_GETXATTR {
 		fn := req.filenames[0]
 		if fn == _SECURITY_CAPABILITY || fn == _SECURITY_ACL_DEFAULT ||
 			fn == _SECURITY_ACL {
@@ -180,14 +180,14 @@ func doGetXAttr(state *Server, req *request) {
 		out := (*raw.GetXAttrOut)(req.outData)
 		switch req.inHeader.Opcode {
 		case _OP_GETXATTR:
-			sz, code := state.fileSystem.GetXAttrSize(&req.context, req.filenames[0])
+			sz, code := server.fileSystem.GetXAttrSize(&req.context, req.filenames[0])
 			if code.Ok() {
 				out.Size = uint32(sz)
 			}
 			req.status = code
 			return
 		case _OP_LISTXATTR:
-			data, code := state.fileSystem.ListXAttr(&req.context)
+			data, code := server.fileSystem.ListXAttr(&req.context)
 			if code.Ok() {
 				out.Size = uint32(len(data))
 			}
@@ -200,9 +200,9 @@ func doGetXAttr(state *Server, req *request) {
 	var data []byte
 	switch req.inHeader.Opcode {
 	case _OP_GETXATTR:
-		data, req.status = state.fileSystem.GetXAttrData(&req.context, req.filenames[0])
+		data, req.status = server.fileSystem.GetXAttrData(&req.context, req.filenames[0])
 	case _OP_LISTXATTR:
-		data, req.status = state.fileSystem.ListXAttr(&req.context)
+		data, req.status = server.fileSystem.ListXAttr(&req.context)
 	default:
 		log.Panicf("xattr opcode %v", req.inHeader.Opcode)
 		req.status = ENOSYS
@@ -219,19 +219,19 @@ func doGetXAttr(state *Server, req *request) {
 	req.flatData = data
 }
 
-func doGetAttr(state *Server, req *request) {
+func doGetAttr(server *Server, req *request) {
 	attrOut := (*raw.AttrOut)(req.outData)
-	s := state.fileSystem.GetAttr(attrOut, &req.context, (*raw.GetAttrIn)(req.inData))
+	s := server.fileSystem.GetAttr(attrOut, &req.context, (*raw.GetAttrIn)(req.inData))
 	req.status = s
 }
 
-func doForget(state *Server, req *request) {
-	if !state.opts.RememberInodes {
-		state.fileSystem.Forget(req.inHeader.NodeId, (*raw.ForgetIn)(req.inData).Nlookup)
+func doForget(server *Server, req *request) {
+	if !server.opts.RememberInodes {
+		server.fileSystem.Forget(req.inHeader.NodeId, (*raw.ForgetIn)(req.inData).Nlookup)
 	}
 }
 
-func doBatchForget(state *Server, req *request) {
+func doBatchForget(server *Server, req *request) {
 	in := (*raw.BatchForgetIn)(req.inData)
 	wantBytes := uintptr(in.Count) * unsafe.Sizeof(raw.BatchForgetIn{})
 	if uintptr(len(req.arg)) < wantBytes {
@@ -244,50 +244,50 @@ func doBatchForget(state *Server, req *request) {
 
 	forgets := *(*[]raw.ForgetOne)(unsafe.Pointer(h))
 	for _, f := range forgets {
-		state.fileSystem.Forget(f.NodeId, f.Nlookup)
+		server.fileSystem.Forget(f.NodeId, f.Nlookup)
 	}
 }
 
-func doReadlink(state *Server, req *request) {
-	req.flatData, req.status = state.fileSystem.Readlink(&req.context)
+func doReadlink(server *Server, req *request) {
+	req.flatData, req.status = server.fileSystem.Readlink(&req.context)
 }
 
-func doLookup(state *Server, req *request) {
+func doLookup(server *Server, req *request) {
 	lookupOut := (*raw.EntryOut)(req.outData)
-	s := state.fileSystem.Lookup(lookupOut, &req.context, req.filenames[0])
+	s := server.fileSystem.Lookup(lookupOut, &req.context, req.filenames[0])
 	req.status = s
 	req.outData = unsafe.Pointer(lookupOut)
 }
 
-func doMknod(state *Server, req *request) {
+func doMknod(server *Server, req *request) {
 	out := (*raw.EntryOut)(req.outData)
 
-	req.status = state.fileSystem.Mknod(out, &req.context, (*raw.MknodIn)(req.inData), req.filenames[0])
+	req.status = server.fileSystem.Mknod(out, &req.context, (*raw.MknodIn)(req.inData), req.filenames[0])
 }
 
-func doMkdir(state *Server, req *request) {
+func doMkdir(server *Server, req *request) {
 	out := (*raw.EntryOut)(req.outData)
-	req.status = state.fileSystem.Mkdir(out, &req.context, (*raw.MkdirIn)(req.inData), req.filenames[0])
+	req.status = server.fileSystem.Mkdir(out, &req.context, (*raw.MkdirIn)(req.inData), req.filenames[0])
 }
 
-func doUnlink(state *Server, req *request) {
-	req.status = state.fileSystem.Unlink(&req.context, req.filenames[0])
+func doUnlink(server *Server, req *request) {
+	req.status = server.fileSystem.Unlink(&req.context, req.filenames[0])
 }
 
-func doRmdir(state *Server, req *request) {
-	req.status = state.fileSystem.Rmdir(&req.context, req.filenames[0])
+func doRmdir(server *Server, req *request) {
+	req.status = server.fileSystem.Rmdir(&req.context, req.filenames[0])
 }
 
-func doLink(state *Server, req *request) {
+func doLink(server *Server, req *request) {
 	out := (*raw.EntryOut)(req.outData)
-	req.status = state.fileSystem.Link(out, &req.context, (*raw.LinkIn)(req.inData), req.filenames[0])
+	req.status = server.fileSystem.Link(out, &req.context, (*raw.LinkIn)(req.inData), req.filenames[0])
 }
 
-func doRead(state *Server, req *request) {
+func doRead(server *Server, req *request) {
 	in := (*raw.ReadIn)(req.inData)
-	buf := state.allocOut(req, in.Size)
+	buf := server.allocOut(req, in.Size)
 
-	req.readResult, req.status = state.fileSystem.Read(&req.context, in, buf)
+	req.readResult, req.status = server.fileSystem.Read(&req.context, in, buf)
 	if fd, ok := req.readResult.(*readResultFd); ok {
 		req.fdData = fd
 		req.flatData = nil
@@ -296,63 +296,63 @@ func doRead(state *Server, req *request) {
 	}
 }
 
-func doFlush(state *Server, req *request) {
-	req.status = state.fileSystem.Flush(&req.context, (*raw.FlushIn)(req.inData))
+func doFlush(server *Server, req *request) {
+	req.status = server.fileSystem.Flush(&req.context, (*raw.FlushIn)(req.inData))
 }
 
-func doRelease(state *Server, req *request) {
-	state.fileSystem.Release(&req.context, (*raw.ReleaseIn)(req.inData))
+func doRelease(server *Server, req *request) {
+	server.fileSystem.Release(&req.context, (*raw.ReleaseIn)(req.inData))
 }
 
-func doFsync(state *Server, req *request) {
-	req.status = state.fileSystem.Fsync(&req.context, (*raw.FsyncIn)(req.inData))
+func doFsync(server *Server, req *request) {
+	req.status = server.fileSystem.Fsync(&req.context, (*raw.FsyncIn)(req.inData))
 }
 
-func doReleaseDir(state *Server, req *request) {
-	state.fileSystem.ReleaseDir(&req.context, (*raw.ReleaseIn)(req.inData))
+func doReleaseDir(server *Server, req *request) {
+	server.fileSystem.ReleaseDir(&req.context, (*raw.ReleaseIn)(req.inData))
 }
 
-func doFsyncDir(state *Server, req *request) {
-	req.status = state.fileSystem.FsyncDir(&req.context, (*raw.FsyncIn)(req.inData))
+func doFsyncDir(server *Server, req *request) {
+	req.status = server.fileSystem.FsyncDir(&req.context, (*raw.FsyncIn)(req.inData))
 }
 
-func doSetXAttr(state *Server, req *request) {
+func doSetXAttr(server *Server, req *request) {
 	splits := bytes.SplitN(req.arg, []byte{0}, 2)
-	req.status = state.fileSystem.SetXAttr(&req.context, (*raw.SetXAttrIn)(req.inData), string(splits[0]), splits[1])
+	req.status = server.fileSystem.SetXAttr(&req.context, (*raw.SetXAttrIn)(req.inData), string(splits[0]), splits[1])
 }
 
-func doRemoveXAttr(state *Server, req *request) {
-	req.status = state.fileSystem.RemoveXAttr(&req.context, req.filenames[0])
+func doRemoveXAttr(server *Server, req *request) {
+	req.status = server.fileSystem.RemoveXAttr(&req.context, req.filenames[0])
 }
 
-func doAccess(state *Server, req *request) {
-	req.status = state.fileSystem.Access(&req.context, (*raw.AccessIn)(req.inData))
+func doAccess(server *Server, req *request) {
+	req.status = server.fileSystem.Access(&req.context, (*raw.AccessIn)(req.inData))
 }
 
-func doSymlink(state *Server, req *request) {
+func doSymlink(server *Server, req *request) {
 	out := (*raw.EntryOut)(req.outData)
-	req.status = state.fileSystem.Symlink(out, &req.context, req.filenames[1], req.filenames[0])
+	req.status = server.fileSystem.Symlink(out, &req.context, req.filenames[1], req.filenames[0])
 }
 
-func doRename(state *Server, req *request) {
-	req.status = state.fileSystem.Rename(&req.context, (*raw.RenameIn)(req.inData), req.filenames[0], req.filenames[1])
+func doRename(server *Server, req *request) {
+	req.status = server.fileSystem.Rename(&req.context, (*raw.RenameIn)(req.inData), req.filenames[0], req.filenames[1])
 }
 
-func doStatFs(state *Server, req *request) {
+func doStatFs(server *Server, req *request) {
 	stat := (*raw.StatfsOut)(req.outData)
-	req.status = state.fileSystem.StatFs(stat, &req.context)
+	req.status = server.fileSystem.StatFs(stat, &req.context)
 }
 
-func doIoctl(state *Server, req *request) {
+func doIoctl(server *Server, req *request) {
 	req.status = ENOSYS
 }
 
-func doDestroy(state *Server, req *request) {
+func doDestroy(server *Server, req *request) {
 	req.status = OK
 }
 
-func doFallocate(state *Server, req *request) {
-	req.status = state.fileSystem.Fallocate(&req.context, (*raw.FallocateIn)(req.inData))
+func doFallocate(server *Server, req *request) {
+	req.status = server.fileSystem.Fallocate(&req.context, (*raw.FallocateIn)(req.inData))
 }
 
 ////////////////////////////////////////////////////////////////
