@@ -89,23 +89,23 @@ func FlagString(names map[int64]string, fl int64, def string) string {
 	return strings.Join(s, ",")
 }
 
-func (me *ForgetIn) String() string {
+func (me *ForgetIn) string() string {
 	return fmt.Sprintf("{%d}", me.Nlookup)
 }
 
-func (me *BatchForgetIn) String() string {
+func (me *BatchForgetIn) string() string {
 	return fmt.Sprintf("{%d}", me.Count)
 }
 
-func (me *MkdirIn) String() string {
+func (me *MkdirIn) string() string {
 	return fmt.Sprintf("{0%o (0%o)}", me.Mode, me.Umask)
 }
 
-func (me *MknodIn) String() string {
+func (me *MknodIn) string() string {
 	return fmt.Sprintf("{0%o (0%o), %d}", me.Mode, me.Umask, me.Rdev)
 }
 
-func (me *SetAttrIn) String() string {
+func (me *SetAttrIn) string() string {
 	s := []string{}
 	if me.Valid&FATTR_MODE != 0 {
 		s = append(s, fmt.Sprintf("mode 0%o", me.Mode))
@@ -132,96 +132,106 @@ func (me *SetAttrIn) String() string {
 	return fmt.Sprintf("{%s}", strings.Join(s, ", "))
 }
 
-func (me *ReleaseIn) String() string {
+func (me *ReleaseIn) string() string {
 	return fmt.Sprintf("{Fh %d %s %s L%d}",
 		me.Fh, FlagString(OpenFlagNames, int64(me.Flags), ""),
 		FlagString(releaseFlagNames, int64(me.ReleaseFlags), ""),
 		me.LockOwner)
 }
 
-func (me *OpenIn) String() string {
+func (me *OpenIn) string() string {
 	return fmt.Sprintf("{%s}", FlagString(OpenFlagNames, int64(me.Flags), "O_RDONLY"))
 }
 
-func (me *OpenOut) String() string {
+func (me *OpenOut) string() string {
 	return fmt.Sprintf("{Fh %d %s}", me.Fh,
 		FlagString(FuseOpenFlagNames, int64(me.OpenFlags), ""))
 }
 
-func (me *InitIn) String() string {
+func (me *InitIn) string() string {
 	return fmt.Sprintf("{%d.%d Ra 0x%x %s}",
 		me.Major, me.Minor, me.MaxReadAhead,
 		FlagString(initFlagNames, int64(me.Flags), ""))
 }
 
-func (me *InitOut) String() string {
+func (me *InitOut) string() string {
 	return fmt.Sprintf("{%d.%d Ra 0x%x %s %d/%d Wr 0x%x}",
 		me.Major, me.Minor, me.MaxReadAhead,
 		FlagString(initFlagNames, int64(me.Flags), ""),
 		me.CongestionThreshold, me.MaxBackground, me.MaxWrite)
 }
 
-func (me *SetXAttrIn) String() string {
+func (me *SetXAttrIn) string() string {
 	return fmt.Sprintf("{sz %d f%o}", me.Size, me.Flags)
 }
 
-func (me *GetXAttrIn) String() string {
+func (me *GetXAttrIn) string() string {
 	return fmt.Sprintf("{sz %d}", me.Size)
 }
 
-func (me *GetXAttrOut) String() string {
+func (me *GetXAttrOut) string() string {
 	return fmt.Sprintf("{sz %d}", me.Size)
 }
-func (me *AccessIn) String() string {
+func (me *AccessIn) string() string {
 	return fmt.Sprintf("{%s}", FlagString(accessFlagName, int64(me.Mask), ""))
 }
 
-func (me *CreateIn) String() string {
+func (me *CreateIn) string() string {
 	return fmt.Sprintf(
 		"{0%o [%s] (0%o)}", me.Mode,
 		FlagString(OpenFlagNames, int64(me.Flags), "O_RDONLY"), me.Umask)
 }
 
-func (me *FlushIn) String() string {
+func (me *FlushIn) string() string {
 	return fmt.Sprintf("{Fh %d}", me.Fh)
 }
 
-func (me *AttrOut) String() string {
+func (me *AttrOut) string() string {
 	return fmt.Sprintf(
 		"{A%d.%09d %v}",
 		me.AttrValid, me.AttrValidNsec, &me.Attr)
 }
 
-func (me *EntryOut) String() string {
+func (me *EntryOut) string() string {
 	return fmt.Sprintf("{%d E%d.%09d A%d.%09d %v}",
 		me.NodeId, me.EntryValid, me.EntryValidNsec,
 		me.AttrValid, me.AttrValidNsec, &me.Attr)
 }
 
-func (me *CreateOut) String() string {
+func (me *CreateOut) string() string {
 	return fmt.Sprintf("{%v %v}", &me.EntryOut, &me.OpenOut)
 }
 
-func (me *StatfsOut) String() string {
+func (me *StatfsOut) string() string {
 	return fmt.Sprintf(
 		"{b%d f%d fs%d ff%d bs%d nl%d frs%d}",
 		me.Blocks, me.Bfree, me.Bavail, me.Files, me.Ffree,
 		me.Bsize, me.NameLen, me.Frsize)
 }
 
-func (o *NotifyInvalEntryOut) String() string {
+func (o *NotifyInvalEntryOut) string() string {
 	return fmt.Sprintf("{parent %d sz %d}", o.Parent, o.NameLen)
 }
 
-func (o *NotifyInvalInodeOut) String() string {
+func (o *NotifyInvalInodeOut) string() string {
 	return fmt.Sprintf("{ino %d off %d sz %d}", o.Ino, o.Off, o.Length)
 }
 
-func (o *NotifyInvalDeleteOut) String() string {
+func (o *NotifyInvalDeleteOut) string() string {
 	return fmt.Sprintf("{parent %d ch %d sz %d}", o.Parent, o.Child, o.NameLen)
 }
 
-func (f *FallocateIn) String() string {
+func (f *FallocateIn) string() string {
 	return fmt.Sprintf("{Fh %d off %d sz %d mod 0%o}",
 		f.Fh, f.Offset, f.Length, f.Mode)
+}
+
+func Print(obj interface{}) string {
+	t, ok := obj.(interface {
+		string() string
+	})
+	if ok {
+		return t.string()
+	}
+	return fmt.Sprintf("%v", obj)
 }

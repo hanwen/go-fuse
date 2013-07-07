@@ -10,7 +10,7 @@ func init() {
 	initFlagNames[CAP_CASE_INSENSITIVE] = "CASE_INSENSITIVE"
 }
 
-func (a *Attr) String() string {
+func (a *Attr) string() string {
 	return fmt.Sprintf(
 		"{M0%o SZ=%d L=%d "+
 			"%d:%d "+
@@ -25,15 +25,15 @@ func (a *Attr) String() string {
 		a.Ctime, a.Ctimensec)
 }
 
-func (me *GetAttrIn) String() string { return "" }
+func (me *GetAttrIn) string() string { return "" }
 
-func (me *ReadIn) String() string {
+func (me *ReadIn) string() string {
 	return fmt.Sprintf("{Fh %d off %d sz %d %s L %d %s}",
 		me.Fh, me.Offset, me.Size,
 		FlagString(readFlagNames, int64(me.ReadFlags), ""))
 }
 
-func (me *WriteIn) String() string {
+func (me *WriteIn) string() string {
 	return fmt.Sprintf("{Fh %d off %d sz %d %s}",
 		me.Fh, me.Offset, me.Size,
 		FlagString(writeFlagNames, int64(me.WriteFlags), ""))

@@ -75,7 +75,7 @@ func (r *request) clear() {
 func (r *request) InputDebug() string {
 	val := " "
 	if r.handler.DecodeIn != nil {
-		val = fmt.Sprintf(" data: %v ", r.handler.DecodeIn(r.inData))
+		val = fmt.Sprintf(" data: %v ", raw.Print(r.handler.DecodeIn(r.inData)))
 	}
 
 	names := ""
@@ -92,14 +92,9 @@ func (r *request) InputDebug() string {
 }
 
 func (r *request) OutputDebug() string {
-	var val interface{}
+	var dataStr string
 	if r.handler.DecodeOut != nil && r.outData != nil {
-		val = r.handler.DecodeOut(r.outData)
-	}
-
-	dataStr := ""
-	if val != nil {
-		dataStr = fmt.Sprintf("%v", val)
+		dataStr = raw.Print(r.handler.DecodeOut(r.outData))
 	}
 
 	max := 1024

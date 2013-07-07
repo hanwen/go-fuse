@@ -5,5 +5,5 @@ import (
 )
 
 func (a *Attr) String() string {
-	return ((*raw.Attr)(a)).String()
+	return raw.Print((*raw.Attr)(a))
 }
