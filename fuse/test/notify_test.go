@@ -91,7 +91,7 @@ func NewNotifyTest(t *testing.T) *NotifyTest {
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
-	me.state.SetDebug(fuse.VerboseTest())
+	me.state.SetDebug(VerboseTest())
 	go me.state.Serve()
 
 	return me

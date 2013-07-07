@@ -3,7 +3,6 @@
 package fuse
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -82,12 +81,6 @@ func CurrentOwner() *Owner {
 		Uid: uint32(os.Getuid()),
 		Gid: uint32(os.Getgid()),
 	}
-}
-
-// VerboseTest returns true if the testing framework is run with -v.
-func VerboseTest() bool {
-	flag := flag.Lookup("test.v")
-	return flag != nil && flag.Value.String() == "true"
 }
 
 func init() {

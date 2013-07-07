@@ -98,8 +98,8 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
-	conn.SetDebug(fuse.VerboseTest())
-	state.SetDebug(fuse.VerboseTest())
+	conn.SetDebug(VerboseTest())
+	state.SetDebug(VerboseTest())
 	go state.Serve()
 
 	return wd, func() {
@@ -1161,7 +1161,7 @@ func TestUnionFsDisappearing(t *testing.T) {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
 	defer state.Unmount()
-	state.SetDebug(fuse.VerboseTest())
+	state.SetDebug(VerboseTest())
 	go state.Serve()
 
 	log.Println("TestUnionFsDisappearing2")

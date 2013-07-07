@@ -61,8 +61,8 @@ func setup(t *testing.T) (workdir string, cleanup func()) {
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
-	state.SetDebug(fuse.VerboseTest())
-	conn.SetDebug(fuse.VerboseTest())
+	state.SetDebug(VerboseTest())
+	conn.SetDebug(VerboseTest())
 	go state.Serve()
 
 	return wd, func() {
@@ -82,7 +82,6 @@ func TestDebug(t *testing.T) {
 	if len(c) == 0 {
 		t.Fatal("No debug found.")
 	}
-	log.Println("Found version:", string(c))
 }
 
 func TestVersion(t *testing.T) {

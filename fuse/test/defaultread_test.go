@@ -45,7 +45,7 @@ func defaultReadTest(t *testing.T) (root string, cleanup func()) {
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
-	state.SetDebug(fuse.VerboseTest())
+	state.SetDebug(VerboseTest())
 	go state.Serve()
 
 	return dir, func() {

@@ -31,14 +31,14 @@ func setupMemNodeTest(t *testing.T) (wd string, fs FileSystem, clean func()) {
 			AttrTimeout:     testTtl,
 			NegativeTimeout: 0.0,
 		})
-	connector.SetDebug(fuse.VerboseTest())
+	connector.SetDebug(VerboseTest())
 	state, err := fuse.NewServer(connector.RawFS(), mnt, nil)
 	if err != nil {
 		t.Fatal("NewServer", err)
 	}
 
 	//me.state.SetDebug(false)
-	state.SetDebug(fuse.VerboseTest())
+	state.SetDebug(VerboseTest())
 
 	// Unthreaded, but in background.
 	go state.Serve()

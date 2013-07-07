@@ -143,7 +143,7 @@ func setupFAttrTest(t *testing.T, fs pathfs.FileSystem) (dir string, clean func(
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
-	state.SetDebug(fuse.VerboseTest())
+	state.SetDebug(VerboseTest())
 
 	go state.Serve()
 

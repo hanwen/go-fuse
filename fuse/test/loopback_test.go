@@ -84,14 +84,14 @@ func NewTestCase(t *testing.T) *testCase {
 			AttrTimeout:     testTtl,
 			NegativeTimeout: 0.0,
 		})
-	me.connector.SetDebug(fuse.VerboseTest())
+	me.connector.SetDebug(VerboseTest())
 	me.state, err = fuse.NewServer(
 		me.connector.RawFS(), me.mnt, &fuse.MountOptions{SingleThreaded: true})
 	if err != nil {
 		t.Fatal("NewServer:", err)
 	}
 
-	me.state.SetDebug(fuse.VerboseTest())
+	me.state.SetDebug(VerboseTest())
 
 	// Unthreaded, but in background.
 	go me.state.Serve()

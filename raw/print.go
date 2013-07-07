@@ -148,7 +148,7 @@ func (me *OpenOut) string() string {
 		FlagString(FuseOpenFlagNames, int64(me.OpenFlags), ""))
 }
 
-func (me *InitIn) string() string {
+func (me *InitIn) String() string {
 	return fmt.Sprintf("{%d.%d Ra 0x%x %s}",
 		me.Major, me.Minor, me.MaxReadAhead,
 		FlagString(initFlagNames, int64(me.Flags), ""))

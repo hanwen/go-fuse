@@ -3,7 +3,6 @@ package test
 import (
 	"bytes"
 	"io/ioutil"
-	"log"
 	"os"
 	"sync"
 	"testing"
@@ -13,8 +12,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 	"github.com/hanwen/go-fuse/raw"
 )
-
-var _ = log.Println
 
 type cacheFs struct {
 	pathfs.FileSystem
@@ -48,9 +45,9 @@ func setupCacheTest(t *testing.T) (string, *pathfs.PathNodeFs, func()) {
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
-	state.SetDebug(fuse.VerboseTest())
-	conn.SetDebug(fuse.VerboseTest())
-	pfs.SetDebug(fuse.VerboseTest())
+	state.SetDebug(VerboseTest())
+	conn.SetDebug(VerboseTest())
+	pfs.SetDebug(VerboseTest())
 	go state.Serve()
 
 	return dir, pfs, func() {
@@ -148,7 +145,7 @@ func TestNonseekable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed: %v", err)
 	}
-	state.SetDebug(fuse.VerboseTest())
+	state.SetDebug(VerboseTest())
 	defer state.Unmount()
 
 	go state.Serve()
@@ -182,9 +179,9 @@ func TestGetAttrRace(t *testing.T) {
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
-	state.SetDebug(fuse.VerboseTest())
-	conn.SetDebug(fuse.VerboseTest())
-	pfs.SetDebug(fuse.VerboseTest())
+	state.SetDebug(VerboseTest())
+	conn.SetDebug(VerboseTest())
+	pfs.SetDebug(VerboseTest())
 	go state.Serve()
 
 	defer state.Unmount()
