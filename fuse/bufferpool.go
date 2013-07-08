@@ -9,16 +9,26 @@ import (
 
 var paranoia bool
 
+// BufferPool implements explicit memory management. It is used for
+// minimizing the GC overhead of communicating with the kernel.
 type BufferPool interface {
+	// AllocBuffer creates a buffer of at least the given size. After use,
+	// it should be deallocated with FreeBuffer().
 	AllocBuffer(size uint32) []byte
+
+	// FreeBuffer takes back a buffer if it was allocated through
+	// AllocBuffer.  It is not an error to call FreeBuffer() on a slice
+	// obtained elsewhere.
 	FreeBuffer(slice []byte)
+
+	// Return debug information.
 	String() string
 }
 
 type gcBufferPool struct {
 }
 
-// NewGcBufferPool is just a fallback to the standard allocation routines.
+// NewGcBufferPool is a fallback to the standard allocation routines.
 func NewGcBufferPool() BufferPool {
 	return &gcBufferPool{}
 }
@@ -34,9 +44,6 @@ func (p *gcBufferPool) AllocBuffer(size uint32) []byte {
 func (p *gcBufferPool) FreeBuffer(slice []byte) {
 }
 
-// BufferPool implements a pool of buffers that returns slices with
-// capacity of a multiple of PAGESIZE, which have possibly been used,
-// and may contain random contents.
 type bufferPoolImpl struct {
 	lock sync.Mutex
 
@@ -51,6 +58,11 @@ type bufferPoolImpl struct {
 	createdBuffers int
 }
 
+// NewBufferPool returns a BufferPool implementation that that returns
+// slices with capacity of a multiple of PAGESIZE, which have possibly
+// been used, and may contain random contents. When using
+// NewBufferPool, file system handlers may not hang on to passed-in
+// buffers beyond the handler's return.
 func NewBufferPool() BufferPool {
 	bp := new(bufferPoolImpl)
 	bp.buffersBySize = make([][][]byte, 0, 32)
@@ -93,8 +105,6 @@ func (p *bufferPoolImpl) addBuffer(slice []byte, pages int) {
 	p.buffersBySize[pages] = append(p.buffersBySize[pages], slice)
 }
 
-// AllocBuffer creates a buffer of at least the given size. After use,
-// it should be deallocated with FreeBuffer().
 func (p *bufferPoolImpl) AllocBuffer(size uint32) []byte {
 	sz := int(size)
 	if sz < PAGESIZE {
@@ -128,9 +138,6 @@ func (p *bufferPoolImpl) AllocBuffer(size uint32) []byte {
 	return b
 }
 
-// FreeBuffer takes back a buffer if it was allocated through
-// AllocBuffer.  It is not an error to call FreeBuffer() on a slice
-// obtained elsewhere.
 func (p *bufferPoolImpl) FreeBuffer(slice []byte) {
 	if slice == nil {
 		return
