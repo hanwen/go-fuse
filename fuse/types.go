@@ -277,24 +277,24 @@ type GetXAttrOut struct {
 	Padding uint32
 }
 
-type FileLock struct {
+type _FileLock struct {
 	Start uint64
 	End   uint64
 	Typ   uint32
 	Pid   uint32
 }
 
-type LkIn struct {
+type _LkIn struct {
 	InHeader
 	Fh      uint64
 	Owner   uint64
-	Lk      FileLock
+	Lk      _FileLock
 	LkFlags uint32
 	Padding uint32
 }
 
-type LkOut struct {
-	Lk FileLock
+type _LkOut struct {
+	Lk _FileLock
 }
 
 // For AccessIn.Mask.
