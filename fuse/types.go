@@ -418,7 +418,9 @@ type StatfsOut struct {
 	Spare   [6]uint32
 }
 
-type Dirent struct {
+// _Dirent is what we send to the kernel, but we offer DirEntry and
+// DirEntryList to the user.
+type _Dirent struct {
 	Ino     uint64
 	Off     uint64
 	NameLen uint32

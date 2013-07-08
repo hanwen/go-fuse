@@ -59,11 +59,6 @@ func ToStatus(err error) Status {
 	return ENOSYS
 }
 
-func ModeToType(mode uint32) uint32 {
-	return (mode & 0170000) >> 12
-}
-
-// Thanks to Andrew Gerrand for this hack.
 func toSlice(dest *[]byte, ptr unsafe.Pointer, byteCount uintptr) {
 	h := (*reflect.SliceHeader)(unsafe.Pointer(dest))
 	*h = reflect.SliceHeader{uintptr(ptr), int(byteCount), int(byteCount)}

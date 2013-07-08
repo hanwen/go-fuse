@@ -9,7 +9,7 @@ import (
 
 var eightPadding [8]byte
 
-const direntSize = int(unsafe.Sizeof(Dirent{}))
+const direntSize = int(unsafe.Sizeof(_Dirent{}))
 
 // DirEntry is a type for PathFileSystem and NodeFileSystem to return
 // directory contents in.
@@ -60,11 +60,11 @@ func (l *DirEntryList) Add(prefix []byte, name string, inode uint64, mode uint32
 	l.buf = l.buf[:newLen]
 	copy(l.buf[oldLen:], prefix)
 	oldLen += len(prefix)
-	dirent := (*Dirent)(unsafe.Pointer(&l.buf[oldLen]))
+	dirent := (*_Dirent)(unsafe.Pointer(&l.buf[oldLen]))
 	dirent.Off = l.offset + 1
 	dirent.Ino = inode
 	dirent.NameLen = uint32(len(name))
-	dirent.Typ = ModeToType(mode)
+	dirent.Typ = (mode & 0170000) >> 12
 	oldLen += direntSize
 	copy(l.buf[oldLen:], name)
 	oldLen += len(name)
