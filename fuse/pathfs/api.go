@@ -65,7 +65,7 @@ type FileSystem interface {
 	Symlink(value string, linkName string, context *fuse.Context) (code fuse.Status)
 	Readlink(name string, context *fuse.Context) (string, fuse.Status)
 
-	StatFs(name string) *nodefs.StatfsOut
+	StatFs(name string) *fuse.StatfsOut
 }
 
 type PathNodeFsOptions struct {

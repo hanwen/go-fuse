@@ -28,7 +28,7 @@ func (fs *lockingFileSystem) String() string {
 	return fs.FS.String()
 }
 
-func (fs *lockingFileSystem) StatFs(name string) *nodefs.StatfsOut {
+func (fs *lockingFileSystem) StatFs(name string) *fuse.StatfsOut {
 	defer fs.locked()()
 	return fs.FS.StatFs(name)
 }

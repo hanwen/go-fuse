@@ -377,7 +377,7 @@ func (n *pathInode) OnForget() {
 ////////////////////////////////////////////////////////////////
 // FS operations
 
-func (n *pathInode) StatFs() *nodefs.StatfsOut {
+func (n *pathInode) StatFs() *fuse.StatfsOut {
 	return n.fs.StatFs(n.GetPath())
 }
 

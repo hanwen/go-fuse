@@ -111,6 +111,6 @@ func (fs *defaultFileSystem) String() string {
 	return "defaultFileSystem"
 }
 
-func (fs *defaultFileSystem) StatFs(name string) *nodefs.StatfsOut {
+func (fs *defaultFileSystem) StatFs(name string) *fuse.StatfsOut {
 	return nil
 }

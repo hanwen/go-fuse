@@ -119,6 +119,6 @@ func (fs *prefixFileSystem) String() string {
 	return fmt.Sprintf("prefixFileSystem(%s,%s)", fs.FileSystem.String(), fs.Prefix)
 }
 
-func (fs *prefixFileSystem) StatFs(name string) *nodefs.StatfsOut {
+func (fs *prefixFileSystem) StatFs(name string) *fuse.StatfsOut {
 	return fs.FileSystem.StatFs(fs.prefixed(name))
 }

@@ -5,14 +5,13 @@ import (
 	"syscall"
 
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/fuse/nodefs"
 )
 
-func (fs *loopbackFileSystem) StatFs(name string) *nodefs.StatfsOut {
+func (fs *loopbackFileSystem) StatFs(name string) *fuse.StatfsOut {
 	s := syscall.Statfs_t{}
 	err := syscall.Statfs(fs.GetPath(name), &s)
 	if err == nil {
-		return &nodefs.StatfsOut{
+		return &fuse.StatfsOut{
 			Blocks:  s.Blocks,
 			Bsize:   uint32(s.Bsize),
 			Bfree:   s.Bfree,
