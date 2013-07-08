@@ -78,7 +78,7 @@ func (l *DirEntryList) Add(prefix []byte, name string, inode uint64, mode uint32
 }
 
 // AddDirLookupEntry is used for ReadDirPlus. It serializes a DirEntry
-// and its corresponding lookup. Pass a null EntryOut if the lookup
+// and its corresponding lookup. Pass a zero entryOut if the lookup
 // data should be ignored.
 func (l *DirEntryList) AddDirLookupEntry(e DirEntry, entryOut *EntryOut) (bool, uint64) {
 	ino := uint64(FUSE_UNKNOWN_INO)
