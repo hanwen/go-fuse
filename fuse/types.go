@@ -37,12 +37,14 @@ type ForgetIn struct {
 	Nlookup uint64
 }
 
-type ForgetOne struct {
+// batch forget is handled internally.
+type _ForgetOne struct {
 	NodeId  uint64
 	Nlookup uint64
 }
 
-type BatchForgetIn struct {
+// batch forget is handled internally.
+type _BatchForgetIn struct {
 	InHeader
 	Count uint32
 	Dummy uint32

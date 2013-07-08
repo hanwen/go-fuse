@@ -93,7 +93,7 @@ func (me *ForgetIn) string() string {
 	return fmt.Sprintf("{%d}", me.Nlookup)
 }
 
-func (me *BatchForgetIn) string() string {
+func (me *_BatchForgetIn) string() string {
 	return fmt.Sprintf("{%d}", me.Count)
 }
 

@@ -230,8 +230,8 @@ func doForget(server *Server, req *request) {
 }
 
 func doBatchForget(server *Server, req *request) {
-	in := (*BatchForgetIn)(req.inData)
-	wantBytes := uintptr(in.Count) * (unsafe.Sizeof(ForgetIn{}) - unsafe.Sizeof(InHeader{}))
+	in := (*_BatchForgetIn)(req.inData)
+	wantBytes := uintptr(in.Count) * unsafe.Sizeof(_ForgetOne{})
 	if uintptr(len(req.arg)) < wantBytes {
 		// We have no return value to complain, so log an error.
 		log.Printf("Too few bytes for batch forget. Got %d bytes, want %d (%d entries)",
@@ -240,7 +240,7 @@ func doBatchForget(server *Server, req *request) {
 
 	h := &reflect.SliceHeader{uintptr(unsafe.Pointer(&req.arg[0])), int(in.Count), int(in.Count)}
 
-	forgets := *(*[]ForgetOne)(unsafe.Pointer(h))
+	forgets := *(*[]_ForgetOne)(unsafe.Pointer(h))
 	for _, f := range forgets {
 		server.fileSystem.Forget(f.NodeId, f.Nlookup)
 	}
@@ -399,7 +399,7 @@ func init() {
 
 	for op, sz := range map[int32]uintptr{
 		_OP_FORGET:       unsafe.Sizeof(ForgetIn{}),
-		_OP_BATCH_FORGET: unsafe.Sizeof(BatchForgetIn{}),
+		_OP_BATCH_FORGET: unsafe.Sizeof(_BatchForgetIn{}),
 		_OP_GETATTR:      unsafe.Sizeof(GetAttrIn{}),
 		_OP_SETATTR:      unsafe.Sizeof(SetAttrIn{}),
 		_OP_MKNOD:        unsafe.Sizeof(MknodIn{}),
@@ -582,7 +582,7 @@ func init() {
 		_OP_READDIR:      func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
 		_OP_ACCESS:       func(ptr unsafe.Pointer) interface{} { return (*AccessIn)(ptr) },
 		_OP_FORGET:       func(ptr unsafe.Pointer) interface{} { return (*ForgetIn)(ptr) },
-		_OP_BATCH_FORGET: func(ptr unsafe.Pointer) interface{} { return (*BatchForgetIn)(ptr) },
+		_OP_BATCH_FORGET: func(ptr unsafe.Pointer) interface{} { return (*_BatchForgetIn)(ptr) },
 		_OP_LINK:         func(ptr unsafe.Pointer) interface{} { return (*LinkIn)(ptr) },
 		_OP_MKDIR:        func(ptr unsafe.Pointer) interface{} { return (*MkdirIn)(ptr) },
 		_OP_RELEASE:      func(ptr unsafe.Pointer) interface{} { return (*ReleaseIn)(ptr) },
