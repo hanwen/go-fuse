@@ -7,18 +7,16 @@ import (
 	"strings"
 	"time"
 	"unsafe"
-
-	"github.com/hanwen/go-fuse/raw"
 )
 
-var sizeOfOutHeader = unsafe.Sizeof(raw.OutHeader{})
+var sizeOfOutHeader = unsafe.Sizeof(OutHeader{})
 var zeroOutBuf [outputHeaderSize]byte
 
 type request struct {
 	inputBuf []byte
 
 	// These split up inputBuf.
-	inHeader *raw.InHeader  // generic header
+	inHeader *InHeader      // generic header
 	inData   unsafe.Pointer // per op data
 	arg      []byte         // flat data.
 
@@ -75,7 +73,7 @@ func (r *request) clear() {
 func (r *request) InputDebug() string {
 	val := " "
 	if r.handler.DecodeIn != nil {
-		val = fmt.Sprintf(" data: %v ", raw.Print(r.handler.DecodeIn(r.inData)))
+		val = fmt.Sprintf(" data: %v ", Print(r.handler.DecodeIn(r.inData)))
 	}
 
 	names := ""
@@ -94,7 +92,7 @@ func (r *request) InputDebug() string {
 func (r *request) OutputDebug() string {
 	var dataStr string
 	if r.handler.DecodeOut != nil && r.outData != nil {
-		dataStr = raw.Print(r.handler.DecodeOut(r.outData))
+		dataStr = Print(r.handler.DecodeOut(r.outData))
 	}
 
 	max := 1024
@@ -134,13 +132,13 @@ func (r *request) setInput(input []byte) bool {
 }
 
 func (r *request) parse() {
-	inHSize := int(unsafe.Sizeof(raw.InHeader{}))
+	inHSize := int(unsafe.Sizeof(InHeader{}))
 	if len(r.inputBuf) < inHSize {
 		log.Printf("Short read for input header: %v", r.inputBuf)
 		return
 	}
 
-	r.inHeader = (*raw.InHeader)(unsafe.Pointer(&r.inputBuf[0]))
+	r.inHeader = (*InHeader)(unsafe.Pointer(&r.inputBuf[0]))
 	r.arg = r.inputBuf[:]
 
 	r.handler = getHandler(r.inHeader.Opcode)
@@ -190,9 +188,9 @@ func (r *request) serializeHeader(dataSize int) (header []byte) {
 		dataLength = 0
 	}
 
-	sizeOfOutHeader := unsafe.Sizeof(raw.OutHeader{})
+	sizeOfOutHeader := unsafe.Sizeof(OutHeader{})
 	header = r.outBuf[:sizeOfOutHeader+dataLength]
-	o := (*raw.OutHeader)(unsafe.Pointer(&header[0]))
+	o := (*OutHeader)(unsafe.Pointer(&header[0]))
 	o.Unique = r.inHeader.Unique
 	o.Status = int32(-r.status)
 	o.Length = uint32(

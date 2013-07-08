@@ -10,8 +10,6 @@ import (
 	"syscall"
 	"time"
 	"unsafe"
-
-	"github.com/hanwen/go-fuse/raw"
 )
 
 const (
@@ -43,7 +41,7 @@ type Server struct {
 	readPool            [][]byte
 	reqReaders          int
 	outstandingReadBufs int
-	kernelSettings      raw.InitIn
+	kernelSettings      InitIn
 
 	canSplice bool
 	loops     sync.WaitGroup
@@ -56,7 +54,7 @@ func (ms *Server) SetDebug(dbg bool) {
 // KernelSettings returns the Init message from the kernel, so
 // filesystems can adapt to availability of features of the kernel
 // driver.
-func (ms *Server) KernelSettings() raw.InitIn {
+func (ms *Server) KernelSettings() InitIn {
 	ms.reqMu.Lock()
 	s := ms.kernelSettings
 	ms.reqMu.Unlock()
@@ -381,17 +379,17 @@ func (ms *Server) write(req *request) Status {
 // InodeNotify invalidates the information associated with the inode
 // (ie. data cache, attributes, etc.)
 func (ms *Server) InodeNotify(node uint64, off int64, length int64) Status {
-	entry := &raw.NotifyInvalInodeOut{
+	entry := &NotifyInvalInodeOut{
 		Ino:    node,
 		Off:    off,
 		Length: length,
 	}
 	req := request{
-		inHeader: &raw.InHeader{
+		inHeader: &InHeader{
 			Opcode: _OP_NOTIFY_INODE,
 		},
 		handler: operationHandlers[_OP_NOTIFY_INODE],
-		status:  raw.NOTIFY_INVAL_INODE,
+		status:  NOTIFY_INVAL_INODE,
 	}
 	req.outData = unsafe.Pointer(entry)
 
@@ -416,13 +414,13 @@ func (ms *Server) DeleteNotify(parent uint64, child uint64, name string) Status 
 	}
 
 	req := request{
-		inHeader: &raw.InHeader{
+		inHeader: &InHeader{
 			Opcode: _OP_NOTIFY_DELETE,
 		},
 		handler: operationHandlers[_OP_NOTIFY_DELETE],
-		status:  raw.NOTIFY_INVAL_DELETE,
+		status:  NOTIFY_INVAL_DELETE,
 	}
-	entry := &raw.NotifyInvalDeleteOut{
+	entry := &NotifyInvalDeleteOut{
 		Parent:  parent,
 		Child:   child,
 		NameLen: uint32(len(name)),
@@ -451,13 +449,13 @@ func (ms *Server) DeleteNotify(parent uint64, child uint64, name string) Status 
 // within a directory changes.
 func (ms *Server) EntryNotify(parent uint64, name string) Status {
 	req := request{
-		inHeader: &raw.InHeader{
+		inHeader: &InHeader{
 			Opcode: _OP_NOTIFY_ENTRY,
 		},
 		handler: operationHandlers[_OP_NOTIFY_ENTRY],
-		status:  raw.NOTIFY_INVAL_ENTRY,
+		status:  NOTIFY_INVAL_ENTRY,
 	}
-	entry := &raw.NotifyInvalEntryOut{
+	entry := &NotifyInvalEntryOut{
 		Parent:  parent,
 		NameLen: uint32(len(name)),
 	}

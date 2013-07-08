@@ -5,13 +5,11 @@ package fuse
 import (
 	"fmt"
 	"unsafe"
-
-	"github.com/hanwen/go-fuse/raw"
 )
 
 var eightPadding [8]byte
 
-const direntSize = int(unsafe.Sizeof(raw.Dirent{}))
+const direntSize = int(unsafe.Sizeof(Dirent{}))
 
 // DirEntry is a type for PathFileSystem and NodeFileSystem to return
 // directory contents in.
@@ -45,7 +43,7 @@ func NewDirEntryList(data []byte, off uint64) *DirEntryList {
 // AddDirEntry tries to add an entry, and reports whether it
 // succeeded.
 func (l *DirEntryList) AddDirEntry(e DirEntry) (bool, uint64) {
-	return l.Add(nil, e.Name, uint64(raw.FUSE_UNKNOWN_INO), e.Mode)
+	return l.Add(nil, e.Name, uint64(FUSE_UNKNOWN_INO), e.Mode)
 }
 
 // Add adds a direntry to the DirEntryList, returning whether it
@@ -62,7 +60,7 @@ func (l *DirEntryList) Add(prefix []byte, name string, inode uint64, mode uint32
 	l.buf = l.buf[:newLen]
 	copy(l.buf[oldLen:], prefix)
 	oldLen += len(prefix)
-	dirent := (*raw.Dirent)(unsafe.Pointer(&l.buf[oldLen]))
+	dirent := (*Dirent)(unsafe.Pointer(&l.buf[oldLen]))
 	dirent.Off = l.offset + 1
 	dirent.Ino = inode
 	dirent.NameLen = uint32(len(name))
@@ -82,13 +80,13 @@ func (l *DirEntryList) Add(prefix []byte, name string, inode uint64, mode uint32
 // AddDirLookupEntry is used for ReadDirPlus. It serializes a DirEntry
 // and its corresponding lookup. Pass a null EntryOut if the lookup
 // data should be ignored.
-func (l *DirEntryList) AddDirLookupEntry(e DirEntry, entryOut *raw.EntryOut) (bool, uint64) {
-	ino := uint64(raw.FUSE_UNKNOWN_INO)
+func (l *DirEntryList) AddDirLookupEntry(e DirEntry, entryOut *EntryOut) (bool, uint64) {
+	ino := uint64(FUSE_UNKNOWN_INO)
 	if entryOut.Ino > 0 {
 		ino = entryOut.Ino
 	}
 	var lookup []byte
-	toSlice(&lookup, unsafe.Pointer(entryOut), unsafe.Sizeof(raw.EntryOut{}))
+	toSlice(&lookup, unsafe.Pointer(entryOut), unsafe.Sizeof(EntryOut{}))
 
 	return l.Add(lookup, e.Name, ino, e.Mode)
 }

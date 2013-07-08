@@ -1,4 +1,4 @@
-package raw
+package fuse
 
 import (
 	"syscall"

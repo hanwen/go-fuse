@@ -4,7 +4,6 @@ import (
 	"log"
 
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/raw"
 )
 
 type connectorDir struct {
@@ -12,10 +11,10 @@ type connectorDir struct {
 	stream     []fuse.DirEntry
 	lastOffset uint64
 	rawFS      fuse.RawFileSystem
-	lookups    []raw.EntryOut
+	lookups    []fuse.EntryOut
 }
 
-func (d *connectorDir) ReadDir(input *raw.ReadIn, out *fuse.DirEntryList) (code fuse.Status) {
+func (d *connectorDir) ReadDir(input *fuse.ReadIn, out *fuse.DirEntryList) (code fuse.Status) {
 	if d.stream == nil {
 		return fuse.OK
 	}
@@ -43,7 +42,7 @@ func (d *connectorDir) ReadDir(input *raw.ReadIn, out *fuse.DirEntryList) (code 
 	return fuse.OK
 }
 
-func (d *connectorDir) ReadDirPlus(input *raw.ReadIn, out *fuse.DirEntryList) (code fuse.Status) {
+func (d *connectorDir) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) (code fuse.Status) {
 	if d.stream == nil {
 		return fuse.OK
 	}
@@ -58,7 +57,7 @@ func (d *connectorDir) ReadDirPlus(input *raw.ReadIn, out *fuse.DirEntryList) (c
 	}
 
 	if d.lookups == nil {
-		d.lookups = make([]raw.EntryOut, len(d.stream))
+		d.lookups = make([]fuse.EntryOut, len(d.stream))
 		for i, n := range d.stream {
 			if n.Name == "." || n.Name == ".." {
 				continue
@@ -66,7 +65,7 @@ func (d *connectorDir) ReadDirPlus(input *raw.ReadIn, out *fuse.DirEntryList) (c
 			// We ignore the return value
 			code := d.rawFS.Lookup(&input.InHeader, n.Name, &d.lookups[i])
 			if !code.Ok() {
-				d.lookups[i] = raw.EntryOut{}
+				d.lookups[i] = fuse.EntryOut{}
 			}
 		}
 	}
@@ -88,6 +87,6 @@ func (d *connectorDir) ReadDirPlus(input *raw.ReadIn, out *fuse.DirEntryList) (c
 }
 
 type rawDir interface {
-	ReadDir(out *fuse.DirEntryList, input *raw.ReadIn, c *fuse.Context) fuse.Status
-	ReadDirPlus(out *fuse.DirEntryList, input *raw.ReadIn, c *fuse.Context) fuse.Status
+	ReadDir(out *fuse.DirEntryList, input *fuse.ReadIn, c *fuse.Context) fuse.Status
+	ReadDirPlus(out *fuse.DirEntryList, input *fuse.ReadIn, c *fuse.Context) fuse.Status
 }

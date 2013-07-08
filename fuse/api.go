@@ -4,10 +4,6 @@
 
 package fuse
 
-import (
-	"github.com/hanwen/go-fuse/raw"
-)
-
 // Types for users to implement.
 
 // The result of Read is an array of bytes, but for performance
@@ -79,52 +75,52 @@ type RawFileSystem interface {
 	// If called, provide debug output through the log package.
 	SetDebug(debug bool)
 
-	Lookup(header *raw.InHeader, name string, out *raw.EntryOut) (status Status)
+	Lookup(header *InHeader, name string, out *EntryOut) (status Status)
 	Forget(nodeid, nlookup uint64)
 
 	// Attributes.
-	GetAttr(input *raw.GetAttrIn, out *raw.AttrOut) (code Status)
-	SetAttr(input *raw.SetAttrIn, out *raw.AttrOut) (code Status)
+	GetAttr(input *GetAttrIn, out *AttrOut) (code Status)
+	SetAttr(input *SetAttrIn, out *AttrOut) (code Status)
 
 	// Modifying structure.
-	Mknod(input *raw.MknodIn, name string, out *raw.EntryOut) (code Status)
-	Mkdir(input *raw.MkdirIn, name string, out *raw.EntryOut) (code Status)
-	Unlink(header *raw.InHeader, name string) (code Status)
-	Rmdir(header *raw.InHeader, name string) (code Status)
-	Rename(input *raw.RenameIn, oldName string, newName string) (code Status)
-	Link(input *raw.LinkIn, filename string, out *raw.EntryOut) (code Status)
+	Mknod(input *MknodIn, name string, out *EntryOut) (code Status)
+	Mkdir(input *MkdirIn, name string, out *EntryOut) (code Status)
+	Unlink(header *InHeader, name string) (code Status)
+	Rmdir(header *InHeader, name string) (code Status)
+	Rename(input *RenameIn, oldName string, newName string) (code Status)
+	Link(input *LinkIn, filename string, out *EntryOut) (code Status)
 
-	Symlink(header *raw.InHeader, pointedTo string, linkName string, out *raw.EntryOut) (code Status)
-	Readlink(header *raw.InHeader) (out []byte, code Status)
-	Access(input *raw.AccessIn) (code Status)
+	Symlink(header *InHeader, pointedTo string, linkName string, out *EntryOut) (code Status)
+	Readlink(header *InHeader) (out []byte, code Status)
+	Access(input *AccessIn) (code Status)
 
 	// Extended attributes.
-	GetXAttrSize(header *raw.InHeader, attr string) (sz int, code Status)
-	GetXAttrData(header *raw.InHeader, attr string) (data []byte, code Status)
-	ListXAttr(header *raw.InHeader) (attributes []byte, code Status)
-	SetXAttr(input *raw.SetXAttrIn, attr string, data []byte) Status
-	RemoveXAttr(header *raw.InHeader, attr string) (code Status)
+	GetXAttrSize(header *InHeader, attr string) (sz int, code Status)
+	GetXAttrData(header *InHeader, attr string) (data []byte, code Status)
+	ListXAttr(header *InHeader) (attributes []byte, code Status)
+	SetXAttr(input *SetXAttrIn, attr string, data []byte) Status
+	RemoveXAttr(header *InHeader, attr string) (code Status)
 
 	// File handling.
-	Create(input *raw.CreateIn, name string, out *raw.CreateOut) (code Status)
-	Open(input *raw.OpenIn, out *raw.OpenOut) (status Status)
-	Read(input *raw.ReadIn, buf []byte) (ReadResult, Status)
+	Create(input *CreateIn, name string, out *CreateOut) (code Status)
+	Open(input *OpenIn, out *OpenOut) (status Status)
+	Read(input *ReadIn, buf []byte) (ReadResult, Status)
 
-	Release(input *raw.ReleaseIn)
-	Write(input *raw.WriteIn, data []byte) (written uint32, code Status)
-	Flush(input *raw.FlushIn) Status
-	Fsync(input *raw.FsyncIn) (code Status)
-	Fallocate(input *raw.FallocateIn) (code Status)
+	Release(input *ReleaseIn)
+	Write(input *WriteIn, data []byte) (written uint32, code Status)
+	Flush(input *FlushIn) Status
+	Fsync(input *FsyncIn) (code Status)
+	Fallocate(input *FallocateIn) (code Status)
 
 	// Directory handling
-	OpenDir(input *raw.OpenIn, out *raw.OpenOut) (status Status)
-	ReadDir(input *raw.ReadIn, out *DirEntryList) Status
-	ReadDirPlus(input *raw.ReadIn, out *DirEntryList) Status
-	ReleaseDir(input *raw.ReleaseIn)
-	FsyncDir(input *raw.FsyncIn) (code Status)
+	OpenDir(input *OpenIn, out *OpenOut) (status Status)
+	ReadDir(input *ReadIn, out *DirEntryList) Status
+	ReadDirPlus(input *ReadIn, out *DirEntryList) Status
+	ReleaseDir(input *ReleaseIn)
+	FsyncDir(input *FsyncIn) (code Status)
 
 	//
-	StatFs(input *raw.InHeader, out *raw.StatfsOut) (code Status)
+	StatFs(input *InHeader, out *StatfsOut) (code Status)
 
 	// This is called on processing the first request. The
 	// filesystem implementation can use the server argument to

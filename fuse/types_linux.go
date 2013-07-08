@@ -1,4 +1,4 @@
-package raw
+package fuse
 
 type Attr struct {
 	Ino       uint64

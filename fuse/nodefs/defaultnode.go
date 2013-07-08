@@ -43,7 +43,7 @@ type defaultNode struct {
 	inode *Inode
 }
 
-func (n *defaultNode) StatFs() *StatfsOut {
+func (n *defaultNode) StatFs() *fuse.StatfsOut {
 	return nil
 }
 

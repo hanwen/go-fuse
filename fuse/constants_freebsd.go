@@ -1,4 +1,4 @@
-package raw
+package fuse
 
 // arbitrary values
 const syscall_O_LARGEFILE = 1 << 29

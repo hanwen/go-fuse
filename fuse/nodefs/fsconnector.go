@@ -13,7 +13,6 @@ import (
 	"unsafe"
 
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/raw"
 )
 
 // Tests should set to true.
@@ -100,7 +99,7 @@ func (c *FileSystemConnector) verify() {
 	root.verify(c.rootNode.mountPoint)
 }
 
-func (c *rawBridge) childLookup(out *raw.EntryOut, fsi Node) {
+func (c *rawBridge) childLookup(out *fuse.EntryOut, fsi Node) {
 	n := fsi.Inode()
 	fsi.GetAttr((*fuse.Attr)(&out.Attr), nil, nil)
 	n.mount.fillEntry(out)
@@ -114,7 +113,7 @@ func (c *rawBridge) childLookup(out *raw.EntryOut, fsi Node) {
 }
 
 func (c *rawBridge) toInode(nodeid uint64) *Inode {
-	if nodeid == raw.FUSE_ROOT_ID {
+	if nodeid == fuse.FUSE_ROOT_ID {
 		return c.rootNode
 	}
 	i := (*Inode)(unsafe.Pointer(c.inodeMap.Decode(nodeid)))
@@ -130,7 +129,7 @@ func (c *FileSystemConnector) lookupUpdate(node *Inode) (id uint64) {
 
 // Must run outside treeLock.
 func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
-	if nodeID == raw.FUSE_ROOT_ID {
+	if nodeID == fuse.FUSE_ROOT_ID {
 		c.nodeFs.OnUnmount()
 
 		// We never got a lookup for root, so don't try to
@@ -333,7 +332,7 @@ func (c *FileSystemConnector) Unmount(node *Inode) fuse.Status {
 	parentId := c.inodeMap.Handle(&parentNode.handled)
 	if parentNode == c.rootNode {
 		// TODO - test coverage. Currently covered by zipfs/multizip_test.go
-		parentId = raw.FUSE_ROOT_ID
+		parentId = fuse.FUSE_ROOT_ID
 	}
 
 	// We have to wait until the kernel has forgotten the
@@ -369,7 +368,7 @@ func (c *FileSystemConnector) Unmount(node *Inode) fuse.Status {
 func (c *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) fuse.Status {
 	var nId uint64
 	if node == c.rootNode {
-		nId = raw.FUSE_ROOT_ID
+		nId = fuse.FUSE_ROOT_ID
 	} else {
 		nId = c.inodeMap.Handle(&node.handled)
 	}
@@ -386,7 +385,7 @@ func (c *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) f
 func (c *FileSystemConnector) EntryNotify(node *Inode, name string) fuse.Status {
 	var nId uint64
 	if node == c.rootNode {
-		nId = raw.FUSE_ROOT_ID
+		nId = fuse.FUSE_ROOT_ID
 	} else {
 		nId = c.inodeMap.Handle(&node.handled)
 	}
@@ -403,7 +402,7 @@ func (c *FileSystemConnector) DeleteNotify(dir *Inode, child *Inode, name string
 	var nId uint64
 
 	if dir == c.rootNode {
-		nId = raw.FUSE_ROOT_ID
+		nId = fuse.FUSE_ROOT_ID
 	} else {
 		nId = c.inodeMap.Handle(&dir.handled)
 	}

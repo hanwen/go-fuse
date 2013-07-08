@@ -4,10 +4,7 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/raw"
 )
-
-type StatfsOut raw.StatfsOut
 
 // FileSystem is a high level API that resembles the kernel's idea
 // of what an FS looks like.  FileSystems can have multiple
@@ -92,7 +89,7 @@ type Node interface {
 	Utimens(file File, atime *time.Time, mtime *time.Time, context *fuse.Context) (code fuse.Status)
 	Fallocate(file File, off uint64, size uint64, mode uint32, context *fuse.Context) (code fuse.Status)
 
-	StatFs() *StatfsOut
+	StatFs() *fuse.StatfsOut
 }
 
 // A File object should be returned from FileSystem.Open and

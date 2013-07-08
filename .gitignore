@@ -4,6 +4,7 @@
 .nfs*
 _*
 6.out
+#*
 example/hello/hello
 example/unionfs/unionfs
 example/autounionfs/autounionfs

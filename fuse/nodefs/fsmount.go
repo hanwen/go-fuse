@@ -6,7 +6,6 @@ import (
 	"unsafe"
 
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/raw"
 )
 
 var _ = log.Println
@@ -59,13 +58,13 @@ func (m *fileSystemMount) mountName() string {
 	return ""
 }
 
-func (m *fileSystemMount) setOwner(attr *raw.Attr) {
+func (m *fileSystemMount) setOwner(attr *fuse.Attr) {
 	if m.options.Owner != nil {
-		attr.Owner = *(*raw.Owner)(m.options.Owner)
+		attr.Owner = *(*fuse.Owner)(m.options.Owner)
 	}
 }
 
-func (m *fileSystemMount) fillEntry(out *raw.EntryOut) {
+func (m *fileSystemMount) fillEntry(out *fuse.EntryOut) {
 	splitDuration(m.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
 	splitDuration(m.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	m.setOwner(&out.Attr)
@@ -74,7 +73,7 @@ func (m *fileSystemMount) fillEntry(out *raw.EntryOut) {
 	}
 }
 
-func (m *fileSystemMount) fillAttr(out *raw.AttrOut, nodeId uint64) {
+func (m *fileSystemMount) fillAttr(out *fuse.AttrOut, nodeId uint64) {
 	splitDuration(m.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	m.setOwner(&out.Attr)
 	out.Ino = nodeId
@@ -140,7 +139,7 @@ func (m *fileSystemMount) registerFileHandle(node *Inode, dir *connectorDir, f F
 }
 
 // Creates a return entry for a non-existent path.
-func (m *fileSystemMount) negativeEntry(out *raw.EntryOut) bool {
+func (m *fileSystemMount) negativeEntry(out *fuse.EntryOut) bool {
 	if m.options.NegativeTimeout > 0.0 {
 		out.NodeId = 0
 		splitDuration(m.options.NegativeTimeout, &out.EntryValid, &out.EntryValidNsec)
