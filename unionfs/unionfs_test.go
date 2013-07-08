@@ -18,7 +18,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
-	"github.com/hanwen/go-fuse/raw"
 )
 
 var _ = fmt.Print
@@ -731,7 +730,7 @@ func TestUnionFsWriteAccess(t *testing.T) {
 	}
 	setRecursiveWritable(t, wd+"/ro", false)
 
-	err = syscall.Access(wd+"/mnt/file", raw.W_OK)
+	err = syscall.Access(wd+"/mnt/file", fuse.W_OK)
 	if err != nil {
 		if err != nil {
 			t.Fatalf("Access failed: %v", err)

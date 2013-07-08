@@ -473,6 +473,6 @@ func (fs *autoUnionFs) OpenDir(name string, context *fuse.Context) (stream []fus
 	return stream, status
 }
 
-func (fs *autoUnionFs) StatFs(name string) *nodefs.StatfsOut {
-	return &nodefs.StatfsOut{}
+func (fs *autoUnionFs) StatFs(name string) *fuse.StatfsOut {
+	return &fuse.StatfsOut{}
 }

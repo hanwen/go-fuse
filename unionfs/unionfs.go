@@ -15,7 +15,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
-	"github.com/hanwen/go-fuse/raw"
 )
 
 func filePathHash(path string) string {
@@ -567,7 +566,7 @@ func (fs *unionFS) Chmod(name string, mode uint32, context *fuse.Context) (code 
 
 func (fs *unionFS) Access(name string, mode uint32, context *fuse.Context) (code fuse.Status) {
 	// We always allow writing.
-	mode = mode &^ raw.W_OK
+	mode = mode &^ fuse.W_OK
 	if name == "" {
 		return fuse.OK
 	}
@@ -970,7 +969,7 @@ func (fs *unionFS) String() string {
 	return fmt.Sprintf("UnionFs(%v)", names)
 }
 
-func (fs *unionFS) StatFs(name string) *nodefs.StatfsOut {
+func (fs *unionFS) StatFs(name string) *fuse.StatfsOut {
 	return fs.fileSystems[0].StatFs("")
 }
 
