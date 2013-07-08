@@ -1,11 +1,8 @@
 package fuse
 
 import (
-	"fmt"
 	"testing"
 )
-
-var _ = fmt.Println
 
 func TestBufferPool(t *testing.T) {
 	bp := NewBufferPool()

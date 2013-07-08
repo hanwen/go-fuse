@@ -11,8 +11,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
-var _ = fmt.Println
-
 const _XATTRSEP = "@XATTR@"
 
 type attrResponse struct {

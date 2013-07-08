@@ -1,9 +1,7 @@
 package unionfs
 
 import (
-	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"syscall"
 	"testing"
@@ -11,9 +9,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
-
-var _ = fmt.Print
-var _ = log.Print
 
 func modeMapEq(m1, m2 map[string]uint32) bool {
 	if len(m1) != len(m2) {

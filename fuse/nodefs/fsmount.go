@@ -8,8 +8,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-var _ = log.Println
-
 // openedFile stores either an open dir or an open file.
 type openedFile struct {
 	handled

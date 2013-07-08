@@ -1,12 +1,9 @@
 package unionfs
 
 import (
-	"log"
 	"sync"
 	"time"
 )
-
-var _ = log.Println
 
 type cacheEntry struct {
 	data interface{}

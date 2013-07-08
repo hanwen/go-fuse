@@ -4,13 +4,11 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -19,12 +17,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
-
-var _ = strings.Join
-var _ = log.Println
-
-////////////////
-// state for our testcase, mostly constants
 
 const mode uint32 = 0757
 

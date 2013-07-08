@@ -7,13 +7,10 @@ import (
 	"fmt"
 	"github.com/hanwen/go-fuse/fuse"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 )
-
-var _ = log.Printf
 
 type ZipFile struct {
 	*zip.File

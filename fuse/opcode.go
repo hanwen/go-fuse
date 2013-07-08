@@ -2,14 +2,10 @@ package fuse
 
 import (
 	"bytes"
-	"fmt"
 	"log"
 	"reflect"
 	"unsafe"
 )
-
-var _ = log.Printf
-var _ = fmt.Printf
 
 const (
 	_OP_LOOKUP       = int32(1)

@@ -6,18 +6,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
-	"runtime"
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
-
-var _ = runtime.GOMAXPROCS
-var _ = log.Print
 
 func main() {
 	// Scans the arg list and sets up flags

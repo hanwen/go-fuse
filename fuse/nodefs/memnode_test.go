@@ -2,15 +2,12 @@ package nodefs
 
 import (
 	"io/ioutil"
-	"log"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
 )
-
-var _ = log.Println
 
 const testTtl = 100 * time.Millisecond
 

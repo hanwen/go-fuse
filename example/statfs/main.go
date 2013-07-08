@@ -15,8 +15,6 @@ import (
 	"time"
 )
 
-var _ = log.Printf
-
 func main() {
 	// Scans the arg list and sets up flags
 	debug := flag.Bool("debug", false, "print debugging messages.")

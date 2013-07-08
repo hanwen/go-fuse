@@ -18,8 +18,6 @@ type readonlyFileSystem struct {
 	FileSystem
 }
 
-var _ = (FileSystem)((*readonlyFileSystem)(nil))
-
 func (fs *readonlyFileSystem) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	return fs.FileSystem.GetAttr(name, context)
 }

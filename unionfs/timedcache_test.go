@@ -1,14 +1,9 @@
 package unionfs
 
 import (
-	"fmt"
-	"log"
 	"testing"
 	"time"
 )
-
-var _ = fmt.Print
-var _ = log.Print
 
 func TestTimedCacheUncacheable(t *testing.T) {
 	fetchCount := 0

@@ -5,15 +5,12 @@ import (
 	"bytes"
 	"compress/bzip2"
 	"compress/gzip"
-	"fmt"
 	"github.com/hanwen/go-fuse/fuse"
 	"io"
 	"os"
 	"strings"
 	"syscall"
 )
-
-var _ = fmt.Println
 
 // TODO - handle symlinks.
 

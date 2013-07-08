@@ -9,8 +9,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-var _ = fmt.Println
-
 // DataFile is for implementing read-only filesystems.  This
 // assumes we already have the data in memory.
 type dataFile struct {
@@ -107,8 +105,6 @@ type loopbackFile struct {
 	// file gets written in the end.
 	lock sync.Mutex
 }
-
-var _ = (File)((*loopbackFile)(nil))
 
 func (f *loopbackFile) InnerFile() File {
 	return nil
@@ -216,8 +212,6 @@ func NewReadOnlyFile(f File) File {
 type readOnlyFile struct {
 	File
 }
-
-var _ = (File)((*readOnlyFile)(nil))
 
 func (f *readOnlyFile) String() string {
 	return fmt.Sprintf("readOnlyFile(%s)", f.File.String())

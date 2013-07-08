@@ -20,9 +20,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
-var _ = fmt.Print
-var _ = log.Print
-
 func TestFilePathHash(t *testing.T) {
 	// Simple test coverage.
 	t.Log(filePathHash("xyz/abc"))

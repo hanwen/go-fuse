@@ -10,7 +10,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
-	"github.com/hanwen/go-fuse/raw"
 )
 
 type cacheFs struct {
@@ -24,7 +23,7 @@ func (fs *cacheFs) Open(name string, flags uint32, context *fuse.Context) (fuseF
 	}
 	return &nodefs.WithFlags{
 		File:      f,
-		FuseFlags: raw.FOPEN_KEEP_CACHE,
+		FuseFlags: fuse.FOPEN_KEEP_CACHE,
 	}, c
 
 }
@@ -127,7 +126,7 @@ func (fs *nonseekFs) Open(name string, flags uint32, context *fuse.Context) (fus
 	f := nodefs.NewDataFile(data)
 	return &nodefs.WithFlags{
 		File:      f,
-		FuseFlags: raw.FOPEN_NONSEEKABLE,
+		FuseFlags: fuse.FOPEN_NONSEEKABLE,
 	}, fuse.OK
 }
 

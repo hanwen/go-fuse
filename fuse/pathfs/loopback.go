@@ -1,7 +1,6 @@
 package pathfs
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -12,9 +11,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 )
-
-var _ = fmt.Println
-var _ = log.Println
 
 type loopbackFileSystem struct {
 	// TODO - this should need default fill in.
@@ -60,8 +56,6 @@ func (fs *loopbackFileSystem) GetAttr(name string, context *fuse.Context) (a *fu
 	a.FromStat(&st)
 	return a, fuse.OK
 }
-
-var _ = (FileSystem)((*loopbackFileSystem)(nil))
 
 func (fs *loopbackFileSystem) OpenDir(name string, context *fuse.Context) (stream []fuse.DirEntry, status fuse.Status) {
 	// What other ways beyond O_RDONLY are there to open

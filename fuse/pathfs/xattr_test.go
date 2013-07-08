@@ -3,7 +3,6 @@ package pathfs
 import (
 	"bytes"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -12,8 +11,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 )
-
-var _ = log.Print
 
 var xattrGolden = map[string][]byte{
 	"user.attr1": []byte("val1"),

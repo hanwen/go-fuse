@@ -12,8 +12,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 )
 
-var _ = log.Println
-
 // A parent pointer: node should be reachable as parent.children[name]
 type clientInodePath struct {
 	parent *pathInode

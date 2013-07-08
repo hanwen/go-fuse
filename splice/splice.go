@@ -10,8 +10,6 @@ import (
 	"syscall"
 )
 
-var _ = log.Println
-
 var maxPipeSize int
 var resizable bool
 

@@ -10,7 +10,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
-	"github.com/hanwen/go-fuse/raw"
 )
 
 type MutableDataFile struct {
@@ -149,7 +148,7 @@ func setupFAttrTest(t *testing.T, fs pathfs.FileSystem) (dir string, clean func(
 
 	// Trigger INIT.
 	os.Lstat(dir)
-	if state.KernelSettings().Flags&raw.CAP_FILE_OPS == 0 {
+	if state.KernelSettings().Flags&fuse.CAP_FILE_OPS == 0 {
 		t.Log("Mount does not support file operations")
 	}
 

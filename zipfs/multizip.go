@@ -19,9 +19,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
-var _ = log.Printf
-var _ = (pathfs.FileSystem)((*MultiZipFs)(nil))
-
 const (
 	CONFIG_PREFIX = "config/"
 )

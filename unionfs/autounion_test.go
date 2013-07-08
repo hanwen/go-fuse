@@ -1,7 +1,6 @@
 package unionfs
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -12,9 +11,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
-
-var _ = fmt.Print
-var _ = log.Print
 
 const entryTtl = 100 * time.Millisecond
 

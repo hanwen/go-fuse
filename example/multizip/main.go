@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -11,8 +10,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 	"github.com/hanwen/go-fuse/zipfs"
 )
-
-var _ = log.Printf
 
 func main() {
 	// Scans the arg list and sets up flags
