@@ -177,7 +177,7 @@ type InitOut struct {
 	MaxWrite            uint32
 }
 
-type CuseInitIn struct {
+type _CuseInitIn struct {
 	InHeader
 	Major  uint32
 	Minor  uint32
@@ -185,7 +185,7 @@ type CuseInitIn struct {
 	Flags  uint32
 }
 
-type CuseInitOut struct {
+type _CuseInitOut struct {
 	Major    uint32
 	Minor    uint32
 	Unused   uint32
@@ -202,14 +202,14 @@ type InterruptIn struct {
 	Unique uint64
 }
 
-type BmapIn struct {
+type _BmapIn struct {
 	InHeader
 	Block     uint64
 	Blocksize uint32
 	Padding   uint32
 }
 
-type BmapOut struct {
+type _BmapOut struct {
 	Block uint64
 }
 
@@ -219,7 +219,7 @@ const (
 	FUSE_IOCTL_RETRY        = (1 << 2)
 )
 
-type IoctlIn struct {
+type _IoctlIn struct {
 	InHeader
 	Fh      uint64
 	Flags   uint32
@@ -229,14 +229,14 @@ type IoctlIn struct {
 	OutSize uint32
 }
 
-type IoctlOut struct {
+type _IoctlOut struct {
 	Result  int32
 	Flags   uint32
 	InIovs  uint32
 	OutIovs uint32
 }
 
-type PollIn struct {
+type _PollIn struct {
 	InHeader
 	Fh      uint64
 	Kh      uint64
@@ -244,12 +244,12 @@ type PollIn struct {
 	Padding uint32
 }
 
-type PollOut struct {
+type _PollOut struct {
 	Revents uint32
 	Padding uint32
 }
 
-type NotifyPollWakeupOut struct {
+type _NotifyPollWakeupOut struct {
 	Kh uint64
 }
 

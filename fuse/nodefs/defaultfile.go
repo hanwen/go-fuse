@@ -65,10 +65,6 @@ func (f *defaultFile) Chmod(perms uint32) fuse.Status {
 	return fuse.ENOSYS
 }
 
-func (f *defaultFile) Ioctl(input *fuse.IoctlIn) (output *fuse.IoctlOut, data []byte, code fuse.Status) {
-	return nil, nil, fuse.ENOSYS
-}
-
 func (f *defaultFile) Allocate(off uint64, size uint64, mode uint32) (code fuse.Status) {
 	return fuse.ENOSYS
 }
