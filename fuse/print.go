@@ -226,6 +226,7 @@ func (f *FallocateIn) string() string {
 		f.Fh, f.Offset, f.Length, f.Mode)
 }
 
+// Print pretty prints FUSE data types for kernel communication
 func Print(obj interface{}) string {
 	t, ok := obj.(interface {
 		string() string

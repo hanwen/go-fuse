@@ -30,7 +30,8 @@ func (code Status) Ok() bool {
 	return code == OK
 }
 
-// Convert error back to Errno based errors.
+// ToStatus extracts an errno number from Go error objects.  If it
+// fails, it logs an error and returns ENOSYS.
 func ToStatus(err error) Status {
 	switch err {
 	case nil:
