@@ -32,7 +32,7 @@ func (fs *loopbackFileSystem) ListXAttr(name string, context *fuse.Context) ([]s
 }
 
 func (fs *loopbackFileSystem) RemoveXAttr(name string, attr string, context *fuse.Context) fuse.Status {
-	err := syscall.Removexattr(fs.GetPath(name), attr)
+	err := sysRemovexattr(fs.GetPath(name), attr)
 	return fuse.ToStatus(err)
 }
 
