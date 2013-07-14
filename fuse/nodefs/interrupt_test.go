@@ -12,6 +12,13 @@ import (
 	"github.com/hanwen/go-fuse/raw"
 )
 
+const (
+	waitForStart = 500 * time.Millisecond
+	waitForMount = 500 * time.Millisecond
+	readDelay = 20 * time.Second
+	maxWait = time.Duration(2 * time.Second)
+)
+
 type testFs struct {
 	FileSystem
 	root Node
@@ -66,31 +73,32 @@ func (n *testNode) Open(flags uint32, context *fuse.Context) (File, fuse.Status)
 	return &WithFlags{ &testFile{ NewDefaultFile() }, "test", raw.FOPEN_DIRECT_IO, 0 }, fuse.OK
 }
 
+var wasInterrupted = false
+
 func (fh *testFile) Read(dest []byte, off int64, context *fuse.Context) (fuse.ReadResult, fuse.Status) {
 	if off != 0 {
 		return &fuse.ReadResultData{ []byte{} }, fuse.OK
 	}
 	select {
 	case <- context.Interrupted:
-		println("Interrupted")
+		wasInterrupted = true
 		return &fuse.ReadResultData{ []byte{ '1' } }, fuse.Status(syscall.EINTR)
-	case <- time.After(20 * time.Second):
+	case <- time.After(readDelay):
 		return &fuse.ReadResultData{ []byte{ '1' } }, fuse.OK
 	}
 }
 
 func TestInterrupt(t *testing.T) {
-	println("Testing interrupt")
 	tmp, clean := setupInterruptTest(t)
 	defer clean()
 
-	time.Sleep(500 * time.Millisecond) // wait for filesystem to mount
+	time.Sleep(waitForMount) // wait for filesystem to mount
 
 	cmd := exec.Command("cat", filepath.Join(tmp, "/test"))
 	cmd.Start()
 
 	go func() {
-		time.Sleep(500 * time.Millisecond) // wait for cat to start
+		time.Sleep(waitForStart) // wait for cat to start
 		cmd.Process.Kill()
 	}()
 
@@ -100,8 +108,10 @@ func TestInterrupt(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Error running command (it didn't return an error)")
 	}
-	println("Elapsed:", float32(time.Since(t0)) / float32(time.Second))
-	if time.Since(t0) >= time.Duration(2 * time.Second) {
+	if time.Since(t0) >= maxWait {
 		t.Fatalf("Test took to much time")
+	}
+	if !wasInterrupted {
+		t.Fatalf("Was interrupted not set")
 	}
 }
