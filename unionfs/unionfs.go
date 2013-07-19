@@ -86,7 +86,7 @@ const (
 	_DROP_CACHE = ".drop_cache"
 )
 
-func NewUnionFs(fileSystems []pathfs.FileSystem, options UnionFsOptions) pathfs.FileSystem {
+func NewUnionFs(fileSystems []pathfs.FileSystem, options UnionFsOptions) (pathfs.FileSystem, error) {
 	g := &unionFS{
 		options:     &options,
 		fileSystems: fileSystems,
@@ -96,8 +96,7 @@ func NewUnionFs(fileSystems []pathfs.FileSystem, options UnionFsOptions) pathfs.
 	writable := g.fileSystems[0]
 	code := g.createDeletionStore()
 	if !code.Ok() {
-		log.Printf("could not create deletion path %v: %v", options.DeletionDirName, code)
-		return nil
+		return nil, fmt.Errorf("could not create deletion path %v: %v", options.DeletionDirName, code)
 	}
 
 	g.deletionCache = newDirCache(writable, options.DeletionDirName, options.DeletionCacheTTL)
@@ -110,7 +109,7 @@ func NewUnionFs(fileSystems []pathfs.FileSystem, options UnionFsOptions) pathfs.
 		g.hiddenFiles[name] = true
 	}
 
-	return g
+	return g, nil
 }
 
 func (fs *unionFS) OnMount(nodeFs *pathfs.PathNodeFs) {
@@ -707,7 +706,6 @@ func (fs *unionFS) GetXAttr(name string, attr string, context *fuse.Context) ([]
 	if name == _DROP_CACHE {
 		return nil, fuse.ENODATA
 	}
-
 	r := fs.getBranch(name)
 	if r.branch >= 0 {
 		return fs.fileSystems[r.branch].GetXAttr(name, attr, context)

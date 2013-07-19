@@ -78,8 +78,10 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 	fses = append(fses, pathfs.NewLoopbackFileSystem(wd+"/rw"))
 	fses = append(fses,
 		NewCachingFileSystem(pathfs.NewLoopbackFileSystem(wd+"/ro"), 0))
-	ufs := NewUnionFs(fses, testOpts)
-
+	ufs, err := NewUnionFs(fses, testOpts)
+	if err != nil {
+		t.Fatalf("NewUnionFs: %v", err)
+	}
 	// We configure timeouts are smaller, so we can check for
 	// UnionFs's cache consistency.
 	opts := &nodefs.Options{
@@ -96,6 +98,7 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 	}
 	conn.SetDebug(VerboseTest())
 	state.SetDebug(VerboseTest())
+	pathfs.SetDebug(VerboseTest())
 	go state.Serve()
 
 	return wd, func() {
@@ -1143,7 +1146,10 @@ func TestUnionFsDisappearing(t *testing.T) {
 	var fses []pathfs.FileSystem
 	fses = append(fses, pathfs.NewLockingFileSystem(wrFs))
 	fses = append(fses, pathfs.NewLoopbackFileSystem(wd+"/ro"))
-	ufs := NewUnionFs(fses, testOpts)
+	ufs, err := NewUnionFs(fses, testOpts)
+	if err != nil {
+		t.Fatalf("NewUnionFs: %v", err)
+	}
 
 	opts := &nodefs.Options{
 		EntryTimeout:    entryTtl,
