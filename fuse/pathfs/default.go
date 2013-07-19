@@ -16,6 +16,8 @@ func NewDefaultFileSystem() FileSystem {
 // defaultFileSystem implements a FileSystem that returns ENOSYS for every operation.
 type defaultFileSystem struct{}
 
+func (fs *defaultFileSystem) SetDebug(debug bool) {}
+
 // defaultFileSystem
 func (fs *defaultFileSystem) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	return nil, fuse.ENOSYS

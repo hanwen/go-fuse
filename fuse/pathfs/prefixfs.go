@@ -19,6 +19,10 @@ func NewPrefixFileSystem(fs FileSystem, prefix string) FileSystem {
 	return &prefixFileSystem{fs, prefix}
 }
 
+func (fs *prefixFileSystem) SetDebug(debug bool) {
+	fs.FileSystem.SetDebug(debug)
+}
+
 func (fs *prefixFileSystem) prefixed(n string) string {
 	return filepath.Join(fs.Prefix, n)
 }

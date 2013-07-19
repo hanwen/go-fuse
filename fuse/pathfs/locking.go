@@ -28,6 +28,11 @@ func (fs *lockingFileSystem) String() string {
 	return fs.FS.String()
 }
 
+func (fs *lockingFileSystem) SetDebug(debug bool) {
+	defer fs.locked()()
+	fs.FS.SetDebug(debug)
+}
+
 func (fs *lockingFileSystem) StatFs(name string) *fuse.StatfsOut {
 	defer fs.locked()()
 	return fs.FS.StatFs(name)

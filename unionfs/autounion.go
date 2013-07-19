@@ -270,8 +270,7 @@ func (fs *autoUnionFs) Symlink(pointedTo string, linkName string, context *fuse.
 }
 
 func (fs *autoUnionFs) SetDebug(b bool) {
-	// Officially, this should use locking, but we don't care
-	// about race conditions here.
+	// TODO(hanwen): this should use locking.
 	fs.debug = b
 	fs.nodeFs.SetDebug(b)
 

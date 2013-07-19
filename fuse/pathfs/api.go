@@ -18,6 +18,9 @@ type FileSystem interface {
 	// Used for pretty printing.
 	String() string
 
+	// If called, provide debug output through the log package.
+	SetDebug(debug bool)
+
 	// Attributes.  This function is the main entry point, through
 	// which FUSE discovers which files and directories exist.
 	//
