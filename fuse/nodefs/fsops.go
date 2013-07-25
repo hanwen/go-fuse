@@ -304,6 +304,9 @@ func (c *rawBridge) Rename(input *fuse.RenameIn, oldName string, newName string)
 	oldParent := c.toInode(input.NodeId)
 
 	child := oldParent.GetChild(oldName)
+	if child == nil {
+		return fuse.ENOENT
+	}
 	if child.mountPoint != nil {
 		return fuse.EBUSY
 	}

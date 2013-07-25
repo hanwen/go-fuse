@@ -567,8 +567,9 @@ func (n *pathInode) findChild(fi *fuse.Attr, name string, fullPath string) (out 
 		out = n.createChild(fi.IsDir())
 		out.clientInode = fi.Ino
 		n.addChild(name, out)
+	} else {
+		// should add 'out' as a child to n ?
 	}
-
 	return out
 }
 

@@ -88,6 +88,7 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 		EntryTimeout:    entryTtl / 2,
 		AttrTimeout:     entryTtl / 2,
 		NegativeTimeout: entryTtl / 2,
+		PortableInodes:  true,
 	}
 
 	pathfs := pathfs.NewPathNodeFs(ufs,
@@ -1489,5 +1490,32 @@ func TestUnionFsCheckHiddenFiles(t *testing.T) {
 	}
 	if len(names) != 1 || names[0] != "not_hidden" {
 		t.Fatal("unexpected names", names)
+	}
+}
+
+func TestUnionFSBarf(t *testing.T) {
+	wd, clean := setupUfs(t)
+	defer clean()
+
+	if err := os.Mkdir(wd+"/mnt/dir", 0755); err != nil {
+		t.Fatalf("os.Mkdir: %v", err)
+	}
+	if err := os.Mkdir(wd+"/mnt/dir2", 0755); err != nil {
+		t.Fatalf("os.Mkdir: %v", err)
+	}
+	if err := ioutil.WriteFile(wd+"/rw/dir/file", []byte("bla"), 0644); err != nil {
+		t.Fatalf("WriteFile failed: %v", err)
+	}
+	if _, err := os.Lstat(wd+"/mnt/dir/file"); err != nil {
+		t.Fatalf("Lstat: %v", err)
+	}
+	if err := os.Rename(wd+"/rw/dir/file", wd+"/rw/file"); err != nil {
+		t.Fatalf("os.Rename: %v", err)
+	}
+
+	err := os.Rename(wd+"/mnt/file", wd+"/mnt/dir2/file")
+	if fuse.ToStatus(err) != fuse.ENOENT {
+		// TODO - this should just succeed?
+		t.Fatalf("os.Rename: %v", err)
 	}
 }
