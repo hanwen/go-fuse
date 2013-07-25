@@ -105,6 +105,10 @@ func (me *MknodIn) string() string {
 	return fmt.Sprintf("{0%o (0%o), %d}", me.Mode, me.Umask, me.Rdev)
 }
 
+func (me *RenameIn) string() string {
+	return fmt.Sprintf("{%d}", me.Newdir)
+}
+
 func (me *SetAttrIn) string() string {
 	s := []string{}
 	if me.Valid&FATTR_MODE != 0 {

@@ -585,6 +585,7 @@ func init() {
 		_OP_RELEASEDIR:   func(ptr unsafe.Pointer) interface{} { return (*ReleaseIn)(ptr) },
 		_OP_FALLOCATE:    func(ptr unsafe.Pointer) interface{} { return (*FallocateIn)(ptr) },
 		_OP_READDIRPLUS:  func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
+		_OP_RENAME:       func(ptr unsafe.Pointer) interface{} { return (*RenameIn)(ptr) },
 	} {
 		operationHandlers[op].DecodeIn = f
 	}
