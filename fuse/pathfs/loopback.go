@@ -69,6 +69,10 @@ func (fs *loopbackFileSystem) OpenDir(name string, context *fuse.Context) (strea
 	for {
 		infos, err := f.Readdir(want)
 		for i := range infos {
+			// workaround forhttps://code.google.com/p/go/issues/detail?id=5960
+			if infos[i] == nil {
+				continue
+			}
 			n := infos[i].Name()
 			d := fuse.DirEntry{
 				Name: n,
