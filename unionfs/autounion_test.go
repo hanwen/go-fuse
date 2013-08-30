@@ -22,6 +22,7 @@ var testAOpts = AutoUnionFsOptions{
 		NegativeTimeout: 0,
 	},
 	HideReadonly: true,
+	Version:      "version",
 }
 
 func WriteFile(t *testing.T, name string, contents string) {

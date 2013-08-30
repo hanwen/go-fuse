@@ -65,13 +65,6 @@ func toSlice(dest *[]byte, ptr unsafe.Pointer, byteCount uintptr) {
 	*h = reflect.SliceHeader{uintptr(ptr), int(byteCount), int(byteCount)}
 }
 
-func Version() string {
-	if version != nil {
-		return *version
-	}
-	return "unknown"
-}
-
 func CurrentOwner() *Owner {
 	return &Owner{
 		Uid: uint32(os.Getuid()),

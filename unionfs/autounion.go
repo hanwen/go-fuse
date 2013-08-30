@@ -50,6 +50,9 @@ type AutoUnionFsOptions struct {
 
 	// If set hides the _READONLY file.
 	HideReadonly bool
+
+	// Expose this version in /status/gounionfs_version
+	Version string
 }
 
 const (
@@ -324,7 +327,7 @@ func (fs *autoUnionFs) GetAttr(path string, context *fuse.Context) (*fuse.Attr, 
 	if path == filepath.Join(_STATUS, _VERSION) {
 		a := &fuse.Attr{
 			Mode: fuse.S_IFREG | 0644,
-			Size: uint64(len(fuse.Version())),
+			Size: uint64(len(fs.options.Version)),
 		}
 		return a, fuse.OK
 	}
@@ -391,7 +394,7 @@ func (fs *autoUnionFs) DebugData() string {
 		"Version: %v\n"+
 			"Bufferpool: %v\n"+
 			"Kernel: %v\n",
-		fuse.Version(),
+		fs.options.Version,
 		conn.Server().DebugData(),
 		&setting)
 
@@ -414,7 +417,7 @@ func (fs *autoUnionFs) Open(path string, flags uint32, context *fuse.Context) (n
 		if flags&fuse.O_ANYWRITE != 0 {
 			return nil, fuse.EPERM
 		}
-		return nodefs.NewDataFile([]byte(fuse.Version())), fuse.OK
+		return nodefs.NewDataFile([]byte(fs.options.Version)), fuse.OK
 	}
 	if path == filepath.Join(_CONFIG, _SCAN_CONFIG) {
 		if flags&fuse.O_ANYWRITE != 0 {

@@ -1,8 +1,6 @@
 #!/bin/sh
 set -eux
 
-sh genversion.sh fuse/version.gen.go
-
 for target in "clean" "install" ; do
   for d in fuse fuse/pathfs fuse/test zipfs unionfs \
     example/hello example/loopback example/zipfs \

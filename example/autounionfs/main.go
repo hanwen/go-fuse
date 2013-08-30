@@ -13,7 +13,6 @@ import (
 )
 
 func main() {
-	version := flag.Bool("version", false, "print version number")
 	debug := flag.Bool("debug", false, "debug on")
 	hardlinks := flag.Bool("hardlinks", false, "support hardlinks")
 	delcache_ttl := flag.Float64("deletion_cache_ttl", 5.0, "Deletion cache TTL in seconds.")
@@ -27,11 +26,6 @@ func main() {
 		"Use sequential 32-bit inode numbers.")
 
 	flag.Parse()
-
-	if *version {
-		fmt.Println(fuse.Version())
-		os.Exit(0)
-	}
 
 	if len(flag.Args()) < 2 {
 		fmt.Println("Usage:\n  main MOUNTPOINT BASEDIR")
@@ -59,7 +53,6 @@ func main() {
 	fsOpts := nodefs.Options{
 		PortableInodes: *portableInodes,
 	}
-	fmt.Printf("AutoUnionFs - Go-FUSE Version %v.\n", fuse.Version())
 	gofs := unionfs.NewAutoUnionFs(flag.Arg(1), options)
 	pathfs := pathfs.NewPathNodeFs(gofs, nil)
 	state, conn, err := nodefs.MountFileSystem(flag.Arg(0), pathfs, &fsOpts)
