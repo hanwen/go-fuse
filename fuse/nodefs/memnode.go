@@ -92,6 +92,10 @@ func (n *memNode) Readlink(c *fuse.Context) ([]byte, fuse.Status) {
 	return []byte(n.link), fuse.OK
 }
 
+func (n *memNode) StatFs() (*fuse.StatfsOut) {
+	return &fuse.StatfsOut{}
+}
+
 func (n *memNode) Mkdir(name string, mode uint32, context *fuse.Context) (newNode Node, code fuse.Status) {
 	ch := n.newNode(true)
 	ch.info.Mode = mode | fuse.S_IFDIR
