@@ -208,8 +208,8 @@ func (me *CreateOut) string() string {
 
 func (me *StatfsOut) string() string {
 	return fmt.Sprintf(
-		"{b%d f%d fs%d ff%d bs%d nl%d frs%d}",
-		me.Blocks, me.Bfree, me.Bavail, me.Files, me.Ffree,
+		"{blocks (%d,%d)/%d files %d/%d bs%d nl%d frs%d}",
+		me.Bfree, me.Bavail, me.Blocks, me.Ffree, me.Files,
 		me.Bsize, me.NameLen, me.Frsize)
 }
 
@@ -238,5 +238,5 @@ func Print(obj interface{}) string {
 	if ok {
 		return t.string()
 	}
-	return fmt.Sprintf("%v", obj)
+	return fmt.Sprintf("%T: %v", obj, obj)
 }
