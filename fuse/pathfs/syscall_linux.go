@@ -109,11 +109,6 @@ func sysListxattr(path string, dest []byte) (sz int, err error) {
 	return
 }
 
-
-func sysSetxattr(path string, attr string, val, flag) error {
+func sysSetxattr(path string, attr string, val []byte, flag int) error {
 	return syscall.Setxattr(path, attr, val, flag)
-}
-
-func sysRemovexattr(path string, attr string) error {
-	return syscall.Removexattr(path, attr)
 }
