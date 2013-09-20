@@ -121,9 +121,9 @@ func mount(dir string, options string) (int, error) {
 	defer C.free(unsafe.Pointer(cdir))
 	fd := C.mountfuse(cdir, errp)
 	if *errp != nil {
-		return nil, mountError(C.GoString(*errp))
+		return -1, mountError(C.GoString(*errp))
 	}
-	return fd, nil
+	return int(fd), nil
 }
 
 type mountError string

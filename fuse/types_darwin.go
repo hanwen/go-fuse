@@ -51,6 +51,7 @@ const (
 )
 
 type GetAttrIn struct {
+	InHeader
 }
 
 func (g *GetAttrIn) Flags() uint32 {

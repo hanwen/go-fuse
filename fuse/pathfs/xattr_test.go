@@ -172,7 +172,7 @@ func TestXAttrRead(t *testing.T) {
 		}
 	}
 
-	err = syscall.Setxattr(mounted, "third", []byte("value"), 0)
+	err = sysSetxattr(mounted, "third", []byte("value"), 0)
 	if err != nil {
 		t.Error("Setxattr error", err)
 	}
@@ -181,7 +181,7 @@ func TestXAttrRead(t *testing.T) {
 		t.Error("Read back set xattr:", err, string(val))
 	}
 
-	syscall.Removexattr(mounted, "third")
+	sysRemovexattr(mounted, "third")
 	val, err = readXAttr(mounted, "third")
 	if err != syscall.ENODATA {
 		t.Error("Data not removed?", err, val)
