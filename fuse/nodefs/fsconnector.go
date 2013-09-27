@@ -343,15 +343,25 @@ func (c *FileSystemConnector) Unmount(node *Inode) fuse.Status {
 		mount.treeLock.Unlock()
 		parentNode.mount.treeLock.Unlock()
 		delay := 100 * time.Microsecond
+
 		for {
 			// This operation is rare, so we kludge it to avoid
 			// contention.
 			time.Sleep(delay)
-			delay = delay*2 + 1
+			delay = delay*2
 			if !c.inodeMap.Has(nodeId) {
 				break
 			}
+
+			if delay >= time.Second {
+				// We limit the wait at one second. If
+				// it takes longer, something else is
+				// amiss, and we would be waiting forever.
+				log.Println("kernel did not issue FORGET for node on Unmount.")
+				break
+			}
 		}
+		
 		parentNode.mount.treeLock.Lock()
 		mount.treeLock.Lock()
 	}
