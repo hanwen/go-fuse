@@ -92,7 +92,7 @@ func (n *memNode) Readlink(c *fuse.Context) ([]byte, fuse.Status) {
 	return []byte(n.link), fuse.OK
 }
 
-func (n *memNode) StatFs() (*fuse.StatfsOut) {
+func (n *memNode) StatFs() *fuse.StatfsOut {
 	return &fuse.StatfsOut{}
 }
 

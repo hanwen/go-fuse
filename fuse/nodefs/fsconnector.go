@@ -348,7 +348,7 @@ func (c *FileSystemConnector) Unmount(node *Inode) fuse.Status {
 			// This operation is rare, so we kludge it to avoid
 			// contention.
 			time.Sleep(delay)
-			delay = delay*2
+			delay = delay * 2
 			if !c.inodeMap.Has(nodeId) {
 				break
 			}
@@ -361,7 +361,7 @@ func (c *FileSystemConnector) Unmount(node *Inode) fuse.Status {
 				break
 			}
 		}
-		
+
 		parentNode.mount.treeLock.Lock()
 		mount.treeLock.Lock()
 	}

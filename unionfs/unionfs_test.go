@@ -1506,7 +1506,7 @@ func TestUnionFSBarf(t *testing.T) {
 	if err := ioutil.WriteFile(wd+"/rw/dir/file", []byte("bla"), 0644); err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
-	if _, err := os.Lstat(wd+"/mnt/dir/file"); err != nil {
+	if _, err := os.Lstat(wd + "/mnt/dir/file"); err != nil {
 		t.Fatalf("Lstat: %v", err)
 	}
 	if err := os.Rename(wd+"/rw/dir/file", wd+"/rw/file"); err != nil {
