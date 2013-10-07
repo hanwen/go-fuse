@@ -58,7 +58,6 @@ func (fs *wrappingFS) Forget(nodeID, nlookup uint64) {
 	}); ok {
 		s.Forget(nodeID, nlookup)
 	}
-	return
 }
 
 func (fs *wrappingFS) GetAttr(input *GetAttrIn, out *AttrOut) (code Status) {
@@ -76,7 +75,7 @@ func (fs *wrappingFS) Open(input *OpenIn, out *OpenOut) (status Status) {
 	}); ok {
 		return s.Open(input, out)
 	}
-	return OK
+	return ENOSYS
 }
 
 func (fs *wrappingFS) SetAttr(input *SetAttrIn, out *AttrOut) (code Status) {
