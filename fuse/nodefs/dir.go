@@ -27,6 +27,11 @@ func (d *connectorDir) ReadDir(input *fuse.ReadIn, out *fuse.DirEntryList) (code
 		}
 	}
 
+	if input.Offset > uint64(len(d.stream)) {
+		// This shouldn't happen, but let's not crash.
+		return fuse.EINVAL
+	}
+
 	todo := d.stream[input.Offset:]
 	for _, e := range todo {
 		if e.Name == "" {
@@ -70,6 +75,10 @@ func (d *connectorDir) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) (
 		}
 	}
 
+	if input.Offset > uint64(len(d.stream)) {
+		// This shouldn't happen, but let's not crash.
+		return fuse.EINVAL
+	}
 	todo := d.stream[input.Offset:]
 	for i, e := range todo {
 		if e.Name == "" {
