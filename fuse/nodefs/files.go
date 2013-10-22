@@ -40,6 +40,10 @@ func NewDataFile(data []byte) File {
 }
 
 func (f *dataFile) Read(buf []byte, off int64) (res fuse.ReadResult, code fuse.Status) {
+	if off >= len(f.data) {
+		return nil, fuse.EINVAL
+	}
+
 	end := int(off) + int(len(buf))
 	if end > len(f.data) {
 		end = len(f.data)
