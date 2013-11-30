@@ -124,7 +124,7 @@ func init() {
 	var err error
 	fusermountBinary, err = exec.LookPath("fusermount")
 	if err != nil {
-		log.Fatal("Could not find fusermount binary: %v", err)
+		log.Fatalf("Could not find fusermount binary: %v", err)
 	}
 	umountBinary, _ = exec.LookPath("umount")
 	if err != nil {
