@@ -7,7 +7,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-// The inode reflects the kernel's idea of the inode.  Inodes may be
+// An Inode reflects the kernel's idea of the inode.  Inodes may be
 // created automatically when the kernel does lookups inode, or by
 // explicitly by calling Inode.New().
 type Inode struct {
@@ -61,6 +61,7 @@ func (n *Inode) AnyFile() (file File) {
 	return file
 }
 
+// Children returns all children of this inode.
 func (n *Inode) Children() (out map[string]*Inode) {
 	n.mount.treeLock.RLock()
 	out = make(map[string]*Inode, len(n.children))
@@ -87,6 +88,7 @@ func (n *Inode) FsChildren() (out map[string]*Inode) {
 	return out
 }
 
+// Node returns the file-system specific node.
 func (n *Inode) Node() Node {
 	return n.fsInode
 }
@@ -104,10 +106,12 @@ func (n *Inode) Files(mask uint32) (files []WithFlags) {
 	return files
 }
 
+// IsDir returns true if this is a directory.
 func (n *Inode) IsDir() bool {
 	return n.children != nil
 }
 
+// New creates a new inode that will exist within this mount.
 func (n *Inode) New(isDir bool, fsi Node) *Inode {
 	ch := newInode(isDir, fsi)
 	ch.mount = n.mount
@@ -115,6 +119,8 @@ func (n *Inode) New(isDir bool, fsi Node) *Inode {
 	return ch
 }
 
+// GetChild returns a child inode with the given name, or nil if it
+// does not exist.
 func (n *Inode) GetChild(name string) (child *Inode) {
 	n.mount.treeLock.RLock()
 	child = n.children[name]
@@ -123,6 +129,8 @@ func (n *Inode) GetChild(name string) (child *Inode) {
 	return child
 }
 
+// AddChild adds a child inode. The parent inode must be a directory
+// node.
 func (n *Inode) AddChild(name string, child *Inode) {
 	if child == nil {
 		log.Panicf("adding nil child as %q", name)
@@ -132,6 +140,8 @@ func (n *Inode) AddChild(name string, child *Inode) {
 	n.mount.treeLock.Unlock()
 }
 
+// RmChild removes an inode by name, and returns it. It returns nil if
+// child does not exist.
 func (n *Inode) RmChild(name string) (ch *Inode) {
 	n.mount.treeLock.Lock()
 	ch = n.rmChild(name)
