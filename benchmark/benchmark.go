@@ -61,7 +61,6 @@ func BulkStat(parallelism int, files []string) float64 {
 		}()
 	}
 
-	allStart := time.Now()
 	for _, v := range files {
 		todo <- v
 	}
@@ -72,11 +71,7 @@ func BulkStat(parallelism int, files []string) float64 {
 		total += float64(<-dts) / float64(time.Millisecond)
 	}
 
-	allDt := time.Now().Sub(allStart)
 	avg := total / float64(len(files))
-
-	fmt.Printf("Elapsed: %f sec. Average stat %f ms\n",
-		allDt.Seconds(), avg)
 
 	return avg
 }
