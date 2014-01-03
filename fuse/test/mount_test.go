@@ -162,3 +162,47 @@ func TestDeletedUnmount(t *testing.T) {
 		t.Error("should succeed", code)
 	}
 }
+
+type defaultFS struct {
+	nodefs.FileSystem
+	root nodefs.Node
+}
+
+func (fs *defaultFS) Root() nodefs.Node {
+	return fs.root
+}
+
+func TestDefaultNodeMount(t *testing.T) {
+	fs := &defaultFS{
+		nodefs.NewDefaultFileSystem(),
+		nodefs.NewDefaultNode(),
+	}
+
+	dir, err := ioutil.TempDir("", "go-fuse")
+	if err != nil {
+		t.Fatalf("TempDir: %v", err)
+	}
+	defer os.RemoveAll(dir)
+	s, conn, err := nodefs.MountFileSystem(dir, fs, nil)
+	if err != nil {
+		t.Fatalf("MountFileSystem: %v", err)
+	}
+	go s.Serve()
+	defer s.Unmount()
+
+	sub := &defaultFS{
+		nodefs.NewDefaultFileSystem(),
+		nodefs.NewDefaultNode(),
+	}
+	if err := conn.Mount(fs.Root().Inode(), "sub", sub, nil); !err.Ok() {
+		t.Fatalf("Mount: %v", err)
+	}
+
+	if entries, err := ioutil.ReadDir(dir); err != nil {
+		t.Fatalf("ReadDir: %v", err)
+	} else if len(entries) != 1 {
+		t.Fatalf("got %d entries", len(entries))
+	} else if entries[0].Name() != "sub" {
+		t.Fatalf("got %q, want %q", entries[0].Name(), "sub")
+	}
+}

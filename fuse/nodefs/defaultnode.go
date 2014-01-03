@@ -114,6 +114,9 @@ func (n *defaultNode) OpenDir(context *fuse.Context) ([]fuse.DirEntry, fuse.Stat
 	ch := n.Inode().Children()
 	s := make([]fuse.DirEntry, 0, len(ch))
 	for name, child := range ch {
+		if child.mountPoint != nil {
+			continue
+		}
 		var a fuse.Attr
 		code := child.Node().GetAttr(&a, nil, context)
 		if code.Ok() {
