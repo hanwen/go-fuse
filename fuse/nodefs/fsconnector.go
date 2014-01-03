@@ -238,7 +238,8 @@ func (c *FileSystemConnector) LookupNode(parent *Inode, path string) *Inode {
 		var a fuse.Attr
 		// This will not affect inode ID lookup counts, which
 		// are only update in response to kernel requests.
-		child, _ := c.internalLookup(&a, parent, r, nil)
+		var dummy fuse.InHeader
+		child, _ := c.internalLookup(&a, parent, r, &dummy)
 		if child == nil {
 			return nil
 		}
