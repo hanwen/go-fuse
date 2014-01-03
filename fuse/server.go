@@ -43,8 +43,9 @@ type Server struct {
 	outstandingReadBufs int
 	kernelSettings      InitIn
 
-	canSplice bool
-	loops     sync.WaitGroup
+	singleReader bool
+	canSplice    bool
+	loops        sync.WaitGroup
 }
 
 func (ms *Server) SetDebug(dbg bool) {
@@ -239,7 +240,7 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 		dest = nil
 	}
 	ms.reqReaders--
-	if ms.reqReaders <= 0 {
+	if !ms.singleReader && ms.reqReaders <= 0 {
 		ms.loops.Add(1)
 		go ms.loop(true)
 	}
@@ -311,7 +312,11 @@ exit:
 			break exit
 		}
 
-		ms.handleRequest(req)
+		if ms.singleReader {
+			go ms.handleRequest(req)
+		} else {
+			ms.handleRequest(req)
+		}
 	}
 }
 
