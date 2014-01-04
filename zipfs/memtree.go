@@ -119,8 +119,7 @@ func (n *MemTreeFs) addFile(name string, f MemFile) {
 				fsnode.file = f
 			}
 
-			child = node.New(fsnode.file == nil, fsnode)
-			node.AddChild(c, child)
+			child = node.NewChild(c, fsnode.file == nil, fsnode)
 		}
 		node = child
 	}

@@ -292,7 +292,6 @@ func (n *pathInode) GetPath() string {
 }
 
 func (n *pathInode) addChild(name string, child *pathInode) {
-	n.Inode().AddChild(name, child.Inode())
 	child.Parent = n
 	child.Name = name
 
@@ -420,7 +419,7 @@ func (n *pathInode) Mknod(name string, mode uint32, dev uint32, context *fuse.Co
 	fullPath := filepath.Join(n.GetPath(), name)
 	code = n.fs.Mknod(fullPath, mode, dev, context)
 	if code.Ok() {
-		pNode := n.createChild(false)
+		pNode := n.createChild(name, false)
 		newNode = pNode
 		n.addChild(name, pNode)
 	}
@@ -431,7 +430,7 @@ func (n *pathInode) Mkdir(name string, mode uint32, context *fuse.Context) (newN
 	fullPath := filepath.Join(n.GetPath(), name)
 	code = n.fs.Mkdir(fullPath, mode, context)
 	if code.Ok() {
-		pNode := n.createChild(true)
+		pNode := n.createChild(name, true)
 		newNode = pNode
 		n.addChild(name, pNode)
 	}
@@ -458,7 +457,7 @@ func (n *pathInode) Symlink(name string, content string, context *fuse.Context) 
 	fullPath := filepath.Join(n.GetPath(), name)
 	code = n.fs.Symlink(content, fullPath, context)
 	if code.Ok() {
-		pNode := n.createChild(false)
+		pNode := n.createChild(name, false)
 		newNode = pNode
 		n.addChild(name, pNode)
 	}
@@ -473,6 +472,7 @@ func (n *pathInode) Rename(oldName string, newParent nodefs.Node, newName string
 	if code.Ok() {
 		ch := n.rmChild(oldName)
 		p.rmChild(newName)
+		p.Inode().AddChild(newName, ch.Inode())
 		p.addChild(newName, ch)
 	}
 	return code
@@ -496,9 +496,10 @@ func (n *pathInode) Link(name string, existingFsnode nodefs.Node, context *fuse.
 	if code.Ok() {
 		if existing.clientInode != 0 && existing.clientInode == a.Ino {
 			newNode = existing
+			n.Inode().AddChild(name, existing.Inode())
 			n.addChild(name, existing)
 		} else {
-			pNode := n.createChild(false)
+			pNode := n.createChild(name, false)
 			newNode = pNode
 			pNode.clientInode = a.Ino
 			n.addChild(name, pNode)
@@ -511,19 +512,19 @@ func (n *pathInode) Create(name string, flags uint32, mode uint32, context *fuse
 	fullPath := filepath.Join(n.GetPath(), name)
 	file, code = n.fs.Create(fullPath, flags, mode, context)
 	if code.Ok() {
-		pNode := n.createChild(false)
+		pNode := n.createChild(name, false)
 		newNode = pNode
 		n.addChild(name, pNode)
 	}
 	return
 }
 
-func (n *pathInode) createChild(isDir bool) *pathInode {
+func (n *pathInode) createChild(name string, isDir bool) *pathInode {
 	i := new(pathInode)
 	i.fs = n.fs
 	i.pathFs = n.pathFs
 
-	n.Inode().New(isDir, i)
+	n.Inode().NewChild(name, isDir, i)
 	return i
 }
 
@@ -564,7 +565,7 @@ func (n *pathInode) findChild(fi *fuse.Attr, name string, fullPath string) (out 
 	}
 
 	if out == nil {
-		out = n.createChild(fi.IsDir())
+		out = n.createChild(name, fi.IsDir())
 		out.clientInode = fi.Ino
 		n.addChild(name, out)
 	} else {

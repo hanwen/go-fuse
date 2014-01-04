@@ -62,8 +62,7 @@ func TestDeleteNotify(t *testing.T) {
 		Node: ch.Node(),
 		ok:   make(chan int),
 	}
-	newCh := fs.Root().Inode().New(true, &flip)
-	fs.Root().Inode().AddChild("testdir", newCh)
+	fs.Root().Inode().NewChild("testdir", true, &flip)
 
 	err = ioutil.WriteFile(mnt+"/testdir/testfile", []byte{42}, 0644)
 	if err != nil {

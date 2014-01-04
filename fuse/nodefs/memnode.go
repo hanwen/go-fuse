@@ -74,9 +74,9 @@ type memNode struct {
 	info fuse.Attr
 }
 
-func (n *memNode) newNode(isdir bool) *memNode {
+func (n *memNode) newNode(name string, isDir bool) *memNode {
 	newNode := n.fs.newNode()
-	n.Inode().New(isdir, newNode)
+	n.Inode().NewChild(name, isDir, newNode)
 	return newNode
 }
 
@@ -97,9 +97,8 @@ func (n *memNode) StatFs() *fuse.StatfsOut {
 }
 
 func (n *memNode) Mkdir(name string, mode uint32, context *fuse.Context) (newNode Node, code fuse.Status) {
-	ch := n.newNode(true)
+	ch := n.newNode(name, true)
 	ch.info.Mode = mode | fuse.S_IFDIR
-	n.Inode().AddChild(name, ch.Inode())
 	return ch, fuse.OK
 }
 
@@ -116,10 +115,9 @@ func (n *memNode) Rmdir(name string, context *fuse.Context) (code fuse.Status) {
 }
 
 func (n *memNode) Symlink(name string, content string, context *fuse.Context) (newNode Node, code fuse.Status) {
-	ch := n.newNode(false)
+	ch := n.newNode(name, false)
 	ch.info.Mode = fuse.S_IFLNK | 0777
 	ch.link = content
-	n.Inode().AddChild(name, ch.Inode())
 
 	return ch, fuse.OK
 }
@@ -137,14 +135,13 @@ func (n *memNode) Link(name string, existing Node, context *fuse.Context) (newNo
 }
 
 func (n *memNode) Create(name string, flags uint32, mode uint32, context *fuse.Context) (file File, newNode Node, code fuse.Status) {
-	ch := n.newNode(false)
+	ch := n.newNode(name, false)
 	ch.info.Mode = mode | fuse.S_IFREG
 
 	f, err := os.Create(ch.filename())
 	if err != nil {
 		return nil, nil, fuse.ToStatus(err)
 	}
-	n.Inode().AddChild(name, ch.Inode())
 	return ch.newFile(f), ch, fuse.OK
 }
 

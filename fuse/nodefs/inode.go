@@ -111,11 +111,12 @@ func (n *Inode) IsDir() bool {
 	return n.children != nil
 }
 
-// New creates a new inode that will exist within this mount.
-func (n *Inode) New(isDir bool, fsi Node) *Inode {
+// NewChild adds a new child inode to this inode.
+func (n *Inode) NewChild(name string, isDir bool, fsi Node) *Inode {
 	ch := newInode(isDir, fsi)
 	ch.mount = n.mount
 	n.generation = ch.mount.connector.nextGeneration()
+	n.AddChild(name, ch)
 	return ch
 }
 
