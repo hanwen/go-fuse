@@ -3,7 +3,6 @@
 // multiple hard-links to one file, for example. It is also suited if
 // the data to represent fits in memory: you can construct the
 // complete file system tree at mount time
-
 package nodefs
 
 import (
