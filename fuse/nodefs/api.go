@@ -1,3 +1,9 @@
+// The nodefs package offers a high level API that resembles the
+// kernel's idea of what an FS looks like.  File systems can have
+// multiple hard-links to one file, for example. It is also suited if
+// the data to represent fits in memory: you can construct the
+// complete file system tree at mount time
+
 package nodefs
 
 import (
@@ -6,16 +12,12 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-// FileSystem is a high level API that resembles the kernel's idea
-// of what an FS looks like.  FileSystems can have multiple
-// hard-links to one file, for example. It is also suited if the data
-// to represent fits in memory: you can construct Node at mount
-// time, and the filesystem will be ready.
+// The FileSystem is the unit that can be mounted.  It's essential
+// function is the Root() method, which provides access to the file
+// system tree.
 type FileSystem interface {
-	// OnUnmount is executed just before a submount is removed,
-	// and when the process receives a forget for the FUSE root
-	// node.
-	OnUnmount()
+	// Root should return the inode for root of this file system.
+	Root() Node
 
 	// OnMount is called just after a mount is executed, either
 	// when the root is mounted, or when other filesystem are
@@ -23,8 +25,10 @@ type FileSystem interface {
 	// access to Notify methods and Debug settings.
 	OnMount(conn *FileSystemConnector)
 
-	// Root should return the inode for root of this file system.
-	Root() Node
+	// OnUnmount is executed just before a submount is removed,
+	// and when the process receives a forget for the FUSE root
+	// node.
+	OnUnmount()
 
 	// Used for debug outputs
 	String() string
