@@ -40,7 +40,7 @@ func setupCacheTest(t *testing.T) (string, *pathfs.PathNodeFs, func()) {
 		pathfs.NewLoopbackFileSystem(dir + "/orig"),
 	}
 	pfs := pathfs.NewPathNodeFs(fs, nil)
-	state, conn, err := nodefs.MountFileSystem(dir+"/mnt", pfs, nil)
+	state, conn, err := nodefs.MountRoot(dir+"/mnt", pfs.Root(), nil)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
@@ -140,7 +140,7 @@ func TestNonseekable(t *testing.T) {
 	}
 	defer os.RemoveAll(dir)
 	nfs := pathfs.NewPathNodeFs(fs, nil)
-	state, _, err := nodefs.MountFileSystem(dir, nfs, nil)
+	state, _, err := nodefs.MountRoot(dir, nfs.Root(), nil)
 	if err != nil {
 		t.Fatalf("failed: %v", err)
 	}
@@ -173,7 +173,7 @@ func TestGetAttrRace(t *testing.T) {
 
 	fs := pathfs.NewLoopbackFileSystem(dir + "/orig")
 	pfs := pathfs.NewPathNodeFs(fs, nil)
-	state, conn, err := nodefs.MountFileSystem(dir+"/mnt", pfs,
+	state, conn, err := nodefs.MountRoot(dir+"/mnt", pfs.Root(),
 		&nodefs.Options{})
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)

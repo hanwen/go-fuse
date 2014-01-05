@@ -112,7 +112,7 @@ func xattrTestCase(t *testing.T, nm string) (mountPoint string, cleanup func()) 
 	}
 
 	nfs := NewPathNodeFs(xfs, nil)
-	state, _, err := nodefs.MountFileSystem(mountPoint, nfs, nil)
+	state, _, err := nodefs.MountRoot(mountPoint, nfs.Root(), nil)
 	if err != nil {
 		t.Fatalf("TempDir failed: %v", err)
 	}

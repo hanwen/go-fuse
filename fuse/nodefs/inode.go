@@ -173,10 +173,9 @@ func (n *Inode) rmChild(name string) (ch *Inode) {
 	return ch
 }
 
-// Can only be called on untouched inodes.
-func (n *Inode) mountFs(fs FileSystem, opts *Options) {
+// Can only be called on untouched root inodes.
+func (n *Inode) mountFs(opts *Options) {
 	n.mountPoint = &fileSystemMount{
-		fs:         fs,
 		openFiles:  newHandleMap(false),
 		mountInode: n,
 		options:    opts,

@@ -38,7 +38,7 @@ func main() {
 		EntryTimeout:    time.Second,
 	}
 	pathFs := pathfs.NewPathNodeFs(finalFs, nil)
-	conn := nodefs.NewFileSystemConnector(pathFs, opts)
+	conn := nodefs.NewFileSystemConnector(pathFs.Root(), opts)
 	mountPoint := flag.Arg(0)
 	mOpts := &fuse.MountOptions{
 		AllowOther: *other,

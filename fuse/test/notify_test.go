@@ -87,7 +87,7 @@ func NewNotifyTest(t *testing.T) *NotifyTest {
 	}
 
 	me.pathfs = pathfs.NewPathNodeFs(me.fs, nil)
-	me.state, me.connector, err = nodefs.MountFileSystem(me.dir, me.pathfs, opts)
+	me.state, me.connector, err = nodefs.MountRoot(me.dir, me.pathfs.Root(), opts)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}

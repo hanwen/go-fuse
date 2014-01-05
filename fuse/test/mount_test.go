@@ -20,7 +20,7 @@ func TestMountOnExisting(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Mkdir failed: %v", err)
 	}
-	nfs := nodefs.NewDefaultFileSystem()
+	nfs := nodefs.NewDefaultNode()
 	code := ts.connector.Mount(ts.rootNode(), "mnt", nfs, nil)
 	if code != fuse.EBUSY {
 		t.Fatal("expect EBUSY:", code)
@@ -46,7 +46,7 @@ func TestMountRename(t *testing.T) {
 	defer ts.Cleanup()
 
 	fs := pathfs.NewPathNodeFs(pathfs.NewLoopbackFileSystem(ts.orig), nil)
-	code := ts.connector.Mount(ts.rootNode(), "mnt", fs, nil)
+	code := ts.connector.Mount(ts.rootNode(), "mnt", fs.Root(), nil)
 	if !code.Ok() {
 		t.Fatal("mount should succeed")
 	}
@@ -62,7 +62,7 @@ func TestMountReaddir(t *testing.T) {
 	defer ts.Cleanup()
 
 	fs := pathfs.NewPathNodeFs(pathfs.NewLoopbackFileSystem(ts.orig), nil)
-	code := ts.connector.Mount(ts.rootNode(), "mnt", fs, nil)
+	code := ts.connector.Mount(ts.rootNode(), "mnt", fs.Root(), nil)
 	if !code.Ok() {
 		t.Fatal("mount should succeed")
 	}
@@ -87,7 +87,7 @@ func TestRecursiveMount(t *testing.T) {
 	}
 
 	fs := pathfs.NewPathNodeFs(pathfs.NewLoopbackFileSystem(ts.orig), nil)
-	code := ts.connector.Mount(ts.rootNode(), "mnt", fs, nil)
+	code := ts.connector.Mount(ts.rootNode(), "mnt", fs.Root(), nil)
 	if !code.Ok() {
 		t.Fatal("mount should succeed")
 	}
@@ -129,7 +129,7 @@ func TestDeletedUnmount(t *testing.T) {
 
 	submnt := filepath.Join(ts.mnt, "mnt")
 	pfs2 := pathfs.NewPathNodeFs(pathfs.NewLoopbackFileSystem(ts.orig), nil)
-	code := ts.connector.Mount(ts.rootNode(), "mnt", pfs2, nil)
+	code := ts.connector.Mount(ts.rootNode(), "mnt", pfs2.Root(), nil)
 	if !code.Ok() {
 		t.Fatal("Mount error", code)
 	}
@@ -163,38 +163,21 @@ func TestDeletedUnmount(t *testing.T) {
 	}
 }
 
-type defaultFS struct {
-	nodefs.FileSystem
-	root nodefs.Node
-}
-
-func (fs *defaultFS) Root() nodefs.Node {
-	return fs.root
-}
-
 func TestDefaultNodeMount(t *testing.T) {
-	fs := &defaultFS{
-		nodefs.NewDefaultFileSystem(),
-		nodefs.NewDefaultNode(),
-	}
-
 	dir, err := ioutil.TempDir("", "go-fuse")
 	if err != nil {
 		t.Fatalf("TempDir: %v", err)
 	}
 	defer os.RemoveAll(dir)
-	s, conn, err := nodefs.MountFileSystem(dir, fs, nil)
+	root := nodefs.NewDefaultNode()
+	s, conn, err := nodefs.MountRoot(dir, root, nil)
 	if err != nil {
-		t.Fatalf("MountFileSystem: %v", err)
+		t.Fatalf("MountRoot: %v", err)
 	}
 	go s.Serve()
 	defer s.Unmount()
 
-	sub := &defaultFS{
-		nodefs.NewDefaultFileSystem(),
-		nodefs.NewDefaultNode(),
-	}
-	if err := conn.Mount(fs.Root().Inode(), "sub", sub, nil); !err.Ok() {
+	if err := conn.Mount(root.Inode(), "sub", nodefs.NewDefaultNode(), nil); !err.Ok() {
 		t.Fatalf("Mount: %v", err)
 	}
 

@@ -3,13 +3,14 @@ package zipfs
 import (
 	"archive/zip"
 	"bytes"
-	"errors"
 	"fmt"
-	"github.com/hanwen/go-fuse/fuse"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 )
 
 type ZipFile struct {
@@ -57,33 +58,30 @@ func NewZipTree(name string) (map[string]MemFile, error) {
 	return out, nil
 }
 
-func NewArchiveFileSystem(name string) (mfs *MemTreeFs, err error) {
-	mfs = NewMemTreeFs()
-	mfs.Name = fmt.Sprintf("fs(%s)", name)
-
-	if strings.HasSuffix(name, ".zip") {
-		mfs.files, err = NewZipTree(name)
-	}
-	if strings.HasSuffix(name, ".tar.gz") {
-		mfs.files, err = NewTarCompressedTree(name, "gz")
-	}
-	if strings.HasSuffix(name, ".tar.bz2") {
-		mfs.files, err = NewTarCompressedTree(name, "bz2")
-	}
-	if strings.HasSuffix(name, ".tar") {
+func NewArchiveFileSystem(name string) (root nodefs.Node, err error) {
+	var files map[string]MemFile
+	switch {
+	case strings.HasSuffix(name, ".zip"):
+		files, err = NewZipTree(name)
+	case strings.HasSuffix(name, ".tar.gz"):
+		files, err = NewTarCompressedTree(name, "gz")
+	case strings.HasSuffix(name, ".tar.bz2"):
+		files, err = NewTarCompressedTree(name, "bz2")
+	case strings.HasSuffix(name, ".tar"):
 		f, err := os.Open(name)
 		if err != nil {
 			return nil, err
 		}
-		mfs.files = NewTarTree(f)
+		files = NewTarTree(f)
+	default:
+		return nil, fmt.Errorf("unknown archive format %q", name)
 	}
+
 	if err != nil {
 		return nil, err
 	}
 
-	if mfs.files == nil {
-		return nil, errors.New(fmt.Sprintf("Unknown type for %v", name))
-	}
-
-	return mfs, nil
+	mfs := NewMemTreeFs(files)
+	mfs.Name = fmt.Sprintf("fs(%s)", name)
+	return mfs.Root(), nil
 }

@@ -55,7 +55,7 @@ func main() {
 	}
 	gofs := unionfs.NewAutoUnionFs(flag.Arg(1), options)
 	pathfs := pathfs.NewPathNodeFs(gofs, nil)
-	state, conn, err := nodefs.MountFileSystem(flag.Arg(0), pathfs, &fsOpts)
+	state, conn, err := nodefs.MountRoot(flag.Arg(0), pathfs.Root(), &fsOpts)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)

@@ -23,8 +23,8 @@ func main() {
 
 	mountPoint := flag.Arg(0)
 	prefix := flag.Arg(1)
-	fs := nodefs.NewMemNodeFs(prefix)
-	conn := nodefs.NewFileSystemConnector(fs, nil)
+	root := nodefs.NewMemNodeFSRoot(prefix)
+	conn := nodefs.NewFileSystemConnector(root, nil)
 	server, err := fuse.NewServer(conn.RawFS(), mountPoint, nil)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)

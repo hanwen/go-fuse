@@ -11,18 +11,18 @@ import (
 
 const testTtl = 100 * time.Millisecond
 
-func setupMemNodeTest(t *testing.T) (wd string, fs FileSystem, clean func()) {
+func setupMemNodeTest(t *testing.T) (wd string, root Node, clean func()) {
 	tmp, err := ioutil.TempDir("", "go-fuse-memnode_test")
 	if err != nil {
 		t.Fatalf("TempDir failed: %v", err)
 	}
 	back := tmp + "/backing"
 	os.Mkdir(back, 0700)
-	fs = NewMemNodeFs(back)
+	root = NewMemNodeFSRoot(back)
 	mnt := tmp + "/mnt"
 	os.Mkdir(mnt, 0700)
 
-	connector := NewFileSystemConnector(fs,
+	connector := NewFileSystemConnector(root,
 		&Options{
 			EntryTimeout:    testTtl,
 			AttrTimeout:     testTtl,
@@ -39,7 +39,7 @@ func setupMemNodeTest(t *testing.T) (wd string, fs FileSystem, clean func()) {
 
 	// Unthreaded, but in background.
 	go state.Serve()
-	return mnt, fs, func() {
+	return mnt, root, func() {
 		state.Unmount()
 		os.RemoveAll(tmp)
 	}

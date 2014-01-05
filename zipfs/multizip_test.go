@@ -23,7 +23,7 @@ func setupMzfs(t *testing.T) (mountPoint string, cleanup func()) {
 	fs := NewMultiZipFs()
 	mountPoint, _ = ioutil.TempDir("", "")
 	nfs := pathfs.NewPathNodeFs(fs, nil)
-	state, _, err := nodefs.MountFileSystem(mountPoint, nfs, &nodefs.Options{
+	state, _, err := nodefs.MountRoot(mountPoint, nfs.Root(), &nodefs.Options{
 		EntryTimeout:    testTtl,
 		AttrTimeout:     testTtl,
 		NegativeTimeout: 0.0,

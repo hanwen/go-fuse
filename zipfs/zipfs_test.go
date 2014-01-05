@@ -21,13 +21,13 @@ func testZipFile() string {
 }
 
 func setupZipfs(t *testing.T) (mountPoint string, cleanup func()) {
-	zfs, err := NewArchiveFileSystem(testZipFile())
+	root, err := NewArchiveFileSystem(testZipFile())
 	if err != nil {
 		t.Fatalf("NewArchiveFileSystem failed: %v", err)
 	}
 
 	mountPoint, _ = ioutil.TempDir("", "")
-	state, _, err := nodefs.MountFileSystem(mountPoint, zfs, nil)
+	state, _, err := nodefs.MountRoot(mountPoint, root, nil)
 
 	state.SetDebug(VerboseTest())
 	go state.Serve()

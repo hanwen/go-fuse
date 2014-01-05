@@ -54,7 +54,7 @@ func setup(t *testing.T) (workdir string, cleanup func()) {
 	fs := NewAutoUnionFs(wd+"/store", testAOpts)
 
 	nfs := pathfs.NewPathNodeFs(fs, nil)
-	state, _, err := nodefs.MountFileSystem(wd+"/mnt", nfs, &testAOpts.Options)
+	state, _, err := nodefs.MountRoot(wd+"/mnt", nfs.Root(), &testAOpts.Options)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}

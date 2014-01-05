@@ -16,38 +16,47 @@ type MemFile interface {
 type memNode struct {
 	nodefs.Node
 	file MemFile
+	fs   *MemTreeFs
 }
 
-// MemTreeFs creates a tree of internal Inodes.  Since the tree is
-// loaded in memory completely at startup, it does not need to inode
+// memTreeFs creates a tree of internal Inodes.  Since the tree is
+// loaded in memory completely at startup, it does not need inode
 // discovery through Lookup() at serve time.
 type MemTreeFs struct {
-	nodefs.FileSystem
-	root  memNode
+	root  *memNode
 	files map[string]MemFile
 	Name  string
 }
 
-func NewMemTreeFs() *MemTreeFs {
-	return &MemTreeFs{
-		FileSystem: nodefs.NewDefaultFileSystem(),
-		root:       memNode{Node: nodefs.NewDefaultNode()},
+func NewMemTreeFs(files map[string]MemFile) *MemTreeFs {
+	fs := &MemTreeFs{
+		root:  &memNode{Node: nodefs.NewDefaultNode()},
+		files: files,
 	}
+	fs.root.fs = fs
+	return fs
 }
 
 func (fs *MemTreeFs) String() string {
 	return fs.Name
 }
 
-func (fs *MemTreeFs) OnMount(conn *nodefs.FileSystemConnector) {
+func (fs *MemTreeFs) SetDebug(bool) {
+}
+
+func (fs *MemTreeFs) Root() nodefs.Node {
+	return fs.root
+}
+
+func (fs *MemTreeFs) onMount() {
 	for k, v := range fs.files {
 		fs.addFile(k, v)
 	}
 	fs.files = nil
 }
 
-func (fs *MemTreeFs) Root() nodefs.Node {
-	return &fs.root
+func (n *memNode) OnMount(c *nodefs.FileSystemConnector) {
+	n.fs.onMount()
 }
 
 func (n *memNode) Print(indent int) {
@@ -114,7 +123,10 @@ func (n *MemTreeFs) addFile(name string, f MemFile) {
 	for i, c := range comps {
 		child := node.GetChild(c)
 		if child == nil {
-			fsnode := &memNode{Node: nodefs.NewDefaultNode()}
+			fsnode := &memNode{
+				Node: nodefs.NewDefaultNode(),
+				fs:   n,
+			}
 			if i == len(comps)-1 {
 				fsnode.file = f
 			}

@@ -31,8 +31,6 @@ type FileSystemConnector struct {
 	// Callbacks for talking back to the kernel.
 	server *fuse.Server
 
-	nodeFs FileSystem
-
 	// Translate between uint64 handles and *Inode.
 	inodeMap handleMap
 
@@ -53,20 +51,19 @@ func NewOptions() *Options {
 
 // NewFileSystemConnector creates a FileSystemConnector with the given
 // options.
-func NewFileSystemConnector(nodeFs FileSystem, opts *Options) (c *FileSystemConnector) {
+func NewFileSystemConnector(root Node, opts *Options) (c *FileSystemConnector) {
 	c = new(FileSystemConnector)
 	if opts == nil {
 		opts = NewOptions()
 	}
-	c.nodeFs = nodeFs
 	c.inodeMap = newHandleMap(opts.PortableInodes)
-	c.rootNode = newInode(true, nodeFs.Root())
+	c.rootNode = newInode(true, root)
 
 	// Make sure we don't reuse generation numbers.
 	c.generation = uint64(time.Now().UnixNano())
 
 	c.verify()
-	c.mountRoot(nodeFs, opts)
+	c.mountRoot(opts)
 
 	// FUSE does not issue a LOOKUP for 1 (obviously), but it does
 	// issue a forget.  This lookupUpdate is to make the counts match.
@@ -130,7 +127,7 @@ func (c *FileSystemConnector) lookupUpdate(node *Inode) (id uint64) {
 // Must run outside treeLock.
 func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
 	if nodeID == fuse.FUSE_ROOT_ID {
-		c.nodeFs.OnUnmount()
+		c.rootNode.Node().OnUnmount()
 
 		// We never got a lookup for root, so don't try to
 		// forget root.
@@ -250,10 +247,10 @@ func (c *FileSystemConnector) LookupNode(parent *Inode, path string) *Inode {
 	return parent
 }
 
-func (c *FileSystemConnector) mountRoot(nodeFs FileSystem, opts *Options) {
-	c.rootNode.mountFs(nodeFs, opts)
+func (c *FileSystemConnector) mountRoot(opts *Options) {
+	c.rootNode.mountFs(opts)
 	c.rootNode.mount.connector = c
-	nodeFs.OnMount(c)
+	c.rootNode.Node().OnMount(c)
 	c.verify()
 }
 
@@ -264,7 +261,7 @@ func (c *FileSystemConnector) mountRoot(nodeFs FileSystem, opts *Options) {
 //
 // It returns ENOENT if the directory containing the mount point does
 // not exist, and EBUSY if the intended mount point already exists.
-func (c *FileSystemConnector) Mount(parent *Inode, name string, nodeFs FileSystem, opts *Options) fuse.Status {
+func (c *FileSystemConnector) Mount(parent *Inode, name string, root Node, opts *Options) fuse.Status {
 	defer c.verify()
 	parent.mount.treeLock.Lock()
 	defer parent.mount.treeLock.Unlock()
@@ -273,21 +270,21 @@ func (c *FileSystemConnector) Mount(parent *Inode, name string, nodeFs FileSyste
 		return fuse.EBUSY
 	}
 
-	node = newInode(true, nodeFs.Root())
+	node = newInode(true, root)
 	if opts == nil {
 		opts = c.rootNode.mountPoint.options
 	}
 
-	node.mountFs(nodeFs, opts)
+	node.mountFs(opts)
 	node.mount.connector = c
 	parent.addChild(name, node)
 
 	node.mountPoint.parentInode = parent
 	if c.debug {
-		log.Println("Mount: ", nodeFs, "on subdir", name,
-			"parent", c.inodeMap.Handle(&parent.handled))
+		log.Printf("Mount %T on subdir %s, parent %d", node,
+			name, c.inodeMap.Handle(&parent.handled))
 	}
-	nodeFs.OnMount(c)
+	node.Node().OnMount(c)
 	return fuse.OK
 }
 
@@ -328,7 +325,7 @@ func (c *FileSystemConnector) Unmount(node *Inode) fuse.Status {
 	}
 
 	delete(parentNode.children, name)
-	mount.fs.OnUnmount()
+	node.Node().OnUnmount()
 
 	parentId := c.inodeMap.Handle(&parentNode.handled)
 	if parentNode == c.rootNode {

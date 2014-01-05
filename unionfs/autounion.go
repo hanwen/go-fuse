@@ -131,7 +131,7 @@ func (fs *autoUnionFs) createFs(name string, roots []string) fuse.Status {
 
 	log.Printf("Adding workspace %v for roots %v", name, ufs.String())
 	nfs := pathfs.NewPathNodeFs(ufs, &fs.options.PathNodeFsOptions)
-	code := fs.nodeFs.Mount(name, nfs, &fs.options.Options)
+	code := fs.nodeFs.Mount(name, nfs.Root(), &fs.options.Options)
 	if code.Ok() {
 		fs.knownFileSystems[name] = knownFs{
 			ufs,

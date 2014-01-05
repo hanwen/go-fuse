@@ -11,23 +11,10 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-// The FileSystem is the unit that can be mounted.  It's essential
-// function is the Root() method, which provides access to the file
-// system tree.
+// This is a legacy type.
 type FileSystem interface {
 	// Root should return the inode for root of this file system.
 	Root() Node
-
-	// OnMount is called just after a mount is executed, either
-	// when the root is mounted, or when other filesystem are
-	// mounted in-process. The passed-in FileSystemConnector gives
-	// access to Notify methods and Debug settings.
-	OnMount(conn *FileSystemConnector)
-
-	// OnUnmount is executed just before a submount is removed,
-	// and when the process receives a forget for the FUSE root
-	// node.
-	OnUnmount()
 
 	// Used for debug outputs
 	String() string
@@ -45,6 +32,18 @@ type Node interface {
 	// struct.
 	Inode() *Inode
 	SetInode(node *Inode)
+
+	// OnMount is called on the root node just after a mount is
+	// executed, either when the actual root is mounted, or when a
+	// filesystem is mounted in-process. The passed-in
+	// FileSystemConnector gives access to Notify methods and
+	// Debug settings.
+	OnMount(conn *FileSystemConnector)
+
+	// OnUnmount is executed just before a submount is removed,
+	// and when the process receives a forget for the FUSE root
+	// node.
+	OnUnmount()
 
 	// Lookup finds a child node to this node; it is only called
 	// for directory Nodes.

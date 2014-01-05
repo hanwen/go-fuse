@@ -44,8 +44,7 @@ func main() {
 		}
 	}
 
-	var fs nodefs.FileSystem
-	fs, err = zipfs.NewArchiveFileSystem(flag.Arg(1))
+	root, err := zipfs.NewArchiveFileSystem(flag.Arg(1))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "NewArchiveFileSystem failed: %v\n", err)
 		os.Exit(1)
@@ -55,7 +54,7 @@ func main() {
 		AttrTimeout:  time.Duration(*ttl * float64(time.Second)),
 		EntryTimeout: time.Duration(*ttl * float64(time.Second)),
 	}
-	state, _, err := nodefs.MountFileSystem(flag.Arg(0), fs, opts)
+	state, _, err := nodefs.MountRoot(flag.Arg(0), root, opts)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)

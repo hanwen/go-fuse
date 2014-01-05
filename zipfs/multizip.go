@@ -16,6 +16,7 @@ import (
 	"sync"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
@@ -28,7 +29,7 @@ const (
 // MultiZipFs is a path filesystem that mounts zipfiles.
 type MultiZipFs struct {
 	lock          sync.RWMutex
-	zips          map[string]*MemTreeFs
+	zips          map[string]nodefs.Node
 	dirZipFileMap map[string]string
 
 	nodeFs *pathfs.PathNodeFs
@@ -37,7 +38,7 @@ type MultiZipFs struct {
 
 func NewMultiZipFs() *MultiZipFs {
 	m := &MultiZipFs{
-		zips:          make(map[string]*MemTreeFs),
+		zips:          make(map[string]nodefs.Node),
 		dirZipFileMap: make(map[string]string),
 		FileSystem:    pathfs.NewDefaultFileSystem(),
 	}
@@ -116,9 +117,9 @@ func (fs *MultiZipFs) Unlink(name string, context *fuse.Context) (code fuse.Stat
 		fs.lock.Lock()
 		defer fs.lock.Unlock()
 
-		zfs, ok := fs.zips[basename]
+		root, ok := fs.zips[basename]
 		if ok {
-			code = fs.nodeFs.UnmountNode(zfs.Root().Inode())
+			code = fs.nodeFs.UnmountNode(root.Inode())
 			if !code.Ok() {
 				return code
 			}
@@ -162,18 +163,18 @@ func (fs *MultiZipFs) Symlink(value string, linkName string, context *fuse.Conte
 		return fuse.EBUSY
 	}
 
-	afs, err := NewArchiveFileSystem(value)
+	root, err := NewArchiveFileSystem(value)
 	if err != nil {
 		log.Println("NewZipArchiveFileSystem failed.", err)
 		return fuse.EINVAL
 	}
 
-	code = fs.nodeFs.Mount(base, afs, nil)
+	code = fs.nodeFs.Mount(base, root, nil)
 	if !code.Ok() {
 		return code
 	}
 
 	fs.dirZipFileMap[base] = value
-	fs.zips[base] = afs
+	fs.zips[base] = root
 	return fuse.OK
 }

@@ -23,7 +23,7 @@ func main() {
 
 	fs := zipfs.NewMultiZipFs()
 	nfs := pathfs.NewPathNodeFs(fs, nil)
-	state, _, err := nodefs.MountFileSystem(flag.Arg(0), nfs, nil)
+	state, _, err := nodefs.MountRoot(flag.Arg(0), nfs.Root(), nil)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)

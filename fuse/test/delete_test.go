@@ -34,8 +34,8 @@ func TestDeleteNotify(t *testing.T) {
 		t.Fatalf("TempDir failed %v", err)
 	}
 	defer os.RemoveAll(dir)
-	fs := nodefs.NewMemNodeFs(dir + "/backing")
-	conn := nodefs.NewFileSystemConnector(fs,
+	root := nodefs.NewMemNodeFSRoot(dir + "/backing")
+	conn := nodefs.NewFileSystemConnector(root,
 		&nodefs.Options{PortableInodes: true})
 	mnt := dir + "/mnt"
 	err = os.Mkdir(mnt, 0755)
@@ -51,18 +51,18 @@ func TestDeleteNotify(t *testing.T) {
 	go state.Serve()
 	defer state.Unmount()
 
-	_, code := fs.Root().Mkdir("testdir", 0755, nil)
+	_, code := root.Mkdir("testdir", 0755, nil)
 	if !code.Ok() {
 		t.Fatal(code)
 	}
 
-	ch := fs.Root().Inode().RmChild("testdir")
+	ch := root.Inode().RmChild("testdir")
 	ch.Node().SetInode(nil)
 	flip := flipNode{
 		Node: ch.Node(),
 		ok:   make(chan int),
 	}
-	fs.Root().Inode().NewChild("testdir", true, &flip)
+	root.Inode().NewChild("testdir", true, &flip)
 
 	err = ioutil.WriteFile(mnt+"/testdir/testfile", []byte{42}, 0644)
 	if err != nil {
@@ -99,12 +99,12 @@ func TestDeleteNotify(t *testing.T) {
 
 	// Simulate deletion+mkdir coming from the network
 	close(flip.ok)
-	oldCh := fs.Root().Inode().RmChild("testdir")
-	_, code = fs.Root().Inode().Node().Mkdir("testdir", 0755, nil)
+	oldCh := root.Inode().RmChild("testdir")
+	_, code = root.Inode().Node().Mkdir("testdir", 0755, nil)
 	if !code.Ok() {
 		t.Fatal("mkdir status", code)
 	}
-	conn.DeleteNotify(fs.Root().Inode(), oldCh, "testdir")
+	conn.DeleteNotify(root.Inode(), oldCh, "testdir")
 
 	_, err = os.Lstat(mnt + "/testdir")
 	if err != nil {

@@ -47,7 +47,7 @@ func (fs *PathNodeFs) SetDebug(dbg bool) {
 	fs.debug = dbg
 }
 
-func (fs *PathNodeFs) Mount(path string, nodeFs nodefs.FileSystem, opts *nodefs.Options) fuse.Status {
+func (fs *PathNodeFs) Mount(path string, root nodefs.Node, opts *nodefs.Options) fuse.Status {
 	dir, name := filepath.Split(path)
 	if dir != "" {
 		dir = filepath.Clean(dir)
@@ -56,7 +56,7 @@ func (fs *PathNodeFs) Mount(path string, nodeFs nodefs.FileSystem, opts *nodefs.
 	if parent == nil {
 		return fuse.ENOENT
 	}
-	return fs.connector.Mount(parent, name, nodeFs, opts)
+	return fs.connector.Mount(parent, name, root, opts)
 }
 
 // Forgets all known information on client inodes.
@@ -91,9 +91,6 @@ func (fs *PathNodeFs) Unmount(path string) fuse.Status {
 	return fs.connector.Unmount(node)
 }
 
-func (fs *PathNodeFs) OnUnmount() {
-}
-
 func (fs *PathNodeFs) String() string {
 	name := fs.fs.String()
 	if name == "defaultFileSystem" {
@@ -105,11 +102,6 @@ func (fs *PathNodeFs) String() string {
 
 func (fs *PathNodeFs) Connector() *nodefs.FileSystemConnector {
 	return fs.connector
-}
-
-func (fs *PathNodeFs) OnMount(conn *nodefs.FileSystemConnector) {
-	fs.connector = conn
-	fs.fs.OnMount(fs)
 }
 
 func (fs *PathNodeFs) Node(name string) *nodefs.Inode {
@@ -204,6 +196,14 @@ type pathInode struct {
 	// real filesystem.
 	clientInode uint64
 	inode       *nodefs.Inode
+}
+
+func (n *pathInode) OnMount(conn *nodefs.FileSystemConnector) {
+	n.pathFs.connector = conn
+	n.pathFs.fs.OnMount(n.pathFs)
+}
+
+func (n *pathInode) OnUnmount() {
 }
 
 // Drop all known client inodes. Must have the treeLock.

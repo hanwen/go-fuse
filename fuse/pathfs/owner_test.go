@@ -35,7 +35,7 @@ func setupOwnerTest(t *testing.T, opts *nodefs.Options) (workdir string, cleanup
 
 	fs := &ownerFs{NewDefaultFileSystem()}
 	nfs := NewPathNodeFs(fs, nil)
-	state, _, err := nodefs.MountFileSystem(wd, nfs, opts)
+	state, _, err := nodefs.MountRoot(wd, nfs.Root(), opts)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}

@@ -93,7 +93,7 @@ func setupUfs(t *testing.T) (workdir string, cleanup func()) {
 
 	pathfs := pathfs.NewPathNodeFs(ufs,
 		&pathfs.PathNodeFsOptions{ClientInodes: true})
-	state, conn, err := nodefs.MountFileSystem(wd+"/mnt", pathfs, opts)
+	state, conn, err := nodefs.MountRoot(wd+"/mnt", pathfs.Root(), opts)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
@@ -1159,7 +1159,7 @@ func TestUnionFsDisappearing(t *testing.T) {
 	}
 
 	nfs := pathfs.NewPathNodeFs(ufs, nil)
-	state, _, err := nodefs.MountFileSystem(wd+"/mnt", nfs, opts)
+	state, _, err := nodefs.MountRoot(wd+"/mnt", nfs.Root(), opts)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}

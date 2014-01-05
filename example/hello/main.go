@@ -53,7 +53,7 @@ func main() {
 		log.Fatal("Usage:\n  hello MOUNTPOINT")
 	}
 	nfs := pathfs.NewPathNodeFs(&HelloFs{FileSystem: pathfs.NewDefaultFileSystem()}, nil)
-	server, _, err := nodefs.MountFileSystem(flag.Arg(0), nfs, nil)
+	server, _, err := nodefs.MountRoot(flag.Arg(0), nfs.Root(), nil)
 	if err != nil {
 		log.Fatal("Mount fail: %v\n", err)
 	}

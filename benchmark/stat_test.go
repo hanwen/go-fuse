@@ -24,7 +24,7 @@ func setupFs(fs pathfs.FileSystem) (string, func()) {
 	}
 	mountPoint, _ := ioutil.TempDir("", "stat_test")
 	nfs := pathfs.NewPathNodeFs(fs, nil)
-	state, _, err := nodefs.MountFileSystem(mountPoint, nfs, opts)
+	state, _, err := nodefs.MountRoot(mountPoint, nfs.Root(), opts)
 	if err != nil {
 		panic(fmt.Sprintf("cannot mount %v", err)) // ugh - benchmark has no error methods.
 	}

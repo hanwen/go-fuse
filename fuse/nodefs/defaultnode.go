@@ -6,33 +6,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-// NewDefaultNodeFileSystem returns a dummy implementation of
-// NodeFileSystem, for embedding in structs.
-func NewDefaultFileSystem() FileSystem {
-	return (*defaultFileSystem)(nil)
-}
-
-type defaultFileSystem struct {
-}
-
-func (fs *defaultFileSystem) OnUnmount() {
-}
-
-func (fs *defaultFileSystem) OnMount(conn *FileSystemConnector) {
-
-}
-
-func (fs *defaultFileSystem) Root() Node {
-	return NewDefaultNode()
-}
-
-func (fs *defaultFileSystem) String() string {
-	return "defaultFileSystem"
-}
-
-func (fs *defaultFileSystem) SetDebug(dbg bool) {
-}
-
 // NewDefaultNode returns an implementation of Node that returns
 // ENOSYS for all operations.
 func NewDefaultNode() Node {
@@ -41,6 +14,12 @@ func NewDefaultNode() Node {
 
 type defaultNode struct {
 	inode *Inode
+}
+
+func (fs *defaultNode) OnUnmount() {
+}
+
+func (fs *defaultNode) OnMount(conn *FileSystemConnector) {
 }
 
 func (n *defaultNode) StatFs() *fuse.StatfsOut {

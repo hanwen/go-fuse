@@ -64,7 +64,7 @@ func TestXAttrCaching(t *testing.T) {
 	pathfs := pathfs.NewPathNodeFs(ufs,
 		&pathfs.PathNodeFsOptions{ClientInodes: true})
 
-	server, conn, err := nodefs.MountFileSystem(wd+"/mnt", pathfs, opts)
+	server, conn, err := nodefs.MountRoot(wd+"/mnt", pathfs.Root(), opts)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}

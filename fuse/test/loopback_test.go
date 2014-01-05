@@ -70,7 +70,7 @@ func NewTestCase(t *testing.T) *testCase {
 
 	me.pathFs = pathfs.NewPathNodeFs(pfs, &pathfs.PathNodeFsOptions{
 		ClientInodes: true})
-	me.connector = nodefs.NewFileSystemConnector(me.pathFs,
+	me.connector = nodefs.NewFileSystemConnector(me.pathFs.Root(),
 		&nodefs.Options{
 			EntryTimeout:    testTtl,
 			AttrTimeout:     testTtl,
@@ -923,7 +923,7 @@ func TestOriginalIsSymlink(t *testing.T) {
 
 	fs := pathfs.NewLoopbackFileSystem(link)
 	nfs := pathfs.NewPathNodeFs(fs, nil)
-	state, _, err := nodefs.MountFileSystem(mnt, nfs, nil)
+	state, _, err := nodefs.MountRoot(mnt, nfs.Root(), nil)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}

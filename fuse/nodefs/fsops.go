@@ -41,12 +41,8 @@ func (c *rawBridge) String() string {
 		return "go-fuse:unmounted"
 	}
 
-	fs := c.rootNode.mount.fs
-	name := fs.String()
-	if name == "DefaultNodeFileSystem" {
-		name = fmt.Sprintf("%T", fs)
-		name = strings.TrimLeft(name, "*")
-	}
+	name := fmt.Sprintf("%T", c.rootNode.Node())
+	name = strings.TrimLeft(name, "*")
 	return name
 }
 
@@ -55,7 +51,7 @@ func (c *rawBridge) Init(s *fuse.Server) {
 }
 
 func (c *FileSystemConnector) lookupMountUpdate(out *fuse.Attr, mount *fileSystemMount) (node *Inode, code fuse.Status) {
-	code = mount.fs.Root().GetAttr(out, nil, nil)
+	code = mount.mountInode.Node().GetAttr(out, nil, nil)
 	if !code.Ok() {
 		log.Println("Root getattr should not return error", code)
 		out.Mode = fuse.S_IFDIR | 0755

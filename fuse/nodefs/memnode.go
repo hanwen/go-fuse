@@ -10,14 +10,14 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-// NewMemNodeFs creates an in-memory node-based filesystem. Files are
-// written into a backing store under the given prefix.
-func NewMemNodeFs(prefix string) FileSystem {
+// NewMemNodeFSRoot creates an in-memory node-based filesystem. Files
+// are written into a backing store under the given prefix.
+func NewMemNodeFSRoot(prefix string) Node {
 	fs := &memNodeFs{
 		backingStorePrefix: prefix,
 	}
 	fs.root = fs.newNode()
-	return fs
+	return fs.root
 }
 
 type memNodeFs struct {
