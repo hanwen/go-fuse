@@ -13,8 +13,7 @@ type lockingFile struct {
 	file File
 }
 
-// NewDefaultFile returns a File instance that returns ENOSYS for
-// every operation.
+// NewLockingFile serializes operations an existing File.
 func NewLockingFile(mu *sync.Mutex, f File) File {
 	return &lockingFile{
 		mu:   mu,
@@ -26,7 +25,7 @@ func (f *lockingFile) SetInode(*Inode) {
 }
 
 func (f *lockingFile) InnerFile() File {
-	return nil
+	return f.file
 }
 
 func (f *lockingFile) String() string {
