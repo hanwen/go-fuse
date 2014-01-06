@@ -110,7 +110,7 @@ type Node interface {
 
 // A File object should be returned from FileSystem.Open and
 // FileSystem.Create.  Include the NewDefaultFile return value into
-// the struct to inherit a default null implementation.
+// the struct to inherit a null implementation.
 type File interface {
 	// Called upon registering the filehandle in the inode.
 	SetInode(*Inode)
@@ -124,7 +124,16 @@ type File interface {
 
 	Read(dest []byte, off int64) (fuse.ReadResult, fuse.Status)
 	Write(data []byte, off int64) (written uint32, code fuse.Status)
+
+	// Flush is called for close() call on a file descriptor. In
+	// case of duplicated descriptor, it may be called more than
+	// once for a file.
 	Flush() fuse.Status
+
+	// This is called to before the file handle is forgotten. This
+	// method has no return value, so nothing can synchronizes on
+	// the call. Any cleanup that requires specific synchronization or
+	// could fail with I/O errors should happen in Flush instead.
 	Release()
 	Fsync(flags int) (code fuse.Status)
 
