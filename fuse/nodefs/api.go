@@ -11,18 +11,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-// This is a legacy type.
-type FileSystem interface {
-	// Root should return the inode for root of this file system.
-	Root() Node
-
-	// Used for debug outputs
-	String() string
-
-	// If called, provide debug output through the log package.
-	SetDebug(debug bool)
-}
-
 // The Node interface implements the user-defined file system
 // functionality
 type Node interface {

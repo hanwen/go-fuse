@@ -13,8 +13,3 @@ func MountRoot(mountpoint string, root Node, opts *Options) (*fuse.Server, *File
 	}
 	return s, conn, nil
 }
-
-// Mounts a filesystem on the given directory
-func MountFileSystem(mountpoint string, fs FileSystem, opts *Options) (*fuse.Server, *FileSystemConnector, error) {
-	return MountRoot(mountpoint, fs.Root(), opts)
-}
