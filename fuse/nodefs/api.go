@@ -23,8 +23,8 @@ type FileSystem interface {
 	SetDebug(debug bool)
 }
 
-// The Node implements the basic functionality of inodes; this is
-// where the majority of the FS code for a typical filesystem will be.
+// The Node interface implements the user-defined file system
+// functionality
 type Node interface {
 	// Inode and SetInode are basic getter/setters.  They are
 	// called by the FileSystemConnector. You get them for free by

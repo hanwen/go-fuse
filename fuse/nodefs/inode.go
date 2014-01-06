@@ -7,9 +7,11 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-// An Inode reflects the kernel's idea of the inode.  Inodes may be
-// created automatically when the kernel does lookups inode, or by
-// explicitly by calling Inode.New().
+// An Inode reflects the kernel's idea of the inode.  Inodes have IDs
+// that are communicated to the kernel, and they have a tree
+// structure: a directory Inode may contain named children.  Each
+// Inode object is paired with a Node object, which file system
+// implementers should supply.
 type Inode struct {
 	handled handled
 
