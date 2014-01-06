@@ -204,13 +204,18 @@ func (f *loopbackFile) GetAttr(a *fuse.Attr) fuse.Status {
 
 ////////////////////////////////////////////////////////////////
 
+// NewReadOnlyFile wraps a File so all read/write operations are
+// denied.
 func NewReadOnlyFile(f File) File {
 	return &readOnlyFile{File: f}
 }
 
-// readOnlyFile is a wrapper that denies writable operations
 type readOnlyFile struct {
 	File
+}
+
+func (f *readOnlyFile) InnerFile() File {
+	return f.File
 }
 
 func (f *readOnlyFile) String() string {
