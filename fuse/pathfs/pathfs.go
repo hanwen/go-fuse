@@ -415,26 +415,28 @@ func (n *pathInode) OpenDir(context *fuse.Context) ([]fuse.DirEntry, fuse.Status
 	return n.fs.OpenDir(n.GetPath(), context)
 }
 
-func (n *pathInode) Mknod(name string, mode uint32, dev uint32, context *fuse.Context) (newNode nodefs.Node, code fuse.Status) {
+func (n *pathInode) Mknod(name string, mode uint32, dev uint32, context *fuse.Context) (*nodefs.Inode, fuse.Status) {
 	fullPath := filepath.Join(n.GetPath(), name)
-	code = n.fs.Mknod(fullPath, mode, dev, context)
+	code := n.fs.Mknod(fullPath, mode, dev, context)
+	var child *nodefs.Inode
 	if code.Ok() {
 		pNode := n.createChild(name, false)
-		newNode = pNode
+		child = pNode.Inode()
 		n.addChild(name, pNode)
 	}
-	return
+	return child, code
 }
 
-func (n *pathInode) Mkdir(name string, mode uint32, context *fuse.Context) (newNode nodefs.Node, code fuse.Status) {
+func (n *pathInode) Mkdir(name string, mode uint32, context *fuse.Context) (*nodefs.Inode, fuse.Status) {
 	fullPath := filepath.Join(n.GetPath(), name)
-	code = n.fs.Mkdir(fullPath, mode, context)
+	code := n.fs.Mkdir(fullPath, mode, context)
+	var child *nodefs.Inode
 	if code.Ok() {
 		pNode := n.createChild(name, true)
-		newNode = pNode
+		child = pNode.Inode()
 		n.addChild(name, pNode)
 	}
-	return
+	return child, code
 }
 
 func (n *pathInode) Unlink(name string, context *fuse.Context) (code fuse.Status) {
@@ -453,15 +455,16 @@ func (n *pathInode) Rmdir(name string, context *fuse.Context) (code fuse.Status)
 	return code
 }
 
-func (n *pathInode) Symlink(name string, content string, context *fuse.Context) (newNode nodefs.Node, code fuse.Status) {
+func (n *pathInode) Symlink(name string, content string, context *fuse.Context) (*nodefs.Inode, fuse.Status) {
 	fullPath := filepath.Join(n.GetPath(), name)
-	code = n.fs.Symlink(content, fullPath, context)
+	code := n.fs.Symlink(content, fullPath, context)
+	var child *nodefs.Inode
 	if code.Ok() {
 		pNode := n.createChild(name, false)
-		newNode = pNode
+		child = pNode.Inode()
 		n.addChild(name, pNode)
 	}
-	return
+	return child, code
 }
 
 func (n *pathInode) Rename(oldName string, newParent nodefs.Node, newName string, context *fuse.Context) (code fuse.Status) {
@@ -478,7 +481,7 @@ func (n *pathInode) Rename(oldName string, newParent nodefs.Node, newName string
 	return code
 }
 
-func (n *pathInode) Link(name string, existingFsnode nodefs.Node, context *fuse.Context) (newNode nodefs.Node, code fuse.Status) {
+func (n *pathInode) Link(name string, existingFsnode nodefs.Node, context *fuse.Context) (*nodefs.Inode, fuse.Status) {
 	if !n.pathFs.options.ClientInodes {
 		return nil, fuse.ENOSYS
 	}
@@ -486,37 +489,39 @@ func (n *pathInode) Link(name string, existingFsnode nodefs.Node, context *fuse.
 	newPath := filepath.Join(n.GetPath(), name)
 	existing := existingFsnode.(*pathInode)
 	oldPath := existing.GetPath()
-	code = n.fs.Link(oldPath, newPath, context)
+	code := n.fs.Link(oldPath, newPath, context)
 
 	var a *fuse.Attr
 	if code.Ok() {
 		a, code = n.fs.GetAttr(newPath, context)
 	}
 
+	var child *nodefs.Inode
 	if code.Ok() {
 		if existing.clientInode != 0 && existing.clientInode == a.Ino {
-			newNode = existing
+			child = existing.Inode()
 			n.Inode().AddChild(name, existing.Inode())
 			n.addChild(name, existing)
 		} else {
 			pNode := n.createChild(name, false)
-			newNode = pNode
+			child = pNode.Inode()
 			pNode.clientInode = a.Ino
 			n.addChild(name, pNode)
 		}
 	}
-	return
+	return child, code
 }
 
-func (n *pathInode) Create(name string, flags uint32, mode uint32, context *fuse.Context) (file nodefs.File, newNode nodefs.Node, code fuse.Status) {
+func (n *pathInode) Create(name string, flags uint32, mode uint32, context *fuse.Context) (nodefs.File, *nodefs.Inode, fuse.Status) {
+	var child *nodefs.Inode
 	fullPath := filepath.Join(n.GetPath(), name)
-	file, code = n.fs.Create(fullPath, flags, mode, context)
+	file, code := n.fs.Create(fullPath, flags, mode, context)
 	if code.Ok() {
 		pNode := n.createChild(name, false)
-		newNode = pNode
+		child = pNode.Inode()
 		n.addChild(name, pNode)
 	}
-	return
+	return file, child, code
 }
 
 func (n *pathInode) createChild(name string, isDir bool) *pathInode {
@@ -539,11 +544,11 @@ func (n *pathInode) Open(flags uint32, context *fuse.Context) (file nodefs.File,
 	return
 }
 
-func (n *pathInode) Lookup(out *fuse.Attr, name string, context *fuse.Context) (node nodefs.Node, code fuse.Status) {
+func (n *pathInode) Lookup(out *fuse.Attr, name string, context *fuse.Context) (node *nodefs.Inode, code fuse.Status) {
 	fullPath := filepath.Join(n.GetPath(), name)
 	fi, code := n.fs.GetAttr(fullPath, context)
 	if code.Ok() {
-		node = n.findChild(fi, name, fullPath)
+		node = n.findChild(fi, name, fullPath).Inode()
 		*out = *fi
 	}
 

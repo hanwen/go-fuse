@@ -47,7 +47,7 @@ type Node interface {
 
 	// Lookup finds a child node to this node; it is only called
 	// for directory Nodes.
-	Lookup(out *fuse.Attr, name string, context *fuse.Context) (node Node, code fuse.Status)
+	Lookup(out *fuse.Attr, name string, context *fuse.Context) (*Inode, fuse.Status)
 
 	// Deletable() should return true if this inode may be
 	// discarded from the children list. This will be called from
@@ -64,16 +64,30 @@ type Node interface {
 	Readlink(c *fuse.Context) ([]byte, fuse.Status)
 
 	// Namespace operations; these are only called on directory Nodes.
-	Mknod(name string, mode uint32, dev uint32, context *fuse.Context) (newNode Node, code fuse.Status)
-	Mkdir(name string, mode uint32, context *fuse.Context) (newNode Node, code fuse.Status)
+
+	// Mknod should create the node, add it to the receiver's
+	// inode, and return it
+	Mknod(name string, mode uint32, dev uint32, context *fuse.Context) (newNode *Inode, code fuse.Status)
+
+	// Mkdir should create the directory Inode, add it to the
+	// receiver's Inode, and return it
+	Mkdir(name string, mode uint32, context *fuse.Context) (newNode *Inode, code fuse.Status)
 	Unlink(name string, context *fuse.Context) (code fuse.Status)
 	Rmdir(name string, context *fuse.Context) (code fuse.Status)
-	Symlink(name string, content string, context *fuse.Context) (newNode Node, code fuse.Status)
-	Rename(oldName string, newParent Node, newName string, context *fuse.Context) (code fuse.Status)
-	Link(name string, existing Node, context *fuse.Context) (newNode Node, code fuse.Status)
 
-	// Files
-	Create(name string, flags uint32, mode uint32, context *fuse.Context) (file File, newNode Node, code fuse.Status)
+	// Symlink should create a child inode to the receiver, and
+	// return it.
+	Symlink(name string, content string, context *fuse.Context) (*Inode, fuse.Status)
+	Rename(oldName string, newParent Node, newName string, context *fuse.Context) (code fuse.Status)
+
+	// Link should return the Inode of the resulting link. In
+	// a POSIX conformant file system, this should add 'existing'
+	// to the receiver, and return the Inode corresponding to
+	// 'existing'.
+	Link(name string, existing Node, context *fuse.Context) (newNode *Inode, code fuse.Status)
+
+	// Create should return an open file, and the Inode for that file.
+	Create(name string, flags uint32, mode uint32, context *fuse.Context) (file File, child *Inode, code fuse.Status)
 	Open(flags uint32, context *fuse.Context) (file File, code fuse.Status)
 	OpenDir(context *fuse.Context) ([]fuse.DirEntry, fuse.Status)
 

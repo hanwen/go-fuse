@@ -70,19 +70,10 @@ func (c *FileSystemConnector) internalLookup(out *fuse.Attr, parent *Inode, name
 	if child != nil {
 		parent = nil
 	}
-	var fsNode Node
 	if child != nil {
 		code = child.fsInode.GetAttr(out, nil, &header.Context)
-		fsNode = child.Node()
 	} else {
-		fsNode, code = parent.fsInode.Lookup(out, name, &header.Context)
-	}
-
-	if child == nil && fsNode != nil {
-		child = fsNode.Inode()
-		if child == nil {
-			log.Panicf("Lookup %q returned child without Inode: %v", name, fsNode)
-		}
+		child, code = parent.fsInode.Lookup(out, name, &header.Context)
 	}
 
 	return child, code
@@ -256,10 +247,10 @@ func (c *rawBridge) Readlink(header *fuse.InHeader) (out []byte, code fuse.Statu
 func (c *rawBridge) Mknod(input *fuse.MknodIn, name string, out *fuse.EntryOut) (code fuse.Status) {
 	parent := c.toInode(input.NodeId)
 
-	fsNode, code := parent.fsInode.Mknod(name, input.Mode, uint32(input.Rdev), &input.Context)
+	child, code := parent.fsInode.Mknod(name, input.Mode, uint32(input.Rdev), &input.Context)
 	if code.Ok() {
-		c.childLookup(out, fsNode)
-		code = fsNode.GetAttr((*fuse.Attr)(&out.Attr), nil, &input.Context)
+		c.childLookup(out, child)
+		code = child.fsInode.GetAttr((*fuse.Attr)(&out.Attr), nil, &input.Context)
 	}
 	return code
 }
@@ -267,10 +258,10 @@ func (c *rawBridge) Mknod(input *fuse.MknodIn, name string, out *fuse.EntryOut) 
 func (c *rawBridge) Mkdir(input *fuse.MkdirIn, name string, out *fuse.EntryOut) (code fuse.Status) {
 	parent := c.toInode(input.NodeId)
 
-	fsNode, code := parent.fsInode.Mkdir(name, input.Mode, &input.Context)
+	child, code := parent.fsInode.Mkdir(name, input.Mode, &input.Context)
 	if code.Ok() {
-		c.childLookup(out, fsNode)
-		code = fsNode.GetAttr((*fuse.Attr)(&out.Attr), nil, &input.Context)
+		c.childLookup(out, child)
+		code = child.fsInode.GetAttr((*fuse.Attr)(&out.Attr), nil, &input.Context)
 	}
 	return code
 }
@@ -288,10 +279,10 @@ func (c *rawBridge) Rmdir(header *fuse.InHeader, name string) (code fuse.Status)
 func (c *rawBridge) Symlink(header *fuse.InHeader, pointedTo string, linkName string, out *fuse.EntryOut) (code fuse.Status) {
 	parent := c.toInode(header.NodeId)
 
-	fsNode, code := parent.fsInode.Symlink(linkName, pointedTo, &header.Context)
+	child, code := parent.fsInode.Symlink(linkName, pointedTo, &header.Context)
 	if code.Ok() {
-		c.childLookup(out, fsNode)
-		code = fsNode.GetAttr((*fuse.Attr)(&out.Attr), nil, &header.Context)
+		c.childLookup(out, child)
+		code = child.fsInode.GetAttr((*fuse.Attr)(&out.Attr), nil, &header.Context)
 	}
 	return code
 }
@@ -323,10 +314,10 @@ func (c *rawBridge) Link(input *fuse.LinkIn, name string, out *fuse.EntryOut) (c
 		return fuse.EXDEV
 	}
 
-	fsNode, code := parent.fsInode.Link(name, existing.fsInode, &input.Context)
+	child, code := parent.fsInode.Link(name, existing.fsInode, &input.Context)
 	if code.Ok() {
-		c.childLookup(out, fsNode)
-		code = fsNode.GetAttr((*fuse.Attr)(&out.Attr), nil, &input.Context)
+		c.childLookup(out, child)
+		code = child.fsInode.GetAttr((*fuse.Attr)(&out.Attr), nil, &input.Context)
 	}
 
 	return code
@@ -339,13 +330,13 @@ func (c *rawBridge) Access(input *fuse.AccessIn) (code fuse.Status) {
 
 func (c *rawBridge) Create(input *fuse.CreateIn, name string, out *fuse.CreateOut) (code fuse.Status) {
 	parent := c.toInode(input.NodeId)
-	f, fsNode, code := parent.fsInode.Create(name, uint32(input.Flags), input.Mode, &input.Context)
+	f, child, code := parent.fsInode.Create(name, uint32(input.Flags), input.Mode, &input.Context)
 	if !code.Ok() {
 		return code
 	}
 
-	c.childLookup(&out.EntryOut, fsNode)
-	handle, opened := parent.mount.registerFileHandle(fsNode.Inode(), nil, f, input.Flags)
+	c.childLookup(&out.EntryOut, child)
+	handle, opened := parent.mount.registerFileHandle(child, nil, f, input.Flags)
 
 	out.OpenOut.OpenFlags = opened.FuseFlags
 	out.OpenOut.Fh = handle

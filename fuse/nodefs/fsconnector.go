@@ -96,9 +96,9 @@ func (c *FileSystemConnector) verify() {
 	root.verify(c.rootNode.mountPoint)
 }
 
-func (c *rawBridge) childLookup(out *fuse.EntryOut, fsi Node) {
-	n := fsi.Inode()
-	fsi.GetAttr((*fuse.Attr)(&out.Attr), nil, nil)
+// childLookup fills entry information for a newly created child inode
+func (c *rawBridge) childLookup(out *fuse.EntryOut, n *Inode) {
+	n.Node().GetAttr((*fuse.Attr)(&out.Attr), nil, nil)
 	n.mount.fillEntry(out)
 	out.Ino = c.fsConn().lookupUpdate(n)
 	out.NodeId = out.Ino

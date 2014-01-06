@@ -96,10 +96,10 @@ func (n *memNode) StatFs() *fuse.StatfsOut {
 	return &fuse.StatfsOut{}
 }
 
-func (n *memNode) Mkdir(name string, mode uint32, context *fuse.Context) (newNode Node, code fuse.Status) {
+func (n *memNode) Mkdir(name string, mode uint32, context *fuse.Context) (newNode *Inode, code fuse.Status) {
 	ch := n.newNode(name, true)
 	ch.info.Mode = mode | fuse.S_IFDIR
-	return ch, fuse.OK
+	return ch.Inode(), fuse.OK
 }
 
 func (n *memNode) Unlink(name string, context *fuse.Context) (code fuse.Status) {
@@ -114,12 +114,12 @@ func (n *memNode) Rmdir(name string, context *fuse.Context) (code fuse.Status) {
 	return n.Unlink(name, context)
 }
 
-func (n *memNode) Symlink(name string, content string, context *fuse.Context) (newNode Node, code fuse.Status) {
+func (n *memNode) Symlink(name string, content string, context *fuse.Context) (newNode *Inode, code fuse.Status) {
 	ch := n.newNode(name, false)
 	ch.info.Mode = fuse.S_IFLNK | 0777
 	ch.link = content
 
-	return ch, fuse.OK
+	return ch.Inode(), fuse.OK
 }
 
 func (n *memNode) Rename(oldName string, newParent Node, newName string, context *fuse.Context) (code fuse.Status) {
@@ -129,12 +129,12 @@ func (n *memNode) Rename(oldName string, newParent Node, newName string, context
 	return fuse.OK
 }
 
-func (n *memNode) Link(name string, existing Node, context *fuse.Context) (newNode Node, code fuse.Status) {
+func (n *memNode) Link(name string, existing Node, context *fuse.Context) (*Inode, fuse.Status) {
 	n.Inode().AddChild(name, existing.Inode())
-	return existing, code
+	return existing.Inode(), fuse.OK
 }
 
-func (n *memNode) Create(name string, flags uint32, mode uint32, context *fuse.Context) (file File, newNode Node, code fuse.Status) {
+func (n *memNode) Create(name string, flags uint32, mode uint32, context *fuse.Context) (file File, node *Inode, code fuse.Status) {
 	ch := n.newNode(name, false)
 	ch.info.Mode = mode | fuse.S_IFREG
 
@@ -142,7 +142,7 @@ func (n *memNode) Create(name string, flags uint32, mode uint32, context *fuse.C
 	if err != nil {
 		return nil, nil, fuse.ToStatus(err)
 	}
-	return ch.newFile(f), ch, fuse.OK
+	return ch.newFile(f), ch.Inode(), fuse.OK
 }
 
 type memNodeFile struct {

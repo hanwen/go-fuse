@@ -41,7 +41,7 @@ func (n *defaultNode) Inode() *Inode {
 func (n *defaultNode) OnForget() {
 }
 
-func (n *defaultNode) Lookup(out *fuse.Attr, name string, context *fuse.Context) (node Node, code fuse.Status) {
+func (n *defaultNode) Lookup(out *fuse.Attr, name string, context *fuse.Context) (node *Inode, code fuse.Status) {
 	return nil, fuse.ENOENT
 }
 
@@ -53,10 +53,10 @@ func (n *defaultNode) Readlink(c *fuse.Context) ([]byte, fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
-func (n *defaultNode) Mknod(name string, mode uint32, dev uint32, context *fuse.Context) (newNode Node, code fuse.Status) {
+func (n *defaultNode) Mknod(name string, mode uint32, dev uint32, context *fuse.Context) (newNode *Inode, code fuse.Status) {
 	return nil, fuse.ENOSYS
 }
-func (n *defaultNode) Mkdir(name string, mode uint32, context *fuse.Context) (newNode Node, code fuse.Status) {
+func (n *defaultNode) Mkdir(name string, mode uint32, context *fuse.Context) (newNode *Inode, code fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 func (n *defaultNode) Unlink(name string, context *fuse.Context) (code fuse.Status) {
@@ -65,7 +65,7 @@ func (n *defaultNode) Unlink(name string, context *fuse.Context) (code fuse.Stat
 func (n *defaultNode) Rmdir(name string, context *fuse.Context) (code fuse.Status) {
 	return fuse.ENOSYS
 }
-func (n *defaultNode) Symlink(name string, content string, context *fuse.Context) (newNode Node, code fuse.Status) {
+func (n *defaultNode) Symlink(name string, content string, context *fuse.Context) (newNode *Inode, code fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
@@ -73,11 +73,11 @@ func (n *defaultNode) Rename(oldName string, newParent Node, newName string, con
 	return fuse.ENOSYS
 }
 
-func (n *defaultNode) Link(name string, existing Node, context *fuse.Context) (newNode Node, code fuse.Status) {
+func (n *defaultNode) Link(name string, existing Node, context *fuse.Context) (newNode *Inode, code fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
-func (n *defaultNode) Create(name string, flags uint32, mode uint32, context *fuse.Context) (file File, newNode Node, code fuse.Status) {
+func (n *defaultNode) Create(name string, flags uint32, mode uint32, context *fuse.Context) (file File, newNode *Inode, code fuse.Status) {
 	return nil, nil, fuse.ENOSYS
 }
 
