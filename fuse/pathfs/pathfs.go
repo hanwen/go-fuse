@@ -43,10 +43,14 @@ type PathNodeFs struct {
 	options *PathNodeFsOptions
 }
 
+// SetDebug toggles debug information: it will log path names for
+// each operation processed.
 func (fs *PathNodeFs) SetDebug(dbg bool) {
 	fs.debug = dbg
 }
 
+// Mount mounts a another node filesystem with the given root on the
+// path. The last component of the path should not exist yet.
 func (fs *PathNodeFs) Mount(path string, root nodefs.Node, opts *nodefs.Options) fuse.Status {
 	dir, name := filepath.Split(path)
 	if dir != "" {
@@ -59,7 +63,7 @@ func (fs *PathNodeFs) Mount(path string, root nodefs.Node, opts *nodefs.Options)
 	return fs.connector.Mount(parent, name, root, opts)
 }
 
-// Forgets all known information on client inodes.
+// ForgetClientInodes forgets all known information on client inodes.
 func (fs *PathNodeFs) ForgetClientInodes() {
 	if !fs.options.ClientInodes {
 		return
@@ -79,10 +83,12 @@ func (fs *PathNodeFs) RereadClientInodes() {
 	fs.root.updateClientInodes()
 }
 
+// UnmountNode unmounts the node filesystem with the given root.
 func (fs *PathNodeFs) UnmountNode(node *nodefs.Inode) fuse.Status {
 	return fs.connector.Unmount(node)
 }
 
+// UnmountNode unmounts the node filesystem with the given root.
 func (fs *PathNodeFs) Unmount(path string) fuse.Status {
 	node := fs.Node(path)
 	if node == nil {
@@ -91,6 +97,7 @@ func (fs *PathNodeFs) Unmount(path string) fuse.Status {
 	return fs.connector.Unmount(node)
 }
 
+// String returns a name for this file system
 func (fs *PathNodeFs) String() string {
 	name := fs.fs.String()
 	if name == "defaultFileSystem" {
@@ -100,10 +107,14 @@ func (fs *PathNodeFs) String() string {
 	return name
 }
 
+// Connector returns the FileSystemConnector (the bridge to the raw
+// protocol) for this PathNodeFs.
 func (fs *PathNodeFs) Connector() *nodefs.FileSystemConnector {
 	return fs.connector
 }
 
+// Node looks up the Inode that corresponds to the given path name, or
+// returns nil if not found.
 func (fs *PathNodeFs) Node(name string) *nodefs.Inode {
 	n, rest := fs.LastNode(name)
 	if len(rest) > 0 {
@@ -117,15 +128,23 @@ func (fs *PathNodeFs) LookupNode(name string) *nodefs.Inode {
 	return fs.connector.LookupNode(fs.Root().Inode(), name)
 }
 
+// Path constructs a path for the given Inode. If the file system
+// implements hard links through client-inode numbers, the path may
+// not be unique.
 func (fs *PathNodeFs) Path(node *nodefs.Inode) string {
 	pNode := node.Node().(*pathInode)
 	return pNode.GetPath()
 }
 
+// LastNode finds the deepest inode known corresponding to a path. The
+// unknown part of the filename is also returned.
 func (fs *PathNodeFs) LastNode(name string) (*nodefs.Inode, []string) {
 	return fs.connector.Node(fs.Root().Inode(), name)
 }
 
+// FileNotify notifies that file contents were changed within the
+// given range.  Use negative offset for metadata-only invalidation,
+// and zero-length for invalidating all content.
 func (fs *PathNodeFs) FileNotify(path string, off int64, length int64) fuse.Status {
 	node, r := fs.connector.Node(fs.root.Inode(), path)
 	if len(r) > 0 {
@@ -134,6 +153,9 @@ func (fs *PathNodeFs) FileNotify(path string, off int64, length int64) fuse.Stat
 	return fs.connector.FileNotify(node, off, length)
 }
 
+// EntryNotify makes the kernel forget the entry data from the given
+// name from a directory.  After this call, the kernel will issue a
+// new lookup request for the given name when necessary.
 func (fs *PathNodeFs) EntryNotify(dir string, name string) fuse.Status {
 	node, rest := fs.connector.Node(fs.root.Inode(), dir)
 	if len(rest) > 0 {
@@ -142,6 +164,10 @@ func (fs *PathNodeFs) EntryNotify(dir string, name string) fuse.Status {
 	return fs.connector.EntryNotify(node, name)
 }
 
+// Notify ensures that the path name is invalidates: if the inode is
+// known, it issues an file content Notify, if not, an entry notify
+// for the path is issued. The latter will clear out non-existence
+// cache entries.
 func (fs *PathNodeFs) Notify(path string) fuse.Status {
 	node, rest := fs.connector.Node(fs.root.Inode(), path)
 	if len(rest) > 0 {
@@ -150,8 +176,9 @@ func (fs *PathNodeFs) Notify(path string) fuse.Status {
 	return fs.connector.FileNotify(node, 0, 0)
 }
 
+// AllFiles returns all open files for the inode corresponding with
+// the given mask.
 func (fs *PathNodeFs) AllFiles(name string, mask uint32) []nodefs.WithFlags {
-
 	n := fs.Node(name)
 	if n == nil {
 		return nil
@@ -159,6 +186,8 @@ func (fs *PathNodeFs) AllFiles(name string, mask uint32) []nodefs.WithFlags {
 	return n.Files(mask)
 }
 
+// NewPathNodeFs returns a file system that translates from inodes to
+// path names.
 func NewPathNodeFs(fs FileSystem, opts *PathNodeFsOptions) *PathNodeFs {
 	root := new(pathInode)
 	root.fs = fs
@@ -177,6 +206,7 @@ func NewPathNodeFs(fs FileSystem, opts *PathNodeFsOptions) *PathNodeFs {
 	return pfs
 }
 
+// Root returns the root node for the path filesystem.
 func (fs *PathNodeFs) Root() nodefs.Node {
 	return fs.root
 }

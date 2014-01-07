@@ -373,6 +373,8 @@ func (c *FileSystemConnector) Unmount(node *Inode) fuse.Status {
 // FileNotify notifies the kernel that data and metadata of this inode
 // has changed.  After this call completes, the kernel will issue a
 // new GetAttr requests for metadata and new Read calls for content.
+// Use negative offset for metadata-only invalidation, and zero-length
+// for invalidating all content.
 func (c *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) fuse.Status {
 	var nId uint64
 	if node == c.rootNode {
