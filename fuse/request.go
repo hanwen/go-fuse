@@ -178,7 +178,8 @@ func (r *request) parse() {
 		}
 	}
 
-	copy(r.outBuf[:r.handler.OutputSize], zeroOutBuf[:r.handler.OutputSize])
+	copy(r.outBuf[:r.handler.OutputSize+sizeOfOutHeader],
+		zeroOutBuf[:r.handler.OutputSize+sizeOfOutHeader])
 	r.outData = unsafe.Pointer(&r.outBuf[sizeOfOutHeader])
 }
 
