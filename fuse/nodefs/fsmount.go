@@ -75,8 +75,12 @@ func (m *fileSystemMount) fillAttr(out *fuse.AttrOut, nodeId uint64) {
 }
 
 func (m *fileSystemMount) getOpenedFile(h uint64) *openedFile {
-	b := (*openedFile)(unsafe.Pointer(m.openFiles.Decode(h)))
-	if m.connector.debug && b.WithFlags.Description != "" {
+	var b *openedFile
+	if h != 0 {
+		b = (*openedFile)(unsafe.Pointer(m.openFiles.Decode(h)))
+	}
+
+	if b != nil && m.connector.debug && b.WithFlags.Description != "" {
 		log.Printf("File %d = %q", h, b.WithFlags.Description)
 	}
 	return b

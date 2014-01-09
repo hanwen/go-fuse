@@ -164,7 +164,7 @@ func (c *rawBridge) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) fuse
 func (c *rawBridge) Open(input *fuse.OpenIn, out *fuse.OpenOut) (status fuse.Status) {
 	node := c.toInode(input.NodeId)
 	f, code := node.fsInode.Open(input.Flags, &input.Context)
-	if !code.Ok() {
+	if !code.Ok() || f == nil {
 		return code
 	}
 	h, opened := node.mount.registerFileHandle(node, nil, f, input.Flags)
@@ -344,14 +344,18 @@ func (c *rawBridge) Create(input *fuse.CreateIn, name string, out *fuse.CreateOu
 }
 
 func (c *rawBridge) Release(input *fuse.ReleaseIn) {
-	node := c.toInode(input.NodeId)
-	opened := node.mount.unregisterFileHandle(input.Fh, node)
-	opened.WithFlags.File.Release()
+	if input.Fh != 0 {
+		node := c.toInode(input.NodeId)
+		opened := node.mount.unregisterFileHandle(input.Fh, node)
+		opened.WithFlags.File.Release()
+	}
 }
 
 func (c *rawBridge) ReleaseDir(input *fuse.ReleaseIn) {
-	node := c.toInode(input.NodeId)
-	node.mount.unregisterFileHandle(input.Fh, node)
+	if input.Fh != 0 {
+		node := c.toInode(input.NodeId)
+		node.mount.unregisterFileHandle(input.Fh, node)
+	}
 }
 
 func (c *rawBridge) GetXAttrSize(header *fuse.InHeader, attribute string) (sz int, code fuse.Status) {
@@ -397,14 +401,25 @@ func (c *rawBridge) ListXAttr(header *fuse.InHeader) (data []byte, code fuse.Sta
 func (c *rawBridge) Write(input *fuse.WriteIn, data []byte) (written uint32, code fuse.Status) {
 	node := c.toInode(input.NodeId)
 	opened := node.mount.getOpenedFile(input.Fh)
-	return opened.WithFlags.File.Write(data, int64(input.Offset))
+
+	var f File
+	if opened != nil {
+		f = opened.WithFlags.File
+	}
+
+	return node.Node().Write(f, data, int64(input.Offset), &input.Context)
 }
 
 func (c *rawBridge) Read(input *fuse.ReadIn, buf []byte) (fuse.ReadResult, fuse.Status) {
 	node := c.toInode(input.NodeId)
 	opened := node.mount.getOpenedFile(input.Fh)
 
-	return opened.WithFlags.File.Read(buf, int64(input.Offset))
+	var f File
+	if opened != nil {
+		f = opened.WithFlags.File
+	}
+
+	return node.Node().Read(f, buf, int64(input.Offset), &input.Context)
 }
 
 func (c *rawBridge) StatFs(header *fuse.InHeader, out *fuse.StatfsOut) fuse.Status {
@@ -420,5 +435,9 @@ func (c *rawBridge) StatFs(header *fuse.InHeader, out *fuse.StatfsOut) fuse.Stat
 func (c *rawBridge) Flush(input *fuse.FlushIn) fuse.Status {
 	node := c.toInode(input.NodeId)
 	opened := node.mount.getOpenedFile(input.Fh)
-	return opened.WithFlags.File.Flush()
+
+	if opened != nil {
+		return opened.WithFlags.File.Flush()
+	}
+	return fuse.OK
 }

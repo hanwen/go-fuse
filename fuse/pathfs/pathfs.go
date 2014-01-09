@@ -719,3 +719,17 @@ func (n *pathInode) Fallocate(file nodefs.File, off uint64, size uint64, mode ui
 
 	return code
 }
+
+func (n *pathInode) Read(file nodefs.File, dest []byte, off int64, context *fuse.Context) (fuse.ReadResult, fuse.Status) {
+	if file != nil {
+		return file.Read(dest, off)
+	}
+	return nil, fuse.ENOSYS
+}
+
+func (n *pathInode) Write(file nodefs.File, data []byte, off int64, context *fuse.Context) (written uint32, code fuse.Status) {
+	if file != nil {
+		return file.Write(data, off)
+	}
+	return 0, fuse.ENOSYS
+}

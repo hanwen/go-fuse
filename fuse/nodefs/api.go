@@ -76,6 +76,11 @@ type Node interface {
 
 	// Create should return an open file, and the Inode for that file.
 	Create(name string, flags uint32, mode uint32, context *fuse.Context) (file File, child *Inode, code fuse.Status)
+
+	// Open opens a file, and returns a File which is associated
+	// with a file handle. It is OK to return (nil, OK) here. In
+	// that case, the Node should implement Read or Write
+	// directly.
 	Open(flags uint32, context *fuse.Context) (file File, code fuse.Status)
 	OpenDir(context *fuse.Context) ([]fuse.DirEntry, fuse.Status)
 
@@ -86,6 +91,8 @@ type Node interface {
 	ListXAttr(context *fuse.Context) (attrs []string, code fuse.Status)
 
 	// Attributes
+	Read(file File, dest []byte, off int64, context *fuse.Context) (fuse.ReadResult, fuse.Status)
+	Write(file File, data []byte, off int64, context *fuse.Context) (written uint32, code fuse.Status)
 	GetAttr(out *fuse.Attr, file File, context *fuse.Context) (code fuse.Status)
 	Chmod(file File, perms uint32, context *fuse.Context) (code fuse.Status)
 	Chown(file File, uid uint32, gid uint32, context *fuse.Context) (code fuse.Status)
@@ -96,7 +103,7 @@ type Node interface {
 	StatFs() *fuse.StatfsOut
 }
 
-// A File object should be returned from FileSystem.Open and
+// A File object is returned from FileSystem.Open and
 // FileSystem.Create.  Include the NewDefaultFile return value into
 // the struct to inherit a null implementation.
 type File interface {
