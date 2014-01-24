@@ -83,6 +83,8 @@ type Node interface {
 	// directly.
 	Open(flags uint32, context *fuse.Context) (file File, code fuse.Status)
 	OpenDir(context *fuse.Context) ([]fuse.DirEntry, fuse.Status)
+	Read(file File, dest []byte, off int64, context *fuse.Context) (fuse.ReadResult, fuse.Status)
+	Write(file File, data []byte, off int64, context *fuse.Context) (written uint32, code fuse.Status)
 
 	// XAttrs
 	GetXAttr(attribute string, context *fuse.Context) (data []byte, code fuse.Status)
@@ -91,8 +93,6 @@ type Node interface {
 	ListXAttr(context *fuse.Context) (attrs []string, code fuse.Status)
 
 	// Attributes
-	Read(file File, dest []byte, off int64, context *fuse.Context) (fuse.ReadResult, fuse.Status)
-	Write(file File, data []byte, off int64, context *fuse.Context) (written uint32, code fuse.Status)
 	GetAttr(out *fuse.Attr, file File, context *fuse.Context) (code fuse.Status)
 	Chmod(file File, perms uint32, context *fuse.Context) (code fuse.Status)
 	Chown(file File, uid uint32, gid uint32, context *fuse.Context) (code fuse.Status)
