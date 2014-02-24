@@ -36,6 +36,8 @@ func (f *loopbackFile) Utimens(a *time.Time, m *time.Time) fuse.Status {
 		tv[1] = syscall.NsecToTimeval(n)
 	}
 
+	f.lock.Lock()
 	err := syscall.Futimes(int(f.File.Fd()), tv)
+	f.lock.Unlock()
 	return fuse.ToStatus(err)
 }
