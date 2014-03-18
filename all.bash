@@ -7,17 +7,17 @@ for target in "clean" "install" ; do
     example/multizip example/unionfs example/memfs \
     example/autounionfs ; \
   do
-    go ${target} go-fuse/${d}
+    go ${target} github.com/hanwen/go-fuse/${d}
   done
 done
 
 for d in fuse zipfs unionfs
 do
-  (cd $d && go test go-fuse/$d && go test -race go-fuse/$d)
+  (cd $d && go test github.com/hanwen/go-fuse/$d && go test -race github.com/hanwen/go-fuse/$d)
 done
 
 make -C benchmark
 for d in benchmark
 do
-  go test go-fuse/benchmark -test.bench '.*' -test.cpu 1,2
+  go test github.com/hanwen/go-fuse/benchmark -test.bench '.*' -test.cpu 1,2
 done
