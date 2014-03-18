@@ -249,7 +249,7 @@ func (c *rawBridge) Mknod(input *fuse.MknodIn, name string, out *fuse.EntryOut) 
 
 	child, code := parent.fsInode.Mknod(name, input.Mode, uint32(input.Rdev), &input.Context)
 	if code.Ok() {
-		c.childLookup(out, child)
+		c.childLookup(out, child, &input.Context)
 		code = child.fsInode.GetAttr((*fuse.Attr)(&out.Attr), nil, &input.Context)
 	}
 	return code
@@ -260,7 +260,7 @@ func (c *rawBridge) Mkdir(input *fuse.MkdirIn, name string, out *fuse.EntryOut) 
 
 	child, code := parent.fsInode.Mkdir(name, input.Mode, &input.Context)
 	if code.Ok() {
-		c.childLookup(out, child)
+		c.childLookup(out, child, &input.Context)
 		code = child.fsInode.GetAttr((*fuse.Attr)(&out.Attr), nil, &input.Context)
 	}
 	return code
@@ -281,7 +281,7 @@ func (c *rawBridge) Symlink(header *fuse.InHeader, pointedTo string, linkName st
 
 	child, code := parent.fsInode.Symlink(linkName, pointedTo, &header.Context)
 	if code.Ok() {
-		c.childLookup(out, child)
+		c.childLookup(out, child, &header.Context)
 		code = child.fsInode.GetAttr((*fuse.Attr)(&out.Attr), nil, &header.Context)
 	}
 	return code
@@ -316,7 +316,7 @@ func (c *rawBridge) Link(input *fuse.LinkIn, name string, out *fuse.EntryOut) (c
 
 	child, code := parent.fsInode.Link(name, existing.fsInode, &input.Context)
 	if code.Ok() {
-		c.childLookup(out, child)
+		c.childLookup(out, child, &input.Context)
 		code = child.fsInode.GetAttr((*fuse.Attr)(&out.Attr), nil, &input.Context)
 	}
 
@@ -335,7 +335,7 @@ func (c *rawBridge) Create(input *fuse.CreateIn, name string, out *fuse.CreateOu
 		return code
 	}
 
-	c.childLookup(&out.EntryOut, child)
+	c.childLookup(&out.EntryOut, child, &input.Context)
 	handle, opened := parent.mount.registerFileHandle(child, nil, f, input.Flags)
 
 	out.OpenOut.OpenFlags = opened.FuseFlags

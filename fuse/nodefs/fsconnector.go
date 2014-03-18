@@ -97,8 +97,8 @@ func (c *FileSystemConnector) verify() {
 }
 
 // childLookup fills entry information for a newly created child inode
-func (c *rawBridge) childLookup(out *fuse.EntryOut, n *Inode) {
-	n.Node().GetAttr((*fuse.Attr)(&out.Attr), nil, nil)
+func (c *rawBridge) childLookup(out *fuse.EntryOut, n *Inode, context *fuse.Context) {
+	n.Node().GetAttr((*fuse.Attr)(&out.Attr), nil, context)
 	n.mount.fillEntry(out)
 	out.Ino = c.fsConn().lookupUpdate(n)
 	out.NodeId = out.Ino
