@@ -298,7 +298,7 @@ func (c *FileSystemConnector) Unmount(node *Inode) fuse.Status {
 		return fuse.EINVAL
 	}
 
-	nodeId := c.inodeMap.Handle(&node.handled)
+	nodeID := c.inodeMap.Handle(&node.handled)
 
 	// Must lock parent to update tree structure.
 	parentNode := node.mountPoint.parentInode
@@ -336,7 +336,7 @@ func (c *FileSystemConnector) Unmount(node *Inode) fuse.Status {
 	// We have to wait until the kernel has forgotten the
 	// mountpoint, so the write to node.mountPoint is no longer
 	// racy.
-	code := c.server.DeleteNotify(parentId, c.inodeMap.Handle(&node.handled), name)
+	code := c.server.DeleteNotify(parentId, nodeID, name)
 	if code.Ok() {
 		mount.treeLock.Unlock()
 		parentNode.mount.treeLock.Unlock()
@@ -347,7 +347,7 @@ func (c *FileSystemConnector) Unmount(node *Inode) fuse.Status {
 			// contention.
 			time.Sleep(delay)
 			delay = delay * 2
-			if !c.inodeMap.Has(nodeId) {
+			if !c.inodeMap.Has(nodeID) {
 				break
 			}
 
