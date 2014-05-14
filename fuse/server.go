@@ -24,6 +24,9 @@ type Server struct {
 	mountPoint string
 	fileSystem RawFileSystem
 
+	// writeMu serializes close and notify writes
+	writeMu sync.Mutex
+
 	// I/O with kernel and daemon.
 	mountFd int
 
@@ -287,9 +290,9 @@ func (ms *Server) Serve() {
 	ms.loop(false)
 	ms.loops.Wait()
 
-	ms.reqMu.Lock()
+	ms.writeMu.Lock()
 	syscall.Close(ms.mountFd)
-	ms.reqMu.Unlock()
+	ms.writeMu.Unlock()
 }
 
 func (ms *Server) loop(exitIdle bool) {
@@ -399,9 +402,9 @@ func (ms *Server) InodeNotify(node uint64, off int64, length int64) Status {
 	req.outData = unsafe.Pointer(entry)
 
 	// Protect against concurrent close.
-	ms.reqMu.Lock()
+	ms.writeMu.Lock()
 	result := ms.write(&req)
-	ms.reqMu.Unlock()
+	ms.writeMu.Unlock()
 
 	if ms.debug {
 		log.Println("Response: INODE_NOTIFY", result)
@@ -440,9 +443,9 @@ func (ms *Server) DeleteNotify(parent uint64, child uint64, name string) Status 
 	req.flatData = nameBytes
 
 	// Protect against concurrent close.
-	ms.reqMu.Lock()
+	ms.writeMu.Lock()
 	result := ms.write(&req)
-	ms.reqMu.Unlock()
+	ms.writeMu.Unlock()
 
 	if ms.debug {
 		log.Printf("Response: DELETE_NOTIFY: %v", result)
@@ -474,9 +477,9 @@ func (ms *Server) EntryNotify(parent uint64, name string) Status {
 	req.flatData = nameBytes
 
 	// Protect against concurrent close.
-	ms.reqMu.Lock()
+	ms.writeMu.Lock()
 	result := ms.write(&req)
-	ms.reqMu.Unlock()
+	ms.writeMu.Unlock()
 
 	if ms.debug {
 		log.Printf("Response: ENTRY_NOTIFY: %v", result)
