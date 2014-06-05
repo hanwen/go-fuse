@@ -47,6 +47,22 @@ func (g *GetAttrIn) Fh() uint64 {
 	return g.Fh_
 }
 
+type CreateIn struct {
+	InHeader
+	Flags  uint32
+	Mode   uint32
+	Umask  uint32
+	Pading uint32
+}
+
+type MknodIn struct {
+	InHeader
+	Mode    uint32
+	Rdev    uint32
+	Umask   uint32
+	Padding uint32
+}
+
 type ReadIn struct {
 	InHeader
 	Fh        uint64
@@ -67,4 +83,16 @@ type WriteIn struct {
 	LockOwner  uint64
 	Flags      uint32
 	Padding    uint32
+}
+
+type SetXAttrIn struct {
+	InHeader
+	Size  uint32
+	Flags uint32
+}
+
+type GetXAttrIn struct {
+	InHeader
+	Size    uint32
+	Padding uint32
 }

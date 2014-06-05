@@ -101,10 +101,6 @@ func (me *MkdirIn) string() string {
 	return fmt.Sprintf("{0%o (0%o)}", me.Mode, me.Umask)
 }
 
-func (me *MknodIn) string() string {
-	return fmt.Sprintf("{0%o (0%o), %d}", me.Mode, me.Umask, me.Rdev)
-}
-
 func (me *RenameIn) string() string {
 	return fmt.Sprintf("{%d}", me.Newdir)
 }
@@ -178,12 +174,6 @@ func (me *GetXAttrOut) string() string {
 }
 func (me *AccessIn) string() string {
 	return fmt.Sprintf("{%s}", FlagString(accessFlagName, int64(me.Mask), ""))
-}
-
-func (me *CreateIn) string() string {
-	return fmt.Sprintf(
-		"{0%o [%s] (0%o)}", me.Mode,
-		FlagString(OpenFlagNames, int64(me.Flags), "O_RDONLY"), me.Umask)
 }
 
 func (me *FlushIn) string() string {

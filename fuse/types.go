@@ -66,14 +66,6 @@ type LinkIn struct {
 	Oldnodeid uint64
 }
 
-type MknodIn struct {
-	InHeader
-	Mode    uint32
-	Rdev    uint32
-	Umask   uint32
-	Padding uint32
-}
-
 type Owner struct {
 	Uid uint32
 	Gid uint32
@@ -124,8 +116,8 @@ type ReleaseIn struct {
 
 type OpenIn struct {
 	InHeader
-	Flags  uint32
-	Unused uint32
+	Flags uint32
+	Mode  uint32
 }
 
 const (
@@ -260,18 +252,6 @@ type WriteOut struct {
 	Padding uint32
 }
 
-type SetXAttrIn struct {
-	InHeader
-	Size  uint32
-	Flags uint32
-}
-
-type GetXAttrIn struct {
-	InHeader
-	Size    uint32
-	Padding uint32
-}
-
 type GetXAttrOut struct {
 	Size    uint32
 	Padding uint32
@@ -322,14 +302,6 @@ type OutHeader struct {
 	Length uint32
 	Status int32
 	Unique uint64
-}
-
-type CreateIn struct {
-	InHeader
-	Flags   uint32
-	Mode    uint32
-	Umask   uint32
-	Padding uint32
 }
 
 type NotifyInvalInodeOut struct {

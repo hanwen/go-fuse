@@ -62,6 +62,21 @@ func (g *GetAttrIn) Fh() uint64 {
 	return 0
 }
 
+// Uses OpenIn struct for create.
+type CreateIn struct {
+	InHeader
+
+	Flags uint32
+	Mode  uint32
+}
+
+type MknodIn struct {
+	InHeader
+
+	Mode uint32
+	Rdev uint32
+}
+
 type ReadIn struct {
 	InHeader
 
@@ -77,6 +92,22 @@ type WriteIn struct {
 	Offset     uint64
 	Size       uint32
 	WriteFlags uint32
+}
+
+type SetXAttrIn struct {
+	InHeader
+	Size     uint32
+	Flags    uint32
+	Position uint32
+	Padding  uint32
+}
+
+type GetXAttrIn struct {
+	InHeader
+	Size     uint32
+	Padding  uint32
+	Position uint32
+	Padding2 uint32
 }
 
 const (

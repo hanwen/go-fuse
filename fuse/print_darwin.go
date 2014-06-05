@@ -25,7 +25,17 @@ func (a *Attr) string() string {
 		a.Ctime, a.Ctimensec)
 }
 
+func (me *CreateIn) string() string {
+	return fmt.Sprintf(
+		"{0%o [%s]}", me.Mode,
+		FlagString(OpenFlagNames, int64(me.Flags), "O_RDONLY"))
+}
+
 func (me *GetAttrIn) string() string { return "" }
+
+func (me *MknodIn) string() string {
+	return fmt.Sprintf("{0%o, %d}", me.Mode, me.Rdev)
+}
 
 func (me *ReadIn) string() string {
 	return fmt.Sprintf("{Fh %d off %d sz %d %s L %d %s}",
