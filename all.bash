@@ -7,6 +7,9 @@ for target in "clean" "install" ; do
     example/multizip example/unionfs example/memfs \
     example/autounionfs ; \
   do
+    if test "${target}" = "install" && test "${d}" = "fuse/test"; then
+      continue
+    fi
     go ${target} github.com/hanwen/go-fuse/${d}
   done
 done
