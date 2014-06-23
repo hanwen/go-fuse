@@ -182,15 +182,12 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 // DebugData returns internal status information for debugging
 // purposes.
 func (ms *Server) DebugData() string {
-	s := ms.opts.Buffers.String()
-
 	var r int
 	ms.reqMu.Lock()
 	r = ms.reqReaders
 	ms.reqMu.Unlock()
 
-	s += fmt.Sprintf(" readers: %d", r)
-	return s
+	return fmt.Sprintf("readers: %d", r)
 }
 
 // What is a good number?  Maybe the number of CPUs?
