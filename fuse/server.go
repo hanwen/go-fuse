@@ -39,8 +39,8 @@ type Server struct {
 
 	started chan struct{}
 
+	reqPool             sync.Pool
 	reqMu               sync.Mutex
-	reqPool             []*request
 	readPool            [][]byte
 	reqReaders          int
 	outstandingReadBufs int
@@ -139,7 +139,7 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		started:    make(chan struct{}),
 		opts:       &o,
 	}
-
+	ms.reqPool.New = func() interface{} { return new(request) }
 	optStrs := opts.Options
 	if opts.AllowOther {
 		optStrs = append(optStrs, "allow_other")
@@ -203,14 +203,8 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 		ms.reqMu.Unlock()
 		return nil, OK
 	}
-	l := len(ms.reqPool)
-	if l > 0 {
-		req = ms.reqPool[l-1]
-		ms.reqPool = ms.reqPool[:l-1]
-	} else {
-		req = new(request)
-	}
-	l = len(ms.readPool)
+	req = ms.reqPool.Get().(*request)
+	l := len(ms.readPool)
 	if l > 0 {
 		dest = ms.readPool[l-1]
 		ms.readPool = ms.readPool[:l-1]
@@ -224,8 +218,8 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 	n, err := syscall.Read(ms.mountFd, dest)
 	if err != nil {
 		code = ToStatus(err)
+		ms.reqPool.Put(req)
 		ms.reqMu.Lock()
-		ms.reqPool = append(ms.reqPool, req)
 		ms.reqReaders--
 		ms.reqMu.Unlock()
 		return nil, code
@@ -268,7 +262,7 @@ func (ms *Server) returnRequest(req *request) {
 		ms.outstandingReadBufs--
 		req.bufferPoolInputBuf = nil
 	}
-	ms.reqPool = append(ms.reqPool, req)
+	ms.reqPool.Put(req)
 	ms.reqMu.Unlock()
 }
 
