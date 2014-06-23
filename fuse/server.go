@@ -39,9 +39,12 @@ type Server struct {
 
 	started chan struct{}
 
-	reqPool             sync.Pool
+	// Pool for request structs.
+	reqPool sync.Pool
+
+	// Pool for raw requests data
+	readPool            sync.Pool
 	reqMu               sync.Mutex
-	readPool            [][]byte
 	reqReaders          int
 	outstandingReadBufs int
 	kernelSettings      InitIn
@@ -140,6 +143,7 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		opts:       &o,
 	}
 	ms.reqPool.New = func() interface{} { return new(request) }
+	ms.readPool.New = func() interface{} { return make([]byte, o.MaxWrite+PAGESIZE) }
 	optStrs := opts.Options
 	if opts.AllowOther {
 		optStrs = append(optStrs, "allow_other")
@@ -182,11 +186,10 @@ func (ms *Server) DebugData() string {
 
 	var r int
 	ms.reqMu.Lock()
-	r = len(ms.readPool) + ms.reqReaders
+	r = ms.reqReaders
 	ms.reqMu.Unlock()
 
-	s += fmt.Sprintf(" read buffers: %d (sz %d )",
-		r, ms.opts.MaxWrite/PAGESIZE+1)
+	s += fmt.Sprintf(" readers: %d", r)
 	return s
 }
 
@@ -196,21 +199,13 @@ const _MAX_READERS = 2
 // Returns a new request, or error. In case exitIdle is given, returns
 // nil, OK if we have too many readers already.
 func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
-	var dest []byte
-
 	ms.reqMu.Lock()
 	if ms.reqReaders > _MAX_READERS {
 		ms.reqMu.Unlock()
 		return nil, OK
 	}
 	req = ms.reqPool.Get().(*request)
-	l := len(ms.readPool)
-	if l > 0 {
-		dest = ms.readPool[l-1]
-		ms.readPool = ms.readPool[:l-1]
-	} else {
-		dest = make([]byte, ms.opts.MaxWrite+PAGESIZE)
-	}
+	dest := ms.readPool.Get().([]byte)
 	ms.outstandingReadBufs++
 	ms.reqReaders++
 	ms.reqMu.Unlock()
@@ -233,7 +228,7 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 	ms.reqMu.Lock()
 	if !gobbled {
 		ms.outstandingReadBufs--
-		ms.readPool = append(ms.readPool, dest)
+		ms.readPool.Put(dest)
 		dest = nil
 	}
 	ms.reqReaders--
@@ -258,9 +253,9 @@ func (ms *Server) returnRequest(req *request) {
 	req.clear()
 	ms.reqMu.Lock()
 	if req.bufferPoolOutputBuf != nil {
-		ms.readPool = append(ms.readPool, req.bufferPoolInputBuf)
-		ms.outstandingReadBufs--
+		ms.readPool.Put(req.bufferPoolInputBuf)
 		req.bufferPoolInputBuf = nil
+		ms.outstandingReadBufs--
 	}
 	ms.reqPool.Put(req)
 	ms.reqMu.Unlock()
