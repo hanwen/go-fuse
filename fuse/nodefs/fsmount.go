@@ -99,7 +99,11 @@ func (m *fileSystemMount) unregisterFileHandle(handle uint64, node *Inode) *open
 	}
 
 	l := len(node.openFiles)
-	node.openFiles[idx] = node.openFiles[l-1]
+	if idx == l-1 {
+		node.openFiles[idx] = nil
+	} else {
+		node.openFiles[idx] = node.openFiles[l-1]
+	}
 	node.openFiles = node.openFiles[:l-1]
 	node.openFilesMutex.Unlock()
 
