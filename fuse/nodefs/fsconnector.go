@@ -336,10 +336,11 @@ func (c *FileSystemConnector) Unmount(node *Inode) fuse.Status {
 	// We have to wait until the kernel has forgotten the
 	// mountpoint, so the write to node.mountPoint is no longer
 	// racy.
+	mount.treeLock.Unlock()
+	parentNode.mount.treeLock.Unlock()
 	code := c.server.DeleteNotify(parentId, nodeID, name)
+
 	if code.Ok() {
-		mount.treeLock.Unlock()
-		parentNode.mount.treeLock.Unlock()
 		delay := 100 * time.Microsecond
 
 		for {
@@ -360,10 +361,10 @@ func (c *FileSystemConnector) Unmount(node *Inode) fuse.Status {
 			}
 		}
 
-		parentNode.mount.treeLock.Lock()
-		mount.treeLock.Lock()
 	}
 
+	parentNode.mount.treeLock.Lock()
+	mount.treeLock.Lock()
 	mount.mountInode = nil
 	node.mountPoint = nil
 
