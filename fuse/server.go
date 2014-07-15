@@ -401,7 +401,8 @@ func (ms *Server) InodeNotify(node uint64, off int64, length int64) Status {
 // DeleteNotify notifies the kernel that an entry is removed from a
 // directory.  In many cases, this is equivalent to EntryNotify,
 // except when the directory is in use, eg. as working directory of
-// some process.
+// some process. You should not hold any FUSE filesystem locks, as that
+// can lead to deadlock.
 func (ms *Server) DeleteNotify(parent uint64, child uint64, name string) Status {
 	if ms.kernelSettings.Minor < 18 {
 		return ms.EntryNotify(parent, name)
@@ -440,7 +441,8 @@ func (ms *Server) DeleteNotify(parent uint64, child uint64, name string) Status 
 }
 
 // EntryNotify should be used if the existence status of an entry
-// within a directory changes.
+// within a directory changes. You should not hold any FUSE filesystem
+// locks, as that can lead to deadlock.
 func (ms *Server) EntryNotify(parent uint64, name string) Status {
 	req := request{
 		inHeader: &InHeader{

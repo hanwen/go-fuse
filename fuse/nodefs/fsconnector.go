@@ -392,7 +392,8 @@ func (c *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) f
 
 // EntryNotify makes the kernel forget the entry data from the given
 // name from a directory.  After this call, the kernel will issue a
-// new lookup request for the given name when necessary.
+// new lookup request for the given name when necessary. No filesystem
+// related locks should be held when calling this.
 func (c *FileSystemConnector) EntryNotify(node *Inode, name string) fuse.Status {
 	var nId uint64
 	if node == c.rootNode {
@@ -408,7 +409,8 @@ func (c *FileSystemConnector) EntryNotify(node *Inode, name string) fuse.Status 
 }
 
 // DeleteNotify signals to the kernel that the named entry in dir for
-// the child disappeared.
+// the child disappeared. No filesystem related locks should be held
+// when calling this.
 func (c *FileSystemConnector) DeleteNotify(dir *Inode, child *Inode, name string) fuse.Status {
 	var nId uint64
 
