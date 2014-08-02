@@ -31,6 +31,7 @@ type autoUnionFs struct {
 	debug bool
 
 	lock             sync.RWMutex
+	zombies          map[string]bool
 	knownFileSystems map[string]knownFs
 	nameRootMap      map[string]string
 	root             string
@@ -73,6 +74,7 @@ func NewAutoUnionFs(directory string, options AutoUnionFsOptions) pathfs.FileSys
 	a := &autoUnionFs{
 		knownFileSystems: make(map[string]knownFs),
 		nameRootMap:      make(map[string]string),
+		zombies:          make(map[string]bool),
 		options:          &options,
 		FileSystem:       pathfs.NewDefaultFileSystem(),
 	}
@@ -108,6 +110,11 @@ func (fs *autoUnionFs) addAutomaticFs(roots []string) {
 func (fs *autoUnionFs) createFs(name string, roots []string) fuse.Status {
 	fs.lock.Lock()
 	defer fs.lock.Unlock()
+
+	if fs.zombies[name] {
+		log.Printf("filesystem named %q is being removed", name)
+		return fuse.EBUSY
+	}
 
 	for workspace, root := range fs.nameRootMap {
 		if root == roots[0] && workspace != name {
@@ -146,19 +153,30 @@ func (fs *autoUnionFs) rmFs(name string) (code fuse.Status) {
 	fs.lock.Lock()
 	defer fs.lock.Unlock()
 
+	if fs.zombies[name] {
+		return fuse.ENOENT
+	}
+
 	known := fs.knownFileSystems[name]
 	if known.unionFS == nil {
 		return fuse.ENOENT
 	}
 
+	root := fs.nameRootMap[name]
+	delete(fs.knownFileSystems, name)
+	delete(fs.nameRootMap, name)
+	fs.zombies[name] = true
+	fs.lock.Unlock()
 	code = fs.nodeFs.Unmount(name)
-	if code.Ok() {
-		delete(fs.knownFileSystems, name)
-		delete(fs.nameRootMap, name)
-	} else {
-		log.Printf("Unmount failed for %s.  Code %v", name, code)
-	}
 
+	fs.lock.Lock()
+	delete(fs.zombies, name)
+	if !code.Ok() {
+		// Reinstate.
+		log.Printf("Unmount failed for %s.  Code %v", name, code)
+		fs.knownFileSystems[name] = known
+		fs.nameRootMap[name] = root
+	}
 	return code
 }
 
