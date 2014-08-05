@@ -14,7 +14,11 @@ const direntSize = int(unsafe.Sizeof(_Dirent{}))
 // DirEntry is a type for PathFileSystem and NodeFileSystem to return
 // directory contents in.
 type DirEntry struct {
+	// Mode is the file's mode. Only the high bits (eg. S_IFDIR)
+	// are considered.
 	Mode uint32
+
+	// Name is the basename of the file in the directory.
 	Name string
 }
 
