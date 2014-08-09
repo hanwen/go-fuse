@@ -428,7 +428,7 @@ func (c *rawBridge) StatFs(header *fuse.InHeader, out *fuse.StatfsOut) fuse.Stat
 	if s == nil {
 		return fuse.ENOSYS
 	}
-	*out = *(*fuse.StatfsOut)(s)
+	*out = *s
 	return fuse.OK
 }
 
