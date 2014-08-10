@@ -426,7 +426,7 @@ func (c *rawBridge) StatFs(header *fuse.InHeader, out *fuse.StatfsOut) fuse.Stat
 	node := c.toInode(header.NodeId)
 	s := node.Node().StatFs()
 	if s == nil {
-		return fuse.ENOSYS
+		return 0
 	}
 	*out = *(*fuse.StatfsOut)(s)
 	return fuse.OK
