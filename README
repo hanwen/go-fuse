@@ -91,6 +91,23 @@ On T60, for each file we have
 
 
 
+MACOS SUPPORT
+
+go-fuse works somewhat on OSX. Known limitations:
+
+* All of the limitations of OSXFUSE, including lack of support for
+  NOTIFY.
+
+* OSX issues STATFS calls continuously (leading to performance
+  concerns).
+
+* OSX has trouble with concurrent reads from the FUSE device, leading
+  to performance concerns.
+
+* A bunch of tests under fuse/test/ fail, and the functionality they
+  test for OSX is likely broken.
+
+
 CREDITS
 
 * Inspired by Taru Karttunen's package, https://bitbucket.org/taruti/go-extra.
@@ -107,8 +124,6 @@ https://github.com/hanwen/go-fuse/issues
 KNOWN PROBLEMS
 
 Grep source code for TODO.  Major topics:
-
-* Support for MacOS and FreeBSD.
 
 * Support for umask in Create
 
