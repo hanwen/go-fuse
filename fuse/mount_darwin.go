@@ -110,6 +110,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 	"unsafe"
 )
 
@@ -133,18 +134,10 @@ func (m mountError) Error() string {
 }
 
 func unmount(mountPoint string) error {
-	dir, _ := filepath.Split(mountPoint)
-	proc, err := os.StartProcess(umountBinary,
-		[]string{umountBinary, mountPoint},
-		&os.ProcAttr{Dir: dir, Files: []*os.File{nil, nil, os.Stderr}})
-	if err != nil {
-		return err
+	if err := syscall.Unmount(mountPoint, 0); err != nil {
+		return fmt.Errorf("umount(%q): %v", mountPoint, err)
 	}
-	w, err := proc.Wait()
-	if !w.Success() {
-		return fmt.Errorf("umount exited with code %v\n", w.Sys())
-	}
-	return err
+	return nil
 }
 
 var umountBinary string
