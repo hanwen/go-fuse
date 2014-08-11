@@ -107,9 +107,7 @@ import "C"
 import (
 	"fmt"
 	"log"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"syscall"
 	"unsafe"
 )
