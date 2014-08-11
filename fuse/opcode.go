@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"log"
 	"reflect"
+	"runtime"
 	"unsafe"
 )
 
@@ -335,6 +336,12 @@ func doRename(server *Server, req *request) {
 func doStatFs(server *Server, req *request) {
 	out := (*StatfsOut)(req.outData)
 	req.status = server.fileSystem.StatFs(req.inHeader, out)
+	if req.status == ENOSYS && runtime.GOOS == "darwin" {
+		// OSX FUSE requires Statfs to be implemented for the
+		// mount to succeed.
+		*out = StatfsOut{}
+		req.status = OK
+	}
 }
 
 func doIoctl(server *Server, req *request) {
