@@ -194,6 +194,9 @@ func TestWriteThrough(t *testing.T) {
 	}
 
 	fi, err := os.Lstat(tc.origFile)
+	if err != nil {
+		t.Fatalf("Lstat(%q): %v", tc.origFile, err)
+	}
 	if fi.Mode().Perm() != 0644 {
 		t.Errorf("create mode error %o", fi.Mode()&0777)
 	}
@@ -218,17 +221,17 @@ func TestMkdirRmdir(t *testing.T) {
 	defer tc.Cleanup()
 
 	// Mkdir/Rmdir.
-	err := os.Mkdir(tc.mountSubdir, 0777)
-	if err != nil {
+	if err := os.Mkdir(tc.mountSubdir, 0777); err != nil {
 		t.Fatalf("Mkdir failed: %v", err)
 	}
-	fi, err := os.Lstat(tc.origSubdir)
-	if !fi.IsDir() {
+
+	if fi, err := os.Lstat(tc.origSubdir); err != nil {
+		t.Fatalf("Lstat(%q): %v", tc.origSubdir, err)
+	} else if !fi.IsDir() {
 		t.Errorf("Not a directory: %v", fi)
 	}
 
-	err = os.Remove(tc.mountSubdir)
-	if err != nil {
+	if err := os.Remove(tc.mountSubdir); err != nil {
 		t.Fatalf("Remove failed: %v", err)
 	}
 }

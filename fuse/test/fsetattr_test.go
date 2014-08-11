@@ -209,28 +209,27 @@ func TestFSetAttr(t *testing.T) {
 		t.Error("truncate retval", os.NewSyscallError("Ftruncate", code))
 	}
 
-	a, status := fs.GetAttr("file", nil)
-	if !status.Ok() || a.Size != 3 {
+	if a, status := fs.GetAttr("file", nil); !status.Ok() {
+		t.Fatalf("GetAttr: status %v", status)
+	} else if a.Size != 3 {
 		t.Errorf("truncate: size %d, status %v", a.Size, status)
 	}
 
-	err = f.Chmod(024)
-	if err != nil {
+	if err := f.Chmod(024); err != nil {
 		t.Fatalf("Chmod failed: %v", err)
 	}
 
-	a, status = fs.GetAttr("file", nil)
-	if !status.Ok() || a.Mode&07777 != 024 {
-		t.Errorf("chmod: %o, status %v", a.Mode&0777, status)
+	if a, status := fs.GetAttr("file", nil); !status.Ok() {
+		t.Errorf("chmod: %v",  status)
+	} else if a.Mode&07777 != 024 {
+		t.Errorf("getattr after chmod: %o", a.Mode&0777)
 	}
 
-	err = os.Chtimes(fn, time.Unix(0, 100e3), time.Unix(0, 101e3))
-	if err != nil {
+	if err := os.Chtimes(fn, time.Unix(0, 100e3), time.Unix(0, 101e3)); err != nil {
 		t.Fatalf("Chtimes failed: %v", err)
 	}
 
-	a, status = fs.GetAttr("file", nil)
-	if !status.Ok() {
+	if a, status := fs.GetAttr("file", nil);  !status.Ok() {
 		t.Errorf("GetAttr: %v", status)
 	} else if a.Atimensec != 100e3 || a.Mtimensec != 101e3 {
 		t.Errorf("Utimens: atime %d != 100e3 mtime %d != 101e3",
