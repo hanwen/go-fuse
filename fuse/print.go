@@ -172,6 +172,7 @@ func (me *GetXAttrIn) string() string {
 func (me *GetXAttrOut) string() string {
 	return fmt.Sprintf("{sz %d}", me.Size)
 }
+
 func (me *AccessIn) string() string {
 	return fmt.Sprintf("{%s}", FlagString(accessFlagName, int64(me.Mask), ""))
 }

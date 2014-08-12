@@ -16,7 +16,7 @@ func (a *Attr) string() string {
 	return fmt.Sprintf(
 		"{M0%o SZ=%d L=%d "+
 			"%d:%d "+
-			"%d*%d %d:%d "+
+			"B%d*%d i%d:%d "+
 			"A %d.%09d "+
 			"M %d.%09d "+
 			"C %d.%09d}",
