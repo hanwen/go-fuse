@@ -11,8 +11,6 @@ import (
 func (f *loopbackFile) Allocate(off uint64, sz uint64, mode uint32) fuse.Status {
 	// TODO: Handle `mode` parameter.
 
-	f.lock.Lock()
-
 	// From `man fcntl` on OSX:
 	//     The F_PREALLOCATE command operates on the following structure:
 	//
@@ -54,6 +52,7 @@ func (f *loopbackFile) Allocate(off uint64, sz uint64, mode uint32) fuse.Status 
 	// Linux version for reference:
 	// err := syscall.Fallocate(int(f.File.Fd()), mode, int64(off), int64(sz))
 
+	f.lock.Lock()
 	_, _, errno := syscall.Syscall(syscall.SYS_FCNTL, f.File.Fd(), uintptr(syscall.F_PREALLOCATE), uintptr(unsafe.Pointer(&k)))
 	f.lock.Unlock()
 	if errno != 0 {
