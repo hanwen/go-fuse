@@ -77,7 +77,7 @@ func (f *loopbackFile) Utimens(a *time.Time, m *time.Time) fuse.Status {
 	if m == nil {
 		tv[1].Usec = _UTIME_OMIT
 	} else {
-		n := a.UnixNano()
+		n := m.UnixNano()
 		tv[1] = syscall.NsecToTimeval(n)
 	}
 
