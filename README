@@ -121,6 +121,11 @@ Yes, probably.  Report them through
 https://github.com/hanwen/go-fuse/issues
 
 
+DISCLAIMER
+
+This is not an official Google product.
+
+
 KNOWN PROBLEMS
 
 Grep source code for TODO.  Major topics:
@@ -143,4 +148,3 @@ LICENSE
 
 Like Go, this library is distributed under the new BSD license.  See
 accompanying LICENSE file.
-
