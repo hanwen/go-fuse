@@ -309,7 +309,7 @@ func (m *int64HandleMap) handle(obj *handled) (handle uint64) {
 
 func (m *int64HandleMap) Handle(obj *handled) (handle uint64) {
 	m.mutex.Lock()
-	m.mutex.Unlock()
+	defer m.mutex.Unlock()
 	return m.handle(obj)
 }
 
