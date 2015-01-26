@@ -9,15 +9,16 @@ import (
 // Locking raw FS.
 
 type lockingRawFileSystem struct {
-	RawFS RawFileSystem
-	lock  sync.Mutex
+	RawFS  RawFileSystem
+	lock   sync.Mutex
+	unlock func()
 }
 
 // Returns a Wrap
 func NewLockingRawFileSystem(fs RawFileSystem) RawFileSystem {
-	return &lockingRawFileSystem{
-		RawFS: fs,
-	}
+	r := &lockingRawFileSystem{ RawFS: fs }
+	r.unlock = func() { r.lock.Unlock() }
+	return r
 }
 
 func (fs *lockingRawFileSystem) FS() RawFileSystem {
@@ -26,7 +27,7 @@ func (fs *lockingRawFileSystem) FS() RawFileSystem {
 
 func (fs *lockingRawFileSystem) locked() func() {
 	fs.lock.Lock()
-	return func() { fs.lock.Unlock() }
+	return r.unlock
 }
 
 func (fs *lockingRawFileSystem) Lookup(header *InHeader, name string, out *EntryOut) (code Status) {
@@ -50,7 +51,6 @@ func (fs *lockingRawFileSystem) GetAttr(input *GetAttrIn, out *AttrOut) (code St
 }
 
 func (fs *lockingRawFileSystem) Open(input *OpenIn, out *OpenOut) (status Status) {
-
 	defer fs.locked()()
 	return fs.RawFS.Open(input, out)
 }
