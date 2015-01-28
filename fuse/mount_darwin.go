@@ -47,7 +47,7 @@ mountfuse(char *mtpt, char **err)
 	struct vfsconf vfs;
 	char *f;
 
-	if(getvfsbyname("fusefs", &vfs) < 0){
+	if(getvfsbyname("osxfusefs", &vfs) < 0){
 		if(access(f="/Library/Filesystems/osxfusefs.fs"
 			"/Support/load_osxfusefs", 0) < 0){
 		         *err = strdup("cannot find load_fusefs");
