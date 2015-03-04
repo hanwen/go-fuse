@@ -170,9 +170,6 @@ type Options struct {
 	// uid/gid.
 	*fuse.Owner
 
-	// If set, use a more portable, but slower inode number
-	// generation scheme.  This will make inode numbers (exported
-	// back to callers) stay within int32, which is necessary for
-	// making stat() succeed in 32-bit programs.
+	// This option exists for compatibility and is ignored.
 	PortableInodes bool
 }

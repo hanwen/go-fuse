@@ -178,7 +178,7 @@ func (n *Inode) rmChild(name string) (ch *Inode) {
 // Can only be called on untouched root inodes.
 func (n *Inode) mountFs(opts *Options) {
 	n.mountPoint = &fileSystemMount{
-		openFiles:  newHandleMap(false),
+		openFiles:  newPortableHandleMap(),
 		mountInode: n,
 		options:    opts,
 	}
