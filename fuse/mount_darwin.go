@@ -48,8 +48,7 @@ mountfuse(char *mtpt, char **err)
 	char *f;
 
 	if(getvfsbyname("osxfusefs", &vfs) < 0){
-		if(access(f="/Library/Filesystems/osxfusefs.fs"
-			"/Support/load_osxfusefs", 0) < 0){
+		if(access(f="/Library/Filesystems/osxfusefs.fs/Support/load_osxfusefs", 0) < 0){
 		         *err = strdup("cannot find load_fusefs");
 		   	return -1;
 		}
@@ -91,11 +90,8 @@ mountfuse(char *mtpt, char **err)
 		// mount_fusefs binary in different places.
 		// Try all.
 		// Leopard location
-		setenv("MOUNT_FUSEFS_DAEMON_PATH",
-			   "/Library/Filesystems/osxfusefs.fs/Support/mount_osxfusefs", 1);
-		execl("/Library/Filesystems/osxfusefs.fs/Support/mount_osxfusefs",
-			  "mount_osxfusefs",
-			  "-o", "iosize=4096", buf, mtpt, nil);
+		setenv("MOUNT_FUSEFS_DAEMON_PATH", "/Library/Filesystems/osxfusefs.fs/Support/mount_osxfusefs", 1);
+		execl("/Library/Filesystems/osxfusefs.fs/Support/mount_osxfusefs", "mount_osxfusefs", "-o", "iosize=4096", buf, mtpt, nil);
 		fprintf(stderr, "exec mount_osxfusefs: %s\n", strerror(errno));
 		_exit(1);
 	}
