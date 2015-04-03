@@ -220,7 +220,7 @@ func TestFSetAttr(t *testing.T) {
 	}
 
 	if a, status := fs.GetAttr("file", nil); !status.Ok() {
-		t.Errorf("chmod: %v",  status)
+		t.Errorf("chmod: %v", status)
 	} else if a.Mode&07777 != 024 {
 		t.Errorf("getattr after chmod: %o", a.Mode&0777)
 	}
@@ -229,7 +229,7 @@ func TestFSetAttr(t *testing.T) {
 		t.Fatalf("Chtimes failed: %v", err)
 	}
 
-	if a, status := fs.GetAttr("file", nil);  !status.Ok() {
+	if a, status := fs.GetAttr("file", nil); !status.Ok() {
 		t.Errorf("GetAttr: %v", status)
 	} else if a.Atimensec != 100e3 || a.Mtimensec != 101e3 {
 		t.Errorf("Utimens: atime %d != 100e3 mtime %d != 101e3",
