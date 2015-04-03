@@ -50,7 +50,6 @@ func (m *fileSystemMount) mountName() string {
 		}
 	}
 	panic("not found")
-	return ""
 }
 
 func (m *fileSystemMount) setOwner(attr *fuse.Attr) {

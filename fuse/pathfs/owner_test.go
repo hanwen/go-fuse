@@ -77,7 +77,7 @@ func TestOwnerRoot(t *testing.T) {
 }
 
 func TestOwnerOverride(t *testing.T) {
-	wd, cleanup := setupOwnerTest(t, &nodefs.Options{Owner: &fuse.Owner{42, 43}})
+	wd, cleanup := setupOwnerTest(t, &nodefs.Options{Owner: &fuse.Owner{Uid: 42, Gid: 43}})
 	defer cleanup()
 
 	var stat syscall.Stat_t

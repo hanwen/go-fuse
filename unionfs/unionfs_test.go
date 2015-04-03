@@ -336,7 +336,7 @@ func TestUnionFsBasic(t *testing.T) {
 
 	WriteFile(t, wd+"/mnt/new", "new contents")
 	if !fileExists(wd + "/rw/new") {
-		t.Errorf("missing file in rw layer", names)
+		t.Errorf("missing file in rw layer: %s", wd+"/rw/new")
 	}
 
 	contents := readFromFile(t, wd+"/mnt/new")
@@ -345,7 +345,7 @@ func TestUnionFsBasic(t *testing.T) {
 	}
 	WriteFile(t, wd+"/mnt/ro1", "promote me")
 	if !fileExists(wd + "/rw/ro1") {
-		t.Errorf("missing file in rw layer", names)
+		t.Errorf("missing file in rw layer: %s", wd+"/mnt/ro1")
 	}
 
 	err := os.Remove(wd + "/mnt/new")

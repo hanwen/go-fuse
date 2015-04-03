@@ -62,7 +62,11 @@ func ToStatus(err error) Status {
 
 func toSlice(dest *[]byte, ptr unsafe.Pointer, byteCount uintptr) {
 	h := (*reflect.SliceHeader)(unsafe.Pointer(dest))
-	*h = reflect.SliceHeader{uintptr(ptr), int(byteCount), int(byteCount)}
+	*h = reflect.SliceHeader{
+		Data: uintptr(ptr),
+		Len: int(byteCount),
+		Cap: int(byteCount),
+	}
 }
 
 func CurrentOwner() *Owner {

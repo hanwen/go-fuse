@@ -114,7 +114,7 @@ func RunBulkStat(runs int, threads int, sleepTime time.Duration, files []string)
 		results = append(results, result)
 
 		if j < runs-1 {
-			fmt.Printf("Sleeping %.2f seconds\n", sleepTime)
+			fmt.Printf("Sleeping %d seconds\n", sleepTime)
 			time.Sleep(sleepTime)
 		}
 	}

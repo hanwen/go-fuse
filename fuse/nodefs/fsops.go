@@ -139,8 +139,8 @@ func (c *rawBridge) OpenDir(input *fuse.OpenIn, out *fuse.OpenOut) (code fuse.St
 	de := &connectorDir{
 		node: node.Node(),
 		stream: append(stream,
-			fuse.DirEntry{fuse.S_IFDIR, "."},
-			fuse.DirEntry{fuse.S_IFDIR, ".."}),
+			fuse.DirEntry{Mode: fuse.S_IFDIR, Name: "."},
+			fuse.DirEntry{Mode: fuse.S_IFDIR, Name: ".."}),
 		rawFS: c,
 	}
 	h, opened := node.mount.registerFileHandle(node, de, nil, input.Flags)
