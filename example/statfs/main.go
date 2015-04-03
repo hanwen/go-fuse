@@ -3,8 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/hanwen/go-fuse/benchmark"
-	"github.com/hanwen/go-fuse/fuse"
 	"io"
 	"log"
 	"os"
@@ -13,12 +11,15 @@ import (
 	"runtime/pprof"
 	"strings"
 	"time"
+
+	"github.com/hanwen/go-fuse/benchmark"
+	"github.com/hanwen/go-fuse/fuse/nodefs"
+	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
 func main() {
 	// Scans the arg list and sets up flags
 	debug := flag.Bool("debug", false, "print debugging messages.")
-	latencies := flag.Bool("latencies", false, "record operation latencies.")
 	profile := flag.String("profile", "", "record cpu profile.")
 	mem_profile := flag.String("mem-profile", "", "record memory profile.")
 	command := flag.String("run", "", "run this command after mounting.")
@@ -48,18 +49,17 @@ func main() {
 	for _, l := range lines {
 		fs.AddFile(l)
 	}
-	nfs := fuse.NewPathNodeFs(fs, nil)
-	opts := &fuse.FileSystemOptions{
+	nfs := pathfs.NewPathNodeFs(fs, nil)
+	opts := &nodefs.Options{
 		AttrTimeout:  time.Duration(*ttl * float64(time.Second)),
 		EntryTimeout: time.Duration(*ttl * float64(time.Second)),
 	}
-	state, _, err := fuse.MountNodeFileSystem(flag.Arg(0), nfs, opts)
+	state, _, err := nodefs.MountRoot(flag.Arg(0), nfs.Root(), opts)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)
 	}
 
-	state.SetRecordStatistics(*latencies)
 	state.SetDebug(*debug)
 	runtime.GC()
 	if profFile != nil {
@@ -74,7 +74,7 @@ func main() {
 		cmd.Start()
 	}
 
-	state.Loop()
+	state.Serve()
 	if memProfFile != nil {
 		pprof.WriteHeapProfile(memProfFile)
 	}
