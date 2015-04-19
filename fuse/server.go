@@ -198,6 +198,25 @@ func (ms *Server) DebugData() string {
 // What is a good number?  Maybe the number of CPUs?
 const _MAX_READERS = 2
 
+// handleEINTR retries the given function until it doesn't return syscall.EINTR.
+// This is similar to the HANDLE_EINTR() macro from Chromium ( see
+// https://code.google.com/p/chromium/codesearch#chromium/src/base/posix/eintr_wrapper.h
+// ) and the TEMP_FAILURE_RETRY() from glibc (see
+// https://www.gnu.org/software/libc/manual/html_node/Interrupted-Primitives.html
+// ).
+//
+// Don't use handleEINTR() with syscall.Close(); see
+// https://code.google.com/p/chromium/issues/detail?id=269623 .
+func handleEINTR(fn func() error) (err error) {
+	for {
+		err = fn()
+		if err != syscall.EINTR {
+			break
+		}
+	}
+	return
+}
+
 // Returns a new request, or error. In case exitIdle is given, returns
 // nil, OK if we have too many readers already.
 func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
@@ -212,7 +231,12 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 	ms.reqReaders++
 	ms.reqMu.Unlock()
 
-	n, err := syscall.Read(ms.mountFd, dest)
+	var n int
+	err := handleEINTR(func() error {
+		var err error
+		n, err = syscall.Read(ms.mountFd, dest)
+		return err
+	})
 	if err != nil {
 		code = ToStatus(err)
 		ms.reqPool.Put(req)
