@@ -78,7 +78,7 @@ func (p *bufferPoolImpl) AllocBuffer(size uint32) []byte {
 	pages := sz / PAGESIZE
 
 	b := p.getPool(pages).Get().([]byte)
-	return b
+	return b[:size]
 }
 
 func (p *bufferPoolImpl) FreeBuffer(slice []byte) {
