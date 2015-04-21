@@ -6,7 +6,10 @@ import (
 
 func (ms *Server) systemWrite(req *request, header []byte) Status {
 	if req.flatDataSize() == 0 {
-		_, err := syscall.Write(ms.mountFd, header)
+		err := handleEINTR(func() error {
+			_, err := syscall.Write(ms.mountFd, header)
+			return err
+		})
 		return ToStatus(err)
 	}
 
