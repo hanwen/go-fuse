@@ -188,8 +188,8 @@ func (me *AttrOut) string() string {
 }
 
 func (me *EntryOut) string() string {
-	return fmt.Sprintf("{%d E%d.%09d A%d.%09d %v}",
-		me.NodeId, me.EntryValid, me.EntryValidNsec,
+	return fmt.Sprintf("{%d G%d E%d.%09d A%d.%09d %v}",
+		me.NodeId, me.Generation, me.EntryValid, me.EntryValidNsec,
 		me.AttrValid, me.AttrValidNsec, &me.Attr)
 }
 
