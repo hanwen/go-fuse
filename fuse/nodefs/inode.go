@@ -117,7 +117,6 @@ func (n *Inode) IsDir() bool {
 func (n *Inode) NewChild(name string, isDir bool, fsi Node) *Inode {
 	ch := newInode(isDir, fsi)
 	ch.mount = n.mount
-	n.generation = ch.mount.connector.nextGeneration()
 	n.AddChild(name, ch)
 	return ch
 }

@@ -8,7 +8,6 @@ import (
 	"log"
 	"path/filepath"
 	"strings"
-	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -22,10 +21,6 @@ var paranoia = false
 // structs of uint32/uint64) to operations on Go objects representing
 // files and directories.
 type FileSystemConnector struct {
-	// Used as the generation inodes. This must be 64-bit aligned,
-	// for sync/atomic on i386 to work properly.
-	generation uint64
-
 	debug bool
 
 	// Callbacks for talking back to the kernel.
@@ -59,9 +54,6 @@ func NewFileSystemConnector(root Node, opts *Options) (c *FileSystemConnector) {
 	c.inodeMap = newPortableHandleMap()
 	c.rootNode = newInode(true, root)
 
-	// Make sure we don't reuse generation numbers.
-	c.generation = uint64(time.Now().UnixNano())
-
 	c.verify()
 	c.mountRoot(opts)
 
@@ -80,10 +72,6 @@ func (c *FileSystemConnector) Server() *fuse.Server {
 // SetDebug toggles printing of debug information.
 func (c *FileSystemConnector) SetDebug(debug bool) {
 	c.debug = debug
-}
-
-func (c *FileSystemConnector) nextGeneration() uint64 {
-	return atomic.AddUint64(&c.generation, 1)
 }
 
 // This verifies invariants of the data structure.  This routine
