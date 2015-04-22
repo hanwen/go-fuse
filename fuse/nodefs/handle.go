@@ -45,9 +45,10 @@ const _ALREADY_MSG = "Object already has a handle"
 
 type portableHandleMap struct {
 	sync.RWMutex
-	used    int
-	handles []*handled
-	freeIds []uint64
+	generation uint64
+	used       int
+	handles    []*handled
+	freeIds    []uint64
 }
 
 func newPortableHandleMap() *portableHandleMap {
@@ -70,6 +71,7 @@ func (m *portableHandleMap) Register(obj *handled) (handle, generation uint64) {
 		} else {
 			handle = m.freeIds[len(m.freeIds)-1]
 			m.freeIds = m.freeIds[:len(m.freeIds)-1]
+			m.generation++
 			m.handles[handle] = obj
 		}
 		m.used++
@@ -78,6 +80,7 @@ func (m *portableHandleMap) Register(obj *handled) (handle, generation uint64) {
 		handle = obj.handle
 	}
 	obj.count++
+	generation = m.generation
 	m.Unlock()
 	return
 }
