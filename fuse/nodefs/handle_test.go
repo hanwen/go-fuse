@@ -104,3 +104,24 @@ func TestHandleMapMultiple(t *testing.T) {
 		}
 	}
 }
+
+func TestHandleMapGeneration(t *testing.T) {
+	hm := newPortableHandleMap()
+
+	h1, g1 := hm.Register(&handled{})
+
+	forgotten, _ := hm.Forget(h1, 1)
+	if !forgotten {
+		t.Fatalf("unref did not forget object.")
+	}
+
+	h2, g2 := hm.Register(&handled{})
+
+	if h1 != h2 {
+		t.Fatalf("register should reuse handle: got %d want %d.", h2, h1)
+	}
+
+	if g1 >= g2 {
+		t.Fatalf("register should increase generation: got %d want greater than %d.", g2, g1)
+	}
+}
