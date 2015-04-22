@@ -21,11 +21,15 @@ func TestHandleMapLookupCount(t *testing.T) {
 		t.Log("portable:", portable)
 		v := new(handled)
 		hm := newPortableHandleMap()
-		h1, _ := hm.Register(v)
-		h2, _ := hm.Register(v)
+		h1, g1 := hm.Register(v)
+		h2, g2 := hm.Register(v)
 
 		if h1 != h2 {
 			t.Fatalf("double register should reuse handle: got %d want %d.", h2, h1)
+		}
+
+		if g1 != g2 {
+			t.Fatalf("double register should reuse generation: got %d want %d.", g2, g1)
 		}
 
 		hm.Register(v)
