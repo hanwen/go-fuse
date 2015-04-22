@@ -15,7 +15,7 @@ import (
 //
 // This structure is thread-safe.
 type handleMap interface {
-	Register(obj *handled) uint64
+	Register(obj *handled) (handle, generation uint64)
 	Count() int
 	Decode(uint64) *handled
 	Forget(handle uint64, count int) (bool, *handled)
@@ -57,7 +57,7 @@ func newPortableHandleMap() *portableHandleMap {
 	}
 }
 
-func (m *portableHandleMap) Register(obj *handled) (handle uint64) {
+func (m *portableHandleMap) Register(obj *handled) (handle, generation uint64) {
 	m.Lock()
 	if obj.count == 0 {
 		if obj.check != 0 {
@@ -79,7 +79,7 @@ func (m *portableHandleMap) Register(obj *handled) (handle uint64) {
 	}
 	obj.count++
 	m.Unlock()
-	return handle
+	return
 }
 
 func (m *portableHandleMap) Handle(obj *handled) (h uint64) {

@@ -21,8 +21,8 @@ func TestHandleMapLookupCount(t *testing.T) {
 		t.Log("portable:", portable)
 		v := new(handled)
 		hm := newPortableHandleMap()
-		h1 := hm.Register(v)
-		h2 := hm.Register(v)
+		h1, _ := hm.Register(v)
+		h2, _ := hm.Register(v)
 
 		if h1 != h2 {
 			t.Fatalf("double register should reuse handle: got %d want %d.", h2, h1)
@@ -61,7 +61,7 @@ func TestHandleMapLookupCount(t *testing.T) {
 func TestHandleMapBasic(t *testing.T) {
 	v := new(handled)
 	hm := newPortableHandleMap()
-	h := hm.Register(v)
+	h, _ := hm.Register(v)
 	t.Logf("Got handle 0x%x", h)
 	if !hm.Has(h) {
 		t.Fatal("Does not have handle")
@@ -91,7 +91,7 @@ func TestHandleMapMultiple(t *testing.T) {
 	hm := newPortableHandleMap()
 	for i := 0; i < 10; i++ {
 		v := &handled{}
-		h := hm.Register(v)
+		h, _ := hm.Register(v)
 		if hm.Decode(h) != v {
 			t.Fatal("address mismatch")
 		}

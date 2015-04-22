@@ -100,8 +100,8 @@ func (c *FileSystemConnector) verify() {
 func (c *rawBridge) childLookup(out *fuse.EntryOut, n *Inode, context *fuse.Context) {
 	n.Node().GetAttr((*fuse.Attr)(&out.Attr), nil, context)
 	n.mount.fillEntry(out)
-	out.Ino = c.fsConn().lookupUpdate(n)
-	out.NodeId = out.Ino
+	out.NodeId, out.Generation = c.fsConn().lookupUpdate(n)
+	out.Ino = out.NodeId
 	if out.Nlink == 0 {
 		// With Nlink == 0, newer kernels will refuse link
 		// operations.
@@ -117,11 +117,11 @@ func (c *rawBridge) toInode(nodeid uint64) *Inode {
 	return i
 }
 
-// Must run outside treeLock.  Returns the nodeId.
-func (c *FileSystemConnector) lookupUpdate(node *Inode) (id uint64) {
-	id = c.inodeMap.Register(&node.handled)
+// Must run outside treeLock.  Returns the nodeId and generation.
+func (c *FileSystemConnector) lookupUpdate(node *Inode) (id, generation uint64) {
+	id, generation = c.inodeMap.Register(&node.handled)
 	c.verify()
-	return id
+	return
 }
 
 // Must run outside treeLock.

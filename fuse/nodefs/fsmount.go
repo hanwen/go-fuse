@@ -135,7 +135,7 @@ func (m *fileSystemMount) registerFileHandle(node *Inode, dir *connectorDir, f F
 		b.WithFlags.File.SetInode(node)
 	}
 	node.openFiles = append(node.openFiles, b)
-	handle := m.openFiles.Register(&b.handled)
+	handle, _ := m.openFiles.Register(&b.handled)
 	node.openFilesMutex.Unlock()
 	return handle, b
 }
