@@ -216,7 +216,7 @@ func (n *memNode) Utimens(file File, atime *time.Time, mtime *time.Time, context
 }
 
 func (n *memNode) Chmod(file File, perms uint32, context *fuse.Context) (code fuse.Status) {
-	n.info.Mode = (n.info.Mode ^ 07777) | perms
+	n.info.Mode = (n.info.Mode &^ 07777) | perms
 	now := time.Now()
 	n.info.SetTimes(nil, nil, &now)
 	return fuse.OK
