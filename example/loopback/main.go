@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
@@ -40,8 +41,11 @@ func main() {
 	pathFs := pathfs.NewPathNodeFs(finalFs, nil)
 	conn := nodefs.NewFileSystemConnector(pathFs.Root(), opts)
 	mountPoint := flag.Arg(0)
+	origAbs, _ := filepath.Abs(orig)
 	mOpts := &fuse.MountOptions{
 		AllowOther: *other,
+		Name:       "loopbackfs",
+		FsName:     origAbs,
 	}
 	state, err := fuse.NewServer(conn.RawFS(), mountPoint, mOpts)
 	if err != nil {
