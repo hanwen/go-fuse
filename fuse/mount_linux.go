@@ -1,6 +1,7 @@
 package fuse
 
 import (
+	"path"
 	"bytes"
 	"fmt"
 	"log"
@@ -120,13 +121,25 @@ func getConnection(local *os.File) (int, error) {
 	return int(fd), nil
 }
 
+// lookPathFallback - search binary in PATH and, if that fails,
+// in fallbackDir. This is useful if PATH is possible empty.
+func lookPathFallback(file string, fallbackDir string) (string, error) {
+	binPath, err := exec.LookPath(file)
+	if err == nil {
+		return binPath, nil
+	}
+
+	abs := path.Join(fallbackDir, file)
+	return exec.LookPath(abs)
+}
+
 func init() {
 	var err error
-	fusermountBinary, err = exec.LookPath("fusermount")
+	fusermountBinary, err = lookPathFallback("/bin/fusermount", "/bin")
 	if err != nil {
 		log.Fatalf("Could not find fusermount binary: %v", err)
 	}
-	umountBinary, _ = exec.LookPath("umount")
+	umountBinary, err = lookPathFallback("umount", "/bin")
 	if err != nil {
 		log.Fatalf("Could not find umount binary: %v", err)
 	}
