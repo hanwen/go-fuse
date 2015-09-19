@@ -53,8 +53,10 @@ type MountOptions struct {
 	// This may be useful for NFS.
 	RememberInodes bool
 
-	// The name will show up on the output of the mount. Keep this string
-	// small.
+	// Values shown in "df -T" and friends
+	// First column, "Filesystem"
+	FsName string
+	// Second column, "Type", will be shown as "fuse." + Name
 	Name string
 
 	// If set, wrap the file system in a single-threaded locking wrapper.

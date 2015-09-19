@@ -165,6 +165,11 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 	}
 	optStrs = append(optStrs, "subtype="+name)
 
+	fsname := opts.FsName
+	if len(fsname) > 0 {
+		optStrs = append(optStrs, "fsname="+fsname)
+	}
+
 	mountPoint = filepath.Clean(mountPoint)
 	if !filepath.IsAbs(mountPoint) {
 		cwd, err := os.Getwd()
