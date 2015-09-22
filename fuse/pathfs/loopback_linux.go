@@ -46,3 +46,8 @@ func (fs *loopbackFileSystem) GetXAttr(name string, attr string, context *fuse.C
 
 	return data, fuse.ToStatus(err)
 }
+
+func (fs *loopbackFileSystem) SetXAttr(name string, attr string, data []byte, flags int, context *fuse.Context) fuse.Status {
+	err := syscall.Setxattr(fs.GetPath(name), attr, data, flags)
+	return fuse.ToStatus(err)
+}
