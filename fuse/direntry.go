@@ -47,14 +47,14 @@ func NewDirEntryList(data []byte, off uint64) *DirEntryList {
 // AddDirEntry tries to add an entry, and reports whether it
 // succeeded.
 func (l *DirEntryList) AddDirEntry(e DirEntry) (bool, uint64) {
-	return l.Add(nil, e.Name, uint64(FUSE_UNKNOWN_INO), e.Mode)
+	return l.Add(0, e.Name, uint64(FUSE_UNKNOWN_INO), e.Mode)
 }
 
 // Add adds a direntry to the DirEntryList, returning whether it
 // succeeded.
-func (l *DirEntryList) Add(prefix []byte, name string, inode uint64, mode uint32) (bool, uint64) {
+func (l *DirEntryList) Add(prefix int, name string, inode uint64, mode uint32) (bool, uint64) {
 	padding := (8 - len(name)&7) & 7
-	delta := padding + direntSize + len(name) + len(prefix)
+	delta := padding + direntSize + len(name) + prefix
 	oldLen := len(l.buf)
 	newLen := delta + oldLen
 
@@ -62,8 +62,7 @@ func (l *DirEntryList) Add(prefix []byte, name string, inode uint64, mode uint32
 		return false, l.offset
 	}
 	l.buf = l.buf[:newLen]
-	copy(l.buf[oldLen:], prefix)
-	oldLen += len(prefix)
+	oldLen += prefix
 	dirent := (*_Dirent)(unsafe.Pointer(&l.buf[oldLen]))
 	dirent.Off = l.offset + 1
 	dirent.Ino = inode
@@ -82,17 +81,16 @@ func (l *DirEntryList) Add(prefix []byte, name string, inode uint64, mode uint32
 }
 
 // AddDirLookupEntry is used for ReadDirPlus. It serializes a DirEntry
-// and its corresponding lookup. Pass a zero entryOut if the lookup
-// data should be ignored.
-func (l *DirEntryList) AddDirLookupEntry(e DirEntry, entryOut *EntryOut) (bool, uint64) {
-	ino := uint64(FUSE_UNKNOWN_INO)
-	if entryOut.Ino > 0 {
-		ino = entryOut.Ino
+// and returns the space for entry. If no space is left, returns a nil
+// pointer.
+func (l *DirEntryList) AddDirLookupEntry(e DirEntry) (*EntryOut, uint64) {
+	lastStart := len(l.buf)
+	ok, off := l.Add(int(unsafe.Sizeof(EntryOut{})), e.Name,
+		uint64(FUSE_UNKNOWN_INO), e.Mode)
+	if !ok {
+		return nil, off
 	}
-	var lookup []byte
-	toSlice(&lookup, unsafe.Pointer(entryOut), unsafe.Sizeof(EntryOut{}))
-
-	return l.Add(lookup, e.Name, ino, e.Mode)
+	return (*EntryOut)(unsafe.Pointer(&l.buf[lastStart])), off
 }
 
 func (l *DirEntryList) bytes() []byte {

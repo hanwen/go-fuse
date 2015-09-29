@@ -11,7 +11,6 @@ type connectorDir struct {
 	stream     []fuse.DirEntry
 	lastOffset uint64
 	rawFS      fuse.RawFileSystem
-	lookups    []fuse.EntryOut
 }
 
 func (d *connectorDir) ReadDir(input *fuse.ReadIn, out *fuse.DirEntryList) (code fuse.Status) {
@@ -58,21 +57,6 @@ func (d *connectorDir) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) (
 		if !code.Ok() {
 			return code
 		}
-		d.lookups = nil
-	}
-
-	if d.lookups == nil {
-		d.lookups = make([]fuse.EntryOut, len(d.stream))
-		for i, n := range d.stream {
-			if n.Name == "." || n.Name == ".." {
-				continue
-			}
-			// We ignore the return value
-			code := d.rawFS.Lookup(&input.InHeader, n.Name, &d.lookups[i])
-			if !code.Ok() {
-				d.lookups[i] = fuse.EntryOut{}
-			}
-		}
 	}
 
 	if input.Offset > uint64(len(d.stream)) {
@@ -80,16 +64,31 @@ func (d *connectorDir) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) (
 		return fuse.EINVAL
 	}
 	todo := d.stream[input.Offset:]
-	for i, e := range todo {
+	for _, e := range todo {
 		if e.Name == "" {
 			log.Printf("got empty directory entry, mode %o.", e.Mode)
 			continue
 		}
-		ok, off := out.AddDirLookupEntry(e, &d.lookups[input.Offset+uint64(i)])
-		d.lastOffset = off
-		if !ok {
+
+		if e.Name == "." || e.Name == ".." {
+			continue
+		}
+
+		// we have to be sure entry will fit if we try to add
+		// it, or we'll mess up the lookup counts.
+		entryDest, off := out.AddDirLookupEntry(e)
+		if entryDest == nil {
 			break
 		}
+		entryDest.Ino = uint64(fuse.FUSE_UNKNOWN_INO)
+
+		// We ignore the return value
+		code := d.rawFS.Lookup(&input.InHeader, e.Name, entryDest)
+		if !code.Ok() {
+			// if something went wrong, clear out the entry.
+			*entryDest = fuse.EntryOut{}
+		}
+		d.lastOffset = off
 	}
 	return fuse.OK
 
