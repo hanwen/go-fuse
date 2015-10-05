@@ -204,34 +204,23 @@ func (f *loopbackFile) GetAttr(a *fuse.Attr) fuse.Status {
 const _UTIME_NOW = ((1 << 30) - 1)
 const _UTIME_OMIT = ((1 << 30) - 2)
 
-// timeToTimeval - Convert time.Time to syscall.Timeval
-//
-// Note: This does not use syscall.NsecToTimespec because
-// that does not work properly for times before 1970,
-// see https://github.com/golang/go/issues/12777
-func timeToTimeval(t *time.Time) syscall.Timeval {
-	var tv syscall.Timeval
-	tv.Usec = int64(t.Nanosecond() / 1000)
-	tv.Sec = t.Unix()
-	return tv
-}
-
 func (f *loopbackFile) Utimens(a *time.Time, m *time.Time) fuse.Status {
-	tv := make([]syscall.Timeval, 2)
+	var ts [2]syscall.Timespec
+
 	if a == nil {
-		tv[0].Usec = _UTIME_OMIT
+		ts[0].Nsec = _UTIME_OMIT
 	} else {
-		tv[0] = timeToTimeval(a)
+		ts[0].Sec = a.Unix()
 	}
 
 	if m == nil {
-		tv[1].Usec = _UTIME_OMIT
+		ts[1].Nsec = _UTIME_OMIT
 	} else {
-		tv[1] = timeToTimeval(m)
+		ts[1].Sec = m.Unix()
 	}
 
 	f.lock.Lock()
-	err := syscall.Futimes(int(f.File.Fd()), tv)
+	err := futimens(int(f.File.Fd()), &ts)
 	f.lock.Unlock()
 	return fuse.ToStatus(err)
 }
