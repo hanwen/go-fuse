@@ -70,10 +70,6 @@ func (d *connectorDir) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) (
 			continue
 		}
 
-		if e.Name == "." || e.Name == ".." {
-			continue
-		}
-
 		// we have to be sure entry will fit if we try to add
 		// it, or we'll mess up the lookup counts.
 		entryDest, off := out.AddDirLookupEntry(e)
@@ -82,7 +78,11 @@ func (d *connectorDir) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) (
 		}
 		entryDest.Ino = uint64(fuse.FUSE_UNKNOWN_INO)
 
-		// We ignore the return value
+		// No need to fill attributes for . and ..
+		if e.Name == "." || e.Name == ".." {
+			continue
+		}
+
 		code := d.rawFS.Lookup(&input.InHeader, e.Name, entryDest)
 		if !code.Ok() {
 			// if something went wrong, clear out the entry.
