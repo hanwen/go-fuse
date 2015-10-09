@@ -962,3 +962,20 @@ func TestUmask(t *testing.T) {
 		t.Errorf("got %o, expect mode %o for file %s", got, expect, fn)
 	}
 }
+
+// Check that "." and ".." exists
+func TestSpecialEntries(t *testing.T) {
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
+
+	d, err := os.Open(tc.mnt)
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
+	defer d.Close()
+	buf := make([]byte, 100)
+	n, err := syscall.Getdents(int(d.Fd()), buf)
+	if n == 0 {
+		t.Errorf("directory is empty, entries '.' and '..' are missing")
+	}
+}
