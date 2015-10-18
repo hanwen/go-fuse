@@ -99,7 +99,9 @@ func (c *rawBridge) Lookup(header *fuse.InHeader, name string, out *fuse.EntryOu
 
 	child.mount.fillEntry(out)
 	out.NodeId, out.Generation = c.fsConn().lookupUpdate(child)
-	out.Ino = out.NodeId
+	if out.Ino == 0 {
+		out.Ino = out.NodeId
+	}
 
 	return fuse.OK
 }

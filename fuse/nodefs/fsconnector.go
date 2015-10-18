@@ -89,7 +89,9 @@ func (c *rawBridge) childLookup(out *fuse.EntryOut, n *Inode, context *fuse.Cont
 	n.Node().GetAttr((*fuse.Attr)(&out.Attr), nil, context)
 	n.mount.fillEntry(out)
 	out.NodeId, out.Generation = c.fsConn().lookupUpdate(n)
-	out.Ino = out.NodeId
+	if out.Ino == 0 {
+		out.Ino = out.NodeId
+	}
 	if out.Nlink == 0 {
 		// With Nlink == 0, newer kernels will refuse link
 		// operations.

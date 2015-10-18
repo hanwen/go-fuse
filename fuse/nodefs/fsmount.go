@@ -70,7 +70,9 @@ func (m *fileSystemMount) fillEntry(out *fuse.EntryOut) {
 func (m *fileSystemMount) fillAttr(out *fuse.AttrOut, nodeId uint64) {
 	splitDuration(m.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
 	m.setOwner(&out.Attr)
-	out.Ino = nodeId
+	if out.Ino == 0 {
+		out.Ino = nodeId
+	}
 }
 
 func (m *fileSystemMount) getOpenedFile(h uint64) *openedFile {
