@@ -135,7 +135,7 @@ func lookPathFallback(file string, fallbackDir string) (string, error) {
 
 func init() {
 	var err error
-	fusermountBinary, err = lookPathFallback("/bin/fusermount", "/bin")
+	fusermountBinary, err = lookPathFallback("fusermount", "/bin")
 	if err != nil {
 		log.Fatalf("Could not find fusermount binary: %v", err)
 	}
