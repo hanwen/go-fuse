@@ -137,10 +137,10 @@ func init() {
 	var err error
 	fusermountBinary, err = lookPathFallback("fusermount", "/bin")
 	if err != nil {
-		log.Fatalf("Could not find fusermount binary: %v", err)
+		log.Printf("Could not find fusermount binary: %v", err)
 	}
 	umountBinary, err = lookPathFallback("umount", "/bin")
 	if err != nil {
-		log.Fatalf("Could not find umount binary: %v", err)
+		log.Printf("Could not find umount binary: %v", err)
 	}
 }
