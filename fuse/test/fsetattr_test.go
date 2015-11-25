@@ -18,6 +18,7 @@ type MutableDataFile struct {
 	data []byte
 	fuse.Attr
 	GetAttrCalled bool
+	FsyncCalled bool
 }
 
 func (f *MutableDataFile) String() string {
@@ -83,6 +84,11 @@ func (f *MutableDataFile) Chown(uid uint32, gid uint32) fuse.Status {
 
 func (f *MutableDataFile) Chmod(perms uint32) fuse.Status {
 	f.Attr.Mode = (f.Attr.Mode &^ 07777) | perms
+	return fuse.OK
+}
+
+func (f *MutableDataFile) Fsync(flags int) fuse.Status {
+	f.FsyncCalled = true
 	return fuse.OK
 }
 
@@ -181,9 +187,10 @@ func TestDataReadLarge(t *testing.T) {
 }
 
 func TestFSetAttr(t *testing.T) {
-	fs := pathfs.NewLockingFileSystem(&FSetAttrFs{
+	fSetAttrFs := &FSetAttrFs{
 		FileSystem: pathfs.NewDefaultFileSystem(),
-	})
+	}
+	fs := pathfs.NewLockingFileSystem(fSetAttrFs)
 	dir, clean := setupFAttrTest(t, fs)
 	defer clean()
 
@@ -245,5 +252,14 @@ func TestFSetAttr(t *testing.T) {
 	if i1 != i2 {
 		t.Errorf("f.Lstat().Ino = %d. Returned %d before.", i2, i1)
 	}
+
+	if code := syscall.Fsync(int(f.Fd())); code != nil {
+		t.Error("Fsync failed:", os.NewSyscallError("Fsync", code))
+	}
+
+	if !fSetAttrFs.file.FsyncCalled {
+		t.Error("Fsync was not called")
+	}
+
 	// TODO - test chown if run as root.
 }

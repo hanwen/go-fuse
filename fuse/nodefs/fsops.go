@@ -21,6 +21,13 @@ func (c *FileSystemConnector) RawFS() fuse.RawFileSystem {
 type rawBridge FileSystemConnector
 
 func (c *rawBridge) Fsync(input *fuse.FsyncIn) fuse.Status {
+	node := c.toInode(input.NodeId)
+	opened := node.mount.getOpenedFile(input.Fh)
+
+	if opened != nil {
+		return opened.WithFlags.File.Fsync(int(input.FsyncFlags))
+	}
+
 	return fuse.ENOSYS
 }
 
