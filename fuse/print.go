@@ -125,7 +125,7 @@ func (me *SetAttrIn) string() string {
 	if me.Valid&FATTR_MTIME != 0 {
 		s = append(s, fmt.Sprintf("mtime %d.%09d", me.Mtime, me.Mtimensec))
 	}
-	if me.Valid&FATTR_MTIME != 0 {
+	if me.Valid&FATTR_FH != 0 {
 		s = append(s, fmt.Sprintf("fh %d", me.Fh))
 	}
 	// TODO - FATTR_ATIME_NOW = (1 << 7), FATTR_MTIME_NOW = (1 << 8), FATTR_LOCKOWNER = (1 << 9)
@@ -148,7 +148,7 @@ func (me *OpenOut) string() string {
 		FlagString(FuseOpenFlagNames, int64(me.OpenFlags), ""))
 }
 
-func (me *InitIn) String() string {
+func (me *InitIn) string() string {
 	return fmt.Sprintf("{%d.%d Ra 0x%x %s}",
 		me.Major, me.Minor, me.MaxReadAhead,
 		FlagString(initFlagNames, int64(me.Flags), ""))
@@ -159,6 +159,10 @@ func (me *InitOut) string() string {
 		me.Major, me.Minor, me.MaxReadAhead,
 		FlagString(initFlagNames, int64(me.Flags), ""),
 		me.CongestionThreshold, me.MaxBackground, me.MaxWrite)
+}
+
+func (s *FsyncIn) string() string {
+	return fmt.Sprintf("{Fh %d Flags %x}", s.Fh, s.FsyncFlags)
 }
 
 func (me *SetXAttrIn) string() string {
