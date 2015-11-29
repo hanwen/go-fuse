@@ -204,6 +204,7 @@ func (f *loopbackFile) GetAttr(a *fuse.Attr) fuse.Status {
 const _UTIME_NOW = ((1 << 30) - 1)
 const _UTIME_OMIT = ((1 << 30) - 2)
 
+// Utimens - file handle based version of loopbackFileSystem.Utimens()
 func (f *loopbackFile) Utimens(a *time.Time, m *time.Time) fuse.Status {
 	var ts [2]syscall.Timespec
 
