@@ -4,16 +4,12 @@ import (
 	"path"
 	"bytes"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"syscall"
 	"unsafe"
 )
-
-var fusermountBinary string
-var umountBinary string
 
 func unixgramSocketpair() (l, r *os.File, err error) {
 	fd, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_SEQPACKET, 0)
@@ -37,12 +33,17 @@ func mount(mountPoint string, options string) (fd int, err error) {
 	defer local.Close()
 	defer remote.Close()
 
-	cmd := []string{fusermountBinary, mountPoint}
+	bin, err := fusermountBinary()
+	if err != nil {
+		return 0, err
+	}
+	
+	cmd := []string{bin, mountPoint}
 	if options != "" {
 		cmd = append(cmd, "-o")
 		cmd = append(cmd, options)
 	}
-	proc, err := os.StartProcess(fusermountBinary,
+	proc, err := os.StartProcess(bin,
 		cmd,
 		&os.ProcAttr{
 			Env:   []string{"_FUSE_COMMFD=3"},
@@ -66,8 +67,13 @@ func mount(mountPoint string, options string) (fd int, err error) {
 
 func privilegedUnmount(mountPoint string) error {
 	dir, _ := filepath.Split(mountPoint)
-	proc, err := os.StartProcess(umountBinary,
-		[]string{umountBinary, mountPoint},
+	bin, err := umountBinary()
+	if err != nil {
+		return err
+	}
+	
+	proc, err := os.StartProcess(bin,
+		[]string{bin, mountPoint},
 		&os.ProcAttr{Dir: dir, Files: []*os.File{nil, nil, os.Stderr}})
 	if err != nil {
 		return err
@@ -83,8 +89,12 @@ func unmount(mountPoint string) (err error) {
 	if os.Geteuid() == 0 {
 		return privilegedUnmount(mountPoint)
 	}
+	bin, err := fusermountBinary()
+	if err != nil {
+		return err
+	}
 	errBuf := bytes.Buffer{}
-	cmd := exec.Command(fusermountBinary, "-u", mountPoint)
+	cmd := exec.Command(bin, "-u", mountPoint)
 	cmd.Stderr = &errBuf
 	err = cmd.Run()
 	if errBuf.Len() > 0 {
@@ -133,14 +143,10 @@ func lookPathFallback(file string, fallbackDir string) (string, error) {
 	return exec.LookPath(abs)
 }
 
-func init() {
-	var err error
-	fusermountBinary, err = lookPathFallback("fusermount", "/bin")
-	if err != nil {
-		log.Fatalf("Could not find fusermount binary: %v", err)
-	}
-	umountBinary, err = lookPathFallback("umount", "/bin")
-	if err != nil {
-		log.Fatalf("Could not find umount binary: %v", err)
-	}
+func fusermountBinary() (string, error) {
+	return lookPathFallback("fusermount", "/bin")
+}
+
+func umountBinary() (string, error) {
+	return lookPathFallback("umount", "/bin")
 }
