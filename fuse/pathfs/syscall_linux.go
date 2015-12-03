@@ -34,10 +34,12 @@ func listXAttr(path string) (attributes []string, err error) {
 		sz, err = sysListxattr(path, dest)
 	}
 
-	if sz > 0 {
-		// -1 to drop the final empty slice.
-		dest = dest[:sz-1]
+	if sz == 0 {
+		return nil, err
 	}
+
+	// -1 to drop the final empty slice.
+	dest = dest[:sz-1]
 	attributesBytes := bytes.Split(dest, []byte{0})
 	attributes = make([]string, len(attributesBytes))
 	for i, v := range attributesBytes {

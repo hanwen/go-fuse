@@ -103,8 +103,8 @@ func readXAttr(p, a string) (val []byte, err error) {
 	return getXAttr(p, a, val)
 }
 
-func xattrTestCase(t *testing.T, nm string) (mountPoint string, cleanup func()) {
-	xfs := NewXAttrFs(nm, xattrGolden)
+func xattrTestCase(t *testing.T, nm string, m map[string][]byte) (mountPoint string, cleanup func()) {
+	xfs := NewXAttrFs(nm, m)
 	xfs.tester = t
 	mountPoint, err := ioutil.TempDir("", "go-fuse-xattr_test")
 	if err != nil {
@@ -125,9 +125,25 @@ func xattrTestCase(t *testing.T, nm string) (mountPoint string, cleanup func()) 
 	}
 }
 
+func TestXAttrNoAttrs(t *testing.T) {
+	nm := xattrFilename
+	mountPoint, clean := xattrTestCase(t, nm, make(map[string][]byte))
+	defer clean()
+
+	mounted := filepath.Join(mountPoint, nm)
+	attrs, err := listXAttr(mounted)
+	if err != nil {
+		t.Error("Unexpected ListXAttr error", err)
+	}
+
+	if len(attrs) > 0 {
+		t.Errorf("ListXAttr(%s) = %s, want empty slice", mounted, attrs)
+	}
+}
+
 func TestXAttrNoExist(t *testing.T) {
 	nm := xattrFilename
-	mountPoint, clean := xattrTestCase(t, nm)
+	mountPoint, clean := xattrTestCase(t, nm, xattrGolden)
 	defer clean()
 
 	mounted := filepath.Join(mountPoint, nm)
@@ -144,7 +160,7 @@ func TestXAttrNoExist(t *testing.T) {
 
 func TestXAttrRead(t *testing.T) {
 	nm := xattrFilename
-	mountPoint, clean := xattrTestCase(t, nm)
+	mountPoint, clean := xattrTestCase(t, nm, xattrGolden)
 	defer clean()
 
 	mounted := filepath.Join(mountPoint, nm)
