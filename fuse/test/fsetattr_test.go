@@ -86,6 +86,10 @@ func (f *MutableDataFile) Chmod(perms uint32) fuse.Status {
 	return fuse.OK
 }
 
+func (f *MutableDataFile) Fsync(flags int) fuse.Status {
+	return fuse.OK
+}
+
 ////////////////
 
 // This FS only supports a single r/w file called "/file".
@@ -245,5 +249,10 @@ func TestFSetAttr(t *testing.T) {
 	if i1 != i2 {
 		t.Errorf("f.Lstat().Ino = %d. Returned %d before.", i2, i1)
 	}
+
+	if code := syscall.Fsync(int(f.Fd())); code != nil {
+		t.Error("Fsync failed:", os.NewSyscallError("Fsync", code))
+	}
+
 	// TODO - test chown if run as root.
 }
