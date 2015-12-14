@@ -18,6 +18,7 @@ type MutableDataFile struct {
 	data []byte
 	fuse.Attr
 	GetAttrCalled bool
+	FsyncCalled bool
 }
 
 func (f *MutableDataFile) String() string {
@@ -87,6 +88,7 @@ func (f *MutableDataFile) Chmod(perms uint32) fuse.Status {
 }
 
 func (f *MutableDataFile) Fsync(flags int) fuse.Status {
+	f.FsyncCalled = true
 	return fuse.OK
 }
 
@@ -185,9 +187,10 @@ func TestDataReadLarge(t *testing.T) {
 }
 
 func TestFSetAttr(t *testing.T) {
-	fs := pathfs.NewLockingFileSystem(&FSetAttrFs{
+	fSetAttrFs := &FSetAttrFs{
 		FileSystem: pathfs.NewDefaultFileSystem(),
-	})
+	}
+	fs := pathfs.NewLockingFileSystem(fSetAttrFs)
 	dir, clean := setupFAttrTest(t, fs)
 	defer clean()
 
@@ -252,6 +255,10 @@ func TestFSetAttr(t *testing.T) {
 
 	if code := syscall.Fsync(int(f.Fd())); code != nil {
 		t.Error("Fsync failed:", os.NewSyscallError("Fsync", code))
+	}
+
+	if !fSetAttrFs.file.FsyncCalled {
+		t.Error("Fsync was not called")
 	}
 
 	// TODO - test chown if run as root.
