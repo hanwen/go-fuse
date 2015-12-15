@@ -206,22 +206,22 @@ const _UTIME_OMIT = ((1 << 30) - 2)
 
 // Utimens - file handle based version of loopbackFileSystem.Utimens()
 func (f *loopbackFile) Utimens(a *time.Time, m *time.Time) fuse.Status {
-	var ts [2]syscall.Timespec
+	var ts = make([]syscall.Timeval, 2)
 
 	if a == nil {
-		ts[0].Nsec = _UTIME_OMIT
+		ts[0].Sec = _UTIME_OMIT
 	} else {
 		ts[0].Sec = a.Unix()
 	}
 
 	if m == nil {
-		ts[1].Nsec = _UTIME_OMIT
+		ts[1].Sec = _UTIME_OMIT
 	} else {
 		ts[1].Sec = m.Unix()
 	}
 
 	f.lock.Lock()
-	err := futimens(int(f.File.Fd()), &ts)
+	err := syscall.Futimes(int(f.File.Fd()), ts)
 	f.lock.Unlock()
 	return fuse.ToStatus(err)
 }
