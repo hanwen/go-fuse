@@ -1,11 +1,11 @@
 package fuse
 
 import (
-	"path"
 	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"syscall"
 	"unsafe"
@@ -37,7 +37,7 @@ func mount(mountPoint string, options string) (fd int, err error) {
 	if err != nil {
 		return 0, err
 	}
-	
+
 	cmd := []string{bin, mountPoint}
 	if options != "" {
 		cmd = append(cmd, "-o")
@@ -71,7 +71,7 @@ func privilegedUnmount(mountPoint string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	proc, err := os.StartProcess(bin,
 		[]string{bin, mountPoint},
 		&os.ProcAttr{Dir: dir, Files: []*os.File{nil, nil, os.Stderr}})

@@ -1,10 +1,10 @@
 package pathfs
 
 import (
-	"reflect"
 	"os"
-	"testing"
+	"reflect"
 	"syscall"
+	"testing"
 )
 
 func TestSysUtimensat(t *testing.T) {
