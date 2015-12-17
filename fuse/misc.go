@@ -64,8 +64,8 @@ func toSlice(dest *[]byte, ptr unsafe.Pointer, byteCount uintptr) {
 	h := (*reflect.SliceHeader)(unsafe.Pointer(dest))
 	*h = reflect.SliceHeader{
 		Data: uintptr(ptr),
-		Len: int(byteCount),
-		Cap: int(byteCount),
+		Len:  int(byteCount),
+		Cap:  int(byteCount),
 	}
 }
 

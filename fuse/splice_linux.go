@@ -77,7 +77,7 @@ func (ms *Server) trySplice(header []byte, req *request, fdData *readResultFd) e
 	// Write data into pair2
 	n, err = pair2.LoadFrom(pair1.ReadFd(), payloadLen)
 	if err != nil {
-			return err
+		return err
 	}
 	if n != payloadLen {
 		return fmt.Errorf("Short splice: wrote %d, want %d", n, payloadLen)

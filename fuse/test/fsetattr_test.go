@@ -18,7 +18,7 @@ type MutableDataFile struct {
 	data []byte
 	fuse.Attr
 	GetAttrCalled bool
-	FsyncCalled bool
+	FsyncCalled   bool
 }
 
 func (f *MutableDataFile) String() string {

@@ -117,7 +117,6 @@ func sysSetxattr(path string, attr string, val []byte, flag int) error {
 	return syscall.Setxattr(path, attr, val, flag)
 }
 
-
 const _AT_SYMLINK_NOFOLLOW = 0x100
 
 // Linux kernel syscall utimensat(2)

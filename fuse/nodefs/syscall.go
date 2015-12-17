@@ -1,8 +1,8 @@
 package nodefs
 
 import (
-	"unsafe"
 	"syscall"
+	"unsafe"
 )
 
 // futimens - futimens(3) calls utimensat(2) with "pathname" set to null and

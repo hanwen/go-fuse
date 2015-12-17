@@ -237,8 +237,8 @@ func doBatchForget(server *Server, req *request) {
 
 	h := &reflect.SliceHeader{
 		Data: uintptr(unsafe.Pointer(&req.arg[0])),
-		Len: int(in.Count),
-		Cap: int(in.Count),
+		Len:  int(in.Count),
+		Cap:  int(in.Count),
 	}
 
 	forgets := *(*[]_ForgetOne)(unsafe.Pointer(h))
