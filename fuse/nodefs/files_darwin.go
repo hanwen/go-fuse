@@ -2,7 +2,6 @@ package nodefs
 
 import (
 	"syscall"
-	"time"
 	"unsafe"
 
 	"github.com/hanwen/go-fuse/fuse"

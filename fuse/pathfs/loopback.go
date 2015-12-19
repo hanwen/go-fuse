@@ -137,7 +137,7 @@ func (fs *loopbackFileSystem) Utimens(path string, a *time.Time, m *time.Time, c
 		ts[1].Sec = m.Unix()
 	}
 
-	err := sysUtimensat(0, fs.GetPath(path), &ts, _AT_SYMLINK_NOFOLLOW)
+	err := syscall.UtimesNano(fs.GetPath(path), ts[:])
 	return fuse.ToStatus(err)
 }
 
