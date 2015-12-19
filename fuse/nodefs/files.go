@@ -221,7 +221,7 @@ func (f *loopbackFile) Utimens(a *time.Time, m *time.Time) fuse.Status {
 	}
 
 	f.lock.Lock()
-	err := futimens(int(f.File.Fd()), &ts)
+	err := syscall.UtimesNano(f.File.Name(), ts[:])
 	f.lock.Unlock()
 	return fuse.ToStatus(err)
 }
