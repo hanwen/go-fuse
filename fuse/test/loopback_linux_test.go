@@ -32,6 +32,37 @@ func TestTouch(t *testing.T) {
 	}
 }
 
+func TestNegativeTime(t *testing.T) {
+	ts := NewTestCase(t)
+	defer ts.Cleanup()
+
+	_, err := os.Create(ts.origFile)
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	var stat syscall.Stat_t
+
+	// set negative nanosecond will occur errors on UtimesNano as invalid argument
+	ut := time.Date(1960, time.January, 10, 23, 0, 0, 0, time.UTC)
+	tim := []syscall.Timespec{
+		syscall.NsecToTimespec(ut.UnixNano()),
+		syscall.NsecToTimespec(ut.UnixNano()),
+	}
+	err = syscall.UtimesNano(ts.mountFile, tim)
+	if err != nil {
+		t.Fatalf("UtimesNano failed: %v", err)
+	}
+	err = syscall.Lstat(ts.mountFile, &stat)
+	if err != nil {
+		t.Fatalf("Lstat failed: %v", err)
+	}
+
+	if stat.Atim.Sec >= 0 || stat.Mtim.Sec >= 0 {
+		t.Errorf("Got wrong timestamps %v", stat)
+	}
+}
+
 func clearStatfs(s *syscall.Statfs_t) {
 	empty := syscall.Statfs_t{}
 	s.Type = 0
@@ -44,7 +75,6 @@ func clearStatfs(s *syscall.Statfs_t) {
 func TestFallocate(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()
-
 	if ts.state.KernelSettings().Minor < 19 {
 		t.Log("FUSE does not support Fallocate.")
 		return
