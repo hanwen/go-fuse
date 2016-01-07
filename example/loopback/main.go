@@ -7,7 +7,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
+	"runtime/pprof"
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
@@ -19,11 +21,38 @@ func main() {
 	// Scans the arg list and sets up flags
 	debug := flag.Bool("debug", false, "print debugging messages.")
 	other := flag.Bool("allow-other", false, "mount with -o allowother.")
+	cpuprofile := flag.String("cpuprofile", "", "write cpu profile to this file")
+	memprofile := flag.String("memprofile", "", "write memory profile to this file")
 	flag.Parse()
 	if flag.NArg() < 2 {
-		// TODO - where to get program name?
-		fmt.Println("usage: main MOUNTPOINT ORIGINAL")
+		fmt.Printf("usage: %s MOUNTPOINT ORIGINAL\n", path.Base(os.Args[0]))
 		os.Exit(2)
+	}
+	if *cpuprofile != "" {
+		fmt.Printf("Writing cpu profile to %s\n", *cpuprofile)
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(3)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+	if *memprofile != "" {
+		fmt.Printf("Writing mem profile to %s\n", *memprofile)
+		f, err := os.Create(*memprofile)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(4)
+		}
+		defer func() {
+			pprof.WriteHeapProfile(f)
+			f.Close()
+			return
+		}()
+	}
+	if *cpuprofile != "" || *memprofile != "" {
+		fmt.Printf("Note: You must unmount gracefully, otherwise the profile file(s) will stay empty!\n")
 	}
 
 	var finalFs pathfs.FileSystem
