@@ -5,7 +5,6 @@ import (
 	"os"
 	"sync"
 	"syscall"
-	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
 )
@@ -201,30 +200,7 @@ func (f *loopbackFile) GetAttr(a *fuse.Attr) fuse.Status {
 	return fuse.OK
 }
 
-const _UTIME_NOW = ((1 << 30) - 1)
-const _UTIME_OMIT = ((1 << 30) - 2)
-
-// Utimens - file handle based version of loopbackFileSystem.Utimens()
-func (f *loopbackFile) Utimens(a *time.Time, m *time.Time) fuse.Status {
-	var ts [2]syscall.Timespec
-
-	if a == nil {
-		ts[0].Nsec = _UTIME_OMIT
-	} else {
-		ts[0].Sec = a.Unix()
-	}
-
-	if m == nil {
-		ts[1].Nsec = _UTIME_OMIT
-	} else {
-		ts[1].Sec = m.Unix()
-	}
-
-	f.lock.Lock()
-	err := futimens(int(f.File.Fd()), &ts)
-	f.lock.Unlock()
-	return fuse.ToStatus(err)
-}
+// Utimens implemented in files_linux.go
 
 // Allocate implemented in files_linux.go
 

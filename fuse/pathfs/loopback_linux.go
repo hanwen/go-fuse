@@ -3,6 +3,7 @@ package pathfs
 import (
 	"fmt"
 	"syscall"
+	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
 )
@@ -49,5 +50,28 @@ func (fs *loopbackFileSystem) GetXAttr(name string, attr string, context *fuse.C
 
 func (fs *loopbackFileSystem) SetXAttr(name string, attr string, data []byte, flags int, context *fuse.Context) fuse.Status {
 	err := syscall.Setxattr(fs.GetPath(name), attr, data, flags)
+	return fuse.ToStatus(err)
+}
+
+const _UTIME_NOW = ((1 << 30) - 1)
+const _UTIME_OMIT = ((1 << 30) - 2)
+
+// Utimens - path based version of loopbackFile.Utimens()
+func (fs *loopbackFileSystem) Utimens(path string, a *time.Time, m *time.Time, context *fuse.Context) (code fuse.Status) {
+	var ts [2]syscall.Timespec
+
+	if a == nil {
+		ts[0].Nsec = _UTIME_OMIT
+	} else {
+		ts[0].Sec = a.Unix()
+	}
+
+	if m == nil {
+		ts[1].Nsec = _UTIME_OMIT
+	} else {
+		ts[1].Sec = m.Unix()
+	}
+
+	err := sysUtimensat(0, fs.GetPath(path), &ts, _AT_SYMLINK_NOFOLLOW)
 	return fuse.ToStatus(err)
 }
