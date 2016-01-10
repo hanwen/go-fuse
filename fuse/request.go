@@ -126,7 +126,7 @@ func (r *request) setInput(input []byte) bool {
 		return false
 	}
 	r.inputBuf = input
-	r.bufferPoolInputBuf = input
+	r.bufferPoolInputBuf = input[:cap(input)]
 
 	return true
 }

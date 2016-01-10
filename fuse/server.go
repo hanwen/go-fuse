@@ -283,7 +283,7 @@ func (ms *Server) returnRequest(req *request) {
 
 	req.clear()
 	ms.reqMu.Lock()
-	if req.bufferPoolOutputBuf != nil {
+	if req.bufferPoolInputBuf != nil {
 		ms.readPool.Put(req.bufferPoolInputBuf)
 		req.bufferPoolInputBuf = nil
 		ms.outstandingReadBufs--
