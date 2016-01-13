@@ -345,20 +345,45 @@ func TestLinkForget(t *testing.T) {
 		t.Fatalf("Link failed: %v", err)
 	}
 
-	var s1, s2 syscall.Stat_t
-	err = syscall.Lstat(tc.mnt+"/file1", &s1)
-	if err != nil {
-		t.Fatalf("Lstat failed: %v", err)
+	for _, fn := range []string{"file1", "file2"} {
+		var s syscall.Stat_t
+		err = syscall.Lstat(tc.mnt+"/"+fn, &s)
+		if err != nil {
+			t.Fatalf("Lstat failed: %v", err)
+		}
+		tc.pathFs.ForgetClientInodes()
 	}
 
-	tc.pathFs.ForgetClientInodes()
-
-	err = syscall.Lstat(tc.mnt+"/file2", &s2)
-	if err != nil {
-		t.Fatalf("Lstat failed: %v", err)
+	// Now, the backing files are still hardlinked, but go-fuse's
+	// view of them should not be because of the
+	// ForgetClientInodes call. To prove this, we swap out the
+	// files in the backing store, and prove that they are
+	// distinct by truncating to different lengths.
+	for _, fn := range []string{"file1", "file2"} {
+		fn = tc.orig + "/" + fn
+		if err := os.Remove(fn); err != nil {
+			t.Fatalf("Remove", err)
+		}
+		if err := ioutil.WriteFile(fn, []byte(c), 0644); err != nil {
+			t.Fatalf("WriteFile", err)
+		}
 	}
-	if s1.Ino == s2.Ino {
-		t.Error("After forget, we should not export links")
+	for i, fn := range []string{"file1", "file2"} {
+		fn = tc.mnt + "/" + fn
+		if err := os.Truncate(fn, int64(i)); err != nil {
+			t.Fatalf("Truncate", err)
+		}
+	}
+
+	for i, fn := range []string{"file1", "file2"} {
+		var s syscall.Stat_t
+		err = syscall.Lstat(tc.mnt+"/"+fn, &s)
+		if err != nil {
+			t.Fatalf("Lstat failed: %v", err)
+		}
+		if s.Size != int64(i) {
+			t.Errorf("Lstat(%q): got size %d, want %d", fn, s.Size, i)
+		}
 	}
 }
 
