@@ -685,12 +685,10 @@ func TestReadLarge(t *testing.T) {
 
 func randomLengthString(length int) string {
 	r := rand.Intn(length)
-	j := 0
 
 	b := make([]byte, r)
 	for i := 0; i < r; i++ {
-		j = (j + 1) % 10
-		b[i] = byte(j) + byte('0')
+		b[i] = byte(i%10) + byte('0')
 	}
 	return string(b)
 }
