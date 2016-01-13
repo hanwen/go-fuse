@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"syscall"
 	"testing"
@@ -637,11 +638,10 @@ func RandomData(size int) []byte {
 func CompareSlices(t *testing.T, got, want []byte) {
 	if len(got) != len(want) {
 		t.Errorf("content length: got %d want %d", len(got), len(want))
+		return
 	}
+
 	for i := range want {
-		if i >= len(got) {
-			break
-		}
 		if want[i] != got[i] {
 			t.Errorf("content mismatch byte %d, got %d want %d.", i, got[i], want[i])
 			break
@@ -715,7 +715,6 @@ func TestLargeDirRead(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
-	t.Log("Testing large readdir.")
 	created := 100
 
 	names := make([]string, created)
@@ -831,7 +830,7 @@ func TestStatFs(t *testing.T) {
 
 	clearStatfs(&s1)
 	clearStatfs(&s2)
-	if fmt.Sprintf("%v", s2) != fmt.Sprintf("%v", s1) {
+	if !reflect.DeepEqual(s1, s2) {
 		t.Errorf("statfs mismatch %#v != %#v", s1, s2)
 	}
 }
@@ -865,7 +864,7 @@ func TestFStatFs(t *testing.T) {
 
 	clearStatfs(&s1)
 	clearStatfs(&s2)
-	if fmt.Sprintf("%v", s2) != fmt.Sprintf("%v", s1) {
+	if !reflect.DeepEqual(s1, s2) {
 		t.Errorf("statfs mismatch: %#v != %#v", s1, s2)
 	}
 }
