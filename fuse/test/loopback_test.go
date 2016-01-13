@@ -37,6 +37,25 @@ type testCase struct {
 
 const testTtl = 100 * time.Millisecond
 
+// Mkdir is a utility wrapper for os.Mkdir, aborting the test if it fails.
+func (tc *testCase) Mkdir(name string, mode os.FileMode) {
+	if err := os.Mkdir(name, mode); err != nil {
+		tc.tester.Fatalf("Mkdir(%q,%v): %v", name, mode, err)
+	}
+}
+
+// WriteFile is a utility wrapper for ioutil.WriteFile, aborting the
+// test if it fails.
+func (tc *testCase) WriteFile(name string, content []byte, mode os.FileMode) {
+	if err := ioutil.WriteFile(name, content, mode); err != nil {
+		if len(content) > 50 {
+			content = append(content[:50], '.', '.', '.')
+		}
+
+		tc.tester.Fatalf("WriteFile(%q, %q, %o): %v", name, content, mode, err)
+	}
+}
+
 // Create and mount filesystem.
 func NewTestCase(t *testing.T) *testCase {
 	tc := &testCase{}
@@ -56,8 +75,8 @@ func NewTestCase(t *testing.T) *testCase {
 	tc.orig = tc.tmpDir + "/orig"
 	tc.mnt = tc.tmpDir + "/mnt"
 
-	os.Mkdir(tc.orig, 0700)
-	os.Mkdir(tc.mnt, 0700)
+	tc.Mkdir(tc.orig, 0700)
+	tc.Mkdir(tc.mnt, 0700)
 
 	tc.mountFile = filepath.Join(tc.mnt, name)
 	tc.mountSubdir = filepath.Join(tc.mnt, subdir)
@@ -122,12 +141,8 @@ func TestReadThrough(t *testing.T) {
 	defer tc.Cleanup()
 
 	content := RandomData(125)
-	err := ioutil.WriteFile(tc.origFile, content, 0700)
-	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
-	}
-
-	err = os.Chmod(tc.mountFile, os.FileMode(mode))
+	tc.WriteFile(tc.origFile, content, 0700)
+	err := os.Chmod(tc.mountFile, os.FileMode(mode))
 	if err != nil {
 		t.Fatalf("Chmod failed: %v", err)
 	}
@@ -158,12 +173,9 @@ func TestRemove(t *testing.T) {
 	defer tc.Cleanup()
 
 	contents := []byte{1, 2, 3}
-	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
-	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
-	}
+	tc.WriteFile(tc.origFile, []byte(contents), 0700)
 
-	err = os.Remove(tc.mountFile)
+	err := os.Remove(tc.mountFile)
 	if err != nil {
 		t.Fatalf("Remove failed: %v", err)
 	}
@@ -241,18 +253,13 @@ func TestLinkCreate(t *testing.T) {
 	defer tc.Cleanup()
 
 	content := RandomData(125)
-	err := ioutil.WriteFile(tc.origFile, content, 0700)
-	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
-	}
-	err = os.Mkdir(tc.origSubdir, 0777)
-	if err != nil {
-		t.Fatalf("Mkdir failed: %v", err)
-	}
+	tc.WriteFile(tc.origFile, content, 0700)
+
+	tc.Mkdir(tc.origSubdir, 0777)
 
 	// Link.
 	mountSubfile := filepath.Join(tc.mountSubdir, "subfile")
-	err = os.Link(tc.mountFile, mountSubfile)
+	err := os.Link(tc.mountFile, mountSubfile)
 	if err != nil {
 		t.Fatalf("Link failed: %v", err)
 	}
@@ -298,11 +305,9 @@ func TestLinkExisting(t *testing.T) {
 
 	c := RandomData(5)
 
-	err := ioutil.WriteFile(tc.orig+"/file1", c, 0644)
-	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
-	}
-	err = os.Link(tc.orig+"/file1", tc.orig+"/file2")
+	tc.WriteFile(tc.orig+"/file1", c, 0644)
+
+	err := os.Link(tc.orig+"/file1", tc.orig+"/file2")
 	if err != nil {
 		t.Fatalf("Link failed: %v", err)
 	}
@@ -336,11 +341,8 @@ func TestLinkForget(t *testing.T) {
 
 	c := "hello"
 
-	err := ioutil.WriteFile(tc.orig+"/file1", []byte(c), 0644)
-	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
-	}
-	err = os.Link(tc.orig+"/file1", tc.orig+"/file2")
+	tc.WriteFile(tc.orig+"/file1", []byte(c), 0644)
+	err := os.Link(tc.orig+"/file1", tc.orig+"/file2")
 	if err != nil {
 		t.Fatalf("Link failed: %v", err)
 	}
@@ -364,9 +366,7 @@ func TestLinkForget(t *testing.T) {
 		if err := os.Remove(fn); err != nil {
 			t.Fatalf("Remove", err)
 		}
-		if err := ioutil.WriteFile(fn, []byte(c), 0644); err != nil {
-			t.Fatalf("WriteFile", err)
-		}
+		tc.WriteFile(fn, []byte(c), 0644)
 	}
 	for i, fn := range []string{"file1", "file2"} {
 		fn = tc.mnt + "/" + fn
@@ -393,14 +393,11 @@ func TestSymlink(t *testing.T) {
 
 	t.Log("testing symlink/readlink.")
 	contents := []byte{1, 2, 3}
-	err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700)
-	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
-	}
+	tc.WriteFile(tc.origFile, []byte(contents), 0700)
 
 	linkFile := "symlink-file"
 	orig := "hello.txt"
-	err = os.Symlink(orig, filepath.Join(tc.mnt, linkFile))
+	err := os.Symlink(orig, filepath.Join(tc.mnt, linkFile))
 
 	if err != nil {
 		t.Fatalf("Symlink failed: %v", err)
@@ -432,13 +429,9 @@ func TestRename(t *testing.T) {
 	defer tc.Cleanup()
 
 	contents := []byte{1, 2, 3}
-	if err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700); err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
-	}
+	tc.WriteFile(tc.origFile, []byte(contents), 0700)
 	sd := tc.mnt + "/testRename"
-	if err := os.MkdirAll(sd, 0777); err != nil {
-		t.Fatalf("MkdirAll(%q): %v", sd, err)
-	}
+	tc.Mkdir(sd, 0777)
 
 	subFile := sd + "/subfile"
 	if err := os.Rename(tc.mountFile, subFile); err != nil {
@@ -461,14 +454,10 @@ func TestDelRename(t *testing.T) {
 	t.Log("Testing del+rename.")
 
 	sd := tc.mnt + "/testDelRename"
-	if err := os.MkdirAll(sd, 0755); err != nil {
-		t.Fatalf("MkdirAll failed: %v", err)
-	}
+	tc.Mkdir(sd, 0755)
 
 	d := sd + "/dest"
-	if err := ioutil.WriteFile(d, []byte("blabla"), 0644); err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
-	}
+	tc.WriteFile(d, []byte("blabla"), 0644)
 
 	f, err := os.Open(d)
 	if err != nil {
@@ -481,10 +470,7 @@ func TestDelRename(t *testing.T) {
 	}
 
 	s := sd + "/src"
-	if err = ioutil.WriteFile(s, []byte("blabla"), 0644); err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
-	}
-
+	tc.WriteFile(s, []byte("blabla"), 0644)
 	if err := os.Rename(s, d); err != nil {
 		t.Fatalf("Rename failed: %v", err)
 	}
@@ -497,19 +483,13 @@ func TestOverwriteRename(t *testing.T) {
 	t.Log("Testing rename overwrite.")
 
 	sd := tc.mnt + "/testOverwriteRename"
-	if err := os.MkdirAll(sd, 0755); err != nil {
-		t.Fatalf("MkdirAll failed: %v", err)
-	}
+	tc.Mkdir(sd, 0755)
 
 	d := sd + "/dest"
-	if err := ioutil.WriteFile(d, []byte("blabla"), 0644); err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
-	}
+	tc.WriteFile(d, []byte("blabla"), 0644)
 
 	s := sd + "/src"
-	if err := ioutil.WriteFile(s, []byte("blabla"), 0644); err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
-	}
+	tc.WriteFile(s, []byte("blabla"), 0644)
 
 	if err := os.Rename(s, d); err != nil {
 		t.Fatalf("Rename failed: %v", err)
@@ -525,9 +505,7 @@ func TestAccess(t *testing.T) {
 	defer tc.Cleanup()
 
 	contents := []byte{1, 2, 3}
-	if err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700); err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
-	}
+	tc.WriteFile(tc.origFile, []byte(contents), 0700)
 	if err := os.Chmod(tc.origFile, 0); err != nil {
 		t.Fatalf("Chmod failed: %v", err)
 	}
@@ -568,12 +546,8 @@ func TestReaddir(t *testing.T) {
 	defer tc.Cleanup()
 
 	contents := []byte{1, 2, 3}
-	if err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700); err != nil {
-		t.Fatalf(" failed: %v", err)
-	}
-	if err := os.Mkdir(tc.origSubdir, 0777); err != nil {
-		t.Fatalf("Mkdir failed: %v", err)
-	}
+	tc.WriteFile(tc.origFile, []byte(contents), 0700)
+	tc.Mkdir(tc.origSubdir, 0777)
 
 	dir, err := os.Open(tc.mnt)
 	if err != nil {
@@ -607,9 +581,7 @@ func TestFSync(t *testing.T) {
 	defer tc.Cleanup()
 
 	contents := []byte{1, 2, 3}
-	if err := ioutil.WriteFile(tc.origFile, []byte(contents), 0700); err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
-	}
+	tc.WriteFile(tc.origFile, []byte(contents), 0700)
 
 	f, err := os.OpenFile(tc.mountFile, os.O_WRONLY, 0)
 	if err != nil {
@@ -631,9 +603,7 @@ func TestFSync(t *testing.T) {
 func TestReadZero(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
-	if err := ioutil.WriteFile(tc.origFile, []byte{}, 0644); err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
-	}
+	tc.WriteFile(tc.origFile, []byte{}, 0644)
 
 	back, err := ioutil.ReadFile(tc.mountFile)
 	if err != nil {
@@ -685,9 +655,7 @@ func TestReadLargeMemCheck(t *testing.T) {
 	defer tc.Cleanup()
 
 	content := RandomData(385 * 1023)
-	if err := ioutil.WriteFile(tc.origFile, []byte(content), 0644); err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
-	}
+	tc.WriteFile(tc.origFile, []byte(content), 0644)
 
 	f, err := os.Open(tc.mountFile)
 	if err != nil {
@@ -722,9 +690,7 @@ func TestReadLarge(t *testing.T) {
 	defer tc.Cleanup()
 
 	content := RandomData(385 * 1023)
-	if err := ioutil.WriteFile(tc.origFile, []byte(content), 0644); err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
-	}
+	tc.WriteFile(tc.origFile, []byte(content), 0644)
 
 	back, err := ioutil.ReadFile(tc.mountFile)
 	if err != nil {
@@ -755,9 +721,8 @@ func TestLargeDirRead(t *testing.T) {
 	names := make([]string, created)
 
 	subdir := filepath.Join(tc.orig, "readdirSubdir")
-	if err := os.Mkdir(subdir, 0700); err != nil {
-		t.Fatalf("Mkdir(%q): %v", subdir, err)
-	}
+
+	tc.Mkdir(subdir, 0700)
 
 	longname := "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
@@ -770,9 +735,7 @@ func TestLargeDirRead(t *testing.T) {
 
 		nameSet[base] = true
 
-		if err := ioutil.WriteFile(name, []byte("bla"), 0777); err != nil {
-			t.Fatalf("WriteFile(%q): %v", name, err)
-		}
+		tc.WriteFile(name, []byte("bla"), 0777)
 
 		names[i] = name
 	}
@@ -946,9 +909,7 @@ func TestDoubleOpen(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
-	if err := ioutil.WriteFile(tc.orig+"/file", []byte("blabla"), 0644); err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
-	}
+	tc.WriteFile(tc.orig+"/file", []byte("blabla"), 0644)
 
 	roFile, err := os.Open(tc.mnt + "/file")
 	if err != nil {
