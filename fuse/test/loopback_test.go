@@ -1,6 +1,7 @@
 package test
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -141,7 +142,7 @@ func TestReadThrough(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
-	content := RandomData(125)
+	content := randomData(125)
 	tc.WriteFile(tc.origFile, content, 0700)
 	err := os.Chmod(tc.mountFile, os.FileMode(mode))
 	if err != nil {
@@ -197,7 +198,7 @@ func TestWriteThrough(t *testing.T) {
 	}
 	defer f.Close()
 
-	content := RandomData(125)
+	content := randomData(125)
 	n, err := f.Write(content)
 	if err != nil {
 		t.Fatalf("Write failed: %v", err)
@@ -253,7 +254,7 @@ func TestLinkCreate(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
-	content := RandomData(125)
+	content := randomData(125)
 	tc.WriteFile(tc.origFile, content, 0700)
 
 	tc.Mkdir(tc.origSubdir, 0777)
@@ -298,13 +299,17 @@ func TestLinkCreate(t *testing.T) {
 	}
 }
 
+func randomData(size int) []byte {
+	return bytes.Repeat([]byte{'x'}, size)
+}
+
 // Deal correctly with hard links implied by matching client inode
 // numbers.
 func TestLinkExisting(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
-	c := RandomData(5)
+	c := randomData(5)
 
 	tc.WriteFile(tc.orig+"/file1", c, 0644)
 
@@ -614,27 +619,6 @@ func TestReadZero(t *testing.T) {
 	}
 }
 
-func RandomData(size int) []byte {
-	// Make blocks that are not period on 1024 bytes, so we can
-	// catch errors due to misalignments.
-	block := make([]byte, 1023)
-	content := make([]byte, size)
-	for i := range block {
-		block[i] = byte(i)
-	}
-	start := 0
-	for start < len(content) {
-		left := len(content) - start
-		if left < len(block) {
-			block = block[:left]
-		}
-
-		copy(content[start:], block)
-		start += len(block)
-	}
-	return content
-}
-
 func CompareSlices(t *testing.T, got, want []byte) {
 	if len(got) != len(want) {
 		t.Errorf("content length: got %d want %d", len(got), len(want))
@@ -654,7 +638,7 @@ func TestReadLargeMemCheck(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
-	content := RandomData(385 * 1023)
+	content := randomData(385 * 1023)
 	tc.WriteFile(tc.origFile, []byte(content), 0644)
 
 	f, err := os.Open(tc.mountFile)
@@ -689,7 +673,7 @@ func TestReadLarge(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
-	content := RandomData(385 * 1023)
+	content := randomData(385 * 1023)
 	tc.WriteFile(tc.origFile, []byte(content), 0644)
 
 	back, err := ioutil.ReadFile(tc.mountFile)

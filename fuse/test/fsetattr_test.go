@@ -172,7 +172,7 @@ func TestDataReadLarge(t *testing.T) {
 	dir, clean := setupFAttrTest(t, fs)
 	defer clean()
 
-	content := RandomData(385 * 1023)
+	content := randomData(385 * 1023)
 	fn := dir + "/file"
 	err := ioutil.WriteFile(fn, []byte(content), 0644)
 	if err != nil {
