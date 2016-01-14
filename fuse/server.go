@@ -44,11 +44,10 @@ type Server struct {
 	reqPool sync.Pool
 
 	// Pool for raw requests data
-	readPool            sync.Pool
-	reqMu               sync.Mutex
-	reqReaders          int
-	outstandingReadBufs int
-	kernelSettings      InitIn
+	readPool       sync.Pool
+	reqMu          sync.Mutex
+	reqReaders     int
+	kernelSettings InitIn
 
 	singleReader bool
 	canSplice    bool
@@ -232,7 +231,6 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 	}
 	req = ms.reqPool.Get().(*request)
 	dest := ms.readPool.Get().([]byte)
-	ms.outstandingReadBufs++
 	ms.reqReaders++
 	ms.reqMu.Unlock()
 
@@ -258,7 +256,6 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 
 	ms.reqMu.Lock()
 	if !gobbled {
-		ms.outstandingReadBufs--
 		ms.readPool.Put(dest)
 		dest = nil
 	}
@@ -286,7 +283,6 @@ func (ms *Server) returnRequest(req *request) {
 	if req.bufferPoolInputBuf != nil {
 		ms.readPool.Put(req.bufferPoolInputBuf)
 		req.bufferPoolInputBuf = nil
-		ms.outstandingReadBufs--
 	}
 	ms.reqPool.Put(req)
 	ms.reqMu.Unlock()
