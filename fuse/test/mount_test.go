@@ -106,7 +106,6 @@ func TestRecursiveMount(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open failed: %v", err)
 	}
-	t.Log("Attempting unmount, should fail")
 	code = ts.pathFs.Unmount("mnt")
 	if code != fuse.EBUSY {
 		t.Error("expect EBUSY")
@@ -116,7 +115,6 @@ func TestRecursiveMount(t *testing.T) {
 	t.Log("Waiting for kernel to flush file-close to fuse...")
 	time.Sleep(testTtl)
 
-	t.Log("Attempting unmount, should succeed")
 	code = ts.pathFs.Unmount("mnt")
 	if code != fuse.OK {
 		t.Error("umount failed.", code)
@@ -138,13 +136,11 @@ func TestDeletedUnmount(t *testing.T) {
 		t.Fatalf("Create failed: %v", err)
 	}
 
-	t.Log("Removing")
 	err = os.Remove(filepath.Join(submnt, "hello.txt"))
 	if err != nil {
 		t.Fatalf("Remove failed: %v", err)
 	}
 
-	t.Log("Removing")
 	_, err = f.Write([]byte("bla"))
 	if err != nil {
 		t.Fatalf("Write failed: %v", err)

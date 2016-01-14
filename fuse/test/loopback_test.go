@@ -397,7 +397,6 @@ func TestSymlink(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
-	t.Log("testing symlink/readlink.")
 	contents := []byte{1, 2, 3}
 	tc.WriteFile(tc.origFile, []byte(contents), 0700)
 
@@ -457,8 +456,6 @@ func TestDelRename(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
-	t.Log("Testing del+rename.")
-
 	sd := tc.mnt + "/testDelRename"
 	tc.Mkdir(sd, 0755)
 
@@ -485,8 +482,6 @@ func TestDelRename(t *testing.T) {
 func TestOverwriteRename(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
-
-	t.Log("Testing rename overwrite.")
 
 	sd := tc.mnt + "/testOverwriteRename"
 	tc.Mkdir(sd, 0755)
@@ -535,7 +530,6 @@ func TestMknod(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
-	t.Log("Testing mknod.")
 	if errNo := syscall.Mknod(tc.mountFile, syscall.S_IFIFO|0777, 0); errNo != nil {
 		t.Errorf("Mknod %v", errNo)
 	}
