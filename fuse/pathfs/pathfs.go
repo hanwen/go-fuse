@@ -25,8 +25,7 @@ type clientInodePath struct {
 //
 // Lookups (ie. FileSystem.GetAttr) may return a inode number in its
 // return value. The inode number ("clientInode") is used to indicate
-// linked files. The clientInode is never exported back to the kernel;
-// it is only used to maintain a list of all names of an inode.
+// linked files.
 type PathNodeFs struct {
 	debug     bool
 	fs        FileSystem
@@ -264,16 +263,6 @@ func (n *pathInode) updateClientInodes() {
 	}
 }
 
-func (n *pathInode) LockTree() func() {
-	n.pathFs.pathLock.Lock()
-	return func() { n.pathFs.pathLock.Unlock() }
-}
-
-func (n *pathInode) RLockTree() func() {
-	n.pathFs.pathLock.RLock()
-	return func() { n.pathFs.pathLock.RUnlock() }
-}
-
 // GetPath returns the path relative to the mount governing this
 // inode.  It returns nil for mount if the file was deleted or the
 // filesystem unmounted.
@@ -326,7 +315,8 @@ func (n *pathInode) addChild(name string, child *pathInode) {
 	child.Name = name
 
 	if child.clientInode > 0 && n.pathFs.options.ClientInodes {
-		defer n.LockTree()()
+		n.pathFs.pathLock.Lock()
+		defer n.pathFs.pathLock.Unlock()
 		m := n.pathFs.clientInodeMap[child.clientInode]
 		e := &clientInodePath{
 			n, name, child,
@@ -344,7 +334,8 @@ func (n *pathInode) rmChild(name string) *pathInode {
 	ch := childInode.Node().(*pathInode)
 
 	if ch.clientInode > 0 && n.pathFs.options.ClientInodes {
-		defer n.LockTree()()
+		n.pathFs.pathLock.Lock()
+		defer n.pathFs.pathLock.Unlock()
 		m := n.pathFs.clientInodeMap[ch.clientInode]
 
 		idx := -1
@@ -379,7 +370,8 @@ func (n *pathInode) setClientInode(ino uint64) {
 	if ino == n.clientInode || !n.pathFs.options.ClientInodes {
 		return
 	}
-	defer n.LockTree()()
+	n.pathFs.pathLock.Lock()
+	defer n.pathFs.pathLock.Unlock()
 	if n.clientInode != 0 {
 		delete(n.pathFs.clientInodeMap, n.clientInode)
 	}
@@ -397,8 +389,9 @@ func (n *pathInode) OnForget() {
 	if n.clientInode == 0 || !n.pathFs.options.ClientInodes {
 		return
 	}
-	defer n.LockTree()()
+	n.pathFs.pathLock.Lock()
 	delete(n.pathFs.clientInodeMap, n.clientInode)
+	n.pathFs.pathLock.Unlock()
 }
 
 ////////////////////////////////////////////////////////////////
@@ -587,7 +580,7 @@ func (n *pathInode) Lookup(out *fuse.Attr, name string, context *fuse.Context) (
 
 func (n *pathInode) findChild(fi *fuse.Attr, name string, fullPath string) (out *pathInode) {
 	if fi.Ino > 0 {
-		unlock := n.RLockTree()
+		n.pathFs.pathLock.RLock()
 		v := n.pathFs.clientInodeMap[fi.Ino]
 		if len(v) > 0 {
 			out = v[0].node
@@ -596,7 +589,7 @@ func (n *pathInode) findChild(fi *fuse.Attr, name string, fullPath string) (out 
 				log.Println("Found linked inode, but Nlink == 1", fullPath)
 			}
 		}
-		unlock()
+		n.pathFs.pathLock.RUnlock()
 	}
 
 	if out == nil {
