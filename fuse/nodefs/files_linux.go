@@ -27,13 +27,15 @@ func (f *loopbackFile) Utimens(a *time.Time, m *time.Time) fuse.Status {
 	if a == nil {
 		ts[0].Nsec = _UTIME_OMIT
 	} else {
-		ts[0].Sec = a.Unix()
+		ts[0] = syscall.NsecToTimespec(a.UnixNano())
+		ts[0].Nsec = 0
 	}
 
 	if m == nil {
 		ts[1].Nsec = _UTIME_OMIT
 	} else {
-		ts[1].Sec = m.Unix()
+		ts[1] = syscall.NsecToTimespec(a.UnixNano())
+		ts[1].Nsec = 0
 	}
 
 	f.lock.Lock()
