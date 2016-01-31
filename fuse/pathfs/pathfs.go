@@ -605,7 +605,9 @@ func (n *pathInode) findChild(fi *fuse.Attr, name string, fullPath string) (out 
 func (n *pathInode) GetAttr(out *fuse.Attr, file nodefs.File, context *fuse.Context) (code fuse.Status) {
 	var fi *fuse.Attr
 	if file == nil {
-		// called on a deleted files.
+		// Linux currently (tested on v4.4) does not pass a file descriptor for
+		// fstat. To be able to stat a deleted file we have to find ourselves
+		// an open fd.
 		file = n.Inode().AnyFile()
 	}
 
@@ -632,6 +634,15 @@ func (n *pathInode) GetAttr(out *fuse.Attr, file nodefs.File, context *fuse.Cont
 }
 
 func (n *pathInode) Chmod(file nodefs.File, perms uint32, context *fuse.Context) (code fuse.Status) {
+	// Note that Linux currently (Linux 4.4) DOES NOT pass a file descriptor
+	// to FUSE for fchmod. We still check because that may change in the future.
+	if file != nil {
+		code = file.Chmod(perms)
+		if code != fuse.ENOSYS {
+			return code
+		}
+	}
+
 	files := n.Inode().Files(fuse.O_ANYWRITE)
 	for _, f := range files {
 		// TODO - pass context
@@ -648,6 +659,15 @@ func (n *pathInode) Chmod(file nodefs.File, perms uint32, context *fuse.Context)
 }
 
 func (n *pathInode) Chown(file nodefs.File, uid uint32, gid uint32, context *fuse.Context) (code fuse.Status) {
+	// Note that Linux currently (Linux 4.4) DOES NOT pass a file descriptor
+	// to FUSE for fchown. We still check because it may change in the future.
+	if file != nil {
+		code = file.Chown(uid, gid)
+		if code != fuse.ENOSYS {
+			return code
+		}
+	}
+
 	files := n.Inode().Files(fuse.O_ANYWRITE)
 	for _, f := range files {
 		// TODO - pass context
@@ -664,6 +684,15 @@ func (n *pathInode) Chown(file nodefs.File, uid uint32, gid uint32, context *fus
 }
 
 func (n *pathInode) Truncate(file nodefs.File, size uint64, context *fuse.Context) (code fuse.Status) {
+	// A file descriptor was passed in AND the filesystem implements the
+	// operation on the file handle. This the common case for ftruncate.
+	if file != nil {
+		code = file.Truncate(size)
+		if code != fuse.ENOSYS {
+			return code
+		}
+	}
+
 	files := n.Inode().Files(fuse.O_ANYWRITE)
 	for _, f := range files {
 		// TODO - pass context
@@ -679,6 +708,15 @@ func (n *pathInode) Truncate(file nodefs.File, size uint64, context *fuse.Contex
 }
 
 func (n *pathInode) Utimens(file nodefs.File, atime *time.Time, mtime *time.Time, context *fuse.Context) (code fuse.Status) {
+	// Note that Linux currently (Linux 4.4) DOES NOT pass a file descriptor
+	// to FUSE for futimens. We still check because it may change in the future.
+	if file != nil {
+		code = file.Utimens(atime, mtime)
+		if code != fuse.ENOSYS {
+			return code
+		}
+	}
+
 	files := n.Inode().Files(fuse.O_ANYWRITE)
 	for _, f := range files {
 		// TODO - pass context
