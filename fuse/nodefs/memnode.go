@@ -47,16 +47,17 @@ func (fs *memNodeFs) OnUnmount() {
 
 func (fs *memNodeFs) newNode() *memNode {
 	fs.mutex.Lock()
+	id := fs.nextFree
+	fs.nextFree++
+	fs.mutex.Unlock()
 	n := &memNode{
 		Node: NewDefaultNode(),
 		fs:   fs,
-		id:   fs.nextFree,
+		id:   id,
 	}
 	now := time.Now()
 	n.info.SetTimes(&now, &now, &now)
 	n.info.Mode = fuse.S_IFDIR | 0777
-	fs.nextFree++
-	fs.mutex.Unlock()
 	return n
 }
 
