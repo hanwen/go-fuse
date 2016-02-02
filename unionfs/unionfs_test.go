@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -914,7 +913,6 @@ func ProgramVersion(bin string) (major, minor int64, err error) {
 	matches := regexp.MustCompile(".* ([0-9]+)\\.([0-9]+)").FindStringSubmatch(lines[0])
 
 	if matches == nil {
-		log.Println("no output")
 		return 0, 0, fmt.Errorf("no match for %q", lines[0])
 	}
 	major, err = strconv.ParseInt(matches[1], 10, 64)
@@ -957,10 +955,8 @@ func TestUnionFsRmRf(t *testing.T) {
 	if maj < 8 { // assuming GNU coreutils.
 		t.Skipf("Skipping test; GNU rm %d.%d is not POSIX compliant.", maj, min)
 	}
-	command := fmt.Sprintf("%s -f %s/mnt/dir", bin, wd)
-	log.Printf("Command: %s", command)
 	names, _ := Readdirnames(wd + "/mnt/dir")
-	log.Printf("Contents of %s/mnt/dir: %s", wd, strings.Join(names, ", "))
+	t.Logf("Contents of %s/mnt/dir: %s", wd, strings.Join(names, ", "))
 	cmd := exec.Command(bin, "-rf", wd+"/mnt/dir")
 	err = cmd.Run()
 	if err != nil {
@@ -1167,8 +1163,6 @@ func TestUnionFsDisappearing(t *testing.T) {
 	state.SetDebug(VerboseTest())
 	go state.Serve()
 
-	log.Println("TestUnionFsDisappearing2")
-
 	err = ioutil.WriteFile(wd+"/ro/file", []byte("blabla"), 0644)
 	if err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
@@ -1187,13 +1181,11 @@ func TestUnionFsDisappearing(t *testing.T) {
 	if err == nil {
 		t.Fatal("Readdir should have failed")
 	}
-	log.Println("expected readdir failure:", err)
 
 	err = ioutil.WriteFile(wd+"/mnt/file2", []byte("blabla"), 0644)
 	if err == nil {
 		t.Fatal("write should have failed")
 	}
-	log.Println("expected write failure:", err)
 
 	// Restore, and wait for caches to catch up.
 	wrFs.visibleChan <- true

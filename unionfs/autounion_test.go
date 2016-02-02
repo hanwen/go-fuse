@@ -2,7 +2,6 @@ package unionfs
 
 import (
 	"io/ioutil"
-	"log"
 	"os"
 	"testing"
 	"time"
@@ -91,7 +90,6 @@ func TestVersion(t *testing.T) {
 	if len(c) == 0 {
 		t.Fatal("No version found.")
 	}
-	log.Println("Found version:", string(c))
 }
 
 func TestAutoFsSymlink(t *testing.T) {
