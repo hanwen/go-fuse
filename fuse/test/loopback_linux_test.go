@@ -27,8 +27,11 @@ func TestTouch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Lstat failed: %v", err)
 	}
-	if stat.Atim.Sec != 42 || stat.Mtim.Sec != 43 {
-		t.Errorf("Got wrong timestamps %v", stat)
+	if stat.Atim.Sec != 42 {
+		t.Errorf("Got atime.sec %d, want 42. Stat_t was %#v", stat.Atim.Sec, stat)
+	}
+	if stat.Mtim.Sec != 43 {
+		t.Errorf("Got mtime.sec %d, want 43. Stat_t was %#v", stat.Mtim.Sec, stat)
 	}
 }
 
