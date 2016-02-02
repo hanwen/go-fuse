@@ -192,7 +192,11 @@ func TestFSetAttr(t *testing.T) {
 	}
 	fs := pathfs.NewLockingFileSystem(fSetAttrFs)
 	dir, clean := setupFAttrTest(t, fs)
-	defer clean()
+	defer func() {
+		if clean != nil {
+			clean()
+		}
+	}()
 
 	fn := dir + "/file"
 	f, err := os.OpenFile(fn, os.O_CREATE|os.O_WRONLY, 0755)
@@ -257,6 +261,9 @@ func TestFSetAttr(t *testing.T) {
 		t.Error("Fsync failed:", os.NewSyscallError("Fsync", code))
 	}
 
+	// Shutdown the FUSE FS so we can safely look at fSetAttrFs
+	clean()
+	clean = nil
 	if !fSetAttrFs.file.FsyncCalled {
 		t.Error("Fsync was not called")
 	}
