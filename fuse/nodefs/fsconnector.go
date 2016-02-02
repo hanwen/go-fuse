@@ -252,12 +252,22 @@ func (c *FileSystemConnector) mountRoot(opts *Options) {
 // It returns ENOENT if the directory containing the mount point does
 // not exist, and EBUSY if the intended mount point already exists.
 func (c *FileSystemConnector) Mount(parent *Inode, name string, root Node, opts *Options) fuse.Status {
+	node, code := c.lockMount(parent, name, root, opts)
+	if !code.Ok() {
+		return code
+	}
+
+	node.Node().OnMount(c)
+	return code
+}
+
+func (c *FileSystemConnector) lockMount(parent *Inode, name string, root Node, opts *Options) (*Inode, fuse.Status) {
 	defer c.verify()
 	parent.mount.treeLock.Lock()
 	defer parent.mount.treeLock.Unlock()
 	node := parent.children[name]
 	if node != nil {
-		return fuse.EBUSY
+		return nil, fuse.EBUSY
 	}
 
 	node = newInode(true, root)
@@ -274,8 +284,7 @@ func (c *FileSystemConnector) Mount(parent *Inode, name string, root Node, opts 
 		log.Printf("Mount %T on subdir %s, parent %d", node,
 			name, c.inodeMap.Handle(&parent.handled))
 	}
-	node.Node().OnMount(c)
-	return fuse.OK
+	return node, fuse.OK
 }
 
 // Unmount() tries to unmount the given inode.  It returns EINVAL if the
