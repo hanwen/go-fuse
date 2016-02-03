@@ -34,7 +34,7 @@ func (d *connectorDir) ReadDir(input *fuse.ReadIn, out *fuse.DirEntryList) (code
 	todo := d.stream[input.Offset:]
 	for _, e := range todo {
 		if e.Name == "" {
-			log.Printf("got emtpy directory entry, mode %o.", e.Mode)
+			log.Printf("got empty directory entry, mode %o.", e.Mode)
 			continue
 		}
 		ok, off := out.AddDirEntry(e)
