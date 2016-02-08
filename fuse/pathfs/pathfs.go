@@ -339,6 +339,7 @@ func (n *pathInode) rmChild(name string) *pathInode {
 		m := n.pathFs.clientInodeMap[ch.clientInode]
 
 		idx := -1
+		// Find the entry that has us as the parent
 		for i, v := range m {
 			if v.parent == n && v.name == name {
 				idx = i
@@ -346,10 +347,14 @@ func (n *pathInode) rmChild(name string) *pathInode {
 			}
 		}
 		if idx >= 0 {
+			// Delete the "idx" entry from the middle of the slice by moving the
+			// last element over it and truncating the slice
 			m[idx] = m[len(m)-1]
 			m = m[:len(m)-1]
+			n.pathFs.clientInodeMap[ch.clientInode] = m
 		}
 		if len(m) > 0 {
+			// Reparent to a random remaining entry
 			ch.Parent = m[0].parent
 			ch.Name = m[0].name
 			return ch
