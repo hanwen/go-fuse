@@ -51,6 +51,7 @@ const (
 	_OP_BATCH_FORGET = int32(42)
 	_OP_FALLOCATE    = int32(43) // protocol version 19.
 	_OP_READDIRPLUS  = int32(44) // protocol version 21.
+	_OP_FUSE_RENAME2 = int32(45) // protocol version 23.
 
 	// The following entries don't have to be compatible across Go-FUSE versions.
 	_OP_NOTIFY_ENTRY  = int32(100)
@@ -96,6 +97,14 @@ func doInit(server *Server, req *request) {
 	}
 	if out.Minor > input.Minor {
 		out.Minor = input.Minor
+	}
+
+	if out.Minor <= 22 {
+		tweaked := *req.handler
+
+		// v8-v22 don't have TimeGran and further fields.
+		tweaked.OutputSize = 24
+		req.handler = &tweaked
 	}
 
 	req.outData = unsafe.Pointer(out)

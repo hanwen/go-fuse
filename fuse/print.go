@@ -24,21 +24,24 @@ func init() {
 		READ_LOCKOWNER: "LOCKOWNER",
 	}
 	initFlagNames = map[int64]string{
-		CAP_ASYNC_READ:       "ASYNC_READ",
-		CAP_POSIX_LOCKS:      "POSIX_LOCKS",
-		CAP_FILE_OPS:         "FILE_OPS",
-		CAP_ATOMIC_O_TRUNC:   "ATOMIC_O_TRUNC",
-		CAP_EXPORT_SUPPORT:   "EXPORT_SUPPORT",
-		CAP_BIG_WRITES:       "BIG_WRITES",
-		CAP_DONT_MASK:        "DONT_MASK",
-		CAP_SPLICE_WRITE:     "SPLICE_WRITE",
-		CAP_SPLICE_MOVE:      "SPLICE_MOVE",
-		CAP_SPLICE_READ:      "SPLICE_READ",
-		CAP_FLOCK_LOCKS:      "FLOCK_LOCKS",
-		CAP_IOCTL_DIR:        "IOCTL_DIR",
-		CAP_AUTO_INVAL_DATA:  "AUTO_INVAL_DATA",
-		CAP_READDIRPLUS:      "READDIRPLUS",
-		CAP_READDIRPLUS_AUTO: "READDIRPLUS_AUTO",
+		CAP_ASYNC_READ:           "ASYNC_READ",
+		CAP_POSIX_LOCKS:          "POSIX_LOCKS",
+		CAP_FILE_OPS:             "FILE_OPS",
+		CAP_ATOMIC_O_TRUNC:       "ATOMIC_O_TRUNC",
+		CAP_EXPORT_SUPPORT:       "EXPORT_SUPPORT",
+		CAP_BIG_WRITES:           "BIG_WRITES",
+		CAP_DONT_MASK:            "DONT_MASK",
+		CAP_SPLICE_WRITE:         "SPLICE_WRITE",
+		CAP_SPLICE_MOVE:          "SPLICE_MOVE",
+		CAP_SPLICE_READ:          "SPLICE_READ",
+		CAP_FLOCK_LOCKS:          "FLOCK_LOCKS",
+		CAP_IOCTL_DIR:            "IOCTL_DIR",
+		CAP_AUTO_INVAL_DATA:      "AUTO_INVAL_DATA",
+		CAP_READDIRPLUS:          "READDIRPLUS",
+		CAP_READDIRPLUS_AUTO:     "READDIRPLUS_AUTO",
+		CAP_FUSE_ASYNC_DIO:       "ASYNC_DIO",
+		CAP_FUSE_WRITEBACK_CACHE: "WRITEBACK_CACHE",
+		CAP_FUSE_NO_OPEN_SUPPORT: "NO_OPEN_SUPPORT",
 	}
 	releaseFlagNames = map[int64]string{
 		RELEASE_FLUSH: "FLUSH",
@@ -155,10 +158,11 @@ func (me *InitIn) string() string {
 }
 
 func (me *InitOut) string() string {
-	return fmt.Sprintf("{%d.%d Ra 0x%x %s %d/%d Wr 0x%x}",
+	return fmt.Sprintf("{%d.%d Ra 0x%x %s %d/%d Wr 0x%x Tg 0x%x}",
 		me.Major, me.Minor, me.MaxReadAhead,
 		FlagString(initFlagNames, int64(me.Flags), ""),
-		me.CongestionThreshold, me.MaxBackground, me.MaxWrite)
+		me.CongestionThreshold, me.MaxBackground, me.MaxWrite,
+		me.TimeGran)
 }
 
 func (s *FsyncIn) string() string {
