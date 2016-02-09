@@ -41,17 +41,16 @@ func TestNodeRead(t *testing.T) {
 		t.Fatalf("TempDir: %v", err)
 	}
 
-	root := newNodeReadNode([]byte("root"))
+	root := newNodeReadNode(nil)
 	s, _, err := MountRoot(dir, root, nil)
 	if err != nil {
 		t.Fatalf("MountRoot: %v", err)
 	}
-	s.SetDebug(true)
-	go s.Serve()
 	defer s.Unmount()
+	go s.Serve()
 	content, err := ioutil.ReadFile(dir + "/file")
 	if err != nil {
-		t.Fatalf("MountRoot: %v", err)
+		t.Fatalf("ReadFile: %v", err)
 	}
 	want := "file"
 	if string(content) != want {
