@@ -21,11 +21,14 @@ func main() {
 	// Scans the arg list and sets up flags
 	debug := flag.Bool("debug", false, "print debugging messages.")
 	other := flag.Bool("allow-other", false, "mount with -o allowother.")
+	enableLinks := flag.Bool("l", false, "Enable hard link support")
 	cpuprofile := flag.String("cpuprofile", "", "write cpu profile to this file")
 	memprofile := flag.String("memprofile", "", "write memory profile to this file")
 	flag.Parse()
 	if flag.NArg() < 2 {
 		fmt.Printf("usage: %s MOUNTPOINT ORIGINAL\n", path.Base(os.Args[0]))
+		fmt.Printf("\noptions:\n")
+		flag.PrintDefaults()
 		os.Exit(2)
 	}
 	if *cpuprofile != "" {
@@ -67,7 +70,9 @@ func main() {
 		AttrTimeout:     time.Second,
 		EntryTimeout:    time.Second,
 	}
-	pathFs := pathfs.NewPathNodeFs(finalFs, nil)
+	// Enable ClientInodes so hard links work
+	pathFsOpts := &pathfs.PathNodeFsOptions{ClientInodes: *enableLinks}
+	pathFs := pathfs.NewPathNodeFs(finalFs, pathFsOpts)
 	conn := nodefs.NewFileSystemConnector(pathFs.Root(), opts)
 	mountPoint := flag.Arg(0)
 	origAbs, _ := filepath.Abs(orig)
