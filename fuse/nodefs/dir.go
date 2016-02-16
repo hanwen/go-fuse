@@ -2,18 +2,30 @@ package nodefs
 
 import (
 	"log"
+	"sync"
 
 	"github.com/hanwen/go-fuse/fuse"
 )
 
 type connectorDir struct {
-	node       Node
-	stream     []fuse.DirEntry
+	node  Node
+	rawFS fuse.RawFileSystem
+
+	// Protect stream and lastOffset.  These are written in case
+	// there is a seek on the directory.
+	mu     sync.Mutex
+	stream []fuse.DirEntry
+
+	// lastOffset stores the last offset for a readdir. This lets
+	// readdir pick up changes to the directory made after opening
+	// it.
 	lastOffset uint64
-	rawFS      fuse.RawFileSystem
 }
 
 func (d *connectorDir) ReadDir(input *fuse.ReadIn, out *fuse.DirEntryList) (code fuse.Status) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	if d.stream == nil {
 		return fuse.OK
 	}
@@ -47,6 +59,9 @@ func (d *connectorDir) ReadDir(input *fuse.ReadIn, out *fuse.DirEntryList) (code
 }
 
 func (d *connectorDir) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) (code fuse.Status) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	if d.stream == nil {
 		return fuse.OK
 	}
