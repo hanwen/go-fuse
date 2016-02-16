@@ -137,7 +137,7 @@ func (fs *unionFS) isDeleted(name string) (deleted bool, code fuse.Status) {
 		return false, fuse.OK
 	}
 
-	log.Println("error accessing deletion marker:", marker)
+	log.Printf("error accessing deletion marker %s: %v", marker, code)
 	return false, fuse.Status(syscall.EROFS)
 }
 
