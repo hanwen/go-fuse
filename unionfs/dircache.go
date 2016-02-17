@@ -1,7 +1,6 @@
 package unionfs
 
 import (
-	"log"
 	"sync"
 	"time"
 
@@ -20,7 +19,6 @@ func newDirnameMap(fs pathfs.FileSystem, dir string) map[string]bool {
 	}
 
 	if !code.Ok() {
-		log.Printf("newDirnameMap(%v): %v %v", fs, dir, code)
 		return nil
 	}
 
