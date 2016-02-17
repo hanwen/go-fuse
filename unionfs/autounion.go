@@ -215,7 +215,6 @@ func (fs *autoUnionFs) visit(path string, fi os.FileInfo, err error) error {
 }
 
 func (fs *autoUnionFs) updateKnownFses() {
-	log.Println("Looking for new filesystems")
 	// We unroll the first level of entries in the root manually in order
 	// to allow symbolic links on that level.
 	directoryEntries, err := ioutil.ReadDir(fs.root)
@@ -232,7 +231,6 @@ func (fs *autoUnionFs) updateKnownFses() {
 			}
 		}
 	}
-	log.Println("Done looking")
 }
 
 func (fs *autoUnionFs) Readlink(path string, context *fuse.Context) (out string, code fuse.Status) {
