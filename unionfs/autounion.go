@@ -182,7 +182,6 @@ func (fs *autoUnionFs) rmFs(name string) (code fuse.Status) {
 
 func (fs *autoUnionFs) addFs(name string, roots []string) (code fuse.Status) {
 	if name == _CONFIG || name == _STATUS || name == _SCAN_CONFIG {
-		log.Printf("Illegal name %q for overlay: %v", name, roots)
 		return fuse.EINVAL
 	}
 	return fs.createFs(name, roots)
