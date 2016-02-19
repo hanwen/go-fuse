@@ -59,6 +59,11 @@ func TestNoOpen(t *testing.T) {
 	s.SetDebug(VerboseTest())
 	defer s.Unmount()
 	go s.Serve()
+
+	if s.KernelSettings().Minor < 23 {
+		t.Skip("Kernel does not support open-less read/writes. Skipping test.")
+	}
+
 	content, err := ioutil.ReadFile(dir + "/file")
 	if err != nil {
 		t.Fatalf("ReadFile: %v", err)
