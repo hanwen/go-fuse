@@ -251,7 +251,10 @@ func doBatchForget(server *Server, req *request) {
 	}
 
 	forgets := *(*[]_ForgetOne)(unsafe.Pointer(h))
-	for _, f := range forgets {
+	for i, f := range forgets {
+		if server.debug {
+			log.Printf("doBatchForget: forgetting %d of %d: NodeId: %d, Nlookup: %d", i+1, len(forgets), f.NodeId, f.Nlookup)
+		}
 		server.fileSystem.Forget(f.NodeId, f.Nlookup)
 	}
 }
