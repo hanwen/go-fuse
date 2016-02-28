@@ -571,6 +571,7 @@ func (n *pathInode) Create(name string, flags uint32, mode uint32, context *fuse
 	return file, child, code
 }
 
+// createChild - create pathInode object and add it as a child to Inode()
 func (n *pathInode) createChild(name string, isDir bool) *pathInode {
 	i := new(pathInode)
 	i.fs = n.fs
@@ -621,8 +622,10 @@ func (n *pathInode) findChild(fi *fuse.Attr, name string, fullPath string) (out 
 	}
 
 	if out == nil {
-		out = n.createChild(name, fi.IsDir())
+		out = n.createChild(name, fi.IsDir()) // This also calls Inode().AddChild
 		out.clientInode = fi.Ino
+	} else {
+		n.Inode().AddChild(name, out.Inode())
 	}
 	n.addChild(name, out)
 
