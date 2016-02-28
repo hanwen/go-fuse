@@ -311,6 +311,8 @@ func (n *pathInode) GetPath() string {
 	return path
 }
 
+// addChild - set ourselves as the parent of the child and add it to
+// clientInodeMap
 func (n *pathInode) addChild(name string, child *pathInode) {
 	child.Parent = n
 	child.Name = name
@@ -354,8 +356,10 @@ func (n *pathInode) rmChild(name string) *pathInode {
 			m[idx] = m[len(m)-1]
 			m = m[:len(m)-1]
 			n.pathFs.clientInodeMap[ch.clientInode] = m
-		} else {
-			log.Printf("rmChild: nothing found in clientInodeMap: name=%s, ino=%d", name, ch.clientInode)
+		} else if !childInode.IsDir() {
+			// Directories cannot have hard links, and Mkdir does not add
+			// the directory to clientInodeMap. No need to warn in this case.
+			log.Printf("rmChild: not found in clientInodeMap: name=%s, ino=%d", name, ch.clientInode)
 		}
 		if len(m) > 0 {
 			// Reparent to a random remaining entry
@@ -467,6 +471,8 @@ func (n *pathInode) Mkdir(name string, mode uint32, context *fuse.Context) (*nod
 		pNode := n.createChild(name, true)
 		child = pNode.Inode()
 		n.addChild(name, pNode)
+		// Note: directories cannot have hard links, so there is no need to get
+		// the inode number.
 	}
 	return child, code
 }
