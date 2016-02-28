@@ -583,7 +583,9 @@ func (n *pathInode) Lookup(out *fuse.Attr, name string, context *fuse.Context) (
 	return node, code
 }
 
+// findChild - find or create a pathInode and add it as a child.
 func (n *pathInode) findChild(fi *fuse.Attr, name string, fullPath string) (out *pathInode) {
+	// Due to hard links, we may already know this inode
 	if fi.Ino > 0 {
 		n.pathFs.pathLock.RLock()
 		v := n.pathFs.clientInodeMap[fi.Ino]
@@ -591,6 +593,8 @@ func (n *pathInode) findChild(fi *fuse.Attr, name string, fullPath string) (out 
 			out = v[0].node
 
 			if fi.Nlink == 1 {
+				// We know about other hard link(s), but the filesystem tells
+				// us there is only one!?
 				log.Println("Found linked inode, but Nlink == 1", fullPath)
 			}
 		}
@@ -600,10 +604,9 @@ func (n *pathInode) findChild(fi *fuse.Attr, name string, fullPath string) (out 
 	if out == nil {
 		out = n.createChild(name, fi.IsDir())
 		out.clientInode = fi.Ino
-		n.addChild(name, out)
-	} else {
-		// should add 'out' as a child to n ?
 	}
+	n.addChild(name, out)
+
 	return out
 }
 
