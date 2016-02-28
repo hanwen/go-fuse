@@ -128,7 +128,20 @@ func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
 	if forgotten, handled := c.inodeMap.Forget(nodeID, forgetCount); forgotten {
 		node := (*Inode)(unsafe.Pointer(handled))
 		node.mount.treeLock.Lock()
-		c.recursiveConsiderDropInode(node)
+		dropSuccess := c.recursiveConsiderDropInode(node)
+		if dropSuccess {
+			// Drop Inode from all parents
+			// We have to create a new slice first because rmChild modifies n.parents
+			nParents := []*Inode{}
+			nParents = append(nParents, node.parents...)
+			for _, p := range(nParents) {
+				ch := p.rmChildByRef(node)
+				if ch != nil {
+					// ch may be nil if the child was unlinked
+					ch.fsInode.OnForget()
+				}
+			}
+		}
 		node.mount.treeLock.Unlock()
 	}
 	// TODO - try to drop children even forget was not successful.
@@ -140,6 +153,7 @@ func (c *FileSystemConnector) InodeHandleCount() int {
 	return c.inodeMap.Count()
 }
 
+// recursiveConsiderDropInode - forget this Inode and all children
 // Must hold treeLock.
 func (c *FileSystemConnector) recursiveConsiderDropInode(n *Inode) (drop bool) {
 	delChildren := []string{}
