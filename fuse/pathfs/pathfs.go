@@ -286,6 +286,7 @@ func (n *pathInode) GetPath() string {
 
 	if p != p.pathFs.root {
 		n.pathFs.pathLock.RUnlock()
+		log.Printf("GetPath: hit deleted parent: n.Name=%s, p.Name=%s, p.IsDir=%v", n.Name, p.Name, p.Inode().IsDir())
 		return ".deleted"
 	}
 
@@ -326,6 +327,7 @@ func (n *pathInode) addChild(name string, child *pathInode) {
 	}
 }
 
+// rmChild - remove child "name"
 func (n *pathInode) rmChild(name string) *pathInode {
 	childInode := n.Inode().RmChild(name)
 	if childInode == nil {
@@ -352,6 +354,8 @@ func (n *pathInode) rmChild(name string) *pathInode {
 			m[idx] = m[len(m)-1]
 			m = m[:len(m)-1]
 			n.pathFs.clientInodeMap[ch.clientInode] = m
+		} else {
+			log.Printf("rmChild: nothing found in clientInodeMap: name=%s, ino=%d", name, ch.clientInode)
 		}
 		if len(m) > 0 {
 			// Reparent to a random remaining entry
@@ -546,6 +550,15 @@ func (n *pathInode) Create(name string, flags uint32, mode uint32, context *fuse
 	file, code := n.fs.Create(fullPath, flags, mode, context)
 	if code.Ok() {
 		pNode := n.createChild(name, false)
+		if n.pathFs.options.ClientInodes {
+			var a *fuse.Attr
+			a, code2 := n.fs.GetAttr(fullPath, context)
+			if code2.Ok() {
+				pNode.clientInode = a.Ino
+			} else {
+				log.Printf("Create: GetAttr on %s failed: %v", name, code2)
+			}
+		}
 		child = pNode.Inode()
 		n.addChild(name, pNode)
 	}
