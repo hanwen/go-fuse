@@ -10,14 +10,18 @@ import (
 //
 // The 32 bits version of this is a threadsafe wrapper around a map.
 //
-// To use it, include Handled as first member of the structure
+// To use it, include "handled" as first member of the structure
 // you wish to export.
 //
 // This structure is thread-safe.
 type handleMap interface {
 	Register(obj *handled) (handle, generation uint64)
 	Count() int
+	// Decode - retrieve object from its 64-bit handle
 	Decode(uint64) *handled
+	// Forget - decrement reference counter for "handle" by "count" and drop
+	// the object if the refcount reaches zero.
+	// Returns a boolean whether the object was dropped and the object itself.
 	Forget(handle uint64, count int) (bool, *handled)
 	Handle(obj *handled) uint64
 	Has(uint64) bool
