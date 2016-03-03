@@ -12,13 +12,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 )
 
-// A parent pointer: node should be reachable as parent.children[name]
-type clientInodePath struct {
-	parent *pathInode
-	name   string
-	node   *pathInode
-}
-
 // PathNodeFs is the file system that can translate an inode back to a
 // path.  The path name is then used to call into an object that has
 // the FileSystem interface.
@@ -32,12 +25,12 @@ type PathNodeFs struct {
 	root      *pathInode
 	connector *nodefs.FileSystemConnector
 
-	// protects clientInodeMap and pathInode.Parent pointers
+	// protects pathInode.Parent pointers
 	pathLock sync.RWMutex
 
 	// This map lists all the parent links known for a given
 	// nodeId.
-	clientInodeMap map[uint64][]*clientInodePath
+	clientInodeMap clientInodeContainer
 
 	options *PathNodeFsOptions
 }
@@ -68,7 +61,7 @@ func (fs *PathNodeFs) ForgetClientInodes() {
 		return
 	}
 	fs.pathLock.Lock()
-	fs.clientInodeMap = map[uint64][]*clientInodePath{}
+	fs.clientInodeMap = NewClientInodeContainer()
 	fs.root.forgetClientInodes()
 	fs.pathLock.Unlock()
 }
@@ -198,7 +191,7 @@ func NewPathNodeFs(fs FileSystem, opts *PathNodeFsOptions) *PathNodeFs {
 	pfs := &PathNodeFs{
 		fs:             fs,
 		root:           root,
-		clientInodeMap: map[uint64][]*clientInodePath{},
+		clientInodeMap: NewClientInodeContainer(),
 		options:        opts,
 	}
 	root.pathFs = pfs
@@ -316,94 +309,41 @@ func (n *pathInode) GetPath() string {
 func (n *pathInode) addChild(name string, child *pathInode) {
 	child.Parent = n
 	child.Name = name
-
-	if child.clientInode > 0 && n.pathFs.options.ClientInodes {
-		n.pathFs.pathLock.Lock()
-		defer n.pathFs.pathLock.Unlock()
-		m := n.pathFs.clientInodeMap[child.clientInode]
-		e := &clientInodePath{
-			n, name, child,
-		}
-		m = append(m, e)
-		n.pathFs.clientInodeMap[child.clientInode] = m
+	if !child.Inode().IsDir() {
+		n.pathFs.clientInodeMap.add(child.clientInode, child, name, n)
 	}
 }
 
 // rmChild - remove child "name"
 func (n *pathInode) rmChild(name string) *pathInode {
 	childInode := n.Inode().RmChild(name)
+	fmt.Printf("n.Inode().RmChild(%s)\n", name)
 	if childInode == nil {
+		fmt.Printf("rmChild: Inode().RmChild(%s) returned nil\n", name)
 		return nil
 	}
 	ch := childInode.Node().(*pathInode)
 
-	if ch.clientInode > 0 && n.pathFs.options.ClientInodes {
-		n.pathFs.pathLock.Lock()
-		defer n.pathFs.pathLock.Unlock()
-		m := n.pathFs.clientInodeMap[ch.clientInode]
-
-		idx := -1
-		// Find the entry that has us as the parent
-		for i, v := range m {
-			if v.parent == n && v.name == name {
-				idx = i
-				break
-			}
-		}
-		if idx >= 0 {
-			// Delete the "idx" entry from the middle of the slice by moving the
-			// last element over it and truncating the slice
-			m[idx] = m[len(m)-1]
-			m = m[:len(m)-1]
-			n.pathFs.clientInodeMap[ch.clientInode] = m
-		} else if !childInode.IsDir() {
-			// Directories cannot have hard links, and Mkdir does not add
-			// the directory to clientInodeMap. No need to warn in this case.
-			log.Printf("rmChild: not found in clientInodeMap: name=%s, ino=%d", name, ch.clientInode)
-		}
-		if len(m) > 0 {
-			// Reparent to a random remaining entry
-			ch.Parent = m[0].parent
-			ch.Name = m[0].name
-			return ch
-		} else {
-			delete(n.pathFs.clientInodeMap, ch.clientInode)
-		}
+	// Is this the last hard link to this inode?
+	// Directories cannot have hard links, to this is always true for directories.
+	last := true
+	if !ch.Inode().IsDir() {
+		last = n.pathFs.clientInodeMap.rm(ch.clientInode, ch, name, n)
 	}
-
-	ch.Name = ".deleted"
-	ch.Parent = nil
+	if last {
+		// Mark the node as deleted as well. This is not strictly neccessary
+		// but helps in debugging.
+		ch.Name = ".deleted." + name
+		ch.Parent = nil
+		fmt.Printf("deleted entry %s\n", name)
+	}
 
 	return ch
 }
 
-// Handle a change in clientInode number for an other wise unchanged
-// pathInode.
-func (n *pathInode) setClientInode(ino uint64) {
-	if ino == n.clientInode || !n.pathFs.options.ClientInodes {
-		return
-	}
-	n.pathFs.pathLock.Lock()
-	defer n.pathFs.pathLock.Unlock()
-	if n.clientInode != 0 {
-		delete(n.pathFs.clientInodeMap, n.clientInode)
-	}
-
-	n.clientInode = ino
-	if n.Parent != nil {
-		e := &clientInodePath{
-			n.Parent, n.Name, n,
-		}
-		n.pathFs.clientInodeMap[ino] = append(n.pathFs.clientInodeMap[ino], e)
-	}
-}
-
 func (n *pathInode) OnForget() {
-	if n.clientInode == 0 || !n.pathFs.options.ClientInodes {
-		return
-	}
 	n.pathFs.pathLock.Lock()
-	delete(n.pathFs.clientInodeMap, n.clientInode)
+	n.pathFs.clientInodeMap.drop(n.clientInode)
 	n.pathFs.pathLock.Unlock()
 }
 
@@ -471,8 +411,6 @@ func (n *pathInode) Mkdir(name string, mode uint32, context *fuse.Context) (*nod
 		pNode := n.createChild(name, true)
 		child = pNode.Inode()
 		n.addChild(name, pNode)
-		// Note: directories cannot have hard links, so there is no need to get
-		// the inode number.
 	}
 	return child, code
 }
@@ -608,9 +546,9 @@ func (n *pathInode) findChild(fi *fuse.Attr, name string, fullPath string) (out 
 	// Due to hard links, we may already know this inode
 	if fi.Ino > 0 {
 		n.pathFs.pathLock.RLock()
-		v := n.pathFs.clientInodeMap[fi.Ino]
-		if len(v) > 0 {
-			out = v[0].node
+		v := n.pathFs.clientInodeMap.get(fi.Ino)
+		if v != nil {
+			out = v.node
 
 			if fi.Nlink == 1 {
 				// We know about other hard link(s), but the filesystem tells
@@ -649,8 +587,8 @@ func (n *pathInode) GetAttr(out *fuse.Attr, file nodefs.File, context *fuse.Cont
 		fi, code = n.fs.GetAttr(n.GetPath(), context)
 	}
 
-	if fi != nil {
-		n.setClientInode(fi.Ino)
+	if fi != nil && !fi.IsDir() {
+		n.pathFs.clientInodeMap.verify(fi.Ino, n)
 	}
 
 	if fi != nil && !fi.IsDir() && fi.Nlink == 0 {
