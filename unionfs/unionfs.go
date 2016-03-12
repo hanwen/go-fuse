@@ -661,12 +661,10 @@ func (fs *unionFS) Create(name string, flags uint32, mode uint32, context *fuse.
 		fuseFile = fs.newUnionFsFile(fuseFile, 0)
 		fs.removeDeletion(name)
 
-		now := time.Now()
-		a := fuse.Attr{
-			Mode: fuse.S_IFREG | mode,
+		a, code := writable.GetAttr(name, context)
+		if code.Ok() {
+			fs.branchCache.Set(name, branchResult{a, fuse.OK, 0})
 		}
-		a.SetTimes(nil, &now, &now)
-		fs.branchCache.Set(name, branchResult{&a, fuse.OK, 0})
 	}
 	return fuseFile, code
 }
