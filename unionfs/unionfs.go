@@ -193,7 +193,7 @@ func (fs *unionFS) getBranchAttrNoCache(name string) branchResult {
 		if s.Ok() {
 			if i > 0 {
 				// Needed to make hardlinks work.
-				a.Ino = 0
+				a.Ino = pathfs.InoIgnore
 			}
 			return branchResult{
 				attr:   a,

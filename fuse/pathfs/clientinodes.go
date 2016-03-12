@@ -7,6 +7,11 @@ import (
 	"sync"
 )
 
+// This magic inode number (all ones) signals to us that any operation should
+// pass as a no-op.
+// This is used by unionfs.
+const InoIgnore = ^uint64(0)
+
 // An inode can have many paths (hard links!). This structure represents one
 // hard link, characterised by parent directory and name.
 type clientInodePath struct {
@@ -41,8 +46,12 @@ func (c *clientInodeContainer) get(ino uint64) *clientInodeEntry {
 
 // Add path to inode
 func (c *clientInodeContainer) add(ino uint64, node *pathInode, name string, parent *pathInode) {
-	if !node.pathFs.options.ClientInodes {
+	if !node.pathFs.options.ClientInodes || ino == InoIgnore {
 		return
+	}
+
+	if ino == 0 {
+		log.Panicf("clientinodes bug: ino=0, name=%s", name)
 	}
 
 	c.lock.Lock()
@@ -70,7 +79,7 @@ func (c *clientInodeContainer) add(ino uint64, node *pathInode, name string, par
 
 // Remove path from inode. Drops the inode entry if this is the last path.
 func (c *clientInodeContainer) rm(ino uint64, node *pathInode, name string, parent *pathInode) bool {
-	if !node.pathFs.options.ClientInodes {
+	if !node.pathFs.options.ClientInodes || ino == InoIgnore {
 		return true
 	}
 
@@ -128,7 +137,7 @@ func (c *clientInodeContainer) drop(ino uint64) {
 
 // Verify that we have "node" stored for "ino". Panic if not.
 func (c *clientInodeContainer) verify(ino uint64, node *pathInode) {
-	if !node.pathFs.options.ClientInodes {
+	if !node.pathFs.options.ClientInodes || ino == InoIgnore {
 		return
 	}
 
