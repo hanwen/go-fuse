@@ -5,6 +5,7 @@ package nodefs
 // are in fsops.go
 
 import (
+	"sync"
 	"log"
 	"path/filepath"
 	"strings"
@@ -31,6 +32,9 @@ type FileSystemConnector struct {
 
 	// The root of the FUSE file system.
 	rootNode *Inode
+
+	// Protects internalLookup() against concurrent forgetUpdate()
+	forgetLock sync.Mutex
 }
 
 // NewOptions generates FUSE options that correspond to libfuse's
@@ -117,6 +121,9 @@ func (c *FileSystemConnector) registerNode(node *Inode) (id, generation uint64) 
 // forgetUpdate - decrement reference counter for "nodeID" by "forgetCount".
 // Must run outside treeLock.
 func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
+	c.forgetLock.Lock()
+	defer c.forgetLock.Unlock()
+
 	if nodeID == fuse.FUSE_ROOT_ID {
 		c.rootNode.Node().OnUnmount()
 
