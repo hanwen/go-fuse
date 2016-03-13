@@ -494,20 +494,32 @@ func (n *pathInode) Create(name string, flags uint32, mode uint32, context *fuse
 	file, code := n.fs.Create(fullPath, flags, mode, context)
 	if code.Ok() {
 		pNode := n.createChild(name, false)
-		if n.pathFs.options.ClientInodes {
-			var a *fuse.Attr
-			a, code2 := n.fs.GetAttr(fullPath, context)
-			if code2.Ok() {
-				pNode.clientInode = a.Ino
-			} else {
-				log.Printf("Create: GetAttr on %s failed: %v", name, code2)
-			}
-		}
+		pNode.clientInode = n.getIno(fullPath, context)
 		child = pNode.Inode()
 		n.addChild(name, pNode)
 	}
 	return file, child, code
 }
+
+// getIno - retrieve the inode number of "fullPath"
+// If ClientInodes are not enabled, this is a no-op that returns 0.
+func (n *pathInode) getIno(fullPath string, context *fuse.Context) uint64 {
+	if !n.pathFs.options.ClientInodes {
+		return 0
+	}
+	var a *fuse.Attr
+	a, code := n.fs.GetAttr(fullPath, context)
+	if code.Ok() {
+		if a.Ino == 0 {
+			log.Panicf("getIno: GetAttr on %s returned ino=0, a=%v", fullPath, a)
+		}
+		return a.Ino
+	} else {
+		log.Printf("getIno: GetAttr on %s failed: %v", fullPath, code)
+		return 0
+	}
+}
+
 
 // createChild - create pathInode object and add it as a child to Inode()
 func (n *pathInode) createChild(name string, isDir bool) *pathInode {
