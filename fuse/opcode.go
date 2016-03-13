@@ -229,12 +229,14 @@ func doGetAttr(server *Server, req *request) {
 	req.status = s
 }
 
+// doForget - forget one NodeId
 func doForget(server *Server, req *request) {
 	if !server.opts.RememberInodes {
 		server.fileSystem.Forget(req.inHeader.NodeId, (*ForgetIn)(req.inData).Nlookup)
 	}
 }
 
+// doBatchForget - forget a list of NodeIds
 func doBatchForget(server *Server, req *request) {
 	in := (*_BatchForgetIn)(req.inData)
 	wantBytes := uintptr(in.Count) * unsafe.Sizeof(_ForgetOne{})

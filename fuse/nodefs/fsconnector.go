@@ -128,20 +128,19 @@ func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
 	if forgotten, handled := c.inodeMap.Forget(nodeID, forgetCount); forgotten {
 		node := (*Inode)(unsafe.Pointer(handled))
 		node.mount.treeLock.Lock()
-		dropSuccess := c.recursiveConsiderDropInode(node)
-		if dropSuccess {
-			// Drop Inode from all parents
-			// We have to create a new slice first because rmChild modifies n.parents
-			nParents := []*Inode{}
-			nParents = append(nParents, node.parents...)
-			for _, p := range(nParents) {
-				ch := p.rmChildByRef(node)
-				if ch != nil {
-					// ch may be nil if the child was unlinked
-					ch.fsInode.OnForget()
-				}
+		// Drop Inode from all parents
+		// We have to create a new slice first because rmChild modifies n.parents
+		nParents := []*Inode{}
+		nParents = append(nParents, node.parents...)
+		fmt.Printf("forgetUpdate: dropping from %d parents\n", len(nParents))
+		for _, p := range(nParents) {
+			ch := p.rmChildByRef(node)
+			if ch != nil {
+				// ch may be nil if the child was unlinked
+				ch.fsInode.OnForget()
 			}
 		}
+		node.fsInode.OnForget()
 		node.mount.treeLock.Unlock()
 	}
 	// TODO - try to drop children even forget was not successful.
@@ -151,39 +150,6 @@ func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
 // InodeCount returns the number of inodes registered with the kernel.
 func (c *FileSystemConnector) InodeHandleCount() int {
 	return c.inodeMap.Count()
-}
-
-// recursiveConsiderDropInode - forget this Inode and all children
-// Must hold treeLock.
-func (c *FileSystemConnector) recursiveConsiderDropInode(n *Inode) (drop bool) {
-	delChildren := []string{}
-	for k, v := range n.children {
-		// Only consider children from the same mount, or
-		// already unmounted mountpoints.
-		if v.mountPoint == nil && c.recursiveConsiderDropInode(v) {
-			delChildren = append(delChildren, k)
-		}
-	}
-	for _, k := range delChildren {
-		ch := n.rmChild(k)
-		if ch == nil {
-			log.Panicf("trying to del child %q, but not present", k)
-		}
-		ch.fsInode.OnForget()
-	}
-
-	if len(n.children) > 0 || !n.Node().Deletable() {
-		return false
-	}
-	if n == c.rootNode || n.mountPoint != nil {
-		return false
-	}
-
-	n.openFilesMutex.Lock()
-	ok := len(n.openFiles) == 0
-	n.openFilesMutex.Unlock()
-
-	return ok
 }
 
 // Finds a node within the currently known inodes, returns the last
