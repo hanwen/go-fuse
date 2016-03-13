@@ -626,6 +626,12 @@ func (n *pathInode) GetAttr(out *fuse.Attr, file nodefs.File, context *fuse.Cont
 		n.pathFs.clientInodeMap.verify(fi.Ino, n)
 	}
 
+	if fi != nil && fi.Ino == InoIgnore {
+		// We don't have a proper inode number. Set to zero to let
+		// FileSystemConnector substitute the NodeId.
+		fi.Ino = 0
+	}
+
 	if fi != nil && !fi.IsDir() && fi.Nlink == 0 {
 		fi.Nlink = 1
 	}
