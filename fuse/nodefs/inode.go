@@ -122,7 +122,7 @@ func (n *Inode) IsDir() bool {
 func (n *Inode) NewChild(name string, isDir bool, fsi Node) *Inode {
 	ch := newInode(isDir, fsi)
 	ch.mount = n.mount
-	ch.parents = []*Inode{n}
+	ch.parents = []*Inode{}
 	n.AddChild(name, ch)
 	return ch
 }
