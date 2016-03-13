@@ -64,6 +64,7 @@ func (c *clientInodeContainer) add(ino uint64, node *pathInode, name string, par
 	entry := c.entries[ino]
 	if entry == nil {
 		entry = &clientInodeEntry{node: node}
+		c.entries[ino] = entry
 	}
 
 	if entry.node != node {
@@ -77,7 +78,6 @@ func (c *clientInodeContainer) add(ino uint64, node *pathInode, name string, par
 	}
 
 	entry.paths = append(entry.paths, clientInodePath{parent: parent, name: name})
-	c.entries[ino] = entry
 
 	if node.pathFs.debug {
 		log.Printf("clientinodes: added ino=%d name=%s (%d hard links)", ino, name, len(entry.paths))
