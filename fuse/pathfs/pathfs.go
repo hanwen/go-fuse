@@ -475,6 +475,14 @@ func (n *pathInode) Link(name string, existingFsnode nodefs.Node, context *fuse.
 	oldPath := existing.GetPath()
 	code := n.fs.Link(oldPath, newPath, context)
 
+	// Special case for UnionFS: A link promotes a read-only file (no hard
+	// link tracking) to a read-write file (hard links are supported, hence
+	// inode must be set).
+	if existing.clientInode == InoIgnore {
+		existing.clientInode = n.getIno(oldPath, context)
+		n.pathFs.clientInodeMap.add(existing.clientInode, existing, existing.Name, existing.Parent)
+	}
+
 	var a *fuse.Attr
 	if code.Ok() {
 		a, code = n.fs.GetAttr(newPath, context)
