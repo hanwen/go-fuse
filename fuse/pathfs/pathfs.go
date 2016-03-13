@@ -454,6 +454,12 @@ func (n *pathInode) Rename(oldName string, newParent nodefs.Node, newName string
 		ch := n.rmChild(oldName)
 		p.rmChild(newName)
 		p.Inode().AddChild(newName, ch.Inode())
+		// Special case for UnionFS: A rename promotes a read-only file (no hard
+		// link tracking) to a read-write file (hard links are supported, hence
+		// inode must be set).
+		if ch.clientInode == InoIgnore {
+			ch.clientInode = n.getIno(newPath, context)
+		}
 		p.addChild(newName, ch)
 	}
 	return code
@@ -540,6 +546,13 @@ func (n *pathInode) Open(flags uint32, context *fuse.Context) (file nodefs.File,
 			File:        file,
 			Description: n.GetPath(),
 		}
+	}
+	// Special case for UnionFS: A writeable open promotes a read-only file (no hard
+	// link tracking) to a read-write file (hard links are supported, hence
+	// inode must be set).
+	if n.clientInode == InoIgnore && flags&fuse.O_ANYWRITE != 0 {
+		n.clientInode = n.getIno(n.GetPath(), context)
+		n.pathFs.clientInodeMap.add(n.clientInode, n, n.Name, n.Parent)
 	}
 	return
 }

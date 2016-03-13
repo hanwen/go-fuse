@@ -946,9 +946,8 @@ func (fs *unionFS) Open(name string, flags uint32, context *fuse.Context) (fuseF
 			return nil, code
 		}
 		r.branch = 0
-		now := time.Now()
-		r.attr.SetTimes(nil, &now, nil)
-		fs.branchCache.Set(name, r)
+		// Timestamps and inode number have changed. Drop the entry from the cache.
+		fs.branchCache.DropEntry(name)
 	}
 	fuseFile, status = fs.fileSystems[r.branch].Open(name, uint32(flags), context)
 	if fuseFile != nil {
