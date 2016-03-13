@@ -36,12 +36,16 @@ func NewClientInodeContainer() (c clientInodeContainer) {
 	return
 }
 
-// Get node reference and paths associated to inode
-func (c *clientInodeContainer) get(ino uint64) *clientInodeEntry {
+// Get node reference
+func (c *clientInodeContainer) getNode(ino uint64) *pathInode {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	return c.entries[ino]
+	entry := c.entries[ino]
+	if entry != nil {
+		return entry.node
+	}
+	return nil
 }
 
 // Add path to inode

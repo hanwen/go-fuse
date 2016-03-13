@@ -581,10 +581,8 @@ func (n *pathInode) findChild(fi *fuse.Attr, name string, fullPath string) (out 
 	// Due to hard links, we may already know this inode
 	if fi.Ino > 0 {
 		n.pathFs.pathLock.RLock()
-		v := n.pathFs.clientInodeMap.get(fi.Ino)
-		if v != nil {
-			out = v.node
-
+		out = n.pathFs.clientInodeMap.getNode(fi.Ino)
+		if out != nil {
 			if fi.Nlink == 1 {
 				// We know about other hard link(s), but the filesystem tells
 				// us there is only one!?
