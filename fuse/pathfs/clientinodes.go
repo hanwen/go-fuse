@@ -38,6 +38,11 @@ func NewClientInodeContainer() (c clientInodeContainer) {
 
 // Get node reference
 func (c *clientInodeContainer) getNode(ino uint64) *pathInode {
+
+	if ino == 0 {
+		log.Panicf("clientinodes bug: getNode ino=0")
+	}
+
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -139,7 +144,15 @@ func (c *clientInodeContainer) rm(ino uint64, node *pathInode, name string, pare
 
 
 // Completely drop the inode with all its paths
-func (c *clientInodeContainer) drop(ino uint64) {
+func (c *clientInodeContainer) drop(ino uint64, node *pathInode) {
+	if !node.pathFs.options.ClientInodes || ino == InoIgnore {
+		return
+	}
+
+	if ino == 0 {
+		log.Panicf("clientinodes bug: drop ino=0, name=%s", node.Name)
+	}
+
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	delete(c.entries, ino)

@@ -228,9 +228,9 @@ func (n *pathInode) OnMount(conn *nodefs.FileSystemConnector) {
 func (n *pathInode) OnUnmount() {
 }
 
-// Drop all known client inodes. Must have the treeLock.
+// Clear all known client inodes. Must have the treeLock.
 func (n *pathInode) forgetClientInodes() {
-	n.clientInode = 0
+	n.clientInode = InoIgnore
 	for _, ch := range n.Inode().FsChildren() {
 		ch.Node().(*pathInode).forgetClientInodes()
 	}
@@ -343,7 +343,9 @@ func (n *pathInode) rmChild(name string) *pathInode {
 
 func (n *pathInode) OnForget() {
 	n.pathFs.pathLock.Lock()
-	n.pathFs.clientInodeMap.drop(n.clientInode)
+	if !n.Inode().IsDir() {
+		n.pathFs.clientInodeMap.drop(n.clientInode, n)
+	}
 	n.pathFs.pathLock.Unlock()
 }
 
@@ -572,14 +574,13 @@ func (n *pathInode) Lookup(out *fuse.Attr, name string, context *fuse.Context) (
 		node = n.findChild(fi, name, fullPath).Inode()
 		*out = *fi
 	}
-
 	return node, code
 }
 
 // findChild - find or create a pathInode and add it as a child.
 func (n *pathInode) findChild(fi *fuse.Attr, name string, fullPath string) (out *pathInode) {
 	// Due to hard links, we may already know this inode
-	if fi.Ino > 0 {
+	if n.pathFs.options.ClientInodes {
 		n.pathFs.pathLock.RLock()
 		out = n.pathFs.clientInodeMap.getNode(fi.Ino)
 		if out != nil {
