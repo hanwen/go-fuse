@@ -121,10 +121,13 @@ func (c *clientInodeContainer) rm(ino uint64, node *pathInode, name string, pare
 	if node.pathFs.debug {
 		log.Printf("clientinodes: removed ino=%d name=%s (%d hard links remaining)", ino, name, len(p)-1)
 	}
-	// The last hard link for this inode is being deleted. Drop the entry completely.
-	// Note: We do this AFTER checking "idx < 0" to catch inconsistencies.
+	// The last hard link for this inode is being deleted. We still keep the
+	// node reference because we want to be able to match files on LOOKUP
+	// to the correct node. We only drop it on FORGET through drop().
 	if len(p) == 1 {
-		delete(c.entries, ino)
+		entry.paths = p[0:0]
+		node.Parent = nil
+		node.Name = ".clientinodes.deleted."+node.Name
 		return true
 	}
 	// Delete the "idx" entry from the middle of the slice by moving the
