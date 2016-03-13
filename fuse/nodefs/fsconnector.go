@@ -128,17 +128,13 @@ func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
 	if forgotten, handled := c.inodeMap.Forget(nodeID, forgetCount); forgotten {
 		node := (*Inode)(unsafe.Pointer(handled))
 		node.mount.treeLock.Lock()
-		// Drop Inode from all parents
-		// We have to create a new slice first because rmChild modifies n.parents
+		// Remove Inode from all parents
+		// We have to create a new slice first because rmChild modifies node.parents
 		nParents := []*Inode{}
 		nParents = append(nParents, node.parents...)
-		fmt.Printf("forgetUpdate: dropping from %d parents\n", len(nParents))
+		fmt.Printf("forgetUpdate: removing from %d parents\n", len(nParents))
 		for _, p := range(nParents) {
-			ch := p.rmChildByRef(node)
-			if ch != nil {
-				// ch may be nil if the child was unlinked
-				ch.fsInode.OnForget()
-			}
+			p.rmChildByRef(node)
 		}
 		node.fsInode.OnForget()
 		node.mount.treeLock.Unlock()
