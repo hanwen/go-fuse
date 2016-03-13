@@ -397,6 +397,7 @@ func (n *pathInode) Mknod(name string, mode uint32, dev uint32, context *fuse.Co
 	var child *nodefs.Inode
 	if code.Ok() {
 		pNode := n.createChild(name, false)
+		pNode.clientInode = n.getIno(fullPath, context)
 		child = pNode.Inode()
 		n.addChild(name, pNode)
 	}
@@ -437,6 +438,7 @@ func (n *pathInode) Symlink(name string, content string, context *fuse.Context) 
 	var child *nodefs.Inode
 	if code.Ok() {
 		pNode := n.createChild(name, false)
+		pNode.clientInode = n.getIno(fullPath, context)
 		child = pNode.Inode()
 		n.addChild(name, pNode)
 	}
