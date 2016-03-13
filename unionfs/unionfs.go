@@ -672,6 +672,7 @@ func (fs *unionFS) GetAttr(name string, context *fuse.Context) (a *fuse.Attr, s 
 	if name == _DROP_CACHE {
 		return &fuse.Attr{
 			Mode: fuse.S_IFREG | 0777,
+			Ino: pathfs.InoIgnore,
 		}, fuse.OK
 	}
 	if name == fs.options.DeletionDirName {
