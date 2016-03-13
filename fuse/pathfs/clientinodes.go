@@ -63,18 +63,21 @@ func (c *clientInodeContainer) add(ino uint64, node *pathInode, name string, par
 	}
 
 	if entry.node != node {
-		panic("clientinodes bug: add node reference mismatch")
+		log.Panicf("clientinodes bug: add node reference mismatch, ino=%d, name=%s", ino, name)
 	}
 
 	for _, p := range entry.paths {
 		if p.parent == parent && p.name == name {
-			panic("clientinodes bug: duplicate entry")
+			log.Panicf("clientinodes bug: duplicate entry, ino=%s, name=%s", ino, name)
 		}
 	}
 
 	entry.paths = append(entry.paths, clientInodePath{parent: parent, name: name})
-
 	c.entries[ino] = entry
+
+	if node.pathFs.debug {
+		log.Printf("clientinodes: added ino=%d name=%s (%d hard links)", ino, name, len(entry.paths))
+	}
 }
 
 // Remove path from inode. Drops the inode entry if this is the last path.
@@ -105,6 +108,9 @@ func (c *clientInodeContainer) rm(ino uint64, node *pathInode, name string, pare
 	}
 	if idx < 0 {
 		panic("clientinodes bug: rm: path not found")
+	}
+	if node.pathFs.debug {
+		log.Printf("clientinodes: removed ino=%d name=%s (%d hard links remaining)", ino, name, len(p)-1)
 	}
 	// The last hard link for this inode is being deleted. Drop the entry completely.
 	// Note: We do this AFTER checking "idx < 0" to catch inconsistencies.
