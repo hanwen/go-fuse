@@ -59,7 +59,7 @@ func NewFileSystemConnector(root Node, opts *Options) (c *FileSystemConnector) {
 
 	// FUSE does not issue a LOOKUP for 1 (obviously), but it does
 	// issue a forget.  This lookupUpdate is to make the counts match.
-	c.lookupUpdate(c.rootNode)
+	c.registerNode(c.rootNode)
 
 	return c
 }
@@ -88,7 +88,7 @@ func (c *FileSystemConnector) verify() {
 func (c *rawBridge) childLookup(out *fuse.EntryOut, n *Inode, context *fuse.Context) {
 	n.Node().GetAttr((*fuse.Attr)(&out.Attr), nil, context)
 	n.mount.fillEntry(out)
-	out.NodeId, out.Generation = c.fsConn().lookupUpdate(n)
+	out.NodeId, out.Generation = c.fsConn().registerNode(n)
 	if out.Ino == 0 {
 		out.Ino = out.NodeId
 	}
@@ -108,7 +108,7 @@ func (c *rawBridge) toInode(nodeid uint64) *Inode {
 }
 
 // Must run outside treeLock.  Returns the nodeId and generation.
-func (c *FileSystemConnector) lookupUpdate(node *Inode) (id, generation uint64) {
+func (c *FileSystemConnector) registerNode(node *Inode) (id, generation uint64) {
 	id, generation = c.inodeMap.Register(&node.handled)
 	c.verify()
 	return

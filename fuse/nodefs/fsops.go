@@ -68,6 +68,7 @@ func (c *FileSystemConnector) lookupMountUpdate(out *fuse.Attr, mount *fileSyste
 	return mount.mountInode, fuse.OK
 }
 
+// internalLookup - execute a lookup without affecting NodeId reference counts
 func (c *FileSystemConnector) internalLookup(out *fuse.Attr, parent *Inode, name string, header *fuse.InHeader) (node *Inode, code fuse.Status) {
 	child := parent.GetChild(name)
 	if child != nil && child.mountPoint != nil {
@@ -105,7 +106,7 @@ func (c *rawBridge) Lookup(header *fuse.InHeader, name string, out *fuse.EntryOu
 	}
 
 	child.mount.fillEntry(out)
-	out.NodeId, out.Generation = c.fsConn().lookupUpdate(child)
+	out.NodeId, out.Generation = c.fsConn().registerNode(child)
 	if out.Ino == 0 {
 		out.Ino = out.NodeId
 	}
