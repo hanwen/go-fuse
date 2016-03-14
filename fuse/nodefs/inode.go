@@ -31,6 +31,7 @@ type Inode struct {
 	mount *fileSystemMount
 
 	// All data below is protected by treeLock.
+	// Children of this inode, indexed by file name.
 	children map[string]*Inode
 
 	// Due to hard links, an Inode may have many parents. We must
@@ -160,7 +161,8 @@ func (n *Inode) RmChild(name string) (ch *Inode) {
 //////////////////////////////////////////////////////////////
 // private
 
-// addChild - Add "child" to our children under name "name"
+// addChild - Add "child" to our children under name "name".
+// Also adds ourselves to the list of the child's parents.
 // Must be called with treeLock for the mount held.
 func (n *Inode) addChild(name string, child *Inode) {
 	ch := n.children[name]
@@ -178,12 +180,14 @@ func (n *Inode) addChild(name string, child *Inode) {
 }
 
 // rmChildByRef - Drop child "ref" from our list of children.
+// The Inode may be in the list multiple times under different names.
+// Every entry is removed but only the last one is returned.
+//
 // Must be called with treeLock for the mount held.
 func (n *Inode) rmChildByRef(ref *Inode) (ch *Inode) {
 	for name, ino := range(n.children) {
 		if ino == ref {
 			ch = n.rmChild(name)
-			break
 		}
 	}
 	return ch
