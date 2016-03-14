@@ -4,6 +4,7 @@
 package main
 
 import (
+	"log"
 	"flag"
 	"fmt"
 	"os"
@@ -18,6 +19,7 @@ import (
 )
 
 func main() {
+	log.SetFlags(log.Lmicroseconds)
 	// Scans the arg list and sets up flags
 	debug := flag.Bool("debug", false, "print debugging messages.")
 	other := flag.Bool("allow-other", false, "mount with -o allowother.")
