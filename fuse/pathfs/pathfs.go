@@ -451,6 +451,8 @@ func (n *pathInode) Rename(oldName string, newParent nodefs.Node, newName string
 	p := newParent.(*pathInode)
 	oldPath := filepath.Join(n.GetPath(), oldName)
 	newPath := filepath.Join(p.GetPath(), newName)
+	n.pathFs.pathLock.Lock()
+	defer n.pathFs.pathLock.Unlock()
 	code = n.fs.Rename(oldPath, newPath, context)
 	if code.Ok() {
 		ch := n.rmChild(oldName)

@@ -143,8 +143,8 @@ func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
 		for _, p := range(nParents) {
 			p.rmChildByRef(node)
 		}
-		node.fsInode.OnForget()
 		node.mount.treeLock.Unlock()
+		node.fsInode.OnForget()
 	}
 	// TODO - try to drop children even forget was not successful.
 	c.verify()
