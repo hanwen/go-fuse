@@ -28,7 +28,7 @@ type clientInodeEntry struct {
 // Stores the inode<->path map and provides safe operations on the map
 type clientInodeContainer struct {
 	entries map[uint64]*clientInodeEntry
-	lock sync.Mutex
+	sync.Mutex
 }
 
 func NewClientInodeContainer() (c clientInodeContainer) {
@@ -43,8 +43,8 @@ func (c *clientInodeContainer) getNode(ino uint64) *pathInode {
 		log.Panicf("clientinodes bug: getNode ino=0")
 	}
 
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.Lock()
+	defer c.Unlock()
 
 	entry := c.entries[ino]
 	if entry != nil {
@@ -63,8 +63,8 @@ func (c *clientInodeContainer) add(ino uint64, node *pathInode, name string, par
 		log.Panicf("clientinodes bug: ino=0, name=%s", name)
 	}
 
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.Lock()
+	defer c.Unlock()
 
 	entry := c.entries[ino]
 	if entry == nil {
@@ -95,8 +95,8 @@ func (c *clientInodeContainer) rm(ino uint64, node *pathInode, name string, pare
 		return true
 	}
 
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.Lock()
+	defer c.Unlock()
 
 	entry := c.entries[ino]
 	if entry == nil {
@@ -156,8 +156,8 @@ func (c *clientInodeContainer) drop(ino uint64, node *pathInode) {
 		log.Panicf("clientinodes bug: drop ino=0, name=%s", node.Name)
 	}
 
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.Lock()
+	defer c.Unlock()
 	delete(c.entries, ino)
 }
 
@@ -167,8 +167,8 @@ func (c *clientInodeContainer) verify(ino uint64, node *pathInode) {
 		return
 	}
 
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.Lock()
+	defer c.Unlock()
 
 	entry := c.entries[ino]
 	if entry == nil {
