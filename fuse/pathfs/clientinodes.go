@@ -31,6 +31,8 @@ type clientInodeContainer struct {
 	sync.Mutex
 }
 
+// NewClientInodeContainer - initializes the entries map and returns the
+// container
 func NewClientInodeContainer() (c clientInodeContainer) {
 	c.entries = map[uint64]*clientInodeEntry{}
 	return
@@ -40,7 +42,7 @@ func NewClientInodeContainer() (c clientInodeContainer) {
 func (c *clientInodeContainer) getNode(ino uint64) *pathInode {
 
 	if ino == 0 {
-		log.Panicf("clientinodes bug: getNode ino=0")
+		log.Panicf("clientinodes: bug: called getNode with ino=0")
 	}
 
 	c.Lock()
@@ -54,13 +56,15 @@ func (c *clientInodeContainer) getNode(ino uint64) *pathInode {
 }
 
 // Add path to inode
-func (c *clientInodeContainer) add(ino uint64, node *pathInode, name string, parent *pathInode) {
+func (c *clientInodeContainer) add(ino uint64, node *pathInode, newName string, newParent *pathInode) {
 	if !node.pathFs.options.ClientInodes || ino == InoIgnore {
 		return
 	}
-
 	if ino == 0 {
-		log.Panicf("clientinodes bug: ino=0, name=%s", name)
+		log.Panicf("clientinodes: bug: tried to add ino=0, name=%s", newName)
+	}
+	if !newParent.Inode().IsDir() {
+		log.Panicf("clientinodes: bug: parent is not a directory")
 	}
 
 	c.Lock()
@@ -72,25 +76,39 @@ func (c *clientInodeContainer) add(ino uint64, node *pathInode, name string, par
 		c.entries[ino] = entry
 	}
 
+	// Consistency checks
 	if entry.node != node {
-		log.Panicf("clientinodes bug: add node reference mismatch, ino=%d, name=%s", ino, name)
+		log.Panicf("clientinodes: bug: add node reference mismatch, ino=%d, name=%s", ino, newName)
 	}
+	for _, existingEntry := range entry.paths {
+		// There can be more than one entry for the same parent,
+		// but not with the same name. I.e. you cannot have two files with the
+		// same name in one directory.
+		existingParent := existingEntry.parent
+		if existingParent == newParent && existingEntry.name == newName {
+			log.Panicf("clientinodes: bug: duplicate path entry, ino=%s, name=%s", ino, newName)
+		}
 
-	for _, p := range entry.paths {
-		if p.parent == parent && p.name == name {
-			log.Panicf("clientinodes bug: duplicate entry, ino=%s, name=%s", ino, name)
+		// Two distinct parents can have the same grandparent, but only if they have different
+		// names. I.e. you cannot have two directories with the same name in
+		// one directory.
+		existingGrandParent := existingParent.Parent
+		newGrandParent := newParent.Parent
+		if existingParent != newParent && existingGrandParent == newGrandParent && existingParent.Name == newParent.Name {
+			log.Panicf("clientinodes: bug: duplicate parents, existingParent=%p=%s, newParent=%p=%s",
+				existingParent, existingParent.Name, newParent, newParent.Name)
 		}
 	}
 
-	entry.paths = append(entry.paths, clientInodePath{parent: parent, name: name})
+	entry.paths = append(entry.paths, clientInodePath{parent: newParent, name: newName})
 
 	if node.pathFs.debug {
-		log.Printf("clientinodes: added ino=%d name=%s (%d hard links)", ino, name, len(entry.paths))
+		log.Printf("clientinodes: added ino=%d name=%s (now has %d hard links)", ino, newName, len(entry.paths))
 	}
 }
 
 // Remove path from inode. Drops the inode entry if this is the last path.
-func (c *clientInodeContainer) rm(ino uint64, node *pathInode, name string, parent *pathInode) bool {
+func (c *clientInodeContainer) rm(ino uint64, node *pathInode, name string, parent *pathInode) (dropped bool) {
 	if !node.pathFs.options.ClientInodes || ino == InoIgnore {
 		return true
 	}
@@ -100,10 +118,11 @@ func (c *clientInodeContainer) rm(ino uint64, node *pathInode, name string, pare
 
 	entry := c.entries[ino]
 	if entry == nil {
-		log.Panicf("clientinodes bug: rm: inode %d name %s has no entry", ino, name)
+		log.Panicf("clientinodes: bug: ino=%d name=%s has no entry", ino, name)
 	}
 	if entry.node != node {
-		log.Panicf("clientinodes bug: rm: inode %d name %s node reference mismatch", ino, name)
+		log.Panicf("clientinodes: bug: ino=%d name=%s node reference mismatch, stored=%p passed=%p",
+			ino, name, entry.node, node)
 	}
 
 	// Find the path that has us as the parent
@@ -116,7 +135,7 @@ func (c *clientInodeContainer) rm(ino uint64, node *pathInode, name string, pare
 		}
 	}
 	if idx < 0 {
-		panic("clientinodes bug: rm: path not found")
+		panic("clientinodes: bug: path not found")
 	}
 	if node.pathFs.debug {
 		log.Printf("clientinodes: removed ino=%d name=%s (%d hard links remaining)", ino, name, len(p)-1)
@@ -126,8 +145,6 @@ func (c *clientInodeContainer) rm(ino uint64, node *pathInode, name string, pare
 	// to the correct node. We only drop it on FORGET through drop().
 	if len(p) == 1 {
 		entry.paths = p[0:0]
-		node.Parent = nil
-		node.Name = ".clientinodes.deleted."+node.Name
 		return true
 	}
 	// Delete the "idx" entry from the middle of the slice by moving the
@@ -139,26 +156,34 @@ func (c *clientInodeContainer) rm(ino uint64, node *pathInode, name string, pare
 	// If we have deleted the current primary parent,
 	// reparent to a random remaining entry
 	if node.Parent == parent && node.Name == name {
-		node.Parent = p[0].parent
-		node.Name = p[0].name
+		newParent := p[0].parent
+		newName := p[0].name
+		// Our grandparent can only be nil if our parent is the root node
+		if newParent.Parent == nil && newParent != node.pathFs.root {
+			log.Panicf("clientinodes: bug: reparented to a deleted node: %+v", newParent)
+		}
+		node.Parent = newParent
+		node.Name = newName
 	}
 	return false
 }
-
 
 // Completely drop the inode with all its paths
 func (c *clientInodeContainer) drop(ino uint64, node *pathInode) {
 	if !node.pathFs.options.ClientInodes || ino == InoIgnore {
 		return
 	}
-
 	if ino == 0 {
-		log.Panicf("clientinodes bug: drop ino=0, name=%s", node.Name)
+		log.Panicf("clientinodes: bug: tried to drop ino=0, name=%s", node.Name)
 	}
 
 	c.Lock()
-	defer c.Unlock()
 	delete(c.entries, ino)
+	c.Unlock()
+
+	if node.pathFs.debug {
+		log.Printf("clientinodes: dropped ino=%d", ino)
+	}
 }
 
 // Verify that we have "node" stored for "ino". Panic if not.
@@ -172,10 +197,9 @@ func (c *clientInodeContainer) verify(ino uint64, node *pathInode) {
 
 	entry := c.entries[ino]
 	if entry == nil {
-		log.Panicf("clientinodes bug: verify: ino %d not found, Name='%s'", ino, node.Name)
+		log.Panicf("clientinodes: bug: ino=%d not found, name=%s", ino, node.Name)
 	}
-
 	if entry.node != node {
-		log.Panicf("clientinodes bug: verify: ino %d node mismatch, node=%p, entry.node=%p", ino, node, entry.node)
+		log.Panicf("clientinodes: bug: ino=%d node mismatch, node=%p, entry.node=%p", ino, node, entry.node)
 	}
 }
