@@ -121,6 +121,7 @@ func (c *FileSystemConnector) registerNode(node *Inode) (id, generation uint64) 
 // forgetUpdate - decrement reference counter for "nodeID" by "forgetCount".
 // Must run outside treeLock.
 func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
+
 	c.forgetLock.Lock()
 	defer c.forgetLock.Unlock()
 
@@ -134,12 +135,18 @@ func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
 
 	if forgotten, handled := c.inodeMap.Forget(nodeID, forgetCount); forgotten {
 		node := (*Inode)(unsafe.Pointer(handled))
+		if node.IsDir() && len(node.Children()) > 0 {
+			// This directory node has children that have not yet been forgotten.
+			// We don't want to remove it from the tree (i.e. remove it from its parent)
+			// because the children may have parent pointers to it.
+			// A later LOOKUP will return this node with a new NodeID.
+			return
+		}
 		node.mount.treeLock.Lock()
 		// Remove Inode from all parents
 		// We have to create a new slice first because rmChild modifies node.parents
 		nParents := []*Inode{}
 		nParents = append(nParents, node.parents...)
-		fmt.Printf("forgetUpdate: removing from %d parents\n", len(nParents))
 		for _, p := range(nParents) {
 			p.rmChildByRef(node)
 		}
