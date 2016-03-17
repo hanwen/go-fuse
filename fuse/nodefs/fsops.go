@@ -81,9 +81,6 @@ func (c *FileSystemConnector) internalLookup(out *fuse.Attr, parent *Inode, name
 	}
 
 	if child != nil {
-		parent = nil
-	}
-	if child != nil {
 		code = child.fsInode.GetAttr(out, nil, &header.Context)
 	} else {
 		child, code = parent.fsInode.Lookup(out, name, &header.Context)
@@ -99,6 +96,10 @@ func (c *rawBridge) Lookup(header *fuse.InHeader, name string, out *fuse.EntryOu
 		return fuse.ENOTDIR
 	}
 	outAttr := (*fuse.Attr)(&out.Attr)
+	// We must hold forgetMu until lookupUpdate has increased the reference count
+	// for child.
+	c.forgetMu.RLock()
+	defer c.forgetMu.RUnlock()
 	child, code := c.fsConn().internalLookup(outAttr, parent, name, header)
 	if code == fuse.ENOENT && parent.mount.negativeEntry(out) {
 		return fuse.OK
