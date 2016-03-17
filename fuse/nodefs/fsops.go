@@ -73,14 +73,19 @@ func (c *FileSystemConnector) internalLookup(out *fuse.Attr, parent *Inode, name
 
 	// We may already know the child because it was created using Create or Mkdir
 	// or from an earlier lookup. The kernel submits new lookups periodically.
+	c.forgetMu.RLock()
+	if parent.fsInode == nil {
+		// The parent node has been forgotten in the meantime!
+		c.forgetMu.RUnlock()
+		return nil, fuse.EINVAL
+	}
 	child := parent.GetChild(name)
+	c.forgetMu.RUnlock()
+
 	if child != nil && child.mountPoint != nil {
 		return c.lookupMountUpdate(out, child.mountPoint)
 	}
 
-	if child != nil {
-		parent = nil
-	}
 	if child != nil {
 		code = child.fsInode.GetAttr(out, nil, &header.Context)
 	} else {
