@@ -317,9 +317,7 @@ func (n *pathInode) addChild(name string, child *pathInode) {
 // rmChild - remove child "name"
 func (n *pathInode) rmChild(name string) *pathInode {
 	childInode := n.Inode().RmChild(name)
-	fmt.Printf("n.Inode().RmChild(%s)\n", name)
 	if childInode == nil {
-		fmt.Printf("rmChild: Inode().RmChild(%s) returned nil\n", name)
 		return nil
 	}
 	ch := childInode.Node().(*pathInode)
@@ -335,7 +333,6 @@ func (n *pathInode) rmChild(name string) *pathInode {
 		// but helps in debugging.
 		ch.Name = ".deleted." + name
 		ch.Parent = nil
-		fmt.Printf("deleted entry %s\n", name)
 	}
 
 	return ch
@@ -539,7 +536,6 @@ func (n *pathInode) getIno(fullPath string, context *fuse.Context) uint64 {
 		return 0
 	}
 }
-
 
 // createChild - create pathInode object and add it as a child to Inode()
 func (n *pathInode) createChild(name string, isDir bool) *pathInode {
