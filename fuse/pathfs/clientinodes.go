@@ -21,7 +21,7 @@ type clientInodePath struct {
 
 // An inode and its paths (hard links)
 type clientInodeEntry struct {
-	node   *pathInode
+	node  *pathInode
 	paths []clientInodePath
 }
 

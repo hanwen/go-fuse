@@ -5,10 +5,10 @@ package nodefs
 // are in fsops.go
 
 import (
-	"sync"
 	"log"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 	"unsafe"
 
@@ -147,7 +147,7 @@ func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
 		// We have to create a new slice first because rmChild modifies node.parents
 		nParents := []*Inode{}
 		nParents = append(nParents, node.parents...)
-		for _, p := range(nParents) {
+		for _, p := range nParents {
 			p.rmChildByRef(node)
 		}
 		node.mount.treeLock.Unlock()

@@ -185,7 +185,7 @@ func (n *Inode) addChild(name string, child *Inode) {
 //
 // Must be called with treeLock for the mount held.
 func (n *Inode) rmChildByRef(ref *Inode) (ch *Inode) {
-	for name, ino := range(n.children) {
+	for name, ino := range n.children {
 		if ino == ref {
 			ch = n.rmChild(name)
 		}
@@ -203,7 +203,7 @@ func (n *Inode) rmChild(name string) (ch *Inode) {
 
 		// Remove ourselves from the child's parents
 		idx := -1
-		for i, v := range(ch.parents) {
+		for i, v := range ch.parents {
 			if v == n {
 				idx = i
 				break

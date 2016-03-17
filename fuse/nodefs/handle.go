@@ -56,11 +56,11 @@ type portableHandleMap struct {
 	// hence the (NodeId, Generation) tuple is always unique.
 	generation uint64
 	// Number of currently used handles
-	used       int
+	used int
 	// Array of Go objects indexed by NodeId
-	handles    []*handled
+	handles []*handled
 	// Free slots in the "handles" array
-	freeIds    []uint64
+	freeIds []uint64
 }
 
 func newPortableHandleMap() *portableHandleMap {
