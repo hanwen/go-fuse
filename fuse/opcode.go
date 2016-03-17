@@ -229,13 +229,20 @@ func doGetAttr(server *Server, req *request) {
 	req.status = s
 }
 
+// doForget - forget one NodeId
 func doForget(server *Server, req *request) {
 	if !server.opts.RememberInodes {
+		server.forgetMu.Lock()
 		server.fileSystem.Forget(req.inHeader.NodeId, (*ForgetIn)(req.inData).Nlookup)
+		server.forgetMu.Unlock()
 	}
 }
 
+// doBatchForget - forget a list of NodeIds
 func doBatchForget(server *Server, req *request) {
+	server.forgetMu.Lock()
+	defer server.forgetMu.Unlock()
+
 	in := (*_BatchForgetIn)(req.inData)
 	wantBytes := uintptr(in.Count) * unsafe.Sizeof(_ForgetOne{})
 	if uintptr(len(req.arg)) < wantBytes {
@@ -251,7 +258,10 @@ func doBatchForget(server *Server, req *request) {
 	}
 
 	forgets := *(*[]_ForgetOne)(unsafe.Pointer(h))
-	for _, f := range forgets {
+	for i, f := range forgets {
+		if server.debug {
+			log.Printf("doBatchForget: forgetting %d of %d: NodeId: %d, Nlookup: %d", i+1, len(forgets), f.NodeId, f.Nlookup)
+		}
 		server.fileSystem.Forget(f.NodeId, f.Nlookup)
 	}
 }
@@ -261,6 +271,11 @@ func doReadlink(server *Server, req *request) {
 }
 
 func doLookup(server *Server, req *request) {
+	// LOOKUP should not execute concurrently with FORGET - see the comment
+	// at forgetMu for details
+	server.forgetMu.Lock()
+	defer server.forgetMu.Unlock()
+
 	out := (*EntryOut)(req.outData)
 	s := server.fileSystem.Lookup(req.inHeader, req.filenames[0], out)
 	req.status = s

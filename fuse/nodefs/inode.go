@@ -31,7 +31,13 @@ type Inode struct {
 	mount *fileSystemMount
 
 	// All data below is protected by treeLock.
+	// Children of this inode, indexed by file name.
 	children map[string]*Inode
+
+	// Due to hard links, an Inode may have many parents. We must
+	// keep track of them to remove ourselves from all of our parents on
+	// FORGET.
+	parents []*Inode
 
 	// Non-nil if this inode is a mountpoint, ie. the Root of a
 	// NodeFileSystem.
@@ -117,6 +123,7 @@ func (n *Inode) IsDir() bool {
 func (n *Inode) NewChild(name string, isDir bool, fsi Node) *Inode {
 	ch := newInode(isDir, fsi)
 	ch.mount = n.mount
+	ch.parents = []*Inode{}
 	n.AddChild(name, ch)
 	return ch
 }
@@ -154,22 +161,61 @@ func (n *Inode) RmChild(name string) (ch *Inode) {
 //////////////////////////////////////////////////////////////
 // private
 
+// addChild - Add "child" to our children under name "name".
+// Also adds ourselves to the list of the child's parents.
 // Must be called with treeLock for the mount held.
 func (n *Inode) addChild(name string, child *Inode) {
-	if paranoia {
-		ch := n.children[name]
-		if ch != nil {
-			log.Panicf("Already have an Inode with same name: %v: %v", name, ch)
+	ch := n.children[name]
+	if ch != nil {
+		log.Printf("Already have an Inode with same name: %v: %v", name, ch)
+		if paranoia {
+			log.Panic("paranoia: panic on duplicate inode")
 		}
 	}
+	// Add child to our children
 	n.children[name] = child
+
+	// Add ourselves the the child's parents
+	child.parents = append(child.parents, n)
 }
 
+// rmChildByRef - Drop child "ref" from our list of children.
+// The Inode may be in the list multiple times under different names.
+// Every entry is removed but only the last one is returned.
+//
+// Must be called with treeLock for the mount held.
+func (n *Inode) rmChildByRef(ref *Inode) (ch *Inode) {
+	for name, ino := range n.children {
+		if ino == ref {
+			ch = n.rmChild(name)
+		}
+	}
+	return ch
+}
+
+// rmChild - Drop "name" from our children and remove ourself as their parent.
 // Must be called with treeLock for the mount held.
 func (n *Inode) rmChild(name string) (ch *Inode) {
 	ch = n.children[name]
 	if ch != nil {
+		// Drop "name" from our children
 		delete(n.children, name)
+
+		// Remove ourselves from the child's parents
+		idx := -1
+		for i, v := range ch.parents {
+			if v == n {
+				idx = i
+				break
+			}
+		}
+		if idx < 0 {
+			panic("idx<0")
+		}
+		// Delete the "idx" entry from the middle of the slice by moving the
+		// last element over it and truncating the slice
+		ch.parents[idx] = ch.parents[len(ch.parents)-1]
+		ch.parents = ch.parents[:len(ch.parents)-1]
 	}
 	return ch
 }

@@ -12,13 +12,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 )
 
-// A parent pointer: node should be reachable as parent.children[name]
-type clientInodePath struct {
-	parent *pathInode
-	name   string
-	node   *pathInode
-}
-
 // PathNodeFs is the file system that can translate an inode back to a
 // path.  The path name is then used to call into an object that has
 // the FileSystem interface.
@@ -32,12 +25,12 @@ type PathNodeFs struct {
 	root      *pathInode
 	connector *nodefs.FileSystemConnector
 
-	// protects clientInodeMap and pathInode.Parent pointers
+	// protects pathInode.Parent pointers
 	pathLock sync.RWMutex
 
 	// This map lists all the parent links known for a given
 	// nodeId.
-	clientInodeMap map[uint64][]*clientInodePath
+	clientInodeMap clientInodeContainer
 
 	options *PathNodeFsOptions
 }
@@ -68,7 +61,7 @@ func (fs *PathNodeFs) ForgetClientInodes() {
 		return
 	}
 	fs.pathLock.Lock()
-	fs.clientInodeMap = map[uint64][]*clientInodePath{}
+	fs.clientInodeMap = NewClientInodeContainer()
 	fs.root.forgetClientInodes()
 	fs.pathLock.Unlock()
 }
@@ -198,7 +191,7 @@ func NewPathNodeFs(fs FileSystem, opts *PathNodeFsOptions) *PathNodeFs {
 	pfs := &PathNodeFs{
 		fs:             fs,
 		root:           root,
-		clientInodeMap: map[uint64][]*clientInodePath{},
+		clientInodeMap: NewClientInodeContainer(),
 		options:        opts,
 	}
 	root.pathFs = pfs
@@ -235,9 +228,9 @@ func (n *pathInode) OnMount(conn *nodefs.FileSystemConnector) {
 func (n *pathInode) OnUnmount() {
 }
 
-// Drop all known client inodes. Must have the treeLock.
+// Clear all known client inodes. Must have the treeLock.
 func (n *pathInode) forgetClientInodes() {
-	n.clientInode = 0
+	n.clientInode = InoIgnore
 	for _, ch := range n.Inode().FsChildren() {
 		ch.Node().(*pathInode).forgetClientInodes()
 	}
@@ -286,6 +279,7 @@ func (n *pathInode) GetPath() string {
 
 	if p != p.pathFs.root {
 		n.pathFs.pathLock.RUnlock()
+		log.Printf("GetPath: hit deleted parent: n.Name=%s, p.Name=%s, p.IsDir=%v", n.Name, p.Name, p.Inode().IsDir())
 		return ".deleted"
 	}
 
@@ -310,22 +304,17 @@ func (n *pathInode) GetPath() string {
 	return path
 }
 
+// addChild - set ourselves as the parent of the child and add it to
+// clientInodeMap
 func (n *pathInode) addChild(name string, child *pathInode) {
 	child.Parent = n
 	child.Name = name
-
-	if child.clientInode > 0 && n.pathFs.options.ClientInodes {
-		n.pathFs.pathLock.Lock()
-		defer n.pathFs.pathLock.Unlock()
-		m := n.pathFs.clientInodeMap[child.clientInode]
-		e := &clientInodePath{
-			n, name, child,
-		}
-		m = append(m, e)
-		n.pathFs.clientInodeMap[child.clientInode] = m
+	if !child.Inode().IsDir() {
+		n.pathFs.clientInodeMap.add(child.clientInode, child, name, n)
 	}
 }
 
+// rmChild - remove child "name"
 func (n *pathInode) rmChild(name string) *pathInode {
 	childInode := n.Inode().RmChild(name)
 	if childInode == nil {
@@ -333,69 +322,27 @@ func (n *pathInode) rmChild(name string) *pathInode {
 	}
 	ch := childInode.Node().(*pathInode)
 
-	if ch.clientInode > 0 && n.pathFs.options.ClientInodes {
-		n.pathFs.pathLock.Lock()
-		defer n.pathFs.pathLock.Unlock()
-		m := n.pathFs.clientInodeMap[ch.clientInode]
-
-		idx := -1
-		// Find the entry that has us as the parent
-		for i, v := range m {
-			if v.parent == n && v.name == name {
-				idx = i
-				break
-			}
-		}
-		if idx >= 0 {
-			// Delete the "idx" entry from the middle of the slice by moving the
-			// last element over it and truncating the slice
-			m[idx] = m[len(m)-1]
-			m = m[:len(m)-1]
-			n.pathFs.clientInodeMap[ch.clientInode] = m
-		}
-		if len(m) > 0 {
-			// Reparent to a random remaining entry
-			ch.Parent = m[0].parent
-			ch.Name = m[0].name
-			return ch
-		} else {
-			delete(n.pathFs.clientInodeMap, ch.clientInode)
-		}
+	// Is this the last hard link to this inode?
+	// Directories cannot have hard links, to this is always true for directories.
+	last := true
+	if !ch.Inode().IsDir() {
+		last = n.pathFs.clientInodeMap.rm(ch.clientInode, ch, name, n)
 	}
-
-	ch.Name = ".deleted"
-	ch.Parent = nil
+	if last {
+		// Mark the node as deleted as well. This is not strictly neccessary
+		// but helps in debugging.
+		ch.Name = ".deleted." + name
+		ch.Parent = nil
+	}
 
 	return ch
 }
 
-// Handle a change in clientInode number for an other wise unchanged
-// pathInode.
-func (n *pathInode) setClientInode(ino uint64) {
-	if ino == n.clientInode || !n.pathFs.options.ClientInodes {
-		return
-	}
-	n.pathFs.pathLock.Lock()
-	defer n.pathFs.pathLock.Unlock()
-	if n.clientInode != 0 {
-		delete(n.pathFs.clientInodeMap, n.clientInode)
-	}
-
-	n.clientInode = ino
-	if n.Parent != nil {
-		e := &clientInodePath{
-			n.Parent, n.Name, n,
-		}
-		n.pathFs.clientInodeMap[ino] = append(n.pathFs.clientInodeMap[ino], e)
-	}
-}
-
 func (n *pathInode) OnForget() {
-	if n.clientInode == 0 || !n.pathFs.options.ClientInodes {
-		return
-	}
 	n.pathFs.pathLock.Lock()
-	delete(n.pathFs.clientInodeMap, n.clientInode)
+	if !n.Inode().IsDir() {
+		n.pathFs.clientInodeMap.drop(n.clientInode, n)
+	}
 	n.pathFs.pathLock.Unlock()
 }
 
@@ -449,6 +396,7 @@ func (n *pathInode) Mknod(name string, mode uint32, dev uint32, context *fuse.Co
 	var child *nodefs.Inode
 	if code.Ok() {
 		pNode := n.createChild(name, false)
+		pNode.clientInode = n.getIno(fullPath, context)
 		child = pNode.Inode()
 		n.addChild(name, pNode)
 	}
@@ -489,6 +437,7 @@ func (n *pathInode) Symlink(name string, content string, context *fuse.Context) 
 	var child *nodefs.Inode
 	if code.Ok() {
 		pNode := n.createChild(name, false)
+		pNode.clientInode = n.getIno(fullPath, context)
 		child = pNode.Inode()
 		n.addChild(name, pNode)
 	}
@@ -499,11 +448,19 @@ func (n *pathInode) Rename(oldName string, newParent nodefs.Node, newName string
 	p := newParent.(*pathInode)
 	oldPath := filepath.Join(n.GetPath(), oldName)
 	newPath := filepath.Join(p.GetPath(), newName)
+	n.pathFs.pathLock.Lock()
+	defer n.pathFs.pathLock.Unlock()
 	code = n.fs.Rename(oldPath, newPath, context)
 	if code.Ok() {
 		ch := n.rmChild(oldName)
 		p.rmChild(newName)
 		p.Inode().AddChild(newName, ch.Inode())
+		// Special case for UnionFS: A rename promotes a read-only file (no hard
+		// link tracking) to a read-write file (hard links are supported, hence
+		// inode must be set).
+		if ch.clientInode == InoIgnore {
+			ch.clientInode = n.getIno(newPath, context)
+		}
 		p.addChild(newName, ch)
 	}
 	return code
@@ -518,6 +475,14 @@ func (n *pathInode) Link(name string, existingFsnode nodefs.Node, context *fuse.
 	existing := existingFsnode.(*pathInode)
 	oldPath := existing.GetPath()
 	code := n.fs.Link(oldPath, newPath, context)
+
+	// Special case for UnionFS: A link promotes a read-only file (no hard
+	// link tracking) to a read-write file (hard links are supported, hence
+	// inode must be set).
+	if existing.clientInode == InoIgnore {
+		existing.clientInode = n.getIno(oldPath, context)
+		n.pathFs.clientInodeMap.add(existing.clientInode, existing, existing.Name, existing.Parent)
+	}
 
 	var a *fuse.Attr
 	if code.Ok() {
@@ -546,12 +511,33 @@ func (n *pathInode) Create(name string, flags uint32, mode uint32, context *fuse
 	file, code := n.fs.Create(fullPath, flags, mode, context)
 	if code.Ok() {
 		pNode := n.createChild(name, false)
+		pNode.clientInode = n.getIno(fullPath, context)
 		child = pNode.Inode()
 		n.addChild(name, pNode)
 	}
 	return file, child, code
 }
 
+// getIno - retrieve the inode number of "fullPath"
+// If ClientInodes are not enabled, this is a no-op that returns 0.
+func (n *pathInode) getIno(fullPath string, context *fuse.Context) uint64 {
+	if !n.pathFs.options.ClientInodes {
+		return 0
+	}
+	var a *fuse.Attr
+	a, code := n.fs.GetAttr(fullPath, context)
+	if code.Ok() {
+		if a.Ino == 0 {
+			log.Panicf("getIno: GetAttr on %s returned ino=0, a=%v", fullPath, a)
+		}
+		return a.Ino
+	} else {
+		log.Printf("getIno: GetAttr on %s failed: %v", fullPath, code)
+		return 0
+	}
+}
+
+// createChild - create pathInode object and add it as a child to Inode()
 func (n *pathInode) createChild(name string, isDir bool) *pathInode {
 	i := new(pathInode)
 	i.fs = n.fs
@@ -569,6 +555,13 @@ func (n *pathInode) Open(flags uint32, context *fuse.Context) (file nodefs.File,
 			Description: n.GetPath(),
 		}
 	}
+	// Special case for UnionFS: A writeable open promotes a read-only file (no hard
+	// link tracking) to a read-write file (hard links are supported, hence
+	// inode must be set).
+	if n.clientInode == InoIgnore && flags&fuse.O_ANYWRITE != 0 {
+		n.clientInode = n.getIno(n.GetPath(), context)
+		n.pathFs.clientInodeMap.add(n.clientInode, n, n.Name, n.Parent)
+	}
 	return
 }
 
@@ -579,18 +572,19 @@ func (n *pathInode) Lookup(out *fuse.Attr, name string, context *fuse.Context) (
 		node = n.findChild(fi, name, fullPath).Inode()
 		*out = *fi
 	}
-
 	return node, code
 }
 
+// findChild - find or create a pathInode and add it as a child.
 func (n *pathInode) findChild(fi *fuse.Attr, name string, fullPath string) (out *pathInode) {
-	if fi.Ino > 0 {
+	// Due to hard links, we may already know this inode
+	if n.pathFs.options.ClientInodes {
 		n.pathFs.pathLock.RLock()
-		v := n.pathFs.clientInodeMap[fi.Ino]
-		if len(v) > 0 {
-			out = v[0].node
-
+		out = n.pathFs.clientInodeMap.getNode(fi.Ino)
+		if out != nil {
 			if fi.Nlink == 1 {
+				// We know about other hard link(s), but the filesystem tells
+				// us there is only one!?
 				log.Println("Found linked inode, but Nlink == 1", fullPath)
 			}
 		}
@@ -598,12 +592,13 @@ func (n *pathInode) findChild(fi *fuse.Attr, name string, fullPath string) (out 
 	}
 
 	if out == nil {
-		out = n.createChild(name, fi.IsDir())
+		out = n.createChild(name, fi.IsDir()) // This also calls Inode().AddChild
 		out.clientInode = fi.Ino
-		n.addChild(name, out)
 	} else {
-		// should add 'out' as a child to n ?
+		n.Inode().AddChild(name, out.Inode())
 	}
+	n.addChild(name, out)
+
 	return out
 }
 
@@ -624,8 +619,14 @@ func (n *pathInode) GetAttr(out *fuse.Attr, file nodefs.File, context *fuse.Cont
 		fi, code = n.fs.GetAttr(n.GetPath(), context)
 	}
 
-	if fi != nil {
-		n.setClientInode(fi.Ino)
+	if fi != nil && !fi.IsDir() {
+		n.pathFs.clientInodeMap.verify(fi.Ino, n)
+	}
+
+	if fi != nil && fi.Ino == InoIgnore {
+		// We don't have a proper inode number. Set to zero to let
+		// FileSystemConnector substitute the NodeId.
+		fi.Ino = 0
 	}
 
 	if fi != nil && !fi.IsDir() && fi.Nlink == 0 {

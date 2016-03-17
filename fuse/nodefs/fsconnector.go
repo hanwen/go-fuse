@@ -8,6 +8,7 @@ import (
 	"log"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 	"unsafe"
 
@@ -31,6 +32,9 @@ type FileSystemConnector struct {
 
 	// The root of the FUSE file system.
 	rootNode *Inode
+
+	// Protects internalLookup() against concurrent forgetUpdate()
+	forgetLock sync.Mutex
 }
 
 // NewOptions generates FUSE options that correspond to libfuse's
@@ -59,7 +63,7 @@ func NewFileSystemConnector(root Node, opts *Options) (c *FileSystemConnector) {
 
 	// FUSE does not issue a LOOKUP for 1 (obviously), but it does
 	// issue a forget.  This lookupUpdate is to make the counts match.
-	c.lookupUpdate(c.rootNode)
+	c.registerNode(c.rootNode)
 
 	return c
 }
@@ -88,7 +92,7 @@ func (c *FileSystemConnector) verify() {
 func (c *rawBridge) childLookup(out *fuse.EntryOut, n *Inode, context *fuse.Context) {
 	n.Node().GetAttr((*fuse.Attr)(&out.Attr), nil, context)
 	n.mount.fillEntry(out)
-	out.NodeId, out.Generation = c.fsConn().lookupUpdate(n)
+	out.NodeId, out.Generation = c.fsConn().registerNode(n)
 	if out.Ino == 0 {
 		out.Ino = out.NodeId
 	}
@@ -108,14 +112,19 @@ func (c *rawBridge) toInode(nodeid uint64) *Inode {
 }
 
 // Must run outside treeLock.  Returns the nodeId and generation.
-func (c *FileSystemConnector) lookupUpdate(node *Inode) (id, generation uint64) {
+func (c *FileSystemConnector) registerNode(node *Inode) (id, generation uint64) {
 	id, generation = c.inodeMap.Register(&node.handled)
 	c.verify()
 	return
 }
 
+// forgetUpdate - decrement reference counter for "nodeID" by "forgetCount".
 // Must run outside treeLock.
 func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
+
+	c.forgetLock.Lock()
+	defer c.forgetLock.Unlock()
+
 	if nodeID == fuse.FUSE_ROOT_ID {
 		c.rootNode.Node().OnUnmount()
 
@@ -126,9 +135,23 @@ func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
 
 	if forgotten, handled := c.inodeMap.Forget(nodeID, forgetCount); forgotten {
 		node := (*Inode)(unsafe.Pointer(handled))
+		if node.IsDir() && len(node.Children()) > 0 {
+			// This directory node has children that have not yet been forgotten.
+			// We don't want to remove it from the tree (i.e. remove it from its parent)
+			// because the children may have parent pointers to it.
+			// A later LOOKUP will return this node with a new NodeID.
+			return
+		}
 		node.mount.treeLock.Lock()
-		c.recursiveConsiderDropInode(node)
+		// Remove Inode from all parents
+		// We have to create a new slice first because rmChild modifies node.parents
+		nParents := []*Inode{}
+		nParents = append(nParents, node.parents...)
+		for _, p := range nParents {
+			p.rmChildByRef(node)
+		}
 		node.mount.treeLock.Unlock()
+		node.fsInode.OnForget()
 	}
 	// TODO - try to drop children even forget was not successful.
 	c.verify()
@@ -137,39 +160,6 @@ func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
 // InodeCount returns the number of inodes registered with the kernel.
 func (c *FileSystemConnector) InodeHandleCount() int {
 	return c.inodeMap.Count()
-}
-
-// Must hold treeLock.
-
-func (c *FileSystemConnector) recursiveConsiderDropInode(n *Inode) (drop bool) {
-	delChildren := []string{}
-	for k, v := range n.children {
-		// Only consider children from the same mount, or
-		// already unmounted mountpoints.
-		if v.mountPoint == nil && c.recursiveConsiderDropInode(v) {
-			delChildren = append(delChildren, k)
-		}
-	}
-	for _, k := range delChildren {
-		ch := n.rmChild(k)
-		if ch == nil {
-			log.Panicf("trying to del child %q, but not present", k)
-		}
-		ch.fsInode.OnForget()
-	}
-
-	if len(n.children) > 0 || !n.Node().Deletable() {
-		return false
-	}
-	if n == c.rootNode || n.mountPoint != nil {
-		return false
-	}
-
-	n.openFilesMutex.Lock()
-	ok := len(n.openFiles) == 0
-	n.openFilesMutex.Unlock()
-
-	return ok
 }
 
 // Finds a node within the currently known inodes, returns the last
