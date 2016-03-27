@@ -229,6 +229,7 @@ func doGetAttr(server *Server, req *request) {
 	req.status = s
 }
 
+// doForget - forget one NodeId
 func doForget(server *Server, req *request) {
 	if !server.opts.RememberInodes {
 		server.forgetMu.Lock()
@@ -237,6 +238,7 @@ func doForget(server *Server, req *request) {
 	}
 }
 
+// doBatchForget - forget a list of NodeIds
 func doBatchForget(server *Server, req *request) {
 	server.forgetMu.Lock()
 	defer server.forgetMu.Unlock()
