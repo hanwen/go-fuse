@@ -114,6 +114,7 @@ func (c *FileSystemConnector) lookupUpdate(node *Inode) (id, generation uint64) 
 	return
 }
 
+// forgetUpdate decrements the reference counter for "nodeID" by "forgetCount".
 // Must run outside treeLock.
 func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
 	if nodeID == fuse.FUSE_ROOT_ID {
