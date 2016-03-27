@@ -113,7 +113,7 @@ func (n *Inode) IsDir() bool {
 	return n.children != nil
 }
 
-// NewChild adds a new child inode to this inode.
+// NewChild creates an Inode, sets that Inode using fsi.SetInode() and calls AddChild.
 func (n *Inode) NewChild(name string, isDir bool, fsi Node) *Inode {
 	ch := newInode(isDir, fsi)
 	ch.mount = n.mount
@@ -131,11 +131,14 @@ func (n *Inode) GetChild(name string) (child *Inode) {
 	return child
 }
 
-// AddChild adds a child inode. The parent inode must be a directory
-// node.
+// AddChild adds an existing "*Inode" as a child to ourself, under the name "name".
+// The node "n" must be a directory node.
 func (n *Inode) AddChild(name string, child *Inode) {
 	if child == nil {
 		log.Panicf("adding nil child as %q", name)
+	}
+	if !n.IsDir() {
+		log.Panicf("adding child %q to non-directory", name)
 	}
 	n.mount.treeLock.Lock()
 	n.addChild(name, child)
