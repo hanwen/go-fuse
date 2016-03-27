@@ -346,22 +346,14 @@ func (fs *unionFS) Promote(name string, srcResult branchResult, context *fuse.Co
 ////////////////////////////////////////////////////////////////
 // Below: implement interface for a FileSystem.
 
+// Link - create a hard link named "newName" to "orig".
+// If "orig" is on a read-only branch it will be promoted to read-write as
+// hard links only work in the read-write branch.
 func (fs *unionFS) Link(orig string, newName string, context *fuse.Context) (code fuse.Status) {
 	origResult := fs.getBranch(orig)
 	code = origResult.code
 	if code.Ok() && origResult.branch > 0 {
 		code = fs.Promote(orig, origResult, context)
-	}
-	if code.Ok() && origResult.branch > 0 {
-		// Hairy: for the link to be hooked up to the existing
-		// inode, PathNodeFs must see a client inode for the
-		// original.  We force a refresh of the attribute (so
-		// the Ino is filled in.), and then force PathNodeFs
-		// to see the Inode number.
-		fs.branchCache.GetFresh(orig)
-		inode := fs.nodeFs.Node(orig)
-		var a fuse.Attr
-		inode.Node().GetAttr(&a, nil, nil)
 	}
 	if code.Ok() {
 		code = fs.promoteDirsTo(newName)
@@ -370,6 +362,9 @@ func (fs *unionFS) Link(orig string, newName string, context *fuse.Context) (cod
 		code = fs.fileSystems[0].Link(orig, newName, context)
 	}
 	if code.Ok() {
+		// Inode number has changed from 0 to an actual inode number
+		fs.branchCache.DropEntry(orig)
+
 		fs.removeDeletion(newName)
 		fs.branchCache.GetFresh(newName)
 	}
@@ -661,12 +656,10 @@ func (fs *unionFS) Create(name string, flags uint32, mode uint32, context *fuse.
 		fuseFile = fs.newUnionFsFile(fuseFile, 0)
 		fs.removeDeletion(name)
 
-		now := time.Now()
-		a := fuse.Attr{
-			Mode: fuse.S_IFREG | mode,
+		a, code := writable.GetAttr(name, context)
+		if code.Ok() {
+			fs.branchCache.Set(name, branchResult{a, fuse.OK, 0})
 		}
-		a.SetTimes(nil, &now, &now)
-		fs.branchCache.Set(name, branchResult{&a, fuse.OK, 0})
 	}
 	return fuseFile, code
 }
@@ -948,9 +941,8 @@ func (fs *unionFS) Open(name string, flags uint32, context *fuse.Context) (fuseF
 			return nil, code
 		}
 		r.branch = 0
-		now := time.Now()
-		r.attr.SetTimes(nil, &now, nil)
-		fs.branchCache.Set(name, r)
+		// Timestamps and inode number have changed. Drop the entry from the cache.
+		fs.branchCache.DropEntry(name)
 	}
 	fuseFile, status = fs.fileSystems[r.branch].Open(name, uint32(flags), context)
 	if fuseFile != nil {
