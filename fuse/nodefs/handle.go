@@ -6,20 +6,27 @@ import (
 )
 
 // HandleMap translates objects in Go space to 64-bit handles that can
-// be given out to -say- the linux kernel.
+// be given out to -say- the linux kernel as NodeIds.
 //
 // The 32 bits version of this is a threadsafe wrapper around a map.
 //
-// To use it, include Handled as first member of the structure
+// To use it, include "handled" as first member of the structure
 // you wish to export.
 //
 // This structure is thread-safe.
 type handleMap interface {
+	// Register stores "obj" and returns a unique (NodeId, generation) tuple.
 	Register(obj *handled) (handle, generation uint64)
 	Count() int
+	// Decode retrieves a stored object from its 64-bit handle.
 	Decode(uint64) *handled
+	// Forget decrements the reference counter for "handle" by "count" and drops
+	// the object if the refcount reaches zero.
+	// Returns a boolean whether the object was dropped and the object itself.
 	Forget(handle uint64, count int) (bool, *handled)
+	// Handle gets the object's NodeId.
 	Handle(obj *handled) uint64
+	// Has checks if NodeId is stored.
 	Has(uint64) bool
 }
 
@@ -45,10 +52,15 @@ const _ALREADY_MSG = "Object already has a handle"
 
 type portableHandleMap struct {
 	sync.RWMutex
+	// The generation counter is incremented each time a NodeId is reused,
+	// hence the (NodeId, Generation) tuple is always unique.
 	generation uint64
-	used       int
-	handles    []*handled
-	freeIds    []uint64
+	// Number of currently used handles
+	used int
+	// Array of Go objects indexed by NodeId
+	handles []*handled
+	// Free slots in the "handles" array
+	freeIds []uint64
 }
 
 func newPortableHandleMap() *portableHandleMap {

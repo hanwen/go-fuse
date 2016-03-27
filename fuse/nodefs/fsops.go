@@ -68,8 +68,14 @@ func (c *FileSystemConnector) lookupMountUpdate(out *fuse.Attr, mount *fileSyste
 	return mount.mountInode, fuse.OK
 }
 
+// internalLookup executes a lookup without affecting NodeId reference counts.
 func (c *FileSystemConnector) internalLookup(out *fuse.Attr, parent *Inode, name string, header *fuse.InHeader) (node *Inode, code fuse.Status) {
+
+	// We may already know the child because it was created using Create or Mkdir,
+	// from an earlier lookup, or because the nodes were created in advance
+	// (in-memory filesystems).
 	child := parent.GetChild(name)
+
 	if child != nil && child.mountPoint != nil {
 		return c.lookupMountUpdate(out, child.mountPoint)
 	}
