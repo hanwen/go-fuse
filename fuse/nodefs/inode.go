@@ -163,6 +163,7 @@ func (n *Inode) RmChild(name string) (ch *Inode) {
 //////////////////////////////////////////////////////////////
 // private
 
+// addChild adds "child" to our children under name "name".
 // Must be called with treeLock for the mount held.
 func (n *Inode) addChild(name string, child *Inode) {
 	if paranoia {
@@ -177,6 +178,7 @@ func (n *Inode) addChild(name string, child *Inode) {
 	}
 }
 
+// rmChild drops "name" from our children.
 // Must be called with treeLock for the mount held.
 func (n *Inode) rmChild(name string) *Inode {
 	ch := n.children[name]
