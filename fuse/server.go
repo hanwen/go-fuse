@@ -28,21 +28,6 @@ type Server struct {
 	// writeMu serializes close and notify writes
 	writeMu sync.Mutex
 
-	// forgetMu prevents concurrent execution of FORGET, BATCH_FORGET
-	// and LOOKUP. The problem is:
-	//
-	// Thread 1            Thread 2
-	// ----------------    -------------------
-	// BATCH_FORGET 1,2
-	// --> forget 1
-	//                     LOOKUP "foo"
-	//                     --> return NodeId 2
-	// --> forget 2
-	//
-	// At this point the kernel holds a reference to NodeId 2 that has
-	// been forgotten inside go-fuse.
-	forgetMu sync.RWMutex
-
 	// I/O with kernel and daemon.
 	mountFd int
 

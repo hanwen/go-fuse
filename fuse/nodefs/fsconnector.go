@@ -8,6 +8,7 @@ import (
 	"log"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 	"unsafe"
 
@@ -31,6 +32,21 @@ type FileSystemConnector struct {
 
 	// The root of the FUSE file system.
 	rootNode *Inode
+
+	// forgetMu prevents LOOKUP from handing out references to nodes that are
+	// in FORGET processing.
+	//
+	// Thread 1                  Thread 2
+	// --------                  --------
+	// FORGET X "foo"
+	// --> c.inodeMap.Forget()
+	//                           LOOKUP "foo"
+	//                           --> return NodeId Y
+	// --> node.OnForget()
+	//
+	// At this point the kernel would hold a reference to "node" that believes
+	// it has been forgotten.
+	forgetMu sync.RWMutex
 }
 
 // NewOptions generates FUSE options that correspond to libfuse's
@@ -124,6 +140,7 @@ func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
 		return
 	}
 
+	c.forgetMu.Lock()
 	if forgotten, handled := c.inodeMap.Forget(nodeID, forgetCount); forgotten {
 		inode := (*Inode)(unsafe.Pointer(handled))
 		node := inode.Node()
@@ -134,6 +151,7 @@ func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
 			node.OnForget()
 		}
 	}
+	c.forgetMu.Unlock()
 	// TODO - try to drop children even forget was not successful.
 	c.verify()
 }
