@@ -148,6 +148,8 @@ func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
 		inode.mount.treeLock.RUnlock()
 		if l == 0 && inode.fsInode.Deletable() {
 			inode.fsInode.OnForget()
+			// After OnForget, the fsInode must never be used again.
+			inode.fsInode = nil
 		}
 	}
 	c.forgetMu.Unlock()
