@@ -111,7 +111,12 @@ func TestRecursiveMount(t *testing.T) {
 		t.Error("expect EBUSY")
 	}
 
-	f.Close()
+	if err := f.Close(); err != nil {
+		t.Errorf("close: %v", err)
+	}
+
+	// We can't avoid a sleep here: the file handle release is not
+	// synchronized.
 	t.Log("Waiting for kernel to flush file-close to fuse...")
 	time.Sleep(testTtl)
 
