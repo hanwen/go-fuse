@@ -142,6 +142,15 @@ func (n *Inode) AddChild(name string, child *Inode) {
 	n.mount.treeLock.Unlock()
 }
 
+// TreeWatcher is an additional interface that Nodes can implement.
+// If they do, the OnAdd and OnRemove are called for operations on the
+// file system tree. The functions run under a lock, so they should
+// not do blocking operations.
+type TreeWatcher interface {
+	OnAdd(parent *Inode, name string)
+	OnRemove(parent *Inode, name string)
+}
+
 // RmChild removes an inode by name, and returns it. It returns nil if
 // child does not exist.
 func (n *Inode) RmChild(name string) (ch *Inode) {
@@ -163,13 +172,19 @@ func (n *Inode) addChild(name string, child *Inode) {
 		}
 	}
 	n.children[name] = child
+	if w, ok := child.Node().(TreeWatcher); ok && child.mountPoint == nil {
+		w.OnAdd(n, name)
+	}
 }
 
 // Must be called with treeLock for the mount held.
-func (n *Inode) rmChild(name string) (ch *Inode) {
-	ch = n.children[name]
+func (n *Inode) rmChild(name string) *Inode {
+	ch := n.children[name]
 	if ch != nil {
 		delete(n.children, name)
+		if w, ok := ch.Node().(TreeWatcher); ok && ch.mountPoint == nil {
+			w.OnRemove(n, name)
+		}
 	}
 	return ch
 }
