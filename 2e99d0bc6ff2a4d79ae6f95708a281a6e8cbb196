@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "baa041b7_29bb7510",
+        "filename": "CONTRIBUTING",
+        "patchSetId": 1
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2016-04-03T20:37:23Z",
+      "side": 1,
+      "message": "Couldn\u0027t get the https push to work. In the end I used this, which worked fine:\n\ngit push ssh://$USER@review.gerrithub.io:29418/hanwen/go-fuse HEAD:refs/for/master",
+      "revId": "2e99d0bc6ff2a4d79ae6f95708a281a6e8cbb196",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
