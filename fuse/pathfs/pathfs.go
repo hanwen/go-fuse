@@ -324,6 +324,9 @@ func (n *pathInode) rmChild(name string) *pathInode {
 	}
 	ch := childInode.Node().(*pathInode)
 	delete(ch.parents, parentData{n, name})
+	if len(ch.parents) == 0 {
+		delete(n.pathFs.clientInodeMap, ch.clientInode)
+	}
 	return ch
 }
 
