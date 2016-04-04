@@ -16,6 +16,24 @@
       "revId": "2e99d0bc6ff2a4d79ae6f95708a281a6e8cbb196",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "baa041b7_9a419d3c",
+        "filename": "CONTRIBUTING",
+        "patchSetId": 1
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2016-04-04T11:12:57Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "baa041b7_29bb7510",
+      "revId": "2e99d0bc6ff2a4d79ae6f95708a281a6e8cbb196",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
