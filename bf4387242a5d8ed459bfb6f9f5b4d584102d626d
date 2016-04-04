@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "baa041b7_baa901e2",
+        "filename": "fuse/pathfs/pathfs.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2016-04-04T11:19:51Z",
+      "side": 1,
+      "message": "ack.",
+      "parentUuid": "baa041b7_09ff9102",
+      "revId": "bf4387242a5d8ed459bfb6f9f5b4d584102d626d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "baa041b7_491d9965",
         "filename": "fuse/pathfs/pathfs.go",
         "patchSetId": 1
@@ -36,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "baa041b7_fa9f89b2",
+        "filename": "fuse/pathfs/pathfs.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 193,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2016-04-04T11:19:51Z",
+      "side": 1,
+      "message": "it calls node.parent(), which will iterate over an empty map.",
+      "parentUuid": "baa041b7_491d9965",
+      "revId": "bf4387242a5d8ed459bfb6f9f5b4d584102d626d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "baa041b7_860cae43",
         "filename": "fuse/pathfs/pathfs.go",
         "patchSetId": 1
@@ -47,6 +83,24 @@
       "writtenOn": "2016-04-03T19:43:36Z",
       "side": 1,
       "message": "Panic or at least print a warning here? This should not happen.",
+      "revId": "bf4387242a5d8ed459bfb6f9f5b4d584102d626d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "baa041b7_3ab6113e",
+        "filename": "fuse/pathfs/pathfs.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 312,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2016-04-04T11:19:51Z",
+      "side": 1,
+      "message": "added a comment. I think it can happen if you delete an open file.",
+      "parentUuid": "baa041b7_860cae43",
       "revId": "bf4387242a5d8ed459bfb6f9f5b4d584102d626d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
