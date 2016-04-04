@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "baa041b7_076895f4",
+        "filename": "fuse/nodefs/inode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 160,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2016-04-04T21:02:52Z",
+      "side": 1,
+      "message": "follow go style, with full sentences. \n\n  // addChild adds \u0027child\u0027 to our ... \"\n\nhere and throughout",
+      "range": {
+        "startLine": 160,
+        "startChar": 18,
+        "endLine": 160,
+        "endChar": 19
+      },
+      "revId": "c98e91f79d0b9d2a9886881769ecb4274deb6382",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
