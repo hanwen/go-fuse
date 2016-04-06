@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "baa041b7_18feab6b",
+        "filename": "fuse/pathfs/pathfs.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 327,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2016-04-06T23:35:22Z",
+      "side": 1,
+      "message": "If the file is still opened the file handle should have been used for the operation. Just returning \".deleted\" will most likely cause the operation to fail with ENOENT, possibly killing the user application.\n\nI think this should never happen. I placed a warning here and I have not seen it trigger once the bugs were fixed.",
+      "revId": "5e38b5b27b3251342b93a9a008d741a544474bf1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "baa041b7_98f2bb99",
+        "filename": "fuse/pathfs/pathfs.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 421,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2016-04-06T23:35:22Z",
+      "side": 1,
+      "message": "We have to remove ourselves from all of our parents here, otherwise this node can still be handed out from LOOKUP",
+      "revId": "5e38b5b27b3251342b93a9a008d741a544474bf1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
