@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "baa041b7_7bc5b159",
+        "filename": "fuse/pathfs/pathfs.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 327,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2016-04-07T12:41:20Z",
+      "side": 1,
+      "message": "you can have operations without filehandles, unfortunately. FUSE has a mode where you can do read/write without being passed a handle (by returning ENOSYS from Open). Also, there are some operations that don\u0027t pass a file handle (IIRC, you sent a patch related to that not too long ago.)",
+      "parentUuid": "baa041b7_18feab6b",
+      "revId": "5e38b5b27b3251342b93a9a008d741a544474bf1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "baa041b7_98f2bb99",
         "filename": "fuse/pathfs/pathfs.go",
         "patchSetId": 3
@@ -30,6 +48,24 @@
       "writtenOn": "2016-04-06T23:35:22Z",
       "side": 1,
       "message": "We have to remove ourselves from all of our parents here, otherwise this node can still be handed out from LOOKUP",
+      "revId": "5e38b5b27b3251342b93a9a008d741a544474bf1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "baa041b7_c6b0648e",
+        "filename": "fuse/pathfs/pathfs.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 421,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2016-04-07T12:41:20Z",
+      "side": 1,
+      "message": "what happens if you remove this function body entirely? Since recursiveConsiderDrop does rmChild, the cleanup in OnRemove should remove the entry once the last reference disappears.",
+      "parentUuid": "baa041b7_98f2bb99",
       "revId": "5e38b5b27b3251342b93a9a008d741a544474bf1",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
