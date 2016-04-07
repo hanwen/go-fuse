@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "baa041b7_27eeea22",
+        "filename": "fuse/pathfs/pathfs.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 327,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2016-04-07T20:47:07Z",
+      "side": 1,
+      "message": "Ok, I was not aware of the filehandle-less mode.\n\nBut in the normal mode, everything should find itself a filehandle using n.Inode().Files(fuse.O_ANYWRITE), even if it is not passed in from the kernel.",
+      "parentUuid": "baa041b7_7bc5b159",
+      "revId": "5e38b5b27b3251342b93a9a008d741a544474bf1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "baa041b7_98f2bb99",
         "filename": "fuse/pathfs/pathfs.go",
         "patchSetId": 3
@@ -66,6 +84,24 @@
       "side": 1,
       "message": "what happens if you remove this function body entirely? Since recursiveConsiderDrop does rmChild, the cleanup in OnRemove should remove the entry once the last reference disappears.",
       "parentUuid": "baa041b7_98f2bb99",
+      "revId": "5e38b5b27b3251342b93a9a008d741a544474bf1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "baa041b7_876256d7",
+        "filename": "fuse/pathfs/pathfs.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 421,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2016-04-07T20:47:07Z",
+      "side": 1,
+      "message": "recursiveConsiderDrop does not remove the forgotten node (it doesn\u0027t know the parent, so it can\u0027t)",
+      "parentUuid": "baa041b7_c6b0648e",
       "revId": "5e38b5b27b3251342b93a9a008d741a544474bf1",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
