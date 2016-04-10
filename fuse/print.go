@@ -93,11 +93,11 @@ func FlagString(names map[int64]string, fl int64, def string) string {
 }
 
 func (me *ForgetIn) string() string {
-	return fmt.Sprintf("{%d}", me.Nlookup)
+	return fmt.Sprintf("{Nlookup=%d}", me.Nlookup)
 }
 
 func (me *_BatchForgetIn) string() string {
-	return fmt.Sprintf("{%d}", me.Count)
+	return fmt.Sprintf("{Count=%d}", me.Count)
 }
 
 func (me *MkdirIn) string() string {
@@ -195,14 +195,15 @@ func (me *AttrOut) string() string {
 		me.AttrValid, me.AttrValidNsec, &me.Attr)
 }
 
+// Returned by LOOKUP
 func (me *EntryOut) string() string {
-	return fmt.Sprintf("{%d G%d E%d.%09d A%d.%09d %v}",
-		me.NodeId, me.Generation, me.EntryValid, me.EntryValidNsec,
-		me.AttrValid, me.AttrValidNsec, &me.Attr)
+	return fmt.Sprintf("{NodeId: %d Generation=%d EntryValid=%d.%03d AttrValid=%d.%03d Attr=%v}",
+		me.NodeId, me.Generation, me.EntryValid, me.EntryValidNsec/1000000,
+		me.AttrValid, me.AttrValidNsec/1000000, &me.Attr)
 }
 
 func (me *CreateOut) string() string {
-	return fmt.Sprintf("{%v %v}", &me.EntryOut, &me.OpenOut)
+	return fmt.Sprintf("{NodeId: %d Generation=%d %v %v}", me.NodeId, me.Generation, &me.EntryOut, &me.OpenOut)
 }
 
 func (me *StatfsOut) string() string {
@@ -227,6 +228,10 @@ func (o *NotifyInvalDeleteOut) string() string {
 func (f *FallocateIn) string() string {
 	return fmt.Sprintf("{Fh %d off %d sz %d mod 0%o}",
 		f.Fh, f.Offset, f.Length, f.Mode)
+}
+
+func (f *LinkIn) string() string {
+	return fmt.Sprintf("{Oldnodeid: %d}", f.Oldnodeid)
 }
 
 // Print pretty prints FUSE data types for kernel communication

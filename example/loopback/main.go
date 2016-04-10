@@ -7,6 +7,7 @@ import (
 	"log"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"path/filepath"

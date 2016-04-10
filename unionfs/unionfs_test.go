@@ -51,13 +51,15 @@ func setRecursiveWritable(t *testing.T, dir string, writable bool) {
 	}
 }
 
-// Creates 3 directories on a temporary dir: /mnt with the overlayed
-// (unionfs) mount, rw with modifiable data, and ro on the bottom.
-func setupUfs(t *testing.T) (workdir string, cleanup func()) {
+// Creates a temporary dir "wd" with 3 directories:
+// mnt ... overlayed (unionfs) mount
+// rw .... modifiable data
+// ro .... read-only data
+func setupUfs(t *testing.T) (wd string, cleanup func()) {
 	// Make sure system setting does not affect test.
 	syscall.Umask(0)
 
-	wd, _ := ioutil.TempDir("", "unionfs")
+	wd, _ = ioutil.TempDir("", "unionfs")
 	err := os.Mkdir(wd+"/mnt", 0700)
 	if err != nil {
 		t.Fatalf("Mkdir failed: %v", err)
@@ -1504,10 +1506,7 @@ func TestUnionFSBarf(t *testing.T) {
 	if err := os.Rename(wd+"/rw/dir/file", wd+"/rw/file"); err != nil {
 		t.Fatalf("os.Rename: %v", err)
 	}
-
-	err := os.Rename(wd+"/mnt/file", wd+"/mnt/dir2/file")
-	if fuse.ToStatus(err) != fuse.ENOENT {
-		// TODO - this should just succeed?
+	if err := os.Rename(wd+"/mnt/file", wd+"/mnt/dir2/file"); err != nil {
 		t.Fatalf("os.Rename: %v", err)
 	}
 }
