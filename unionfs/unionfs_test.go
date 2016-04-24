@@ -1506,10 +1506,7 @@ func TestUnionFSBarf(t *testing.T) {
 	if err := os.Rename(wd+"/rw/dir/file", wd+"/rw/file"); err != nil {
 		t.Fatalf("os.Rename: %v", err)
 	}
-
-	err := os.Rename(wd+"/mnt/file", wd+"/mnt/dir2/file")
-	if fuse.ToStatus(err) != fuse.ENOENT {
-		// TODO - this should just succeed?
+	if err := os.Rename(wd+"/mnt/file", wd+"/mnt/dir2/file"); err != nil {
 		t.Fatalf("os.Rename: %v", err)
 	}
 }
