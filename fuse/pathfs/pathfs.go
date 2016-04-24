@@ -417,8 +417,21 @@ func (n *pathInode) OnForget() {
 		return
 	}
 	n.pathFs.pathLock.Lock()
-	delete(n.pathFs.clientInodeMap, n.clientInode)
+	parents := make(map[parentData]struct{}, len(n.parents))
+	for k, v := range n.parents {
+		parents[k] = v
+	}
 	n.pathFs.pathLock.Unlock()
+
+	// Remove ourself from all parents. This will also remove the entry from
+	// clientInodeMap when the last parent is removed.
+	for p := range parents {
+		if ch := p.parent.Inode().GetChild(p.name); ch != nil && ch.Node() != n {
+			// Another node has taken our place - leave it alone.
+			continue
+		}
+		p.parent.Inode().RmChild(p.name)
+	}
 }
 
 ////////////////////////////////////////////////////////////////
@@ -521,7 +534,10 @@ func (n *pathInode) Rename(oldName string, newParent nodefs.Node, newName string
 	code = n.fs.Rename(oldPath, newPath, context)
 	if code.Ok() {
 		ch := n.Inode().RmChild(oldName)
-		p.Inode().AddChild(newName, ch)
+		if ch != nil {
+			// oldName may have been forgotten in the meantime.
+			p.Inode().AddChild(newName, ch)
+		}
 	}
 	return code
 }
@@ -609,7 +625,7 @@ func (n *pathInode) findChild(fi *fuse.Attr, name string, fullPath string) (out 
 			out = v[0].node
 
 			if fi.Nlink == 1 {
-				log.Println("Found linked inode, but Nlink == 1", fullPath)
+				log.Println("Found linked inode, but Nlink == 1, ino=%d", fullPath, fi.Ino)
 			}
 		}
 		n.pathFs.pathLock.RUnlock()
@@ -619,7 +635,7 @@ func (n *pathInode) findChild(fi *fuse.Attr, name string, fullPath string) (out 
 		out = n.createChild(name, fi.IsDir())
 		out.clientInode = fi.Ino
 	} else {
-		// should add 'out' as a child to n ?
+		n.Inode().AddChild(name, out.Inode())
 	}
 	return out
 }
