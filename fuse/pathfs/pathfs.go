@@ -371,9 +371,9 @@ func (n *pathInode) OnRemove(parent *nodefs.Inode, name string) {
 		m := n.pathFs.clientInodeMap[n.clientInode]
 
 		idx := -1
-		// Find the entry that has us as the parent
+		// Find the right entry: both "parent" and "name" must match
 		for i, v := range m {
-			if v.parent == n && v.name == name {
+			if v.parent == parentPI && v.name == name {
 				idx = i
 				break
 			}
