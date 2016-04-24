@@ -130,7 +130,7 @@ func (m *portableHandleMap) Forget(h uint64, count int) (forgotten bool, obj *ha
 		log.Panicf("underflow: handle %d, count %d, object %d", h, count, obj.count)
 	} else if obj.count == 0 {
 		m.handles[h] = nil
-		m.freeIds = append(m.freeIds, h)
+		//m.freeIds = append(m.freeIds, h)
 		m.used--
 		forgotten = true
 		obj.handle = 0
