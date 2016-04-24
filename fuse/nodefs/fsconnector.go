@@ -8,6 +8,7 @@ import (
 	"log"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 	"unsafe"
 
@@ -31,6 +32,10 @@ type FileSystemConnector struct {
 
 	// The root of the FUSE file system.
 	rootNode *Inode
+
+	// forgetMu prevents LOOKUP from handing out references to nodes that are
+	// in FORGET processing.
+	forgetMu sync.Mutex
 }
 
 // NewOptions generates FUSE options that correspond to libfuse's
@@ -125,11 +130,21 @@ func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
 		return
 	}
 
+	c.forgetMu.Lock()
+	defer c.forgetMu.Unlock()
 	if forgotten, handled := c.inodeMap.Forget(nodeID, forgetCount); forgotten {
 		node := (*Inode)(unsafe.Pointer(handled))
+
 		node.mount.treeLock.Lock()
-		c.recursiveConsiderDropInode(node)
+		if len(node.children) > 0 || !node.Node().Deletable() ||
+			node == c.rootNode || node.mountPoint != nil {
+
+			node.mount.treeLock.Unlock()
+			return
+		}
 		node.mount.treeLock.Unlock()
+
+		node.fsInode.OnForget()
 	}
 	// TODO - try to drop children even forget was not successful.
 	c.verify()
@@ -138,39 +153,6 @@ func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
 // InodeCount returns the number of inodes registered with the kernel.
 func (c *FileSystemConnector) InodeHandleCount() int {
 	return c.inodeMap.Count()
-}
-
-// Must hold treeLock.
-
-func (c *FileSystemConnector) recursiveConsiderDropInode(n *Inode) (drop bool) {
-	delChildren := []string{}
-	for k, v := range n.children {
-		// Only consider children from the same mount, or
-		// already unmounted mountpoints.
-		if v.mountPoint == nil && c.recursiveConsiderDropInode(v) {
-			delChildren = append(delChildren, k)
-		}
-	}
-	for _, k := range delChildren {
-		ch := n.rmChild(k)
-		if ch == nil {
-			log.Panicf("trying to del child %q, but not present", k)
-		}
-		ch.fsInode.OnForget()
-	}
-
-	if len(n.children) > 0 || !n.Node().Deletable() {
-		return false
-	}
-	if n == c.rootNode || n.mountPoint != nil {
-		return false
-	}
-
-	n.openFilesMutex.Lock()
-	ok := len(n.openFiles) == 0
-	n.openFilesMutex.Unlock()
-
-	return ok
 }
 
 // Finds a node within the currently known inodes, returns the last

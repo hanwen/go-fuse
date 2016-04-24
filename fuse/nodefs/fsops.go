@@ -99,6 +99,10 @@ func (c *rawBridge) Lookup(header *fuse.InHeader, name string, out *fuse.EntryOu
 		return fuse.ENOTDIR
 	}
 	outAttr := (*fuse.Attr)(&out.Attr)
+	// We must hold forgetMu until lookupUpdate has increased the reference count
+	// for child.
+	c.forgetMu.Lock()
+	defer c.forgetMu.Unlock()
 	child, code := c.fsConn().internalLookup(outAttr, parent, name, header)
 	if code == fuse.ENOENT && parent.mount.negativeEntry(out) {
 		return fuse.OK
