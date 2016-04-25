@@ -128,14 +128,33 @@ func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
 	if forgotten, handled := c.inodeMap.Forget(nodeID, forgetCount); forgotten {
 		node := (*Inode)(unsafe.Pointer(handled))
 
+		// Prevent concurrent modification of the tree while we are processing
+		// the FORGET
+		//
+		// TODO actually the lock should be taken BEFORE running inodeMap.Forget().
+		// However, treeLock is per-submount, and we don't know which one to lock
+		// in advance. Still passes fsstress testing just fine.
 		node.mount.treeLock.Lock()
+		defer node.mount.treeLock.Unlock()
+
 		if len(node.children) > 0 || !node.Node().Deletable() ||
 			node == c.rootNode || node.mountPoint != nil {
-
-			node.mount.treeLock.Unlock()
+			// We cannot forget a directory that still has children as these
+			// would become unreachable.
 			return
 		}
-		node.mount.treeLock.Unlock()
+		// We have to remove ourself from all parents.
+		// Create a copy of node.parents so we can safely iterate over it
+		// while modifying the original.
+		parents := make(map[parentData]struct{}, len(node.parents))
+		for k, v := range node.parents {
+			parents[k] = v
+		}
+
+		for p := range parents {
+			// This also modifies node.parents
+			p.parent.rmChild(p.name)
+		}
 
 		node.fsInode.OnForget()
 	}

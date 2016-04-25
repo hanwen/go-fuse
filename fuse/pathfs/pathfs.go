@@ -12,11 +12,11 @@ import (
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 )
 
-// A parent pointer: node should be reachable as parent.children[name]
-type clientInodePath struct {
-	parent *pathInode
-	name   string
-	node   *pathInode
+// refCountedInode is used in clientInodeMap. The reference count is used to decide
+// if the entry in clientInodeMap can be dropped.
+type refCountedInode struct {
+	node     *pathInode
+	refCount int
 }
 
 // PathNodeFs is the file system that can translate an inode back to a
@@ -32,12 +32,11 @@ type PathNodeFs struct {
 	root      *pathInode
 	connector *nodefs.FileSystemConnector
 
-	// protects pathInode.parents
+	// protects clientInodeMap
 	pathLock sync.RWMutex
 
-	// This map lists all the parent links known for a given
-	// nodeId.
-	clientInodeMap map[uint64][]*clientInodePath
+	// This map lists all the parent links known for a given inode number.
+	clientInodeMap map[uint64]*refCountedInode
 
 	options *PathNodeFsOptions
 }
@@ -68,7 +67,7 @@ func (fs *PathNodeFs) ForgetClientInodes() {
 		return
 	}
 	fs.pathLock.Lock()
-	fs.clientInodeMap = map[uint64][]*clientInodePath{}
+	fs.clientInodeMap = map[uint64]*refCountedInode{}
 	fs.root.forgetClientInodes()
 	fs.pathLock.Unlock()
 }
@@ -188,9 +187,7 @@ func (fs *PathNodeFs) AllFiles(name string, mask uint32) []nodefs.WithFlags {
 // NewPathNodeFs returns a file system that translates from inodes to
 // path names.
 func NewPathNodeFs(fs FileSystem, opts *PathNodeFsOptions) *PathNodeFs {
-	root := &pathInode{
-		parents: map[parentData]struct{}{},
-	}
+	root := &pathInode{}
 	root.fs = fs
 
 	if opts == nil {
@@ -200,7 +197,7 @@ func NewPathNodeFs(fs FileSystem, opts *PathNodeFsOptions) *PathNodeFs {
 	pfs := &PathNodeFs{
 		fs:             fs,
 		root:           root,
-		clientInodeMap: map[uint64][]*clientInodePath{},
+		clientInodeMap: map[uint64]*refCountedInode{},
 		options:        opts,
 	}
 	root.pathFs = pfs
@@ -212,19 +209,12 @@ func (fs *PathNodeFs) Root() nodefs.Node {
 	return fs.root
 }
 
-type parentData struct {
-	parent *pathInode
-	name   string
-}
-
 // This is a combination of dentry (entry in the file/directory and
 // the inode). This structure is used to implement glue for FSes where
 // there is a one-to-one mapping of paths and inodes.
 type pathInode struct {
 	pathFs *PathNodeFs
 	fs     FileSystem
-
-	parents map[parentData]struct{}
 
 	// This is to correctly resolve hardlinks of the underlying
 	// real filesystem.
@@ -256,14 +246,6 @@ func (n *pathInode) Inode() *nodefs.Inode {
 	return n.inode
 }
 
-// TODO - return *parentData?
-func (n *pathInode) parent() parentData {
-	for k := range n.parents {
-		return k
-	}
-	return parentData{}
-}
-
 func (n *pathInode) SetInode(node *nodefs.Inode) {
 	n.inode = node
 }
@@ -291,24 +273,24 @@ func (n *pathInode) GetPath() string {
 	// effort to avoid allocations.
 
 	n.pathFs.pathLock.RLock()
-	walkUp := n
+	walkUp := n.Inode()
 
-	// TODO - guess depth? use *parentData?
-	parents := make([]parentData, 0, 10)
+	// TODO - guess depth?
+	segments := make([]string, 0, 10)
 	for {
-		p := walkUp.parent()
-		if p.parent == nil {
+		parent, name := walkUp.Parent()
+		if parent == nil {
 			break
 		}
-		parents = append(parents, p)
-		pathLen += len(p.name) + 1
-		walkUp = p.parent
+		segments = append(segments, name)
+		pathLen += len(name) + 1
+		walkUp = parent
 	}
 	pathLen--
 
 	pathBytes := make([]byte, 0, pathLen)
-	for i := len(parents) - 1; i >= 0; i-- {
-		pathBytes = append(pathBytes, parents[i].name...)
+	for i := len(segments) - 1; i >= 0; i-- {
+		pathBytes = append(pathBytes, segments[i]...)
 		if i > 0 {
 			pathBytes = append(pathBytes, '/')
 		}
@@ -320,7 +302,7 @@ func (n *pathInode) GetPath() string {
 		log.Printf("Inode = %q (%s)", path, n.fs.String())
 	}
 
-	if walkUp != n.pathFs.root {
+	if walkUp != n.pathFs.root.Inode() {
 		// This might happen if the node has been removed from
 		// the tree using unlink, but we are forced to run
 		// some file system operation, because the file is
@@ -334,20 +316,9 @@ func (n *pathInode) GetPath() string {
 }
 
 func (n *pathInode) OnAdd(parent *nodefs.Inode, name string) {
-	n.pathFs.pathLock.Lock()
-	defer n.pathFs.pathLock.Unlock()
-
-	pathParent := parent.Node().(*pathInode)
-	n.parents[parentData{pathParent, name}] = struct{}{}
-
-	if n.clientInode > 0 && n.pathFs.options.ClientInodes {
-		m := n.pathFs.clientInodeMap[n.clientInode]
-		e := &clientInodePath{
-			pathParent, name, n,
-		}
-		m = append(m, e)
-		n.pathFs.clientInodeMap[n.clientInode] = m
-	}
+	// TODO it would be logical to increment the clientInodeMap reference count
+	// here. However, as the inode number is loaded lazily, we cannot do it
+	// yet.
 }
 
 func (n *pathInode) rmChild(name string) *pathInode {
@@ -359,79 +330,40 @@ func (n *pathInode) rmChild(name string) *pathInode {
 }
 
 func (n *pathInode) OnRemove(parent *nodefs.Inode, name string) {
+	if n.clientInode == 0 || !n.pathFs.options.ClientInodes || n.Inode().IsDir() {
+		return
+	}
+
 	n.pathFs.pathLock.Lock()
-	defer n.pathFs.pathLock.Unlock()
-
-	// TODO - paranoia: what if the cast fails? Can this happen?
-	parentPI := parent.Node().(*pathInode)
-
-	delete(n.parents, parentData{parentPI, name})
-
-	if n.clientInode > 0 && n.pathFs.options.ClientInodes {
-		m := n.pathFs.clientInodeMap[n.clientInode]
-
-		idx := -1
-		// Find the right entry: both "parent" and "name" must match
-		for i, v := range m {
-			if v.parent == parentPI && v.name == name {
-				idx = i
-				break
-			}
-		}
-		if idx >= 0 {
-			// Delete the "idx" entry from the middle of the slice by moving the
-			// last element over it and truncating the slice
-			m[idx] = m[len(m)-1]
-			m = m[:len(m)-1]
-			n.pathFs.clientInodeMap[n.clientInode] = m
-		}
-		if len(m) == 0 {
+	r := n.pathFs.clientInodeMap[n.clientInode]
+	if r != nil {
+		r.refCount--
+		if r.refCount == 0 {
 			delete(n.pathFs.clientInodeMap, n.clientInode)
 		}
 	}
+	n.pathFs.pathLock.Unlock()
 }
 
-// Handle a change in clientInode number for an other wise unchanged
-// pathInode.
+// setClientInode sets the inode number if has not been set yet.
+// This function exists to allow lazy-loading of the inode number.
 func (n *pathInode) setClientInode(ino uint64) {
-	if ino == n.clientInode || !n.pathFs.options.ClientInodes {
+	if ino == 0 || n.clientInode != 0 || !n.pathFs.options.ClientInodes || n.Inode().IsDir() {
 		return
 	}
 	n.pathFs.pathLock.Lock()
 	defer n.pathFs.pathLock.Unlock()
-	if n.clientInode != 0 {
-		delete(n.pathFs.clientInodeMap, n.clientInode)
-	}
-
 	n.clientInode = ino
-	if p := n.parent(); p.parent != nil {
-		e := &clientInodePath{
-			p.parent, p.name, n,
-		}
-		n.pathFs.clientInodeMap[ino] = append(n.pathFs.clientInodeMap[ino], e)
-	}
+	n.pathFs.clientInodeMap[ino] = &refCountedInode{node: n, refCount: 1}
 }
 
 func (n *pathInode) OnForget() {
-	if n.clientInode == 0 || !n.pathFs.options.ClientInodes {
+	if n.clientInode == 0 || !n.pathFs.options.ClientInodes || n.Inode().IsDir() {
 		return
 	}
 	n.pathFs.pathLock.Lock()
-	parents := make(map[parentData]struct{}, len(n.parents))
-	for k, v := range n.parents {
-		parents[k] = v
-	}
+	delete(n.pathFs.clientInodeMap, n.clientInode)
 	n.pathFs.pathLock.Unlock()
-
-	// Remove ourself from all parents. This will also remove the entry from
-	// clientInodeMap when the last parent is removed.
-	for p := range parents {
-		if ch := p.parent.Inode().GetChild(p.name); ch != nil && ch.Node() != n {
-			// Another node has taken our place - leave it alone.
-			continue
-		}
-		p.parent.Inode().RmChild(p.name)
-	}
 }
 
 ////////////////////////////////////////////////////////////////
@@ -533,6 +465,8 @@ func (n *pathInode) Rename(oldName string, newParent nodefs.Node, newName string
 	newPath := filepath.Join(p.GetPath(), newName)
 	code = n.fs.Rename(oldPath, newPath, context)
 	if code.Ok() {
+		// The rename may have overwritten another file, remove it from the tree
+		p.Inode().RmChild(newName)
 		ch := n.Inode().RmChild(oldName)
 		if ch != nil {
 			// oldName may have been forgotten in the meantime.
@@ -584,13 +518,12 @@ func (n *pathInode) Create(name string, flags uint32, mode uint32, context *fuse
 
 func (n *pathInode) createChild(name string, isDir bool) *pathInode {
 	i := &pathInode{
-		parents: map[parentData]struct{}{},
+		fs:     n.fs,
+		pathFs: n.pathFs,
 	}
 
-	i.fs = n.fs
-	i.pathFs = n.pathFs
-
 	n.Inode().NewChild(name, isDir, i)
+
 	return i
 }
 
@@ -620,12 +553,12 @@ func (n *pathInode) Lookup(out *fuse.Attr, name string, context *fuse.Context) (
 func (n *pathInode) findChild(fi *fuse.Attr, name string, fullPath string) (out *pathInode) {
 	if fi.Ino > 0 {
 		n.pathFs.pathLock.RLock()
-		v := n.pathFs.clientInodeMap[fi.Ino]
-		if len(v) > 0 {
-			out = v[0].node
-
+		r := n.pathFs.clientInodeMap[fi.Ino]
+		if r != nil {
+			out = r.node
+			r.refCount++
 			if fi.Nlink == 1 {
-				log.Println("Found linked inode, but Nlink == 1, ino=%d", fullPath, fi.Ino)
+				log.Printf("Found linked inode, but Nlink == 1, ino=%d, fullPath=%q", fi.Ino, fullPath)
 			}
 		}
 		n.pathFs.pathLock.RUnlock()
@@ -633,7 +566,7 @@ func (n *pathInode) findChild(fi *fuse.Attr, name string, fullPath string) (out 
 
 	if out == nil {
 		out = n.createChild(name, fi.IsDir())
-		out.clientInode = fi.Ino
+		out.setClientInode(fi.Ino)
 	} else {
 		n.Inode().AddChild(name, out.Inode())
 	}
