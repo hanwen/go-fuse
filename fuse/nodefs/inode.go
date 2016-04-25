@@ -7,6 +7,11 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
+type parentData struct {
+	parent *Inode
+	name   string
+}
+
 // An Inode reflects the kernel's idea of the inode.  Inodes have IDs
 // that are communicated to the kernel, and they have a tree
 // structure: a directory Inode may contain named children.  Each
@@ -32,6 +37,8 @@ type Inode struct {
 
 	// All data below is protected by treeLock.
 	children map[string]*Inode
+	// Due to hard links, an Inode can have many parents.
+	parents map[parentData]struct{}
 
 	// Non-nil if this inode is a mountpoint, ie. the Root of a
 	// NodeFileSystem.
@@ -40,6 +47,7 @@ type Inode struct {
 
 func newInode(isDir bool, fsNode Node) *Inode {
 	me := new(Inode)
+	me.parents = map[parentData]struct{}{}
 	if isDir {
 		me.children = make(map[string]*Inode, initDirSize)
 	}
@@ -73,6 +81,19 @@ func (n *Inode) Children() (out map[string]*Inode) {
 	n.mount.treeLock.RUnlock()
 
 	return out
+}
+
+// Parent returns a random parent and the name this inode has under this parent.
+// This function can be used to walk up the directory tree. It will not cross
+// sub-mounts.
+func (n *Inode) Parent() (parent *Inode, name string) {
+	if n.mountPoint != nil {
+		return nil, ""
+	}
+	for k := range n.parents {
+		return k.parent, k.name
+	}
+	return nil, ""
 }
 
 // FsChildren returns all the children from the same filesystem.  It
@@ -144,7 +165,7 @@ func (n *Inode) AddChild(name string, child *Inode) {
 
 // TreeWatcher is an additional interface that Nodes can implement.
 // If they do, the OnAdd and OnRemove are called for operations on the
-// file system tree. The functions run under a lock, so they should
+// file system tree. These functions run under a lock, so they should
 // not do blocking operations.
 type TreeWatcher interface {
 	OnAdd(parent *Inode, name string)
@@ -173,17 +194,20 @@ func (n *Inode) addChild(name string, child *Inode) {
 		}
 	}
 	n.children[name] = child
+	child.parents[parentData{n, name}] = struct{}{}
 	if w, ok := child.Node().(TreeWatcher); ok && child.mountPoint == nil {
 		w.OnAdd(n, name)
 	}
 }
 
-// rmChild drops "name" from our children.
+// rmChild throws out child "name". This means (1) deleting "name" from our
+// "children" map and (2) deleting ourself from the child's "parents" map.
 // Must be called with treeLock for the mount held.
 func (n *Inode) rmChild(name string) *Inode {
 	ch := n.children[name]
 	if ch != nil {
 		delete(n.children, name)
+		delete(ch.parents, parentData{n, name})
 		if w, ok := ch.Node().(TreeWatcher); ok && ch.mountPoint == nil {
 			w.OnRemove(n, name)
 		}

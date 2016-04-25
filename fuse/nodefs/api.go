@@ -37,14 +37,20 @@ type Node interface {
 	// for directory Nodes.
 	Lookup(out *fuse.Attr, name string, context *fuse.Context) (*Inode, fuse.Status)
 
-	// Deletable() should return true if this inode may be
-	// discarded from the children list. This will be called from
-	// within the treeLock critical section, so you cannot look at
-	// other inodes.
+	// Deletable() should return true if this node may be discarded once
+	// the kernel forgets its reference.
+	// If it returns false, OnForget will never get called for this node. This
+	// is appropriate if the filesystem has no persistent backing store
+	// (in-memory filesystems) where discarding the node loses the stored data.
+	// Deletable will be called from within the treeLock critical section, so you
+	// cannot look at other nodes.
 	Deletable() bool
 
-	// OnForget is called when the reference to this inode is
-	// dropped from the tree.
+	// OnForget is called when the kernel forgets its reference to this node and
+	// sends a FORGET request. It should perform cleanup and free memory as
+	// appropriate for the filesystem.
+	// OnForget is not called if the node is a directory and has children.
+	// This is called from within a treeLock critical section.
 	OnForget()
 
 	// Misc.
