@@ -131,11 +131,28 @@ func (c *FileSystemConnector) forgetUpdate(nodeID uint64, forgetCount int) {
 		node.mount.treeLock.Lock()
 		if len(node.children) > 0 || !node.Node().Deletable() ||
 			node == c.rootNode || node.mountPoint != nil {
-
+			// We cannot forget a directory that still has children as these
+			// would become unreachable.
 			node.mount.treeLock.Unlock()
 			return
 		}
+		// We have to remove ourself from all parents.
+		// Create a copy of node.parents so we can safely iterate over it
+		// while modifying the original.
+		parents := make(map[parentData]struct{}, len(node.parents))
+		for k, v := range node.parents {
+			parents[k] = v
+		}
 		node.mount.treeLock.Unlock()
+
+		for p := range parents {
+			if ch := p.parent.GetChild(p.name); ch != nil && ch != node {
+				// Another node has taken our place - leave it alone.
+				continue
+			}
+			// This also modifies node.parents
+			p.parent.RmChild(p.name)
+		}
 
 		node.fsInode.OnForget()
 	}
