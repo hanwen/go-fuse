@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "baa041b7_aa271e11",
+        "filename": "fuse/nodefs/fsconnector.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 132,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2016-04-25T07:32:17Z",
+      "side": 1,
+      "message": "this means each node is only considered when we get a forget message for it; this has implications for the assumptions we have for Deletable() - probably it should be constant across the lifetime for the inode object, or we\u0027d retain nodes indefinitely. Can you phrase this requirement in the comments for the API?",
+      "range": {
+        "startLine": 132,
+        "startChar": 44,
+        "endLine": 132,
+        "endChar": 53
+      },
+      "revId": "37dae16f3a5e70ad57f37910d4d8e4e877074a29",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
