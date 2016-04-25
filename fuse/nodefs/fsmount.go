@@ -27,8 +27,9 @@ type fileSystemMount struct {
 	// Options for the mount.
 	options *Options
 
-	// Protects Children hashmaps within the mount.  treeLock
-	// should be acquired before openFilesLock.
+	// Protects the "children" and "parents" hashmaps of the inodes
+	// within the mount.
+	// treeLock should be acquired before openFilesLock.
 	//
 	// If multiple treeLocks must be acquired, the treeLocks
 	// closer to the root must be acquired first.
