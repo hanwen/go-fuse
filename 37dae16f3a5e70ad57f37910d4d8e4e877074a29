@@ -22,6 +22,30 @@
       "revId": "37dae16f3a5e70ad57f37910d4d8e4e877074a29",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "baa041b7_cab9427b",
+        "filename": "fuse/nodefs/fsconnector.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 132,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2016-04-25T08:12:19Z",
+      "side": 1,
+      "message": "Expanded the text, see https://review.gerrithub.io/#/c/274105/ - ok?",
+      "parentUuid": "baa041b7_aa271e11",
+      "range": {
+        "startLine": 132,
+        "startChar": 44,
+        "endLine": 132,
+        "endChar": 53
+      },
+      "revId": "37dae16f3a5e70ad57f37910d4d8e4e877074a29",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
