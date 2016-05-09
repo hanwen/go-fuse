@@ -1,0 +1,67 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "baa041b7_b0fe3dac",
+        "filename": "fuse/nodefs/fsconnector.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 146,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2016-05-09T09:11:37Z",
+      "side": 1,
+      "message": "this looks fishy and racy. CAn you move this lower? That would also obviate the GetChild check below.",
+      "revId": "a01ba14deb42b98742c73a6ad0936255dedbc45e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "baa041b7_f0e60514",
+        "filename": "fuse/nodefs/inode.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 88,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2016-05-09T09:11:37Z",
+      "side": 1,
+      "message": "it will be interesting to see what happens if there is a FORGET on a submount, and then you try to unmount the submount.",
+      "range": {
+        "startLine": 88,
+        "startChar": 3,
+        "endLine": 88,
+        "endChar": 6
+      },
+      "revId": "a01ba14deb42b98742c73a6ad0936255dedbc45e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "baa041b7_d0ef81e7",
+        "filename": "fuse/pathfs/pathfs.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2016-05-09T09:11:37Z",
+      "side": 1,
+      "message": "Cnt -\u003e Count",
+      "range": {
+        "startLine": 19,
+        "startChar": 8,
+        "endLine": 19,
+        "endChar": 11
+      },
+      "revId": "a01ba14deb42b98742c73a6ad0936255dedbc45e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
