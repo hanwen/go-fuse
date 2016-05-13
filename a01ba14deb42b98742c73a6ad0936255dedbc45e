@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "baa041b7_32d69cf1",
+        "filename": "fuse/nodefs/fsconnector.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 146,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2016-05-13T21:04:21Z",
+      "side": 1,
+      "message": "I\u0027ll try to get this done late next week",
+      "parentUuid": "baa041b7_b0fe3dac",
+      "revId": "a01ba14deb42b98742c73a6ad0936255dedbc45e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "baa041b7_f0e60514",
         "filename": "fuse/nodefs/inode.go",
         "patchSetId": 2
