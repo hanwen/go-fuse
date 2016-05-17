@@ -940,3 +940,20 @@ func TestSpecialEntries(t *testing.T) {
 		t.Errorf("directory is empty, entries '.' and '..' are missing")
 	}
 }
+
+// Check that chgrp(1) works
+func TestChgrp(t *testing.T) {
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
+
+	f, err := os.Create(tc.mnt + "/file")
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+	defer f.Close()
+
+	err = f.Chown(-1, os.Getgid())
+	if err != nil {
+		t.Errorf("Chown failed: %v", err)
+	}
+}
