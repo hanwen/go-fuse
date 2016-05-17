@@ -201,7 +201,15 @@ func (c *rawBridge) SetAttr(input *fuse.SetAttrIn, out *fuse.AttrOut) (code fuse
 		code = node.fsInode.Chmod(f, permissions, &input.Context)
 	}
 	if code.Ok() && (input.Valid&(fuse.FATTR_UID|fuse.FATTR_GID) != 0) {
-		code = node.fsInode.Chown(f, uint32(input.Uid), uint32(input.Gid), &input.Context)
+		var uid uint32 = ^uint32(0) // means "do not change" in chown(2)
+		var gid uint32 = ^uint32(0)
+		if input.Valid&fuse.FATTR_UID != 0 {
+			uid = input.Uid
+		}
+		if input.Valid&fuse.FATTR_GID != 0 {
+			gid = input.Gid
+		}
+		code = node.fsInode.Chown(f, uid, gid, &input.Context)
 	}
 	if code.Ok() && input.Valid&fuse.FATTR_SIZE != 0 {
 		code = node.fsInode.Truncate(f, input.Size, &input.Context)
