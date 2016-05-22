@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "baa041b7_4a2f0e88",
+        "filename": "fuse/nodefs/fsconnector.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 146,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2016-05-22T13:39:19Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "baa041b7_32d69cf1",
+      "revId": "a01ba14deb42b98742c73a6ad0936255dedbc45e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "baa041b7_f0e60514",
         "filename": "fuse/nodefs/inode.go",
         "patchSetId": 2
@@ -60,6 +78,30 @@
     },
     {
       "key": {
+        "uuid": "baa041b7_2a4f2a6c",
+        "filename": "fuse/nodefs/inode.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 88,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2016-05-22T13:39:19Z",
+      "side": 1,
+      "message": "I cannot comment on that, but the sub-mount check is needed as these test cases fail otherwise:\n\n--- FAIL: TestRecursiveMount (0.02s)\n\tmount_test.go:107: Open failed: open /tmp/go-fuse256491005/mnt/mnt/hello.txt: no such file or directory\n--- FAIL: TestDeletedUnmount (0.02s)\n\tmount_test.go:141: Create failed: open /tmp/go-fuse443911480/mnt/mnt/hello.txt: input/output error",
+      "parentUuid": "baa041b7_f0e60514",
+      "range": {
+        "startLine": 88,
+        "startChar": 3,
+        "endLine": 88,
+        "endChar": 6
+      },
+      "revId": "a01ba14deb42b98742c73a6ad0936255dedbc45e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "baa041b7_d0ef81e7",
         "filename": "fuse/pathfs/pathfs.go",
         "patchSetId": 2
@@ -71,6 +113,30 @@
       "writtenOn": "2016-05-09T09:11:37Z",
       "side": 1,
       "message": "Cnt -\u003e Count",
+      "range": {
+        "startLine": 19,
+        "startChar": 8,
+        "endLine": 19,
+        "endChar": 11
+      },
+      "revId": "a01ba14deb42b98742c73a6ad0936255dedbc45e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "baa041b7_ca22fea2",
+        "filename": "fuse/pathfs/pathfs.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2016-05-22T13:39:19Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "baa041b7_d0ef81e7",
       "range": {
         "startLine": 19,
         "startChar": 8,
