@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "baa041b7_ee3393f4",
+        "filename": "fuse/nodefs/fsconnector.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2016-05-23T12:24:40Z",
+      "side": 1,
+      "message": "I think this needs to be \n\n  forgotten.mount\n\nsince the lock is per-filesystem, a lookup in a submount takes the per-FS lock.",
+      "revId": "0705d8bfd8f3e1f3542227d691ddff0751b5dce8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
