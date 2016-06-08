@@ -957,3 +957,24 @@ func TestChgrp(t *testing.T) {
 		t.Errorf("Chown failed: %v", err)
 	}
 }
+
+// Check that lchown works
+// Tested by operating on a dangling symlink
+func TestLchown(t *testing.T) {
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
+
+	name := tc.mnt + "/symlink"
+	err := os.Symlink("/target/does/not/exist", name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = os.Chown(name, os.Getuid(), os.Getgid())
+	if err == nil {
+		t.Error("Chown on dangling symlink should fail")
+	}
+	err = os.Lchown(name, os.Getuid(), os.Getgid())
+	if err != nil {
+		t.Error(err)
+	}
+}

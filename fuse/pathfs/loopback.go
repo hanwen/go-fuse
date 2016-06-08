@@ -110,7 +110,7 @@ func (fs *loopbackFileSystem) Chmod(path string, mode uint32, context *fuse.Cont
 }
 
 func (fs *loopbackFileSystem) Chown(path string, uid uint32, gid uint32, context *fuse.Context) (code fuse.Status) {
-	return fuse.ToStatus(os.Chown(fs.GetPath(path), int(uid), int(gid)))
+	return fuse.ToStatus(os.Lchown(fs.GetPath(path), int(uid), int(gid)))
 }
 
 func (fs *loopbackFileSystem) Truncate(path string, offset uint64, context *fuse.Context) (code fuse.Status) {
