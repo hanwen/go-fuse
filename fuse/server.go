@@ -35,8 +35,6 @@ type Server struct {
 
 	opts *MountOptions
 
-	started chan struct{}
-
 	// Pool for request structs.
 	reqPool sync.Pool
 
@@ -138,7 +136,6 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 	opts = &o
 	ms := &Server{
 		fileSystem: fs,
-		started:    make(chan struct{}),
 		opts:       &o,
 		// OSX has races when multiple routines read from the
 		// FUSE device: on unmount, sometime some reads do not
@@ -181,9 +178,11 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		return nil, err
 	}
 
-	ms.fileSystem.Init(ms)
 	ms.mountPoint = mountPoint
 	ms.mountFd = fd
+
+	ms.handleInit()
+
 	return ms, nil
 }
 
@@ -309,6 +308,24 @@ func (ms *Server) Serve() {
 	ms.writeMu.Unlock()
 }
 
+func (ms *Server) handleInit() {
+	// The first request should be INIT; read it synchronously,
+	// and don't spawn new readers.
+	orig := ms.singleReader
+	ms.singleReader = true
+	req, errNo := ms.readRequest(false)
+	ms.singleReader = orig
+
+	if errNo != OK || req == nil {
+		return
+	}
+	ms.handleRequest(req)
+
+	// INIT is handled. Init the file system, but don't accept
+	// incoming requests, so the file system can setup itself.
+	ms.fileSystem.Init(ms)
+}
+
 func (ms *Server) loop(exitIdle bool) {
 	defer ms.loops.Done()
 exit:
@@ -392,9 +409,6 @@ func (ms *Server) write(req *request) Status {
 	}
 
 	s := ms.systemWrite(req, header)
-	if req.inHeader.Opcode == _OP_INIT {
-		close(ms.started)
-	}
 	return s
 }
 
@@ -513,5 +527,5 @@ func init() {
 // avoid racing between accessing the (empty) mountpoint, and the OS
 // trying to setup the user-space mount.
 func (ms *Server) WaitMount() {
-	<-ms.started
+	// TODO(hanwen): see if this can safely be removed.
 }
