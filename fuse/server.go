@@ -182,7 +182,6 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		return nil, err
 	}
 
-	ms.fileSystem.Init(ms)
 	ms.mountPoint = mountPoint
 	ms.mountFd = fd
 	return ms, nil
@@ -302,6 +301,17 @@ func (ms *Server) recordStats(req *request) {
 //
 // Each filesystem operation executes in a separate goroutine.
 func (ms *Server) Serve() {
+	// The first request should be INIT; read it synchronously.
+	req, errNo := ms.readRequest(false)
+	if errNo != OK || req == nil {
+		return
+	}
+	ms.handleRequest(req)
+
+	// INIT is handled. Init the file system, but don't accept
+	// incoming requests, so the file system can setup itself.
+	ms.fileSystem.Init(ms)
+
 	ms.loops.Add(1)
 	ms.loop(false)
 	ms.loops.Wait()
