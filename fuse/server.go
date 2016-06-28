@@ -181,9 +181,11 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		return nil, err
 	}
 
-	ms.fileSystem.Init(ms)
 	ms.mountPoint = mountPoint
 	ms.mountFd = fd
+
+	ms.handleInit()
+
 	return ms, nil
 }
 
@@ -308,6 +310,24 @@ func (ms *Server) Serve() {
 	ms.writeMu.Lock()
 	syscall.Close(ms.mountFd)
 	ms.writeMu.Unlock()
+}
+
+func (ms *Server) handleInit() {
+	// The first request should be INIT; read it synchronously,
+	// and don't spawn new readers.
+	orig := ms.singleReader
+	ms.singleReader = true
+	req, errNo := ms.readRequest(false)
+	ms.singleReader = orig
+
+	if errNo != OK || req == nil {
+		return
+	}
+	ms.handleRequest(req)
+
+	// INIT is handled. Init the file system, but don't accept
+	// incoming requests, so the file system can setup itself.
+	ms.fileSystem.Init(ms)
 }
 
 func (ms *Server) loop(exitIdle bool) {

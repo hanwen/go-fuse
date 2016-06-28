@@ -55,6 +55,7 @@ func (c *rawBridge) String() string {
 
 func (c *rawBridge) Init(s *fuse.Server) {
 	c.server = s
+	c.rootNode.Node().OnMount((*FileSystemConnector)(c))
 }
 
 func (c *FileSystemConnector) lookupMountUpdate(out *fuse.Attr, mount *fileSystemMount) (node *Inode, code fuse.Status) {

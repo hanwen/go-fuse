@@ -232,7 +232,6 @@ func (c *FileSystemConnector) LookupNode(parent *Inode, path string) *Inode {
 func (c *FileSystemConnector) mountRoot(opts *Options) {
 	c.rootNode.mountFs(opts)
 	c.rootNode.mount.connector = c
-	c.rootNode.Node().OnMount(c)
 	c.verify()
 }
 
