@@ -290,11 +290,12 @@ func (fs *autoUnionFs) Symlink(pointedTo string, linkName string, context *fuse.
 func (fs *autoUnionFs) SetDebug(b bool) {
 	// TODO(hanwen): this should use locking.
 	fs.debug = b
-	fs.nodeFs.SetDebug(b)
-
-	conn := fs.nodeFs.Connector()
-	conn.SetDebug(b)
-	conn.Server().SetDebug(b)
+	if fs.nodeFs != nil {
+		fs.nodeFs.SetDebug(b)
+		conn := fs.nodeFs.Connector()
+		conn.SetDebug(b)
+		conn.Server().SetDebug(b)
+	}
 }
 
 func (fs *autoUnionFs) hasDebug() bool {
