@@ -18,7 +18,6 @@ var xattrGolden = map[string][]byte{
 var xattrFilename = "filename"
 
 type XAttrTestFs struct {
-	tester   *testing.T
 	filename string
 	attrs    map[string][]byte
 
@@ -52,7 +51,6 @@ func (fs *XAttrTestFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, 
 }
 
 func (fs *XAttrTestFs) SetXAttr(name string, attr string, data []byte, flags int, context *fuse.Context) fuse.Status {
-	fs.tester.Log("SetXAttr", name, attr, string(data), flags)
 	if name != fs.filename {
 		return fuse.ENOENT
 	}
@@ -70,7 +68,6 @@ func (fs *XAttrTestFs) GetXAttr(name string, attr string, context *fuse.Context)
 	if !ok {
 		return nil, fuse.ENODATA
 	}
-	fs.tester.Log("GetXAttr", string(v))
 	return v, fuse.OK
 }
 
@@ -90,7 +87,6 @@ func (fs *XAttrTestFs) RemoveXAttr(name string, attr string, context *fuse.Conte
 		return fuse.ENOENT
 	}
 	_, ok := fs.attrs[attr]
-	fs.tester.Log("RemoveXAttr", name, attr, ok)
 	if !ok {
 		return fuse.ENODATA
 	}
@@ -105,7 +101,6 @@ func readXAttr(p, a string) (val []byte, err error) {
 
 func xattrTestCase(t *testing.T, nm string, m map[string][]byte) (mountPoint string, cleanup func()) {
 	xfs := NewXAttrFs(nm, m)
-	xfs.tester = t
 	mountPoint, err := ioutil.TempDir("", "go-fuse-xattr_test")
 	if err != nil {
 		t.Fatalf("TempDir failed: %v", err)
