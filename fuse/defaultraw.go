@@ -82,7 +82,7 @@ func (fs *defaultRawFileSystem) GetXAttrSize(header *InHeader, attr string) (siz
 }
 
 func (fs *defaultRawFileSystem) GetXAttrData(header *InHeader, attr string) (data []byte, code Status) {
-	return nil, ENOSYS
+	return nil, ENODATA
 }
 
 func (fs *defaultRawFileSystem) SetXAttr(input *SetXAttrIn, attr string, data []byte) Status {
