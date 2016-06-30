@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "baa041b7_2031ed0b",
+        "filename": "fuse/test/fsetattr_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 163,
+      "author": {
+        "id": 1008808
+      },
+      "writtenOn": "2016-06-30T15:56:41Z",
+      "side": 1,
+      "message": "why not\n\nif err :\u003d state.Unmount(); err !\u003d nil {\n...",
+      "range": {
+        "startLine": 162,
+        "startChar": 2,
+        "endLine": 163,
+        "endChar": 17
+      },
+      "revId": "393e3059f2204016f565c6504e41292cb4125142",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
