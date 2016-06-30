@@ -583,6 +583,7 @@ func init() {
 		_OP_NOTIFY_INODE:  func(ptr unsafe.Pointer) interface{} { return (*NotifyInvalInodeOut)(ptr) },
 		_OP_NOTIFY_DELETE: func(ptr unsafe.Pointer) interface{} { return (*NotifyInvalDeleteOut)(ptr) },
 		_OP_STATFS:        func(ptr unsafe.Pointer) interface{} { return (*StatfsOut)(ptr) },
+		_OP_SYMLINK:       func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
 	} {
 		operationHandlers[op].DecodeOut = f
 	}
