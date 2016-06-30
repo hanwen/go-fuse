@@ -106,7 +106,7 @@ func (n *defaultNode) OpenDir(context *fuse.Context) ([]fuse.DirEntry, fuse.Stat
 }
 
 func (n *defaultNode) GetXAttr(attribute string, context *fuse.Context) (data []byte, code fuse.Status) {
-	return nil, fuse.ENOSYS
+	return nil, fuse.ENODATA
 }
 
 func (n *defaultNode) RemoveXAttr(attr string, context *fuse.Context) fuse.Status {
