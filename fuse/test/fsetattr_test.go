@@ -159,7 +159,10 @@ func setupFAttrTest(t *testing.T, fs pathfs.FileSystem) (dir string, clean func(
 	}
 
 	return dir, func() {
-		if state.Unmount() == nil {
+		err := state.Unmount()
+		if err != nil {
+			t.Errorf("cleanup: Unmount: %v", err)
+		} else {
 			os.RemoveAll(dir)
 		}
 	}
@@ -260,6 +263,9 @@ func TestFSetAttr(t *testing.T) {
 	if code := syscall.Fsync(int(f.Fd())); code != nil {
 		t.Error("Fsync failed:", os.NewSyscallError("Fsync", code))
 	}
+
+	// Close the file, otherwise we can't unmount.
+	f.Close()
 
 	// Shutdown the FUSE FS so we can safely look at fSetAttrFs
 	clean()
