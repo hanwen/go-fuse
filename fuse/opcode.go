@@ -169,6 +169,11 @@ const _SECURITY_ACL = "system.posix_acl_access"
 const _SECURITY_ACL_DEFAULT = "system.posix_acl_default"
 
 func doGetXAttr(server *Server, req *request) {
+	if server.opts.DisableXAttrs {
+		req.status = ENOSYS
+		return
+	}
+
 	if server.opts.IgnoreSecurityLabels && req.inHeader.Opcode == _OP_GETXATTR {
 		fn := req.filenames[0]
 		if fn == _SECURITY_CAPABILITY || fn == _SECURITY_ACL_DEFAULT ||
@@ -184,6 +189,9 @@ func doGetXAttr(server *Server, req *request) {
 		out := (*GetXAttrOut)(req.outData)
 		switch req.inHeader.Opcode {
 		case _OP_GETXATTR:
+			// TODO(hanwen): double check this. For getxattr, input.Size
+			// field refers to the size of the attribute, so it usually
+			// is not 0.
 			sz, code := server.fileSystem.GetXAttrSize(req.inHeader, req.filenames[0])
 			if code.Ok() {
 				out.Size = uint32(sz)
