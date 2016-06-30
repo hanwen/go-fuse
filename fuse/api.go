@@ -61,6 +61,10 @@ type MountOptions struct {
 
 	// If set, wrap the file system in a single-threaded locking wrapper.
 	SingleThreaded bool
+
+	// If set, return ENOSYS for Getxattr calls, so the kernel does not issue any
+	// Xattr operations at all.
+	DisableXAttrs bool
 }
 
 // RawFileSystem is an interface close to the FUSE wire protocol.
