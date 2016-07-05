@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "baa041b7_aa070c80",
+        "filename": "fuse/nodefs/fileless_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 43,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2016-07-05T19:05:47Z",
+      "side": 1,
+      "message": "Unrelated change?",
+      "revId": "4cd39b5720f5b4ca9a8b11d646247a6b50e4694f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "baa041b7_6a01046a",
+        "filename": "fuse/nodefs/fsops.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2016-07-05T19:05:47Z",
+      "side": 1,
+      "message": "Typo",
+      "revId": "4cd39b5720f5b4ca9a8b11d646247a6b50e4694f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
