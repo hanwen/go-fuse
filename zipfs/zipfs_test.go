@@ -27,9 +27,10 @@ func setupZipfs(t *testing.T) (mountPoint string, cleanup func()) {
 	}
 
 	mountPoint, _ = ioutil.TempDir("", "")
-	state, _, err := nodefs.MountRoot(mountPoint, root, &nodefs.Options{})
+	state, _, err := nodefs.MountRoot(mountPoint, root, &nodefs.Options{
+		Debug: VerboseTest(),
+	})
 
-	state.SetDebug(VerboseTest())
 	go state.Serve()
 
 	return mountPoint, func() {

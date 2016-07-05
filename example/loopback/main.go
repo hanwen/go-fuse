@@ -82,13 +82,13 @@ func main() {
 		AllowOther: *other,
 		Name:       "loopbackfs",
 		FsName:     origAbs,
+		Debug:      *debug,
 	}
 	state, err := fuse.NewServer(conn.RawFS(), mountPoint, mOpts)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)
 	}
-	state.SetDebug(*debug)
 
 	fmt.Println("Mounted!")
 	state.Serve()

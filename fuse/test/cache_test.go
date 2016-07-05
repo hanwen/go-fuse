@@ -39,14 +39,14 @@ func setupCacheTest(t *testing.T) (string, *pathfs.PathNodeFs, func()) {
 	fs := &cacheFs{
 		pathfs.NewLoopbackFileSystem(dir + "/orig"),
 	}
-	pfs := pathfs.NewPathNodeFs(fs, nil)
-	state, conn, err := nodefs.MountRoot(dir+"/mnt", pfs.Root(), nil)
+	pfs := pathfs.NewPathNodeFs(fs, &pathfs.PathNodeFsOptions{Debug: VerboseTest()})
+
+	opts := nodefs.NewOptions()
+	opts.Debug = VerboseTest()
+	state, _, err := nodefs.MountRoot(dir+"/mnt", pfs.Root(), opts)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
-	state.SetDebug(VerboseTest())
-	conn.SetDebug(VerboseTest())
-	pfs.SetDebug(VerboseTest())
 	go state.Serve()
 
 	return dir, pfs, func() {
@@ -140,11 +140,12 @@ func TestNonseekable(t *testing.T) {
 	}
 	defer os.RemoveAll(dir)
 	nfs := pathfs.NewPathNodeFs(fs, nil)
-	state, _, err := nodefs.MountRoot(dir, nfs.Root(), nil)
+	opts := nodefs.NewOptions()
+	opts.Debug = VerboseTest()
+	state, _, err := nodefs.MountRoot(dir, nfs.Root(), opts)
 	if err != nil {
 		t.Fatalf("failed: %v", err)
 	}
-	state.SetDebug(VerboseTest())
 	defer state.Unmount()
 
 	go state.Serve()
@@ -172,15 +173,12 @@ func TestGetAttrRace(t *testing.T) {
 	os.Mkdir(dir+"/orig", 0755)
 
 	fs := pathfs.NewLoopbackFileSystem(dir + "/orig")
-	pfs := pathfs.NewPathNodeFs(fs, nil)
-	state, conn, err := nodefs.MountRoot(dir+"/mnt", pfs.Root(),
-		&nodefs.Options{})
+	pfs := pathfs.NewPathNodeFs(fs, &pathfs.PathNodeFsOptions{Debug: VerboseTest()})
+	state, _, err := nodefs.MountRoot(dir+"/mnt", pfs.Root(),
+		&nodefs.Options{Debug: VerboseTest()})
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
-	state.SetDebug(VerboseTest())
-	conn.SetDebug(VerboseTest())
-	pfs.SetDebug(VerboseTest())
 	go state.Serve()
 
 	defer state.Unmount()

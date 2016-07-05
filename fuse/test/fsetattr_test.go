@@ -144,11 +144,13 @@ func setupFAttrTest(t *testing.T, fs pathfs.FileSystem) (dir string, clean func(
 		t.Fatalf("TempDir failed: %v", err)
 	}
 	nfs := pathfs.NewPathNodeFs(fs, nil)
-	state, _, err := nodefs.MountRoot(dir, nfs.Root(), nil)
+	opts := nodefs.NewOptions()
+	opts.Debug = VerboseTest()
+
+	state, _, err := nodefs.MountRoot(dir, nfs.Root(), opts)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
-	state.SetDebug(VerboseTest())
 
 	go state.Serve()
 

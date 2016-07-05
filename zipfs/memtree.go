@@ -41,9 +41,6 @@ func (fs *MemTreeFs) String() string {
 	return fs.Name
 }
 
-func (fs *MemTreeFs) SetDebug(bool) {
-}
-
 func (fs *MemTreeFs) Root() nodefs.Node {
 	return fs.root
 }
