@@ -22,6 +22,30 @@
       "revId": "393e3059f2204016f565c6504e41292cb4125142",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "baa041b7_31b13390",
+        "filename": "fuse/test/fsetattr_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 163,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2016-07-05T10:39:42Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "baa041b7_2031ed0b",
+      "range": {
+        "startLine": 162,
+        "startChar": 2,
+        "endLine": 163,
+        "endChar": 17
+      },
+      "revId": "393e3059f2204016f565c6504e41292cb4125142",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
