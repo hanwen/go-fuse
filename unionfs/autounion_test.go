@@ -24,6 +24,10 @@ var testAOpts = AutoUnionFsOptions{
 	Version:      "version",
 }
 
+func init() {
+	testAOpts.Options.Debug = VerboseTest()
+}
+
 func WriteFile(t *testing.T, name string, contents string) {
 	err := ioutil.WriteFile(name, []byte(contents), 0644)
 	if err != nil {
@@ -57,7 +61,6 @@ func setup(t *testing.T) (workdir string, cleanup func()) {
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
-	fs.SetDebug(VerboseTest())
 	go state.Serve()
 
 	return wd, func() {

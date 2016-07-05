@@ -32,7 +32,7 @@ func (c *rawBridge) Fsync(input *fuse.FsyncIn) fuse.Status {
 }
 
 func (c *rawBridge) SetDebug(debug bool) {
-	c.fsConn().SetDebug(debug)
+h	c.fsConn().SetDebug(debug)
 }
 
 func (c *rawBridge) FsyncDir(input *fuse.FsyncIn) fuse.Status {

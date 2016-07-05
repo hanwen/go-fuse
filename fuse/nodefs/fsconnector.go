@@ -60,6 +60,7 @@ func NewFileSystemConnector(root Node, opts *Options) (c *FileSystemConnector) {
 	// FUSE does not issue a LOOKUP for 1 (obviously), but it does
 	// issue a forget.  This lookupUpdate is to make the counts match.
 	c.lookupUpdate(c.rootNode)
+	c.debug = opts.Debug
 
 	return c
 }
@@ -69,7 +70,8 @@ func (c *FileSystemConnector) Server() *fuse.Server {
 	return c.server
 }
 
-// SetDebug toggles printing of debug information.
+// SetDebug toggles printing of debug information. This function is
+// deprecated. Set the Debug option in the Options struct instead.
 func (c *FileSystemConnector) SetDebug(debug bool) {
 	c.debug = debug
 }

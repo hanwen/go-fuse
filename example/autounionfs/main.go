@@ -43,6 +43,7 @@ func main() {
 			AttrTimeout:     time.Second,
 			NegativeTimeout: time.Second,
 			Owner:           fuse.CurrentOwner(),
+			Debug:           *debug,
 		},
 		UpdateOnMount: true,
 		PathNodeFsOptions: pathfs.PathNodeFsOptions{
@@ -52,18 +53,17 @@ func main() {
 	}
 	fsOpts := nodefs.Options{
 		PortableInodes: *portableInodes,
+		Debug:          *debug,
 	}
 	gofs := unionfs.NewAutoUnionFs(flag.Arg(1), options)
-	pathfs := pathfs.NewPathNodeFs(gofs, nil)
-	state, conn, err := nodefs.MountRoot(flag.Arg(0), pathfs.Root(), &fsOpts)
+	pathfs := pathfs.NewPathNodeFs(gofs, &pathfs.PathNodeFsOptions{
+		Debug: *debug,
+	})
+	state, _, err := nodefs.MountRoot(flag.Arg(0), pathfs.Root(), &fsOpts)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)
 	}
-
-	pathfs.SetDebug(*debug)
-	conn.SetDebug(*debug)
-	state.SetDebug(*debug)
 
 	state.Serve()
 	time.Sleep(1 * time.Second)

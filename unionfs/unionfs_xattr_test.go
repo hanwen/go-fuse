@@ -59,18 +59,17 @@ func TestXAttrCaching(t *testing.T) {
 		EntryTimeout:    entryTtl / 2,
 		AttrTimeout:     entryTtl / 2,
 		NegativeTimeout: entryTtl / 2,
+		Debug:           VerboseTest(),
 	}
 
 	pathfs := pathfs.NewPathNodeFs(ufs,
-		&pathfs.PathNodeFsOptions{ClientInodes: true})
+		&pathfs.PathNodeFsOptions{ClientInodes: true,
+			Debug: VerboseTest()})
 
-	server, conn, err := nodefs.MountRoot(wd+"/mnt", pathfs.Root(), opts)
+	server, _, err := nodefs.MountRoot(wd+"/mnt", pathfs.Root(), opts)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
-	server.SetDebug(VerboseTest())
-	conn.SetDebug(VerboseTest())
-	pathfs.SetDebug(VerboseTest())
 	defer server.Unmount()
 	go server.Serve()
 
