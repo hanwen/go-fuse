@@ -36,6 +36,12 @@ func (n *nodeReadNode) Read(file File, dest []byte, off int64, context *fuse.Con
 	return fuse.ReadResultData(n.data[off:int(e)]), fuse.OK
 }
 
+func (n *nodeReadNode) GetAttr(out *fuse.Attr, file File, context *fuse.Context) (code fuse.Status) {
+	out.Mode = fuse.S_IFREG | 0644
+	out.Size = uint64(len(n.data))
+	return fuse.OK
+}
+
 func (n *nodeReadNode) Lookup(out *fuse.Attr, name string, context *fuse.Context) (*Inode, fuse.Status) {
 	out.Mode = fuse.S_IFREG | 0644
 	out.Size = uint64(len(name))
@@ -52,11 +58,10 @@ func TestNoOpen(t *testing.T) {
 	root := newNodeReadNode(true, nil)
 	root.noOpen = true
 
-	s, _, err := MountRoot(dir, root, nil)
+	s, _, err := MountRoot(dir, root, &Options{Debug: VerboseTest()})
 	if err != nil {
 		t.Fatalf("MountRoot: %v", err)
 	}
-	s.SetDebug(VerboseTest())
 	defer s.Unmount()
 	go s.Serve()
 
@@ -92,7 +97,9 @@ func TestNodeRead(t *testing.T) {
 	}
 
 	root := newNodeReadNode(false, nil)
-	s, _, err := MountRoot(dir, root, nil)
+	opts := NewOptions()
+	opts.Debug = true
+	s, _, err := MountRoot(dir, root, opts)
 	if err != nil {
 		t.Fatalf("MountRoot: %v", err)
 	}
@@ -106,5 +113,4 @@ func TestNodeRead(t *testing.T) {
 	if string(content) != want {
 		t.Fatalf("got %q, want %q", content, want)
 	}
-
 }

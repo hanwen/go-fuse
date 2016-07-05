@@ -75,4 +75,7 @@ type PathNodeFsOptions struct {
 	// If ClientInodes is set, use Inode returned from GetAttr to
 	// find hard-linked files.
 	ClientInodes bool
+
+	// Debug controls printing of debug information.
+	Debug bool
 }

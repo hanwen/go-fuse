@@ -84,6 +84,7 @@ func NewNotifyTest(t *testing.T) *NotifyTest {
 		EntryTimeout:    entryTtl,
 		AttrTimeout:     entryTtl,
 		NegativeTimeout: entryTtl,
+		Debug:           VerboseTest(),
 	}
 
 	me.pathfs = pathfs.NewPathNodeFs(me.fs, nil)
@@ -91,7 +92,6 @@ func NewNotifyTest(t *testing.T) *NotifyTest {
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
-	me.state.SetDebug(VerboseTest())
 	go me.state.Serve()
 
 	return me

@@ -47,12 +47,12 @@ func main() {
 		AttrTimeout:     time.Duration(*entry_ttl * float64(time.Second)),
 		NegativeTimeout: time.Duration(*negative_ttl * float64(time.Second)),
 		PortableInodes:  *portable,
+		Debug:           *debug,
 	}
 	mountState, _, err := nodefs.MountRoot(flag.Arg(0), nodeFs.Root(), &mOpts)
 	if err != nil {
 		log.Fatal("Mount fail:", err)
 	}
 
-	mountState.SetDebug(*debug)
 	mountState.Serve()
 }

@@ -43,11 +43,12 @@ func TestDeleteNotify(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	state, err := fuse.NewServer(conn.RawFS(), mnt, nil)
+	state, err := fuse.NewServer(conn.RawFS(), mnt, &fuse.MountOptions{
+		Debug: VerboseTest(),
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	state.SetDebug(VerboseTest())
 	go state.Serve()
 	defer state.Unmount()
 

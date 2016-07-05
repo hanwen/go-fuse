@@ -31,9 +31,6 @@ type Server struct {
 	// I/O with kernel and daemon.
 	mountFd int
 
-	// Dump debug info onto stdout.
-	debug bool
-
 	latencies LatencyMap
 
 	opts *MountOptions
@@ -54,8 +51,10 @@ type Server struct {
 	loops        sync.WaitGroup
 }
 
+// SetDebug is deprecated. Use MountOptions.Debug instead.
 func (ms *Server) SetDebug(dbg bool) {
-	ms.debug = dbg
+	// This will typically trigger the race detector.
+	ms.opts.Debug = dbg
 }
 
 // KernelSettings returns the Init message from the kernel, so
@@ -345,7 +344,7 @@ func (ms *Server) handleRequest(req *request) {
 		req.status = ENOSYS
 	}
 
-	if req.status.Ok() && ms.debug {
+	if req.status.Ok() && ms.opts.Debug {
 		log.Println(req.InputDebug())
 	}
 
@@ -385,7 +384,7 @@ func (ms *Server) write(req *request) Status {
 	}
 
 	header := req.serializeHeader(req.flatDataSize())
-	if ms.debug {
+	if ms.opts.Debug {
 		log.Println(req.OutputDebug())
 	}
 
@@ -422,7 +421,7 @@ func (ms *Server) InodeNotify(node uint64, off int64, length int64) Status {
 	result := ms.write(&req)
 	ms.writeMu.Unlock()
 
-	if ms.debug {
+	if ms.opts.Debug {
 		log.Println("Response: INODE_NOTIFY", result)
 	}
 	return result
@@ -464,7 +463,7 @@ func (ms *Server) DeleteNotify(parent uint64, child uint64, name string) Status 
 	result := ms.write(&req)
 	ms.writeMu.Unlock()
 
-	if ms.debug {
+	if ms.opts.Debug {
 		log.Printf("Response: DELETE_NOTIFY: %v", result)
 	}
 	return result
@@ -499,7 +498,7 @@ func (ms *Server) EntryNotify(parent uint64, name string) Status {
 	result := ms.write(&req)
 	ms.writeMu.Unlock()
 
-	if ms.debug {
+	if ms.opts.Debug {
 		log.Printf("Response: ENTRY_NOTIFY: %v", result)
 	}
 	return result

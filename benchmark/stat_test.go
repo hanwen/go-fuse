@@ -31,7 +31,6 @@ func setupFs(fs pathfs.FileSystem) (string, func()) {
 	lmap := NewLatencyMap()
 
 	state.RecordLatencies(lmap)
-	// state.SetDebug(true)
 	go state.Serve()
 
 	return mountPoint, func() {

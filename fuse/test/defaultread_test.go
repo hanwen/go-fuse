@@ -41,11 +41,13 @@ func defaultReadTest(t *testing.T) (root string, cleanup func()) {
 		t.Fatalf("TempDir failed: %v", err)
 	}
 	pathfs := pathfs.NewPathNodeFs(fs, nil)
-	state, _, err := nodefs.MountRoot(dir, pathfs.Root(), nil)
+	opts := nodefs.NewOptions()
+	opts.Debug = VerboseTest()
+
+	state, _, err := nodefs.MountRoot(dir, pathfs.Root(), opts)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
-	state.SetDebug(VerboseTest())
 	go state.Serve()
 
 	return dir, func() {
