@@ -60,6 +60,7 @@ func TestNoOpen(t *testing.T) {
 	defer s.Unmount()
 	go s.Serve()
 
+	s.WaitMount()
 	if s.KernelSettings().Minor < 23 {
 		t.Skip("Kernel does not support open-less read/writes. Skipping test.")
 	}
