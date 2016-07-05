@@ -139,6 +139,12 @@ func (c *rawBridge) GetAttr(input *fuse.GetAttrIn, out *fuse.AttrOut) (code fuse
 		return code
 	}
 
+	if out.Nlink == 0 {
+		// With Nlink == 0, newer kernels will refuse link
+		// operations.
+		out.Nlink = 1
+	}
+
 	node.mount.fillAttr(out, input.NodeId)
 	return fuse.OK
 }
