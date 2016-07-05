@@ -57,14 +57,13 @@ type AutoUnionFsOptions struct {
 }
 
 const (
-	_READONLY      = "READONLY"
-	_STATUS        = "status"
-	_CONFIG        = "config"
-	_DEBUG         = "debug"
-	_DEBUG_SETTING = "debug_setting"
-	_ROOT          = "root"
-	_VERSION       = "gounionfs_version"
-	_SCAN_CONFIG   = ".scan_config"
+	_READONLY    = "READONLY"
+	_STATUS      = "status"
+	_CONFIG      = "config"
+	_DEBUG       = "debug"
+	_ROOT        = "root"
+	_VERSION     = "gounionfs_version"
+	_SCAN_CONFIG = ".scan_config"
 )
 
 func NewAutoUnionFs(directory string, options AutoUnionFsOptions) pathfs.FileSystem {
@@ -238,10 +237,6 @@ func (fs *autoUnionFs) Readlink(path string, context *fuse.Context) (out string,
 		return fs.root, fuse.OK
 	}
 
-	if comps[0] == _STATUS && comps[1] == _DEBUG_SETTING && fs.hasDebug() {
-		return "1", fuse.OK
-	}
-
 	if comps[0] != _CONFIG {
 		return "", fuse.ENOENT
 	}
@@ -270,11 +265,6 @@ func (fs *autoUnionFs) Symlink(pointedTo string, linkName string, context *fuse.
 		return fuse.EPERM
 	}
 
-	if comps[0] == _STATUS && comps[1] == _DEBUG_SETTING {
-		fs.SetDebug(true)
-		return fuse.OK
-	}
-
 	if comps[0] == _CONFIG {
 		roots := fs.getRoots(pointedTo)
 		if roots == nil {
@@ -287,29 +277,10 @@ func (fs *autoUnionFs) Symlink(pointedTo string, linkName string, context *fuse.
 	return fuse.EPERM
 }
 
-func (fs *autoUnionFs) SetDebug(b bool) {
-	// TODO(hanwen): this should use locking.
-	fs.debug = b
-	fs.nodeFs.SetDebug(b)
-
-	conn := fs.nodeFs.Connector()
-	conn.SetDebug(b)
-	conn.Server().SetDebug(b)
-}
-
-func (fs *autoUnionFs) hasDebug() bool {
-	return fs.debug
-}
-
 func (fs *autoUnionFs) Unlink(path string, context *fuse.Context) (code fuse.Status) {
 	comps := strings.Split(path, "/")
 	if len(comps) != 2 {
 		return fuse.EPERM
-	}
-
-	if comps[0] == _STATUS && comps[1] == _DEBUG_SETTING {
-		fs.SetDebug(false)
-		return fuse.OK
 	}
 
 	if comps[0] == _CONFIG && comps[1] != _SCAN_CONFIG {
@@ -331,12 +302,6 @@ func (fs *autoUnionFs) GetAttr(path string, context *fuse.Context) (*fuse.Attr, 
 			Mode: fuse.S_IFDIR | 0755,
 		}
 		return a, fuse.OK
-	}
-
-	if path == filepath.Join(_STATUS, _DEBUG_SETTING) && fs.hasDebug() {
-		return &fuse.Attr{
-			Mode: fuse.S_IFLNK | 0644,
-		}, fuse.OK
 	}
 
 	if path == filepath.Join(_STATUS, _VERSION) {
@@ -392,9 +357,6 @@ func (fs *autoUnionFs) StatusDir() (stream []fuse.DirEntry, status fuse.Status) 
 		{Name: _VERSION, Mode: fuse.S_IFREG | 0644},
 		{Name: _DEBUG, Mode: fuse.S_IFREG | 0644},
 		{Name: _ROOT, Mode: syscall.S_IFLNK | 0644},
-	}
-	if fs.hasDebug() {
-		stream = append(stream, fuse.DirEntry{Name: _DEBUG_SETTING, Mode: fuse.S_IFLNK | 0644})
 	}
 	return stream, fuse.OK
 }

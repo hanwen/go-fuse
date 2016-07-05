@@ -38,11 +38,12 @@ func TestDefaultXAttr(t *testing.T) {
 		Node: nodefs.NewDefaultNode(),
 	}
 
-	s, _, err := nodefs.MountRoot(dir, root, nil)
+	opts := nodefs.NewOptions()
+	opts.Debug = VerboseTest()
+	s, _, err := nodefs.MountRoot(dir, root, opts)
 	if err != nil {
 		t.Fatalf("MountRoot: %v", err)
 	}
-	s.SetDebug(VerboseTest())
 	go s.Serve()
 	defer s.Unmount()
 

@@ -96,15 +96,16 @@ func NewTestCase(t *testing.T) *testCase {
 			EntryTimeout:    testTtl,
 			AttrTimeout:     testTtl,
 			NegativeTimeout: 0.0,
+			Debug:           VerboseTest(),
 		})
-	tc.connector.SetDebug(VerboseTest())
 	tc.state, err = fuse.NewServer(
-		fuse.NewRawFileSystem(tc.connector.RawFS()), tc.mnt, &fuse.MountOptions{SingleThreaded: true})
+		fuse.NewRawFileSystem(tc.connector.RawFS()), tc.mnt, &fuse.MountOptions{
+			SingleThreaded: true,
+			Debug:          VerboseTest(),
+		})
 	if err != nil {
 		t.Fatal("NewServer:", err)
 	}
-
-	tc.state.SetDebug(VerboseTest())
 
 	// Unthreaded, but in background.
 	go tc.state.Serve()

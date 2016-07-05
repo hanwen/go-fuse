@@ -90,17 +90,17 @@ func setupUfs(t *testing.T) (wd string, cleanup func()) {
 		AttrTimeout:     entryTtl / 2,
 		NegativeTimeout: entryTtl / 2,
 		PortableInodes:  true,
+		Debug:           VerboseTest(),
 	}
 
 	pathfs := pathfs.NewPathNodeFs(ufs,
-		&pathfs.PathNodeFsOptions{ClientInodes: true})
-	state, conn, err := nodefs.MountRoot(wd+"/mnt", pathfs.Root(), opts)
+		&pathfs.PathNodeFsOptions{ClientInodes: true,
+			Debug: opts.Debug,
+		})
+	state, _, err := nodefs.MountRoot(wd+"/mnt", pathfs.Root(), opts)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
-	conn.SetDebug(VerboseTest())
-	state.SetDebug(VerboseTest())
-	pathfs.SetDebug(VerboseTest())
 	go state.Serve()
 
 	return wd, func() {
@@ -1154,6 +1154,7 @@ func TestUnionFsDisappearing(t *testing.T) {
 		EntryTimeout:    entryTtl,
 		AttrTimeout:     entryTtl,
 		NegativeTimeout: entryTtl,
+		Debug:           VerboseTest(),
 	}
 
 	nfs := pathfs.NewPathNodeFs(ufs, nil)
@@ -1162,7 +1163,6 @@ func TestUnionFsDisappearing(t *testing.T) {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
 	defer state.Unmount()
-	state.SetDebug(VerboseTest())
 	go state.Serve()
 
 	err = ioutil.WriteFile(wd+"/ro/file", []byte("blabla"), 0644)

@@ -65,6 +65,9 @@ type MountOptions struct {
 	// If set, return ENOSYS for Getxattr calls, so the kernel does not issue any
 	// Xattr operations at all.
 	DisableXAttrs bool
+
+	// If set, print debugging information.
+	Debug bool
 }
 
 // RawFileSystem is an interface close to the FUSE wire protocol.

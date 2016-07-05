@@ -172,10 +172,13 @@ type Options struct {
 	NegativeTimeout time.Duration
 
 	// If set, replace all uids with given UID.
-	// NewFileSystemOptions() will set this to the daemon's
+	// NewOptions() will set this to the daemon's
 	// uid/gid.
 	*fuse.Owner
 
 	// This option exists for compatibility and is ignored.
 	PortableInodes bool
+
+	// If set, print debug information.
+	Debug bool
 }
