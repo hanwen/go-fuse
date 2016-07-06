@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "baa041b7_a6886423",
+        "filename": "fuse/nodefs/fileless_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 43,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2016-07-06T12:23:48Z",
+      "side": 1,
+      "message": "you\u0027d think that, but it\u0027s related. If you pass \u0026Options{} , you get no attribute caches. This triggers here because after the first, lookup the kernel issues getattr to get updated views on attributes. Getattr is missing here, which is a bug.",
+      "parentUuid": "baa041b7_aa070c80",
+      "revId": "4cd39b5720f5b4ca9a8b11d646247a6b50e4694f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "baa041b7_6a01046a",
         "filename": "fuse/nodefs/fsops.go",
         "patchSetId": 2
@@ -30,6 +48,24 @@
       "writtenOn": "2016-07-05T19:05:47Z",
       "side": 1,
       "message": "Typo",
+      "revId": "4cd39b5720f5b4ca9a8b11d646247a6b50e4694f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "baa041b7_868b201e",
+        "filename": "fuse/nodefs/fsops.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2016-07-06T12:23:48Z",
+      "side": 1,
+      "message": "\u003e Typo\n\ndone.",
+      "parentUuid": "baa041b7_6a01046a",
       "revId": "4cd39b5720f5b4ca9a8b11d646247a6b50e4694f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
