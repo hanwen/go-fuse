@@ -1,6 +1,18 @@
 #!/bin/sh
 set -eu
 
+
+for d in fuse zipfs unionfs fuse/test
+do
+    (
+        cd $d
+        echo "go test github.com/hanwen/go-fuse/$d"
+        go test github.com/hanwen/go-fuse/$d
+        echo "go test -race github.com/hanwen/go-fuse/$d"
+        go test -race github.com/hanwen/go-fuse/$d
+    )
+done
+
 for target in "clean" "install" ; do
   for d in fuse fuse/nodefs fuse/pathfs fuse/test zipfs unionfs \
     example/hello example/loopback example/zipfs \
@@ -15,16 +27,6 @@ for target in "clean" "install" ; do
   done
 done
 
-for d in fuse zipfs unionfs fuse/test
-do
-    (
-        cd $d
-        echo "go test github.com/hanwen/go-fuse/$d"
-        go test github.com/hanwen/go-fuse/$d
-        echo "go test -race github.com/hanwen/go-fuse/$d"
-        go test -race github.com/hanwen/go-fuse/$d
-    )
-done
 
 make -C benchmark
 for d in benchmark
