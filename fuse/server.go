@@ -278,13 +278,12 @@ func (ms *Server) returnRequest(req *request) {
 	}
 
 	req.clear()
-	ms.reqMu.Lock()
-	if req.bufferPoolInputBuf != nil {
-		ms.readPool.Put(req.bufferPoolInputBuf)
+
+	if p := req.bufferPoolInputBuf; p != nil {
 		req.bufferPoolInputBuf = nil
+		ms.readPool.Put(p)
 	}
 	ms.reqPool.Put(req)
-	ms.reqMu.Unlock()
 }
 
 func (ms *Server) recordStats(req *request) {
