@@ -8,15 +8,36 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"path"
 	"path/filepath"
 	"runtime/pprof"
+	"syscall"
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
+
+func writeMemProfile(fn string, sigs <-chan os.Signal) {
+	i := 0
+	for range sigs {
+		fn := fmt.Sprintf("%s-%d.memprof", fn, i)
+		i++
+
+		log.Printf("Writing mem profile to %s\n", fn)
+		f, err := os.Create(fn)
+		if err != nil {
+			log.Printf("Create: %v", err)
+			continue
+		}
+		pprof.WriteHeapProfile(f)
+		if err := f.Close(); err != nil {
+			log.Printf("close %v", err)
+		}
+	}
+}
 
 func main() {
 	log.SetFlags(log.Lmicroseconds)
@@ -44,17 +65,10 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 	if *memprofile != "" {
-		fmt.Printf("Writing mem profile to %s\n", *memprofile)
-		f, err := os.Create(*memprofile)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(4)
-		}
-		defer func() {
-			pprof.WriteHeapProfile(f)
-			f.Close()
-			return
-		}()
+		log.Printf("send SIGUSR1 to %d to dump memory profile", os.Getpid())
+		profSig := make(chan os.Signal, 1)
+		signal.Notify(profSig, syscall.SIGUSR1)
+		go writeMemProfile(*memprofile, profSig)
 	}
 	if *cpuprofile != "" || *memprofile != "" {
 		fmt.Printf("Note: You must unmount gracefully, otherwise the profile file(s) will stay empty!\n")
