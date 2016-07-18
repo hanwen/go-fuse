@@ -101,3 +101,20 @@ func TestFallocate(t *testing.T) {
 			fi.Size())
 	}
 }
+
+// Check that "." and ".." exists. syscall.Getdents is linux specific.
+func TestSpecialEntries(t *testing.T) {
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
+
+	d, err := os.Open(tc.mnt)
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
+	defer d.Close()
+	buf := make([]byte, 100)
+	n, err := syscall.Getdents(int(d.Fd()), buf)
+	if n == 0 {
+		t.Errorf("directory is empty, entries '.' and '..' are missing")
+	}
+}

@@ -1,3 +1,5 @@
+// +build linux
+
 package test
 
 import (
@@ -10,6 +12,8 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 )
+
+// this file is linux-only, since it uses syscall.Getxattr.
 
 type xattrNode struct {
 	nodefs.Node
