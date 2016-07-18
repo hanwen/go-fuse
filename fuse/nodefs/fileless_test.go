@@ -9,14 +9,16 @@ import (
 
 type nodeReadNode struct {
 	Node
+	dir    bool
 	noOpen bool
 	data   []byte
 }
 
-func newNodeReadNode(noOpen bool, d []byte) *nodeReadNode {
+func newNodeReadNode(noOpen, dir bool, d []byte) *nodeReadNode {
 	return &nodeReadNode{
 		Node:   NewDefaultNode(),
 		noOpen: noOpen,
+		dir:    dir,
 		data:   d,
 	}
 }
@@ -37,16 +39,18 @@ func (n *nodeReadNode) Read(file File, dest []byte, off int64, context *fuse.Con
 }
 
 func (n *nodeReadNode) GetAttr(out *fuse.Attr, file File, context *fuse.Context) (code fuse.Status) {
-	out.Mode = fuse.S_IFREG | 0644
+	if n.dir {
+		out.Mode = fuse.S_IFDIR | 0755
+	} else {
+		out.Mode = fuse.S_IFREG | 0644
+	}
 	out.Size = uint64(len(n.data))
 	return fuse.OK
 }
 
 func (n *nodeReadNode) Lookup(out *fuse.Attr, name string, context *fuse.Context) (*Inode, fuse.Status) {
-	out.Mode = fuse.S_IFREG | 0644
-	out.Size = uint64(len(name))
-	ch := n.Inode().NewChild(name, false, newNodeReadNode(n.noOpen, []byte(name)))
-	return ch, fuse.OK
+	ch := n.Inode().NewChild(name, false, newNodeReadNode(n.noOpen, false, []byte(name)))
+	return ch, ch.Node().GetAttr(out, nil, context)
 }
 
 func TestNoOpen(t *testing.T) {
@@ -55,7 +59,7 @@ func TestNoOpen(t *testing.T) {
 		t.Fatalf("TempDir: %v", err)
 	}
 
-	root := newNodeReadNode(true, nil)
+	root := newNodeReadNode(true, true, nil)
 	root.noOpen = true
 
 	s, _, err := MountRoot(dir, root, &Options{Debug: VerboseTest()})
@@ -96,7 +100,7 @@ func TestNodeRead(t *testing.T) {
 		t.Fatalf("TempDir: %v", err)
 	}
 
-	root := newNodeReadNode(false, nil)
+	root := newNodeReadNode(false, true, nil)
 	opts := NewOptions()
 	opts.Debug = true
 	s, _, err := MountRoot(dir, root, opts)
