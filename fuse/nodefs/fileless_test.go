@@ -102,7 +102,7 @@ func TestNodeRead(t *testing.T) {
 
 	root := newNodeReadNode(false, true, nil)
 	opts := NewOptions()
-	opts.Debug = true
+	opts.Debug = VerboseTest()
 	s, _, err := MountRoot(dir, root, opts)
 	if err != nil {
 		t.Fatalf("MountRoot: %v", err)
