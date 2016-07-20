@@ -153,6 +153,9 @@ func setupFAttrTest(t *testing.T, fs pathfs.FileSystem) (dir string, clean func(
 	}
 
 	go state.Serve()
+	if err := state.WaitMount(); err != nil {
+		t.Fatal("WaitMount", err)
+	}
 
 	// Trigger INIT.
 	os.Lstat(dir)

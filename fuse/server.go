@@ -47,6 +47,8 @@ type Server struct {
 	singleReader bool
 	canSplice    bool
 	loops        sync.WaitGroup
+
+	ready chan error
 }
 
 // SetDebug is deprecated. Use MountOptions.Debug instead.
@@ -173,7 +175,8 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		}
 		mountPoint = filepath.Clean(filepath.Join(cwd, mountPoint))
 	}
-	fd, err := mount(mountPoint, strings.Join(optStrs, ","))
+	ms.ready = make(chan error, 1)
+	fd, err := mount(mountPoint, strings.Join(optStrs, ","), ms.ready)
 	if err != nil {
 		return nil, err
 	}
@@ -181,8 +184,11 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 	ms.mountPoint = mountPoint
 	ms.mountFd = fd
 
-	ms.handleInit()
-
+	if code := ms.handleInit(); !code.Ok() {
+		syscall.Close(fd)
+		// TODO - unmount as well?
+		return nil, fmt.Errorf("init: %s", code)
+	}
 	return ms, nil
 }
 
@@ -308,7 +314,7 @@ func (ms *Server) Serve() {
 	ms.writeMu.Unlock()
 }
 
-func (ms *Server) handleInit() {
+func (ms *Server) handleInit() Status {
 	// The first request should be INIT; read it synchronously,
 	// and don't spawn new readers.
 	orig := ms.singleReader
@@ -317,13 +323,16 @@ func (ms *Server) handleInit() {
 	ms.singleReader = orig
 
 	if errNo != OK || req == nil {
-		return
+		return errNo
 	}
-	ms.handleRequest(req)
+	if code := ms.handleRequest(req); !code.Ok() {
+		return code
+	}
 
 	// INIT is handled. Init the file system, but don't accept
 	// incoming requests, so the file system can setup itself.
 	ms.fileSystem.Init(ms)
+	return OK
 }
 
 func (ms *Server) loop(exitIdle bool) {
@@ -354,7 +363,7 @@ exit:
 	}
 }
 
-func (ms *Server) handleRequest(req *request) {
+func (ms *Server) handleRequest(req *request) Status {
 	req.parse()
 	if req.handler == nil {
 		req.status = ENOSYS
@@ -379,6 +388,7 @@ func (ms *Server) handleRequest(req *request) {
 			errNo, operationName(req.inHeader.Opcode))
 	}
 	ms.returnRequest(req)
+	return Status(errNo)
 }
 
 func (ms *Server) allocOut(req *request, size uint32) []byte {
@@ -524,8 +534,10 @@ func init() {
 }
 
 // WaitMount waits for the first request to be served. Use this to
-// avoid racing between accessing the (empty) mountpoint, and the OS
-// trying to setup the user-space mount.
-func (ms *Server) WaitMount() {
-	// TODO(hanwen): see if this can safely be removed.
+// avoid racing between accessing the (empty or not yet mounted)
+// mountpoint, and the OS trying to setup the user-space mount.
+// Currently, this call only necessary on OSX.
+func (ms *Server) WaitMount() error {
+	err := <-ms.ready
+	return err
 }

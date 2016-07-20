@@ -68,8 +68,10 @@ func TestNoOpen(t *testing.T) {
 	}
 	defer s.Unmount()
 	go s.Serve()
+	if err := s.WaitMount(); err != nil {
+		t.Fatal("WaitMount", err)
+	}
 
-	s.WaitMount()
 	if s.KernelSettings().Minor < 23 {
 		t.Skip("Kernel does not support open-less read/writes. Skipping test.")
 	}
@@ -109,6 +111,9 @@ func TestNodeRead(t *testing.T) {
 	}
 	defer s.Unmount()
 	go s.Serve()
+	if err := s.WaitMount(); err != nil {
+		t.Fatal("WaitMount", err)
+	}
 	content, err := ioutil.ReadFile(dir + "/file")
 	if err != nil {
 		t.Fatalf("ReadFile: %v", err)

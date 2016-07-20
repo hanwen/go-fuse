@@ -48,7 +48,9 @@ func setupCacheTest(t *testing.T) (string, *pathfs.PathNodeFs, func()) {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
 	go state.Serve()
-
+	if err := state.WaitMount(); err != nil {
+		t.Fatal("WaitMount", err)
+	}
 	return dir, pfs, func() {
 		err := state.Unmount()
 		if err == nil {
@@ -149,6 +151,9 @@ func TestNonseekable(t *testing.T) {
 	defer state.Unmount()
 
 	go state.Serve()
+	if err := state.WaitMount(); err != nil {
+		t.Fatal("WaitMount", err)
+	}
 
 	f, err := os.Open(dir + "/file")
 	if err != nil {
@@ -180,6 +185,9 @@ func TestGetAttrRace(t *testing.T) {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
 	go state.Serve()
+	if err := state.WaitMount(); err != nil {
+		t.Fatal("WaitMount", err)
+	}
 
 	defer state.Unmount()
 

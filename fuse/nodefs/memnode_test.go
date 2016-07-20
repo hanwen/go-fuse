@@ -36,18 +36,21 @@ func setupMemNodeTest(t *testing.T) (wd string, root Node, clean func()) {
 
 	// Unthreaded, but in background.
 	go state.Serve()
+
+	if err := state.WaitMount(); err != nil {
+		t.Fatal("WaitMount", err)
+	}
 	return mnt, root, func() {
 		state.Unmount()
 		os.RemoveAll(tmp)
 	}
-
 }
 
 func TestMemNodeFsWrite(t *testing.T) {
 	wd, _, clean := setupMemNodeTest(t)
 	defer clean()
-
 	want := "hello"
+
 	err := ioutil.WriteFile(wd+"/test", []byte(want), 0644)
 	if err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
@@ -59,7 +62,7 @@ func TestMemNodeFsWrite(t *testing.T) {
 	}
 }
 
-func TestMemNodeFs(t *testing.T) {
+func TestMemNodeFsBasic(t *testing.T) {
 	wd, _, clean := setupMemNodeTest(t)
 	defer clean()
 

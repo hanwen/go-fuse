@@ -107,10 +107,10 @@ func NewTestCase(t *testing.T) *testCase {
 		t.Fatal("NewServer:", err)
 	}
 
-	// Unthreaded, but in background.
 	go tc.state.Serve()
-
-	tc.state.WaitMount()
+	if err := tc.state.WaitMount(); err != nil {
+		t.Fatal("WaitMount", err)
+	}
 	return tc
 }
 
@@ -875,6 +875,9 @@ func TestOriginalIsSymlink(t *testing.T) {
 	defer state.Unmount()
 
 	go state.Serve()
+	if err := state.WaitMount(); err != nil {
+		t.Fatal("WaitMount", err)
+	}
 
 	if _, err := os.Lstat(mnt); err != nil {
 		t.Fatalf("Lstat failed: %v", err)

@@ -49,7 +49,9 @@ func defaultReadTest(t *testing.T) (root string, cleanup func()) {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
 	go state.Serve()
-
+	if err := state.WaitMount(); err != nil {
+		t.Fatal("WaitMount", err)
+	}
 	return dir, func() {
 		state.Unmount()
 		os.Remove(dir)

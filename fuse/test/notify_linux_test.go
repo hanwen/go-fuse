@@ -93,6 +93,9 @@ func NewNotifyTest(t *testing.T) *NotifyTest {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
 	go me.state.Serve()
+	if err := me.state.WaitMount(); err != nil {
+		t.Fatal("WaitMount", err)
+	}
 
 	return me
 }

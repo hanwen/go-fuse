@@ -51,6 +51,9 @@ func TestDeleteNotify(t *testing.T) {
 	}
 	go state.Serve()
 	defer state.Unmount()
+	if err := state.WaitMount(); err != nil {
+		t.Fatal("WaitMount", err)
+	}
 
 	_, code := root.Mkdir("testdir", 0755, nil)
 	if !code.Ok() {
