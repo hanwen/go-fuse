@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io/ioutil"
 	"os"
+	"runtime"
 	"sync"
 	"testing"
 
@@ -60,6 +61,10 @@ func setupCacheTest(t *testing.T) (string, *pathfs.PathNodeFs, func()) {
 }
 
 func TestFopenKeepCache(t *testing.T) {
+	if runtime.GOOS == "darwin" {
+		t.Skip("FOPEN_KEEP_CACHE is broken on Darwin.")
+	}
+
 	wd, pathfs, clean := setupCacheTest(t)
 	defer clean()
 
