@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"unsafe"
 )
@@ -24,7 +25,7 @@ func unixgramSocketpair() (l, r *os.File, err error) {
 
 // Create a FUSE FS on the specified mount point.  The returned
 // mount point is always absolute.
-func mount(mountPoint string, options string, ready chan<- error) (fd int, err error) {
+func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, err error) {
 	local, remote, err := unixgramSocketpair()
 	if err != nil {
 		return
@@ -39,9 +40,8 @@ func mount(mountPoint string, options string, ready chan<- error) (fd int, err e
 	}
 
 	cmd := []string{bin, mountPoint}
-	if options != "" {
-		cmd = append(cmd, "-o")
-		cmd = append(cmd, options)
+	if s := opts.optionsStrings(); len(s) > 0 {
+		cmd = append(cmd, "-o", strings.Join(s, ","))
 	}
 	proc, err := os.StartProcess(bin,
 		cmd,

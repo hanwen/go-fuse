@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 )
 
@@ -31,13 +32,13 @@ func openFUSEDevice() (*os.File, error) {
 
 const bin = "/Library/Filesystems/osxfusefs.fs/Support/mount_osxfusefs"
 
-func mount(mountPoint, options string, ready chan<- error) (fd int, err error) {
+func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, err error) {
 	f, err := openFUSEDevice()
 	if err != nil {
 		return 0, err
 	}
 
-	cmd := exec.Command(bin, "-o", options, "-o", fmt.Sprintf("iosize=%d", MAX_KERNEL_WRITE), "3", mountPoint)
+	cmd := exec.Command(bin, "-o", strings.Join(opts.optionsStrings(), ","), "-o", fmt.Sprintf("iosize=%d", opts.MaxWrite), "3", mountPoint)
 	cmd.ExtraFiles = []*os.File{f}
 	cmd.Env = append(os.Environ(), "MOUNT_FUSEFS_CALL_BY_LIB=", "MOUNT_OSXFUSE_CALL_BY_LIB=",
 		"MOUNT_OSXFUSE_DAEMON_PATH="+os.Args[0],

@@ -135,7 +135,21 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 	if o.MaxWrite > MAX_KERNEL_WRITE {
 		o.MaxWrite = MAX_KERNEL_WRITE
 	}
-	opts = &o
+	if o.Name == "" {
+		name := fs.String()
+		l := len(name)
+		if l > _MAX_NAME_LEN {
+			l = _MAX_NAME_LEN
+		}
+		o.Name = strings.Replace(name[:l], ",", ";", -1)
+	}
+
+	for _, s := range o.optionsStrings() {
+		if strings.Contains(s, ",") {
+			return nil, fmt.Errorf("found ',' in option string %q", s)
+		}
+	}
+
 	ms := &Server{
 		fileSystem: fs,
 		opts:       &o,
@@ -146,26 +160,6 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 	}
 	ms.reqPool.New = func() interface{} { return new(request) }
 	ms.readPool.New = func() interface{} { return make([]byte, o.MaxWrite+PAGESIZE) }
-	optStrs := opts.Options
-	if opts.AllowOther {
-		optStrs = append(optStrs, "allow_other")
-	}
-
-	name := opts.Name
-	if name == "" {
-		name = ms.fileSystem.String()
-		l := len(name)
-		if l > _MAX_NAME_LEN {
-			l = _MAX_NAME_LEN
-		}
-		name = strings.Replace(name[:l], ",", ";", -1)
-	}
-	optStrs = append(optStrs, "subtype="+name)
-
-	fsname := opts.FsName
-	if len(fsname) > 0 {
-		optStrs = append(optStrs, "fsname="+fsname)
-	}
 
 	mountPoint = filepath.Clean(mountPoint)
 	if !filepath.IsAbs(mountPoint) {
@@ -176,7 +170,7 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		mountPoint = filepath.Clean(filepath.Join(cwd, mountPoint))
 	}
 	ms.ready = make(chan error, 1)
-	fd, err := mount(mountPoint, strings.Join(optStrs, ","), ms.ready)
+	fd, err := mount(mountPoint, &o, ms.ready)
 	if err != nil {
 		return nil, err
 	}
@@ -190,6 +184,24 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		return nil, fmt.Errorf("init: %s", code)
 	}
 	return ms, nil
+}
+
+func (o *MountOptions) optionsStrings() []string {
+	var r []string
+	r = append(r, o.Options...)
+
+	if o.AllowOther {
+		r = append(r, "allow_other")
+	}
+
+	if o.FsName != "" {
+		r = append(r, "fsname="+o.FsName)
+	}
+	if o.Name != "" {
+		r = append(r, "subtype="+o.Name)
+	}
+
+	return r
 }
 
 // DebugData returns internal status information for debugging
