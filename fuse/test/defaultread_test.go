@@ -33,6 +33,7 @@ func (fs *DefaultReadFS) Open(name string, f uint32, context *fuse.Context) (nod
 func defaultReadTest(t *testing.T) (root string, cleanup func()) {
 	fs := &DefaultReadFS{
 		FileSystem: pathfs.NewDefaultFileSystem(),
+		size:       22,
 	}
 
 	var err error
