@@ -59,51 +59,48 @@ func setupCacheTest(t *testing.T) (string, *pathfs.PathNodeFs, func()) {
 	}
 }
 
-func TestCacheFs(t *testing.T) {
+func TestFopenKeepCache(t *testing.T) {
 	wd, pathfs, clean := setupCacheTest(t)
 	defer clean()
 
-	content1 := "hello"
-	content2 := "qqqq"
-	err := ioutil.WriteFile(wd+"/orig/file.txt", []byte(content1), 0644)
-	if err != nil {
+	before := "before"
+	after := "after"
+	if err := ioutil.WriteFile(wd+"/orig/file.txt", []byte(before), 0644); err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
 	c, err := ioutil.ReadFile(wd + "/mnt/file.txt")
 	if err != nil {
-		t.Fatalf("ReadFile failed: %v", err)
+		t.Fatalf("ReadFile: %v", err)
+	} else if string(c) != before {
+		t.Fatalf("ReadFile: got %q, want %q", c, before)
 	}
 
-	if string(c) != "hello" {
-		t.Fatalf("expect 'hello' %q", string(c))
-	}
-
-	err = ioutil.WriteFile(wd+"/orig/file.txt", []byte(content2), 0644)
-	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
+	if err := ioutil.WriteFile(wd+"/orig/file.txt", []byte(after), 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
 	}
 
 	c, err = ioutil.ReadFile(wd + "/mnt/file.txt")
 	if err != nil {
-		t.Fatalf("ReadFile failed: %v", err)
+		t.Fatalf("ReadFile: %v", err)
+	} else if string(c) != before {
+		t.Fatalf("ReadFile: got %q, want cached %q", c, before)
 	}
 
-	if string(c) != "hello" {
-		t.Fatalf("Page cache skipped: expect 'hello' %q", string(c))
+	if minor := pathfs.Connector().Server().KernelSettings().Minor; minor < 12 {
+		t.Skip("protocol v%d has no notify support.", minor)
 	}
 
 	code := pathfs.EntryNotify("", "file.txt")
 	if !code.Ok() {
-		t.Errorf("Entry notify failed: %v", code)
+		t.Errorf("EntryNotify: %v", code)
 	}
 
 	c, err = ioutil.ReadFile(wd + "/mnt/file.txt")
 	if err != nil {
-		t.Fatalf("ReadFile failed: %v", err)
-	}
-	if string(c) != string(content2) {
-		t.Fatalf("Mismatch after notify expect '%s' %q", content2, string(c))
+		t.Fatalf("ReadFile: %v", err)
+	} else if string(c) != after {
+		t.Fatalf("ReadFile: got %q after notify, want %q", c, after)
 	}
 }
 
