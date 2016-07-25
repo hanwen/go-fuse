@@ -157,10 +157,8 @@ func setupFAttrTest(t *testing.T, fs pathfs.FileSystem) (dir string, clean func(
 		t.Fatal("WaitMount", err)
 	}
 
-	// Trigger INIT.
-	os.Lstat(dir)
 	if state.KernelSettings().Flags&fuse.CAP_FILE_OPS == 0 {
-		t.Log("Mount does not support file operations")
+		t.Skip("Mount does not support file operations")
 	}
 
 	return dir, func() {
@@ -170,27 +168,6 @@ func setupFAttrTest(t *testing.T, fs pathfs.FileSystem) (dir string, clean func(
 			os.RemoveAll(dir)
 		}
 	}
-}
-
-func TestDataReadLarge(t *testing.T) {
-	fs := &FSetAttrFs{
-		FileSystem: pathfs.NewDefaultFileSystem(),
-	}
-	dir, clean := setupFAttrTest(t, fs)
-	defer clean()
-
-	content := randomData(385 * 1023)
-	fn := dir + "/file"
-	err := ioutil.WriteFile(fn, []byte(content), 0644)
-	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
-	}
-
-	back, err := ioutil.ReadFile(fn)
-	if err != nil {
-		t.Fatalf("ReadFile failed: %v", err)
-	}
-	CompareSlices(t, back, content)
 }
 
 func TestFSetAttr(t *testing.T) {
@@ -277,6 +254,4 @@ func TestFSetAttr(t *testing.T) {
 	if !fSetAttrFs.file.FsyncCalled {
 		t.Error("Fsync was not called")
 	}
-
-	// TODO - test chown if run as root.
 }

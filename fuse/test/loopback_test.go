@@ -678,6 +678,20 @@ func TestReadLarge(t *testing.T) {
 	CompareSlices(t, back, content)
 }
 
+func TestWriteLarge(t *testing.T) {
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
+
+	content := randomData(385 * 1023)
+	tc.WriteFile(tc.mountFile, []byte(content), 0644)
+
+	back, err := ioutil.ReadFile(tc.origFile)
+	if err != nil {
+		t.Fatalf("ReadFile failed: %v", err)
+	}
+	CompareSlices(t, back, content)
+}
+
 func randomLengthString(length int) string {
 	r := rand.Intn(length)
 
