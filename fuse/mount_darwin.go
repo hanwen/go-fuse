@@ -61,7 +61,10 @@ func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, e
 		ready <- err
 		close(ready)
 	}()
-	return int(f.Fd()), nil
+
+	// The finalizer for f will close its fd so we return a dup.
+	defer f.Close()
+	return syscall.Dup(int(f.Fd()))
 }
 
 func unmount(dir string) error {
