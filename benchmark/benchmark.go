@@ -34,7 +34,6 @@ func ReadLines(name string) []string {
 	if len(l) == 0 {
 		log.Fatal("no files added")
 	}
-	log.Printf("Read %d file names", len(l))
 
 	return l
 }
@@ -99,13 +98,15 @@ func AnalyzeBenchmarkRuns(label string, times []float64) {
 	perc90 := sorted[int(n*0.9)]
 	perc10 := sorted[int(n*0.1)]
 
-	fmt.Printf(
-		"%s: %d samples\n"+
-			"avg %.3fms +/- %.0f%% "+
-			"median %.3fms, 10%%tiles: [-%.0f%%, +%.0f%%]\n",
-		label,
-		len(times), avg, 100.0*2*stddev/avg,
-		median, 100*(median-perc10)/median, 100*(perc90-median)/median)
+	if VerboseTest() {
+		fmt.Printf(
+			"%s: %d samples\n"+
+				"avg %.3fms +/- %.0f%% "+
+				"median %.3fms, 10%%tiles: [-%.0f%%, +%.0f%%]\n",
+			label,
+			len(times), avg, 100.0*2*stddev/avg,
+			median, 100*(median-perc10)/median, 100*(perc90-median)/median)
+	}
 }
 
 func RunBulkStat(runs int, threads int, sleepTime time.Duration, files []string) (results []float64) {

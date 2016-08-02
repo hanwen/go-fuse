@@ -41,6 +41,9 @@ func (me *StatFs) AddFile(name string) {
 }
 
 func (me *StatFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
+	if d := me.dirs[name]; d != nil {
+		return &fuse.Attr{Mode: 0755 | fuse.S_IFDIR}, fuse.OK
+	}
 	e := me.entries[name]
 	if e == nil {
 		return nil, fuse.ENOENT

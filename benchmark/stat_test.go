@@ -16,6 +16,14 @@ import (
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
 
+import "flag"
+
+// VerboseTest returns true if the testing framework is run with -v.
+func VerboseTest() bool {
+	flag := flag.Lookup("test.v")
+	return flag != nil && flag.Value.String() == "true"
+}
+
 func setupFs(fs pathfs.FileSystem) (string, func()) {
 	opts := &nodefs.Options{
 		EntryTimeout:    0.0,
@@ -29,16 +37,22 @@ func setupFs(fs pathfs.FileSystem) (string, func()) {
 		panic(fmt.Sprintf("cannot mount %v", err)) // ugh - benchmark has no error methods.
 	}
 	lmap := NewLatencyMap()
-
-	state.RecordLatencies(lmap)
+	if VerboseTest() {
+		state.RecordLatencies(lmap)
+	}
 	go state.Serve()
 
 	return mountPoint, func() {
-		lc, lns := lmap.Get("LOOKUP")
-		gc, gns := lmap.Get("GETATTR")
-		fmt.Printf("GETATTR %v/call n=%d, LOOKUP %v/call n=%d\n",
-			gns/time.Duration(gc), gc,
-			lns/time.Duration(lc), lc)
+		if VerboseTest() {
+			for _, n := range []string{"LOOKUP", "GETATTR", "OPENDIR", "READDIR",
+				"READDIRPLUS",
+			} {
+				if count, dt := lmap.Get(n); count > 0 {
+					log.Printf("%s %v/call n=%d", n,
+						dt/time.Duration(count), count)
+				}
+			}
+		}
 
 		err := state.Unmount()
 		if err != nil {
@@ -46,6 +60,7 @@ func setupFs(fs pathfs.FileSystem) (string, func()) {
 		} else {
 			os.RemoveAll(mountPoint)
 		}
+
 	}
 }
 
@@ -118,8 +133,54 @@ func BenchmarkGoFuseThreadedStat(b *testing.B) {
 	}
 
 	threads := runtime.GOMAXPROCS(0)
-	results := TestingBOnePass(b, threads, files)
-	AnalyzeBenchmarkRuns(fmt.Sprintf("Go-FUSE %d CPUs", threads), results)
+	TestingBOnePass(b, threads, files)
+}
+
+func readdir(d string) error {
+	f, err := os.Open(d)
+	if err != nil {
+		return err
+	}
+	if _, err := f.Readdirnames(-1); err != nil {
+		return err
+	}
+	return f.Close()
+}
+
+func BenchmarkGoFuseReaddir(b *testing.B) {
+	b.StopTimer()
+	fs := NewStatFs()
+	fs.delay = delay
+
+	wd, _ := os.Getwd()
+	dirSet := map[string]struct{}{}
+
+	for _, fn := range ReadLines(wd + "/testpaths.txt") {
+		fs.AddFile(fn)
+		dirSet[filepath.Dir(fn)] = struct{}{}
+	}
+
+	wd, clean := setupFs(fs)
+	defer clean()
+
+	var dirs []string
+	for dir := range dirSet {
+		dirs = append(dirs, filepath.Join(wd, dir))
+	}
+	b.StartTimer()
+	todo := b.N
+	for todo > 0 {
+		if len(dirs) > todo {
+			dirs = dirs[:todo]
+		}
+		for _, d := range dirs {
+			if err := readdir(d); err != nil {
+				b.Fatal(err)
+			}
+		}
+		todo -= len(dirs)
+	}
+	b.StopTimer()
 }
 
 func TestingBOnePass(b *testing.B, threads int, files []string) (results []float64) {
@@ -127,21 +188,24 @@ func TestingBOnePass(b *testing.B, threads int, files []string) (results []float
 	var before, after runtime.MemStats
 	runtime.ReadMemStats(&before)
 
+	b.StartTimer()
 	todo := b.N
 	for todo > 0 {
 		if len(files) > todo {
 			files = files[:todo]
 		}
-		b.StartTimer()
 		result := BulkStat(threads, files)
 		todo -= len(files)
-		b.StopTimer()
 		results = append(results, result)
 	}
+	b.StopTimer()
 	runtime.ReadMemStats(&after)
 
-	fmt.Printf("GC count %d, total GC time: %d ns/file\n",
-		after.NumGC-before.NumGC, (after.PauseTotalNs-before.PauseTotalNs)/uint64(b.N))
+	if VerboseTest() {
+		fmt.Printf("GC count %d, total GC time: %d ns/file\n",
+			after.NumGC-before.NumGC, (after.PauseTotalNs-before.PauseTotalNs)/uint64(b.N))
+		AnalyzeBenchmarkRuns(fmt.Sprintf("Go-FUSE %d CPUs", threads), results)
+	}
 	return results
 }
 
