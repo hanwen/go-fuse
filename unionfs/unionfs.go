@@ -712,7 +712,12 @@ func (fs *unionFS) GetXAttr(name string, attr string, context *fuse.Context) ([]
 	}
 	r := fs.getBranch(name)
 	if r.branch >= 0 {
-		return fs.fileSystems[r.branch].GetXAttr(name, attr, context)
+		value, code := fs.fileSystems[r.branch].GetXAttr(name, attr, context)
+		// We intercept ENOSYS and replace it with ENODATA; returning ENOSYS would cause FUSE to never to GetXAttr() again.
+		if code == fuse.ENOSYS {
+			return nil, fuse.ENODATA
+		}
+		return value, code
 	}
 	return nil, fuse.ENOENT
 }

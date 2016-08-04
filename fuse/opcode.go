@@ -88,6 +88,10 @@ func doInit(server *Server, req *request) {
 	if input.Minor >= 13 {
 		server.setSplice()
 	}
+
+	server.versionMinor = input.Minor
+	server.versionMajor = input.Major
+
 	server.reqMu.Unlock()
 
 	out := &InitOut{
