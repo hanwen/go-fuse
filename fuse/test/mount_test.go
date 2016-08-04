@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -195,5 +196,35 @@ func TestDefaultNodeMount(t *testing.T) {
 		t.Fatalf("got %d entries", len(entries))
 	} else if entries[0].Name() != "sub" {
 		t.Fatalf("got %q, want %q", entries[0].Name(), "sub")
+	}
+}
+
+func TestLiveness(t *testing.T) {
+	dir, err := ioutil.TempDir("", "go-fuse")
+	if err != nil {
+		t.Fatalf("TempDir: %v", err)
+	}
+	defer os.RemoveAll(dir)
+	root := nodefs.NewDefaultNode()
+	s, _, err := nodefs.MountRoot(dir, root, nil)
+	if err != nil {
+		t.Fatalf("MountRoot: %v", err)
+	}
+	go s.Serve()
+	if err := s.WaitMount(); err != nil {
+		t.Fatal("WaitMount", err)
+	}
+	defer s.Unmount()
+
+	if _, err := ioutil.ReadDir(dir); err != nil {
+		t.Fatalf("ReadDir: %v", err)
+	}
+
+	// We previously encountered a sitation where a finalizer would close our fd out from under us. Try to force both finalizers to run and object destruction to complete.
+	runtime.GC()
+	runtime.GC()
+
+	if _, err := ioutil.ReadDir(dir); err != nil {
+		t.Fatalf("ReadDir: %v", err)
 	}
 }
