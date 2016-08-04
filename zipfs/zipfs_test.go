@@ -36,6 +36,7 @@ func setupZipfs(t *testing.T) (mountPoint string, cleanup func()) {
 	})
 
 	go state.Serve()
+	state.WaitMount()
 
 	return mountPoint, func() {
 		state.Unmount()

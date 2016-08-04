@@ -7,7 +7,6 @@ package unionfs
 import (
 	"io/ioutil"
 	"os"
-	"syscall"
 	"testing"
 	"time"
 
@@ -76,13 +75,14 @@ func TestXAttrCaching(t *testing.T) {
 	}
 	defer server.Unmount()
 	go server.Serve()
+	server.WaitMount()
 
 	if fi, err := os.Lstat(wd + "/mnt"); err != nil || !fi.IsDir() {
 		t.Fatalf("root not readable: %v, %v", err, fi)
 	}
 
 	buf := make([]byte, 1024)
-	n, err := syscall.Getxattr(wd+"/mnt/file", "user.attr", buf)
+	n, err := Getxattr(wd+"/mnt/file", "user.attr", buf)
 	if err != nil {
 		t.Fatalf("Getxattr: %v", err)
 	}
@@ -91,8 +91,10 @@ func TestXAttrCaching(t *testing.T) {
 	if got != want {
 		t.Fatalf("Got %q want %q", got, err)
 	}
-	time.Sleep(entryTtl / 2)
-	n, err = syscall.Getxattr(wd+"/mnt/file", "user.attr", buf)
+
+	time.Sleep(entryTtl / 3)
+
+	n, err = Getxattr(wd+"/mnt/file", "user.attr", buf)
 	if err != nil {
 		t.Fatalf("Getxattr: %v", err)
 	}
@@ -100,7 +102,21 @@ func TestXAttrCaching(t *testing.T) {
 	if got != want {
 		t.Fatalf("Got %q want %q", got, err)
 	}
-	server.Unmount()
+
+	time.Sleep(entryTtl / 3)
+
+	// Make sure that an interceding Getxattr() to a filesystem that doesn't implement GetXAttr() doesn't affect future calls.
+	Getxattr(wd, "whatever", buf)
+
+	n, err = Getxattr(wd+"/mnt/file", "user.attr", buf)
+	if err != nil {
+		t.Fatalf("Getxattr: %v", err)
+	}
+	got = string(buf[:n])
+	if got != want {
+		t.Fatalf("Got %q want %q", got, err)
+	}
+
 	if roFS.xattrRead != 1 {
 		t.Errorf("got xattrRead=%d, want 1", roFS.xattrRead)
 	}

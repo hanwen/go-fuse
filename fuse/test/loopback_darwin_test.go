@@ -10,9 +10,15 @@ import (
 
 func clearStatfs(s *syscall.Statfs_t) {
 	empty := syscall.Statfs_t{}
-	s.Type = 0
-	s.Fsid = empty.Fsid
-	// s.Spare = empty.Spare
-	// TODO - figure out what this is for.
-	s.Flags = 0
+
+	// FUSE can only set the following fields.
+	empty.Blocks = s.Blocks
+	empty.Bfree = s.Bfree
+	empty.Bavail = s.Bavail
+	empty.Files = s.Files
+	empty.Ffree = s.Ffree
+	empty.Iosize = s.Iosize
+	empty.Bsize = s.Bsize
+	// Clear out the rest.
+	*s = empty
 }

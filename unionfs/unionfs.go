@@ -570,7 +570,7 @@ func (fs *unionFS) Chmod(name string, mode uint32, context *fuse.Context) (code 
 func (fs *unionFS) Access(name string, mode uint32, context *fuse.Context) (code fuse.Status) {
 	// We always allow writing.
 	mode = mode &^ fuse.W_OK
-	if name == "" {
+	if name == "" || name == _DROP_CACHE {
 		return fuse.OK
 	}
 	r := fs.getBranch(name)

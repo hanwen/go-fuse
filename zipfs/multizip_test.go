@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 )
@@ -23,7 +24,7 @@ func VerboseTest() bool {
 
 const testTtl = 100 * time.Millisecond
 
-func setupMzfs(t *testing.T) (mountPoint string, cleanup func()) {
+func setupMzfs(t *testing.T) (mountPoint string, state *fuse.Server, cleanup func()) {
 	fs := NewMultiZipFs()
 	mountPoint, _ = ioutil.TempDir("", "")
 	nfs := pathfs.NewPathNodeFs(fs, nil)
@@ -37,15 +38,16 @@ func setupMzfs(t *testing.T) (mountPoint string, cleanup func()) {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
 	go state.Serve()
+	state.WaitMount()
 
-	return mountPoint, func() {
+	return mountPoint, state, func() {
 		state.Unmount()
 		os.RemoveAll(mountPoint)
 	}
 }
 
 func TestMultiZipReadonly(t *testing.T) {
-	mountPoint, cleanup := setupMzfs(t)
+	mountPoint, _, cleanup := setupMzfs(t)
 	defer cleanup()
 
 	_, err := os.Create(mountPoint + "/random")
@@ -60,7 +62,7 @@ func TestMultiZipReadonly(t *testing.T) {
 }
 
 func TestMultiZipFs(t *testing.T) {
-	mountPoint, cleanup := setupMzfs(t)
+	mountPoint, server, cleanup := setupMzfs(t)
 	defer cleanup()
 
 	zipFile := testZipFile()
@@ -122,8 +124,22 @@ func TestMultiZipFs(t *testing.T) {
 		t.Fatalf("Remove failed: %v", err)
 	}
 
-	fi, err = os.Stat(mountPoint + "/zipmount")
-	if err == nil {
-		t.Errorf("stat should fail after unmount, got %#v", fi)
+	// If FUSE supports invalid inode notifications we expect this node to be gone. Otherwise we'll just make sure that it's not reachable.
+	if server.KernelSettings().SupportsNotify(fuse.NOTIFY_INVAL_INODE) {
+		fi, err = os.Stat(mountPoint + "/zipmount")
+		if err == nil {
+			t.Errorf("stat should fail after unmount, got %#v", fi)
+		}
+	} else {
+		entries, err = ioutil.ReadDir(mountPoint)
+		if err != nil {
+			t.Fatalf("ReadDir failed: %v", err)
+		}
+		for _, e := range entries {
+			if e.Name() == "zipmount" {
+				t.Error("Should not have entry: ", e)
+			}
+		}
 	}
+
 }

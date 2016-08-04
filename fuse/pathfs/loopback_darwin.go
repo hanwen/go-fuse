@@ -17,11 +17,12 @@ func (fs *loopbackFileSystem) StatFs(name string) *fuse.StatfsOut {
 	if err == nil {
 		return &fuse.StatfsOut{
 			Blocks: s.Blocks,
-			Bsize:  uint32(s.Bsize),
 			Bfree:  s.Bfree,
 			Bavail: s.Bavail,
 			Files:  s.Files,
 			Ffree:  s.Ffree,
+			Bsize:  uint32(s.Iosize), // Iosize translates to Bsize: the optimal transfer size.
+			Frsize: s.Bsize,          // Bsize translates to Frsize: the minimum transfer size.
 		}
 	}
 	return nil
@@ -58,6 +59,6 @@ func (fs *loopbackFileSystem) Utimens(path string, a *time.Time, m *time.Time, c
 		tv[1] = timeToTimeval(m)
 	}
 
-	err := syscall.Utimes(path, tv)
+	err := syscall.Utimes(fs.GetPath(path), tv)
 	return fuse.ToStatus(err)
 }

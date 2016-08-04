@@ -23,6 +23,7 @@ var testAOpts = AutoUnionFsOptions{
 		EntryTimeout:    entryTtl,
 		AttrTimeout:     entryTtl,
 		NegativeTimeout: 0,
+		Debug:           VerboseTest(),
 	},
 	HideReadonly: true,
 	Version:      "version",
@@ -39,7 +40,7 @@ func WriteFile(t *testing.T, name string, contents string) {
 	}
 }
 
-func setup(t *testing.T) (workdir string, cleanup func()) {
+func setup(t *testing.T) (workdir string, server *fuse.Server, cleanup func()) {
 	wd, _ := ioutil.TempDir("", "")
 	err := os.Mkdir(wd+"/mnt", 0700)
 	if err != nil {
@@ -66,15 +67,16 @@ func setup(t *testing.T) (workdir string, cleanup func()) {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}
 	go state.Serve()
+	state.WaitMount()
 
-	return wd, func() {
+	return wd, state, func() {
 		state.Unmount()
 		os.RemoveAll(wd)
 	}
 }
 
 func TestDebug(t *testing.T) {
-	wd, clean := setup(t)
+	wd, _, clean := setup(t)
 	defer clean()
 
 	c, err := ioutil.ReadFile(wd + "/mnt/status/debug")
@@ -87,7 +89,7 @@ func TestDebug(t *testing.T) {
 }
 
 func TestVersion(t *testing.T) {
-	wd, clean := setup(t)
+	wd, _, clean := setup(t)
 	defer clean()
 
 	c, err := ioutil.ReadFile(wd + "/mnt/status/gounionfs_version")
@@ -100,7 +102,7 @@ func TestVersion(t *testing.T) {
 }
 
 func TestAutoFsSymlink(t *testing.T) {
-	wd, clean := setup(t)
+	wd, server, clean := setup(t)
 	defer clean()
 
 	err := os.Mkdir(wd+"/store/backing1", 0755)
@@ -142,14 +144,22 @@ func TestAutoFsSymlink(t *testing.T) {
 		t.Error("error writing:", err)
 	}
 
-	fi, _ = os.Lstat(wd + "/mnt/manual1")
-	if fi != nil {
-		t.Error("Should not have file:", fi)
-	}
-
-	_, err = ioutil.ReadDir(wd + "/mnt/config")
-	if err != nil {
-		t.Fatalf("ReadDir failed: %v", err)
+	// If FUSE supports invalid inode notifications we expect this node to be gone. Otherwise we'll just make sure that it's not reachable.
+	if server.KernelSettings().SupportsNotify(fuse.NOTIFY_INVAL_INODE) {
+		fi, _ = os.Lstat(wd + "/mnt/manual1")
+		if fi != nil {
+			t.Error("Should not have file:", fi)
+		}
+	} else {
+		entries, err = ioutil.ReadDir(wd + "/mnt")
+		if err != nil {
+			t.Fatalf("ReadDir failed: %v", err)
+		}
+		for _, e := range entries {
+			if e.Name() == "manual1" {
+				t.Error("Should not have entry: ", e)
+			}
+		}
 	}
 
 	_, err = os.Lstat(wd + "/mnt/backing1/file1")
@@ -159,7 +169,7 @@ func TestAutoFsSymlink(t *testing.T) {
 }
 
 func TestDetectSymlinkedDirectories(t *testing.T) {
-	wd, clean := setup(t)
+	wd, _, clean := setup(t)
 	defer clean()
 
 	err := os.Mkdir(wd+"/backing1", 0755)
@@ -190,7 +200,7 @@ func TestDetectSymlinkedDirectories(t *testing.T) {
 }
 
 func TestExplicitScan(t *testing.T) {
-	wd, clean := setup(t)
+	wd, _, clean := setup(t)
 	defer clean()
 
 	err := os.Mkdir(wd+"/store/backing1", 0755)
@@ -225,7 +235,7 @@ func TestExplicitScan(t *testing.T) {
 }
 
 func TestCreationChecks(t *testing.T) {
-	wd, clean := setup(t)
+	wd, _, clean := setup(t)
 	defer clean()
 
 	err := os.Mkdir(wd+"/store/foo", 0755)
