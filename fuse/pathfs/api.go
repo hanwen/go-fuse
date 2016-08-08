@@ -71,7 +71,7 @@ type FileSystem interface {
 	// Symlinks.
 	Symlink(value string, linkName string, context *fuse.Context) (code fuse.Status)
 	Readlink(name string, context *fuse.Context) (string, fuse.Status)
-
+	Link(oldName string, newName string, context *fuse.Context) (code fuse.Status)
 	StatFs(name string) *fuse.StatfsOut
 }
 
