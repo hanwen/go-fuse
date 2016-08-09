@@ -11,7 +11,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"syscall"
 	"testing"
 
 	"github.com/hanwen/go-fuse/fuse"
@@ -200,7 +199,7 @@ func TestXAttrRead(t *testing.T) {
 
 	sysRemovexattr(mounted, "third")
 	val, err = readXAttr(mounted, "third")
-	if err != syscall.ENOATTR {
+	if fuse.ToStatus(err) != fuse.ENOATTR {
 		t.Error("Data not removed?", err, val)
 	}
 }
