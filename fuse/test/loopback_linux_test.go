@@ -70,6 +70,41 @@ func TestNegativeTime(t *testing.T) {
 	}
 }
 
+// Setting nanoseconds should work for dates after 1970
+func TestUtimesNano(t *testing.T) {
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
+
+	path := tc.mountFile
+	err := ioutil.WriteFile(path, []byte("xyz"), 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ts := make([]syscall.Timespec, 2)
+	// atime
+	ts[0].Sec = 1
+	ts[0].Nsec = 2
+	// mtime
+	ts[1].Sec = 3
+	ts[1].Nsec = 4
+	err = syscall.UtimesNano(path, ts)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var st syscall.Stat_t
+	err = syscall.Stat(path, &st)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Atim != ts[0] {
+		t.Errorf("Wrong atime: %v, want: %v", st.Atim, ts[0])
+	}
+	if st.Mtim != ts[1] {
+		t.Errorf("Wrong mtime: %v, want: %v", st.Mtim, ts[1])
+	}
+}
+
 func clearStatfs(s *syscall.Statfs_t) {
 	empty := syscall.Statfs_t{}
 	s.Type = 0
