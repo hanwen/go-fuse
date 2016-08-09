@@ -5,7 +5,6 @@
 package test
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -13,6 +12,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
+	"github.com/hanwen/go-fuse/internal/testutil"
 )
 
 type NotifyFs struct {
@@ -78,20 +78,17 @@ type NotifyTest struct {
 func NewNotifyTest(t *testing.T) *NotifyTest {
 	me := &NotifyTest{}
 	me.fs = newNotifyFs()
-	var err error
-	me.dir, err = ioutil.TempDir("", "go-fuse-notify_test")
-	if err != nil {
-		t.Fatalf("TempDir failed: %v", err)
-	}
+	me.dir = testutil.TempDir()
 	entryTtl := 100 * time.Millisecond
 	opts := &nodefs.Options{
 		EntryTimeout:    entryTtl,
 		AttrTimeout:     entryTtl,
 		NegativeTimeout: entryTtl,
-		Debug:           VerboseTest(),
+		Debug:           testutil.VerboseTest(),
 	}
 
 	me.pathfs = pathfs.NewPathNodeFs(me.fs, nil)
+	var err error
 	me.state, me.connector, err = nodefs.MountRoot(me.dir, me.pathfs.Root(), opts)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)

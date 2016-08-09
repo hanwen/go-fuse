@@ -5,13 +5,13 @@
 package pathfs
 
 import (
-	"io/ioutil"
 	"os"
 	"syscall"
 	"testing"
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
+	"github.com/hanwen/go-fuse/internal/testutil"
 )
 
 type ownerFs struct {
@@ -35,7 +35,7 @@ func (fs *ownerFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse
 }
 
 func setupOwnerTest(t *testing.T, opts *nodefs.Options) (workdir string, cleanup func()) {
-	wd, err := ioutil.TempDir("", "go-fuse-owner_test")
+	wd := testutil.TempDir()
 
 	fs := &ownerFs{NewDefaultFileSystem()}
 	nfs := NewPathNodeFs(fs, nil)

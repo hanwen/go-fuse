@@ -5,7 +5,6 @@
 package unionfs
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -13,6 +12,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
+	"github.com/hanwen/go-fuse/internal/testutil"
 )
 
 type TestFS struct {
@@ -39,7 +39,7 @@ func (fs *TestFS) GetXAttr(path string, name string, context *fuse.Context) ([]b
 }
 
 func TestXAttrCaching(t *testing.T) {
-	wd, _ := ioutil.TempDir("", "unionfs")
+	wd := testutil.TempDir()
 	defer os.RemoveAll(wd)
 	os.Mkdir(wd+"/mnt", 0700)
 	err := os.Mkdir(wd+"/rw", 0700)
@@ -62,12 +62,12 @@ func TestXAttrCaching(t *testing.T) {
 		EntryTimeout:    entryTtl / 2,
 		AttrTimeout:     entryTtl / 2,
 		NegativeTimeout: entryTtl / 2,
-		Debug:           VerboseTest(),
+		Debug:           testutil.VerboseTest(),
 	}
 
 	pathfs := pathfs.NewPathNodeFs(ufs,
 		&pathfs.PathNodeFsOptions{ClientInodes: true,
-			Debug: VerboseTest()})
+			Debug: testutil.VerboseTest()})
 
 	server, _, err := nodefs.MountRoot(wd+"/mnt", pathfs.Root(), opts)
 	if err != nil {

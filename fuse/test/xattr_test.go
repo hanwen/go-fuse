@@ -7,7 +7,6 @@
 package test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
+	"github.com/hanwen/go-fuse/internal/testutil"
 )
 
 // this file is linux-only, since it uses syscall.Getxattr.
@@ -36,10 +36,7 @@ func (n *xattrChildNode) GetXAttr(attr string, context *fuse.Context) ([]byte, f
 }
 
 func TestDefaultXAttr(t *testing.T) {
-	dir, err := ioutil.TempDir("", "go-fuse")
-	if err != nil {
-		t.Fatalf("TempDir: %v", err)
-	}
+	dir := testutil.TempDir()
 	defer os.RemoveAll(dir)
 
 	root := &xattrNode{
@@ -47,7 +44,7 @@ func TestDefaultXAttr(t *testing.T) {
 	}
 
 	opts := nodefs.NewOptions()
-	opts.Debug = VerboseTest()
+	opts.Debug = testutil.VerboseTest()
 	s, _, err := nodefs.MountRoot(dir, root, opts)
 	if err != nil {
 		t.Fatalf("MountRoot: %v", err)

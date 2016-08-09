@@ -5,7 +5,6 @@
 package zipfs
 
 import (
-	"flag"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -14,25 +13,20 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
+	"github.com/hanwen/go-fuse/internal/testutil"
 )
-
-// VerboseTest returns true if the testing framework is run with -v.
-func VerboseTest() bool {
-	flag := flag.Lookup("test.v")
-	return flag != nil && flag.Value.String() == "true"
-}
 
 const testTtl = 100 * time.Millisecond
 
 func setupMzfs(t *testing.T) (mountPoint string, state *fuse.Server, cleanup func()) {
 	fs := NewMultiZipFs()
-	mountPoint, _ = ioutil.TempDir("", "")
+	mountPoint = testutil.TempDir()
 	nfs := pathfs.NewPathNodeFs(fs, nil)
 	state, _, err := nodefs.MountRoot(mountPoint, nfs.Root(), &nodefs.Options{
 		EntryTimeout:    testTtl,
 		AttrTimeout:     testTtl,
 		NegativeTimeout: 0.0,
-		Debug:           VerboseTest(),
+		Debug:           testutil.VerboseTest(),
 	})
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)

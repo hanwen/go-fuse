@@ -18,15 +18,8 @@ import (
 
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
+	"github.com/hanwen/go-fuse/internal/testutil"
 )
-
-import "flag"
-
-// VerboseTest returns true if the testing framework is run with -v.
-func VerboseTest() bool {
-	flag := flag.Lookup("test.v")
-	return flag != nil && flag.Value.String() == "true"
-}
 
 func setupFs(fs pathfs.FileSystem, N int) (string, func()) {
 	opts := &nodefs.Options{
@@ -34,20 +27,20 @@ func setupFs(fs pathfs.FileSystem, N int) (string, func()) {
 		AttrTimeout:     0.0,
 		NegativeTimeout: 0.0,
 	}
-	mountPoint, _ := ioutil.TempDir("", "stat_test")
+	mountPoint := testutil.TempDir()
 	nfs := pathfs.NewPathNodeFs(fs, nil)
 	state, _, err := nodefs.MountRoot(mountPoint, nfs.Root(), opts)
 	if err != nil {
 		panic(fmt.Sprintf("cannot mount %v", err)) // ugh - benchmark has no error methods.
 	}
 	lmap := NewLatencyMap()
-	if VerboseTest() {
+	if testutil.VerboseTest() {
 		state.RecordLatencies(lmap)
 	}
 	go state.Serve()
 
 	return mountPoint, func() {
-		if VerboseTest() {
+		if testutil.VerboseTest() {
 			var total time.Duration
 			for _, n := range []string{"LOOKUP", "GETATTR", "OPENDIR", "READDIR",
 				"READDIRPLUS", "RELEASEDIR", "FLUSH",
@@ -203,7 +196,7 @@ func TestingBOnePass(b *testing.B, threads int, filelist, mountPoint string) err
 		fmt.Sprintf("-cpu=%d", threads),
 		fmt.Sprintf("-prefix=%s", mountPoint),
 		fmt.Sprintf("-N=%d", b.N),
-		fmt.Sprintf("-quiet=%v", !VerboseTest()),
+		fmt.Sprintf("-quiet=%v", !testutil.VerboseTest()),
 		filelist)
 
 	cmd.Stdout = os.Stdout
@@ -217,7 +210,7 @@ func TestingBOnePass(b *testing.B, threads int, filelist, mountPoint string) err
 		return err
 	}
 
-	if VerboseTest() {
+	if testutil.VerboseTest() {
 		fmt.Printf("GC count %d, total GC time: %d ns/file\n",
 			after.NumGC-before.NumGC, (after.PauseTotalNs-before.PauseTotalNs)/uint64(b.N))
 	}
@@ -263,7 +256,7 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 	}
 	f.Close()
 
-	mountPoint, _ := ioutil.TempDir("", "stat_test")
+	mountPoint := testutil.TempDir()
 	cmd := exec.Command(wd+"/cstatfs",
 		"-o",
 		"entry_timeout=0.0,attr_timeout=0.0,ac_attr_timeout=0.0,negative_timeout=0.0",

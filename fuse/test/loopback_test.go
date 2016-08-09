@@ -22,6 +22,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
+	"github.com/hanwen/go-fuse/internal/testutil"
 )
 
 const mode uint32 = 0757
@@ -74,10 +75,7 @@ func NewTestCase(t *testing.T) *testCase {
 	const subdir string = "subdir"
 
 	var err error
-	tc.tmpDir, err = ioutil.TempDir("", "go-fuse")
-	if err != nil {
-		t.Fatalf("TempDir failed: %v", err)
-	}
+	tc.tmpDir = testutil.TempDir()
 	tc.orig = tc.tmpDir + "/orig"
 	tc.mnt = tc.tmpDir + "/mnt"
 
@@ -100,12 +98,12 @@ func NewTestCase(t *testing.T) *testCase {
 			EntryTimeout:    testTtl,
 			AttrTimeout:     testTtl,
 			NegativeTimeout: 0.0,
-			Debug:           VerboseTest(),
+			Debug:           testutil.VerboseTest(),
 		})
 	tc.state, err = fuse.NewServer(
 		fuse.NewRawFileSystem(tc.connector.RawFS()), tc.mnt, &fuse.MountOptions{
 			SingleThreaded: true,
-			Debug:          VerboseTest(),
+			Debug:          testutil.VerboseTest(),
 		})
 	if err != nil {
 		t.Fatal("NewServer:", err)
@@ -865,13 +863,10 @@ func TestFStatFs(t *testing.T) {
 }
 
 func TestOriginalIsSymlink(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "go-fuse-loopback_test")
-	if err != nil {
-		t.Fatalf("TempDir failed: %v", err)
-	}
+	tmpDir := testutil.TempDir()
 	defer os.RemoveAll(tmpDir)
 	orig := tmpDir + "/orig"
-	err = os.Mkdir(orig, 0755)
+	err := os.Mkdir(orig, 0755)
 	if err != nil {
 		t.Fatalf("Mkdir failed: %v", err)
 	}

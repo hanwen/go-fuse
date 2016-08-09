@@ -13,6 +13,7 @@ import (
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
+	"github.com/hanwen/go-fuse/internal/testutil"
 )
 
 func testZipFile() string {
@@ -30,9 +31,9 @@ func setupZipfs(t *testing.T) (mountPoint string, cleanup func()) {
 		t.Fatalf("NewArchiveFileSystem failed: %v", err)
 	}
 
-	mountPoint, _ = ioutil.TempDir("", "")
+	mountPoint = testutil.TempDir()
 	state, _, err := nodefs.MountRoot(mountPoint, root, &nodefs.Options{
-		Debug: VerboseTest(),
+		Debug: testutil.VerboseTest(),
 	})
 
 	go state.Serve()

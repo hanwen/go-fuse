@@ -5,7 +5,6 @@
 package test
 
 import (
-	"io/ioutil"
 	"os"
 	"syscall"
 	"testing"
@@ -14,6 +13,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
+	"github.com/hanwen/go-fuse/internal/testutil"
 )
 
 type MutableDataFile struct {
@@ -143,13 +143,10 @@ func NewFile() *MutableDataFile {
 }
 
 func setupFAttrTest(t *testing.T, fs pathfs.FileSystem) (dir string, clean func()) {
-	dir, err := ioutil.TempDir("", "go-fuse-fsetattr_test")
-	if err != nil {
-		t.Fatalf("TempDir failed: %v", err)
-	}
+	dir = testutil.TempDir()
 	nfs := pathfs.NewPathNodeFs(fs, nil)
 	opts := nodefs.NewOptions()
-	opts.Debug = VerboseTest()
+	opts.Debug = testutil.VerboseTest()
 
 	state, _, err := nodefs.MountRoot(dir, nfs.Root(), opts)
 	if err != nil {
@@ -161,17 +158,20 @@ func setupFAttrTest(t *testing.T, fs pathfs.FileSystem) (dir string, clean func(
 		t.Fatal("WaitMount", err)
 	}
 
-	if state.KernelSettings().Flags&fuse.CAP_FILE_OPS == 0 {
-		t.Skip("Mount does not support file operations")
-	}
-
-	return dir, func() {
+	clean = func() {
 		if err := state.Unmount(); err != nil {
 			t.Errorf("cleanup: Unmount: %v", err)
 		} else {
 			os.RemoveAll(dir)
 		}
 	}
+
+	if state.KernelSettings().Flags&fuse.CAP_FILE_OPS == 0 {
+		clean()
+		t.Skip("Mount does not support file operations")
+	}
+
+	return dir, clean
 }
 
 func TestFSetAttr(t *testing.T) {

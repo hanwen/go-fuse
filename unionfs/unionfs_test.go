@@ -21,6 +21,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
+	"github.com/hanwen/go-fuse/internal/testutil"
 )
 
 func TestFilePathHash(t *testing.T) {
@@ -63,7 +64,7 @@ func setupUfs(t *testing.T) (wd string, cleanup func()) {
 	// Make sure system setting does not affect test.
 	syscall.Umask(0)
 
-	wd, _ = ioutil.TempDir("", "unionfs")
+	wd = testutil.TempDir()
 	err := os.Mkdir(wd+"/mnt", 0700)
 	if err != nil {
 		t.Fatalf("Mkdir failed: %v", err)
@@ -94,7 +95,7 @@ func setupUfs(t *testing.T) (wd string, cleanup func()) {
 		AttrTimeout:     entryTtl / 2,
 		NegativeTimeout: entryTtl / 2,
 		PortableInodes:  true,
-		Debug:           VerboseTest(),
+		Debug:           testutil.VerboseTest(),
 	}
 
 	pathfs := pathfs.NewPathNodeFs(ufs,
@@ -1129,7 +1130,7 @@ func newDisappearingFS(fs, nop pathfs.FileSystem) *disappearingFS {
 func TestUnionFsDisappearing(t *testing.T) {
 	// This init is like setupUfs, but we want access to the
 	// writable Fs.
-	wd, _ := ioutil.TempDir("", "")
+	wd := testutil.TempDir()
 	defer os.RemoveAll(wd)
 	err := os.Mkdir(wd+"/mnt", 0700)
 	if err != nil {
@@ -1160,7 +1161,7 @@ func TestUnionFsDisappearing(t *testing.T) {
 		EntryTimeout:    entryTtl,
 		AttrTimeout:     entryTtl,
 		NegativeTimeout: entryTtl,
-		Debug:           VerboseTest(),
+		Debug:           testutil.VerboseTest(),
 	}
 
 	nfs := pathfs.NewPathNodeFs(ufs, nil)

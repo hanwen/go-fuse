@@ -13,6 +13,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
+	"github.com/hanwen/go-fuse/internal/testutil"
 )
 
 const entryTtl = 100 * time.Millisecond
@@ -30,7 +31,7 @@ var testAOpts = AutoUnionFsOptions{
 }
 
 func init() {
-	testAOpts.Options.Debug = VerboseTest()
+	testAOpts.Options.Debug = testutil.VerboseTest()
 }
 
 func WriteFile(t *testing.T, name string, contents string) {
@@ -41,7 +42,7 @@ func WriteFile(t *testing.T, name string, contents string) {
 }
 
 func setup(t *testing.T) (workdir string, server *fuse.Server, cleanup func()) {
-	wd, _ := ioutil.TempDir("", "")
+	wd := testutil.TempDir()
 	err := os.Mkdir(wd+"/mnt", 0700)
 	if err != nil {
 		t.Fatalf("Mkdir failed: %v", err)
