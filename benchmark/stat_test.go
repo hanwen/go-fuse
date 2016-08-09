@@ -34,7 +34,7 @@ func setupFs(fs pathfs.FileSystem, N int) (string, func()) {
 		AttrTimeout:     0.0,
 		NegativeTimeout: 0.0,
 	}
-	mountPoint, _ := ioutil.TempDir("", "stat_test")
+	mountPoint := TempDir()
 	nfs := pathfs.NewPathNodeFs(fs, nil)
 	state, _, err := nodefs.MountRoot(mountPoint, nfs.Root(), opts)
 	if err != nil {
@@ -263,7 +263,7 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 	}
 	f.Close()
 
-	mountPoint, _ := ioutil.TempDir("", "stat_test")
+	mountPoint := TempDir()
 	cmd := exec.Command(wd+"/cstatfs",
 		"-o",
 		"entry_timeout=0.0,attr_timeout=0.0,ac_attr_timeout=0.0,negative_timeout=0.0",

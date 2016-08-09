@@ -170,10 +170,7 @@ func TestDeletedUnmount(t *testing.T) {
 }
 
 func TestDefaultNodeMount(t *testing.T) {
-	dir, err := ioutil.TempDir("", "go-fuse")
-	if err != nil {
-		t.Fatalf("TempDir: %v", err)
-	}
+	dir := TempDir()
 	defer os.RemoveAll(dir)
 	root := nodefs.NewDefaultNode()
 	s, conn, err := nodefs.MountRoot(dir, root, nil)
@@ -200,10 +197,7 @@ func TestDefaultNodeMount(t *testing.T) {
 }
 
 func TestLiveness(t *testing.T) {
-	dir, err := ioutil.TempDir("", "go-fuse")
-	if err != nil {
-		t.Fatalf("TempDir: %v", err)
-	}
+	dir := TempDir()
 	defer os.RemoveAll(dir)
 	root := nodefs.NewDefaultNode()
 	s, _, err := nodefs.MountRoot(dir, root, nil)

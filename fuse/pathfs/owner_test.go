@@ -5,7 +5,6 @@
 package pathfs
 
 import (
-	"io/ioutil"
 	"os"
 	"syscall"
 	"testing"
@@ -35,7 +34,7 @@ func (fs *ownerFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse
 }
 
 func setupOwnerTest(t *testing.T, opts *nodefs.Options) (workdir string, cleanup func()) {
-	wd, err := ioutil.TempDir("", "go-fuse-owner_test")
+	wd := TempDir()
 
 	fs := &ownerFs{NewDefaultFileSystem()}
 	nfs := NewPathNodeFs(fs, nil)

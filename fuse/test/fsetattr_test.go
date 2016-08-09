@@ -5,7 +5,6 @@
 package test
 
 import (
-	"io/ioutil"
 	"os"
 	"syscall"
 	"testing"
@@ -143,10 +142,7 @@ func NewFile() *MutableDataFile {
 }
 
 func setupFAttrTest(t *testing.T, fs pathfs.FileSystem) (dir string, clean func()) {
-	dir, err := ioutil.TempDir("", "go-fuse-fsetattr_test")
-	if err != nil {
-		t.Fatalf("TempDir failed: %v", err)
-	}
+	dir = TempDir()
 	nfs := pathfs.NewPathNodeFs(fs, nil)
 	opts := nodefs.NewOptions()
 	opts.Debug = VerboseTest()
@@ -161,17 +157,20 @@ func setupFAttrTest(t *testing.T, fs pathfs.FileSystem) (dir string, clean func(
 		t.Fatal("WaitMount", err)
 	}
 
-	if state.KernelSettings().Flags&fuse.CAP_FILE_OPS == 0 {
-		t.Skip("Mount does not support file operations")
-	}
-
-	return dir, func() {
+	clean = func() {
 		if err := state.Unmount(); err != nil {
 			t.Errorf("cleanup: Unmount: %v", err)
 		} else {
 			os.RemoveAll(dir)
 		}
 	}
+
+	if state.KernelSettings().Flags&fuse.CAP_FILE_OPS == 0 {
+		clean()
+		t.Skip("Mount does not support file operations")
+	}
+
+	return dir, clean
 }
 
 func TestFSetAttr(t *testing.T) {

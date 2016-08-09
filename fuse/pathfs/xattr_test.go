@@ -8,7 +8,6 @@ package pathfs
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -106,16 +105,13 @@ func readXAttr(p, a string) (val []byte, err error) {
 
 func xattrTestCase(t *testing.T, nm string, m map[string][]byte) (mountPoint string, cleanup func()) {
 	xfs := NewXAttrFs(nm, m)
-	mountPoint, err := ioutil.TempDir("", "go-fuse-xattr_test")
-	if err != nil {
-		t.Fatalf("TempDir failed: %v", err)
-	}
+	mountPoint = TempDir()
 
 	nfs := NewPathNodeFs(xfs, nil)
 	state, _, err := nodefs.MountRoot(mountPoint, nfs.Root(),
 		&nodefs.Options{Debug: VerboseTest()})
 	if err != nil {
-		t.Fatalf("TempDir failed: %v", err)
+		t.Fatalf("MountRoot failed: %v", err)
 	}
 
 	go state.Serve()

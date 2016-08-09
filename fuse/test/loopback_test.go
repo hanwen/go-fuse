@@ -865,13 +865,10 @@ func TestFStatFs(t *testing.T) {
 }
 
 func TestOriginalIsSymlink(t *testing.T) {
-	tmpDir, err := ioutil.TempDir("", "go-fuse-loopback_test")
-	if err != nil {
-		t.Fatalf("TempDir failed: %v", err)
-	}
+	tmpDir := TempDir()
 	defer os.RemoveAll(tmpDir)
 	orig := tmpDir + "/orig"
-	err = os.Mkdir(orig, 0755)
+	err := os.Mkdir(orig, 0755)
 	if err != nil {
 		t.Fatalf("Mkdir failed: %v", err)
 	}

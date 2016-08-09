@@ -41,10 +41,7 @@ func defaultReadTest(t *testing.T) (root string, cleanup func()) {
 	}
 
 	var err error
-	dir, err := ioutil.TempDir("", "go-fuse")
-	if err != nil {
-		t.Fatalf("TempDir failed: %v", err)
-	}
+	dir := TempDir()
 	pathfs := pathfs.NewPathNodeFs(fs, nil)
 	opts := nodefs.NewOptions()
 	opts.Debug = VerboseTest()

@@ -7,7 +7,6 @@
 package test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -36,10 +35,7 @@ func (n *xattrChildNode) GetXAttr(attr string, context *fuse.Context) ([]byte, f
 }
 
 func TestDefaultXAttr(t *testing.T) {
-	dir, err := ioutil.TempDir("", "go-fuse")
-	if err != nil {
-		t.Fatalf("TempDir: %v", err)
-	}
+	dir := TempDir()
 	defer os.RemoveAll(dir)
 
 	root := &xattrNode{
