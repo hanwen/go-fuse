@@ -182,7 +182,7 @@ func doGetXAttr(server *Server, req *request) {
 		fn := req.filenames[0]
 		if fn == _SECURITY_CAPABILITY || fn == _SECURITY_ACL_DEFAULT ||
 			fn == _SECURITY_ACL {
-			req.status = ENODATA
+			req.status = ENOATTR
 			return
 		}
 	}

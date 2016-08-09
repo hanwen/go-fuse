@@ -708,7 +708,7 @@ func (fs *unionFS) GetAttr(name string, context *fuse.Context) (a *fuse.Attr, s 
 
 func (fs *unionFS) GetXAttr(name string, attr string, context *fuse.Context) ([]byte, fuse.Status) {
 	if name == _DROP_CACHE {
-		return nil, fuse.ENODATA
+		return nil, fuse.ENOATTR
 	}
 	r := fs.getBranch(name)
 	if r.branch >= 0 {

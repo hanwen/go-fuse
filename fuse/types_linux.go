@@ -4,6 +4,14 @@
 
 package fuse
 
+import (
+	"syscall"
+)
+
+const (
+	ENOATTR = Status(syscall.ENODATA) // On Linux, ENOATTR is an alias for ENODATA.
+)
+
 type Attr struct {
 	Ino       uint64
 	Size      uint64

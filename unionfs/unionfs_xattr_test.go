@@ -36,7 +36,7 @@ func (fs *TestFS) GetXAttr(path string, name string, context *fuse.Context) ([]b
 		fs.xattrRead++
 		return []byte{42}, fuse.OK
 	}
-	return nil, fuse.ENODATA
+	return nil, fuse.ENOATTR
 }
 
 func TestXAttrCaching(t *testing.T) {
