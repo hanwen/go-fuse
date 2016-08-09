@@ -25,9 +25,6 @@ const (
 // Server contains the logic for reading from the FUSE device and
 // translating it to RawFileSystem interface calls.
 type Server struct {
-	versionMajor uint32
-	versionMinor uint32
-
 	// Empty if unmounted.
 	mountPoint string
 	fileSystem RawFileSystem
@@ -64,8 +61,12 @@ func (ms *Server) SetDebug(dbg bool) {
 	ms.opts.Debug = dbg
 }
 
-func (ms *Server) Version() (major, minor uint32) {
-	return ms.versionMinor, ms.versionMinor
+func (ms *Server) SupportsNotify(op int) bool {
+	switch op {
+	case NOTIFY_INVAL_ENTRY:
+		return ms.kernelSettings.Major >= 7 && ms.kernelSettings.Minor >= 12
+	}
+	return false
 }
 
 // KernelSettings returns the Init message from the kernel, so

@@ -89,9 +89,6 @@ func doInit(server *Server, req *request) {
 		server.setSplice()
 	}
 
-	server.versionMinor = input.Minor
-	server.versionMajor = input.Major
-
 	server.reqMu.Unlock()
 
 	out := &InitOut{

@@ -124,8 +124,8 @@ func TestMultiZipFs(t *testing.T) {
 		t.Fatalf("Remove failed: %v", err)
 	}
 
-	// Note that FUSE API 7.11 introduced the notification support required to cause the node to be immediately removed. This check will fail in earlier versions.
-	if _, minor := server.Version(); minor >= 11 {
+	// If FUSE supports invalid inode notifications we expect this node to be gone. Otherwise we'll just make sure that it's not reachable.
+	if server.SupportsNotify(fuse.NOTIFY_INVAL_INODE) {
 		fi, err = os.Stat(mountPoint + "/zipmount")
 		if err == nil {
 			t.Errorf("stat should fail after unmount, got %#v", fi)

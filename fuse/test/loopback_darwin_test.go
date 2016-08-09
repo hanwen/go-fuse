@@ -11,13 +11,14 @@ import (
 func clearStatfs(s *syscall.Statfs_t) {
 	empty := syscall.Statfs_t{}
 
-	// FUSE can't set the following fields defined in struct vfsstatfs on darwin.
-	s.Type = empty.Type
-	s.Fsid = empty.Fsid
-	s.Owner = empty.Owner
-	s.Flags = empty.Flags
-	s.Fssubtype = empty.Fssubtype
-	s.Fstypename = empty.Fstypename
-	s.Mntonname = empty.Mntonname
-	s.Mntfromname = empty.Mntfromname
+	// FUSE can only set the following fields.
+	empty.Blocks = s.Blocks
+	empty.Bfree = s.Bfree
+	empty.Bavail = s.Bavail
+	empty.Files = s.Files
+	empty.Ffree = s.Ffree
+	empty.Iosize = s.Iosize
+	empty.Bsize = s.Bsize
+	// Clear out the rest.
+	*s = empty
 }
