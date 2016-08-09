@@ -72,7 +72,7 @@ func (fs *XAttrTestFs) GetXAttr(name string, attr string, context *fuse.Context)
 	}
 	v, ok := fs.attrs[attr]
 	if !ok {
-		return nil, fuse.ENODATA
+		return nil, fuse.ENOATTR
 	}
 	return v, fuse.OK
 }
@@ -94,7 +94,7 @@ func (fs *XAttrTestFs) RemoveXAttr(name string, attr string, context *fuse.Conte
 	}
 	_, ok := fs.attrs[attr]
 	if !ok {
-		return fuse.ENODATA
+		return fuse.ENOATTR
 	}
 	delete(fs.attrs, attr)
 	return fuse.OK
@@ -200,7 +200,7 @@ func TestXAttrRead(t *testing.T) {
 
 	sysRemovexattr(mounted, "third")
 	val, err = readXAttr(mounted, "third")
-	if err != syscall.ENODATA {
+	if err != syscall.ENOATTR {
 		t.Error("Data not removed?", err, val)
 	}
 }

@@ -4,6 +4,14 @@
 
 package fuse
 
+import (
+	"syscall"
+)
+
+const (
+	ENOATTR = Status(syscall.ENOATTR) // ENOATTR is not defined for all GOOS.
+)
+
 type Attr struct {
 	Ino         uint64
 	Size        uint64

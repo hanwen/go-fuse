@@ -28,7 +28,7 @@ func (fs *defaultFileSystem) GetAttr(name string, context *fuse.Context) (*fuse.
 }
 
 func (fs *defaultFileSystem) GetXAttr(name string, attr string, context *fuse.Context) ([]byte, fuse.Status) {
-	return nil, fuse.ENOSYS
+	return nil, fuse.ENOATTR
 }
 
 func (fs *defaultFileSystem) SetXAttr(name string, attr string, data []byte, flags int, context *fuse.Context) fuse.Status {
