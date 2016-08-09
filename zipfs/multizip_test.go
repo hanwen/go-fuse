@@ -125,7 +125,7 @@ func TestMultiZipFs(t *testing.T) {
 	}
 
 	// If FUSE supports invalid inode notifications we expect this node to be gone. Otherwise we'll just make sure that it's not reachable.
-	if server.SupportsNotify(fuse.NOTIFY_INVAL_INODE) {
+	if server.KernelSettings().SupportsNotify(fuse.NOTIFY_INVAL_INODE) {
 		fi, err = os.Stat(mountPoint + "/zipmount")
 		if err == nil {
 			t.Errorf("stat should fail after unmount, got %#v", fi)
