@@ -552,13 +552,13 @@ func (ms *Server) EntryNotify(parent uint64, name string) Status {
 
 // SupportsVersion returns true if the kernel supports the given
 // protocol version or newer.
-func (in *InitIn) SupportsVersion(maj, min uint32) bool {
+func (in InitIn) SupportsVersion(maj, min uint32) bool {
 	return in.Major >= maj && in.Minor >= min
 }
 
 // SupportsNotify returns whether a certain notification type is
 // supported. Pass any of the NOTIFY_INVAL_* types as argument.
-func (in *InitIn) SupportsNotify(notifyType int) bool {
+func (in InitIn) SupportsNotify(notifyType int) bool {
 	switch notifyType {
 	case NOTIFY_INVAL_ENTRY:
 		return in.SupportsVersion(7, 12)
