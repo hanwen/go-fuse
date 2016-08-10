@@ -1170,6 +1170,7 @@ func TestUnionFsDisappearing(t *testing.T) {
 	}
 	defer state.Unmount()
 	go state.Serve()
+	state.WaitMount()
 
 	err = ioutil.WriteFile(wd+"/ro/file", []byte("blabla"), 0644)
 	if err != nil {
@@ -1195,9 +1196,9 @@ func TestUnionFsDisappearing(t *testing.T) {
 		t.Fatal("write should have failed")
 	}
 
-	// Restore, and wait for caches to catch up.
-	wrFs.visibleChan <- true
+	// Wait for the caches to purge, and then restore.
 	time.Sleep((3 * entryTtl) / 2)
+	wrFs.visibleChan <- true
 
 	_, err = ioutil.ReadDir(wd + "/mnt")
 	if err != nil {

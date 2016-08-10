@@ -59,6 +59,6 @@ func (fs *loopbackFileSystem) Utimens(path string, a *time.Time, m *time.Time, c
 		tv[1] = timeToTimeval(m)
 	}
 
-	err := syscall.Utimes(path, tv)
+	err := syscall.Utimes(fs.GetPath(path), tv)
 	return fuse.ToStatus(err)
 }
