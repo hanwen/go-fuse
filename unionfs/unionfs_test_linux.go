@@ -6,6 +6,7 @@ package unionfs
 
 import (
 	"io/ioutil"
+	"testing"
 )
 
 func TestUnionFsFdLeak(t *testing.T) {
