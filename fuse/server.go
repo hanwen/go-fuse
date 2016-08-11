@@ -63,13 +63,13 @@ func (ms *Server) SetDebug(dbg bool) {
 
 // KernelSettings returns the Init message from the kernel, so
 // filesystems can adapt to availability of features of the kernel
-// driver.
-func (ms *Server) KernelSettings() InitIn {
+// driver. The message should not be altered.
+func (ms *Server) KernelSettings() *InitIn {
 	ms.reqMu.Lock()
 	s := ms.kernelSettings
 	ms.reqMu.Unlock()
 
-	return s
+	return &s
 }
 
 const _MAX_NAME_LEN = 20
