@@ -141,3 +141,13 @@ type ExchangeIn struct {
 	Newdir  uint64
 	Options uint64
 }
+
+func (s *StatfsOut) FromStatfsT(statfs *syscall.Statfs_t) {
+	s.Blocks = statfs.Blocks
+	s.Bfree = statfs.Bfree
+	s.Bavail = statfs.Bavail
+	s.Files = statfs.Files
+	s.Ffree = statfs.Ffree
+	s.Bsize = uint32(s.Iosize) // Iosize translates to Bsize: the optimal transfer size.
+	s.Frsize = s.Bsize         // Bsize translates to Frsize: the minimum transfer size.
+}

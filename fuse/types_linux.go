@@ -108,3 +108,14 @@ type GetXAttrIn struct {
 	Size    uint32
 	Padding uint32
 }
+
+func (s *StatfsOut) FromStatfsT(statfs *syscall.Statfs_t) {
+	s.Blocks = statfs.Blocks
+	s.Bsize = uint32(statfs.Bsize)
+	s.Bfree = statfs.Bfree
+	s.Bavail = statfs.Bavail
+	s.Files = statfs.Files
+	s.Ffree = statfs.Ffree
+	s.Frsize = uint32(statfs.Frsize)
+	s.NameLen = uint32(statfs.Namelen)
+}

@@ -11,23 +11,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-func (fs *loopbackFileSystem) StatFs(name string) *fuse.StatfsOut {
-	s := syscall.Statfs_t{}
-	err := syscall.Statfs(fs.GetPath(name), &s)
-	if err == nil {
-		return &fuse.StatfsOut{
-			Blocks: s.Blocks,
-			Bfree:  s.Bfree,
-			Bavail: s.Bavail,
-			Files:  s.Files,
-			Ffree:  s.Ffree,
-			Bsize:  uint32(s.Iosize), // Iosize translates to Bsize: the optimal transfer size.
-			Frsize: s.Bsize,          // Bsize translates to Frsize: the minimum transfer size.
-		}
-	}
-	return nil
-}
-
 const _UTIME_NOW = ((1 << 30) - 1)
 const _UTIME_OMIT = ((1 << 30) - 2)
 

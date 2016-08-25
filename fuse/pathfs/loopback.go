@@ -37,6 +37,17 @@ func NewLoopbackFileSystem(root string) FileSystem {
 	}
 }
 
+func (fs *loopbackFileSystem) StatFs(name string) *fuse.StatfsOut {
+	s := syscall.Statfs_t{}
+	err := syscall.Statfs(fs.GetPath(name), &s)
+	if err == nil {
+		out := &fuse.StatfsOut{}
+		out.FromStatfsT(&s)
+		return out
+	}
+	return nil
+}
+
 func (fs *loopbackFileSystem) OnMount(nodeFs *PathNodeFs) {
 }
 
