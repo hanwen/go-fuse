@@ -148,6 +148,6 @@ func (s *StatfsOut) FromStatfsT(statfs *syscall.Statfs_t) {
 	s.Bavail = statfs.Bavail
 	s.Files = statfs.Files
 	s.Ffree = statfs.Ffree
-	s.Bsize = uint32(s.Iosize) // Iosize translates to Bsize: the optimal transfer size.
-	s.Frsize = s.Bsize         // Bsize translates to Frsize: the minimum transfer size.
+	s.Bsize = uint32(statfs.Iosize) // Iosize translates to Bsize: the optimal transfer size.
+	s.Frsize = s.Bsize              // Bsize translates to Frsize: the minimum transfer size.
 }
