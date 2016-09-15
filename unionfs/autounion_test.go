@@ -24,7 +24,7 @@ var testAOpts = AutoUnionFsOptions{
 		EntryTimeout:    entryTtl,
 		AttrTimeout:     entryTtl,
 		NegativeTimeout: 0,
-		Debug:           VerboseTest(),
+		Debug:           testutil.VerboseTest(),
 	},
 	HideReadonly: true,
 	Version:      "version",
