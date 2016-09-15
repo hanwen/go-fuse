@@ -168,10 +168,22 @@ func (fs *unionFS) getBranch(name string) branchResult {
 	return r.(branchResult)
 }
 
+func (fs *unionFS) setBranch(name string, r branchResult) {
+	if !r.valid() {
+		log.Panicf("entry %q setting illegal branchResult %v", name, r)
+	}
+	fs.branchCache.Set(name, r)
+}
+
 type branchResult struct {
 	attr   *fuse.Attr
 	code   fuse.Status
 	branch int
+}
+
+func (r *branchResult) valid() bool {
+	return (r.branch >= 0 && r.attr != nil && r.code.Ok()) ||
+		(r.branch < 0 && r.attr == nil && !r.code.Ok())
 }
 
 func (fs branchResult) String() string {
@@ -341,7 +353,7 @@ func (fs *unionFS) Promote(name string, srcResult branchResult, context *fuse.Co
 	} else {
 		r := fs.getBranch(name)
 		r.branch = 0
-		fs.branchCache.Set(name, r)
+		fs.setBranch(name, r)
 	}
 
 	return fuse.OK
@@ -436,7 +448,7 @@ func (fs *unionFS) Mkdir(path string, mode uint32, context *fuse.Context) (code 
 		attr := &fuse.Attr{
 			Mode: fuse.S_IFDIR | mode,
 		}
-		fs.branchCache.Set(path, branchResult{attr, fuse.OK, 0})
+		fs.setBranch(path, branchResult{attr, fuse.OK, 0})
 	}
 
 	var stream []fuse.DirEntry
@@ -481,7 +493,7 @@ func (fs *unionFS) Truncate(path string, size uint64, context *fuse.Context) (co
 		r.attr.Size = size
 		now := time.Now()
 		r.attr.SetTimes(nil, &now, &now)
-		fs.branchCache.Set(path, r)
+		fs.setBranch(path, r)
 	}
 	return code
 }
@@ -501,7 +513,7 @@ func (fs *unionFS) Utimens(name string, atime *time.Time, mtime *time.Time, cont
 	if code.Ok() {
 		now := time.Now()
 		r.attr.SetTimes(atime, mtime, &now)
-		fs.branchCache.Set(name, r)
+		fs.setBranch(name, r)
 	}
 	return code
 }
@@ -531,7 +543,7 @@ func (fs *unionFS) Chown(name string, uid uint32, gid uint32, context *fuse.Cont
 	r.attr.Gid = gid
 	now := time.Now()
 	r.attr.SetTimes(nil, nil, &now)
-	fs.branchCache.Set(name, r)
+	fs.setBranch(name, r)
 	return fuse.OK
 }
 
@@ -563,7 +575,7 @@ func (fs *unionFS) Chmod(name string, mode uint32, context *fuse.Context) (code 
 	r.attr.Mode = (r.attr.Mode &^ permMask) | mode
 	now := time.Now()
 	r.attr.SetTimes(nil, nil, &now)
-	fs.branchCache.Set(name, r)
+	fs.setBranch(name, r)
 	return fuse.OK
 }
 
@@ -648,7 +660,7 @@ func (fs *unionFS) promoteDirsTo(filename string) fuse.Status {
 		mTime := r.attr.ModTime()
 		fs.fileSystems[0].Utimens(d, &aTime, &mTime, nil)
 		r.branch = 0
-		fs.branchCache.Set(d, r)
+		fs.setBranch(d, r)
 	}
 	return fuse.OK
 }
@@ -670,7 +682,7 @@ func (fs *unionFS) Create(name string, flags uint32, mode uint32, context *fuse.
 			Mode: fuse.S_IFREG | mode,
 		}
 		a.SetTimes(nil, &now, &now)
-		fs.branchCache.Set(name, branchResult{&a, fuse.OK, 0})
+		fs.setBranch(name, branchResult{&a, fuse.OK, 0})
 	}
 	return fuseFile, code
 }
@@ -862,7 +874,7 @@ func (fs *unionFS) renameDirectory(srcResult branchResult, srcDir string, dstDir
 
 			srcResult := fs.getBranch(srcName)
 			srcResult.branch = 0
-			fs.branchCache.Set(dst, srcResult)
+			fs.setBranch(dst, srcResult)
 
 			srcResult = fs.branchCache.GetFresh(srcName).(branchResult)
 			if srcResult.branch > 0 {
@@ -954,7 +966,7 @@ func (fs *unionFS) Open(name string, flags uint32, context *fuse.Context) (fuseF
 		r.branch = 0
 		now := time.Now()
 		r.attr.SetTimes(nil, &now, nil)
-		fs.branchCache.Set(name, r)
+		fs.setBranch(name, r)
 	}
 	fuseFile, status = fs.fileSystems[r.branch].Open(name, uint32(flags), context)
 	if fuseFile != nil {
