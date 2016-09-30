@@ -6,6 +6,7 @@ package nodefs
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"sync"
 	"syscall"
@@ -125,9 +126,13 @@ func (f *loopbackFile) Read(buf []byte, off int64) (res fuse.ReadResult, code fu
 	f.lock.Lock()
 	// This is not racy by virtue of the kernel properly
 	// synchronizing the open/write/close.
-	r := fuse.ReadResultFd(f.File.Fd(), off, len(buf))
+	n, err := f.File.ReadAt(buf, off)
+	if err == io.EOF {
+		err = nil
+	}
+	r := fuse.ReadResultData(buf[:n])
 	f.lock.Unlock()
-	return r, fuse.OK
+	return r, fuse.ToStatus(err)
 }
 
 func (f *loopbackFile) Write(data []byte, off int64) (uint32, fuse.Status) {
