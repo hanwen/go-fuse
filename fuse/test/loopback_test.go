@@ -63,7 +63,7 @@ func (tc *testCase) WriteFile(name string, content []byte, mode os.FileMode) {
 	}
 }
 
-// Create and mount filesystem.
+// Create and mount loopback filesystem.
 func NewTestCase(t *testing.T) *testCase {
 	tc := &testCase{}
 	tc.tester = t
@@ -88,7 +88,7 @@ func NewTestCase(t *testing.T) *testCase {
 	tc.origSubdir = filepath.Join(tc.orig, subdir)
 
 	var pfs pathfs.FileSystem
-	pfs = pathfs.NewLoopbackFileSystem(tc.orig)
+	pfs = pathfs.NewLoopbackInoFileSystem(tc.orig)
 	pfs = pathfs.NewLockingFileSystem(pfs)
 
 	tc.pathFs = pathfs.NewPathNodeFs(pfs, &pathfs.PathNodeFsOptions{
