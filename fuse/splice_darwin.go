@@ -9,7 +9,7 @@ import (
 )
 
 func (s *Server) setSplice() {
-	panic("darwin has no splice.")
+	s.canSplice = false
 }
 
 func (ms *Server) trySplice(header []byte, req *request, fdData *readResultFd) error {
