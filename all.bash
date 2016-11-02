@@ -24,7 +24,7 @@ for target in "clean" "install" ; do
   for d in fuse fuse/nodefs fuse/pathfs fuse/test zipfs unionfs \
     example/hello example/loopback example/zipfs \
     example/multizip example/unionfs example/memfs \
-    example/autounionfs ; \
+    example/autounionfs example/statfs ; \
   do
     if test "${target}" = "install" && test "${d}" = "fuse/test"; then
       continue

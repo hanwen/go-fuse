@@ -48,7 +48,7 @@ func main() {
 			log.Fatalf("os.Create: %v", err)
 		}
 	}
-	fs := benchmark.NewStatFs()
+	fs := benchmark.NewStatFS()
 	lines := benchmark.ReadLines(flag.Arg(1))
 	for _, l := range lines {
 		fs.AddFile(l)
