@@ -43,6 +43,10 @@ type MountOptions struct {
 	// capped at the kernel maximum.
 	MaxWrite int
 
+	// Max read ahead to use.  If 0, use default. This number is
+	// capped at the kernel maximum.
+	MaxReadAhead int
+
 	// If IgnoreSecurityLabels is set, all security related xattr
 	// requests will return NO_DATA without passing through the
 	// user defined filesystem.  You should only set this if you
