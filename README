@@ -24,7 +24,7 @@ subdirectories of the FUSE mount.
 
 EXAMPLES
 
-* examples/hello/hello.go contains a 60-line "hello world" filesystem
+* example/hello/main.go contains a 60-line "hello world" filesystem
 
 * zipfs/zipfs.go contains a small and simple read-only filesystem for
   zip and tar files. The corresponding command is in example/zipfs/
