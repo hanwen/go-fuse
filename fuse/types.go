@@ -19,19 +19,47 @@ type Status int32
 
 const (
 	OK      = Status(0)
+
+	// EACCESS Permission denied
 	EACCES  = Status(syscall.EACCES)
+
+	// EBUSY Device or resource busy
 	EBUSY   = Status(syscall.EBUSY)
+
+	// EINVAL Invalid argument
 	EINVAL  = Status(syscall.EINVAL)
+
+	// EIO I/O error
 	EIO     = Status(syscall.EIO)
+
+	// ENOENT No such file or directory
 	ENOENT  = Status(syscall.ENOENT)
+
+	// ENOSYS Function not implemented
 	ENOSYS  = Status(syscall.ENOSYS)
+
+	// ENODATA No data available
 	ENODATA = Status(syscall.ENODATA)
+
+	// ENOTDIR Not a directory
 	ENOTDIR = Status(syscall.ENOTDIR)
+
+	// EPERM Operation not permitted
 	EPERM   = Status(syscall.EPERM)
+
+	// ERANGE Math result not representable
 	ERANGE  = Status(syscall.ERANGE)
+
+	// EXDEV Cross-device link
 	EXDEV   = Status(syscall.EXDEV)
+
+	// EBADF Bad file number
 	EBADF   = Status(syscall.EBADF)
+
+	// ENODEV No such device
 	ENODEV  = Status(syscall.ENODEV)
+
+	// EROFS Read-only file system
 	EROFS   = Status(syscall.EROFS)
 )
 
