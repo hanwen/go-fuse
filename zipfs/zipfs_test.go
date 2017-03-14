@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
@@ -67,6 +68,16 @@ func TestZipFs(t *testing.T) {
 	fi, err = os.Stat(mountPoint + "/file.txt")
 	if err != nil {
 		t.Fatalf("Stat failed: %v", err)
+	}
+	if fi.Mode() != 0664 {
+		t.Fatalf("File mode 0%o != 0664", fi.Mode())
+	}
+	mtime, err := time.Parse(time.RFC3339, "2011-02-22T12:56:12Z")
+	if err != nil {
+		panic(err)
+	}
+	if !fi.ModTime().Equal(mtime) {
+		t.Fatalf("File mtime %v != %v", fi.ModTime(), mtime)
 	}
 
 	if fi.IsDir() {
