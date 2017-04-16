@@ -510,6 +510,7 @@ func TestAccess(t *testing.T) {
 
 	contents := []byte{1, 2, 3}
 	tc.WriteFile(tc.origFile, []byte(contents), 0700)
+
 	if err := os.Chmod(tc.origFile, 0); err != nil {
 		t.Fatalf("Chmod failed: %v", err)
 	}
