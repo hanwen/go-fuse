@@ -18,25 +18,28 @@ const (
 type Status int32
 
 const (
-	OK      = Status(0)
+	OK = Status(0)
 
 	// EACCESS Permission denied
-	EACCES  = Status(syscall.EACCES)
+	EACCES = Status(syscall.EACCES)
 
 	// EBUSY Device or resource busy
-	EBUSY   = Status(syscall.EBUSY)
+	EBUSY = Status(syscall.EBUSY)
+
+	// EAGAIN Resource temporarily unavailable
+	EAGAIN = Status(syscall.EAGAIN)
 
 	// EINVAL Invalid argument
-	EINVAL  = Status(syscall.EINVAL)
+	EINVAL = Status(syscall.EINVAL)
 
 	// EIO I/O error
-	EIO     = Status(syscall.EIO)
+	EIO = Status(syscall.EIO)
 
 	// ENOENT No such file or directory
-	ENOENT  = Status(syscall.ENOENT)
+	ENOENT = Status(syscall.ENOENT)
 
 	// ENOSYS Function not implemented
-	ENOSYS  = Status(syscall.ENOSYS)
+	ENOSYS = Status(syscall.ENOSYS)
 
 	// ENODATA No data available
 	ENODATA = Status(syscall.ENODATA)
@@ -45,22 +48,22 @@ const (
 	ENOTDIR = Status(syscall.ENOTDIR)
 
 	// EPERM Operation not permitted
-	EPERM   = Status(syscall.EPERM)
+	EPERM = Status(syscall.EPERM)
 
 	// ERANGE Math result not representable
-	ERANGE  = Status(syscall.ERANGE)
+	ERANGE = Status(syscall.ERANGE)
 
 	// EXDEV Cross-device link
-	EXDEV   = Status(syscall.EXDEV)
+	EXDEV = Status(syscall.EXDEV)
 
 	// EBADF Bad file number
-	EBADF   = Status(syscall.EBADF)
+	EBADF = Status(syscall.EBADF)
 
 	// ENODEV No such device
-	ENODEV  = Status(syscall.ENODEV)
+	ENODEV = Status(syscall.ENODEV)
 
 	// EROFS Read-only file system
-	EROFS   = Status(syscall.EROFS)
+	EROFS = Status(syscall.EROFS)
 )
 
 type ForgetIn struct {
@@ -461,4 +464,9 @@ type FallocateIn struct {
 	Length  uint64
 	Mode    uint32
 	Padding uint32
+}
+
+type FlockIn struct {
+	InHeader
+	Fh uint64
 }

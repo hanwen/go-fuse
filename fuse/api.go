@@ -123,6 +123,8 @@ type RawFileSystem interface {
 	Open(input *OpenIn, out *OpenOut) (status Status)
 	Read(input *ReadIn, buf []byte) (ReadResult, Status)
 
+	Flock(input *FlockIn, flags int) (code Status)
+
 	Release(input *ReleaseIn)
 	Write(input *WriteIn, data []byte) (written uint32, code Status)
 	Flush(input *FlushIn) Status
