@@ -36,7 +36,7 @@ func TestFlock(t *testing.T) {
 		return
 	}
 
-	if out, err := runExternalFlock(cmd, tc.mountFile); bytes.Index(out, []byte("failed to get lock")) == -1 {
+	if out, err := runExternalFlock(cmd, tc.mountFile); !bytes.Contains(out, []byte("failed to get lock")) {
 		t.Errorf("runExternalFlock(%q): %s (%v)", tc.mountFile, out, err)
 	}
 }
