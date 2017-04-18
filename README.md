@@ -11,7 +11,7 @@ threaded loads.
 subdirectories of the FUSE mount.
 
 * Supports 3 interfaces for writing filesystems:
-  - PathFileSystem: define filesystems in terms path names.
+  - PathFileSystem: define filesystems in terms of path names.
   - NodeFileSystem: define filesystems in terms of inodes.
   - RawFileSystem: define filesystems in terms of FUSE's raw
   wire protocol.
