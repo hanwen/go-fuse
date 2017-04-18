@@ -7,14 +7,18 @@
 package test
 
 import (
+	"bytes"
 	"os"
 	"os/exec"
-	"regexp"
 	"syscall"
 	"testing"
 )
 
 func TestFlock(t *testing.T) {
+	cmd, err := exec.LookPath("flock")
+	if err != nil {
+		t.Skip("flock command not found.")
+	}
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
@@ -32,32 +36,19 @@ func TestFlock(t *testing.T) {
 		return
 	}
 
-	if out, err := runExternalFlock(tc.mountFile); err != nil {
-		re := regexp.MustCompile(`flock_test.go:\d+: (.*?)$`) // don't judge me
-		t.Errorf("runExternalFlock(%q): %s", tc.mountFile, re.Find(out))
+	if out, err := runExternalFlock(cmd, tc.mountFile); bytes.Index(out, []byte("failed to get lock")) == -1 {
+		t.Errorf("runExternalFlock(%q): %s (%v)", tc.mountFile, out, err)
 	}
 }
 
-func TestFlockExternal(t *testing.T) {
-	fname := os.Getenv("LOCKED_FILE")
-	if fname == "" {
-		t.SkipNow()
-	}
-
-	f, err := os.Open(fname)
+func runExternalFlock(flockPath, fname string) ([]byte, error) {
+	f, err := os.OpenFile(fname, os.O_WRONLY, 0)
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
-
 	defer f.Close()
-	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != syscall.EAGAIN {
-		t.Errorf("expexpected EAGAIN, got (%+v):  %v)", err, err)
-	}
-}
-
-func runExternalFlock(fname string) ([]byte, error) {
-	cmd := exec.Command(os.Args[0], "-test.run=TestFlockExternal", "-test.timeout=1s")
-
-	cmd.Env = append(cmd.Env, "LOCKED_FILE="+fname)
+	cmd := exec.Command(flockPath, "--verbose", "--exclusive", "--nonblock", "3")
+	cmd.Env = append(cmd.Env, "LC_ALL=C") // in case the user's shell language is different
+	cmd.ExtraFiles = []*os.File{f}
 	return cmd.CombinedOutput()
 }
