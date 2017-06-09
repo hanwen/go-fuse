@@ -81,13 +81,6 @@ func CurrentOwner() *Owner {
 	}
 }
 
-func init() {
-	p := syscall.Getpagesize()
-	if p != PAGESIZE {
-		log.Panicf("page size incorrect: %d", p)
-	}
-}
-
 const _UTIME_OMIT = ((1 << 30) - 2)
 
 // UtimeToTimespec converts a "Time" pointer as passed to Utimens to a

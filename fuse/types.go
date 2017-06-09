@@ -8,8 +8,6 @@ import (
 	"syscall"
 )
 
-const PAGESIZE = 4096
-
 const (
 	_DEFAULT_BACKGROUND_TASKS = 12
 )
