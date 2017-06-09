@@ -114,6 +114,7 @@ func (n *memNode) GetAttr(out *fuse.Attr, file nodefs.File, context *fuse.Contex
 		return fuse.OK
 	}
 	n.file.Stat(out)
+	out.Blocks = (out.Size + 511) / 512
 	return fuse.OK
 }
 
