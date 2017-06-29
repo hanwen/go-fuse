@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"unsafe"
@@ -75,29 +74,9 @@ func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, e
 	return fd, err
 }
 
-func privilegedUnmount(mountPoint string) error {
-	dir, _ := filepath.Split(mountPoint)
-	bin, err := umountBinary()
-	if err != nil {
-		return err
-	}
-
-	proc, err := os.StartProcess(bin,
-		[]string{bin, mountPoint},
-		&os.ProcAttr{Dir: dir, Files: []*os.File{nil, nil, os.Stderr}})
-	if err != nil {
-		return err
-	}
-	w, err := proc.Wait()
-	if !w.Success() {
-		return fmt.Errorf("umount exited with code %v\n", w.Sys())
-	}
-	return err
-}
-
 func unmount(mountPoint string) (err error) {
 	if os.Geteuid() == 0 {
-		return privilegedUnmount(mountPoint)
+		return syscall.Unmount(mountPoint, 0)
 	}
 	bin, err := fusermountBinary()
 	if err != nil {
