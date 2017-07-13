@@ -5,8 +5,8 @@
 package splice
 
 import (
-	"io"
 	"sync"
+	"syscall"
 )
 
 var splicePool *pairPool
@@ -95,10 +95,15 @@ func (me *pairPool) get() (p *Pair, err error) {
 
 var discardBuffer [32 * 1024]byte
 
-func DiscardAll(r io.Reader) {
+func discardAll(fd int) {
 	buf := discardBuffer[:]
+	r := 0
 	for {
-		n, _ := r.Read(buf)
+		n, _ := syscall.Read(fd, buf)
+		if n > 0 {
+			r += n
+		}
+
 		if n < len(buf) {
 			break
 		}
@@ -106,7 +111,7 @@ func DiscardAll(r io.Reader) {
 }
 
 func (me *pairPool) done(p *Pair) {
-	DiscardAll(p.r)
+	discardAll(p.r)
 
 	me.Lock()
 	me.usedCount--
