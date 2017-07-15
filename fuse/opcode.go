@@ -129,6 +129,22 @@ func doOpen(server *Server, req *request) {
 
 func doCreate(server *Server, req *request) {
 	out := (*CreateOut)(req.outData)
+	if req.filenames[0] == pollHackName && req.inHeader.NodeId == FUSE_ROOT_ID {
+		out.EntryOut = EntryOut{
+			NodeId: pollHackInode,
+			Attr: Attr{
+				Ino:   pollHackInode,
+				Mode:  S_IFREG | 0644,
+				Nlink: 1,
+			},
+		}
+		out.OpenOut = OpenOut{
+			Fh: pollHackInode,
+		}
+		req.status = OK
+		return
+	}
+
 	status := server.fileSystem.Create((*CreateIn)(req.inData), req.filenames[0], out)
 	req.status = status
 }
@@ -246,6 +262,9 @@ func doGetAttr(server *Server, req *request) {
 
 // doForget - forget one NodeId
 func doForget(server *Server, req *request) {
+	if req.inHeader.NodeId == pollHackInode {
+		return
+	}
 	if !server.opts.RememberInodes {
 		server.fileSystem.Forget(req.inHeader.NodeId, (*ForgetIn)(req.inData).Nlookup)
 	}
@@ -271,6 +290,9 @@ func doBatchForget(server *Server, req *request) {
 	for i, f := range forgets {
 		if server.opts.Debug {
 			log.Printf("doBatchForget: forgetting %d of %d: NodeId: %d, Nlookup: %d", i+1, len(forgets), f.NodeId, f.Nlookup)
+		}
+		if f.NodeId == pollHackInode {
+			continue
 		}
 		server.fileSystem.Forget(f.NodeId, f.Nlookup)
 	}
