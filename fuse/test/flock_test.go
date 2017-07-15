@@ -14,7 +14,8 @@ import (
 	"testing"
 )
 
-func TestFlock(t *testing.T) {
+// See https://github.com/hanwen/go-fuse/issues/170
+func disabledTestFlock(t *testing.T) {
 	cmd, err := exec.LookPath("flock")
 	if err != nil {
 		t.Skip("flock command not found.")
