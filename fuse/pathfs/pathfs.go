@@ -276,7 +276,6 @@ func (n *pathInode) GetPath() string {
 	// them, them, but since this is a hot path, we take some
 	// effort to avoid allocations.
 
-	n.pathFs.pathLock.RLock()
 	walkUp := n.Inode()
 
 	// TODO - guess depth?
@@ -299,7 +298,6 @@ func (n *pathInode) GetPath() string {
 			pathBytes = append(pathBytes, '/')
 		}
 	}
-	n.pathFs.pathLock.RUnlock()
 
 	path := string(pathBytes)
 	if n.pathFs.debug {
