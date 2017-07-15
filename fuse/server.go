@@ -15,8 +15,6 @@ import (
 	"syscall"
 	"time"
 	"unsafe"
-
-	"golang.org/x/sys/unix"
 )
 
 const (
@@ -56,9 +54,6 @@ type Server struct {
 
 	ready chan error
 }
-
-const pollHackName = ".go-fuse-epoll-hack"
-const pollHackInode = ^uint64(0)
 
 // SetDebug is deprecated. Use MountOptions.Debug instead.
 func (ms *Server) SetDebug(dbg bool) {
@@ -597,26 +592,4 @@ func (ms *Server) WaitMount() error {
 		return err
 	}
 	return pollHack(ms.mountPoint)
-}
-
-// Go 1.9 introduces polling for file I/O. The implementation causes
-// the runtime's epoll to take up the last GOMAXPROCS slot, and if
-// that happens, we won't have any threads left to service FUSE's
-// _OP_POLL request. Prevent this by forcing _OP_POLL to happen, so we
-// can say ENOSYS and prevent further _OP_POLL requests.
-func pollHack(mountPoint string) error {
-	fd, err := syscall.Creat(filepath.Join(mountPoint, pollHackName), syscall.O_CREAT)
-	if err != nil {
-		return err
-	}
-	pollData := []unix.PollFd{{
-		Fd:     int32(fd),
-		Events: unix.POLLIN | unix.POLLPRI | unix.POLLOUT,
-	}}
-
-	// Trigger _OP_POLL, so we can say ENOSYS. We don't care about
-	// the return value.
-	unix.Poll(pollData, 0)
-	syscall.Close(fd)
-	return nil
 }
