@@ -24,6 +24,7 @@ func TestDefaultNodeGetAttr(t *testing.T) {
 		// AttrTimeout is zero.
 		// See https://github.com/JonathonReinhart/gitlab-fuse/issues/2
 		Owner: fuse.CurrentOwner(),
+		Debug: testutil.VerboseTest(),
 	}
 
 	root := nodefs.NewDefaultNode()
