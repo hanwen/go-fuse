@@ -194,6 +194,9 @@ const (
 	CAP_ASYNC_DIO        = (1 << 15)
 	CAP_WRITEBACK_CACHE  = (1 << 16)
 	CAP_NO_OPEN_SUPPORT  = (1 << 17)
+	CAP_PARALLEL_DIROPS  = (1 << 18)
+	CAP_HANDLE_KILLPRIV  = (1 << 19)
+	CAP_POSIX_ACL        = (1 << 20)
 )
 
 type InitIn struct {
