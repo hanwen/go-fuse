@@ -37,6 +37,7 @@ func (fs *ownerFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse
 func setupOwnerTest(t *testing.T, opts *nodefs.Options) (workdir string, cleanup func()) {
 	wd := testutil.TempDir()
 
+	opts.Debug = testutil.VerboseTest()
 	fs := &ownerFs{NewDefaultFileSystem()}
 	nfs := NewPathNodeFs(fs, nil)
 	state, _, err := nodefs.MountRoot(wd, nfs.Root(), opts)
@@ -45,7 +46,7 @@ func setupOwnerTest(t *testing.T, opts *nodefs.Options) (workdir string, cleanup
 	}
 	go state.Serve()
 	if err := state.WaitMount(); err != nil {
-		t.Fatal("WaitMount", err)
+		t.Fatalf("WaitMount: %v", err)
 	}
 	return wd, func() {
 		state.Unmount()
