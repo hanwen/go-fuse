@@ -47,46 +47,46 @@ func newSplicePairPool() *pairPool {
 	return &pairPool{}
 }
 
-func (me *pairPool) clear() {
-	me.Lock()
-	for _, p := range me.unused {
+func (pp *pairPool) clear() {
+	pp.Lock()
+	for _, p := range pp.unused {
 		p.Close()
 	}
-	me.unused = me.unused[:0]
-	me.Unlock()
+	pp.unused = pp.unused[:0]
+	pp.Unlock()
 }
 
-func (me *pairPool) used() (n int) {
-	me.Lock()
-	n = me.usedCount
-	me.Unlock()
+func (pp *pairPool) used() (n int) {
+	pp.Lock()
+	n = pp.usedCount
+	pp.Unlock()
 
 	return n
 }
 
-func (me *pairPool) total() int {
-	me.Lock()
-	n := me.usedCount + len(me.unused)
-	me.Unlock()
+func (pp *pairPool) total() int {
+	pp.Lock()
+	n := pp.usedCount + len(pp.unused)
+	pp.Unlock()
 	return n
 }
 
-func (me *pairPool) drop(p *Pair) {
+func (pp *pairPool) drop(p *Pair) {
 	p.Close()
-	me.Lock()
-	me.usedCount--
-	me.Unlock()
+	pp.Lock()
+	pp.usedCount--
+	pp.Unlock()
 }
 
-func (me *pairPool) get() (p *Pair, err error) {
-	me.Lock()
-	defer me.Unlock()
+func (pp *pairPool) get() (p *Pair, err error) {
+	pp.Lock()
+	defer pp.Unlock()
 
-	me.usedCount++
-	l := len(me.unused)
+	pp.usedCount++
+	l := len(pp.unused)
 	if l > 0 {
-		p := me.unused[l-1]
-		me.unused = me.unused[:l-1]
+		p := pp.unused[l-1]
+		pp.unused = pp.unused[:l-1]
 		return p, nil
 	}
 
@@ -110,13 +110,13 @@ func discardAll(fd int) {
 	}
 }
 
-func (me *pairPool) done(p *Pair) {
+func (pp *pairPool) done(p *Pair) {
 	discardAll(p.r)
 
-	me.Lock()
-	me.usedCount--
-	me.unused = append(me.unused, p)
-	me.Unlock()
+	pp.Lock()
+	pp.usedCount--
+	pp.unused = append(pp.unused, p)
+	pp.Unlock()
 }
 
 func init() {
