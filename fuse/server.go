@@ -406,7 +406,7 @@ func (ms *Server) handleRequest(req *request) Status {
 	}
 
 	errNo := ms.write(req)
-	if errNo != 0 {
+	if errNo != OK {
 		log.Printf("writer: Write/Writev failed, err: %v. opcode: %v",
 			errNo, operationName(req.inHeader.Opcode))
 	}
