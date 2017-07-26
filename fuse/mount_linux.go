@@ -70,6 +70,11 @@ func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, e
 		return -1, err
 	}
 
+	// golang sets CLOEXEC on file descriptors when they are
+	// acquired through normal operations (e.g. open).
+	// Buf for fd, we have to set CLOEXEC manually
+	syscall.CloseOnExec(fd)
+
 	close(ready)
 	return fd, err
 }
