@@ -77,7 +77,26 @@ func (fs *loopbackFileSystem) GetAttr(name string, context *fuse.Context) (a *fu
 	return a, fuse.OK
 }
 
+// OpenDir returns a directory listing without inode numbers (they will be
+// set to FUSE_UNKNOWN_INO by nodefs).
 func (fs *loopbackFileSystem) OpenDir(name string, context *fuse.Context) (stream []fuse.DirEntry, status fuse.Status) {
+	entriesIno, status := fs.OpenDirIno(name, context)
+	if !status.Ok() {
+		return nil, status
+	}
+	stream = make([]fuse.DirEntry, len(entriesIno))
+	for i := range stream {
+		ei := entriesIno[i]
+		stream[i] = fuse.DirEntry{Mode: ei.Mode, Name: ei.Name}
+	}
+	return stream, status
+}
+
+// OpenDirIno returns a directory listing including inode numbers.
+// Note that it will only be called if OpenDir returns ENOSYS.
+// NewLoopbackInoFileSystem does that, so use it instead of
+// NewLoopbackFileSystem if you want to use OpenDirIno.
+func (fs *loopbackFileSystem) OpenDirIno(name string, context *fuse.Context) (stream []fuse.DirEntryIno, status fuse.Status) {
 	// What other ways beyond O_RDONLY are there to open
 	// directories?
 	f, err := os.Open(fs.GetPath(name))
@@ -85,17 +104,22 @@ func (fs *loopbackFileSystem) OpenDir(name string, context *fuse.Context) (strea
 		return nil, fuse.ToStatus(err)
 	}
 	want := 500
-	output := make([]fuse.DirEntry, 0, want)
+	output := make([]fuse.DirEntryIno, 0, want)
 	for {
 		infos, err := f.Readdir(want)
 		for i := range infos {
-			// workaround forhttps://code.google.com/p/go/issues/detail?id=5960
+			// workaround for https://code.google.com/p/go/issues/detail?id=5960
 			if infos[i] == nil {
 				continue
 			}
 			n := infos[i].Name()
-			d := fuse.DirEntry{
+			ino := uint64(fuse.FUSE_UNKNOWN_INO)
+			if st, ok := infos[i].Sys().(*syscall.Stat_t); ok {
+				ino = st.Ino
+			}
+			d := fuse.DirEntryIno{
 				Name: n,
+				Ino:  ino,
 			}
 			if s := fuse.ToStatT(infos[i]); s != nil {
 				d.Mode = uint32(s.Mode)
