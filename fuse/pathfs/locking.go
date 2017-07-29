@@ -118,6 +118,11 @@ func (fs *lockingFileSystem) OpenDir(name string, context *fuse.Context) (stream
 	return fs.FS.OpenDir(name, context)
 }
 
+func (fs *lockingFileSystem) OpenDirIno(name string, context *fuse.Context) (stream []fuse.DirEntryIno, status fuse.Status) {
+	defer fs.locked()()
+	return fs.FS.OpenDirIno(name, context)
+}
+
 func (fs *lockingFileSystem) OnMount(nodeFs *PathNodeFs) {
 	defer fs.locked()()
 	fs.FS.OnMount(nodeFs)

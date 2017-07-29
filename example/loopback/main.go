@@ -80,7 +80,7 @@ func main() {
 
 	var finalFs pathfs.FileSystem
 	orig := flag.Arg(1)
-	loopbackfs := pathfs.NewLoopbackFileSystem(orig)
+	loopbackfs := pathfs.NewLoopbackInoFileSystem(orig)
 	finalFs = loopbackfs
 
 	opts := &nodefs.Options{

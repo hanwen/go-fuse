@@ -30,6 +30,24 @@ func (d DirEntry) String() string {
 	return fmt.Sprintf("%o: %q", d.Mode, d.Name)
 }
 
+// DirEntryIno is a DirEntry struct extended by the "Ino" field for the
+// inode number.
+type DirEntryIno struct {
+	// Mode is the file's mode. Only the high bits (eg. S_IFDIR)
+	// are considered.
+	Mode uint32
+
+	// Name is the basename of the file in the directory.
+	Name string
+
+	// Ino is the inode number
+	Ino uint64
+}
+
+func (d DirEntryIno) String() string {
+	return fmt.Sprintf("%o: %q, ino=%d", d.Mode, d.Name, d.Ino)
+}
+
 // DirEntryList holds the return value for READDIR and READDIRPLUS
 // opcodes.
 type DirEntryList struct {
@@ -51,7 +69,13 @@ func NewDirEntryList(data []byte, off uint64) *DirEntryList {
 // AddDirEntry tries to add an entry, and reports whether it
 // succeeded.
 func (l *DirEntryList) AddDirEntry(e DirEntry) (bool, uint64) {
-	return l.Add(0, e.Name, uint64(FUSE_UNKNOWN_INO), e.Mode)
+	return l.AddDirEntryIno(DirEntryIno{e.Mode, e.Name, FUSE_UNKNOWN_INO})
+}
+
+// AddDirEntryIno is like AddDirEntry but also uses the Ino
+// (inode number) field that DirEntryIno provides.
+func (l *DirEntryList) AddDirEntryIno(e DirEntryIno) (bool, uint64) {
+	return l.Add(0, e.Name, e.Ino, e.Mode)
 }
 
 // Add adds a direntry to the DirEntryList, returning whether it
@@ -88,9 +112,14 @@ func (l *DirEntryList) Add(prefix int, name string, inode uint64, mode uint32) (
 // and returns the space for entry. If no space is left, returns a nil
 // pointer.
 func (l *DirEntryList) AddDirLookupEntry(e DirEntry) (*EntryOut, uint64) {
+	return l.AddDirLookupEntryIno(DirEntryIno{e.Mode, e.Name, FUSE_UNKNOWN_INO})
+}
+
+// AddDirLookupEntryIno is like AddDirLookupEntry but also uses the Ino
+// (inode number) field that DirEntryIno provides.
+func (l *DirEntryList) AddDirLookupEntryIno(e DirEntryIno) (*EntryOut, uint64) {
 	lastStart := len(l.buf)
-	ok, off := l.Add(int(unsafe.Sizeof(EntryOut{})), e.Name,
-		uint64(FUSE_UNKNOWN_INO), e.Mode)
+	ok, off := l.Add(int(unsafe.Sizeof(EntryOut{})), e.Name, e.Ino, e.Mode)
 	if !ok {
 		return nil, off
 	}

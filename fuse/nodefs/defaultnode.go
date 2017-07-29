@@ -109,6 +109,10 @@ func (n *defaultNode) OpenDir(context *fuse.Context) ([]fuse.DirEntry, fuse.Stat
 	return s, fuse.OK
 }
 
+func (n *defaultNode) OpenDirIno(context *fuse.Context) ([]fuse.DirEntryIno, fuse.Status) {
+	return nil, fuse.ENOSYS
+}
+
 func (n *defaultNode) GetXAttr(attribute string, context *fuse.Context) (data []byte, code fuse.Status) {
 	return nil, fuse.ENOATTR
 }
