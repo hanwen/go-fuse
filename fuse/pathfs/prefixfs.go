@@ -87,6 +87,10 @@ func (fs *prefixFileSystem) OpenDir(name string, context *fuse.Context) (stream 
 	return fs.FileSystem.OpenDir(fs.prefixed(name), context)
 }
 
+func (fs *prefixFileSystem) OpenDirIno(name string, context *fuse.Context) (stream []fuse.DirEntryIno, status fuse.Status) {
+	return fs.FileSystem.OpenDirIno(fs.prefixed(name), context)
+}
+
 func (fs *prefixFileSystem) OnMount(nodeFs *PathNodeFs) {
 	fs.FileSystem.OnMount(nodeFs)
 }

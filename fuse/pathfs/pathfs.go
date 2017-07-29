@@ -412,6 +412,10 @@ func (n *pathInode) OpenDir(context *fuse.Context) ([]fuse.DirEntry, fuse.Status
 	return n.fs.OpenDir(n.GetPath(), context)
 }
 
+func (n *pathInode) OpenDirIno(context *fuse.Context) ([]fuse.DirEntryIno, fuse.Status) {
+	return n.fs.OpenDirIno(n.GetPath(), context)
+}
+
 func (n *pathInode) Mknod(name string, mode uint32, dev uint32, context *fuse.Context) (*nodefs.Inode, fuse.Status) {
 	fullPath := filepath.Join(n.GetPath(), name)
 	code := n.fs.Mknod(fullPath, mode, dev, context)

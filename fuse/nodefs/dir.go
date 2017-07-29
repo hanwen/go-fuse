@@ -18,12 +18,30 @@ type connectorDir struct {
 	// Protect stream and lastOffset.  These are written in case
 	// there is a seek on the directory.
 	mu     sync.Mutex
-	stream []fuse.DirEntry
+	stream []fuse.DirEntryIno
 
 	// lastOffset stores the last offset for a readdir. This lets
 	// readdir pick up changes to the directory made after opening
 	// it.
 	lastOffset uint64
+}
+
+// openDirIno calls OpenDir or, if OpenDir returns ENOSYS, OpenDirIno.
+// If OpenDir returns success, the inode number is set to FUSE_UNKNOWN_INO
+// on all entries.
+func openDirIno(node Node, context *fuse.Context) ([]fuse.DirEntryIno, fuse.Status) {
+	entries, code := node.OpenDir(context)
+	if code == fuse.ENOSYS {
+		return node.OpenDirIno(context)
+	}
+	if !code.Ok() {
+		return nil, code
+	}
+	entriesIno := make([]fuse.DirEntryIno, len(entries))
+	for i, v := range entries {
+		entriesIno[i] = fuse.DirEntryIno{v.Mode, v.Name, fuse.FUSE_UNKNOWN_INO}
+	}
+	return entriesIno, fuse.OK
 }
 
 func (d *connectorDir) ReadDir(input *fuse.ReadIn, out *fuse.DirEntryList) (code fuse.Status) {
@@ -36,7 +54,7 @@ func (d *connectorDir) ReadDir(input *fuse.ReadIn, out *fuse.DirEntryList) (code
 	// rewinddir() should be as if reopening directory.
 	// TODO - test this.
 	if d.lastOffset > 0 && input.Offset == 0 {
-		d.stream, code = d.node.OpenDir((*fuse.Context)(&input.Context))
+		d.stream, code = openDirIno(d.node, (*fuse.Context)(&input.Context))
 		if !code.Ok() {
 			return code
 		}
@@ -53,7 +71,7 @@ func (d *connectorDir) ReadDir(input *fuse.ReadIn, out *fuse.DirEntryList) (code
 			log.Printf("got empty directory entry, mode %o.", e.Mode)
 			continue
 		}
-		ok, off := out.AddDirEntry(e)
+		ok, off := out.AddDirEntryIno(e)
 		d.lastOffset = off
 		if !ok {
 			break
@@ -72,7 +90,7 @@ func (d *connectorDir) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) (
 
 	// rewinddir() should be as if reopening directory.
 	if d.lastOffset > 0 && input.Offset == 0 {
-		d.stream, code = d.node.OpenDir((*fuse.Context)(&input.Context))
+		d.stream, code = openDirIno(d.node, (*fuse.Context)(&input.Context))
 		if !code.Ok() {
 			return code
 		}
@@ -91,7 +109,7 @@ func (d *connectorDir) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) (
 
 		// we have to be sure entry will fit if we try to add
 		// it, or we'll mess up the lookup counts.
-		entryDest, off := out.AddDirLookupEntry(e)
+		entryDest, off := out.AddDirLookupEntryIno(e)
 		if entryDest == nil {
 			break
 		}

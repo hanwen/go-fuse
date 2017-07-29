@@ -250,13 +250,14 @@ func (n *Inode) canUnmount() bool {
 	return ok
 }
 
-func (n *Inode) getMountDirEntries() (out []fuse.DirEntry) {
+func (n *Inode) getMountDirEntries() (out []fuse.DirEntryIno) {
 	n.mount.treeLock.RLock()
 	for k, v := range n.children {
 		if v.mountPoint != nil {
-			out = append(out, fuse.DirEntry{
+			out = append(out, fuse.DirEntryIno{
 				Name: k,
 				Mode: fuse.S_IFDIR,
+				Ino:  fuse.FUSE_UNKNOWN_INO,
 			})
 		}
 	}

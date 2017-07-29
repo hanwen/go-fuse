@@ -95,6 +95,10 @@ func (fs *defaultFileSystem) OpenDir(name string, context *fuse.Context) (stream
 	return nil, fuse.ENOSYS
 }
 
+func (fs *defaultFileSystem) OpenDirIno(name string, context *fuse.Context) (stream []fuse.DirEntryIno, status fuse.Status) {
+	return nil, fuse.ENOSYS
+}
+
 func (fs *defaultFileSystem) OnMount(nodeFs *PathNodeFs) {
 }
 

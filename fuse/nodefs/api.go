@@ -93,6 +93,7 @@ type Node interface {
 	// directly.
 	Open(flags uint32, context *fuse.Context) (file File, code fuse.Status)
 	OpenDir(context *fuse.Context) ([]fuse.DirEntry, fuse.Status)
+	OpenDirIno(context *fuse.Context) ([]fuse.DirEntryIno, fuse.Status)
 	Read(file File, dest []byte, off int64, context *fuse.Context) (fuse.ReadResult, fuse.Status)
 	Write(file File, data []byte, off int64, context *fuse.Context) (written uint32, code fuse.Status)
 
