@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/hanwen/go-fuse/fuse"
 )
 
 func TestTouch(t *testing.T) {
@@ -156,4 +158,45 @@ func TestSpecialEntries(t *testing.T) {
 	if n == 0 {
 		t.Errorf("directory is empty, entries '.' and '..' are missing")
 	}
+}
+
+// Check that readdir(3) returns valid inode numbers in the directory entries
+func TestReaddirInodes(t *testing.T) {
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
+	// create "hello.txt"
+	filename := "hello.txt"
+	path := tc.orig + "/" + filename
+	err := ioutil.WriteFile(path, []byte("xyz"), 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// open mountpoint dir
+	d, err := os.Open(tc.mnt)
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
+	defer d.Close()
+	buf := make([]byte, 100)
+	// readdir(3) use getdents64(2) internally which returns linux_dirent64
+	// structures. We don't have readdir(3) so we call getdents64(2) directly.
+	n, err := syscall.Getdents(int(d.Fd()), buf)
+	if n == 0 {
+		t.Error("empty directory - we need at least one file")
+	}
+	buf = buf[:n]
+	entries := parseDirents(buf)
+	t.Logf("parseDirents returned %d entries", len(entries))
+	// Find "hello.txt" and check inode number.
+	for _, entry := range entries {
+		if entry.name != filename {
+			continue
+		}
+		if entry.ino != 0 && entry.ino != fuse.FUSE_UNKNOWN_INO {
+			// Inode number looks good, we are done.
+			return
+		}
+		t.Errorf("got invalid inode number: %d = 0x%x", entry.ino, entry.ino)
+	}
+	t.Errorf("%q not found in directory listing", filename)
 }
