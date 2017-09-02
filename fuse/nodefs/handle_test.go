@@ -90,9 +90,6 @@ func TestHandleMapBasic(t *testing.T) {
 	if hm.Has(h) {
 		t.Fatal("Still has handle")
 	}
-	if v.check != 0 {
-		t.Errorf("forgotten object still has a check.")
-	}
 }
 
 func TestHandleMapMultiple(t *testing.T) {
