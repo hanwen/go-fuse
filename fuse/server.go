@@ -187,6 +187,10 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		// TODO - unmount as well?
 		return nil, fmt.Errorf("init: %s", code)
 	}
+	// Make sure Unmount() will wait for a corresponding Serve() to finish;
+	// Initializing the waitGroup cannot happen in Serve() as the caller can
+	// never be sure loop is initialized before calling Unmount()
+	ms.loops.Add(1)
 	return ms, nil
 }
 
@@ -321,7 +325,6 @@ func (ms *Server) recordStats(req *request) {
 //
 // Each filesystem operation executes in a separate goroutine.
 func (ms *Server) Serve() {
-	ms.loops.Add(1)
 	ms.loop(false)
 	ms.loops.Wait()
 
