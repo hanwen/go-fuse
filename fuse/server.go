@@ -586,7 +586,6 @@ func init() {
 // WaitMount waits for the first request to be served. Use this to
 // avoid racing between accessing the (empty or not yet mounted)
 // mountpoint, and the OS trying to setup the user-space mount.
-// Currently, this call only necessary on OSX.
 func (ms *Server) WaitMount() error {
 	err := <-ms.ready
 	if err != nil {
