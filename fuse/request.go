@@ -115,7 +115,7 @@ func (r *request) OutputDebug() string {
 			if r.fdData != nil {
 				spl = " (fd data)"
 			}
-			flatStr = fmt.Sprintf(" %d bytes data%s\n", r.flatDataSize(), spl)
+			flatStr = fmt.Sprintf(" %d bytes data%s", r.flatDataSize(), spl)
 		}
 	}
 
