@@ -49,6 +49,10 @@ func (f *dataFile) Read(buf []byte, off int64) (res fuse.ReadResult, code fuse.S
 		end = len(f.data)
 	}
 
+	if off > int64(len(f.data)) {
+		return fuse.ReadResultData(f.data[:end]), fuse.OK
+	}
+
 	return fuse.ReadResultData(f.data[off:end]), fuse.OK
 }
 
