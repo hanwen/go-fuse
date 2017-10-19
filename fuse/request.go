@@ -26,7 +26,7 @@ type request struct {
 
 	filenames []string // filename arguments
 
-	// Unstructured data, a pointer to the relevant XxxxOut struct.
+	// Output data.
 	status   Status
 	flatData []byte
 	fdData   *readResultFd
