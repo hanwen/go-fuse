@@ -60,7 +60,7 @@ func TestDefaultXAttr(t *testing.T) {
 	sz, err := syscall.Getxattr(filepath.Join(dir, "child"), "attr", data[:])
 	if err != nil {
 		t.Fatalf("Getxattr: %v", err)
-	} else if val := string(data[:sz]); val != "value" {
-		t.Fatalf("got %v, want 'value'", val)
+	} else if got, want := string(data[:sz]), "value"; got != want {
+		t.Fatalf("got %q, want %q", got, want)
 	}
 }

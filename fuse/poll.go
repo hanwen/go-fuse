@@ -11,7 +11,7 @@ const pollHackInode = ^uint64(0)
 func doPollHackLookup(ms *Server, req *request) {
 	switch req.inHeader.Opcode {
 	case _OP_CREATE:
-		out := (*CreateOut)(req.outData)
+		out := (*CreateOut)(req.outData())
 		out.EntryOut = EntryOut{
 			NodeId: pollHackInode,
 			Attr: Attr{
@@ -25,7 +25,7 @@ func doPollHackLookup(ms *Server, req *request) {
 		}
 		req.status = OK
 	case _OP_LOOKUP:
-		out := (*EntryOut)(req.outData)
+		out := (*EntryOut)(req.outData())
 		*out = EntryOut{}
 		req.status = ENOENT
 	default:

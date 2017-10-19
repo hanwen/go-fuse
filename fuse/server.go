@@ -14,7 +14,6 @@ import (
 	"sync"
 	"syscall"
 	"time"
-	"unsafe"
 )
 
 const (
@@ -452,11 +451,6 @@ func (ms *Server) InodeNotify(node uint64, off int64, length int64) Status {
 		return ENOSYS
 	}
 
-	entry := &NotifyInvalInodeOut{
-		Ino:    node,
-		Off:    off,
-		Length: length,
-	}
 	req := request{
 		inHeader: &InHeader{
 			Opcode: _OP_NOTIFY_INODE,
@@ -464,7 +458,11 @@ func (ms *Server) InodeNotify(node uint64, off int64, length int64) Status {
 		handler: operationHandlers[_OP_NOTIFY_INODE],
 		status:  NOTIFY_INVAL_INODE,
 	}
-	req.outData = unsafe.Pointer(entry)
+
+	entry := (*NotifyInvalInodeOut)(req.outData())
+	entry.Ino = node
+	entry.Off = off
+	entry.Length = length
 
 	// Protect against concurrent close.
 	ms.writeMu.Lock()
@@ -494,18 +492,17 @@ func (ms *Server) DeleteNotify(parent uint64, child uint64, name string) Status 
 		handler: operationHandlers[_OP_NOTIFY_DELETE],
 		status:  NOTIFY_INVAL_DELETE,
 	}
-	entry := &NotifyInvalDeleteOut{
-		Parent:  parent,
-		Child:   child,
-		NameLen: uint32(len(name)),
-	}
+
+	entry := (*NotifyInvalDeleteOut)(req.outData())
+	entry.Parent = parent
+	entry.Child = child
+	entry.NameLen = uint32(len(name))
 
 	// Many versions of FUSE generate stacktraces if the
 	// terminating null byte is missing.
 	nameBytes := make([]byte, len(name)+1)
 	copy(nameBytes, name)
 	nameBytes[len(nameBytes)-1] = '\000'
-	req.outData = unsafe.Pointer(entry)
 	req.flatData = nameBytes
 
 	// Protect against concurrent close.
@@ -533,17 +530,15 @@ func (ms *Server) EntryNotify(parent uint64, name string) Status {
 		handler: operationHandlers[_OP_NOTIFY_ENTRY],
 		status:  NOTIFY_INVAL_ENTRY,
 	}
-	entry := &NotifyInvalEntryOut{
-		Parent:  parent,
-		NameLen: uint32(len(name)),
-	}
+	entry := (*NotifyInvalEntryOut)(req.outData())
+	entry.Parent = parent
+	entry.NameLen = uint32(len(name))
 
 	// Many versions of FUSE generate stacktraces if the
 	// terminating null byte is missing.
 	nameBytes := make([]byte, len(name)+1)
 	copy(nameBytes, name)
 	nameBytes[len(nameBytes)-1] = '\000'
-	req.outData = unsafe.Pointer(entry)
 	req.flatData = nameBytes
 
 	// Protect against concurrent close.
