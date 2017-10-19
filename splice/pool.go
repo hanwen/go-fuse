@@ -6,7 +6,6 @@ package splice
 
 import (
 	"sync"
-	"syscall"
 )
 
 var splicePool *pairPool
@@ -33,7 +32,7 @@ func Used() int {
 	return splicePool.used()
 }
 
-// Return pipe pair to pool
+// Done returns the pipe pair to pool.
 func Done(p *Pair) {
 	splicePool.done(p)
 }
@@ -93,25 +92,8 @@ func (pp *pairPool) get() (p *Pair, err error) {
 	return newSplicePair()
 }
 
-var discardBuffer [32 * 1024]byte
-
-func discardAll(fd int) {
-	buf := discardBuffer[:]
-	r := 0
-	for {
-		n, _ := syscall.Read(fd, buf)
-		if n > 0 {
-			r += n
-		}
-
-		if n < len(buf) {
-			break
-		}
-	}
-}
-
 func (pp *pairPool) done(p *Pair) {
-	discardAll(p.r)
+	p.discard()
 
 	pp.Lock()
 	pp.usedCount--

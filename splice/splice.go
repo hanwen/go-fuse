@@ -30,6 +30,9 @@ func MaxPipeSize() int {
 // Since Linux 2.6.11, the pipe capacity is 65536 bytes.
 const DefaultPipeSize = 16 * 4096
 
+// We empty pipes by splicing to /dev/null.
+var devNullFD uintptr
+
 func init() {
 	content, err := ioutil.ReadFile("/proc/sys/fs/pipe-max-size")
 	if err != nil {
@@ -48,6 +51,13 @@ func init() {
 	resizable = resizable && (errNo == 0)
 	r.Close()
 	w.Close()
+
+	fd, err := syscall.Open("/dev/null", os.O_WRONLY, 0)
+	if err != nil {
+		log.Panicf("splice: %v", err)
+	}
+
+	devNullFD = uintptr(fd)
 }
 
 // copy & paste from syscall.
