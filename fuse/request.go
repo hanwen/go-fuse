@@ -198,11 +198,13 @@ func (r *request) serializeHeader(flatDataSize int) (header []byte) {
 		dataLength = 0
 	}
 
-	// GETXATTR is two opcodes in one: get xattr size (return
-	// structured GetXAttrOut, no flat data) and get xattr data
+	// [GET|LIST]XATTR is two opcodes in one: get/list xattr size (return
+	// structured GetXAttrOut, no flat data) and get/list xattr data
 	// (return no structured data, but only flat data)
-	if r.inHeader.Opcode == _OP_GETXATTR && flatDataSize > 0 {
-		dataLength = 0
+	if r.inHeader.Opcode == _OP_GETXATTR || r.inHeader.Opcode == _OP_LISTXATTR {
+		if (*GetXAttrIn)(r.inData).Size != 0 {
+			dataLength = 0
+		}
 	}
 
 	header = r.outBuf[:sizeOfOutHeader+dataLength]
