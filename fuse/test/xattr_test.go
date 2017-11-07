@@ -32,7 +32,11 @@ type xattrChildNode struct {
 }
 
 func (n *xattrChildNode) GetXAttr(attr string, context *fuse.Context) ([]byte, fuse.Status) {
-	return []byte("value"), fuse.OK
+	if attr == "attr" {
+		return []byte("value"), fuse.OK
+	} else {
+		return []byte(""), fuse.OK
+	}
 }
 
 func TestDefaultXAttr(t *testing.T) {
@@ -61,6 +65,36 @@ func TestDefaultXAttr(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Getxattr: %v", err)
 	} else if got, want := string(data[:sz]), "value"; got != want {
+		t.Fatalf("got %q, want %q", got, want)
+	}
+}
+
+func TestEmptyXAttr(t *testing.T) {
+	dir := testutil.TempDir()
+	defer os.RemoveAll(dir)
+
+	root := &xattrNode{
+		Node: nodefs.NewDefaultNode(),
+	}
+
+	opts := nodefs.NewOptions()
+	opts.Debug = testutil.VerboseTest()
+	s, _, err := nodefs.MountRoot(dir, root, opts)
+	if err != nil {
+		t.Fatalf("MountRoot: %v", err)
+	}
+	go s.Serve()
+	if err := s.WaitMount(); err != nil {
+		t.Fatal("WaitMount", err)
+	}
+
+	defer s.Unmount()
+
+	var data [1024]byte
+	sz, err := syscall.Getxattr(filepath.Join(dir, "child"), "attr2", data[:])
+	if err != nil {
+		t.Fatalf("Getxattr: %v", err)
+	} else if got, want := string(data[:sz]), ""; got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
 }
