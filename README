@@ -21,6 +21,8 @@ subdirectories of the FUSE mount.
 
 * Includes two fleshed out examples, zipfs and unionfs.
 
+* Note: Go 1.3 or later required
+
 
 EXAMPLES
 
