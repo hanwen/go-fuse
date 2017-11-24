@@ -1,8 +1,8 @@
+# GO-FUSE
 
-GO-FUSE: native bindings for the FUSE kernel module.
+native bindings for the FUSE kernel module.
 
-
-HIGHLIGHTS
+## Highlights
 
 * High speed: as fast as libfuse using the gc compiler for single
 threaded loads.
@@ -11,9 +11,9 @@ threaded loads.
 subdirectories of the FUSE mount.
 
 * Supports 3 interfaces for writing filesystems:
-  - PathFileSystem: define filesystems in terms path names.
-  - NodeFileSystem: define filesystems in terms of inodes.
-  - RawFileSystem: define filesystems in terms of FUSE's raw
+  - `PathFileSystem`: define filesystems in terms path names.
+  - `NodeFileSystem`: define filesystems in terms of inodes.
+  - `RawFileSystem`: define filesystems in terms of FUSE's raw
   wire protocol.
 
 * Both NodeFileSystem and PathFileSystem support manipulation of true
@@ -22,43 +22,49 @@ subdirectories of the FUSE mount.
 * Includes two fleshed out examples, zipfs and unionfs.
 
 
-EXAMPLES
+## Examples
 
-* example/hello/main.go contains a 60-line "hello world" filesystem
+* `example/hello/main.go` contains a 60-line "hello world" filesystem
 
-* zipfs/zipfs.go contains a small and simple read-only filesystem for
+* `zipfs/zipfs.go` contains a small and simple read-only filesystem for
   zip and tar files. The corresponding command is in example/zipfs/
   For example,
 
-    mkdir /tmp/mountpoint
-    example/zipfs/zipfs /tmp/mountpoint file.zip &
-    ls /tmp/mountpoint
-    fusermount -u /tmp/mountpoint
+  ```shell
+  mkdir /tmp/mountpoint
+  example/zipfs/zipfs /tmp/mountpoint file.zip &
+  ls /tmp/mountpoint
+  fusermount -u /tmp/mountpoint
+  ````
 
-* zipfs/multizipfs.go shows how to use in-process mounts to
+* `zipfs/multizipfs.go` shows how to use in-process mounts to
   combine multiple Go-FUSE filesystems into a larger filesystem.
 
-* fuse/loopback.go mounts another piece of the filesystem.
+* `fuse/loopback.go` mounts another piece of the filesystem.
   Functionally, it is similar to a symlink.  A binary to run is in
   example/loopback/ . For example
 
-    mkdir /tmp/mountpoint
-    example/loopback/loopback -debug /tmp/mountpoint /some/other/directory &
-    ls /tmp/mountpoint
-    fusermount -u /tmp/mountpoint
+  ```shell
+  mkdir /tmp/mountpoint
+  example/loopback/loopback -debug /tmp/mountpoint /some/other/directory &
+  ls /tmp/mountpoint
+  fusermount -u /tmp/mountpoint
+  ```
 
-* unionfs/unionfs.go: implements a union mount using 1 R/W branch, and
+* `unionfs/unionfs.go`: implements a union mount using 1 R/W branch, and
   multiple R/O branches.
 
-    mkdir -p  /tmp/mountpoint /tmp/writable
-    example/unionfs/unionfs /tmp/mountpoint /tmp/writable /usr &
-    ls /tmp/mountpoint
-    ls -l /tmp/mountpoint/bin/vi
-    rm /tmp/mountpoint/bin/vi
-    ls -l /tmp/mountpoint/bin/vi
-    cat /tmp/writable/*DELETION*/*
+  ```shell
+  mkdir -p  /tmp/mountpoint /tmp/writable
+  example/unionfs/unionfs /tmp/mountpoint /tmp/writable /usr &
+  ls /tmp/mountpoint
+  ls -l /tmp/mountpoint/bin/vi
+  rm /tmp/mountpoint/bin/vi
+  ls -l /tmp/mountpoint/bin/vi
+  cat /tmp/writable/DELETION/*
+  ```
 
-* union/autounionfs.go: creates UnionFs mounts automatically based on
+* `union/autounionfs.go`: creates UnionFs mounts automatically based on
   existence of READONLY symlinks.
 
 
@@ -68,7 +74,7 @@ Tested on:
 - x86 64bits (Ubuntu Lucid).
 
 
-BENCHMARKS
+## Benchmarks
 
 We use threaded stats over a read-only filesystem for benchmarking.
 Automated code is under benchmark/ directory. A simple C version of
@@ -89,9 +95,7 @@ On T60, for each file we have
 - 16.5us is due to latency measurements.
 - 3us is due to garbage collection.
 
-
-
-MACOS SUPPORT
+## macOS Support
 
 go-fuse works somewhat on OSX. Known limitations:
 
@@ -106,33 +110,29 @@ go-fuse works somewhat on OSX. Known limitations:
 
 * Tests are expected to pass; report any failure as a bug!
 
-
-CREDITS
+## Credits
 
 * Inspired by Taru Karttunen's package, https://bitbucket.org/taruti/go-extra.
 
 * Originally based on Ivan Krasin's https://github.com/krasin/go-fuse-zip
 
-
-BUGS
+## Bugs
 
 Yes, probably.  Report them through
 https://github.com/hanwen/go-fuse/issues
 
-
-DISCLAIMER
+## Disclaimer
 
 This is not an official Google product.
 
-
-KNOWN PROBLEMS
+## Known Problems
 
 Grep source code for TODO.  Major topics:
 
-* Missing support for network FS file locking: FUSE_GETLK, FUSE_SETLK,
-  FUSE_SETLKW
+* Missing support for network FS file locking: `FUSE_GETLK`, `FUSE_SETLK`,
+  `FUSE_SETLKW`
 
-* Missing support for FUSE_INTERRUPT, CUSE, BMAP, IOCTL
+* Missing support for `FUSE_INTERRUPT`, `CUSE`, `BMAP`, `IOCTL`
 
 * In the path API, renames are racy; See also:
 
@@ -140,8 +140,7 @@ Grep source code for TODO.  Major topics:
 
   Don't use the path API if you care about correctness.
 
-
-LICENSE
+## License
 
 Like Go, this library is distributed under the new BSD license.  See
 accompanying LICENSE file.
