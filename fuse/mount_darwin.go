@@ -14,12 +14,16 @@ import (
 	"syscall"
 )
 
-func openFUSEDevice() (*os.File, error) {
+func openFUSEDevice(recursive boolean) (*os.File, error) {
 	fs, err := filepath.Glob("/dev/osxfuse*")
 	if err != nil {
 		return nil, err
 	}
 	if len(fs) == 0 {
+		if recursive {
+			return nil, fmt.Errorf("no FUSE devices found")
+		}
+		
 		bin := oldLoadBin
 		if _, err := os.Stat(newLoadBin); err == nil {
 			bin = newLoadBin
@@ -28,7 +32,7 @@ func openFUSEDevice() (*os.File, error) {
 		if err := cmd.Run(); err != nil {
 			return nil, err
 		}
-		return openFUSEDevice()
+		return openFUSEDevice(true)
 	}
 	for _, fn := range fs {
 		f, err := os.OpenFile(fn, os.O_RDWR, 0)
@@ -48,7 +52,7 @@ const oldLoadBin = "/Library/Filesystems/osxfusefs.fs/Support/load_osxfusefs"
 const newLoadBin = "/Library/Filesystems/osxfuse.fs/Contents/Resources/load_osxfuse"
 
 func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, err error) {
-	f, err := openFUSEDevice()
+	f, err := openFUSEDevice(false)
 	if err != nil {
 		return 0, err
 	}
