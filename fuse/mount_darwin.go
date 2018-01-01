@@ -14,7 +14,7 @@ import (
 	"syscall"
 )
 
-func openFUSEDevice(recursive boolean) (*os.File, error) {
+func openFUSEDevice(recursive bool) (*os.File, error) {
 	fs, err := filepath.Glob("/dev/osxfuse*")
 	if err != nil {
 		return nil, err
