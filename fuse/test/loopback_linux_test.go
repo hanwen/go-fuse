@@ -7,6 +7,7 @@ package test
 import (
 	"io/ioutil"
 	"os"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -199,4 +200,23 @@ func TestReaddirInodes(t *testing.T) {
 		t.Errorf("got invalid inode number: %d = 0x%x", entry.ino, entry.ino)
 	}
 	t.Errorf("%q not found in directory listing", filename)
+}
+
+func TestLongFileName(t *testing.T) {
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
+
+	filename := strings.Repeat("x", 255)
+	path := tc.mnt + "/" + filename
+	if fd, err := syscall.Open(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
+		0666); err != nil {
+
+		t.Fatal(err)
+	} else {
+		syscall.Close(fd)
+	}
+	if _, err := syscall.Open(path+"y", os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
+		0666); err != syscall.ENAMETOOLONG {
+		t.Fatal("file with long name created successfully:", err)
+	}
 }

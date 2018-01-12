@@ -62,6 +62,9 @@ const (
 
 	// EROFS Read-only file system
 	EROFS = Status(syscall.EROFS)
+
+	// ENAMETOOLONG File name too long
+	ENAMETOOLONG = Status(syscall.ENAMETOOLONG)
 )
 
 type ForgetIn struct {

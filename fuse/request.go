@@ -13,6 +13,8 @@ import (
 	"unsafe"
 )
 
+const MAX_FILENAME = 255
+
 var sizeOfOutHeader = unsafe.Sizeof(OutHeader{})
 var zeroOutBuf [outputHeaderSize]byte
 
@@ -169,11 +171,21 @@ func (r *request) parse() {
 	if count > 0 {
 		if count == 1 {
 			r.filenames = []string{string(r.arg[:len(r.arg)-1])}
+			if len(r.filenames[0]) > MAX_FILENAME {
+				log.Println("filename too long")
+				r.status = ENAMETOOLONG
+				return
+			}
 		} else {
 			names := bytes.SplitN(r.arg[:len(r.arg)-1], []byte{0}, count)
 			r.filenames = make([]string, len(names))
 			for i, n := range names {
 				r.filenames[i] = string(n)
+				if len(r.filenames[i]) > MAX_FILENAME {
+					log.Println("filename too long")
+					r.status = ENAMETOOLONG
+					return
+				}
 			}
 			if len(names) != count {
 				log.Println("filename argument mismatch", names, count)
