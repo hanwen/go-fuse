@@ -83,7 +83,7 @@ func doInit(server *Server, req *request) {
 	server.reqMu.Lock()
 	server.kernelSettings = *input
 	server.kernelSettings.Flags = input.Flags & (CAP_ASYNC_READ | CAP_BIG_WRITES | CAP_FILE_OPS |
-		CAP_AUTO_INVAL_DATA | CAP_READDIRPLUS | CAP_NO_OPEN_SUPPORT)
+		CAP_AUTO_INVAL_DATA | CAP_READDIRPLUS | CAP_NO_OPEN_SUPPORT | CAP_FLOCK_LOCKS | CAP_POSIX_LOCKS)
 
 	if input.Minor >= 13 {
 		server.setSplice()
@@ -390,6 +390,18 @@ func doFallocate(server *Server, req *request) {
 	req.status = server.fileSystem.Fallocate((*FallocateIn)(req.inData))
 }
 
+func doGetLk(server *Server, req *request) {
+	req.status = server.fileSystem.GetLk((*LkIn)(req.inData), (*LkOut)(req.outData()))
+}
+
+func doSetLk(server *Server, req *request) {
+	req.status = server.fileSystem.SetLk((*LkIn)(req.inData))
+}
+
+func doSetLkw(server *Server, req *request) {
+	req.status = server.fileSystem.SetLkw((*LkIn)(req.inData))
+}
+
 ////////////////////////////////////////////////////////////////
 
 type operationFunc func(*Server, *request)
@@ -457,6 +469,9 @@ func init() {
 		_OP_READDIR:      unsafe.Sizeof(ReadIn{}),
 		_OP_RELEASEDIR:   unsafe.Sizeof(ReleaseIn{}),
 		_OP_FSYNCDIR:     unsafe.Sizeof(FsyncIn{}),
+		_OP_GETLK:        unsafe.Sizeof(LkIn{}),
+		_OP_SETLK:        unsafe.Sizeof(LkIn{}),
+		_OP_SETLKW:       unsafe.Sizeof(LkIn{}),
 		_OP_ACCESS:       unsafe.Sizeof(AccessIn{}),
 		_OP_CREATE:       unsafe.Sizeof(CreateIn{}),
 		_OP_INTERRUPT:    unsafe.Sizeof(InterruptIn{}),
@@ -484,6 +499,7 @@ func init() {
 		_OP_LISTXATTR:     unsafe.Sizeof(GetXAttrOut{}),
 		_OP_INIT:          unsafe.Sizeof(InitOut{}),
 		_OP_OPENDIR:       unsafe.Sizeof(OpenOut{}),
+		_OP_GETLK:         unsafe.Sizeof(LkOut{}),
 		_OP_CREATE:        unsafe.Sizeof(CreateOut{}),
 		_OP_BMAP:          unsafe.Sizeof(_BmapOut{}),
 		_OP_IOCTL:         unsafe.Sizeof(_IoctlOut{}),
@@ -572,6 +588,9 @@ func init() {
 		_OP_FSYNCDIR:     doFsyncDir,
 		_OP_SETXATTR:     doSetXAttr,
 		_OP_REMOVEXATTR:  doRemoveXAttr,
+		_OP_GETLK:        doGetLk,
+		_OP_SETLK:        doSetLk,
+		_OP_SETLKW:       doSetLkw,
 		_OP_ACCESS:       doAccess,
 		_OP_SYMLINK:      doSymlink,
 		_OP_RENAME:       doRename,
@@ -600,6 +619,7 @@ func init() {
 		_OP_NOTIFY_DELETE: func(ptr unsafe.Pointer) interface{} { return (*NotifyInvalDeleteOut)(ptr) },
 		_OP_STATFS:        func(ptr unsafe.Pointer) interface{} { return (*StatfsOut)(ptr) },
 		_OP_SYMLINK:       func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
+		_OP_GETLK:         func(ptr unsafe.Pointer) interface{} { return (*LkOut)(ptr) },
 	} {
 		operationHandlers[op].DecodeOut = f
 	}
@@ -629,6 +649,9 @@ func init() {
 		_OP_FALLOCATE:    func(ptr unsafe.Pointer) interface{} { return (*FallocateIn)(ptr) },
 		_OP_READDIRPLUS:  func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
 		_OP_RENAME:       func(ptr unsafe.Pointer) interface{} { return (*RenameIn)(ptr) },
+		_OP_GETLK:        func(ptr unsafe.Pointer) interface{} { return (*LkIn)(ptr) },
+		_OP_SETLK:        func(ptr unsafe.Pointer) interface{} { return (*LkIn)(ptr) },
+		_OP_SETLKW:       func(ptr unsafe.Pointer) interface{} { return (*LkIn)(ptr) },
 	} {
 		operationHandlers[op].DecodeIn = f
 	}

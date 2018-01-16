@@ -752,3 +752,24 @@ func (n *pathInode) Write(file nodefs.File, data []byte, off int64, context *fus
 	}
 	return 0, fuse.ENOSYS
 }
+
+func (n *pathInode) GetLk(file nodefs.File, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock, context *fuse.Context) (code fuse.Status) {
+	if file != nil {
+		return file.GetLk(owner, lk, flags, out)
+	}
+	return fuse.ENOSYS
+}
+
+func (n *pathInode) SetLk(file nodefs.File, owner uint64, lk *fuse.FileLock, flags uint32, context *fuse.Context) (code fuse.Status) {
+	if file != nil {
+		return file.SetLk(owner, lk, flags)
+	}
+	return fuse.ENOSYS
+}
+
+func (n *pathInode) SetLkw(file nodefs.File, owner uint64, lk *fuse.FileLock, flags uint32, context *fuse.Context) (code fuse.Status) {
+	if file != nil {
+		return file.SetLkw(owner, lk, flags)
+	}
+	return fuse.ENOSYS
+}

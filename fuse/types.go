@@ -5,6 +5,7 @@
 package fuse
 
 import (
+	"io"
 	"syscall"
 )
 
@@ -306,24 +307,24 @@ type GetXAttrOut struct {
 	Padding uint32
 }
 
-type _FileLock struct {
+type FileLock struct {
 	Start uint64
 	End   uint64
 	Typ   uint32
 	Pid   uint32
 }
 
-type _LkIn struct {
+type LkIn struct {
 	InHeader
 	Fh      uint64
 	Owner   uint64
-	Lk      _FileLock
+	Lk      FileLock
 	LkFlags uint32
 	Padding uint32
 }
 
-type _LkOut struct {
-	Lk _FileLock
+type LkOut struct {
+	Lk FileLock
 }
 
 // For AccessIn.Mask.
@@ -467,7 +468,26 @@ type FallocateIn struct {
 	Padding uint32
 }
 
-type FlockIn struct {
-	InHeader
-	Fh uint64
+func (lk *FileLock) ToFlockT(flockT *syscall.Flock_t) {
+	flockT.Start = int64(lk.Start)
+	if lk.End == (1<<63)-1 {
+		flockT.Len = 0
+	} else {
+		flockT.Len = int64(lk.End - lk.Start + 1)
+	}
+	flockT.Whence = int16(io.SeekStart)
+	flockT.Type = int16(lk.Typ)
+}
+
+func (lk *FileLock) FromFlockT(flockT *syscall.Flock_t) {
+	lk.Typ = uint32(flockT.Type)
+	if flockT.Type != syscall.F_UNLCK {
+		lk.Start = uint64(flockT.Start)
+		if flockT.Len == 0 {
+			lk.End = (1 << 63) - 1
+		} else {
+			lk.End = uint64(flockT.Start + flockT.Len - 1)
+		}
+	}
+	lk.Pid = uint32(flockT.Pid)
 }
