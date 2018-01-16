@@ -244,11 +244,29 @@ func (fs *wrappingFS) Read(input *ReadIn, buf []byte) (ReadResult, Status) {
 	return nil, ENOSYS
 }
 
-func (fs *wrappingFS) Flock(input *FlockIn, flags int) Status {
+func (fs *wrappingFS) GetLk(in *LkIn, out *LkOut) (code Status) {
 	if s, ok := fs.fs.(interface {
-		Flock(input *FlockIn, flags int) Status
+		GetLk(in *LkIn, out *LkOut) (code Status)
 	}); ok {
-		return s.Flock(input, flags)
+		return s.GetLk(in, out)
+	}
+	return ENOSYS
+}
+
+func (fs *wrappingFS) SetLk(in *LkIn) (code Status) {
+	if s, ok := fs.fs.(interface {
+		SetLk(in *LkIn) (code Status)
+	}); ok {
+		return s.SetLk(in)
+	}
+	return ENOSYS
+}
+
+func (fs *wrappingFS) SetLkw(in *LkIn) (code Status) {
+	if s, ok := fs.fs.(interface {
+		SetLkw(in *LkIn) (code Status)
+	}); ok {
+		return s.SetLkw(in)
 	}
 	return ENOSYS
 }
