@@ -92,7 +92,18 @@ type RawFileSystem interface {
 	// If called, provide debug output through the log package.
 	SetDebug(debug bool)
 
+	// Lookup is called by the kernel when the VFS wants to know
+	// about a file inside a directory. Many lookup calls can
+	// occur in parallel, but only one call happens for each (dir,
+	// name) pair.
 	Lookup(header *InHeader, name string, out *EntryOut) (status Status)
+
+	// Forget is called when the kernel discards entries from its
+	// dentry cache. This happens on unmount, and when the kernel
+	// is short on memory. Since it is not guaranteed to occur at
+	// any moment, and since there is no return value, Forget
+	// should not do I/O, as there is no channel to report back
+	// I/O errors.
 	Forget(nodeid, nlookup uint64)
 
 	// Attributes.
