@@ -13,6 +13,8 @@ import (
 	"syscall"
 	"testing"
 	"unsafe"
+
+	"golang.org/x/sys/unix"
 )
 
 func clen(n []byte) int {
@@ -34,7 +36,7 @@ type CDirent struct {
 func parseDirents(buf []byte) []CDirent {
 	var result []CDirent
 	for len(buf) > 0 {
-		de := *(*syscall.Dirent)(unsafe.Pointer(&buf[0]))
+		de := *(*unix.Dirent)(unsafe.Pointer(&buf[0]))
 		buf = buf[de.Reclen:]
 		bytes := (*[10000]byte)(unsafe.Pointer(&de.Name[0]))
 		var name = string(bytes[0:clen(bytes[:])])
