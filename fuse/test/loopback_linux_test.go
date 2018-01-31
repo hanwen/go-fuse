@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/sys/unix"
+
 	"github.com/hanwen/go-fuse/fuse"
 )
 
@@ -143,7 +145,7 @@ func TestFallocate(t *testing.T) {
 	}
 }
 
-// Check that "." and ".." exists. syscall.Getdents is linux specific.
+// Check that "." and ".." exists. unix.Getdents is linux specific.
 func TestSpecialEntries(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
@@ -154,7 +156,7 @@ func TestSpecialEntries(t *testing.T) {
 	}
 	defer d.Close()
 	buf := make([]byte, 100)
-	n, err := syscall.Getdents(int(d.Fd()), buf)
+	n, err := unix.Getdents(int(d.Fd()), buf)
 	if n == 0 {
 		t.Errorf("directory is empty, entries '.' and '..' are missing")
 	}
@@ -180,7 +182,7 @@ func TestReaddirInodes(t *testing.T) {
 	buf := make([]byte, 100)
 	// readdir(3) use getdents64(2) internally which returns linux_dirent64
 	// structures. We don't have readdir(3) so we call getdents64(2) directly.
-	n, err := syscall.Getdents(int(d.Fd()), buf)
+	n, err := unix.Getdents(int(d.Fd()), buf)
 	if n == 0 {
 		t.Error("empty directory - we need at least one file")
 	}
