@@ -9,6 +9,9 @@ import (
 	"sync"
 )
 
+// newHandleMap stores the currently active handleMap implementation.
+var newHandleMap = newPortableHandleMap
+
 // HandleMap translates objects in Go space to 64-bit handles that can
 // be given out to -say- the linux kernel as NodeIds.
 //
@@ -66,7 +69,7 @@ type portableHandleMap struct {
 	freeIds []uint64
 }
 
-func newPortableHandleMap() *portableHandleMap {
+func newPortableHandleMap() handleMap {
 	return &portableHandleMap{
 		// Avoid handing out ID 0 and 1.
 		handles: []*handled{nil, nil},
