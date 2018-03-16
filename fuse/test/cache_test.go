@@ -95,7 +95,7 @@ func TestFopenKeepCache(t *testing.T) {
 	}
 
 	if minor := pathfs.Connector().Server().KernelSettings().Minor; minor < 12 {
-		t.Skip("protocol v%d has no notify support.", minor)
+		t.Skipf("protocol v%d has no notify support.", minor)
 	}
 
 	code := pathfs.EntryNotify("", "file.txt")
