@@ -5,18 +5,24 @@
 package nodefs
 
 import (
-	"strings"
+	"os"
 	"testing"
 )
 
-func markSeen(t *testing.T, substr string) {
-	if r := recover(); r != nil {
-		s := r.(string)
-		if strings.Contains(s, substr) {
-			t.Log("expected recovery from: ", r)
-		} else {
-			panic(s)
-		}
+var skipTestHandleMapGeneration = false
+
+func TestMain(m *testing.M) {
+	// Test both handleMap implementations
+	newHandleMap = newPortableHandleMap
+	r := m.Run()
+	if r != 0 {
+		os.Exit(r)
+	}
+	newHandleMap = newSimpleHandleMap
+	skipTestHandleMapGeneration = true
+	r = m.Run()
+	if r != 0 {
+		os.Exit(r)
 	}
 }
 
@@ -24,7 +30,7 @@ func TestHandleMapLookupCount(t *testing.T) {
 	for _, portable := range []bool{true, false} {
 		t.Log("portable:", portable)
 		v := new(handled)
-		hm := newPortableHandleMap()
+		hm := newHandleMap()
 		h1, g1 := hm.Register(v)
 		h2, g2 := hm.Register(v)
 
@@ -68,7 +74,7 @@ func TestHandleMapLookupCount(t *testing.T) {
 
 func TestHandleMapBasic(t *testing.T) {
 	v := new(handled)
-	hm := newPortableHandleMap()
+	hm := newHandleMap()
 	h, _ := hm.Register(v)
 	t.Logf("Got handle 0x%x", h)
 	if !hm.Has(h) {
@@ -93,7 +99,7 @@ func TestHandleMapBasic(t *testing.T) {
 }
 
 func TestHandleMapMultiple(t *testing.T) {
-	hm := newPortableHandleMap()
+	hm := newHandleMap()
 	for i := 0; i < 10; i++ {
 		v := &handled{}
 		h, _ := hm.Register(v)
@@ -107,7 +113,11 @@ func TestHandleMapMultiple(t *testing.T) {
 }
 
 func TestHandleMapGeneration(t *testing.T) {
-	hm := newPortableHandleMap()
+	if skipTestHandleMapGeneration {
+		t.Skip("simpleHandleMap never reuses handles")
+	}
+
+	hm := newHandleMap()
 
 	h1, g1 := hm.Register(&handled{})
 

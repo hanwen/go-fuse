@@ -55,7 +55,7 @@ func NewFileSystemConnector(root Node, opts *Options) (c *FileSystemConnector) {
 	if opts == nil {
 		opts = NewOptions()
 	}
-	c.inodeMap = newPortableHandleMap()
+	c.inodeMap = newHandleMap()
 	c.rootNode = newInode(true, root)
 
 	c.verify()
