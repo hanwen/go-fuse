@@ -34,9 +34,8 @@ type xattrChildNode struct {
 func (n *xattrChildNode) GetXAttr(attr string, context *fuse.Context) ([]byte, fuse.Status) {
 	if attr == "attr" {
 		return []byte("value"), fuse.OK
-	} else {
-		return []byte(""), fuse.OK
 	}
+	return []byte(""), fuse.OK
 }
 
 func TestDefaultXAttr(t *testing.T) {
