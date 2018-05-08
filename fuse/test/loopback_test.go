@@ -95,10 +95,11 @@ func NewTestCase(t *testing.T) *testCase {
 		ClientInodes: true})
 	tc.connector = nodefs.NewFileSystemConnector(tc.pathFs.Root(),
 		&nodefs.Options{
-			EntryTimeout:    testTtl,
-			AttrTimeout:     testTtl,
-			NegativeTimeout: 0.0,
-			Debug:           testutil.VerboseTest(),
+			EntryTimeout:        testTtl,
+			AttrTimeout:         testTtl,
+			NegativeTimeout:     0.0,
+			Debug:               testutil.VerboseTest(),
+			LookupKnownChildren: true,
 		})
 	tc.state, err = fuse.NewServer(
 		fuse.NewRawFileSystem(tc.connector.RawFS()), tc.mnt, &fuse.MountOptions{

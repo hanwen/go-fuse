@@ -85,7 +85,7 @@ func (c *FileSystemConnector) internalLookup(out *fuse.Attr, parent *Inode, name
 		return c.lookupMountUpdate(out, child.mountPoint)
 	}
 
-	if child != nil {
+	if child != nil && !parent.mount.options.LookupKnownChildren {
 		code = child.fsInode.GetAttr(out, nil, &header.Context)
 	} else {
 		child, code = parent.fsInode.Lookup(out, name, &header.Context)
