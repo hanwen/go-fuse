@@ -60,10 +60,11 @@ func TestXAttrCaching(t *testing.T) {
 	}
 
 	opts := &nodefs.Options{
-		EntryTimeout:    entryTtl / 2,
-		AttrTimeout:     entryTtl / 2,
-		NegativeTimeout: entryTtl / 2,
-		Debug:           testutil.VerboseTest(),
+		EntryTimeout:        entryTtl / 2,
+		AttrTimeout:         entryTtl / 2,
+		NegativeTimeout:     entryTtl / 2,
+		Debug:               testutil.VerboseTest(),
+		LookupKnownChildren: true,
 	}
 
 	pathfs := pathfs.NewPathNodeFs(ufs,

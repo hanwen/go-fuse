@@ -91,11 +91,12 @@ func setupUfs(t *testing.T) (wd string, cleanup func()) {
 	// We configure timeouts are smaller, so we can check for
 	// UnionFs's cache consistency.
 	opts := &nodefs.Options{
-		EntryTimeout:    entryTtl / 2,
-		AttrTimeout:     entryTtl / 2,
-		NegativeTimeout: entryTtl / 2,
-		PortableInodes:  true,
-		Debug:           testutil.VerboseTest(),
+		EntryTimeout:        entryTtl / 2,
+		AttrTimeout:         entryTtl / 2,
+		NegativeTimeout:     entryTtl / 2,
+		PortableInodes:      true,
+		Debug:               testutil.VerboseTest(),
+		LookupKnownChildren: true,
 	}
 
 	pathfs := pathfs.NewPathNodeFs(ufs,
@@ -1158,10 +1159,11 @@ func TestUnionFsDisappearing(t *testing.T) {
 	}
 
 	opts := &nodefs.Options{
-		EntryTimeout:    entryTtl,
-		AttrTimeout:     entryTtl,
-		NegativeTimeout: entryTtl,
-		Debug:           testutil.VerboseTest(),
+		EntryTimeout:        entryTtl,
+		AttrTimeout:         entryTtl,
+		NegativeTimeout:     entryTtl,
+		Debug:               testutil.VerboseTest(),
+		LookupKnownChildren: true,
 	}
 
 	nfs := pathfs.NewPathNodeFs(ufs, nil)

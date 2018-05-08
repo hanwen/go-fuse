@@ -541,10 +541,17 @@ func (n *pathInode) Open(flags uint32, context *fuse.Context) (file nodefs.File,
 	return
 }
 
-func (n *pathInode) Lookup(out *fuse.Attr, name string, context *fuse.Context) (node *nodefs.Inode, code fuse.Status) {
+func (n *pathInode) Lookup(out *fuse.Attr, name string, context *fuse.Context) (*nodefs.Inode, fuse.Status) {
 	fullPath := filepath.Join(n.GetPath(), name)
 	fi, code := n.fs.GetAttr(fullPath, context)
-	if code.Ok() {
+	node := n.Inode().GetChild(name)
+
+	if node != nil && (!code.Ok() || node.IsDir() != fi.IsDir()) {
+		n.Inode().RmChild(name)
+		node = nil
+	}
+
+	if code.Ok() && node == nil {
 		node = n.findChild(fi, name, fullPath).Inode()
 		*out = *fi
 	}

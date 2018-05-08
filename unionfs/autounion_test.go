@@ -21,10 +21,11 @@ const entryTtl = 100 * time.Millisecond
 var testAOpts = AutoUnionFsOptions{
 	UnionFsOptions: testOpts,
 	Options: nodefs.Options{
-		EntryTimeout:    entryTtl,
-		AttrTimeout:     entryTtl,
-		NegativeTimeout: 0,
-		Debug:           testutil.VerboseTest(),
+		EntryTimeout:        entryTtl,
+		AttrTimeout:         entryTtl,
+		NegativeTimeout:     0,
+		Debug:               testutil.VerboseTest(),
+		LookupKnownChildren: true,
 	},
 	HideReadonly: true,
 	Version:      "version",
