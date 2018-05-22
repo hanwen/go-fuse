@@ -117,7 +117,15 @@ func (fs *defaultRawFileSystem) Read(input *ReadIn, buf []byte) (ReadResult, Sta
 	return nil, ENOSYS
 }
 
-func (fs *defaultRawFileSystem) Flock(input *FlockIn, flags int) Status {
+func (fs *defaultRawFileSystem) GetLk(in *LkIn, out *LkOut) (code Status) {
+	return ENOSYS
+}
+
+func (fs *defaultRawFileSystem) SetLk(in *LkIn) (code Status) {
+	return ENOSYS
+}
+
+func (fs *defaultRawFileSystem) SetLkw(in *LkIn) (code Status) {
 	return ENOSYS
 }
 

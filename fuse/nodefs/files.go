@@ -167,12 +167,56 @@ func (f *loopbackFile) Fsync(flags int) (code fuse.Status) {
 	return r
 }
 
-func (f *loopbackFile) Flock(flags int) fuse.Status {
-	f.lock.Lock()
-	r := fuse.ToStatus(syscall.Flock(int(f.File.Fd()), flags))
-	f.lock.Unlock()
+const (
+	F_OFD_GETLK  = 36
+	F_OFD_SETLK  = 37
+	F_OFD_SETLKW = 38
+)
 
-	return r
+func (f *loopbackFile) GetLk(owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (code fuse.Status) {
+	flk := syscall.Flock_t{}
+	lk.ToFlockT(&flk)
+	code = fuse.ToStatus(syscall.FcntlFlock(f.File.Fd(), F_OFD_GETLK, &flk))
+	out.FromFlockT(&flk)
+	return
+}
+
+func (f *loopbackFile) SetLk(owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status) {
+	return f.setLock(owner, lk, flags, false)
+}
+
+func (f *loopbackFile) SetLkw(owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status) {
+	return f.setLock(owner, lk, flags, true)
+}
+
+func (f *loopbackFile) setLock(owner uint64, lk *fuse.FileLock, flags uint32, blocking bool) (code fuse.Status) {
+	if (flags & fuse.FUSE_LK_FLOCK) != 0 {
+		var op int
+		switch lk.Typ {
+		case syscall.F_RDLCK:
+			op = syscall.LOCK_SH
+		case syscall.F_WRLCK:
+			op = syscall.LOCK_EX
+		case syscall.F_UNLCK:
+			op = syscall.LOCK_UN
+		default:
+			return fuse.EINVAL
+		}
+		if !blocking {
+			op |= syscall.LOCK_NB
+		}
+		return fuse.ToStatus(syscall.Flock(int(f.File.Fd()), op))
+	} else {
+		flk := syscall.Flock_t{}
+		lk.ToFlockT(&flk)
+		var op int
+		if blocking {
+			op = F_OFD_SETLKW
+		} else {
+			op = F_OFD_SETLK
+		}
+		return fuse.ToStatus(syscall.FcntlFlock(f.File.Fd(), op, &flk))
+	}
 }
 
 func (f *loopbackFile) Truncate(size uint64) fuse.Status {

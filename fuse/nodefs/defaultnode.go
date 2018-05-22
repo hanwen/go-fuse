@@ -137,6 +137,18 @@ func (n *defaultNode) GetAttr(out *fuse.Attr, file File, context *fuse.Context) 
 	return fuse.OK
 }
 
+func (n *defaultNode) GetLk(file File, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock, context *fuse.Context) (code fuse.Status) {
+	return fuse.ENOSYS
+}
+
+func (n *defaultNode) SetLk(file File, owner uint64, lk *fuse.FileLock, flags uint32, context *fuse.Context) (code fuse.Status) {
+	return fuse.ENOSYS
+}
+
+func (n *defaultNode) SetLkw(file File, owner uint64, lk *fuse.FileLock, flags uint32, context *fuse.Context) (code fuse.Status) {
+	return fuse.ENOSYS
+}
+
 func (n *defaultNode) Chmod(file File, perms uint32, context *fuse.Context) (code fuse.Status) {
 	return fuse.ENOSYS
 }
