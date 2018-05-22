@@ -35,7 +35,7 @@ func setupMemNodeTest(t *testing.T) (wd string, root Node, clean func()) {
 			Debug:               testutil.VerboseTest(),
 			LookupKnownChildren: true,
 		})
-	state, err5 := fuse.NewServer(connector.RawFS(), mnt, &fuse.MountOptions{Debug: testutil.VerboseTest()})
+	state, err := fuse.NewServer(connector.RawFS(), mnt, &fuse.MountOptions{Debug: testutil.VerboseTest()})
 	if err != nil {
 		t.Fatal("NewServer", err)
 	}
