@@ -7,7 +7,6 @@
 package test
 
 import (
-	"bytes"
 	"os"
 	"os/exec"
 	"syscall"
@@ -41,8 +40,9 @@ func TestFlockExclusive(t *testing.T) {
 		return
 	}
 
-	if out, err := runExternalFlock(cmd, tc.mountFile); !bytes.Contains(out, []byte("failed to get lock")) {
-		t.Errorf("runExternalFlock(%q): %s (%v)", tc.mountFile, out, err)
+	_, err = runExternalFlock(cmd, tc.mountFile)
+	if err == nil {
+		t.Errorf("Expected flock to fail, but it did not")
 	}
 }
 
@@ -52,7 +52,11 @@ func runExternalFlock(flockPath, fname string) ([]byte, error) {
 		return nil, err
 	}
 	defer f.Close()
-	cmd := exec.Command(flockPath, "--verbose", "--exclusive", "--nonblock", "3")
+
+	// in order to test the lock property we must use cmd.ExtraFiles (instead of passing the actual file)
+	// if we were to pass the file then this flock command would fail to place the lock (returning a
+	// 'file busy' error) as it is already opened and locked at this point (see above)
+	cmd := exec.Command(flockPath, "--exclusive", "--nonblock", "3")
 	cmd.Env = append(cmd.Env, "LC_ALL=C") // in case the user's shell language is different
 	cmd.ExtraFiles = []*os.File{f}
 	return cmd.CombinedOutput()
@@ -60,7 +64,9 @@ func runExternalFlock(flockPath, fname string) ([]byte, error) {
 
 type lockingNode struct {
 	nodefs.Node
-	flockInvoked bool
+	GetLkInvoked bool
+	SetLkInvoked bool
+	SetLkwInvoked bool
 }
 
 func (n *lockingNode) Open(flags uint32, context *fuse.Context) (file nodefs.File, code fuse.Status) {
@@ -68,17 +74,17 @@ func (n *lockingNode) Open(flags uint32, context *fuse.Context) (file nodefs.Fil
 }
 
 func (n *lockingNode) GetLk(file nodefs.File, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock, context *fuse.Context) (code fuse.Status) {
-	n.flockInvoked = true
+	n.GetLkInvoked = true
 	return fuse.OK
 }
 
 func (n *lockingNode) SetLk(file nodefs.File, owner uint64, lk *fuse.FileLock, flags uint32, context *fuse.Context) (code fuse.Status) {
-	n.flockInvoked = true
+	n.SetLkInvoked = true
 	return fuse.OK
 }
 
 func (n *lockingNode) SetLkw(file nodefs.File, owner uint64, lk *fuse.FileLock, flags uint32, context *fuse.Context) (code fuse.Status) {
-	n.flockInvoked = true
+	n.SetLkwInvoked = true
 	return fuse.OK
 }
 
@@ -108,18 +114,34 @@ func TestFlockInvoked(t *testing.T) {
 	defer s.Unmount()
 
 	node := &lockingNode{
-		Node:    nodefs.NewDefaultNode(),
-		flockInvoked: false,
+		Node:         nodefs.NewDefaultNode(),
 	}
 	root.Inode().NewChild("foo", false, node)
 
 	realPath := filepath.Join(dir, "foo")
-	cmd:=exec.Command(flock, "--nonblock", realPath, "echo", "locked")
-	out, err :=cmd.CombinedOutput()
-	if err!=nil {
-		t.Fatalf("flock %v: %v",err, string(out))
+
+	if node.SetLkInvoked {
+		t.Fatalf("SetLk is invoked")
 	}
-	if !node.flockInvoked {
-		t.Fatalf("flock is not invoked")
+	cmd := exec.Command(flock, "--nonblock", realPath, "echo", "locked")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("flock %v: %v", err, string(out))
+	}
+	if !node.SetLkInvoked {
+		t.Fatalf("SetLk is not invoked")
+	}
+
+
+	if node.SetLkwInvoked {
+		t.Fatalf("SetLkw is invoked")
+	}
+	cmd = exec.Command(flock, realPath, "echo", "locked")
+	out, err = cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("flock %v: %v", err, string(out))
+	}
+	if !node.SetLkwInvoked {
+		t.Fatalf("SetLkw is not invoked")
 	}
 }

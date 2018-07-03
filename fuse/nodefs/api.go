@@ -104,8 +104,14 @@ type Node interface {
 	ListXAttr(context *fuse.Context) (attrs []string, code fuse.Status)
 
 	// File locking
+	//
+	// GetLk returns existing lock information for file.
 	GetLk(file File, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock, context *fuse.Context) (code fuse.Status)
+
+	// Sets or clears the lock described by lk on file.
 	SetLk(file File, owner uint64, lk *fuse.FileLock, flags uint32, context *fuse.Context) (code fuse.Status)
+
+	// Sets or clears the lock described by lk. This call blocks until the operation can be completed.
 	SetLkw(file File, owner uint64, lk *fuse.FileLock, flags uint32, context *fuse.Context) (code fuse.Status)
 
 	// Attributes
