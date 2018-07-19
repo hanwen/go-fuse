@@ -54,10 +54,22 @@ func (f *lockingFile) Flush() fuse.Status {
 	return f.file.Flush()
 }
 
-func (f *lockingFile) Flock(flags int) fuse.Status {
+func (f *lockingFile) GetLk(owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (code fuse.Status) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.file.Flock(flags)
+	return f.file.GetLk(owner, lk, flags, out)
+}
+
+func (f *lockingFile) SetLk(owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.file.SetLk(owner, lk, flags)
+}
+
+func (f *lockingFile) SetLkw(owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.file.SetLkw(owner, lk, flags)
 }
 
 func (f *lockingFile) Release() {

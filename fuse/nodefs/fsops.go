@@ -452,15 +452,25 @@ func (c *rawBridge) Read(input *fuse.ReadIn, buf []byte) (fuse.ReadResult, fuse.
 	return node.Node().Read(f, buf, int64(input.Offset), &input.Context)
 }
 
-func (c *rawBridge) Flock(input *fuse.FlockIn, flags int) fuse.Status {
-	node := c.toInode(input.NodeId)
-	opened := node.mount.getOpenedFile(input.Fh)
+func (c *rawBridge) GetLk(input *fuse.LkIn, out *fuse.LkOut) (code fuse.Status) {
+	n := c.toInode(input.NodeId)
+	opened := n.mount.getOpenedFile(input.Fh)
 
-	if opened != nil {
-		return opened.WithFlags.File.Flock(flags)
-	}
+	return n.fsInode.GetLk(opened, input.Owner, &input.Lk, input.LkFlags, &out.Lk, &input.Context)
+}
 
-	return fuse.EBADF
+func (c *rawBridge) SetLk(input *fuse.LkIn) (code fuse.Status) {
+	n := c.toInode(input.NodeId)
+	opened := n.mount.getOpenedFile(input.Fh)
+
+	return n.fsInode.SetLk(opened, input.Owner, &input.Lk, input.LkFlags, &input.Context)
+}
+
+func (c *rawBridge) SetLkw(input *fuse.LkIn) (code fuse.Status) {
+	n := c.toInode(input.NodeId)
+	opened := n.mount.getOpenedFile(input.Fh)
+
+	return n.fsInode.SetLkw(opened, input.Owner, &input.Lk, input.LkFlags, &input.Context)
 }
 
 func (c *rawBridge) StatFs(header *fuse.InHeader, out *fuse.StatfsOut) fuse.Status {
