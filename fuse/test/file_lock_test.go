@@ -9,9 +9,9 @@ package test
 import (
 	"os"
 	"os/exec"
+	"path/filepath"
 	"syscall"
 	"testing"
-	"path/filepath"
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
@@ -64,8 +64,8 @@ func runExternalFlock(flockPath, fname string) ([]byte, error) {
 
 type lockingNode struct {
 	nodefs.Node
-	GetLkInvoked bool
-	SetLkInvoked bool
+	GetLkInvoked  bool
+	SetLkInvoked  bool
 	SetLkwInvoked bool
 }
 
@@ -114,7 +114,7 @@ func TestFlockInvoked(t *testing.T) {
 	defer s.Unmount()
 
 	node := &lockingNode{
-		Node:         nodefs.NewDefaultNode(),
+		Node: nodefs.NewDefaultNode(),
 	}
 	root.Inode().NewChild("foo", false, node)
 
@@ -131,7 +131,6 @@ func TestFlockInvoked(t *testing.T) {
 	if !node.SetLkInvoked {
 		t.Fatalf("SetLk is not invoked")
 	}
-
 
 	if node.SetLkwInvoked {
 		t.Fatalf("SetLkw is invoked")
