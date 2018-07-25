@@ -21,7 +21,7 @@ import (
 // Tests should set to true.
 var paranoia = false
 
-// FilesystemConnector translates the raw FUSE protocol (serialized
+// FileSystemConnector translates the raw FUSE protocol (serialized
 // structs of uint32/uint64) to operations on Go objects representing
 // files and directories.
 type FileSystemConnector struct {
