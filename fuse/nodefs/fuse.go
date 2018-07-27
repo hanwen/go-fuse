@@ -8,7 +8,8 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-// Mounts a filesystem with the given root node on the given directory
+// Mounts a filesystem with the given root node on the given directory.
+// Convenience wrapper around fuse.NewServer
 func MountRoot(mountpoint string, root Node, opts *Options) (*fuse.Server, *FileSystemConnector, error) {
 	conn := NewFileSystemConnector(root, opts)
 

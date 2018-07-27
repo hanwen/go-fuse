@@ -7,6 +7,7 @@
 package test
 
 import (
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -130,10 +131,15 @@ func TestFlockInvoked(t *testing.T) {
 	}
 
 	root := nodefs.NewDefaultNode()
-	s, _, err := nodefs.MountRoot(dir, root, opts)
-	if err != nil {
-		t.Fatalf("MountRoot: %v", err)
+	conn := nodefs.NewFileSystemConnector(root, opts)
+	mountOpts := fuse.MountOptions{
+		EnableLocks: true
 	}
+	s, err := fuse.NewServer(conn.RawFS(), dir, &mountOpts)
+	if err != nil {
+		t.Fatal("NewServer", err)
+	}
+
 	go s.Serve()
 	if err := s.WaitMount(); err != nil {
 		t.Fatal("WaitMount", err)
@@ -150,6 +156,7 @@ func TestFlockInvoked(t *testing.T) {
 	if node.SetLkInvoked() {
 		t.Fatalf("SetLk is invoked")
 	}
+
 	cmd := exec.Command(flock, "--nonblock", realPath, "echo", "locked")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -169,5 +176,60 @@ func TestFlockInvoked(t *testing.T) {
 	}
 	if !node.SetLkwInvoked() {
 		t.Fatalf("SetLkw is not invoked")
+	}
+}
+
+// Test that file system that don't implement locking are still
+// handled in the VFS layer.
+func TestNoLockSupport(t *testing.T) {
+	flock, err := exec.LookPath("flock")
+	if err != nil {
+		t.Skip("flock command not found.")
+	}
+
+	tmp, err := ioutil.TempDir("", "TestNoLockSupport")
+	if err != nil {
+		t.Fatal(err)
+	}
+	mnt, err := ioutil.TempDir("", "TestNoLockSupport")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer os.RemoveAll(tmp)
+	defer os.RemoveAll(mnt)
+
+	opts := &nodefs.Options{
+		Owner: fuse.CurrentOwner(),
+		Debug: testutil.VerboseTest(),
+	}
+	root := nodefs.NewMemNodeFSRoot(tmp)
+
+	lock := fuse.FileLock{}
+	outLock := fuse.FileLock{}
+	ctx := fuse.Context{}
+	if status := root.GetLk(nil, uint64(1), &lock, uint32(0x0), &outLock, &ctx); status != fuse.ENOSYS {
+		t.Fatalf("MemNodeFs should not implement locking")
+	}
+
+	s, _, err := nodefs.MountRoot(mnt, root, opts)
+	if err != nil {
+		t.Fatalf("MountRoot: %v", err)
+	}
+	go s.Serve()
+	if err := s.WaitMount(); err != nil {
+		t.Fatalf("WaitMount: %v", err)
+	}
+	defer s.Unmount()
+
+	fn := mnt + "/file.txt"
+	if err := ioutil.WriteFile(fn, []byte("content"), 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	cmd := exec.Command(flock, "--nonblock", fn, "echo", "locked")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("flock %v: %v", err, string(out))
 	}
 }
