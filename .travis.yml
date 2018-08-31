@@ -1,0 +1,27 @@
+sudo: required
+
+language: go
+go_import_path: github.com/hanwen/go-fuse
+
+go:
+  - 1.9.x
+  - 1.10.x
+  - 1.11.x
+  - master
+
+matrix:
+ fast_finish: true
+ allow_failures:
+   - go: master
+
+before_install:
+  - sudo apt-get install -qq pkg-config fuse
+  - sudo modprobe fuse
+  - sudo chmod 666 /dev/fuse
+  - sudo chown root:$USER /etc/fuse.conf
+
+install:
+  - go get -t -race ./...
+
+script:
+  - go test -v -race ./...
