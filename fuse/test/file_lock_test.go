@@ -133,7 +133,7 @@ func TestFlockInvoked(t *testing.T) {
 	root := nodefs.NewDefaultNode()
 	conn := nodefs.NewFileSystemConnector(root, opts)
 	mountOpts := fuse.MountOptions{
-		EnableLocks: true
+		EnableLocks: true,
 	}
 	s, err := fuse.NewServer(conn.RawFS(), dir, &mountOpts)
 	if err != nil {
