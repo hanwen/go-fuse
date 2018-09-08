@@ -596,6 +596,10 @@ func (n *pathInode) GetAttr(out *fuse.Attr, file nodefs.File, context *fuse.Cont
 		if code.Ok() {
 			return code
 		}
+		// ENOSYS and EBADF are retried below. Error out for other codes.
+		if code != fuse.ENOSYS && code != fuse.EBADF {
+			return code
+		}
 	}
 	// If we don't have an open file, or fstat on it failed due to an internal
 	// error, stat by path.
