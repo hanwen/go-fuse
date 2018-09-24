@@ -86,6 +86,9 @@ type _BatchForgetIn struct {
 
 type MkdirIn struct {
 	InHeader
+
+	// The mode for the new directory. The calling process' umask
+	// is already factored into the mode.
 	Mode  uint32
 	Umask uint32
 }

@@ -61,14 +61,20 @@ func (g *GetAttrIn) Fh() uint64 {
 
 type CreateIn struct {
 	InHeader
-	Flags  uint32
-	Mode   uint32
-	Umask  uint32
-	Pading uint32
+	Flags uint32
+
+	// Mode for the new file; already takes Umask into account.
+	Mode uint32
+
+	// Umask used for this create call.
+	Umask   uint32
+	Padding uint32
 }
 
 type MknodIn struct {
 	InHeader
+
+	// Mode to use, including the Umask value
 	Mode    uint32
 	Rdev    uint32
 	Umask   uint32

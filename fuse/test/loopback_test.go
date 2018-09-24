@@ -11,7 +11,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -24,8 +23,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 	"github.com/hanwen/go-fuse/internal/testutil"
 )
-
-const mode uint32 = 0757
 
 type testCase struct {
 	tmpDir string
@@ -148,6 +145,7 @@ func TestReadThrough(t *testing.T) {
 
 	content := randomData(125)
 	tc.WriteFile(tc.origFile, content, 0700)
+	var mode uint32 = 0757
 	err := os.Chmod(tc.mountFile, os.FileMode(mode))
 	if err != nil {
 		t.Fatalf("Chmod failed: %v", err)
@@ -916,31 +914,7 @@ func TestDoubleOpen(t *testing.T) {
 		t.Fatalf("OpenFile failed: %v", err)
 	}
 	defer rwFile.Close()
-}
 
-func TestUmask(t *testing.T) {
-	tc := NewTestCase(t)
-	defer tc.Cleanup()
-
-	// Make sure system setting does not affect test.
-	fn := tc.mnt + "/file"
-	mask := 020
-	cmd := exec.Command("/bin/sh", "-c",
-		fmt.Sprintf("umask %o && mkdir %s", mask, fn))
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("cmd.Run: %v", err)
-	}
-
-	fi, err := os.Lstat(fn)
-	if err != nil {
-		t.Fatalf("Lstat failed: %v", err)
-	}
-
-	expect := mask ^ 0777
-	got := int(fi.Mode().Perm())
-	if got != expect {
-		t.Errorf("got %o, expect mode %o for file %s", got, expect, fn)
-	}
 }
 
 // Check that chgrp(1) works
