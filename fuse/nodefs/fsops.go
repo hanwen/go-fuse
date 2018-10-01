@@ -100,8 +100,7 @@ func (c *rawBridge) Lookup(header *fuse.InHeader, name string, out *fuse.EntryOu
 		log.Printf("Lookup %q called on non-Directory node %d", name, header.NodeId)
 		return fuse.ENOTDIR
 	}
-	outAttr := (*fuse.Attr)(&out.Attr)
-	child, code := c.fsConn().internalLookup(outAttr, parent, name, header)
+	child, code := c.fsConn().internalLookup(&out.Attr, parent, name, header)
 	if code == fuse.ENOENT && parent.mount.negativeEntry(out) {
 		return fuse.OK
 	}
