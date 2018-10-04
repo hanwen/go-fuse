@@ -232,6 +232,10 @@ func (o *NotifyInvalDeleteOut) string() string {
 	return fmt.Sprintf("{parent %d ch %d sz %d}", o.Parent, o.Child, o.NameLen)
 }
 
+func (o *NotifyStoreOut) string() string {
+	return fmt.Sprintf("{nodeid %d off %d sz %d}", o.Nodeid, o.Offset, o.Size)
+}
+
 func (f *FallocateIn) string() string {
 	return fmt.Sprintf("{Fh %d off %d sz %d mod 0%o}",
 		f.Fh, f.Offset, f.Length, f.Mode)

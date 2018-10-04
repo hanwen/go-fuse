@@ -376,11 +376,18 @@ type NotifyInvalDeleteOut struct {
 	Padding uint32
 }
 
+type NotifyStoreOut struct {
+	Nodeid  uint64
+	Offset  uint64
+	Size    uint32
+	Padding uint32
+}
+
 const (
 	//	NOTIFY_POLL         = -1
 	NOTIFY_INVAL_INODE = -2
 	NOTIFY_INVAL_ENTRY = -3
-	//	NOTIFY_STORE        = -4
+	NOTIFY_STORE        = -4
 	//	NOTIFY_RETRIEVE     = -5
 	NOTIFY_INVAL_DELETE = -6
 

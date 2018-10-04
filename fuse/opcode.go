@@ -60,9 +60,10 @@ const (
 	// The following entries don't have to be compatible across Go-FUSE versions.
 	_OP_NOTIFY_ENTRY  = int32(100)
 	_OP_NOTIFY_INODE  = int32(101)
-	_OP_NOTIFY_DELETE = int32(102) // protocol version 18
+	_OP_NOTIFY_STORE  = int32(102)
+	_OP_NOTIFY_DELETE = int32(103) // protocol version 18
 
-	_OPCODE_COUNT = int32(103)
+	_OPCODE_COUNT = int32(104)
 )
 
 ////////////////////////////////////////////////////////////////
@@ -510,6 +511,7 @@ func init() {
 		_OP_POLL:          unsafe.Sizeof(_PollOut{}),
 		_OP_NOTIFY_ENTRY:  unsafe.Sizeof(NotifyInvalEntryOut{}),
 		_OP_NOTIFY_INODE:  unsafe.Sizeof(NotifyInvalInodeOut{}),
+		_OP_NOTIFY_STORE:  unsafe.Sizeof(NotifyStoreOut{}),
 		_OP_NOTIFY_DELETE: unsafe.Sizeof(NotifyInvalDeleteOut{}),
 	} {
 		operationHandlers[op].OutputSize = sz
@@ -557,6 +559,7 @@ func init() {
 		_OP_POLL:          "POLL",
 		_OP_NOTIFY_ENTRY:  "NOTIFY_ENTRY",
 		_OP_NOTIFY_INODE:  "NOTIFY_INODE",
+		_OP_NOTIFY_STORE:  "NOTIFY_STORE",
 		_OP_NOTIFY_DELETE: "NOTIFY_DELETE",
 		_OP_FALLOCATE:     "FALLOCATE",
 		_OP_READDIRPLUS:   "READDIRPLUS",
@@ -620,6 +623,7 @@ func init() {
 		_OP_MKDIR:         func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
 		_OP_NOTIFY_ENTRY:  func(ptr unsafe.Pointer) interface{} { return (*NotifyInvalEntryOut)(ptr) },
 		_OP_NOTIFY_INODE:  func(ptr unsafe.Pointer) interface{} { return (*NotifyInvalInodeOut)(ptr) },
+		_OP_NOTIFY_STORE:  func(ptr unsafe.Pointer) interface{} { return (*NotifyStoreOut)(ptr) },
 		_OP_NOTIFY_DELETE: func(ptr unsafe.Pointer) interface{} { return (*NotifyInvalDeleteOut)(ptr) },
 		_OP_STATFS:        func(ptr unsafe.Pointer) interface{} { return (*StatfsOut)(ptr) },
 		_OP_SYMLINK:       func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
