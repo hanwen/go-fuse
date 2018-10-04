@@ -7,6 +7,7 @@ package fuse
 import (
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -475,6 +476,63 @@ func (ms *Server) InodeNotify(node uint64, off int64, length int64) Status {
 	return result
 }
 
+// InodeNotifyStoreCache tells kernel to store data into inode's cache.
+//
+// This call is similar to InodeNotify, but instead of only invalidating a data
+// region, it gives updated data directly to the kernel.
+func (ms *Server) InodeNotifyStoreCache(node uint64, offset int64, data []byte) Status {
+	if !ms.kernelSettings.SupportsNotify(NOTIFY_STORE) {
+		return ENOSYS
+	}
+
+	for len(data) > 0 {
+		size := len(data)
+		if size > math.MaxUint32 {
+			// NotifyStoreOut has only uint32 for size
+			size = math.MaxUint32
+		}
+
+		st := ms.inodeNotifyStoreCache32(node, offset, data[:size])
+		if st != OK {
+			return st
+		}
+
+		data = data[size:]
+		offset += int64(size)
+	}
+
+	return OK
+}
+
+// inodeNotifyStoreCache32 is internal worker for InodeNotifyStoreCache which
+// handles data chunks not larger than 4GB.
+func (ms *Server) inodeNotifyStoreCache32(node uint64, offset int64, data []byte) Status {
+	req := request{
+		inHeader: &InHeader{
+			Opcode: _OP_NOTIFY_STORE,
+		},
+		handler: operationHandlers[_OP_NOTIFY_STORE],
+		status:  NOTIFY_STORE,
+	}
+
+	store := (*NotifyStoreOut)(req.outData())
+	store.Nodeid = node
+	store.Offset = uint64(offset) // NOTE not int64, as it is e.g. in NotifyInvalInodeOut
+	store.Size = uint32(len(data))
+
+	req.flatData = data
+
+	// Protect against concurrent close.
+	ms.writeMu.Lock()
+	result := ms.write(&req)
+	ms.writeMu.Unlock()
+
+	if ms.opts.Debug {
+		log.Printf("Response: INODE_NOTIFY_STORE_CACHE: %v", result)
+	}
+	return result
+}
+
 // DeleteNotify notifies the kernel that an entry is removed from a
 // directory.  In many cases, this is equivalent to EntryNotify,
 // except when the directory is in use, eg. as working directory of
@@ -566,6 +624,8 @@ func (in *InitIn) SupportsNotify(notifyType int) bool {
 		return in.SupportsVersion(7, 12)
 	case NOTIFY_INVAL_INODE:
 		return in.SupportsVersion(7, 12)
+	case NOTIFY_STORE:
+		return in.SupportsVersion(7, 15)
 	case NOTIFY_INVAL_DELETE:
 		return in.SupportsVersion(7, 18)
 	}

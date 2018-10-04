@@ -384,6 +384,29 @@ func (c *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) f
 	return c.server.InodeNotify(nId, off, length)
 }
 
+// FileNotifyStoreCache notifies the kernel about changed data of the inode.
+//
+// This call is similar to FileNotify, but instead of only invalidating a data
+// region, it puts updated data directly to the kernel cache:
+//
+// After this call completes, the kernel has put updated data into the inode's cache,
+// and will use data from that cache for non direct-IO reads from the inode
+// in corresponding data region. After kernel's cache data is evicted, the kernel
+// will have to issue new Read calls on user request to get data content.
+func (c *FileSystemConnector) FileNotifyStoreCache(node *Inode, off int64, data []byte) fuse.Status {
+	var nId uint64
+	if node == c.rootNode {
+		nId = fuse.FUSE_ROOT_ID
+	} else {
+		nId = c.inodeMap.Handle(&node.handled)
+	}
+
+	if nId == 0 {
+		return fuse.EINVAL
+	}
+	return c.server.InodeNotifyStoreCache(nId, off, data)
+}
+
 // EntryNotify makes the kernel forget the entry data from the given
 // name from a directory.  After this call, the kernel will issue a
 // new lookup request for the given name when necessary. No filesystem
