@@ -90,6 +90,10 @@ func doInit(server *Server, req *request) {
 		server.kernelSettings.Flags |= CAP_FLOCK_LOCKS | CAP_POSIX_LOCKS
 	}
 
+	if server.opts.DisableLocks {
+		server.kernelSettings.Flags = server.kernelSettings.Flags &^ (CAP_FLOCK_LOCKS | CAP_POSIX_LOCKS)
+	}
+
 	if input.Minor >= 13 {
 		server.setSplice()
 	}

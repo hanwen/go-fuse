@@ -74,6 +74,9 @@ type MountOptions struct {
 	// Xattr operations at all.
 	DisableXAttrs bool
 
+	// If set, disables the CAP_FLOCK_LOCKS and CAP_POSIX_LOCKS capabilities
+	DisableLocks bool
+
 	// If set, print debugging information.
 	Debug bool
 
