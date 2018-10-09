@@ -5,6 +5,7 @@
 package nodefs
 
 import (
+	"fmt"
 	"log"
 	"sync"
 
@@ -57,6 +58,13 @@ func newInode(isDir bool, fsNode Node) *Inode {
 }
 
 // public methods.
+
+// Print the inode. The default print method may not be used for
+// debugging, as dumping the map requires synchronization.
+func (n *Inode) String() string {
+
+	return fmt.Sprintf("node{%d}", n.handled.handle)
+}
 
 // Returns any open file, preferably a r/w one.
 func (n *Inode) AnyFile() (file File) {
