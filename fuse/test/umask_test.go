@@ -50,8 +50,8 @@ func TestUmask(t *testing.T) {
 		ClientInodes: true})
 	connector := nodefs.NewFileSystemConnector(pathFs.Root(),
 		&nodefs.Options{
-			EntryTimeout:        testTtl,
-			AttrTimeout:         testTtl,
+			EntryTimeout:        testTTL,
+			AttrTimeout:         testTTL,
 			NegativeTimeout:     0.0,
 			Debug:               testutil.VerboseTest(),
 			LookupKnownChildren: true,

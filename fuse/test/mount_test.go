@@ -124,7 +124,7 @@ func TestRecursiveMount(t *testing.T) {
 	// We can't avoid a sleep here: the file handle release is not
 	// synchronized.
 	t.Log("Waiting for kernel to flush file-close to fuse...")
-	time.Sleep(testTtl)
+	time.Sleep(testTTL)
 
 	code = ts.pathFs.Unmount("mnt")
 	if code != fuse.OK {
@@ -163,7 +163,7 @@ func TestDeletedUnmount(t *testing.T) {
 	}
 
 	f.Close()
-	time.Sleep((3 * testTtl) / 2)
+	time.Sleep((3 * testTTL) / 2)
 	code = ts.pathFs.Unmount("mnt")
 	if !code.Ok() {
 		t.Error("should succeed", code)

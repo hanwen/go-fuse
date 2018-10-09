@@ -79,11 +79,11 @@ func NewNotifyTest(t *testing.T) *NotifyTest {
 	me := &NotifyTest{}
 	me.fs = newNotifyFs()
 	me.dir = testutil.TempDir()
-	entryTtl := 100 * time.Millisecond
+	entryTTL := 100 * time.Millisecond
 	opts := &nodefs.Options{
-		EntryTimeout:    entryTtl,
-		AttrTimeout:     entryTtl,
-		NegativeTimeout: entryTtl,
+		EntryTimeout:    entryTTL,
+		AttrTimeout:     entryTTL,
+		NegativeTimeout: entryTTL,
 		Debug:           testutil.VerboseTest(),
 	}
 

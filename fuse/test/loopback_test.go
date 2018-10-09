@@ -39,7 +39,7 @@ type testCase struct {
 	connector   *nodefs.FileSystemConnector
 }
 
-const testTtl = 100 * time.Millisecond
+const testTTL = 100 * time.Millisecond
 
 // Mkdir is a utility wrapper for os.Mkdir, aborting the test if it fails.
 func (tc *testCase) Mkdir(name string, mode os.FileMode) {
@@ -92,8 +92,8 @@ func NewTestCase(t *testing.T) *testCase {
 		ClientInodes: true})
 	tc.connector = nodefs.NewFileSystemConnector(tc.pathFs.Root(),
 		&nodefs.Options{
-			EntryTimeout:        testTtl,
-			AttrTimeout:         testTtl,
+			EntryTimeout:        testTTL,
+			AttrTimeout:         testTTL,
 			NegativeTimeout:     0.0,
 			Debug:               testutil.VerboseTest(),
 			LookupKnownChildren: true,
@@ -947,7 +947,7 @@ func TestLookupKnownChildrenAttrCopied(t *testing.T) {
 		t.Fatalf("WriteFile: %v", err)
 	}
 	mode := fi.Mode()
-	time.Sleep(2 * testTtl)
+	time.Sleep(2 * testTTL)
 
 	if fi, err = os.Lstat(tc.mountFile); err != nil {
 		t.Fatalf("Lstat: %v", err)
