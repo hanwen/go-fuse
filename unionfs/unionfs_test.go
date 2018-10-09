@@ -25,8 +25,11 @@ import (
 )
 
 func TestFilePathHash(t *testing.T) {
-	// Simple test coverage.
-	t.Log(filePathHash("xyz/abc"))
+	got := filePathHash("xyz/abc")
+	want := "34d52a6371ee5c79-abc"
+	if got != want {
+		t.Errorf("got %q want %q", got, want)
+	}
 }
 
 var testOpts = UnionFsOptions{
@@ -52,7 +55,7 @@ func setRecursiveWritable(t *testing.T, dir string, writable bool) {
 			return os.Chmod(path, os.FileMode(newMode))
 		})
 	if err != nil {
-		t.Fatalf("Walk failed: %v", err)
+		t.Fatalf("Walk: %v", err)
 	}
 }
 
@@ -67,23 +70,23 @@ func setupUfs(t *testing.T) (wd string, cleanup func()) {
 	wd = testutil.TempDir()
 	err := os.Mkdir(wd+"/mnt", 0700)
 	if err != nil {
-		t.Fatalf("Mkdir failed: %v", err)
+		t.Fatalf("Mkdir: %v", err)
 	}
 
 	err = os.Mkdir(wd+"/rw", 0700)
 	if err != nil {
-		t.Fatalf("Mkdir failed: %v", err)
+		t.Fatalf("Mkdir: %v", err)
 	}
 
 	os.Mkdir(wd+"/ro", 0700)
 	if err != nil {
-		t.Fatalf("Mkdir failed: %v", err)
+		t.Fatalf("Mkdir: %v", err)
 	}
 
-	var fses []pathfs.FileSystem
-	fses = append(fses, pathfs.NewLoopbackFileSystem(wd+"/rw"))
-	fses = append(fses,
-		NewCachingFileSystem(pathfs.NewLoopbackFileSystem(wd+"/ro"), 0))
+	fses := []pathfs.FileSystem{
+		pathfs.NewLoopbackFileSystem(wd + "/rw"),
+		NewCachingFileSystem(pathfs.NewLoopbackFileSystem(wd+"/ro"), 0),
+	}
 	ufs, err := NewUnionFs(fses, testOpts)
 	if err != nil {
 		t.Fatalf("NewUnionFs: %v", err)
@@ -105,7 +108,7 @@ func setupUfs(t *testing.T) (wd string, cleanup func()) {
 		})
 	state, _, err := nodefs.MountRoot(wd+"/mnt", pathfs.Root(), opts)
 	if err != nil {
-		t.Fatalf("MountNodeFileSystem failed: %v", err)
+		t.Fatalf("MountNodeFileSystem: %v", err)
 	}
 	go state.Serve()
 	state.WaitMount()
@@ -123,7 +126,7 @@ func setupUfs(t *testing.T) (wd string, cleanup func()) {
 func readFromFile(t *testing.T, path string) string {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
-		t.Fatalf("ReadFile failed: %v", err)
+		t.Fatalf("ReadFile: %v", err)
 	}
 	return string(b)
 }
@@ -131,17 +134,17 @@ func readFromFile(t *testing.T, path string) string {
 func dirNames(t *testing.T, path string) map[string]bool {
 	f, err := os.Open(path)
 	if err != nil {
-		t.Fatalf("Open failed: %v", err)
+		t.Fatalf("Open: %v", err)
 	}
 
 	result := make(map[string]bool)
 	names, err := f.Readdirnames(-1)
 	if err != nil {
-		t.Fatalf("Readdirnames failed: %v", err)
+		t.Fatalf("Readdirnames: %v", err)
 	}
 	err = f.Close()
 	if err != nil {
-		t.Fatalf("Close failed: %v", err)
+		t.Fatalf("Close: %v", err)
 	}
 
 	for _, nm := range names {
@@ -182,17 +185,17 @@ func TestUnionFsAutocreateDeletionDir(t *testing.T) {
 
 	err := os.Remove(wd + "/rw/DELETIONS")
 	if err != nil {
-		t.Fatalf("Remove failed: %v", err)
+		t.Fatalf("Remove: %v", err)
 	}
 
 	err = os.Mkdir(wd+"/mnt/dir", 0755)
 	if err != nil {
-		t.Fatalf("Mkdir failed: %v", err)
+		t.Fatalf("Mkdir: %v", err)
 	}
 
 	_, err = ioutil.ReadDir(wd + "/mnt/dir")
 	if err != nil {
-		t.Fatalf("ReadDir failed: %v", err)
+		t.Fatalf("ReadDir: %v", err)
 	}
 }
 
@@ -202,12 +205,12 @@ func TestUnionFsSymlink(t *testing.T) {
 
 	err := os.Symlink("/foobar", wd+"/mnt/link")
 	if err != nil {
-		t.Fatalf("Symlink failed: %v", err)
+		t.Fatalf("Symlink: %v", err)
 	}
 
 	val, err := os.Readlink(wd + "/mnt/link")
 	if err != nil {
-		t.Fatalf("Readlink failed: %v", err)
+		t.Fatalf("Readlink: %v", err)
 	}
 
 	if val != "/foobar" {
@@ -221,12 +224,12 @@ func TestUnionFsSymlinkPromote(t *testing.T) {
 
 	err := os.Mkdir(wd+"/ro/subdir", 0755)
 	if err != nil {
-		t.Fatalf("Mkdir failed: %v", err)
+		t.Fatalf("Mkdir: %v", err)
 	}
 
 	err = os.Symlink("/foobar", wd+"/mnt/subdir/link")
 	if err != nil {
-		t.Fatalf("Symlink failed: %v", err)
+		t.Fatalf("Symlink: %v", err)
 	}
 }
 
@@ -237,12 +240,12 @@ func TestUnionFsChtimes(t *testing.T) {
 	WriteFile(t, wd+"/ro/file", "a")
 	err := os.Chtimes(wd+"/ro/file", time.Unix(42, 0), time.Unix(43, 0))
 	if err != nil {
-		t.Fatalf("Chtimes failed: %v", err)
+		t.Fatalf("Chtimes: %v", err)
 	}
 
 	err = os.Chtimes(wd+"/mnt/file", time.Unix(82, 0), time.Unix(83, 0))
 	if err != nil {
-		t.Fatalf("Chtimes failed: %v", err)
+		t.Fatalf("Chtimes: %v", err)
 	}
 
 	fi, err := os.Lstat(wd + "/mnt/file")
@@ -262,12 +265,12 @@ func TestUnionFsChmod(t *testing.T) {
 	WriteFile(t, ro_fn, "a")
 	err := os.Chmod(m_fn, 00070)
 	if err != nil {
-		t.Fatalf("Chmod failed: %v", err)
+		t.Fatalf("Chmod: %v", err)
 	}
 
 	fi, err := os.Lstat(m_fn)
 	if err != nil {
-		t.Fatalf("Lstat failed: %v", err)
+		t.Fatalf("Lstat: %v", err)
 	}
 	if fi.Mode()&07777 != 00270 {
 		t.Errorf("Unexpected mode found: %o", uint32(fi.Mode().Perm()))
@@ -300,12 +303,12 @@ func TestUnionFsDelete(t *testing.T) {
 	WriteFile(t, wd+"/ro/file", "a")
 	_, err := os.Lstat(wd + "/mnt/file")
 	if err != nil {
-		t.Fatalf("Lstat failed: %v", err)
+		t.Fatalf("Lstat: %v", err)
 	}
 
 	err = os.Remove(wd + "/mnt/file")
 	if err != nil {
-		t.Fatalf("Remove failed: %v", err)
+		t.Fatalf("Remove: %v", err)
 	}
 
 	_, err = os.Lstat(wd + "/mnt/file")
@@ -321,7 +324,7 @@ func TestUnionFsDelete(t *testing.T) {
 	for k := range names {
 		c, err := ioutil.ReadFile(delPath + "/" + k)
 		if err != nil {
-			t.Fatalf("ReadFile failed: %v", err)
+			t.Fatalf("ReadFile: %v", err)
 		}
 		if string(c) != "file" {
 			t.Fatal("content mismatch", string(c))
@@ -359,7 +362,7 @@ func TestUnionFsBasic(t *testing.T) {
 
 	err := os.Remove(wd + "/mnt/new")
 	if err != nil {
-		t.Fatalf("Remove failed: %v", err)
+		t.Fatalf("Remove: %v", err)
 	}
 
 	names = dirNames(t, wd+"/mnt")
@@ -379,7 +382,7 @@ func TestUnionFsBasic(t *testing.T) {
 
 	err = os.Remove(wd + "/mnt/ro1")
 	if err != nil {
-		t.Fatalf("Remove failed: %v", err)
+		t.Fatalf("Remove: %v", err)
 	}
 	names = dirNames(t, wd+"/mnt")
 	checkMapEq(t, names, map[string]bool{
@@ -403,7 +406,7 @@ func TestUnionFsPromote(t *testing.T) {
 
 	err := os.Mkdir(wd+"/ro/subdir", 0755)
 	if err != nil {
-		t.Fatalf("Mkdir failed: %v", err)
+		t.Fatalf("Mkdir: %v", err)
 	}
 	WriteFile(t, wd+"/ro/subdir/file", "content")
 	WriteFile(t, wd+"/mnt/subdir/file", "other-content")
@@ -415,12 +418,12 @@ func TestUnionFsCreate(t *testing.T) {
 
 	err := os.MkdirAll(wd+"/ro/subdir/sub2", 0755)
 	if err != nil {
-		t.Fatalf("MkdirAll failed: %v", err)
+		t.Fatalf("MkdirAll: %v", err)
 	}
 	WriteFile(t, wd+"/mnt/subdir/sub2/file", "other-content")
 	_, err = os.Lstat(wd + "/mnt/subdir/sub2/file")
 	if err != nil {
-		t.Fatalf("Lstat failed: %v", err)
+		t.Fatalf("Lstat: %v", err)
 	}
 }
 
@@ -431,12 +434,12 @@ func TestUnionFsOpenUndeletes(t *testing.T) {
 	WriteFile(t, wd+"/ro/file", "X")
 	err := os.Remove(wd + "/mnt/file")
 	if err != nil {
-		t.Fatalf("Remove failed: %v", err)
+		t.Fatalf("Remove: %v", err)
 	}
 	WriteFile(t, wd+"/mnt/file", "X")
 	_, err = os.Lstat(wd + "/mnt/file")
 	if err != nil {
-		t.Fatalf("Lstat failed: %v", err)
+		t.Fatalf("Lstat: %v", err)
 	}
 }
 
@@ -447,12 +450,12 @@ func TestUnionFsMkdir(t *testing.T) {
 	dirname := wd + "/mnt/subdir"
 	err := os.Mkdir(dirname, 0755)
 	if err != nil {
-		t.Fatalf("Mkdir failed: %v", err)
+		t.Fatalf("Mkdir: %v", err)
 	}
 
 	err = os.Remove(dirname)
 	if err != nil {
-		t.Fatalf("Remove failed: %v", err)
+		t.Fatalf("Remove: %v", err)
 	}
 }
 
@@ -463,16 +466,16 @@ func TestUnionFsMkdirPromote(t *testing.T) {
 	dirname := wd + "/ro/subdir/subdir2"
 	err := os.MkdirAll(dirname, 0755)
 	if err != nil {
-		t.Fatalf("MkdirAll failed: %v", err)
+		t.Fatalf("MkdirAll: %v", err)
 	}
 
 	err = os.Mkdir(wd+"/mnt/subdir/subdir2/dir3", 0755)
 	if err != nil {
-		t.Fatalf("Mkdir failed: %v", err)
+		t.Fatalf("Mkdir: %v", err)
 	}
 	fi, _ := os.Lstat(wd + "/rw/subdir/subdir2/dir3")
 	if err != nil {
-		t.Fatalf("Lstat failed: %v", err)
+		t.Fatalf("Lstat: %v", err)
 	}
 	if fi == nil || !fi.IsDir() {
 		t.Error("is not a directory: ", fi)
@@ -485,18 +488,18 @@ func TestUnionFsRmdirMkdir(t *testing.T) {
 
 	err := os.Mkdir(wd+"/ro/subdir", 0755)
 	if err != nil {
-		t.Fatalf("Mkdir failed: %v", err)
+		t.Fatalf("Mkdir: %v", err)
 	}
 
 	dirname := wd + "/mnt/subdir"
 	err = os.Remove(dirname)
 	if err != nil {
-		t.Fatalf("Remove failed: %v", err)
+		t.Fatalf("Remove: %v", err)
 	}
 
 	err = os.Mkdir(dirname, 0755)
 	if err != nil {
-		t.Fatalf("Mkdir failed: %v", err)
+		t.Fatalf("Mkdir: %v", err)
 	}
 }
 
@@ -536,7 +539,7 @@ func TestUnionFsRename(t *testing.T) {
 
 		err := os.Rename(wd+"/mnt/file1", wd+"/mnt/file2")
 		if err != nil {
-			t.Fatalf("Rename failed: %v", err)
+			t.Fatalf("Rename: %v", err)
 		}
 
 		_, err = os.Lstat(wd + "/mnt/file1")
@@ -549,7 +552,7 @@ func TestUnionFsRename(t *testing.T) {
 		}
 		err = os.Rename(wd+"/mnt/file2", wd+"/mnt/file1")
 		if err != nil {
-			t.Fatalf("Rename failed: %v", err)
+			t.Fatalf("Rename: %v", err)
 		}
 
 		_, err = os.Lstat(wd + "/mnt/file2")
@@ -570,12 +573,12 @@ func TestUnionFsRenameDirBasic(t *testing.T) {
 
 	err := os.MkdirAll(wd+"/ro/dir/subdir", 0755)
 	if err != nil {
-		t.Fatalf("MkdirAll failed: %v", err)
+		t.Fatalf("MkdirAll: %v", err)
 	}
 
 	err = os.Rename(wd+"/mnt/dir", wd+"/mnt/renamed")
 	if err != nil {
-		t.Fatalf("Rename failed: %v", err)
+		t.Fatalf("Rename: %v", err)
 	}
 
 	if fi, _ := os.Lstat(wd + "/mnt/dir"); fi != nil {
@@ -602,18 +605,18 @@ func TestUnionFsRenameDirAllSourcesGone(t *testing.T) {
 
 	err := os.MkdirAll(wd+"/ro/dir", 0755)
 	if err != nil {
-		t.Fatalf("MkdirAll failed: %v", err)
+		t.Fatalf("MkdirAll: %v", err)
 	}
 
 	err = ioutil.WriteFile(wd+"/ro/dir/file.txt", []byte{42}, 0644)
 	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
+		t.Fatalf("WriteFile: %v", err)
 	}
 
 	setRecursiveWritable(t, wd+"/ro", false)
 	err = os.Rename(wd+"/mnt/dir", wd+"/mnt/renamed")
 	if err != nil {
-		t.Fatalf("Rename failed: %v", err)
+		t.Fatalf("Rename: %v", err)
 	}
 
 	names := dirNames(t, wd+"/rw/"+testOpts.DeletionDirName)
@@ -628,17 +631,17 @@ func TestUnionFsRenameDirWithDeletions(t *testing.T) {
 
 	err := os.MkdirAll(wd+"/ro/dir/subdir", 0755)
 	if err != nil {
-		t.Fatalf("MkdirAll failed: %v", err)
+		t.Fatalf("MkdirAll: %v", err)
 	}
 
 	err = ioutil.WriteFile(wd+"/ro/dir/file.txt", []byte{42}, 0644)
 	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
+		t.Fatalf("WriteFile: %v", err)
 	}
 
 	err = ioutil.WriteFile(wd+"/ro/dir/subdir/file.txt", []byte{42}, 0644)
 	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
+		t.Fatalf("WriteFile: %v", err)
 	}
 	setRecursiveWritable(t, wd+"/ro", false)
 
@@ -648,12 +651,12 @@ func TestUnionFsRenameDirWithDeletions(t *testing.T) {
 
 	err = os.Remove(wd + "/mnt/dir/file.txt")
 	if err != nil {
-		t.Fatalf("Remove failed: %v", err)
+		t.Fatalf("Remove: %v", err)
 	}
 
 	err = os.Rename(wd+"/mnt/dir", wd+"/mnt/renamed")
 	if err != nil {
-		t.Fatalf("Rename failed: %v", err)
+		t.Fatalf("Rename: %v", err)
 	}
 
 	if fi, _ := os.Lstat(wd + "/mnt/dir/subdir/file.txt"); fi != nil {
@@ -687,12 +690,12 @@ func TestUnionFsRenameSymlink(t *testing.T) {
 
 	err := os.Symlink("linktarget", wd+"/ro/link")
 	if err != nil {
-		t.Fatalf("Symlink failed: %v", err)
+		t.Fatalf("Symlink: %v", err)
 	}
 
 	err = os.Rename(wd+"/mnt/link", wd+"/mnt/renamed")
 	if err != nil {
-		t.Fatalf("Rename failed: %v", err)
+		t.Fatalf("Rename: %v", err)
 	}
 
 	if fi, _ := os.Lstat(wd + "/mnt/link"); fi != nil {
@@ -715,13 +718,13 @@ func TestUnionFsWritableDir(t *testing.T) {
 	dirname := wd + "/ro/subdir"
 	err := os.Mkdir(dirname, 0555)
 	if err != nil {
-		t.Fatalf("Mkdir failed: %v", err)
+		t.Fatalf("Mkdir: %v", err)
 	}
 	setRecursiveWritable(t, wd+"/ro", false)
 
 	fi, err := os.Lstat(wd + "/mnt/subdir")
 	if err != nil {
-		t.Fatalf("Lstat failed: %v", err)
+		t.Fatalf("Lstat: %v", err)
 	}
 	if fi.Mode().Perm()&0222 == 0 {
 		t.Errorf("unexpected permission %o", fi.Mode().Perm())
@@ -736,14 +739,14 @@ func TestUnionFsWriteAccess(t *testing.T) {
 	// No write perms.
 	err := ioutil.WriteFile(fn, []byte("foo"), 0444)
 	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
+		t.Fatalf("WriteFile: %v", err)
 	}
 	setRecursiveWritable(t, wd+"/ro", false)
 
 	err = syscall.Access(wd+"/mnt/file", fuse.W_OK)
 	if err != nil {
 		if err != nil {
-			t.Fatalf("Access failed: %v", err)
+			t.Fatalf("Access: %v", err)
 		}
 	}
 }
@@ -756,23 +759,23 @@ func TestUnionFsLink(t *testing.T) {
 	fn := wd + "/ro/file"
 	err := ioutil.WriteFile(fn, []byte(content), 0666)
 	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
+		t.Fatalf("WriteFile: %v", err)
 	}
 	setRecursiveWritable(t, wd+"/ro", false)
 
 	err = os.Link(wd+"/mnt/file", wd+"/mnt/linked")
 	if err != nil {
-		t.Fatalf("Link failed: %v", err)
+		t.Fatalf("Link: %v", err)
 	}
 
 	fi2, err := os.Lstat(wd + "/mnt/linked")
 	if err != nil {
-		t.Fatalf("Lstat failed: %v", err)
+		t.Fatalf("Lstat: %v", err)
 	}
 
 	fi1, err := os.Lstat(wd + "/mnt/file")
 	if err != nil {
-		t.Fatalf("Lstat failed: %v", err)
+		t.Fatalf("Lstat: %v", err)
 	}
 
 	s1 := fuse.ToStatT(fi1)
@@ -878,14 +881,14 @@ func TestUnionFsRemoveAll(t *testing.T) {
 
 	err := os.MkdirAll(wd+"/ro/dir/subdir", 0755)
 	if err != nil {
-		t.Fatalf("MkdirAll failed: %v", err)
+		t.Fatalf("MkdirAll: %v", err)
 	}
 
 	contents := "hello"
 	fn := wd + "/ro/dir/subdir/y"
 	err = ioutil.WriteFile(fn, []byte(contents), 0644)
 	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
+		t.Fatalf("WriteFile: %v", err)
 	}
 	setRecursiveWritable(t, wd+"/ro", false)
 
@@ -902,7 +905,7 @@ func TestUnionFsRemoveAll(t *testing.T) {
 
 	names, err := Readdirnames(wd + "/rw/DELETIONS")
 	if err != nil {
-		t.Fatalf("Readdirnames failed: %v", err)
+		t.Fatalf("Readdirnames: %v", err)
 	}
 	if len(names) != 3 {
 		t.Fatal("unexpected names", names)
@@ -942,25 +945,25 @@ func TestUnionFsRmRf(t *testing.T) {
 
 	err := os.MkdirAll(wd+"/ro/dir/subdir", 0755)
 	if err != nil {
-		t.Fatalf("MkdirAll failed: %v", err)
+		t.Fatalf("MkdirAll: %v", err)
 	}
 
 	contents := "hello"
 	fn := wd + "/ro/dir/subdir/y"
 	err = ioutil.WriteFile(fn, []byte(contents), 0644)
 	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
+		t.Fatalf("WriteFile: %v", err)
 	}
 	setRecursiveWritable(t, wd+"/ro", false)
 
 	bin, err := exec.LookPath("rm")
 	if err != nil {
-		t.Fatalf("LookPath failed: %v", err)
+		t.Fatalf("LookPath: %v", err)
 	}
 
 	maj, min, err := ProgramVersion(bin)
 	if err != nil {
-		t.Logf("ProgramVersion failed: %v", err)
+		t.Logf("ProgramVersion: %v", err)
 	}
 	if maj < 8 { // assuming GNU coreutils.
 		t.Skipf("Skipping test; GNU rm %d.%d is not POSIX compliant.", maj, min)
@@ -981,7 +984,7 @@ func TestUnionFsRmRf(t *testing.T) {
 
 	names, err = Readdirnames(wd + "/rw/DELETIONS")
 	if err != nil {
-		t.Fatalf("Readdirnames failed: %v", err)
+		t.Fatalf("Readdirnames: %v", err)
 	}
 	if len(names) != 3 {
 		t.Fatal("unexpected names", names)
@@ -1004,17 +1007,17 @@ func TestUnionFsDropDeletionCache(t *testing.T) {
 
 	err := ioutil.WriteFile(wd+"/ro/file", []byte("bla"), 0644)
 	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
+		t.Fatalf("WriteFile: %v", err)
 	}
 	setRecursiveWritable(t, wd+"/ro", false)
 
 	_, err = os.Lstat(wd + "/mnt/file")
 	if err != nil {
-		t.Fatalf("Lstat failed: %v", err)
+		t.Fatalf("Lstat: %v", err)
 	}
 	err = os.Remove(wd + "/mnt/file")
 	if err != nil {
-		t.Fatalf("Remove failed: %v", err)
+		t.Fatalf("Remove: %v", err)
 	}
 	fi, _ := os.Lstat(wd + "/mnt/file")
 	if fi != nil {
@@ -1023,7 +1026,7 @@ func TestUnionFsDropDeletionCache(t *testing.T) {
 
 	names, err := Readdirnames(wd + "/rw/DELETIONS")
 	if err != nil {
-		t.Fatalf("Readdirnames failed: %v", err)
+		t.Fatalf("Readdirnames: %v", err)
 	}
 	if len(names) != 1 {
 		t.Fatal("unexpected names", names)
@@ -1038,7 +1041,7 @@ func TestUnionFsDropDeletionCache(t *testing.T) {
 	time.Sleep((6 * entryTtl) / 10)
 	err = ioutil.WriteFile(wd+"/mnt/.drop_cache", []byte(""), 0644)
 	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
+		t.Fatalf("WriteFile: %v", err)
 	}
 	_, err = os.Lstat(wd + "/mnt/file")
 	if err != nil {
@@ -1052,17 +1055,17 @@ func TestUnionFsDropCache(t *testing.T) {
 
 	err := ioutil.WriteFile(wd+"/ro/file", []byte("bla"), 0644)
 	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
+		t.Fatalf("WriteFile: %v", err)
 	}
 
 	_, err = os.Lstat(wd + "/mnt/.drop_cache")
 	if err != nil {
-		t.Fatalf("Lstat failed: %v", err)
+		t.Fatalf("Lstat: %v", err)
 	}
 
 	names, err := Readdirnames(wd + "/mnt")
 	if err != nil {
-		t.Fatalf("Readdirnames failed: %v", err)
+		t.Fatalf("Readdirnames: %v", err)
 	}
 	if len(names) != 1 || names[0] != "file" {
 		t.Fatal("unexpected names", names)
@@ -1071,7 +1074,7 @@ func TestUnionFsDropCache(t *testing.T) {
 	err = ioutil.WriteFile(wd+"/ro/file2", []byte("blabla"), 0644)
 	names2, err := Readdirnames(wd + "/mnt")
 	if err != nil {
-		t.Fatalf("Readdirnames failed: %v", err)
+		t.Fatalf("Readdirnames: %v", err)
 	}
 	if len(names2) != len(names) {
 		t.Fatal("mismatch", names2)
@@ -1079,7 +1082,7 @@ func TestUnionFsDropCache(t *testing.T) {
 
 	err = ioutil.WriteFile(wd+"/mnt/.drop_cache", []byte("does not matter"), 0644)
 	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
+		t.Fatalf("WriteFile: %v", err)
 	}
 	names2, err = Readdirnames(wd + "/mnt")
 	if len(names2) != 2 {
@@ -1135,17 +1138,17 @@ func TestUnionFsDisappearing(t *testing.T) {
 	defer os.RemoveAll(wd)
 	err := os.Mkdir(wd+"/mnt", 0700)
 	if err != nil {
-		t.Fatalf("Mkdir failed: %v", err)
+		t.Fatalf("Mkdir: %v", err)
 	}
 
 	err = os.Mkdir(wd+"/rw", 0700)
 	if err != nil {
-		t.Fatalf("Mkdir failed: %v", err)
+		t.Fatalf("Mkdir: %v", err)
 	}
 
 	os.Mkdir(wd+"/ro", 0700)
 	if err != nil {
-		t.Fatalf("Mkdir failed: %v", err)
+		t.Fatalf("Mkdir: %v", err)
 	}
 
 	wrFs := newDisappearingFS(pathfs.NewLoopbackFileSystem(wd+"/rw"),
@@ -1169,7 +1172,7 @@ func TestUnionFsDisappearing(t *testing.T) {
 	nfs := pathfs.NewPathNodeFs(ufs, nil)
 	state, _, err := nodefs.MountRoot(wd+"/mnt", nfs.Root(), opts)
 	if err != nil {
-		t.Fatalf("MountNodeFileSystem failed: %v", err)
+		t.Fatalf("MountNodeFileSystem: %v", err)
 	}
 	defer state.Unmount()
 	go state.Serve()
@@ -1177,13 +1180,13 @@ func TestUnionFsDisappearing(t *testing.T) {
 
 	err = ioutil.WriteFile(wd+"/ro/file", []byte("blabla"), 0644)
 	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
+		t.Fatalf("WriteFile: %v", err)
 	}
 	setRecursiveWritable(t, wd+"/ro", false)
 
 	err = os.Remove(wd + "/mnt/file")
 	if err != nil {
-		t.Fatalf("Remove failed: %v", err)
+		t.Fatalf("Remove: %v", err)
 	}
 
 	wrFs.visibleChan <- false
@@ -1219,19 +1222,19 @@ func TestUnionFsDeletedGetAttr(t *testing.T) {
 
 	err := ioutil.WriteFile(wd+"/ro/file", []byte("blabla"), 0644)
 	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
+		t.Fatalf("WriteFile: %v", err)
 	}
 	setRecursiveWritable(t, wd+"/ro", false)
 
 	f, err := os.Open(wd + "/mnt/file")
 	if err != nil {
-		t.Fatalf("Open failed: %v", err)
+		t.Fatalf("Open: %v", err)
 	}
 	defer f.Close()
 
 	err = os.Remove(wd + "/mnt/file")
 	if err != nil {
-		t.Fatalf("Remove failed: %v", err)
+		t.Fatalf("Remove: %v", err)
 	}
 
 	if fi, err := f.Stat(); err != nil || fi.Mode()&os.ModeType != 0 {
@@ -1244,24 +1247,24 @@ func TestUnionFsDoubleOpen(t *testing.T) {
 	defer clean()
 	err := ioutil.WriteFile(wd+"/ro/file", []byte("blablabla"), 0644)
 	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
+		t.Fatalf("WriteFile: %v", err)
 	}
 	setRecursiveWritable(t, wd+"/ro", false)
 
 	roFile, err := os.Open(wd + "/mnt/file")
 	if err != nil {
-		t.Fatalf("Open failed: %v", err)
+		t.Fatalf("Open: %v", err)
 	}
 	defer roFile.Close()
 	rwFile, err := os.OpenFile(wd+"/mnt/file", os.O_WRONLY|os.O_TRUNC, 0666)
 	if err != nil {
-		t.Fatalf("OpenFile failed: %v", err)
+		t.Fatalf("OpenFile: %v", err)
 	}
 	defer rwFile.Close()
 
 	output, err := ioutil.ReadAll(roFile)
 	if err != nil {
-		t.Fatalf("ReadAll failed: %v", err)
+		t.Fatalf("ReadAll: %v", err)
 	}
 	if len(output) != 0 {
 		t.Errorf("After r/w truncation, r/o file should be empty too: %q", string(output))
@@ -1270,7 +1273,7 @@ func TestUnionFsDoubleOpen(t *testing.T) {
 	want := "hello"
 	_, err = rwFile.Write([]byte(want))
 	if err != nil {
-		t.Fatalf("Write failed: %v", err)
+		t.Fatalf("Write: %v", err)
 	}
 
 	b := make([]byte, 100)
@@ -1278,7 +1281,7 @@ func TestUnionFsDoubleOpen(t *testing.T) {
 	roFile.Seek(0, 0)
 	n, err := roFile.Read(b)
 	if err != nil {
-		t.Fatalf("Read failed: %v", err)
+		t.Fatalf("Read: %v", err)
 	}
 	b = b[:n]
 
@@ -1308,22 +1311,22 @@ func TestUnionFsFlushSize(t *testing.T) {
 	fn := wd + "/mnt/file"
 	f, err := os.OpenFile(fn, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
-		t.Fatalf("OpenFile failed: %v", err)
+		t.Fatalf("OpenFile: %v", err)
 	}
 	fi, err := f.Stat()
 	if err != nil {
-		t.Fatalf("Stat failed: %v", err)
+		t.Fatalf("Stat: %v", err)
 	}
 
 	n, err := f.Write([]byte("hello"))
 	if err != nil {
-		t.Fatalf("Write failed: %v", err)
+		t.Fatalf("Write: %v", err)
 	}
 
 	f.Close()
 	fi, err = os.Lstat(fn)
 	if err != nil {
-		t.Fatalf("Lstat failed: %v", err)
+		t.Fatalf("Lstat: %v", err)
 	}
 	if fi.Size() != int64(n) {
 		t.Errorf("got %d from Stat().Size, want %d", fi.Size(), n)
@@ -1339,28 +1342,28 @@ func TestUnionFsFlushRename(t *testing.T) {
 	fn := wd + "/mnt/tmp"
 	f, err := os.OpenFile(fn, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
-		t.Fatalf("OpenFile failed: %v", err)
+		t.Fatalf("OpenFile: %v", err)
 	}
 	fi, err := f.Stat()
 	if err != nil {
-		t.Fatalf("Stat failed: %v", err)
+		t.Fatalf("Stat: %v", err)
 	}
 
 	n, err := f.Write([]byte("hello"))
 	if err != nil {
-		t.Fatalf("Write failed: %v", err)
+		t.Fatalf("Write: %v", err)
 	}
 	f.Close()
 
 	dst := wd + "/mnt/file"
 	err = os.Rename(fn, dst)
 	if err != nil {
-		t.Fatalf("Rename failed: %v", err)
+		t.Fatalf("Rename: %v", err)
 	}
 
 	fi, err = os.Lstat(dst)
 	if err != nil {
-		t.Fatalf("Lstat failed: %v", err)
+		t.Fatalf("Lstat: %v", err)
 	}
 	if fi.Size() != int64(n) {
 		t.Errorf("got %d from Stat().Size, want %d", fi.Size(), n)
@@ -1374,15 +1377,15 @@ func TestUnionFsTruncGetAttr(t *testing.T) {
 	c := []byte("hello")
 	f, err := os.OpenFile(wd+"/mnt/file", os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
 	if err != nil {
-		t.Fatalf("OpenFile failed: %v", err)
+		t.Fatalf("OpenFile: %v", err)
 	}
 	_, err = f.Write(c)
 	if err != nil {
-		t.Fatalf("Write failed: %v", err)
+		t.Fatalf("Write: %v", err)
 	}
 	err = f.Close()
 	if err != nil {
-		t.Fatalf("Close failed: %v", err)
+		t.Fatalf("Close: %v", err)
 	}
 
 	fi, err := os.Lstat(wd + "/mnt/file")
@@ -1397,26 +1400,26 @@ func TestUnionFsPromoteDirTimeStamp(t *testing.T) {
 
 	err := os.Mkdir(wd+"/ro/subdir", 0750)
 	if err != nil {
-		t.Fatalf("Mkdir failed: %v", err)
+		t.Fatalf("Mkdir: %v", err)
 	}
 	err = ioutil.WriteFile(wd+"/ro/subdir/file", []byte("hello"), 0644)
 	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
+		t.Fatalf("WriteFile: %v", err)
 	}
 	setRecursiveWritable(t, wd+"/ro", false)
 
 	err = os.Chmod(wd+"/mnt/subdir/file", 0060)
 	if err != nil {
-		t.Fatalf("Chmod failed: %v", err)
+		t.Fatalf("Chmod: %v", err)
 	}
 
 	fRo, err := os.Lstat(wd + "/ro/subdir")
 	if err != nil {
-		t.Fatalf("Lstat failed: %v", err)
+		t.Fatalf("Lstat: %v", err)
 	}
 	fRw, err := os.Lstat(wd + "/rw/subdir")
 	if err != nil {
-		t.Fatalf("Lstat failed: %v", err)
+		t.Fatalf("Lstat: %v", err)
 	}
 
 	// TODO - need to update timestamps after promoteDirsTo calls,
@@ -1436,11 +1439,11 @@ func TestUnionFsCheckHiddenFiles(t *testing.T) {
 
 	err := ioutil.WriteFile(wd+"/ro/hidden", []byte("bla"), 0644)
 	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
+		t.Fatalf("WriteFile: %v", err)
 	}
 	err = ioutil.WriteFile(wd+"/ro/not_hidden", []byte("bla"), 0644)
 	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
+		t.Fatalf("WriteFile: %v", err)
 	}
 	setRecursiveWritable(t, wd+"/ro", false)
 
@@ -1450,12 +1453,12 @@ func TestUnionFsCheckHiddenFiles(t *testing.T) {
 	}
 	_, err = os.Lstat(wd + "/mnt/not_hidden")
 	if err != nil {
-		t.Fatalf("Lstat failed: %v", err)
+		t.Fatalf("Lstat: %v", err)
 	}
 
 	names, err := Readdirnames(wd + "/mnt")
 	if err != nil {
-		t.Fatalf("Readdirnames failed: %v", err)
+		t.Fatalf("Readdirnames: %v", err)
 	}
 	if len(names) != 1 || names[0] != "not_hidden" {
 		t.Fatal("unexpected names", names)
@@ -1473,7 +1476,7 @@ func TestUnionFSBarf(t *testing.T) {
 		t.Fatalf("os.Mkdir: %v", err)
 	}
 	if err := ioutil.WriteFile(wd+"/rw/dir/file", []byte("bla"), 0644); err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
+		t.Fatalf("WriteFile: %v", err)
 	}
 	if _, err := os.Lstat(wd + "/mnt/dir/file"); err != nil {
 		t.Fatalf("Lstat: %v", err)
