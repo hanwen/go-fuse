@@ -812,28 +812,28 @@ func TestUnionFsCopyChmod(t *testing.T) {
 	fn := wd + "/mnt/y"
 	err := ioutil.WriteFile(fn, []byte(contents), 0644)
 	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
+		t.Fatalf("WriteFile(%v): %v", fn, err)
 	}
 
 	err = os.Chmod(fn, 0755)
 	if err != nil {
-		t.Fatalf("Chmod failed: %v", err)
+		t.Fatalf("Chmod(%v): %v", fn, err)
 	}
 
 	fi, err := os.Lstat(fn)
 	if err != nil {
-		t.Fatalf("Lstat failed: %v", err)
+		t.Fatalf("Lstat(%v): %v", fn, err)
 	}
 	if fi.Mode()&0111 == 0 {
-		t.Errorf("1st attr error %o", fi.Mode())
+		t.Errorf("Lstat(%v): mode %o", fn, fi.Mode())
 	}
 	time.Sleep(entryTtl)
 	fi, err = os.Lstat(fn)
 	if err != nil {
-		t.Fatalf("Lstat failed: %v", err)
+		t.Fatalf("Lstat(%v) after sleep: %v", fn, err)
 	}
 	if fi.Mode()&0111 == 0 {
-		t.Errorf("uncached attr error %o", fi.Mode())
+		t.Errorf("Lstat(%v) after sleep: mode %o", fn, fi.Mode())
 	}
 }
 
@@ -852,23 +852,23 @@ func TestUnionFsTruncateTimestamp(t *testing.T) {
 	fn := wd + "/mnt/y"
 	err := ioutil.WriteFile(fn, []byte(contents), 0644)
 	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
+		t.Fatalf("WriteFile(%v): %v", fn, err)
 	}
 	time.Sleep(200 * time.Millisecond)
 
 	truncTs := time.Now()
 	err = os.Truncate(fn, 3)
 	if err != nil {
-		t.Fatalf("Truncate failed: %v", err)
+		t.Fatalf("Truncate(%v): %v", fn, err)
 	}
 
 	fi, err := os.Lstat(fn)
 	if err != nil {
-		t.Fatalf("Lstat failed: %v", err)
+		t.Fatalf("Lstat(%v): %v", fn, err)
 	}
 
 	if truncTs.Sub(fi.ModTime()) > 100*time.Millisecond {
-		t.Error("timestamp drift", truncTs, fi.ModTime())
+		t.Errorf("after Truncate: got TS %v, want %v", fi.ModTime(), truncTs)
 	}
 }
 
