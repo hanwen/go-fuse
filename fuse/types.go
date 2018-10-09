@@ -199,8 +199,8 @@ const (
 	CAP_WRITEBACK_CACHE  = (1 << 16)
 	CAP_NO_OPEN_SUPPORT  = (1 << 17)
 	CAP_PARALLEL_DIROPS  = (1 << 18)
-	CAP_HANDLE_KILLPRIV  = (1 << 19)
-	CAP_POSIX_ACL        = (1 << 20)
+	CAP_POSIX_ACL        = (1 << 19)
+	CAP_HANDLE_KILLPRIV  = (1 << 20)
 )
 
 type InitIn struct {
@@ -387,7 +387,7 @@ const (
 	//	NOTIFY_POLL         = -1
 	NOTIFY_INVAL_INODE = -2
 	NOTIFY_INVAL_ENTRY = -3
-	NOTIFY_STORE        = -4
+	NOTIFY_STORE       = -4
 	//	NOTIFY_RETRIEVE     = -5
 	NOTIFY_INVAL_DELETE = -6
 
