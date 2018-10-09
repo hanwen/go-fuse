@@ -487,9 +487,11 @@ func (ms *Server) InodeNotifyStoreCache(node uint64, offset int64, data []byte) 
 
 	for len(data) > 0 {
 		size := len(data)
-		if size > math.MaxUint32 {
-			// NotifyStoreOut has only uint32 for size
-			size = math.MaxUint32
+		if size > math.MaxInt32 {
+			// NotifyStoreOut has only uint32 for size.
+			// we check for max(int32), not max(uint32), because on 32-bit
+			// platforms int has only 31-bit for positive range.
+			size = math.MaxInt32
 		}
 
 		st := ms.inodeNotifyStoreCache32(node, offset, data[:size])
@@ -505,7 +507,7 @@ func (ms *Server) InodeNotifyStoreCache(node uint64, offset int64, data []byte) 
 }
 
 // inodeNotifyStoreCache32 is internal worker for InodeNotifyStoreCache which
-// handles data chunks not larger than 4GB.
+// handles data chunks not larger than 2GB.
 func (ms *Server) inodeNotifyStoreCache32(node uint64, offset int64, data []byte) Status {
 	req := request{
 		inHeader: &InHeader{
