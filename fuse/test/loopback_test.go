@@ -933,3 +933,26 @@ func TestChgrp(t *testing.T) {
 		t.Errorf("Chown failed: %v", err)
 	}
 }
+
+func TestLookupKnownChildrenAttrCopied(t *testing.T) {
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
+
+	if err := ioutil.WriteFile(tc.mountFile, []byte("hello"), 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	fi, err := os.Lstat(tc.mountFile)
+	if err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	mode := fi.Mode()
+	time.Sleep(2 * testTtl)
+
+	if fi, err = os.Lstat(tc.mountFile); err != nil {
+		t.Fatalf("Lstat: %v", err)
+	} else if fi.Mode() != mode {
+		t.Fatalf("got mode %o, want %o", fi.Mode(), mode)
+	}
+
+}

@@ -545,14 +545,15 @@ func (n *pathInode) Lookup(out *fuse.Attr, name string, context *fuse.Context) (
 	fullPath := filepath.Join(n.GetPath(), name)
 	fi, code := n.fs.GetAttr(fullPath, context)
 	node := n.Inode().GetChild(name)
-
 	if node != nil && (!code.Ok() || node.IsDir() != fi.IsDir()) {
 		n.Inode().RmChild(name)
 		node = nil
 	}
 
-	if code.Ok() && node == nil {
-		node = n.findChild(fi, name, fullPath).Inode()
+	if code.Ok() {
+		if node == nil {
+			node = n.findChild(fi, name, fullPath).Inode()
+		}
 		*out = *fi
 	}
 
