@@ -23,9 +23,9 @@ func (code Status) String() string {
 			"NOTIFY_POLL",
 			"NOTIFY_INVAL_INODE",
 			"NOTIFY_INVAL_ENTRY",
-			"NOTIFY_INVAL_STORE",
-			"NOTIFY_INVAL_RETRIEVE",
-			"NOTIFY_INVAL_DELETE",
+			"NOTIFY_STORE_CACHE",
+			"NOTIFY_RETRIEVE_CACHE",
+			"NOTIFY_DELETE",
 		}[-code]
 	}
 	return fmt.Sprintf("%d=%v", int(code), syscall.Errno(code))
