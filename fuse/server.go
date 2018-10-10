@@ -454,9 +454,9 @@ func (ms *Server) InodeNotify(node uint64, off int64, length int64) Status {
 
 	req := request{
 		inHeader: &InHeader{
-			Opcode: _OP_NOTIFY_INODE,
+			Opcode: _OP_NOTIFY_INVAL_INODE,
 		},
-		handler: operationHandlers[_OP_NOTIFY_INODE],
+		handler: operationHandlers[_OP_NOTIFY_INVAL_INODE],
 		status:  NOTIFY_INVAL_INODE,
 	}
 
@@ -481,7 +481,7 @@ func (ms *Server) InodeNotify(node uint64, off int64, length int64) Status {
 // This call is similar to InodeNotify, but instead of only invalidating a data
 // region, it gives updated data directly to the kernel.
 func (ms *Server) InodeNotifyStoreCache(node uint64, offset int64, data []byte) Status {
-	if !ms.kernelSettings.SupportsNotify(NOTIFY_STORE) {
+	if !ms.kernelSettings.SupportsNotify(NOTIFY_STORE_CACHE) {
 		return ENOSYS
 	}
 
@@ -511,10 +511,10 @@ func (ms *Server) InodeNotifyStoreCache(node uint64, offset int64, data []byte) 
 func (ms *Server) inodeNotifyStoreCache32(node uint64, offset int64, data []byte) Status {
 	req := request{
 		inHeader: &InHeader{
-			Opcode: _OP_NOTIFY_STORE,
+			Opcode: _OP_NOTIFY_STORE_CACHE,
 		},
-		handler: operationHandlers[_OP_NOTIFY_STORE],
-		status:  NOTIFY_STORE,
+		handler: operationHandlers[_OP_NOTIFY_STORE_CACHE],
+		status:  NOTIFY_STORE_CACHE,
 	}
 
 	store := (*NotifyStoreOut)(req.outData())
@@ -550,7 +550,7 @@ func (ms *Server) DeleteNotify(parent uint64, child uint64, name string) Status 
 			Opcode: _OP_NOTIFY_DELETE,
 		},
 		handler: operationHandlers[_OP_NOTIFY_DELETE],
-		status:  NOTIFY_INVAL_DELETE,
+		status:  NOTIFY_DELETE,
 	}
 
 	entry := (*NotifyInvalDeleteOut)(req.outData())
@@ -585,9 +585,9 @@ func (ms *Server) EntryNotify(parent uint64, name string) Status {
 	}
 	req := request{
 		inHeader: &InHeader{
-			Opcode: _OP_NOTIFY_ENTRY,
+			Opcode: _OP_NOTIFY_INVAL_ENTRY,
 		},
-		handler: operationHandlers[_OP_NOTIFY_ENTRY],
+		handler: operationHandlers[_OP_NOTIFY_INVAL_ENTRY],
 		status:  NOTIFY_INVAL_ENTRY,
 	}
 	entry := (*NotifyInvalEntryOut)(req.outData())
@@ -619,16 +619,16 @@ func (in *InitIn) SupportsVersion(maj, min uint32) bool {
 }
 
 // SupportsNotify returns whether a certain notification type is
-// supported. Pass any of the NOTIFY_INVAL_* types as argument.
+// supported. Pass any of the NOTIFY_* types as argument.
 func (in *InitIn) SupportsNotify(notifyType int) bool {
 	switch notifyType {
 	case NOTIFY_INVAL_ENTRY:
 		return in.SupportsVersion(7, 12)
 	case NOTIFY_INVAL_INODE:
 		return in.SupportsVersion(7, 12)
-	case NOTIFY_STORE:
+	case NOTIFY_STORE_CACHE:
 		return in.SupportsVersion(7, 15)
-	case NOTIFY_INVAL_DELETE:
+	case NOTIFY_DELETE:
 		return in.SupportsVersion(7, 18)
 	}
 	return false
