@@ -371,17 +371,17 @@ func (c *FileSystemConnector) Unmount(node *Inode) fuse.Status {
 // Use negative offset for metadata-only invalidation, and zero-length
 // for invalidating all content.
 func (c *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) fuse.Status {
-	var nId uint64
+	var nID uint64
 	if node == c.rootNode {
-		nId = fuse.FUSE_ROOT_ID
+		nID = fuse.FUSE_ROOT_ID
 	} else {
-		nId = c.inodeMap.Handle(&node.handled)
+		nID = c.inodeMap.Handle(&node.handled)
 	}
 
-	if nId == 0 {
+	if nID == 0 {
 		return fuse.OK
 	}
-	return c.server.InodeNotify(nId, off, length)
+	return c.server.InodeNotify(nID, off, length)
 }
 
 // FileNotifyStoreCache notifies the kernel about changed data of the inode.
@@ -394,17 +394,17 @@ func (c *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) f
 // in corresponding data region. After kernel's cache data is evicted, the kernel
 // will have to issue new Read calls on user request to get data content.
 func (c *FileSystemConnector) FileNotifyStoreCache(node *Inode, off int64, data []byte) fuse.Status {
-	var nId uint64
+	var nID uint64
 	if node == c.rootNode {
-		nId = fuse.FUSE_ROOT_ID
+		nID = fuse.FUSE_ROOT_ID
 	} else {
-		nId = c.inodeMap.Handle(&node.handled)
+		nID = c.inodeMap.Handle(&node.handled)
 	}
 
-	if nId == 0 {
+	if nID == 0 {
 		return fuse.EINVAL
 	}
-	return c.server.InodeNotifyStoreCache(nId, off, data)
+	return c.server.InodeNotifyStoreCache(nID, off, data)
 }
 
 // EntryNotify makes the kernel forget the entry data from the given
@@ -412,36 +412,36 @@ func (c *FileSystemConnector) FileNotifyStoreCache(node *Inode, off int64, data 
 // new lookup request for the given name when necessary. No filesystem
 // related locks should be held when calling this.
 func (c *FileSystemConnector) EntryNotify(node *Inode, name string) fuse.Status {
-	var nId uint64
+	var nID uint64
 	if node == c.rootNode {
-		nId = fuse.FUSE_ROOT_ID
+		nID = fuse.FUSE_ROOT_ID
 	} else {
-		nId = c.inodeMap.Handle(&node.handled)
+		nID = c.inodeMap.Handle(&node.handled)
 	}
 
-	if nId == 0 {
+	if nID == 0 {
 		return fuse.OK
 	}
-	return c.server.EntryNotify(nId, name)
+	return c.server.EntryNotify(nID, name)
 }
 
 // DeleteNotify signals to the kernel that the named entry in dir for
 // the child disappeared. No filesystem related locks should be held
 // when calling this.
 func (c *FileSystemConnector) DeleteNotify(dir *Inode, child *Inode, name string) fuse.Status {
-	var nId uint64
+	var nID uint64
 
 	if dir == c.rootNode {
-		nId = fuse.FUSE_ROOT_ID
+		nID = fuse.FUSE_ROOT_ID
 	} else {
-		nId = c.inodeMap.Handle(&dir.handled)
+		nID = c.inodeMap.Handle(&dir.handled)
 	}
 
-	if nId == 0 {
+	if nID == 0 {
 		return fuse.OK
 	}
 
 	chId := c.inodeMap.Handle(&child.handled)
 
-	return c.server.DeleteNotify(nId, chId, name)
+	return c.server.DeleteNotify(nID, chId, name)
 }
