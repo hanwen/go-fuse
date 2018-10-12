@@ -2,9 +2,86 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// The fuse package provides APIs to implement filesystems in
-// userspace.  Typically, each call of the API happens in its own
+// Package fuse provides APIs to implement filesystems in
+// userspace in terms of raw FUSE protocol.
+//
+// A filesystem is implemented by implementing its server that provides a
+// RawFileSystem interface. Typically the server embeds
+// NewDefaultRawFileSystem() and implements only subset of filesystem methods:
+//
+//	type MyFS struct {
+//		fuse.RawFileSystem
+//		...
+//	}
+//
+//	func NewMyFS() *MyFS {
+//		return &MyFS{
+//			RawFileSystem: fuse.NewDefaultRawFileSystem(),
+//			...
+//		}
+//	}
+//
+//	// Mkdir implements "mkdir" request handler.
+//	//
+//	// For other requests - not explicitly implemented by MyFS - ENOSYS
+//	// will be typically returned to client.
+//	func (fs *MyFS) Mkdir(...) {
+//		...
+//	}
+//
+// Then the filesystem can be mounted and served to a client (typically OS
+// kernel) by creating Server:
+//
+//	fs := NewMyFS() // implements RawFileSystem
+//	fssrv, err := fuse.NewServer(fs, mountpoint, &fuse.MountOptions{...})
+//	if err != nil {
+//		...
+//	}
+//
+// and letting the server do its work:
+//
+//	// either synchronously - .Serve() blocks until the filesystem is unmounted.
+//	fssrv.Serve()
+//
+//	// or in the background - .Serve() is spawned in another goroutine, but
+//	// before interacting with fssrv from current context we have to wait
+//	// until the filesystem mounting is complete.
+//	go fssrv.Serve()
+//	err = fssrv.WaitMount()
+//	if err != nil {
+//		...
+//	}
+//
+// The server will serve clients by dispatching their requests to the
+// filesystem implementation and conveying responses back. For example "mkdir"
+// FUSE request dispatches to call
+//
+//	fs.Mkdir(*MkdirIn, ..., *EntryOut)
+//
+// "stat" to call
+//
+//	fs.GetAttr(*GetAttrIn, *AttrOut)
+//
+// etc. Please refer to RawFileSystem documentation for details.
+//
+// Typically, each call of the API happens in its own
 // goroutine, so take care to make the file system thread-safe.
+//
+//
+// Higher level interfaces
+//
+// As said above this packages provides way to implement filesystems in terms of
+// raw FUSE protocol. Additionally packages nodefs and pathfs provide ways to
+// implement filesystem at higher levels:
+//
+// Package github.com/hanwen/go-fuse/fuse/nodefs provides way to implement
+// filesystems in terms of inodes. This resembles kernel's idea of what a
+// filesystem looks like.
+//
+// Package github.com/hanwen/go-fuse/fuse/pathfs provides way to implement
+// filesystems in terms of path names. Working with path names is somewhat
+// easier compared to inodes, however renames can be racy. Do not use pathfs if
+// you care about correctness.
 package fuse
 
 // Types for users to implement.
@@ -85,9 +162,13 @@ type MountOptions struct {
 // RawFileSystem is an interface close to the FUSE wire protocol.
 //
 // Unless you really know what you are doing, you should not implement
-// this, but rather the FileSystem interface; the details of getting
-// interactions with open files, renames, and threading right etc. are
-// somewhat tricky and not very interesting.
+// this, but rather the nodefs.Node or pathfs.FileSystem interfaces; the
+// details of getting interactions with open files, renames, and threading
+// right etc. are somewhat tricky and not very interesting.
+//
+// Each FUSE request results in a corresponding method called by Server.
+// Several calls may be made simultaneously, because the server typically calls
+// each method in separate goroutine.
 //
 // A null implementation is provided by NewDefaultRawFileSystem.
 type RawFileSystem interface {
