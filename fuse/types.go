@@ -46,6 +46,9 @@ const (
 	// ENOTDIR Not a directory
 	ENOTDIR = Status(syscall.ENOTDIR)
 
+	// EISDIR Is a directory
+	EISDIR = Status(syscall.EISDIR)
+
 	// EPERM Operation not permitted
 	EPERM = Status(syscall.EPERM)
 
