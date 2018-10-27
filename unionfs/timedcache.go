@@ -16,7 +16,7 @@ type cacheEntry struct {
 	expiry time.Time
 }
 
-// TimedIntCache caches the result of fetch() for some time.  It is
+// TimedCache caches the result of fetch() for some time.  It is
 // thread-safe.  Calls of fetch() do no happen inside a critical
 // section, so when multiple concurrent Get()s happen for the same
 // key, multiple fetch() calls may be issued for the same key.
