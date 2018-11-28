@@ -95,6 +95,42 @@ func TestCacheControl(t *testing.T) {
 		}
 	}
 
+	// assertCacheRead asserts that file's kernel cache is retrieved as dataOK.
+	assertCacheRead := func(subj, dataOK string) {
+		t.Helper()
+
+		assertCacheReadAt := func(offset int64, size int, dataOK string) {
+			t.Helper()
+			buf := make([]byte, size)
+			n, st := fsconn.FileRetrieveCache(file.Inode(), offset, buf)
+			if st != fuse.OK {
+				t.Fatalf("%s: retrieve cache @%d [%d]: %s", subj, offset, size, st)
+			}
+			if got := buf[:n]; string(got) != dataOK {
+				t.Fatalf("%s: retrieve cache @%d [%d]: have %q; want %q", subj, offset, size, got, dataOK)
+			}
+		}
+
+		// retrieve [1:len - 1]   (also verifying that offset/size are handled correctly)
+		l := len(dataOK)
+		if l >= 2 {
+			assertCacheReadAt(1, l-2, dataOK[1:l-1])
+		}
+
+		// retrieve [:∞]
+		assertCacheReadAt(0, l+10000, dataOK)
+	}
+
+	// before the kernel has entry for file in its dentry cache, the cache
+	// should read as empty.
+	assertCacheRead("before lookup", "")
+
+	// lookup on the file - forces to assign inode ID to it
+	os.Stat(dir + "/hello.txt")
+
+	// cache should be initially empty
+	assertCacheRead("initial", "")
+
 	// make sure the file reads correctly
 	assertFileRead("original", data0)
 
@@ -132,6 +168,7 @@ func TestCacheControl(t *testing.T) {
 
 	// make sure the cache has original data
 	assertMmapRead("original", data0)
+	assertCacheRead("original", data0)
 
 	// store changed data into OS cache
 	st := fsconn.FileNotifyStoreCache(file.Inode(), 7, []byte("123"))
@@ -143,8 +180,7 @@ func TestCacheControl(t *testing.T) {
 	data1 := "hello w123d"
 	assertMmapRead("after storecache", data1)
 	assertFileRead("after storecache", data1)
-
-	// TODO verify retrieve cache
+	assertCacheRead("after storecache", data1)
 
 	// invalidate cache
 	st = fsconn.FileNotify(file.Inode(), 0, 0)
@@ -152,7 +188,11 @@ func TestCacheControl(t *testing.T) {
 		t.Fatalf("invalidate cache: %s", st)
 	}
 
-	// make sure mmapped data and file read as original data
+	// make sure cache reads as empty right after invalidation
+	assertCacheRead("after invalcache", "")
+
+	// make sure mmapped data, file and cache read as original data
 	assertMmapRead("after invalcache", data0)
 	assertFileRead("after invalcache", data0)
+	assertCacheRead("after invalcache + refill", data0)
 }

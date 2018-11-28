@@ -386,13 +386,31 @@ type NotifyStoreOut struct {
 	Padding uint32
 }
 
+type NotifyRetrieveOut struct {
+	NotifyUnique uint64
+	Nodeid       uint64
+	Offset       uint64
+	Size         uint32
+	Padding      uint32
+}
+
+type NotifyRetrieveIn struct {
+	InHeader
+	Dummy1 uint64
+	Offset uint64
+	Size   uint32
+	Dummy2 uint32
+	Dummy3 uint64
+	Dummy4 uint64
+}
+
 const (
 	//	NOTIFY_POLL         = -1 // notify kernel that a poll waiting for IO on a file handle should wake up
-	NOTIFY_INVAL_INODE = -2 // notify kernel that an inode should be invalidated
-	NOTIFY_INVAL_ENTRY = -3 // notify kernel that a directory entry should be invalidated
-	NOTIFY_STORE_CACHE = -4 // store data into kernel cache of an inode
-	//	NOTIFY_RETRIEVE_CACHE  = -5 // retrieve data from kernel cache of an inode
-	NOTIFY_DELETE = -6 // notify kernel that a directory entry has been deleted
+	NOTIFY_INVAL_INODE    = -2 // notify kernel that an inode should be invalidated
+	NOTIFY_INVAL_ENTRY    = -3 // notify kernel that a directory entry should be invalidated
+	NOTIFY_STORE_CACHE    = -4 // store data into kernel cache of an inode
+	NOTIFY_RETRIEVE_CACHE = -5 // retrieve data from kernel cache of an inode
+	NOTIFY_DELETE         = -6 // notify kernel that a directory entry has been deleted
 
 //	NOTIFY_CODE_MAX     = -6
 )
