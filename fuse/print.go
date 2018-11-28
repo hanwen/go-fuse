@@ -236,6 +236,14 @@ func (o *NotifyStoreOut) string() string {
 	return fmt.Sprintf("{nodeid %d off %d sz %d}", o.Nodeid, o.Offset, o.Size)
 }
 
+func (o *NotifyRetrieveOut) string() string {
+	return fmt.Sprintf("{notifyUnique %d nodeid %d off %d sz %d}", o.NotifyUnique, o.Nodeid, o.Offset, o.Size)
+}
+
+func (i *NotifyRetrieveIn) string() string {
+	return fmt.Sprintf("{off %d sz %d}", i.Offset, i.Size)
+}
+
 func (f *FallocateIn) string() string {
 	return fmt.Sprintf("{Fh %d off %d sz %d mod 0%o}",
 		f.Fh, f.Offset, f.Length, f.Mode)

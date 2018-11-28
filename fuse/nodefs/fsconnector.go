@@ -407,6 +407,32 @@ func (c *FileSystemConnector) FileNotifyStoreCache(node *Inode, off int64, data 
 	return c.server.InodeNotifyStoreCache(nID, off, data)
 }
 
+// FileRetrieveCache retrieves data from kernel's inode cache.
+//
+// This call retrieves data from kernel's inode cache @ offset and up to
+// len(dest) bytes. If kernel cache has fewer consecutive data starting at
+// offset, that fewer amount is returned. In particular if inode data at offset
+// is not cached (0, OK) is returned.
+//
+// If the kernel does not currently have entry for this inode in its dentry
+// cache (0, OK) is still returned, pretending that the inode could be known to
+// the kernel, but kernel's inode cache is empty.
+func (c *FileSystemConnector) FileRetrieveCache(node *Inode, off int64, dest []byte) (n int, st fuse.Status) {
+	var nID uint64
+	if node == c.rootNode {
+		nID = fuse.FUSE_ROOT_ID
+	} else {
+		nID = c.inodeMap.Handle(&node.handled)
+	}
+
+	if nID == 0 {
+		// the kernel does not currently know about this inode.
+		// -> we can pretend that its cache for the inode is empty.
+		return 0, fuse.OK
+	}
+	return c.server.InodeRetrieveCache(nID, off, dest)
+}
+
 // EntryNotify makes the kernel forget the entry data from the given
 // name from a directory.  After this call, the kernel will issue a
 // new lookup request for the given name when necessary. No filesystem

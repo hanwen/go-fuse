@@ -58,12 +58,13 @@ const (
 	_OP_FUSE_RENAME2 = int32(45) // protocol version 23.
 
 	// The following entries don't have to be compatible across Go-FUSE versions.
-	_OP_NOTIFY_INVAL_ENTRY = int32(100)
-	_OP_NOTIFY_INVAL_INODE = int32(101)
-	_OP_NOTIFY_STORE_CACHE = int32(102)
-	_OP_NOTIFY_DELETE      = int32(103) // protocol version 18
+	_OP_NOTIFY_INVAL_ENTRY    = int32(100)
+	_OP_NOTIFY_INVAL_INODE    = int32(101)
+	_OP_NOTIFY_STORE_CACHE    = int32(102)
+	_OP_NOTIFY_RETRIEVE_CACHE = int32(103)
+	_OP_NOTIFY_DELETE         = int32(104) // protocol version 18
 
-	_OPCODE_COUNT = int32(104)
+	_OPCODE_COUNT = int32(105)
 )
 
 ////////////////////////////////////////////////////////////////
@@ -175,6 +176,44 @@ func doWrite(server *Server, req *request) {
 	o := (*WriteOut)(req.outData())
 	o.Size = n
 	req.status = status
+}
+
+func doNotifyReply(server *Server, req *request) {
+	reply := (*NotifyRetrieveIn)(req.inData)
+	server.retrieveMu.Lock()
+	reading := server.retrieveTab[reply.Unique]
+	delete(server.retrieveTab, reply.Unique)
+	server.retrieveMu.Unlock()
+
+	badf := func(format string, argv ...interface{}) {
+		log.Printf("notify reply: "+format, argv...)
+	}
+
+	if reading == nil {
+		badf("unexpected unique - ignoring")
+		return
+	}
+
+	reading.n = 0
+	reading.st = EIO
+	defer close(reading.ready)
+
+	if reading.nodeid != reply.NodeId {
+		badf("inode mismatch: expected %s, got %s", reading.nodeid, reply.NodeId)
+		return
+	}
+
+	if reading.offset != reply.Offset {
+		badf("offset mismatch: expected @%d, got @%d", reading.offset, reply.Offset)
+		return
+	}
+
+	if len(reading.dest) < len(req.arg) {
+		badf("too much data: requested %db, got %db (will use only %db)", len(reading.dest), len(req.arg), len(reading.dest))
+	}
+
+	reading.n = copy(reading.dest, req.arg)
+	reading.st = OK
 }
 
 const _SECURITY_CAPABILITY = "security.capability"
@@ -483,6 +522,7 @@ func init() {
 		_OP_BMAP:         unsafe.Sizeof(_BmapIn{}),
 		_OP_IOCTL:        unsafe.Sizeof(_IoctlIn{}),
 		_OP_POLL:         unsafe.Sizeof(_PollIn{}),
+		_OP_NOTIFY_REPLY: unsafe.Sizeof(NotifyRetrieveIn{}),
 		_OP_FALLOCATE:    unsafe.Sizeof(FallocateIn{}),
 		_OP_READDIRPLUS:  unsafe.Sizeof(ReadIn{}),
 	} {
@@ -490,79 +530,82 @@ func init() {
 	}
 
 	for op, sz := range map[int32]uintptr{
-		_OP_LOOKUP:             unsafe.Sizeof(EntryOut{}),
-		_OP_GETATTR:            unsafe.Sizeof(AttrOut{}),
-		_OP_SETATTR:            unsafe.Sizeof(AttrOut{}),
-		_OP_SYMLINK:            unsafe.Sizeof(EntryOut{}),
-		_OP_MKNOD:              unsafe.Sizeof(EntryOut{}),
-		_OP_MKDIR:              unsafe.Sizeof(EntryOut{}),
-		_OP_LINK:               unsafe.Sizeof(EntryOut{}),
-		_OP_OPEN:               unsafe.Sizeof(OpenOut{}),
-		_OP_WRITE:              unsafe.Sizeof(WriteOut{}),
-		_OP_STATFS:             unsafe.Sizeof(StatfsOut{}),
-		_OP_GETXATTR:           unsafe.Sizeof(GetXAttrOut{}),
-		_OP_LISTXATTR:          unsafe.Sizeof(GetXAttrOut{}),
-		_OP_INIT:               unsafe.Sizeof(InitOut{}),
-		_OP_OPENDIR:            unsafe.Sizeof(OpenOut{}),
-		_OP_GETLK:              unsafe.Sizeof(LkOut{}),
-		_OP_CREATE:             unsafe.Sizeof(CreateOut{}),
-		_OP_BMAP:               unsafe.Sizeof(_BmapOut{}),
-		_OP_IOCTL:              unsafe.Sizeof(_IoctlOut{}),
-		_OP_POLL:               unsafe.Sizeof(_PollOut{}),
-		_OP_NOTIFY_INVAL_ENTRY: unsafe.Sizeof(NotifyInvalEntryOut{}),
-		_OP_NOTIFY_INVAL_INODE: unsafe.Sizeof(NotifyInvalInodeOut{}),
-		_OP_NOTIFY_STORE_CACHE: unsafe.Sizeof(NotifyStoreOut{}),
-		_OP_NOTIFY_DELETE:      unsafe.Sizeof(NotifyInvalDeleteOut{}),
+		_OP_LOOKUP:                unsafe.Sizeof(EntryOut{}),
+		_OP_GETATTR:               unsafe.Sizeof(AttrOut{}),
+		_OP_SETATTR:               unsafe.Sizeof(AttrOut{}),
+		_OP_SYMLINK:               unsafe.Sizeof(EntryOut{}),
+		_OP_MKNOD:                 unsafe.Sizeof(EntryOut{}),
+		_OP_MKDIR:                 unsafe.Sizeof(EntryOut{}),
+		_OP_LINK:                  unsafe.Sizeof(EntryOut{}),
+		_OP_OPEN:                  unsafe.Sizeof(OpenOut{}),
+		_OP_WRITE:                 unsafe.Sizeof(WriteOut{}),
+		_OP_STATFS:                unsafe.Sizeof(StatfsOut{}),
+		_OP_GETXATTR:              unsafe.Sizeof(GetXAttrOut{}),
+		_OP_LISTXATTR:             unsafe.Sizeof(GetXAttrOut{}),
+		_OP_INIT:                  unsafe.Sizeof(InitOut{}),
+		_OP_OPENDIR:               unsafe.Sizeof(OpenOut{}),
+		_OP_GETLK:                 unsafe.Sizeof(LkOut{}),
+		_OP_CREATE:                unsafe.Sizeof(CreateOut{}),
+		_OP_BMAP:                  unsafe.Sizeof(_BmapOut{}),
+		_OP_IOCTL:                 unsafe.Sizeof(_IoctlOut{}),
+		_OP_POLL:                  unsafe.Sizeof(_PollOut{}),
+		_OP_NOTIFY_INVAL_ENTRY:    unsafe.Sizeof(NotifyInvalEntryOut{}),
+		_OP_NOTIFY_INVAL_INODE:    unsafe.Sizeof(NotifyInvalInodeOut{}),
+		_OP_NOTIFY_STORE_CACHE:    unsafe.Sizeof(NotifyStoreOut{}),
+		_OP_NOTIFY_RETRIEVE_CACHE: unsafe.Sizeof(NotifyRetrieveOut{}),
+		_OP_NOTIFY_DELETE:         unsafe.Sizeof(NotifyInvalDeleteOut{}),
 	} {
 		operationHandlers[op].OutputSize = sz
 	}
 
 	for op, v := range map[int32]string{
-		_OP_LOOKUP:             "LOOKUP",
-		_OP_FORGET:             "FORGET",
-		_OP_BATCH_FORGET:       "BATCH_FORGET",
-		_OP_GETATTR:            "GETATTR",
-		_OP_SETATTR:            "SETATTR",
-		_OP_READLINK:           "READLINK",
-		_OP_SYMLINK:            "SYMLINK",
-		_OP_MKNOD:              "MKNOD",
-		_OP_MKDIR:              "MKDIR",
-		_OP_UNLINK:             "UNLINK",
-		_OP_RMDIR:              "RMDIR",
-		_OP_RENAME:             "RENAME",
-		_OP_LINK:               "LINK",
-		_OP_OPEN:               "OPEN",
-		_OP_READ:               "READ",
-		_OP_WRITE:              "WRITE",
-		_OP_STATFS:             "STATFS",
-		_OP_RELEASE:            "RELEASE",
-		_OP_FSYNC:              "FSYNC",
-		_OP_SETXATTR:           "SETXATTR",
-		_OP_GETXATTR:           "GETXATTR",
-		_OP_LISTXATTR:          "LISTXATTR",
-		_OP_REMOVEXATTR:        "REMOVEXATTR",
-		_OP_FLUSH:              "FLUSH",
-		_OP_INIT:               "INIT",
-		_OP_OPENDIR:            "OPENDIR",
-		_OP_READDIR:            "READDIR",
-		_OP_RELEASEDIR:         "RELEASEDIR",
-		_OP_FSYNCDIR:           "FSYNCDIR",
-		_OP_GETLK:              "GETLK",
-		_OP_SETLK:              "SETLK",
-		_OP_SETLKW:             "SETLKW",
-		_OP_ACCESS:             "ACCESS",
-		_OP_CREATE:             "CREATE",
-		_OP_INTERRUPT:          "INTERRUPT",
-		_OP_BMAP:               "BMAP",
-		_OP_DESTROY:            "DESTROY",
-		_OP_IOCTL:              "IOCTL",
-		_OP_POLL:               "POLL",
-		_OP_NOTIFY_INVAL_ENTRY: "NOTIFY_INVAL_ENTRY",
-		_OP_NOTIFY_INVAL_INODE: "NOTIFY_INVAL_INODE",
-		_OP_NOTIFY_STORE_CACHE: "NOTIFY_STORE",
-		_OP_NOTIFY_DELETE:      "NOTIFY_DELETE",
-		_OP_FALLOCATE:          "FALLOCATE",
-		_OP_READDIRPLUS:        "READDIRPLUS",
+		_OP_LOOKUP:                "LOOKUP",
+		_OP_FORGET:                "FORGET",
+		_OP_BATCH_FORGET:          "BATCH_FORGET",
+		_OP_GETATTR:               "GETATTR",
+		_OP_SETATTR:               "SETATTR",
+		_OP_READLINK:              "READLINK",
+		_OP_SYMLINK:               "SYMLINK",
+		_OP_MKNOD:                 "MKNOD",
+		_OP_MKDIR:                 "MKDIR",
+		_OP_UNLINK:                "UNLINK",
+		_OP_RMDIR:                 "RMDIR",
+		_OP_RENAME:                "RENAME",
+		_OP_LINK:                  "LINK",
+		_OP_OPEN:                  "OPEN",
+		_OP_READ:                  "READ",
+		_OP_WRITE:                 "WRITE",
+		_OP_STATFS:                "STATFS",
+		_OP_RELEASE:               "RELEASE",
+		_OP_FSYNC:                 "FSYNC",
+		_OP_SETXATTR:              "SETXATTR",
+		_OP_GETXATTR:              "GETXATTR",
+		_OP_LISTXATTR:             "LISTXATTR",
+		_OP_REMOVEXATTR:           "REMOVEXATTR",
+		_OP_FLUSH:                 "FLUSH",
+		_OP_INIT:                  "INIT",
+		_OP_OPENDIR:               "OPENDIR",
+		_OP_READDIR:               "READDIR",
+		_OP_RELEASEDIR:            "RELEASEDIR",
+		_OP_FSYNCDIR:              "FSYNCDIR",
+		_OP_GETLK:                 "GETLK",
+		_OP_SETLK:                 "SETLK",
+		_OP_SETLKW:                "SETLKW",
+		_OP_ACCESS:                "ACCESS",
+		_OP_CREATE:                "CREATE",
+		_OP_INTERRUPT:             "INTERRUPT",
+		_OP_BMAP:                  "BMAP",
+		_OP_DESTROY:               "DESTROY",
+		_OP_IOCTL:                 "IOCTL",
+		_OP_POLL:                  "POLL",
+		_OP_NOTIFY_REPLY:          "NOTIFY_REPLY",
+		_OP_NOTIFY_INVAL_ENTRY:    "NOTIFY_INVAL_ENTRY",
+		_OP_NOTIFY_INVAL_INODE:    "NOTIFY_INVAL_INODE",
+		_OP_NOTIFY_STORE_CACHE:    "NOTIFY_STORE",
+		_OP_NOTIFY_RETRIEVE_CACHE: "NOTIFY_RETRIEVE",
+		_OP_NOTIFY_DELETE:         "NOTIFY_DELETE",
+		_OP_FALLOCATE:             "FALLOCATE",
+		_OP_READDIRPLUS:           "READDIRPLUS",
 	} {
 		operationHandlers[op].Name = v
 	}
@@ -604,6 +647,7 @@ func init() {
 		_OP_STATFS:       doStatFs,
 		_OP_IOCTL:        doIoctl,
 		_OP_DESTROY:      doDestroy,
+		_OP_NOTIFY_REPLY: doNotifyReply,
 		_OP_FALLOCATE:    doFallocate,
 		_OP_READDIRPLUS:  doReadDirPlus,
 	} {
@@ -612,22 +656,23 @@ func init() {
 
 	// Outputs.
 	for op, f := range map[int32]castPointerFunc{
-		_OP_LOOKUP:             func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
-		_OP_OPEN:               func(ptr unsafe.Pointer) interface{} { return (*OpenOut)(ptr) },
-		_OP_OPENDIR:            func(ptr unsafe.Pointer) interface{} { return (*OpenOut)(ptr) },
-		_OP_GETATTR:            func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
-		_OP_CREATE:             func(ptr unsafe.Pointer) interface{} { return (*CreateOut)(ptr) },
-		_OP_LINK:               func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
-		_OP_SETATTR:            func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
-		_OP_INIT:               func(ptr unsafe.Pointer) interface{} { return (*InitOut)(ptr) },
-		_OP_MKDIR:              func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
-		_OP_NOTIFY_INVAL_ENTRY: func(ptr unsafe.Pointer) interface{} { return (*NotifyInvalEntryOut)(ptr) },
-		_OP_NOTIFY_INVAL_INODE: func(ptr unsafe.Pointer) interface{} { return (*NotifyInvalInodeOut)(ptr) },
-		_OP_NOTIFY_STORE_CACHE: func(ptr unsafe.Pointer) interface{} { return (*NotifyStoreOut)(ptr) },
-		_OP_NOTIFY_DELETE:      func(ptr unsafe.Pointer) interface{} { return (*NotifyInvalDeleteOut)(ptr) },
-		_OP_STATFS:             func(ptr unsafe.Pointer) interface{} { return (*StatfsOut)(ptr) },
-		_OP_SYMLINK:            func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
-		_OP_GETLK:              func(ptr unsafe.Pointer) interface{} { return (*LkOut)(ptr) },
+		_OP_LOOKUP:                func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
+		_OP_OPEN:                  func(ptr unsafe.Pointer) interface{} { return (*OpenOut)(ptr) },
+		_OP_OPENDIR:               func(ptr unsafe.Pointer) interface{} { return (*OpenOut)(ptr) },
+		_OP_GETATTR:               func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
+		_OP_CREATE:                func(ptr unsafe.Pointer) interface{} { return (*CreateOut)(ptr) },
+		_OP_LINK:                  func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
+		_OP_SETATTR:               func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
+		_OP_INIT:                  func(ptr unsafe.Pointer) interface{} { return (*InitOut)(ptr) },
+		_OP_MKDIR:                 func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
+		_OP_NOTIFY_INVAL_ENTRY:    func(ptr unsafe.Pointer) interface{} { return (*NotifyInvalEntryOut)(ptr) },
+		_OP_NOTIFY_INVAL_INODE:    func(ptr unsafe.Pointer) interface{} { return (*NotifyInvalInodeOut)(ptr) },
+		_OP_NOTIFY_STORE_CACHE:    func(ptr unsafe.Pointer) interface{} { return (*NotifyStoreOut)(ptr) },
+		_OP_NOTIFY_RETRIEVE_CACHE: func(ptr unsafe.Pointer) interface{} { return (*NotifyRetrieveOut)(ptr) },
+		_OP_NOTIFY_DELETE:         func(ptr unsafe.Pointer) interface{} { return (*NotifyInvalDeleteOut)(ptr) },
+		_OP_STATFS:                func(ptr unsafe.Pointer) interface{} { return (*StatfsOut)(ptr) },
+		_OP_SYMLINK:               func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
+		_OP_GETLK:                 func(ptr unsafe.Pointer) interface{} { return (*LkOut)(ptr) },
 	} {
 		operationHandlers[op].DecodeOut = f
 	}
@@ -655,6 +700,7 @@ func init() {
 		_OP_RELEASE:      func(ptr unsafe.Pointer) interface{} { return (*ReleaseIn)(ptr) },
 		_OP_RELEASEDIR:   func(ptr unsafe.Pointer) interface{} { return (*ReleaseIn)(ptr) },
 		_OP_FALLOCATE:    func(ptr unsafe.Pointer) interface{} { return (*FallocateIn)(ptr) },
+		_OP_NOTIFY_REPLY: func(ptr unsafe.Pointer) interface{} { return (*NotifyRetrieveIn)(ptr) },
 		_OP_READDIRPLUS:  func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
 		_OP_RENAME:       func(ptr unsafe.Pointer) interface{} { return (*RenameIn)(ptr) },
 		_OP_GETLK:        func(ptr unsafe.Pointer) interface{} { return (*LkIn)(ptr) },
