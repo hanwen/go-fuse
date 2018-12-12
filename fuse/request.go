@@ -73,23 +73,23 @@ func (r *request) clear() {
 }
 
 func (r *request) InputDebug() string {
-	val := " "
+	val := ""
 	if r.handler.DecodeIn != nil {
-		val = fmt.Sprintf(" data: %v ", Print(r.handler.DecodeIn(r.inData)))
+		val = fmt.Sprintf("%v ", Print(r.handler.DecodeIn(r.inData)))
 	}
 
 	names := ""
 	if r.filenames != nil {
-		names = fmt.Sprintf("names: %v", r.filenames)
+		names = fmt.Sprintf("%q", r.filenames)
 	}
 
 	if len(r.arg) > 0 {
-		names += fmt.Sprintf(" %d bytes", len(r.arg))
+		names += fmt.Sprintf(" %db", len(r.arg))
 	}
 
-	return fmt.Sprintf("Dispatch %d: %s, NodeId: %v.%v%v",
-		r.inHeader.Unique, operationName(r.inHeader.Opcode),
-		r.inHeader.NodeId, val, names)
+	return fmt.Sprintf("rx %d: %s i%d %s%s",
+		r.inHeader.Unique, operationName(r.inHeader.Opcode), r.inHeader.NodeId,
+		val, names)
 }
 
 func (r *request) OutputDebug() string {
@@ -112,14 +112,25 @@ func (r *request) OutputDebug() string {
 			spl := ""
 			if r.fdData != nil {
 				spl = " (fd data)"
+			} else {
+				l := len(r.flatData)
+				s := ""
+				if l > 8 {
+					l = 8
+					s = "..."
+				}
+				spl = fmt.Sprintf(" %q%s", r.flatData[:l], s)
 			}
-			flatStr = fmt.Sprintf(" %d bytes data%s", r.flatDataSize(), spl)
+			flatStr = fmt.Sprintf(" %db data%s", r.flatDataSize(), spl)
 		}
 	}
 
-	return fmt.Sprintf("Serialize %d: %s code: %v value: %v%v",
-		r.inHeader.Unique, operationName(r.inHeader.Opcode), r.status,
-		dataStr, flatStr)
+	extraStr := dataStr + flatStr
+	if extraStr != "" {
+		extraStr = ", " + extraStr
+	}
+	return fmt.Sprintf("tx %d:     %v%s",
+		r.inHeader.Unique, r.status, extraStr)
 }
 
 // setInput returns true if it takes ownership of the argument, false if not.
