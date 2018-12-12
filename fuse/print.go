@@ -198,19 +198,24 @@ func (me *FlushIn) string() string {
 
 func (me *AttrOut) string() string {
 	return fmt.Sprintf(
-		"{A%d.%09d %v}",
-		me.AttrValid, me.AttrValidNsec, &me.Attr)
+		"{tA=%gs %v}",
+		ft(me.AttrValid, me.AttrValidNsec), &me.Attr)
+}
+
+// ft converts (seconds , nanoseconds) -> float(seconds)
+func ft(tsec uint64, tnsec uint32) float64 {
+	return float64(tsec) + float64(tnsec)*1E-9
 }
 
 // Returned by LOOKUP
 func (me *EntryOut) string() string {
-	return fmt.Sprintf("{NodeId: %d Generation=%d EntryValid=%d.%03d AttrValid=%d.%03d Attr=%v}",
-		me.NodeId, me.Generation, me.EntryValid, me.EntryValidNsec/1000000,
-		me.AttrValid, me.AttrValidNsec/1000000, &me.Attr)
+	return fmt.Sprintf("{i%d g%d tE=%gs tA=%gs %v}",
+		me.NodeId, me.Generation, ft(me.EntryValid, me.EntryValidNsec),
+		ft(me.AttrValid, me.AttrValidNsec), &me.Attr)
 }
 
 func (me *CreateOut) string() string {
-	return fmt.Sprintf("{NodeId: %d Generation=%d %v %v}", me.NodeId, me.Generation, &me.EntryOut, &me.OpenOut)
+	return fmt.Sprintf("{i%d g%d %v %v}", me.NodeId, me.Generation, &me.EntryOut, &me.OpenOut)
 }
 
 func (me *StatfsOut) string() string {
@@ -225,7 +230,7 @@ func (o *NotifyInvalEntryOut) string() string {
 }
 
 func (o *NotifyInvalInodeOut) string() string {
-	return fmt.Sprintf("{ino %d off %d sz %d}", o.Ino, o.Off, o.Length)
+	return fmt.Sprintf("{i%d [%d +%d)}", o.Ino, o.Off, o.Length)
 }
 
 func (o *NotifyInvalDeleteOut) string() string {
@@ -233,19 +238,19 @@ func (o *NotifyInvalDeleteOut) string() string {
 }
 
 func (o *NotifyStoreOut) string() string {
-	return fmt.Sprintf("{nodeid %d off %d sz %d}", o.Nodeid, o.Offset, o.Size)
+	return fmt.Sprintf("{i%d [%d +%d)}", o.Nodeid, o.Offset, o.Size)
 }
 
 func (o *NotifyRetrieveOut) string() string {
-	return fmt.Sprintf("{notifyUnique %d nodeid %d off %d sz %d}", o.NotifyUnique, o.Nodeid, o.Offset, o.Size)
+	return fmt.Sprintf("{> %d: i%d [%d +%d)}", o.NotifyUnique, o.Nodeid, o.Offset, o.Size)
 }
 
 func (i *NotifyRetrieveIn) string() string {
-	return fmt.Sprintf("{off %d sz %d}", i.Offset, i.Size)
+	return fmt.Sprintf("{[%d +%d)}", i.Offset, i.Size)
 }
 
 func (f *FallocateIn) string() string {
-	return fmt.Sprintf("{Fh %d off %d sz %d mod 0%o}",
+	return fmt.Sprintf("{Fh %d [%d +%d) mod 0%o}",
 		f.Fh, f.Offset, f.Length, f.Mode)
 }
 
