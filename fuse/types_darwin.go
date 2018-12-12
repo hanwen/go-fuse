@@ -10,6 +10,9 @@ import (
 
 const (
 	ENOATTR = Status(syscall.ENOATTR) // ENOATTR is not defined for all GOOS.
+
+	// EREMOTEIO is not supported on Darwin.
+	EREMOTEIO = Status(syscall.EIO)
 )
 
 type Attr struct {

@@ -34,9 +34,6 @@ const (
 	// EIO I/O error
 	EIO = Status(syscall.EIO)
 
-	// EREMOTEIO Remote I/O error
-	EREMOTEIO = Status(syscall.EREMOTEIO)
-
 	// ENOENT No such file or directory
 	ENOENT = Status(syscall.ENOENT)
 
@@ -395,7 +392,7 @@ const (
 	NOTIFY_INVAL_ENTRY = -3 // notify kernel that a directory entry should be invalidated
 	NOTIFY_STORE_CACHE = -4 // store data into kernel cache of an inode
 	//	NOTIFY_RETRIEVE_CACHE  = -5 // retrieve data from kernel cache of an inode
-	NOTIFY_DELETE      = -6 // notify kernel that a directory entry has been deleted
+	NOTIFY_DELETE = -6 // notify kernel that a directory entry has been deleted
 
 //	NOTIFY_CODE_MAX     = -6
 )

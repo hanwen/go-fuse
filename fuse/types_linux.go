@@ -10,6 +10,9 @@ import (
 
 const (
 	ENOATTR = Status(syscall.ENODATA) // On Linux, ENOATTR is an alias for ENODATA.
+
+	// EREMOTEIO Remote I/O error
+	EREMOTEIO = Status(syscall.EREMOTEIO)
 )
 
 type Attr struct {
