@@ -7,8 +7,8 @@ package test
 // exercise functionality to store/retrieve kernel cache.
 
 import (
-	"os"
 	"io/ioutil"
+	"os"
 	"testing"
 
 	"golang.org/x/sys/unix"
