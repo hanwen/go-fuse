@@ -34,9 +34,6 @@ const (
 	// EIO I/O error
 	EIO = Status(syscall.EIO)
 
-	// EREMOTEIO Remote I/O error
-	EREMOTEIO = Status(syscall.EREMOTEIO)
-
 	// ENOENT No such file or directory
 	ENOENT = Status(syscall.ENOENT)
 
