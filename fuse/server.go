@@ -565,6 +565,9 @@ func (ms *Server) inodeNotifyStoreCache32(node uint64, offset int64, data []byte
 // [offset:offset+len(dest)) and waits for corresponding reply. If kernel cache
 // has fewer consecutive data starting at offset, that fewer amount is returned.
 // In particular if inode data at offset is not cached (0, OK) is returned.
+//
+// The kernel returns ENOENT if it does not currently have entry for this inode
+// in its dentry cache.
 func (ms *Server) InodeRetrieveCache(node uint64, offset int64, dest []byte) (n int, st Status) {
 	if !ms.kernelSettings.SupportsNotify(NOTIFY_RETRIEVE_CACHE) {
 		return 0, ENOSYS

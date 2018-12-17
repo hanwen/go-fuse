@@ -393,6 +393,9 @@ func (c *FileSystemConnector) FileNotify(node *Inode, off int64, length int64) f
 // and will use data from that cache for non direct-IO reads from the inode
 // in corresponding data region. After kernel's cache data is evicted, the kernel
 // will have to issue new Read calls on user request to get data content.
+//
+// ENOENT is returned if the kernel does not currently have entry for this
+// inode in its dentry cache.
 func (c *FileSystemConnector) FileNotifyStoreCache(node *Inode, off int64, data []byte) fuse.Status {
 	var nID uint64
 	if node == c.rootNode {
@@ -402,7 +405,8 @@ func (c *FileSystemConnector) FileNotifyStoreCache(node *Inode, off int64, data 
 	}
 
 	if nID == 0 {
-		return fuse.EINVAL
+		// the kernel does not currently know about this inode.
+		return fuse.ENOENT
 	}
 	return c.server.InodeNotifyStoreCache(nID, off, data)
 }
