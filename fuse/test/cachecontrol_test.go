@@ -122,8 +122,12 @@ func TestCacheControl(t *testing.T) {
 	}
 
 	// before the kernel has entry for file in its dentry cache, the cache
-	// should read as empty.
+	// should read as empty and cache store should fail with ENOENT.
 	assertCacheRead("before lookup", "")
+	st := fsconn.FileNotifyStoreCache(file.Inode(), 0, []byte("abc"))
+	if st != fuse.ENOENT {
+		t.Fatalf("%s: store cache -> %v; want %v", "before lookup", st, fuse.ENOENT)
+	}
 
 	// lookup on the file - forces to assign inode ID to it
 	os.Stat(dir + "/hello.txt")
@@ -171,7 +175,7 @@ func TestCacheControl(t *testing.T) {
 	assertCacheRead("original", data0)
 
 	// store changed data into OS cache
-	st := fsconn.FileNotifyStoreCache(file.Inode(), 7, []byte("123"))
+	st = fsconn.FileNotifyStoreCache(file.Inode(), 7, []byte("123"))
 	if st != fuse.OK {
 		t.Fatalf("store cache: %s", st)
 	}
