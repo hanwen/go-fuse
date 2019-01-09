@@ -14,22 +14,28 @@ import (
 	"syscall"
 )
 
+// DeviceFilePattern uses openFUSEDevice()
+var DeviceFilePattern = "/dev/osxfuse*"
+
+// LoadBin uses openFUSEDevice()
+var LoadBin = "/Library/Filesystems/osxfuse.fs/Contents/Resources/load_osxfuse"
+
+// MountBin uses mount()
+var MountBin = "/Library/Filesystems/osxfuse.fs/Contents/Resources/mount_osxfuse"
+
 func openFUSEDevice() (*os.File, error) {
-	fs, err := filepath.Glob("/dev/osxfuse*")
+	fs, err := filepath.Glob(DeviceFilePattern)
 	if err != nil {
 		return nil, err
 	}
 	if len(fs) == 0 {
-		bin := oldLoadBin
-		if _, err := os.Stat(newLoadBin); err == nil {
-			bin = newLoadBin
-		}
+		bin := LoadBin
 
 		cmd := exec.Command(bin)
 		if err := cmd.Run(); err != nil {
 			return nil, err
 		}
-		fs, err = filepath.Glob("/dev/osxfuse*")
+		fs, err = filepath.Glob(DeviceFilePattern)
 		if err != nil {
 			return nil, err
 		}
@@ -46,22 +52,13 @@ func openFUSEDevice() (*os.File, error) {
 	return nil, fmt.Errorf("all FUSE devices busy")
 }
 
-const oldLoadBin = "/Library/Filesystems/osxfusefs.fs/Support/load_osxfusefs"
-const newLoadBin = "/Library/Filesystems/osxfuse.fs/Contents/Resources/load_osxfuse"
-
-const oldMountBin = "/Library/Filesystems/osxfusefs.fs/Support/mount_osxfusefs"
-const newMountBin = "/Library/Filesystems/osxfuse.fs/Contents/Resources/mount_osxfuse"
-
 func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, err error) {
 	f, err := openFUSEDevice()
 	if err != nil {
 		return 0, err
 	}
 
-	bin := oldMountBin
-	if _, err := os.Stat(newMountBin); err == nil {
-		bin = newMountBin
-	}
+	bin := MountBin
 
 	cmd := exec.Command(bin, "-o", strings.Join(opts.optionsStrings(), ","), "-o", fmt.Sprintf("iosize=%d", opts.MaxWrite), "3", mountPoint)
 	cmd.ExtraFiles = []*os.File{f}
