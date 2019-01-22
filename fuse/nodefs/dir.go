@@ -13,33 +13,30 @@ import (
 
 type connectorDir struct {
 	node  Node
+	inode *Inode
 	rawFS fuse.RawFileSystem
 
 	// Protect stream and lastOffset.  These are written in case
 	// there is a seek on the directory.
 	mu     sync.Mutex
 	stream []fuse.DirEntry
-
-	// lastOffset stores the last offset for a readdir. This lets
-	// readdir pick up changes to the directory made after opening
-	// it.
-	lastOffset uint64
 }
 
 func (d *connectorDir) ReadDir(input *fuse.ReadIn, out *fuse.DirEntryList) (code fuse.Status) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	if d.stream == nil {
-		return fuse.OK
-	}
 	// rewinddir() should be as if reopening directory.
 	// TODO - test this.
-	if d.lastOffset > 0 && input.Offset == 0 {
+	if d.stream == nil || input.Offset == 0 {
 		d.stream, code = d.node.OpenDir(&input.Context)
 		if !code.Ok() {
 			return code
 		}
+		d.stream = append(d.stream, d.inode.getMountDirEntries()...)
+		d.stream = append(d.stream,
+			fuse.DirEntry{Mode: fuse.S_IFDIR, Name: "."},
+			fuse.DirEntry{Mode: fuse.S_IFDIR, Name: ".."})
 	}
 
 	if input.Offset > uint64(len(d.stream)) {
@@ -53,8 +50,7 @@ func (d *connectorDir) ReadDir(input *fuse.ReadIn, out *fuse.DirEntryList) (code
 			log.Printf("got empty directory entry, mode %o.", e.Mode)
 			continue
 		}
-		ok, off := out.AddDirEntry(e)
-		d.lastOffset = off
+		ok := out.AddDirEntry(e)
 		if !ok {
 			break
 		}
@@ -66,16 +62,16 @@ func (d *connectorDir) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) (
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	if d.stream == nil {
-		return fuse.OK
-	}
-
 	// rewinddir() should be as if reopening directory.
-	if d.lastOffset > 0 && input.Offset == 0 {
+	if d.stream == nil || input.Offset == 0 {
 		d.stream, code = d.node.OpenDir(&input.Context)
 		if !code.Ok() {
 			return code
 		}
+		d.stream = append(d.stream, d.inode.getMountDirEntries()...)
+		d.stream = append(d.stream,
+			fuse.DirEntry{Mode: fuse.S_IFDIR, Name: "."},
+			fuse.DirEntry{Mode: fuse.S_IFDIR, Name: ".."})
 	}
 
 	if input.Offset > uint64(len(d.stream)) {
@@ -91,7 +87,7 @@ func (d *connectorDir) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) (
 
 		// we have to be sure entry will fit if we try to add
 		// it, or we'll mess up the lookup counts.
-		entryDest, off := out.AddDirLookupEntry(e)
+		entryDest := out.AddDirLookupEntry(e)
 		if entryDest == nil {
 			break
 		}
@@ -106,10 +102,8 @@ func (d *connectorDir) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) (
 		*entryDest = fuse.EntryOut{}
 
 		d.rawFS.Lookup(&input.InHeader, e.Name, entryDest)
-		d.lastOffset = off
 	}
 	return fuse.OK
-
 }
 
 type rawDir interface {

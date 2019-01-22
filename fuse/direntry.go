@@ -53,13 +53,13 @@ func NewDirEntryList(data []byte, off uint64) *DirEntryList {
 
 // AddDirEntry tries to add an entry, and reports whether it
 // succeeded.
-func (l *DirEntryList) AddDirEntry(e DirEntry) (bool, uint64) {
+func (l *DirEntryList) AddDirEntry(e DirEntry) bool {
 	return l.Add(0, e.Name, e.Ino, e.Mode)
 }
 
 // Add adds a direntry to the DirEntryList, returning whether it
 // succeeded.
-func (l *DirEntryList) Add(prefix int, name string, inode uint64, mode uint32) (bool, uint64) {
+func (l *DirEntryList) Add(prefix int, name string, inode uint64, mode uint32) bool {
 	if inode == 0 {
 		inode = FUSE_UNKNOWN_INO
 	}
@@ -69,7 +69,7 @@ func (l *DirEntryList) Add(prefix int, name string, inode uint64, mode uint32) (
 	newLen := delta + oldLen
 
 	if newLen > l.size {
-		return false, l.offset
+		return false
 	}
 	l.buf = l.buf[:newLen]
 	oldLen += prefix
@@ -87,20 +87,20 @@ func (l *DirEntryList) Add(prefix int, name string, inode uint64, mode uint32) (
 	}
 
 	l.offset = dirent.Off
-	return true, l.offset
+	return true
 }
 
 // AddDirLookupEntry is used for ReadDirPlus. It serializes a DirEntry
 // and returns the space for entry. If no space is left, returns a nil
 // pointer.
-func (l *DirEntryList) AddDirLookupEntry(e DirEntry) (*EntryOut, uint64) {
+func (l *DirEntryList) AddDirLookupEntry(e DirEntry) *EntryOut {
 	lastStart := len(l.buf)
-	ok, off := l.Add(int(unsafe.Sizeof(EntryOut{})), e.Name,
+	ok := l.Add(int(unsafe.Sizeof(EntryOut{})), e.Name,
 		e.Ino, e.Mode)
 	if !ok {
-		return nil, off
+		return nil
 	}
-	return (*EntryOut)(unsafe.Pointer(&l.buf[lastStart])), off
+	return (*EntryOut)(unsafe.Pointer(&l.buf[lastStart]))
 }
 
 func (l *DirEntryList) bytes() []byte {

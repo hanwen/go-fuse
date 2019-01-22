@@ -161,16 +161,9 @@ func (c *rawBridge) GetAttr(input *fuse.GetAttrIn, out *fuse.AttrOut) (code fuse
 
 func (c *rawBridge) OpenDir(input *fuse.OpenIn, out *fuse.OpenOut) (code fuse.Status) {
 	node := c.toInode(input.NodeId)
-	stream, err := node.fsInode.OpenDir(&input.Context)
-	if err != fuse.OK {
-		return err
-	}
-	stream = append(stream, node.getMountDirEntries()...)
 	de := &connectorDir{
-		node: node.Node(),
-		stream: append(stream,
-			fuse.DirEntry{Mode: fuse.S_IFDIR, Name: "."},
-			fuse.DirEntry{Mode: fuse.S_IFDIR, Name: ".."}),
+		inode: node,
+		node:  node.Node(),
 		rawFS: c,
 	}
 	h, opened := node.mount.registerFileHandle(node, de, nil, input.Flags)
