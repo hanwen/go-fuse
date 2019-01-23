@@ -388,6 +388,9 @@ exit:
 			continue
 		case ENODEV:
 			// unmount
+			if ms.opts.Debug {
+				log.Printf("received ENODEV (unmount request), thread exiting")
+			}
 			break exit
 		default: // some other error?
 			log.Printf("Failed to read from fuse conn: %v", errNo)
