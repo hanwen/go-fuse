@@ -208,8 +208,9 @@ func (c *rawBridge) SetAttr(input *fuse.SetAttrIn, out *fuse.AttrOut) (code fuse
 
 	var f File
 	if input.Valid&fuse.FATTR_FH != 0 {
-		opened := node.mount.getOpenedFile(input.Fh)
-		f = opened.WithFlags.File
+		if opened := node.mount.getOpenedFile(input.Fh); opened != nil {
+			f = opened.WithFlags.File
+		}
 	}
 
 	if code.Ok() && input.Valid&fuse.FATTR_MODE != 0 {
