@@ -596,6 +596,36 @@ func TestReaddir(t *testing.T) {
 	}
 }
 
+// Test that READDIR works even if the directory is renamed after the OPENDIR.
+// This checks that the fix for https://github.com/hanwen/go-fuse/issues/252
+// does not break this case.
+func TestReaddirRename(t *testing.T) {
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
+
+	tc.Mkdir(tc.origSubdir, 0777)
+	tc.WriteFile(tc.origSubdir+"/file.txt", []byte("foo"), 0700)
+
+	dir, err := os.Open(tc.mountSubdir)
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
+	defer dir.Close()
+
+	err = os.Rename(tc.mountSubdir, tc.mountSubdir+".2")
+	if err != nil {
+		t.Fatalf("Rename failed: %v", err)
+	}
+
+	names, err := dir.Readdirnames(-1)
+	if err != nil {
+		t.Fatalf("Readdirnames failed: %v", err)
+	}
+	if len(names) != 1 || names[0] != "file.txt" {
+		t.Fatalf("incorrect directory listing: %v", names)
+	}
+}
+
 func TestFSync(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
