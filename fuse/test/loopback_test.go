@@ -25,9 +25,13 @@ import (
 )
 
 type testCase struct {
+	// Per-testcase temporary directory, usually in /tmp, named something like
+	// "$TESTNAME.123456".
 	tmpDir string
-	orig   string
-	mnt    string
+	// Backing directory. Lives in tmpDir.
+	orig string
+	// Mountpoint. Lives in tmpDir.
+	mnt string
 
 	mountFile   string
 	mountSubdir string
@@ -559,7 +563,6 @@ func TestReaddir(t *testing.T) {
 	defer tc.Cleanup()
 
 	contents := []byte{1, 2, 3}
-	tc.WriteFile(tc.origFile, []byte(contents), 0700)
 	tc.Mkdir(tc.origSubdir, 0777)
 
 	dir, err := os.Open(tc.mnt)
@@ -567,6 +570,10 @@ func TestReaddir(t *testing.T) {
 		t.Fatalf("Open failed: %v", err)
 	}
 	defer dir.Close()
+
+	// READDIR should show "hello.txt" even if it is created after the OPENDIR.
+	// https://github.com/hanwen/go-fuse/issues/252
+	tc.WriteFile(tc.origFile, []byte(contents), 0700)
 
 	infos, err := dir.Readdir(10)
 	if err != nil {
@@ -578,7 +585,7 @@ func TestReaddir(t *testing.T) {
 		"subdir":    true,
 	}
 	if len(wanted) != len(infos) {
-		t.Errorf("Length mismatch %v", infos)
+		t.Errorf("Wrong number of directory entries: want=%d have=%d", len(wanted), len(infos))
 	} else {
 		for _, v := range infos {
 			_, ok := wanted[v.Name()]
