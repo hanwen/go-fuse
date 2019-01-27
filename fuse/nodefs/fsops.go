@@ -185,7 +185,7 @@ func (c *rawBridge) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) fuse
 func (c *rawBridge) Open(input *fuse.OpenIn, out *fuse.OpenOut) (status fuse.Status) {
 	node := c.toInode(input.NodeId)
 	f, code := node.fsInode.Open(input.Flags, &input.Context)
-	if !code.Ok() || f == nil {
+	if !code.Ok() {
 		return code
 	}
 	h, opened := node.mount.registerFileHandle(node, nil, f, input.Flags)
