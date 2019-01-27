@@ -310,8 +310,7 @@ func (n *pathInode) GetPath() string {
 		// some file system operation, because the file is
 		// still opened.
 
-		// TODO - add a deterministic disambiguating suffix.
-		return ".deleted"
+		return ".deleted." + n.inode.String()
 	}
 
 	return path
