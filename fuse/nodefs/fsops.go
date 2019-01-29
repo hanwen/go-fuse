@@ -319,11 +319,7 @@ func (c *rawBridge) Symlink(header *fuse.InHeader, pointedTo string, linkName st
 func (c *rawBridge) Rename(input *fuse.RenameIn, oldName string, newName string) (code fuse.Status) {
 	oldParent := c.toInode(input.NodeId)
 
-	child := oldParent.GetChild(oldName)
-	if child == nil {
-		return fuse.ENOENT
-	}
-	if child.mountPoint != nil {
+	if child := oldParent.GetChild(oldName); child != nil && child.mountPoint != nil {
 		return fuse.EBUSY
 	}
 
