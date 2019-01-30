@@ -738,7 +738,7 @@ func (fs *unionFS) OpenDir(directory string, context *fuse.Context) (stream []fu
 	// We could try to use the cache, but we have a delay, so
 	// might as well get the fresh results async.
 	var wg sync.WaitGroup
-	var deletions map[string]bool
+	var deletions map[string]struct{}
 
 	wg.Add(1)
 	go func() {
@@ -770,7 +770,7 @@ func (fs *unionFS) OpenDir(directory string, context *fuse.Context) (stream []fu
 	if deletions == nil {
 		_, code := fs.fileSystems[0].GetAttr(fs.options.DeletionDirName, context)
 		if code == fuse.ENOENT {
-			deletions = map[string]bool{}
+			deletions = map[string]struct{}{}
 		} else {
 			return nil, fuse.Status(syscall.EROFS)
 		}
@@ -795,7 +795,7 @@ func (fs *unionFS) OpenDir(directory string, context *fuse.Context) (stream []fu
 				continue
 			}
 
-			deleted := deletions[filePathHash(filepath.Join(directory, k))]
+			_, deleted := deletions[filePathHash(filepath.Join(directory, k))]
 			if !deleted {
 				results[k] = v
 			}

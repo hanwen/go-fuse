@@ -15,21 +15,21 @@ import (
 // newDirnameMap reads the contents of the given directory. On error,
 // returns a nil map. This forces reloads in the dirCache until we
 // succeed.
-func newDirnameMap(fs pathfs.FileSystem, dir string) map[string]bool {
+func newDirnameMap(fs pathfs.FileSystem, dir string) map[string]struct{} {
 	stream, code := fs.OpenDir(dir, nil)
 	if code == fuse.ENOENT {
 		// The directory not existing is not an error.
-		return map[string]bool{}
+		return map[string]struct{}{}
 	}
 
 	if !code.Ok() {
 		return nil
 	}
 
-	result := make(map[string]bool)
+	result := make(map[string]struct{})
 	for _, e := range stream {
 		if e.Mode&fuse.S_IFREG != 0 {
-			result[e.Name] = true
+			result[e.Name] = struct{}{}
 		}
 	}
 	return result
@@ -47,11 +47,11 @@ type dirCache struct {
 	lock sync.RWMutex
 
 	// If nil, you may call refresh() to schedule a new one.
-	names         map[string]bool
+	names         map[string]struct{}
 	updateRunning bool
 }
 
-func (c *dirCache) setMap(newMap map[string]bool) {
+func (c *dirCache) setMap(newMap map[string]struct{}) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -101,7 +101,7 @@ func (c *dirCache) AddEntry(name string) {
 		return
 	}
 
-	c.names[name] = true
+	c.names[name] = struct{}{}
 }
 
 func newDirCache(fs pathfs.FileSystem, dir string, ttl time.Duration) *dirCache {
@@ -121,5 +121,6 @@ func (c *dirCache) HasEntry(name string) (mapPresent bool, found bool) {
 		return false, false
 	}
 
-	return true, c.names[name]
+	_, ok := c.names[name]
+	return true, ok
 }
