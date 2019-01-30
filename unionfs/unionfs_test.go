@@ -33,9 +33,9 @@ func TestFilePathHash(t *testing.T) {
 }
 
 var testOpts = UnionFsOptions{
-	DeletionCacheTTL: entryTtl,
+	DeletionCacheTTL: entryTTL,
 	DeletionDirName:  "DELETIONS",
-	BranchCacheTTL:   entryTtl,
+	BranchCacheTTL:   entryTTL,
 	HiddenFiles:      []string{"hidden"},
 }
 
@@ -94,9 +94,9 @@ func setupUfs(t *testing.T) (wd string, cleanup func()) {
 	// We configure timeouts are smaller, so we can check for
 	// UnionFs's cache consistency.
 	opts := &nodefs.Options{
-		EntryTimeout:        entryTtl / 2,
-		AttrTimeout:         entryTtl / 2,
-		NegativeTimeout:     entryTtl / 2,
+		EntryTimeout:        entryTTL / 2,
+		AttrTimeout:         entryTTL / 2,
+		NegativeTimeout:     entryTTL / 2,
 		PortableInodes:      true,
 		Debug:               testutil.VerboseTest(),
 		LookupKnownChildren: true,
@@ -832,7 +832,7 @@ func TestUnionFsCopyChmod(t *testing.T) {
 	if fi.Mode()&0111 == 0 {
 		t.Errorf("Lstat(%v): mode %o", fn, fi.Mode())
 	}
-	time.Sleep(entryTtl)
+	time.Sleep(entryTTL)
 	fi, err = os.Lstat(fn)
 	if err != nil {
 		t.Fatalf("Lstat(%v) after sleep: %v", fn, err)
@@ -1040,7 +1040,7 @@ func TestUnionFsDropDeletionCache(t *testing.T) {
 	}
 
 	// Expire kernel entry.
-	time.Sleep((6 * entryTtl) / 10)
+	time.Sleep((6 * entryTTL) / 10)
 	err = ioutil.WriteFile(wd+"/mnt/.drop_cache", []byte(""), 0644)
 	if err != nil {
 		t.Fatalf("WriteFile: %v", err)
@@ -1164,9 +1164,9 @@ func TestUnionFsDisappearing(t *testing.T) {
 	}
 
 	opts := &nodefs.Options{
-		EntryTimeout:        entryTtl,
-		AttrTimeout:         entryTtl,
-		NegativeTimeout:     entryTtl,
+		EntryTimeout:        entryTTL,
+		AttrTimeout:         entryTTL,
+		NegativeTimeout:     entryTTL,
 		Debug:               testutil.VerboseTest(),
 		LookupKnownChildren: true,
 	}
@@ -1192,7 +1192,7 @@ func TestUnionFsDisappearing(t *testing.T) {
 	}
 
 	wrFs.visibleChan <- false
-	time.Sleep((3 * entryTtl) / 2)
+	time.Sleep((3 * entryTTL) / 2)
 
 	_, err = ioutil.ReadDir(wd + "/mnt")
 	if err == nil {
@@ -1205,7 +1205,7 @@ func TestUnionFsDisappearing(t *testing.T) {
 	}
 
 	// Wait for the caches to purge, and then restore.
-	time.Sleep((3 * entryTtl) / 2)
+	time.Sleep((3 * entryTTL) / 2)
 	wrFs.visibleChan <- true
 
 	_, err = ioutil.ReadDir(wd + "/mnt")

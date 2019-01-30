@@ -16,13 +16,13 @@ import (
 	"github.com/hanwen/go-fuse/internal/testutil"
 )
 
-const entryTtl = 100 * time.Millisecond
+const entryTTL = 100 * time.Millisecond
 
 var testAOpts = AutoUnionFsOptions{
 	UnionFsOptions: testOpts,
 	Options: nodefs.Options{
-		EntryTimeout:        entryTtl,
-		AttrTimeout:         entryTtl,
+		EntryTimeout:        entryTTL,
+		AttrTimeout:         entryTTL,
 		NegativeTimeout:     0,
 		Debug:               testutil.VerboseTest(),
 		LookupKnownChildren: true,

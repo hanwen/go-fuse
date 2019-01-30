@@ -54,15 +54,15 @@ func TestXAttrCaching(t *testing.T) {
 	}
 
 	ufs, err := NewUnionFs([]pathfs.FileSystem{rwFS,
-		NewCachingFileSystem(roFS, entryTtl)}, testOpts)
+		NewCachingFileSystem(roFS, entryTTL)}, testOpts)
 	if err != nil {
 		t.Fatalf("NewUnionFs: %v", err)
 	}
 
 	opts := &nodefs.Options{
-		EntryTimeout:        entryTtl / 2,
-		AttrTimeout:         entryTtl / 2,
-		NegativeTimeout:     entryTtl / 2,
+		EntryTimeout:        entryTTL / 2,
+		AttrTimeout:         entryTTL / 2,
+		NegativeTimeout:     entryTTL / 2,
 		Debug:               testutil.VerboseTest(),
 		LookupKnownChildren: true,
 	}
@@ -94,7 +94,7 @@ func TestXAttrCaching(t *testing.T) {
 		t.Fatalf("Got %q want %q", got, err)
 	}
 
-	time.Sleep(entryTtl / 3)
+	time.Sleep(entryTTL / 3)
 
 	n, err = Getxattr(wd+"/mnt/file", "user.attr", buf)
 	if err != nil {
@@ -105,7 +105,7 @@ func TestXAttrCaching(t *testing.T) {
 		t.Fatalf("Got %q want %q", got, err)
 	}
 
-	time.Sleep(entryTtl / 3)
+	time.Sleep(entryTTL / 3)
 
 	// Make sure that an interceding Getxattr() to a filesystem that doesn't implement GetXAttr() doesn't affect future calls.
 	Getxattr(wd, "whatever", buf)
