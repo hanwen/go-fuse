@@ -453,6 +453,16 @@ func TestRename(t *testing.T) {
 	}
 }
 
+func TestRenameNonExistent(t *testing.T) {
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
+
+	err := os.Rename(tc.mnt+"/doesnotexist", tc.mnt+"/doesnotmatter")
+	if !os.IsNotExist(err) {
+		t.Errorf("got err %v, want ENOENT", err)
+	}
+}
+
 // Flaky test, due to rename race condition.
 func TestDelRename(t *testing.T) {
 	tc := NewTestCase(t)
