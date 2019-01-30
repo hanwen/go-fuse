@@ -68,7 +68,6 @@ func (fs *loopbackFileSystem) GetAttr(name string, context *fuse.Context) (a *fu
 	} else {
 		err = syscall.Lstat(fullPath, &st)
 	}
-
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}
@@ -166,7 +165,9 @@ func (fs *loopbackFileSystem) Symlink(pointedTo string, linkName string, context
 }
 
 func (fs *loopbackFileSystem) Rename(oldPath string, newPath string, context *fuse.Context) (codee fuse.Status) {
-	err := os.Rename(fs.GetPath(oldPath), fs.GetPath(newPath))
+	oldPath = fs.GetPath(oldPath)
+	newPath = fs.GetPath(newPath)
+	err := os.Rename(oldPath, newPath)
 	return fuse.ToStatus(err)
 }
 
