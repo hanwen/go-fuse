@@ -496,6 +496,9 @@ func (fs *unionFS) Truncate(path string, size uint64, context *fuse.Context) (co
 		code = fs.fileSystems[0].Truncate(path, size, context)
 	}
 	if code.Ok() {
+		newAttr := *r.attr
+
+		r.attr = &newAttr
 		r.attr.Size = size
 		now := time.Now()
 		r.attr.SetTimes(nil, &now, &now)
@@ -518,6 +521,8 @@ func (fs *unionFS) Utimens(name string, atime *time.Time, mtime *time.Time, cont
 	}
 	if code.Ok() {
 		now := time.Now()
+		newAttr := *r.attr
+		r.attr = &newAttr
 		r.attr.SetTimes(atime, mtime, &now)
 		fs.setBranch(name, r)
 	}
@@ -530,6 +535,9 @@ func (fs *unionFS) Chown(name string, uid uint32, gid uint32, context *fuse.Cont
 	if r.attr == nil || r.code != fuse.OK {
 		return r.code
 	}
+
+	newAttr := *r.attr
+	r.attr = &newAttr
 
 	if os.Geteuid() != 0 {
 		return fuse.EPERM
@@ -559,6 +567,8 @@ func (fs *unionFS) Chmod(name string, mode uint32, context *fuse.Context) (code 
 	if r.attr == nil {
 		return r.code
 	}
+	newAttr := *r.attr
+	r.attr = &newAttr
 	if r.code != fuse.OK {
 		return r.code
 	}
