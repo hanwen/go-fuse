@@ -75,6 +75,7 @@ type memNode struct {
 	fs *memNodeFs
 	id int
 
+	mu   sync.Mutex
 	link string
 	info fuse.Attr
 }
@@ -88,6 +89,8 @@ func (n *memNode) Deletable() bool {
 }
 
 func (n *memNode) Readlink(c *fuse.Context) ([]byte, fuse.Status) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
 	return []byte(n.link), fuse.OK
 }
 
@@ -168,6 +171,9 @@ func (n *memNodeFile) Flush() fuse.Status {
 
 	st := syscall.Stat_t{}
 	err := syscall.Stat(n.node.filename(), &st)
+
+	n.node.mu.Lock()
+	defer n.node.mu.Unlock()
 	n.node.info.Size = uint64(st.Size)
 	n.node.info.Blocks = uint64(st.Blocks)
 	return fuse.ToStatus(err)
@@ -190,6 +196,9 @@ func (n *memNode) Open(flags uint32, context *fuse.Context) (file File, code fus
 }
 
 func (n *memNode) GetAttr(fi *fuse.Attr, file File, context *fuse.Context) (code fuse.Status) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	*fi = n.info
 	return fuse.OK
 }
@@ -203,6 +212,10 @@ func (n *memNode) Truncate(file File, size uint64, context *fuse.Context) (code 
 	}
 	if code.Ok() {
 		now := time.Now()
+
+		n.mu.Lock()
+		defer n.mu.Unlock()
+
 		n.info.SetTimes(nil, nil, &now)
 		// TODO - should update mtime too?
 		n.info.Size = size
@@ -212,6 +225,9 @@ func (n *memNode) Truncate(file File, size uint64, context *fuse.Context) (code 
 
 func (n *memNode) Utimens(file File, atime *time.Time, mtime *time.Time, context *fuse.Context) (code fuse.Status) {
 	c := time.Now()
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	n.info.SetTimes(atime, mtime, &c)
 	return fuse.OK
 }
@@ -219,6 +235,8 @@ func (n *memNode) Utimens(file File, atime *time.Time, mtime *time.Time, context
 func (n *memNode) Chmod(file File, perms uint32, context *fuse.Context) (code fuse.Status) {
 	n.info.Mode = (n.info.Mode &^ 07777) | perms
 	now := time.Now()
+	n.mu.Lock()
+	defer n.mu.Unlock()
 	n.info.SetTimes(nil, nil, &now)
 	return fuse.OK
 }
@@ -227,6 +245,8 @@ func (n *memNode) Chown(file File, uid uint32, gid uint32, context *fuse.Context
 	n.info.Uid = uid
 	n.info.Gid = gid
 	now := time.Now()
+	n.mu.Lock()
+	defer n.mu.Unlock()
 	n.info.SetTimes(nil, nil, &now)
 	return fuse.OK
 }
