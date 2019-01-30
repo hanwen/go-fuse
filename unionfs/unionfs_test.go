@@ -830,7 +830,7 @@ func TestUnionFsCopyChmod(t *testing.T) {
 		t.Fatalf("Lstat(%v): %v", fn, err)
 	}
 	if fi.Mode()&0111 == 0 {
-		t.Errorf("Lstat(%v): mode %o", fn, fi.Mode())
+		t.Errorf("Lstat(%v): got mode %o, want some +x bit", fn, fi.Mode())
 	}
 	time.Sleep(entryTTL)
 	fi, err = os.Lstat(fn)
