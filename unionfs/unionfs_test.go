@@ -522,48 +522,50 @@ func TestUnionFsRename(t *testing.T) {
 	}
 
 	for i, c := range configs {
-		t.Log("Config", i, c)
-		wd, clean := setupUfs(t)
-		if c.f1_ro {
-			WriteFile(t, wd+"/ro/file1", "c1")
-		}
-		if c.f1_rw {
-			WriteFile(t, wd+"/rw/file1", "c2")
-		}
-		if c.f2_ro {
-			WriteFile(t, wd+"/ro/file2", "c3")
-		}
-		if c.f2_rw {
-			WriteFile(t, wd+"/rw/file2", "c4")
-		}
+		t.Run(fmt.Sprintf("config %d", i), func(t *testing.T) {
+			wd, clean := setupUfs(t)
+			defer clean()
 
-		err := os.Rename(wd+"/mnt/file1", wd+"/mnt/file2")
-		if err != nil {
-			t.Fatalf("Rename: %v", err)
-		}
+			if c.f1_ro {
+				WriteFile(t, wd+"/ro/file1", "c1")
+			}
+			if c.f1_rw {
+				WriteFile(t, wd+"/rw/file1", "c2")
+			}
+			if c.f2_ro {
+				WriteFile(t, wd+"/ro/file2", "c3")
+			}
+			if c.f2_rw {
+				WriteFile(t, wd+"/rw/file2", "c4")
+			}
 
-		_, err = os.Lstat(wd + "/mnt/file1")
-		if err == nil {
-			t.Errorf("Should have lost file1")
-		}
-		_, err = os.Lstat(wd + "/mnt/file2")
-		if err != nil {
-			t.Errorf("Should have gotten file2: %v", err)
-		}
-		err = os.Rename(wd+"/mnt/file2", wd+"/mnt/file1")
-		if err != nil {
-			t.Fatalf("Rename: %v", err)
-		}
+			err := os.Rename(wd+"/mnt/file1", wd+"/mnt/file2")
+			if err != nil {
+				t.Fatalf("Rename: %v", err)
+			}
 
-		_, err = os.Lstat(wd + "/mnt/file2")
-		if err == nil {
-			t.Errorf("Should have lost file2")
-		}
-		_, err = os.Lstat(wd + "/mnt/file1")
-		if err != nil {
-			t.Errorf("Should have gotten file1: %v", err)
-		}
-		clean()
+			_, err = os.Lstat(wd + "/mnt/file1")
+			if err == nil {
+				t.Errorf("Should have lost file1")
+			}
+			_, err = os.Lstat(wd + "/mnt/file2")
+			if err != nil {
+				t.Errorf("Should have gotten file2: %v", err)
+			}
+			err = os.Rename(wd+"/mnt/file2", wd+"/mnt/file1")
+			if err != nil {
+				t.Fatalf("Rename: %v", err)
+			}
+
+			_, err = os.Lstat(wd + "/mnt/file2")
+			if err == nil {
+				t.Errorf("Should have lost file2")
+			}
+			_, err = os.Lstat(wd + "/mnt/file1")
+			if err != nil {
+				t.Errorf("Should have gotten file1: %v", err)
+			}
+		})
 	}
 }
 
