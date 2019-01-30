@@ -234,7 +234,6 @@ func (fs *unionFS) deletionPath(name string) string {
 
 func (fs *unionFS) removeDeletion(name string) {
 	marker := fs.deletionPath(name)
-	fs.deletionCache.RemoveEntry(path.Base(marker))
 
 	// os.Remove tries to be smart and issues a Remove() and
 	// Rmdir() sequentially.  We want to skip the 2nd system call,
@@ -244,6 +243,10 @@ func (fs *unionFS) removeDeletion(name string) {
 	if !code.Ok() && code != fuse.ENOENT {
 		log.Printf("error unlinking %s: %v", marker, code)
 	}
+
+	// Update in-memory cache as last step, so we avoid caching a
+	// state from before the storage update.
+	fs.deletionCache.RemoveEntry(path.Base(marker))
 }
 
 func (fs *unionFS) putDeletion(name string) (code fuse.Status) {
@@ -253,7 +256,6 @@ func (fs *unionFS) putDeletion(name string) (code fuse.Status) {
 	}
 
 	marker := fs.deletionPath(name)
-	fs.deletionCache.AddEntry(path.Base(marker))
 
 	// Is there a WriteStringToFileOrDie ?
 	writable := fs.fileSystems[0]
@@ -279,6 +281,10 @@ func (fs *unionFS) putDeletion(name string) (code fuse.Status) {
 	if int(n) != len(name) || !code.Ok() {
 		panic(fmt.Sprintf("Error for writing %v: %v, %v (exp %v) %v", name, marker, n, len(name), code))
 	}
+
+	// Update the in-memory deletion cache as the last step,
+	// to ensure that the new state stays in memory
+	fs.deletionCache.AddEntry(path.Base(marker))
 
 	return fuse.OK
 }
