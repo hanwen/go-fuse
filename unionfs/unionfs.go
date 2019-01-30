@@ -885,38 +885,38 @@ func (fs *unionFS) renameDirectory(srcResult branchResult, srcDir string, dstDir
 	return code
 }
 
-func (fs *unionFS) Rename(src string, dst string, context *fuse.Context) (code fuse.Status) {
+func (fs *unionFS) Rename(src string, dst string, context *fuse.Context) fuse.Status {
 	srcResult := fs.getBranch(src)
-	code = srcResult.code
-	if code.Ok() {
-		code = srcResult.code
+	if !srcResult.code.Ok() {
+		return srcResult.code
 	}
 
 	if srcResult.attr.IsDir() {
 		return fs.renameDirectory(srcResult, src, dst, context)
 	}
 
-	if code.Ok() && srcResult.branch > 0 {
-		code = fs.Promote(src, srcResult, context)
-	}
-	if code.Ok() {
-		code = fs.promoteDirsTo(dst)
-	}
-	if code.Ok() {
-		code = fs.fileSystems[0].Rename(src, dst, context)
-	}
-
-	if code.Ok() {
-		fs.removeDeletion(dst)
-		// Rename is racy; avoid racing with unionFsFile.Release().
-		fs.branchCache.DropEntry(dst)
-
-		srcResult := fs.branchCache.GetFresh(src)
-		if srcResult.(branchResult).branch > 0 {
-			code = fs.putDeletion(src)
+	if srcResult.branch > 0 {
+		if code := fs.Promote(src, srcResult, context); !code.Ok() {
+			return code
 		}
 	}
-	return code
+	if code := fs.promoteDirsTo(dst); !code.Ok() {
+		return code
+	}
+
+	if code := fs.fileSystems[0].Rename(src, dst, context); !code.Ok() {
+		return code
+	}
+
+	fs.removeDeletion(dst)
+	// Rename is racy; avoid racing with unionFsFile.Release().
+	fs.branchCache.DropEntry(dst)
+
+	srcResult = fs.branchCache.GetFresh(src).(branchResult)
+	if srcResult.branch > 0 {
+		return fs.putDeletion(src)
+	}
+	return fuse.OK
 }
 
 func (fs *unionFS) DropBranchCache(names []string) {
