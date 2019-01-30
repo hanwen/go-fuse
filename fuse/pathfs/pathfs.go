@@ -350,11 +350,11 @@ func (n *pathInode) OnRemove(parent *nodefs.Inode, name string) {
 // setClientInode sets the inode number if has not been set yet.
 // This function exists to allow lazy-loading of the inode number.
 func (n *pathInode) setClientInode(ino uint64) {
+	n.pathFs.pathLock.Lock()
+	defer n.pathFs.pathLock.Unlock()
 	if ino == 0 || n.clientInode != 0 || !n.pathFs.options.ClientInodes || n.Inode().IsDir() {
 		return
 	}
-	n.pathFs.pathLock.Lock()
-	defer n.pathFs.pathLock.Unlock()
 	n.clientInode = ino
 	n.pathFs.clientInodeMap[ino] = &refCountedInode{node: n, refCount: 1}
 }
