@@ -79,6 +79,7 @@ func TestXAttrCaching(t *testing.T) {
 	go server.Serve()
 	server.WaitMount()
 
+	start := time.Now()
 	if fi, err := os.Lstat(wd + "/mnt"); err != nil || !fi.IsDir() {
 		t.Fatalf("root not readable: %v, %v", err, fi)
 	}
@@ -118,6 +119,13 @@ func TestXAttrCaching(t *testing.T) {
 	if got != want {
 		t.Fatalf("Got %q want %q", got, err)
 	}
+
+	if time.Now().Sub(start) >= entryTTL {
+		// If we run really slowly, this test will spuriously
+		// fail.
+		t.Skip("test took too long.")
+	}
+
 	actual := atomic.LoadInt64(&roFS.xattrRead)
 	if actual != 1 {
 		t.Errorf("got xattrRead=%d, want 1", actual)
