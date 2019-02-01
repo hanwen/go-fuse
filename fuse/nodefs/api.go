@@ -129,7 +129,9 @@ type Node interface {
 // FileSystem.Create.  Include the NewDefaultFile return value into
 // the struct to inherit a null implementation.
 type File interface {
-	// Called upon registering the filehandle in the inode.
+	// Called upon registering the filehandle in the inode. This
+	// is useful in that PathFS API, where Create/Open have no
+	// access to the Inode at hand.
 	SetInode(*Inode)
 
 	// The String method is for debug printing.
