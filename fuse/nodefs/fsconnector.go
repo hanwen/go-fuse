@@ -12,6 +12,7 @@ import (
 	"log"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 	"unsafe"
 
@@ -35,6 +36,13 @@ type FileSystemConnector struct {
 
 	// The root of the FUSE file system.
 	rootNode *Inode
+
+	// This lock prevents Lookup() and Forget() from running concurrently.
+	// Locking at this level is a big hammer, but makes sure we don't return
+	// forgotten nodes to the kernel. Problems solved by this lock:
+	// https://github.com/hanwen/go-fuse/issues/168
+	// https://github.com/rfjakob/gocryptfs/issues/322
+	lookupLock sync.Mutex
 }
 
 // NewOptions generates FUSE options that correspond to libfuse's
