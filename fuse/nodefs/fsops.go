@@ -95,11 +95,16 @@ func (c *FileSystemConnector) internalLookup(out *fuse.Attr, parent *Inode, name
 }
 
 func (c *rawBridge) Lookup(header *fuse.InHeader, name string, out *fuse.EntryOut) (code fuse.Status) {
+	// Prevent Lookup() and Forget() from running concurrently.
+	c.lookupLock.Lock()
+	defer c.lookupLock.Unlock()
+
 	parent := c.toInode(header.NodeId)
 	if !parent.IsDir() {
 		log.Printf("Lookup %q called on non-Directory node %d", name, header.NodeId)
 		return fuse.ENOTDIR
 	}
+
 	child, code := c.fsConn().internalLookup(&out.Attr, parent, name, header)
 	if code == fuse.ENOENT && parent.mount.negativeEntry(out) {
 		return fuse.OK
@@ -121,6 +126,10 @@ func (c *rawBridge) Lookup(header *fuse.InHeader, name string, out *fuse.EntryOu
 }
 
 func (c *rawBridge) Forget(nodeID, nlookup uint64) {
+	// Prevent Lookup() and Forget() from running concurrently.
+	c.lookupLock.Lock()
+	defer c.lookupLock.Unlock()
+
 	c.fsConn().forgetUpdate(nodeID, int(nlookup))
 }
 
