@@ -36,7 +36,7 @@ func (d *connectorDir) ReadDir(input *fuse.ReadIn, out *fuse.DirEntryList) (code
 	// rewinddir() should be as if reopening directory.
 	// TODO - test this.
 	if d.lastOffset > 0 && input.Offset == 0 {
-		d.stream, code = d.node.OpenDir((*fuse.Context)(&input.Context))
+		d.stream, code = d.node.OpenDir(&input.Context)
 		if !code.Ok() {
 			return code
 		}
@@ -72,7 +72,7 @@ func (d *connectorDir) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) (
 
 	// rewinddir() should be as if reopening directory.
 	if d.lastOffset > 0 && input.Offset == 0 {
-		d.stream, code = d.node.OpenDir((*fuse.Context)(&input.Context))
+		d.stream, code = d.node.OpenDir(&input.Context)
 		if !code.Ok() {
 			return code
 		}

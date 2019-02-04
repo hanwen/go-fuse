@@ -59,7 +59,7 @@ func (m *fileSystemMount) mountName() string {
 
 func (m *fileSystemMount) setOwner(attr *fuse.Attr) {
 	if m.options.Owner != nil {
-		attr.Owner = *(*fuse.Owner)(m.options.Owner)
+		attr.Owner = *m.options.Owner
 	}
 }
 
