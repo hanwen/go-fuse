@@ -134,7 +134,7 @@ func (c *rawBridge) GetAttr(input *fuse.GetAttrIn, out *fuse.AttrOut) (code fuse
 		}
 	}
 
-	dest := (*fuse.Attr)(&out.Attr)
+	dest := &out.Attr
 	code = node.fsInode.GetAttr(dest, f, &input.Context)
 	if !code.Ok() {
 		return code
@@ -253,7 +253,7 @@ func (c *rawBridge) SetAttr(input *fuse.SetAttrIn, out *fuse.AttrOut) (code fuse
 
 	// Must call GetAttr(); the filesystem may override some of
 	// the changes we effect here.
-	attr := (*fuse.Attr)(&out.Attr)
+	attr := &out.Attr
 	code = node.fsInode.GetAttr(attr, nil, &input.Context)
 	if code.Ok() {
 		node.mount.fillAttr(out, input.NodeId)
@@ -279,7 +279,7 @@ func (c *rawBridge) Mknod(input *fuse.MknodIn, name string, out *fuse.EntryOut) 
 	child, code := parent.fsInode.Mknod(name, input.Mode, uint32(input.Rdev), &input.Context)
 	if code.Ok() {
 		c.childLookup(out, child, &input.Context)
-		code = child.fsInode.GetAttr((*fuse.Attr)(&out.Attr), nil, &input.Context)
+		code = child.fsInode.GetAttr(&out.Attr, nil, &input.Context)
 	}
 	return code
 }
@@ -290,7 +290,7 @@ func (c *rawBridge) Mkdir(input *fuse.MkdirIn, name string, out *fuse.EntryOut) 
 	child, code := parent.fsInode.Mkdir(name, input.Mode, &input.Context)
 	if code.Ok() {
 		c.childLookup(out, child, &input.Context)
-		code = child.fsInode.GetAttr((*fuse.Attr)(&out.Attr), nil, &input.Context)
+		code = child.fsInode.GetAttr(&out.Attr, nil, &input.Context)
 	}
 	return code
 }
@@ -311,7 +311,7 @@ func (c *rawBridge) Symlink(header *fuse.InHeader, pointedTo string, linkName st
 	child, code := parent.fsInode.Symlink(linkName, pointedTo, &header.Context)
 	if code.Ok() {
 		c.childLookup(out, child, &header.Context)
-		code = child.fsInode.GetAttr((*fuse.Attr)(&out.Attr), nil, &header.Context)
+		code = child.fsInode.GetAttr(&out.Attr, nil, &header.Context)
 	}
 	return code
 }
@@ -346,7 +346,7 @@ func (c *rawBridge) Link(input *fuse.LinkIn, name string, out *fuse.EntryOut) (c
 	child, code := parent.fsInode.Link(name, existing.fsInode, &input.Context)
 	if code.Ok() {
 		c.childLookup(out, child, &input.Context)
-		code = child.fsInode.GetAttr((*fuse.Attr)(&out.Attr), nil, &input.Context)
+		code = child.fsInode.GetAttr(&out.Attr, nil, &input.Context)
 	}
 
 	return code
