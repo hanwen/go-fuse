@@ -7,6 +7,7 @@ package fuse
 import (
 	"io"
 	"syscall"
+	"time"
 )
 
 const (
@@ -433,11 +434,29 @@ type EntryOut struct {
 	Attr
 }
 
+func (o *EntryOut) SetEntryTimeout(dt time.Duration) {
+	ns := int64(dt)
+	o.EntryValidNsec = uint32(ns % 1e9)
+	o.EntryValid = uint64(ns / 1e9)
+}
+
+func (o *EntryOut) SetAttrTimeout(dt time.Duration) {
+	ns := int64(dt)
+	o.AttrValidNsec = uint32(ns % 1e9)
+	o.AttrValid = uint64(ns / 1e9)
+}
+
 type AttrOut struct {
 	AttrValid     uint64
 	AttrValidNsec uint32
 	Dummy         uint32
 	Attr
+}
+
+func (o *AttrOut) SetTimeout(dt time.Duration) {
+	ns := int64(dt)
+	o.AttrValidNsec = uint32(ns % 1e9)
+	o.AttrValid = uint64(ns / 1e9)
 }
 
 type CreateOut struct {

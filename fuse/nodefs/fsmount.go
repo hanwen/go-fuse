@@ -64,8 +64,8 @@ func (m *fileSystemMount) setOwner(attr *fuse.Attr) {
 }
 
 func (m *fileSystemMount) fillEntry(out *fuse.EntryOut) {
-	splitDuration(m.options.EntryTimeout, &out.EntryValid, &out.EntryValidNsec)
-	splitDuration(m.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
+	out.SetEntryTimeout(m.options.EntryTimeout)
+	out.SetAttrTimeout(m.options.AttrTimeout)
 	m.setOwner(&out.Attr)
 	if out.Mode&fuse.S_IFDIR == 0 && out.Nlink == 0 {
 		out.Nlink = 1
@@ -73,7 +73,7 @@ func (m *fileSystemMount) fillEntry(out *fuse.EntryOut) {
 }
 
 func (m *fileSystemMount) fillAttr(out *fuse.AttrOut, nodeId uint64) {
-	splitDuration(m.options.AttrTimeout, &out.AttrValid, &out.AttrValidNsec)
+	out.SetTimeout(m.options.AttrTimeout)
 	m.setOwner(&out.Attr)
 	if out.Ino == 0 {
 		out.Ino = nodeId
@@ -179,7 +179,7 @@ func (m *fileSystemMount) registerFileHandle(node *Inode, dir *connectorDir, f F
 func (m *fileSystemMount) negativeEntry(out *fuse.EntryOut) bool {
 	if m.options.NegativeTimeout > 0.0 {
 		out.NodeId = 0
-		splitDuration(m.options.NegativeTimeout, &out.EntryValid, &out.EntryValidNsec)
+		out.SetEntryTimeout(m.options.NegativeTimeout)
 		return true
 	}
 	return false
