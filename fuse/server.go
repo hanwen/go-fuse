@@ -572,6 +572,36 @@ func (ms *Server) inodeNotifyStoreCache32(node uint64, offset int64, data []byte
 // The kernel returns ENOENT if it does not currently have entry for this inode
 // in its dentry cache.
 func (ms *Server) InodeRetrieveCache(node uint64, offset int64, dest []byte) (n int, st Status) {
+	// the kernel won't send us in one go more then what we negotiated as MaxWrite.
+	// retrieve the data in chunks.
+	// TODO spawn some number of readahead retrievers in parallel.
+	ntotal := 0
+	for {
+		chunkSize := len(dest)
+		if chunkSize > ms.opts.MaxWrite {
+			chunkSize = ms.opts.MaxWrite
+		}
+		n, st = ms.inodeRetrieveCache1(node, offset, dest[:chunkSize])
+		if st != OK || n == 0 {
+			break
+		}
+
+		ntotal += n
+		offset += int64(n)
+		dest = dest[n:]
+	}
+
+	// if we could retrieve at least something - it is ok.
+	// if ntotal=0 - st will be st returned from first inodeRetrieveCache1.
+	if ntotal > 0 {
+		st = OK
+	}
+	return ntotal, st
+}
+
+// inodeRetrieveCache1 is internal worker for InodeRetrieveCache which
+// actually talks to kernel and retrieves chunks not larger than ms.opts.MaxWrite.
+func (ms *Server) inodeRetrieveCache1(node uint64, offset int64, dest []byte) (n int, st Status) {
 	if !ms.kernelSettings.SupportsNotify(NOTIFY_RETRIEVE_CACHE) {
 		return 0, ENOSYS
 	}
@@ -586,6 +616,9 @@ func (ms *Server) InodeRetrieveCache(node uint64, offset int64, dest []byte) (n 
 
 	// retrieve up to 2GB not to overflow uint32 size in NotifyRetrieveOut.
 	// see InodeNotifyStoreCache in similar place for why it is only 2GB, not 4GB.
+	//
+	// ( InodeRetrieveCache calls us with chunks not larger than
+	//   ms.opts.MaxWrite, but MaxWrite is int, so let's be extra cautious )
 	size := len(dest)
 	if size > math.MaxInt32 {
 		size = math.MaxInt32
