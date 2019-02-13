@@ -7,6 +7,8 @@ package test
 // exercise functionality to store/retrieve kernel cache.
 
 import (
+	"bytes"
+	"encoding/binary"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -121,6 +123,40 @@ func TestCacheControl(t *testing.T) {
 		assertCacheReadAt(0, l+10000, dataOK)
 	}
 
+	// x<f> is <f> that t.Fatals on error
+	xFileNotifyStoreCache := func(subj string, inode *nodefs.Inode, offset int64, data []byte) {
+		t.Helper()
+		st := fsconn.FileNotifyStoreCache(inode, offset, data)
+		if st != fuse.OK {
+			t.Fatalf("store cache (%s): %s", subj, st)
+		}
+	}
+
+	xmmap := func(fd int, offset int64, size, prot, flags int) []byte {
+		t.Helper()
+		mem, err := unix.Mmap(fd, offset, size, prot, flags)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return mem
+	}
+
+	xmunmap := func(mem []byte) {
+		t.Helper()
+		err := unix.Munmap(mem)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	xmlock := func(mem []byte) {
+		t.Helper()
+		err := unix.Mlock(mem)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
 	// before the kernel has entry for file in its dentry cache, the cache
 	// should read as empty and cache store should fail with ENOENT.
 	assertCacheRead("before lookup", "")
@@ -143,24 +179,17 @@ func TestCacheControl(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmmap, err := unix.Mmap(int(f.Fd()), 0, len(data0), unix.PROT_READ, unix.MAP_SHARED)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = f.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
+	fmmap := xmmap(int(f.Fd()), 0, len(data0), unix.PROT_READ, unix.MAP_SHARED)
 	defer func() {
-		err := unix.Munmap(fmmap)
+		err := f.Close()
 		if err != nil {
 			t.Fatal(err)
 		}
 	}()
-	err = unix.Mlock(fmmap)
-	if err != nil {
-		t.Fatal(err)
-	}
+	defer func() {
+		xmunmap(fmmap)
+	}()
+	xmlock(fmmap)
 
 	// assertMmapRead asserts that file's mmaped memory reads as dataOK.
 	assertMmapRead := func(subj, dataOK string) {
@@ -175,10 +204,7 @@ func TestCacheControl(t *testing.T) {
 	assertCacheRead("original", data0)
 
 	// store changed data into OS cache
-	st = fsconn.FileNotifyStoreCache(file.Inode(), 7, []byte("123"))
-	if st != fuse.OK {
-		t.Fatalf("store cache: %s", st)
-	}
+	xFileNotifyStoreCache("", file.Inode(), 7, []byte("123"))
 
 	// make sure mmaped data and file read as updated data
 	data1 := "hello w123d"
@@ -199,4 +225,56 @@ func TestCacheControl(t *testing.T) {
 	assertMmapRead("after invalcache", data0)
 	assertFileRead("after invalcache", data0)
 	assertCacheRead("after invalcache + refill", data0)
+
+	// make sure we can store/retrieve into/from OS cache big chunk of data.
+	// we will need to mlock(1M), so skip this test if mlock limit is tight.
+	const lbig = 1024 * 1024 // 1M
+	const memlockNeed = lbig + /* we already used some small mlock above */ 64*1024
+	var lmemlock unix.Rlimit
+	err = unix.Getrlimit(unix.RLIMIT_MEMLOCK, &lmemlock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t0 := t
+	tp := &t
+	t.Run("BigChunk", func(t *testing.T) {
+		if lmemlock.Cur < memlockNeed {
+			t.Skipf("skipping: too low memlock limit: %dK, need at least %dK", lmemlock.Cur/1024, memlockNeed/1024)
+		}
+
+		*tp = t // so that x<f> defined above work with local - not parent - t
+		defer func() {
+			*tp = t0
+		}()
+
+		// big chunk of data to be stored into OS cache, enlarging the file there.
+		//
+		// The values are unique uint32, so that if the kernel or our glue in
+		// InodeRetrieveCache makes a mistake, we should notice by seeing
+		// different data.
+		//
+		// Use 0x01020304 as of base offset so that there are no e.g. '00 00 00 01
+		// 00 00 00 02 ...' sequence - i.e. where we could not notice if e.g. a
+		// single-byte offset bug is there somewhere.
+		buf := &bytes.Buffer{}
+		for i := uint32(0); i < lbig/4; i++ {
+			err := binary.Write(buf, binary.BigEndian, i+0x01020304)
+			if err != nil {
+				panic(err) // Buffer.Write does not error
+			}
+		}
+		dataBig := buf.String()
+
+		// first store zeros and mlock, so that OS does not loose the cache
+		xFileNotifyStoreCache("big, 0", file.Inode(), 0, make([]byte, lbig))
+		fmmapBig := xmmap(int(f.Fd()), 0, lbig, unix.PROT_READ, unix.MAP_SHARED)
+		defer xmunmap(fmmapBig)
+		xmlock(fmmapBig)
+
+		// upload big data into pinned cache pages
+		xFileNotifyStoreCache("big", file.Inode(), 0, []byte(dataBig))
+
+		// make sure we can retrieve a big chunk from the cache
+		assertCacheRead("after storecache big", dataBig)
+	})
 }
