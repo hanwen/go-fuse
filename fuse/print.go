@@ -226,7 +226,7 @@ func (me *StatfsOut) string() string {
 }
 
 func (o *NotifyInvalEntryOut) string() string {
-	return fmt.Sprintf("{parent %d sz %d}", o.Parent, o.NameLen)
+	return fmt.Sprintf("{parent i%d sz %d}", o.Parent, o.NameLen)
 }
 
 func (o *NotifyInvalInodeOut) string() string {
@@ -234,7 +234,7 @@ func (o *NotifyInvalInodeOut) string() string {
 }
 
 func (o *NotifyInvalDeleteOut) string() string {
-	return fmt.Sprintf("{parent %d ch %d sz %d}", o.Parent, o.Child, o.NameLen)
+	return fmt.Sprintf("{parent i%d ch i%d sz %d}", o.Parent, o.Child, o.NameLen)
 }
 
 func (o *NotifyStoreOut) string() string {
