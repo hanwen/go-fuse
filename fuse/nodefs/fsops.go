@@ -200,54 +200,39 @@ func (c *rawBridge) SetAttr(input *fuse.SetAttrIn, out *fuse.AttrOut) (code fuse
 	node := c.toInode(input.NodeId)
 
 	var f File
-	if input.Valid&fuse.FATTR_FH != 0 {
-		if opened := node.mount.getOpenedFile(input.Fh); opened != nil {
+	if fh, ok := input.GetFh(); ok {
+		if opened := node.mount.getOpenedFile(fh); opened != nil {
 			f = opened.WithFlags.File
 		}
 	}
 
-	if code.Ok() && input.Valid&fuse.FATTR_MODE != 0 {
-		permissions := uint32(07777) & input.Mode
+	if permissions, ok := input.GetMode(); ok {
 		code = node.fsInode.Chmod(f, permissions, &input.Context)
 	}
-	if code.Ok() && (input.Valid&(fuse.FATTR_UID|fuse.FATTR_GID) != 0) {
-		var uid uint32 = ^uint32(0) // means "do not change" in chown(2)
-		var gid uint32 = ^uint32(0)
-		if input.Valid&fuse.FATTR_UID != 0 {
-			uid = input.Uid
-		}
-		if input.Valid&fuse.FATTR_GID != 0 {
-			gid = input.Gid
-		}
+
+	uid, uok := input.GetUID()
+	gid, gok := input.GetUID()
+
+	if code.Ok() && (uok || gok) {
 		code = node.fsInode.Chown(f, uid, gid, &input.Context)
 	}
-	if code.Ok() && input.Valid&fuse.FATTR_SIZE != 0 {
-		code = node.fsInode.Truncate(f, input.Size, &input.Context)
+	if sz, ok := input.GetSize(); code.Ok() && ok {
+		code = node.fsInode.Truncate(f, sz, &input.Context)
 	}
-	if code.Ok() && (input.Valid&(fuse.FATTR_ATIME|fuse.FATTR_MTIME|fuse.FATTR_ATIME_NOW|fuse.FATTR_MTIME_NOW) != 0) {
-		now := time.Now()
-		var atime *time.Time
-		var mtime *time.Time
 
-		if input.Valid&fuse.FATTR_ATIME != 0 {
-			if input.Valid&fuse.FATTR_ATIME_NOW != 0 {
-				atime = &now
-			} else {
-				t := time.Unix(int64(input.Atime), int64(input.Atimensec))
-				atime = &t
-			}
+	atime, aok := input.GetATime()
+	mtime, mok := input.GetMTime()
+	if code.Ok() && (aok || mok) {
+		var a, m *time.Time
+
+		if aok {
+			a = &atime
+		}
+		if mok {
+			m = &mtime
 		}
 
-		if input.Valid&fuse.FATTR_MTIME != 0 {
-			if input.Valid&fuse.FATTR_MTIME_NOW != 0 {
-				mtime = &now
-			} else {
-				t := time.Unix(int64(input.Mtime), int64(input.Mtimensec))
-				mtime = &t
-			}
-		}
-
-		code = node.fsInode.Utimens(f, atime, mtime, &input.Context)
+		code = node.fsInode.Utimens(f, a, m, &input.Context)
 	}
 
 	if !code.Ok() {

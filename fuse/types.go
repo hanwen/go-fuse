@@ -153,6 +153,79 @@ type SetAttrInCommon struct {
 	Unused5 uint32
 }
 
+func (s *SetAttrInCommon) GetFh() (uint64, bool) {
+	if s.Valid&FATTR_FH != 0 {
+		return s.Fh, true
+	}
+	return 0, false
+}
+
+func (s *SetAttrInCommon) GetMode() (uint32, bool) {
+	if s.Valid&FATTR_MODE != 0 {
+		return s.Mode & 07777, true
+	}
+	return 0, false
+}
+
+func (s *SetAttrInCommon) GetUID() (uint32, bool) {
+	if s.Valid&FATTR_UID != 0 {
+		return s.Uid, true
+	}
+	return ^uint32(0), false
+}
+
+func (s *SetAttrInCommon) GetGID() (uint32, bool) {
+	if s.Valid&FATTR_GID != 0 {
+		return s.Gid, true
+	}
+	return ^uint32(0), false
+}
+
+func (s *SetAttrInCommon) GetSize() (uint64, bool) {
+	if s.Valid&FATTR_SIZE != 0 {
+		return s.Size, true
+	}
+	return 0, false
+}
+
+func (s *SetAttrInCommon) GetMTime() (time.Time, bool) {
+	var t time.Time
+	if s.Valid&FATTR_MTIME != 0 {
+		if s.Valid&FATTR_MTIME_NOW != 0 {
+			t = time.Now()
+		} else {
+			t = time.Unix(int64(s.Mtime), int64(s.Mtimensec))
+		}
+		return t, true
+	}
+
+	return t, false
+}
+
+func (s *SetAttrInCommon) GetATime() (time.Time, bool) {
+	var t time.Time
+	if s.Valid&FATTR_ATIME != 0 {
+		if s.Valid&FATTR_ATIME_NOW != 0 {
+			t = time.Now()
+		} else {
+			t = time.Unix(int64(s.Atime), int64(s.Atimensec))
+		}
+		return t, true
+	}
+
+	return t, false
+}
+
+func (s *SetAttrInCommon) GetCTime() (time.Time, bool) {
+	var t time.Time
+	if s.Valid&FATTR_CTIME != 0 {
+		t = time.Unix(int64(s.Ctime), int64(s.Ctimensec))
+		return t, true
+	}
+
+	return t, false
+}
+
 const RELEASE_FLUSH = (1 << 0)
 
 type ReleaseIn struct {
