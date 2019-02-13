@@ -211,7 +211,7 @@ func (c *rawBridge) SetAttr(input *fuse.SetAttrIn, out *fuse.AttrOut) (code fuse
 	}
 
 	uid, uok := input.GetUID()
-	gid, gok := input.GetUID()
+	gid, gok := input.GetGID()
 
 	if code.Ok() && (uok || gok) {
 		code = node.fsInode.Chown(f, uid, gid, &input.Context)

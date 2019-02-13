@@ -113,4 +113,16 @@ func TestMemNodeSetattr(t *testing.T) {
 	if fi.Size() != 4096 {
 		t.Errorf("Size should be 4096 after Truncate: %d", fi.Size())
 	}
+
+	if err := f.Chown(21, 42); err != nil {
+		t.Errorf("Chown: %v", err)
+	}
+	if fi, err := f.Stat(); err != nil {
+		t.Fatalf("Stat failed: %v", err)
+	} else {
+		attr := fuse.ToStatT(fi)
+		if attr.Gid != 42 || attr.Uid != 21 {
+			t.Errorf("got (%d, %d), want 42,21", attr.Uid, attr.Gid)
+		}
+	}
 }
