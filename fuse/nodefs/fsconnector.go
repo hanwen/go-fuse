@@ -284,7 +284,7 @@ func (c *FileSystemConnector) lockMount(parent *Inode, name string, root Node, o
 
 	node.mountPoint.parentInode = parent
 	if c.debug {
-		log.Printf("Mount %T on subdir %s, parent %d", node,
+		log.Printf("Mount %T on subdir %s, parent i%d", node,
 			name, c.inodeMap.Handle(&parent.handled))
 	}
 	return node, fuse.OK
