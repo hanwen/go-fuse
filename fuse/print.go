@@ -124,7 +124,7 @@ func (me *SetAttrIn) string() string {
 		s = append(s, fmt.Sprintf("uid %d", me.Uid))
 	}
 	if me.Valid&FATTR_GID != 0 {
-		s = append(s, fmt.Sprintf("uid %d", me.Gid))
+		s = append(s, fmt.Sprintf("gid %d", me.Gid))
 	}
 	if me.Valid&FATTR_SIZE != 0 {
 		s = append(s, fmt.Sprintf("size %d", me.Size))
