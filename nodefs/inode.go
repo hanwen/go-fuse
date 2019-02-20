@@ -36,16 +36,22 @@ type Inode struct {
 
 	// the following fields protected by bridge.mu
 
-	// ID of the inode; 0 if inode was forgotten.
-	// forgotten inodes are unlinked from parent and children, but could be
-	// still not yet removed from bridge.nodes .
-	lookupCount uint64
-	nodeID      uint64
+	// ID of the inode; 0 if inode was forgotten.  Forgotten
+	// inodes could be persistent, not yet are unlinked from
+	// parent and children, but could be still not yet removed
+	// from bridge.nodes .
+	nodeID uint64
 
 	// mu protects the following mutable fields. When locking
 	// multiple Inodes, locks must be acquired using
 	// lockNodes/unlockNodes
 	mu sync.Mutex
+
+	// persistent indicates that this node should not be removed
+	// from the tree, even if there are no live references. This
+	// must be set on creation, and can only be changed to false
+	// by calling removeRef.
+	persistent bool
 
 	// changeCounter increments every time the below mutable state
 	// (lookupCount, nodeID, children, parents) is modified.
@@ -54,6 +60,9 @@ type Inode struct {
 	// group lock, and after locking the group we have to check if inode
 	// did not changed, and if it changed - retry the operation.
 	changeCounter uint32
+
+	// Number of kernel refs to this node.
+	lookupCount uint64
 
 	children map[string]*Inode
 	parents  map[parentData]struct{}
@@ -132,7 +141,7 @@ func unlockNodes(ns ...*Inode) {
 func (n *Inode) Forgotten() bool {
 	n.bridge.mu.Lock()
 	defer n.bridge.mu.Unlock()
-	return n.lookupCount == 0
+	return n.nodeID == 0
 }
 
 // Node returns the Node object implementing the file system operations.
@@ -217,8 +226,6 @@ func (n *Inode) FindChildByOpaqueID(name string, opaqueID uint64) *Inode {
 // This, for example could be satisfied if both iparent and ichild are locked,
 // but it could be also valid if only iparent is locked and ichild was just
 // created and only one goroutine keeps referencing it.
-//
-// XXX also ichild.lookupCount++ ?
 func (iparent *Inode) setEntry(name string, ichild *Inode) {
 	ichild.parents[parentData{name, iparent}] = struct{}{}
 	iparent.children[name] = ichild
@@ -255,59 +262,17 @@ func (n *Inode) clearParents() {
 	}
 }
 
-func (n *Inode) clearChildren() {
-	if n.mode != fuse.S_IFDIR {
-		return
-	}
-
-	var lockme []*Inode
-	for {
-		lockme = append(lockme[:0], n)
-
-		n.mu.Lock()
-		ts := n.changeCounter
-		for _, ch := range n.children {
-			lockme = append(lockme, ch)
-		}
-		n.mu.Unlock()
-
-		lockNodes(lockme...)
-		success := false
-		if ts == n.changeCounter {
-			for nm, ch := range n.children {
-				delete(ch.parents, parentData{nm, n})
-				ch.changeCounter++
-			}
-			n.children = map[string]*Inode{}
-			n.changeCounter++
-			success = true
-		}
-		unlockNodes(lockme...)
-
-		if success {
-			break
-		}
-	}
-
-	// XXX not right - we cannot fully clear our children, because they can
-	// be also children of another directory.
-	//
-	// XXX also not right - the kernel can send FORGET(idir) but keep
-	// references to children inodes.
-	for _, ch := range lockme {
-		if ch != n {
-			ch.clearChildren()
-		}
-	}
+// NewPersistentInode returns an Inode whose lifetime is not in
+// control of the kernel.
+func (n *Inode) NewPersistentInode(node Node, mode uint32, opaque uint64) *Inode {
+	return n.newInode(node, mode, opaque, true)
 }
 
-// NewPersistentInode returns an Inode with a LookupCount == 1, ie. the
-// node will only get garbage collected if the kernel issues a forget
-// on any of its parents.
-func (n *Inode) NewPersistentInode(node Node, mode uint32, opaque uint64) *Inode {
-	ch := n.NewInode(node, mode, opaque)
-	ch.lookupCount++
-	return ch
+// ForgetPersistent manually marks the node as no longer important. If
+// it has no children, and if the kernel as no references, the nodes
+// gets removed from the tree.
+func (n *Inode) ForgetPersistent() {
+	return n.removeRef(0, true)
 }
 
 // NewInode returns an inode for the given Node. The mode should be
@@ -316,11 +281,16 @@ func (n *Inode) NewPersistentInode(node Node, mode uint32, opaque uint64) *Inode
 // FindChildByOpaqueID). For a loopback file system, the inode number
 // of the underlying file is a good candidate.
 func (n *Inode) NewInode(node Node, mode uint32, opaqueID uint64) *Inode {
+	return n.newInode(node, mode, opaqueID, false)
+}
+
+func (n *Inode) newInode(node Node, mode uint32, opaqueID uint64, persistent bool) *Inode {
 	ch := &Inode{
-		mode:    mode ^ 07777,
-		node:    node,
-		bridge:  n.bridge,
-		parents: make(map[parentData]struct{}),
+		mode:       mode ^ 07777,
+		node:       node,
+		bridge:     n.bridge,
+		persistent: persistent,
+		parents:    make(map[parentData]struct{}),
 	}
 	if mode&fuse.S_IFDIR != 0 {
 		ch.children = make(map[string]*Inode)
@@ -330,4 +300,117 @@ func (n *Inode) NewInode(node Node, mode uint32, opaqueID uint64) *Inode {
 	}
 
 	return node.inode()
+}
+
+// removeRef decreases references. Returns if this operation caused
+// the node to be forgotten (for kernel references), and whether it is
+// live (ie. was not dropped from the tree)
+func (n *Inode) removeRef(nlookup uint64, dropPersistence bool) (forgotten bool, live bool) {
+	var lockme []*Inode
+	var parents []parentData
+
+	n.mu.Lock()
+	if nlookup > 0 && dropPersistence {
+		panic("only one allowed")
+	} else if nlookup > 0 {
+		n.lookupCount -= nlookup
+		n.changeCounter++
+	} else if dropPersistence && n.persistent {
+		n.persistent = false
+		n.changeCounter++
+	}
+
+retry:
+	for {
+		lockme = append(lockme[:0], n)
+		parents = parents[:0]
+		nChange := n.changeCounter
+		live = n.lookupCount > 0 || len(n.children) > 0 || n.persistent
+		forgotten = n.lookupCount == 0
+		for p := range n.parents {
+			parents = append(parents, p)
+			lockme = append(lockme, p.parent)
+		}
+		n.mu.Unlock()
+
+		if live {
+			return forgotten, live
+		}
+
+		lockNodes(lockme...)
+		if n.changeCounter != nChange {
+			unlockNodes(lockme...)
+			n.mu.Lock() // TODO could avoid unlocking and relocking n here.
+			continue retry
+		}
+
+		for _, p := range parents {
+			delete(p.parent.children, p.name)
+			p.parent.changeCounter++
+		}
+		n.parents = map[parentData]struct{}{}
+		n.changeCounter++
+		unlockNodes(lockme...)
+		break
+	}
+
+	for _, p := range lockme {
+		if p != n {
+			p.removeRef(0, false)
+		}
+	}
+	return forgotten, false
+}
+
+// RmChild removes multiple children.  Returns whether the removal
+// succeeded and whether the node is still live afterward. The removal
+// is transactional: it only succeeds if all names are children, and
+// if they all were removed successfully.  If the removal was
+// successful, and there are no children left, the node may be removed
+// from the FS tree. In that case, RmChild returns live==false.
+func (n *Inode) RmChild(names ...string) (success, live bool) {
+	var lockme []*Inode
+
+retry:
+	for {
+		n.mu.Lock()
+		lockme = append(lockme[:0], n)
+		nChange := n.changeCounter
+		for _, nm := range names {
+			ch := n.children[nm]
+			if ch == nil {
+				n.mu.Unlock()
+				return false, true
+			}
+			lockme = append(lockme, ch)
+		}
+		n.mu.Unlock()
+
+		lockNodes(lockme...)
+		if n.changeCounter != nChange {
+			unlockNodes(lockme...)
+			n.mu.Lock() // TODO could avoid unlocking and relocking n here.
+			continue retry
+		}
+
+		for _, nm := range names {
+			ch := n.children[nm]
+			delete(n.children, nm)
+			ch.changeCounter++
+		}
+		n.changeCounter++
+
+		live = n.lookupCount > 0 || len(n.children) > 0 || n.persistent
+		unlockNodes(lockme...)
+
+		// removal successful
+		break
+	}
+
+	if !live {
+		_, live := n.removeRef(0, false)
+		return true, live
+	}
+
+	return true, true
 }

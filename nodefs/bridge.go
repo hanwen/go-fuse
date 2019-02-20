@@ -87,19 +87,18 @@ func (b *rawBridge) Lookup(header *fuse.InHeader, name string, out *fuse.EntryOu
 		return code
 	}
 
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
 	lockNodes(parent, child)
 	parent.setEntry(name, child)
 	unlockNodes(parent, child)
 
+	b.mu.Lock()
 	if child.nodeID == 0 {
 		b.registerInode(child)
 	}
-
 	out.NodeId = child.nodeID
-	out.Generation = b.nodes[child.nodeID].generation
+	b.mu.Unlock()
+
+	out.Generation = b.nodes[out.NodeId].generation
 
 	if b.options.AttrTimeout != nil {
 		out.SetAttrTimeout(*b.options.AttrTimeout)
@@ -111,6 +110,7 @@ func (b *rawBridge) Lookup(header *fuse.InHeader, name string, out *fuse.EntryOu
 	return fuse.OK
 }
 
+// registerInode sets an inode number in the child. Must have bridge.mu
 func (b *rawBridge) registerInode(child *Inode) {
 	if l := len(b.free); l > 0 {
 		last := b.free[l-1]
@@ -139,14 +139,16 @@ func (b *rawBridge) Create(input *fuse.CreateIn, name string, out *fuse.CreateOu
 		return code
 	}
 
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
-	b.registerInode(child)
-
 	lockNodes(parent, child)
 	parent.setEntry(name, child)
 	unlockNodes(parent, child)
+
+	b.mu.Lock()
+	if child.nodeID == 0 {
+		b.registerInode(child)
+	}
+	out.Fh = b.registerFile(f)
+	b.mu.Unlock()
 
 	out.NodeId = child.nodeID
 	out.Generation = b.nodes[child.nodeID].generation
@@ -158,7 +160,6 @@ func (b *rawBridge) Create(input *fuse.CreateIn, name string, out *fuse.CreateOu
 		out.SetEntryTimeout(*b.options.EntryTimeout)
 	}
 
-	out.Fh = b.registerFile(f)
 	out.OpenFlags = flags
 
 	f.GetAttr(ctx, &out.Attr)
@@ -167,17 +168,13 @@ func (b *rawBridge) Create(input *fuse.CreateIn, name string, out *fuse.CreateOu
 
 func (b *rawBridge) Forget(nodeid, nlookup uint64) {
 	b.mu.Lock()
-	defer b.mu.Unlock()
 	n := b.nodes[nodeid].inode
-	n.lookupCount -= nlookup
-	if n.lookupCount == 0 {
-		n.clearChildren()
-		n.clearParents()
+	b.mu.Unlock()
 
+	if forgotten, _ := n.removeRef(nlookup, false); forgotten {
 		b.free = append(b.free, nodeid)
 		b.nodes[nodeid].inode = nil
 	}
-
 }
 
 func (b *rawBridge) SetDebug(debug bool) {}
@@ -204,7 +201,6 @@ func (b *rawBridge) GetAttr(input *fuse.GetAttrIn, out *fuse.AttrOut) (code fuse
 }
 
 func (b *rawBridge) SetAttr(input *fuse.SetAttrIn, out *fuse.AttrOut) (code fuse.Status) {
-
 	ctx := context.TODO()
 
 	n, fEntry := b.inode(input.NodeId, input.Fh)
@@ -340,12 +336,15 @@ func (b *rawBridge) Open(input *fuse.OpenIn, out *fuse.OpenOut) (status fuse.Sta
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
-
 	out.Fh = b.registerFile(f)
 	out.OpenFlags = flags
 	return fuse.OK
 }
 
+// registerFile hands out a file handle. Must have bridge.mu
+//
+// XXX is it allowed to return the same Fh from two different Open
+// calls on the same inode?
 func (b *rawBridge) registerFile(f File) uint64 {
 	var fh uint64
 	if len(b.freeFiles) > 0 {
