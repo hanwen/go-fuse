@@ -100,14 +100,17 @@ func (b *rawBridge) Lookup(header *fuse.InHeader, name string, out *fuse.EntryOu
 	b.mu.Unlock()
 	unlockNodes(parent, child)
 
+	b.setEntryOutTimeout(out)
+	return fuse.OK
+}
+
+func (b *rawBridge) setEntryOutTimeout(out *fuse.EntryOut) {
 	if b.options.AttrTimeout != nil {
 		out.SetAttrTimeout(*b.options.AttrTimeout)
 	}
 	if b.options.EntryTimeout != nil {
 		out.SetEntryTimeout(*b.options.EntryTimeout)
 	}
-
-	return fuse.OK
 }
 
 // registerInode sets an nodeID in the child. Must have bridge.mu and
@@ -152,12 +155,7 @@ func (b *rawBridge) Create(input *fuse.CreateIn, name string, out *fuse.CreateOu
 	b.mu.Unlock()
 	unlockNode2(parent, child)
 
-	if b.options.AttrTimeout != nil {
-		out.SetAttrTimeout(*b.options.AttrTimeout)
-	}
-	if b.options.EntryTimeout != nil {
-		out.SetEntryTimeout(*b.options.EntryTimeout)
-	}
+	b.setEntryOutTimeout(out)
 
 	out.OpenFlags = flags
 
