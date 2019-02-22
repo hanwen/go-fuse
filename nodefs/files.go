@@ -77,15 +77,15 @@ func (f *loopbackFile) Fsync(ctx context.Context, flags int) (code fuse.Status) 
 }
 
 const (
-	F_OFD_GETLK  = 36
-	F_OFD_SETLK  = 37
-	F_OFD_SETLKW = 38
+	_OFD_GETLK  = 36
+	_OFD_SETLK  = 37
+	_OFD_SETLKW = 38
 )
 
 func (f *loopbackFile) GetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (code fuse.Status) {
 	flk := syscall.Flock_t{}
 	lk.ToFlockT(&flk)
-	code = fuse.ToStatus(syscall.FcntlFlock(f.File.Fd(), F_OFD_GETLK, &flk))
+	code = fuse.ToStatus(syscall.FcntlFlock(f.File.Fd(), _OFD_GETLK, &flk))
 	out.FromFlockT(&flk)
 	return
 }
@@ -120,9 +120,9 @@ func (f *loopbackFile) setLock(ctx context.Context, owner uint64, lk *fuse.FileL
 		lk.ToFlockT(&flk)
 		var op int
 		if blocking {
-			op = F_OFD_SETLKW
+			op = _OFD_SETLKW
 		} else {
-			op = F_OFD_SETLK
+			op = _OFD_SETLK
 		}
 		return fuse.ToStatus(syscall.FcntlFlock(f.File.Fd(), op, &flk))
 	}
