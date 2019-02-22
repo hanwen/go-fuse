@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"syscall"
 	"testing"
 	"time"
 
@@ -59,9 +60,12 @@ func newTestCase(t *testing.T) *testCase {
 	}
 
 	loopback := NewLoopback(tc.origDir)
+	_ = time.Second
 	oneSec := time.Second
 	tc.rawFS = NewNodeFS(loopback, &Options{
-		Debug:        testutil.VerboseTest(),
+		Debug: testutil.VerboseTest(),
+
+		// NOSUBMIT - should run all tests without cache too
 		EntryTimeout: &oneSec,
 		AttrTimeout:  &oneSec,
 	})
@@ -242,5 +246,38 @@ func TestMkdir(t *testing.T) {
 
 	if err := os.Remove(tc.mntDir + "/dir"); err != nil {
 		t.Fatalf("Remove: %v", err)
+	}
+}
+
+func TestRename(t *testing.T) {
+	tc := newTestCase(t)
+	defer tc.Clean()
+
+	if err := os.Mkdir(tc.origDir+"/dir", 0755); err != nil {
+		t.Fatalf("Mkdir: %v", err)
+	}
+	if err := ioutil.WriteFile(tc.origDir+"/file", []byte("hello"), 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	st := syscall.Stat_t{}
+	if err := syscall.Lstat(tc.mntDir+"/file", &st); err != nil {
+		t.Fatalf("Lstat before: %v", err)
+	}
+	beforeIno := st.Ino
+	if err := os.Rename(tc.mntDir+"/file", tc.mntDir+"/dir/renamed"); err != nil {
+		t.Errorf("Rename: %v", err)
+	}
+
+	if fi, err := os.Lstat(tc.mntDir + "/file"); err == nil {
+		t.Fatalf("Lstat old: %v", fi)
+	}
+
+	if err := syscall.Lstat(tc.mntDir+"/dir/renamed", &st); err != nil {
+		t.Fatalf("Lstat after: %v", err)
+	}
+
+	if got := st.Ino; got != beforeIno {
+		t.Errorf("got ino %d, want %d", got, beforeIno)
 	}
 }

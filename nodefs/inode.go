@@ -5,6 +5,7 @@
 package nodefs
 
 import (
+	"fmt"
 	"log"
 	"sort"
 	"strings"
@@ -64,6 +65,16 @@ type Inode struct {
 
 	children map[string]*Inode
 	parents  map[parentData]struct{}
+}
+
+// debugString is used for debugging. Racy.
+func (n *Inode) debugString() string {
+	var ss []string
+	for nm, ch := range n.children {
+		ss = append(ss, fmt.Sprintf("%q=%d(%d)", nm, ch.nodeID, ch.opaqueID))
+	}
+
+	return fmt.Sprintf("%d: %s", n.nodeID, strings.Join(ss, ","))
 }
 
 // newInode creates creates new inode pointing to node.
@@ -276,6 +287,7 @@ func (n *Inode) newInode(node Node, mode uint32, opaqueID uint64, persistent boo
 	ch := &Inode{
 		mode:       mode ^ 07777,
 		node:       node,
+		opaqueID:   opaqueID,
 		bridge:     n.bridge,
 		persistent: persistent,
 		parents:    make(map[parentData]struct{}),
@@ -299,7 +311,7 @@ func (n *Inode) removeRef(nlookup uint64, dropPersistence bool) (forgotten bool,
 
 	n.mu.Lock()
 	if nlookup > 0 && dropPersistence {
-		panic("only one allowed")
+		log.Panic("only one allowed")
 	} else if nlookup > 0 {
 		n.lookupCount -= nlookup
 		n.changeCounter++
@@ -413,4 +425,45 @@ retry:
 	}
 
 	return true, true
+}
+
+// TODO  - RENAME_NOREPLACE, RENAME_EXCHANGE
+func (n *Inode) MvChild(old string, newParent *Inode, newName string) {
+retry:
+	for {
+		lockNode2(n, newParent)
+		counter1 := n.changeCounter
+		counter2 := newParent.changeCounter
+
+		oldChild := n.children[old]
+		destChild := newParent.children[newName]
+		unlockNode2(n, newParent)
+
+		lockNodes(n, newParent, oldChild, destChild)
+		if counter2 != newParent.changeCounter || counter1 != n.changeCounter {
+			unlockNodes(n, newParent, oldChild, destChild)
+			continue retry
+		}
+
+		if destChild != nil {
+			delete(newParent.children, newName)
+			delete(destChild.parents, parentData{newName, newParent})
+			destChild.changeCounter++
+			newParent.changeCounter++
+		}
+
+		if oldChild != nil {
+			newParent.children[newName] = oldChild
+			newParent.changeCounter++
+
+			delete(n.children, old)
+			delete(oldChild.parents, parentData{old, n})
+
+			oldChild.parents[parentData{newName, newParent}] = struct{}{}
+			oldChild.changeCounter++
+		}
+
+		unlockNodes(n, newParent, oldChild, destChild)
+		return
+	}
 }
