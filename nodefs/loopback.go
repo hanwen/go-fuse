@@ -115,6 +115,20 @@ func (n *loopbackNode) Unlink(ctx context.Context, name string) fuse.Status {
 	return fuse.ToStatus(err)
 }
 
+func (n *loopbackNode) Rename(ctx context.Context, name string, newParent Node, newName string) fuse.Status {
+	p1 := filepath.Join(n.path(), name)
+	var newParentLoopback *loopbackNode
+	if r, ok := newParent.(*loopbackRoot); ok {
+		newParentLoopback = &r.loopbackNode
+	} else {
+		newParentLoopback = newParent.(*loopbackNode)
+	}
+
+	p2 := filepath.Join(newParentLoopback.path(), newName)
+	err := os.Rename(p1, p2)
+	return fuse.ToStatus(err)
+}
+
 func (n *loopbackNode) Create(ctx context.Context, name string, flags uint32, mode uint32) (inode *Inode, fh File, fuseFlags uint32, code fuse.Status) {
 	p := filepath.Join(n.path(), name)
 

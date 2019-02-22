@@ -152,6 +152,10 @@ func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, out *f
 		b.registerInode(child)
 	}
 	out.NodeId = child.nodeID
+	// NOSUBMIT - or should let FS expose Attr.Ino? This makes
+	// testing semantics hard though, because os.Lstat doesn't
+	// reflect the FUSE FS
+	out.Attr.Ino = child.nodeID
 	out.Generation = b.nodes[out.NodeId].generation
 	b.mu.Unlock()
 	unlockNodes(parent, child)
@@ -204,6 +208,7 @@ func (b *rawBridge) Create(input *fuse.CreateIn, name string, out *fuse.CreateOu
 	}
 	out.Fh = b.registerFile(f)
 	out.NodeId = child.nodeID
+	out.Ino = child.nodeID
 	out.Generation = b.nodes[child.nodeID].generation
 	b.mu.Unlock()
 	unlockNode2(parent, child)
@@ -254,6 +259,8 @@ func (b *rawBridge) GetAttr(input *fuse.GetAttrIn, out *fuse.AttrOut) (code fuse
 	if b.options.AttrTimeout != nil {
 		out.SetTimeout(*b.options.AttrTimeout)
 	}
+
+	out.Ino = input.NodeId
 	return code
 }
 
@@ -327,7 +334,16 @@ func (b *rawBridge) SetAttr(input *fuse.SetAttrIn, out *fuse.AttrOut) (code fuse
 }
 
 func (b *rawBridge) Rename(input *fuse.RenameIn, oldName string, newName string) (code fuse.Status) {
-	return fuse.ENOSYS
+	p1, _ := b.inode(input.NodeId, 0)
+	p2, _ := b.inode(input.Newdir, 0)
+
+	if code := p1.node.Rename(context.TODO(), oldName, p2.node, newName); code.Ok() {
+		// NOSUBMIT - is it better to have the user code do
+		// this? Maybe the user code wants a transaction over
+		// more nodes?
+		p1.MvChild(oldName, p2, newName)
+	}
+	return code
 }
 
 func (b *rawBridge) Link(input *fuse.LinkIn, filename string, out *fuse.EntryOut) (code fuse.Status) {
