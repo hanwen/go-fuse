@@ -92,8 +92,12 @@ func newInode(node Node, mode uint32) *Inode {
 // locks on inode group.
 func sortNodes(ns []*Inode) {
 	sort.Slice(ns, func(i, j int) bool {
-		return uintptr(unsafe.Pointer(ns[i])) < uintptr(unsafe.Pointer(ns[j]))
+		return nodeLess(ns[i], ns[j])
 	})
+}
+
+func nodeLess(a, b *Inode) bool {
+	return uintptr(unsafe.Pointer(a)) < uintptr(unsafe.Pointer(b))
 }
 
 // lockNodes locks group of inodes.
@@ -102,8 +106,6 @@ func sortNodes(ns []*Inode) {
 // It also avoids locking an inode more than once, if it was specified multiple times.
 // An example when an inode might be given multiple times is if dir/a and dir/b
 // are hardlinked to the same inode and the caller needs to take locks on dir children.
-//
-// It is valid to give nil nodes - those are simply ignored.
 func lockNodes(ns ...*Inode) {
 	sortNodes(ns)
 
@@ -115,6 +117,23 @@ func lockNodes(ns ...*Inode) {
 			nprev = n
 		}
 	}
+}
+
+// lockNode2 locks a and b in order consistent with lockNodes.
+func lockNode2(a, b *Inode) {
+	if nodeLess(a, b) {
+		a.mu.Lock()
+		b.mu.Lock()
+	} else {
+		b.mu.Lock()
+		a.mu.Lock()
+	}
+}
+
+// unlockNode2 unlocks a and b
+func unlockNode2(a, b *Inode) {
+	a.mu.Unlock()
+	b.mu.Unlock()
 }
 
 // unlockNodes releases locks taken by lockNodes.
