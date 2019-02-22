@@ -29,6 +29,8 @@ type rawBridge struct {
 	options Options
 	root    *Inode
 
+	// mu protects the following data.  Locks for inodes must be
+	// taken before rawBridge.mu
 	mu    sync.Mutex
 	nodes []mapEntry
 	free  []uint64
@@ -89,16 +91,14 @@ func (b *rawBridge) Lookup(header *fuse.InHeader, name string, out *fuse.EntryOu
 
 	lockNodes(parent, child)
 	parent.setEntry(name, child)
-	unlockNodes(parent, child)
-
 	b.mu.Lock()
 	if child.nodeID == 0 {
 		b.registerInode(child)
 	}
 	out.NodeId = child.nodeID
-	b.mu.Unlock()
-
 	out.Generation = b.nodes[out.NodeId].generation
+	b.mu.Unlock()
+	unlockNodes(parent, child)
 
 	if b.options.AttrTimeout != nil {
 		out.SetAttrTimeout(*b.options.AttrTimeout)
@@ -110,7 +110,8 @@ func (b *rawBridge) Lookup(header *fuse.InHeader, name string, out *fuse.EntryOu
 	return fuse.OK
 }
 
-// registerInode sets an inode number in the child. Must have bridge.mu
+// registerInode sets an nodeID in the child. Must have bridge.mu and
+// child.mu
 func (b *rawBridge) registerInode(child *Inode) {
 	if l := len(b.free); l > 0 {
 		last := b.free[l-1]
@@ -141,17 +142,15 @@ func (b *rawBridge) Create(input *fuse.CreateIn, name string, out *fuse.CreateOu
 
 	lockNodes(parent, child)
 	parent.setEntry(name, child)
-	unlockNodes(parent, child)
-
 	b.mu.Lock()
 	if child.nodeID == 0 {
 		b.registerInode(child)
 	}
 	out.Fh = b.registerFile(f)
-	b.mu.Unlock()
-
 	out.NodeId = child.nodeID
 	out.Generation = b.nodes[child.nodeID].generation
+	b.mu.Unlock()
+	unlockNodes(parent, child)
 
 	if b.options.AttrTimeout != nil {
 		out.SetAttrTimeout(*b.options.AttrTimeout)
@@ -171,10 +170,12 @@ func (b *rawBridge) Forget(nodeid, nlookup uint64) {
 	n := b.nodes[nodeid].inode
 	b.mu.Unlock()
 
-	if forgotten, _ := n.removeRef(nlookup, false); forgotten {
-		b.free = append(b.free, nodeid)
-		b.nodes[nodeid].inode = nil
-	}
+	n.removeRef(nlookup, false)
+}
+
+func (b *rawBridge) unregisterNode(nodeid uint64) {
+	b.free = append(b.free, nodeid)
+	b.nodes[nodeid].inode = nil
 }
 
 func (b *rawBridge) SetDebug(debug bool) {}

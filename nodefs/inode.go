@@ -34,18 +34,16 @@ type Inode struct {
 
 	// Following data is mutable.
 
-	// the following fields protected by bridge.mu
+	// mu protects the following mutable fields. When locking
+	// multiple Inodes, locks must be acquired using
+	// lockNodes/unlockNodes
+	mu sync.Mutex
 
 	// ID of the inode; 0 if inode was forgotten.  Forgotten
 	// inodes could be persistent, not yet are unlinked from
 	// parent and children, but could be still not yet removed
 	// from bridge.nodes .
 	nodeID uint64
-
-	// mu protects the following mutable fields. When locking
-	// multiple Inodes, locks must be acquired using
-	// lockNodes/unlockNodes
-	mu sync.Mutex
 
 	// persistent indicates that this node should not be removed
 	// from the tree, even if there are no live references. This
@@ -272,7 +270,7 @@ func (n *Inode) NewPersistentInode(node Node, mode uint32, opaque uint64) *Inode
 // it has no children, and if the kernel as no references, the nodes
 // gets removed from the tree.
 func (n *Inode) ForgetPersistent() {
-	return n.removeRef(0, true)
+	n.removeRef(0, true)
 }
 
 // NewInode returns an inode for the given Node. The mode should be
@@ -350,6 +348,18 @@ retry:
 		}
 		n.parents = map[parentData]struct{}{}
 		n.changeCounter++
+
+		if n.lookupCount != 0 {
+			panic("lookupCount changed")
+		}
+
+		if n.nodeID != 0 {
+			n.bridge.mu.Lock()
+			n.bridge.unregisterNode(n.nodeID)
+			n.bridge.mu.Unlock()
+			n.nodeID = 0
+		}
+
 		unlockNodes(lockme...)
 		break
 	}
