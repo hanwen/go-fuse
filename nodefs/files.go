@@ -68,7 +68,7 @@ func (f *loopbackFile) Flush(ctx context.Context) fuse.Status {
 	return fuse.ToStatus(err)
 }
 
-func (f *loopbackFile) Fsync(ctx context.Context, flags int) (code fuse.Status) {
+func (f *loopbackFile) Fsync(ctx context.Context, flags uint32) (code fuse.Status) {
 	f.mu.Lock()
 	r := fuse.ToStatus(syscall.Fsync(int(f.File.Fd())))
 	f.mu.Unlock()

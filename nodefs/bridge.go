@@ -405,7 +405,8 @@ func (b *rawBridge) Flush(input *fuse.FlushIn) fuse.Status {
 }
 
 func (b *rawBridge) Fsync(input *fuse.FsyncIn) (code fuse.Status) {
-	return fuse.ENOSYS
+	n, f := b.inode(input.NodeId, input.Fh)
+	return n.node.Fsync(context.TODO(), f.file, input.FsyncFlags)
 }
 
 func (b *rawBridge) Fallocate(input *fuse.FallocateIn) (code fuse.Status) {

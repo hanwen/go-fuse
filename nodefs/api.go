@@ -95,6 +95,8 @@ type Node interface {
 
 	Write(ctx context.Context, f File, data []byte, off int64) (written uint32, code fuse.Status)
 
+	Fsync(ctx context.Context, f File, flags uint32) (code fuse.Status)
+
 	// File locking
 	GetLk(ctx context.Context, f File, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (code fuse.Status)
 	SetLk(ctx context.Context, f File, owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status)
@@ -142,6 +144,8 @@ type File interface {
 	// case of duplicated descriptor, it may be called more than
 	// once for a file.
 	Flush(ctx context.Context) fuse.Status
+
+	Fsync(ctx context.Context, flags uint32) fuse.Status
 
 	// This is called to before the file handle is forgotten. This
 	// method has no return value, so nothing can synchronizes on

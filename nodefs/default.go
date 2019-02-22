@@ -54,6 +54,14 @@ func (n *DefaultNode) Read(ctx context.Context, f File, dest []byte, off int64) 
 	}
 	return nil, fuse.ENOSYS
 }
+
+func (n *DefaultNode) Fsync(ctx context.Context, f File, flags uint32) fuse.Status {
+	if f != nil {
+		return f.Fsync(ctx, flags)
+	}
+	return fuse.ENOSYS
+}
+
 func (n *DefaultNode) Write(ctx context.Context, f File, data []byte, off int64) (written uint32, code fuse.Status) {
 	if f != nil {
 		return f.Write(ctx, data, off)
