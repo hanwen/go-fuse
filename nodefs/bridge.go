@@ -140,7 +140,7 @@ func (b *rawBridge) Create(input *fuse.CreateIn, name string, out *fuse.CreateOu
 		return code
 	}
 
-	lockNodes(parent, child)
+	lockNode2(parent, child)
 	parent.setEntry(name, child)
 	b.mu.Lock()
 	if child.nodeID == 0 {
@@ -150,7 +150,7 @@ func (b *rawBridge) Create(input *fuse.CreateIn, name string, out *fuse.CreateOu
 	out.NodeId = child.nodeID
 	out.Generation = b.nodes[child.nodeID].generation
 	b.mu.Unlock()
-	unlockNodes(parent, child)
+	unlockNode2(parent, child)
 
 	if b.options.AttrTimeout != nil {
 		out.SetAttrTimeout(*b.options.AttrTimeout)
