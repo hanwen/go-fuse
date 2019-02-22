@@ -28,9 +28,7 @@ func (f *loopbackFile) Utimens(ctx context.Context, a *time.Time, m *time.Time) 
 	ts[0] = fuse.UtimeToTimespec(a)
 	ts[1] = fuse.UtimeToTimespec(m)
 	f.mu.Lock()
-	var err error
-	// NOSUBMIT
-	//	err := futimens(int(f.File.Fd()), &ts)
+	err := futimens(int(f.File.Fd()), &ts)
 	f.mu.Unlock()
 	return fuse.ToStatus(err)
 }
