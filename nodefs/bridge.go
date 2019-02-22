@@ -6,6 +6,7 @@ package nodefs
 
 import (
 	"context"
+	"log"
 	"sync"
 	"time"
 
@@ -89,6 +90,61 @@ func (b *rawBridge) Lookup(header *fuse.InHeader, name string, out *fuse.EntryOu
 		return code
 	}
 
+	b.addNewChild(parent, name, child, out)
+	b.setEntryOutTimeout(out)
+	return fuse.OK
+}
+
+func (b *rawBridge) Rmdir(header *fuse.InHeader, name string) fuse.Status {
+	parent, _ := b.inode(header.NodeId, 0)
+	code := parent.node.Rmdir(context.TODO(), name)
+	if code.Ok() {
+		parent.RmChild(name)
+	}
+	return code
+
+}
+
+func (b *rawBridge) Unlink(header *fuse.InHeader, name string) fuse.Status {
+	parent, _ := b.inode(header.NodeId, 0)
+	code := parent.node.Unlink(context.TODO(), name)
+	if code.Ok() {
+		parent.RmChild(name)
+	}
+	return code
+}
+
+func (b *rawBridge) Mkdir(input *fuse.MkdirIn, name string, out *fuse.EntryOut) (code fuse.Status) {
+	parent, _ := b.inode(input.NodeId, 0)
+
+	child, code := parent.node.Mkdir(context.TODO(), name, input.Mode, out)
+	if !code.Ok() {
+		return code
+	}
+
+	if out.Attr.Mode&^07777 != fuse.S_IFDIR {
+		log.Panicf("Mkdir: mode must be S_IFDIR (%o), got %o", fuse.S_IFDIR, out.Attr.Mode)
+	}
+
+	b.addNewChild(parent, name, child, out)
+	b.setEntryOutTimeout(out)
+	return fuse.OK
+}
+
+func (b *rawBridge) Mknod(input *fuse.MknodIn, name string, out *fuse.EntryOut) (code fuse.Status) {
+	parent, _ := b.inode(input.NodeId, 0)
+
+	child, code := parent.node.Mknod(context.TODO(), name, input.Mode, input.Rdev, out)
+	if !code.Ok() {
+		return code
+	}
+
+	b.addNewChild(parent, name, child, out)
+	b.setEntryOutTimeout(out)
+	return fuse.OK
+}
+
+func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, out *fuse.EntryOut) {
 	lockNodes(parent, child)
 	parent.setEntry(name, child)
 	b.mu.Lock()
@@ -99,9 +155,6 @@ func (b *rawBridge) Lookup(header *fuse.InHeader, name string, out *fuse.EntryOu
 	out.Generation = b.nodes[out.NodeId].generation
 	b.mu.Unlock()
 	unlockNodes(parent, child)
-
-	b.setEntryOutTimeout(out)
-	return fuse.OK
 }
 
 func (b *rawBridge) setEntryOutTimeout(out *fuse.EntryOut) {
@@ -155,11 +208,15 @@ func (b *rawBridge) Create(input *fuse.CreateIn, name string, out *fuse.CreateOu
 	b.mu.Unlock()
 	unlockNode2(parent, child)
 
-	b.setEntryOutTimeout(out)
+	b.setEntryOutTimeout(&out.EntryOut)
 
 	out.OpenFlags = flags
 
 	f.GetAttr(ctx, &out.Attr)
+
+	if out.Attr.Mode&^07777 != fuse.S_IFREG {
+		log.Panicf("Create: mode must be S_IFREG (%o), got %o", fuse.S_IFREG, out.Attr.Mode)
+	}
 	return fuse.OK
 }
 
@@ -267,22 +324,6 @@ func (b *rawBridge) SetAttr(input *fuse.SetAttrIn, out *fuse.AttrOut) (code fuse
 
 	// TODO - attr timout?
 	return code
-}
-
-func (b *rawBridge) Mknod(input *fuse.MknodIn, name string, out *fuse.EntryOut) (code fuse.Status) {
-	return fuse.ENOSYS
-}
-
-func (b *rawBridge) Mkdir(input *fuse.MkdirIn, name string, out *fuse.EntryOut) (code fuse.Status) {
-	return fuse.ENOSYS
-}
-
-func (b *rawBridge) Unlink(header *fuse.InHeader, name string) (code fuse.Status) {
-	return fuse.ENOSYS
-}
-
-func (b *rawBridge) Rmdir(header *fuse.InHeader, name string) (code fuse.Status) {
-	return fuse.ENOSYS
 }
 
 func (b *rawBridge) Rename(input *fuse.RenameIn, oldName string, newName string) (code fuse.Status) {
