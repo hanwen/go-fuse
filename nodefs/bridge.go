@@ -184,7 +184,6 @@ func (b *rawBridge) GetAttr(input *fuse.GetAttrIn, out *fuse.AttrOut) (code fuse
 	n, fEntry := b.inode(input.NodeId, input.Fh())
 	f := fEntry.file
 
-	// nosubmit - FATTR_FH vs FUSE_GETATTR_FH ?
 	if input.Flags()&fuse.FUSE_GETATTR_FH == 0 {
 		f = nil
 	}
@@ -197,7 +196,9 @@ func (b *rawBridge) GetAttr(input *fuse.GetAttrIn, out *fuse.AttrOut) (code fuse
 		out.Nlink = 1
 	}
 
-	// NOSUBMIT attr timeout
+	if b.options.AttrTimeout != nil {
+		out.SetTimeout(*b.options.AttrTimeout)
+	}
 	return code
 }
 
