@@ -250,35 +250,6 @@ func (iparent *Inode) setEntry(name string, ichild *Inode) {
 	iparent.changeCounter++
 }
 
-func (n *Inode) clearParents() {
-	for {
-		lockme := []*Inode{n}
-		n.mu.Lock()
-		ts := n.changeCounter
-		for p := range n.parents {
-			lockme = append(lockme, p.parent)
-		}
-		n.mu.Unlock()
-
-		lockNodes(lockme...)
-		success := false
-		if ts == n.changeCounter {
-			for p := range n.parents {
-				delete(p.parent.children, p.name)
-				p.parent.changeCounter++
-			}
-			n.parents = map[parentData]struct{}{}
-			n.changeCounter++
-			success = true
-		}
-		unlockNodes(lockme...)
-
-		if success {
-			return
-		}
-	}
-}
-
 // NewPersistentInode returns an Inode whose lifetime is not in
 // control of the kernel.
 func (n *Inode) NewPersistentInode(node Node, mode uint32, opaque uint64) *Inode {
