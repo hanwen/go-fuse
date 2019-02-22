@@ -87,6 +87,11 @@ type Node interface {
 	// pair.
 	Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, fuse.Status)
 
+	Mkdir(ctx context.Context, name string, mode uint32, out *fuse.EntryOut) (*Inode, fuse.Status)
+	Mknod(ctx context.Context, name string, mode uint32, dev uint32, out *fuse.EntryOut) (*Inode, fuse.Status)
+	Rmdir(ctx context.Context, name string) fuse.Status
+	Unlink(ctx context.Context, name string) fuse.Status
+
 	Open(ctx context.Context, flags uint32) (fh File, fuseFlags uint32, code fuse.Status)
 
 	Create(ctx context.Context, name string, flags uint32, mode uint32) (node *Inode, fh File, fuseFlags uint32, code fuse.Status)

@@ -88,7 +88,8 @@ func TestBasic(t *testing.T) {
 
 	tc.writeOrig("file", "hello", 0644)
 
-	fi, err := os.Lstat(tc.mntDir + "/file")
+	fn := tc.mntDir + "/file"
+	fi, err := os.Lstat(fn)
 	if err != nil {
 		t.Fatalf("Lstat: %v", err)
 	}
@@ -100,6 +101,14 @@ func TestBasic(t *testing.T) {
 	stat := fuse.ToStatT(fi)
 	if got, want := stat.Mode, uint32(fuse.S_IFREG|0644); got != want {
 		t.Errorf("got mode %o, want %o", got, want)
+	}
+
+	if err := os.Remove(fn); err != nil {
+		t.Errorf("Remove: %v", err)
+	}
+
+	if fi, err := os.Lstat(fn); err == nil {
+		t.Errorf("Lstat after remove: got file %v", fi)
 	}
 }
 
@@ -214,5 +223,24 @@ func TestFileFdLeak(t *testing.T) {
 
 	if got := len(bridge.files); got > 3 {
 		t.Errorf("found %d used file handles, should be <= 3", got)
+	}
+}
+
+func TestMkdir(t *testing.T) {
+	tc := newTestCase(t)
+	defer tc.Clean()
+
+	if err := os.Mkdir(tc.mntDir+"/dir", 0755); err != nil {
+		t.Fatalf("Mkdir: %v", err)
+	}
+
+	if fi, err := os.Lstat(tc.mntDir + "/dir"); err != nil {
+		t.Fatalf("Lstat %v", err)
+	} else if !fi.IsDir() {
+		t.Fatalf("is not a directory")
+	}
+
+	if err := os.Remove(tc.mntDir + "/dir"); err != nil {
+		t.Fatalf("Remove: %v", err)
 	}
 }

@@ -62,6 +62,59 @@ func (n *loopbackNode) Lookup(ctx context.Context, name string, out *fuse.EntryO
 	return ch, fuse.OK
 }
 
+func (n *loopbackNode) Mknod(ctx context.Context, name string, mode, rdev uint32, out *fuse.EntryOut) (*Inode, fuse.Status) {
+	p := filepath.Join(n.path(), name)
+	err := syscall.Mknod(p, mode, int(rdev))
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+	st := syscall.Stat_t{}
+	if err := syscall.Lstat(p, &st); err != nil {
+		syscall.Rmdir(p)
+		return nil, fuse.ToStatus(err)
+	}
+
+	out.Attr.FromStat(&st)
+
+	node := &loopbackNode{rootNode: n.rootNode}
+	ch := n.inode().NewInode(node, out.Attr.Mode, out.Attr.Ino)
+
+	return ch, fuse.OK
+}
+
+func (n *loopbackNode) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.EntryOut) (*Inode, fuse.Status) {
+	// NOSUBMIT what about umask
+	p := filepath.Join(n.path(), name)
+	err := os.Mkdir(p, os.FileMode(mode))
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+	st := syscall.Stat_t{}
+	if err := syscall.Lstat(p, &st); err != nil {
+		syscall.Rmdir(p)
+		return nil, fuse.ToStatus(err)
+	}
+
+	out.Attr.FromStat(&st)
+
+	node := &loopbackNode{rootNode: n.rootNode}
+	ch := n.inode().NewInode(node, out.Attr.Mode, out.Attr.Ino)
+
+	return ch, fuse.OK
+}
+
+func (n *loopbackNode) Rmdir(ctx context.Context, name string) fuse.Status {
+	p := filepath.Join(n.path(), name)
+	err := syscall.Rmdir(p)
+	return fuse.ToStatus(err)
+}
+
+func (n *loopbackNode) Unlink(ctx context.Context, name string) fuse.Status {
+	p := filepath.Join(n.path(), name)
+	err := syscall.Unlink(p)
+	return fuse.ToStatus(err)
+}
+
 func (n *loopbackNode) Create(ctx context.Context, name string, flags uint32, mode uint32) (inode *Inode, fh File, fuseFlags uint32, code fuse.Status) {
 	p := filepath.Join(n.path(), name)
 
