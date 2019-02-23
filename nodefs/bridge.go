@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"golang.org/x/sys/unix"
 )
 
 type mapEntry struct {
@@ -142,7 +143,7 @@ func (b *rawBridge) Lookup(header *fuse.InHeader, name string, out *fuse.EntryOu
 		return code
 	}
 
-	b.addNewChild(parent, name, child, out)
+	b.addNewChild(parent, name, child, nil, out)
 	b.setEntryOutTimeout(out)
 	return fuse.OK
 }
@@ -178,7 +179,7 @@ func (b *rawBridge) Mkdir(input *fuse.MkdirIn, name string, out *fuse.EntryOut) 
 		log.Panicf("Mkdir: mode must be S_IFDIR (%o), got %o", fuse.S_IFDIR, out.Attr.Mode)
 	}
 
-	b.addNewChild(parent, name, child, out)
+	b.addNewChild(parent, name, child, nil, out)
 	b.setEntryOutTimeout(out)
 	return fuse.OK
 }
@@ -191,18 +192,26 @@ func (b *rawBridge) Mknod(input *fuse.MknodIn, name string, out *fuse.EntryOut) 
 		return code
 	}
 
-	b.addNewChild(parent, name, child, out)
+	b.addNewChild(parent, name, child, nil, out)
 	b.setEntryOutTimeout(out)
 	return fuse.OK
 }
 
-func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, out *fuse.EntryOut) {
+// addNewChild inserts the child into the tree. Returns file handle if file != nil.
+func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file File, out *fuse.EntryOut) uint64 {
 	lockNodes(parent, child)
 	parent.setEntry(name, child)
 	b.mu.Lock()
+	child.lookupCount++
 	if child.nodeID == 0 {
 		b.registerInode(child)
 	}
+
+	var fh uint64
+	if file != nil {
+		fh = b.registerFile(file)
+	}
+
 	out.NodeId = child.nodeID
 	// NOSUBMIT - or should let FS expose Attr.Ino? This makes
 	// testing semantics hard though, because os.Lstat doesn't
@@ -211,6 +220,7 @@ func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, out *f
 	out.Generation = b.nodes[out.NodeId].generation
 	b.mu.Unlock()
 	unlockNodes(parent, child)
+	return fh
 }
 
 func (b *rawBridge) setEntryOutTimeout(out *fuse.EntryOut) {
@@ -252,19 +262,7 @@ func (b *rawBridge) Create(input *fuse.CreateIn, name string, out *fuse.CreateOu
 		return code
 	}
 
-	lockNode2(parent, child)
-	parent.setEntry(name, child)
-	b.mu.Lock()
-	if child.nodeID == 0 {
-		b.registerInode(child)
-	}
-	out.Fh = b.registerFile(f)
-	out.NodeId = child.nodeID
-	out.Ino = child.nodeID
-	out.Generation = b.nodes[child.nodeID].generation
-	b.mu.Unlock()
-	unlockNode2(parent, child)
-
+	out.Fh = b.addNewChild(parent, name, child, f, &out.EntryOut)
 	b.setEntryOutTimeout(&out.EntryOut)
 
 	out.OpenFlags = flags
@@ -278,10 +276,7 @@ func (b *rawBridge) Create(input *fuse.CreateIn, name string, out *fuse.CreateOu
 }
 
 func (b *rawBridge) Forget(nodeid, nlookup uint64) {
-	b.mu.Lock()
-	n := b.nodes[nodeid].inode
-	b.mu.Unlock()
-
+	n, _ := b.inode(nodeid, 0)
 	n.removeRef(nlookup, false)
 }
 
@@ -308,12 +303,16 @@ func (b *rawBridge) GetAttr(input *fuse.GetAttrIn, out *fuse.AttrOut) (code fuse
 		out.Nlink = 1
 	}
 
-	if b.options.AttrTimeout != nil {
-		out.SetTimeout(*b.options.AttrTimeout)
-	}
+	b.setAttrTimeout(out)
 
 	out.Ino = input.NodeId
 	return code
+}
+
+func (b *rawBridge) setAttrTimeout(out *fuse.AttrOut) {
+	if b.options.AttrTimeout != nil {
+		out.SetTimeout(*b.options.AttrTimeout)
+	}
 }
 
 func (b *rawBridge) SetAttr(input *fuse.SetAttrIn, out *fuse.AttrOut) (code fuse.Status) {
@@ -379,18 +378,25 @@ func (b *rawBridge) SetAttr(input *fuse.SetAttrIn, out *fuse.AttrOut) (code fuse
 	// Must call GetAttr(); the filesystem may override some of
 	// the changes we effect here.
 	attr := &out.Attr
-	code = n.node.GetAttr(ctx, f, attr)
 
-	// TODO - attr timout?
+	// should take AttrOut
+	code = n.node.GetAttr(ctx, f, attr)
+	b.setAttrTimeout(out)
 	return code
 }
 
-func (b *rawBridge) Rename(input *fuse.RenameIn, oldName string, newName string) (code fuse.Status) {
+func (b *rawBridge) Rename(input *fuse.RenameIn, oldName string, newName string) fuse.Status {
 	p1, _ := b.inode(input.NodeId, 0)
 	p2, _ := b.inode(input.Newdir, 0)
 
-	if code := p1.node.Rename(context.TODO(), oldName, p2.node, newName); code.Ok() {
-		p1.MvChild(oldName, p2, newName, true)
+	code := p1.node.Rename(context.TODO(), oldName, p2.node, newName, input.Flags)
+	if code.Ok() {
+		if input.Flags&unix.RENAME_EXCHANGE != 0 {
+			// XXX - test coverage.
+			p1.ExchangeChild(oldName, p2, newName)
+		} else {
+			p1.MvChild(oldName, p2, newName, true)
+		}
 	}
 	return code
 }
@@ -541,5 +547,6 @@ func (b *rawBridge) FsyncDir(input *fuse.FsyncIn) (code fuse.Status) {
 func (b *rawBridge) StatFs(input *fuse.InHeader, out *fuse.StatfsOut) (code fuse.Status) {
 	return
 }
+
 func (b *rawBridge) Init(*fuse.Server) {
 }

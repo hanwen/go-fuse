@@ -91,7 +91,7 @@ type Node interface {
 	Mknod(ctx context.Context, name string, mode uint32, dev uint32, out *fuse.EntryOut) (*Inode, fuse.Status)
 	Rmdir(ctx context.Context, name string) fuse.Status
 	Unlink(ctx context.Context, name string) fuse.Status
-	Rename(ctx context.Context, name string, newParent Node, newName string) fuse.Status
+	Rename(ctx context.Context, name string, newParent Node, newName string, flags uint32) fuse.Status
 
 	Open(ctx context.Context, flags uint32) (fh File, fuseFlags uint32, code fuse.Status)
 

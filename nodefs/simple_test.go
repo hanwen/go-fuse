@@ -14,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/sys/unix"
+
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/internal/testutil"
 )
@@ -249,7 +251,7 @@ func TestMkdir(t *testing.T) {
 	}
 }
 
-func TestRename(t *testing.T) {
+func testRenameOverwrite(t *testing.T, destExists bool) {
 	tc := newTestCase(t)
 	defer tc.Clean()
 
@@ -258,6 +260,12 @@ func TestRename(t *testing.T) {
 	}
 	if err := ioutil.WriteFile(tc.origDir+"/file", []byte("hello"), 0644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
+	}
+
+	if destExists {
+		if err := ioutil.WriteFile(tc.origDir+"/dir/renamed", []byte("xx"), 0644); err != nil {
+			t.Fatalf("WriteFile: %v", err)
+		}
 	}
 
 	st := syscall.Stat_t{}
@@ -279,5 +287,51 @@ func TestRename(t *testing.T) {
 
 	if got := st.Ino; got != beforeIno {
 		t.Errorf("got ino %d, want %d", got, beforeIno)
+	}
+}
+
+func TestRenameDestExist(t *testing.T) {
+	testRenameOverwrite(t, true)
+}
+
+func TestRenameDestNoExist(t *testing.T) {
+	testRenameOverwrite(t, false)
+}
+
+func TestRenameNoOverwrite(t *testing.T) {
+	tc := newTestCase(t)
+	defer tc.Clean()
+
+	if err := os.Mkdir(tc.origDir+"/dir", 0755); err != nil {
+		t.Fatalf("Mkdir: %v", err)
+	}
+	if err := ioutil.WriteFile(tc.origDir+"/file", []byte("hello"), 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	if err := ioutil.WriteFile(tc.origDir+"/dir/file", []byte("x"), 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	f1, err := syscall.Open(tc.mntDir+"/", syscall.O_DIRECTORY, 0)
+	if err != nil {
+		t.Fatalf("open 1: %v", err)
+	}
+	defer syscall.Close(f1)
+	f2, err := syscall.Open(tc.mntDir+"/dir", syscall.O_DIRECTORY, 0)
+	if err != nil {
+		t.Fatalf("open 2: %v", err)
+	}
+	defer syscall.Close(f2)
+
+	if err := unix.Renameat2(f1, "file", f2, "file", unix.RENAME_NOREPLACE); err == nil {
+		t.Errorf("rename NOREPLACE succeeded")
+	} else if err != syscall.EEXIST {
+		t.Errorf("got %v (%T) want EEXIST", err, err)
+	}
+
+	if err := unix.Renameat2(f1, "file", f2, "file", unix.RENAME_EXCHANGE); err == nil {
+		t.Errorf("rename EXCHANGE succeeded")
+	} else if err != syscall.EINVAL {
+		t.Errorf("got %v (%T) want %v (%T)", err, err, syscall.EINVAL, syscall.EINVAL)
 	}
 }

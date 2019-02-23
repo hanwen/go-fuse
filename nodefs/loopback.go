@@ -123,7 +123,12 @@ func (n *loopbackNode) Unlink(ctx context.Context, name string) fuse.Status {
 	return fuse.ToStatus(err)
 }
 
-func (n *loopbackNode) Rename(ctx context.Context, name string, newParent Node, newName string) fuse.Status {
+func (n *loopbackNode) Rename(ctx context.Context, name string, newParent Node, newName string, flags uint32) fuse.Status {
+
+	if flags != 0 {
+		return fuse.ENOSYS
+	}
+
 	p1 := filepath.Join(n.path(), name)
 	var newParentLoopback *loopbackNode
 	if r, ok := newParent.(*loopbackRoot); ok {

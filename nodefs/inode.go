@@ -279,6 +279,7 @@ func (n *Inode) removeRef(nlookup uint64, dropPersistence bool) (forgotten bool,
 	if nlookup > 0 && dropPersistence {
 		log.Panic("only one allowed")
 	} else if nlookup > 0 {
+
 		n.lookupCount -= nlookup
 		n.changeCounter++
 	} else if dropPersistence && n.persistent {
@@ -396,9 +397,8 @@ retry:
 	return true, true
 }
 
-// TODO - RENAME_NOREPLACE, RENAME_EXCHANGE MvChild executes a
-// rename. If overwrite is set, a child at the destination will be
-// overwritten.
+// MvChild executes a rename. If overwrite is set, a child at the
+// destination will be overwritten.
 func (n *Inode) MvChild(old string, newParent *Inode, newName string, overwrite bool) bool {
 retry:
 	for {
@@ -451,5 +451,66 @@ retry:
 			destChild.removeRef(0, false)
 		}
 		return true
+	}
+}
+
+func (n *Inode) ExchangeChild(oldName string, newParent *Inode, newName string) {
+	oldParent := n
+retry:
+	for {
+		lockNode2(oldParent, newParent)
+		counter1 := oldParent.changeCounter
+		counter2 := newParent.changeCounter
+
+		oldChild := oldParent.children[oldName]
+		destChild := newParent.children[newName]
+		unlockNode2(oldParent, newParent)
+
+		if destChild == nil && oldChild == nil {
+			return
+		}
+		if destChild == oldChild {
+			return
+		}
+
+		lockNodes(oldParent, newParent, oldChild, destChild)
+		if counter2 != newParent.changeCounter || counter1 != oldParent.changeCounter {
+			unlockNodes(oldParent, newParent, oldChild, destChild)
+			continue retry
+		}
+
+		// Detach
+		if oldChild != nil {
+			delete(oldParent.children, oldName)
+			delete(oldChild.parents, parentData{oldName, oldParent})
+			oldParent.changeCounter++
+			oldChild.changeCounter++
+		}
+
+		if destChild != nil {
+			delete(newParent.children, newName)
+			delete(destChild.parents, parentData{newName, newParent})
+			destChild.changeCounter++
+			newParent.changeCounter++
+		}
+
+		// Attach
+		if oldChild != nil {
+			newParent.children[newName] = oldChild
+			newParent.changeCounter++
+
+			oldChild.parents[parentData{newName, newParent}] = struct{}{}
+			oldChild.changeCounter++
+		}
+
+		if destChild != nil {
+			oldParent.children[oldName] = oldChild
+			oldParent.changeCounter++
+
+			destChild.parents[parentData{oldName, oldParent}] = struct{}{}
+			destChild.changeCounter++
+		}
+		unlockNodes(oldParent, newParent, oldChild, destChild)
+		return
 	}
 }
