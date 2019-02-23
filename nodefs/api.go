@@ -121,7 +121,7 @@ type Node interface {
 
 	// The methods below may be called on closed files, due to
 	// concurrency.  In that case, you should return EBADF.
-	GetAttr(ctx context.Context, f File, out *fuse.Attr) fuse.Status
+	GetAttr(ctx context.Context, f File, out *fuse.AttrOut) fuse.Status
 
 	/*
 		NOSUBMIT - fold into a setattr method, or expand methods?
@@ -162,7 +162,7 @@ type File interface {
 	// The methods below may be called on closed files, due to
 	// concurrency.  In that case, you should return EBADF.
 	// TODO - fold into a setattr method?
-	GetAttr(ctx context.Context, out *fuse.Attr) fuse.Status
+	GetAttr(ctx context.Context, out *fuse.AttrOut) fuse.Status
 	Truncate(ctx context.Context, size uint64) fuse.Status
 	Chown(ctx context.Context, uid uint32, gid uint32) fuse.Status
 	Chmod(ctx context.Context, perms uint32) fuse.Status

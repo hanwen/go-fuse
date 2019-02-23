@@ -267,8 +267,13 @@ func (b *rawBridge) Create(input *fuse.CreateIn, name string, out *fuse.CreateOu
 
 	out.OpenFlags = flags
 
-	f.GetAttr(ctx, &out.Attr)
+	var temp fuse.AttrOut
+	f.GetAttr(ctx, &temp)
+	out.Attr = temp.Attr
+	out.AttrValid = temp.AttrValid
+	out.AttrValidNsec = temp.AttrValidNsec
 
+	b.setEntryOutTimeout(&out.EntryOut)
 	if out.Attr.Mode&^07777 != fuse.S_IFREG {
 		log.Panicf("Create: mode must be S_IFREG (%o), got %o", fuse.S_IFREG, out.Attr.Mode)
 	}
@@ -287,7 +292,7 @@ func (b *rawBridge) unregisterNode(nodeid uint64) {
 
 func (b *rawBridge) SetDebug(debug bool) {}
 
-func (b *rawBridge) GetAttr(input *fuse.GetAttrIn, out *fuse.AttrOut) (code fuse.Status) {
+func (b *rawBridge) GetAttr(input *fuse.GetAttrIn, out *fuse.AttrOut) fuse.Status {
 	n, fEntry := b.inode(input.NodeId, input.Fh())
 	f := fEntry.file
 
@@ -295,8 +300,7 @@ func (b *rawBridge) GetAttr(input *fuse.GetAttrIn, out *fuse.AttrOut) (code fuse
 		f = nil
 	}
 
-	dest := &out.Attr
-	code = n.node.GetAttr(context.TODO(), f, dest)
+	code = n.node.GetAttr(context.TODO(), f, out)
 	if out.Nlink == 0 {
 		// With Nlink == 0, newer kernels will refuse link
 		// operations.
@@ -377,10 +381,7 @@ func (b *rawBridge) SetAttr(input *fuse.SetAttrIn, out *fuse.AttrOut) (code fuse
 
 	// Must call GetAttr(); the filesystem may override some of
 	// the changes we effect here.
-	attr := &out.Attr
-
-	// should take AttrOut
-	code = n.node.GetAttr(ctx, f, attr)
+	code = n.node.GetAttr(ctx, f, out)
 	b.setAttrTimeout(out)
 	return code
 }

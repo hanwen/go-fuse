@@ -93,7 +93,7 @@ func (n *DefaultNode) Allocate(ctx context.Context, f File, off uint64, size uin
 	return fuse.ENOSYS
 }
 
-func (n *DefaultNode) GetAttr(ctx context.Context, f File, out *fuse.Attr) fuse.Status {
+func (n *DefaultNode) GetAttr(ctx context.Context, f File, out *fuse.AttrOut) fuse.Status {
 	if f != nil {
 		f.GetAttr(ctx, out)
 	}
