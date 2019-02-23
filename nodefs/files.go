@@ -152,7 +152,7 @@ func (f *loopbackFile) Chown(ctx context.Context, uid uint32, gid uint32) fuse.S
 	return r
 }
 
-func (f *loopbackFile) GetAttr(ctx context.Context, a *fuse.Attr) fuse.Status {
+func (f *loopbackFile) GetAttr(ctx context.Context, a *fuse.AttrOut) fuse.Status {
 	st := syscall.Stat_t{}
 	f.mu.Lock()
 	err := syscall.Fstat(int(f.File.Fd()), &st)

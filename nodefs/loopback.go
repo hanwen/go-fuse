@@ -19,7 +19,7 @@ type loopbackRoot struct {
 	root string
 }
 
-func (n *loopbackRoot) GetAttr(ctx context.Context, f File, out *fuse.Attr) fuse.Status {
+func (n *loopbackRoot) GetAttr(ctx context.Context, f File, out *fuse.AttrOut) fuse.Status {
 	var err error = nil
 	st := syscall.Stat_t{}
 	err = syscall.Stat(n.root, &st)
@@ -175,7 +175,7 @@ func (n *loopbackNode) Open(ctx context.Context, flags uint32) (fh File, fuseFla
 	return NewLoopbackFile(f), 0, fuse.OK
 }
 
-func (n *loopbackNode) GetAttr(ctx context.Context, f File, out *fuse.Attr) fuse.Status {
+func (n *loopbackNode) GetAttr(ctx context.Context, f File, out *fuse.AttrOut) fuse.Status {
 	if f != nil {
 		return f.GetAttr(ctx, out)
 	}
