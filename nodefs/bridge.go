@@ -38,11 +38,56 @@ type rawBridge struct {
 
 	files     []fileEntry
 	freeFiles []uint64
+
+	byFileID map[FileID]*Inode
+}
+
+// newInode creates creates new inode pointing to node.
+func (b *rawBridge) newInode(node Node, mode uint32, id FileID, persistent bool) *Inode {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	if !id.Zero() {
+		// the same node can be looked up through 2 paths in parallel, eg.
+		//
+		//	    root
+		//	    /  \
+		//	  dir1 dir2
+		//	    \  /
+		//	    file
+		//
+		// dir1.Lookup("file") and dir2.Lookup("file") are executed
+		// simultaneously.  The matching FileIDs ensure that we return the
+		// same node.
+		old := b.byFileID[id]
+		if old != nil {
+			return old
+		}
+	}
+
+	inode := &Inode{
+		mode:       mode ^ 07777,
+		node:       node,
+		bridge:     b,
+		persistent: persistent,
+		parents:    make(map[parentData]struct{}),
+	}
+	if mode&fuse.S_IFDIR != 0 {
+		inode.children = make(map[string]*Inode)
+	}
+
+	if !id.Zero() {
+		b.byFileID[id] = inode
+	}
+
+	node.setInode(inode)
+	return inode
 }
 
 func NewNodeFS(root Node, opts *Options) fuse.RawFileSystem {
 	bridge := &rawBridge{
 		RawFileSystem: fuse.NewDefaultRawFileSystem(),
+		byFileID:      make(map[FileID]*Inode),
 	}
 
 	if opts != nil {
@@ -76,7 +121,14 @@ func NewNodeFS(root Node, opts *Options) fuse.RawFileSystem {
 func (b *rawBridge) inode(id uint64, fh uint64) (*Inode, fileEntry) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	return b.nodes[id].inode, b.files[fh]
+	n, f := b.nodes[id].inode, b.files[fh]
+	if n == nil {
+		log.Panicf("unknown node %d", id)
+	}
+	if fh != 0 && f.file == nil {
+		log.Panicf("unknown fh %d", fh)
+	}
+	return n, f
 }
 
 func (b *rawBridge) Lookup(header *fuse.InHeader, name string, out *fuse.EntryOut) (status fuse.Status) {
@@ -338,10 +390,7 @@ func (b *rawBridge) Rename(input *fuse.RenameIn, oldName string, newName string)
 	p2, _ := b.inode(input.Newdir, 0)
 
 	if code := p1.node.Rename(context.TODO(), oldName, p2.node, newName); code.Ok() {
-		// NOSUBMIT - is it better to have the user code do
-		// this? Maybe the user code wants a transaction over
-		// more nodes?
-		p1.MvChild(oldName, p2, newName)
+		p1.MvChild(oldName, p2, newName, true)
 	}
 	return code
 }
