@@ -52,13 +52,13 @@ func (n *loopbackNode) Lookup(ctx context.Context, name string, out *fuse.EntryO
 
 	out.Attr.FromStat(&st)
 
-	ch := InodeOf(n).FindChildByOpaqueID(name, out.Attr.Ino)
-	if ch != nil {
-		return ch, fuse.OK
+	opaque := FileID{
+		Dev: uint64(out.Attr.Rdev),
+		Ino: out.Attr.Ino,
 	}
 
 	node := &loopbackNode{rootNode: n.rootNode}
-	ch = n.inode().NewInode(node, out.Attr.Mode, out.Attr.Ino)
+	ch := n.inode().NewInode(node, out.Attr.Mode, opaque)
 	return ch, fuse.OK
 }
 
@@ -77,7 +77,11 @@ func (n *loopbackNode) Mknod(ctx context.Context, name string, mode, rdev uint32
 	out.Attr.FromStat(&st)
 
 	node := &loopbackNode{rootNode: n.rootNode}
-	ch := n.inode().NewInode(node, out.Attr.Mode, out.Attr.Ino)
+	opaque := FileID{
+		Dev: uint64(out.Attr.Rdev),
+		Ino: out.Attr.Ino,
+	}
+	ch := n.inode().NewInode(node, out.Attr.Mode, opaque)
 
 	return ch, fuse.OK
 }
@@ -98,7 +102,11 @@ func (n *loopbackNode) Mkdir(ctx context.Context, name string, mode uint32, out 
 	out.Attr.FromStat(&st)
 
 	node := &loopbackNode{rootNode: n.rootNode}
-	ch := n.inode().NewInode(node, out.Attr.Mode, out.Attr.Ino)
+	opaque := FileID{
+		Dev: uint64(out.Attr.Rdev),
+		Ino: out.Attr.Ino,
+	}
+	ch := n.inode().NewInode(node, out.Attr.Mode, opaque)
 
 	return ch, fuse.OK
 }
@@ -144,7 +152,12 @@ func (n *loopbackNode) Create(ctx context.Context, name string, flags uint32, mo
 	}
 
 	node := &loopbackNode{rootNode: n.rootNode}
-	ch := n.inode().NewInode(node, st.Mode, st.Ino)
+	opaque := FileID{
+		Dev: st.Rdev,
+		Ino: st.Ino,
+	}
+
+	ch := n.inode().NewInode(node, st.Mode, opaque)
 	return ch, NewLoopbackFile(f), 0, fuse.OK
 }
 

@@ -11,8 +11,6 @@ import (
 	"strings"
 	"sync"
 	"unsafe"
-
-	"github.com/hanwen/go-fuse/fuse"
 )
 
 var _ = log.Println
@@ -22,6 +20,19 @@ type parentData struct {
 	parent *Inode
 }
 
+// FileID provides a identifier for file objects defined by FUSE
+// filesystems.
+//
+// XXX name: PersistentID ? NodeID ?
+type FileID struct {
+	Dev uint64 // XXX Rdev?
+	Ino uint64
+}
+
+func (i *FileID) Zero() bool {
+	return i.Dev == 0 && i.Ino == 0
+}
+
 // Inode is a node in VFS tree.  Inodes are one-to-one mapped to Node
 // instances, which is the extension interface for file systems.  One
 // can create fully-formed trees of Inodes ahead of time by creating
@@ -29,7 +40,7 @@ type parentData struct {
 type Inode struct {
 	// The filetype bits from the mode.
 	mode     uint32
-	opaqueID uint64
+	opaqueID FileID
 	node     Node
 	bridge   *rawBridge
 
@@ -75,22 +86,6 @@ func (n *Inode) debugString() string {
 	}
 
 	return fmt.Sprintf("%d: %s", n.nodeID, strings.Join(ss, ","))
-}
-
-// newInode creates creates new inode pointing to node.
-//
-// node -> inode association is NOT set.
-// the inode is _not_ yet has
-func newInode(node Node, mode uint32) *Inode {
-	inode := &Inode{
-		mode:    mode ^ 07777,
-		node:    node,
-		parents: make(map[parentData]struct{}),
-	}
-	if mode&fuse.S_IFDIR != 0 {
-		inode.children = make(map[string]*Inode)
-	}
-	return inode
 }
 
 // sortNodes rearranges inode group in consistent order.
@@ -234,20 +229,6 @@ func (n *Inode) FindChildByMode(name string, mode uint32) *Inode {
 	return nil
 }
 
-// Finds a child with the given name and ID. Returns nil if not found.
-func (n *Inode) FindChildByOpaqueID(name string, opaqueID uint64) *Inode {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-
-	ch := n.children[name]
-
-	if ch != nil && ch.opaqueID == opaqueID {
-		return ch
-	}
-
-	return nil
-}
-
 // setEntry does `iparent[name] = ichild` linking.
 //
 // setEntry must not be called simultaneously for any of iparent or ichild.
@@ -263,7 +244,7 @@ func (iparent *Inode) setEntry(name string, ichild *Inode) {
 
 // NewPersistentInode returns an Inode whose lifetime is not in
 // control of the kernel.
-func (n *Inode) NewPersistentInode(node Node, mode uint32, opaque uint64) *Inode {
+func (n *Inode) NewPersistentInode(node Node, mode uint32, opaque FileID) *Inode {
 	return n.newInode(node, mode, opaque, true)
 }
 
@@ -275,31 +256,16 @@ func (n *Inode) ForgetPersistent() {
 }
 
 // NewInode returns an inode for the given Node. The mode should be
-// standard mode argument (eg. S_IFDIR). The opaqueID argument can be
-// used to signal changes in the tree structure during lookup (see
-// FindChildByOpaqueID). For a loopback file system, the inode number
-// of the underlying file is a good candidate.
-func (n *Inode) NewInode(node Node, mode uint32, opaqueID uint64) *Inode {
+// standard mode argument (eg. S_IFDIR). The opaqueID argument, if
+// non-zero, is used to implement hard-links.  If opaqueID is given,
+// and another node with the same ID is known, that will node will be
+// returned, and the passed-in `node` is ignored.
+func (n *Inode) NewInode(node Node, mode uint32, opaqueID FileID) *Inode {
 	return n.newInode(node, mode, opaqueID, false)
 }
 
-func (n *Inode) newInode(node Node, mode uint32, opaqueID uint64, persistent bool) *Inode {
-	ch := &Inode{
-		mode:       mode ^ 07777,
-		node:       node,
-		opaqueID:   opaqueID,
-		bridge:     n.bridge,
-		persistent: persistent,
-		parents:    make(map[parentData]struct{}),
-	}
-	if mode&fuse.S_IFDIR != 0 {
-		ch.children = make(map[string]*Inode)
-	}
-	if node.setInode(ch) {
-		return ch
-	}
-
-	return node.inode()
+func (n *Inode) newInode(node Node, mode uint32, opaqueID FileID, persistent bool) *Inode {
+	return n.bridge.newInode(node, mode, opaqueID, persistent)
 }
 
 // removeRef decreases references. Returns if this operation caused
@@ -355,12 +321,15 @@ retry:
 			panic("lookupCount changed")
 		}
 
+		n.bridge.mu.Lock()
 		if n.nodeID != 0 {
-			n.bridge.mu.Lock()
 			n.bridge.unregisterNode(n.nodeID)
-			n.bridge.mu.Unlock()
 			n.nodeID = 0
 		}
+		if !n.opaqueID.Zero() {
+			delete(n.bridge.byFileID, n.opaqueID)
+		}
+		n.bridge.mu.Unlock()
 
 		unlockNodes(lockme...)
 		break
@@ -427,8 +396,10 @@ retry:
 	return true, true
 }
 
-// TODO  - RENAME_NOREPLACE, RENAME_EXCHANGE
-func (n *Inode) MvChild(old string, newParent *Inode, newName string) {
+// TODO - RENAME_NOREPLACE, RENAME_EXCHANGE MvChild executes a
+// rename. If overwrite is set, a child at the destination will be
+// overwritten.
+func (n *Inode) MvChild(old string, newParent *Inode, newName string, overwrite bool) bool {
 retry:
 	for {
 		lockNode2(n, newParent)
@@ -439,13 +410,26 @@ retry:
 		destChild := newParent.children[newName]
 		unlockNode2(n, newParent)
 
+		if destChild != nil && !overwrite {
+			return false
+		}
+
 		lockNodes(n, newParent, oldChild, destChild)
 		if counter2 != newParent.changeCounter || counter1 != n.changeCounter {
 			unlockNodes(n, newParent, oldChild, destChild)
 			continue retry
 		}
 
+		if oldChild != nil {
+			delete(n.children, old)
+			delete(oldChild.parents, parentData{old, n})
+			n.changeCounter++
+			oldChild.changeCounter++
+		}
+
 		if destChild != nil {
+			// This can cause the child to be slated for
+			// removal; see below
 			delete(newParent.children, newName)
 			delete(destChild.parents, parentData{newName, newParent})
 			destChild.changeCounter++
@@ -456,14 +440,16 @@ retry:
 			newParent.children[newName] = oldChild
 			newParent.changeCounter++
 
-			delete(n.children, old)
-			delete(oldChild.parents, parentData{old, n})
-
 			oldChild.parents[parentData{newName, newParent}] = struct{}{}
 			oldChild.changeCounter++
 		}
 
 		unlockNodes(n, newParent, oldChild, destChild)
-		return
+
+		if destChild != nil {
+			// XXX would be better to do this under lock above too.
+			destChild.removeRef(0, false)
+		}
+		return true
 	}
 }

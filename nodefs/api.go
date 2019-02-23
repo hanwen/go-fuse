@@ -79,7 +79,7 @@ type Node interface {
 	//
 	// See InodeOf for public API to retrieve an inode from Node.
 	inode() *Inode
-	setInode(*Inode) (set bool)
+	setInode(*Inode)
 
 	// Lookup should find a direct child of the node by child name.
 	//

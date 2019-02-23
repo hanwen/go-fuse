@@ -6,9 +6,7 @@ package nodefs
 
 import (
 	"context"
-	"sync/atomic"
 	"time"
-	"unsafe"
 
 	"github.com/hanwen/go-fuse/fuse"
 )
@@ -20,32 +18,12 @@ type DefaultNode struct {
 	inode_ *Inode
 }
 
-// set/retrieve inode.
-//
-// node -> inode association, can be simultaneously tried to be set, if for e.g.
-//
-//	    root
-//	    /  \
-//	  dir1 dir2
-//	    \  /
-//	    file
-//
-// dir1.Lookup("file") and dir2.Lookup("file") are executed simultaneously.
-//
-// We use atomics so that only one set can win
-//
-// To read node.inode atomic.LoadPointer is used, however it is not expensive
-// since it translates to regular MOVQ on amd64.
-
-func (dn *DefaultNode) setInode(inode *Inode) bool {
-	return atomic.CompareAndSwapPointer(
-		(*unsafe.Pointer)(unsafe.Pointer(&dn.inode_)),
-		nil, unsafe.Pointer(inode))
+func (dn *DefaultNode) setInode(inode *Inode) {
+	dn.inode_ = inode
 }
 
 func (dn *DefaultNode) inode() *Inode {
-	return (*Inode)(atomic.LoadPointer(
-		(*unsafe.Pointer)(unsafe.Pointer(&dn.inode_))))
+	return dn.inode_
 }
 
 func (n *DefaultNode) Read(ctx context.Context, f File, dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
