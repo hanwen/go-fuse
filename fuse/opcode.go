@@ -6,6 +6,7 @@ package fuse
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"reflect"
 	"runtime"
@@ -483,7 +484,7 @@ func getHandler(o int32) *operationHandler {
 func init() {
 	operationHandlers = make([]*operationHandler, _OPCODE_COUNT)
 	for i := range operationHandlers {
-		operationHandlers[i] = &operationHandler{Name: "UNKNOWN"}
+		operationHandlers[i] = &operationHandler{Name: fmt.Sprintf("OPCODE-%d", i)}
 	}
 
 	fileOps := []int32{_OP_READLINK, _OP_NOTIFY_INVAL_ENTRY, _OP_NOTIFY_DELETE}
