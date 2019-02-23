@@ -97,12 +97,12 @@ type MkdirIn struct {
 	Umask uint32
 }
 
-type RenameIn struct {
+type Rename1In struct {
 	InHeader
 	Newdir uint64
 }
 
-type Rename2In struct {
+type RenameIn struct {
 	InHeader
 	Newdir  uint64
 	Flags   uint32

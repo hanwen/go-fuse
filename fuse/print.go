@@ -115,8 +115,12 @@ func (me *MkdirIn) string() string {
 	return fmt.Sprintf("{0%o (0%o)}", me.Mode, me.Umask)
 }
 
+func (me *Rename1In) string() string {
+	return fmt.Sprintf("{i%d}", me.Newdir)
+}
+
 func (me *RenameIn) string() string {
-	return fmt.Sprintf("{%d}", me.Newdir)
+	return fmt.Sprintf("{i%d %x}", me.Newdir, me.Flags)
 }
 
 func (me *SetAttrIn) string() string {
