@@ -19,7 +19,7 @@
 //
 // A /-separated string path describes location of a node in the tree. For example
 //
-//	/dir1/file
+//	dir1/file
 //
 // describes path root → dir1 → file.
 //
@@ -28,13 +28,15 @@
 // expressed through index-nodes (also known as "inode", see Inode) which
 // describe parent/child relation in between nodes and node-ID association.
 //
-// A particular filesystem should provide nodes with filesystem operations
-// implemented as defined by Node interface. When filesystem is mounted, its
-// root Node is associated with root of the tree, and the tree is further build
-// lazily when nodefs infrastructure needs to lookup children of nodes to
-// process client requests. For every new node, the filesystem infrastructure
-// automatically builds new index node and links it in the filesystem tree.
-// InodeOf can be used to get particular Inode associated with a Node.
+// A particular filesystem should provide nodes with filesystem
+// operations implemented as defined by Operations interface. When
+// filesystem is mounted, its root Operations is associated with root
+// of the tree, and the tree is further build lazily when nodefs
+// infrastructure needs to lookup children of nodes to process client
+// requests. For every new Operations, the filesystem infrastructure
+// automatically builds new index node and links it in the filesystem
+// tree.  InodeOf can be used to get particular Inode associated with
+// a Operations.
 //
 // XXX ^^^ inodes cleaned on cache clean (FORGET).
 //
@@ -57,7 +59,7 @@ import (
 //
 // The identity of the Inode does not change over the lifetime of
 // the node object.
-func InodeOf(node Node) *Inode {
+func InodeOf(node Operations) *Inode {
 	return node.inode()
 }
 
@@ -68,10 +70,11 @@ NOSUBMIT: how to structure?
 - one interface for files (getattr, read/write), one for dirs (lookup, opendir), one shared?
 - one giant interface?
 - use raw types as args rather than mimicking Golang signatures?
-
-Every Node implementation must directly or indirectly embed DefaultNode.
 */
-type Node interface {
+
+// Operations is the interface that implements the filesystem.  Each
+// Operations instance must embed DefaultNode.
+type Operations interface {
 	// setInode and inode are used by nodefs internally to link Inode to a Node.
 	//
 	// When a new Node instance is created, e.g. on Lookup, it has nil Inode.
@@ -91,7 +94,7 @@ type Node interface {
 	Mknod(ctx context.Context, name string, mode uint32, dev uint32, out *fuse.EntryOut) (*Inode, fuse.Status)
 	Rmdir(ctx context.Context, name string) fuse.Status
 	Unlink(ctx context.Context, name string) fuse.Status
-	Rename(ctx context.Context, name string, newParent Node, newName string, flags uint32) fuse.Status
+	Rename(ctx context.Context, name string, newParent Operations, newName string, flags uint32) fuse.Status
 
 	Open(ctx context.Context, flags uint32) (fh File, fuseFlags uint32, code fuse.Status)
 

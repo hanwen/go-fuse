@@ -39,7 +39,7 @@ func (n *loopbackRoot) GetAttr(ctx context.Context, f File, out *fuse.AttrOut) f
 }
 
 type loopbackNode struct {
-	DefaultNode
+	DefaultOperations
 
 	rootNode *loopbackRoot
 
@@ -130,7 +130,7 @@ func (n *loopbackNode) Unlink(ctx context.Context, name string) fuse.Status {
 	return fuse.ToStatus(err)
 }
 
-func (n *loopbackNode) Rename(ctx context.Context, name string, newParent Node, newName string, flags uint32) fuse.Status {
+func (n *loopbackNode) Rename(ctx context.Context, name string, newParent Operations, newName string, flags uint32) fuse.Status {
 
 	if flags != 0 {
 		return fuse.ENOSYS
@@ -227,7 +227,7 @@ func (n *loopbackNode) GetAttr(ctx context.Context, f File, out *fuse.AttrOut) f
 	return fuse.OK
 }
 
-func NewLoopback(root string) Node {
+func NewLoopback(root string) Operations {
 	n := &loopbackRoot{
 		root: root,
 	}
