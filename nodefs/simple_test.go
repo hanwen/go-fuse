@@ -7,9 +7,11 @@ package nodefs
 import (
 	"bytes"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -19,6 +21,8 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/internal/testutil"
 )
+
+var _ = log.Println
 
 type testCase struct {
 	*testing.T
@@ -334,4 +338,72 @@ func TestRenameNoOverwrite(t *testing.T) {
 	} else if err != syscall.EINVAL {
 		t.Errorf("got %v (%T) want %v (%T)", err, err, syscall.EINVAL, syscall.EINVAL)
 	}
+}
+
+func TestNlinkZero(t *testing.T) {
+	// xfstest generic/035.
+	tc := newTestCase(t)
+	defer tc.Clean()
+
+	src := tc.mntDir + "/src"
+	dst := tc.mntDir + "/dst"
+	if err := ioutil.WriteFile(src, []byte("source"), 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	if err := ioutil.WriteFile(dst, []byte("dst"), 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	f, err := os.Open(dst)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer f.Close()
+
+	var st syscall.Stat_t
+	if err := syscall.Fstat(int(f.Fd()), &st); err != nil {
+		t.Errorf("Fstat before: %v", err)
+	} else if st.Nlink != 1 {
+		t.Errorf("Nlink of file: got %d, want 1", st.Nlink)
+	}
+
+	if err := os.Rename(src, dst); err != nil {
+		t.Fatalf("Rename: %v", err)
+	}
+
+	if err := syscall.Fstat(int(f.Fd()), &st); err != nil {
+		t.Errorf("Fstat after: %v", err)
+	} else if st.Nlink != 0 {
+		t.Errorf("Nlink of overwritten file: got %d, want 0", st.Nlink)
+	}
+}
+
+func TestParallelFileOpen(t *testing.T) {
+	tc := newTestCase(t)
+	defer tc.Clean()
+
+	fn := tc.mntDir + "/file"
+	if err := ioutil.WriteFile(fn, []byte("content"), 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	var wg sync.WaitGroup
+	one := func(b byte) {
+		f, err := os.OpenFile(fn, os.O_RDWR, 0644)
+		if err != nil {
+			t.Fatalf("OpenFile: %v", err)
+		}
+		var buf [10]byte
+		f.Read(buf[:])
+		buf[0] = b
+		f.WriteAt(buf[0:1], 2)
+		f.Close()
+		wg.Done()
+	}
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go one(byte(i))
+	}
+	wg.Wait()
 }

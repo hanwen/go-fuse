@@ -8,6 +8,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"sync"
 	"syscall"
 
 	"github.com/hanwen/go-fuse/fuse"
@@ -17,6 +18,13 @@ type loopbackRoot struct {
 	loopbackNode
 
 	root string
+}
+
+func (n *loopbackRoot) newLoopbackNode() *loopbackNode {
+	return &loopbackNode{
+		rootNode:  n,
+		openFiles: map[*loopbackFile]struct{}{},
+	}
 }
 
 func (n *loopbackRoot) GetAttr(ctx context.Context, f File, out *fuse.AttrOut) fuse.Status {
@@ -34,6 +42,19 @@ type loopbackNode struct {
 	DefaultNode
 
 	rootNode *loopbackRoot
+
+	mu        sync.Mutex
+	openFiles map[*loopbackFile]struct{}
+}
+
+func (n *loopbackNode) Release(ctx context.Context, f File) {
+	if f != nil {
+		n.mu.Lock()
+		defer n.mu.Unlock()
+		lf := f.(*loopbackFile)
+		delete(n.openFiles, lf)
+		f.Release(ctx)
+	}
 }
 
 func (n *loopbackNode) path() string {
@@ -57,7 +78,7 @@ func (n *loopbackNode) Lookup(ctx context.Context, name string, out *fuse.EntryO
 		Ino: out.Attr.Ino,
 	}
 
-	node := &loopbackNode{rootNode: n.rootNode}
+	node := n.rootNode.newLoopbackNode()
 	ch := n.inode().NewInode(node, out.Attr.Mode, opaque)
 	return ch, fuse.OK
 }
@@ -76,7 +97,7 @@ func (n *loopbackNode) Mknod(ctx context.Context, name string, mode, rdev uint32
 
 	out.Attr.FromStat(&st)
 
-	node := &loopbackNode{rootNode: n.rootNode}
+	node := n.rootNode.newLoopbackNode()
 	opaque := FileID{
 		Dev: uint64(out.Attr.Rdev),
 		Ino: out.Attr.Ino,
@@ -101,7 +122,7 @@ func (n *loopbackNode) Mkdir(ctx context.Context, name string, mode uint32, out 
 
 	out.Attr.FromStat(&st)
 
-	node := &loopbackNode{rootNode: n.rootNode}
+	node := n.rootNode.newLoopbackNode()
 	opaque := FileID{
 		Dev: uint64(out.Attr.Rdev),
 		Ino: out.Attr.Ino,
@@ -156,14 +177,18 @@ func (n *loopbackNode) Create(ctx context.Context, name string, flags uint32, mo
 		return nil, nil, 0, fuse.ToStatus(err)
 	}
 
-	node := &loopbackNode{rootNode: n.rootNode}
+	node := n.rootNode.newLoopbackNode()
 	opaque := FileID{
 		Dev: st.Rdev,
 		Ino: st.Ino,
 	}
 
 	ch := n.inode().NewInode(node, st.Mode, opaque)
-	return ch, NewLoopbackFile(f), 0, fuse.OK
+	lf := newLoopbackFile(f)
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	n.openFiles[lf] = struct{}{}
+	return ch, lf, 0, fuse.OK
 }
 
 func (n *loopbackNode) Open(ctx context.Context, flags uint32) (fh File, fuseFlags uint32, code fuse.Status) {
@@ -172,12 +197,32 @@ func (n *loopbackNode) Open(ctx context.Context, flags uint32) (fh File, fuseFla
 	if err != nil {
 		return nil, 0, fuse.ToStatus(err)
 	}
-	return NewLoopbackFile(f), 0, fuse.OK
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	lf := newLoopbackFile(f)
+	n.openFiles[lf] = struct{}{}
+	return lf, 0, fuse.OK
+}
+
+func (n *loopbackNode) fGetAttr(ctx context.Context, out *fuse.AttrOut) (fuse.Status, bool) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	for f := range n.openFiles {
+		if f != nil {
+			return f.GetAttr(ctx, out), true
+		}
+	}
+	return fuse.EBADF, false
 }
 
 func (n *loopbackNode) GetAttr(ctx context.Context, f File, out *fuse.AttrOut) fuse.Status {
 	if f != nil {
+		// this never happens because the kernel never sends FH on getattr.
 		return f.GetAttr(ctx, out)
+
+	}
+	if code, ok := n.fGetAttr(ctx, out); ok {
+		return code
 	}
 
 	p := n.path()
@@ -197,6 +242,6 @@ func NewLoopback(root string) Node {
 		root: root,
 	}
 	n.rootNode = n
-
+	n.openFiles = map[*loopbackFile]struct{}{}
 	return n
 }

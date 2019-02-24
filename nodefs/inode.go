@@ -21,14 +21,18 @@ type parentData struct {
 }
 
 // FileID provides a identifier for file objects defined by FUSE
-// filesystems.
+// filesystems. The identifier is divided into a (Device, Inode) pair,
+// so files in underlying file systems can easily be represented, but
+// FUSE filesystems are free to use any other information as 128-bit
+// key.
 //
 // XXX name: PersistentID ? NodeID ?
 type FileID struct {
-	Dev uint64 // XXX Rdev?
+	Dev uint64
 	Ino uint64
 }
 
+// Zero returns if the FileID is zeroed out
 func (i *FileID) Zero() bool {
 	return i.Dev == 0 && i.Ino == 0
 }
@@ -39,10 +43,12 @@ func (i *FileID) Zero() bool {
 // "persistent" Inodes.
 type Inode struct {
 	// The filetype bits from the mode.
-	mode     uint32
+	mode uint32
+
 	opaqueID FileID
-	node     Node
-	bridge   *rawBridge
+
+	node   Node
+	bridge *rawBridge
 
 	// Following data is mutable.
 
@@ -51,10 +57,8 @@ type Inode struct {
 	// lockNodes/unlockNodes
 	mu sync.Mutex
 
-	// ID of the inode; 0 if inode was forgotten.  Forgotten
-	// inodes could be persistent, not yet are unlinked from
-	// parent and children, but could be still not yet removed
-	// from bridge.nodes .
+	// ID of the inode for talking to the kernel, 0 if the kernel
+	// does not know this inode.
 	nodeID uint64
 
 	// persistent indicates that this node should not be removed
@@ -127,7 +131,9 @@ func lockNodes(ns ...*Inode) {
 
 // lockNode2 locks a and b in order consistent with lockNodes.
 func lockNode2(a, b *Inode) {
-	if nodeLess(a, b) {
+	if a == b {
+		a.mu.Lock()
+	} else if nodeLess(a, b) {
 		a.mu.Lock()
 		b.mu.Lock()
 	} else {
@@ -138,8 +144,12 @@ func lockNode2(a, b *Inode) {
 
 // unlockNode2 unlocks a and b
 func unlockNode2(a, b *Inode) {
-	a.mu.Unlock()
-	b.mu.Unlock()
+	if a == b {
+		a.mu.Unlock()
+	} else {
+		a.mu.Unlock()
+		b.mu.Unlock()
+	}
 }
 
 // unlockNodes releases locks taken by lockNodes.

@@ -14,11 +14,11 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-// LoopbackFile delegates all operations back to an underlying os.File.
-func NewLoopbackFile(f *os.File) File {
+func newLoopbackFile(f *os.File) *loopbackFile {
 	return &loopbackFile{File: f}
 }
 
+// loopbackFile delegates all operations back to an underlying os.File.
 type loopbackFile struct {
 	File *os.File
 
