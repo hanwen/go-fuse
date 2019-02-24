@@ -457,6 +457,9 @@ func doSetLkw(server *Server, req *request) {
 	req.status = server.fileSystem.SetLkw((*LkIn)(req.inData))
 }
 
+func doInterrupt(server *Server, req *request) {
+}
+
 ////////////////////////////////////////////////////////////////
 
 type operationFunc func(*Server, *request)
@@ -664,6 +667,7 @@ func init() {
 		_OP_FALLOCATE:    doFallocate,
 		_OP_READDIRPLUS:  doReadDirPlus,
 		_OP_RENAME2:      doRename2,
+		_OP_INTERRUPT:    doInterrupt,
 	} {
 		operationHandlers[op].Func = v
 	}

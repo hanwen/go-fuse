@@ -455,7 +455,7 @@ func (ms *Server) allocOut(req *request, size uint32) []byte {
 func (ms *Server) write(req *request) Status {
 	// Forget/NotifyReply do not wait for reply from filesystem server.
 	switch req.inHeader.Opcode {
-	case _OP_FORGET, _OP_BATCH_FORGET, _OP_NOTIFY_REPLY:
+	case _OP_FORGET, _OP_BATCH_FORGET, _OP_NOTIFY_REPLY, _OP_INTERRUPT:
 		return OK
 	}
 
