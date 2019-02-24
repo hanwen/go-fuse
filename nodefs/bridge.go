@@ -44,6 +44,7 @@ type rawBridge struct {
 }
 
 // newInode creates creates new inode pointing to node.
+// XXX - should store the Ino number we expose in GetAttr too ?
 func (b *rawBridge) newInode(node Node, mode uint32, id FileID, persistent bool) *Inode {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -213,10 +214,6 @@ func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file F
 	}
 
 	out.NodeId = child.nodeID
-	// NOSUBMIT - or should let FS expose Attr.Ino? This makes
-	// testing semantics hard though, because os.Lstat doesn't
-	// reflect the FUSE FS
-	out.Attr.Ino = child.nodeID
 	out.Generation = b.nodes[out.NodeId].generation
 	b.mu.Unlock()
 	unlockNodes(parent, child)
@@ -300,16 +297,8 @@ func (b *rawBridge) GetAttr(input *fuse.GetAttrIn, out *fuse.AttrOut) fuse.Statu
 		f = nil
 	}
 
-	code = n.node.GetAttr(context.TODO(), f, out)
-	if out.Nlink == 0 {
-		// With Nlink == 0, newer kernels will refuse link
-		// operations.
-		out.Nlink = 1
-	}
-
+	code := n.node.GetAttr(context.TODO(), f, out)
 	b.setAttrTimeout(out)
-
-	out.Ino = input.NodeId
 	return code
 }
 
