@@ -168,6 +168,8 @@ func (n *DefaultOperations) Create(ctx context.Context, name string, flags uint3
 type DefaultFile struct {
 }
 
+var _ = File((*DefaultFile)(nil))
+
 func (f *DefaultFile) Read(ctx context.Context, dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
 	return nil, fuse.ENOSYS
 }
@@ -196,7 +198,7 @@ func (f *DefaultFile) Release(ctx context.Context) {
 
 }
 
-func (f *DefaultFile) GetAttr(ctx context.Context, out *fuse.Attr) fuse.Status {
+func (f *DefaultFile) GetAttr(ctx context.Context, out *fuse.AttrOut) fuse.Status {
 	return fuse.ENOSYS
 }
 
@@ -218,5 +220,9 @@ func (f *DefaultFile) Utimens(ctx context.Context, atime *time.Time, mtime *time
 }
 
 func (f *DefaultFile) Allocate(ctx context.Context, off uint64, size uint64, mode uint32) (code fuse.Status) {
+	return fuse.ENOSYS
+}
+
+func (f *DefaultFile) Fsync(ctx context.Context, flags uint32) (code fuse.Status) {
 	return fuse.ENOSYS
 }
