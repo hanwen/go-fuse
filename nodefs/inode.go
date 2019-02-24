@@ -27,7 +27,7 @@ type FileID struct {
 	// objects in the file system. It is used to communicate to
 	// the kernel about this file object. The values uint64(-1),
 	// and 1 are reserved. When using Ino==0, a unique, sequential
-	// number is assigned (starting at 2^63)
+	// number is assigned (starting at 2^63) on Inode creation.
 	Ino uint64
 
 	// When reusing a previously used inode number for a new
@@ -42,17 +42,17 @@ func (i *FileID) Reserved() bool {
 	return i.Ino == 0 || i.Ino == 1 || i.Ino == ^uint64(0)
 }
 
-// Inode is a node in VFS tree.  Inodes are one-to-one mapped to Node
-// instances, which is the extension interface for file systems.  One
-// can create fully-formed trees of Inodes ahead of time by creating
-// "persistent" Inodes.
+// Inode is a node in VFS tree.  Inodes are one-to-one mapped to
+// Operations instances, which is the extension interface for file
+// systems.  One can create fully-formed trees of Inodes ahead of time
+// by creating "persistent" Inodes.
 type Inode struct {
 	// The filetype bits from the mode.
 	mode uint32
 
 	nodeID FileID
 
-	node   Node
+	node   Operations
 	bridge *rawBridge
 
 	// Following data is mutable.
@@ -179,7 +179,7 @@ func (n *Inode) Forgotten() bool {
 }
 
 // Node returns the Node object implementing the file system operations.
-func (n *Inode) Node() Node {
+func (n *Inode) Operations() Operations {
 	return n.node
 }
 
@@ -255,7 +255,7 @@ func (iparent *Inode) setEntry(name string, ichild *Inode) {
 
 // NewPersistentInode returns an Inode whose lifetime is not in
 // control of the kernel.
-func (n *Inode) NewPersistentInode(node Node, mode uint32, opaque FileID) *Inode {
+func (n *Inode) NewPersistentInode(node Operations, mode uint32, opaque FileID) *Inode {
 	return n.newInode(node, mode, opaque, true)
 }
 
@@ -266,16 +266,16 @@ func (n *Inode) ForgetPersistent() {
 	n.removeRef(0, true)
 }
 
-// NewInode returns an inode for the given Node. The mode should be
+// NewInode returns an inode for the given Operations. The mode should be
 // standard mode argument (eg. S_IFDIR). The opaqueID argument, if
 // non-zero, is used to implement hard-links.  If opaqueID is given,
 // and another node with the same ID is known, that will node will be
 // returned, and the passed-in `node` is ignored.
-func (n *Inode) NewInode(node Node, mode uint32, opaqueID FileID) *Inode {
+func (n *Inode) NewInode(node Operations, mode uint32, opaqueID FileID) *Inode {
 	return n.newInode(node, mode, opaqueID, false)
 }
 
-func (n *Inode) newInode(node Node, mode uint32, opaqueID FileID, persistent bool) *Inode {
+func (n *Inode) newInode(node Operations, mode uint32, opaqueID FileID, persistent bool) *Inode {
 	return n.bridge.newInode(node, mode, opaqueID, persistent)
 }
 

@@ -37,8 +37,7 @@ type rawBridge struct {
 }
 
 // newInode creates creates new inode pointing to node.
-// XXX - should store the Ino number we expose in GetAttr too ?
-func (b *rawBridge) newInode(node Node, mode uint32, id FileID, persistent bool) *Inode {
+func (b *rawBridge) newInode(node Operations, mode uint32, id FileID, persistent bool) *Inode {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -84,7 +83,7 @@ func (b *rawBridge) newInode(node Node, mode uint32, id FileID, persistent bool)
 	return inode
 }
 
-func NewNodeFS(root Node, opts *Options) fuse.RawFileSystem {
+func NewNodeFS(root Operations, opts *Options) fuse.RawFileSystem {
 	bridge := &rawBridge{
 		RawFileSystem: fuse.NewDefaultRawFileSystem(),
 		automaticIno:  1 << 63,
