@@ -18,12 +18,36 @@ type DefaultOperations struct {
 	inode_ *Inode
 }
 
+// check that we have implemented all interface methods
+var _ Operations = &DefaultOperations{}
+
 func (dn *DefaultOperations) setInode(inode *Inode) {
 	dn.inode_ = inode
 }
 
 func (dn *DefaultOperations) inode() *Inode {
 	return dn.inode_
+}
+
+func (n *DefaultOperations) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, fuse.Status) {
+	return nil, fuse.ENOSYS
+}
+
+func (n *DefaultOperations) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.EntryOut) (*Inode, fuse.Status) {
+	return nil, fuse.ENOSYS
+}
+func (n *DefaultOperations) Mknod(ctx context.Context, name string, mode uint32, dev uint32, out *fuse.EntryOut) (*Inode, fuse.Status) {
+	return nil, fuse.ENOSYS
+}
+func (n *DefaultOperations) Rmdir(ctx context.Context, name string) fuse.Status {
+	return fuse.ENOSYS
+}
+func (n *DefaultOperations) Unlink(ctx context.Context, name string) fuse.Status {
+	return fuse.ENOSYS
+}
+
+func (n *DefaultOperations) Rename(ctx context.Context, name string, newParent Operations, newName string, flags uint32) fuse.Status {
+	return fuse.ENOSYS
 }
 
 func (n *DefaultOperations) Read(ctx context.Context, f File, dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
@@ -131,6 +155,14 @@ func (n *DefaultOperations) Utimens(ctx context.Context, f File, atime *time.Tim
 	}
 
 	return fuse.ENOSYS
+}
+
+func (n *DefaultOperations) Open(ctx context.Context, flags uint32) (fh File, fuseFlags uint32, code fuse.Status) {
+	return nil, 0, fuse.ENOSYS
+}
+
+func (n *DefaultOperations) Create(ctx context.Context, name string, flags uint32, mode uint32) (node *Inode, fh File, fuseFlags uint32, code fuse.Status) {
+	return nil, nil, 0, fuse.ENOSYS
 }
 
 type DefaultFile struct {
