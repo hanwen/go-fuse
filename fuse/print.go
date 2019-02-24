@@ -266,6 +266,10 @@ func (f *LinkIn) string() string {
 	return fmt.Sprintf("{Oldnodeid: %d}", f.Oldnodeid)
 }
 
+func (in *InterruptIn) string() string {
+	return fmt.Sprintf("{ix %d}", in.Unique)
+}
+
 // Print pretty prints FUSE data types for kernel communication
 func Print(obj interface{}) string {
 	t, ok := obj.(interface {

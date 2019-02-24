@@ -721,6 +721,7 @@ func init() {
 		_OP_SETLK:        func(ptr unsafe.Pointer) interface{} { return (*LkIn)(ptr) },
 		_OP_SETLKW:       func(ptr unsafe.Pointer) interface{} { return (*LkIn)(ptr) },
 		_OP_RENAME2:      func(ptr unsafe.Pointer) interface{} { return (*RenameIn)(ptr) },
+		_OP_INTERRUPT:    func(ptr unsafe.Pointer) interface{} { return (*InterruptIn)(ptr) },
 	} {
 		operationHandlers[op].DecodeIn = f
 	}
