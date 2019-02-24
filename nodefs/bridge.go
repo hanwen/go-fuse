@@ -14,11 +14,6 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-type mapEntry struct {
-	generation uint64
-	inode      *Inode
-}
-
 type fileEntry struct {
 	file File
 
@@ -33,14 +28,12 @@ type rawBridge struct {
 
 	// mu protects the following data.  Locks for inodes must be
 	// taken before rawBridge.mu
-	mu    sync.Mutex
-	nodes []mapEntry
-	free  []uint64
+	mu           sync.Mutex
+	nodes        map[uint64]*Inode
+	automaticIno uint64
 
 	files     []fileEntry
 	freeFiles []uint64
-
-	byFileID map[FileID]*Inode
 }
 
 // newInode creates creates new inode pointing to node.
@@ -49,27 +42,35 @@ func (b *rawBridge) newInode(node Node, mode uint32, id FileID, persistent bool)
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	if !id.Zero() {
-		// the same node can be looked up through 2 paths in parallel, eg.
-		//
-		//	    root
-		//	    /  \
-		//	  dir1 dir2
-		//	    \  /
-		//	    file
-		//
-		// dir1.Lookup("file") and dir2.Lookup("file") are executed
-		// simultaneously.  The matching FileIDs ensure that we return the
-		// same node.
-		old := b.byFileID[id]
-		if old != nil {
-			return old
-		}
+	if id.Reserved() {
+		log.Panicf("using reserved ID %d for inode number", id.Ino)
+	}
+
+	if id.Ino == 0 {
+		id.Ino = b.automaticIno
+		b.automaticIno++
+	}
+
+	// the same node can be looked up through 2 paths in parallel, eg.
+	//
+	//	    root
+	//	    /  \
+	//	  dir1 dir2
+	//	    \  /
+	//	    file
+	//
+	// dir1.Lookup("file") and dir2.Lookup("file") are executed
+	// simultaneously.  The matching FileIDs ensure that we return the
+	// same node.
+	old := b.nodes[id.Ino]
+	if old != nil {
+		return old
 	}
 
 	inode := &Inode{
 		mode:       mode ^ 07777,
 		node:       node,
+		nodeID:     id,
 		bridge:     b,
 		persistent: persistent,
 		parents:    make(map[parentData]struct{}),
@@ -78,10 +79,7 @@ func (b *rawBridge) newInode(node Node, mode uint32, id FileID, persistent bool)
 		inode.children = make(map[string]*Inode)
 	}
 
-	if !id.Zero() {
-		b.byFileID[id] = inode
-	}
-
+	b.nodes[id.Ino] = inode
 	node.setInode(inode)
 	return inode
 }
@@ -89,7 +87,7 @@ func (b *rawBridge) newInode(node Node, mode uint32, id FileID, persistent bool)
 func NewNodeFS(root Node, opts *Options) fuse.RawFileSystem {
 	bridge := &rawBridge{
 		RawFileSystem: fuse.NewDefaultRawFileSystem(),
-		byFileID:      make(map[FileID]*Inode),
+		automaticIno:  1 << 63,
 	}
 
 	if opts != nil {
@@ -101,7 +99,6 @@ func NewNodeFS(root Node, opts *Options) fuse.RawFileSystem {
 	}
 
 	bridge.root = &Inode{
-		nodeID:      1,
 		lookupCount: 1,
 		mode:        fuse.S_IFDIR,
 		children:    make(map[string]*Inode),
@@ -109,11 +106,11 @@ func NewNodeFS(root Node, opts *Options) fuse.RawFileSystem {
 		node:        root,
 		bridge:      bridge,
 	}
+	bridge.root.nodeID.Ino = 1
 	root.setInode(bridge.root)
-	bridge.nodes = append(bridge.nodes,
-		mapEntry{},
-		// ID 1 is always the root.
-		mapEntry{inode: bridge.root})
+	bridge.nodes = map[uint64]*Inode{
+		1: bridge.root,
+	}
 
 	// Fh 0 means no file handle.
 	bridge.files = []fileEntry{{}}
@@ -123,7 +120,7 @@ func NewNodeFS(root Node, opts *Options) fuse.RawFileSystem {
 func (b *rawBridge) inode(id uint64, fh uint64) (*Inode, fileEntry) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	n, f := b.nodes[id].inode, b.files[fh]
+	n, f := b.nodes[id], b.files[fh]
 	if n == nil {
 		log.Panicf("unknown node %d", id)
 	}
@@ -203,18 +200,18 @@ func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file F
 	lockNodes(parent, child)
 	parent.setEntry(name, child)
 	b.mu.Lock()
+
 	child.lookupCount++
-	if child.nodeID == 0 {
-		b.registerInode(child)
-	}
 
 	var fh uint64
 	if file != nil {
 		fh = b.registerFile(file)
 	}
 
-	out.NodeId = child.nodeID
-	out.Generation = b.nodes[out.NodeId].generation
+	out.NodeId = child.nodeID.Ino
+	out.Generation = child.nodeID.Gen
+	out.Attr.Ino = child.nodeID.Ino
+
 	b.mu.Unlock()
 	unlockNodes(parent, child)
 	return fh
@@ -226,25 +223,6 @@ func (b *rawBridge) setEntryOutTimeout(out *fuse.EntryOut) {
 	}
 	if b.options.EntryTimeout != nil {
 		out.SetEntryTimeout(*b.options.EntryTimeout)
-	}
-}
-
-// registerInode sets an nodeID in the child. Must have bridge.mu and
-// child.mu
-func (b *rawBridge) registerInode(child *Inode) {
-	if l := len(b.free); l > 0 {
-		last := b.free[l-1]
-		b.free = b.free[:l-1]
-
-		child.nodeID = last
-		b.nodes[last].inode = child
-		b.nodes[last].generation++
-	} else {
-		last := len(b.nodes)
-		b.nodes = append(b.nodes, mapEntry{
-			inode: child,
-		})
-		child.nodeID = uint64(last)
 	}
 }
 
@@ -269,6 +247,9 @@ func (b *rawBridge) Create(input *fuse.CreateIn, name string, out *fuse.CreateOu
 	out.Attr = temp.Attr
 	out.AttrValid = temp.AttrValid
 	out.AttrValidNsec = temp.AttrValidNsec
+	out.Attr.Ino = child.nodeID.Ino
+	out.Generation = child.nodeID.Gen
+	out.NodeId = child.nodeID.Ino
 
 	b.setEntryOutTimeout(&out.EntryOut)
 	if out.Attr.Mode&^07777 != fuse.S_IFREG {
@@ -280,11 +261,6 @@ func (b *rawBridge) Create(input *fuse.CreateIn, name string, out *fuse.CreateOu
 func (b *rawBridge) Forget(nodeid, nlookup uint64) {
 	n, _ := b.inode(nodeid, 0)
 	n.removeRef(nlookup, false)
-}
-
-func (b *rawBridge) unregisterNode(nodeid uint64) {
-	b.free = append(b.free, nodeid)
-	b.nodes[nodeid].inode = nil
 }
 
 func (b *rawBridge) SetDebug(debug bool) {}
@@ -299,6 +275,7 @@ func (b *rawBridge) GetAttr(input *fuse.GetAttrIn, out *fuse.AttrOut) fuse.Statu
 
 	code := n.node.GetAttr(context.TODO(), f, out)
 	b.setAttrTimeout(out)
+	out.Ino = input.NodeId
 	return code
 }
 
@@ -372,6 +349,7 @@ func (b *rawBridge) SetAttr(input *fuse.SetAttrIn, out *fuse.AttrOut) (code fuse
 	// the changes we effect here.
 	code = n.node.GetAttr(ctx, f, out)
 	b.setAttrTimeout(out)
+	out.Ino = n.nodeID.Ino
 	return code
 }
 

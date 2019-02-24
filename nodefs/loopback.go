@@ -72,14 +72,8 @@ func (n *loopbackNode) Lookup(ctx context.Context, name string, out *fuse.EntryO
 	}
 
 	out.Attr.FromStat(&st)
-
-	opaque := FileID{
-		Dev: uint64(out.Attr.Rdev),
-		Ino: out.Attr.Ino,
-	}
-
 	node := n.rootNode.newLoopbackNode()
-	ch := n.inode().NewInode(node, out.Attr.Mode, opaque)
+	ch := n.inode().NewInode(node, out.Attr.Mode, idFromStat(&st))
 	return ch, fuse.OK
 }
 
@@ -98,11 +92,7 @@ func (n *loopbackNode) Mknod(ctx context.Context, name string, mode, rdev uint32
 	out.Attr.FromStat(&st)
 
 	node := n.rootNode.newLoopbackNode()
-	opaque := FileID{
-		Dev: uint64(out.Attr.Rdev),
-		Ino: out.Attr.Ino,
-	}
-	ch := n.inode().NewInode(node, out.Attr.Mode, opaque)
+	ch := n.inode().NewInode(node, out.Attr.Mode, idFromStat(&st))
 
 	return ch, fuse.OK
 }
@@ -123,11 +113,7 @@ func (n *loopbackNode) Mkdir(ctx context.Context, name string, mode uint32, out 
 	out.Attr.FromStat(&st)
 
 	node := n.rootNode.newLoopbackNode()
-	opaque := FileID{
-		Dev: uint64(out.Attr.Rdev),
-		Ino: out.Attr.Ino,
-	}
-	ch := n.inode().NewInode(node, out.Attr.Mode, opaque)
+	ch := n.inode().NewInode(node, out.Attr.Mode, idFromStat(&st))
 
 	return ch, fuse.OK
 }
@@ -163,6 +149,15 @@ func (n *loopbackNode) Rename(ctx context.Context, name string, newParent Node, 
 	return fuse.ToStatus(err)
 }
 
+func idFromStat(st *syscall.Stat_t) FileID {
+	return FileID{
+		Gen: 1,
+		// This should work well for traditional backing FSes,
+		// not so much for other go-fuse FS-es
+		Ino: uint64(st.Dev)<<32 ^ st.Ino,
+	}
+}
+
 func (n *loopbackNode) Create(ctx context.Context, name string, flags uint32, mode uint32) (inode *Inode, fh File, fuseFlags uint32, code fuse.Status) {
 	p := filepath.Join(n.path(), name)
 
@@ -178,12 +173,7 @@ func (n *loopbackNode) Create(ctx context.Context, name string, flags uint32, mo
 	}
 
 	node := n.rootNode.newLoopbackNode()
-	opaque := FileID{
-		Dev: st.Rdev,
-		Ino: st.Ino,
-	}
-
-	ch := n.inode().NewInode(node, st.Mode, opaque)
+	ch := n.inode().NewInode(node, st.Mode, idFromStat(&st))
 	lf := newLoopbackFile(f)
 	n.mu.Lock()
 	defer n.mu.Unlock()
