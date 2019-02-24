@@ -21,20 +21,25 @@ type parentData struct {
 }
 
 // FileID provides a identifier for file objects defined by FUSE
-// filesystems. The identifier is divided into a (Device, Inode) pair,
-// so files in underlying file systems can easily be represented, but
-// FUSE filesystems are free to use any other information as 128-bit
-// key.
-//
-// XXX name: PersistentID ? NodeID ?
+// filesystems.
 type FileID struct {
-	Dev uint64
+	// The inode number must be unique among the currently live
+	// objects in the file system. It is used to communicate to
+	// the kernel about this file object. The values uint64(-1),
+	// and 1 are reserved. When using Ino==0, a unique, sequential
+	// number is assigned (starting at 2^63)
 	Ino uint64
+
+	// When reusing a previously used inode number for a new
+	// object, the new object must have a different Gen
+	// number. This is irrelevant if the FS is not exported over
+	// NFS
+	Gen uint64
 }
 
 // Zero returns if the FileID is zeroed out
-func (i *FileID) Zero() bool {
-	return i.Dev == 0 && i.Ino == 0
+func (i *FileID) Reserved() bool {
+	return i.Ino == 0 || i.Ino == 1 || i.Ino == ^uint64(0)
 }
 
 // Inode is a node in VFS tree.  Inodes are one-to-one mapped to Node
@@ -45,7 +50,7 @@ type Inode struct {
 	// The filetype bits from the mode.
 	mode uint32
 
-	opaqueID FileID
+	nodeID FileID
 
 	node   Node
 	bridge *rawBridge
@@ -56,10 +61,6 @@ type Inode struct {
 	// multiple Inodes, locks must be acquired using
 	// lockNodes/unlockNodes
 	mu sync.Mutex
-
-	// ID of the inode for talking to the kernel, 0 if the kernel
-	// does not know this inode.
-	nodeID uint64
 
 	// persistent indicates that this node should not be removed
 	// from the tree, even if there are no live references. This
@@ -86,7 +87,7 @@ type Inode struct {
 func (n *Inode) debugString() string {
 	var ss []string
 	for nm, ch := range n.children {
-		ss = append(ss, fmt.Sprintf("%q=%d(%d)", nm, ch.nodeID, ch.opaqueID))
+		ss = append(ss, fmt.Sprintf("%q=%d", nm, ch.nodeID.Ino))
 	}
 
 	return fmt.Sprintf("%d: %s", n.nodeID, strings.Join(ss, ","))
@@ -172,9 +173,9 @@ func unlockNodes(ns ...*Inode) {
 // kernel has no way of reviving forgotten nodes by its own
 // initiative.
 func (n *Inode) Forgotten() bool {
-	n.bridge.mu.Lock()
-	defer n.bridge.mu.Unlock()
-	return n.nodeID == 0
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	return n.lookupCount == 0 && len(n.parents) == 0 && !n.persistent
 }
 
 // Node returns the Node object implementing the file system operations.
@@ -333,13 +334,7 @@ retry:
 		}
 
 		n.bridge.mu.Lock()
-		if n.nodeID != 0 {
-			n.bridge.unregisterNode(n.nodeID)
-			n.nodeID = 0
-		}
-		if !n.opaqueID.Zero() {
-			delete(n.bridge.byFileID, n.opaqueID)
-		}
+		delete(n.bridge.nodes, n.nodeID.Ino)
 		n.bridge.mu.Unlock()
 
 		unlockNodes(lockme...)
