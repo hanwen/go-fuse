@@ -374,12 +374,27 @@ func (b *rawBridge) Link(input *fuse.LinkIn, filename string, out *fuse.EntryOut
 	return fuse.ENOSYS
 }
 
-func (b *rawBridge) Symlink(header *fuse.InHeader, pointedTo string, linkName string, out *fuse.EntryOut) (code fuse.Status) {
-	return fuse.ENOSYS
+func (b *rawBridge) Symlink(header *fuse.InHeader, target string, name string, out *fuse.EntryOut) (code fuse.Status) {
+	log.Println("symlink1")
+	parent, _ := b.inode(header.NodeId, 0)
+	child, code := parent.node.Symlink(context.TODO(), target, name, out)
+	if !code.Ok() {
+		return code
+	}
+
+	b.addNewChild(parent, name, child, nil, out)
+	b.setEntryOutTimeout(out)
+	return fuse.OK
 }
 
 func (b *rawBridge) Readlink(header *fuse.InHeader) (out []byte, code fuse.Status) {
-	return nil, fuse.ENOSYS
+	n, _ := b.inode(header.NodeId, 0)
+	result, code := n.node.Readlink(context.TODO())
+	if !code.Ok() {
+		return nil, code
+	}
+
+	return []byte(result), fuse.OK
 }
 
 func (b *rawBridge) Access(input *fuse.AccessIn) (code fuse.Status) {

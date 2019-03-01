@@ -407,3 +407,20 @@ func TestParallelFileOpen(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+func TestSymlink(t *testing.T) {
+	tc := newTestCase(t)
+	defer tc.Clean()
+
+	fn := tc.mntDir + "/link"
+	target := "target"
+	if err := os.Symlink(target, fn); err != nil {
+		t.Fatalf("Symlink: %v", err)
+	}
+
+	if got, err := os.Readlink(fn); err != nil {
+		t.Fatalf("Readlink: %v", err)
+	} else if got != target {
+		t.Errorf("Readlink: got %q, want %q", got, target)
+	}
+}

@@ -105,7 +105,8 @@ type Operations interface {
 	Unlink(ctx context.Context, name string) fuse.Status
 	Rename(ctx context.Context, name string, newParent Operations, newName string, flags uint32) fuse.Status
 	Create(ctx context.Context, name string, flags uint32, mode uint32) (node *Inode, fh FileHandle, fuseFlags uint32, code fuse.Status)
-
+	Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (node *Inode, code fuse.Status)
+	Readlink(ctx context.Context) (string, fuse.Status)
 	Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, code fuse.Status)
 
 	Read(ctx context.Context, f FileHandle, dest []byte, off int64) (fuse.ReadResult, fuse.Status)

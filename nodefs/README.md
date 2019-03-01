@@ -60,4 +60,8 @@ To decide
    * cancellation through context.Context (standard, more GC overhead)
      or a custom context (could reuse across requests.)?
 
+   * Readlink return: []byte or string ?
 
+   * Should Operations.Lookup return *Inode or Operations ?
+
+   * Should bridge.Lookup() add the child, bridge.Unlink remove the child, etc.?

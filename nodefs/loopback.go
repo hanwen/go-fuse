@@ -6,6 +6,7 @@ package nodefs
 
 import (
 	"context"
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -13,6 +14,8 @@ import (
 
 	"github.com/hanwen/go-fuse/fuse"
 )
+
+var _ = log.Printf
 
 type loopbackRoot struct {
 	loopbackNode
@@ -181,6 +184,40 @@ func (n *loopbackNode) Create(ctx context.Context, name string, flags uint32, mo
 	defer n.mu.Unlock()
 	n.openFiles[lf] = flags | syscall.O_CREAT
 	return ch, lf, 0, fuse.OK
+}
+
+func (n *loopbackNode) Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (*Inode, fuse.Status) {
+	p := filepath.Join(n.path(), name)
+	err := syscall.Symlink(target, p)
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+	st := syscall.Stat_t{}
+	if syscall.Lstat(p, &st); err != nil {
+		syscall.Unlink(p)
+		return nil, fuse.ToStatus(err)
+	}
+	node := n.rootNode.newLoopbackNode()
+	ch := n.inode().NewInode(node, st.Mode, idFromStat(&st))
+
+	out.Attr.FromStat(&st)
+	return ch, fuse.OK
+}
+
+func (n *loopbackNode) Readlink(ctx context.Context) (string, fuse.Status) {
+	p := n.path()
+
+	for l := 256; ; l *= 2 {
+		buf := make([]byte, l)
+		sz, err := syscall.Readlink(p, buf)
+		if err != nil {
+			return "", fuse.ToStatus(err)
+		}
+
+		if sz < len(buf) {
+			return string(buf[:sz]), fuse.OK
+		}
+	}
 }
 
 func (n *loopbackNode) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, code fuse.Status) {

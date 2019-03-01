@@ -6,6 +6,7 @@ package nodefs
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
@@ -55,6 +56,15 @@ func (n *DefaultOperations) Read(ctx context.Context, f FileHandle, dest []byte,
 		return f.Read(ctx, dest, off)
 	}
 	return nil, fuse.ENOSYS
+}
+
+func (n *DefaultOperations) Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (node *Inode, code fuse.Status) {
+	log.Println("defsyml")
+	return nil, fuse.ENOSYS
+}
+
+func (n *DefaultOperations) Readlink(ctx context.Context) (string, fuse.Status) {
+	return "", fuse.ENOSYS
 }
 
 func (n *DefaultOperations) Fsync(ctx context.Context, f FileHandle, flags uint32) fuse.Status {
