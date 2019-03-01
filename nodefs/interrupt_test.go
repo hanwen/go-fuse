@@ -43,7 +43,7 @@ func (r *interruptRoot) Lookup(ctx context.Context, name string, out *fuse.Entry
 	return ch, fuse.OK
 }
 
-func (o *interruptOps) GetAttr(ctx context.Context, f File, out *fuse.AttrOut) fuse.Status {
+func (o *interruptOps) GetAttr(ctx context.Context, f FileHandle, out *fuse.AttrOut) fuse.Status {
 	out.Mode = fuse.S_IFREG | 0644
 	out.Size = uint64(len(o.Data))
 	return fuse.OK
@@ -57,11 +57,11 @@ func (f *interruptFile) Flush(ctx context.Context) fuse.Status {
 	return fuse.OK
 }
 
-func (o *interruptOps) Open(ctx context.Context, flags uint32) (File, uint32, fuse.Status) {
+func (o *interruptOps) Open(ctx context.Context, flags uint32) (FileHandle, uint32, fuse.Status) {
 	return &interruptFile{}, 0, fuse.OK
 }
 
-func (o *interruptOps) Read(ctx context.Context, f File, dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
+func (o *interruptOps) Read(ctx context.Context, f FileHandle, dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
 	time.Sleep(100 * time.Millisecond)
 	end := int(off) + len(dest)
 	if end > len(o.Data) {

@@ -50,21 +50,21 @@ func (n *DefaultOperations) Rename(ctx context.Context, name string, newParent O
 	return fuse.ENOSYS
 }
 
-func (n *DefaultOperations) Read(ctx context.Context, f File, dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
+func (n *DefaultOperations) Read(ctx context.Context, f FileHandle, dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
 	if f != nil {
 		return f.Read(ctx, dest, off)
 	}
 	return nil, fuse.ENOSYS
 }
 
-func (n *DefaultOperations) Fsync(ctx context.Context, f File, flags uint32) fuse.Status {
+func (n *DefaultOperations) Fsync(ctx context.Context, f FileHandle, flags uint32) fuse.Status {
 	if f != nil {
 		return f.Fsync(ctx, flags)
 	}
 	return fuse.ENOSYS
 }
 
-func (n *DefaultOperations) Write(ctx context.Context, f File, data []byte, off int64) (written uint32, code fuse.Status) {
+func (n *DefaultOperations) Write(ctx context.Context, f FileHandle, data []byte, off int64) (written uint32, code fuse.Status) {
 	if f != nil {
 		return f.Write(ctx, data, off)
 	}
@@ -72,7 +72,7 @@ func (n *DefaultOperations) Write(ctx context.Context, f File, data []byte, off 
 	return 0, fuse.ENOSYS
 }
 
-func (n *DefaultOperations) GetLk(ctx context.Context, f File, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (code fuse.Status) {
+func (n *DefaultOperations) GetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (code fuse.Status) {
 	if f != nil {
 		return f.GetLk(ctx, owner, lk, flags, out)
 	}
@@ -80,7 +80,7 @@ func (n *DefaultOperations) GetLk(ctx context.Context, f File, owner uint64, lk 
 	return fuse.ENOSYS
 }
 
-func (n *DefaultOperations) SetLk(ctx context.Context, f File, owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status) {
+func (n *DefaultOperations) SetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status) {
 	if f != nil {
 		return f.SetLk(ctx, owner, lk, flags)
 	}
@@ -88,14 +88,14 @@ func (n *DefaultOperations) SetLk(ctx context.Context, f File, owner uint64, lk 
 	return fuse.ENOSYS
 }
 
-func (n *DefaultOperations) SetLkw(ctx context.Context, f File, owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status) {
+func (n *DefaultOperations) SetLkw(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status) {
 	if f != nil {
 		return f.SetLkw(ctx, owner, lk, flags)
 	}
 
 	return fuse.ENOSYS
 }
-func (n *DefaultOperations) Flush(ctx context.Context, f File) fuse.Status {
+func (n *DefaultOperations) Flush(ctx context.Context, f FileHandle) fuse.Status {
 	if f != nil {
 		return f.Flush(ctx)
 	}
@@ -103,13 +103,13 @@ func (n *DefaultOperations) Flush(ctx context.Context, f File) fuse.Status {
 	return fuse.ENOSYS
 }
 
-func (n *DefaultOperations) Release(ctx context.Context, f File) {
+func (n *DefaultOperations) Release(ctx context.Context, f FileHandle) {
 	if f != nil {
 		f.Release(ctx)
 	}
 }
 
-func (n *DefaultOperations) Allocate(ctx context.Context, f File, off uint64, size uint64, mode uint32) (code fuse.Status) {
+func (n *DefaultOperations) Allocate(ctx context.Context, f FileHandle, off uint64, size uint64, mode uint32) (code fuse.Status) {
 	if f != nil {
 		return f.Allocate(ctx, off, size, mode)
 	}
@@ -117,7 +117,7 @@ func (n *DefaultOperations) Allocate(ctx context.Context, f File, off uint64, si
 	return fuse.ENOSYS
 }
 
-func (n *DefaultOperations) GetAttr(ctx context.Context, f File, out *fuse.AttrOut) fuse.Status {
+func (n *DefaultOperations) GetAttr(ctx context.Context, f FileHandle, out *fuse.AttrOut) fuse.Status {
 	if f != nil {
 		f.GetAttr(ctx, out)
 	}
@@ -125,7 +125,7 @@ func (n *DefaultOperations) GetAttr(ctx context.Context, f File, out *fuse.AttrO
 	return fuse.ENOSYS
 }
 
-func (n *DefaultOperations) Truncate(ctx context.Context, f File, size uint64) fuse.Status {
+func (n *DefaultOperations) Truncate(ctx context.Context, f FileHandle, size uint64) fuse.Status {
 	if f != nil {
 		return f.Truncate(ctx, size)
 	}
@@ -133,7 +133,7 @@ func (n *DefaultOperations) Truncate(ctx context.Context, f File, size uint64) f
 	return fuse.ENOSYS
 }
 
-func (n *DefaultOperations) Chown(ctx context.Context, f File, uid uint32, gid uint32) fuse.Status {
+func (n *DefaultOperations) Chown(ctx context.Context, f FileHandle, uid uint32, gid uint32) fuse.Status {
 	if f != nil {
 		return f.Chown(ctx, uid, gid)
 	}
@@ -141,7 +141,7 @@ func (n *DefaultOperations) Chown(ctx context.Context, f File, uid uint32, gid u
 	return fuse.ENOSYS
 }
 
-func (n *DefaultOperations) Chmod(ctx context.Context, f File, perms uint32) fuse.Status {
+func (n *DefaultOperations) Chmod(ctx context.Context, f FileHandle, perms uint32) fuse.Status {
 	if f != nil {
 		return f.Chmod(ctx, perms)
 	}
@@ -149,7 +149,7 @@ func (n *DefaultOperations) Chmod(ctx context.Context, f File, perms uint32) fus
 	return fuse.ENOSYS
 }
 
-func (n *DefaultOperations) Utimens(ctx context.Context, f File, atime *time.Time, mtime *time.Time) fuse.Status {
+func (n *DefaultOperations) Utimens(ctx context.Context, f FileHandle, atime *time.Time, mtime *time.Time) fuse.Status {
 	if f != nil {
 		return f.Utimens(ctx, atime, mtime)
 	}
@@ -157,18 +157,18 @@ func (n *DefaultOperations) Utimens(ctx context.Context, f File, atime *time.Tim
 	return fuse.ENOSYS
 }
 
-func (n *DefaultOperations) Open(ctx context.Context, flags uint32) (fh File, fuseFlags uint32, code fuse.Status) {
+func (n *DefaultOperations) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, code fuse.Status) {
 	return nil, 0, fuse.ENOSYS
 }
 
-func (n *DefaultOperations) Create(ctx context.Context, name string, flags uint32, mode uint32) (node *Inode, fh File, fuseFlags uint32, code fuse.Status) {
+func (n *DefaultOperations) Create(ctx context.Context, name string, flags uint32, mode uint32) (node *Inode, fh FileHandle, fuseFlags uint32, code fuse.Status) {
 	return nil, nil, 0, fuse.ENOSYS
 }
 
 type DefaultFile struct {
 }
 
-var _ = File((*DefaultFile)(nil))
+var _ = FileHandle((*DefaultFile)(nil))
 
 func (f *DefaultFile) Read(ctx context.Context, dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
 	return nil, fuse.ENOSYS

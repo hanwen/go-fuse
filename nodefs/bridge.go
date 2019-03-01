@@ -15,7 +15,7 @@ import (
 )
 
 type fileEntry struct {
-	file File
+	file FileHandle
 
 	// space to hold directory stuff
 }
@@ -197,7 +197,7 @@ func (b *rawBridge) Mknod(input *fuse.MknodIn, name string, out *fuse.EntryOut) 
 }
 
 // addNewChild inserts the child into the tree. Returns file handle if file != nil.
-func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file File, out *fuse.EntryOut) uint64 {
+func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file FileHandle, out *fuse.EntryOut) uint64 {
 	lockNodes(parent, child)
 	parent.setEntry(name, child)
 	b.mu.Lock()
@@ -423,7 +423,7 @@ func (b *rawBridge) Open(input *fuse.OpenIn, out *fuse.OpenOut) (status fuse.Sta
 }
 
 // registerFile hands out a file handle. Must have bridge.mu
-func (b *rawBridge) registerFile(f File) uint64 {
+func (b *rawBridge) registerFile(f FileHandle) uint64 {
 	var fh uint64
 	if len(b.freeFiles) > 0 {
 		last := uint64(len(b.freeFiles) - 1)
