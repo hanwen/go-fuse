@@ -421,9 +421,6 @@ func (b *rawBridge) Open(input *fuse.OpenIn, out *fuse.OpenOut) (status fuse.Sta
 }
 
 // registerFile hands out a file handle. Must have bridge.mu
-//
-// XXX is it allowed to return the same Fh from two different Open
-// calls on the same inode?
 func (b *rawBridge) registerFile(f File) uint64 {
 	var fh uint64
 	if len(b.freeFiles) > 0 {
