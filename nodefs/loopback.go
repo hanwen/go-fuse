@@ -23,7 +23,7 @@ type loopbackRoot struct {
 func (n *loopbackRoot) newLoopbackNode() *loopbackNode {
 	return &loopbackNode{
 		rootNode:  n,
-		openFiles: map[*loopbackFile]struct{}{},
+		openFiles: map[*loopbackFile]uint32{},
 	}
 }
 
@@ -43,8 +43,10 @@ type loopbackNode struct {
 
 	rootNode *loopbackRoot
 
-	mu        sync.Mutex
-	openFiles map[*loopbackFile]struct{}
+	mu sync.Mutex
+
+	// file => openflags
+	openFiles map[*loopbackFile]uint32
 }
 
 func (n *loopbackNode) Release(ctx context.Context, f FileHandle) {
@@ -177,7 +179,7 @@ func (n *loopbackNode) Create(ctx context.Context, name string, flags uint32, mo
 	lf := newLoopbackFile(f)
 	n.mu.Lock()
 	defer n.mu.Unlock()
-	n.openFiles[lf] = struct{}{}
+	n.openFiles[lf] = flags | syscall.O_CREAT
 	return ch, lf, 0, fuse.OK
 }
 
@@ -190,7 +192,7 @@ func (n *loopbackNode) Open(ctx context.Context, flags uint32) (fh FileHandle, f
 	n.mu.Lock()
 	defer n.mu.Unlock()
 	lf := newLoopbackFile(f)
-	n.openFiles[lf] = struct{}{}
+	n.openFiles[lf] = flags
 	return lf, 0, fuse.OK
 }
 
@@ -232,6 +234,6 @@ func NewLoopback(root string) Operations {
 		root: root,
 	}
 	n.rootNode = n
-	n.openFiles = map[*loopbackFile]struct{}{}
+	n.openFiles = map[*loopbackFile]uint32{}
 	return n
 }
