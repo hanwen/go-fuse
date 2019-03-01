@@ -7,7 +7,9 @@ package nodefs
 import (
 	"context"
 	"log"
+	"sync/atomic"
 	"time"
+	"unsafe"
 
 	"github.com/hanwen/go-fuse/fuse"
 )
@@ -22,12 +24,32 @@ type DefaultOperations struct {
 // check that we have implemented all interface methods
 var _ Operations = &DefaultOperations{}
 
-func (dn *DefaultOperations) setInode(inode *Inode) {
-	dn.inode_ = inode
+// set/retrieve inode.
+//
+// node -> inode association, can be simultaneously tried to be set, if for e.g.
+//
+//         root
+//         /  \
+//       dir1 dir2
+//         \  /
+//         file
+//
+// dir1.Lookup("file") and dir2.Lookup("file") are executed simultaneously.
+//
+// If not using FileID, the mapping in rawBridge does not help. So,
+// use atomics so that only one set can win.
+//
+// To read node.inode atomic.LoadPointer is used, however it is not expensive
+// since it translates to regular MOVQ on amd64.
+func (dn *DefaultOperations) setInode(inode *Inode) *Inode {
+	return atomic.CompareAndSwapPointer(
+		(*unsafe.Pointer)(unsafe.Pointer(&dn.inode_)),
+		nil, unsafe.Pointer(inode))
 }
 
 func (dn *DefaultOperations) inode() *Inode {
-	return dn.inode_
+	return (*Inode)(atomic.LoadPointer(
+		(*unsafe.Pointer)(unsafe.Pointer(&dn.inode_))))
 }
 
 func (n *DefaultOperations) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, fuse.Status) {
