@@ -65,16 +65,16 @@ func (b *rawBridge) newInode(node Operations, mode uint32, id FileID, persistent
 	if old != nil {
 		return old
 	}
-
+	mode = mode &^ 07777
 	inode := &Inode{
-		mode:       mode ^ 07777,
+		mode:       mode,
 		node:       node,
 		nodeID:     id,
 		bridge:     b,
 		persistent: persistent,
 		parents:    make(map[parentData]struct{}),
 	}
-	if mode&fuse.S_IFDIR != 0 {
+	if mode == fuse.S_IFDIR {
 		inode.children = make(map[string]*Inode)
 	}
 
@@ -142,6 +142,8 @@ func (b *rawBridge) Lookup(header *fuse.InHeader, name string, out *fuse.EntryOu
 
 	b.addNewChild(parent, name, child, nil, out)
 	b.setEntryOutTimeout(out)
+
+	out.Mode = child.mode | (out.Mode & 07777)
 	return fuse.OK
 }
 
@@ -251,9 +253,7 @@ func (b *rawBridge) Create(input *fuse.CreateIn, name string, out *fuse.CreateOu
 	out.NodeId = child.nodeID.Ino
 
 	b.setEntryOutTimeout(&out.EntryOut)
-	if out.Attr.Mode&^07777 != fuse.S_IFREG {
-		log.Panicf("Create: mode must be S_IFREG (%o), got %o", fuse.S_IFREG, out.Attr.Mode)
-	}
+	out.Mode = (out.Attr.Mode & 07777) | child.mode
 	return fuse.OK
 }
 
@@ -275,6 +275,7 @@ func (b *rawBridge) GetAttr(input *fuse.GetAttrIn, out *fuse.AttrOut) fuse.Statu
 	code := n.node.GetAttr(context.TODO(), f, out)
 	b.setAttrTimeout(out)
 	out.Ino = input.NodeId
+	out.Mode = (out.Attr.Mode & 07777) | n.mode
 	return code
 }
 
@@ -349,6 +350,7 @@ func (b *rawBridge) SetAttr(input *fuse.SetAttrIn, out *fuse.AttrOut) (code fuse
 	code = n.node.GetAttr(ctx, f, out)
 	b.setAttrTimeout(out)
 	out.Ino = n.nodeID.Ino
+	out.Mode = n.mode | (out.Mode &^ 07777)
 	return code
 }
 
