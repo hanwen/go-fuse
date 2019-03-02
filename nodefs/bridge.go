@@ -21,8 +21,6 @@ type fileEntry struct {
 }
 
 type rawBridge struct {
-	fuse.RawFileSystem
-
 	options Options
 	root    *Inode
 
@@ -85,8 +83,7 @@ func (b *rawBridge) newInode(node Operations, mode uint32, id FileID, persistent
 
 func NewNodeFS(root Operations, opts *Options) fuse.RawFileSystem {
 	bridge := &rawBridge{
-		RawFileSystem: fuse.NewDefaultRawFileSystem(),
-		automaticIno:  1 << 63,
+		automaticIno: 1 << 63,
 	}
 
 	if opts != nil {
@@ -114,6 +111,10 @@ func NewNodeFS(root Operations, opts *Options) fuse.RawFileSystem {
 	// Fh 0 means no file handle.
 	bridge.files = []fileEntry{{}}
 	return bridge
+}
+
+func (b *rawBridge) String() string {
+	return "rawBridge"
 }
 
 func (b *rawBridge) inode(id uint64, fh uint64) (*Inode, fileEntry) {
@@ -515,7 +516,7 @@ func (b *rawBridge) Fallocate(input *fuse.FallocateIn) (code fuse.Status) {
 }
 
 func (b *rawBridge) OpenDir(input *fuse.OpenIn, out *fuse.OpenOut) (status fuse.Status) {
-	return
+	return fuse.ENOSYS
 }
 
 func (b *rawBridge) ReadDir(input *fuse.ReadIn, out *fuse.DirEntryList) fuse.Status {
