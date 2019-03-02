@@ -135,6 +135,13 @@ func (n *loopbackNode) Unlink(ctx context.Context, name string) fuse.Status {
 	return fuse.ToStatus(err)
 }
 
+func toLoopbackNode(op Operations) *loopbackNode {
+	if r, ok := op.(*loopbackRoot); ok {
+		return &r.loopbackNode
+	}
+	return op.(*loopbackNode)
+}
+
 func (n *loopbackNode) Rename(ctx context.Context, name string, newParent Operations, newName string, flags uint32) fuse.Status {
 
 	if flags != 0 {
@@ -142,12 +149,7 @@ func (n *loopbackNode) Rename(ctx context.Context, name string, newParent Operat
 	}
 
 	p1 := filepath.Join(n.path(), name)
-	var newParentLoopback *loopbackNode
-	if r, ok := newParent.(*loopbackRoot); ok {
-		newParentLoopback = &r.loopbackNode
-	} else {
-		newParentLoopback = newParent.(*loopbackNode)
-	}
+	newParentLoopback := toLoopbackNode(newParent)
 
 	p2 := filepath.Join(newParentLoopback.path(), newName)
 	err := os.Rename(p1, p2)
@@ -189,6 +191,26 @@ func (n *loopbackNode) Create(ctx context.Context, name string, flags uint32, mo
 func (n *loopbackNode) Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (*Inode, fuse.Status) {
 	p := filepath.Join(n.path(), name)
 	err := syscall.Symlink(target, p)
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+	st := syscall.Stat_t{}
+	if syscall.Lstat(p, &st); err != nil {
+		syscall.Unlink(p)
+		return nil, fuse.ToStatus(err)
+	}
+	node := n.rootNode.newLoopbackNode()
+	ch := n.inode().NewInode(node, st.Mode, idFromStat(&st))
+
+	out.Attr.FromStat(&st)
+	return ch, fuse.OK
+}
+
+func (n *loopbackNode) Link(ctx context.Context, target Operations, name string, out *fuse.EntryOut) (*Inode, fuse.Status) {
+
+	p := filepath.Join(n.path(), name)
+	targetNode := toLoopbackNode(target)
+	err := syscall.Link(targetNode.path(), p)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
 	}

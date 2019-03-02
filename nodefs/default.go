@@ -41,7 +41,7 @@ var _ Operations = &DefaultOperations{}
 //
 // To read node.inode atomic.LoadPointer is used, however it is not expensive
 // since it translates to regular MOVQ on amd64.
-func (dn *DefaultOperations) setInode(inode *Inode) *Inode {
+func (dn *DefaultOperations) setInode(inode *Inode) bool {
 	return atomic.CompareAndSwapPointer(
 		(*unsafe.Pointer)(unsafe.Pointer(&dn.inode_)),
 		nil, unsafe.Pointer(inode))
@@ -195,6 +195,9 @@ func (n *DefaultOperations) Open(ctx context.Context, flags uint32) (fh FileHand
 
 func (n *DefaultOperations) Create(ctx context.Context, name string, flags uint32, mode uint32) (node *Inode, fh FileHandle, fuseFlags uint32, code fuse.Status) {
 	return nil, nil, 0, fuse.ENOSYS
+}
+func (n *DefaultOperations) Link(ctx context.Context, target Operations, name string, out *fuse.EntryOut) (node *Inode, code fuse.Status) {
+	return nil, fuse.ENOSYS
 }
 
 type DefaultFile struct {

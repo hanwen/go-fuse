@@ -80,7 +80,7 @@ func (b *rawBridge) newInode(node Operations, mode uint32, id FileID, persistent
 
 	b.nodes[id.Ino] = inode
 	node.setInode(inode)
-	return inode
+	return node.inode()
 }
 
 func NewNodeFS(root Operations, opts *Options) fuse.RawFileSystem {
@@ -370,12 +370,21 @@ func (b *rawBridge) Rename(input *fuse.RenameIn, oldName string, newName string)
 	return code
 }
 
-func (b *rawBridge) Link(input *fuse.LinkIn, filename string, out *fuse.EntryOut) (code fuse.Status) {
-	return fuse.ENOSYS
+func (b *rawBridge) Link(input *fuse.LinkIn, name string, out *fuse.EntryOut) (code fuse.Status) {
+	parent, _ := b.inode(input.NodeId, 0)
+	target, _ := b.inode(input.Oldnodeid, 0)
+
+	child, code := parent.node.Link(context.TODO(), target.node, name, out)
+	if !code.Ok() {
+		return code
+	}
+
+	b.addNewChild(parent, name, child, nil, out)
+	b.setEntryOutTimeout(out)
+	return fuse.OK
 }
 
 func (b *rawBridge) Symlink(header *fuse.InHeader, target string, name string, out *fuse.EntryOut) (code fuse.Status) {
-	log.Println("symlink1")
 	parent, _ := b.inode(header.NodeId, 0)
 	child, code := parent.node.Symlink(context.TODO(), target, name, out)
 	if !code.Ok() {

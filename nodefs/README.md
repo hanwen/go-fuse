@@ -9,7 +9,8 @@ Decisions
 =========
 
    * Nodes contain references to their children. This is useful
-     because most filesystems will need to construct tree-like structures.
+     because most filesystems will need to construct tree-like
+     structures.
 
    * Nodes can be "persistent", meaning their lifetime is not under
      control of the kernel. This is useful for constructing FS trees
@@ -24,6 +25,11 @@ Decisions
      creation. These are {NodeID, Mode}. Files cannot change type
      during their lifetime. It also prevents the common error of
      forgetting to return the filetype in Lookup/GetAttr.
+     
+   * Support for hard links. libfuse doesn't support this in the
+     high-level API.  Extra care for race conditions is needed when
+    looking up the same file different paths.
+
 
 To decide
 =========

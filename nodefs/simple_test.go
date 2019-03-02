@@ -424,3 +424,33 @@ func TestSymlink(t *testing.T) {
 		t.Errorf("Readlink: got %q, want %q", got, target)
 	}
 }
+
+func TestLink(t *testing.T) {
+	tc := newTestCase(t)
+	defer tc.Clean()
+
+	link := tc.mntDir + "/link"
+	target := tc.mntDir + "/target"
+
+	if err := ioutil.WriteFile(target, []byte("hello"), 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	st := syscall.Stat_t{}
+	if err := syscall.Lstat(target, &st); err != nil {
+		t.Fatalf("Lstat before: %v", err)
+	}
+
+	beforeIno := st.Ino
+	if err := os.Link(target, link); err != nil {
+		t.Errorf("Link: %v", err)
+	}
+
+	if err := syscall.Lstat(link, &st); err != nil {
+		t.Fatalf("Lstat after: %v", err)
+	}
+
+	if st.Ino != beforeIno {
+		t.Errorf("Lstat after: got %d, want %d", st.Ino, beforeIno)
+	}
+}
