@@ -23,6 +23,7 @@ type fileEntry struct {
 type rawBridge struct {
 	options Options
 	root    *Inode
+	server  *fuse.Server
 
 	// mu protects the following data.  Locks for inodes must be
 	// taken before rawBridge.mu
@@ -539,5 +540,6 @@ func (b *rawBridge) StatFs(input *fuse.InHeader, out *fuse.StatfsOut) (code fuse
 	return
 }
 
-func (b *rawBridge) Init(*fuse.Server) {
+func (b *rawBridge) Init(s *fuse.Server) {
+	b.server = s
 }

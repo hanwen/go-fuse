@@ -14,22 +14,31 @@ Decisions
 
    * Nodes can be "persistent", meaning their lifetime is not under
      control of the kernel. This is useful for constructing FS trees
-     in advance.
+     in advance, rather than driven by LOOKUP..
 
+   * The NodeID for FS tree node must be defined on creation and are
+     immutable. By contrast, reusing NodeIds (eg. rsc/bazil FUSE, as
+     well as old go-fuse/fuse/nodefs) is racy when notify and FORGET
+     operations race.
+     
+   * The mode of an Inode is defined on creation.  Files cannot change
+     type during their lifetime. This also prevents the common error
+     of forgetting to return the filetype in Lookup/GetAttr.
+     
    * The NodeID (used for communicating with kernel) is equal to
-     Attr.Ino (value shown in Stat and Lstat return values.) 
+     Attr.Ino (value shown in Stat and Lstat return values.). 
 
    * No global treelock, to ensure scalability.
 
-   * Immutable characteristics of the Inode are passed on
-     creation. These are {NodeID, Mode}. Files cannot change type
-     during their lifetime. It also prevents the common error of
-     forgetting to return the filetype in Lookup/GetAttr.
-     
    * Support for hard links. libfuse doesn't support this in the
      high-level API.  Extra care for race conditions is needed when
     looking up the same file different paths.
 
+   * do not issue Notify{Entry,Delete} as part of
+     AddChild/RmChild/MvChild: because NodeIDs are unique and
+     immutable, there is no confusion about which nodes are
+     invalidated, and the notification doesn't have to happen under
+     lock.
 
 To decide
 =========
@@ -71,3 +80,6 @@ To decide
    * Should Operations.Lookup return *Inode or Operations ?
 
    * Should bridge.Lookup() add the child, bridge.Unlink remove the child, etc.?
+
+
+ 

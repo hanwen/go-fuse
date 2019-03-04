@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 	"unsafe"
+
+	"github.com/hanwen/go-fuse/fuse"
 )
 
 var _ = log.Println
@@ -518,4 +520,28 @@ retry:
 		unlockNodes(oldParent, newParent, oldChild, destChild)
 		return
 	}
+}
+
+func (n *Inode) NotifyEntry(name string) fuse.Status {
+	return n.bridge.server.EntryNotify(n.nodeID.Ino, name)
+}
+
+// XXX DeleteNotify ?
+func (n *Inode) NotifyDelete(name string, child *Inode) fuse.Status {
+	// XXX arg ordering?
+	return n.bridge.server.DeleteNotify(n.nodeID.Ino, child.nodeID.Ino, name)
+
+}
+
+func (n *Inode) NotifyContent(off, sz int64) fuse.Status {
+	return n.bridge.server.InodeNotify(n.nodeID.Ino, off, sz)
+}
+
+func (n *Inode) WriteCache(offset int64, data []byte) fuse.Status {
+	return n.bridge.server.InodeNotifyStoreCache(n.nodeID.Ino, offset, data)
+
+}
+
+func (n *Inode) ReadCache(offset int64, dest []byte) (count int, code fuse.Status) {
+	return n.bridge.server.InodeRetrieveCache(n.nodeID.Ino, offset, dest)
 }

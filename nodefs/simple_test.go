@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"sync"
 	"syscall"
@@ -31,8 +32,9 @@ type testCase struct {
 	origDir string
 	mntDir  string
 
-	rawFS  fuse.RawFileSystem
-	server *fuse.Server
+	loopback Operations
+	rawFS    fuse.RawFileSystem
+	server   *fuse.Server
 }
 
 func (tc *testCase) writeOrig(path, content string, mode os.FileMode) {
@@ -65,10 +67,10 @@ func newTestCase(t *testing.T) *testCase {
 		t.Fatal(err)
 	}
 
-	loopback := NewLoopback(tc.origDir)
+	tc.loopback = NewLoopback(tc.origDir)
 	_ = time.Second
 	oneSec := time.Second
-	tc.rawFS = NewNodeFS(loopback, &Options{
+	tc.rawFS = NewNodeFS(tc.loopback, &Options{
 		Debug: testutil.VerboseTest(),
 
 		// NOSUBMIT - should run all tests without cache too
@@ -454,3 +456,42 @@ func TestLink(t *testing.T) {
 		t.Errorf("Lstat after: got %d, want %d", st.Ino, beforeIno)
 	}
 }
+
+func TestNotifyEntry(t *testing.T) {
+	tc := newTestCase(t)
+	defer tc.Clean()
+
+	orig := tc.origDir + "/file"
+	fn := tc.mntDir + "/file"
+	if err := ioutil.WriteFile(orig, []byte("hello"), 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	st := syscall.Stat_t{}
+	if err := syscall.Lstat(fn, &st); err != nil {
+		t.Fatalf("Lstat before: %v", err)
+	}
+
+	if err := os.Remove(orig); err != nil {
+		t.Fatalf("Remove: %v", err)
+	}
+
+	after := syscall.Stat_t{}
+	if err := syscall.Lstat(fn, &after); err != nil {
+		t.Fatalf("Lstat after: %v", err)
+	} else if !reflect.DeepEqual(st, after) {
+		t.Fatalf("got after %#v, want %#v", after, st)
+	}
+
+	if code := InodeOf(tc.loopback).NotifyEntry("file"); !code.Ok() {
+		t.Errorf("notify failed: %v", code)
+	}
+
+	if err := syscall.Lstat(fn, &after); err != syscall.ENOENT {
+		t.Fatalf("Lstat after: got %v, want ENOENT", err)
+	}
+}
+
+// Test Notify() , but requires KEEP_CACHE.
+
+// Test NotifyDelete?
