@@ -6,6 +6,7 @@ package nodefs
 
 import (
 	"context"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -253,6 +254,51 @@ func (n *loopbackNode) Open(ctx context.Context, flags uint32) (fh FileHandle, f
 	lf := newLoopbackFile(f)
 	n.openFiles[lf] = flags
 	return lf, 0, fuse.OK
+}
+
+func (n *loopbackNode) OpenDir(ctx context.Context) fuse.Status {
+	fd, err := syscall.Open(n.path(), syscall.O_DIRECTORY, 0755)
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
+	syscall.Close(fd)
+	return fuse.OK
+}
+
+func (n *loopbackNode) ReadDir(ctx context.Context) (DirStream, fuse.Status) {
+	// XXX should implement streaming read to make sure the API works.
+	f, err := os.Open(n.path())
+	if err != nil {
+		return nil, fuse.ToStatus(err)
+	}
+	defer f.Close()
+
+	var entries []fuse.DirEntry
+	for {
+		want := 100
+		infos, err := f.Readdir(want)
+		for _, info := range infos {
+			s := fuse.ToStatT(info)
+			if s == nil {
+				continue
+			}
+
+			entries = append(entries, fuse.DirEntry{
+				Name: info.Name(),
+				Mode: uint32(s.Mode),
+				Ino:  s.Ino,
+			})
+		}
+		if len(infos) < want || err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			return nil, fuse.ToStatus(err)
+		}
+	}
+
+	return &DirArray{entries}, fuse.OK
 }
 
 func (n *loopbackNode) fGetAttr(ctx context.Context, out *fuse.AttrOut) (fuse.Status, bool) {

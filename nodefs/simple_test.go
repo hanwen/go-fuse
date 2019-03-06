@@ -6,6 +6,7 @@ package nodefs
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -492,6 +493,39 @@ func TestNotifyEntry(t *testing.T) {
 	}
 }
 
-// Test Notify() , but requires KEEP_CACHE.
+// XXX Test Notify() , but requires KEEP_CACHE ? or could use mmap?
+// XXX Test NotifyDelete?
 
-// Test NotifyDelete?
+func TestReadDir(t *testing.T) {
+	tc := newTestCase(t)
+	defer tc.Clean()
+
+	// XXX what about ".." and "." ?
+	want := map[string]bool{}
+	for i := 0; i < 2; i++ {
+		// 40 bytes of filename, so 110 entries overflows a
+		// 4096 page.
+		nm := fmt.Sprintf("file%036x", i)
+		want[nm] = true
+		if err := ioutil.WriteFile(tc.origDir+"/"+nm, []byte("hello"), 0644); err != nil {
+			t.Fatalf("WriteFile: %v", err)
+		}
+	}
+
+	entries, err := ioutil.ReadDir(tc.mntDir)
+	if err != nil {
+		t.Fatalf("ReadDir: %v", err)
+	}
+	got := map[string]bool{}
+	for _, e := range entries {
+		got[e.Name()] = true
+	}
+	if len(got) != len(want) {
+		t.Errorf("got %d entries, want %d", len(got), len(want))
+	}
+	for k := range got {
+		if !want[k] {
+			t.Errorf("got unknown name %q", k)
+		}
+	}
+}

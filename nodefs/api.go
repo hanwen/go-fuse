@@ -63,6 +63,41 @@ func InodeOf(node Operations) *Inode {
 	return node.inode()
 }
 
+// DirStream lists directory entries.
+type DirStream interface {
+	// HasNext indicates if there are further entries. HasNext
+	// might be called on already closed streams.
+	HasNext() bool
+
+	// Next retrieves the next entry. It is only called if HasNext
+	// has previously returned true.  The Status may be used to
+	// indicate I/O errors
+	Next() (fuse.DirEntry, fuse.Status)
+
+	// Close releases resources related to this directory
+	// stream. A stream should be resilient against double close.
+	Close()
+}
+
+// XXX names
+type DirArray struct {
+	Entries []fuse.DirEntry
+}
+
+func (a *DirArray) HasNext() bool {
+	return len(a.Entries) > 0
+}
+
+func (a *DirArray) Next() (fuse.DirEntry, fuse.Status) {
+	e := a.Entries[0]
+	a.Entries = a.Entries[1:]
+	return e, fuse.OK
+}
+
+func (a *DirArray) Close() {
+
+}
+
 /*
 NOSUBMIT: how to structure?
 
@@ -109,6 +144,13 @@ type Operations interface {
 	Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (node *Inode, code fuse.Status)
 	Readlink(ctx context.Context) (string, fuse.Status)
 	Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, code fuse.Status)
+
+	// OpenDir is called for sanity/permission checks on opening a
+	// directory.
+	OpenDir(ctx context.Context) fuse.Status
+
+	// ReadDir opens a stream of directory entries.
+	ReadDir(ctx context.Context) (DirStream, fuse.Status)
 
 	Read(ctx context.Context, f FileHandle, dest []byte, off int64) (fuse.ReadResult, fuse.Status)
 

@@ -17,7 +17,10 @@ import (
 type fileEntry struct {
 	file FileHandle
 
-	// space to hold directory stuff
+	// Directory
+	dirStream   DirStream
+	hasOverflow bool
+	overflow    fuse.DirEntry
 }
 
 type rawBridge struct {
@@ -31,7 +34,7 @@ type rawBridge struct {
 	nodes        map[uint64]*Inode
 	automaticIno uint64
 
-	files     []fileEntry
+	files     []*fileEntry
 	freeFiles []uint64
 }
 
@@ -110,7 +113,7 @@ func NewNodeFS(root Operations, opts *Options) fuse.RawFileSystem {
 	}
 
 	// Fh 0 means no file handle.
-	bridge.files = []fileEntry{{}}
+	bridge.files = []*fileEntry{{}}
 	return bridge
 }
 
@@ -118,15 +121,12 @@ func (b *rawBridge) String() string {
 	return "rawBridge"
 }
 
-func (b *rawBridge) inode(id uint64, fh uint64) (*Inode, fileEntry) {
+func (b *rawBridge) inode(id uint64, fh uint64) (*Inode, *fileEntry) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	n, f := b.nodes[id], b.files[fh]
 	if n == nil {
 		log.Panicf("unknown node %d", id)
-	}
-	if fh != 0 && f.file == nil {
-		log.Panicf("unknown fh %d", fh)
 	}
 	return n, f
 }
@@ -457,7 +457,7 @@ func (b *rawBridge) registerFile(f FileHandle) uint64 {
 		b.freeFiles = b.freeFiles[:last]
 	} else {
 		fh = uint64(len(b.files))
-		b.files = append(b.files, fileEntry{})
+		b.files = append(b.files, &fileEntry{})
 	}
 
 	b.files[fh].file = f
@@ -488,11 +488,19 @@ func (b *rawBridge) Release(input *fuse.ReleaseIn) {
 	n, f := b.inode(input.NodeId, input.Fh)
 	n.node.Release(context.TODO(), f.file)
 
-	if input.Fh > 0 {
+	b.releaseFileEntry(input.Fh)
+}
+
+func (b *rawBridge) ReleaseDir(input *fuse.ReleaseIn) {
+	b.releaseFileEntry(input.Fh)
+}
+
+func (b *rawBridge) releaseFileEntry(fh uint64) {
+	if fh > 0 {
 		b.mu.Lock()
 		defer b.mu.Unlock()
-		b.files[input.Fh].file = nil
-		b.freeFiles = append(b.freeFiles, input.Fh)
+		b.files[fh].file = nil
+		b.freeFiles = append(b.freeFiles, fh)
 	}
 }
 
@@ -517,19 +525,120 @@ func (b *rawBridge) Fallocate(input *fuse.FallocateIn) (code fuse.Status) {
 }
 
 func (b *rawBridge) OpenDir(input *fuse.OpenIn, out *fuse.OpenOut) (status fuse.Status) {
-	return fuse.ENOSYS
+	n, _ := b.inode(input.NodeId, 0)
+	code := n.node.OpenDir(context.TODO())
+	if !code.Ok() {
+		return code
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	out.Fh = b.registerFile(nil)
+	return fuse.OK
+}
+
+func (b *rawBridge) getStream(input *fuse.ReadIn, inode *Inode, f *fileEntry) fuse.Status {
+	if f.dirStream == nil || input.Offset == 0 {
+		if f.dirStream != nil {
+			f.dirStream.Close()
+		}
+		str, code := inode.node.ReadDir(context.TODO())
+		if !code.Ok() {
+			return code
+		}
+
+		f.hasOverflow = false
+		f.dirStream = str
+	}
+
+	return fuse.OK
 }
 
 func (b *rawBridge) ReadDir(input *fuse.ReadIn, out *fuse.DirEntryList) fuse.Status {
-	return fuse.ENOSYS
+	n, f := b.inode(input.NodeId, input.Fh)
+
+	if code := b.getStream(input, n, f); !code.Ok() {
+		return code
+	}
+
+	if f.hasOverflow {
+		// always succeeds.
+		out.AddDirEntry(f.overflow)
+		f.hasOverflow = false
+	}
+
+	// TODO - should post '..' and '.' ?
+	for f.dirStream.HasNext() {
+		e, code := f.dirStream.Next()
+
+		if !code.Ok() {
+			f.dirStream.Close()
+			return code
+		}
+		if !out.AddDirEntry(e) {
+			f.overflow = e
+			f.hasOverflow = true
+			return code
+		}
+	}
+
+	f.dirStream.Close()
+	return fuse.OK
 }
 
 func (b *rawBridge) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) fuse.Status {
-	return fuse.ENOSYS
-}
+	n, f := b.inode(input.NodeId, input.Fh)
 
-func (b *rawBridge) ReleaseDir(input *fuse.ReleaseIn) {
-	return
+	if code := b.getStream(input, n, f); !code.Ok() {
+		return code
+	}
+
+	if f.hasOverflow {
+		// always succeeds.
+		out.AddDirEntry(f.overflow)
+		f.hasOverflow = false
+	}
+
+	for f.dirStream.HasNext() {
+		var e fuse.DirEntry
+		var code fuse.Status
+		if f.hasOverflow {
+			e = f.overflow
+			f.hasOverflow = false
+		} else {
+			e, code = f.dirStream.Next()
+		}
+
+		if !code.Ok() {
+			f.dirStream.Close()
+			return code
+		}
+
+		entryOut := out.AddDirLookupEntry(e)
+		if entryOut == nil {
+			f.overflow = e
+			f.hasOverflow = true
+			return fuse.OK
+		}
+
+		child, code := n.node.Lookup(context.TODO(), e.Name, entryOut)
+		if !code.Ok() {
+			if b.options.NegativeTimeout != nil {
+				entryOut.SetEntryTimeout(*b.options.NegativeTimeout)
+			}
+		} else {
+			b.addNewChild(n, e.Name, child, nil, entryOut)
+			b.setEntryOutTimeout(entryOut)
+			if (e.Mode &^ 07777) != (child.mode &^ 07777) {
+				// XXX should go back and change the
+				// already serialized entry
+				log.Panicf("mode mismatch between readdir %o and lookup %o", e.Mode, child.mode)
+			}
+			entryOut.Mode = child.mode | (entryOut.Mode & 07777)
+		}
+	}
+
+	f.dirStream.Close()
+	return fuse.OK
 }
 
 func (b *rawBridge) FsyncDir(input *fuse.FsyncIn) (code fuse.Status) {

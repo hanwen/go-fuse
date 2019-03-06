@@ -69,6 +69,14 @@ func (n *DefaultOperations) Unlink(ctx context.Context, name string) fuse.Status
 	return fuse.ENOSYS
 }
 
+func (n *DefaultOperations) OpenDir(ctx context.Context) fuse.Status {
+	return fuse.ENOSYS
+}
+
+func (n *DefaultOperations) ReadDir(ctx context.Context) (DirStream, fuse.Status) {
+	return nil, fuse.ENOSYS
+}
+
 func (n *DefaultOperations) Rename(ctx context.Context, name string, newParent Operations, newName string, flags uint32) fuse.Status {
 	return fuse.ENOSYS
 }
