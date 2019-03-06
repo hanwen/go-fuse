@@ -502,7 +502,7 @@ func TestReadDir(t *testing.T) {
 
 	// XXX what about ".." and "." ?
 	want := map[string]bool{}
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 110; i++ {
 		// 40 bytes of filename, so 110 entries overflows a
 		// 4096 page.
 		nm := fmt.Sprintf("file%036x", i)

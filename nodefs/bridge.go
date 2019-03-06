@@ -596,12 +596,6 @@ func (b *rawBridge) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) fuse
 		return code
 	}
 
-	if f.hasOverflow {
-		// always succeeds.
-		out.AddDirEntry(f.overflow)
-		f.hasOverflow = false
-	}
-
 	for f.dirStream.HasNext() {
 		var e fuse.DirEntry
 		var code fuse.Status
