@@ -98,9 +98,6 @@ func (d *connectorDir) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) (
 			continue
 		}
 
-		// Clear entryDest before use it, some fields can be corrupted if does not set all fields in rawFS.Lookup
-		*entryDest = fuse.EntryOut{}
-
 		d.rawFS.Lookup(&input.InHeader, e.Name, entryDest)
 	}
 	return fuse.OK

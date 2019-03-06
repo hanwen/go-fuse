@@ -100,7 +100,9 @@ func (l *DirEntryList) AddDirLookupEntry(e DirEntry) *EntryOut {
 	if !ok {
 		return nil
 	}
-	return (*EntryOut)(unsafe.Pointer(&l.buf[lastStart]))
+	result := (*EntryOut)(unsafe.Pointer(&l.buf[lastStart]))
+	*result = EntryOut{}
+	return result
 }
 
 func (l *DirEntryList) bytes() []byte {
