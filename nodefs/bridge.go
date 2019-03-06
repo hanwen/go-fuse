@@ -492,6 +492,11 @@ func (b *rawBridge) Release(input *fuse.ReleaseIn) {
 }
 
 func (b *rawBridge) ReleaseDir(input *fuse.ReleaseIn) {
+	_, f := b.inode(input.NodeId, input.Fh)
+
+	if f.dirStream != nil {
+		f.dirStream.Close()
+	}
 	b.releaseFileEntry(input.Fh)
 }
 
@@ -540,6 +545,7 @@ func (b *rawBridge) getStream(input *fuse.ReadIn, inode *Inode, f *fileEntry) fu
 	if f.dirStream == nil || input.Offset == 0 {
 		if f.dirStream != nil {
 			f.dirStream.Close()
+			f.dirStream = nil
 		}
 		str, code := inode.node.ReadDir(context.TODO())
 		if !code.Ok() {
@@ -571,7 +577,6 @@ func (b *rawBridge) ReadDir(input *fuse.ReadIn, out *fuse.DirEntryList) fuse.Sta
 		e, code := f.dirStream.Next()
 
 		if !code.Ok() {
-			f.dirStream.Close()
 			return code
 		}
 		if !out.AddDirEntry(e) {
@@ -581,7 +586,6 @@ func (b *rawBridge) ReadDir(input *fuse.ReadIn, out *fuse.DirEntryList) fuse.Sta
 		}
 	}
 
-	f.dirStream.Close()
 	return fuse.OK
 }
 
@@ -609,7 +613,6 @@ func (b *rawBridge) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) fuse
 		}
 
 		if !code.Ok() {
-			f.dirStream.Close()
 			return code
 		}
 
@@ -637,7 +640,6 @@ func (b *rawBridge) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) fuse
 		}
 	}
 
-	f.dirStream.Close()
 	return fuse.OK
 }
 

@@ -75,7 +75,7 @@ type DirStream interface {
 	Next() (fuse.DirEntry, fuse.Status)
 
 	// Close releases resources related to this directory
-	// stream. A stream should be resilient against double close.
+	// stream.
 	Close()
 }
 
