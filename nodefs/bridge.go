@@ -638,11 +638,13 @@ func (b *rawBridge) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) fuse
 }
 
 func (b *rawBridge) FsyncDir(input *fuse.FsyncIn) (status fuse.Status) {
-	return
+	n, _ := b.inode(input.NodeId, input.Fh)
+	return n.node.Fsync(context.TODO(), nil, input.FsyncFlags)
 }
 
 func (b *rawBridge) StatFs(input *fuse.InHeader, out *fuse.StatfsOut) (status fuse.Status) {
-	return
+	n, _ := b.inode(input.NodeId, 0)
+	return n.node.StatFs(context.TODO(), out)
 }
 
 func (b *rawBridge) Init(s *fuse.Server) {

@@ -47,6 +47,12 @@ func (dn *DefaultOperations) setInode(inode *Inode) bool {
 		nil, unsafe.Pointer(inode))
 }
 
+func (dn *DefaultOperations) StatFs(ctx context.Context, out *fuse.StatfsOut) fuse.Status {
+	// this should be defined on OSX, or the FS won't mount
+	*out = fuse.StatfsOut{}
+	return fuse.OK
+}
+
 func (dn *DefaultOperations) inode() *Inode {
 	return (*Inode)(atomic.LoadPointer(
 		(*unsafe.Pointer)(unsafe.Pointer(&dn.inode_))))
@@ -59,6 +65,7 @@ func (n *DefaultOperations) Lookup(ctx context.Context, name string, out *fuse.E
 func (n *DefaultOperations) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.EntryOut) (*Inode, fuse.Status) {
 	return nil, fuse.ENOSYS
 }
+
 func (n *DefaultOperations) Mknod(ctx context.Context, name string, mode uint32, dev uint32, out *fuse.EntryOut) (*Inode, fuse.Status) {
 	return nil, fuse.ENOSYS
 }

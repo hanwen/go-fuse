@@ -537,3 +537,29 @@ func TestReadDir(t *testing.T) {
 		}
 	}
 }
+
+// This test is racy. If an external process consumes space while this
+// runs, we may see spurious differences between the two statfs() calls.
+func TestStatFs(t *testing.T) {
+	tc := newTestCase(t)
+	defer tc.Clean()
+
+	empty := syscall.Statfs_t{}
+	orig := empty
+	if err := syscall.Statfs(tc.origDir, &orig); err != nil {
+		t.Fatal("statfs orig", err)
+	}
+
+	mnt := syscall.Statfs_t{}
+	if err := syscall.Statfs(tc.mntDir, &mnt); err != nil {
+		t.Fatal("statfs mnt", err)
+	}
+
+	var mntFuse, origFuse fuse.StatfsOut
+	mntFuse.FromStatfsT(&mnt)
+	origFuse.FromStatfsT(&orig)
+
+	if !reflect.DeepEqual(mntFuse, origFuse) {
+		t.Errorf("Got %#v, want %#v", mntFuse, origFuse)
+	}
+}

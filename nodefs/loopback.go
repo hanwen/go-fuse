@@ -30,6 +30,16 @@ func (n *loopbackRoot) newLoopbackNode() *loopbackNode {
 	}
 }
 
+func (n *loopbackNode) StatFs(ctx context.Context, out *fuse.StatfsOut) fuse.Status {
+	s := syscall.Statfs_t{}
+	err := syscall.Statfs(n.path(), &s)
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
+	out.FromStatfsT(&s)
+	return fuse.OK
+}
+
 func (n *loopbackRoot) GetAttr(ctx context.Context, f FileHandle, out *fuse.AttrOut) fuse.Status {
 	var err error = nil
 	st := syscall.Stat_t{}
