@@ -54,8 +54,6 @@ type request struct {
 
 	// Input, if small enough to fit here.
 	smallInputBuf [128]byte
-
-	context Context
 }
 
 func (r *request) clear() {
