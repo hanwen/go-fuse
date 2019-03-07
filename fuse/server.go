@@ -49,6 +49,7 @@ type Server struct {
 	readPool       sync.Pool
 	reqMu          sync.Mutex
 	reqReaders     int
+	reqInflight    []*request
 	kernelSettings InitIn
 
 	// in-flight notify-retrieve queries
@@ -169,7 +170,11 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		singleReader: runtime.GOOS == "darwin",
 		ready:        make(chan error, 1),
 	}
-	ms.reqPool.New = func() interface{} { return new(request) }
+	ms.reqPool.New = func() interface{} {
+		return &request{
+			cancel: make(chan struct{}),
+		}
+	}
 	ms.readPool.New = func() interface{} { return make([]byte, o.MaxWrite+pageSize) }
 
 	mountPoint = filepath.Clean(mountPoint)
@@ -281,6 +286,13 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 	gobbled := req.setInput(dest[:n])
 
 	ms.reqMu.Lock()
+	defer ms.reqMu.Unlock()
+	// Must parse request.Unique under lock
+	if status := req.parseHeader(); !status.Ok() {
+		return nil, status
+	}
+	req.inflightIndex = len(ms.reqInflight)
+	ms.reqInflight = append(ms.reqInflight, req)
 	if !gobbled {
 		ms.readPool.Put(dest)
 		dest = nil
@@ -290,14 +302,30 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 		ms.loops.Add(1)
 		go ms.loop(true)
 	}
-	ms.reqMu.Unlock()
 
 	return req, OK
 }
 
 // returnRequest returns a request to the pool of unused requests.
 func (ms *Server) returnRequest(req *request) {
+	ms.reqMu.Lock()
+	this := req.inflightIndex
+	last := len(ms.reqInflight) - 1
+
+	if last != this {
+		ms.reqInflight[this] = ms.reqInflight[last]
+		ms.reqInflight[this].inflightIndex = this
+	}
+	ms.reqInflight = ms.reqInflight[:last]
+	interrupted := req.interrupted
+	ms.reqMu.Unlock()
+
 	ms.recordStats(req)
+	if interrupted {
+		// Don't reposses data, because someone might still
+		// be looking at it
+		return
+	}
 
 	if req.bufferPoolOutputBuf != nil {
 		ms.buffers.FreeBuffer(req.bufferPoolOutputBuf)
@@ -455,8 +483,12 @@ func (ms *Server) allocOut(req *request, size uint32) []byte {
 func (ms *Server) write(req *request) Status {
 	// Forget/NotifyReply do not wait for reply from filesystem server.
 	switch req.inHeader.Opcode {
-	case _OP_FORGET, _OP_BATCH_FORGET, _OP_NOTIFY_REPLY, _OP_INTERRUPT:
+	case _OP_FORGET, _OP_BATCH_FORGET, _OP_NOTIFY_REPLY:
 		return OK
+	case _OP_INTERRUPT:
+		if req.status.Ok() {
+			return OK
+		}
 	}
 
 	header := req.serializeHeader(req.flatDataSize())

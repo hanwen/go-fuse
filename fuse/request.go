@@ -17,6 +17,13 @@ var sizeOfOutHeader = unsafe.Sizeof(OutHeader{})
 var zeroOutBuf [outputHeaderSize]byte
 
 type request struct {
+	inflightIndex int
+
+	cancel chan struct{}
+
+	// written under Server.reqMu
+	interrupted bool
+
 	inputBuf []byte
 
 	// These split up inputBuf.
@@ -144,16 +151,18 @@ func (r *request) setInput(input []byte) bool {
 	return true
 }
 
-func (r *request) parse() {
-	inHSize := int(unsafe.Sizeof(InHeader{}))
-	if len(r.inputBuf) < inHSize {
+func (r *request) parseHeader() Status {
+	if len(r.inputBuf) < int(unsafe.Sizeof(InHeader{})) {
 		log.Printf("Short read for input header: %v", r.inputBuf)
-		return
+		return EINVAL
 	}
 
 	r.inHeader = (*InHeader)(unsafe.Pointer(&r.inputBuf[0]))
-	r.arg = r.inputBuf[:]
+	return OK
+}
 
+func (r *request) parse() {
+	r.arg = r.inputBuf[:]
 	r.handler = getHandler(r.inHeader.Opcode)
 	if r.handler == nil {
 		log.Printf("Unknown opcode %d", r.inHeader.Opcode)
@@ -171,7 +180,7 @@ func (r *request) parse() {
 		r.inData = unsafe.Pointer(&r.arg[0])
 		r.arg = r.arg[r.handler.InputSize:]
 	} else {
-		r.arg = r.arg[inHSize:]
+		r.arg = r.arg[unsafe.Sizeof(InHeader{}):]
 	}
 
 	count := r.handler.FileNames
@@ -198,6 +207,7 @@ func (r *request) parse() {
 
 	copy(r.outBuf[:r.handler.OutputSize+sizeOfOutHeader],
 		zeroOutBuf[:r.handler.OutputSize+sizeOfOutHeader])
+
 }
 
 func (r *request) outData() unsafe.Pointer {
