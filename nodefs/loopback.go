@@ -165,7 +165,7 @@ func idFromStat(st *syscall.Stat_t) FileID {
 	}
 }
 
-func (n *loopbackNode) Create(ctx context.Context, name string, flags uint32, mode uint32) (inode *Inode, fh FileHandle, fuseFlags uint32, code fuse.Status) {
+func (n *loopbackNode) Create(ctx context.Context, name string, flags uint32, mode uint32) (inode *Inode, fh FileHandle, fuseFlags uint32, status fuse.Status) {
 	p := filepath.Join(n.path(), name)
 
 	f, err := os.OpenFile(p, int(flags)|os.O_CREATE, os.FileMode(mode))
@@ -242,7 +242,7 @@ func (n *loopbackNode) Readlink(ctx context.Context) (string, fuse.Status) {
 	}
 }
 
-func (n *loopbackNode) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, code fuse.Status) {
+func (n *loopbackNode) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, status fuse.Status) {
 	p := n.path()
 	f, err := os.OpenFile(p, int(flags), 0)
 	if err != nil {
@@ -285,8 +285,8 @@ func (n *loopbackNode) GetAttr(ctx context.Context, f FileHandle, out *fuse.Attr
 		return f.GetAttr(ctx, out)
 
 	}
-	if code, ok := n.fGetAttr(ctx, out); ok {
-		return code
+	if status, ok := n.fGetAttr(ctx, out); ok {
+		return status
 	}
 
 	p := n.path()

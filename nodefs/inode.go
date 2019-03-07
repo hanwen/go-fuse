@@ -542,6 +542,6 @@ func (n *Inode) WriteCache(offset int64, data []byte) fuse.Status {
 
 }
 
-func (n *Inode) ReadCache(offset int64, dest []byte) (count int, code fuse.Status) {
+func (n *Inode) ReadCache(offset int64, dest []byte) (count int, status fuse.Status) {
 	return n.bridge.server.InodeRetrieveCache(n.nodeID.Ino, offset, dest)
 }

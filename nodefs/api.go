@@ -101,9 +101,9 @@ type Operations interface {
 	setInode(*Inode) bool
 
 	// File locking
-	GetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (code fuse.Status)
-	SetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status)
-	SetLkw(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status)
+	GetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (status fuse.Status)
+	SetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status)
+	SetLkw(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status)
 
 	// The methods below may be called on closed files, due to
 	// concurrency.  In that case, you should return EBADF.
@@ -120,11 +120,11 @@ type Operations interface {
 	Rmdir(ctx context.Context, name string) fuse.Status
 	Unlink(ctx context.Context, name string) fuse.Status
 	Rename(ctx context.Context, name string, newParent Operations, newName string, flags uint32) fuse.Status
-	Create(ctx context.Context, name string, flags uint32, mode uint32) (node *Inode, fh FileHandle, fuseFlags uint32, code fuse.Status)
-	Link(ctx context.Context, target Operations, name string, out *fuse.EntryOut) (node *Inode, code fuse.Status)
-	Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (node *Inode, code fuse.Status)
+	Create(ctx context.Context, name string, flags uint32, mode uint32) (node *Inode, fh FileHandle, fuseFlags uint32, status fuse.Status)
+	Link(ctx context.Context, target Operations, name string, out *fuse.EntryOut) (node *Inode, status fuse.Status)
+	Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (node *Inode, status fuse.Status)
 	Readlink(ctx context.Context) (string, fuse.Status)
-	Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, code fuse.Status)
+	Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, status fuse.Status)
 
 	// OpenDir is called for sanity/permission checks on opening a
 	// directory.
@@ -135,9 +135,9 @@ type Operations interface {
 
 	Read(ctx context.Context, f FileHandle, dest []byte, off int64) (fuse.ReadResult, fuse.Status)
 
-	Write(ctx context.Context, f FileHandle, data []byte, off int64) (written uint32, code fuse.Status)
+	Write(ctx context.Context, f FileHandle, data []byte, off int64) (written uint32, status fuse.Status)
 
-	Fsync(ctx context.Context, f FileHandle, flags uint32) (code fuse.Status)
+	Fsync(ctx context.Context, f FileHandle, flags uint32) (status fuse.Status)
 
 	// Flush is called for close() call on a file descriptor. In
 	// case of duplicated descriptor, it may be called more than
@@ -161,17 +161,17 @@ type Operations interface {
 	Chown(ctx context.Context, f FileHandle, uid uint32, gid uint32) fuse.Status
 	Chmod(ctx context.Context, f FileHandle, perms uint32) fuse.Status
 	Utimens(ctx context.Context, f FileHandle, atime *time.Time, mtime *time.Time) fuse.Status
-	Allocate(ctx context.Context, f FileHandle, off uint64, size uint64, mode uint32) (code fuse.Status)
+	Allocate(ctx context.Context, f FileHandle, off uint64, size uint64, mode uint32) (status fuse.Status)
 }
 
 type FileHandle interface {
 	Read(ctx context.Context, dest []byte, off int64) (fuse.ReadResult, fuse.Status)
-	Write(ctx context.Context, data []byte, off int64) (written uint32, code fuse.Status)
+	Write(ctx context.Context, data []byte, off int64) (written uint32, status fuse.Status)
 
 	// File locking
-	GetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (code fuse.Status)
-	SetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status)
-	SetLkw(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status)
+	GetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (status fuse.Status)
+	SetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status)
+	SetLkw(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status)
 
 	// Flush is called for close() call on a file descriptor. In
 	// case of duplicated descriptor, it may be called more than
@@ -194,7 +194,7 @@ type FileHandle interface {
 	Chown(ctx context.Context, uid uint32, gid uint32) fuse.Status
 	Chmod(ctx context.Context, perms uint32) fuse.Status
 	Utimens(ctx context.Context, atime *time.Time, mtime *time.Time) fuse.Status
-	Allocate(ctx context.Context, off uint64, size uint64, mode uint32) (code fuse.Status)
+	Allocate(ctx context.Context, off uint64, size uint64, mode uint32) (status fuse.Status)
 }
 
 type Options struct {

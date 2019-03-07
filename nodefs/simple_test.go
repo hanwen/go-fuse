@@ -500,6 +500,14 @@ func TestReadDir(t *testing.T) {
 	tc := newTestCase(t)
 	defer tc.Clean()
 
+	f, err := os.Open(tc.mntDir)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer f.Close()
+
+	// add entries after opening the directory
+
 	// XXX what about ".." and "." ?
 	want := map[string]bool{}
 	for i := 0; i < 110; i++ {
@@ -512,13 +520,13 @@ func TestReadDir(t *testing.T) {
 		}
 	}
 
-	entries, err := ioutil.ReadDir(tc.mntDir)
+	names, err := f.Readdirnames(-1)
 	if err != nil {
 		t.Fatalf("ReadDir: %v", err)
 	}
 	got := map[string]bool{}
-	for _, e := range entries {
-		got[e.Name()] = true
+	for _, e := range names {
+		got[e] = true
 	}
 	if len(got) != len(want) {
 		t.Errorf("got %d entries, want %d", len(got), len(want))

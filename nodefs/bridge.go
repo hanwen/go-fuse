@@ -134,12 +134,12 @@ func (b *rawBridge) inode(id uint64, fh uint64) (*Inode, *fileEntry) {
 func (b *rawBridge) Lookup(header *fuse.InHeader, name string, out *fuse.EntryOut) (status fuse.Status) {
 	parent, _ := b.inode(header.NodeId, 0)
 
-	child, code := parent.node.Lookup(context.TODO(), name, out)
-	if !code.Ok() {
+	child, status := parent.node.Lookup(context.TODO(), name, out)
+	if !status.Ok() {
 		if b.options.NegativeTimeout != nil {
 			out.SetEntryTimeout(*b.options.NegativeTimeout)
 		}
-		return code
+		return status
 	}
 
 	b.addNewChild(parent, name, child, nil, out)
@@ -151,29 +151,29 @@ func (b *rawBridge) Lookup(header *fuse.InHeader, name string, out *fuse.EntryOu
 
 func (b *rawBridge) Rmdir(header *fuse.InHeader, name string) fuse.Status {
 	parent, _ := b.inode(header.NodeId, 0)
-	code := parent.node.Rmdir(context.TODO(), name)
-	if code.Ok() {
+	status := parent.node.Rmdir(context.TODO(), name)
+	if status.Ok() {
 		parent.RmChild(name)
 	}
-	return code
+	return status
 
 }
 
 func (b *rawBridge) Unlink(header *fuse.InHeader, name string) fuse.Status {
 	parent, _ := b.inode(header.NodeId, 0)
-	code := parent.node.Unlink(context.TODO(), name)
-	if code.Ok() {
+	status := parent.node.Unlink(context.TODO(), name)
+	if status.Ok() {
 		parent.RmChild(name)
 	}
-	return code
+	return status
 }
 
-func (b *rawBridge) Mkdir(input *fuse.MkdirIn, name string, out *fuse.EntryOut) (code fuse.Status) {
+func (b *rawBridge) Mkdir(input *fuse.MkdirIn, name string, out *fuse.EntryOut) (status fuse.Status) {
 	parent, _ := b.inode(input.NodeId, 0)
 
-	child, code := parent.node.Mkdir(context.TODO(), name, input.Mode, out)
-	if !code.Ok() {
-		return code
+	child, status := parent.node.Mkdir(context.TODO(), name, input.Mode, out)
+	if !status.Ok() {
+		return status
 	}
 
 	if out.Attr.Mode&^07777 != fuse.S_IFDIR {
@@ -185,12 +185,12 @@ func (b *rawBridge) Mkdir(input *fuse.MkdirIn, name string, out *fuse.EntryOut) 
 	return fuse.OK
 }
 
-func (b *rawBridge) Mknod(input *fuse.MknodIn, name string, out *fuse.EntryOut) (code fuse.Status) {
+func (b *rawBridge) Mknod(input *fuse.MknodIn, name string, out *fuse.EntryOut) (status fuse.Status) {
 	parent, _ := b.inode(input.NodeId, 0)
 
-	child, code := parent.node.Mknod(context.TODO(), name, input.Mode, input.Rdev, out)
-	if !code.Ok() {
-		return code
+	child, status := parent.node.Mknod(context.TODO(), name, input.Mode, input.Rdev, out)
+	if !status.Ok() {
+		return status
 	}
 
 	b.addNewChild(parent, name, child, nil, out)
@@ -229,15 +229,15 @@ func (b *rawBridge) setEntryOutTimeout(out *fuse.EntryOut) {
 	}
 }
 
-func (b *rawBridge) Create(input *fuse.CreateIn, name string, out *fuse.CreateOut) (code fuse.Status) {
+func (b *rawBridge) Create(input *fuse.CreateIn, name string, out *fuse.CreateOut) (status fuse.Status) {
 	ctx := context.TODO()
 	parent, _ := b.inode(input.NodeId, 0)
-	child, f, flags, code := parent.node.Create(ctx, name, input.Flags, input.Mode)
-	if !code.Ok() {
+	child, f, flags, status := parent.node.Create(ctx, name, input.Flags, input.Mode)
+	if !status.Ok() {
 		if b.options.NegativeTimeout != nil {
 			out.SetEntryTimeout(*b.options.NegativeTimeout)
 		}
-		return code
+		return status
 	}
 
 	out.Fh = b.addNewChild(parent, name, child, f, &out.EntryOut)
@@ -274,11 +274,11 @@ func (b *rawBridge) GetAttr(input *fuse.GetAttrIn, out *fuse.AttrOut) fuse.Statu
 		f = nil
 	}
 
-	code := n.node.GetAttr(context.TODO(), f, out)
+	status := n.node.GetAttr(context.TODO(), f, out)
 	b.setAttrTimeout(out)
 	out.Ino = input.NodeId
 	out.Mode = (out.Attr.Mode & 07777) | n.mode
-	return code
+	return status
 }
 
 func (b *rawBridge) setAttrTimeout(out *fuse.AttrOut) {
@@ -287,7 +287,7 @@ func (b *rawBridge) setAttrTimeout(out *fuse.AttrOut) {
 	}
 }
 
-func (b *rawBridge) SetAttr(input *fuse.SetAttrIn, out *fuse.AttrOut) (code fuse.Status) {
+func (b *rawBridge) SetAttr(input *fuse.SetAttrIn, out *fuse.AttrOut) (status fuse.Status) {
 	ctx := context.TODO()
 
 	n, fEntry := b.inode(input.NodeId, input.Fh)
@@ -298,10 +298,10 @@ func (b *rawBridge) SetAttr(input *fuse.SetAttrIn, out *fuse.AttrOut) (code fuse
 
 	if input.Valid&fuse.FATTR_MODE != 0 {
 		permissions := uint32(07777) & input.Mode
-		code = n.node.Chmod(ctx, f, permissions)
+		status = n.node.Chmod(ctx, f, permissions)
 	}
 
-	if code.Ok() && (input.Valid&(fuse.FATTR_UID|fuse.FATTR_GID) != 0) {
+	if status.Ok() && (input.Valid&(fuse.FATTR_UID|fuse.FATTR_GID) != 0) {
 		var uid uint32 = ^uint32(0) // means "do not change" in chown(2)
 		var gid uint32 = ^uint32(0)
 		if input.Valid&fuse.FATTR_UID != 0 {
@@ -310,14 +310,14 @@ func (b *rawBridge) SetAttr(input *fuse.SetAttrIn, out *fuse.AttrOut) (code fuse
 		if input.Valid&fuse.FATTR_GID != 0 {
 			gid = input.Gid
 		}
-		code = n.node.Chown(ctx, f, uid, gid)
+		status = n.node.Chown(ctx, f, uid, gid)
 	}
 
-	if code.Ok() && input.Valid&fuse.FATTR_SIZE != 0 {
-		code = n.node.Truncate(ctx, f, input.Size)
+	if status.Ok() && input.Valid&fuse.FATTR_SIZE != 0 {
+		status = n.node.Truncate(ctx, f, input.Size)
 	}
 
-	if code.Ok() && (input.Valid&(fuse.FATTR_ATIME|fuse.FATTR_MTIME|fuse.FATTR_ATIME_NOW|fuse.FATTR_MTIME_NOW) != 0) {
+	if status.Ok() && (input.Valid&(fuse.FATTR_ATIME|fuse.FATTR_MTIME|fuse.FATTR_ATIME_NOW|fuse.FATTR_MTIME_NOW) != 0) {
 		now := time.Now()
 		var atime *time.Time
 		var mtime *time.Time
@@ -340,28 +340,28 @@ func (b *rawBridge) SetAttr(input *fuse.SetAttrIn, out *fuse.AttrOut) (code fuse
 			}
 		}
 
-		code = n.node.Utimens(ctx, f, atime, mtime)
+		status = n.node.Utimens(ctx, f, atime, mtime)
 	}
 
-	if !code.Ok() {
-		return code
+	if !status.Ok() {
+		return status
 	}
 
 	// Must call GetAttr(); the filesystem may override some of
 	// the changes we effect here.
-	code = n.node.GetAttr(ctx, f, out)
+	status = n.node.GetAttr(ctx, f, out)
 	b.setAttrTimeout(out)
 	out.Ino = n.nodeID.Ino
 	out.Mode = n.mode | (out.Mode &^ 07777)
-	return code
+	return status
 }
 
 func (b *rawBridge) Rename(input *fuse.RenameIn, oldName string, newName string) fuse.Status {
 	p1, _ := b.inode(input.NodeId, 0)
 	p2, _ := b.inode(input.Newdir, 0)
 
-	code := p1.node.Rename(context.TODO(), oldName, p2.node, newName, input.Flags)
-	if code.Ok() {
+	status := p1.node.Rename(context.TODO(), oldName, p2.node, newName, input.Flags)
+	if status.Ok() {
 		if input.Flags&unix.RENAME_EXCHANGE != 0 {
 			// XXX - test coverage.
 			p1.ExchangeChild(oldName, p2, newName)
@@ -369,16 +369,16 @@ func (b *rawBridge) Rename(input *fuse.RenameIn, oldName string, newName string)
 			p1.MvChild(oldName, p2, newName, true)
 		}
 	}
-	return code
+	return status
 }
 
-func (b *rawBridge) Link(input *fuse.LinkIn, name string, out *fuse.EntryOut) (code fuse.Status) {
+func (b *rawBridge) Link(input *fuse.LinkIn, name string, out *fuse.EntryOut) (status fuse.Status) {
 	parent, _ := b.inode(input.NodeId, 0)
 	target, _ := b.inode(input.Oldnodeid, 0)
 
-	child, code := parent.node.Link(context.TODO(), target.node, name, out)
-	if !code.Ok() {
-		return code
+	child, status := parent.node.Link(context.TODO(), target.node, name, out)
+	if !status.Ok() {
+		return status
 	}
 
 	b.addNewChild(parent, name, child, nil, out)
@@ -386,11 +386,11 @@ func (b *rawBridge) Link(input *fuse.LinkIn, name string, out *fuse.EntryOut) (c
 	return fuse.OK
 }
 
-func (b *rawBridge) Symlink(header *fuse.InHeader, target string, name string, out *fuse.EntryOut) (code fuse.Status) {
+func (b *rawBridge) Symlink(header *fuse.InHeader, target string, name string, out *fuse.EntryOut) (status fuse.Status) {
 	parent, _ := b.inode(header.NodeId, 0)
-	child, code := parent.node.Symlink(context.TODO(), target, name, out)
-	if !code.Ok() {
-		return code
+	child, status := parent.node.Symlink(context.TODO(), target, name, out)
+	if !status.Ok() {
+		return status
 	}
 
 	b.addNewChild(parent, name, child, nil, out)
@@ -398,30 +398,30 @@ func (b *rawBridge) Symlink(header *fuse.InHeader, target string, name string, o
 	return fuse.OK
 }
 
-func (b *rawBridge) Readlink(header *fuse.InHeader) (out []byte, code fuse.Status) {
+func (b *rawBridge) Readlink(header *fuse.InHeader) (out []byte, status fuse.Status) {
 	n, _ := b.inode(header.NodeId, 0)
-	result, code := n.node.Readlink(context.TODO())
-	if !code.Ok() {
-		return nil, code
+	result, status := n.node.Readlink(context.TODO())
+	if !status.Ok() {
+		return nil, status
 	}
 
 	return []byte(result), fuse.OK
 }
 
-func (b *rawBridge) Access(input *fuse.AccessIn) (code fuse.Status) {
+func (b *rawBridge) Access(input *fuse.AccessIn) (status fuse.Status) {
 	return fuse.ENOSYS
 }
 
 // Extended attributes.
-func (b *rawBridge) GetXAttrSize(header *fuse.InHeader, attr string) (sz int, code fuse.Status) {
+func (b *rawBridge) GetXAttrSize(header *fuse.InHeader, attr string) (sz int, status fuse.Status) {
 	return 0, fuse.ENOSYS
 }
 
-func (b *rawBridge) GetXAttrData(header *fuse.InHeader, attr string) (data []byte, code fuse.Status) {
+func (b *rawBridge) GetXAttrData(header *fuse.InHeader, attr string) (data []byte, status fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
-func (b *rawBridge) ListXAttr(header *fuse.InHeader) (attributes []byte, code fuse.Status) {
+func (b *rawBridge) ListXAttr(header *fuse.InHeader) (attributes []byte, status fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
@@ -429,16 +429,16 @@ func (b *rawBridge) SetXAttr(input *fuse.SetXAttrIn, attr string, data []byte) f
 	return fuse.ENOSYS
 }
 
-func (b *rawBridge) RemoveXAttr(header *fuse.InHeader, attr string) (code fuse.Status) {
+func (b *rawBridge) RemoveXAttr(header *fuse.InHeader, attr string) (status fuse.Status) {
 	return
 }
 
 func (b *rawBridge) Open(input *fuse.OpenIn, out *fuse.OpenOut) (status fuse.Status) {
 	n, _ := b.inode(input.NodeId, 0)
 	// NOSUBMIT: what about the mode argument?
-	f, flags, code := n.node.Open(context.TODO(), input.Flags)
-	if !code.Ok() {
-		return code
+	f, flags, status := n.node.Open(context.TODO(), input.Flags)
+	if !status.Ok() {
+		return status
 	}
 
 	b.mu.Lock()
@@ -469,17 +469,17 @@ func (b *rawBridge) Read(input *fuse.ReadIn, buf []byte) (fuse.ReadResult, fuse.
 	return n.node.Read(context.TODO(), f.file, buf, int64(input.Offset))
 }
 
-func (b *rawBridge) GetLk(input *fuse.LkIn, out *fuse.LkOut) (code fuse.Status) {
+func (b *rawBridge) GetLk(input *fuse.LkIn, out *fuse.LkOut) (status fuse.Status) {
 	n, f := b.inode(input.NodeId, input.Fh)
 	return n.node.GetLk(context.TODO(), f.file, input.Owner, &input.Lk, input.LkFlags, &out.Lk)
 }
 
-func (b *rawBridge) SetLk(input *fuse.LkIn) (code fuse.Status) {
+func (b *rawBridge) SetLk(input *fuse.LkIn) (status fuse.Status) {
 	n, f := b.inode(input.NodeId, input.Fh)
 	return n.node.SetLk(context.TODO(), f.file, input.Owner, &input.Lk, input.LkFlags)
 }
 
-func (b *rawBridge) SetLkw(input *fuse.LkIn) (code fuse.Status) {
+func (b *rawBridge) SetLkw(input *fuse.LkIn) (status fuse.Status) {
 	n, f := b.inode(input.NodeId, input.Fh)
 	return n.node.SetLkw(context.TODO(), f.file, input.Owner, &input.Lk, input.LkFlags)
 }
@@ -509,7 +509,7 @@ func (b *rawBridge) releaseFileEntry(fh uint64) {
 	}
 }
 
-func (b *rawBridge) Write(input *fuse.WriteIn, data []byte) (written uint32, code fuse.Status) {
+func (b *rawBridge) Write(input *fuse.WriteIn, data []byte) (written uint32, status fuse.Status) {
 	n, f := b.inode(input.NodeId, input.Fh)
 	return n.node.Write(context.TODO(), f.file, data, int64(input.Offset))
 }
@@ -519,21 +519,21 @@ func (b *rawBridge) Flush(input *fuse.FlushIn) fuse.Status {
 	return n.node.Flush(context.TODO(), f.file)
 }
 
-func (b *rawBridge) Fsync(input *fuse.FsyncIn) (code fuse.Status) {
+func (b *rawBridge) Fsync(input *fuse.FsyncIn) (status fuse.Status) {
 	n, f := b.inode(input.NodeId, input.Fh)
 	return n.node.Fsync(context.TODO(), f.file, input.FsyncFlags)
 }
 
-func (b *rawBridge) Fallocate(input *fuse.FallocateIn) (code fuse.Status) {
+func (b *rawBridge) Fallocate(input *fuse.FallocateIn) (status fuse.Status) {
 	n, f := b.inode(input.NodeId, input.Fh)
 	return n.node.Allocate(context.TODO(), f.file, input.Offset, input.Length, input.Mode)
 }
 
-func (b *rawBridge) OpenDir(input *fuse.OpenIn, out *fuse.OpenOut) (status fuse.Status) {
+func (b *rawBridge) OpenDir(input *fuse.OpenIn, out *fuse.OpenOut) fuse.Status {
 	n, _ := b.inode(input.NodeId, 0)
-	code := n.node.OpenDir(context.TODO())
-	if !code.Ok() {
-		return code
+	status := n.node.OpenDir(context.TODO())
+	if !status.Ok() {
+		return status
 	}
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -547,9 +547,9 @@ func (b *rawBridge) getStream(input *fuse.ReadIn, inode *Inode, f *fileEntry) fu
 			f.dirStream.Close()
 			f.dirStream = nil
 		}
-		str, code := inode.node.ReadDir(context.TODO())
-		if !code.Ok() {
-			return code
+		str, status := inode.node.ReadDir(context.TODO())
+		if !status.Ok() {
+			return status
 		}
 
 		f.hasOverflow = false
@@ -562,8 +562,8 @@ func (b *rawBridge) getStream(input *fuse.ReadIn, inode *Inode, f *fileEntry) fu
 func (b *rawBridge) ReadDir(input *fuse.ReadIn, out *fuse.DirEntryList) fuse.Status {
 	n, f := b.inode(input.NodeId, input.Fh)
 
-	if code := b.getStream(input, n, f); !code.Ok() {
-		return code
+	if status := b.getStream(input, n, f); !status.Ok() {
+		return status
 	}
 
 	if f.hasOverflow {
@@ -574,15 +574,15 @@ func (b *rawBridge) ReadDir(input *fuse.ReadIn, out *fuse.DirEntryList) fuse.Sta
 
 	// TODO - should post '..' and '.' ?
 	for f.dirStream.HasNext() {
-		e, code := f.dirStream.Next()
+		e, status := f.dirStream.Next()
 
-		if !code.Ok() {
-			return code
+		if !status.Ok() {
+			return status
 		}
 		if !out.AddDirEntry(e) {
 			f.overflow = e
 			f.hasOverflow = true
-			return code
+			return status
 		}
 	}
 
@@ -592,22 +592,22 @@ func (b *rawBridge) ReadDir(input *fuse.ReadIn, out *fuse.DirEntryList) fuse.Sta
 func (b *rawBridge) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) fuse.Status {
 	n, f := b.inode(input.NodeId, input.Fh)
 
-	if code := b.getStream(input, n, f); !code.Ok() {
-		return code
+	if status := b.getStream(input, n, f); !status.Ok() {
+		return status
 	}
 
 	for f.dirStream.HasNext() {
 		var e fuse.DirEntry
-		var code fuse.Status
+		var status fuse.Status
 		if f.hasOverflow {
 			e = f.overflow
 			f.hasOverflow = false
 		} else {
-			e, code = f.dirStream.Next()
+			e, status = f.dirStream.Next()
 		}
 
-		if !code.Ok() {
-			return code
+		if !status.Ok() {
+			return status
 		}
 
 		entryOut := out.AddDirLookupEntry(e)
@@ -617,8 +617,8 @@ func (b *rawBridge) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) fuse
 			return fuse.OK
 		}
 
-		child, code := n.node.Lookup(context.TODO(), e.Name, entryOut)
-		if !code.Ok() {
+		child, status := n.node.Lookup(context.TODO(), e.Name, entryOut)
+		if !status.Ok() {
 			if b.options.NegativeTimeout != nil {
 				entryOut.SetEntryTimeout(*b.options.NegativeTimeout)
 			}
@@ -637,11 +637,11 @@ func (b *rawBridge) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) fuse
 	return fuse.OK
 }
 
-func (b *rawBridge) FsyncDir(input *fuse.FsyncIn) (code fuse.Status) {
+func (b *rawBridge) FsyncDir(input *fuse.FsyncIn) (status fuse.Status) {
 	return
 }
 
-func (b *rawBridge) StatFs(input *fuse.InHeader, out *fuse.StatfsOut) (code fuse.Status) {
+func (b *rawBridge) StatFs(input *fuse.InHeader, out *fuse.StatfsOut) (status fuse.Status) {
 	return
 }
 

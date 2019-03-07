@@ -30,7 +30,7 @@ type loopbackFile struct {
 	mu sync.Mutex
 }
 
-func (f *loopbackFile) Read(ctx context.Context, buf []byte, off int64) (res fuse.ReadResult, code fuse.Status) {
+func (f *loopbackFile) Read(ctx context.Context, buf []byte, off int64) (res fuse.ReadResult, status fuse.Status) {
 	f.mu.Lock()
 	// This is not racy by virtue of the kernel properly
 	// synchronizing the open/write/close.
@@ -68,7 +68,7 @@ func (f *loopbackFile) Flush(ctx context.Context) fuse.Status {
 	return fuse.ToStatus(err)
 }
 
-func (f *loopbackFile) Fsync(ctx context.Context, flags uint32) (code fuse.Status) {
+func (f *loopbackFile) Fsync(ctx context.Context, flags uint32) (status fuse.Status) {
 	f.mu.Lock()
 	r := fuse.ToStatus(syscall.Fsync(int(f.File.Fd())))
 	f.mu.Unlock()
@@ -82,23 +82,23 @@ const (
 	_OFD_SETLKW = 38
 )
 
-func (f *loopbackFile) GetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (code fuse.Status) {
+func (f *loopbackFile) GetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (status fuse.Status) {
 	flk := syscall.Flock_t{}
 	lk.ToFlockT(&flk)
-	code = fuse.ToStatus(syscall.FcntlFlock(f.File.Fd(), _OFD_GETLK, &flk))
+	status = fuse.ToStatus(syscall.FcntlFlock(f.File.Fd(), _OFD_GETLK, &flk))
 	out.FromFlockT(&flk)
 	return
 }
 
-func (f *loopbackFile) SetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status) {
+func (f *loopbackFile) SetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status) {
 	return f.setLock(ctx, owner, lk, flags, false)
 }
 
-func (f *loopbackFile) SetLkw(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status) {
+func (f *loopbackFile) SetLkw(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status) {
 	return f.setLock(ctx, owner, lk, flags, true)
 }
 
-func (f *loopbackFile) setLock(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, blocking bool) (code fuse.Status) {
+func (f *loopbackFile) setLock(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, blocking bool) (status fuse.Status) {
 	if (flags & fuse.FUSE_LK_FLOCK) != 0 {
 		var op int
 		switch lk.Typ {

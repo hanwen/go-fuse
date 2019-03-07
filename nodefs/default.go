@@ -88,7 +88,7 @@ func (n *DefaultOperations) Read(ctx context.Context, f FileHandle, dest []byte,
 	return nil, fuse.ENOSYS
 }
 
-func (n *DefaultOperations) Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (node *Inode, code fuse.Status) {
+func (n *DefaultOperations) Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (node *Inode, status fuse.Status) {
 	log.Println("defsyml")
 	return nil, fuse.ENOSYS
 }
@@ -104,7 +104,7 @@ func (n *DefaultOperations) Fsync(ctx context.Context, f FileHandle, flags uint3
 	return fuse.ENOSYS
 }
 
-func (n *DefaultOperations) Write(ctx context.Context, f FileHandle, data []byte, off int64) (written uint32, code fuse.Status) {
+func (n *DefaultOperations) Write(ctx context.Context, f FileHandle, data []byte, off int64) (written uint32, status fuse.Status) {
 	if f != nil {
 		return f.Write(ctx, data, off)
 	}
@@ -112,7 +112,7 @@ func (n *DefaultOperations) Write(ctx context.Context, f FileHandle, data []byte
 	return 0, fuse.ENOSYS
 }
 
-func (n *DefaultOperations) GetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (code fuse.Status) {
+func (n *DefaultOperations) GetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (status fuse.Status) {
 	if f != nil {
 		return f.GetLk(ctx, owner, lk, flags, out)
 	}
@@ -120,7 +120,7 @@ func (n *DefaultOperations) GetLk(ctx context.Context, f FileHandle, owner uint6
 	return fuse.ENOSYS
 }
 
-func (n *DefaultOperations) SetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status) {
+func (n *DefaultOperations) SetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status) {
 	if f != nil {
 		return f.SetLk(ctx, owner, lk, flags)
 	}
@@ -128,7 +128,7 @@ func (n *DefaultOperations) SetLk(ctx context.Context, f FileHandle, owner uint6
 	return fuse.ENOSYS
 }
 
-func (n *DefaultOperations) SetLkw(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status) {
+func (n *DefaultOperations) SetLkw(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status) {
 	if f != nil {
 		return f.SetLkw(ctx, owner, lk, flags)
 	}
@@ -149,7 +149,7 @@ func (n *DefaultOperations) Release(ctx context.Context, f FileHandle) {
 	}
 }
 
-func (n *DefaultOperations) Allocate(ctx context.Context, f FileHandle, off uint64, size uint64, mode uint32) (code fuse.Status) {
+func (n *DefaultOperations) Allocate(ctx context.Context, f FileHandle, off uint64, size uint64, mode uint32) (status fuse.Status) {
 	if f != nil {
 		return f.Allocate(ctx, off, size, mode)
 	}
@@ -197,14 +197,14 @@ func (n *DefaultOperations) Utimens(ctx context.Context, f FileHandle, atime *ti
 	return fuse.ENOSYS
 }
 
-func (n *DefaultOperations) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, code fuse.Status) {
+func (n *DefaultOperations) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, status fuse.Status) {
 	return nil, 0, fuse.ENOSYS
 }
 
-func (n *DefaultOperations) Create(ctx context.Context, name string, flags uint32, mode uint32) (node *Inode, fh FileHandle, fuseFlags uint32, code fuse.Status) {
+func (n *DefaultOperations) Create(ctx context.Context, name string, flags uint32, mode uint32) (node *Inode, fh FileHandle, fuseFlags uint32, status fuse.Status) {
 	return nil, nil, 0, fuse.ENOSYS
 }
-func (n *DefaultOperations) Link(ctx context.Context, target Operations, name string, out *fuse.EntryOut) (node *Inode, code fuse.Status) {
+func (n *DefaultOperations) Link(ctx context.Context, target Operations, name string, out *fuse.EntryOut) (node *Inode, status fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
@@ -217,19 +217,19 @@ func (f *DefaultFile) Read(ctx context.Context, dest []byte, off int64) (fuse.Re
 	return nil, fuse.ENOSYS
 }
 
-func (f *DefaultFile) Write(ctx context.Context, data []byte, off int64) (written uint32, code fuse.Status) {
+func (f *DefaultFile) Write(ctx context.Context, data []byte, off int64) (written uint32, status fuse.Status) {
 	return 0, fuse.ENOSYS
 }
 
-func (f *DefaultFile) GetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (code fuse.Status) {
+func (f *DefaultFile) GetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (status fuse.Status) {
 	return fuse.ENOSYS
 }
 
-func (f *DefaultFile) SetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status) {
+func (f *DefaultFile) SetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status) {
 	return fuse.ENOSYS
 }
 
-func (f *DefaultFile) SetLkw(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status) {
+func (f *DefaultFile) SetLkw(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status) {
 	return fuse.ENOSYS
 }
 
@@ -262,10 +262,10 @@ func (f *DefaultFile) Utimens(ctx context.Context, atime *time.Time, mtime *time
 	return fuse.ENOSYS
 }
 
-func (f *DefaultFile) Allocate(ctx context.Context, off uint64, size uint64, mode uint32) (code fuse.Status) {
+func (f *DefaultFile) Allocate(ctx context.Context, off uint64, size uint64, mode uint32) (status fuse.Status) {
 	return fuse.ENOSYS
 }
 
-func (f *DefaultFile) Fsync(ctx context.Context, flags uint32) (code fuse.Status) {
+func (f *DefaultFile) Fsync(ctx context.Context, flags uint32) (status fuse.Status) {
 	return fuse.ENOSYS
 }
