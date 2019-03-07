@@ -6,7 +6,6 @@ package nodefs
 
 import (
 	"context"
-	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -181,7 +180,7 @@ func (n *loopbackNode) Create(ctx context.Context, name string, flags uint32, mo
 	}
 
 	node := n.rootNode.newLoopbackNode()
-	ch := n.inode().NewInode(node, st.Mode, idFromStat(&st))
+	ch := n.inode().NewInode(node, uint32(st.Mode), idFromStat(&st))
 	lf := newLoopbackFile(f)
 	n.mu.Lock()
 	defer n.mu.Unlock()
@@ -201,7 +200,7 @@ func (n *loopbackNode) Symlink(ctx context.Context, target, name string, out *fu
 		return nil, fuse.ToStatus(err)
 	}
 	node := n.rootNode.newLoopbackNode()
-	ch := n.inode().NewInode(node, st.Mode, idFromStat(&st))
+	ch := n.inode().NewInode(node, uint32(st.Mode), idFromStat(&st))
 
 	out.Attr.FromStat(&st)
 	return ch, fuse.OK
@@ -221,7 +220,7 @@ func (n *loopbackNode) Link(ctx context.Context, target Operations, name string,
 		return nil, fuse.ToStatus(err)
 	}
 	node := n.rootNode.newLoopbackNode()
-	ch := n.inode().NewInode(node, st.Mode, idFromStat(&st))
+	ch := n.inode().NewInode(node, uint32(st.Mode), idFromStat(&st))
 
 	out.Attr.FromStat(&st)
 	return ch, fuse.OK
@@ -266,39 +265,7 @@ func (n *loopbackNode) OpenDir(ctx context.Context) fuse.Status {
 }
 
 func (n *loopbackNode) ReadDir(ctx context.Context) (DirStream, fuse.Status) {
-	// XXX should implement streaming read to make sure the API works.
-	f, err := os.Open(n.path())
-	if err != nil {
-		return nil, fuse.ToStatus(err)
-	}
-	defer f.Close()
-
-	var entries []fuse.DirEntry
-	for {
-		want := 100
-		infos, err := f.Readdir(want)
-		for _, info := range infos {
-			s := fuse.ToStatT(info)
-			if s == nil {
-				continue
-			}
-
-			entries = append(entries, fuse.DirEntry{
-				Name: info.Name(),
-				Mode: uint32(s.Mode),
-				Ino:  s.Ino,
-			})
-		}
-		if len(infos) < want || err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			return nil, fuse.ToStatus(err)
-		}
-	}
-
-	return &DirArray{entries}, fuse.OK
+	return NewLoopbackDirStream(n.path())
 }
 
 func (n *loopbackNode) fGetAttr(ctx context.Context, out *fuse.AttrOut) (fuse.Status, bool) {

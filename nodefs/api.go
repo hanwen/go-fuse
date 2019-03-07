@@ -79,25 +79,6 @@ type DirStream interface {
 	Close()
 }
 
-// XXX names
-type DirArray struct {
-	Entries []fuse.DirEntry
-}
-
-func (a *DirArray) HasNext() bool {
-	return len(a.Entries) > 0
-}
-
-func (a *DirArray) Next() (fuse.DirEntry, fuse.Status) {
-	e := a.Entries[0]
-	a.Entries = a.Entries[1:]
-	return e, fuse.OK
-}
-
-func (a *DirArray) Close() {
-
-}
-
 /*
 NOSUBMIT: how to structure?
 
