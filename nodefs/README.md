@@ -40,13 +40,15 @@ Decisions
      invalidated, and the notification doesn't have to happen under
      lock.
 
+   * Directory reading uses the DirStream. Semantics for rewinding
+     directory reads, and adding files after opening (but before
+     reading) are handled automatically.
+
 To decide
 =========
 
    * Should we provide automatic fileID numbering?
    
-   * Should OpenDir/ReadDir read the entire directory in one go?
-
    * One giant interface with many methods, or many one-method interfaces?
  
    * one SetAttr method, or many (Chown, Truncate, etc.)
