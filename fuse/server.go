@@ -39,6 +39,9 @@ type Server struct {
 
 	opts *MountOptions
 
+	// Pools for []byte
+	buffers bufferPool
+
 	// Pool for request structs.
 	reqPool sync.Pool
 
@@ -132,9 +135,6 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		fs = NewLockingRawFileSystem(fs)
 	}
 
-	if o.Buffers == nil {
-		o.Buffers = defaultBufferPool
-	}
 	if o.MaxWrite < 0 {
 		o.MaxWrite = 0
 	}
@@ -300,7 +300,7 @@ func (ms *Server) returnRequest(req *request) {
 	ms.recordStats(req)
 
 	if req.bufferPoolOutputBuf != nil {
-		ms.opts.Buffers.FreeBuffer(req.bufferPoolOutputBuf)
+		ms.buffers.FreeBuffer(req.bufferPoolOutputBuf)
 		req.bufferPoolOutputBuf = nil
 	}
 
@@ -446,9 +446,9 @@ func (ms *Server) allocOut(req *request, size uint32) []byte {
 		return req.bufferPoolOutputBuf
 	}
 	if req.bufferPoolOutputBuf != nil {
-		ms.opts.Buffers.FreeBuffer(req.bufferPoolOutputBuf)
+		ms.buffers.FreeBuffer(req.bufferPoolOutputBuf)
 	}
-	req.bufferPoolOutputBuf = ms.opts.Buffers.AllocBuffer(size)
+	req.bufferPoolOutputBuf = ms.buffers.AllocBuffer(size)
 	return req.bufferPoolOutputBuf
 }
 
@@ -785,12 +785,6 @@ func (in *InitIn) SupportsNotify(notifyType int) bool {
 		return in.SupportsVersion(7, 18)
 	}
 	return false
-}
-
-var defaultBufferPool BufferPool
-
-func init() {
-	defaultBufferPool = NewBufferPool()
 }
 
 // WaitMount waits for the first request to be served. Use this to

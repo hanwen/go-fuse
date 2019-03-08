@@ -9,11 +9,14 @@ import (
 )
 
 func TestBufferPool(t *testing.T) {
-	bp := NewBufferPool()
+	bp := bufferPool{}
 	size := 1500
-	buf := bp.AllocBuffer(uint32(size))
-	if len(buf) != size {
-		t.Errorf("Expected buffer of %d bytes, got %d bytes", size, len(buf))
+	buf1 := bp.AllocBuffer(uint32(size))
+	if len(buf1) != size {
+		t.Errorf("Expected buffer of %d bytes, got %d bytes", size, len(buf1))
 	}
-	bp.FreeBuffer(buf)
+	bp.FreeBuffer(buf1)
+
+	// tried testing to see if we get buf1 back if we ask again,
+	// but it's not guaranteed and sometimes fails
 }
