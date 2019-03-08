@@ -228,16 +228,21 @@ func (fs *wrappingFS) Link(cancel <-chan struct{}, input *LinkIn, name string, o
 	return ENOSYS
 }
 
-func (fs *wrappingFS) GetXAttrSize(cancel <-chan struct{}, header *InHeader, attr string) (size int, code Status) {
+func (fs *wrappingFS) GetXAttr(cancel <-chan struct{}, header *InHeader, attr string, dest []byte) (size uint32, code Status) {
 	if s, ok := fs.fs.(interface {
-		GetXAttrSize(header *InHeader, attr string) (size int, code Status)
+		// Old signature.
+		GetXAttrData(header *InHeader, attr string) ([]byte, Status)
 	}); ok {
-		return s.GetXAttrSize(header, attr)
+		d, s := s.GetXAttrData(header, attr)
+		if len(d) > len(dest) {
+			return uint32(len(d)), ERANGE
+		}
+		return uint32(copy(dest, d)), s
 	}
 	if s, ok := fs.fs.(interface {
-		GetXAttrSize(cancel <-chan struct{}, header *InHeader, attr string) (size int, code Status)
+		GetXAttr(cancel <-chan struct{}, header *InHeader, attr string, dest []byte) (size uint32, code Status)
 	}); ok {
-		return s.GetXAttrSize(cancel, header, attr)
+		return s.GetXAttr(cancel, header, attr, dest)
 	}
 	return 0, ENOSYS
 }
@@ -270,18 +275,24 @@ func (fs *wrappingFS) SetXAttr(cancel <-chan struct{}, input *SetXAttrIn, attr s
 	return ENOSYS
 }
 
-func (fs *wrappingFS) ListXAttr(cancel <-chan struct{}, header *InHeader) (data []byte, code Status) {
+func (fs *wrappingFS) ListXAttr(cancel <-chan struct{}, header *InHeader, dest []byte) (n uint32, code Status) {
 	if s, ok := fs.fs.(interface {
+		// Old signature.
 		ListXAttr(header *InHeader) (data []byte, code Status)
 	}); ok {
-		return s.ListXAttr(header)
+		d, s := s.ListXAttr(header)
+		if len(d) > len(dest) {
+			return uint32(len(d)), ERANGE
+		}
+
+		return uint32(copy(dest, d)), s
 	}
 	if s, ok := fs.fs.(interface {
-		ListXAttr(cancel <-chan struct{}, header *InHeader) (data []byte, code Status)
+		ListXAttr(cancel <-chan struct{}, header *InHeader, data []byte) (uint32, Status)
 	}); ok {
-		return s.ListXAttr(cancel, header)
+		return s.ListXAttr(cancel, header, dest)
 	}
-	return nil, ENOSYS
+	return 0, ENOSYS
 }
 
 func (fs *wrappingFS) RemoveXAttr(cancel <-chan struct{}, header *InHeader, attr string) Status {

@@ -109,19 +109,14 @@ func (fs *lockingRawFileSystem) SetXAttr(cancel <-chan struct{}, input *SetXAttr
 	return fs.RawFS.SetXAttr(cancel, input, attr, data)
 }
 
-func (fs *lockingRawFileSystem) GetXAttrData(cancel <-chan struct{}, header *InHeader, attr string) (data []byte, code Status) {
+func (fs *lockingRawFileSystem) GetXAttr(cancel <-chan struct{}, header *InHeader, attr string, dest []byte) (uint32, Status) {
 	defer fs.locked()()
-	return fs.RawFS.GetXAttrData(cancel, header, attr)
+	return fs.RawFS.GetXAttr(cancel, header, attr, dest)
 }
 
-func (fs *lockingRawFileSystem) GetXAttrSize(cancel <-chan struct{}, header *InHeader, attr string) (sz int, code Status) {
+func (fs *lockingRawFileSystem) ListXAttr(cancel <-chan struct{}, header *InHeader, data []byte) (uint32, Status) {
 	defer fs.locked()()
-	return fs.RawFS.GetXAttrSize(cancel, header, attr)
-}
-
-func (fs *lockingRawFileSystem) ListXAttr(cancel <-chan struct{}, header *InHeader) (data []byte, code Status) {
-	defer fs.locked()()
-	return fs.RawFS.ListXAttr(cancel, header)
+	return fs.RawFS.ListXAttr(cancel, header, data)
 }
 
 func (fs *lockingRawFileSystem) RemoveXAttr(cancel <-chan struct{}, header *InHeader, attr string) Status {

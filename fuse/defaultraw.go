@@ -81,20 +81,16 @@ func (fs *defaultRawFileSystem) Link(cancel <-chan struct{}, input *LinkIn, name
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) GetXAttrSize(cancel <-chan struct{}, header *InHeader, attr string) (size int, code Status) {
+func (fs *defaultRawFileSystem) GetXAttr(cancel <-chan struct{}, header *InHeader, attr string, dest []byte) (size uint32, code Status) {
 	return 0, ENOSYS
-}
-
-func (fs *defaultRawFileSystem) GetXAttrData(cancel <-chan struct{}, header *InHeader, attr string) (data []byte, code Status) {
-	return nil, ENOATTR
 }
 
 func (fs *defaultRawFileSystem) SetXAttr(cancel <-chan struct{}, input *SetXAttrIn, attr string, data []byte) Status {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) ListXAttr(cancel <-chan struct{}, header *InHeader) (data []byte, code Status) {
-	return nil, ENOSYS
+func (fs *defaultRawFileSystem) ListXAttr(cancel <-chan struct{}, header *InHeader, dest []byte) (n uint32, code Status) {
+	return 0, ENOSYS
 }
 
 func (fs *defaultRawFileSystem) RemoveXAttr(cancel <-chan struct{}, header *InHeader, attr string) Status {

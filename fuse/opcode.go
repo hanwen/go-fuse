@@ -239,48 +239,29 @@ func doGetXAttr(server *Server, req *request) {
 
 	input := (*GetXAttrIn)(req.inData)
 
-	if input.Size == 0 {
-		out := (*GetXAttrOut)(req.outData())
-		switch req.inHeader.Opcode {
-		case _OP_GETXATTR:
-			// TODO(hanwen): double check this. For getxattr, input.Size
-			// field refers to the size of the attribute, so it usually
-			// is not 0.
-			sz, code := server.fileSystem.GetXAttrSize(req.cancel, req.inHeader, req.filenames[0])
-			if code.Ok() {
-				out.Size = uint32(sz)
-			}
-			req.status = code
-			return
-		case _OP_LISTXATTR:
-			data, code := server.fileSystem.ListXAttr(req.cancel, req.inHeader)
-			if code.Ok() {
-				out.Size = uint32(len(data))
-			}
-			req.status = code
-			return
-		}
-	}
-	var data []byte
+	req.flatData = server.allocOut(req, input.Size)
+	out := (*GetXAttrOut)(req.outData())
+
+	var n uint32
 	switch req.inHeader.Opcode {
 	case _OP_GETXATTR:
-		data, req.status = server.fileSystem.GetXAttrData(req.cancel, req.inHeader, req.filenames[0])
+		n, req.status = server.fileSystem.GetXAttr(req.cancel, req.inHeader, req.filenames[0], req.flatData)
 	case _OP_LISTXATTR:
-		data, req.status = server.fileSystem.ListXAttr(req.cancel, req.inHeader)
+		n, req.status = server.fileSystem.ListXAttr(req.cancel, req.inHeader, req.flatData)
 	default:
-		log.Panicf("xattr opcode %v", req.inHeader.Opcode)
 		req.status = ENOSYS
 	}
 
-	if len(data) > int(input.Size) {
-		req.status = ERANGE
+	if input.Size == 0 && req.status == ERANGE {
+		// For input.size==0, returning ERANGE is an error.
+		req.status = OK
+		out.Size = n
+	} else if req.status.Ok() {
+		req.flatData = req.flatData[:n]
+		out.Size = n
+	} else {
+		req.flatData = req.flatData[:0]
 	}
-
-	if !req.status.Ok() {
-		return
-	}
-
-	req.flatData = data
 }
 
 func doGetAttr(server *Server, req *request) {

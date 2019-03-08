@@ -8,7 +8,6 @@ package nodefs
 // RawFileSystem
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"strings"
@@ -377,11 +376,15 @@ func (c *rawBridge) ReleaseDir(input *fuse.ReleaseIn) {
 		node.mount.unregisterFileHandle(input.Fh, node)
 	}
 }
-
-func (c *rawBridge) GetXAttrSize(cancel <-chan struct{}, header *fuse.InHeader, attribute string) (sz int, code fuse.Status) {
+func (c *rawBridge) GetXAttr(cancel <-chan struct{}, header *fuse.InHeader, attribute string, dest []byte) (sz uint32, code fuse.Status) {
 	node := c.toInode(header.NodeId)
 	data, errno := node.fsInode.GetXAttr(attribute, &fuse.Context{Caller: header.Caller, Cancel: cancel})
-	return len(data), errno
+
+	if len(data) > len(dest) {
+		return uint32(len(data)), fuse.ERANGE
+	}
+	copy(dest, data)
+	return uint32(len(data)), errno
 }
 
 func (c *rawBridge) GetXAttrData(cancel <-chan struct{}, header *fuse.InHeader, attribute string) (data []byte, code fuse.Status) {
@@ -399,20 +402,29 @@ func (c *rawBridge) SetXAttr(cancel <-chan struct{}, input *fuse.SetXAttrIn, att
 	return node.fsInode.SetXAttr(attr, data, int(input.Flags), &fuse.Context{Caller: input.Caller, Cancel: cancel})
 }
 
-func (c *rawBridge) ListXAttr(cancel <-chan struct{}, header *fuse.InHeader) (data []byte, code fuse.Status) {
+func (c *rawBridge) ListXAttr(cancel <-chan struct{}, header *fuse.InHeader, dest []byte) (uint32, fuse.Status) {
 	node := c.toInode(header.NodeId)
 	attrs, code := node.fsInode.ListXAttr(&fuse.Context{Caller: header.Caller, Cancel: cancel})
 	if code != fuse.OK {
-		return nil, code
+		return 0, code
 	}
 
-	b := bytes.NewBuffer([]byte{})
+	var sz uint32
 	for _, v := range attrs {
-		b.Write([]byte(v))
-		b.WriteByte(0)
+		sz += uint32(len(v)) + 1
 	}
 
-	return b.Bytes(), code
+	if int(sz) > len(dest) {
+		return sz, fuse.ERANGE
+	}
+
+	dest = dest[:0]
+	for _, v := range attrs {
+		dest = append(dest, v...)
+		dest = append(dest, 0)
+	}
+
+	return sz, code
 }
 
 ////////////////

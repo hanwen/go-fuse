@@ -218,10 +218,21 @@ type RawFileSystem interface {
 	Access(cancel <-chan struct{}, input *AccessIn) (code Status)
 
 	// Extended attributes.
-	GetXAttrSize(cancel <-chan struct{}, header *InHeader, attr string) (sz int, code Status)
-	GetXAttrData(cancel <-chan struct{}, header *InHeader, attr string) (data []byte, code Status)
-	ListXAttr(cancel <-chan struct{}, header *InHeader) (attributes []byte, code Status)
+
+	// GetXAttr reads an extended attribute, and should return the
+	// number of bytes. If the buffer is too small, return ERANGE,
+	// with the required buffer size.
+	GetXAttr(cancel <-chan struct{}, header *InHeader, attr string, dest []byte) (sz uint32, code Status)
+
+	// ListXAttr lists extended attributes as '\0' delimited byte
+	// slice, and return the number of bytes. If the buffer is too
+	// small, return ERANGE, with the required buffer size.
+	ListXAttr(cancel <-chan struct{}, header *InHeader, dest []byte) (uint32, Status)
+
+	// SetAttr writes an extended attribute.
 	SetXAttr(cancel <-chan struct{}, input *SetXAttrIn, attr string, data []byte) Status
+
+	// RemoveXAttr removes an extended attribute.
 	RemoveXAttr(cancel <-chan struct{}, header *InHeader, attr string) (code Status)
 
 	// File handling.
