@@ -9,8 +9,6 @@ import (
 	"sync"
 )
 
-var paranoia bool
-
 // BufferPool implements explicit memory management. It is used for
 // minimizing the GC overhead of communicating with the kernel.
 type BufferPool interface {
@@ -22,21 +20,6 @@ type BufferPool interface {
 	// AllocBuffer.  It is not an error to call FreeBuffer() on a slice
 	// obtained elsewhere.
 	FreeBuffer(slice []byte)
-}
-
-type gcBufferPool struct {
-}
-
-// NewGcBufferPool is a fallback to the standard allocation routines.
-func NewGcBufferPool() BufferPool {
-	return &gcBufferPool{}
-}
-
-func (p *gcBufferPool) AllocBuffer(size uint32) []byte {
-	return make([]byte, size)
-}
-
-func (p *gcBufferPool) FreeBuffer(slice []byte) {
 }
 
 type bufferPoolImpl struct {
