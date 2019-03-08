@@ -172,9 +172,7 @@ func TestFileTruncate(t *testing.T) {
 
 	content := []byte("hello world")
 
-	if err := ioutil.WriteFile(tc.origDir+"/file", content, 0755); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
+	tc.writeOrig("file", string(content), 0755)
 
 	f, err := os.OpenFile(tc.mntDir+"/file", os.O_RDWR, 0644)
 	if err != nil {
@@ -206,11 +204,7 @@ func TestFileFdLeak(t *testing.T) {
 		}
 	}()
 
-	content := []byte("hello world")
-
-	if err := ioutil.WriteFile(tc.origDir+"/file", content, 0755); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
+	tc.writeOrig("file", "hello world", 0755)
 
 	for i := 0; i < 100; i++ {
 		if _, err := ioutil.ReadFile(tc.mntDir + "/file"); err != nil {
@@ -264,14 +258,10 @@ func testRenameOverwrite(t *testing.T, destExists bool) {
 	if err := os.Mkdir(tc.origDir+"/dir", 0755); err != nil {
 		t.Fatalf("Mkdir: %v", err)
 	}
-	if err := ioutil.WriteFile(tc.origDir+"/file", []byte("hello"), 0644); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
+	tc.writeOrig("file", "hello", 0644)
 
 	if destExists {
-		if err := ioutil.WriteFile(tc.origDir+"/dir/renamed", []byte("xx"), 0644); err != nil {
-			t.Fatalf("WriteFile: %v", err)
-		}
+		tc.writeOrig("/dir/renamed", "xx", 0644)
 	}
 
 	st := syscall.Stat_t{}
@@ -311,12 +301,8 @@ func TestRenameNoOverwrite(t *testing.T) {
 	if err := os.Mkdir(tc.origDir+"/dir", 0755); err != nil {
 		t.Fatalf("Mkdir: %v", err)
 	}
-	if err := ioutil.WriteFile(tc.origDir+"/file", []byte("hello"), 0644); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
-	if err := ioutil.WriteFile(tc.origDir+"/dir/file", []byte("x"), 0644); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
+	tc.writeOrig("file", "hello", 0644)
+	tc.writeOrig("dir/file", "x", 0644)
 
 	f1, err := syscall.Open(tc.mntDir+"/", syscall.O_DIRECTORY, 0)
 	if err != nil {
@@ -463,9 +449,7 @@ func TestNotifyEntry(t *testing.T) {
 
 	orig := tc.origDir + "/file"
 	fn := tc.mntDir + "/file"
-	if err := ioutil.WriteFile(orig, []byte("hello"), 0644); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
+	tc.writeOrig("file", "hello", 0644)
 
 	st := syscall.Stat_t{}
 	if err := syscall.Lstat(fn, &st); err != nil {
@@ -514,9 +498,7 @@ func TestReadDir(t *testing.T) {
 		// 4096 page.
 		nm := fmt.Sprintf("file%036x", i)
 		want[nm] = true
-		if err := ioutil.WriteFile(tc.origDir+"/"+nm, []byte("hello"), 0644); err != nil {
-			t.Fatalf("WriteFile: %v", err)
-		}
+		tc.writeOrig(nm, "hello", 0644)
 	}
 
 	names, err := f.Readdirnames(-1)
