@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"syscall"
 	"testing"
 
 	"github.com/hanwen/go-fuse/fuse"
@@ -99,11 +100,6 @@ func (fs *XAttrTestFs) RemoveXAttr(name string, attr string, context *fuse.Conte
 	return fuse.OK
 }
 
-func readXAttr(p, a string) (val []byte, err error) {
-	val = make([]byte, 1024)
-	return getXAttr(p, a, val)
-}
-
 func xattrTestCase(t *testing.T, nm string, m map[string][]byte) (mountPoint string, cleanup func()) {
 	xfs := NewXAttrFs(nm, m)
 	mountPoint = testutil.TempDir()
@@ -136,6 +132,11 @@ func TestXAttrNoAttrs(t *testing.T) {
 	if len(attrs) > 0 {
 		t.Errorf("ListXAttr(%s) = %s, want empty slice", mounted, attrs)
 	}
+}
+
+func readXAttr(p, a string) (val []byte, err error) {
+	val = make([]byte, 1024)
+	return getXAttr(p, a, val)
 }
 
 func TestXAttrNoExist(t *testing.T) {
@@ -185,8 +186,7 @@ func TestXAttrRead(t *testing.T) {
 		}
 	}
 
-	err = sysSetxattr(mounted, "third", []byte("value"), 0)
-	if err != nil {
+	if err = syscall.Setxattr(mounted, "third", []byte("value"), 0); err != nil {
 		t.Error("Setxattr error", err)
 	}
 	val, err := readXAttr(mounted, "third")
@@ -194,7 +194,9 @@ func TestXAttrRead(t *testing.T) {
 		t.Error("Read back set xattr:", err, string(val))
 	}
 
-	sysRemovexattr(mounted, "third")
+	if err := syscall.Removexattr(mounted, "third"); err != nil {
+		t.Errorf("Removexattr: %v", err)
+	}
 	val, err = readXAttr(mounted, "third")
 	if fuse.ToStatus(err) != fuse.ENOATTR {
 		t.Error("Data not removed?", err, val)

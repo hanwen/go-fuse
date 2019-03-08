@@ -13,13 +13,12 @@ import (
 )
 
 func (fs *loopbackFileSystem) ListXAttr(name string, context *fuse.Context) ([]string, fuse.Status) {
-	data, err := listXAttr(fs.GetPath(name))
-
-	return data, fuse.ToStatus(err)
+	attrs, err := listXAttr(fs.GetPath(name))
+	return attrs, fuse.ToStatus(err)
 }
 
 func (fs *loopbackFileSystem) RemoveXAttr(name string, attr string, context *fuse.Context) fuse.Status {
-	err := sysRemovexattr(fs.GetPath(name), attr)
+	err := syscall.Removexattr(fs.GetPath(name), attr)
 	return fuse.ToStatus(err)
 }
 
@@ -28,10 +27,22 @@ func (fs *loopbackFileSystem) String() string {
 }
 
 func (fs *loopbackFileSystem) GetXAttr(name string, attr string, context *fuse.Context) ([]byte, fuse.Status) {
-	data := make([]byte, 1024)
-	data, err := getXAttr(fs.GetPath(name), attr, data)
 
-	return data, fuse.ToStatus(err)
+	bufsz := 1024
+	for {
+		data := make([]byte, bufsz)
+		sz, err := syscall.Getxattr(fs.GetPath(name), attr, data)
+		if err == nil {
+			return data[:sz], fuse.OK
+		}
+		if err == syscall.ERANGE {
+			bufsz = sz
+			continue
+		}
+
+		return nil, fuse.ToStatus(err)
+	}
+
 }
 
 func (fs *loopbackFileSystem) SetXAttr(name string, attr string, data []byte, flags int, context *fuse.Context) fuse.Status {
