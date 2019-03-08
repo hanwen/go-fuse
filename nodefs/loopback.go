@@ -319,3 +319,23 @@ func NewLoopback(root string) Operations {
 	n.openFiles = map[*loopbackFile]uint32{}
 	return n
 }
+
+func (n *loopbackNode) GetXAttr(ctx context.Context, attr string, dest []byte) (uint32, fuse.Status) {
+	sz, err := syscall.Getxattr(n.path(), attr, dest)
+	return uint32(sz), fuse.ToStatus(err)
+}
+
+func (n *loopbackNode) SetXAttr(ctx context.Context, attr string, data []byte, flags uint32) fuse.Status {
+	err := syscall.Setxattr(n.path(), attr, data, int(flags))
+	return fuse.ToStatus(err)
+}
+
+func (n *loopbackNode) RemoveXAttr(ctx context.Context, attr string) fuse.Status {
+	err := syscall.Removexattr(n.path(), attr)
+	return fuse.ToStatus(err)
+}
+
+func (n *loopbackNode) ListXAttr(ctx context.Context, dest []byte) (uint32, fuse.Status) {
+	sz, err := syscall.Listxattr(n.path(), dest)
+	return uint32(sz), fuse.ToStatus(err)
+}

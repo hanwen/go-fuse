@@ -107,6 +107,13 @@ type Operations interface {
 	SetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status)
 	SetLkw(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status)
 
+	// Extended attributes
+
+	GetXAttr(ctx context.Context, attr string, dest []byte) (uint32, fuse.Status)
+	SetXAttr(ctx context.Context, attr string, data []byte, flags uint32) fuse.Status
+	RemoveXAttr(ctx context.Context, attr string) fuse.Status
+	ListXAttr(ctx context.Context, dest []byte) (uint32, fuse.Status)
+
 	// The methods below may be called on closed files, due to
 	// concurrency.  In that case, you should return EBADF.
 	GetAttr(ctx context.Context, f FileHandle, out *fuse.AttrOut) fuse.Status

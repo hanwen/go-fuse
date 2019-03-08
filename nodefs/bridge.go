@@ -412,24 +412,26 @@ func (b *rawBridge) Access(cancel <-chan struct{}, input *fuse.AccessIn) (status
 }
 
 // Extended attributes.
-func (b *rawBridge) GetXAttrSize(cancel <-chan struct{}, header *fuse.InHeader, attr string) (sz int, status fuse.Status) {
-	return 0, fuse.ENOSYS
+
+func (b *rawBridge) GetXAttr(cancel <-chan struct{}, header *fuse.InHeader, attr string, data []byte) (uint32, fuse.Status) {
+	n, _ := b.inode(header.NodeId, 0)
+
+	return n.node.GetXAttr(&fuse.Context{Caller: header.Caller, Cancel: cancel}, attr, data)
 }
 
-func (b *rawBridge) GetXAttrData(cancel <-chan struct{}, header *fuse.InHeader, attr string) (data []byte, status fuse.Status) {
-	return nil, fuse.ENOSYS
-}
-
-func (b *rawBridge) ListXAttr(cancel <-chan struct{}, header *fuse.InHeader) (attributes []byte, status fuse.Status) {
-	return nil, fuse.ENOSYS
+func (b *rawBridge) ListXAttr(cancel <-chan struct{}, header *fuse.InHeader, dest []byte) (sz uint32, status fuse.Status) {
+	n, _ := b.inode(header.NodeId, 0)
+	return n.node.ListXAttr(&fuse.Context{Caller: header.Caller, Cancel: cancel}, dest)
 }
 
 func (b *rawBridge) SetXAttr(cancel <-chan struct{}, input *fuse.SetXAttrIn, attr string, data []byte) fuse.Status {
-	return fuse.ENOSYS
+	n, _ := b.inode(input.NodeId, 0)
+	return n.node.SetXAttr(&fuse.Context{Caller: input.Caller, Cancel: cancel}, attr, data, input.Flags)
 }
 
 func (b *rawBridge) RemoveXAttr(cancel <-chan struct{}, header *fuse.InHeader, attr string) (status fuse.Status) {
-	return
+	n, _ := b.inode(header.NodeId, 0)
+	return n.node.RemoveXAttr(&fuse.Context{Caller: header.Caller, Cancel: cancel}, attr)
 }
 
 func (b *rawBridge) Open(cancel <-chan struct{}, input *fuse.OpenIn, out *fuse.OpenOut) (status fuse.Status) {

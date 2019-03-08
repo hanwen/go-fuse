@@ -58,7 +58,6 @@ func newTestCase(t *testing.T) *testCase {
 		dir: testutil.TempDir(),
 		T:   t,
 	}
-
 	tc.origDir = tc.dir + "/orig"
 	tc.mntDir = tc.dir + "/mnt"
 	if err := os.Mkdir(tc.origDir, 0755); err != nil {
@@ -561,5 +560,40 @@ func TestStatFs(t *testing.T) {
 
 	if !reflect.DeepEqual(mntFuse, origFuse) {
 		t.Errorf("Got %#v, want %#v", mntFuse, origFuse)
+	}
+}
+
+func TestXAttr(t *testing.T) {
+	tc := newTestCase(t)
+	defer tc.Clean()
+
+	tc.writeOrig("file", "", 0644)
+
+	buf := make([]byte, 1024)
+	attr := "user.xattrtest"
+	if _, err := syscall.Getxattr(tc.mntDir+"/file", attr, buf); err == syscall.ENOTSUP {
+		t.Skip("$TMP does not support xattrs. Rerun this test with a $TMPDIR override")
+	}
+
+	if _, err := syscall.Getxattr(tc.mntDir+"/file", attr, buf); err != syscall.ENODATA {
+		t.Fatalf("got %v want ENOATTR", err)
+	}
+	value := []byte("value")
+	if err := syscall.Setxattr(tc.mntDir+"/file", attr, value, 0); err != nil {
+		t.Fatalf("Setxattr: %v", err)
+	}
+	sz, err := syscall.Getxattr(tc.mntDir+"/file", attr, buf)
+	if err != nil {
+		t.Fatalf("Getxattr: %v", err)
+	}
+	if bytes.Compare(buf[:sz], value) != 0 {
+		t.Fatalf("Getxattr got %q want %q", buf[:sz], value)
+	}
+	if err := syscall.Removexattr(tc.mntDir+"/file", attr); err != nil {
+		t.Fatalf("Removexattr: %v", err)
+	}
+
+	if _, err := syscall.Getxattr(tc.mntDir+"/file", attr, buf); err != syscall.ENODATA {
+		t.Fatalf("got %v want ENOATTR", err)
 	}
 }

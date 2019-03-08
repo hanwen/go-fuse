@@ -215,6 +215,22 @@ func (n *DefaultOperations) Link(ctx context.Context, target Operations, name st
 	return nil, fuse.ENOSYS
 }
 
+func (n *DefaultOperations) GetXAttr(ctx context.Context, attr string, dest []byte) (uint32, fuse.Status) {
+	return 0, fuse.ENOATTR
+}
+
+func (n *DefaultOperations) SetXAttr(ctx context.Context, attr string, data []byte, flags uint32) fuse.Status {
+	return fuse.ENOATTR
+}
+
+func (n *DefaultOperations) RemoveXAttr(ctx context.Context, attr string) fuse.Status {
+	return fuse.ENOATTR
+}
+
+func (n *DefaultOperations) ListXAttr(ctx context.Context, dest []byte) (uint32, fuse.Status) {
+	return 0, fuse.OK
+}
+
 type DefaultFile struct {
 }
 
