@@ -22,14 +22,14 @@ type connectorDir struct {
 	stream []fuse.DirEntry
 }
 
-func (d *connectorDir) ReadDir(input *fuse.ReadIn, out *fuse.DirEntryList) (code fuse.Status) {
+func (d *connectorDir) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out *fuse.DirEntryList) (code fuse.Status) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
 	// rewinddir() should be as if reopening directory.
 	// TODO - test this.
 	if d.stream == nil || input.Offset == 0 {
-		d.stream, code = d.node.OpenDir(&input.Context)
+		d.stream, code = d.node.OpenDir(&fuse.Context{Caller: input.Caller, Cancel: cancel})
 		if !code.Ok() {
 			return code
 		}
@@ -58,13 +58,13 @@ func (d *connectorDir) ReadDir(input *fuse.ReadIn, out *fuse.DirEntryList) (code
 	return fuse.OK
 }
 
-func (d *connectorDir) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) (code fuse.Status) {
+func (d *connectorDir) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out *fuse.DirEntryList) (code fuse.Status) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
 	// rewinddir() should be as if reopening directory.
 	if d.stream == nil || input.Offset == 0 {
-		d.stream, code = d.node.OpenDir(&input.Context)
+		d.stream, code = d.node.OpenDir(&fuse.Context{Caller: input.Caller, Cancel: cancel})
 		if !code.Ok() {
 			return code
 		}
@@ -98,7 +98,7 @@ func (d *connectorDir) ReadDirPlus(input *fuse.ReadIn, out *fuse.DirEntryList) (
 			continue
 		}
 
-		d.rawFS.Lookup(&input.InHeader, e.Name, entryDest)
+		d.rawFS.Lookup(cancel, &input.InHeader, e.Name, entryDest)
 	}
 	return fuse.OK
 }

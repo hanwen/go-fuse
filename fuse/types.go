@@ -29,6 +29,9 @@ const (
 	// EAGAIN Resource temporarily unavailable
 	EAGAIN = Status(syscall.EAGAIN)
 
+	// EINTR Call was interrupted
+	EINTR = Status(syscall.EINTR)
+
 	// EINVAL Invalid argument
 	EINVAL = Status(syscall.EINVAL)
 
@@ -541,7 +544,7 @@ type CreateOut struct {
 	OpenOut
 }
 
-type Context struct {
+type Caller struct {
 	Owner
 	Pid uint32
 }
@@ -551,7 +554,7 @@ type InHeader struct {
 	Opcode int32
 	Unique uint64
 	NodeId uint64
-	Context
+	Caller
 	Padding uint32
 }
 

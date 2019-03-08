@@ -33,9 +33,9 @@ func (fs *lockingRawFileSystem) locked() func() {
 	return func() { fs.lock.Unlock() }
 }
 
-func (fs *lockingRawFileSystem) Lookup(header *InHeader, name string, out *EntryOut) (code Status) {
+func (fs *lockingRawFileSystem) Lookup(cancel <-chan struct{}, header *InHeader, name string, out *EntryOut) (code Status) {
 	defer fs.locked()()
-	return fs.RawFS.Lookup(header, name, out)
+	return fs.RawFS.Lookup(cancel, header, name, out)
 }
 
 func (fs *lockingRawFileSystem) SetDebug(dbg bool) {
@@ -48,100 +48,100 @@ func (fs *lockingRawFileSystem) Forget(nodeID uint64, nlookup uint64) {
 	fs.RawFS.Forget(nodeID, nlookup)
 }
 
-func (fs *lockingRawFileSystem) GetAttr(input *GetAttrIn, out *AttrOut) (code Status) {
+func (fs *lockingRawFileSystem) GetAttr(cancel <-chan struct{}, input *GetAttrIn, out *AttrOut) (code Status) {
 	defer fs.locked()()
-	return fs.RawFS.GetAttr(input, out)
+	return fs.RawFS.GetAttr(cancel, input, out)
 }
 
-func (fs *lockingRawFileSystem) Open(input *OpenIn, out *OpenOut) (status Status) {
+func (fs *lockingRawFileSystem) Open(cancel <-chan struct{}, input *OpenIn, out *OpenOut) (status Status) {
 
 	defer fs.locked()()
-	return fs.RawFS.Open(input, out)
+	return fs.RawFS.Open(cancel, input, out)
 }
 
-func (fs *lockingRawFileSystem) SetAttr(input *SetAttrIn, out *AttrOut) (code Status) {
+func (fs *lockingRawFileSystem) SetAttr(cancel <-chan struct{}, input *SetAttrIn, out *AttrOut) (code Status) {
 	defer fs.locked()()
-	return fs.RawFS.SetAttr(input, out)
+	return fs.RawFS.SetAttr(cancel, input, out)
 }
 
-func (fs *lockingRawFileSystem) Readlink(header *InHeader) (out []byte, code Status) {
+func (fs *lockingRawFileSystem) Readlink(cancel <-chan struct{}, header *InHeader) (out []byte, code Status) {
 	defer fs.locked()()
-	return fs.RawFS.Readlink(header)
+	return fs.RawFS.Readlink(cancel, header)
 }
 
-func (fs *lockingRawFileSystem) Mknod(input *MknodIn, name string, out *EntryOut) (code Status) {
+func (fs *lockingRawFileSystem) Mknod(cancel <-chan struct{}, input *MknodIn, name string, out *EntryOut) (code Status) {
 	defer fs.locked()()
-	return fs.RawFS.Mknod(input, name, out)
+	return fs.RawFS.Mknod(cancel, input, name, out)
 }
 
-func (fs *lockingRawFileSystem) Mkdir(input *MkdirIn, name string, out *EntryOut) (code Status) {
+func (fs *lockingRawFileSystem) Mkdir(cancel <-chan struct{}, input *MkdirIn, name string, out *EntryOut) (code Status) {
 	defer fs.locked()()
-	return fs.RawFS.Mkdir(input, name, out)
+	return fs.RawFS.Mkdir(cancel, input, name, out)
 }
 
-func (fs *lockingRawFileSystem) Unlink(header *InHeader, name string) (code Status) {
+func (fs *lockingRawFileSystem) Unlink(cancel <-chan struct{}, header *InHeader, name string) (code Status) {
 	defer fs.locked()()
-	return fs.RawFS.Unlink(header, name)
+	return fs.RawFS.Unlink(cancel, header, name)
 }
 
-func (fs *lockingRawFileSystem) Rmdir(header *InHeader, name string) (code Status) {
+func (fs *lockingRawFileSystem) Rmdir(cancel <-chan struct{}, header *InHeader, name string) (code Status) {
 	defer fs.locked()()
-	return fs.RawFS.Rmdir(header, name)
+	return fs.RawFS.Rmdir(cancel, header, name)
 }
 
-func (fs *lockingRawFileSystem) Symlink(header *InHeader, pointedTo string, linkName string, out *EntryOut) (code Status) {
+func (fs *lockingRawFileSystem) Symlink(cancel <-chan struct{}, header *InHeader, pointedTo string, linkName string, out *EntryOut) (code Status) {
 	defer fs.locked()()
-	return fs.RawFS.Symlink(header, pointedTo, linkName, out)
+	return fs.RawFS.Symlink(cancel, header, pointedTo, linkName, out)
 }
 
-func (fs *lockingRawFileSystem) Rename(input *RenameIn, oldName string, newName string) (code Status) {
+func (fs *lockingRawFileSystem) Rename(cancel <-chan struct{}, input *RenameIn, oldName string, newName string) (code Status) {
 	defer fs.locked()()
-	return fs.RawFS.Rename(input, oldName, newName)
+	return fs.RawFS.Rename(cancel, input, oldName, newName)
 }
 
-func (fs *lockingRawFileSystem) Link(input *LinkIn, name string, out *EntryOut) (code Status) {
+func (fs *lockingRawFileSystem) Link(cancel <-chan struct{}, input *LinkIn, name string, out *EntryOut) (code Status) {
 	defer fs.locked()()
-	return fs.RawFS.Link(input, name, out)
+	return fs.RawFS.Link(cancel, input, name, out)
 }
 
-func (fs *lockingRawFileSystem) SetXAttr(input *SetXAttrIn, attr string, data []byte) Status {
+func (fs *lockingRawFileSystem) SetXAttr(cancel <-chan struct{}, input *SetXAttrIn, attr string, data []byte) Status {
 	defer fs.locked()()
-	return fs.RawFS.SetXAttr(input, attr, data)
+	return fs.RawFS.SetXAttr(cancel, input, attr, data)
 }
 
-func (fs *lockingRawFileSystem) GetXAttrData(header *InHeader, attr string) (data []byte, code Status) {
+func (fs *lockingRawFileSystem) GetXAttrData(cancel <-chan struct{}, header *InHeader, attr string) (data []byte, code Status) {
 	defer fs.locked()()
-	return fs.RawFS.GetXAttrData(header, attr)
+	return fs.RawFS.GetXAttrData(cancel, header, attr)
 }
 
-func (fs *lockingRawFileSystem) GetXAttrSize(header *InHeader, attr string) (sz int, code Status) {
+func (fs *lockingRawFileSystem) GetXAttrSize(cancel <-chan struct{}, header *InHeader, attr string) (sz int, code Status) {
 	defer fs.locked()()
-	return fs.RawFS.GetXAttrSize(header, attr)
+	return fs.RawFS.GetXAttrSize(cancel, header, attr)
 }
 
-func (fs *lockingRawFileSystem) ListXAttr(header *InHeader) (data []byte, code Status) {
+func (fs *lockingRawFileSystem) ListXAttr(cancel <-chan struct{}, header *InHeader) (data []byte, code Status) {
 	defer fs.locked()()
-	return fs.RawFS.ListXAttr(header)
+	return fs.RawFS.ListXAttr(cancel, header)
 }
 
-func (fs *lockingRawFileSystem) RemoveXAttr(header *InHeader, attr string) Status {
+func (fs *lockingRawFileSystem) RemoveXAttr(cancel <-chan struct{}, header *InHeader, attr string) Status {
 	defer fs.locked()()
-	return fs.RawFS.RemoveXAttr(header, attr)
+	return fs.RawFS.RemoveXAttr(cancel, header, attr)
 }
 
-func (fs *lockingRawFileSystem) Access(input *AccessIn) (code Status) {
+func (fs *lockingRawFileSystem) Access(cancel <-chan struct{}, input *AccessIn) (code Status) {
 	defer fs.locked()()
-	return fs.RawFS.Access(input)
+	return fs.RawFS.Access(cancel, input)
 }
 
-func (fs *lockingRawFileSystem) Create(input *CreateIn, name string, out *CreateOut) (code Status) {
+func (fs *lockingRawFileSystem) Create(cancel <-chan struct{}, input *CreateIn, name string, out *CreateOut) (code Status) {
 	defer fs.locked()()
-	return fs.RawFS.Create(input, name, out)
+	return fs.RawFS.Create(cancel, input, name, out)
 }
 
-func (fs *lockingRawFileSystem) OpenDir(input *OpenIn, out *OpenOut) (status Status) {
+func (fs *lockingRawFileSystem) OpenDir(cancel <-chan struct{}, input *OpenIn, out *OpenOut) (status Status) {
 	defer fs.locked()()
-	return fs.RawFS.OpenDir(input, out)
+	return fs.RawFS.OpenDir(cancel, input, out)
 }
 
 func (fs *lockingRawFileSystem) Release(input *ReleaseIn) {
@@ -154,54 +154,54 @@ func (fs *lockingRawFileSystem) ReleaseDir(input *ReleaseIn) {
 	fs.RawFS.ReleaseDir(input)
 }
 
-func (fs *lockingRawFileSystem) Read(input *ReadIn, buf []byte) (ReadResult, Status) {
+func (fs *lockingRawFileSystem) Read(cancel <-chan struct{}, input *ReadIn, buf []byte) (ReadResult, Status) {
 	defer fs.locked()()
-	return fs.RawFS.Read(input, buf)
+	return fs.RawFS.Read(cancel, input, buf)
 }
 
-func (fs *lockingRawFileSystem) GetLk(in *LkIn, out *LkOut) (code Status) {
+func (fs *lockingRawFileSystem) GetLk(cancel <-chan struct{}, in *LkIn, out *LkOut) (code Status) {
 	defer fs.locked()()
-	return fs.RawFS.GetLk(in, out)
+	return fs.RawFS.GetLk(cancel, in, out)
 }
 
-func (fs *lockingRawFileSystem) SetLk(in *LkIn) (code Status) {
+func (fs *lockingRawFileSystem) SetLk(cancel <-chan struct{}, in *LkIn) (code Status) {
 	defer fs.locked()()
-	return fs.RawFS.SetLk(in)
+	return fs.RawFS.SetLk(cancel, in)
 }
 
-func (fs *lockingRawFileSystem) SetLkw(in *LkIn) (code Status) {
+func (fs *lockingRawFileSystem) SetLkw(cancel <-chan struct{}, in *LkIn) (code Status) {
 	defer fs.locked()()
-	return fs.RawFS.SetLkw(in)
+	return fs.RawFS.SetLkw(cancel, in)
 }
 
-func (fs *lockingRawFileSystem) Write(input *WriteIn, data []byte) (written uint32, code Status) {
+func (fs *lockingRawFileSystem) Write(cancel <-chan struct{}, input *WriteIn, data []byte) (written uint32, code Status) {
 	defer fs.locked()()
-	return fs.RawFS.Write(input, data)
+	return fs.RawFS.Write(cancel, input, data)
 }
 
-func (fs *lockingRawFileSystem) Flush(input *FlushIn) Status {
+func (fs *lockingRawFileSystem) Flush(cancel <-chan struct{}, input *FlushIn) Status {
 	defer fs.locked()()
-	return fs.RawFS.Flush(input)
+	return fs.RawFS.Flush(cancel, input)
 }
 
-func (fs *lockingRawFileSystem) Fsync(input *FsyncIn) (code Status) {
+func (fs *lockingRawFileSystem) Fsync(cancel <-chan struct{}, input *FsyncIn) (code Status) {
 	defer fs.locked()()
-	return fs.RawFS.Fsync(input)
+	return fs.RawFS.Fsync(cancel, input)
 }
 
-func (fs *lockingRawFileSystem) ReadDir(input *ReadIn, out *DirEntryList) Status {
+func (fs *lockingRawFileSystem) ReadDir(cancel <-chan struct{}, input *ReadIn, out *DirEntryList) Status {
 	defer fs.locked()()
-	return fs.RawFS.ReadDir(input, out)
+	return fs.RawFS.ReadDir(cancel, input, out)
 }
 
-func (fs *lockingRawFileSystem) ReadDirPlus(input *ReadIn, out *DirEntryList) Status {
+func (fs *lockingRawFileSystem) ReadDirPlus(cancel <-chan struct{}, input *ReadIn, out *DirEntryList) Status {
 	defer fs.locked()()
-	return fs.RawFS.ReadDirPlus(input, out)
+	return fs.RawFS.ReadDirPlus(cancel, input, out)
 }
 
-func (fs *lockingRawFileSystem) FsyncDir(input *FsyncIn) (code Status) {
+func (fs *lockingRawFileSystem) FsyncDir(cancel <-chan struct{}, input *FsyncIn) (code Status) {
 	defer fs.locked()()
-	return fs.RawFS.FsyncDir(input)
+	return fs.RawFS.FsyncDir(cancel, input)
 }
 
 func (fs *lockingRawFileSystem) Init(s *Server) {
@@ -209,14 +209,14 @@ func (fs *lockingRawFileSystem) Init(s *Server) {
 	fs.RawFS.Init(s)
 }
 
-func (fs *lockingRawFileSystem) StatFs(header *InHeader, out *StatfsOut) (code Status) {
+func (fs *lockingRawFileSystem) StatFs(cancel <-chan struct{}, header *InHeader, out *StatfsOut) (code Status) {
 	defer fs.locked()()
-	return fs.RawFS.StatFs(header, out)
+	return fs.RawFS.StatFs(cancel, header, out)
 }
 
-func (fs *lockingRawFileSystem) Fallocate(in *FallocateIn) (code Status) {
+func (fs *lockingRawFileSystem) Fallocate(cancel <-chan struct{}, in *FallocateIn) (code Status) {
 	defer fs.locked()()
-	return fs.RawFS.Fallocate(in)
+	return fs.RawFS.Fallocate(cancel, in)
 }
 
 func (fs *lockingRawFileSystem) String() string {
