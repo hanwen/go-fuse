@@ -62,13 +62,13 @@ type loopbackNode struct {
 	openFiles map[*loopbackFile]uint32
 }
 
-func (n *loopbackNode) Release(ctx context.Context, f FileHandle) {
+func (n *loopbackNode) Release(f FileHandle) {
 	if f != nil {
 		n.mu.Lock()
 		defer n.mu.Unlock()
 		lf := f.(*loopbackFile)
 		delete(n.openFiles, lf)
-		f.Release(ctx)
+		f.Release()
 	}
 }
 

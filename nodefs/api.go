@@ -113,8 +113,8 @@ type Operations interface {
 
 	// Lookup should find a direct child of the node by child name.
 	//
-	// VFS makes sure to call Lookup only once for particular (node, name)
-	// pair.
+	// VFS makes sure to call Lookup only once for particular
+	// (node, name) pair concurrently.
 	Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, fuse.Status)
 
 	Mkdir(ctx context.Context, name string, mode uint32, out *fuse.EntryOut) (*Inode, fuse.Status)
@@ -135,8 +135,13 @@ type Operations interface {
 	// ReadDir opens a stream of directory entries.
 	ReadDir(ctx context.Context) (DirStream, fuse.Status)
 
+	// Reads data from a file. The data should be returned as
+	// ReadResult, which may be constructed from the incoming
+	// `dest` buffer.
 	Read(ctx context.Context, f FileHandle, dest []byte, off int64) (fuse.ReadResult, fuse.Status)
 
+	// Writes the data into the file handle at given offset. After
+	// returning, the data will be reused and may not referenced.
 	Write(ctx context.Context, f FileHandle, data []byte, off int64) (written uint32, status fuse.Status)
 
 	Fsync(ctx context.Context, f FileHandle, flags uint32) (status fuse.Status)
@@ -147,10 +152,11 @@ type Operations interface {
 	Flush(ctx context.Context, f FileHandle) fuse.Status
 
 	// This is called to before the file handle is forgotten. This
-	// method has no return value, so nothing can synchronizes on
-	// the call. Any cleanup that requires specific synchronization or
-	// could fail with I/O errors should happen in Flush instead.
-	Release(ctx context.Context, f FileHandle)
+	// method has no return value, so nothing can synchronize on
+	// the call, and it cannot be canceled. Any cleanup that
+	// requires specific synchronization or could fail with I/O
+	// errors should happen in Flush instead.
+	Release(f FileHandle)
 
 	/*
 		NOSUBMIT - fold into a setattr method, or expand methods?
@@ -168,6 +174,9 @@ type Operations interface {
 
 type FileHandle interface {
 	Read(ctx context.Context, dest []byte, off int64) (fuse.ReadResult, fuse.Status)
+
+	// Writes the data at given offset. After returning, the data
+	// will be reused and may not referenced.
 	Write(ctx context.Context, data []byte, off int64) (written uint32, status fuse.Status)
 
 	// File locking
@@ -184,9 +193,10 @@ type FileHandle interface {
 
 	// This is called to before the file handle is forgotten. This
 	// method has no return value, so nothing can synchronizes on
-	// the call. Any cleanup that requires specific synchronization or
-	// could fail with I/O errors should happen in Flush instead.
-	Release(ctx context.Context)
+	// the call, and it cannot be canceled. Any cleanup that
+	// requires specific synchronization or could fail with I/O
+	// errors should happen in Flush instead.
+	Release()
 
 	// The methods below may be called on closed files, due to
 	// concurrency.  In that case, you should return EBADF.

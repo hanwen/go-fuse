@@ -150,9 +150,9 @@ func (n *DefaultOperations) Flush(ctx context.Context, f FileHandle) fuse.Status
 	return fuse.ENOSYS
 }
 
-func (n *DefaultOperations) Release(ctx context.Context, f FileHandle) {
+func (n *DefaultOperations) Release(f FileHandle) {
 	if f != nil {
-		f.Release(ctx)
+		f.Release()
 	}
 }
 
@@ -244,7 +244,7 @@ func (f *DefaultFile) Flush(ctx context.Context) fuse.Status {
 	return fuse.ENOSYS
 }
 
-func (f *DefaultFile) Release(ctx context.Context) {
+func (f *DefaultFile) Release() {
 
 }
 

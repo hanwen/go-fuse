@@ -14,12 +14,13 @@ Decisions
 
    * Nodes can be "persistent", meaning their lifetime is not under
      control of the kernel. This is useful for constructing FS trees
-     in advance, rather than driven by LOOKUP..
+     in advance, rather than driven by LOOKUP.
 
    * The NodeID for FS tree node must be defined on creation and are
      immutable. By contrast, reusing NodeIds (eg. rsc/bazil FUSE, as
-     well as old go-fuse/fuse/nodefs) is racy when notify and FORGET
-     operations race.
+     well as old go-fuse/fuse/nodefs) needs extra synchronization to
+     avoid races with notify and FORGET, and makes handling the inode
+     Generation more complicated.
      
    * The mode of an Inode is defined on creation.  Files cannot change
      type during their lifetime. This also prevents the common error
@@ -32,7 +33,7 @@ Decisions
 
    * Support for hard links. libfuse doesn't support this in the
      high-level API.  Extra care for race conditions is needed when
-    looking up the same file different paths.
+     looking up the same file through different paths.
 
    * do not issue Notify{Entry,Delete} as part of
      AddChild/RmChild/MvChild: because NodeIDs are unique and
@@ -42,41 +43,41 @@ Decisions
 
    * Directory reading uses the DirStream. Semantics for rewinding
      directory reads, and adding files after opening (but before
-     reading) are handled automatically.
+     reading) are handled automatically. No support for directory
+     seeks.
+
 
 To decide
 =========
 
    * Should we provide automatic fileID numbering?
    
-   * One giant interface with many methods, or many one-method interfaces?
+   * One giant interface with many methods, or many one-method
+     interfaces? Or some interface (file, dir, symlink, etc).
  
    * one SetAttr method, or many (Chown, Truncate, etc.)
 
    * function signatures, or types? The latter is easier to remember?
-     Easier to extend?
+     Easier to extend? The latter less efficient (indirections/copies)
 
 ```
     func Lookup(name string, out *EntryOut) (Node, Status) {
     }
 
+or
 
-    type LookupOp struct {
-      // in
-      Name string
-
-      // out
-      Child Node
-      Out *EntryOut
+    type LookupIn {
+       Name string
     }
-    func Lookup(op LookupOp)
+    type LookupOut {
+       fuse.EntryOut
+    }
+
+    func Lookup(ctx context.Context, in *LookupIn, out *LookupOut) 
 ```
 
    * What to do with semi-unused fields (CreateIn.Umask, OpenIn.Mode, etc.)
    
-   * cancellation through context.Context (standard, more GC overhead)
-     or a custom context (could reuse across requests.)?
-
    * Readlink return: []byte or string ?
 
    * Should Operations.Lookup return *Inode or Operations ?
