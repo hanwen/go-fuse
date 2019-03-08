@@ -41,21 +41,21 @@ var _ Operations = &DefaultOperations{}
 //
 // To read node.inode atomic.LoadPointer is used, however it is not expensive
 // since it translates to regular MOVQ on amd64.
-func (dn *DefaultOperations) setInode(inode *Inode) bool {
+func (n *DefaultOperations) setInode(inode *Inode) bool {
 	return atomic.CompareAndSwapPointer(
-		(*unsafe.Pointer)(unsafe.Pointer(&dn.inode_)),
+		(*unsafe.Pointer)(unsafe.Pointer(&n.inode_)),
 		nil, unsafe.Pointer(inode))
 }
 
-func (dn *DefaultOperations) StatFs(ctx context.Context, out *fuse.StatfsOut) fuse.Status {
+func (n *DefaultOperations) StatFs(ctx context.Context, out *fuse.StatfsOut) fuse.Status {
 	// this should be defined on OSX, or the FS won't mount
 	*out = fuse.StatfsOut{}
 	return fuse.OK
 }
 
-func (dn *DefaultOperations) inode() *Inode {
+func (n *DefaultOperations) inode() *Inode {
 	return (*Inode)(atomic.LoadPointer(
-		(*unsafe.Pointer)(unsafe.Pointer(&dn.inode_))))
+		(*unsafe.Pointer)(unsafe.Pointer(&n.inode_))))
 }
 
 func (n *DefaultOperations) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, fuse.Status) {
