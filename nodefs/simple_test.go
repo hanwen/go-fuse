@@ -395,14 +395,14 @@ func TestNlinkZero(t *testing.T) {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	f, err := os.Open(dst)
+	f, err := syscall.Open(dst, 0, 0)
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
-	defer f.Close()
+	defer syscall.Close(f)
 
 	var st syscall.Stat_t
-	if err := syscall.Fstat(int(f.Fd()), &st); err != nil {
+	if err := syscall.Fstat(f, &st); err != nil {
 		t.Errorf("Fstat before: %v", err)
 	} else if st.Nlink != 1 {
 		t.Errorf("Nlink of file: got %d, want 1", st.Nlink)
@@ -412,7 +412,7 @@ func TestNlinkZero(t *testing.T) {
 		t.Fatalf("Rename: %v", err)
 	}
 
-	if err := syscall.Fstat(int(f.Fd()), &st); err != nil {
+	if err := syscall.Fstat(f, &st); err != nil {
 		t.Errorf("Fstat after: %v", err)
 	} else if st.Nlink != 0 {
 		t.Errorf("Nlink of overwritten file: got %d, want 0", st.Nlink)
