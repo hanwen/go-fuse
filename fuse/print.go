@@ -197,7 +197,10 @@ func (me *GetXAttrOut) string() string {
 }
 
 func (me *AccessIn) string() string {
-	return fmt.Sprintf("{%s}", FlagString(accessFlagName, int64(me.Mask), ""))
+	return fmt.Sprintf("{u=%d g=%d %s}",
+		me.Uid,
+		me.Gid,
+		FlagString(accessFlagName, int64(me.Mask), ""))
 }
 
 func (me *FlushIn) string() string {
