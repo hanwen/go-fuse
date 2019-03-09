@@ -7,20 +7,20 @@ package nodefs
 import (
 	"context"
 	//	"time"
-	"os"
+
 	"sync"
 	"syscall"
 
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-func newLoopbackFile(f *os.File) *loopbackFile {
-	return &loopbackFile{File: f}
+func newLoopbackFile(fd int) *loopbackFile {
+	return &loopbackFile{fd: fd}
 }
 
-// loopbackFile delegates all operations back to an underlying os.File.
+// loopbackFile delegates all operations back to an underlying file.
 type loopbackFile struct {
-	File *os.File
+	fd int
 
 	// os.File is not threadsafe. Although fd themselves are
 	// constant during the lifetime of an open file, the OS may
@@ -34,21 +34,21 @@ func (f *loopbackFile) Read(ctx context.Context, buf []byte, off int64) (res fus
 	f.mu.Lock()
 	// This is not racy by virtue of the kernel properly
 	// synchronizing the open/write/close.
-	r := fuse.ReadResultFd(f.File.Fd(), off, len(buf))
+	r := fuse.ReadResultFd(uintptr(f.fd), off, len(buf))
 	f.mu.Unlock()
 	return r, fuse.OK
 }
 
 func (f *loopbackFile) Write(ctx context.Context, data []byte, off int64) (uint32, fuse.Status) {
 	f.mu.Lock()
-	n, err := f.File.WriteAt(data, off)
+	n, err := syscall.Pwrite(f.fd, data, off)
 	f.mu.Unlock()
 	return uint32(n), fuse.ToStatus(err)
 }
 
 func (f *loopbackFile) Release() {
 	f.mu.Lock()
-	f.File.Close()
+	syscall.Close(f.fd)
 	f.mu.Unlock()
 }
 
@@ -58,7 +58,7 @@ func (f *loopbackFile) Flush(ctx context.Context) fuse.Status {
 	// Since Flush() may be called for each dup'd fd, we don't
 	// want to really close the file, we just want to flush. This
 	// is achieved by closing a dup'd fd.
-	newFd, err := syscall.Dup(int(f.File.Fd()))
+	newFd, err := syscall.Dup(f.fd)
 	f.mu.Unlock()
 
 	if err != nil {
@@ -70,7 +70,7 @@ func (f *loopbackFile) Flush(ctx context.Context) fuse.Status {
 
 func (f *loopbackFile) Fsync(ctx context.Context, flags uint32) (status fuse.Status) {
 	f.mu.Lock()
-	r := fuse.ToStatus(syscall.Fsync(int(f.File.Fd())))
+	r := fuse.ToStatus(syscall.Fsync(f.fd))
 	f.mu.Unlock()
 
 	return r
@@ -85,7 +85,7 @@ const (
 func (f *loopbackFile) GetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (status fuse.Status) {
 	flk := syscall.Flock_t{}
 	lk.ToFlockT(&flk)
-	status = fuse.ToStatus(syscall.FcntlFlock(f.File.Fd(), _OFD_GETLK, &flk))
+	status = fuse.ToStatus(syscall.FcntlFlock(uintptr(f.fd), _OFD_GETLK, &flk))
 	out.FromFlockT(&flk)
 	return
 }
@@ -114,7 +114,7 @@ func (f *loopbackFile) setLock(ctx context.Context, owner uint64, lk *fuse.FileL
 		if !blocking {
 			op |= syscall.LOCK_NB
 		}
-		return fuse.ToStatus(syscall.Flock(int(f.File.Fd()), op))
+		return fuse.ToStatus(syscall.Flock(f.fd, op))
 	} else {
 		flk := syscall.Flock_t{}
 		lk.ToFlockT(&flk)
@@ -124,13 +124,13 @@ func (f *loopbackFile) setLock(ctx context.Context, owner uint64, lk *fuse.FileL
 		} else {
 			op = _OFD_SETLK
 		}
-		return fuse.ToStatus(syscall.FcntlFlock(f.File.Fd(), op, &flk))
+		return fuse.ToStatus(syscall.FcntlFlock(uintptr(f.fd), op, &flk))
 	}
 }
 
 func (f *loopbackFile) Truncate(ctx context.Context, size uint64) fuse.Status {
 	f.mu.Lock()
-	r := fuse.ToStatus(syscall.Ftruncate(int(f.File.Fd()), int64(size)))
+	r := fuse.ToStatus(syscall.Ftruncate(f.fd, int64(size)))
 	f.mu.Unlock()
 
 	return r
@@ -138,7 +138,7 @@ func (f *loopbackFile) Truncate(ctx context.Context, size uint64) fuse.Status {
 
 func (f *loopbackFile) Chmod(ctx context.Context, mode uint32) fuse.Status {
 	f.mu.Lock()
-	r := fuse.ToStatus(f.File.Chmod(os.FileMode(mode)))
+	r := fuse.ToStatus(syscall.Fchmod(f.fd, mode))
 	f.mu.Unlock()
 
 	return r
@@ -146,7 +146,7 @@ func (f *loopbackFile) Chmod(ctx context.Context, mode uint32) fuse.Status {
 
 func (f *loopbackFile) Chown(ctx context.Context, uid uint32, gid uint32) fuse.Status {
 	f.mu.Lock()
-	r := fuse.ToStatus(f.File.Chown(int(uid), int(gid)))
+	r := fuse.ToStatus(syscall.Fchown(f.fd, int(uid), int(gid)))
 	f.mu.Unlock()
 
 	return r
@@ -155,7 +155,7 @@ func (f *loopbackFile) Chown(ctx context.Context, uid uint32, gid uint32) fuse.S
 func (f *loopbackFile) GetAttr(ctx context.Context, a *fuse.AttrOut) fuse.Status {
 	st := syscall.Stat_t{}
 	f.mu.Lock()
-	err := syscall.Fstat(int(f.File.Fd()), &st)
+	err := syscall.Fstat(f.fd, &st)
 	f.mu.Unlock()
 	if err != nil {
 		return fuse.ToStatus(err)

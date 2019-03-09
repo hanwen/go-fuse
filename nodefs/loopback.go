@@ -176,20 +176,20 @@ func idFromStat(st *syscall.Stat_t) FileID {
 func (n *loopbackNode) Create(ctx context.Context, name string, flags uint32, mode uint32) (inode *Inode, fh FileHandle, fuseFlags uint32, status fuse.Status) {
 	p := filepath.Join(n.path(), name)
 
-	f, err := os.OpenFile(p, int(flags)|os.O_CREATE, os.FileMode(mode))
+	fd, err := syscall.Open(p, int(flags)|os.O_CREATE, mode)
 	if err != nil {
 		return nil, nil, 0, fuse.ToStatus(err)
 	}
 
 	st := syscall.Stat_t{}
-	if err := syscall.Fstat(int(f.Fd()), &st); err != nil {
-		f.Close()
+	if err := syscall.Fstat(fd, &st); err != nil {
+		syscall.Close(fd)
 		return nil, nil, 0, fuse.ToStatus(err)
 	}
 
 	node := n.rootNode.newLoopbackNode()
 	ch := n.inode().NewInode(node, uint32(st.Mode), idFromStat(&st))
-	lf := newLoopbackFile(f)
+	lf := newLoopbackFile(fd)
 	n.mu.Lock()
 	defer n.mu.Unlock()
 	n.openFiles[lf] = flags | syscall.O_CREAT
@@ -252,7 +252,7 @@ func (n *loopbackNode) Readlink(ctx context.Context) (string, fuse.Status) {
 
 func (n *loopbackNode) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, status fuse.Status) {
 	p := n.path()
-	f, err := os.OpenFile(p, int(flags), 0)
+	f, err := syscall.Open(p, int(flags), 0)
 	if err != nil {
 		return nil, 0, fuse.ToStatus(err)
 	}
