@@ -8,7 +8,6 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"sync"
 	"syscall"
 
 	"github.com/hanwen/go-fuse/fuse"
@@ -24,8 +23,7 @@ type loopbackRoot struct {
 
 func (n *loopbackRoot) newLoopbackNode() *loopbackNode {
 	return &loopbackNode{
-		rootNode:  n,
-		openFiles: map[*loopbackFile]uint32{},
+		rootNode: n,
 	}
 }
 
@@ -54,21 +52,6 @@ type loopbackNode struct {
 	DefaultOperations
 
 	rootNode *loopbackRoot
-
-	mu sync.Mutex
-
-	// file => openflags
-	openFiles map[*loopbackFile]uint32
-}
-
-func (n *loopbackNode) Release(f FileHandle) {
-	if f != nil {
-		n.mu.Lock()
-		defer n.mu.Unlock()
-		lf := f.(*loopbackFile)
-		delete(n.openFiles, lf)
-		f.Release()
-	}
 }
 
 func (n *loopbackNode) path() string {
@@ -190,9 +173,6 @@ func (n *loopbackNode) Create(ctx context.Context, name string, flags uint32, mo
 	node := n.rootNode.newLoopbackNode()
 	ch := n.inode().NewInode(node, uint32(st.Mode), idFromStat(&st))
 	lf := newLoopbackFile(fd)
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	n.openFiles[lf] = flags | syscall.O_CREAT
 	return ch, lf, 0, fuse.OK
 }
 
@@ -256,10 +236,7 @@ func (n *loopbackNode) Open(ctx context.Context, flags uint32) (fh FileHandle, f
 	if err != nil {
 		return nil, 0, fuse.ToStatus(err)
 	}
-	n.mu.Lock()
-	defer n.mu.Unlock()
 	lf := newLoopbackFile(f)
-	n.openFiles[lf] = flags
 	return lf, 0, fuse.OK
 }
 
@@ -276,25 +253,9 @@ func (n *loopbackNode) ReadDir(ctx context.Context) (DirStream, fuse.Status) {
 	return NewLoopbackDirStream(n.path())
 }
 
-func (n *loopbackNode) fGetAttr(ctx context.Context, out *fuse.AttrOut) (fuse.Status, bool) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	for f := range n.openFiles {
-		if f != nil {
-			return f.GetAttr(ctx, out), true
-		}
-	}
-	return fuse.EBADF, false
-}
-
 func (n *loopbackNode) GetAttr(ctx context.Context, f FileHandle, out *fuse.AttrOut) fuse.Status {
 	if f != nil {
-		// this never happens because the kernel never sends FH on getattr.
 		return f.GetAttr(ctx, out)
-
-	}
-	if status, ok := n.fGetAttr(ctx, out); ok {
-		return status
 	}
 
 	p := n.path()
@@ -314,7 +275,6 @@ func NewLoopback(root string) Operations {
 		root: root,
 	}
 	n.rootNode = n
-	n.openFiles = map[*loopbackFile]uint32{}
 	return n
 }
 

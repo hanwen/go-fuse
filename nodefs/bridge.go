@@ -7,6 +7,7 @@ package nodefs
 import (
 	"log"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
@@ -74,6 +75,7 @@ func (b *rawBridge) newInode(node Operations, mode uint32, id FileID, persistent
 		bridge:     b,
 		persistent: persistent,
 		parents:    make(map[parentData]struct{}),
+		openFiles:  make(map[FileHandle]uint32),
 	}
 	if mode == fuse.S_IFDIR {
 		inode.children = make(map[string]*Inode)
@@ -141,7 +143,7 @@ func (b *rawBridge) Lookup(cancel <-chan struct{}, header *fuse.InHeader, name s
 		return status
 	}
 
-	b.addNewChild(parent, name, child, nil, out)
+	b.addNewChild(parent, name, child, nil, 0, out)
 	b.setEntryOutTimeout(out)
 
 	out.Mode = child.mode | (out.Mode & 07777)
@@ -179,7 +181,7 @@ func (b *rawBridge) Mkdir(cancel <-chan struct{}, input *fuse.MkdirIn, name stri
 		log.Panicf("Mkdir: mode must be S_IFDIR (%o), got %o", fuse.S_IFDIR, out.Attr.Mode)
 	}
 
-	b.addNewChild(parent, name, child, nil, out)
+	b.addNewChild(parent, name, child, nil, 0, out)
 	b.setEntryOutTimeout(out)
 	return fuse.OK
 }
@@ -192,13 +194,13 @@ func (b *rawBridge) Mknod(cancel <-chan struct{}, input *fuse.MknodIn, name stri
 		return status
 	}
 
-	b.addNewChild(parent, name, child, nil, out)
+	b.addNewChild(parent, name, child, nil, 0, out)
 	b.setEntryOutTimeout(out)
 	return fuse.OK
 }
 
 // addNewChild inserts the child into the tree. Returns file handle if file != nil.
-func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file FileHandle, out *fuse.EntryOut) uint64 {
+func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file FileHandle, fileFlags uint32, out *fuse.EntryOut) uint64 {
 	lockNodes(parent, child)
 	parent.setEntry(name, child)
 	b.mu.Lock()
@@ -207,7 +209,7 @@ func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file F
 
 	var fh uint64
 	if file != nil {
-		fh = b.registerFile(file)
+		fh = b.registerFile(child, file, fileFlags)
 	}
 
 	out.NodeId = child.nodeID.Ino
@@ -239,7 +241,7 @@ func (b *rawBridge) Create(cancel <-chan struct{}, input *fuse.CreateIn, name st
 		return status
 	}
 
-	out.Fh = b.addNewChild(parent, name, child, f, &out.EntryOut)
+	out.Fh = b.addNewChild(parent, name, child, f, input.Flags|syscall.O_CREAT, &out.EntryOut)
 	b.setEntryOutTimeout(&out.EntryOut)
 
 	out.OpenFlags = flags
@@ -270,7 +272,16 @@ func (b *rawBridge) GetAttr(cancel <-chan struct{}, input *fuse.GetAttrIn, out *
 	f := fEntry.file
 
 	if input.Flags()&fuse.FUSE_GETATTR_FH == 0 {
-		f = nil
+		// The linux kernel doesnt pass along the file
+		// descriptor, so we have to fake it here.
+		// See https://github.com/libfuse/libfuse/issues/62
+		b.mu.Lock()
+		// TODO: synchronize to avoid closing F while GetAttr runs.
+		for openF := range n.openFiles {
+			f = openF
+			break
+		}
+		b.mu.Unlock()
 	}
 
 	status := n.node.GetAttr(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f, out)
@@ -380,7 +391,7 @@ func (b *rawBridge) Link(cancel <-chan struct{}, input *fuse.LinkIn, name string
 		return status
 	}
 
-	b.addNewChild(parent, name, child, nil, out)
+	b.addNewChild(parent, name, child, nil, 0, out)
 	b.setEntryOutTimeout(out)
 	return fuse.OK
 }
@@ -392,7 +403,7 @@ func (b *rawBridge) Symlink(cancel <-chan struct{}, header *fuse.InHeader, targe
 		return status
 	}
 
-	b.addNewChild(parent, name, child, nil, out)
+	b.addNewChild(parent, name, child, nil, 0, out)
 	b.setEntryOutTimeout(out)
 	return fuse.OK
 }
@@ -445,13 +456,13 @@ func (b *rawBridge) Open(cancel <-chan struct{}, input *fuse.OpenIn, out *fuse.O
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	out.Fh = b.registerFile(f)
+	out.Fh = b.registerFile(n, f, input.Flags)
 	out.OpenFlags = flags
 	return fuse.OK
 }
 
 // registerFile hands out a file handle. Must have bridge.mu
-func (b *rawBridge) registerFile(f FileHandle) uint64 {
+func (b *rawBridge) registerFile(n *Inode, f FileHandle, flags uint32) uint64 {
 	var fh uint64
 	if len(b.freeFiles) > 0 {
 		last := uint64(len(b.freeFiles) - 1)
@@ -461,8 +472,10 @@ func (b *rawBridge) registerFile(f FileHandle) uint64 {
 		fh = uint64(len(b.files))
 		b.files = append(b.files, &fileEntry{})
 	}
-
-	b.files[fh].file = f
+	if f != nil {
+		n.openFiles[f] = flags
+		b.files[fh].file = f
+	}
 	return fh
 }
 
@@ -490,23 +503,29 @@ func (b *rawBridge) Release(input *fuse.ReleaseIn) {
 	n, f := b.inode(input.NodeId, input.Fh)
 	n.node.Release(f.file)
 
-	b.releaseFileEntry(input.Fh)
+	b.releaseFileEntry(n, input.Fh)
 }
 
 func (b *rawBridge) ReleaseDir(input *fuse.ReleaseIn) {
-	_, f := b.inode(input.NodeId, input.Fh)
+	n, f := b.inode(input.NodeId, input.Fh)
 
 	if f.dirStream != nil {
 		f.dirStream.Close()
 	}
-	b.releaseFileEntry(input.Fh)
+	b.releaseFileEntry(n, input.Fh)
 }
 
-func (b *rawBridge) releaseFileEntry(fh uint64) {
+func (b *rawBridge) releaseFileEntry(n *Inode, fh uint64) {
 	if fh > 0 {
 		b.mu.Lock()
 		defer b.mu.Unlock()
-		b.files[fh].file = nil
+
+		entry := b.files[fh]
+		if entry.file != nil {
+			delete(n.openFiles, entry.file)
+		}
+		entry.dirStream = nil
+		entry.file = nil
 		b.freeFiles = append(b.freeFiles, fh)
 	}
 }
@@ -539,7 +558,7 @@ func (b *rawBridge) OpenDir(cancel <-chan struct{}, input *fuse.OpenIn, out *fus
 	}
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	out.Fh = b.registerFile(nil)
+	out.Fh = b.registerFile(n, nil, 0)
 	return fuse.OK
 }
 
@@ -625,7 +644,7 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 				entryOut.SetEntryTimeout(*b.options.NegativeTimeout)
 			}
 		} else {
-			b.addNewChild(n, e.Name, child, nil, entryOut)
+			b.addNewChild(n, e.Name, child, nil, 0, entryOut)
 			b.setEntryOutTimeout(entryOut)
 			if (e.Mode &^ 07777) != (child.mode &^ 07777) {
 				// XXX should go back and change the
