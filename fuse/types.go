@@ -544,6 +544,10 @@ type CreateOut struct {
 	OpenOut
 }
 
+// Caller has data on the process making the FS call.
+//
+// The UID and GID are effective UID/GID, except for the ACCESS
+// opcode, where UID and GID are the real UIDs
 type Caller struct {
 	Owner
 	Pid uint32
