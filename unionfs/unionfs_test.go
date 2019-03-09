@@ -373,7 +373,7 @@ func TestUnionFsBasic(t *testing.T) {
 	names = dirNames(t, wd+"/rw")
 	checkMapEq(t, names, map[string]bool{
 		testOpts.DeletionDirName: true,
-		"rw": true, "ro1": true,
+		"rw":                     true, "ro1": true,
 	})
 	names = dirNames(t, wd+"/rw/"+testOpts.DeletionDirName)
 	if len(names) != 0 {

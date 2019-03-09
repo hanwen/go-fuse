@@ -13,6 +13,7 @@ import (
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
+	"github.com/hanwen/go-fuse/internal"
 )
 
 type loopbackFileSystem struct {
@@ -176,7 +177,16 @@ func (fs *loopbackFileSystem) Link(orig string, newName string, context *fuse.Co
 }
 
 func (fs *loopbackFileSystem) Access(name string, mode uint32, context *fuse.Context) (code fuse.Status) {
-	return fuse.ToStatus(syscall.Access(fs.GetPath(name), mode))
+	attr, status := fs.GetAttr(name, context)
+	if !status.Ok() {
+		return status
+
+	}
+	if !internal.HasAccess(context.Uid, context.Gid, attr.Uid, attr.Gid, attr.Mode, mode) {
+		return fuse.EACCES
+	}
+
+	return fuse.OK
 }
 
 func (fs *loopbackFileSystem) Create(path string, flags uint32, mode uint32, context *fuse.Context) (fuseFile nodefs.File, code fuse.Status) {
