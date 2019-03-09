@@ -408,7 +408,8 @@ func (b *rawBridge) Readlink(cancel <-chan struct{}, header *fuse.InHeader) (out
 }
 
 func (b *rawBridge) Access(cancel <-chan struct{}, input *fuse.AccessIn) (status fuse.Status) {
-	return fuse.ENOSYS
+	n, _ := b.inode(input.NodeId, 0)
+	return n.node.Access(&fuse.Context{Caller: input.Caller, Cancel: cancel}, input.Mask)
 }
 
 // Extended attributes.

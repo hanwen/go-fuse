@@ -102,6 +102,7 @@ type Operations interface {
 
 	StatFs(ctx context.Context, out *fuse.StatfsOut) fuse.Status
 
+	Access(ctx context.Context, mask uint32) fuse.Status
 	// File locking
 	GetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (status fuse.Status)
 	SetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status)

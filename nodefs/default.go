@@ -227,6 +227,10 @@ func (n *DefaultOperations) RemoveXAttr(ctx context.Context, attr string) fuse.S
 	return fuse.ENOATTR
 }
 
+func (n *DefaultOperations) Access(ctx context.Context, mask uint32) fuse.Status {
+	return fuse.ENOSYS
+}
+
 func (n *DefaultOperations) ListXAttr(ctx context.Context, dest []byte) (uint32, fuse.Status) {
 	return 0, fuse.OK
 }

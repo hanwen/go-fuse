@@ -6,16 +6,14 @@ package nodefs
 
 import (
 	"context"
-	"log"
 	"os"
 	"path/filepath"
 	"sync"
 	"syscall"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/internal"
 )
-
-var _ = log.Printf
 
 type loopbackRoot struct {
 	loopbackNode
@@ -338,4 +336,22 @@ func (n *loopbackNode) RemoveXAttr(ctx context.Context, attr string) fuse.Status
 func (n *loopbackNode) ListXAttr(ctx context.Context, dest []byte) (uint32, fuse.Status) {
 	sz, err := syscall.Listxattr(n.path(), dest)
 	return uint32(sz), fuse.ToStatus(err)
+}
+
+func (n *loopbackNode) Access(ctx context.Context, mask uint32) fuse.Status {
+	caller, ok := fuse.FromContext(ctx)
+	if !ok {
+		return fuse.EACCES
+	}
+
+	var st syscall.Stat_t
+	if err := syscall.Stat(n.path(), &st); err != nil {
+		return fuse.ToStatus(err)
+	}
+
+	if !internal.HasAccess(caller.Uid, caller.Gid, st.Uid, st.Gid, st.Mode, mask) {
+		return fuse.EACCES
+	}
+	return fuse.OK
+
 }
