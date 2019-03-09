@@ -11,7 +11,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-// XXX names
 type dirArray struct {
 	Entries []fuse.DirEntry
 }
@@ -31,7 +30,6 @@ func (a *dirArray) Close() {
 }
 
 func NewLoopbackDirStream(nm string) (DirStream, fuse.Status) {
-	// XXX should implement streaming read to make sure the API works.
 	f, err := os.Open(nm)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
