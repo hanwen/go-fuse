@@ -13,6 +13,7 @@ import (
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/internal"
+	"golang.org/x/sys/unix"
 )
 
 type loopbackRoot struct {
@@ -150,14 +151,42 @@ func toLoopbackNode(op Operations) *loopbackNode {
 	return op.(*loopbackNode)
 }
 
-func (n *loopbackNode) Rename(ctx context.Context, name string, newParent Operations, newName string, flags uint32) fuse.Status {
+func (n *loopbackNode) renameExchange(name string, newparent *loopbackNode, newName string) fuse.Status {
+	fd1, err := syscall.Open(n.path(), syscall.O_DIRECTORY, 0)
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
+	defer syscall.Close(fd1)
+	fd2, err := syscall.Open(newparent.path(), syscall.O_DIRECTORY, 0)
+	defer syscall.Close(fd2)
+	if err != nil {
+		return fuse.ToStatus(err)
+	}
 
-	if flags != 0 {
-		return fuse.ENOSYS
+	var st syscall.Stat_t
+	if err := syscall.Fstat(fd1, &st); err != nil {
+		return fuse.ToStatus(err)
+	}
+	if !InodeOf(n).IsRoot() && InodeOf(n).FileID().Ino != idFromStat(&st).Ino {
+		return fuse.EBUSY
+	}
+	if err := syscall.Fstat(fd2, &st); err != nil {
+		return fuse.ToStatus(err)
+	}
+	if !InodeOf(newparent).IsRoot() && InodeOf(newparent).FileID().Ino != idFromStat(&st).Ino {
+		return fuse.EBUSY
+	}
+
+	return fuse.ToStatus(unix.Renameat2(fd1, name, fd2, newName, unix.RENAME_EXCHANGE))
+}
+
+func (n *loopbackNode) Rename(ctx context.Context, name string, newParent Operations, newName string, flags uint32) fuse.Status {
+	newParentLoopback := toLoopbackNode(newParent)
+	if flags&unix.RENAME_EXCHANGE != 0 {
+		return n.renameExchange(name, newParentLoopback, newName)
 	}
 
 	p1 := filepath.Join(n.path(), name)
-	newParentLoopback := toLoopbackNode(newParent)
 
 	p2 := filepath.Join(newParentLoopback.path(), newName)
 	err := os.Rename(p1, p2)

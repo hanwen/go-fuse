@@ -85,6 +85,14 @@ type Inode struct {
 	parents  map[parentData]struct{}
 }
 
+func (n *Inode) FileID() FileID {
+	return n.nodeID
+}
+
+func (n *Inode) IsRoot() bool {
+	return n.nodeID.Ino == fuse.FUSE_ROOT_ID
+}
+
 // debugString is used for debugging. Racy.
 func (n *Inode) debugString() string {
 	var ss []string
