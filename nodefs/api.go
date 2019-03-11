@@ -117,7 +117,7 @@ type Operations interface {
 	ListXAttr(ctx context.Context, dest []byte) (uint32, fuse.Status)
 
 	// The methods below may be called on closed files, due to
-	// concurrency.  In that case, you should return EBADF.
+	// concurrency.
 	GetAttr(ctx context.Context, f FileHandle, out *fuse.AttrOut) fuse.Status
 
 	// Lookup should find a direct child of the node by child name.
@@ -208,8 +208,7 @@ type FileHandle interface {
 	Release()
 
 	// The methods below may be called on closed files, due to
-	// concurrency.  In that case, you should return EBADF.
-	// TODO - fold into a setattr method?
+	// concurrency.
 	GetAttr(ctx context.Context, out *fuse.AttrOut) fuse.Status
 	Truncate(ctx context.Context, size uint64) fuse.Status
 	Chown(ctx context.Context, uid uint32, gid uint32) fuse.Status

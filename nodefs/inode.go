@@ -61,9 +61,8 @@ type Inode struct {
 
 	// protected by bridge.mu
 
-	// TODO: store using an array and a per-inode handle; the map
-	// is fairly heavyweight.
-	openFiles map[FileHandle]uint32
+	// file handles.
+	openFiles []uint32
 
 	// mu protects the following mutable fields. When locking
 	// multiple Inodes, locks must be acquired using

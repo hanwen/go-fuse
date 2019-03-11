@@ -54,7 +54,7 @@ func (tc *testCase) Clean() {
 	}
 }
 
-func newTestCase(t *testing.T) *testCase {
+func newTestCase(t *testing.T, entryCache bool, attrCache bool) *testCase {
 	tc := &testCase{
 		dir: testutil.TempDir(),
 		T:   t,
@@ -70,13 +70,21 @@ func newTestCase(t *testing.T) *testCase {
 
 	tc.loopback = NewLoopback(tc.origDir)
 	_ = time.Second
-	oneSec := time.Second
-	tc.rawFS = NewNodeFS(tc.loopback, &Options{
-		Debug: testutil.VerboseTest(),
 
-		// NOSUBMIT - should run all tests without cache too
-		EntryTimeout: &oneSec,
-		AttrTimeout:  &oneSec,
+	oneSec := time.Second
+
+	attrDT := &oneSec
+	if !attrCache {
+		attrDT = nil
+	}
+	entryDT := &oneSec
+	if !entryCache {
+		entryDT = nil
+	}
+	tc.rawFS = NewNodeFS(tc.loopback, &Options{
+		Debug:        testutil.VerboseTest(),
+		EntryTimeout: entryDT,
+		AttrTimeout:  attrDT,
 	})
 
 	var err error
@@ -96,7 +104,7 @@ func newTestCase(t *testing.T) *testCase {
 }
 
 func TestBasic(t *testing.T) {
-	tc := newTestCase(t)
+	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
 	tc.writeOrig("file", "hello", 0644)
@@ -126,7 +134,7 @@ func TestBasic(t *testing.T) {
 }
 
 func TestFile(t *testing.T) {
-	tc := newTestCase(t)
+	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
 	content := []byte("hello world")
@@ -168,7 +176,7 @@ func TestFile(t *testing.T) {
 }
 
 func TestFileTruncate(t *testing.T) {
-	tc := newTestCase(t)
+	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
 	content := []byte("hello world")
@@ -198,7 +206,7 @@ func TestFileTruncate(t *testing.T) {
 }
 
 func TestFileFdLeak(t *testing.T) {
-	tc := newTestCase(t)
+	tc := newTestCase(t, true, true)
 	defer func() {
 		if tc != nil {
 			tc.Clean()
@@ -234,7 +242,7 @@ func TestFileFdLeak(t *testing.T) {
 }
 
 func TestMkdir(t *testing.T) {
-	tc := newTestCase(t)
+	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
 	if err := os.Mkdir(tc.mntDir+"/dir", 0755); err != nil {
@@ -253,7 +261,7 @@ func TestMkdir(t *testing.T) {
 }
 
 func testRenameOverwrite(t *testing.T, destExists bool) {
-	tc := newTestCase(t)
+	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
 	if err := os.Mkdir(tc.origDir+"/dir", 0755); err != nil {
@@ -296,7 +304,7 @@ func TestRenameDestNoExist(t *testing.T) {
 }
 
 func TestRenameNoOverwrite(t *testing.T) {
-	tc := newTestCase(t)
+	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
 	if err := os.Mkdir(tc.origDir+"/dir", 0755); err != nil {
@@ -324,7 +332,7 @@ func TestRenameNoOverwrite(t *testing.T) {
 }
 
 func TestRenameExchange(t *testing.T) {
-	tc := newTestCase(t)
+	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
 	if err := os.Mkdir(tc.origDir+"/dir", 0755); err != nil {
@@ -382,7 +390,7 @@ func TestRenameExchange(t *testing.T) {
 
 func TestNlinkZero(t *testing.T) {
 	// xfstest generic/035.
-	tc := newTestCase(t)
+	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
 	src := tc.mntDir + "/src"
@@ -420,7 +428,7 @@ func TestNlinkZero(t *testing.T) {
 }
 
 func TestParallelFileOpen(t *testing.T) {
-	tc := newTestCase(t)
+	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
 	fn := tc.mntDir + "/file"
@@ -449,7 +457,7 @@ func TestParallelFileOpen(t *testing.T) {
 }
 
 func TestSymlink(t *testing.T) {
-	tc := newTestCase(t)
+	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
 	fn := tc.mntDir + "/link"
@@ -466,7 +474,7 @@ func TestSymlink(t *testing.T) {
 }
 
 func TestLink(t *testing.T) {
-	tc := newTestCase(t)
+	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
 	link := tc.mntDir + "/link"
@@ -496,7 +504,7 @@ func TestLink(t *testing.T) {
 }
 
 func TestNotifyEntry(t *testing.T) {
-	tc := newTestCase(t)
+	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
 	orig := tc.origDir + "/file"
@@ -532,7 +540,7 @@ func TestNotifyEntry(t *testing.T) {
 // XXX Test NotifyDelete?
 
 func TestReadDir(t *testing.T) {
-	tc := newTestCase(t)
+	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
 	f, err := os.Open(tc.mntDir)
@@ -574,7 +582,7 @@ func TestReadDir(t *testing.T) {
 // This test is racy. If an external process consumes space while this
 // runs, we may see spurious differences between the two statfs() calls.
 func TestStatFs(t *testing.T) {
-	tc := newTestCase(t)
+	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
 	empty := syscall.Statfs_t{}
@@ -598,7 +606,7 @@ func TestStatFs(t *testing.T) {
 }
 
 func TestXAttr(t *testing.T) {
-	tc := newTestCase(t)
+	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
 	tc.writeOrig("file", "", 0644)
@@ -630,4 +638,49 @@ func TestXAttr(t *testing.T) {
 	if _, err := syscall.Getxattr(tc.mntDir+"/file", attr, buf); err != syscall.ENODATA {
 		t.Fatalf("got %v want ENOATTR", err)
 	}
+}
+
+func TestGetAttrParallel(t *testing.T) {
+	// We grab a file-handle to provide to the API so rename+fstat
+	// can be handled correctly. Here, test that closing and
+	// (f)stat in parallel don't lead to fstat on closed files.
+	// We can only test that if we switch off caching
+	tc := newTestCase(t, false, false)
+	defer tc.Clean()
+
+	N := 100
+
+	var fds []int
+	var fns []string
+	for i := 0; i < N; i++ {
+		fn := fmt.Sprintf("file%d", i)
+		tc.writeOrig(fn, "ello", 0644)
+		fn = filepath.Join(tc.mntDir, fn)
+		fns = append(fns, fn)
+		fd, err := syscall.Open(fn, syscall.O_RDONLY, 0)
+		if err != nil {
+			t.Fatalf("Open %d: %v", i, err)
+		}
+
+		fds = append(fds, fd)
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(2 * N)
+	for i := 0; i < N; i++ {
+		go func(i int) {
+			if err := syscall.Close(fds[i]); err != nil {
+				t.Errorf("close %d: %v", i, err)
+			}
+			wg.Done()
+		}(i)
+		go func(i int) {
+			var st syscall.Stat_t
+			if err := syscall.Lstat(fns[i], &st); err != nil {
+				t.Errorf("lstat %d: %v", i, err)
+			}
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
 }
