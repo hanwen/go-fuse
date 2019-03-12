@@ -333,7 +333,8 @@ retry:
 		lockNodes(lockme...)
 		if n.changeCounter != nChange {
 			unlockNodes(lockme...)
-			n.mu.Lock() // TODO could avoid unlocking and relocking n here.
+			// could avoid unlocking and relocking n here.
+			n.mu.Lock()
 			continue retry
 		}
 
@@ -391,7 +392,8 @@ retry:
 		lockNodes(lockme...)
 		if n.changeCounter != nChange {
 			unlockNodes(lockme...)
-			n.mu.Lock() // TODO could avoid unlocking and relocking n here.
+			// could avoid unlocking and relocking n here.
+			n.mu.Lock()
 			continue retry
 		}
 
@@ -467,7 +469,6 @@ retry:
 		unlockNodes(n, newParent, oldChild, destChild)
 
 		if destChild != nil {
-			// XXX would be better to do this under lock above too.
 			destChild.removeRef(0, false)
 		}
 		return true
@@ -539,7 +540,7 @@ func (n *Inode) NotifyEntry(name string) fuse.Status {
 	return n.bridge.server.EntryNotify(n.nodeID.Ino, name)
 }
 
-// XXX DeleteNotify ?
+// XXX naming: DeleteNotify ?
 func (n *Inode) NotifyDelete(name string, child *Inode) fuse.Status {
 	// XXX arg ordering?
 	return n.bridge.server.DeleteNotify(n.nodeID.Ino, child.nodeID.Ino, name)

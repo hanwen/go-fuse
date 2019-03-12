@@ -377,7 +377,6 @@ func (b *rawBridge) Rename(cancel <-chan struct{}, input *fuse.RenameIn, oldName
 	status := p1.node.Rename(&fuse.Context{Caller: input.Caller, Cancel: cancel}, oldName, p2.node, newName, input.Flags)
 	if status.Ok() {
 		if input.Flags&unix.RENAME_EXCHANGE != 0 {
-			// XXX - test coverage.
 			p1.ExchangeChild(oldName, p2, newName)
 		} else {
 			p1.MvChild(oldName, p2, newName, true)
@@ -609,7 +608,6 @@ func (b *rawBridge) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out *fus
 		f.hasOverflow = false
 	}
 
-	// TODO - should post '..' and '.' ?
 	for f.dirStream.HasNext() {
 		e, status := f.dirStream.Next()
 
@@ -663,7 +661,7 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 			b.addNewChild(n, e.Name, child, nil, 0, entryOut)
 			b.setEntryOutTimeout(entryOut)
 			if (e.Mode &^ 07777) != (child.mode &^ 07777) {
-				// XXX should go back and change the
+				// should go back and change the
 				// already serialized entry
 				log.Panicf("mode mismatch between readdir %o and lookup %o", e.Mode, child.mode)
 			}

@@ -38,13 +38,17 @@
 // tree.  InodeOf can be used to get particular Inode associated with
 // a Operations.
 //
-// XXX ^^^ inodes cleaned on cache clean (FORGET).
+// The kernel can evict inode data to free up memory. It does so by
+// issuing FORGET calls. When a node has no children, and no kernel
+// references, it is removed from the file system trees.
+//
+// File system trees can also be constructed in advance. This is done
+// by instantiating "persistent" inodes. Persistent inodes remain in
+// memory even if the kernel has forgotten them.
 //
 // XXX describe how to mount.
 //
 // XXX node example with Lookup.
-//
-// XXX describe how to pre-add nodes to tree.
 //
 package nodefs
 

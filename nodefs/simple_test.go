@@ -550,8 +550,6 @@ func TestReadDir(t *testing.T) {
 	defer f.Close()
 
 	// add entries after opening the directory
-
-	// XXX what about ".." and "." ?
 	want := map[string]bool{}
 	for i := 0; i < 110; i++ {
 		// 40 bytes of filename, so 110 entries overflows a

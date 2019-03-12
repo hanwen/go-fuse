@@ -11,8 +11,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-// XXX fill out here.
-
 func (f *loopbackFile) Allocate(ctx context.Context, off uint64, sz uint64, mode uint32) fuse.Status {
 	return fuse.ENOSYS
 }
