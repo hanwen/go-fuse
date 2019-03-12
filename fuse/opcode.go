@@ -15,49 +15,51 @@ import (
 )
 
 const (
-	_OP_LOOKUP       = int32(1)
-	_OP_FORGET       = int32(2)
-	_OP_GETATTR      = int32(3)
-	_OP_SETATTR      = int32(4)
-	_OP_READLINK     = int32(5)
-	_OP_SYMLINK      = int32(6)
-	_OP_MKNOD        = int32(8)
-	_OP_MKDIR        = int32(9)
-	_OP_UNLINK       = int32(10)
-	_OP_RMDIR        = int32(11)
-	_OP_RENAME       = int32(12)
-	_OP_LINK         = int32(13)
-	_OP_OPEN         = int32(14)
-	_OP_READ         = int32(15)
-	_OP_WRITE        = int32(16)
-	_OP_STATFS       = int32(17)
-	_OP_RELEASE      = int32(18)
-	_OP_FSYNC        = int32(20)
-	_OP_SETXATTR     = int32(21)
-	_OP_GETXATTR     = int32(22)
-	_OP_LISTXATTR    = int32(23)
-	_OP_REMOVEXATTR  = int32(24)
-	_OP_FLUSH        = int32(25)
-	_OP_INIT         = int32(26)
-	_OP_OPENDIR      = int32(27)
-	_OP_READDIR      = int32(28)
-	_OP_RELEASEDIR   = int32(29)
-	_OP_FSYNCDIR     = int32(30)
-	_OP_GETLK        = int32(31)
-	_OP_SETLK        = int32(32)
-	_OP_SETLKW       = int32(33)
-	_OP_ACCESS       = int32(34)
-	_OP_CREATE       = int32(35)
-	_OP_INTERRUPT    = int32(36)
-	_OP_BMAP         = int32(37)
-	_OP_DESTROY      = int32(38)
-	_OP_IOCTL        = int32(39)
-	_OP_POLL         = int32(40)
-	_OP_NOTIFY_REPLY = int32(41)
-	_OP_BATCH_FORGET = int32(42)
-	_OP_FALLOCATE    = int32(43) // protocol version 19.
-	_OP_READDIRPLUS  = int32(44) // protocol version 21.
-	_OP_RENAME2      = int32(45) // protocol version 23.
+	_OP_LOOKUP          = int32(1)
+	_OP_FORGET          = int32(2)
+	_OP_GETATTR         = int32(3)
+	_OP_SETATTR         = int32(4)
+	_OP_READLINK        = int32(5)
+	_OP_SYMLINK         = int32(6)
+	_OP_MKNOD           = int32(8)
+	_OP_MKDIR           = int32(9)
+	_OP_UNLINK          = int32(10)
+	_OP_RMDIR           = int32(11)
+	_OP_RENAME          = int32(12)
+	_OP_LINK            = int32(13)
+	_OP_OPEN            = int32(14)
+	_OP_READ            = int32(15)
+	_OP_WRITE           = int32(16)
+	_OP_STATFS          = int32(17)
+	_OP_RELEASE         = int32(18)
+	_OP_FSYNC           = int32(20)
+	_OP_SETXATTR        = int32(21)
+	_OP_GETXATTR        = int32(22)
+	_OP_LISTXATTR       = int32(23)
+	_OP_REMOVEXATTR     = int32(24)
+	_OP_FLUSH           = int32(25)
+	_OP_INIT            = int32(26)
+	_OP_OPENDIR         = int32(27)
+	_OP_READDIR         = int32(28)
+	_OP_RELEASEDIR      = int32(29)
+	_OP_FSYNCDIR        = int32(30)
+	_OP_GETLK           = int32(31)
+	_OP_SETLK           = int32(32)
+	_OP_SETLKW          = int32(33)
+	_OP_ACCESS          = int32(34)
+	_OP_CREATE          = int32(35)
+	_OP_INTERRUPT       = int32(36)
+	_OP_BMAP            = int32(37)
+	_OP_DESTROY         = int32(38)
+	_OP_IOCTL           = int32(39)
+	_OP_POLL            = int32(40)
+	_OP_NOTIFY_REPLY    = int32(41)
+	_OP_BATCH_FORGET    = int32(42)
+	_OP_FALLOCATE       = int32(43) // protocol version 19.
+	_OP_READDIRPLUS     = int32(44) // protocol version 21.
+	_OP_RENAME2         = int32(45) // protocol version 23.
+	_OP_LSEEK           = int32(46)
+	_OP_COPY_FILE_RANGE = int32(47)
 
 	// The following entries don't have to be compatible across Go-FUSE versions.
 	_OP_NOTIFY_INVAL_ENTRY    = int32(100)
@@ -504,41 +506,43 @@ func init() {
 	}
 
 	for op, sz := range map[int32]uintptr{
-		_OP_FORGET:       unsafe.Sizeof(ForgetIn{}),
-		_OP_BATCH_FORGET: unsafe.Sizeof(_BatchForgetIn{}),
-		_OP_GETATTR:      unsafe.Sizeof(GetAttrIn{}),
-		_OP_SETATTR:      unsafe.Sizeof(SetAttrIn{}),
-		_OP_MKNOD:        unsafe.Sizeof(MknodIn{}),
-		_OP_MKDIR:        unsafe.Sizeof(MkdirIn{}),
-		_OP_RENAME:       unsafe.Sizeof(Rename1In{}),
-		_OP_LINK:         unsafe.Sizeof(LinkIn{}),
-		_OP_OPEN:         unsafe.Sizeof(OpenIn{}),
-		_OP_READ:         unsafe.Sizeof(ReadIn{}),
-		_OP_WRITE:        unsafe.Sizeof(WriteIn{}),
-		_OP_RELEASE:      unsafe.Sizeof(ReleaseIn{}),
-		_OP_FSYNC:        unsafe.Sizeof(FsyncIn{}),
-		_OP_SETXATTR:     unsafe.Sizeof(SetXAttrIn{}),
-		_OP_GETXATTR:     unsafe.Sizeof(GetXAttrIn{}),
-		_OP_LISTXATTR:    unsafe.Sizeof(GetXAttrIn{}),
-		_OP_FLUSH:        unsafe.Sizeof(FlushIn{}),
-		_OP_INIT:         unsafe.Sizeof(InitIn{}),
-		_OP_OPENDIR:      unsafe.Sizeof(OpenIn{}),
-		_OP_READDIR:      unsafe.Sizeof(ReadIn{}),
-		_OP_RELEASEDIR:   unsafe.Sizeof(ReleaseIn{}),
-		_OP_FSYNCDIR:     unsafe.Sizeof(FsyncIn{}),
-		_OP_GETLK:        unsafe.Sizeof(LkIn{}),
-		_OP_SETLK:        unsafe.Sizeof(LkIn{}),
-		_OP_SETLKW:       unsafe.Sizeof(LkIn{}),
-		_OP_ACCESS:       unsafe.Sizeof(AccessIn{}),
-		_OP_CREATE:       unsafe.Sizeof(CreateIn{}),
-		_OP_INTERRUPT:    unsafe.Sizeof(InterruptIn{}),
-		_OP_BMAP:         unsafe.Sizeof(_BmapIn{}),
-		_OP_IOCTL:        unsafe.Sizeof(_IoctlIn{}),
-		_OP_POLL:         unsafe.Sizeof(_PollIn{}),
-		_OP_NOTIFY_REPLY: unsafe.Sizeof(NotifyRetrieveIn{}),
-		_OP_FALLOCATE:    unsafe.Sizeof(FallocateIn{}),
-		_OP_READDIRPLUS:  unsafe.Sizeof(ReadIn{}),
-		_OP_RENAME2:      unsafe.Sizeof(RenameIn{}),
+		_OP_FORGET:          unsafe.Sizeof(ForgetIn{}),
+		_OP_BATCH_FORGET:    unsafe.Sizeof(_BatchForgetIn{}),
+		_OP_GETATTR:         unsafe.Sizeof(GetAttrIn{}),
+		_OP_SETATTR:         unsafe.Sizeof(SetAttrIn{}),
+		_OP_MKNOD:           unsafe.Sizeof(MknodIn{}),
+		_OP_MKDIR:           unsafe.Sizeof(MkdirIn{}),
+		_OP_RENAME:          unsafe.Sizeof(Rename1In{}),
+		_OP_LINK:            unsafe.Sizeof(LinkIn{}),
+		_OP_OPEN:            unsafe.Sizeof(OpenIn{}),
+		_OP_READ:            unsafe.Sizeof(ReadIn{}),
+		_OP_WRITE:           unsafe.Sizeof(WriteIn{}),
+		_OP_RELEASE:         unsafe.Sizeof(ReleaseIn{}),
+		_OP_FSYNC:           unsafe.Sizeof(FsyncIn{}),
+		_OP_SETXATTR:        unsafe.Sizeof(SetXAttrIn{}),
+		_OP_GETXATTR:        unsafe.Sizeof(GetXAttrIn{}),
+		_OP_LISTXATTR:       unsafe.Sizeof(GetXAttrIn{}),
+		_OP_FLUSH:           unsafe.Sizeof(FlushIn{}),
+		_OP_INIT:            unsafe.Sizeof(InitIn{}),
+		_OP_OPENDIR:         unsafe.Sizeof(OpenIn{}),
+		_OP_READDIR:         unsafe.Sizeof(ReadIn{}),
+		_OP_RELEASEDIR:      unsafe.Sizeof(ReleaseIn{}),
+		_OP_FSYNCDIR:        unsafe.Sizeof(FsyncIn{}),
+		_OP_GETLK:           unsafe.Sizeof(LkIn{}),
+		_OP_SETLK:           unsafe.Sizeof(LkIn{}),
+		_OP_SETLKW:          unsafe.Sizeof(LkIn{}),
+		_OP_ACCESS:          unsafe.Sizeof(AccessIn{}),
+		_OP_CREATE:          unsafe.Sizeof(CreateIn{}),
+		_OP_INTERRUPT:       unsafe.Sizeof(InterruptIn{}),
+		_OP_BMAP:            unsafe.Sizeof(_BmapIn{}),
+		_OP_IOCTL:           unsafe.Sizeof(_IoctlIn{}),
+		_OP_POLL:            unsafe.Sizeof(_PollIn{}),
+		_OP_NOTIFY_REPLY:    unsafe.Sizeof(NotifyRetrieveIn{}),
+		_OP_FALLOCATE:       unsafe.Sizeof(FallocateIn{}),
+		_OP_READDIRPLUS:     unsafe.Sizeof(ReadIn{}),
+		_OP_RENAME2:         unsafe.Sizeof(RenameIn{}),
+		_OP_LSEEK:           unsafe.Sizeof(LseekIn{}),
+		_OP_COPY_FILE_RANGE: unsafe.Sizeof(CopyFileRangeIn{}),
 	} {
 		operationHandlers[op].InputSize = sz
 	}
@@ -568,6 +572,7 @@ func init() {
 		_OP_NOTIFY_STORE_CACHE:    unsafe.Sizeof(NotifyStoreOut{}),
 		_OP_NOTIFY_RETRIEVE_CACHE: unsafe.Sizeof(NotifyRetrieveOut{}),
 		_OP_NOTIFY_DELETE:         unsafe.Sizeof(NotifyInvalDeleteOut{}),
+		_OP_LSEEK:                 unsafe.Sizeof(LseekOut{}),
 	} {
 		operationHandlers[op].OutputSize = sz
 	}
@@ -621,6 +626,8 @@ func init() {
 		_OP_FALLOCATE:             "FALLOCATE",
 		_OP_READDIRPLUS:           "READDIRPLUS",
 		_OP_RENAME2:               "RENAME2",
+		_OP_LSEEK:                 "LSEEK",
+		_OP_COPY_FILE_RANGE:       "COPY_FILE_RANGE",
 	} {
 		operationHandlers[op].Name = v
 	}
@@ -690,41 +697,44 @@ func init() {
 		_OP_STATFS:                func(ptr unsafe.Pointer) interface{} { return (*StatfsOut)(ptr) },
 		_OP_SYMLINK:               func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
 		_OP_GETLK:                 func(ptr unsafe.Pointer) interface{} { return (*LkOut)(ptr) },
+		_OP_LSEEK:                 func(ptr unsafe.Pointer) interface{} { return (*LseekOut)(ptr) },
 	} {
 		operationHandlers[op].DecodeOut = f
 	}
 
 	// Inputs.
 	for op, f := range map[int32]castPointerFunc{
-		_OP_FLUSH:        func(ptr unsafe.Pointer) interface{} { return (*FlushIn)(ptr) },
-		_OP_GETATTR:      func(ptr unsafe.Pointer) interface{} { return (*GetAttrIn)(ptr) },
-		_OP_SETXATTR:     func(ptr unsafe.Pointer) interface{} { return (*SetXAttrIn)(ptr) },
-		_OP_GETXATTR:     func(ptr unsafe.Pointer) interface{} { return (*GetXAttrIn)(ptr) },
-		_OP_LISTXATTR:    func(ptr unsafe.Pointer) interface{} { return (*GetXAttrIn)(ptr) },
-		_OP_SETATTR:      func(ptr unsafe.Pointer) interface{} { return (*SetAttrIn)(ptr) },
-		_OP_INIT:         func(ptr unsafe.Pointer) interface{} { return (*InitIn)(ptr) },
-		_OP_IOCTL:        func(ptr unsafe.Pointer) interface{} { return (*_IoctlIn)(ptr) },
-		_OP_OPEN:         func(ptr unsafe.Pointer) interface{} { return (*OpenIn)(ptr) },
-		_OP_MKNOD:        func(ptr unsafe.Pointer) interface{} { return (*MknodIn)(ptr) },
-		_OP_CREATE:       func(ptr unsafe.Pointer) interface{} { return (*CreateIn)(ptr) },
-		_OP_READ:         func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
-		_OP_READDIR:      func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
-		_OP_ACCESS:       func(ptr unsafe.Pointer) interface{} { return (*AccessIn)(ptr) },
-		_OP_FORGET:       func(ptr unsafe.Pointer) interface{} { return (*ForgetIn)(ptr) },
-		_OP_BATCH_FORGET: func(ptr unsafe.Pointer) interface{} { return (*_BatchForgetIn)(ptr) },
-		_OP_LINK:         func(ptr unsafe.Pointer) interface{} { return (*LinkIn)(ptr) },
-		_OP_MKDIR:        func(ptr unsafe.Pointer) interface{} { return (*MkdirIn)(ptr) },
-		_OP_RELEASE:      func(ptr unsafe.Pointer) interface{} { return (*ReleaseIn)(ptr) },
-		_OP_RELEASEDIR:   func(ptr unsafe.Pointer) interface{} { return (*ReleaseIn)(ptr) },
-		_OP_FALLOCATE:    func(ptr unsafe.Pointer) interface{} { return (*FallocateIn)(ptr) },
-		_OP_NOTIFY_REPLY: func(ptr unsafe.Pointer) interface{} { return (*NotifyRetrieveIn)(ptr) },
-		_OP_READDIRPLUS:  func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
-		_OP_RENAME:       func(ptr unsafe.Pointer) interface{} { return (*Rename1In)(ptr) },
-		_OP_GETLK:        func(ptr unsafe.Pointer) interface{} { return (*LkIn)(ptr) },
-		_OP_SETLK:        func(ptr unsafe.Pointer) interface{} { return (*LkIn)(ptr) },
-		_OP_SETLKW:       func(ptr unsafe.Pointer) interface{} { return (*LkIn)(ptr) },
-		_OP_RENAME2:      func(ptr unsafe.Pointer) interface{} { return (*RenameIn)(ptr) },
-		_OP_INTERRUPT:    func(ptr unsafe.Pointer) interface{} { return (*InterruptIn)(ptr) },
+		_OP_FLUSH:           func(ptr unsafe.Pointer) interface{} { return (*FlushIn)(ptr) },
+		_OP_GETATTR:         func(ptr unsafe.Pointer) interface{} { return (*GetAttrIn)(ptr) },
+		_OP_SETXATTR:        func(ptr unsafe.Pointer) interface{} { return (*SetXAttrIn)(ptr) },
+		_OP_GETXATTR:        func(ptr unsafe.Pointer) interface{} { return (*GetXAttrIn)(ptr) },
+		_OP_LISTXATTR:       func(ptr unsafe.Pointer) interface{} { return (*GetXAttrIn)(ptr) },
+		_OP_SETATTR:         func(ptr unsafe.Pointer) interface{} { return (*SetAttrIn)(ptr) },
+		_OP_INIT:            func(ptr unsafe.Pointer) interface{} { return (*InitIn)(ptr) },
+		_OP_IOCTL:           func(ptr unsafe.Pointer) interface{} { return (*_IoctlIn)(ptr) },
+		_OP_OPEN:            func(ptr unsafe.Pointer) interface{} { return (*OpenIn)(ptr) },
+		_OP_MKNOD:           func(ptr unsafe.Pointer) interface{} { return (*MknodIn)(ptr) },
+		_OP_CREATE:          func(ptr unsafe.Pointer) interface{} { return (*CreateIn)(ptr) },
+		_OP_READ:            func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
+		_OP_READDIR:         func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
+		_OP_ACCESS:          func(ptr unsafe.Pointer) interface{} { return (*AccessIn)(ptr) },
+		_OP_FORGET:          func(ptr unsafe.Pointer) interface{} { return (*ForgetIn)(ptr) },
+		_OP_BATCH_FORGET:    func(ptr unsafe.Pointer) interface{} { return (*_BatchForgetIn)(ptr) },
+		_OP_LINK:            func(ptr unsafe.Pointer) interface{} { return (*LinkIn)(ptr) },
+		_OP_MKDIR:           func(ptr unsafe.Pointer) interface{} { return (*MkdirIn)(ptr) },
+		_OP_RELEASE:         func(ptr unsafe.Pointer) interface{} { return (*ReleaseIn)(ptr) },
+		_OP_RELEASEDIR:      func(ptr unsafe.Pointer) interface{} { return (*ReleaseIn)(ptr) },
+		_OP_FALLOCATE:       func(ptr unsafe.Pointer) interface{} { return (*FallocateIn)(ptr) },
+		_OP_NOTIFY_REPLY:    func(ptr unsafe.Pointer) interface{} { return (*NotifyRetrieveIn)(ptr) },
+		_OP_READDIRPLUS:     func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
+		_OP_RENAME:          func(ptr unsafe.Pointer) interface{} { return (*Rename1In)(ptr) },
+		_OP_GETLK:           func(ptr unsafe.Pointer) interface{} { return (*LkIn)(ptr) },
+		_OP_SETLK:           func(ptr unsafe.Pointer) interface{} { return (*LkIn)(ptr) },
+		_OP_SETLKW:          func(ptr unsafe.Pointer) interface{} { return (*LkIn)(ptr) },
+		_OP_RENAME2:         func(ptr unsafe.Pointer) interface{} { return (*RenameIn)(ptr) },
+		_OP_INTERRUPT:       func(ptr unsafe.Pointer) interface{} { return (*InterruptIn)(ptr) },
+		_OP_LSEEK:           func(ptr unsafe.Pointer) interface{} { return (*LseekIn)(ptr) },
+		_OP_COPY_FILE_RANGE: func(ptr unsafe.Pointer) interface{} { return (*CopyFileRangeIn)(ptr) },
 	} {
 		operationHandlers[op].DecodeIn = f
 	}

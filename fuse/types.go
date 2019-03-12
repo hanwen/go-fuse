@@ -305,7 +305,9 @@ type InitOut struct {
 	CongestionThreshold uint16
 	MaxWrite            uint32
 	TimeGran            uint32
-	Unused              [9]uint32
+	MaxPages            uint16
+	Padding             uint16
+	Unused              [8]uint32
 }
 
 type _CuseInitIn struct {
@@ -502,6 +504,27 @@ type FlushIn struct {
 	Unused    uint32
 	Padding   uint32
 	LockOwner uint64
+}
+
+type LseekIn struct {
+	Fh      uint64
+	Offset  uint64
+	Whence  uint32
+	Padding uint32
+}
+
+type LseekOut struct {
+	Offset uint64
+}
+
+type CopyFileRangeIn struct {
+	FhIn      uint64
+	OffIn     uint64
+	NodeIdOut uint64
+	FhOut     uint64
+	OffOut    uint64
+	Len       uint64
+	Flags     uint64
 }
 
 type EntryOut struct {
