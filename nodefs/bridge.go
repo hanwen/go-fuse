@@ -43,8 +43,8 @@ type rawBridge struct {
 	freeFiles []uint32
 }
 
-// newInode creates creates new inode pointing to node.
-func (b *rawBridge) newInode(node Operations, mode uint32, id FileID, persistent bool) *Inode {
+// newInode creates creates new inode pointing to ops.
+func (b *rawBridge) newInode(ops Operations, mode uint32, id FileID, persistent bool) *Inode {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -75,7 +75,7 @@ func (b *rawBridge) newInode(node Operations, mode uint32, id FileID, persistent
 	mode = mode &^ 07777
 	inode := &Inode{
 		mode:       mode,
-		node:       node,
+		ops:        ops,
 		nodeID:     id,
 		bridge:     b,
 		persistent: persistent,
@@ -86,10 +86,12 @@ func (b *rawBridge) newInode(node Operations, mode uint32, id FileID, persistent
 	}
 
 	b.nodes[id.Ino] = inode
-	node.setInode(inode)
-	return node.inode()
+	ops.setInode(inode)
+	return ops.inode()
 }
 
+// NewNodeFS creates a node based filesystem based on an Operations
+// instance for the root.
 func NewNodeFS(root Operations, opts *Options) fuse.RawFileSystem {
 	bridge := &rawBridge{
 		automaticIno: 1 << 63,
@@ -108,7 +110,7 @@ func NewNodeFS(root Operations, opts *Options) fuse.RawFileSystem {
 		mode:        fuse.S_IFDIR,
 		children:    make(map[string]*Inode),
 		parents:     nil,
-		node:        root,
+		ops:         root,
 		bridge:      bridge,
 	}
 	bridge.root.nodeID.Ino = 1
@@ -139,7 +141,7 @@ func (b *rawBridge) inode(id uint64, fh uint64) (*Inode, *fileEntry) {
 func (b *rawBridge) Lookup(cancel <-chan struct{}, header *fuse.InHeader, name string, out *fuse.EntryOut) (status fuse.Status) {
 	parent, _ := b.inode(header.NodeId, 0)
 
-	child, status := parent.node.Lookup(&fuse.Context{Caller: header.Caller, Cancel: cancel}, name, out)
+	child, status := parent.ops.Lookup(&fuse.Context{Caller: header.Caller, Cancel: cancel}, name, out)
 	if !status.Ok() {
 		if b.options.NegativeTimeout != nil {
 			out.SetEntryTimeout(*b.options.NegativeTimeout)
@@ -156,7 +158,7 @@ func (b *rawBridge) Lookup(cancel <-chan struct{}, header *fuse.InHeader, name s
 
 func (b *rawBridge) Rmdir(cancel <-chan struct{}, header *fuse.InHeader, name string) fuse.Status {
 	parent, _ := b.inode(header.NodeId, 0)
-	status := parent.node.Rmdir(&fuse.Context{Caller: header.Caller, Cancel: cancel}, name)
+	status := parent.ops.Rmdir(&fuse.Context{Caller: header.Caller, Cancel: cancel}, name)
 	if status.Ok() {
 		parent.RmChild(name)
 	}
@@ -166,7 +168,7 @@ func (b *rawBridge) Rmdir(cancel <-chan struct{}, header *fuse.InHeader, name st
 
 func (b *rawBridge) Unlink(cancel <-chan struct{}, header *fuse.InHeader, name string) fuse.Status {
 	parent, _ := b.inode(header.NodeId, 0)
-	status := parent.node.Unlink(&fuse.Context{Caller: header.Caller, Cancel: cancel}, name)
+	status := parent.ops.Unlink(&fuse.Context{Caller: header.Caller, Cancel: cancel}, name)
 	if status.Ok() {
 		parent.RmChild(name)
 	}
@@ -176,7 +178,7 @@ func (b *rawBridge) Unlink(cancel <-chan struct{}, header *fuse.InHeader, name s
 func (b *rawBridge) Mkdir(cancel <-chan struct{}, input *fuse.MkdirIn, name string, out *fuse.EntryOut) (status fuse.Status) {
 	parent, _ := b.inode(input.NodeId, 0)
 
-	child, status := parent.node.Mkdir(&fuse.Context{Caller: input.Caller, Cancel: cancel}, name, input.Mode, out)
+	child, status := parent.ops.Mkdir(&fuse.Context{Caller: input.Caller, Cancel: cancel}, name, input.Mode, out)
 	if !status.Ok() {
 		return status
 	}
@@ -193,7 +195,7 @@ func (b *rawBridge) Mkdir(cancel <-chan struct{}, input *fuse.MkdirIn, name stri
 func (b *rawBridge) Mknod(cancel <-chan struct{}, input *fuse.MknodIn, name string, out *fuse.EntryOut) (status fuse.Status) {
 	parent, _ := b.inode(input.NodeId, 0)
 
-	child, status := parent.node.Mknod(&fuse.Context{Caller: input.Caller, Cancel: cancel}, name, input.Mode, input.Rdev, out)
+	child, status := parent.ops.Mknod(&fuse.Context{Caller: input.Caller, Cancel: cancel}, name, input.Mode, input.Rdev, out)
 	if !status.Ok() {
 		return status
 	}
@@ -237,7 +239,7 @@ func (b *rawBridge) setEntryOutTimeout(out *fuse.EntryOut) {
 func (b *rawBridge) Create(cancel <-chan struct{}, input *fuse.CreateIn, name string, out *fuse.CreateOut) (status fuse.Status) {
 	ctx := &fuse.Context{Caller: input.Caller, Cancel: cancel}
 	parent, _ := b.inode(input.NodeId, 0)
-	child, f, flags, status := parent.node.Create(ctx, name, input.Flags, input.Mode)
+	child, f, flags, status := parent.ops.Create(ctx, name, input.Flags, input.Mode)
 	if !status.Ok() {
 		if b.options.NegativeTimeout != nil {
 			out.SetEntryTimeout(*b.options.NegativeTimeout)
@@ -288,7 +290,7 @@ func (b *rawBridge) GetAttr(cancel <-chan struct{}, input *fuse.GetAttrIn, out *
 		b.mu.Unlock()
 	}
 
-	status := n.node.GetAttr(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f, out)
+	status := n.ops.GetAttr(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f, out)
 	b.setAttrTimeout(out)
 	out.Ino = input.NodeId
 	out.Mode = (out.Attr.Mode & 07777) | n.mode
@@ -312,7 +314,7 @@ func (b *rawBridge) SetAttr(cancel <-chan struct{}, input *fuse.SetAttrIn, out *
 
 	if input.Valid&fuse.FATTR_MODE != 0 {
 		permissions := uint32(07777) & input.Mode
-		status = n.node.Chmod(ctx, f, permissions)
+		status = n.ops.Chmod(ctx, f, permissions)
 	}
 
 	if status.Ok() && (input.Valid&(fuse.FATTR_UID|fuse.FATTR_GID) != 0) {
@@ -324,11 +326,11 @@ func (b *rawBridge) SetAttr(cancel <-chan struct{}, input *fuse.SetAttrIn, out *
 		if input.Valid&fuse.FATTR_GID != 0 {
 			gid = input.Gid
 		}
-		status = n.node.Chown(ctx, f, uid, gid)
+		status = n.ops.Chown(ctx, f, uid, gid)
 	}
 
 	if status.Ok() && input.Valid&fuse.FATTR_SIZE != 0 {
-		status = n.node.Truncate(ctx, f, input.Size)
+		status = n.ops.Truncate(ctx, f, input.Size)
 	}
 
 	if status.Ok() && (input.Valid&(fuse.FATTR_ATIME|fuse.FATTR_MTIME|fuse.FATTR_ATIME_NOW|fuse.FATTR_MTIME_NOW) != 0) {
@@ -354,7 +356,7 @@ func (b *rawBridge) SetAttr(cancel <-chan struct{}, input *fuse.SetAttrIn, out *
 			}
 		}
 
-		status = n.node.Utimens(ctx, f, atime, mtime)
+		status = n.ops.Utimens(ctx, f, atime, mtime)
 	}
 
 	if !status.Ok() {
@@ -363,7 +365,7 @@ func (b *rawBridge) SetAttr(cancel <-chan struct{}, input *fuse.SetAttrIn, out *
 
 	// Must call GetAttr(); the filesystem may override some of
 	// the changes we effect here.
-	status = n.node.GetAttr(ctx, f, out)
+	status = n.ops.GetAttr(ctx, f, out)
 	b.setAttrTimeout(out)
 	out.Ino = n.nodeID.Ino
 	out.Mode = n.mode | (out.Mode &^ 07777)
@@ -374,7 +376,7 @@ func (b *rawBridge) Rename(cancel <-chan struct{}, input *fuse.RenameIn, oldName
 	p1, _ := b.inode(input.NodeId, 0)
 	p2, _ := b.inode(input.Newdir, 0)
 
-	status := p1.node.Rename(&fuse.Context{Caller: input.Caller, Cancel: cancel}, oldName, p2.node, newName, input.Flags)
+	status := p1.ops.Rename(&fuse.Context{Caller: input.Caller, Cancel: cancel}, oldName, p2.ops, newName, input.Flags)
 	if status.Ok() {
 		if input.Flags&unix.RENAME_EXCHANGE != 0 {
 			p1.ExchangeChild(oldName, p2, newName)
@@ -389,7 +391,7 @@ func (b *rawBridge) Link(cancel <-chan struct{}, input *fuse.LinkIn, name string
 	parent, _ := b.inode(input.NodeId, 0)
 	target, _ := b.inode(input.Oldnodeid, 0)
 
-	child, status := parent.node.Link(&fuse.Context{Caller: input.Caller, Cancel: cancel}, target.node, name, out)
+	child, status := parent.ops.Link(&fuse.Context{Caller: input.Caller, Cancel: cancel}, target.ops, name, out)
 	if !status.Ok() {
 		return status
 	}
@@ -401,7 +403,7 @@ func (b *rawBridge) Link(cancel <-chan struct{}, input *fuse.LinkIn, name string
 
 func (b *rawBridge) Symlink(cancel <-chan struct{}, header *fuse.InHeader, target string, name string, out *fuse.EntryOut) (status fuse.Status) {
 	parent, _ := b.inode(header.NodeId, 0)
-	child, status := parent.node.Symlink(&fuse.Context{Caller: header.Caller, Cancel: cancel}, target, name, out)
+	child, status := parent.ops.Symlink(&fuse.Context{Caller: header.Caller, Cancel: cancel}, target, name, out)
 	if !status.Ok() {
 		return status
 	}
@@ -413,7 +415,7 @@ func (b *rawBridge) Symlink(cancel <-chan struct{}, header *fuse.InHeader, targe
 
 func (b *rawBridge) Readlink(cancel <-chan struct{}, header *fuse.InHeader) (out []byte, status fuse.Status) {
 	n, _ := b.inode(header.NodeId, 0)
-	result, status := n.node.Readlink(&fuse.Context{Caller: header.Caller, Cancel: cancel})
+	result, status := n.ops.Readlink(&fuse.Context{Caller: header.Caller, Cancel: cancel})
 	if !status.Ok() {
 		return nil, status
 	}
@@ -423,7 +425,7 @@ func (b *rawBridge) Readlink(cancel <-chan struct{}, header *fuse.InHeader) (out
 
 func (b *rawBridge) Access(cancel <-chan struct{}, input *fuse.AccessIn) (status fuse.Status) {
 	n, _ := b.inode(input.NodeId, 0)
-	return n.node.Access(&fuse.Context{Caller: input.Caller, Cancel: cancel}, input.Mask)
+	return n.ops.Access(&fuse.Context{Caller: input.Caller, Cancel: cancel}, input.Mask)
 }
 
 // Extended attributes.
@@ -431,28 +433,28 @@ func (b *rawBridge) Access(cancel <-chan struct{}, input *fuse.AccessIn) (status
 func (b *rawBridge) GetXAttr(cancel <-chan struct{}, header *fuse.InHeader, attr string, data []byte) (uint32, fuse.Status) {
 	n, _ := b.inode(header.NodeId, 0)
 
-	return n.node.GetXAttr(&fuse.Context{Caller: header.Caller, Cancel: cancel}, attr, data)
+	return n.ops.GetXAttr(&fuse.Context{Caller: header.Caller, Cancel: cancel}, attr, data)
 }
 
 func (b *rawBridge) ListXAttr(cancel <-chan struct{}, header *fuse.InHeader, dest []byte) (sz uint32, status fuse.Status) {
 	n, _ := b.inode(header.NodeId, 0)
-	return n.node.ListXAttr(&fuse.Context{Caller: header.Caller, Cancel: cancel}, dest)
+	return n.ops.ListXAttr(&fuse.Context{Caller: header.Caller, Cancel: cancel}, dest)
 }
 
 func (b *rawBridge) SetXAttr(cancel <-chan struct{}, input *fuse.SetXAttrIn, attr string, data []byte) fuse.Status {
 	n, _ := b.inode(input.NodeId, 0)
-	return n.node.SetXAttr(&fuse.Context{Caller: input.Caller, Cancel: cancel}, attr, data, input.Flags)
+	return n.ops.SetXAttr(&fuse.Context{Caller: input.Caller, Cancel: cancel}, attr, data, input.Flags)
 }
 
 func (b *rawBridge) RemoveXAttr(cancel <-chan struct{}, header *fuse.InHeader, attr string) (status fuse.Status) {
 	n, _ := b.inode(header.NodeId, 0)
-	return n.node.RemoveXAttr(&fuse.Context{Caller: header.Caller, Cancel: cancel}, attr)
+	return n.ops.RemoveXAttr(&fuse.Context{Caller: header.Caller, Cancel: cancel}, attr)
 }
 
 func (b *rawBridge) Open(cancel <-chan struct{}, input *fuse.OpenIn, out *fuse.OpenOut) (status fuse.Status) {
 	n, _ := b.inode(input.NodeId, 0)
 	// NOSUBMIT: what about the mode argument?
-	f, flags, status := n.node.Open(&fuse.Context{Caller: input.Caller, Cancel: cancel}, input.Flags)
+	f, flags, status := n.ops.Open(&fuse.Context{Caller: input.Caller, Cancel: cancel}, input.Flags)
 	if !status.Ok() {
 		return status
 	}
@@ -486,28 +488,28 @@ func (b *rawBridge) registerFile(n *Inode, f FileHandle, flags uint32) uint32 {
 
 func (b *rawBridge) Read(cancel <-chan struct{}, input *fuse.ReadIn, buf []byte) (fuse.ReadResult, fuse.Status) {
 	n, f := b.inode(input.NodeId, input.Fh)
-	return n.node.Read(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, buf, int64(input.Offset))
+	return n.ops.Read(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, buf, int64(input.Offset))
 }
 
 func (b *rawBridge) GetLk(cancel <-chan struct{}, input *fuse.LkIn, out *fuse.LkOut) (status fuse.Status) {
 	n, f := b.inode(input.NodeId, input.Fh)
-	return n.node.GetLk(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.Owner, &input.Lk, input.LkFlags, &out.Lk)
+	return n.ops.GetLk(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.Owner, &input.Lk, input.LkFlags, &out.Lk)
 }
 
 func (b *rawBridge) SetLk(cancel <-chan struct{}, input *fuse.LkIn) (status fuse.Status) {
 	n, f := b.inode(input.NodeId, input.Fh)
-	return n.node.SetLk(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.Owner, &input.Lk, input.LkFlags)
+	return n.ops.SetLk(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.Owner, &input.Lk, input.LkFlags)
 }
 
 func (b *rawBridge) SetLkw(cancel <-chan struct{}, input *fuse.LkIn) (status fuse.Status) {
 	n, f := b.inode(input.NodeId, input.Fh)
-	return n.node.SetLkw(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.Owner, &input.Lk, input.LkFlags)
+	return n.ops.SetLkw(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.Owner, &input.Lk, input.LkFlags)
 }
 
 func (b *rawBridge) Release(input *fuse.ReleaseIn) {
 	n, f := b.releaseFileEntry(input.NodeId, input.Fh)
 	f.wg.Wait()
-	n.node.Release(f.file)
+	n.ops.Release(f.file)
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -547,27 +549,27 @@ func (b *rawBridge) releaseFileEntry(nid uint64, fh uint64) (*Inode, *fileEntry)
 
 func (b *rawBridge) Write(cancel <-chan struct{}, input *fuse.WriteIn, data []byte) (written uint32, status fuse.Status) {
 	n, f := b.inode(input.NodeId, input.Fh)
-	return n.node.Write(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, data, int64(input.Offset))
+	return n.ops.Write(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, data, int64(input.Offset))
 }
 
 func (b *rawBridge) Flush(cancel <-chan struct{}, input *fuse.FlushIn) fuse.Status {
 	n, f := b.inode(input.NodeId, input.Fh)
-	return n.node.Flush(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file)
+	return n.ops.Flush(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file)
 }
 
 func (b *rawBridge) Fsync(cancel <-chan struct{}, input *fuse.FsyncIn) (status fuse.Status) {
 	n, f := b.inode(input.NodeId, input.Fh)
-	return n.node.Fsync(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.FsyncFlags)
+	return n.ops.Fsync(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.FsyncFlags)
 }
 
 func (b *rawBridge) Fallocate(cancel <-chan struct{}, input *fuse.FallocateIn) (status fuse.Status) {
 	n, f := b.inode(input.NodeId, input.Fh)
-	return n.node.Allocate(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.Offset, input.Length, input.Mode)
+	return n.ops.Allocate(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.Offset, input.Length, input.Mode)
 }
 
 func (b *rawBridge) OpenDir(cancel <-chan struct{}, input *fuse.OpenIn, out *fuse.OpenOut) fuse.Status {
 	n, _ := b.inode(input.NodeId, 0)
-	status := n.node.OpenDir(&fuse.Context{Caller: input.Caller, Cancel: cancel})
+	status := n.ops.OpenDir(&fuse.Context{Caller: input.Caller, Cancel: cancel})
 	if !status.Ok() {
 		return status
 	}
@@ -583,7 +585,7 @@ func (b *rawBridge) getStream(cancel <-chan struct{}, input *fuse.ReadIn, inode 
 			f.dirStream.Close()
 			f.dirStream = nil
 		}
-		str, status := inode.node.ReadDir(&fuse.Context{Caller: input.Caller, Cancel: cancel})
+		str, status := inode.ops.ReadDir(&fuse.Context{Caller: input.Caller, Cancel: cancel})
 		if !status.Ok() {
 			return status
 		}
@@ -652,7 +654,7 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 			return fuse.OK
 		}
 
-		child, status := n.node.Lookup(&fuse.Context{Caller: input.Caller, Cancel: cancel}, e.Name, entryOut)
+		child, status := n.ops.Lookup(&fuse.Context{Caller: input.Caller, Cancel: cancel}, e.Name, entryOut)
 		if !status.Ok() {
 			if b.options.NegativeTimeout != nil {
 				entryOut.SetEntryTimeout(*b.options.NegativeTimeout)
@@ -674,12 +676,12 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 
 func (b *rawBridge) FsyncDir(cancel <-chan struct{}, input *fuse.FsyncIn) (status fuse.Status) {
 	n, _ := b.inode(input.NodeId, input.Fh)
-	return n.node.Fsync(&fuse.Context{Caller: input.Caller, Cancel: cancel}, nil, input.FsyncFlags)
+	return n.ops.Fsync(&fuse.Context{Caller: input.Caller, Cancel: cancel}, nil, input.FsyncFlags)
 }
 
 func (b *rawBridge) StatFs(cancel <-chan struct{}, input *fuse.InHeader, out *fuse.StatfsOut) (status fuse.Status) {
 	n, _ := b.inode(input.NodeId, 0)
-	return n.node.StatFs(&fuse.Context{Caller: input.Caller, Cancel: cancel}, out)
+	return n.ops.StatFs(&fuse.Context{Caller: input.Caller, Cancel: cancel}, out)
 }
 
 func (b *rawBridge) Init(s *fuse.Server) {

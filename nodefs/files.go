@@ -46,10 +46,11 @@ func (f *loopbackFile) Write(ctx context.Context, data []byte, off int64) (uint3
 	return uint32(n), fuse.ToStatus(err)
 }
 
-func (f *loopbackFile) Release() {
+func (f *loopbackFile) Release() fuse.Status {
 	f.mu.Lock()
-	syscall.Close(f.fd)
+	err := syscall.Close(f.fd)
 	f.mu.Unlock()
+	return fuse.ToStatus(err)
 }
 
 func (f *loopbackFile) Flush(ctx context.Context) fuse.Status {

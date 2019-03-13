@@ -150,10 +150,11 @@ func (n *DefaultOperations) Flush(ctx context.Context, f FileHandle) fuse.Status
 	return fuse.ENOSYS
 }
 
-func (n *DefaultOperations) Release(f FileHandle) {
+func (n *DefaultOperations) Release(f FileHandle) fuse.Status {
 	if f != nil {
-		f.Release()
+		return f.Release()
 	}
+	return fuse.ENOSYS
 }
 
 func (n *DefaultOperations) Allocate(ctx context.Context, f FileHandle, off uint64, size uint64, mode uint32) (status fuse.Status) {
@@ -264,8 +265,8 @@ func (f *DefaultFile) Flush(ctx context.Context) fuse.Status {
 	return fuse.ENOSYS
 }
 
-func (f *DefaultFile) Release() {
-
+func (f *DefaultFile) Release() fuse.Status {
+	return fuse.ENOSYS
 }
 
 func (f *DefaultFile) GetAttr(ctx context.Context, out *fuse.AttrOut) fuse.Status {

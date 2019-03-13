@@ -15,8 +15,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-var _ = log.Println
-
 type parentData struct {
 	name   string
 	parent *Inode
@@ -54,7 +52,7 @@ type Inode struct {
 
 	nodeID FileID
 
-	node   Operations
+	ops    Operations
 	bridge *rawBridge
 
 	// Following data is mutable.
@@ -90,10 +88,12 @@ type Inode struct {
 	parents  map[parentData]struct{}
 }
 
+// FileID returns the (Ino, Gen) tuple for this node.
 func (n *Inode) FileID() FileID {
 	return n.nodeID
 }
 
+// IsRoot returns true if this is the root of the FUSE mount.
 func (n *Inode) IsRoot() bool {
 	return n.nodeID.Ino == fuse.FUSE_ROOT_ID
 }
@@ -195,7 +195,7 @@ func (n *Inode) Forgotten() bool {
 
 // Node returns the Node object implementing the file system operations.
 func (n *Inode) Operations() Operations {
-	return n.node
+	return n.ops
 }
 
 // Path returns a path string to the inode relative to the root.
@@ -236,23 +236,6 @@ func (n *Inode) Path(root *Inode) string {
 
 	path := strings.Join(segments, "/")
 	return path
-}
-
-// Finds a child with the given name and filetype.  Returns nil if not
-// found.
-func (n *Inode) FindChildByMode(name string, mode uint32) *Inode {
-	mode ^= 07777
-
-	n.mu.Lock()
-	defer n.mu.Unlock()
-
-	ch := n.children[name]
-
-	if ch != nil && ch.mode == mode {
-		return ch
-	}
-
-	return nil
 }
 
 // setEntry does `iparent[name] = ichild` linking.
@@ -420,7 +403,7 @@ retry:
 }
 
 // MvChild executes a rename. If overwrite is set, a child at the
-// destination will be overwritten.
+// destination will be overwritten, should it exist.
 func (n *Inode) MvChild(old string, newParent *Inode, newName string, overwrite bool) bool {
 retry:
 	for {
@@ -475,6 +458,8 @@ retry:
 	}
 }
 
+// ExchangeChild swaps the entries at (n, oldName) and (newParent,
+// newName).
 func (n *Inode) ExchangeChild(oldName string, newParent *Inode, newName string) {
 	oldParent := n
 retry:
@@ -487,9 +472,6 @@ retry:
 		destChild := newParent.children[newName]
 		unlockNode2(oldParent, newParent)
 
-		if destChild == nil && oldChild == nil {
-			return
-		}
 		if destChild == oldChild {
 			return
 		}
@@ -536,26 +518,36 @@ retry:
 	}
 }
 
+// NotifyEntry notifies the kernel that data for a (directory, name)
+// tuple should be invalidated. On next access, a LOOKUP operation
+// will be started.
 func (n *Inode) NotifyEntry(name string) fuse.Status {
 	return n.bridge.server.EntryNotify(n.nodeID.Ino, name)
 }
 
-// XXX naming: DeleteNotify ?
+// NotifyDelete notifies the kernel that the given inode was removed
+// from this directory as entry under the given name. It is equivalent
+// to NotifyEntry, but also sends an event to inotify watchers.
 func (n *Inode) NotifyDelete(name string, child *Inode) fuse.Status {
 	// XXX arg ordering?
 	return n.bridge.server.DeleteNotify(n.nodeID.Ino, child.nodeID.Ino, name)
 
 }
 
+// NotifyContent notifies the kernel that content under the given
+// inode should be flushed from buffers.
 func (n *Inode) NotifyContent(off, sz int64) fuse.Status {
+	// XXX how does this work for directories?
 	return n.bridge.server.InodeNotify(n.nodeID.Ino, off, sz)
 }
 
+// WriteCache stores data in the kernel cache.
 func (n *Inode) WriteCache(offset int64, data []byte) fuse.Status {
 	return n.bridge.server.InodeNotifyStoreCache(n.nodeID.Ino, offset, data)
 
 }
 
+// ReadCache reads data from the kernel cache.
 func (n *Inode) ReadCache(offset int64, dest []byte) (count int, status fuse.Status) {
 	return n.bridge.server.InodeRetrieveCache(n.nodeID.Ino, offset, dest)
 }

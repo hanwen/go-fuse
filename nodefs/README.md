@@ -84,5 +84,7 @@ or
 
    * Should bridge.Lookup() add the child, bridge.Unlink remove the child, etc.?
 
+   * Merge Fsync/FsyncDir?
 
+   * Merge Release/ReleaseDir?
  
