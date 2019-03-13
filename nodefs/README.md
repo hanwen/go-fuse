@@ -86,5 +86,5 @@ or
 
    * Merge Fsync/FsyncDir?
 
-   * Merge Release/ReleaseDir?
+   * Merge Release/ReleaseDir? (others?)
  

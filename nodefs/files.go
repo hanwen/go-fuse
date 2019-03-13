@@ -22,11 +22,10 @@ func newLoopbackFile(fd int) *loopbackFile {
 type loopbackFile struct {
 	fd int
 
-	// os.File is not threadsafe. Although fd themselves are
-	// constant during the lifetime of an open file, the OS may
-	// reuse the fd number after it is closed. When open races
-	// with another close, they may lead to confusion as which
-	// file gets written in the end.
+	// Although fd themselves are constant during the lifetime of
+	// an open file, the OS may reuse the fd number after it is
+	// closed. When open races with another close, they may lead
+	// to confusion as which file gets written in the end.
 	mu sync.Mutex
 }
 
