@@ -115,11 +115,6 @@ type Operations interface {
 	// `susan` gets the UID and GID for `susan` here.
 	Access(ctx context.Context, mask uint32) fuse.Status
 
-	// File locking
-	GetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (status fuse.Status)
-	SetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status)
-	SetLkw(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status)
-
 	// Extended attributes
 
 	// GetXAttr should read data for the given attribute into
@@ -139,7 +134,88 @@ type Operations interface {
 	// ERANGE and the correct size.
 	ListXAttr(ctx context.Context, dest []byte) (uint32, fuse.Status)
 
-	GetAttr(ctx context.Context, f FileHandle, out *fuse.AttrOut) fuse.Status
+	GetAttr(ctx context.Context, out *fuse.AttrOut) fuse.Status
+
+	SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status
+}
+
+// SymlinkOperations holds operations specific to symlinks.
+type SymlinkOperations interface {
+	Operations
+
+	// Readlink reads the content of a symlink.
+	Readlink(ctx context.Context) (string, fuse.Status)
+}
+
+// FileOperations holds operations that apply to regular files.  The
+// default implementation, as returned from NewFileOperations forwards
+// to the passed-in FileHandle.
+//
+// XXX Mknod output too?
+type FileOperations interface {
+	Operations
+
+	// Open opens an Inode (of regular file type) for reading. It
+	// is optional but recommended to return a FileHandle.
+	Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, status fuse.Status)
+
+	// File locking
+
+	// GetLk returns locks that would conflict with the given
+	// input lock. If no locks conflict, the output has type
+	// L_UNLCK. See fcntl(2) for more information.
+	GetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (status fuse.Status)
+
+	// Obtain a lock on a file, or fail if the lock could not
+	// obtained.  See fcntl(2) for more information.
+	SetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status)
+
+	// Obtain a lock on a file, waiting if necessary. See fcntl(2)
+	// for more information.
+	SetLkw(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status)
+
+	// Reads data from a file. The data should be returned as
+	// ReadResult, which may be constructed from the incoming
+	// `dest` buffer. If the file was opened without FileHandle,
+	// the FileHandle argument here is nil. The default
+	// implementation forwards to the FileHandle.
+	Read(ctx context.Context, f FileHandle, dest []byte, off int64) (fuse.ReadResult, fuse.Status)
+
+	// Writes the data into the file handle at given offset. After
+	// returning, the data will be reused and may not referenced.
+	// The default implementation forwards to the FileHandle.
+	Write(ctx context.Context, f FileHandle, data []byte, off int64) (written uint32, status fuse.Status)
+
+	// Fsync is a signal to ensure writes to the Inode are flushed
+	// to stable storage.  The default implementation forwards to the
+	// FileHandle.
+	Fsync(ctx context.Context, f FileHandle, flags uint32) (status fuse.Status)
+
+	// Flush is called for close() call on a file descriptor. In
+	// case of duplicated descriptor, it may be called more than
+	// once for a file.   The default implementation forwards to the
+	// FileHandle.
+	Flush(ctx context.Context, f FileHandle) fuse.Status
+
+	// This is called to before the file handle is forgotten. The
+	// kernel ingores the return value of this method,
+	// so any cleanup that requires specific synchronization or
+	// could fail with I/O errors should happen in Flush instead.
+	// The default implementation forwards to the FileHandle.
+	Release(ctx context.Context, f FileHandle) fuse.Status
+
+	// Allocate preallocates space for future writes, so they will
+	// never encounter ESPACE.
+	Allocate(ctx context.Context, f FileHandle, off uint64, size uint64, mode uint32) (status fuse.Status)
+
+	FGetAttr(ctx context.Context, f FileHandle, out *fuse.AttrOut) fuse.Status
+
+	FSetAttr(ctx context.Context, f FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status
+}
+
+// DirOperations are operations for directory nodes in the filesystem.
+type DirOperations interface {
+	Operations
 
 	// Lookup should find a direct child of the node by child
 	// name.  If the entry does not exist, it should return ENOENT
@@ -180,13 +256,6 @@ type Operations interface {
 	// the return status is OK
 	Rename(ctx context.Context, name string, newParent Operations, newName string, flags uint32) fuse.Status
 
-	// Readlink reads the content of a symlink.
-	Readlink(ctx context.Context) (string, fuse.Status)
-
-	// Open opens an Inode (of regular file type) for reading. It
-	// is optional but recommended to return a FileHandle.
-	Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, status fuse.Status)
-
 	// OpenDir opens a directory Inode for reading its
 	// contents. The actual reading is driven from ReadDir, so
 	// this method is just for performing sanity/permission
@@ -195,105 +264,46 @@ type Operations interface {
 
 	// ReadDir opens a stream of directory entries.
 	ReadDir(ctx context.Context) (DirStream, fuse.Status)
-
-	// Reads data from a file. The data should be returned as
-	// ReadResult, which may be constructed from the incoming
-	// `dest` buffer. If the file was opened without FileHandle,
-	// the FileHandle argument here is nil. The default
-	// implementation forwards to the FileHandle.
-	Read(ctx context.Context, f FileHandle, dest []byte, off int64) (fuse.ReadResult, fuse.Status)
-
-	// Writes the data into the file handle at given offset. After
-	// returning, the data will be reused and may not referenced.
-	// The default implementation forwards to the FileHandle.
-	Write(ctx context.Context, f FileHandle, data []byte, off int64) (written uint32, status fuse.Status)
-
-	// Fsync is a signal to ensure writes to the Inode are flushed
-	// to stable storage.  The default implementation forwards to the
-	// FileHandle.
-	Fsync(ctx context.Context, f FileHandle, flags uint32) (status fuse.Status)
-
-	// Flush is called for close() call on a file descriptor. In
-	// case of duplicated descriptor, it may be called more than
-	// once for a file.   The default implementation forwards to the
-	// FileHandle.
-	Flush(ctx context.Context, f FileHandle) fuse.Status
-
-	// This is called to before the file handle is forgotten. The
-	// kernel ingores the return value of this method is ignored,
-	// so any cleanup that requires specific synchronization or
-	// could fail with I/O errors should happen in Flush instead.
-	// The default implementation forwards to the FileHandle.
-	Release(f FileHandle) fuse.Status
-
-	/*
-		NOSUBMIT - fold into a setattr method, or expand methods?
-
-		Decoding SetAttr is a bit of a PITA, but if we use fuse
-		types as args, we can't take apart SetAttr for the caller
-	*/
-
-	// Truncate sets the file length to the given size.  The
-	// default implementation forwards to the FileHandle.
-	Truncate(ctx context.Context, f FileHandle, size uint64) fuse.Status
-
-	// Chown changes the file owner .  The default implementation
-	// forwards to the FileHandle.
-	Chown(ctx context.Context, f FileHandle, uid uint32, gid uint32) fuse.Status
-
-	// Chmod changes the file permissions.  The default
-	// implementation forwards to the FileHandle.
-	Chmod(ctx context.Context, f FileHandle, perms uint32) fuse.Status
-
-	// Utimens changes the files timestamps.  The default
-	// implementation forwards to the FileHandle.
-	Utimens(ctx context.Context, f FileHandle, atime *time.Time, mtime *time.Time) fuse.Status
-
-	// Allocate preallocates space for future writes, so they will
-	// never encounter ESPACE.  The default implementation
-	// forwards to the FileHandle.
-	Allocate(ctx context.Context, f FileHandle, off uint64, size uint64, mode uint32) (status fuse.Status)
 }
 
-// FileHandle is a resource identifier for opened files.
+// FileHandle is a resource identifier for opened files. For a
+// description, see the equivalent operations in FileOperations.
 type FileHandle interface {
 	Read(ctx context.Context, dest []byte, off int64) (fuse.ReadResult, fuse.Status)
 
-	// Writes the data at given offset. After returning, the data
-	// will be reused and may not referenced.
 	Write(ctx context.Context, data []byte, off int64) (written uint32, status fuse.Status)
 
-	// File locking
 	GetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (status fuse.Status)
 	SetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status)
 	SetLkw(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status)
-
-	// Flush is called for close() call on a file descriptor. In
-	// case of duplicated descriptor, it may be called more than
-	// once for a file.
 	Flush(ctx context.Context) fuse.Status
 
 	Fsync(ctx context.Context, flags uint32) fuse.Status
 
-	// This is called to before the file handle is forgotten. This
-	// method has no return value, so nothing can synchronizes on
-	// the call, and it cannot be canceled. Any cleanup that
-	// requires specific synchronization or could fail with I/O
-	// errors should happen in Flush instead.
-	Release() fuse.Status
+	Release(ctx context.Context) fuse.Status
 
 	GetAttr(ctx context.Context, out *fuse.AttrOut) fuse.Status
-	Truncate(ctx context.Context, size uint64) fuse.Status
-	Chown(ctx context.Context, uid uint32, gid uint32) fuse.Status
-	Chmod(ctx context.Context, perms uint32) fuse.Status
-	Utimens(ctx context.Context, atime *time.Time, mtime *time.Time) fuse.Status
+	SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status
 	Allocate(ctx context.Context, off uint64, size uint64, mode uint32) (status fuse.Status)
 }
 
+// Options sets options for the entire filesystem
 type Options struct {
+
+	// Debug toggles debug output
 	Debug bool
 
-	EntryTimeout    *time.Duration
-	AttrTimeout     *time.Duration
+	// If set to nonnil, this defines the overall entry timeout
+	// for the file system. See fuse.EntryOut for more information.
+	EntryTimeout *time.Duration
+
+	// If set to nonnil, this defines the overall attribute
+	// timeout for the file system. See fuse.EntryOut for more
+	// information.
+	AttrTimeout *time.Duration
+
+	// If set to nonnil, this defines the overall entry timeout
+	// for failed lookups (fuse.ENOENT). See fuse.EntryOut for
+	// more information.
 	NegativeTimeout *time.Duration
 }

@@ -34,7 +34,7 @@ type testCase struct {
 	origDir string
 	mntDir  string
 
-	loopback Operations
+	loopback DirOperations
 	rawFS    fuse.RawFileSystem
 	server   *fuse.Server
 }

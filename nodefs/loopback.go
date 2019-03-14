@@ -37,7 +37,7 @@ func (n *loopbackNode) StatFs(ctx context.Context, out *fuse.StatfsOut) fuse.Sta
 	return fuse.OK
 }
 
-func (n *loopbackRoot) GetAttr(ctx context.Context, f FileHandle, out *fuse.AttrOut) fuse.Status {
+func (n *loopbackRoot) GetAttr(ctx context.Context, out *fuse.AttrOut) fuse.Status {
 	var err error = nil
 	st := syscall.Stat_t{}
 	err = syscall.Stat(n.root, &st)
@@ -253,7 +253,7 @@ func (n *loopbackNode) ReadDir(ctx context.Context) (DirStream, fuse.Status) {
 	return NewLoopbackDirStream(n.path())
 }
 
-func (n *loopbackNode) GetAttr(ctx context.Context, f FileHandle, out *fuse.AttrOut) fuse.Status {
+func (n *loopbackNode) FGetAttr(ctx context.Context, f FileHandle, out *fuse.AttrOut) fuse.Status {
 	if f != nil {
 		return f.GetAttr(ctx, out)
 	}
@@ -270,7 +270,9 @@ func (n *loopbackNode) GetAttr(ctx context.Context, f FileHandle, out *fuse.Attr
 	return fuse.OK
 }
 
-func NewLoopback(root string) Operations {
+// NewLoopback returns a root node for a loopback file system whose
+// root is at the given root.
+func NewLoopback(root string) DirOperations {
 	n := &loopbackRoot{
 		root: root,
 	}

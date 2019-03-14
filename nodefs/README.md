@@ -55,8 +55,6 @@ To decide
    * One giant interface with many methods, or many one-method
      interfaces? Or some interface (file, dir, symlink, etc).
  
-   * one SetAttr method, or many (Chown, Truncate, etc.)
-
    * function signatures, or types? The latter is easier to remember?
      Easier to extend? The latter less efficient (indirections/copies)
 

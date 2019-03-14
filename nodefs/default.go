@@ -150,9 +150,9 @@ func (n *DefaultOperations) Flush(ctx context.Context, f FileHandle) fuse.Status
 	return fuse.ENOSYS
 }
 
-func (n *DefaultOperations) Release(f FileHandle) fuse.Status {
+func (n *DefaultOperations) Release(ctx context.Context, f FileHandle) fuse.Status {
 	if f != nil {
-		return f.Release()
+		return f.Release(ctx)
 	}
 	return fuse.ENOSYS
 }
@@ -165,41 +165,24 @@ func (n *DefaultOperations) Allocate(ctx context.Context, f FileHandle, off uint
 	return fuse.ENOSYS
 }
 
-func (n *DefaultOperations) GetAttr(ctx context.Context, f FileHandle, out *fuse.AttrOut) fuse.Status {
+func (n *DefaultOperations) GetAttr(ctx context.Context, out *fuse.AttrOut) fuse.Status {
+	return fuse.ENOSYS
+}
+
+func (n *DefaultOperations) FGetAttr(ctx context.Context, f FileHandle, out *fuse.AttrOut) fuse.Status {
 	if f != nil {
 		f.GetAttr(ctx, out)
 	}
-
 	return fuse.ENOSYS
 }
 
-func (n *DefaultOperations) Truncate(ctx context.Context, f FileHandle, size uint64) fuse.Status {
-	if f != nil {
-		return f.Truncate(ctx, size)
-	}
-
+func (n *DefaultOperations) SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status {
 	return fuse.ENOSYS
 }
 
-func (n *DefaultOperations) Chown(ctx context.Context, f FileHandle, uid uint32, gid uint32) fuse.Status {
+func (n *DefaultOperations) FSetAttr(ctx context.Context, f FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status {
 	if f != nil {
-		return f.Chown(ctx, uid, gid)
-	}
-
-	return fuse.ENOSYS
-}
-
-func (n *DefaultOperations) Chmod(ctx context.Context, f FileHandle, perms uint32) fuse.Status {
-	if f != nil {
-		return f.Chmod(ctx, perms)
-	}
-
-	return fuse.ENOSYS
-}
-
-func (n *DefaultOperations) Utimens(ctx context.Context, f FileHandle, atime *time.Time, mtime *time.Time) fuse.Status {
-	if f != nil {
-		return f.Utimens(ctx, atime, mtime)
+		return f.SetAttr(ctx, in, out)
 	}
 
 	return fuse.ENOSYS
@@ -265,11 +248,15 @@ func (f *DefaultFile) Flush(ctx context.Context) fuse.Status {
 	return fuse.ENOSYS
 }
 
-func (f *DefaultFile) Release() fuse.Status {
+func (f *DefaultFile) Release(ctx context.Context) fuse.Status {
 	return fuse.ENOSYS
 }
 
 func (f *DefaultFile) GetAttr(ctx context.Context, out *fuse.AttrOut) fuse.Status {
+	return fuse.ENOSYS
+}
+
+func (f *DefaultFile) SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status {
 	return fuse.ENOSYS
 }
 

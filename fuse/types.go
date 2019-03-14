@@ -527,6 +527,10 @@ type CopyFileRangeIn struct {
 	Flags     uint64
 }
 
+// EntryOut holds the result of a (directory,name) lookup.  It has two
+// TTLs, one for the (directory, name) lookup itself, and one for the
+// attributes (eg. size, mode). The entry TTL also applies if the
+// lookup result is ENOENT ("negative entry lookup")
 type EntryOut struct {
 	NodeId         uint64
 	Generation     uint64

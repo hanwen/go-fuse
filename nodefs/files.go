@@ -45,7 +45,7 @@ func (f *loopbackFile) Write(ctx context.Context, data []byte, off int64) (uint3
 	return uint32(n), fuse.ToStatus(err)
 }
 
-func (f *loopbackFile) Release() fuse.Status {
+func (f *loopbackFile) Release(ctx context.Context) fuse.Status {
 	f.mu.Lock()
 	err := syscall.Close(f.fd)
 	f.mu.Unlock()
@@ -128,28 +128,68 @@ func (f *loopbackFile) setLock(ctx context.Context, owner uint64, lk *fuse.FileL
 	}
 }
 
-func (f *loopbackFile) Truncate(ctx context.Context, size uint64) fuse.Status {
-	f.mu.Lock()
-	r := fuse.ToStatus(syscall.Ftruncate(f.fd, int64(size)))
-	f.mu.Unlock()
+func (f *loopbackFile) SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status {
+	if status := f.setAttr(ctx, in); !status.Ok() {
+		return status
+	}
 
-	return r
+	return f.GetAttr(ctx, out)
 }
 
-func (f *loopbackFile) Chmod(ctx context.Context, mode uint32) fuse.Status {
+func (f *loopbackFile) setAttr(ctx context.Context, in *fuse.SetAttrIn) fuse.Status {
 	f.mu.Lock()
-	r := fuse.ToStatus(syscall.Fchmod(f.fd, mode))
-	f.mu.Unlock()
+	defer f.mu.Unlock()
+	var status fuse.Status
+	if mode, ok := in.GetMode(); ok {
+		status = fuse.ToStatus(syscall.Fchmod(f.fd, mode))
+		if !status.Ok() {
+			return status
+		}
+	}
 
-	return r
-}
+	uid32, uOk := in.GetUID()
+	gid32, gOk := in.GetGID()
+	if uOk || gOk {
+		uid := -1
+		gid := -1
 
-func (f *loopbackFile) Chown(ctx context.Context, uid uint32, gid uint32) fuse.Status {
-	f.mu.Lock()
-	r := fuse.ToStatus(syscall.Fchown(f.fd, int(uid), int(gid)))
-	f.mu.Unlock()
+		if uOk {
+			uid = int(uid32)
+		}
+		if gOk {
+			gid = int(gid32)
+		}
+		status = fuse.ToStatus(syscall.Fchown(f.fd, uid, gid))
+		if !status.Ok() {
+			return status
+		}
+	}
 
-	return r
+	mtime, mok := in.GetMTime()
+	atime, aok := in.GetATime()
+
+	if mok || aok {
+		ap := &atime
+		mp := &mtime
+		if !aok {
+			ap = nil
+		}
+		if !mok {
+			mp = nil
+		}
+		status = f.utimens(ap, mp)
+		if !status.Ok() {
+			return status
+		}
+	}
+
+	if sz, ok := in.GetSize(); ok {
+		status = fuse.ToStatus(syscall.Ftruncate(f.fd, int64(sz)))
+		if !status.Ok() {
+			return status
+		}
+	}
+	return fuse.OK
 }
 
 func (f *loopbackFile) GetAttr(ctx context.Context, a *fuse.AttrOut) fuse.Status {

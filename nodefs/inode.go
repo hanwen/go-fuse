@@ -88,6 +88,18 @@ type Inode struct {
 	parents  map[parentData]struct{}
 }
 
+func (n *Inode) dirOps() DirOperations {
+	return n.ops.(DirOperations)
+}
+
+func (n *Inode) fileOps() FileOperations {
+	return n.ops.(FileOperations)
+}
+
+func (n *Inode) linkOps() SymlinkOperations {
+	return n.ops.(SymlinkOperations)
+}
+
 // FileID returns the (Ino, Gen) tuple for this node.
 func (n *Inode) FileID() FileID {
 	return n.nodeID
