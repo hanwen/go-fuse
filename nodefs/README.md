@@ -12,6 +12,10 @@ Decisions
      because most filesystems will need to construct tree-like
      structures.
 
+   * Nodes contain references to their parents. As a result, we can
+     derive the path for each Inode, and there is no need for a
+     separate PathFS.
+
    * Nodes can be "persistent", meaning their lifetime is not under
      control of the kernel. This is useful for constructing FS trees
      in advance, rather than driven by LOOKUP.
@@ -52,9 +56,6 @@ To decide
 
    * Should we provide automatic fileID numbering?
    
-   * One giant interface with many methods, or many one-method
-     interfaces? Or some interface (file, dir, symlink, etc).
- 
    * function signatures, or types? The latter is easier to remember?
      Easier to extend? The latter less efficient (indirections/copies)
 
@@ -83,6 +84,4 @@ or
    * Should bridge.Lookup() add the child, bridge.Unlink remove the child, etc.?
 
    * Merge Fsync/FsyncDir?
-
-   * Merge Release/ReleaseDir? (others?)
  

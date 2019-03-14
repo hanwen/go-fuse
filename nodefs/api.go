@@ -83,15 +83,6 @@ type DirStream interface {
 	Close()
 }
 
-/*
-NOSUBMIT: how to structure?
-
-- one interface per method?
-- one interface for files (getattr, read/write), one for dirs (lookup, opendir), one shared?
-- one giant interface?
-- use raw types as args rather than mimicking Golang signatures?
-*/
-
 // Operations is the interface that implements the filesystem.  Each
 // Operations instance must embed DefaultNode.
 type Operations interface {
@@ -112,7 +103,7 @@ type Operations interface {
 	// Access should return if the caller can access the file with
 	// the given mode. In this case, the context has data about
 	// the real UID. For example a root-SUID binary called by user
-	// `susan` gets the UID and GID for `susan` here.
+	// susan gets the UID and GID for susan here.
 	Access(ctx context.Context, mask uint32) fuse.Status
 
 	// Extended attributes
@@ -122,8 +113,8 @@ type Operations interface {
 	// small, it should return ERANGE and the size of the attribute.
 	GetXAttr(ctx context.Context, attr string, dest []byte) (uint32, fuse.Status)
 
-	// SetXAttr should store data for the given attribute.
-	// XXX flags.
+	// SetXAttr should store data for the given attribute.  See
+	// setxattr(2) for information about flags.
 	SetXAttr(ctx context.Context, attr string, data []byte, flags uint32) fuse.Status
 
 	// RemoveXAttr should delete the given attribute.
@@ -134,8 +125,10 @@ type Operations interface {
 	// ERANGE and the correct size.
 	ListXAttr(ctx context.Context, dest []byte) (uint32, fuse.Status)
 
+	// GetAttr reads attributes for an Inode
 	GetAttr(ctx context.Context, out *fuse.AttrOut) fuse.Status
 
+	// SetAttr sets attributes for an Inode
 	SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status
 }
 

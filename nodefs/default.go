@@ -14,7 +14,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-// DefaultOperations provides common base Node functionality.
+// DefaultOperations provides stubs that return ENOSYS for all functions
 //
 // It must be embedded in any Node implementation.
 type DefaultOperations struct {
