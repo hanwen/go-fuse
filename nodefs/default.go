@@ -13,9 +13,10 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-// DefaultOperations provides stubs that return ENOSYS for all functions
+// DefaultOperations provides stubs that return ENOENT for almost all
+// functions.
 //
-// It must be embedded in any Node implementation.
+// It must be embedded in any Operations implementation.
 type DefaultOperations struct {
 	inode_ *Inode
 }
@@ -51,6 +52,8 @@ func (n *DefaultOperations) inode() *Inode {
 		(*unsafe.Pointer)(unsafe.Pointer(&n.inode_))))
 }
 
+// StatFs zeroes the out argument and returns OK.  This is because OSX
+// filesystems must define this, or the mount will not work.
 func (n *DefaultOperations) StatFs(ctx context.Context, out *fuse.StatfsOut) fuse.Status {
 	// this should be defined on OSX, or the FS won't mount
 	*out = fuse.StatfsOut{}
@@ -58,78 +61,78 @@ func (n *DefaultOperations) StatFs(ctx context.Context, out *fuse.StatfsOut) fus
 }
 
 func (n *DefaultOperations) GetAttr(ctx context.Context, out *fuse.AttrOut) fuse.Status {
-	return fuse.ENOSYS
+	return fuse.ENOENT
 }
 
 func (n *DefaultOperations) SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status {
-	return fuse.ENOSYS
+	return fuse.ENOENT
 }
 
 func (n *DefaultOperations) Access(ctx context.Context, mask uint32) fuse.Status {
-	return fuse.ENOSYS
+	return fuse.ENOENT
 }
 
-// ****************************************************************
-
+// FSetAttr delegates to the FileHandle's if f is not nil, or else to the
+// Inode's SetAttr method.
 func (n *DefaultOperations) FSetAttr(ctx context.Context, f FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status {
 	if f != nil {
 		return f.SetAttr(ctx, in, out)
 	}
 
-	return fuse.ENOSYS
+	return n.inode_.Operations().SetAttr(ctx, in, out)
 }
 
 func (n *DefaultOperations) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, fuse.Status) {
-	return nil, fuse.ENOSYS
+	return nil, fuse.ENOENT
 }
 
 func (n *DefaultOperations) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.EntryOut) (*Inode, fuse.Status) {
-	return nil, fuse.ENOSYS
+	return nil, fuse.ENOENT
 }
 
 func (n *DefaultOperations) Mknod(ctx context.Context, name string, mode uint32, dev uint32, out *fuse.EntryOut) (*Inode, fuse.Status) {
-	return nil, fuse.ENOSYS
+	return nil, fuse.ENOENT
 }
 func (n *DefaultOperations) Rmdir(ctx context.Context, name string) fuse.Status {
-	return fuse.ENOSYS
+	return fuse.ENOENT
 }
 func (n *DefaultOperations) Unlink(ctx context.Context, name string) fuse.Status {
-	return fuse.ENOSYS
+	return fuse.ENOENT
 }
 
 func (n *DefaultOperations) OpenDir(ctx context.Context) fuse.Status {
-	return fuse.ENOSYS
+	return fuse.ENOENT
 }
 
 func (n *DefaultOperations) ReadDir(ctx context.Context) (DirStream, fuse.Status) {
-	return nil, fuse.ENOSYS
+	return nil, fuse.ENOENT
 }
 
 func (n *DefaultOperations) Rename(ctx context.Context, name string, newParent Operations, newName string, flags uint32) fuse.Status {
-	return fuse.ENOSYS
+	return fuse.ENOENT
 }
 
 func (n *DefaultOperations) Read(ctx context.Context, f FileHandle, dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
 	if f != nil {
 		return f.Read(ctx, dest, off)
 	}
-	return nil, fuse.ENOSYS
+	return nil, fuse.ENOENT
 }
 
 func (n *DefaultOperations) Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (node *Inode, status fuse.Status) {
 	log.Println("defsyml")
-	return nil, fuse.ENOSYS
+	return nil, fuse.ENOENT
 }
 
 func (n *DefaultOperations) Readlink(ctx context.Context) (string, fuse.Status) {
-	return "", fuse.ENOSYS
+	return "", fuse.ENOENT
 }
 
 func (n *DefaultOperations) Fsync(ctx context.Context, f FileHandle, flags uint32) fuse.Status {
 	if f != nil {
 		return f.Fsync(ctx, flags)
 	}
-	return fuse.ENOSYS
+	return fuse.ENOENT
 }
 
 func (n *DefaultOperations) Write(ctx context.Context, f FileHandle, data []byte, off int64) (written uint32, status fuse.Status) {
@@ -137,7 +140,7 @@ func (n *DefaultOperations) Write(ctx context.Context, f FileHandle, data []byte
 		return f.Write(ctx, data, off)
 	}
 
-	return 0, fuse.ENOSYS
+	return 0, fuse.ENOENT
 }
 
 func (n *DefaultOperations) GetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (status fuse.Status) {
@@ -145,7 +148,7 @@ func (n *DefaultOperations) GetLk(ctx context.Context, f FileHandle, owner uint6
 		return f.GetLk(ctx, owner, lk, flags, out)
 	}
 
-	return fuse.ENOSYS
+	return fuse.ENOENT
 }
 
 func (n *DefaultOperations) SetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status) {
@@ -153,7 +156,7 @@ func (n *DefaultOperations) SetLk(ctx context.Context, f FileHandle, owner uint6
 		return f.SetLk(ctx, owner, lk, flags)
 	}
 
-	return fuse.ENOSYS
+	return fuse.ENOENT
 }
 
 func (n *DefaultOperations) SetLkw(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status) {
@@ -161,21 +164,21 @@ func (n *DefaultOperations) SetLkw(ctx context.Context, f FileHandle, owner uint
 		return f.SetLkw(ctx, owner, lk, flags)
 	}
 
-	return fuse.ENOSYS
+	return fuse.ENOENT
 }
 func (n *DefaultOperations) Flush(ctx context.Context, f FileHandle) fuse.Status {
 	if f != nil {
 		return f.Flush(ctx)
 	}
 
-	return fuse.ENOSYS
+	return fuse.ENOENT
 }
 
 func (n *DefaultOperations) Release(ctx context.Context, f FileHandle) fuse.Status {
 	if f != nil {
 		return f.Release(ctx)
 	}
-	return fuse.ENOSYS
+	return fuse.ENOENT
 }
 
 func (n *DefaultOperations) Allocate(ctx context.Context, f FileHandle, off uint64, size uint64, mode uint32) (status fuse.Status) {
@@ -183,88 +186,92 @@ func (n *DefaultOperations) Allocate(ctx context.Context, f FileHandle, off uint
 		return f.Allocate(ctx, off, size, mode)
 	}
 
-	return fuse.ENOSYS
+	return fuse.ENOENT
 }
 
+// FGetAttr delegates to the FileHandle's if f is not nil, or else to the
+// Inode's GetAttr method.
 func (n *DefaultOperations) FGetAttr(ctx context.Context, f FileHandle, out *fuse.AttrOut) fuse.Status {
 	if f != nil {
 		f.GetAttr(ctx, out)
 	}
-	return fuse.ENOSYS
+	return n.inode_.ops.GetAttr(ctx, out)
 }
 
 func (n *DefaultOperations) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, status fuse.Status) {
-	return nil, 0, fuse.ENOSYS
+	return nil, 0, fuse.ENOENT
 }
 
 func (n *DefaultOperations) Create(ctx context.Context, name string, flags uint32, mode uint32) (node *Inode, fh FileHandle, fuseFlags uint32, status fuse.Status) {
-	return nil, nil, 0, fuse.ENOSYS
+	return nil, nil, 0, fuse.ENOENT
 }
 func (n *DefaultOperations) Link(ctx context.Context, target Operations, name string, out *fuse.EntryOut) (node *Inode, status fuse.Status) {
-	return nil, fuse.ENOSYS
+	return nil, fuse.ENOENT
 }
 
 func (n *DefaultOperations) GetXAttr(ctx context.Context, attr string, dest []byte) (uint32, fuse.Status) {
-	return 0, fuse.ENOATTR
+	return 0, fuse.ENOENT
 }
 
 func (n *DefaultOperations) SetXAttr(ctx context.Context, attr string, data []byte, flags uint32) fuse.Status {
-	return fuse.ENOATTR
+	return fuse.ENOENT
 }
 
 func (n *DefaultOperations) RemoveXAttr(ctx context.Context, attr string) fuse.Status {
-	return fuse.ENOATTR
+	return fuse.ENOENT
 }
 
 func (n *DefaultOperations) ListXAttr(ctx context.Context, dest []byte) (uint32, fuse.Status) {
 	return 0, fuse.OK
 }
 
-type DefaultFile struct {
+// DefaultFileHandle satisfies the FileHandle interface, and provides
+// stub methods that return ENOENT for all operations.
+type DefaultFileHandle struct {
 }
 
-var _ = FileHandle((*DefaultFile)(nil))
+var _ = FileHandle((*DefaultFileHandle)(nil))
 
-func (f *DefaultFile) Read(ctx context.Context, dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
-	return nil, fuse.ENOSYS
+func (f *DefaultFileHandle) Read(ctx context.Context, dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
+	return nil, fuse.ENOENT
 }
 
-func (f *DefaultFile) Write(ctx context.Context, data []byte, off int64) (written uint32, status fuse.Status) {
-	return 0, fuse.ENOSYS
+func (f *DefaultFileHandle) Write(ctx context.Context, data []byte, off int64) (written uint32, status fuse.Status) {
+	return 0, fuse.ENOENT
 }
 
-func (f *DefaultFile) GetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (status fuse.Status) {
-	return fuse.ENOSYS
+func (f *DefaultFileHandle) GetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (status fuse.Status) {
+	return fuse.ENOENT
 }
 
-func (f *DefaultFile) SetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status) {
-	return fuse.ENOSYS
+func (f *DefaultFileHandle) SetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status) {
+	return fuse.ENOENT
 }
 
-func (f *DefaultFile) SetLkw(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status) {
-	return fuse.ENOSYS
+func (f *DefaultFileHandle) SetLkw(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status) {
+	return fuse.ENOENT
 }
 
-func (f *DefaultFile) Flush(ctx context.Context) fuse.Status {
-	return fuse.ENOSYS
+func (f *DefaultFileHandle) Flush(ctx context.Context) fuse.Status {
+	return fuse.ENOENT
 }
 
-func (f *DefaultFile) Release(ctx context.Context) fuse.Status {
-	return fuse.ENOSYS
+func (f *DefaultFileHandle) Release(ctx context.Context) fuse.Status {
+	return fuse.ENOENT
 }
 
-func (f *DefaultFile) GetAttr(ctx context.Context, out *fuse.AttrOut) fuse.Status {
-	return fuse.ENOSYS
+func (f *DefaultFileHandle) GetAttr(ctx context.Context, out *fuse.AttrOut) fuse.Status {
+	return fuse.ENOENT
 }
 
-func (f *DefaultFile) SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status {
-	return fuse.ENOSYS
+func (f *DefaultFileHandle) SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status {
+	return fuse.ENOENT
 }
 
-func (f *DefaultFile) Allocate(ctx context.Context, off uint64, size uint64, mode uint32) (status fuse.Status) {
-	return fuse.ENOSYS
+func (f *DefaultFileHandle) Allocate(ctx context.Context, off uint64, size uint64, mode uint32) (status fuse.Status) {
+	return fuse.ENOENT
 }
 
-func (f *DefaultFile) Fsync(ctx context.Context, flags uint32) (status fuse.Status) {
-	return fuse.ENOSYS
+func (f *DefaultFileHandle) Fsync(ctx context.Context, flags uint32) (status fuse.Status) {
+	return fuse.ENOENT
 }

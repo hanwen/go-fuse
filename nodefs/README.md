@@ -85,3 +85,4 @@ or
 
    * Merge Fsync/FsyncDir?
  
+   * OnMount in Operations or in Options? Or argument to NewNodeFS ?

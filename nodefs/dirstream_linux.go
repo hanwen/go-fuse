@@ -17,6 +17,7 @@ type loopbackDirStream struct {
 	fd   int
 }
 
+// NewLoopbackDirStream open a directory for reading as a DirStream
 func NewLoopbackDirStream(name string) (DirStream, fuse.Status) {
 	fd, err := syscall.Open(name, syscall.O_DIRECTORY, 0755)
 	if err != nil {

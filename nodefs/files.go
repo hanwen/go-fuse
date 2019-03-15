@@ -14,11 +14,12 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-func newLoopbackFile(fd int) *loopbackFile {
+// NewLoopbackFile creates a FileHandle out of a file descriptor. All
+// operations are implemented.
+func NewLoopbackFile(fd int) FileHandle {
 	return &loopbackFile{fd: fd}
 }
 
-// loopbackFile delegates all operations back to an underlying file.
 type loopbackFile struct {
 	fd int
 

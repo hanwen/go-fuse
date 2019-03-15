@@ -67,8 +67,8 @@ func InodeOf(node Operations) *Inode {
 	return node.inode()
 }
 
-// Operations is the interface that implements the filesystem.  Each
-// Operations instance must embed DefaultNode.
+// Operations is the interface that implements the filesystem inode.
+// Each Operations instance must embed DefaultNode.
 type Operations interface {
 	// setInode and inode are used by nodefs internally to link Inode to a Node.
 	//
@@ -293,7 +293,6 @@ type FileHandle interface {
 
 // Options sets options for the entire filesystem
 type Options struct {
-
 	// Debug toggles debug output
 	Debug bool
 

@@ -95,7 +95,6 @@ func (n *loopbackNode) Mknod(ctx context.Context, name string, mode, rdev uint32
 }
 
 func (n *loopbackNode) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.EntryOut) (*Inode, fuse.Status) {
-	// NOSUBMIT what about umask
 	p := filepath.Join(n.path(), name)
 	err := os.Mkdir(p, os.FileMode(mode))
 	if err != nil {
@@ -172,7 +171,7 @@ func (n *loopbackNode) Create(ctx context.Context, name string, flags uint32, mo
 
 	node := n.rootNode.newLoopbackNode()
 	ch := n.inode().NewInode(node, uint32(st.Mode), idFromStat(&st))
-	lf := newLoopbackFile(fd)
+	lf := NewLoopbackFile(fd)
 	return ch, lf, 0, fuse.OK
 }
 
@@ -236,7 +235,7 @@ func (n *loopbackNode) Open(ctx context.Context, flags uint32) (fh FileHandle, f
 	if err != nil {
 		return nil, 0, fuse.ToStatus(err)
 	}
-	lf := newLoopbackFile(f)
+	lf := NewLoopbackFile(f)
 	return lf, 0, fuse.OK
 }
 
