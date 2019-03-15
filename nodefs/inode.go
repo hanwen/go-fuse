@@ -205,7 +205,8 @@ func (n *Inode) Forgotten() bool {
 	return n.lookupCount == 0 && len(n.parents) == 0 && !n.persistent
 }
 
-// Node returns the Node object implementing the file system operations.
+// Operations returns the object implementing the file system
+// operations.
 func (n *Inode) Operations() Operations {
 	return n.ops
 }

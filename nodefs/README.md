@@ -81,8 +81,9 @@ or
 
    * Should Operations.Lookup return *Inode or Operations ?
 
-   * Should bridge.Lookup() add the child, bridge.Unlink remove the child, etc.?
-
    * Merge Fsync/FsyncDir?
  
-   * OnMount in Operations or in Options? Or argument to NewNodeFS ?
+   * OnMount in Operations or in Options? Or argument to NewNodeFS? Or
+     OnAdd() ?
+
+
