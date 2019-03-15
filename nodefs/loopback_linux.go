@@ -48,13 +48,13 @@ func (n *loopbackNode) renameExchange(name string, newparent *loopbackNode, newN
 	if err := syscall.Fstat(fd1, &st); err != nil {
 		return fuse.ToStatus(err)
 	}
-	if !InodeOf(n).IsRoot() && InodeOf(n).FileID().Ino != idFromStat(&st).Ino {
+	if !InodeOf(n).IsRoot() && InodeOf(n).FileID().Ino != n.rootNode.idFromStat(&st).Ino {
 		return fuse.EBUSY
 	}
 	if err := syscall.Fstat(fd2, &st); err != nil {
 		return fuse.ToStatus(err)
 	}
-	if !InodeOf(newparent).IsRoot() && InodeOf(newparent).FileID().Ino != idFromStat(&st).Ino {
+	if !InodeOf(newparent).IsRoot() && InodeOf(newparent).FileID().Ino != n.rootNode.idFromStat(&st).Ino {
 		return fuse.EBUSY
 	}
 

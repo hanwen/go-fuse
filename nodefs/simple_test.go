@@ -68,8 +68,11 @@ func newTestCase(t *testing.T, entryCache bool, attrCache bool) *testCase {
 		t.Fatal(err)
 	}
 
-	tc.loopback = NewLoopback(tc.origDir)
-	_ = time.Second
+	var err error
+	tc.loopback, err = NewLoopback(tc.origDir)
+	if err != nil {
+		t.Fatalf("NewLoopback: %v", err)
+	}
 
 	oneSec := time.Second
 
@@ -87,7 +90,6 @@ func newTestCase(t *testing.T, entryCache bool, attrCache bool) *testCase {
 		AttrTimeout:  attrDT,
 	})
 
-	var err error
 	tc.server, err = fuse.NewServer(tc.rawFS, tc.mntDir,
 		&fuse.MountOptions{
 			Debug: testutil.VerboseTest(),

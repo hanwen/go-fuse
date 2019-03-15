@@ -37,9 +37,9 @@ type FileID struct {
 	Gen uint64
 }
 
-// Zero returns if the FileID is zeroed out
+// Reserved returns if the FileID is using reserved Inode numbers.
 func (i *FileID) Reserved() bool {
-	return i.Ino == 0 || i.Ino == 1 || i.Ino == ^uint64(0)
+	return i.Ino == 1 || i.Ino == ^uint64(0)
 }
 
 // Inode is a node in VFS tree.  Inodes are one-to-one mapped to
