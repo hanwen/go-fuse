@@ -11,24 +11,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-type dirArray struct {
-	Entries []fuse.DirEntry
-}
-
-func (a *dirArray) HasNext() bool {
-	return len(a.Entries) > 0
-}
-
-func (a *dirArray) Next() (fuse.DirEntry, fuse.Status) {
-	e := a.Entries[0]
-	a.Entries = a.Entries[1:]
-	return e, fuse.OK
-}
-
-func (a *dirArray) Close() {
-
-}
-
 func NewLoopbackDirStream(nm string) (DirStream, fuse.Status) {
 	f, err := os.Open(nm)
 	if err != nil {
