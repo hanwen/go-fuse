@@ -8,7 +8,6 @@ import (
 	"context"
 	"log"
 	"sync/atomic"
-	"time"
 	"unsafe"
 
 	"github.com/hanwen/go-fuse/fuse"
@@ -47,15 +46,37 @@ func (n *DefaultOperations) setInode(inode *Inode) bool {
 		nil, unsafe.Pointer(inode))
 }
 
+func (n *DefaultOperations) inode() *Inode {
+	return (*Inode)(atomic.LoadPointer(
+		(*unsafe.Pointer)(unsafe.Pointer(&n.inode_))))
+}
+
 func (n *DefaultOperations) StatFs(ctx context.Context, out *fuse.StatfsOut) fuse.Status {
 	// this should be defined on OSX, or the FS won't mount
 	*out = fuse.StatfsOut{}
 	return fuse.OK
 }
 
-func (n *DefaultOperations) inode() *Inode {
-	return (*Inode)(atomic.LoadPointer(
-		(*unsafe.Pointer)(unsafe.Pointer(&n.inode_))))
+func (n *DefaultOperations) GetAttr(ctx context.Context, out *fuse.AttrOut) fuse.Status {
+	return fuse.ENOSYS
+}
+
+func (n *DefaultOperations) SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status {
+	return fuse.ENOSYS
+}
+
+func (n *DefaultOperations) Access(ctx context.Context, mask uint32) fuse.Status {
+	return fuse.ENOSYS
+}
+
+// ****************************************************************
+
+func (n *DefaultOperations) FSetAttr(ctx context.Context, f FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status {
+	if f != nil {
+		return f.SetAttr(ctx, in, out)
+	}
+
+	return fuse.ENOSYS
 }
 
 func (n *DefaultOperations) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, fuse.Status) {
@@ -165,26 +186,10 @@ func (n *DefaultOperations) Allocate(ctx context.Context, f FileHandle, off uint
 	return fuse.ENOSYS
 }
 
-func (n *DefaultOperations) GetAttr(ctx context.Context, out *fuse.AttrOut) fuse.Status {
-	return fuse.ENOSYS
-}
-
 func (n *DefaultOperations) FGetAttr(ctx context.Context, f FileHandle, out *fuse.AttrOut) fuse.Status {
 	if f != nil {
 		f.GetAttr(ctx, out)
 	}
-	return fuse.ENOSYS
-}
-
-func (n *DefaultOperations) SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status {
-	return fuse.ENOSYS
-}
-
-func (n *DefaultOperations) FSetAttr(ctx context.Context, f FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status {
-	if f != nil {
-		return f.SetAttr(ctx, in, out)
-	}
-
 	return fuse.ENOSYS
 }
 
@@ -209,10 +214,6 @@ func (n *DefaultOperations) SetXAttr(ctx context.Context, attr string, data []by
 
 func (n *DefaultOperations) RemoveXAttr(ctx context.Context, attr string) fuse.Status {
 	return fuse.ENOATTR
-}
-
-func (n *DefaultOperations) Access(ctx context.Context, mask uint32) fuse.Status {
-	return fuse.ENOSYS
 }
 
 func (n *DefaultOperations) ListXAttr(ctx context.Context, dest []byte) (uint32, fuse.Status) {
@@ -257,23 +258,6 @@ func (f *DefaultFile) GetAttr(ctx context.Context, out *fuse.AttrOut) fuse.Statu
 }
 
 func (f *DefaultFile) SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status {
-	return fuse.ENOSYS
-}
-
-func (f *DefaultFile) Truncate(ctx context.Context, size uint64) fuse.Status {
-	return fuse.ENOSYS
-}
-
-func (f *DefaultFile) Chown(ctx context.Context, uid uint32, gid uint32) fuse.Status {
-	return fuse.ENOSYS
-
-}
-
-func (f *DefaultFile) Chmod(ctx context.Context, perms uint32) fuse.Status {
-	return fuse.ENOSYS
-}
-
-func (f *DefaultFile) Utimens(ctx context.Context, atime *time.Time, mtime *time.Time) fuse.Status {
 	return fuse.ENOSYS
 }
 

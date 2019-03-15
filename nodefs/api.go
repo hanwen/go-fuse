@@ -67,22 +67,6 @@ func InodeOf(node Operations) *Inode {
 	return node.inode()
 }
 
-// DirStream lists directory entries.
-type DirStream interface {
-	// HasNext indicates if there are further entries. HasNext
-	// might be called on already closed streams.
-	HasNext() bool
-
-	// Next retrieves the next entry. It is only called if HasNext
-	// has previously returned true.  The Status may be used to
-	// indicate I/O errors
-	Next() (fuse.DirEntry, fuse.Status)
-
-	// Close releases resources related to this directory
-	// stream.
-	Close()
-}
-
 // Operations is the interface that implements the filesystem.  Each
 // Operations instance must embed DefaultNode.
 type Operations interface {
@@ -106,7 +90,16 @@ type Operations interface {
 	// susan gets the UID and GID for susan here.
 	Access(ctx context.Context, mask uint32) fuse.Status
 
-	// Extended attributes
+	// GetAttr reads attributes for an Inode
+	GetAttr(ctx context.Context, out *fuse.AttrOut) fuse.Status
+
+	// SetAttr sets attributes for an Inode.
+	SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status
+}
+
+// XAttrOperations is as collection of methods used to implement extended attributes.
+type XAttrOperations interface {
+	Operations
 
 	// GetXAttr should read data for the given attribute into
 	// `dest` and return the number of bytes. If `dest` is too
@@ -124,12 +117,6 @@ type Operations interface {
 	// `dest`. If the `dest` buffer is too small, it should return
 	// ERANGE and the correct size.
 	ListXAttr(ctx context.Context, dest []byte) (uint32, fuse.Status)
-
-	// GetAttr reads attributes for an Inode
-	GetAttr(ctx context.Context, out *fuse.AttrOut) fuse.Status
-
-	// SetAttr sets attributes for an Inode
-	SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status
 }
 
 // SymlinkOperations holds operations specific to symlinks.
@@ -143,8 +130,6 @@ type SymlinkOperations interface {
 // FileOperations holds operations that apply to regular files.  The
 // default implementation, as returned from NewFileOperations forwards
 // to the passed-in FileHandle.
-//
-// XXX Mknod output too?
 type FileOperations interface {
 	Operations
 
@@ -153,19 +138,6 @@ type FileOperations interface {
 	Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, status fuse.Status)
 
 	// File locking
-
-	// GetLk returns locks that would conflict with the given
-	// input lock. If no locks conflict, the output has type
-	// L_UNLCK. See fcntl(2) for more information.
-	GetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (status fuse.Status)
-
-	// Obtain a lock on a file, or fail if the lock could not
-	// obtained.  See fcntl(2) for more information.
-	SetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status)
-
-	// Obtain a lock on a file, waiting if necessary. See fcntl(2)
-	// for more information.
-	SetLkw(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status)
 
 	// Reads data from a file. The data should be returned as
 	// ReadResult, which may be constructed from the incoming
@@ -206,6 +178,40 @@ type FileOperations interface {
 	FSetAttr(ctx context.Context, f FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status
 }
 
+// LockOperations are operations for locking regions of regular files.
+type LockOperations interface {
+	FileOperations
+
+	// GetLk returns locks that would conflict with the given
+	// input lock. If no locks conflict, the output has type
+	// L_UNLCK. See fcntl(2) for more information.
+	GetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (status fuse.Status)
+
+	// Obtain a lock on a file, or fail if the lock could not
+	// obtained.  See fcntl(2) for more information.
+	SetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status)
+
+	// Obtain a lock on a file, waiting if necessary. See fcntl(2)
+	// for more information.
+	SetLkw(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status)
+}
+
+// DirStream lists directory entries.
+type DirStream interface {
+	// HasNext indicates if there are further entries. HasNext
+	// might be called on already closed streams.
+	HasNext() bool
+
+	// Next retrieves the next entry. It is only called if HasNext
+	// has previously returned true.  The Status may be used to
+	// indicate I/O errors
+	Next() (fuse.DirEntry, fuse.Status)
+
+	// Close releases resources related to this directory
+	// stream.
+	Close()
+}
+
 // DirOperations are operations for directory nodes in the filesystem.
 type DirOperations interface {
 	Operations
@@ -218,6 +224,20 @@ type DirOperations interface {
 	// `Inode.NewInode`. The new Inode will be added to the FS
 	// tree automatically if the return status is OK.
 	Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, fuse.Status)
+
+	// OpenDir opens a directory Inode for reading its
+	// contents. The actual reading is driven from ReadDir, so
+	// this method is just for performing sanity/permission
+	// checks.
+	OpenDir(ctx context.Context) fuse.Status
+
+	// ReadDir opens a stream of directory entries.
+	ReadDir(ctx context.Context) (DirStream, fuse.Status)
+}
+
+// MutableDirOperations are operations that change the hierarchy of a file system.
+type MutableDirOperations interface {
+	DirOperations
 
 	// Mkdir is similar to Lookup, but must create a directory entry and Inode.
 	Mkdir(ctx context.Context, name string, mode uint32, out *fuse.EntryOut) (*Inode, fuse.Status)
@@ -248,15 +268,6 @@ type DirOperations interface {
 	// different one. The changes is effected in the FS tree if
 	// the return status is OK
 	Rename(ctx context.Context, name string, newParent Operations, newName string, flags uint32) fuse.Status
-
-	// OpenDir opens a directory Inode for reading its
-	// contents. The actual reading is driven from ReadDir, so
-	// this method is just for performing sanity/permission
-	// checks.
-	OpenDir(ctx context.Context) fuse.Status
-
-	// ReadDir opens a stream of directory entries.
-	ReadDir(ctx context.Context) (DirStream, fuse.Status)
 }
 
 // FileHandle is a resource identifier for opened files. For a

@@ -101,6 +101,43 @@ func (b *rawBridge) newInode(ops Operations, mode uint32, id FileID, persistent 
 	return ops.inode()
 }
 
+// addNewChild inserts the child into the tree. Returns file handle if file != nil.
+func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file FileHandle, fileFlags uint32, out *fuse.EntryOut) uint32 {
+	lockNodes(parent, child)
+	parent.setEntry(name, child)
+	b.mu.Lock()
+
+	child.lookupCount++
+
+	var fh uint32
+	if file != nil {
+		fh = b.registerFile(child, file, fileFlags)
+	}
+
+	out.NodeId = child.nodeID.Ino
+	out.Generation = child.nodeID.Gen
+	out.Attr.Ino = child.nodeID.Ino
+
+	b.mu.Unlock()
+	unlockNodes(parent, child)
+	return fh
+}
+
+func (b *rawBridge) setEntryOutTimeout(out *fuse.EntryOut) {
+	if b.options.AttrTimeout != nil {
+		out.SetAttrTimeout(*b.options.AttrTimeout)
+	}
+	if b.options.EntryTimeout != nil {
+		out.SetEntryTimeout(*b.options.EntryTimeout)
+	}
+}
+
+func (b *rawBridge) setAttrTimeout(out *fuse.AttrOut) {
+	if b.options.AttrTimeout != nil {
+		out.SetTimeout(*b.options.AttrTimeout)
+	}
+}
+
 // NewNodeFS creates a node based filesystem based on an Operations
 // instance for the root.
 func NewNodeFS(root DirOperations, opts *Options) fuse.RawFileSystem {
@@ -169,7 +206,11 @@ func (b *rawBridge) Lookup(cancel <-chan struct{}, header *fuse.InHeader, name s
 
 func (b *rawBridge) Rmdir(cancel <-chan struct{}, header *fuse.InHeader, name string) fuse.Status {
 	parent, _ := b.inode(header.NodeId, 0)
-	status := parent.dirOps().Rmdir(&fuse.Context{Caller: header.Caller, Cancel: cancel}, name)
+	var status fuse.Status
+	if mops, ok := parent.ops.(MutableDirOperations); ok {
+		status = mops.Rmdir(&fuse.Context{Caller: header.Caller, Cancel: cancel}, name)
+	}
+
 	if status.Ok() {
 		parent.RmChild(name)
 	}
@@ -179,17 +220,26 @@ func (b *rawBridge) Rmdir(cancel <-chan struct{}, header *fuse.InHeader, name st
 
 func (b *rawBridge) Unlink(cancel <-chan struct{}, header *fuse.InHeader, name string) fuse.Status {
 	parent, _ := b.inode(header.NodeId, 0)
-	status := parent.dirOps().Unlink(&fuse.Context{Caller: header.Caller, Cancel: cancel}, name)
+	var status fuse.Status
+	if mops, ok := parent.ops.(MutableDirOperations); ok {
+		status = mops.Unlink(&fuse.Context{Caller: header.Caller, Cancel: cancel}, name)
+	}
+
 	if status.Ok() {
 		parent.RmChild(name)
 	}
 	return status
 }
 
-func (b *rawBridge) Mkdir(cancel <-chan struct{}, input *fuse.MkdirIn, name string, out *fuse.EntryOut) (status fuse.Status) {
+func (b *rawBridge) Mkdir(cancel <-chan struct{}, input *fuse.MkdirIn, name string, out *fuse.EntryOut) fuse.Status {
 	parent, _ := b.inode(input.NodeId, 0)
 
-	child, status := parent.dirOps().Mkdir(&fuse.Context{Caller: input.Caller, Cancel: cancel}, name, input.Mode, out)
+	var child *Inode
+	var status fuse.Status
+	if mops, ok := parent.ops.(MutableDirOperations); ok {
+		child, status = mops.Mkdir(&fuse.Context{Caller: input.Caller, Cancel: cancel}, name, input.Mode, out)
+	}
+
 	if !status.Ok() {
 		return status
 	}
@@ -203,10 +253,15 @@ func (b *rawBridge) Mkdir(cancel <-chan struct{}, input *fuse.MkdirIn, name stri
 	return fuse.OK
 }
 
-func (b *rawBridge) Mknod(cancel <-chan struct{}, input *fuse.MknodIn, name string, out *fuse.EntryOut) (status fuse.Status) {
+func (b *rawBridge) Mknod(cancel <-chan struct{}, input *fuse.MknodIn, name string, out *fuse.EntryOut) fuse.Status {
 	parent, _ := b.inode(input.NodeId, 0)
 
-	child, status := parent.dirOps().Mknod(&fuse.Context{Caller: input.Caller, Cancel: cancel}, name, input.Mode, input.Rdev, out)
+	var child *Inode
+	var status fuse.Status
+	if mops, ok := parent.ops.(MutableDirOperations); ok {
+		child, status = mops.Mknod(&fuse.Context{Caller: input.Caller, Cancel: cancel}, name, input.Mode, input.Rdev, out)
+	}
+
 	if !status.Ok() {
 		return status
 	}
@@ -216,41 +271,18 @@ func (b *rawBridge) Mknod(cancel <-chan struct{}, input *fuse.MknodIn, name stri
 	return fuse.OK
 }
 
-// addNewChild inserts the child into the tree. Returns file handle if file != nil.
-func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file FileHandle, fileFlags uint32, out *fuse.EntryOut) uint32 {
-	lockNodes(parent, child)
-	parent.setEntry(name, child)
-	b.mu.Lock()
-
-	child.lookupCount++
-
-	var fh uint32
-	if file != nil {
-		fh = b.registerFile(child, file, fileFlags)
-	}
-
-	out.NodeId = child.nodeID.Ino
-	out.Generation = child.nodeID.Gen
-	out.Attr.Ino = child.nodeID.Ino
-
-	b.mu.Unlock()
-	unlockNodes(parent, child)
-	return fh
-}
-
-func (b *rawBridge) setEntryOutTimeout(out *fuse.EntryOut) {
-	if b.options.AttrTimeout != nil {
-		out.SetAttrTimeout(*b.options.AttrTimeout)
-	}
-	if b.options.EntryTimeout != nil {
-		out.SetEntryTimeout(*b.options.EntryTimeout)
-	}
-}
-
-func (b *rawBridge) Create(cancel <-chan struct{}, input *fuse.CreateIn, name string, out *fuse.CreateOut) (status fuse.Status) {
+func (b *rawBridge) Create(cancel <-chan struct{}, input *fuse.CreateIn, name string, out *fuse.CreateOut) fuse.Status {
 	ctx := &fuse.Context{Caller: input.Caller, Cancel: cancel}
 	parent, _ := b.inode(input.NodeId, 0)
-	child, f, flags, status := parent.dirOps().Create(ctx, name, input.Flags, input.Mode)
+
+	var child *Inode
+	var status fuse.Status
+	var f FileHandle
+	var flags uint32
+	if mops, ok := parent.ops.(MutableDirOperations); ok {
+		child, f, flags, status = mops.Create(ctx, name, input.Flags, input.Mode)
+	}
+
 	if !status.Ok() {
 		if b.options.NegativeTimeout != nil {
 			out.SetEntryTimeout(*b.options.NegativeTimeout)
@@ -313,12 +345,6 @@ func (b *rawBridge) GetAttr(cancel <-chan struct{}, input *fuse.GetAttrIn, out *
 	return n.ops.GetAttr(ctx, out)
 }
 
-func (b *rawBridge) setAttrTimeout(out *fuse.AttrOut) {
-	if b.options.AttrTimeout != nil {
-		out.SetTimeout(*b.options.AttrTimeout)
-	}
-}
-
 func (b *rawBridge) SetAttr(cancel <-chan struct{}, in *fuse.SetAttrIn, out *fuse.AttrOut) (status fuse.Status) {
 	ctx := &fuse.Context{Caller: in.Caller, Cancel: cancel}
 
@@ -339,41 +365,52 @@ func (b *rawBridge) Rename(cancel <-chan struct{}, input *fuse.RenameIn, oldName
 	p1, _ := b.inode(input.NodeId, 0)
 	p2, _ := b.inode(input.Newdir, 0)
 
-	status := p1.dirOps().Rename(&fuse.Context{Caller: input.Caller, Cancel: cancel}, oldName, p2.ops, newName, input.Flags)
-	if status.Ok() {
-		if input.Flags&unix.RENAME_EXCHANGE != 0 {
-			p1.ExchangeChild(oldName, p2, newName)
-		} else {
-			p1.MvChild(oldName, p2, newName, true)
+	if mops, ok := p1.ops.(MutableDirOperations); ok {
+		status := mops.Rename(&fuse.Context{Caller: input.Caller, Cancel: cancel}, oldName, p2.ops, newName, input.Flags)
+		if status.Ok() {
+			if input.Flags&unix.RENAME_EXCHANGE != 0 {
+				p1.ExchangeChild(oldName, p2, newName)
+			} else {
+				p1.MvChild(oldName, p2, newName, true)
+			}
+
+			return status
 		}
 	}
-	return status
+	return fuse.ENOSYS
 }
 
 func (b *rawBridge) Link(cancel <-chan struct{}, input *fuse.LinkIn, name string, out *fuse.EntryOut) (status fuse.Status) {
 	parent, _ := b.inode(input.NodeId, 0)
 	target, _ := b.inode(input.Oldnodeid, 0)
 
-	child, status := parent.dirOps().Link(&fuse.Context{Caller: input.Caller, Cancel: cancel}, target.ops, name, out)
-	if !status.Ok() {
-		return status
-	}
+	if mops, ok := parent.ops.(MutableDirOperations); ok {
+		child, status := mops.Link(&fuse.Context{Caller: input.Caller, Cancel: cancel}, target.ops, name, out)
+		if !status.Ok() {
+			return status
+		}
 
-	b.addNewChild(parent, name, child, nil, 0, out)
-	b.setEntryOutTimeout(out)
-	return fuse.OK
+		b.addNewChild(parent, name, child, nil, 0, out)
+		b.setEntryOutTimeout(out)
+		return fuse.OK
+	}
+	return fuse.ENOSYS
 }
 
 func (b *rawBridge) Symlink(cancel <-chan struct{}, header *fuse.InHeader, target string, name string, out *fuse.EntryOut) (status fuse.Status) {
 	parent, _ := b.inode(header.NodeId, 0)
-	child, status := parent.dirOps().Symlink(&fuse.Context{Caller: header.Caller, Cancel: cancel}, target, name, out)
-	if !status.Ok() {
-		return status
-	}
 
-	b.addNewChild(parent, name, child, nil, 0, out)
-	b.setEntryOutTimeout(out)
-	return fuse.OK
+	if mops, ok := parent.ops.(MutableDirOperations); ok {
+		child, status := mops.Symlink(&fuse.Context{Caller: header.Caller, Cancel: cancel}, target, name, out)
+		if !status.Ok() {
+			return status
+		}
+
+		b.addNewChild(parent, name, child, nil, 0, out)
+		b.setEntryOutTimeout(out)
+		return fuse.OK
+	}
+	return fuse.ENOSYS
 }
 
 func (b *rawBridge) Readlink(cancel <-chan struct{}, header *fuse.InHeader) (out []byte, status fuse.Status) {
@@ -396,22 +433,35 @@ func (b *rawBridge) Access(cancel <-chan struct{}, input *fuse.AccessIn) (status
 func (b *rawBridge) GetXAttr(cancel <-chan struct{}, header *fuse.InHeader, attr string, data []byte) (uint32, fuse.Status) {
 	n, _ := b.inode(header.NodeId, 0)
 
-	return n.ops.GetXAttr(&fuse.Context{Caller: header.Caller, Cancel: cancel}, attr, data)
+	if xops, ok := n.ops.(XAttrOperations); ok {
+		return xops.GetXAttr(&fuse.Context{Caller: header.Caller, Cancel: cancel}, attr, data)
+	}
+
+	return 0, fuse.ENOSYS
 }
 
 func (b *rawBridge) ListXAttr(cancel <-chan struct{}, header *fuse.InHeader, dest []byte) (sz uint32, status fuse.Status) {
 	n, _ := b.inode(header.NodeId, 0)
-	return n.ops.ListXAttr(&fuse.Context{Caller: header.Caller, Cancel: cancel}, dest)
+	if xops, ok := n.ops.(XAttrOperations); ok {
+		return xops.ListXAttr(&fuse.Context{Caller: header.Caller, Cancel: cancel}, dest)
+	}
+	return 0, fuse.ENOSYS
 }
 
 func (b *rawBridge) SetXAttr(cancel <-chan struct{}, input *fuse.SetXAttrIn, attr string, data []byte) fuse.Status {
 	n, _ := b.inode(input.NodeId, 0)
-	return n.ops.SetXAttr(&fuse.Context{Caller: input.Caller, Cancel: cancel}, attr, data, input.Flags)
+	if xops, ok := n.ops.(XAttrOperations); ok {
+		return xops.SetXAttr(&fuse.Context{Caller: input.Caller, Cancel: cancel}, attr, data, input.Flags)
+	}
+	return fuse.ENOSYS
 }
 
 func (b *rawBridge) RemoveXAttr(cancel <-chan struct{}, header *fuse.InHeader, attr string) (status fuse.Status) {
 	n, _ := b.inode(header.NodeId, 0)
-	return n.ops.RemoveXAttr(&fuse.Context{Caller: header.Caller, Cancel: cancel}, attr)
+	if xops, ok := n.ops.(XAttrOperations); ok {
+		return xops.RemoveXAttr(&fuse.Context{Caller: header.Caller, Cancel: cancel}, attr)
+	}
+	return fuse.ENOSYS
 }
 
 func (b *rawBridge) Open(cancel <-chan struct{}, input *fuse.OpenIn, out *fuse.OpenOut) (status fuse.Status) {
@@ -456,17 +506,26 @@ func (b *rawBridge) Read(cancel <-chan struct{}, input *fuse.ReadIn, buf []byte)
 
 func (b *rawBridge) GetLk(cancel <-chan struct{}, input *fuse.LkIn, out *fuse.LkOut) (status fuse.Status) {
 	n, f := b.inode(input.NodeId, input.Fh)
-	return n.fileOps().GetLk(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.Owner, &input.Lk, input.LkFlags, &out.Lk)
+
+	if lops, ok := n.ops.(LockOperations); ok {
+		return lops.GetLk(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.Owner, &input.Lk, input.LkFlags, &out.Lk)
+	}
+	return fuse.ENOSYS
 }
 
 func (b *rawBridge) SetLk(cancel <-chan struct{}, input *fuse.LkIn) (status fuse.Status) {
 	n, f := b.inode(input.NodeId, input.Fh)
-	return n.fileOps().SetLk(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.Owner, &input.Lk, input.LkFlags)
+	if lops, ok := n.ops.(LockOperations); ok {
+		return lops.SetLk(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.Owner, &input.Lk, input.LkFlags)
+	}
+	return fuse.ENOSYS
 }
-
 func (b *rawBridge) SetLkw(cancel <-chan struct{}, input *fuse.LkIn) (status fuse.Status) {
 	n, f := b.inode(input.NodeId, input.Fh)
-	return n.fileOps().SetLkw(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.Owner, &input.Lk, input.LkFlags)
+	if lops, ok := n.ops.(LockOperations); ok {
+		return lops.SetLkw(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.Owner, &input.Lk, input.LkFlags)
+	}
+	return fuse.ENOSYS
 }
 
 func (b *rawBridge) Release(input *fuse.ReleaseIn) {

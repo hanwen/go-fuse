@@ -682,3 +682,5 @@ func TestGetAttrParallel(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+// XXX test mknod.
