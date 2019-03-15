@@ -12,6 +12,8 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
+// An example of creating a loopback file system, and mounting it onto
+// a directory
 func ExampleNewNodeFS() {
 	mntDir, _ := ioutil.TempDir("", "")
 
