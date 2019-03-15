@@ -1,0 +1,34 @@
+// Copyright 2019 the Go-FUSE Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+package nodefs
+
+import (
+	"io/ioutil"
+	"log"
+	"os"
+
+	"github.com/hanwen/go-fuse/fuse"
+)
+
+func ExampleNewNodeFS() {
+	mntDir, _ := ioutil.TempDir("", "")
+
+	home := os.Getenv("HOME")
+	root, err := NewLoopbackRoot(home)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	rawFS := NewNodeFS(root, &Options{})
+	server, err := fuse.NewServer(rawFS, mntDir,
+		&fuse.MountOptions{Debug: true})
+	if err != nil {
+		log.Panic(err)
+	}
+
+	log.Printf("Mounted %s as loopback on %s", home, mntDir)
+	log.Printf("Unmount by calling 'fusermount -u %s'", mntDir)
+	server.Serve()
+}
