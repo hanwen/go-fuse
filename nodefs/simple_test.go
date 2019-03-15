@@ -69,7 +69,7 @@ func newTestCase(t *testing.T, entryCache bool, attrCache bool) *testCase {
 	}
 
 	var err error
-	tc.loopback, err = NewLoopback(tc.origDir)
+	tc.loopback, err = NewLoopbackRoot(tc.origDir)
 	if err != nil {
 		t.Fatalf("NewLoopback: %v", err)
 	}

@@ -98,7 +98,13 @@ func (b *rawBridge) newInode(ops Operations, mode uint32, id FileID, persistent 
 
 	b.nodes[id.Ino] = inode
 	ops.setInode(inode)
-	return ops.inode()
+	newIno := ops.inode()
+
+	if newIno == inode {
+		newIno.ops.OnAdd()
+	}
+
+	return newIno
 }
 
 // addNewChild inserts the child into the tree. Returns file handle if file != nil.
@@ -142,7 +148,14 @@ func (b *rawBridge) setAttrTimeout(out *fuse.AttrOut) {
 // instance for the root.
 func NewNodeFS(root DirOperations, opts *Options) fuse.RawFileSystem {
 	bridge := &rawBridge{
-		automaticIno: 1 << 63,
+		automaticIno: opts.FirstAutomaticIno,
+	}
+	if bridge.automaticIno == 1 {
+		bridge.automaticIno++
+	}
+
+	if bridge.automaticIno == 0 {
+		bridge.automaticIno = 1 << 63
 	}
 
 	if opts != nil {
@@ -169,6 +182,9 @@ func NewNodeFS(root DirOperations, opts *Options) fuse.RawFileSystem {
 
 	// Fh 0 means no file handle.
 	bridge.files = []*fileEntry{{}}
+
+	root.OnAdd()
+
 	return bridge
 }
 
@@ -472,9 +488,11 @@ func (b *rawBridge) Open(cancel <-chan struct{}, input *fuse.OpenIn, out *fuse.O
 		return status
 	}
 
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	out.Fh = uint64(b.registerFile(n, f, input.Flags))
+	if f != nil {
+		b.mu.Lock()
+		defer b.mu.Unlock()
+		out.Fh = uint64(b.registerFile(n, f, input.Flags))
+	}
 	out.OpenFlags = flags
 	return fuse.OK
 }
@@ -531,6 +549,10 @@ func (b *rawBridge) SetLkw(cancel <-chan struct{}, input *fuse.LkIn) (status fus
 func (b *rawBridge) Release(input *fuse.ReleaseIn) {
 	// XXX should have cancel channel too.
 	n, f := b.releaseFileEntry(input.NodeId, input.Fh)
+	if f == nil {
+		return
+	}
+
 	f.wg.Wait()
 	n.fileOps().Release(&fuse.Context{Caller: input.Caller, Cancel: nil}, f.file)
 

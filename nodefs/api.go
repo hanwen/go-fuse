@@ -44,9 +44,8 @@
 //
 // File system trees can also be constructed in advance. This is done
 // by instantiating "persistent" inodes. Persistent inodes remain in
-// memory even if the kernel has forgotten them.
-//
-// XXX describe how to mount.
+// memory even if the kernel has forgotten them.  See zip_test.go for
+// an example of how to do this.
 //
 // XXX node example with Lookup.
 //
@@ -90,14 +89,20 @@ type Operations interface {
 	// susan gets the UID and GID for susan here.
 	Access(ctx context.Context, mask uint32) fuse.Status
 
-	// GetAttr reads attributes for an Inode
+	// GetAttr reads attributes for an Inode. The library will
+	// ensure that Mode and Ino are set correctly. For regular
+	// files, Size should be set so it can be read correctly.
 	GetAttr(ctx context.Context, out *fuse.AttrOut) fuse.Status
 
 	// SetAttr sets attributes for an Inode.
 	SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status
+
+	// OnAdd is called once this Operations object is attached to
+	// an Inode.
+	OnAdd()
 }
 
-// XAttrOperations is as collection of methods used to implement extended attributes.
+// XAttrOperations is a collection of methods used to implement extended attributes.
 type XAttrOperations interface {
 	Operations
 
@@ -309,4 +314,8 @@ type Options struct {
 	// for failed lookups (fuse.ENOENT). See fuse.EntryOut for
 	// more information.
 	NegativeTimeout *time.Duration
+
+	// Automatic inode numbers are handed out sequentially
+	// starting from this number. If unset, use 2^63.
+	FirstAutomaticIno uint64
 }

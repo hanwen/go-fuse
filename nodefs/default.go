@@ -6,15 +6,17 @@ package nodefs
 
 import (
 	"context"
-	"log"
 	"sync/atomic"
 	"unsafe"
 
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-// DefaultOperations provides stubs that return ENOENT for almost all
-// functions.
+// DefaultOperations provides no-operation default implementations for
+// all the XxxOperations interfaces. The stubs provide useful defaults
+// for implementing a read-only filesystem whose tree is constructed
+// beforehand in the OnAdd method of the root. A example is in
+// zip_test.go
 //
 // It must be embedded in any Operations implementation.
 type DefaultOperations struct {
@@ -60,12 +62,18 @@ func (n *DefaultOperations) StatFs(ctx context.Context, out *fuse.StatfsOut) fus
 	return fuse.OK
 }
 
+func (n *DefaultOperations) OnAdd() {
+	// XXX context?
+}
+
+// GetAttr zeroes out argument and returns OK.
 func (n *DefaultOperations) GetAttr(ctx context.Context, out *fuse.AttrOut) fuse.Status {
-	return fuse.ENOENT
+	*out = fuse.AttrOut{}
+	return fuse.OK
 }
 
 func (n *DefaultOperations) SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status {
-	return fuse.ENOENT
+	return fuse.EROFS
 }
 
 func (n *DefaultOperations) Access(ctx context.Context, mask uint32) fuse.Status {
@@ -82,34 +90,59 @@ func (n *DefaultOperations) FSetAttr(ctx context.Context, f FileHandle, in *fuse
 	return n.inode_.Operations().SetAttr(ctx, in, out)
 }
 
+// The Lookup method on the DefaultOperations type looks for an
+// existing child with the given name, or returns ENOENT.
 func (n *DefaultOperations) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, fuse.Status) {
-	return nil, fuse.ENOENT
+	ch := InodeOf(n).GetChild(name)
+	if ch == nil {
+		return nil, fuse.ENOENT
+	}
+
+	var a fuse.AttrOut
+	status := ch.Operations().GetAttr(ctx, &a)
+	out.Attr = a.Attr
+	return ch, status
 }
 
+// Mkdir returns EROFS
 func (n *DefaultOperations) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.EntryOut) (*Inode, fuse.Status) {
-	return nil, fuse.ENOENT
+	return nil, fuse.EROFS
 }
 
+// Mknod returns EROFS
 func (n *DefaultOperations) Mknod(ctx context.Context, name string, mode uint32, dev uint32, out *fuse.EntryOut) (*Inode, fuse.Status) {
-	return nil, fuse.ENOENT
+	return nil, fuse.EROFS
 }
+
+// Rmdir returns EROFS
 func (n *DefaultOperations) Rmdir(ctx context.Context, name string) fuse.Status {
-	return fuse.ENOENT
+	return fuse.EROFS
 }
+
+// Unlink returns EROFS
 func (n *DefaultOperations) Unlink(ctx context.Context, name string) fuse.Status {
-	return fuse.ENOENT
+	return fuse.EROFS
 }
 
+// The default OpenDir always succeeds
 func (n *DefaultOperations) OpenDir(ctx context.Context) fuse.Status {
-	return fuse.ENOENT
+	return fuse.OK
 }
 
+// The default ReadDir returns the list of children from the tree
 func (n *DefaultOperations) ReadDir(ctx context.Context) (DirStream, fuse.Status) {
-	return nil, fuse.ENOENT
+	r := []fuse.DirEntry{}
+	for k, ch := range InodeOf(n).Children() {
+		r = append(r, fuse.DirEntry{Mode: ch.Mode(),
+			Name: k,
+			Ino:  ch.FileID().Ino})
+	}
+	return NewListDirStream(r), fuse.OK
 }
 
+// Rename returns EROFS
 func (n *DefaultOperations) Rename(ctx context.Context, name string, newParent Operations, newName string, flags uint32) fuse.Status {
-	return fuse.ENOENT
+	return fuse.EROFS
 }
 
 func (n *DefaultOperations) Read(ctx context.Context, f FileHandle, dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
@@ -119,9 +152,9 @@ func (n *DefaultOperations) Read(ctx context.Context, f FileHandle, dest []byte,
 	return nil, fuse.ENOENT
 }
 
+// Symlink returns EROFS
 func (n *DefaultOperations) Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (node *Inode, status fuse.Status) {
-	log.Println("defsyml")
-	return nil, fuse.ENOENT
+	return nil, fuse.EROFS
 }
 
 func (n *DefaultOperations) Readlink(ctx context.Context) (string, fuse.Status) {
@@ -140,7 +173,7 @@ func (n *DefaultOperations) Write(ctx context.Context, f FileHandle, data []byte
 		return f.Write(ctx, data, off)
 	}
 
-	return 0, fuse.ENOENT
+	return 0, fuse.EROFS
 }
 
 func (n *DefaultOperations) GetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (status fuse.Status) {
@@ -178,7 +211,7 @@ func (n *DefaultOperations) Release(ctx context.Context, f FileHandle) fuse.Stat
 	if f != nil {
 		return f.Release(ctx)
 	}
-	return fuse.ENOENT
+	return fuse.OK
 }
 
 func (n *DefaultOperations) Allocate(ctx context.Context, f FileHandle, off uint64, size uint64, mode uint32) (status fuse.Status) {
@@ -203,24 +236,29 @@ func (n *DefaultOperations) Open(ctx context.Context, flags uint32) (fh FileHand
 }
 
 func (n *DefaultOperations) Create(ctx context.Context, name string, flags uint32, mode uint32) (node *Inode, fh FileHandle, fuseFlags uint32, status fuse.Status) {
-	return nil, nil, 0, fuse.ENOENT
+	return nil, nil, 0, fuse.EROFS
 }
+
 func (n *DefaultOperations) Link(ctx context.Context, target Operations, name string, out *fuse.EntryOut) (node *Inode, status fuse.Status) {
-	return nil, fuse.ENOENT
+	return nil, fuse.EROFS
 }
 
+// The default GetXAttr returns ENOATTR
 func (n *DefaultOperations) GetXAttr(ctx context.Context, attr string, dest []byte) (uint32, fuse.Status) {
-	return 0, fuse.ENOENT
+	return 0, fuse.ENOATTR
 }
 
+// The default SetXAttr returns ENOATTR
 func (n *DefaultOperations) SetXAttr(ctx context.Context, attr string, data []byte, flags uint32) fuse.Status {
-	return fuse.ENOENT
+	return fuse.EROFS
 }
 
+// The default RemoveXAttr returns ENOATTR
 func (n *DefaultOperations) RemoveXAttr(ctx context.Context, attr string) fuse.Status {
-	return fuse.ENOENT
+	return fuse.ENOATTR
 }
 
+// The default RemoveXAttr returns an empty list
 func (n *DefaultOperations) ListXAttr(ctx context.Context, dest []byte) (uint32, fuse.Status) {
 	return 0, fuse.OK
 }

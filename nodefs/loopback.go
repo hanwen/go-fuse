@@ -281,7 +281,7 @@ func (n *loopbackNode) FGetAttr(ctx context.Context, f FileHandle, out *fuse.Att
 
 // NewLoopback returns a root node for a loopback file system whose
 // root is at the given root.
-func NewLoopback(root string) (DirOperations, error) {
+func NewLoopbackRoot(root string) (DirOperations, error) {
 	var st syscall.Stat_t
 	err := syscall.Stat(root, &st)
 	if err != nil {

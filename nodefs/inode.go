@@ -105,6 +105,11 @@ func (n *Inode) FileID() FileID {
 	return n.nodeID
 }
 
+// Mode returns the filetype
+func (n *Inode) Mode() uint32 {
+	return n.mode
+}
+
 // IsRoot returns true if this is the root of the FUSE mount.
 func (n *Inode) IsRoot() bool {
 	return n.nodeID.Ino == fuse.FUSE_ROOT_ID
@@ -361,6 +366,69 @@ retry:
 	return forgotten, false
 }
 
+// GetChild returns a child node with the given name, or nil if the
+// directory has no child by that name.
+func (n *Inode) GetChild(name string) *Inode {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	return n.children[name]
+}
+
+// AddChild adds a child to this node. If overwrite is false, fail if
+// the destination already exists.
+func (n *Inode) AddChild(name string, ch *Inode, overwrite bool) (success bool) {
+	if len(name) == 0 {
+		log.Panic("empty name for inode")
+	}
+
+retry:
+	for {
+		lockNode2(n, ch)
+		prev, ok := n.children[name]
+		parentCounter := n.changeCounter
+		if !ok {
+			n.children[name] = ch
+			ch.parents[parentData{name, n}] = struct{}{}
+			n.changeCounter++
+			ch.changeCounter++
+			unlockNode2(n, ch)
+			return true
+		}
+		unlockNode2(n, ch)
+		if !overwrite {
+			return false
+		}
+		lockme := [3]*Inode{n, ch, prev}
+
+		lockNodes(lockme[:]...)
+		if parentCounter != n.changeCounter {
+			unlockNodes(lockme[:]...)
+			continue retry
+		}
+
+		delete(prev.parents, parentData{name, n})
+		n.children[name] = ch
+		ch.parents[parentData{name, n}] = struct{}{}
+		n.changeCounter++
+		ch.changeCounter++
+		prev.changeCounter++
+		unlockNodes(lockme[:]...)
+
+		return true
+	}
+}
+
+// Children returns the list of children of this directory Inode.
+func (n *Inode) Children() map[string]*Inode {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	r := make(map[string]*Inode, len(n.children))
+	for k, v := range n.children {
+		r[k] = v
+	}
+	return r
+}
+
 // RmChild removes multiple children.  Returns whether the removal
 // succeeded and whether the node is still live afterward. The removal
 // is transactional: it only succeeds if all names are children, and
@@ -418,6 +486,10 @@ retry:
 // MvChild executes a rename. If overwrite is set, a child at the
 // destination will be overwritten, should it exist.
 func (n *Inode) MvChild(old string, newParent *Inode, newName string, overwrite bool) bool {
+	if len(newName) == 0 {
+		log.Panicf("empty newName for MvChild")
+	}
+
 retry:
 	for {
 		lockNode2(n, newParent)
