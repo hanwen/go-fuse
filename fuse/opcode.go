@@ -98,14 +98,13 @@ func doInit(server *Server, req *request) {
 
 	dataCacheMode := input.Flags & CAP_AUTO_INVAL_DATA
 	if server.opts.ExplicitDataCacheControl {
-		// XXX this only disables automatic invalidations on mtime
-		// change, but not on size change.
-		//
-		// TODO explicitly disable invalidations on size change when
-		// kernel has proper support. Details:
-		//
-		//	https://github.com/hanwen/go-fuse/pull/273
+		// we don't want CAP_AUTO_INVAL_DATA even if we cannot go into fully explicit mode
 		dataCacheMode = 0
+
+		explicit := input.Flags & CAP_EXPLICIT_INVAL_DATA
+		if explicit != 0 {
+			dataCacheMode = explicit
+		}
 	}
 	server.kernelSettings.Flags |= dataCacheMode
 
