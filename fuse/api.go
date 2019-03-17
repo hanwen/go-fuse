@@ -157,12 +157,6 @@ type MountOptions struct {
 
 	// If set, ask kernel not to do automatic data cache invalidation.
 	// The filesystem is fully responsible for invalidating data cache.
-	//
-	// XXX for Linux ExplicitDataCacheControl currently disables data cache
-	// to be automatically invalidated only on file mtime change. If file size
-	// changes, Linux currently unconditionally discards whole cache of the
-	// file. See https://github.com/hanwen/go-fuse/pull/273 for kernel +
-	// go-fuse patches with corresponding fixes.
 	ExplicitDataCacheControl bool
 }
 
