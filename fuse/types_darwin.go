@@ -153,4 +153,14 @@ func (s *StatfsOut) FromStatfsT(statfs *syscall.Statfs_t) {
 	s.Ffree = statfs.Ffree
 	s.Bsize = uint32(statfs.Iosize) // Iosize translates to Bsize: the optimal transfer size.
 	s.Frsize = s.Bsize              // Bsize translates to Frsize: the minimum transfer size.
+
+	// The block counts are in units of statfs.Bsize.
+	// If s.Bsize != statfs.Bsize, we have to recalculate the block counts
+	// accordingly (s.Bsize is usually 256*statfs.Bsize).
+	if s.Bsize > statfs.Bsize {
+		adj := uint64(s.Bsize / statfs.Bsize)
+		s.Blocks /= adj
+		s.Bfree /= adj
+		s.Bavail /= adj
+	}
 }
