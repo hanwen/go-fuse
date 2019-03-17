@@ -89,11 +89,25 @@ func doInit(server *Server, req *request) {
 	server.reqMu.Lock()
 	server.kernelSettings = *input
 	server.kernelSettings.Flags = input.Flags & (CAP_ASYNC_READ | CAP_BIG_WRITES | CAP_FILE_OPS |
-		CAP_AUTO_INVAL_DATA | CAP_READDIRPLUS | CAP_NO_OPEN_SUPPORT | CAP_PARALLEL_DIROPS)
+		CAP_READDIRPLUS | CAP_NO_OPEN_SUPPORT | CAP_PARALLEL_DIROPS)
 
 	if server.opts.EnableLocks {
 		server.kernelSettings.Flags |= CAP_FLOCK_LOCKS | CAP_POSIX_LOCKS
 	}
+
+
+	dataCacheMode := input.Flags & CAP_AUTO_INVAL_DATA
+	if server.opts.ExplicitDataCacheControl {
+		// XXX this only disables automatic invalidations on mtime
+		// change, but not on size change.
+		//
+		// TODO explicitly disable invalidations on size change when
+		// kernel has proper support. Details:
+		//
+		//	https://github.com/hanwen/go-fuse/pull/273
+		dataCacheMode = 0
+	}
+	server.kernelSettings.Flags |= dataCacheMode
 
 	if input.Minor >= 13 {
 		server.setSplice()
