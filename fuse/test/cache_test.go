@@ -74,27 +74,31 @@ func TestFopenKeepCache(t *testing.T) {
 	wd, pathfs, clean := setupCacheTest(t)
 	defer clean()
 
-	before := "before"
-	after := "after"
-	if err := ioutil.WriteFile(wd+"/orig/file.txt", []byte(before), 0644); err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
+	// x{read,write}File reads/writes file@path and fail on error
+	xreadFile := func(path string) string {
+		data, err := ioutil.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(data)
+	}
+	xwriteFile := func(path, data string) {
+		if err := ioutil.WriteFile(path, []byte(data), 0644); err != nil {
+			t.Fatal(err)
+		}
 	}
 
-	c, err := ioutil.ReadFile(wd + "/mnt/file.txt")
-	if err != nil {
-		t.Fatalf("ReadFile: %v", err)
-	} else if string(c) != before {
+	before := "before"
+	after := "after"
+	xwriteFile(wd+"/orig/file.txt", before)
+	c := xreadFile(wd + "/mnt/file.txt")
+	if c != before {
 		t.Fatalf("ReadFile: got %q, want %q", c, before)
 	}
 
-	if err := ioutil.WriteFile(wd+"/orig/file.txt", []byte(after), 0644); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
-
-	c, err = ioutil.ReadFile(wd + "/mnt/file.txt")
-	if err != nil {
-		t.Fatalf("ReadFile: %v", err)
-	} else if string(c) != before {
+	xwriteFile(wd+"/orig/file.txt", after)
+	c = xreadFile(wd + "/mnt/file.txt")
+	if c != before {
 		t.Fatalf("ReadFile: got %q, want cached %q", c, before)
 	}
 
@@ -107,10 +111,8 @@ func TestFopenKeepCache(t *testing.T) {
 		t.Errorf("EntryNotify: %v", code)
 	}
 
-	c, err = ioutil.ReadFile(wd + "/mnt/file.txt")
-	if err != nil {
-		t.Fatalf("ReadFile: %v", err)
-	} else if string(c) != after {
+	c = xreadFile(wd + "/mnt/file.txt")
+	if c != after {
 		t.Fatalf("ReadFile: got %q after notify, want %q", c, after)
 	}
 }
