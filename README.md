@@ -132,10 +132,7 @@ This is not an official Google product.
 
 Grep source code for TODO.  Major topics:
 
-* Missing support for network FS file locking: `FUSE_GETLK`, `FUSE_SETLK`,
-  `FUSE_SETLKW`
-
-* Missing support for `FUSE_INTERRUPT`, `CUSE`, `BMAP`, `IOCTL`
+* Missing support for `CUSE`, `BMAP`, `IOCTL`
 
 * In the path API, renames are racy; See also:
 
