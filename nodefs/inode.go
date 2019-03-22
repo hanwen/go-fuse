@@ -430,6 +430,29 @@ func (n *Inode) Children() map[string]*Inode {
 	return r
 }
 
+// Parents returns the parents of this Inode, along with the name
+// with which they're are a child
+func (n *Inode) Parents() map[string]*Inode {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	r := make(map[string]*Inode, len(n.parents))
+	for k := range n.parents {
+		r[k.name] = k.parent
+	}
+	return r
+}
+
+// Parents returns a parent of this Inode, or nil if this Inode is
+// deleted or is the root
+func (n *Inode) Parent() (string, *Inode) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	for k := range n.parents {
+		return k.name, k.parent
+	}
+	return "", nil
+}
+
 // RmChild removes multiple children.  Returns whether the removal
 // succeeded and whether the node is still live afterward. The removal
 // is transactional: it only succeeds if all names are children, and
