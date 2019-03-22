@@ -381,6 +381,11 @@ func (ms *Server) Serve() {
 	}
 }
 
+// Wait waits for the serve loop to exit
+func (ms *Server) Wait() {
+	ms.loops.Wait()
+}
+
 func (ms *Server) handleInit() Status {
 	// The first request should be INIT; read it synchronously,
 	// and don't spawn new readers.
