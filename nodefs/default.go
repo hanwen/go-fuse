@@ -161,6 +161,7 @@ func (n *DefaultOperations) Rename(ctx context.Context, name string, newParent O
 	return fuse.EROFS
 }
 
+// Read delegates to the FileHandle argument.
 func (n *DefaultOperations) Read(ctx context.Context, f FileHandle, dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
 	if f != nil {
 		return f.Read(ctx, dest, off)
@@ -173,10 +174,12 @@ func (n *DefaultOperations) Symlink(ctx context.Context, target, name string, ou
 	return nil, fuse.EROFS
 }
 
+// Readlink return ENOTSUP
 func (n *DefaultOperations) Readlink(ctx context.Context) (string, fuse.Status) {
 	return "", fuse.ENOTSUP
 }
 
+// Fsync delegates to the FileHandle
 func (n *DefaultOperations) Fsync(ctx context.Context, f FileHandle, flags uint32) fuse.Status {
 	if f != nil {
 		return f.Fsync(ctx, flags)
@@ -184,6 +187,7 @@ func (n *DefaultOperations) Fsync(ctx context.Context, f FileHandle, flags uint3
 	return fuse.ENOTSUP
 }
 
+// Write delegates to the FileHandle
 func (n *DefaultOperations) Write(ctx context.Context, f FileHandle, data []byte, off int64) (written uint32, status fuse.Status) {
 	if f != nil {
 		return f.Write(ctx, data, off)
@@ -192,6 +196,7 @@ func (n *DefaultOperations) Write(ctx context.Context, f FileHandle, data []byte
 	return 0, fuse.EROFS
 }
 
+// GetLk delegates to the FileHandlef
 func (n *DefaultOperations) GetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (status fuse.Status) {
 	if f != nil {
 		return f.GetLk(ctx, owner, lk, flags, out)
@@ -200,6 +205,7 @@ func (n *DefaultOperations) GetLk(ctx context.Context, f FileHandle, owner uint6
 	return fuse.ENOTSUP
 }
 
+// SetLk delegates to the FileHandle
 func (n *DefaultOperations) SetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status) {
 	if f != nil {
 		return f.SetLk(ctx, owner, lk, flags)
@@ -208,6 +214,7 @@ func (n *DefaultOperations) SetLk(ctx context.Context, f FileHandle, owner uint6
 	return fuse.ENOTSUP
 }
 
+// SetLkw delegates to the FileHandle
 func (n *DefaultOperations) SetLkw(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status) {
 	if f != nil {
 		return f.SetLkw(ctx, owner, lk, flags)
@@ -215,6 +222,8 @@ func (n *DefaultOperations) SetLkw(ctx context.Context, f FileHandle, owner uint
 
 	return fuse.ENOTSUP
 }
+
+// Flush delegates to the FileHandle
 func (n *DefaultOperations) Flush(ctx context.Context, f FileHandle) fuse.Status {
 	if f != nil {
 		return f.Flush(ctx)
@@ -223,6 +232,7 @@ func (n *DefaultOperations) Flush(ctx context.Context, f FileHandle) fuse.Status
 	return fuse.ENOTSUP
 }
 
+// Release delegates to the FileHandle
 func (n *DefaultOperations) Release(ctx context.Context, f FileHandle) fuse.Status {
 	if f != nil {
 		return f.Release(ctx)
@@ -230,6 +240,7 @@ func (n *DefaultOperations) Release(ctx context.Context, f FileHandle) fuse.Stat
 	return fuse.OK
 }
 
+// Allocate delegates to the FileHandle
 func (n *DefaultOperations) Allocate(ctx context.Context, f FileHandle, off uint64, size uint64, mode uint32) (status fuse.Status) {
 	if f != nil {
 		return f.Allocate(ctx, off, size, mode)
@@ -247,14 +258,17 @@ func (n *DefaultOperations) FGetAttr(ctx context.Context, f FileHandle, out *fus
 	return n.inode_.ops.GetAttr(ctx, out)
 }
 
+// Open returns ENOTSUP
 func (n *DefaultOperations) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, status fuse.Status) {
 	return nil, 0, fuse.ENOTSUP
 }
 
+// Create returns ENOTSUP
 func (n *DefaultOperations) Create(ctx context.Context, name string, flags uint32, mode uint32) (node *Inode, fh FileHandle, fuseFlags uint32, status fuse.Status) {
 	return nil, nil, 0, fuse.EROFS
 }
 
+// Link returns ENOTSUP
 func (n *DefaultOperations) Link(ctx context.Context, target Operations, name string, out *fuse.EntryOut) (node *Inode, status fuse.Status) {
 	return nil, fuse.EROFS
 }
