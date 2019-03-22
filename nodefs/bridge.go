@@ -441,7 +441,7 @@ func (b *rawBridge) Readlink(cancel <-chan struct{}, header *fuse.InHeader) (out
 		return nil, status
 	}
 
-	return []byte(result), fuse.OK
+	return result, fuse.OK
 }
 
 func (b *rawBridge) Access(cancel <-chan struct{}, input *fuse.AccessIn) (status fuse.Status) {

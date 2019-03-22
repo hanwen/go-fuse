@@ -223,18 +223,18 @@ func (n *loopbackNode) Link(ctx context.Context, target Operations, name string,
 	return ch, fuse.OK
 }
 
-func (n *loopbackNode) Readlink(ctx context.Context) (string, fuse.Status) {
+func (n *loopbackNode) Readlink(ctx context.Context) ([]byte, fuse.Status) {
 	p := n.path()
 
 	for l := 256; ; l *= 2 {
 		buf := make([]byte, l)
 		sz, err := syscall.Readlink(p, buf)
 		if err != nil {
-			return "", fuse.ToStatus(err)
+			return nil, fuse.ToStatus(err)
 		}
 
 		if sz < len(buf) {
-			return string(buf[:sz]), fuse.OK
+			return buf[:sz], fuse.OK
 		}
 	}
 }

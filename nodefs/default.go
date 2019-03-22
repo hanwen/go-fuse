@@ -175,8 +175,8 @@ func (n *DefaultOperations) Symlink(ctx context.Context, target, name string, ou
 }
 
 // Readlink return ENOTSUP
-func (n *DefaultOperations) Readlink(ctx context.Context) (string, fuse.Status) {
-	return "", fuse.ENOTSUP
+func (n *DefaultOperations) Readlink(ctx context.Context) ([]byte, fuse.Status) {
+	return nil, fuse.ENOTSUP
 }
 
 // Fsync delegates to the FileHandle

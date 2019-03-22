@@ -129,7 +129,7 @@ type SymlinkOperations interface {
 	Operations
 
 	// Readlink reads the content of a symlink.
-	Readlink(ctx context.Context) (string, fuse.Status)
+	Readlink(ctx context.Context) ([]byte, fuse.Status)
 }
 
 // FileOperations holds operations that apply to regular files.  The
