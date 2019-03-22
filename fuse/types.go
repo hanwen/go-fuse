@@ -50,6 +50,9 @@ const (
 	// ENOTDIR Not a directory
 	ENOTDIR = Status(syscall.ENOTDIR)
 
+	// ENOTSUP Not supported
+	ENOTSUP = Status(syscall.ENOTSUP)
+
 	// EISDIR Is a directory
 	EISDIR = Status(syscall.EISDIR)
 
