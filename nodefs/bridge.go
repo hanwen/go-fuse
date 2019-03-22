@@ -73,6 +73,10 @@ func (b *rawBridge) newInode(ops Operations, id NodeAttr, persistent bool) *Inod
 		return old
 	}
 	id.Mode = id.Mode &^ 07777
+	if id.Mode == 0 {
+		id.Mode = fuse.S_IFREG
+	}
+
 	switch id.Mode {
 	case fuse.S_IFDIR:
 		_ = ops.(DirOperations)

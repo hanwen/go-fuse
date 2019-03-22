@@ -23,7 +23,8 @@ type parentData struct {
 // NodeAttr holds immutable attributes of a object in the filesystem.
 type NodeAttr struct {
 	// Each Inode has a type, which does not change over the
-	// lifetime of the inode, for example fuse.S_IFDIR.
+	// lifetime of the inode, for example fuse.S_IFDIR. The default (0)
+	// is interpreted as S_IFREG (regular file).
 	Mode uint32
 
 	// The inode number must be unique among the currently live

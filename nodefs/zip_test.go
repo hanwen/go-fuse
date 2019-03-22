@@ -189,7 +189,7 @@ func (zr *zipRoot) OnAdd() {
 
 			p = ch
 		}
-		ch := InodeOf(zr).NewPersistentInode(&zipFile{file: f}, NodeAttr{Mode: fuse.S_IFREG})
+		ch := InodeOf(zr).NewPersistentInode(&zipFile{file: f}, NodeAttr{})
 		p.AddChild(base, ch, true)
 	}
 }

@@ -71,13 +71,13 @@ func (r *keepCacheRoot) OnAdd() {
 		keepCache: true,
 	}
 	f1.setContent(0)
-	i.AddChild("keep", i.NewInode(f1, NodeAttr{Mode: fuse.S_IFREG}), true)
+	i.AddChild("keep", i.NewInode(f1, NodeAttr{}), true)
 
 	f2 := &keepCacheFile{
 		keepCache: false,
 	}
 	f2.setContent(0)
-	i.AddChild("nokeep", i.NewInode(f2, NodeAttr{Mode: fuse.S_IFREG}), true)
+	i.AddChild("nokeep", i.NewInode(f2, NodeAttr{}), true)
 }
 
 func TestKeepCache(t *testing.T) {

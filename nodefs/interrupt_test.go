@@ -30,9 +30,8 @@ func (r *interruptRoot) Lookup(ctx context.Context, name string, out *fuse.Entry
 		return nil, fuse.ENOENT
 	}
 	ch := InodeOf(r).NewInode(&r.child, NodeAttr{
-		Mode: fuse.S_IFREG,
-		Ino:  2,
-		Gen:  1})
+		Ino: 2,
+		Gen: 1})
 
 	return ch, fuse.OK
 }
