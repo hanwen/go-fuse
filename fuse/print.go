@@ -269,6 +269,15 @@ func (f *LinkIn) string() string {
 	return fmt.Sprintf("{Oldnodeid: %d}", f.Oldnodeid)
 }
 
+func (o *WriteOut) string() string {
+	return fmt.Sprintf("{%db }", o.Size)
+
+}
+func (i *CopyFileRangeIn) string() string {
+	return fmt.Sprintf("{Fh %d [%d +%d) => i%d Fh %d [%d, %d)}",
+		i.FhIn, i.OffIn, i.Len, i.NodeIdOut, i.FhOut, i.OffOut, i.Len)
+}
+
 func (in *InterruptIn) string() string {
 	return fmt.Sprintf("{ix %d}", in.Unique)
 }

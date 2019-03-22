@@ -441,6 +441,13 @@ func doSetLkw(server *Server, req *request) {
 	req.status = server.fileSystem.SetLkw(req.cancel, (*LkIn)(req.inData))
 }
 
+func doCopyFileRange(server *Server, req *request) {
+	in := (*CopyFileRangeIn)(req.inData)
+	out := (*WriteOut)(req.outData())
+
+	out.Size, req.status = server.fileSystem.CopyFileRange(req.cancel, in)
+}
+
 func doInterrupt(server *Server, req *request) {
 	input := (*InterruptIn)(req.inData)
 	server.reqMu.Lock()
@@ -573,6 +580,7 @@ func init() {
 		_OP_NOTIFY_RETRIEVE_CACHE: unsafe.Sizeof(NotifyRetrieveOut{}),
 		_OP_NOTIFY_DELETE:         unsafe.Sizeof(NotifyInvalDeleteOut{}),
 		_OP_LSEEK:                 unsafe.Sizeof(LseekOut{}),
+		_OP_COPY_FILE_RANGE:       unsafe.Sizeof(WriteOut{}),
 	} {
 		operationHandlers[op].OutputSize = sz
 	}
@@ -633,47 +641,48 @@ func init() {
 	}
 
 	for op, v := range map[int32]operationFunc{
-		_OP_OPEN:         doOpen,
-		_OP_READDIR:      doReadDir,
-		_OP_WRITE:        doWrite,
-		_OP_OPENDIR:      doOpenDir,
-		_OP_CREATE:       doCreate,
-		_OP_SETATTR:      doSetattr,
-		_OP_GETXATTR:     doGetXAttr,
-		_OP_LISTXATTR:    doGetXAttr,
-		_OP_GETATTR:      doGetAttr,
-		_OP_FORGET:       doForget,
-		_OP_BATCH_FORGET: doBatchForget,
-		_OP_READLINK:     doReadlink,
-		_OP_INIT:         doInit,
-		_OP_LOOKUP:       doLookup,
-		_OP_MKNOD:        doMknod,
-		_OP_MKDIR:        doMkdir,
-		_OP_UNLINK:       doUnlink,
-		_OP_RMDIR:        doRmdir,
-		_OP_LINK:         doLink,
-		_OP_READ:         doRead,
-		_OP_FLUSH:        doFlush,
-		_OP_RELEASE:      doRelease,
-		_OP_FSYNC:        doFsync,
-		_OP_RELEASEDIR:   doReleaseDir,
-		_OP_FSYNCDIR:     doFsyncDir,
-		_OP_SETXATTR:     doSetXAttr,
-		_OP_REMOVEXATTR:  doRemoveXAttr,
-		_OP_GETLK:        doGetLk,
-		_OP_SETLK:        doSetLk,
-		_OP_SETLKW:       doSetLkw,
-		_OP_ACCESS:       doAccess,
-		_OP_SYMLINK:      doSymlink,
-		_OP_RENAME:       doRename,
-		_OP_STATFS:       doStatFs,
-		_OP_IOCTL:        doIoctl,
-		_OP_DESTROY:      doDestroy,
-		_OP_NOTIFY_REPLY: doNotifyReply,
-		_OP_FALLOCATE:    doFallocate,
-		_OP_READDIRPLUS:  doReadDirPlus,
-		_OP_RENAME2:      doRename2,
-		_OP_INTERRUPT:    doInterrupt,
+		_OP_OPEN:            doOpen,
+		_OP_READDIR:         doReadDir,
+		_OP_WRITE:           doWrite,
+		_OP_OPENDIR:         doOpenDir,
+		_OP_CREATE:          doCreate,
+		_OP_SETATTR:         doSetattr,
+		_OP_GETXATTR:        doGetXAttr,
+		_OP_LISTXATTR:       doGetXAttr,
+		_OP_GETATTR:         doGetAttr,
+		_OP_FORGET:          doForget,
+		_OP_BATCH_FORGET:    doBatchForget,
+		_OP_READLINK:        doReadlink,
+		_OP_INIT:            doInit,
+		_OP_LOOKUP:          doLookup,
+		_OP_MKNOD:           doMknod,
+		_OP_MKDIR:           doMkdir,
+		_OP_UNLINK:          doUnlink,
+		_OP_RMDIR:           doRmdir,
+		_OP_LINK:            doLink,
+		_OP_READ:            doRead,
+		_OP_FLUSH:           doFlush,
+		_OP_RELEASE:         doRelease,
+		_OP_FSYNC:           doFsync,
+		_OP_RELEASEDIR:      doReleaseDir,
+		_OP_FSYNCDIR:        doFsyncDir,
+		_OP_SETXATTR:        doSetXAttr,
+		_OP_REMOVEXATTR:     doRemoveXAttr,
+		_OP_GETLK:           doGetLk,
+		_OP_SETLK:           doSetLk,
+		_OP_SETLKW:          doSetLkw,
+		_OP_ACCESS:          doAccess,
+		_OP_SYMLINK:         doSymlink,
+		_OP_RENAME:          doRename,
+		_OP_STATFS:          doStatFs,
+		_OP_IOCTL:           doIoctl,
+		_OP_DESTROY:         doDestroy,
+		_OP_NOTIFY_REPLY:    doNotifyReply,
+		_OP_FALLOCATE:       doFallocate,
+		_OP_READDIRPLUS:     doReadDirPlus,
+		_OP_RENAME2:         doRename2,
+		_OP_INTERRUPT:       doInterrupt,
+		_OP_COPY_FILE_RANGE: doCopyFileRange,
 	} {
 		operationHandlers[op].Func = v
 	}
@@ -698,6 +707,7 @@ func init() {
 		_OP_SYMLINK:               func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
 		_OP_GETLK:                 func(ptr unsafe.Pointer) interface{} { return (*LkOut)(ptr) },
 		_OP_LSEEK:                 func(ptr unsafe.Pointer) interface{} { return (*LseekOut)(ptr) },
+		_OP_COPY_FILE_RANGE:       func(ptr unsafe.Pointer) interface{} { return (*WriteOut)(ptr) },
 	} {
 		operationHandlers[op].DecodeOut = f
 	}

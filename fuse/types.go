@@ -510,6 +510,7 @@ type FlushIn struct {
 }
 
 type LseekIn struct {
+	InHeader
 	Fh      uint64
 	Offset  uint64
 	Whence  uint32
@@ -521,6 +522,7 @@ type LseekOut struct {
 }
 
 type CopyFileRangeIn struct {
+	InHeader
 	FhIn      uint64
 	OffIn     uint64
 	NodeIdOut uint64

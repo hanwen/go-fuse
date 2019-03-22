@@ -218,3 +218,8 @@ func (fs *lockingRawFileSystem) String() string {
 	defer fs.locked()()
 	return fmt.Sprintf("Locked(%s)", fs.RawFS.String())
 }
+
+func (fs *lockingRawFileSystem) CopyFileRange(cancel <-chan struct{}, input *CopyFileRangeIn) (written uint32, code Status) {
+	defer fs.locked()()
+	return fs.RawFS.CopyFileRange(cancel, input)
+}

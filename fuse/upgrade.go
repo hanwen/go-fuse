@@ -520,3 +520,12 @@ func (fs *wrappingFS) Fallocate(cancel <-chan struct{}, in *FallocateIn) (code S
 	}
 	return ENOSYS
 }
+
+func (fs *wrappingFS) CopyFileRange(cancel <-chan struct{}, in *CopyFileRangeIn) (written uint32, code Status) {
+	if s, ok := fs.fs.(interface {
+		CopyFileRange(cancel <-chan struct{}, in *CopyFileRangeIn) (uint32, Status)
+	}); ok {
+		return s.CopyFileRange(cancel, in)
+	}
+	return 0, ENOSYS
+}

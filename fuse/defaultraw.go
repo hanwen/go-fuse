@@ -158,3 +158,7 @@ func (fs *defaultRawFileSystem) FsyncDir(cancel <-chan struct{}, input *FsyncIn)
 func (fs *defaultRawFileSystem) Fallocate(cancel <-chan struct{}, in *FallocateIn) (code Status) {
 	return ENOSYS
 }
+
+func (fs *defaultRawFileSystem) CopyFileRange(cancel <-chan struct{}, input *CopyFileRangeIn) (written uint32, code Status) {
+	return 0, ENOSYS
+}

@@ -247,6 +247,8 @@ type RawFileSystem interface {
 
 	Release(input *ReleaseIn)
 	Write(cancel <-chan struct{}, input *WriteIn, data []byte) (written uint32, code Status)
+	CopyFileRange(cancel <-chan struct{}, input *CopyFileRangeIn) (written uint32, code Status)
+
 	Flush(cancel <-chan struct{}, input *FlushIn) Status
 	Fsync(cancel <-chan struct{}, input *FsyncIn) (code Status)
 	Fallocate(cancel <-chan struct{}, input *FallocateIn) (code Status)
