@@ -104,7 +104,7 @@ type Operations interface {
 
 	// OnAdd is called once this Operations object is attached to
 	// an Inode.
-	OnAdd()
+	OnAdd(ctx context.Context)
 }
 
 // XAttrOperations is a collection of methods used to implement extended attributes.

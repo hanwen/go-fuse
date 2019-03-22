@@ -66,20 +66,20 @@ type keepCacheRoot struct {
 	keep, nokeep *keepCacheFile
 }
 
-func (r *keepCacheRoot) OnAdd() {
+func (r *keepCacheRoot) OnAdd(ctx context.Context) {
 	i := InodeOf(r)
 
 	r.keep = &keepCacheFile{
 		keepCache: true,
 	}
 	r.keep.setContent(0)
-	i.AddChild("keep", i.NewInode(r.keep, NodeAttr{}), true)
+	i.AddChild("keep", i.NewInode(ctx, r.keep, NodeAttr{}), true)
 
 	r.nokeep = &keepCacheFile{
 		keepCache: false,
 	}
 	r.nokeep.setContent(0)
-	i.AddChild("nokeep", i.NewInode(r.nokeep, NodeAttr{}), true)
+	i.AddChild("nokeep", i.NewInode(ctx, r.nokeep, NodeAttr{}), true)
 }
 
 func TestKeepCache(t *testing.T) {

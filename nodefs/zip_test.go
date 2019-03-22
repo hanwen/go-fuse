@@ -167,7 +167,7 @@ type zipRoot struct {
 	r *zip.Reader
 }
 
-func (zr *zipRoot) OnAdd() {
+func (zr *zipRoot) OnAdd(ctx context.Context) {
 	// OnAdd is called once we are attached to an Inode. We can
 	// then construct a tree.  We construct the entire tree, and
 	// we don't want parts of the tree to disappear when the
@@ -182,14 +182,14 @@ func (zr *zipRoot) OnAdd() {
 			}
 			ch := p.GetChild(component)
 			if ch == nil {
-				ch = InodeOf(zr).NewPersistentInode(&DefaultOperations{},
+				ch = InodeOf(zr).NewPersistentInode(ctx, &DefaultOperations{},
 					NodeAttr{Mode: fuse.S_IFDIR})
 				p.AddChild(component, ch, true)
 			}
 
 			p = ch
 		}
-		ch := InodeOf(zr).NewPersistentInode(&zipFile{file: f}, NodeAttr{})
+		ch := InodeOf(zr).NewPersistentInode(ctx, &zipFile{file: f}, NodeAttr{})
 		p.AddChild(base, ch, true)
 	}
 }

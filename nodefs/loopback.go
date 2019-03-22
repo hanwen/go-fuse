@@ -70,7 +70,7 @@ func (n *loopbackNode) Lookup(ctx context.Context, name string, out *fuse.EntryO
 
 	out.Attr.FromStat(&st)
 	node := n.rootNode.newLoopbackNode()
-	ch := n.inode().NewInode(node, n.rootNode.idFromStat(&st))
+	ch := n.inode().NewInode(ctx, node, n.rootNode.idFromStat(&st))
 	return ch, fuse.OK
 }
 
@@ -89,7 +89,7 @@ func (n *loopbackNode) Mknod(ctx context.Context, name string, mode, rdev uint32
 	out.Attr.FromStat(&st)
 
 	node := n.rootNode.newLoopbackNode()
-	ch := n.inode().NewInode(node, n.rootNode.idFromStat(&st))
+	ch := n.inode().NewInode(ctx, node, n.rootNode.idFromStat(&st))
 
 	return ch, fuse.OK
 }
@@ -109,7 +109,7 @@ func (n *loopbackNode) Mkdir(ctx context.Context, name string, mode uint32, out 
 	out.Attr.FromStat(&st)
 
 	node := n.rootNode.newLoopbackNode()
-	ch := n.inode().NewInode(node, n.rootNode.idFromStat(&st))
+	ch := n.inode().NewInode(ctx, node, n.rootNode.idFromStat(&st))
 
 	return ch, fuse.OK
 }
@@ -180,7 +180,7 @@ func (n *loopbackNode) Create(ctx context.Context, name string, flags uint32, mo
 	}
 
 	node := n.rootNode.newLoopbackNode()
-	ch := n.inode().NewInode(node, n.rootNode.idFromStat(&st))
+	ch := n.inode().NewInode(ctx, node, n.rootNode.idFromStat(&st))
 	lf := NewLoopbackFile(fd)
 	return ch, lf, 0, fuse.OK
 }
@@ -197,7 +197,7 @@ func (n *loopbackNode) Symlink(ctx context.Context, target, name string, out *fu
 		return nil, fuse.ToStatus(err)
 	}
 	node := n.rootNode.newLoopbackNode()
-	ch := n.inode().NewInode(node, n.rootNode.idFromStat(&st))
+	ch := n.inode().NewInode(ctx, node, n.rootNode.idFromStat(&st))
 
 	out.Attr.FromStat(&st)
 	return ch, fuse.OK
@@ -217,7 +217,7 @@ func (n *loopbackNode) Link(ctx context.Context, target Operations, name string,
 		return nil, fuse.ToStatus(err)
 	}
 	node := n.rootNode.newLoopbackNode()
-	ch := n.inode().NewInode(node, n.rootNode.idFromStat(&st))
+	ch := n.inode().NewInode(ctx, node, n.rootNode.idFromStat(&st))
 
 	out.Attr.FromStat(&st)
 	return ch, fuse.OK

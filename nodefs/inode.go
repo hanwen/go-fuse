@@ -5,6 +5,7 @@
 package nodefs
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"sort"
@@ -272,8 +273,8 @@ func (iparent *Inode) setEntry(name string, ichild *Inode) {
 
 // NewPersistentInode returns an Inode whose lifetime is not in
 // control of the kernel.
-func (n *Inode) NewPersistentInode(node Operations, id NodeAttr) *Inode {
-	return n.newInode(node, id, true)
+func (n *Inode) NewPersistentInode(ctx context.Context, node Operations, id NodeAttr) *Inode {
+	return n.newInode(ctx, node, id, true)
 }
 
 // ForgetPersistent manually marks the node as no longer important. If
@@ -288,12 +289,12 @@ func (n *Inode) ForgetPersistent() {
 // non-zero, is used to implement hard-links.  If opaqueID is given,
 // and another node with the same ID is known, that will node will be
 // returned, and the passed-in `node` is ignored.
-func (n *Inode) NewInode(node Operations, id NodeAttr) *Inode {
-	return n.newInode(node, id, false)
+func (n *Inode) NewInode(ctx context.Context, node Operations, id NodeAttr) *Inode {
+	return n.newInode(ctx, node, id, false)
 }
 
-func (n *Inode) newInode(node Operations, id NodeAttr, persistent bool) *Inode {
-	return n.bridge.newInode(node, id, persistent)
+func (n *Inode) newInode(ctx context.Context, node Operations, id NodeAttr, persistent bool) *Inode {
+	return n.bridge.newInode(ctx, node, id, persistent)
 }
 
 // removeRef decreases references. Returns if this operation caused

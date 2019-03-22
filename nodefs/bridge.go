@@ -5,6 +5,7 @@
 package nodefs
 
 import (
+	"context"
 	"log"
 	"sync"
 	"syscall"
@@ -44,7 +45,7 @@ type rawBridge struct {
 }
 
 // newInode creates creates new inode pointing to ops.
-func (b *rawBridge) newInode(ops Operations, id NodeAttr, persistent bool) *Inode {
+func (b *rawBridge) newInode(ctx context.Context, ops Operations, id NodeAttr, persistent bool) *Inode {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -104,7 +105,7 @@ func (b *rawBridge) newInode(ops Operations, id NodeAttr, persistent bool) *Inod
 	newIno := ops.inode()
 
 	if newIno == inode {
-		newIno.ops.OnAdd()
+		newIno.ops.OnAdd(ctx)
 	}
 
 	return newIno
@@ -188,7 +189,7 @@ func NewNodeFS(root DirOperations, opts *Options) fuse.RawFileSystem {
 	// Fh 0 means no file handle.
 	bridge.files = []*fileEntry{{}}
 
-	root.OnAdd()
+	root.OnAdd(context.Background())
 
 	return bridge
 }

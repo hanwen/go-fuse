@@ -54,8 +54,6 @@ Decisions
 To decide
 =========
 
-   * Should we provide automatic fileID numbering?
-   
    * function signatures, or types? The latter is easier to remember?
      Easier to extend? The latter less efficient (indirections/copies)
 
@@ -76,14 +74,5 @@ or
 ```
 
    * What to do with semi-unused fields (CreateIn.Umask, OpenIn.Mode, etc.)
-   
-   * Readlink return: []byte or string ?
-
-   * Should Operations.Lookup return *Inode or Operations ?
-
-   * Merge Fsync/FsyncDir?
- 
-   * OnMount in Operations or in Options? Or argument to NewNodeFS? Or
-     OnAdd() ?
 
 

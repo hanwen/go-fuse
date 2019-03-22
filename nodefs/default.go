@@ -63,8 +63,8 @@ func (n *DefaultOperations) StatFs(ctx context.Context, out *fuse.StatfsOut) fus
 	return fuse.OK
 }
 
-func (n *DefaultOperations) OnAdd() {
-	// XXX context?
+// The default OnAdd does nothing.
+func (n *DefaultOperations) OnAdd(ctx context.Context) {
 }
 
 // GetAttr zeroes out argument and returns OK.

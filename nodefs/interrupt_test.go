@@ -29,7 +29,7 @@ func (r *interruptRoot) Lookup(ctx context.Context, name string, out *fuse.Entry
 	if name != "file" {
 		return nil, fuse.ENOENT
 	}
-	ch := InodeOf(r).NewInode(&r.child, NodeAttr{
+	ch := InodeOf(r).NewInode(ctx, &r.child, NodeAttr{
 		Ino: 2,
 		Gen: 1})
 
