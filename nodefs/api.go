@@ -35,8 +35,8 @@
 // infrastructure needs to lookup children of nodes to process client
 // requests. For every new Operations, the filesystem infrastructure
 // automatically builds new index node and links it in the filesystem
-// tree.  InodeOf can be used to get particular Inode associated with
-// a Operations.
+// tree. Operations.Inode() can be used to get particular Inode
+// associated with a Operations.
 //
 // The kernel can evict inode data to free up memory. It does so by
 // issuing FORGET calls. When a node has no children, and no kernel
@@ -82,6 +82,11 @@ type Operations interface {
 	// See InodeOf for public API to retrieve an inode from Node.
 	inode() *Inode
 	setInode(*Inode) bool
+
+	// Inode() is a convenience method, and is equivalent to
+	// InodeOf(ops) It is provided by DefaultOperations, and
+	// should not be reimplemented.
+	Inode() *Inode
 
 	// StatFs implements statistics for the filesystem that holds
 	// this Inode. DefaultNode implements this, because OSX

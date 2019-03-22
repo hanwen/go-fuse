@@ -55,6 +55,11 @@ func (n *DefaultOperations) inode() *Inode {
 		(*unsafe.Pointer)(unsafe.Pointer(&n.inode_))))
 }
 
+// Inode is syntactic sugar for InodeOf(ops).
+func (n *DefaultOperations) Inode() *Inode {
+	return n.inode()
+}
+
 // StatFs zeroes the out argument and returns OK.  This is because OSX
 // filesystems must define this, or the mount will not work.
 func (n *DefaultOperations) StatFs(ctx context.Context, out *fuse.StatfsOut) fuse.Status {

@@ -529,7 +529,7 @@ func TestNotifyEntry(t *testing.T) {
 		t.Fatalf("got after %#v, want %#v", after, st)
 	}
 
-	if code := InodeOf(tc.loopback).NotifyEntry("file"); !code.Ok() {
+	if code := tc.loopback.Inode().NotifyEntry("file"); !code.Ok() {
 		t.Errorf("notify failed: %v", code)
 	}
 
