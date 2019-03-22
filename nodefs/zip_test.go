@@ -109,7 +109,7 @@ func TestZipFS(t *testing.T) {
 	}
 }
 
-// zipFile is a file read from a zip file.
+// zipFile is a file read from a zip archive.
 type zipFile struct {
 	DefaultOperations
 	file *zip.File
@@ -145,12 +145,12 @@ func (zf *zipFile) Open(ctx context.Context, flags uint32) (FileHandle, uint32, 
 	}
 
 	// We don't return a filehandle since we don't really need
-	// one.
-	return nil, 0, fuse.OK
+	// one.  The file content is immutable, so hint the kernel to
+	// cache the data.
+	return nil, fuse.FOPEN_KEEP_CACHE, fuse.OK
 }
 
-// Read  sets the minimum, which is the size. A more full-featured
-// FS would also set timestamps and permissions.
+// Read simply returns the data that was already unpacked in the Open call
 func (zf *zipFile) Read(ctx context.Context, f FileHandle, dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
 	end := int(off) + len(dest)
 	if end > len(zf.data) {
