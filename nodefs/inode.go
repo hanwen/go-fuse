@@ -51,7 +51,7 @@ func (i *NodeAttr) Reserved() bool {
 // systems.  One can create fully-formed trees of Inodes ahead of time
 // by creating "persistent" Inodes.
 type Inode struct {
-	nodeID NodeAttr
+	nodeAttr NodeAttr
 
 	ops    Operations
 	bridge *rawBridge
@@ -75,7 +75,7 @@ type Inode struct {
 	persistent bool
 
 	// changeCounter increments every time the below mutable state
-	// (lookupCount, nodeID, children, parents) is modified.
+	// (lookupCount, nodeAttr, children, parents) is modified.
 	//
 	// This is used in places where we have to relock inode into inode
 	// group lock, and after locking the group we have to check if inode
@@ -103,27 +103,27 @@ func (n *Inode) linkOps() SymlinkOperations {
 
 // NodeAttr returns the (Ino, Gen) tuple for this node.
 func (n *Inode) NodeAttr() NodeAttr {
-	return n.nodeID
+	return n.nodeAttr
 }
 
 // Mode returns the filetype
 func (n *Inode) Mode() uint32 {
-	return n.nodeID.Mode
+	return n.nodeAttr.Mode
 }
 
 // IsRoot returns true if this is the root of the FUSE mount.
 func (n *Inode) IsRoot() bool {
-	return n.nodeID.Ino == fuse.FUSE_ROOT_ID
+	return n.nodeAttr.Ino == fuse.FUSE_ROOT_ID
 }
 
 // debugString is used for debugging. Racy.
 func (n *Inode) debugString() string {
 	var ss []string
 	for nm, ch := range n.children {
-		ss = append(ss, fmt.Sprintf("%q=%d", nm, ch.nodeID.Ino))
+		ss = append(ss, fmt.Sprintf("%q=%d", nm, ch.nodeAttr.Ino))
 	}
 
-	return fmt.Sprintf("%d: %s", n.nodeID, strings.Join(ss, ","))
+	return fmt.Sprintf("%d: %s", n.nodeAttr, strings.Join(ss, ","))
 }
 
 // sortNodes rearranges inode group in consistent order.
@@ -352,7 +352,7 @@ retry:
 		}
 
 		n.bridge.mu.Lock()
-		delete(n.bridge.nodes, n.nodeID.Ino)
+		delete(n.bridge.nodes, n.nodeAttr.Ino)
 		n.bridge.mu.Unlock()
 
 		unlockNodes(lockme...)
@@ -608,7 +608,7 @@ retry:
 // tuple should be invalidated. On next access, a LOOKUP operation
 // will be started.
 func (n *Inode) NotifyEntry(name string) fuse.Status {
-	return n.bridge.server.EntryNotify(n.nodeID.Ino, name)
+	return n.bridge.server.EntryNotify(n.nodeAttr.Ino, name)
 }
 
 // NotifyDelete notifies the kernel that the given inode was removed
@@ -616,7 +616,7 @@ func (n *Inode) NotifyEntry(name string) fuse.Status {
 // to NotifyEntry, but also sends an event to inotify watchers.
 func (n *Inode) NotifyDelete(name string, child *Inode) fuse.Status {
 	// XXX arg ordering?
-	return n.bridge.server.DeleteNotify(n.nodeID.Ino, child.nodeID.Ino, name)
+	return n.bridge.server.DeleteNotify(n.nodeAttr.Ino, child.nodeAttr.Ino, name)
 
 }
 
@@ -624,16 +624,16 @@ func (n *Inode) NotifyDelete(name string, child *Inode) fuse.Status {
 // inode should be flushed from buffers.
 func (n *Inode) NotifyContent(off, sz int64) fuse.Status {
 	// XXX how does this work for directories?
-	return n.bridge.server.InodeNotify(n.nodeID.Ino, off, sz)
+	return n.bridge.server.InodeNotify(n.nodeAttr.Ino, off, sz)
 }
 
 // WriteCache stores data in the kernel cache.
 func (n *Inode) WriteCache(offset int64, data []byte) fuse.Status {
-	return n.bridge.server.InodeNotifyStoreCache(n.nodeID.Ino, offset, data)
+	return n.bridge.server.InodeNotifyStoreCache(n.nodeAttr.Ino, offset, data)
 
 }
 
 // ReadCache reads data from the kernel cache.
 func (n *Inode) ReadCache(offset int64, dest []byte) (count int, status fuse.Status) {
-	return n.bridge.server.InodeRetrieveCache(n.nodeID.Ino, offset, dest)
+	return n.bridge.server.InodeRetrieveCache(n.nodeAttr.Ino, offset, dest)
 }

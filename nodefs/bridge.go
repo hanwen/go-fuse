@@ -90,7 +90,7 @@ func (b *rawBridge) newInode(ops Operations, id NodeAttr, persistent bool) *Inod
 
 	inode := &Inode{
 		ops:        ops,
-		nodeID:     id,
+		nodeAttr:   id,
 		bridge:     b,
 		persistent: persistent,
 		parents:    make(map[parentData]struct{}),
@@ -123,9 +123,9 @@ func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file F
 		fh = b.registerFile(child, file, fileFlags)
 	}
 
-	out.NodeId = child.nodeID.Ino
-	out.Generation = child.nodeID.Gen
-	out.Attr.Ino = child.nodeID.Ino
+	out.NodeId = child.nodeAttr.Ino
+	out.Generation = child.nodeAttr.Gen
+	out.Attr.Ino = child.nodeAttr.Ino
 
 	b.mu.Unlock()
 	unlockNodes(parent, child)
@@ -175,7 +175,7 @@ func NewNodeFS(root DirOperations, opts *Options) fuse.RawFileSystem {
 		parents:     nil,
 		ops:         root,
 		bridge:      bridge,
-		nodeID: NodeAttr{
+		nodeAttr: NodeAttr{
 			Ino:  1,
 			Mode: fuse.S_IFDIR,
 		},
@@ -221,7 +221,7 @@ func (b *rawBridge) Lookup(cancel <-chan struct{}, header *fuse.InHeader, name s
 	b.addNewChild(parent, name, child, nil, 0, out)
 	b.setEntryOutTimeout(out)
 
-	out.Mode = child.nodeID.Mode | (out.Mode & 07777)
+	out.Mode = child.nodeAttr.Mode | (out.Mode & 07777)
 	return fuse.OK
 }
 
@@ -321,12 +321,12 @@ func (b *rawBridge) Create(cancel <-chan struct{}, input *fuse.CreateIn, name st
 	out.Attr = temp.Attr
 	out.AttrValid = temp.AttrValid
 	out.AttrValidNsec = temp.AttrValidNsec
-	out.Attr.Ino = child.nodeID.Ino
-	out.Generation = child.nodeID.Gen
-	out.NodeId = child.nodeID.Ino
+	out.Attr.Ino = child.nodeAttr.Ino
+	out.Generation = child.nodeAttr.Gen
+	out.NodeId = child.nodeAttr.Ino
 
 	b.setEntryOutTimeout(&out.EntryOut)
-	out.Mode = (out.Attr.Mode & 07777) | child.nodeID.Mode
+	out.Mode = (out.Attr.Mode & 07777) | child.nodeAttr.Mode
 	return fuse.OK
 }
 
@@ -360,7 +360,7 @@ func (b *rawBridge) GetAttr(cancel <-chan struct{}, input *fuse.GetAttrIn, out *
 		status := fops.FGetAttr(ctx, f, out)
 		b.setAttrTimeout(out)
 		out.Ino = input.NodeId
-		out.Mode = (out.Attr.Mode & 07777) | n.nodeID.Mode
+		out.Mode = (out.Attr.Mode & 07777) | n.nodeAttr.Mode
 		return status
 	}
 	return n.ops.GetAttr(ctx, out)
@@ -712,12 +712,12 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 		} else {
 			b.addNewChild(n, e.Name, child, nil, 0, entryOut)
 			b.setEntryOutTimeout(entryOut)
-			if (e.Mode &^ 07777) != (child.nodeID.Mode &^ 07777) {
+			if (e.Mode &^ 07777) != (child.nodeAttr.Mode &^ 07777) {
 				// should go back and change the
 				// already serialized entry
-				log.Panicf("mode mismatch between readdir %o and lookup %o", e.Mode, child.nodeID.Mode)
+				log.Panicf("mode mismatch between readdir %o and lookup %o", e.Mode, child.nodeAttr.Mode)
 			}
-			entryOut.Mode = child.nodeID.Mode | (entryOut.Mode & 07777)
+			entryOut.Mode = child.nodeAttr.Mode | (entryOut.Mode & 07777)
 		}
 	}
 
