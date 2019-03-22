@@ -308,9 +308,6 @@ type FileHandle interface {
 
 // Options sets options for the entire filesystem
 type Options struct {
-	// Debug toggles debug output
-	Debug bool
-
 	// If set to nonnil, this defines the overall entry timeout
 	// for the file system. See fuse.EntryOut for more information.
 	EntryTimeout *time.Duration

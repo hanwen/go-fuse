@@ -87,7 +87,6 @@ func TestKeepCache(t *testing.T) {
 	sec := time.Second
 	root := &keepCacheRoot{}
 	rawFS := NewNodeFS(root, &Options{
-		Debug:             testutil.VerboseTest(),
 		FirstAutomaticIno: 1,
 
 		AttrTimeout:  &sec,

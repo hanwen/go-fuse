@@ -56,8 +56,6 @@ func TestInterrupt(t *testing.T) {
 	_ = time.Second
 	oneSec := time.Second
 	rawFS := NewNodeFS(root, &Options{
-		Debug: testutil.VerboseTest(),
-
 		// NOSUBMIT - should run all tests without cache too
 		EntryTimeout: &oneSec,
 		AttrTimeout:  &oneSec,

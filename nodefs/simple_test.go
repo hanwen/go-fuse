@@ -85,7 +85,6 @@ func newTestCase(t *testing.T, entryCache bool, attrCache bool) *testCase {
 		entryDT = nil
 	}
 	tc.rawFS = NewNodeFS(tc.loopback, &Options{
-		Debug:        testutil.VerboseTest(),
 		EntryTimeout: entryDT,
 		AttrTimeout:  attrDT,
 	})

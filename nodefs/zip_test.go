@@ -65,7 +65,6 @@ func TestZipFS(t *testing.T) {
 	mntDir := testutil.TempDir()
 
 	rawFS := NewNodeFS(root, &Options{
-		Debug:             testutil.VerboseTest(),
 		FirstAutomaticIno: 1,
 	})
 	server, err := fuse.NewServer(rawFS, mntDir,
