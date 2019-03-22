@@ -12,7 +12,6 @@ import (
 	"os"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/internal/testutil"
@@ -83,10 +82,12 @@ func (r *keepCacheRoot) OnAdd(ctx context.Context) {
 	i.AddChild("nokeep", i.NewInode(ctx, r.nokeep, NodeAttr{}), true)
 }
 
+// Test FOPEN_KEEP_CACHE. This is a little subtle: the automatic cache
+// invalidation triggers if mtime or file size is changed, so only
+// change content but no metadata.
 func TestKeepCache(t *testing.T) {
 	mntDir := testutil.TempDir()
 	defer os.RemoveAll(mntDir)
-	sec := time.Second
 	root := &keepCacheRoot{}
 	server, err := Mount(mntDir, root, &Options{
 		MountOptions: fuse.MountOptions{
@@ -94,8 +95,7 @@ func TestKeepCache(t *testing.T) {
 		},
 		FirstAutomaticIno: 1,
 
-		AttrTimeout:  &sec,
-		EntryTimeout: &sec,
+		// no caching.
 	})
 	defer server.Unmount()
 	c1, err := ioutil.ReadFile(mntDir + "/keep")
