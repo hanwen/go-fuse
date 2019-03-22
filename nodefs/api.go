@@ -43,11 +43,16 @@
 // references, it is removed from the file system trees.
 //
 // File system trees can also be constructed in advance. This is done
-// by instantiating "persistent" inodes. Persistent inodes remain in
-// memory even if the kernel has forgotten them.  See zip_test.go for
-// an example of how to do this.
+// by instantiating "persistent" inodes from the Operations.OnAdd
+// method. Persistent inodes remain in memory even if the kernel has
+// forgotten them.  See zip_test.go for an example of how to do this.
 //
-// XXX node example with Lookup.
+// File systems whose tree structures are on backing storage typically
+// discover the file system tree on-demand, and if the kernel is tight
+// on memory, parts of the tree are forgotten again. These file
+// systems should implement Operations.Lookup instead.  The loopback
+// file system created by `NewLoopbackRoot` provides a straightforward
+// example.
 //
 package nodefs
 
@@ -142,8 +147,6 @@ type FileOperations interface {
 	// is optional but recommended to return a FileHandle.
 	Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, status fuse.Status)
 
-	// File locking
-
 	// Reads data from a file. The data should be returned as
 	// ReadResult, which may be constructed from the incoming
 	// `dest` buffer. If the file was opened without FileHandle,
@@ -178,8 +181,10 @@ type FileOperations interface {
 	// never encounter ESPACE.
 	Allocate(ctx context.Context, f FileHandle, off uint64, size uint64, mode uint32) (status fuse.Status)
 
+	// FGetAttr is like GetAttr but provides a file handle if available.
 	FGetAttr(ctx context.Context, f FileHandle, out *fuse.AttrOut) fuse.Status
 
+	// FSetAttr is like SetAttr but provides a file handle if available.
 	FSetAttr(ctx context.Context, f FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status
 }
 
