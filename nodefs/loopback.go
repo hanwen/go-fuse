@@ -11,7 +11,6 @@ import (
 	"syscall"
 
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/internal"
 	"golang.org/x/sys/unix"
 )
 
@@ -295,21 +294,4 @@ func NewLoopbackRoot(root string) (DirOperations, error) {
 	}
 	n.rootNode = n
 	return n, nil
-}
-
-func (n *loopbackNode) Access(ctx context.Context, mask uint32) fuse.Status {
-	caller, ok := fuse.FromContext(ctx)
-	if !ok {
-		return fuse.EACCES
-	}
-
-	var st syscall.Stat_t
-	if err := syscall.Stat(n.path(), &st); err != nil {
-		return fuse.ToStatus(err)
-	}
-
-	if !internal.HasAccess(caller.Uid, caller.Gid, st.Uid, st.Gid, uint32(st.Mode), mask) {
-		return fuse.EACCES
-	}
-	return fuse.OK
 }

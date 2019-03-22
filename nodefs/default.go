@@ -10,6 +10,7 @@ import (
 	"unsafe"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/internal"
 )
 
 // DefaultOperations provides no-operation default implementations for
@@ -76,8 +77,23 @@ func (n *DefaultOperations) SetAttr(ctx context.Context, in *fuse.SetAttrIn, out
 	return fuse.EROFS
 }
 
+// The Access default implementation checks traditional unix
+// permissions of the GetAttr result agains the caller.
 func (n *DefaultOperations) Access(ctx context.Context, mask uint32) fuse.Status {
-	return fuse.ENOENT
+	caller, ok := fuse.FromContext(ctx)
+	if !ok {
+		return fuse.EINVAL
+	}
+
+	var out fuse.AttrOut
+	if s := InodeOf(n).Operations().GetAttr(ctx, &out); !s.Ok() {
+		return s
+	}
+
+	if !internal.HasAccess(caller.Uid, caller.Gid, out.Uid, out.Gid, out.Mode, mask) {
+		return fuse.EACCES
+	}
+	return fuse.OK
 }
 
 // FSetAttr delegates to the FileHandle's if f is not nil, or else to the
