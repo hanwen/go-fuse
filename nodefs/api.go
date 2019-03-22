@@ -191,6 +191,11 @@ type FileOperations interface {
 
 	// FSetAttr is like SetAttr but provides a file handle if available.
 	FSetAttr(ctx context.Context, f FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status
+
+	// CopyFileRange copies data between sections of two files.
+	CopyFileRange(ctx context.Context, fhIn FileHandle,
+		offIn uint64, out *Inode, fhOut FileHandle, offOut uint64,
+		len uint64, flags uint64) (uint32, fuse.Status)
 }
 
 // LockOperations are operations for locking regions of regular files.

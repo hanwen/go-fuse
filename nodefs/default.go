@@ -201,6 +201,12 @@ func (n *DefaultOperations) Write(ctx context.Context, f FileHandle, data []byte
 	return 0, fuse.EROFS
 }
 
+func (n *DefaultOperations) CopyFileRange(ctx context.Context, fhIn FileHandle,
+	offIn uint64, out *Inode, fhOut FileHandle, offOut uint64,
+	len uint64, flags uint64) (uint32, fuse.Status) {
+	return 0, fuse.EROFS
+}
+
 // GetLk delegates to the FileHandlef
 func (n *DefaultOperations) GetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (status fuse.Status) {
 	if f != nil {

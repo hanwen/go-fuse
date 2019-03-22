@@ -279,6 +279,24 @@ func (n *loopbackNode) FGetAttr(ctx context.Context, f FileHandle, out *fuse.Att
 	return fuse.OK
 }
 
+func (n *loopbackNode) CopyFileRange(ctx context.Context, fhIn FileHandle,
+	offIn uint64, out *Inode, fhOut FileHandle, offOut uint64,
+	len uint64, flags uint64) (uint32, fuse.Status) {
+	lfIn, ok := fhIn.(*loopbackFile)
+	if !ok {
+		return 0, fuse.ENOTSUP
+	}
+	lfOut, ok := fhOut.(*loopbackFile)
+	if !ok {
+		return 0, fuse.ENOTSUP
+	}
+
+	signedOffIn := int64(offIn)
+	signedOffOut := int64(offOut)
+	count, err := unix.CopyFileRange(lfIn.fd, &signedOffIn, lfOut.fd, &signedOffOut, int(len), int(flags))
+	return uint32(count), fuse.ToStatus(err)
+}
+
 // NewLoopback returns a root node for a loopback file system whose
 // root is at the given root.
 func NewLoopbackRoot(root string) (DirOperations, error) {

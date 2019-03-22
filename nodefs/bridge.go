@@ -738,3 +738,11 @@ func (b *rawBridge) StatFs(cancel <-chan struct{}, input *fuse.InHeader, out *fu
 func (b *rawBridge) Init(s *fuse.Server) {
 	b.server = s
 }
+
+func (b *rawBridge) CopyFileRange(cancel <-chan struct{}, in *fuse.CopyFileRangeIn) (size uint32, status fuse.Status) {
+	n1, f1 := b.inode(in.NodeId, in.FhIn)
+	n2, f2 := b.inode(in.NodeIdOut, in.FhOut)
+
+	return n1.fileOps().CopyFileRange(&fuse.Context{Caller: in.Caller, Cancel: cancel},
+		f1.file, in.OffIn, n2, f2.file, in.OffOut, in.Len, in.Flags)
+}
