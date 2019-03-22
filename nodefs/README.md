@@ -49,30 +49,3 @@ Decisions
      directory reads, and adding files after opening (but before
      reading) are handled automatically. No support for directory
      seeks.
-
-
-To decide
-=========
-
-   * function signatures, or types? The latter is easier to remember?
-     Easier to extend? The latter less efficient (indirections/copies)
-
-```
-    func Lookup(name string, out *EntryOut) (Node, Status) {
-    }
-
-or
-
-    type LookupIn {
-       Name string
-    }
-    type LookupOut {
-       fuse.EntryOut
-    }
-
-    func Lookup(ctx context.Context, in *LookupIn, out *LookupOut) 
-```
-
-   * What to do with semi-unused fields (CreateIn.Umask, OpenIn.Mode, etc.)
-
-
