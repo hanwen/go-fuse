@@ -71,13 +71,13 @@ func (r *keepCacheRoot) OnAdd() {
 		keepCache: true,
 	}
 	f1.setContent(0)
-	i.AddChild("keep", i.NewInode(f1, fuse.S_IFREG, FileID{}), true)
+	i.AddChild("keep", i.NewInode(f1, NodeAttr{Mode: fuse.S_IFREG}), true)
 
 	f2 := &keepCacheFile{
 		keepCache: false,
 	}
 	f2.setContent(0)
-	i.AddChild("nokeep", i.NewInode(f2, fuse.S_IFREG, FileID{}), true)
+	i.AddChild("nokeep", i.NewInode(f2, NodeAttr{Mode: fuse.S_IFREG}), true)
 }
 
 func TestKeepCache(t *testing.T) {
@@ -94,6 +94,7 @@ func TestKeepCache(t *testing.T) {
 		&fuse.MountOptions{
 			Debug: testutil.VerboseTest(),
 		})
+
 	if err != nil {
 		t.Fatal(err)
 	}

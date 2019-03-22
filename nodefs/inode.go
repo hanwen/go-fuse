@@ -20,14 +20,17 @@ type parentData struct {
 	parent *Inode
 }
 
-// FileID provides a identifier for file objects defined by FUSE
-// filesystems.
-type FileID struct {
+// NodeAttr holds immutable attributes of a object in the filesystem.
+type NodeAttr struct {
+	// Each Inode has a type, which does not change over the
+	// lifetime of the inode, for example fuse.S_IFDIR.
+	Mode uint32
+
 	// The inode number must be unique among the currently live
 	// objects in the file system. It is used to communicate to
 	// the kernel about this file object. The values uint64(-1),
 	// and 1 are reserved. When using Ino==0, a unique, sequential
-	// number is assigned (starting at 2^63) on Inode creation.
+	// number is assigned (starting at 2^63 by default) on Inode creation.
 	Ino uint64
 
 	// When reusing a previously used inode number for a new
@@ -37,8 +40,8 @@ type FileID struct {
 	Gen uint64
 }
 
-// Reserved returns if the FileID is using reserved Inode numbers.
-func (i *FileID) Reserved() bool {
+// Reserved returns if the NodeAttr is using reserved Inode numbers.
+func (i *NodeAttr) Reserved() bool {
 	return i.Ino == 1 || i.Ino == ^uint64(0)
 }
 
@@ -47,10 +50,7 @@ func (i *FileID) Reserved() bool {
 // systems.  One can create fully-formed trees of Inodes ahead of time
 // by creating "persistent" Inodes.
 type Inode struct {
-	// The filetype bits from the mode.
-	mode uint32
-
-	nodeID FileID
+	nodeID NodeAttr
 
 	ops    Operations
 	bridge *rawBridge
@@ -100,14 +100,14 @@ func (n *Inode) linkOps() SymlinkOperations {
 	return n.ops.(SymlinkOperations)
 }
 
-// FileID returns the (Ino, Gen) tuple for this node.
-func (n *Inode) FileID() FileID {
+// NodeAttr returns the (Ino, Gen) tuple for this node.
+func (n *Inode) NodeAttr() NodeAttr {
 	return n.nodeID
 }
 
 // Mode returns the filetype
 func (n *Inode) Mode() uint32 {
-	return n.mode
+	return n.nodeID.Mode
 }
 
 // IsRoot returns true if this is the root of the FUSE mount.
@@ -271,8 +271,8 @@ func (iparent *Inode) setEntry(name string, ichild *Inode) {
 
 // NewPersistentInode returns an Inode whose lifetime is not in
 // control of the kernel.
-func (n *Inode) NewPersistentInode(node Operations, mode uint32, opaque FileID) *Inode {
-	return n.newInode(node, mode, opaque, true)
+func (n *Inode) NewPersistentInode(node Operations, id NodeAttr) *Inode {
+	return n.newInode(node, id, true)
 }
 
 // ForgetPersistent manually marks the node as no longer important. If
@@ -287,12 +287,12 @@ func (n *Inode) ForgetPersistent() {
 // non-zero, is used to implement hard-links.  If opaqueID is given,
 // and another node with the same ID is known, that will node will be
 // returned, and the passed-in `node` is ignored.
-func (n *Inode) NewInode(node Operations, mode uint32, opaqueID FileID) *Inode {
-	return n.newInode(node, mode, opaqueID, false)
+func (n *Inode) NewInode(node Operations, id NodeAttr) *Inode {
+	return n.newInode(node, id, false)
 }
 
-func (n *Inode) newInode(node Operations, mode uint32, opaqueID FileID, persistent bool) *Inode {
-	return n.bridge.newInode(node, mode, opaqueID, persistent)
+func (n *Inode) newInode(node Operations, id NodeAttr, persistent bool) *Inode {
+	return n.bridge.newInode(node, id, persistent)
 }
 
 // removeRef decreases references. Returns if this operation caused

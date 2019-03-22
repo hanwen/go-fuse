@@ -38,7 +38,7 @@ var _ Operations = &DefaultOperations{}
 //
 // dir1.Lookup("file") and dir2.Lookup("file") are executed simultaneously.
 //
-// If not using FileID, the mapping in rawBridge does not help. So,
+// If not using NodeAttr, the mapping in rawBridge does not help. So,
 // use atomics so that only one set can win.
 //
 // To read node.inode atomic.LoadPointer is used, however it is not expensive
@@ -135,7 +135,7 @@ func (n *DefaultOperations) ReadDir(ctx context.Context) (DirStream, fuse.Status
 	for k, ch := range InodeOf(n).Children() {
 		r = append(r, fuse.DirEntry{Mode: ch.Mode(),
 			Name: k,
-			Ino:  ch.FileID().Ino})
+			Ino:  ch.NodeAttr().Ino})
 	}
 	return NewListDirStream(r), fuse.OK
 }

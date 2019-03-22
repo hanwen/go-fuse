@@ -71,7 +71,7 @@ func (n *loopbackNode) Lookup(ctx context.Context, name string, out *fuse.EntryO
 
 	out.Attr.FromStat(&st)
 	node := n.rootNode.newLoopbackNode()
-	ch := n.inode().NewInode(node, out.Attr.Mode, n.rootNode.idFromStat(&st))
+	ch := n.inode().NewInode(node, n.rootNode.idFromStat(&st))
 	return ch, fuse.OK
 }
 
@@ -90,7 +90,7 @@ func (n *loopbackNode) Mknod(ctx context.Context, name string, mode, rdev uint32
 	out.Attr.FromStat(&st)
 
 	node := n.rootNode.newLoopbackNode()
-	ch := n.inode().NewInode(node, out.Attr.Mode, n.rootNode.idFromStat(&st))
+	ch := n.inode().NewInode(node, n.rootNode.idFromStat(&st))
 
 	return ch, fuse.OK
 }
@@ -110,7 +110,7 @@ func (n *loopbackNode) Mkdir(ctx context.Context, name string, mode uint32, out 
 	out.Attr.FromStat(&st)
 
 	node := n.rootNode.newLoopbackNode()
-	ch := n.inode().NewInode(node, out.Attr.Mode, n.rootNode.idFromStat(&st))
+	ch := n.inode().NewInode(node, n.rootNode.idFromStat(&st))
 
 	return ch, fuse.OK
 }
@@ -147,7 +147,7 @@ func (n *loopbackNode) Rename(ctx context.Context, name string, newParent Operat
 	return fuse.ToStatus(err)
 }
 
-func (r *loopbackRoot) idFromStat(st *syscall.Stat_t) FileID {
+func (r *loopbackRoot) idFromStat(st *syscall.Stat_t) NodeAttr {
 	// We compose an inode number by the underlying inode, and
 	// mixing in the device number. In traditional filesystems,
 	// the inode numbers are small. The device numbers are also
@@ -157,8 +157,9 @@ func (r *loopbackRoot) idFromStat(st *syscall.Stat_t) FileID {
 	// the underlying filesystem
 	swapped := (st.Dev << 32) | (st.Dev >> 32)
 	swappedRootDev := (r.rootDev << 32) | (r.rootDev >> 32)
-	return FileID{
-		Gen: 1,
+	return NodeAttr{
+		Mode: st.Mode,
+		Gen:  1,
 		// This should work well for traditional backing FSes,
 		// not so much for other go-fuse FS-es
 		Ino: (swapped ^ swappedRootDev) ^ st.Ino,
@@ -180,7 +181,7 @@ func (n *loopbackNode) Create(ctx context.Context, name string, flags uint32, mo
 	}
 
 	node := n.rootNode.newLoopbackNode()
-	ch := n.inode().NewInode(node, uint32(st.Mode), n.rootNode.idFromStat(&st))
+	ch := n.inode().NewInode(node, n.rootNode.idFromStat(&st))
 	lf := NewLoopbackFile(fd)
 	return ch, lf, 0, fuse.OK
 }
@@ -197,7 +198,7 @@ func (n *loopbackNode) Symlink(ctx context.Context, target, name string, out *fu
 		return nil, fuse.ToStatus(err)
 	}
 	node := n.rootNode.newLoopbackNode()
-	ch := n.inode().NewInode(node, uint32(st.Mode), n.rootNode.idFromStat(&st))
+	ch := n.inode().NewInode(node, n.rootNode.idFromStat(&st))
 
 	out.Attr.FromStat(&st)
 	return ch, fuse.OK
@@ -217,7 +218,7 @@ func (n *loopbackNode) Link(ctx context.Context, target Operations, name string,
 		return nil, fuse.ToStatus(err)
 	}
 	node := n.rootNode.newLoopbackNode()
-	ch := n.inode().NewInode(node, uint32(st.Mode), n.rootNode.idFromStat(&st))
+	ch := n.inode().NewInode(node, n.rootNode.idFromStat(&st))
 
 	out.Attr.FromStat(&st)
 	return ch, fuse.OK
