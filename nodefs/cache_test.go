@@ -62,28 +62,31 @@ func (f *keepCacheFile) Read(ctx context.Context, fh FileHandle, dest []byte, of
 
 type keepCacheRoot struct {
 	DefaultOperations
+
+	keep, nokeep *keepCacheFile
 }
 
 func (r *keepCacheRoot) OnAdd() {
 	i := InodeOf(r)
 
-	f1 := &keepCacheFile{
+	r.keep = &keepCacheFile{
 		keepCache: true,
 	}
-	f1.setContent(0)
-	i.AddChild("keep", i.NewInode(f1, NodeAttr{}), true)
+	r.keep.setContent(0)
+	i.AddChild("keep", i.NewInode(r.keep, NodeAttr{}), true)
 
-	f2 := &keepCacheFile{
+	r.nokeep = &keepCacheFile{
 		keepCache: false,
 	}
-	f2.setContent(0)
-	i.AddChild("nokeep", i.NewInode(f2, NodeAttr{}), true)
+	r.nokeep.setContent(0)
+	i.AddChild("nokeep", i.NewInode(r.nokeep, NodeAttr{}), true)
 }
 
 func TestKeepCache(t *testing.T) {
 	mntDir := testutil.TempDir()
 	sec := time.Second
-	rawFS := NewNodeFS(&keepCacheRoot{}, &Options{
+	root := &keepCacheRoot{}
+	rawFS := NewNodeFS(root, &Options{
 		Debug:             testutil.VerboseTest(),
 		FirstAutomaticIno: 1,
 
@@ -116,6 +119,18 @@ func TestKeepCache(t *testing.T) {
 
 	if bytes.Compare(c1, c2) != 0 {
 		t.Errorf("keep read 2 got %q want read 1 %q", c2, c1)
+	}
+
+	if s := InodeOf(root.keep).NotifyContent(0, 100); !s.Ok() {
+		t.Errorf("NotifyContent: %v", s)
+	}
+
+	c3, err := ioutil.ReadFile(mntDir + "/keep")
+	if err != nil {
+		t.Fatalf("read keep 3: %v", err)
+	}
+	if bytes.Compare(c2, c3) == 0 {
+		t.Errorf("keep read 3 got %q want different", c3)
 	}
 
 	nc1, err := ioutil.ReadFile(mntDir + "/nokeep")

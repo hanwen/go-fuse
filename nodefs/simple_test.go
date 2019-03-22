@@ -538,9 +538,6 @@ func TestNotifyEntry(t *testing.T) {
 	}
 }
 
-// XXX Test Notify() , but requires KEEP_CACHE ? or could use mmap?
-// XXX Test NotifyDelete?
-
 func TestReadDir(t *testing.T) {
 	tc := newTestCase(t, true, true)
 	defer tc.Clean()
