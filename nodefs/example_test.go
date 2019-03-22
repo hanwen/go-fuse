@@ -14,7 +14,7 @@ import (
 
 // An example of creating a loopback file system, and mounting it onto
 // a directory
-func ExampleNewNodeFS() {
+func ExampleMount() {
 	mntDir, _ := ioutil.TempDir("", "")
 
 	home := os.Getenv("HOME")
@@ -23,14 +23,14 @@ func ExampleNewNodeFS() {
 		log.Panic(err)
 	}
 
-	rawFS := NewNodeFS(root, &Options{})
-	server, err := fuse.NewServer(rawFS, mntDir,
-		&fuse.MountOptions{Debug: true})
+	server, err := Mount(mntDir, root, &Options{
+		MountOptions: fuse.MountOptions{Debug: true},
+	})
 	if err != nil {
 		log.Panic(err)
 	}
 
 	log.Printf("Mounted %s as loopback on %s", home, mntDir)
 	log.Printf("Unmount by calling 'fusermount -u %s'", mntDir)
-	server.Serve()
+	server.Wait()
 }

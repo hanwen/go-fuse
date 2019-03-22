@@ -53,24 +53,15 @@ func TestInterrupt(t *testing.T) {
 	defer os.Remove(mntDir)
 	root := &interruptRoot{}
 
-	_ = time.Second
 	oneSec := time.Second
-	rawFS := NewNodeFS(root, &Options{
-		// NOSUBMIT - should run all tests without cache too
+	server, err := Mount(mntDir, root, &Options{
+		MountOptions: fuse.MountOptions{
+			Debug: testutil.VerboseTest(),
+		},
 		EntryTimeout: &oneSec,
 		AttrTimeout:  &oneSec,
 	})
-
-	server, err := fuse.NewServer(rawFS, mntDir,
-		&fuse.MountOptions{
-			Debug: testutil.VerboseTest(),
-		})
 	if err != nil {
-		t.Fatal(err)
-	}
-
-	go server.Serve()
-	if err := server.WaitMount(); err != nil {
 		t.Fatal(err)
 	}
 	defer server.Unmount()

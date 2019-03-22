@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -63,23 +64,17 @@ func TestZipFS(t *testing.T) {
 	root := &zipRoot{r: r}
 
 	mntDir := testutil.TempDir()
-
-	rawFS := NewNodeFS(root, &Options{
+	defer os.Remove(mntDir)
+	server, err := Mount(mntDir, root, &Options{
+		MountOptions: fuse.MountOptions{
+			Debug: testutil.VerboseTest(),
+		},
 		FirstAutomaticIno: 1,
 	})
-	server, err := fuse.NewServer(rawFS, mntDir,
-		&fuse.MountOptions{
-			Debug: testutil.VerboseTest(),
-		})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer server.Unmount()
-	go server.Serve()
-	if err := server.WaitMount(); err != nil {
-		t.Fatal(err)
-	}
-
 	for k, v := range testData {
 		c, err := ioutil.ReadFile(filepath.Join(mntDir, k))
 		if err != nil {

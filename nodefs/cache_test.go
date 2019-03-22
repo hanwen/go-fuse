@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -84,28 +85,19 @@ func (r *keepCacheRoot) OnAdd(ctx context.Context) {
 
 func TestKeepCache(t *testing.T) {
 	mntDir := testutil.TempDir()
+	defer os.RemoveAll(mntDir)
 	sec := time.Second
 	root := &keepCacheRoot{}
-	rawFS := NewNodeFS(root, &Options{
+	server, err := Mount(mntDir, root, &Options{
+		MountOptions: fuse.MountOptions{
+			Debug: testutil.VerboseTest(),
+		},
 		FirstAutomaticIno: 1,
 
 		AttrTimeout:  &sec,
 		EntryTimeout: &sec,
 	})
-	server, err := fuse.NewServer(rawFS, mntDir,
-		&fuse.MountOptions{
-			Debug: testutil.VerboseTest(),
-		})
-
-	if err != nil {
-		t.Fatal(err)
-	}
 	defer server.Unmount()
-	go server.Serve()
-	if err := server.WaitMount(); err != nil {
-		t.Fatal(err)
-	}
-
 	c1, err := ioutil.ReadFile(mntDir + "/keep")
 	if err != nil {
 		t.Fatalf("read keep 1: %v", err)

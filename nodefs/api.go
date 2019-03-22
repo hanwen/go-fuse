@@ -308,6 +308,9 @@ type FileHandle interface {
 
 // Options sets options for the entire filesystem
 type Options struct {
+	// MountOptions contain the options for mounting the fuse server
+	fuse.MountOptions
+
 	// If set to nonnil, this defines the overall entry timeout
 	// for the file system. See fuse.EntryOut for more information.
 	EntryTimeout *time.Duration
