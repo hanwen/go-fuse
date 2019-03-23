@@ -11,7 +11,6 @@ import (
 	"syscall"
 
 	"github.com/hanwen/go-fuse/fuse"
-	"golang.org/x/sys/unix"
 )
 
 type loopbackRoot struct {
@@ -135,7 +134,7 @@ func toLoopbackNode(op Operations) *loopbackNode {
 
 func (n *loopbackNode) Rename(ctx context.Context, name string, newParent Operations, newName string, flags uint32) syscall.Errno {
 	newParentLoopback := toLoopbackNode(newParent)
-	if flags&unix.RENAME_EXCHANGE != 0 {
+	if flags&RENAME_EXCHANGE != 0 {
 		return n.renameExchange(name, newParentLoopback, newName)
 	}
 
@@ -154,10 +153,10 @@ func (r *loopbackRoot) idFromStat(st *syscall.Stat_t) NodeAttr {
 	// device number of the root, so a loopback FS that does not
 	// encompass multiple mounts will reflect the inode numbers of
 	// the underlying filesystem
-	swapped := (st.Dev << 32) | (st.Dev >> 32)
+	swapped := (uint64(st.Dev) << 32) | (uint64(st.Dev) >> 32)
 	swappedRootDev := (r.rootDev << 32) | (r.rootDev >> 32)
 	return NodeAttr{
-		Mode: st.Mode,
+		Mode: uint32(st.Mode),
 		Gen:  1,
 		// This should work well for traditional backing FSes,
 		// not so much for other go-fuse FS-es
@@ -279,24 +278,6 @@ func (n *loopbackNode) FGetAttr(ctx context.Context, f FileHandle, out *fuse.Att
 	return OK
 }
 
-func (n *loopbackNode) CopyFileRange(ctx context.Context, fhIn FileHandle,
-	offIn uint64, out *Inode, fhOut FileHandle, offOut uint64,
-	len uint64, flags uint64) (uint32, syscall.Errno) {
-	lfIn, ok := fhIn.(*loopbackFile)
-	if !ok {
-		return 0, syscall.ENOTSUP
-	}
-	lfOut, ok := fhOut.(*loopbackFile)
-	if !ok {
-		return 0, syscall.ENOTSUP
-	}
-
-	signedOffIn := int64(offIn)
-	signedOffOut := int64(offOut)
-	count, err := unix.CopyFileRange(lfIn.fd, &signedOffIn, lfOut.fd, &signedOffOut, int(len), int(flags))
-	return uint32(count), ToErrno(err)
-}
-
 // NewLoopback returns a root node for a loopback file system whose
 // root is at the given root.
 func NewLoopbackRoot(root string) (DirOperations, error) {
@@ -308,7 +289,7 @@ func NewLoopbackRoot(root string) (DirOperations, error) {
 
 	n := &loopbackRoot{
 		root:    root,
-		rootDev: st.Dev,
+		rootDev: uint64(st.Dev),
 	}
 	n.rootNode = n
 	return n, nil

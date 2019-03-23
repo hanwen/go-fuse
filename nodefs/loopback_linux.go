@@ -59,3 +59,21 @@ func (n *loopbackNode) renameExchange(name string, newparent *loopbackNode, newN
 
 	return ToErrno(unix.Renameat2(fd1, name, fd2, newName, unix.RENAME_EXCHANGE))
 }
+
+func (n *loopbackNode) CopyFileRange(ctx context.Context, fhIn FileHandle,
+	offIn uint64, out *Inode, fhOut FileHandle, offOut uint64,
+	len uint64, flags uint64) (uint32, syscall.Errno) {
+	lfIn, ok := fhIn.(*loopbackFile)
+	if !ok {
+		return 0, syscall.ENOTSUP
+	}
+	lfOut, ok := fhOut.(*loopbackFile)
+	if !ok {
+		return 0, syscall.ENOTSUP
+	}
+
+	signedOffIn := int64(offIn)
+	signedOffOut := int64(offOut)
+	count, err := unix.CopyFileRange(lfIn.fd, &signedOffIn, lfOut.fd, &signedOffOut, int(len), int(flags))
+	return uint32(count), ToErrno(err)
+}

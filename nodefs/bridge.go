@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
-	"golang.org/x/sys/unix"
 )
 
 func errnoToStatus(errno syscall.Errno) fuse.Status {
@@ -393,7 +392,7 @@ func (b *rawBridge) Rename(cancel <-chan struct{}, input *fuse.RenameIn, oldName
 	if mops, ok := p1.ops.(MutableDirOperations); ok {
 		errno := mops.Rename(&fuse.Context{Caller: input.Caller, Cancel: cancel}, oldName, p2.ops, newName, input.Flags)
 		if errno == 0 {
-			if input.Flags&unix.RENAME_EXCHANGE != 0 {
+			if input.Flags&RENAME_EXCHANGE != 0 {
 				p1.ExchangeChild(oldName, p2, newName)
 			} else {
 				p1.MvChild(oldName, p2, newName, true)

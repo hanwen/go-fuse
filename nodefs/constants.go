@@ -17,3 +17,6 @@ func ToErrno(err error) syscall.Errno {
 	s := fuse.ToStatus(err)
 	return syscall.Errno(s)
 }
+
+// RENAME_EXCHANGE is a flag argument for renameat2()
+const RENAME_EXCHANGE = 0x2
