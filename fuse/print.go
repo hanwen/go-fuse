@@ -94,114 +94,114 @@ func flagString(names map[int64]string, fl int64, def string) string {
 	return strings.Join(s, ",")
 }
 
-func (me *ForgetIn) string() string {
-	return fmt.Sprintf("{Nlookup=%d}", me.Nlookup)
+func (in *ForgetIn) string() string {
+	return fmt.Sprintf("{Nlookup=%d}", in.Nlookup)
 }
 
-func (me *_BatchForgetIn) string() string {
-	return fmt.Sprintf("{Count=%d}", me.Count)
+func (in *_BatchForgetIn) string() string {
+	return fmt.Sprintf("{Count=%d}", in.Count)
 }
 
-func (me *MkdirIn) string() string {
-	return fmt.Sprintf("{0%o (0%o)}", me.Mode, me.Umask)
+func (in *MkdirIn) string() string {
+	return fmt.Sprintf("{0%o (0%o)}", in.Mode, in.Umask)
 }
 
-func (me *Rename1In) string() string {
-	return fmt.Sprintf("{i%d}", me.Newdir)
+func (in *Rename1In) string() string {
+	return fmt.Sprintf("{i%d}", in.Newdir)
 }
 
-func (me *RenameIn) string() string {
-	return fmt.Sprintf("{i%d %x}", me.Newdir, me.Flags)
+func (in *RenameIn) string() string {
+	return fmt.Sprintf("{i%d %x}", in.Newdir, in.Flags)
 }
 
-func (me *SetAttrIn) string() string {
+func (in *SetAttrIn) string() string {
 	s := []string{}
-	if me.Valid&FATTR_MODE != 0 {
-		s = append(s, fmt.Sprintf("mode 0%o", me.Mode))
+	if in.Valid&FATTR_MODE != 0 {
+		s = append(s, fmt.Sprintf("mode 0%o", in.Mode))
 	}
-	if me.Valid&FATTR_UID != 0 {
-		s = append(s, fmt.Sprintf("uid %d", me.Uid))
+	if in.Valid&FATTR_UID != 0 {
+		s = append(s, fmt.Sprintf("uid %d", in.Uid))
 	}
-	if me.Valid&FATTR_GID != 0 {
-		s = append(s, fmt.Sprintf("gid %d", me.Gid))
+	if in.Valid&FATTR_GID != 0 {
+		s = append(s, fmt.Sprintf("gid %d", in.Gid))
 	}
-	if me.Valid&FATTR_SIZE != 0 {
-		s = append(s, fmt.Sprintf("size %d", me.Size))
+	if in.Valid&FATTR_SIZE != 0 {
+		s = append(s, fmt.Sprintf("size %d", in.Size))
 	}
-	if me.Valid&FATTR_ATIME != 0 {
-		s = append(s, fmt.Sprintf("atime %d.%09d", me.Atime, me.Atimensec))
+	if in.Valid&FATTR_ATIME != 0 {
+		s = append(s, fmt.Sprintf("atime %d.%09d", in.Atime, in.Atimensec))
 	}
-	if me.Valid&FATTR_MTIME != 0 {
-		s = append(s, fmt.Sprintf("mtime %d.%09d", me.Mtime, me.Mtimensec))
+	if in.Valid&FATTR_MTIME != 0 {
+		s = append(s, fmt.Sprintf("mtime %d.%09d", in.Mtime, in.Mtimensec))
 	}
-	if me.Valid&FATTR_FH != 0 {
-		s = append(s, fmt.Sprintf("fh %d", me.Fh))
+	if in.Valid&FATTR_FH != 0 {
+		s = append(s, fmt.Sprintf("fh %d", in.Fh))
 	}
 	// TODO - FATTR_ATIME_NOW = (1 << 7), FATTR_MTIME_NOW = (1 << 8), FATTR_LOCKOWNER = (1 << 9)
 	return fmt.Sprintf("{%s}", strings.Join(s, ", "))
 }
 
-func (me *ReleaseIn) string() string {
+func (in *ReleaseIn) string() string {
 	return fmt.Sprintf("{Fh %d %s %s L%d}",
-		me.Fh, flagString(openFlagNames, int64(me.Flags), ""),
-		flagString(releaseFlagNames, int64(me.ReleaseFlags), ""),
-		me.LockOwner)
+		in.Fh, flagString(openFlagNames, int64(in.Flags), ""),
+		flagString(releaseFlagNames, int64(in.ReleaseFlags), ""),
+		in.LockOwner)
 }
 
-func (me *OpenIn) string() string {
-	return fmt.Sprintf("{%s}", flagString(openFlagNames, int64(me.Flags), "O_RDONLY"))
+func (in *OpenIn) string() string {
+	return fmt.Sprintf("{%s}", flagString(openFlagNames, int64(in.Flags), "O_RDONLY"))
 }
 
-func (me *OpenOut) string() string {
-	return fmt.Sprintf("{Fh %d %s}", me.Fh,
-		flagString(fuseOpenFlagNames, int64(me.OpenFlags), ""))
+func (in *OpenOut) string() string {
+	return fmt.Sprintf("{Fh %d %s}", in.Fh,
+		flagString(fuseOpenFlagNames, int64(in.OpenFlags), ""))
 }
 
-func (me *InitIn) string() string {
+func (in *InitIn) string() string {
 	return fmt.Sprintf("{%d.%d Ra 0x%x %s}",
-		me.Major, me.Minor, me.MaxReadAhead,
-		flagString(initFlagNames, int64(me.Flags), ""))
+		in.Major, in.Minor, in.MaxReadAhead,
+		flagString(initFlagNames, int64(in.Flags), ""))
 }
 
-func (me *InitOut) string() string {
+func (o *InitOut) string() string {
 	return fmt.Sprintf("{%d.%d Ra 0x%x %s %d/%d Wr 0x%x Tg 0x%x}",
-		me.Major, me.Minor, me.MaxReadAhead,
-		flagString(initFlagNames, int64(me.Flags), ""),
-		me.CongestionThreshold, me.MaxBackground, me.MaxWrite,
-		me.TimeGran)
+		o.Major, o.Minor, o.MaxReadAhead,
+		flagString(initFlagNames, int64(o.Flags), ""),
+		o.CongestionThreshold, o.MaxBackground, o.MaxWrite,
+		o.TimeGran)
 }
 
 func (s *FsyncIn) string() string {
 	return fmt.Sprintf("{Fh %d Flags %x}", s.Fh, s.FsyncFlags)
 }
 
-func (me *SetXAttrIn) string() string {
-	return fmt.Sprintf("{sz %d f%o}", me.Size, me.Flags)
+func (in *SetXAttrIn) string() string {
+	return fmt.Sprintf("{sz %d f%o}", in.Size, in.Flags)
 }
 
-func (me *GetXAttrIn) string() string {
-	return fmt.Sprintf("{sz %d}", me.Size)
+func (in *GetXAttrIn) string() string {
+	return fmt.Sprintf("{sz %d}", in.Size)
 }
 
-func (me *GetXAttrOut) string() string {
-	return fmt.Sprintf("{sz %d}", me.Size)
+func (o *GetXAttrOut) string() string {
+	return fmt.Sprintf("{sz %d}", o.Size)
 }
 
-func (me *AccessIn) string() string {
+func (in *AccessIn) string() string {
 	return fmt.Sprintf("{u=%d g=%d %s}",
-		me.Uid,
-		me.Gid,
-		flagString(accessFlagName, int64(me.Mask), ""))
+		in.Uid,
+		in.Gid,
+		flagString(accessFlagName, int64(in.Mask), ""))
 }
 
-func (me *FlushIn) string() string {
-	return fmt.Sprintf("{Fh %d}", me.Fh)
+func (in *FlushIn) string() string {
+	return fmt.Sprintf("{Fh %d}", in.Fh)
 }
 
-func (me *AttrOut) string() string {
+func (o *AttrOut) string() string {
 	return fmt.Sprintf(
 		"{tA=%gs %v}",
-		ft(me.AttrValid, me.AttrValidNsec), &me.Attr)
+		ft(o.AttrValid, o.AttrValidNsec), &o.Attr)
 }
 
 // ft converts (seconds , nanoseconds) -> float(seconds)
@@ -210,21 +210,21 @@ func ft(tsec uint64, tnsec uint32) float64 {
 }
 
 // Returned by LOOKUP
-func (me *EntryOut) string() string {
+func (o *EntryOut) string() string {
 	return fmt.Sprintf("{i%d g%d tE=%gs tA=%gs %v}",
-		me.NodeId, me.Generation, ft(me.EntryValid, me.EntryValidNsec),
-		ft(me.AttrValid, me.AttrValidNsec), &me.Attr)
+		o.NodeId, o.Generation, ft(o.EntryValid, o.EntryValidNsec),
+		ft(o.AttrValid, o.AttrValidNsec), &o.Attr)
 }
 
-func (me *CreateOut) string() string {
-	return fmt.Sprintf("{i%d g%d %v %v}", me.NodeId, me.Generation, &me.EntryOut, &me.OpenOut)
+func (o *CreateOut) string() string {
+	return fmt.Sprintf("{i%d g%d %v %v}", o.NodeId, o.Generation, &o.EntryOut, &o.OpenOut)
 }
 
-func (me *StatfsOut) string() string {
+func (o *StatfsOut) string() string {
 	return fmt.Sprintf(
 		"{blocks (%d,%d)/%d files %d/%d bs%d nl%d frs%d}",
-		me.Bfree, me.Bavail, me.Blocks, me.Ffree, me.Files,
-		me.Bsize, me.NameLen, me.Frsize)
+		o.Bfree, o.Bavail, o.Blocks, o.Ffree, o.Files,
+		o.Bsize, o.NameLen, o.Frsize)
 }
 
 func (o *NotifyInvalEntryOut) string() string {

@@ -30,32 +30,32 @@ func (a *Attr) string() string {
 		ft(a.Ctime, a.Ctimensec))
 }
 
-func (me *CreateIn) string() string {
+func (in *CreateIn) string() string {
 	return fmt.Sprintf(
-		"{0%o [%s] (0%o)}", me.Mode,
-		flagString(openFlagNames, int64(me.Flags), "O_RDONLY"), me.Umask)
+		"{0%o [%s] (0%o)}", in.Mode,
+		flagString(openFlagNames, int64(in.Flags), "O_RDONLY"), in.Umask)
 }
 
-func (me *GetAttrIn) string() string {
-	return fmt.Sprintf("{Fh %d}", me.Fh_)
+func (in *GetAttrIn) string() string {
+	return fmt.Sprintf("{Fh %d}", in.Fh_)
 }
 
-func (me *MknodIn) string() string {
-	return fmt.Sprintf("{0%o (0%o), %d}", me.Mode, me.Umask, me.Rdev)
+func (in *MknodIn) string() string {
+	return fmt.Sprintf("{0%o (0%o), %d}", in.Mode, in.Umask, in.Rdev)
 }
 
-func (me *ReadIn) string() string {
+func (in *ReadIn) string() string {
 	return fmt.Sprintf("{Fh %d [%d +%d) %s L %d %s}",
-		me.Fh, me.Offset, me.Size,
-		flagString(readFlagNames, int64(me.ReadFlags), ""),
-		me.LockOwner,
-		flagString(openFlagNames, int64(me.Flags), "RDONLY"))
+		in.Fh, in.Offset, in.Size,
+		flagString(readFlagNames, int64(in.ReadFlags), ""),
+		in.LockOwner,
+		flagString(openFlagNames, int64(in.Flags), "RDONLY"))
 }
 
-func (me *WriteIn) string() string {
+func (in *WriteIn) string() string {
 	return fmt.Sprintf("{Fh %d [%d +%d) %s L %d %s}",
-		me.Fh, me.Offset, me.Size,
-		flagString(writeFlagNames, int64(me.WriteFlags), ""),
-		me.LockOwner,
-		flagString(openFlagNames, int64(me.Flags), "RDONLY"))
+		in.Fh, in.Offset, in.Size,
+		flagString(writeFlagNames, int64(in.WriteFlags), ""),
+		in.LockOwner,
+		flagString(openFlagNames, int64(in.Flags), "RDONLY"))
 }
