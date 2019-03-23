@@ -54,7 +54,7 @@ type loopbackNode struct {
 }
 
 func (n *loopbackNode) path() string {
-	path := InodeOf(n).Path(nil)
+	path := n.Inode().Path(nil)
 	return filepath.Join(n.rootNode.root, path)
 }
 

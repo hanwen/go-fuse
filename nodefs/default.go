@@ -43,7 +43,7 @@ func (n *DefaultOperations) init(ops Operations, attr NodeAttr, bridge *rawBridg
 	}
 }
 
-// Inode is syntactic sugar for InodeOf(ops).
+// Inode returns the Inode for this Operations
 func (n *DefaultOperations) Inode() *Inode {
 	return &n.inode_
 }
@@ -79,7 +79,7 @@ func (n *DefaultOperations) Access(ctx context.Context, mask uint32) syscall.Err
 	}
 
 	var out fuse.AttrOut
-	if s := InodeOf(n).Operations().GetAttr(ctx, &out); s != 0 {
+	if s := n.inode().Operations().GetAttr(ctx, &out); s != 0 {
 		return s
 	}
 
@@ -102,7 +102,7 @@ func (n *DefaultOperations) FSetAttr(ctx context.Context, f FileHandle, in *fuse
 // The Lookup method on the DefaultOperations type looks for an
 // existing child with the given name, or returns ENOENT.
 func (n *DefaultOperations) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
-	ch := InodeOf(n).GetChild(name)
+	ch := n.inode().GetChild(name)
 	if ch == nil {
 		return nil, syscall.ENOENT
 	}
@@ -141,7 +141,7 @@ func (n *DefaultOperations) OpenDir(ctx context.Context) syscall.Errno {
 // The default ReadDir returns the list of children from the tree
 func (n *DefaultOperations) ReadDir(ctx context.Context) (DirStream, syscall.Errno) {
 	r := []fuse.DirEntry{}
-	for k, ch := range InodeOf(n).Children() {
+	for k, ch := range n.inode().Children() {
 		r = append(r, fuse.DirEntry{Mode: ch.Mode(),
 			Name: k,
 			Ino:  ch.NodeAttr().Ino})

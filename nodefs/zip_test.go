@@ -170,7 +170,7 @@ func (zr *zipRoot) OnAdd(ctx context.Context) {
 	for _, f := range zr.r.File {
 		dir, base := filepath.Split(f.Name)
 
-		p := InodeOf(zr)
+		p := zr.Inode()
 		for _, component := range strings.Split(dir, "/") {
 			if len(component) == 0 {
 				continue

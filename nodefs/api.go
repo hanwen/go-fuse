@@ -64,31 +64,22 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-// InodeOf returns index-node associated with filesystem node.
-//
-// The identity of the Inode does not change over the lifetime of
-// the node object.
-func InodeOf(node Operations) *Inode {
-	return node.inode()
-}
-
 // Operations is the interface that implements the filesystem inode.
 // Each Operations instance must embed DefaultNode. All error
 // reporting must use the syscall.Errno type. The value 0 (`OK`)
 // should be used to indicate success.
 type Operations interface {
-	// setInode and inode are used by nodefs internally to link Inode to a Node.
+	// populateInode and inode are used by nodefs internally to
+	// link Inode to a Node.
 	//
-	// When a new Node instance is created, e.g. on Lookup, it has nil Inode.
-	// Nodefs infrastructure will notice this and associate created Node with new Inode.
-	//
-	// See InodeOf for public API to retrieve an inode from Node.
+	// See Inode() for the public API to retrieve an inode from Node.
 	inode() *Inode
 	init(ops Operations, attr NodeAttr, bridge *rawBridge, persistent bool)
 
-	// Inode() is a convenience method, and is equivalent to
-	// InodeOf(ops) It is provided by DefaultOperations, and
-	// should not be reimplemented.
+	// Inode returns the *Inode associated with this Operations
+	// instance.  The identity of the Inode does not change over
+	// the lifetime of the node object.  Inode() is provided by
+	// DefaultOperations, and should not be reimplemented.
 	Inode() *Inode
 
 	// StatFs implements statistics for the filesystem that holds
