@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -24,8 +23,6 @@ import (
 	"github.com/hanwen/go-fuse/internal/testutil"
 	"github.com/kylelemons/godebug/pretty"
 )
-
-var _ = log.Println
 
 type testCase struct {
 	*testing.T
