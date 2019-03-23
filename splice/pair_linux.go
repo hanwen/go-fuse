@@ -6,6 +6,7 @@ package splice
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"syscall"
 )
@@ -43,6 +44,11 @@ func (p *Pair) discard() {
 	if err == syscall.EAGAIN {
 		// all good.
 	} else if err != nil {
-		panic(err)
+		errR := syscall.Close(p.r)
+		errW := syscall.Close(p.w)
+
+		// This can happen if something closed our fd
+		// inadvertently (eg. double close)
+		log.Panicf("splicing into /dev/null: %v (close R %d '%v', close W %d '%v')", err, p.r, errR, p.w, errW)
 	}
 }

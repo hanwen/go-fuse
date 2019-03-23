@@ -94,7 +94,6 @@ func (pp *pairPool) get() (p *Pair, err error) {
 
 func (pp *pairPool) done(p *Pair) {
 	p.discard()
-
 	pp.Lock()
 	pp.usedCount--
 	pp.unused = append(pp.unused, p)
