@@ -137,16 +137,16 @@ func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file F
 }
 
 func (b *rawBridge) setEntryOutTimeout(out *fuse.EntryOut) {
-	if b.options.AttrTimeout != nil {
+	if b.options.AttrTimeout != nil && out.AttrTimeout() == 0 {
 		out.SetAttrTimeout(*b.options.AttrTimeout)
 	}
-	if b.options.EntryTimeout != nil {
+	if b.options.EntryTimeout != nil && out.EntryTimeout() == 0 {
 		out.SetEntryTimeout(*b.options.EntryTimeout)
 	}
 }
 
 func (b *rawBridge) setAttrTimeout(out *fuse.AttrOut) {
-	if b.options.AttrTimeout != nil {
+	if b.options.AttrTimeout != nil && out.Timeout() == 0 {
 		out.SetTimeout(*b.options.AttrTimeout)
 	}
 }
@@ -216,7 +216,7 @@ func (b *rawBridge) Lookup(cancel <-chan struct{}, header *fuse.InHeader, name s
 
 	child, errno := parent.dirOps().Lookup(&fuse.Context{Caller: header.Caller, Cancel: cancel}, name, out)
 	if errno != 0 {
-		if b.options.NegativeTimeout != nil {
+		if b.options.NegativeTimeout != nil && out.EntryTimeout() == 0 {
 			out.SetEntryTimeout(*b.options.NegativeTimeout)
 		}
 		return errnoToStatus(errno)
