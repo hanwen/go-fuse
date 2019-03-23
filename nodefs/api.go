@@ -145,9 +145,7 @@ type SymlinkOperations interface {
 	Readlink(ctx context.Context) ([]byte, syscall.Errno)
 }
 
-// FileOperations holds operations that apply to regular files.  The
-// default implementation, as returned from NewFileOperations forwards
-// to the passed-in FileHandle.
+// FileOperations holds operations that apply to regular files.
 type FileOperations interface {
 	Operations
 
@@ -264,7 +262,8 @@ type DirOperations interface {
 	ReadDir(ctx context.Context) (DirStream, syscall.Errno)
 }
 
-// MutableDirOperations are operations that change the hierarchy of a file system.
+// MutableDirOperations are operations for directories that can add or
+// remove entries.
 type MutableDirOperations interface {
 	DirOperations
 
