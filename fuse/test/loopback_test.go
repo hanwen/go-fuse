@@ -103,7 +103,7 @@ func NewTestCase(t *testing.T) *testCase {
 			LookupKnownChildren: true,
 		})
 	tc.state, err = fuse.NewServer(
-		fuse.NewRawFileSystem(tc.connector.RawFS()), tc.mnt, &fuse.MountOptions{
+		tc.connector.RawFS(), tc.mnt, &fuse.MountOptions{
 			SingleThreaded: true,
 			Debug:          testutil.VerboseTest(),
 		})

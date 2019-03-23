@@ -57,7 +57,7 @@ func TestUmask(t *testing.T) {
 			LookupKnownChildren: true,
 		})
 	server, err := fuse.NewServer(
-		fuse.NewRawFileSystem(connector.RawFS()), mnt, &fuse.MountOptions{
+		connector.RawFS(), mnt, &fuse.MountOptions{
 			SingleThreaded: true,
 			Debug:          testutil.VerboseTest(),
 		})
