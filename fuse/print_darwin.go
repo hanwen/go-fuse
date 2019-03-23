@@ -32,7 +32,7 @@ func (a *Attr) string() string {
 func (me *CreateIn) string() string {
 	return fmt.Sprintf(
 		"{0%o [%s]}", me.Mode,
-		FlagString(OpenFlagNames, int64(me.Flags), "O_RDONLY"))
+		flagString(openFlagNames, int64(me.Flags), "O_RDONLY"))
 }
 
 func (me *GetAttrIn) string() string { return "" }
@@ -44,11 +44,11 @@ func (me *MknodIn) string() string {
 func (me *ReadIn) string() string {
 	return fmt.Sprintf("{Fh %d [%d +%d) %s}",
 		me.Fh, me.Offset, me.Size,
-		FlagString(readFlagNames, int64(me.ReadFlags), ""))
+		flagString(readFlagNames, int64(me.ReadFlags), ""))
 }
 
 func (me *WriteIn) string() string {
 	return fmt.Sprintf("{Fh %d [%d +%d) %s}",
 		me.Fh, me.Offset, me.Size,
-		FlagString(writeFlagNames, int64(me.WriteFlags), ""))
+		flagString(writeFlagNames, int64(me.WriteFlags), ""))
 }

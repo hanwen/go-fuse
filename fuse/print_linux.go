@@ -10,10 +10,9 @@ import (
 )
 
 func init() {
-	OpenFlagNames[syscall.O_DIRECT] = "DIRECT"
-	OpenFlagNames[syscall.O_LARGEFILE] = "LARGEFILE"
-	OpenFlagNames[syscall_O_NOATIME] = "NOATIME"
-
+	openFlagNames[syscall.O_DIRECT] = "DIRECT"
+	openFlagNames[syscall.O_LARGEFILE] = "LARGEFILE"
+	openFlagNames[syscall_O_NOATIME] = "NOATIME"
 }
 
 func (a *Attr) string() string {
@@ -34,7 +33,7 @@ func (a *Attr) string() string {
 func (me *CreateIn) string() string {
 	return fmt.Sprintf(
 		"{0%o [%s] (0%o)}", me.Mode,
-		FlagString(OpenFlagNames, int64(me.Flags), "O_RDONLY"), me.Umask)
+		flagString(openFlagNames, int64(me.Flags), "O_RDONLY"), me.Umask)
 }
 
 func (me *GetAttrIn) string() string {
@@ -48,15 +47,15 @@ func (me *MknodIn) string() string {
 func (me *ReadIn) string() string {
 	return fmt.Sprintf("{Fh %d [%d +%d) %s L %d %s}",
 		me.Fh, me.Offset, me.Size,
-		FlagString(readFlagNames, int64(me.ReadFlags), ""),
+		flagString(readFlagNames, int64(me.ReadFlags), ""),
 		me.LockOwner,
-		FlagString(OpenFlagNames, int64(me.Flags), "RDONLY"))
+		flagString(openFlagNames, int64(me.Flags), "RDONLY"))
 }
 
 func (me *WriteIn) string() string {
 	return fmt.Sprintf("{Fh %d [%d +%d) %s L %d %s}",
 		me.Fh, me.Offset, me.Size,
-		FlagString(writeFlagNames, int64(me.WriteFlags), ""),
+		flagString(writeFlagNames, int64(me.WriteFlags), ""),
 		me.LockOwner,
-		FlagString(OpenFlagNames, int64(me.Flags), "RDONLY"))
+		flagString(openFlagNames, int64(me.Flags), "RDONLY"))
 }
