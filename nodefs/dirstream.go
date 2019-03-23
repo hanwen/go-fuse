@@ -28,6 +28,7 @@ func (a *dirArray) Close() {
 
 }
 
+// NewListDirStream wraps a slice of DirEntry as a DirStream.
 func NewListDirStream(list []fuse.DirEntry) DirStream {
 	return &dirArray{list}
 }
