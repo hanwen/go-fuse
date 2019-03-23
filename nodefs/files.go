@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"golang.org/x/sys/unix"
 )
 
 // NewLoopbackFile creates a FileHandle out of a file descriptor. All
@@ -180,4 +181,9 @@ func (f *loopbackFile) GetAttr(ctx context.Context, a *fuse.AttrOut) fuse.Status
 	a.FromStat(&st)
 
 	return fuse.OK
+}
+
+func (f *loopbackFile) Lseek(ctx context.Context, off uint64, whence uint32) (uint64, fuse.Status) {
+	n, err := unix.Seek(f.fd, int64(off), int(whence))
+	return uint64(n), fuse.ToStatus(err)
 }

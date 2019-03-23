@@ -746,3 +746,12 @@ func (b *rawBridge) CopyFileRange(cancel <-chan struct{}, in *fuse.CopyFileRange
 	return n1.fileOps().CopyFileRange(&fuse.Context{Caller: in.Caller, Cancel: cancel},
 		f1.file, in.OffIn, n2, f2.file, in.OffOut, in.Len, in.Flags)
 }
+
+func (b *rawBridge) Lseek(cancel <-chan struct{}, in *fuse.LseekIn, out *fuse.LseekOut) fuse.Status {
+	n, f := b.inode(in.NodeId, in.Fh)
+
+	off, status := n.fileOps().Lseek(&fuse.Context{Caller: in.Caller, Cancel: cancel},
+		f.file, in.Offset, in.Whence)
+	out.Offset = off
+	return status
+}

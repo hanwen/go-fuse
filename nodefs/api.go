@@ -192,10 +192,16 @@ type FileOperations interface {
 	// FSetAttr is like SetAttr but provides a file handle if available.
 	FSetAttr(ctx context.Context, f FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status
 
-	// CopyFileRange copies data between sections of two files.
+	// CopyFileRange copies data between sections of two files,
+	// without the data having to pass through the calling process.
 	CopyFileRange(ctx context.Context, fhIn FileHandle,
 		offIn uint64, out *Inode, fhOut FileHandle, offOut uint64,
 		len uint64, flags uint64) (uint32, fuse.Status)
+
+	// Lseek is used to implement holes: it should return the
+	// first offset beyond `off` where there is data (SEEK_DATA)
+	// or where there is a hole (SEEK_HOLE).
+	Lseek(ctx context.Context, f FileHandle, Off uint64, whence uint32) (uint64, fuse.Status)
 }
 
 // LockOperations are operations for locking regions of regular files.
@@ -290,8 +296,20 @@ type MutableDirOperations interface {
 	Rename(ctx context.Context, name string, newParent Operations, newName string, flags uint32) fuse.Status
 }
 
-// FileHandle is a resource identifier for opened files. For a
-// description, see the equivalent operations in FileOperations.
+// FileHandle is a resource identifier for opened files.  FileHandles
+// are useful in two cases: First, if the underlying storage systems
+// needs a handle for reading/writing. See the function
+// `NewLoopbackFile` for an example. Second, it is useful for
+// implementing files whose contents are not tied to an inode. For
+// example, a file like `/proc/interrupts` has no fixed content, but
+// changes on each open call. This means that each file handle must
+// have its own view of the content; this view can be tied to a
+// FileHandle. Files that have such dynamic content should return the
+// FOPEN_DIRECT_IO flag from their `Open` method. See directio_test.go
+// for an example.
+//
+// For a description of individual operations, see the equivalent
+// operations in FileOperations.
 type FileHandle interface {
 	Read(ctx context.Context, dest []byte, off int64) (fuse.ReadResult, fuse.Status)
 
@@ -300,6 +318,9 @@ type FileHandle interface {
 	GetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (status fuse.Status)
 	SetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status)
 	SetLkw(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status)
+
+	Lseek(ctx context.Context, off uint64, whence uint32) (uint64, fuse.Status)
+
 	Flush(ctx context.Context) fuse.Status
 
 	Fsync(ctx context.Context, flags uint32) fuse.Status

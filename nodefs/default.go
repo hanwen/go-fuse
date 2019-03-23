@@ -207,6 +207,13 @@ func (n *DefaultOperations) CopyFileRange(ctx context.Context, fhIn FileHandle,
 	return 0, fuse.EROFS
 }
 
+func (n *DefaultOperations) Lseek(ctx context.Context, f FileHandle, off uint64, whence uint32) (uint64, fuse.Status) {
+	if f != nil {
+		return f.Lseek(ctx, off, whence)
+	}
+	return 0, fuse.ENOTSUP
+}
+
 // GetLk delegates to the FileHandlef
 func (n *DefaultOperations) GetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (status fuse.Status) {
 	if f != nil {
@@ -353,4 +360,8 @@ func (f *DefaultFileHandle) Allocate(ctx context.Context, off uint64, size uint6
 
 func (f *DefaultFileHandle) Fsync(ctx context.Context, flags uint32) (status fuse.Status) {
 	return fuse.ENOTSUP
+}
+
+func (f *DefaultFileHandle) Lseek(ctx context.Context, off uint64, whence uint32) (uint64, fuse.Status) {
+	return 0, fuse.ENOTSUP
 }
