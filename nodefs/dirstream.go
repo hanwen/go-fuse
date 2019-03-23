@@ -5,6 +5,8 @@
 package nodefs
 
 import (
+	"syscall"
+
 	"github.com/hanwen/go-fuse/fuse"
 )
 
@@ -16,10 +18,10 @@ func (a *dirArray) HasNext() bool {
 	return len(a.entries) > 0
 }
 
-func (a *dirArray) Next() (fuse.DirEntry, fuse.Status) {
+func (a *dirArray) Next() (fuse.DirEntry, syscall.Errno) {
 	e := a.entries[0]
 	a.entries = a.entries[1:]
-	return e, fuse.OK
+	return e, 0
 }
 
 func (a *dirArray) Close() {

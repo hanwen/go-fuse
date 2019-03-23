@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"syscall"
 	"unsafe"
 
 	"github.com/hanwen/go-fuse/fuse"
@@ -631,33 +632,34 @@ retry:
 // NotifyEntry notifies the kernel that data for a (directory, name)
 // tuple should be invalidated. On next access, a LOOKUP operation
 // will be started.
-func (n *Inode) NotifyEntry(name string) fuse.Status {
-	return n.bridge.server.EntryNotify(n.nodeAttr.Ino, name)
+func (n *Inode) NotifyEntry(name string) syscall.Errno {
+	status := n.bridge.server.EntryNotify(n.nodeAttr.Ino, name)
+	return syscall.Errno(status)
 }
 
 // NotifyDelete notifies the kernel that the given inode was removed
 // from this directory as entry under the given name. It is equivalent
 // to NotifyEntry, but also sends an event to inotify watchers.
-func (n *Inode) NotifyDelete(name string, child *Inode) fuse.Status {
+func (n *Inode) NotifyDelete(name string, child *Inode) syscall.Errno {
 	// XXX arg ordering?
-	return n.bridge.server.DeleteNotify(n.nodeAttr.Ino, child.nodeAttr.Ino, name)
+	return syscall.Errno(n.bridge.server.DeleteNotify(n.nodeAttr.Ino, child.nodeAttr.Ino, name))
 
 }
 
 // NotifyContent notifies the kernel that content under the given
 // inode should be flushed from buffers.
-func (n *Inode) NotifyContent(off, sz int64) fuse.Status {
+func (n *Inode) NotifyContent(off, sz int64) syscall.Errno {
 	// XXX how does this work for directories?
-	return n.bridge.server.InodeNotify(n.nodeAttr.Ino, off, sz)
+	return syscall.Errno(n.bridge.server.InodeNotify(n.nodeAttr.Ino, off, sz))
 }
 
 // WriteCache stores data in the kernel cache.
-func (n *Inode) WriteCache(offset int64, data []byte) fuse.Status {
-	return n.bridge.server.InodeNotifyStoreCache(n.nodeAttr.Ino, offset, data)
-
+func (n *Inode) WriteCache(offset int64, data []byte) syscall.Errno {
+	return syscall.Errno(n.bridge.server.InodeNotifyStoreCache(n.nodeAttr.Ino, offset, data))
 }
 
 // ReadCache reads data from the kernel cache.
-func (n *Inode) ReadCache(offset int64, dest []byte) (count int, status fuse.Status) {
-	return n.bridge.server.InodeRetrieveCache(n.nodeAttr.Ino, offset, dest)
+func (n *Inode) ReadCache(offset int64, dest []byte) (count int, errno syscall.Errno) {
+	c, s := n.bridge.server.InodeRetrieveCache(n.nodeAttr.Ino, offset, dest)
+	return c, syscall.Errno(s)
 }

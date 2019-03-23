@@ -7,14 +7,15 @@ package nodefs
 import (
 	"io"
 	"os"
+	"syscall"
 
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-func NewLoopbackDirStream(nm string) (DirStream, fuse.Status) {
+func NewLoopbackDirStream(nm string) (DirStream, syscall.Errno) {
 	f, err := os.Open(nm)
 	if err != nil {
-		return nil, fuse.ToStatus(err)
+		return nil, ToErrno(err)
 	}
 	defer f.Close()
 
@@ -39,9 +40,9 @@ func NewLoopbackDirStream(nm string) (DirStream, fuse.Status) {
 		}
 
 		if err != nil {
-			return nil, fuse.ToStatus(err)
+			return nil, ToErrno(err)
 		}
 	}
 
-	return &dirArray{entries}, fuse.OK
+	return &dirArray{entries}, OK
 }

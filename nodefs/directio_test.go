@@ -30,14 +30,14 @@ type dioFH struct {
 	DefaultFileHandle
 }
 
-func (f *dioFH) Lseek(ctx context.Context, off uint64, whence uint32) (uint64, fuse.Status) {
+func (f *dioFH) Lseek(ctx context.Context, off uint64, whence uint32) (uint64, syscall.Errno) {
 	next := (off + 1023) & (^uint64(1023))
-	return next, fuse.OK
+	return next, OK
 }
 
-func (fh *dioFH) Read(ctx context.Context, data []byte, off int64) (fuse.ReadResult, fuse.Status) {
+func (fh *dioFH) Read(ctx context.Context, data []byte, off int64) (fuse.ReadResult, syscall.Errno) {
 	r := bytes.Repeat([]byte(fmt.Sprintf("%010d", off)), 1+len(data)/10)
-	return fuse.ReadResultData(r[:len(data)]), fuse.OK
+	return fuse.ReadResultData(r[:len(data)]), OK
 }
 
 // overrides Open so it can return a dioFH file handle
@@ -45,8 +45,8 @@ type dioFile struct {
 	DefaultOperations
 }
 
-func (f *dioFile) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, status fuse.Status) {
-	return &dioFH{}, fuse.FOPEN_DIRECT_IO, fuse.OK
+func (f *dioFile) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
+	return &dioFH{}, fuse.FOPEN_DIRECT_IO, OK
 }
 
 func TestDirectIO(t *testing.T) {

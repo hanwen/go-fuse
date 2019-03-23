@@ -525,8 +525,8 @@ func TestNotifyEntry(t *testing.T) {
 		t.Fatalf("got after %#v, want %#v", after, st)
 	}
 
-	if code := tc.loopback.Inode().NotifyEntry("file"); !code.Ok() {
-		t.Errorf("notify failed: %v", code)
+	if errno := tc.loopback.Inode().NotifyEntry("file"); errno != 0 {
+		t.Errorf("notify failed: %v", errno)
 	}
 
 	if err := syscall.Lstat(fn, &after); err != syscall.ENOENT {

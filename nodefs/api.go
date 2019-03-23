@@ -58,6 +58,7 @@ package nodefs
 
 import (
 	"context"
+	"syscall"
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
@@ -72,7 +73,9 @@ func InodeOf(node Operations) *Inode {
 }
 
 // Operations is the interface that implements the filesystem inode.
-// Each Operations instance must embed DefaultNode.
+// Each Operations instance must embed DefaultNode. All error
+// reporting must use the syscall.Errno type. The value 0 (`OK`)
+// should be used to indicate success.
 type Operations interface {
 	// setInode and inode are used by nodefs internally to link Inode to a Node.
 	//
@@ -91,21 +94,21 @@ type Operations interface {
 	// StatFs implements statistics for the filesystem that holds
 	// this Inode. DefaultNode implements this, because OSX
 	// filesystem must have a valid StatFs implementation.
-	StatFs(ctx context.Context, out *fuse.StatfsOut) fuse.Status
+	StatFs(ctx context.Context, out *fuse.StatfsOut) syscall.Errno
 
 	// Access should return if the caller can access the file with
 	// the given mode. In this case, the context has data about
 	// the real UID. For example a root-SUID binary called by user
 	// susan gets the UID and GID for susan here.
-	Access(ctx context.Context, mask uint32) fuse.Status
+	Access(ctx context.Context, mask uint32) syscall.Errno
 
 	// GetAttr reads attributes for an Inode. The library will
 	// ensure that Mode and Ino are set correctly. For regular
 	// files, Size should be set so it can be read correctly.
-	GetAttr(ctx context.Context, out *fuse.AttrOut) fuse.Status
+	GetAttr(ctx context.Context, out *fuse.AttrOut) syscall.Errno
 
 	// SetAttr sets attributes for an Inode.
-	SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status
+	SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno
 
 	// OnAdd is called once this Operations object is attached to
 	// an Inode.
@@ -119,19 +122,19 @@ type XAttrOperations interface {
 	// GetXAttr should read data for the given attribute into
 	// `dest` and return the number of bytes. If `dest` is too
 	// small, it should return ERANGE and the size of the attribute.
-	GetXAttr(ctx context.Context, attr string, dest []byte) (uint32, fuse.Status)
+	GetXAttr(ctx context.Context, attr string, dest []byte) (uint32, syscall.Errno)
 
 	// SetXAttr should store data for the given attribute.  See
 	// setxattr(2) for information about flags.
-	SetXAttr(ctx context.Context, attr string, data []byte, flags uint32) fuse.Status
+	SetXAttr(ctx context.Context, attr string, data []byte, flags uint32) syscall.Errno
 
 	// RemoveXAttr should delete the given attribute.
-	RemoveXAttr(ctx context.Context, attr string) fuse.Status
+	RemoveXAttr(ctx context.Context, attr string) syscall.Errno
 
 	// ListXAttr should read all attributes (null terminated) into
 	// `dest`. If the `dest` buffer is too small, it should return
 	// ERANGE and the correct size.
-	ListXAttr(ctx context.Context, dest []byte) (uint32, fuse.Status)
+	ListXAttr(ctx context.Context, dest []byte) (uint32, syscall.Errno)
 }
 
 // SymlinkOperations holds operations specific to symlinks.
@@ -139,7 +142,7 @@ type SymlinkOperations interface {
 	Operations
 
 	// Readlink reads the content of a symlink.
-	Readlink(ctx context.Context) ([]byte, fuse.Status)
+	Readlink(ctx context.Context) ([]byte, syscall.Errno)
 }
 
 // FileOperations holds operations that apply to regular files.  The
@@ -150,58 +153,58 @@ type FileOperations interface {
 
 	// Open opens an Inode (of regular file type) for reading. It
 	// is optional but recommended to return a FileHandle.
-	Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, status fuse.Status)
+	Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, errno syscall.Errno)
 
 	// Reads data from a file. The data should be returned as
 	// ReadResult, which may be constructed from the incoming
 	// `dest` buffer. If the file was opened without FileHandle,
 	// the FileHandle argument here is nil. The default
 	// implementation forwards to the FileHandle.
-	Read(ctx context.Context, f FileHandle, dest []byte, off int64) (fuse.ReadResult, fuse.Status)
+	Read(ctx context.Context, f FileHandle, dest []byte, off int64) (fuse.ReadResult, syscall.Errno)
 
 	// Writes the data into the file handle at given offset. After
 	// returning, the data will be reused and may not referenced.
 	// The default implementation forwards to the FileHandle.
-	Write(ctx context.Context, f FileHandle, data []byte, off int64) (written uint32, status fuse.Status)
+	Write(ctx context.Context, f FileHandle, data []byte, off int64) (written uint32, errno syscall.Errno)
 
 	// Fsync is a signal to ensure writes to the Inode are flushed
 	// to stable storage.  The default implementation forwards to the
 	// FileHandle.
-	Fsync(ctx context.Context, f FileHandle, flags uint32) (status fuse.Status)
+	Fsync(ctx context.Context, f FileHandle, flags uint32) syscall.Errno
 
 	// Flush is called for close() call on a file descriptor. In
 	// case of duplicated descriptor, it may be called more than
 	// once for a file.   The default implementation forwards to the
 	// FileHandle.
-	Flush(ctx context.Context, f FileHandle) fuse.Status
+	Flush(ctx context.Context, f FileHandle) syscall.Errno
 
 	// This is called to before the file handle is forgotten. The
 	// kernel ingores the return value of this method,
 	// so any cleanup that requires specific synchronization or
 	// could fail with I/O errors should happen in Flush instead.
 	// The default implementation forwards to the FileHandle.
-	Release(ctx context.Context, f FileHandle) fuse.Status
+	Release(ctx context.Context, f FileHandle) syscall.Errno
 
 	// Allocate preallocates space for future writes, so they will
 	// never encounter ESPACE.
-	Allocate(ctx context.Context, f FileHandle, off uint64, size uint64, mode uint32) (status fuse.Status)
+	Allocate(ctx context.Context, f FileHandle, off uint64, size uint64, mode uint32) syscall.Errno
 
 	// FGetAttr is like GetAttr but provides a file handle if available.
-	FGetAttr(ctx context.Context, f FileHandle, out *fuse.AttrOut) fuse.Status
+	FGetAttr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno
 
 	// FSetAttr is like SetAttr but provides a file handle if available.
-	FSetAttr(ctx context.Context, f FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status
+	FSetAttr(ctx context.Context, f FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno
 
 	// CopyFileRange copies data between sections of two files,
 	// without the data having to pass through the calling process.
 	CopyFileRange(ctx context.Context, fhIn FileHandle,
 		offIn uint64, out *Inode, fhOut FileHandle, offOut uint64,
-		len uint64, flags uint64) (uint32, fuse.Status)
+		len uint64, flags uint64) (uint32, syscall.Errno)
 
 	// Lseek is used to implement holes: it should return the
 	// first offset beyond `off` where there is data (SEEK_DATA)
 	// or where there is a hole (SEEK_HOLE).
-	Lseek(ctx context.Context, f FileHandle, Off uint64, whence uint32) (uint64, fuse.Status)
+	Lseek(ctx context.Context, f FileHandle, Off uint64, whence uint32) (uint64, syscall.Errno)
 }
 
 // LockOperations are operations for locking regions of regular files.
@@ -211,15 +214,15 @@ type LockOperations interface {
 	// GetLk returns locks that would conflict with the given
 	// input lock. If no locks conflict, the output has type
 	// L_UNLCK. See fcntl(2) for more information.
-	GetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (status fuse.Status)
+	GetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) syscall.Errno
 
 	// Obtain a lock on a file, or fail if the lock could not
 	// obtained.  See fcntl(2) for more information.
-	SetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status)
+	SetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) syscall.Errno
 
 	// Obtain a lock on a file, waiting if necessary. See fcntl(2)
 	// for more information.
-	SetLkw(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status)
+	SetLkw(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) syscall.Errno
 }
 
 // DirStream lists directory entries.
@@ -229,9 +232,9 @@ type DirStream interface {
 	HasNext() bool
 
 	// Next retrieves the next entry. It is only called if HasNext
-	// has previously returned true.  The Status may be used to
+	// has previously returned true.  The Errno return may be used to
 	// indicate I/O errors
-	Next() (fuse.DirEntry, fuse.Status)
+	Next() (fuse.DirEntry, syscall.Errno)
 
 	// Close releases resources related to this directory
 	// stream.
@@ -249,16 +252,16 @@ type DirOperations interface {
 	// the Inode for the child. A new inode can be created using
 	// `Inode.NewInode`. The new Inode will be added to the FS
 	// tree automatically if the return status is OK.
-	Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, fuse.Status)
+	Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno)
 
 	// OpenDir opens a directory Inode for reading its
 	// contents. The actual reading is driven from ReadDir, so
 	// this method is just for performing sanity/permission
 	// checks.
-	OpenDir(ctx context.Context) fuse.Status
+	OpenDir(ctx context.Context) syscall.Errno
 
 	// ReadDir opens a stream of directory entries.
-	ReadDir(ctx context.Context) (DirStream, fuse.Status)
+	ReadDir(ctx context.Context) (DirStream, syscall.Errno)
 }
 
 // MutableDirOperations are operations that change the hierarchy of a file system.
@@ -266,34 +269,34 @@ type MutableDirOperations interface {
 	DirOperations
 
 	// Mkdir is similar to Lookup, but must create a directory entry and Inode.
-	Mkdir(ctx context.Context, name string, mode uint32, out *fuse.EntryOut) (*Inode, fuse.Status)
+	Mkdir(ctx context.Context, name string, mode uint32, out *fuse.EntryOut) (*Inode, syscall.Errno)
 
 	// Mknod is similar to Lookup, but must create a device entry and Inode.
-	Mknod(ctx context.Context, name string, mode uint32, dev uint32, out *fuse.EntryOut) (*Inode, fuse.Status)
+	Mknod(ctx context.Context, name string, mode uint32, dev uint32, out *fuse.EntryOut) (*Inode, syscall.Errno)
 
 	// Link is similar to Lookup, but must create a new link to an existing Inode.
-	Link(ctx context.Context, target Operations, name string, out *fuse.EntryOut) (node *Inode, status fuse.Status)
+	Link(ctx context.Context, target Operations, name string, out *fuse.EntryOut) (node *Inode, errno syscall.Errno)
 
 	// Symlink is similar to Lookup, but must create a new symbolic link.
-	Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (node *Inode, status fuse.Status)
+	Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (node *Inode, errno syscall.Errno)
 
 	// Create is similar to Lookup, but should create a new
 	// child. It typically also returns a FileHandle as a
 	// reference for future reads/writes
-	Create(ctx context.Context, name string, flags uint32, mode uint32) (node *Inode, fh FileHandle, fuseFlags uint32, status fuse.Status)
+	Create(ctx context.Context, name string, flags uint32, mode uint32) (node *Inode, fh FileHandle, fuseFlags uint32, errno syscall.Errno)
 
 	// Unlink should remove a child from this directory.  If the
 	// return status is OK, the Inode is removed as child in the
 	// FS tree automatically.
-	Unlink(ctx context.Context, name string) fuse.Status
+	Unlink(ctx context.Context, name string) syscall.Errno
 
 	// Rmdir is like Unlink but for directories.
-	Rmdir(ctx context.Context, name string) fuse.Status
+	Rmdir(ctx context.Context, name string) syscall.Errno
 
 	// Rename should move a child from one directory to a
 	// different one. The changes is effected in the FS tree if
 	// the return status is OK
-	Rename(ctx context.Context, name string, newParent Operations, newName string, flags uint32) fuse.Status
+	Rename(ctx context.Context, name string, newParent Operations, newName string, flags uint32) syscall.Errno
 }
 
 // FileHandle is a resource identifier for opened files.  FileHandles
@@ -311,25 +314,25 @@ type MutableDirOperations interface {
 // For a description of individual operations, see the equivalent
 // operations in FileOperations.
 type FileHandle interface {
-	Read(ctx context.Context, dest []byte, off int64) (fuse.ReadResult, fuse.Status)
+	Read(ctx context.Context, dest []byte, off int64) (fuse.ReadResult, syscall.Errno)
 
-	Write(ctx context.Context, data []byte, off int64) (written uint32, status fuse.Status)
+	Write(ctx context.Context, data []byte, off int64) (written uint32, errno syscall.Errno)
 
-	GetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (status fuse.Status)
-	SetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status)
-	SetLkw(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (status fuse.Status)
+	GetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) syscall.Errno
+	SetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) syscall.Errno
+	SetLkw(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) syscall.Errno
 
-	Lseek(ctx context.Context, off uint64, whence uint32) (uint64, fuse.Status)
+	Lseek(ctx context.Context, off uint64, whence uint32) (uint64, syscall.Errno)
 
-	Flush(ctx context.Context) fuse.Status
+	Flush(ctx context.Context) syscall.Errno
 
-	Fsync(ctx context.Context, flags uint32) fuse.Status
+	Fsync(ctx context.Context, flags uint32) syscall.Errno
 
-	Release(ctx context.Context) fuse.Status
+	Release(ctx context.Context) syscall.Errno
 
-	GetAttr(ctx context.Context, out *fuse.AttrOut) fuse.Status
-	SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status
-	Allocate(ctx context.Context, off uint64, size uint64, mode uint32) (status fuse.Status)
+	GetAttr(ctx context.Context, out *fuse.AttrOut) syscall.Errno
+	SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno
+	Allocate(ctx context.Context, off uint64, size uint64, mode uint32) syscall.Errno
 }
 
 // Options sets options for the entire filesystem

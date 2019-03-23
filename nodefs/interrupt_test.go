@@ -8,6 +8,7 @@ import (
 	"context"
 	"os"
 	"os/exec"
+	"syscall"
 	"testing"
 	"time"
 
@@ -25,24 +26,24 @@ type interruptOps struct {
 	interrupted bool
 }
 
-func (r *interruptRoot) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, fuse.Status) {
+func (r *interruptRoot) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
 	if name != "file" {
-		return nil, fuse.ENOENT
+		return nil, syscall.ENOENT
 	}
 	ch := InodeOf(r).NewInode(ctx, &r.child, NodeAttr{
 		Ino: 2,
 		Gen: 1})
 
-	return ch, fuse.OK
+	return ch, OK
 }
 
-func (o *interruptOps) Open(ctx context.Context, flags uint32) (FileHandle, uint32, fuse.Status) {
+func (o *interruptOps) Open(ctx context.Context, flags uint32) (FileHandle, uint32, syscall.Errno) {
 	select {
 	case <-time.After(100 * time.Millisecond):
-		return nil, 0, fuse.EIO
+		return nil, 0, syscall.EIO
 	case <-ctx.Done():
 		o.interrupted = true
-		return nil, 0, fuse.EINTR
+		return nil, 0, syscall.EINTR
 	}
 }
 

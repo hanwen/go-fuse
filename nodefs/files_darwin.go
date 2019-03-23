@@ -6,15 +6,14 @@ package nodefs
 
 import (
 	"context"
+	"syscall"
 	"time"
-
-	"github.com/hanwen/go-fuse/fuse"
 )
 
-func (f *loopbackFile) Allocate(ctx context.Context, off uint64, sz uint64, mode uint32) fuse.Status {
-	return fuse.ENOSYS
+func (f *loopbackFile) Allocate(ctx context.Context, off uint64, sz uint64, mode uint32) syscall.Errno {
+	return syscall.ENOSYS
 }
 
-func (f *loopbackFile) Utimens(ctx context.Context, a *time.Time, m *time.Time) fuse.Status {
-	return fuse.ENOSYS
+func (f *loopbackFile) Utimens(ctx context.Context, a *time.Time, m *time.Time) syscall.Errno {
+	return syscall.ENOSYS
 }

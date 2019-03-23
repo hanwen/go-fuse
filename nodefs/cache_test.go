@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 	"sync"
+	"syscall"
 	"testing"
 
 	"github.com/hanwen/go-fuse/fuse"
@@ -33,31 +34,31 @@ func (f *keepCacheFile) setContent(delta int) {
 	f.content = []byte(fmt.Sprintf("%010x", f.count))
 }
 
-func (f *keepCacheFile) Open(ctx context.Context, flags uint32) (FileHandle, uint32, fuse.Status) {
+func (f *keepCacheFile) Open(ctx context.Context, flags uint32) (FileHandle, uint32, syscall.Errno) {
 	var fl uint32
 	if f.keepCache {
 		fl = fuse.FOPEN_KEEP_CACHE
 	}
 
 	f.setContent(0)
-	return nil, fl, fuse.OK
+	return nil, fl, OK
 }
 
-func (f *keepCacheFile) GetAttr(ctx context.Context, out *fuse.AttrOut) fuse.Status {
+func (f *keepCacheFile) GetAttr(ctx context.Context, out *fuse.AttrOut) syscall.Errno {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	out.Size = uint64(len(f.content))
 
-	return fuse.OK
+	return OK
 }
 
-func (f *keepCacheFile) Read(ctx context.Context, fh FileHandle, dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
+func (f *keepCacheFile) Read(ctx context.Context, fh FileHandle, dest []byte, off int64) (fuse.ReadResult, syscall.Errno) {
 	f.setContent(1)
 
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	return fuse.ReadResultData(f.content[off:]), fuse.OK
+	return fuse.ReadResultData(f.content[off:]), OK
 }
 
 type keepCacheRoot struct {
@@ -112,7 +113,7 @@ func TestKeepCache(t *testing.T) {
 		t.Errorf("keep read 2 got %q want read 1 %q", c2, c1)
 	}
 
-	if s := InodeOf(root.keep).NotifyContent(0, 100); !s.Ok() {
+	if s := InodeOf(root.keep).NotifyContent(0, 100); s != OK {
 		t.Errorf("NotifyContent: %v", s)
 	}
 

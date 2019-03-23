@@ -18,10 +18,10 @@ type loopbackDirStream struct {
 }
 
 // NewLoopbackDirStream open a directory for reading as a DirStream
-func NewLoopbackDirStream(name string) (DirStream, fuse.Status) {
+func NewLoopbackDirStream(name string) (DirStream, syscall.Errno) {
 	fd, err := syscall.Open(name, syscall.O_DIRECTORY, 0755)
 	if err != nil {
-		return nil, fuse.ToStatus(err)
+		return nil, ToErrno(err)
 	}
 
 	ds := &loopbackDirStream{
@@ -29,11 +29,11 @@ func NewLoopbackDirStream(name string) (DirStream, fuse.Status) {
 		fd:  fd,
 	}
 
-	if err := ds.load(); !err.Ok() {
+	if err := ds.load(); err != 0 {
 		ds.Close()
 		return nil, err
 	}
-	return ds, fuse.OK
+	return ds, OK
 }
 
 func (ds *loopbackDirStream) Close() {
@@ -44,7 +44,7 @@ func (ds *loopbackDirStream) HasNext() bool {
 	return len(ds.todo) > 0
 }
 
-func (ds *loopbackDirStream) Next() (fuse.DirEntry, fuse.Status) {
+func (ds *loopbackDirStream) Next() (fuse.DirEntry, syscall.Errno) {
 	de := (*syscall.Dirent)(unsafe.Pointer(&ds.todo[0]))
 
 	nameBytes := ds.todo[unsafe.Offsetof(syscall.Dirent{}.Name):de.Reclen]
@@ -64,15 +64,15 @@ func (ds *loopbackDirStream) Next() (fuse.DirEntry, fuse.Status) {
 	return result, ds.load()
 }
 
-func (ds *loopbackDirStream) load() fuse.Status {
+func (ds *loopbackDirStream) load() syscall.Errno {
 	if len(ds.todo) > 0 {
-		return fuse.OK
+		return OK
 	}
 
 	n, err := syscall.Getdents(ds.fd, ds.buf)
 	if err != nil {
-		return fuse.ToStatus(err)
+		return ToErrno(err)
 	}
 	ds.todo = ds.buf[:n]
-	return fuse.OK
+	return OK
 }
