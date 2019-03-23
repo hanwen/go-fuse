@@ -546,6 +546,15 @@ type EntryOut struct {
 	Attr
 }
 
+// EntryTimeout returns entry timeout currently
+func (o *EntryOut) EntryTimeout() time.Duration {
+	return time.Duration(uint64(o.EntryValidNsec) + o.EntryValid*1e9)
+}
+
+func (o *EntryOut) AttrTimeout() time.Duration {
+	return time.Duration(uint64(o.AttrValidNsec) + o.AttrValid*1e9)
+}
+
 func (o *EntryOut) SetEntryTimeout(dt time.Duration) {
 	ns := int64(dt)
 	o.EntryValidNsec = uint32(ns % 1e9)
@@ -563,6 +572,10 @@ type AttrOut struct {
 	AttrValidNsec uint32
 	Dummy         uint32
 	Attr
+}
+
+func (o *AttrOut) Timeout() time.Duration {
+	return time.Duration(uint64(o.AttrValidNsec) + o.AttrValid*1e9)
 }
 
 func (o *AttrOut) SetTimeout(dt time.Duration) {
