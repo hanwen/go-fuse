@@ -441,6 +441,12 @@ func doSetLkw(server *Server, req *request) {
 	req.status = server.fileSystem.SetLkw(req.cancel, (*LkIn)(req.inData))
 }
 
+func doLseek(server *Server, req *request) {
+	in := (*LseekIn)(req.inData)
+	out := (*LseekOut)(req.outData())
+	req.status = server.fileSystem.Lseek(req.cancel, in, out)
+}
+
 func doCopyFileRange(server *Server, req *request) {
 	in := (*CopyFileRangeIn)(req.inData)
 	out := (*WriteOut)(req.outData())
@@ -683,6 +689,7 @@ func init() {
 		_OP_RENAME2:         doRename2,
 		_OP_INTERRUPT:       doInterrupt,
 		_OP_COPY_FILE_RANGE: doCopyFileRange,
+		_OP_LSEEK:           doLseek,
 	} {
 		operationHandlers[op].Func = v
 	}

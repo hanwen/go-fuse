@@ -162,3 +162,7 @@ func (fs *defaultRawFileSystem) Fallocate(cancel <-chan struct{}, in *FallocateI
 func (fs *defaultRawFileSystem) CopyFileRange(cancel <-chan struct{}, input *CopyFileRangeIn) (written uint32, code Status) {
 	return 0, ENOSYS
 }
+
+func (fs *defaultRawFileSystem) Lseek(cancel <-chan struct{}, in *LseekIn, out *LseekOut) Status {
+	return ENOSYS
+}

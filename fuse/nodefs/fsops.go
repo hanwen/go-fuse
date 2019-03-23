@@ -498,3 +498,7 @@ func (c *rawBridge) Flush(cancel <-chan struct{}, input *fuse.FlushIn) fuse.Stat
 func (c *rawBridge) CopyFileRange(cancel <-chan struct{}, input *fuse.CopyFileRangeIn) (written uint32, code fuse.Status) {
 	return 0, fuse.ENOSYS
 }
+
+func (fs *rawBridge) Lseek(cancel <-chan struct{}, in *fuse.LseekIn, out *fuse.LseekOut) fuse.Status {
+	return fuse.ENOSYS
+}
