@@ -62,6 +62,9 @@ type Server struct {
 	loops        sync.WaitGroup
 
 	ready chan error
+
+	// for implementing single threaded processing.
+	requestProcessingMu sync.Mutex
 }
 
 // SetDebug is deprecated. Use MountOptions.Debug instead.
@@ -132,9 +135,6 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		}
 	}
 	o := *opts
-	if o.SingleThreaded {
-		fs = NewLockingRawFileSystem(fs)
-	}
 
 	if o.MaxWrite < 0 {
 		o.MaxWrite = 0
@@ -439,6 +439,11 @@ exit:
 }
 
 func (ms *Server) handleRequest(req *request) Status {
+	if ms.opts.SingleThreaded {
+		ms.requestProcessingMu.Lock()
+		defer ms.requestProcessingMu.Unlock()
+	}
+
 	req.parse()
 	if req.handler == nil {
 		req.status = ENOSYS
