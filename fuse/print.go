@@ -82,7 +82,6 @@ func init() {
 		W_OK: "w",
 		R_OK: "r",
 	}
-
 }
 
 func FlagString(names map[int64]string, fl int64, def string) string {
@@ -280,6 +279,23 @@ func (i *CopyFileRangeIn) string() string {
 
 func (in *InterruptIn) string() string {
 	return fmt.Sprintf("{ix %d}", in.Unique)
+}
+
+var seekNames = map[uint32]string{
+	0: "SET",
+	1: "CUR",
+	2: "END",
+	3: "DATA",
+	4: "HOLE",
+}
+
+func (in *LseekIn) string() string {
+	return fmt.Sprintf("{Fh %d [%s +%d)}", in.Fh,
+		seekNames[in.Whence], in.Offset)
+}
+
+func (o *LseekOut) string() string {
+	return fmt.Sprintf("{%d}", o.Offset)
 }
 
 // Print pretty prints FUSE data types for kernel communication
