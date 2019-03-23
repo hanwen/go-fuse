@@ -6,9 +6,7 @@ package nodefs
 
 import (
 	"context"
-	"sync/atomic"
 	"syscall"
-	"unsafe"
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/internal"
@@ -22,43 +20,32 @@ import (
 //
 // It must be embedded in any Operations implementation.
 type DefaultOperations struct {
-	inode_ *Inode
+	inode_ Inode
 }
 
 // check that we have implemented all interface methods
 var _ Operations = &DefaultOperations{}
 
-// set/retrieve inode.
-//
-// node -> inode association, can be simultaneously tried to be set, if for e.g.
-//
-//         root
-//         /  \
-//       dir1 dir2
-//         \  /
-//         file
-//
-// dir1.Lookup("file") and dir2.Lookup("file") are executed simultaneously.
-//
-// If not using NodeAttr, the mapping in rawBridge does not help. So,
-// use atomics so that only one set can win.
-//
-// To read node.inode atomic.LoadPointer is used, however it is not expensive
-// since it translates to regular MOVQ on amd64.
-func (n *DefaultOperations) setInode(inode *Inode) bool {
-	return atomic.CompareAndSwapPointer(
-		(*unsafe.Pointer)(unsafe.Pointer(&n.inode_)),
-		nil, unsafe.Pointer(inode))
+func (n *DefaultOperations) inode() *Inode {
+	return &n.inode_
 }
 
-func (n *DefaultOperations) inode() *Inode {
-	return (*Inode)(atomic.LoadPointer(
-		(*unsafe.Pointer)(unsafe.Pointer(&n.inode_))))
+func (n *DefaultOperations) init(ops Operations, attr NodeAttr, bridge *rawBridge, persistent bool) {
+	n.inode_ = Inode{
+		ops:        ops,
+		nodeAttr:   attr,
+		bridge:     bridge,
+		persistent: persistent,
+		parents:    make(map[parentData]struct{}),
+	}
+	if attr.Mode == fuse.S_IFDIR {
+		n.inode_.children = make(map[string]*Inode)
+	}
 }
 
 // Inode is syntactic sugar for InodeOf(ops).
 func (n *DefaultOperations) Inode() *Inode {
-	return n.inode()
+	return &n.inode_
 }
 
 // StatFs zeroes the out argument and returns OK.  This is because OSX

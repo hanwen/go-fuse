@@ -84,7 +84,7 @@ type Operations interface {
 	//
 	// See InodeOf for public API to retrieve an inode from Node.
 	inode() *Inode
-	setInode(*Inode) bool
+	init(ops Operations, attr NodeAttr, bridge *rawBridge, persistent bool)
 
 	// Inode() is a convenience method, and is equivalent to
 	// InodeOf(ops) It is provided by DefaultOperations, and

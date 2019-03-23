@@ -285,17 +285,17 @@ func (n *Inode) ForgetPersistent() {
 	n.removeRef(0, true)
 }
 
-// NewInode returns an inode for the given Operations. The mode should be
-// standard mode argument (eg. S_IFDIR). The opaqueID argument, if
-// non-zero, is used to implement hard-links.  If opaqueID is given,
-// and another node with the same ID is known, that will node will be
+// NewInode returns an inode for the given Operations. The mode should
+// be standard mode argument (eg. S_IFDIR). The inode number in id.Ino
+// argument is used to implement hard-links.  If it is given, and
+// another node with the same ID is known, that will node will be
 // returned, and the passed-in `node` is ignored.
-func (n *Inode) NewInode(ctx context.Context, node Operations, id NodeAttr) *Inode {
-	return n.newInode(ctx, node, id, false)
+func (n *Inode) NewInode(ctx context.Context, ops Operations, id NodeAttr) *Inode {
+	return n.newInode(ctx, ops, id, false)
 }
 
-func (n *Inode) newInode(ctx context.Context, node Operations, id NodeAttr, persistent bool) *Inode {
-	return n.bridge.newInode(ctx, node, id, persistent)
+func (n *Inode) newInode(ctx context.Context, ops Operations, id NodeAttr, persistent bool) *Inode {
+	return n.bridge.newInode(ctx, ops, id, persistent)
 }
 
 // removeRef decreases references. Returns if this operation caused

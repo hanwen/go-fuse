@@ -56,9 +56,20 @@ func (b *rawBridge) newInode(ctx context.Context, ops Operations, id NodeAttr, p
 		log.Panicf("using reserved ID %d for inode number", id.Ino)
 	}
 
+	// This ops already was populated. Just return it.
+	if ops.inode().bridge != nil {
+		return ops.inode()
+	}
+
 	if id.Ino == 0 {
-		id.Ino = b.automaticIno
-		b.automaticIno++
+		for {
+			id.Ino = b.automaticIno
+			b.automaticIno++
+			_, ok := b.nodes[id.Ino]
+			if !ok {
+				break
+			}
+		}
 	}
 
 	// the same node can be looked up through 2 paths in parallel, eg.
@@ -76,6 +87,7 @@ func (b *rawBridge) newInode(ctx context.Context, ops Operations, id NodeAttr, p
 	if old != nil {
 		return old
 	}
+
 	id.Mode = id.Mode &^ 07777
 	if id.Mode == 0 {
 		id.Mode = fuse.S_IFREG
@@ -92,26 +104,10 @@ func (b *rawBridge) newInode(ctx context.Context, ops Operations, id NodeAttr, p
 		log.Panicf("filetype %o unimplemented", id.Mode)
 	}
 
-	inode := &Inode{
-		ops:        ops,
-		nodeAttr:   id,
-		bridge:     b,
-		persistent: persistent,
-		parents:    make(map[parentData]struct{}),
-	}
-	if id.Mode == fuse.S_IFDIR {
-		inode.children = make(map[string]*Inode)
-	}
-
-	b.nodes[id.Ino] = inode
-	ops.setInode(inode)
-	newIno := ops.inode()
-
-	if newIno == inode {
-		newIno.ops.OnAdd(ctx)
-	}
-
-	return newIno
+	b.nodes[id.Ino] = ops.inode()
+	ops.init(ops, id, b, persistent)
+	ops.OnAdd(ctx)
+	return ops.inode()
 }
 
 // addNewChild inserts the child into the tree. Returns file handle if file != nil.
@@ -173,18 +169,16 @@ func NewNodeFS(root DirOperations, opts *Options) fuse.RawFileSystem {
 		bridge.options.AttrTimeout = &oneSec
 	}
 
-	bridge.root = &Inode{
-		lookupCount: 1,
-		children:    make(map[string]*Inode),
-		parents:     nil,
-		ops:         root,
-		bridge:      bridge,
-		nodeAttr: NodeAttr{
+	root.init(root,
+		NodeAttr{
 			Ino:  1,
 			Mode: fuse.S_IFDIR,
 		},
-	}
-	root.setInode(bridge.root)
+		bridge,
+		false,
+	)
+	bridge.root = root.inode()
+	bridge.root.lookupCount = 1
 	bridge.nodes = map[uint64]*Inode{
 		1: bridge.root,
 	}
