@@ -401,7 +401,7 @@ func (b *rawBridge) Rename(cancel <-chan struct{}, input *fuse.RenameIn, oldName
 			return errnoToStatus(errno)
 		}
 	}
-	return fuse.ENOSYS
+	return fuse.ENOTSUP
 }
 
 func (b *rawBridge) Link(cancel <-chan struct{}, input *fuse.LinkIn, name string, out *fuse.EntryOut) fuse.Status {
@@ -418,7 +418,7 @@ func (b *rawBridge) Link(cancel <-chan struct{}, input *fuse.LinkIn, name string
 		b.setEntryOutTimeout(out)
 		return fuse.OK
 	}
-	return fuse.ENOSYS
+	return fuse.ENOTSUP
 }
 
 func (b *rawBridge) Symlink(cancel <-chan struct{}, header *fuse.InHeader, target string, name string, out *fuse.EntryOut) fuse.Status {
@@ -434,7 +434,7 @@ func (b *rawBridge) Symlink(cancel <-chan struct{}, header *fuse.InHeader, targe
 		b.setEntryOutTimeout(out)
 		return fuse.OK
 	}
-	return fuse.ENOSYS
+	return fuse.ENOTSUP
 }
 
 func (b *rawBridge) Readlink(cancel <-chan struct{}, header *fuse.InHeader) (out []byte, status fuse.Status) {
@@ -462,7 +462,7 @@ func (b *rawBridge) GetXAttr(cancel <-chan struct{}, header *fuse.InHeader, attr
 		return nb, errnoToStatus(errno)
 	}
 
-	return 0, fuse.ENOSYS
+	return 0, fuse.ENOTSUP
 }
 
 func (b *rawBridge) ListXAttr(cancel <-chan struct{}, header *fuse.InHeader, dest []byte) (sz uint32, status fuse.Status) {
@@ -471,7 +471,7 @@ func (b *rawBridge) ListXAttr(cancel <-chan struct{}, header *fuse.InHeader, des
 		sz, errno := xops.ListXAttr(&fuse.Context{Caller: header.Caller, Cancel: cancel}, dest)
 		return sz, errnoToStatus(errno)
 	}
-	return 0, fuse.ENOSYS
+	return 0, fuse.ENOTSUP
 }
 
 func (b *rawBridge) SetXAttr(cancel <-chan struct{}, input *fuse.SetXAttrIn, attr string, data []byte) fuse.Status {
@@ -479,7 +479,7 @@ func (b *rawBridge) SetXAttr(cancel <-chan struct{}, input *fuse.SetXAttrIn, att
 	if xops, ok := n.ops.(XAttrOperations); ok {
 		return errnoToStatus(xops.SetXAttr(&fuse.Context{Caller: input.Caller, Cancel: cancel}, attr, data, input.Flags))
 	}
-	return fuse.ENOSYS
+	return fuse.ENOTSUP
 }
 
 func (b *rawBridge) RemoveXAttr(cancel <-chan struct{}, header *fuse.InHeader, attr string) fuse.Status {
@@ -487,7 +487,7 @@ func (b *rawBridge) RemoveXAttr(cancel <-chan struct{}, header *fuse.InHeader, a
 	if xops, ok := n.ops.(XAttrOperations); ok {
 		return errnoToStatus(xops.RemoveXAttr(&fuse.Context{Caller: header.Caller, Cancel: cancel}, attr))
 	}
-	return fuse.ENOSYS
+	return fuse.ENOTSUP
 }
 
 func (b *rawBridge) Open(cancel <-chan struct{}, input *fuse.OpenIn, out *fuse.OpenOut) fuse.Status {
@@ -538,7 +538,7 @@ func (b *rawBridge) GetLk(cancel <-chan struct{}, input *fuse.LkIn, out *fuse.Lk
 	if lops, ok := n.ops.(LockOperations); ok {
 		return errnoToStatus(lops.GetLk(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.Owner, &input.Lk, input.LkFlags, &out.Lk))
 	}
-	return fuse.ENOSYS
+	return fuse.ENOTSUP
 }
 
 func (b *rawBridge) SetLk(cancel <-chan struct{}, input *fuse.LkIn) fuse.Status {
@@ -546,14 +546,14 @@ func (b *rawBridge) SetLk(cancel <-chan struct{}, input *fuse.LkIn) fuse.Status 
 	if lops, ok := n.ops.(LockOperations); ok {
 		return errnoToStatus(lops.SetLk(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.Owner, &input.Lk, input.LkFlags))
 	}
-	return fuse.ENOSYS
+	return fuse.ENOTSUP
 }
 func (b *rawBridge) SetLkw(cancel <-chan struct{}, input *fuse.LkIn) fuse.Status {
 	n, f := b.inode(input.NodeId, input.Fh)
 	if lops, ok := n.ops.(LockOperations); ok {
 		return errnoToStatus(lops.SetLkw(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.Owner, &input.Lk, input.LkFlags))
 	}
-	return fuse.ENOSYS
+	return fuse.ENOTSUP
 }
 
 func (b *rawBridge) Release(input *fuse.ReleaseIn) {
