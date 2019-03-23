@@ -147,22 +147,39 @@ func TestCopyFileRange(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Open src: %v", err)
 	}
-	defer syscall.Close(f1)
+	defer func() {
+		// syscall.Close() is treacherous; because fds are
+		// reused, a double close can cause serious havoc
+		if f1 > 0 {
+			syscall.Close(f1)
+		}
+	}()
+
 	f2, err := syscall.Open(tc.mntDir+"/dst", syscall.O_RDWR, 0)
 	if err != nil {
 		t.Fatalf("Open dst: %v", err)
 	}
-	defer syscall.Close(f2)
+	defer func() {
+		if f2 > 0 {
+			defer syscall.Close(f2)
+		}
+	}()
 
 	srcOff := int64(5)
 	dstOff := int64(7)
 	if sz, err := unix.CopyFileRange(f1, &srcOff, f2, &dstOff, 3, 0); err != nil || sz != 3 {
 		t.Fatalf("CopyFileRange: %d,%v", sz, err)
 	}
-	if err := syscall.Close(f1); err != nil {
+
+	err = syscall.Close(f1)
+	f1 = 0
+	if err != nil {
 		t.Fatalf("Close src: %v", err)
 	}
-	if err := syscall.Close(f2); err != nil {
+
+	err = syscall.Close(f2)
+	f2 = 0
+	if err != nil {
 		t.Fatalf("Close dst: %v", err)
 	}
 	c, err := ioutil.ReadFile(tc.mntDir + "/dst")

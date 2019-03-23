@@ -128,7 +128,7 @@ func TestBasic(t *testing.T) {
 	}
 }
 
-func TestFile(t *testing.T) {
+func TestFileBasic(t *testing.T) {
 	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
