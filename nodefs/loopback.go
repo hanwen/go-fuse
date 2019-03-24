@@ -16,14 +16,8 @@ import (
 type loopbackRoot struct {
 	loopbackNode
 
-	root    string
-	rootDev uint64
-}
-
-func (n *loopbackRoot) newLoopbackNode() *loopbackNode {
-	return &loopbackNode{
-		rootNode: n,
-	}
+	rootPath string
+	rootDev  uint64
 }
 
 func (n *loopbackNode) StatFs(ctx context.Context, out *fuse.StatfsOut) syscall.Errno {
@@ -37,9 +31,8 @@ func (n *loopbackNode) StatFs(ctx context.Context, out *fuse.StatfsOut) syscall.
 }
 
 func (n *loopbackRoot) GetAttr(ctx context.Context, out *fuse.AttrOut) syscall.Errno {
-	var err error = nil
 	st := syscall.Stat_t{}
-	err = syscall.Stat(n.root, &st)
+	err := syscall.Stat(n.rootPath, &st)
 	if err != nil {
 		return ToErrno(err)
 	}
@@ -49,13 +42,15 @@ func (n *loopbackRoot) GetAttr(ctx context.Context, out *fuse.AttrOut) syscall.E
 
 type loopbackNode struct {
 	DefaultOperations
+}
 
-	rootNode *loopbackRoot
+func (n *loopbackNode) root() *loopbackRoot {
+	return n.Inode().Root().Operations().(*loopbackRoot)
 }
 
 func (n *loopbackNode) path() string {
 	path := n.Inode().Path(nil)
-	return filepath.Join(n.rootNode.root, path)
+	return filepath.Join(n.root().rootPath, path)
 }
 
 func (n *loopbackNode) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
@@ -68,8 +63,8 @@ func (n *loopbackNode) Lookup(ctx context.Context, name string, out *fuse.EntryO
 	}
 
 	out.Attr.FromStat(&st)
-	node := n.rootNode.newLoopbackNode()
-	ch := n.inode().NewInode(ctx, node, n.rootNode.idFromStat(&st))
+	node := &loopbackNode{}
+	ch := n.inode().NewInode(ctx, node, n.root().idFromStat(&st))
 	return ch, 0
 }
 
@@ -87,8 +82,8 @@ func (n *loopbackNode) Mknod(ctx context.Context, name string, mode, rdev uint32
 
 	out.Attr.FromStat(&st)
 
-	node := n.rootNode.newLoopbackNode()
-	ch := n.inode().NewInode(ctx, node, n.rootNode.idFromStat(&st))
+	node := &loopbackNode{}
+	ch := n.inode().NewInode(ctx, node, n.root().idFromStat(&st))
 
 	return ch, 0
 }
@@ -107,8 +102,8 @@ func (n *loopbackNode) Mkdir(ctx context.Context, name string, mode uint32, out 
 
 	out.Attr.FromStat(&st)
 
-	node := n.rootNode.newLoopbackNode()
-	ch := n.inode().NewInode(ctx, node, n.rootNode.idFromStat(&st))
+	node := &loopbackNode{}
+	ch := n.inode().NewInode(ctx, node, n.root().idFromStat(&st))
 
 	return ch, 0
 }
@@ -178,8 +173,8 @@ func (n *loopbackNode) Create(ctx context.Context, name string, flags uint32, mo
 		return nil, nil, 0, ToErrno(err)
 	}
 
-	node := n.rootNode.newLoopbackNode()
-	ch := n.inode().NewInode(ctx, node, n.rootNode.idFromStat(&st))
+	node := &loopbackNode{}
+	ch := n.inode().NewInode(ctx, node, n.root().idFromStat(&st))
 	lf := NewLoopbackFile(fd)
 	return ch, lf, 0, 0
 }
@@ -195,8 +190,8 @@ func (n *loopbackNode) Symlink(ctx context.Context, target, name string, out *fu
 		syscall.Unlink(p)
 		return nil, ToErrno(err)
 	}
-	node := n.rootNode.newLoopbackNode()
-	ch := n.inode().NewInode(ctx, node, n.rootNode.idFromStat(&st))
+	node := &loopbackNode{}
+	ch := n.inode().NewInode(ctx, node, n.root().idFromStat(&st))
 
 	out.Attr.FromStat(&st)
 	return ch, 0
@@ -215,8 +210,8 @@ func (n *loopbackNode) Link(ctx context.Context, target Operations, name string,
 		syscall.Unlink(p)
 		return nil, ToErrno(err)
 	}
-	node := n.rootNode.newLoopbackNode()
-	ch := n.inode().NewInode(ctx, node, n.rootNode.idFromStat(&st))
+	node := &loopbackNode{}
+	ch := n.inode().NewInode(ctx, node, n.root().idFromStat(&st))
 
 	out.Attr.FromStat(&st)
 	return ch, 0
@@ -288,9 +283,8 @@ func NewLoopbackRoot(root string) (DirOperations, error) {
 	}
 
 	n := &loopbackRoot{
-		root:    root,
-		rootDev: uint64(st.Dev),
+		rootPath: root,
+		rootDev:  uint64(st.Dev),
 	}
-	n.rootNode = n
 	return n, nil
 }

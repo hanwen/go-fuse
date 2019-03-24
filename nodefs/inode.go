@@ -13,8 +13,6 @@ import (
 	"sync"
 	"syscall"
 	"unsafe"
-
-	"github.com/hanwen/go-fuse/fuse"
 )
 
 type parentData struct {
@@ -76,8 +74,9 @@ type Inode struct {
 	// by calling removeRef.
 	persistent bool
 
-	// changeCounter increments every time the below mutable state
-	// (lookupCount, nodeAttr, children, parents) is modified.
+	// changeCounter increments every time the mutable state
+	// (lookupCount, persistent, children, parents) protected by
+	// mu is modified.
 	//
 	// This is used in places where we have to relock inode into inode
 	// group lock, and after locking the group we have to check if inode
@@ -113,9 +112,9 @@ func (n *Inode) Mode() uint32 {
 	return n.nodeAttr.Mode
 }
 
-// IsRoot returns true if this is the root of the FUSE mount.
-func (n *Inode) IsRoot() bool {
-	return n.nodeAttr.Ino == fuse.FUSE_ROOT_ID
+// Returns the root of the tree
+func (n *Inode) Root() *Inode {
+	return n.bridge.root
 }
 
 // debugString is used for debugging. Racy.
