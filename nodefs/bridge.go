@@ -550,15 +550,14 @@ func (b *rawBridge) SetLkw(cancel <-chan struct{}, input *fuse.LkIn) fuse.Status
 	return fuse.ENOTSUP
 }
 
-func (b *rawBridge) Release(input *fuse.ReleaseIn) {
-	// XXX should have cancel channel too.
+func (b *rawBridge) Release(cancel <-chan struct{}, input *fuse.ReleaseIn) {
 	n, f := b.releaseFileEntry(input.NodeId, input.Fh)
 	if f == nil {
 		return
 	}
 
 	f.wg.Wait()
-	n.fileOps().Release(&fuse.Context{Caller: input.Caller, Cancel: nil}, f.file)
+	n.fileOps().Release(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file)
 
 	b.mu.Lock()
 	defer b.mu.Unlock()

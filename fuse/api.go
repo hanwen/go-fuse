@@ -246,7 +246,7 @@ type RawFileSystem interface {
 	SetLk(cancel <-chan struct{}, input *LkIn) (code Status)
 	SetLkw(cancel <-chan struct{}, input *LkIn) (code Status)
 
-	Release(input *ReleaseIn)
+	Release(cancel <-chan struct{}, input *ReleaseIn)
 	Write(cancel <-chan struct{}, input *WriteIn, data []byte) (written uint32, code Status)
 	CopyFileRange(cancel <-chan struct{}, input *CopyFileRangeIn) (written uint32, code Status)
 

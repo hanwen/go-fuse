@@ -125,7 +125,7 @@ func (fs *defaultRawFileSystem) SetLkw(cancel <-chan struct{}, in *LkIn) (code S
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) Release(input *ReleaseIn) {
+func (fs *defaultRawFileSystem) Release(cancel <-chan struct{}, input *ReleaseIn) {
 }
 
 func (fs *defaultRawFileSystem) Write(cancel <-chan struct{}, input *WriteIn, data []byte) (written uint32, code Status) {

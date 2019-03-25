@@ -360,7 +360,7 @@ func doFlush(server *Server, req *request) {
 }
 
 func doRelease(server *Server, req *request) {
-	server.fileSystem.Release((*ReleaseIn)(req.inData))
+	server.fileSystem.Release(req.cancel, (*ReleaseIn)(req.inData))
 }
 
 func doFsync(server *Server, req *request) {

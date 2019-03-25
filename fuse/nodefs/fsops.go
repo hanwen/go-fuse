@@ -362,7 +362,7 @@ func (c *rawBridge) Create(cancel <-chan struct{}, input *fuse.CreateIn, name st
 	return code
 }
 
-func (c *rawBridge) Release(input *fuse.ReleaseIn) {
+func (c *rawBridge) Release(cancel <-chan struct{}, input *fuse.ReleaseIn) {
 	if input.Fh != 0 {
 		node := c.toInode(input.NodeId)
 		opened := node.mount.unregisterFileHandle(input.Fh, node)
