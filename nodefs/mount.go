@@ -31,7 +31,8 @@ func Mount(dir string, root DirOperations, options *Options) (*fuse.Server, erro
 
 	go server.Serve()
 	if err := server.WaitMount(); err != nil {
-		// XXX should shutdown the serve loop?
+		// we don't shutdown the serve loop. If the mount does
+		// not succeed, the loop won't work and exit.
 		return nil, err
 	}
 

@@ -49,3 +49,14 @@ Decisions
      directory reads, and adding files after opening (but before
      reading) are handled automatically. No support for directory
      seeks.
+
+To decide
+=========
+
+   * A better name for DefaultOperations.
+   
+       * InodeLink
+       * ReadonlyOperations
+       * BaseOperations
+       
+   * implement remaining file types (exercise Mknod)
