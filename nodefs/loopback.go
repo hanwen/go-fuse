@@ -41,7 +41,7 @@ func (n *loopbackRoot) GetAttr(ctx context.Context, out *fuse.AttrOut) syscall.E
 }
 
 type loopbackNode struct {
-	DefaultOperations
+	OperationStubs
 }
 
 func (n *loopbackNode) root() *loopbackRoot {

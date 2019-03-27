@@ -65,7 +65,7 @@ import (
 )
 
 // Operations is the interface that implements the filesystem inode.
-// Each Operations instance must embed DefaultNode. All error
+// Each Operations instance must embed OperationStubs. All error
 // reporting must use the syscall.Errno type. The value 0 (`OK`)
 // should be used to indicate success.
 type Operations interface {
@@ -79,12 +79,11 @@ type Operations interface {
 	// Inode returns the *Inode associated with this Operations
 	// instance.  The identity of the Inode does not change over
 	// the lifetime of the node object.  Inode() is provided by
-	// DefaultOperations, and should not be reimplemented.
+	// OperationStubs, and should not be reimplemented.
 	Inode() *Inode
 
 	// StatFs implements statistics for the filesystem that holds
-	// this Inode. DefaultNode implements this, because OSX
-	// filesystem must have a valid StatFs implementation.
+	// this Inode.
 	StatFs(ctx context.Context, out *fuse.StatfsOut) syscall.Errno
 
 	// Access should return if the caller can access the file with

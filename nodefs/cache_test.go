@@ -19,7 +19,7 @@ import (
 )
 
 type keepCacheFile struct {
-	DefaultOperations
+	OperationStubs
 	keepCache bool
 
 	mu      sync.Mutex
@@ -62,7 +62,7 @@ func (f *keepCacheFile) Read(ctx context.Context, fh FileHandle, dest []byte, of
 }
 
 type keepCacheRoot struct {
-	DefaultOperations
+	OperationStubs
 
 	keep, nokeep *keepCacheFile
 }

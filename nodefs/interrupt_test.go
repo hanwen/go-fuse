@@ -17,12 +17,12 @@ import (
 )
 
 type interruptRoot struct {
-	DefaultOperations
+	OperationStubs
 	child interruptOps
 }
 
 type interruptOps struct {
-	DefaultOperations
+	OperationStubs
 	interrupted bool
 }
 

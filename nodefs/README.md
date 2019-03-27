@@ -53,10 +53,4 @@ Decisions
 To decide
 =========
 
-   * A better name for DefaultOperations.
-   
-       * InodeLink
-       * ReadonlyOperations
-       * BaseOperations
-       
    * implement remaining file types (exercise Mknod)

@@ -106,7 +106,7 @@ func TestZipFS(t *testing.T) {
 
 // zipFile is a file read from a zip archive.
 type zipFile struct {
-	DefaultOperations
+	OperationStubs
 	file *zip.File
 
 	mu   sync.Mutex
@@ -157,7 +157,7 @@ func (zf *zipFile) Read(ctx context.Context, f FileHandle, dest []byte, off int6
 // zipRoot is the root of the Zip filesystem. Its only functionality
 // is populating the filesystem.
 type zipRoot struct {
-	DefaultOperations
+	OperationStubs
 
 	r *zip.Reader
 }
@@ -177,7 +177,7 @@ func (zr *zipRoot) OnAdd(ctx context.Context) {
 			}
 			ch := p.GetChild(component)
 			if ch == nil {
-				ch = p.NewPersistentInode(ctx, &DefaultOperations{},
+				ch = p.NewPersistentInode(ctx, &OperationStubs{},
 					NodeAttr{Mode: fuse.S_IFDIR})
 				p.AddChild(component, ch, true)
 			}

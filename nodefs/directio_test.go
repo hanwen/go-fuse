@@ -17,7 +17,7 @@ import (
 )
 
 type dioRoot struct {
-	DefaultOperations
+	OperationStubs
 }
 
 func (r *dioRoot) OnAdd(ctx context.Context) {
@@ -27,7 +27,7 @@ func (r *dioRoot) OnAdd(ctx context.Context) {
 // A file handle that pretends that every hole/data starts at
 // multiples of 1024
 type dioFH struct {
-	DefaultFileHandle
+	FileHandleStubs
 }
 
 func (f *dioFH) Lseek(ctx context.Context, off uint64, whence uint32) (uint64, syscall.Errno) {
@@ -42,7 +42,7 @@ func (fh *dioFH) Read(ctx context.Context, data []byte, off int64) (fuse.ReadRes
 
 // overrides Open so it can return a dioFH file handle
 type dioFile struct {
-	DefaultOperations
+	OperationStubs
 }
 
 func (f *dioFile) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
