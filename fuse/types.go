@@ -253,6 +253,7 @@ const (
 	FOPEN_DIRECT_IO   = (1 << 0)
 	FOPEN_KEEP_CACHE  = (1 << 1)
 	FOPEN_NONSEEKABLE = (1 << 2)
+	FOPEN_CACHE_DIR   = (1 << 3)
 )
 
 type OpenOut struct {
