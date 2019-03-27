@@ -81,9 +81,7 @@ func TestDirectIO(t *testing.T) {
 		t.Errorf("got %q want %q", got, want)
 	}
 
-	const SEEK_DATA = 3 /* seek to the next data */
-
-	if n, err := syscall.Seek(int(f.Fd()), 512, SEEK_DATA); err != nil {
+	if n, err := syscall.Seek(int(f.Fd()), 512, _SEEK_DATA); err != nil {
 		t.Errorf("Seek: %v", err)
 	} else if n != 1024 {
 		t.Errorf("seek: got %d, want %d", n, 1024)

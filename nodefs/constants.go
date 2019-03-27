@@ -21,3 +21,9 @@ func ToErrno(err error) syscall.Errno {
 
 // RENAME_EXCHANGE is a flag argument for renameat2()
 const RENAME_EXCHANGE = 0x2
+
+// seek to the next data
+const _SEEK_DATA = 3
+
+// seek to the next hole
+const _SEEK_HOLE = 4

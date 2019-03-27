@@ -195,10 +195,16 @@ func (n *OperationStubs) CopyFileRange(ctx context.Context, fhIn FileHandle,
 	return 0, syscall.EROFS
 }
 
+// Lseek is called for seeking to and beyond holes. By default, it
+// returns the input offset unchanged.
 func (n *OperationStubs) Lseek(ctx context.Context, f FileHandle, off uint64, whence uint32) (uint64, syscall.Errno) {
 	if f != nil {
 		return f.Lseek(ctx, off, whence)
 	}
+	if whence == _SEEK_DATA || whence == _SEEK_HOLE {
+		return off, OK
+	}
+
 	return 0, syscall.ENOTSUP
 }
 
