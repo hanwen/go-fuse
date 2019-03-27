@@ -217,8 +217,14 @@ func (r *request) outData() unsafe.Pointer {
 // serializeHeader serializes the response header. The header points
 // to an internal buffer of the receiver.
 func (r *request) serializeHeader(flatDataSize int) (header []byte) {
-	dataLength := r.handler.OutputSize
+	var dataLength uintptr
+
+	if r.handler != nil {
+		dataLength = r.handler.OutputSize
+	}
 	if r.status > OK {
+		// only do this for positive status; negative status
+		// is used for notification.
 		dataLength = 0
 	}
 
