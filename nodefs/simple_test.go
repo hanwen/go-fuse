@@ -142,7 +142,7 @@ func TestFileBasic(t *testing.T) {
 	if got, err := ioutil.ReadFile(fn); err != nil {
 		t.Fatalf("ReadFile: %v", err)
 	} else if bytes.Compare(got, content) != 0 {
-		t.Errorf("got %q, want %q", got, content)
+		t.Errorf("ReadFile: got %q, want %q", got, content)
 	}
 
 	f, err := os.Open(fn)

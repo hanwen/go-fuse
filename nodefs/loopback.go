@@ -6,6 +6,7 @@ package nodefs
 
 import (
 	"context"
+	"log"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -20,7 +21,7 @@ type loopbackRoot struct {
 	rootDev  uint64
 }
 
-func (n *loopbackNode) StatFs(ctx context.Context, out *fuse.StatfsOut) syscall.Errno {
+func (n *loopbackNode) Statfs(ctx context.Context, out *fuse.StatfsOut) syscall.Errno {
 	s := syscall.Statfs_t{}
 	err := syscall.Statfs(n.path(), &s)
 	if err != nil {
@@ -30,7 +31,8 @@ func (n *loopbackNode) StatFs(ctx context.Context, out *fuse.StatfsOut) syscall.
 	return OK
 }
 
-func (n *loopbackRoot) GetAttr(ctx context.Context, out *fuse.AttrOut) syscall.Errno {
+func (n *loopbackRoot) Getattr(ctx context.Context, out *fuse.AttrOut) syscall.Errno {
+	log.Println("getattr")
 	st := syscall.Stat_t{}
 	err := syscall.Stat(n.rootPath, &st)
 	if err != nil {
@@ -243,7 +245,7 @@ func (n *loopbackNode) Open(ctx context.Context, flags uint32) (fh FileHandle, f
 	return lf, 0, 0
 }
 
-func (n *loopbackNode) OpenDir(ctx context.Context) syscall.Errno {
+func (n *loopbackNode) Opendir(ctx context.Context) syscall.Errno {
 	fd, err := syscall.Open(n.path(), syscall.O_DIRECTORY, 0755)
 	if err != nil {
 		return ToErrno(err)
@@ -252,13 +254,13 @@ func (n *loopbackNode) OpenDir(ctx context.Context) syscall.Errno {
 	return OK
 }
 
-func (n *loopbackNode) ReadDir(ctx context.Context) (DirStream, syscall.Errno) {
+func (n *loopbackNode) Readdir(ctx context.Context) (DirStream, syscall.Errno) {
 	return NewLoopbackDirStream(n.path())
 }
 
-func (n *loopbackNode) FGetAttr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno {
+func (n *loopbackNode) Fgetattr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno {
 	if f != nil {
-		return f.GetAttr(ctx, out)
+		return f.Getattr(ctx, out)
 	}
 
 	p := n.path()

@@ -67,7 +67,8 @@ import (
 // Operations is the interface that implements the filesystem inode.
 // Each Operations instance must embed OperationStubs. All error
 // reporting must use the syscall.Errno type. The value 0 (`OK`)
-// should be used to indicate success.
+// should be used to indicate success. The method names are inspired
+// on the system call names, so we have Listxattr rather than ListXAttr.
 type Operations interface {
 	// populateInode and inode are used by nodefs internally to
 	// link Inode to a Node.
@@ -82,9 +83,9 @@ type Operations interface {
 	// OperationStubs, and should not be reimplemented.
 	Inode() *Inode
 
-	// StatFs implements statistics for the filesystem that holds
+	// Statfs implements statistics for the filesystem that holds
 	// this Inode.
-	StatFs(ctx context.Context, out *fuse.StatfsOut) syscall.Errno
+	Statfs(ctx context.Context, out *fuse.StatfsOut) syscall.Errno
 
 	// Access should return if the caller can access the file with
 	// the given mode. In this case, the context has data about
@@ -95,10 +96,10 @@ type Operations interface {
 	// GetAttr reads attributes for an Inode. The library will
 	// ensure that Mode and Ino are set correctly. For regular
 	// files, Size should be set so it can be read correctly.
-	GetAttr(ctx context.Context, out *fuse.AttrOut) syscall.Errno
+	Getattr(ctx context.Context, out *fuse.AttrOut) syscall.Errno
 
 	// SetAttr sets attributes for an Inode.
-	SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno
+	Setattr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno
 
 	// OnAdd is called once this Operations object is attached to
 	// an Inode.
@@ -112,19 +113,19 @@ type XAttrOperations interface {
 	// GetXAttr should read data for the given attribute into
 	// `dest` and return the number of bytes. If `dest` is too
 	// small, it should return ERANGE and the size of the attribute.
-	GetXAttr(ctx context.Context, attr string, dest []byte) (uint32, syscall.Errno)
+	Getxattr(ctx context.Context, attr string, dest []byte) (uint32, syscall.Errno)
 
 	// SetXAttr should store data for the given attribute.  See
 	// setxattr(2) for information about flags.
-	SetXAttr(ctx context.Context, attr string, data []byte, flags uint32) syscall.Errno
+	Setxattr(ctx context.Context, attr string, data []byte, flags uint32) syscall.Errno
 
 	// RemoveXAttr should delete the given attribute.
-	RemoveXAttr(ctx context.Context, attr string) syscall.Errno
+	Removexattr(ctx context.Context, attr string) syscall.Errno
 
 	// ListXAttr should read all attributes (null terminated) into
 	// `dest`. If the `dest` buffer is too small, it should return
 	// ERANGE and the correct size.
-	ListXAttr(ctx context.Context, dest []byte) (uint32, syscall.Errno)
+	Listxattr(ctx context.Context, dest []byte) (uint32, syscall.Errno)
 }
 
 // SymlinkOperations holds operations specific to symlinks.
@@ -177,11 +178,11 @@ type FileOperations interface {
 	// never encounter ESPACE.
 	Allocate(ctx context.Context, f FileHandle, off uint64, size uint64, mode uint32) syscall.Errno
 
-	// FGetAttr is like GetAttr but provides a file handle if available.
-	FGetAttr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno
+	// FGetattr is like Getattr but provides a file handle if available.
+	Fgetattr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno
 
-	// FSetAttr is like SetAttr but provides a file handle if available.
-	FSetAttr(ctx context.Context, f FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno
+	// FSetattr is like SetAttr but provides a file handle if available.
+	Fsetattr(ctx context.Context, f FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno
 
 	// CopyFileRange copies data between sections of two files,
 	// without the data having to pass through the calling process.
@@ -199,18 +200,18 @@ type FileOperations interface {
 type LockOperations interface {
 	FileOperations
 
-	// GetLk returns locks that would conflict with the given
+	// Getlk returns locks that would conflict with the given
 	// input lock. If no locks conflict, the output has type
 	// L_UNLCK. See fcntl(2) for more information.
-	GetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) syscall.Errno
+	Getlk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) syscall.Errno
 
-	// Obtain a lock on a file, or fail if the lock could not
+	// Setlk obtains a lock on a file, or fail if the lock could not
 	// obtained.  See fcntl(2) for more information.
-	SetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) syscall.Errno
+	Setlk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) syscall.Errno
 
-	// Obtain a lock on a file, waiting if necessary. See fcntl(2)
+	// Setlkw obtains a lock on a file, waiting if necessary. See fcntl(2)
 	// for more information.
-	SetLkw(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) syscall.Errno
+	Setlkw(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) syscall.Errno
 }
 
 // DirStream lists directory entries.
@@ -246,10 +247,10 @@ type DirOperations interface {
 	// contents. The actual reading is driven from ReadDir, so
 	// this method is just for performing sanity/permission
 	// checks.
-	OpenDir(ctx context.Context) syscall.Errno
+	Opendir(ctx context.Context) syscall.Errno
 
 	// ReadDir opens a stream of directory entries.
-	ReadDir(ctx context.Context) (DirStream, syscall.Errno)
+	Readdir(ctx context.Context) (DirStream, syscall.Errno)
 }
 
 // MutableDirOperations are operations for directories that can add or
@@ -307,9 +308,9 @@ type FileHandle interface {
 
 	Write(ctx context.Context, data []byte, off int64) (written uint32, errno syscall.Errno)
 
-	GetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) syscall.Errno
-	SetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) syscall.Errno
-	SetLkw(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) syscall.Errno
+	Getlk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) syscall.Errno
+	Setlk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) syscall.Errno
+	Setlkw(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) syscall.Errno
 
 	Lseek(ctx context.Context, off uint64, whence uint32) (uint64, syscall.Errno)
 
@@ -319,8 +320,8 @@ type FileHandle interface {
 
 	Release(ctx context.Context) syscall.Errno
 
-	GetAttr(ctx context.Context, out *fuse.AttrOut) syscall.Errno
-	SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno
+	Getattr(ctx context.Context, out *fuse.AttrOut) syscall.Errno
+	Setattr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno
 	Allocate(ctx context.Context, off uint64, size uint64, mode uint32) syscall.Errno
 }
 

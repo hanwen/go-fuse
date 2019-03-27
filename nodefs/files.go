@@ -64,7 +64,7 @@ const (
 	_OFD_SETLKW = 38
 )
 
-func (f *loopbackFile) GetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (errno syscall.Errno) {
+func (f *loopbackFile) Getlk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (errno syscall.Errno) {
 	flk := syscall.Flock_t{}
 	lk.ToFlockT(&flk)
 	errno = ToErrno(syscall.FcntlFlock(uintptr(f.fd), _OFD_GETLK, &flk))
@@ -72,11 +72,11 @@ func (f *loopbackFile) GetLk(ctx context.Context, owner uint64, lk *fuse.FileLoc
 	return
 }
 
-func (f *loopbackFile) SetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (errno syscall.Errno) {
+func (f *loopbackFile) Setlk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (errno syscall.Errno) {
 	return f.setLock(ctx, owner, lk, flags, false)
 }
 
-func (f *loopbackFile) SetLkw(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (errno syscall.Errno) {
+func (f *loopbackFile) Setlkw(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (errno syscall.Errno) {
 	return f.setLock(ctx, owner, lk, flags, true)
 }
 
@@ -110,12 +110,12 @@ func (f *loopbackFile) setLock(ctx context.Context, owner uint64, lk *fuse.FileL
 	}
 }
 
-func (f *loopbackFile) SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
+func (f *loopbackFile) Setattr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
 	if errno := f.setAttr(ctx, in); errno != 0 {
 		return errno
 	}
 
-	return f.GetAttr(ctx, out)
+	return f.Getattr(ctx, out)
 }
 
 func (f *loopbackFile) setAttr(ctx context.Context, in *fuse.SetAttrIn) syscall.Errno {
@@ -172,7 +172,7 @@ func (f *loopbackFile) setAttr(ctx context.Context, in *fuse.SetAttrIn) syscall.
 	return OK
 }
 
-func (f *loopbackFile) GetAttr(ctx context.Context, a *fuse.AttrOut) syscall.Errno {
+func (f *loopbackFile) Getattr(ctx context.Context, a *fuse.AttrOut) syscall.Errno {
 	st := syscall.Stat_t{}
 	err := syscall.Fstat(f.fd, &st)
 	if err != nil {

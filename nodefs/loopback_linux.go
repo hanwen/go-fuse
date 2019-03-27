@@ -11,22 +11,22 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func (n *loopbackNode) GetXAttr(ctx context.Context, attr string, dest []byte) (uint32, syscall.Errno) {
+func (n *loopbackNode) Getxattr(ctx context.Context, attr string, dest []byte) (uint32, syscall.Errno) {
 	sz, err := syscall.Getxattr(n.path(), attr, dest)
 	return uint32(sz), ToErrno(err)
 }
 
-func (n *loopbackNode) SetXAttr(ctx context.Context, attr string, data []byte, flags uint32) syscall.Errno {
+func (n *loopbackNode) Setxattr(ctx context.Context, attr string, data []byte, flags uint32) syscall.Errno {
 	err := syscall.Setxattr(n.path(), attr, data, int(flags))
 	return ToErrno(err)
 }
 
-func (n *loopbackNode) RemoveXAttr(ctx context.Context, attr string) syscall.Errno {
+func (n *loopbackNode) Removexattr(ctx context.Context, attr string) syscall.Errno {
 	err := syscall.Removexattr(n.path(), attr)
 	return ToErrno(err)
 }
 
-func (n *loopbackNode) ListXAttr(ctx context.Context, dest []byte) (uint32, syscall.Errno) {
+func (n *loopbackNode) Listxattr(ctx context.Context, dest []byte) (uint32, syscall.Errno) {
 	sz, err := syscall.Listxattr(n.path(), dest)
 	return uint32(sz), ToErrno(err)
 }

@@ -24,7 +24,9 @@ type OperationStubs struct {
 }
 
 // check that we have implemented all interface methods
-var _ Operations = &OperationStubs{}
+var _ DirOperations = &OperationStubs{}
+var _ FileOperations = &OperationStubs{}
+var _ LockOperations = &OperationStubs{}
 
 func (n *OperationStubs) inode() *Inode {
 	return &n.inode_
@@ -50,7 +52,7 @@ func (n *OperationStubs) Inode() *Inode {
 
 // StatFs zeroes the out argument and returns OK.  This is because OSX
 // filesystems must define this, or the mount will not work.
-func (n *OperationStubs) StatFs(ctx context.Context, out *fuse.StatfsOut) syscall.Errno {
+func (n *OperationStubs) Statfs(ctx context.Context, out *fuse.StatfsOut) syscall.Errno {
 	// this should be defined on OSX, or the FS won't mount
 	*out = fuse.StatfsOut{}
 	return OK
@@ -61,12 +63,12 @@ func (n *OperationStubs) OnAdd(ctx context.Context) {
 }
 
 // GetAttr zeroes out argument and returns OK.
-func (n *OperationStubs) GetAttr(ctx context.Context, out *fuse.AttrOut) syscall.Errno {
+func (n *OperationStubs) Getattr(ctx context.Context, out *fuse.AttrOut) syscall.Errno {
 	*out = fuse.AttrOut{}
 	return OK
 }
 
-func (n *OperationStubs) SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
+func (n *OperationStubs) Setattr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
 	return syscall.EROFS
 }
 
@@ -79,7 +81,7 @@ func (n *OperationStubs) Access(ctx context.Context, mask uint32) syscall.Errno 
 	}
 
 	var out fuse.AttrOut
-	if s := n.inode().Operations().GetAttr(ctx, &out); s != 0 {
+	if s := n.inode().Operations().Getattr(ctx, &out); s != 0 {
 		return s
 	}
 
@@ -91,12 +93,12 @@ func (n *OperationStubs) Access(ctx context.Context, mask uint32) syscall.Errno 
 
 // FSetAttr delegates to the FileHandle's if f is not nil, or else to the
 // Inode's SetAttr method.
-func (n *OperationStubs) FSetAttr(ctx context.Context, f FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
+func (n *OperationStubs) Fsetattr(ctx context.Context, f FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
 	if f != nil {
-		return f.SetAttr(ctx, in, out)
+		return f.Setattr(ctx, in, out)
 	}
 
-	return n.inode_.Operations().SetAttr(ctx, in, out)
+	return n.inode_.Operations().Setattr(ctx, in, out)
 }
 
 // The Lookup method on the OperationStubs type looks for an
@@ -108,7 +110,7 @@ func (n *OperationStubs) Lookup(ctx context.Context, name string, out *fuse.Entr
 	}
 
 	var a fuse.AttrOut
-	errno := ch.Operations().GetAttr(ctx, &a)
+	errno := ch.Operations().Getattr(ctx, &a)
 	out.Attr = a.Attr
 	return ch, errno
 }
@@ -134,12 +136,12 @@ func (n *OperationStubs) Unlink(ctx context.Context, name string) syscall.Errno 
 }
 
 // The default OpenDir always succeeds
-func (n *OperationStubs) OpenDir(ctx context.Context) syscall.Errno {
+func (n *OperationStubs) Opendir(ctx context.Context) syscall.Errno {
 	return OK
 }
 
 // The default ReadDir returns the list of children from the tree
-func (n *OperationStubs) ReadDir(ctx context.Context) (DirStream, syscall.Errno) {
+func (n *OperationStubs) Readdir(ctx context.Context) (DirStream, syscall.Errno) {
 	r := []fuse.DirEntry{}
 	for k, ch := range n.inode().Children() {
 		r = append(r, fuse.DirEntry{Mode: ch.Mode(),
@@ -208,28 +210,28 @@ func (n *OperationStubs) Lseek(ctx context.Context, f FileHandle, off uint64, wh
 	return 0, syscall.ENOTSUP
 }
 
-// GetLk delegates to the FileHandlef
-func (n *OperationStubs) GetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (errno syscall.Errno) {
+// Getlk delegates to the FileHandlef
+func (n *OperationStubs) Getlk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (errno syscall.Errno) {
 	if f != nil {
-		return f.GetLk(ctx, owner, lk, flags, out)
+		return f.Getlk(ctx, owner, lk, flags, out)
 	}
 
 	return syscall.ENOTSUP
 }
 
 // SetLk delegates to the FileHandle
-func (n *OperationStubs) SetLk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (errno syscall.Errno) {
+func (n *OperationStubs) Setlk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (errno syscall.Errno) {
 	if f != nil {
-		return f.SetLk(ctx, owner, lk, flags)
+		return f.Setlk(ctx, owner, lk, flags)
 	}
 
 	return syscall.ENOTSUP
 }
 
 // SetLkw delegates to the FileHandle
-func (n *OperationStubs) SetLkw(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (errno syscall.Errno) {
+func (n *OperationStubs) Setlkw(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) (errno syscall.Errno) {
 	if f != nil {
-		return f.SetLkw(ctx, owner, lk, flags)
+		return f.Setlkw(ctx, owner, lk, flags)
 	}
 
 	return syscall.ENOTSUP
@@ -261,13 +263,13 @@ func (n *OperationStubs) Allocate(ctx context.Context, f FileHandle, off uint64,
 	return syscall.ENOTSUP
 }
 
-// FGetAttr delegates to the FileHandle's if f is not nil, or else to the
+// Fgetattr delegates to the FileHandle's if f is not nil, or else to the
 // Inode's GetAttr method.
-func (n *OperationStubs) FGetAttr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno {
+func (n *OperationStubs) Fgetattr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno {
 	if f != nil {
-		f.GetAttr(ctx, out)
+		f.Getattr(ctx, out)
 	}
-	return n.inode_.ops.GetAttr(ctx, out)
+	return n.inode_.ops.Getattr(ctx, out)
 }
 
 // Open returns ENOTSUP
@@ -320,15 +322,15 @@ func (f *FileHandleStubs) Write(ctx context.Context, data []byte, off int64) (wr
 	return 0, syscall.ENOTSUP
 }
 
-func (f *FileHandleStubs) GetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (errno syscall.Errno) {
+func (f *FileHandleStubs) Getlk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (errno syscall.Errno) {
 	return syscall.ENOTSUP
 }
 
-func (f *FileHandleStubs) SetLk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (errno syscall.Errno) {
+func (f *FileHandleStubs) Setlk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (errno syscall.Errno) {
 	return syscall.ENOTSUP
 }
 
-func (f *FileHandleStubs) SetLkw(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (errno syscall.Errno) {
+func (f *FileHandleStubs) Setlkw(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) (errno syscall.Errno) {
 	return syscall.ENOTSUP
 }
 
@@ -340,11 +342,11 @@ func (f *FileHandleStubs) Release(ctx context.Context) syscall.Errno {
 	return syscall.ENOTSUP
 }
 
-func (f *FileHandleStubs) GetAttr(ctx context.Context, out *fuse.AttrOut) syscall.Errno {
+func (f *FileHandleStubs) Getattr(ctx context.Context, out *fuse.AttrOut) syscall.Errno {
 	return syscall.ENOTSUP
 }
 
-func (f *FileHandleStubs) SetAttr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
+func (f *FileHandleStubs) Setattr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
 	return syscall.ENOTSUP
 }
 

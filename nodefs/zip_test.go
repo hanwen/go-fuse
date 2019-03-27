@@ -115,9 +115,9 @@ type zipFile struct {
 
 var _ = (FileOperations)((*zipFile)(nil))
 
-// GetAttr sets the minimum, which is the size. A more full-featured
+// Getattr sets the minimum, which is the size. A more full-featured
 // FS would also set timestamps and permissions.
-func (zf *zipFile) GetAttr(ctx context.Context, out *fuse.AttrOut) syscall.Errno {
+func (zf *zipFile) Getattr(ctx context.Context, out *fuse.AttrOut) syscall.Errno {
 	out.Size = zf.file.UncompressedSize64
 	return OK
 }

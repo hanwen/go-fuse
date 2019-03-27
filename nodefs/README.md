@@ -50,6 +50,10 @@ Decisions
      reading) are handled automatically. No support for directory
      seeks.
 
+   * Method names are based on syscall names. Where there is no
+     syscall (eg. "open directory"), we bias towards writing
+     everything together (Opendir)
+
 To do/To decide
 =========
 
