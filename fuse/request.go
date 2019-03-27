@@ -79,7 +79,7 @@ func (r *request) clear() {
 
 func (r *request) InputDebug() string {
 	val := ""
-	if r.handler.DecodeIn != nil {
+	if r.handler != nil && r.handler.DecodeIn != nil {
 		val = fmt.Sprintf("%v ", Print(r.handler.DecodeIn(r.inData)))
 	}
 
@@ -99,7 +99,7 @@ func (r *request) InputDebug() string {
 
 func (r *request) OutputDebug() string {
 	var dataStr string
-	if r.handler.DecodeOut != nil && r.handler.OutputSize > 0 {
+	if r.handler != nil && r.handler.DecodeOut != nil && r.handler.OutputSize > 0 {
 		dataStr = Print(r.handler.DecodeOut(r.outData()))
 	}
 
@@ -110,7 +110,7 @@ func (r *request) OutputDebug() string {
 
 	flatStr := ""
 	if r.flatDataSize() > 0 {
-		if r.handler.FileNameOut {
+		if r.handler != nil && r.handler.FileNameOut {
 			s := strings.TrimRight(string(r.flatData), "\x00")
 			flatStr = fmt.Sprintf(" %q", s)
 		} else {
