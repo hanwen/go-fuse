@@ -601,7 +601,7 @@ type Caller struct {
 
 type InHeader struct {
 	Length uint32
-	Opcode int32
+	Opcode uint32
 	Unique uint64
 	NodeId uint64
 	Caller

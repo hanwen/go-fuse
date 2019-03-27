@@ -15,60 +15,60 @@ import (
 )
 
 const (
-	_OP_LOOKUP          = int32(1)
-	_OP_FORGET          = int32(2)
-	_OP_GETATTR         = int32(3)
-	_OP_SETATTR         = int32(4)
-	_OP_READLINK        = int32(5)
-	_OP_SYMLINK         = int32(6)
-	_OP_MKNOD           = int32(8)
-	_OP_MKDIR           = int32(9)
-	_OP_UNLINK          = int32(10)
-	_OP_RMDIR           = int32(11)
-	_OP_RENAME          = int32(12)
-	_OP_LINK            = int32(13)
-	_OP_OPEN            = int32(14)
-	_OP_READ            = int32(15)
-	_OP_WRITE           = int32(16)
-	_OP_STATFS          = int32(17)
-	_OP_RELEASE         = int32(18)
-	_OP_FSYNC           = int32(20)
-	_OP_SETXATTR        = int32(21)
-	_OP_GETXATTR        = int32(22)
-	_OP_LISTXATTR       = int32(23)
-	_OP_REMOVEXATTR     = int32(24)
-	_OP_FLUSH           = int32(25)
-	_OP_INIT            = int32(26)
-	_OP_OPENDIR         = int32(27)
-	_OP_READDIR         = int32(28)
-	_OP_RELEASEDIR      = int32(29)
-	_OP_FSYNCDIR        = int32(30)
-	_OP_GETLK           = int32(31)
-	_OP_SETLK           = int32(32)
-	_OP_SETLKW          = int32(33)
-	_OP_ACCESS          = int32(34)
-	_OP_CREATE          = int32(35)
-	_OP_INTERRUPT       = int32(36)
-	_OP_BMAP            = int32(37)
-	_OP_DESTROY         = int32(38)
-	_OP_IOCTL           = int32(39)
-	_OP_POLL            = int32(40)
-	_OP_NOTIFY_REPLY    = int32(41)
-	_OP_BATCH_FORGET    = int32(42)
-	_OP_FALLOCATE       = int32(43) // protocol version 19.
-	_OP_READDIRPLUS     = int32(44) // protocol version 21.
-	_OP_RENAME2         = int32(45) // protocol version 23.
-	_OP_LSEEK           = int32(46)
-	_OP_COPY_FILE_RANGE = int32(47)
+	_OP_LOOKUP          = uint32(1)
+	_OP_FORGET          = uint32(2)
+	_OP_GETATTR         = uint32(3)
+	_OP_SETATTR         = uint32(4)
+	_OP_READLINK        = uint32(5)
+	_OP_SYMLINK         = uint32(6)
+	_OP_MKNOD           = uint32(8)
+	_OP_MKDIR           = uint32(9)
+	_OP_UNLINK          = uint32(10)
+	_OP_RMDIR           = uint32(11)
+	_OP_RENAME          = uint32(12)
+	_OP_LINK            = uint32(13)
+	_OP_OPEN            = uint32(14)
+	_OP_READ            = uint32(15)
+	_OP_WRITE           = uint32(16)
+	_OP_STATFS          = uint32(17)
+	_OP_RELEASE         = uint32(18)
+	_OP_FSYNC           = uint32(20)
+	_OP_SETXATTR        = uint32(21)
+	_OP_GETXATTR        = uint32(22)
+	_OP_LISTXATTR       = uint32(23)
+	_OP_REMOVEXATTR     = uint32(24)
+	_OP_FLUSH           = uint32(25)
+	_OP_INIT            = uint32(26)
+	_OP_OPENDIR         = uint32(27)
+	_OP_READDIR         = uint32(28)
+	_OP_RELEASEDIR      = uint32(29)
+	_OP_FSYNCDIR        = uint32(30)
+	_OP_GETLK           = uint32(31)
+	_OP_SETLK           = uint32(32)
+	_OP_SETLKW          = uint32(33)
+	_OP_ACCESS          = uint32(34)
+	_OP_CREATE          = uint32(35)
+	_OP_INTERRUPT       = uint32(36)
+	_OP_BMAP            = uint32(37)
+	_OP_DESTROY         = uint32(38)
+	_OP_IOCTL           = uint32(39)
+	_OP_POLL            = uint32(40)
+	_OP_NOTIFY_REPLY    = uint32(41)
+	_OP_BATCH_FORGET    = uint32(42)
+	_OP_FALLOCATE       = uint32(43) // protocol version 19.
+	_OP_READDIRPLUS     = uint32(44) // protocol version 21.
+	_OP_RENAME2         = uint32(45) // protocol version 23.
+	_OP_LSEEK           = uint32(46)
+	_OP_COPY_FILE_RANGE = uint32(47)
 
 	// The following entries don't have to be compatible across Go-FUSE versions.
-	_OP_NOTIFY_INVAL_ENTRY    = int32(100)
-	_OP_NOTIFY_INVAL_INODE    = int32(101)
-	_OP_NOTIFY_STORE_CACHE    = int32(102)
-	_OP_NOTIFY_RETRIEVE_CACHE = int32(103)
-	_OP_NOTIFY_DELETE         = int32(104) // protocol version 18
+	_OP_NOTIFY_INVAL_ENTRY    = uint32(100)
+	_OP_NOTIFY_INVAL_INODE    = uint32(101)
+	_OP_NOTIFY_STORE_CACHE    = uint32(102)
+	_OP_NOTIFY_RETRIEVE_CACHE = uint32(103)
+	_OP_NOTIFY_DELETE         = uint32(104) // protocol version 18
 
-	_OPCODE_COUNT = int32(105)
+	_OPCODE_COUNT = uint32(105)
 )
 
 ////////////////////////////////////////////////////////////////
@@ -492,7 +492,7 @@ type operationHandler struct {
 
 var operationHandlers []*operationHandler
 
-func operationName(op int32) string {
+func operationName(op uint32) string {
 	h := getHandler(op)
 	if h == nil {
 		return "unknown"
@@ -500,7 +500,7 @@ func operationName(op int32) string {
 	return h.Name
 }
 
-func getHandler(o int32) *operationHandler {
+func getHandler(o uint32) *operationHandler {
 	if o >= _OPCODE_COUNT {
 		return nil
 	}
@@ -513,12 +513,12 @@ func init() {
 		operationHandlers[i] = &operationHandler{Name: fmt.Sprintf("OPCODE-%d", i)}
 	}
 
-	fileOps := []int32{_OP_READLINK, _OP_NOTIFY_INVAL_ENTRY, _OP_NOTIFY_DELETE}
+	fileOps := []uint32{_OP_READLINK, _OP_NOTIFY_INVAL_ENTRY, _OP_NOTIFY_DELETE}
 	for _, op := range fileOps {
 		operationHandlers[op].FileNameOut = true
 	}
 
-	for op, sz := range map[int32]uintptr{
+	for op, sz := range map[uint32]uintptr{
 		_OP_FORGET:          unsafe.Sizeof(ForgetIn{}),
 		_OP_BATCH_FORGET:    unsafe.Sizeof(_BatchForgetIn{}),
 		_OP_GETATTR:         unsafe.Sizeof(GetAttrIn{}),
@@ -560,7 +560,7 @@ func init() {
 		operationHandlers[op].InputSize = sz
 	}
 
-	for op, sz := range map[int32]uintptr{
+	for op, sz := range map[uint32]uintptr{
 		_OP_LOOKUP:                unsafe.Sizeof(EntryOut{}),
 		_OP_GETATTR:               unsafe.Sizeof(AttrOut{}),
 		_OP_SETATTR:               unsafe.Sizeof(AttrOut{}),
@@ -591,7 +591,7 @@ func init() {
 		operationHandlers[op].OutputSize = sz
 	}
 
-	for op, v := range map[int32]string{
+	for op, v := range map[uint32]string{
 		_OP_LOOKUP:                "LOOKUP",
 		_OP_FORGET:                "FORGET",
 		_OP_BATCH_FORGET:          "BATCH_FORGET",
@@ -646,7 +646,7 @@ func init() {
 		operationHandlers[op].Name = v
 	}
 
-	for op, v := range map[int32]operationFunc{
+	for op, v := range map[uint32]operationFunc{
 		_OP_OPEN:            doOpen,
 		_OP_READDIR:         doReadDir,
 		_OP_WRITE:           doWrite,
@@ -695,7 +695,7 @@ func init() {
 	}
 
 	// Outputs.
-	for op, f := range map[int32]castPointerFunc{
+	for op, f := range map[uint32]castPointerFunc{
 		_OP_LOOKUP:                func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
 		_OP_OPEN:                  func(ptr unsafe.Pointer) interface{} { return (*OpenOut)(ptr) },
 		_OP_OPENDIR:               func(ptr unsafe.Pointer) interface{} { return (*OpenOut)(ptr) },
@@ -720,7 +720,7 @@ func init() {
 	}
 
 	// Inputs.
-	for op, f := range map[int32]castPointerFunc{
+	for op, f := range map[uint32]castPointerFunc{
 		_OP_FLUSH:           func(ptr unsafe.Pointer) interface{} { return (*FlushIn)(ptr) },
 		_OP_GETATTR:         func(ptr unsafe.Pointer) interface{} { return (*GetAttrIn)(ptr) },
 		_OP_SETXATTR:        func(ptr unsafe.Pointer) interface{} { return (*SetXAttrIn)(ptr) },
@@ -757,7 +757,7 @@ func init() {
 	}
 
 	// File name args.
-	for op, count := range map[int32]int{
+	for op, count := range map[uint32]int{
 		_OP_CREATE:      1,
 		_OP_SETXATTR:    1,
 		_OP_GETXATTR:    1,
