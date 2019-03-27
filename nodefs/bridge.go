@@ -100,7 +100,13 @@ func (b *rawBridge) newInode(ctx context.Context, ops Operations, id NodeAttr, p
 		_ = ops.(SymlinkOperations)
 	case fuse.S_IFREG:
 		_ = ops.(FileOperations)
+	case fuse.S_IFIFO, syscall.S_IFSOCK:
+		// no type check necessary: FIFO and SOCK don't go
+		// through FUSE for open/read etc.
+		break
 	default:
+		// Remaining types are char and block devices.  Not
+		// sure how those would work in FUSE
 		log.Panicf("filetype %o unimplemented", id.Mode)
 	}
 

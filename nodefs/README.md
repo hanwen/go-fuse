@@ -50,7 +50,9 @@ Decisions
      reading) are handled automatically. No support for directory
      seeks.
 
-To decide
+To do/To decide
 =========
 
-   * implement remaining file types (exercise Mknod)
+   * decide on a final package name
+
+   * handle less open/create.
