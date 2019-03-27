@@ -64,12 +64,9 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-// Operations is the interface that implements the filesystem inode.
-// Each Operations instance must embed OperationStubs. All error
-// reporting must use the syscall.Errno type. The value 0 (`OK`)
-// should be used to indicate success. The method names are inspired
-// on the system call names, so we have Listxattr rather than ListXAttr.
-type Operations interface {
+// InodeLink provides the machinery to connect Operations (user
+// defined methods) to Inode (a node in the filesystem tree).
+type InodeLink interface {
 	// populateInode and inode are used by nodefs internally to
 	// link Inode to a Node.
 	//
@@ -82,6 +79,16 @@ type Operations interface {
 	// the lifetime of the node object.  Inode() is provided by
 	// OperationStubs, and should not be reimplemented.
 	Inode() *Inode
+}
+
+// Operations is the interface that implements the filesystem inode.
+// Each Operations instance must embed OperationStubs. All error
+// reporting must use the syscall.Errno type. The value 0 (`OK`)
+// should be used to indicate success. The method names are inspired
+// on the system call names, so we have Listxattr rather than
+// ListXAttr.
+type Operations interface {
+	InodeLink
 
 	// Statfs implements statistics for the filesystem that holds
 	// this Inode.

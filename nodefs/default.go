@@ -12,27 +12,20 @@ import (
 	"github.com/hanwen/go-fuse/internal"
 )
 
-// OperationStubs provides no-operation default implementations for
-// all the XxxOperations interfaces. The stubs provide useful defaults
-// for implementing a read-only filesystem whose tree is constructed
-// beforehand in the OnAdd method of the root. A example is in
-// zip_test.go
-//
-// It must be embedded in any Operations implementation.
-type OperationStubs struct {
+// InodeEmbed embeds the Inode into a filesystem node. It is the only
+// type that implements the InodeLink interface, and hence, it must be
+// part of any implementation of Operations.
+type InodeEmbed struct {
 	inode_ Inode
 }
 
-// check that we have implemented all interface methods
-var _ DirOperations = &OperationStubs{}
-var _ FileOperations = &OperationStubs{}
-var _ LockOperations = &OperationStubs{}
+var _ = (InodeLink)((*InodeEmbed)(nil))
 
-func (n *OperationStubs) inode() *Inode {
+func (n *InodeEmbed) inode() *Inode {
 	return &n.inode_
 }
 
-func (n *OperationStubs) init(ops Operations, attr NodeAttr, bridge *rawBridge, persistent bool) {
+func (n *InodeEmbed) init(ops Operations, attr NodeAttr, bridge *rawBridge, persistent bool) {
 	n.inode_ = Inode{
 		ops:        ops,
 		nodeAttr:   attr,
@@ -46,9 +39,26 @@ func (n *OperationStubs) init(ops Operations, attr NodeAttr, bridge *rawBridge, 
 }
 
 // Inode returns the Inode for this Operations
-func (n *OperationStubs) Inode() *Inode {
+func (n *InodeEmbed) Inode() *Inode {
 	return &n.inode_
 }
+
+// OperationStubs provides no-operation default implementations for
+// all the XxxOperations interfaces. The stubs provide useful defaults
+// for implementing a read-only filesystem whose tree is constructed
+// beforehand in the OnAdd method of the root. A example is in
+// zip_test.go
+//
+// It is recommended to embed this in any Operations implementation,
+// as it is the means by new operations are supported.
+type OperationStubs struct {
+	InodeEmbed
+}
+
+// check that we have implemented all interface methods
+var _ DirOperations = &OperationStubs{}
+var _ FileOperations = &OperationStubs{}
+var _ LockOperations = &OperationStubs{}
 
 // StatFs zeroes the out argument and returns OK.  This is because OSX
 // filesystems must define this, or the mount will not work.
