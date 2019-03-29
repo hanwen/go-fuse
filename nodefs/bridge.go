@@ -49,7 +49,7 @@ type rawBridge struct {
 }
 
 // newInode creates creates new inode pointing to ops.
-func (b *rawBridge) newInode(ctx context.Context, ops InodeEmbedder, id NodeAttr, persistent bool) *Inode {
+func (b *rawBridge) newInodeUnlocked(ops InodeEmbedder, id NodeAttr, persistent bool) *Inode {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -96,10 +96,19 @@ func (b *rawBridge) newInode(ctx context.Context, ops InodeEmbedder, id NodeAttr
 
 	b.nodes[id.Ino] = ops.embed()
 	initInode(ops.embed(), ops, id, b, persistent)
+	return ops.embed()
+}
+
+func (b *rawBridge) newInode(ctx context.Context, ops InodeEmbedder, id NodeAttr, persistent bool) *Inode {
+	ch := b.newInodeUnlocked(ops, id, persistent)
+	if ch != ops.embed() {
+		return ch
+	}
+
 	if oa, ok := ops.(OnAdder); ok {
 		oa.OnAdd(ctx)
 	}
-	return ops.embed()
+	return ch
 }
 
 // addNewChild inserts the child into the tree. Returns file handle if file != nil.
@@ -178,7 +187,9 @@ func NewNodeFS(root InodeEmbedder, opts *Options) fuse.RawFileSystem {
 	// Fh 0 means no file handle.
 	bridge.files = []*fileEntry{{}}
 
-	if oa, ok := root.(OnAdder); ok {
+	if opts.OnAdd != nil {
+		opts.OnAdd(context.Background(), root)
+	} else if oa, ok := root.(OnAdder); ok {
 		oa.OnAdd(context.Background())
 	}
 
@@ -303,6 +314,7 @@ func (b *rawBridge) Mknod(cancel <-chan struct{}, input *fuse.MknodIn, name stri
 
 	b.addNewChild(parent, name, child, nil, 0, out)
 	b.setEntryOutTimeout(out)
+	child.setEntryOut(out)
 	return fuse.OK
 }
 
@@ -316,6 +328,8 @@ func (b *rawBridge) Create(cancel <-chan struct{}, input *fuse.CreateIn, name st
 	var flags uint32
 	if mops, ok := parent.ops.(Creater); ok {
 		child, f, flags, errno = mops.Create(ctx, name, input.Flags, input.Mode)
+	} else {
+		return fuse.EROFS
 	}
 
 	if errno != 0 {
@@ -336,8 +350,8 @@ func (b *rawBridge) Create(cancel <-chan struct{}, input *fuse.CreateIn, name st
 	out.AttrValidNsec = temp.AttrValidNsec
 
 	b.setEntryOutTimeout(&out.EntryOut)
-	out.NodeId = child.nodeAttr.Ino
-	out.Mode = (out.Attr.Mode & 07777) | child.nodeAttr.Mode
+	child.setEntryOut(&out.EntryOut)
+
 	return fuse.OK
 }
 
@@ -442,6 +456,7 @@ func (b *rawBridge) Link(cancel <-chan struct{}, input *fuse.LinkIn, name string
 
 		b.addNewChild(parent, name, child, nil, 0, out)
 		b.setEntryOutTimeout(out)
+		child.setEntryOut(out)
 		return fuse.OK
 	}
 	return fuse.ENOTSUP
@@ -458,6 +473,7 @@ func (b *rawBridge) Symlink(cancel <-chan struct{}, header *fuse.InHeader, targe
 
 		b.addNewChild(parent, name, child, nil, 0, out)
 		b.setEntryOutTimeout(out)
+		child.setEntryOut(out)
 		return fuse.OK
 	}
 	return fuse.ENOTSUP

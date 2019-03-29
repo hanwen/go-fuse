@@ -115,6 +115,13 @@ func initInode(n *Inode, ops InodeEmbedder, attr NodeAttr, bridge *rawBridge, pe
 	}
 }
 
+// Set node ID and mode in EntryOut
+func (n *Inode) setEntryOut(out *fuse.EntryOut) {
+	out.NodeId = n.nodeAttr.Ino
+	out.Ino = n.nodeAttr.Ino
+	out.Mode = (out.Attr.Mode & 07777) | n.nodeAttr.Mode
+}
+
 // NodeAttr returns the (Ino, Gen) tuple for this node.
 func (n *Inode) NodeAttr() NodeAttr {
 	return n.nodeAttr

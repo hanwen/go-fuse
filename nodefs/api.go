@@ -450,4 +450,8 @@ type Options struct {
 	// Automatic inode numbers are handed out sequentially
 	// starting from this number. If unset, use 2^63.
 	FirstAutomaticIno uint64
+
+	// OnAdd is an alternative way to specify the OnAdd
+	// functionality of the root node.
+	OnAdd func(ctx context.Context, root InodeEmbedder)
 }
