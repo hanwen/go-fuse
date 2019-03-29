@@ -517,13 +517,8 @@ func (b *rawBridge) Access(cancel <-chan struct{}, input *fuse.AccessIn) fuse.St
 	// default: check attributes.
 	caller := input.Caller
 
-	ga, ok := n.ops.(Getattrer)
-	if !ok {
-		return fuse.EACCES
-	}
-
 	var out fuse.AttrOut
-	if s := ga.Getattr(ctx, nil, &out); s != 0 {
+	if s := b.getattr(ctx, n, nil, &out); s != 0 {
 		return errnoToStatus(s)
 	}
 
