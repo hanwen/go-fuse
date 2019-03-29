@@ -303,7 +303,7 @@ func (n *Inode) ForgetPersistent() {
 // and another node with the same ID is known, that will node will be
 // returned, and the passed-in `node` is ignored.
 func (n *Inode) NewInode(ctx context.Context, node InodeEmbedder, id NodeAttr) *Inode {
-	return n.newInode(ctx, ops, id, false)
+	return n.newInode(ctx, node, id, false)
 }
 
 func (n *Inode) newInode(ctx context.Context, ops InodeEmbedder, id NodeAttr, persistent bool) *Inode {

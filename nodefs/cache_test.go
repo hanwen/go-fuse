@@ -44,7 +44,7 @@ func (f *keepCacheFile) Open(ctx context.Context, flags uint32) (FileHandle, uin
 	return nil, fl, OK
 }
 
-func (f *keepCacheFile) Getattr(ctx context.Context, out *fuse.AttrOut) syscall.Errno {
+func (f *keepCacheFile) Getattr(ctx context.Context, fh FileHandle, out *fuse.AttrOut) syscall.Errno {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	out.Size = uint64(len(f.content))

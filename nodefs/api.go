@@ -119,7 +119,7 @@ type Accesser interface {
 // ensure that Mode and Ino are set correctly. For regular
 // files, Size should be set so it can be read correctly.
 type Getattrer interface {
-	Getattr(ctx context.Context, out *fuse.AttrOut) syscall.Errno
+	Getattr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno
 }
 
 // SetAttr sets attributes for an Inode.

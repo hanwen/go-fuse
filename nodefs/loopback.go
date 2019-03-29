@@ -56,7 +56,8 @@ func (n *loopbackNode) Statfs(ctx context.Context, out *fuse.StatfsOut) syscall.
 	return OK
 }
 
-func (n *loopbackRoot) Getattr(ctx context.Context, out *fuse.AttrOut) syscall.Errno {
+func (n *loopbackRoot) Getattr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno {
+
 	st := syscall.Stat_t{}
 	err := syscall.Stat(n.rootPath, &st)
 	if err != nil {
@@ -278,7 +279,10 @@ func (n *loopbackNode) Readdir(ctx context.Context) (DirStream, syscall.Errno) {
 	return NewLoopbackDirStream(n.path())
 }
 
-func (n *loopbackNode) Getattr(ctx context.Context, out *fuse.AttrOut) syscall.Errno {
+func (n *loopbackNode) Getattr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno {
+	if f != nil {
+		return f.(FileGetattrer).Getattr(ctx, out)
+	}
 	p := n.path()
 
 	var err error = nil

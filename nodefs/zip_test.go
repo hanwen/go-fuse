@@ -118,7 +118,7 @@ var _ = (Getattrer)((*zipFile)(nil))
 
 // Getattr sets the minimum, which is the size. A more full-featured
 // FS would also set timestamps and permissions.
-func (zf *zipFile) Getattr(ctx context.Context, out *fuse.AttrOut) syscall.Errno {
+func (zf *zipFile) Getattr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno {
 	out.Size = zf.file.UncompressedSize64
 	return OK
 }
