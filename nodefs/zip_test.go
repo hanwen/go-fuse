@@ -106,14 +106,15 @@ func TestZipFS(t *testing.T) {
 
 // zipFile is a file read from a zip archive.
 type zipFile struct {
-	OperationStubs
+	InodeEmbed
 	file *zip.File
 
 	mu   sync.Mutex
 	data []byte
 }
 
-var _ = (FileOperations)((*zipFile)(nil))
+var _ = (Opener)((*zipFile)(nil))
+var _ = (Getattrer)((*zipFile)(nil))
 
 // Getattr sets the minimum, which is the size. A more full-featured
 // FS would also set timestamps and permissions.
@@ -157,10 +158,12 @@ func (zf *zipFile) Read(ctx context.Context, f FileHandle, dest []byte, off int6
 // zipRoot is the root of the Zip filesystem. Its only functionality
 // is populating the filesystem.
 type zipRoot struct {
-	OperationStubs
+	InodeEmbed
 
 	r *zip.Reader
 }
+
+var _ = (OnAdder)((*zipRoot)(nil))
 
 func (zr *zipRoot) OnAdd(ctx context.Context) {
 	// OnAdd is called once we are attached to an Inode. We can
@@ -177,7 +180,7 @@ func (zr *zipRoot) OnAdd(ctx context.Context) {
 			}
 			ch := p.GetChild(component)
 			if ch == nil {
-				ch = p.NewPersistentInode(ctx, &OperationStubs{},
+				ch = p.NewPersistentInode(ctx, &InodeEmbed{},
 					NodeAttr{Mode: fuse.S_IFDIR})
 				p.AddChild(component, ch, true)
 			}

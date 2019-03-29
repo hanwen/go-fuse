@@ -53,7 +53,7 @@ func (i *NodeAttr) Reserved() bool {
 type Inode struct {
 	nodeAttr NodeAttr
 
-	ops    Operations
+	ops    InodeLink
 	bridge *rawBridge
 
 	// Following data is mutable.
@@ -88,18 +88,6 @@ type Inode struct {
 
 	children map[string]*Inode
 	parents  map[parentData]struct{}
-}
-
-func (n *Inode) dirOps() DirOperations {
-	return n.ops.(DirOperations)
-}
-
-func (n *Inode) fileOps() FileOperations {
-	return n.ops.(FileOperations)
-}
-
-func (n *Inode) linkOps() SymlinkOperations {
-	return n.ops.(SymlinkOperations)
 }
 
 // NodeAttr returns the (Ino, Gen) tuple for this node.
@@ -214,7 +202,7 @@ func (n *Inode) Forgotten() bool {
 
 // Operations returns the object implementing the file system
 // operations.
-func (n *Inode) Operations() Operations {
+func (n *Inode) Operations() InodeLink {
 	return n.ops
 }
 
@@ -273,7 +261,7 @@ func (iparent *Inode) setEntry(name string, ichild *Inode) {
 
 // NewPersistentInode returns an Inode whose lifetime is not in
 // control of the kernel.
-func (n *Inode) NewPersistentInode(ctx context.Context, node Operations, id NodeAttr) *Inode {
+func (n *Inode) NewPersistentInode(ctx context.Context, node InodeLink, id NodeAttr) *Inode {
 	return n.newInode(ctx, node, id, true)
 }
 
@@ -284,16 +272,16 @@ func (n *Inode) ForgetPersistent() {
 	n.removeRef(0, true)
 }
 
-// NewInode returns an inode for the given Operations. The mode should
+// NewInode returns an inode for the given InodeLink. The mode should
 // be standard mode argument (eg. S_IFDIR). The inode number in id.Ino
 // argument is used to implement hard-links.  If it is given, and
 // another node with the same ID is known, that will node will be
 // returned, and the passed-in `node` is ignored.
-func (n *Inode) NewInode(ctx context.Context, ops Operations, id NodeAttr) *Inode {
+func (n *Inode) NewInode(ctx context.Context, ops InodeLink, id NodeAttr) *Inode {
 	return n.newInode(ctx, ops, id, false)
 }
 
-func (n *Inode) newInode(ctx context.Context, ops Operations, id NodeAttr, persistent bool) *Inode {
+func (n *Inode) newInode(ctx context.Context, ops InodeLink, id NodeAttr, persistent bool) *Inode {
 	return n.bridge.newInode(ctx, ops, id, persistent)
 }
 

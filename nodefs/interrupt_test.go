@@ -17,14 +17,11 @@ import (
 )
 
 type interruptRoot struct {
-	OperationStubs
+	InodeEmbed
 	child interruptOps
 }
 
-type interruptOps struct {
-	OperationStubs
-	interrupted bool
-}
+var _ = (Lookuper)((*interruptRoot)(nil))
 
 func (r *interruptRoot) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
 	if name != "file" {
@@ -36,6 +33,13 @@ func (r *interruptRoot) Lookup(ctx context.Context, name string, out *fuse.Entry
 
 	return ch, OK
 }
+
+type interruptOps struct {
+	InodeEmbed
+	interrupted bool
+}
+
+var _ = (Opener)((*interruptOps)(nil))
 
 func (o *interruptOps) Open(ctx context.Context, flags uint32) (FileHandle, uint32, syscall.Errno) {
 	select {

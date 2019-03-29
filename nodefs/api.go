@@ -28,32 +28,34 @@
 // expressed through index-nodes (also known as "inode", see Inode) which
 // describe parent/child relation in between nodes and node-ID association.
 //
-// A particular filesystem should provide nodes with filesystem
-// operations implemented as defined by Operations interface. When
-// filesystem is mounted, its root Operations is associated with root
-// of the tree, and the tree is further build lazily when nodefs
-// infrastructure needs to lookup children of nodes to process client
-// requests. For every new Operations, the filesystem infrastructure
-// automatically builds new index node and links it in the filesystem
-// tree. Operations.Inode() can be used to get particular Inode
-// associated with a Operations.
+// All error reporting must use the syscall.Errno type. The value 0
+// (`OK`) should be used to indicate success. The method names are
+// inspired on the system call names, so we have Listxattr rather than
+// ListXAttr.
+//
+// A filesystem should provide nodes that embed InodeEmbed, so the
+// node comply with the InodeLink interface.  When filesystem is
+// mounted, its root InodeEmbed is associated with root of the tree,
+// and the tree is further built lazily when nodefs infrastructure
+// needs to lookup children of nodes to process client requests.
 //
 // The kernel can evict inode data to free up memory. It does so by
 // issuing FORGET calls. When a node has no children, and no kernel
 // references, it is removed from the file system trees.
 //
 // File system trees can also be constructed in advance. This is done
-// by instantiating "persistent" inodes from the Operations.OnAdd
-// method. Persistent inodes remain in memory even if the kernel has
-// forgotten them.  See zip_test.go for an example of how to do this.
+// by instantiating "persistent" inodes from the OnAdder
+// implementation. Persistent inodes remain in memory even if the
+// kernel has forgotten them.  See zip_test.go for an example of how
+// to do this.
 //
 // File systems whose tree structures are on backing storage typically
 // discover the file system tree on-demand, and if the kernel is tight
 // on memory, parts of the tree are forgotten again. These file
-// systems should implement Operations.Lookup instead.  The loopback
-// file system created by `NewLoopbackRoot` provides a straightforward
+// systems should implement Lookuper instead.  The loopback file
+// system created by `NewLoopbackRoot` provides a straightforward
 // example.
-//
+
 package nodefs
 
 import (
@@ -64,15 +66,20 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-// InodeLink provides the machinery to connect Operations (user
-// defined methods) to Inode (a node in the filesystem tree).
+// InodeLink provides the machinery to connect user defined methods to
+// an Inode (a node in the filesystem tree).
+//
+// In general, if InodeLink does not implement specific filesystem
+// methods, the filesystem will react as if it is a read-only
+// filesystem with a predefined tree structure. See zipfs_test.go for
+// an example.  A example is in zip_test.go
 type InodeLink interface {
 	// populateInode and inode are used by nodefs internally to
 	// link Inode to a Node.
 	//
 	// See Inode() for the public API to retrieve an inode from Node.
 	inode() *Inode
-	init(ops Operations, attr NodeAttr, bridge *rawBridge, persistent bool)
+	init(ops InodeLink, attr NodeAttr, bridge *rawBridge, persistent bool)
 
 	// Inode returns the *Inode associated with this Operations
 	// instance.  The identity of the Inode does not change over
@@ -81,143 +88,162 @@ type InodeLink interface {
 	Inode() *Inode
 }
 
-// Operations is the interface that implements the filesystem inode.
-// Each Operations instance must embed OperationStubs. All error
-// reporting must use the syscall.Errno type. The value 0 (`OK`)
-// should be used to indicate success. The method names are inspired
-// on the system call names, so we have Listxattr rather than
-// ListXAttr.
-type Operations interface {
-	InodeLink
-
-	// Statfs implements statistics for the filesystem that holds
-	// this Inode.
+// Statfs implements statistics for the filesystem that holds this
+// Inode. If not defined, the `out` argument will zeroed with an OK
+// result.  This is because OSX filesystems must Statfs, or the mount
+// will not work.
+type Statfser interface {
 	Statfs(ctx context.Context, out *fuse.StatfsOut) syscall.Errno
+}
 
-	// Access should return if the caller can access the file with
-	// the given mode. In this case, the context has data about
-	// the real UID. For example a root-SUID binary called by user
-	// susan gets the UID and GID for susan here.
+// Access should return if the caller can access the file with
+// the given mode. In this case, the context has data about
+// the real UID. For example a root-SUID binary called by user
+// susan gets the UID and GID for susan here.
+//
+// If not defined, a default implementation will check traditional
+// unix permissions of the Getattr result agains the caller.
+type Accesser interface {
 	Access(ctx context.Context, mask uint32) syscall.Errno
+}
 
-	// GetAttr reads attributes for an Inode. The library will
-	// ensure that Mode and Ino are set correctly. For regular
-	// files, Size should be set so it can be read correctly.
+// GetAttr reads attributes for an Inode. The library will
+// ensure that Mode and Ino are set correctly. For regular
+// files, Size should be set so it can be read correctly.
+type Getattrer interface {
 	Getattr(ctx context.Context, out *fuse.AttrOut) syscall.Errno
+}
 
-	// SetAttr sets attributes for an Inode.
-	Setattr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno
+// SetAttr sets attributes for an Inode.
+type Setattrer interface {
+	Setattr(ctx context.Context, f FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno
+}
 
-	// OnAdd is called once this Operations object is attached to
-	// an Inode.
+// OnAdd is called once this Operations object is attached to
+// an Inode.
+type OnAdder interface {
 	OnAdd(ctx context.Context)
 }
 
-// XAttrOperations is a collection of methods used to implement extended attributes.
-type XAttrOperations interface {
-	Operations
-
-	// GetXAttr should read data for the given attribute into
-	// `dest` and return the number of bytes. If `dest` is too
-	// small, it should return ERANGE and the size of the attribute.
+// Getxattr should read data for the given attribute into
+// `dest` and return the number of bytes. If `dest` is too
+// small, it should return ERANGE and the size of the attribute.
+// If not defined, Getxattr will return ENOATTR.
+type Getxattrer interface {
 	Getxattr(ctx context.Context, attr string, dest []byte) (uint32, syscall.Errno)
+}
 
-	// SetXAttr should store data for the given attribute.  See
-	// setxattr(2) for information about flags.
+// Setxattr should store data for the given attribute.  See
+// setxattr(2) for information about flags.
+// If not defined, Setxattr will return ENOATTR.
+type Setxattrer interface {
 	Setxattr(ctx context.Context, attr string, data []byte, flags uint32) syscall.Errno
+}
 
-	// RemoveXAttr should delete the given attribute.
+// Removexattr should delete the given attribute.
+// If not defined, Removexattr will return ENOATTR.
+type Removexattrer interface {
 	Removexattr(ctx context.Context, attr string) syscall.Errno
+}
 
-	// ListXAttr should read all attributes (null terminated) into
-	// `dest`. If the `dest` buffer is too small, it should return
-	// ERANGE and the correct size.
+// Listxattr should read all attributes (null terminated) into
+// `dest`. If the `dest` buffer is too small, it should return ERANGE
+// and the correct size.  If not defined, return an empty list and
+// success.
+type Listxattrer interface {
 	Listxattr(ctx context.Context, dest []byte) (uint32, syscall.Errno)
 }
 
-// SymlinkOperations holds operations specific to symlinks.
-type SymlinkOperations interface {
-	Operations
-
-	// Readlink reads the content of a symlink.
+// Readlink reads the content of a symlink.
+type Readlinker interface {
 	Readlink(ctx context.Context) ([]byte, syscall.Errno)
 }
 
-// FileOperations holds operations that apply to regular files.
-type FileOperations interface {
-	Operations
-
-	// Open opens an Inode (of regular file type) for reading. It
-	// is optional but recommended to return a FileHandle.
+// Open opens an Inode (of regular file type) for reading. It
+// is optional but recommended to return a FileHandle.
+type Opener interface {
 	Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, errno syscall.Errno)
+}
 
-	// Reads data from a file. The data should be returned as
-	// ReadResult, which may be constructed from the incoming
-	// `dest` buffer. If the file was opened without FileHandle,
-	// the FileHandle argument here is nil. The default
-	// implementation forwards to the FileHandle.
+// Reads data from a file. The data should be returned as
+// ReadResult, which may be constructed from the incoming
+// `dest` buffer. If the file was opened without FileHandle,
+// the FileHandle argument here is nil. The default
+// implementation forwards to the FileHandle.
+type Reader interface {
 	Read(ctx context.Context, f FileHandle, dest []byte, off int64) (fuse.ReadResult, syscall.Errno)
+}
 
-	// Writes the data into the file handle at given offset. After
-	// returning, the data will be reused and may not referenced.
-	// The default implementation forwards to the FileHandle.
+// Writes the data into the file handle at given offset. After
+// returning, the data will be reused and may not referenced.
+// The default implementation forwards to the FileHandle.
+type Writer interface {
 	Write(ctx context.Context, f FileHandle, data []byte, off int64) (written uint32, errno syscall.Errno)
+}
 
-	// Fsync is a signal to ensure writes to the Inode are flushed
-	// to stable storage.  The default implementation forwards to the
-	// FileHandle.
+// Fsync is a signal to ensure writes to the Inode are flushed
+// to stable storage.
+type Fsyncer interface {
 	Fsync(ctx context.Context, f FileHandle, flags uint32) syscall.Errno
+}
 
-	// Flush is called for close() call on a file descriptor. In
-	// case of duplicated descriptor, it may be called more than
-	// once for a file.   The default implementation forwards to the
-	// FileHandle.
+// Flush is called for close() call on a file descriptor. In
+// case of duplicated descriptor, it may be called more than
+// once for a file.   The default implementation forwards to the
+// FileHandle.
+type Flusher interface {
 	Flush(ctx context.Context, f FileHandle) syscall.Errno
+}
 
-	// This is called to before the file handle is forgotten. The
-	// kernel ingores the return value of this method,
-	// so any cleanup that requires specific synchronization or
-	// could fail with I/O errors should happen in Flush instead.
-	// The default implementation forwards to the FileHandle.
+// This is called to before the file handle is forgotten. The
+// kernel ingores the return value of this method,
+// so any cleanup that requires specific synchronization or
+// could fail with I/O errors should happen in Flush instead.
+// The default implementation forwards to the FileHandle.
+type Releaser interface {
 	Release(ctx context.Context, f FileHandle) syscall.Errno
+}
 
-	// Allocate preallocates space for future writes, so they will
-	// never encounter ESPACE.
+// Allocate preallocates space for future writes, so they will
+// never encounter ESPACE.
+type Allocater interface {
 	Allocate(ctx context.Context, f FileHandle, off uint64, size uint64, mode uint32) syscall.Errno
+}
 
-	// FGetattr is like Getattr but provides a file handle if available.
-	Fgetattr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno
-
-	// FSetattr is like SetAttr but provides a file handle if available.
-	Fsetattr(ctx context.Context, f FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno
-
-	// CopyFileRange copies data between sections of two files,
-	// without the data having to pass through the calling process.
+// CopyFileRange copies data between sections of two files,
+// without the data having to pass through the calling process.
+type CopyFileRanger interface {
 	CopyFileRange(ctx context.Context, fhIn FileHandle,
 		offIn uint64, out *Inode, fhOut FileHandle, offOut uint64,
 		len uint64, flags uint64) (uint32, syscall.Errno)
+}
 
-	// Lseek is used to implement holes: it should return the
-	// first offset beyond `off` where there is data (SEEK_DATA)
-	// or where there is a hole (SEEK_HOLE).
+// Lseek is used to implement holes: it should return the
+// first offset beyond `off` where there is data (SEEK_DATA)
+// or where there is a hole (SEEK_HOLE).
+type Lseeker interface {
 	Lseek(ctx context.Context, f FileHandle, Off uint64, whence uint32) (uint64, syscall.Errno)
 }
 
 // LockOperations are operations for locking regions of regular files.
-type LockOperations interface {
-	FileOperations
-
-	// Getlk returns locks that would conflict with the given
-	// input lock. If no locks conflict, the output has type
-	// L_UNLCK. See fcntl(2) for more information.
+// Getlk returns locks that would conflict with the given input
+// lock. If no locks conflict, the output has type L_UNLCK. See
+// fcntl(2) for more information.
+// If not defined, returns ENOTSUP
+type Getlker interface {
 	Getlk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) syscall.Errno
+}
 
-	// Setlk obtains a lock on a file, or fail if the lock could not
-	// obtained.  See fcntl(2) for more information.
+// Setlk obtains a lock on a file, or fail if the lock could not
+// obtained.  See fcntl(2) for more information.  If not defined,
+// returns ENOTSUP
+type Setlker interface {
 	Setlk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) syscall.Errno
+}
 
-	// Setlkw obtains a lock on a file, waiting if necessary. See fcntl(2)
-	// for more information.
+// Setlkw obtains a lock on a file, waiting if necessary. See fcntl(2)
+// for more information.  If not defined, returns ENOTSUP
+type Setlkwer interface {
 	Setlkw(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) syscall.Errno
 }
 
@@ -237,63 +263,87 @@ type DirStream interface {
 	Close()
 }
 
-// DirOperations are operations for directory nodes in the filesystem.
-type DirOperations interface {
-	Operations
-
-	// Lookup should find a direct child of the node by child
-	// name.  If the entry does not exist, it should return ENOENT
-	// and optionally set a NegativeTimeout in `out`. If it does
-	// exist, it should return attribute data in `out` and return
-	// the Inode for the child. A new inode can be created using
-	// `Inode.NewInode`. The new Inode will be added to the FS
-	// tree automatically if the return status is OK.
+// Lookup should find a direct child of the node by child
+// name.  If the entry does not exist, it should return ENOENT
+// and optionally set a NegativeTimeout in `out`. If it does
+// exist, it should return attribute data in `out` and return
+// the Inode for the child. A new inode can be created using
+// `Inode.NewInode`. The new Inode will be added to the FS
+// tree automatically if the return status is OK.
+//
+// If not defined, we look for an existing child with the given name,
+// or returns ENOENT.
+type Lookuper interface {
 	Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno)
+}
 
-	// OpenDir opens a directory Inode for reading its
-	// contents. The actual reading is driven from ReadDir, so
-	// this method is just for performing sanity/permission
-	// checks.
+// OpenDir opens a directory Inode for reading its
+// contents. The actual reading is driven from ReadDir, so
+// this method is just for performing sanity/permission
+// checks. The default is to return success.
+type Opendirer interface {
 	Opendir(ctx context.Context) syscall.Errno
+}
 
-	// ReadDir opens a stream of directory entries.
+// ReadDir opens a stream of directory entries.
+//
+// The default ReadDir returns the list of currently known children
+// from the tree
+type Readdirer interface {
 	Readdir(ctx context.Context) (DirStream, syscall.Errno)
 }
 
-// MutableDirOperations are operations for directories that can add or
-// remove entries.
-type MutableDirOperations interface {
-	DirOperations
-
-	// Mkdir is similar to Lookup, but must create a directory entry and Inode.
+// Mkdir is similar to Lookup, but must create a directory entry and Inode.
+// Default is to return EROFS.
+type Mkdirer interface {
 	Mkdir(ctx context.Context, name string, mode uint32, out *fuse.EntryOut) (*Inode, syscall.Errno)
+}
 
-	// Mknod is similar to Lookup, but must create a device entry and Inode.
+// Mknod is similar to Lookup, but must create a device entry and Inode.
+// Default is to return EROFS.
+type Mknoder interface {
 	Mknod(ctx context.Context, name string, mode uint32, dev uint32, out *fuse.EntryOut) (*Inode, syscall.Errno)
+}
 
-	// Link is similar to Lookup, but must create a new link to an existing Inode.
-	Link(ctx context.Context, target Operations, name string, out *fuse.EntryOut) (node *Inode, errno syscall.Errno)
+// Link is similar to Lookup, but must create a new link to an existing Inode.
+// Default is to return EROFS.
+type Linker interface {
+	Link(ctx context.Context, target InodeLink, name string, out *fuse.EntryOut) (node *Inode, errno syscall.Errno)
+}
 
-	// Symlink is similar to Lookup, but must create a new symbolic link.
+// Symlink is similar to Lookup, but must create a new symbolic link.
+// Default is to return EROFS.
+type Symlinker interface {
 	Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (node *Inode, errno syscall.Errno)
+}
 
-	// Create is similar to Lookup, but should create a new
-	// child. It typically also returns a FileHandle as a
-	// reference for future reads/writes
+// Create is similar to Lookup, but should create a new
+// child. It typically also returns a FileHandle as a
+// reference for future reads/writes.
+// Default is to return EROFS.
+type Creater interface {
 	Create(ctx context.Context, name string, flags uint32, mode uint32) (node *Inode, fh FileHandle, fuseFlags uint32, errno syscall.Errno)
+}
 
-	// Unlink should remove a child from this directory.  If the
-	// return status is OK, the Inode is removed as child in the
-	// FS tree automatically.
+// Unlink should remove a child from this directory.  If the
+// return status is OK, the Inode is removed as child in the
+// FS tree automatically. Default is to return EROFS.
+type Unlinker interface {
 	Unlink(ctx context.Context, name string) syscall.Errno
+}
 
-	// Rmdir is like Unlink but for directories.
+// Rmdir is like Unlink but for directories.
+// Default is to return EROFS.
+type Rmdirer interface {
 	Rmdir(ctx context.Context, name string) syscall.Errno
+}
 
-	// Rename should move a child from one directory to a
-	// different one. The changes is effected in the FS tree if
-	// the return status is OK
-	Rename(ctx context.Context, name string, newParent Operations, newName string, flags uint32) syscall.Errno
+// Rename should move a child from one directory to a different
+// one. The change is effected in the FS tree if the return status is
+// OK.
+// Default is to return EROFS.
+type Renamer interface {
+	Rename(ctx context.Context, name string, newParent InodeLink, newName string, flags uint32) syscall.Errno
 }
 
 // FileHandle is a resource identifier for opened files.  FileHandles
@@ -307,28 +357,67 @@ type MutableDirOperations interface {
 // FileHandle. Files that have such dynamic content should return the
 // FOPEN_DIRECT_IO flag from their `Open` method. See directio_test.go
 // for an example.
-//
-// For a description of individual operations, see the equivalent
-// operations in FileOperations.
 type FileHandle interface {
-	Read(ctx context.Context, dest []byte, off int64) (fuse.ReadResult, syscall.Errno)
+}
 
-	Write(ctx context.Context, data []byte, off int64) (written uint32, errno syscall.Errno)
-
-	Getlk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) syscall.Errno
-	Setlk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) syscall.Errno
-	Setlkw(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) syscall.Errno
-
-	Lseek(ctx context.Context, off uint64, whence uint32) (uint64, syscall.Errno)
-
-	Flush(ctx context.Context) syscall.Errno
-
-	Fsync(ctx context.Context, flags uint32) syscall.Errno
-
+// Release is called when forgetting the file handle. Default is to
+// call Release on the Inode.
+type FileReleaser interface {
 	Release(ctx context.Context) syscall.Errno
+}
 
+// See Getattrer. Default is to call Getattr on the Inode
+type FileGetattrer interface {
 	Getattr(ctx context.Context, out *fuse.AttrOut) syscall.Errno
+}
+
+// See Reader. Default is to call Read on the Inode
+type FileReader interface {
+	Read(ctx context.Context, dest []byte, off int64) (fuse.ReadResult, syscall.Errno)
+}
+
+// See Writer. Default is to call Write on the Inode
+type FileWriter interface {
+	Write(ctx context.Context, data []byte, off int64) (written uint32, errno syscall.Errno)
+}
+
+// See Getlker. Default is to call Getlk on the Inode
+type FileGetlker interface {
+	Getlk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) syscall.Errno
+}
+
+// See Setlker. Default is to call Setlk on the Inode
+type FileSetlker interface {
+	Setlk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) syscall.Errno
+}
+
+// See Setlkwer. Default is to call Setlkw on the Inode
+type FileSetlkwer interface {
+	Setlkw(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32) syscall.Errno
+}
+
+// See Lseek. Default is to call Lseek on the Inode
+type FileLseeker interface {
+	Lseek(ctx context.Context, off uint64, whence uint32) (uint64, syscall.Errno)
+}
+
+// See Flusher. Default is to call Flush on the Inode
+type FileFlusher interface {
+	Flush(ctx context.Context) syscall.Errno
+}
+
+// See Fsync. Default is to call Fsync on the Inode
+type FileFsyncer interface {
+	Fsync(ctx context.Context, flags uint32) syscall.Errno
+}
+
+// See Fsync. Default is to call Setattr on the Inode
+type FileSetattrer interface {
 	Setattr(ctx context.Context, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno
+}
+
+// See Allocater. Default is to call Allocate on the Inode
+type FileAllocater interface {
 	Allocate(ctx context.Context, off uint64, size uint64, mode uint32) syscall.Errno
 }
 

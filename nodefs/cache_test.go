@@ -19,7 +19,7 @@ import (
 )
 
 type keepCacheFile struct {
-	OperationStubs
+	InodeEmbed
 	keepCache bool
 
 	mu      sync.Mutex
@@ -61,11 +61,17 @@ func (f *keepCacheFile) Read(ctx context.Context, fh FileHandle, dest []byte, of
 	return fuse.ReadResultData(f.content[off:]), OK
 }
 
+var _ = (Reader)((*keepCacheFile)(nil))
+var _ = (Opener)((*keepCacheFile)(nil))
+var _ = (Getattrer)((*keepCacheFile)(nil))
+
 type keepCacheRoot struct {
-	OperationStubs
+	InodeEmbed
 
 	keep, nokeep *keepCacheFile
 }
+
+var _ = (OnAdder)((*keepCacheRoot)(nil))
 
 func (r *keepCacheRoot) OnAdd(ctx context.Context) {
 	i := r.Inode()

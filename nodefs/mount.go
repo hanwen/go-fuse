@@ -14,7 +14,7 @@ import (
 // requests. This is a convenience wrapper around NewNodeFS and
 // fuse.NewServer.  If nil is given as options, default settings are
 // applied, which are 1 second entry and attribute timeout.
-func Mount(dir string, root DirOperations, options *Options) (*fuse.Server, error) {
+func Mount(dir string, root InodeLink, options *Options) (*fuse.Server, error) {
 	if options == nil {
 		oneSec := time.Second
 		options = &Options{

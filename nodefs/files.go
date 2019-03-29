@@ -24,6 +24,20 @@ type loopbackFile struct {
 	fd int
 }
 
+var _ = (FileHandle)((*loopbackFile)(nil))
+var _ = (FileReleaser)((*loopbackFile)(nil))
+var _ = (FileGetattrer)((*loopbackFile)(nil))
+var _ = (FileReader)((*loopbackFile)(nil))
+var _ = (FileWriter)((*loopbackFile)(nil))
+var _ = (FileGetlker)((*loopbackFile)(nil))
+var _ = (FileSetlker)((*loopbackFile)(nil))
+var _ = (FileSetlkwer)((*loopbackFile)(nil))
+var _ = (FileLseeker)((*loopbackFile)(nil))
+var _ = (FileFlusher)((*loopbackFile)(nil))
+var _ = (FileFsyncer)((*loopbackFile)(nil))
+var _ = (FileSetattrer)((*loopbackFile)(nil))
+var _ = (FileAllocater)((*loopbackFile)(nil))
+
 func (f *loopbackFile) Read(ctx context.Context, buf []byte, off int64) (res fuse.ReadResult, errno syscall.Errno) {
 	r := fuse.ReadResultFd(uintptr(f.fd), off, len(buf))
 	return r, OK

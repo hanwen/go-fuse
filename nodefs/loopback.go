@@ -6,7 +6,6 @@ package nodefs
 
 import (
 	"context"
-	"log"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -21,6 +20,27 @@ type loopbackRoot struct {
 	rootDev  uint64
 }
 
+var _ = (Statfser)((*loopbackNode)(nil))
+var _ = (Getattrer)((*loopbackNode)(nil))
+var _ = (Getxattrer)((*loopbackNode)(nil))
+var _ = (Setxattrer)((*loopbackNode)(nil))
+var _ = (Removexattrer)((*loopbackNode)(nil))
+var _ = (Listxattrer)((*loopbackNode)(nil))
+var _ = (Readlinker)((*loopbackNode)(nil))
+var _ = (Opener)((*loopbackNode)(nil))
+var _ = (CopyFileRanger)((*loopbackNode)(nil))
+var _ = (Lookuper)((*loopbackNode)(nil))
+var _ = (Opendirer)((*loopbackNode)(nil))
+var _ = (Readdirer)((*loopbackNode)(nil))
+var _ = (Mkdirer)((*loopbackNode)(nil))
+var _ = (Mknoder)((*loopbackNode)(nil))
+var _ = (Linker)((*loopbackNode)(nil))
+var _ = (Symlinker)((*loopbackNode)(nil))
+var _ = (Creater)((*loopbackNode)(nil))
+var _ = (Unlinker)((*loopbackNode)(nil))
+var _ = (Rmdirer)((*loopbackNode)(nil))
+var _ = (Renamer)((*loopbackNode)(nil))
+
 func (n *loopbackNode) Statfs(ctx context.Context, out *fuse.StatfsOut) syscall.Errno {
 	s := syscall.Statfs_t{}
 	err := syscall.Statfs(n.path(), &s)
@@ -32,7 +52,6 @@ func (n *loopbackNode) Statfs(ctx context.Context, out *fuse.StatfsOut) syscall.
 }
 
 func (n *loopbackRoot) Getattr(ctx context.Context, out *fuse.AttrOut) syscall.Errno {
-	log.Println("getattr")
 	st := syscall.Stat_t{}
 	err := syscall.Stat(n.rootPath, &st)
 	if err != nil {
@@ -43,7 +62,7 @@ func (n *loopbackRoot) Getattr(ctx context.Context, out *fuse.AttrOut) syscall.E
 }
 
 type loopbackNode struct {
-	OperationStubs
+	InodeEmbed
 }
 
 func (n *loopbackNode) root() *loopbackRoot {
@@ -122,14 +141,14 @@ func (n *loopbackNode) Unlink(ctx context.Context, name string) syscall.Errno {
 	return ToErrno(err)
 }
 
-func toLoopbackNode(op Operations) *loopbackNode {
+func toLoopbackNode(op InodeLink) *loopbackNode {
 	if r, ok := op.(*loopbackRoot); ok {
 		return &r.loopbackNode
 	}
 	return op.(*loopbackNode)
 }
 
-func (n *loopbackNode) Rename(ctx context.Context, name string, newParent Operations, newName string, flags uint32) syscall.Errno {
+func (n *loopbackNode) Rename(ctx context.Context, name string, newParent InodeLink, newName string, flags uint32) syscall.Errno {
 	newParentLoopback := toLoopbackNode(newParent)
 	if flags&RENAME_EXCHANGE != 0 {
 		return n.renameExchange(name, newParentLoopback, newName)
@@ -199,7 +218,7 @@ func (n *loopbackNode) Symlink(ctx context.Context, target, name string, out *fu
 	return ch, 0
 }
 
-func (n *loopbackNode) Link(ctx context.Context, target Operations, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
+func (n *loopbackNode) Link(ctx context.Context, target InodeLink, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
 
 	p := filepath.Join(n.path(), name)
 	targetNode := toLoopbackNode(target)
@@ -258,11 +277,7 @@ func (n *loopbackNode) Readdir(ctx context.Context) (DirStream, syscall.Errno) {
 	return NewLoopbackDirStream(n.path())
 }
 
-func (n *loopbackNode) Fgetattr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno {
-	if f != nil {
-		return f.Getattr(ctx, out)
-	}
-
+func (n *loopbackNode) Getattr(ctx context.Context, out *fuse.AttrOut) syscall.Errno {
 	p := n.path()
 
 	var err error = nil
@@ -277,7 +292,7 @@ func (n *loopbackNode) Fgetattr(ctx context.Context, f FileHandle, out *fuse.Att
 
 // NewLoopback returns a root node for a loopback file system whose
 // root is at the given root.
-func NewLoopbackRoot(root string) (DirOperations, error) {
+func NewLoopbackRoot(root string) (InodeLink, error) {
 	var st syscall.Stat_t
 	err := syscall.Stat(root, &st)
 	if err != nil {

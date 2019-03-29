@@ -28,7 +28,7 @@ type testCase struct {
 	origDir string
 	mntDir  string
 
-	loopback DirOperations
+	loopback InodeLink
 	rawFS    fuse.RawFileSystem
 	server   *fuse.Server
 }
