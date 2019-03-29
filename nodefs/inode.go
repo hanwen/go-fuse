@@ -488,6 +488,22 @@ func (n *Inode) Parent() (string, *Inode) {
 	return "", nil
 }
 
+// RmAllChildren recursively drops a tree, forgetting all persistent
+// nodes.
+func (n *Inode) RmAllChildren() {
+	for {
+		chs := n.Children()
+		if len(chs) == 0 {
+			break
+		}
+		for nm, ch := range chs {
+			ch.RmAllChildren()
+			n.RmChild(nm)
+		}
+	}
+	n.removeRef(0, true)
+}
+
 // RmChild removes multiple children.  Returns whether the removal
 // succeeded and whether the node is still live afterward. The removal
 // is transactional: it only succeeds if all names are children, and
