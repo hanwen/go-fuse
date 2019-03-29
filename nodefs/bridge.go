@@ -49,7 +49,7 @@ type rawBridge struct {
 }
 
 // newInode creates creates new inode pointing to ops.
-func (b *rawBridge) newInode(ctx context.Context, ops InodeLink, id NodeAttr, persistent bool) *Inode {
+func (b *rawBridge) newInode(ctx context.Context, ops InodeEmbedder, id NodeAttr, persistent bool) *Inode {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -58,8 +58,8 @@ func (b *rawBridge) newInode(ctx context.Context, ops InodeLink, id NodeAttr, pe
 	}
 
 	// This ops already was populated. Just return it.
-	if ops.inode().bridge != nil {
-		return ops.inode()
+	if ops.embed().bridge != nil {
+		return ops.embed()
 	}
 
 	if id.Ino == 0 {
@@ -94,12 +94,12 @@ func (b *rawBridge) newInode(ctx context.Context, ops InodeLink, id NodeAttr, pe
 		id.Mode = fuse.S_IFREG
 	}
 
-	b.nodes[id.Ino] = ops.inode()
-	ops.init(ops, id, b, persistent)
+	b.nodes[id.Ino] = ops.embed()
+	initInode(ops.embed(), ops, id, b, persistent)
 	if oa, ok := ops.(OnAdder); ok {
 		oa.OnAdd(ctx)
 	}
-	return ops.inode()
+	return ops.embed()
 }
 
 // addNewChild inserts the child into the tree. Returns file handle if file != nil.
@@ -141,7 +141,7 @@ func (b *rawBridge) setAttrTimeout(out *fuse.AttrOut) {
 
 // NewNodeFS creates a node based filesystem based on an Operations
 // instance for the root.
-func NewNodeFS(root InodeLink, opts *Options) fuse.RawFileSystem {
+func NewNodeFS(root InodeEmbedder, opts *Options) fuse.RawFileSystem {
 	bridge := &rawBridge{
 		automaticIno: opts.FirstAutomaticIno,
 	}
@@ -161,7 +161,7 @@ func NewNodeFS(root InodeLink, opts *Options) fuse.RawFileSystem {
 		bridge.options.AttrTimeout = &oneSec
 	}
 
-	root.init(root,
+	initInode(root.embed(), root,
 		NodeAttr{
 			Ino:  1,
 			Mode: fuse.S_IFDIR,
@@ -169,7 +169,7 @@ func NewNodeFS(root InodeLink, opts *Options) fuse.RawFileSystem {
 		bridge,
 		false,
 	)
-	bridge.root = root.inode()
+	bridge.root = root.embed()
 	bridge.root.lookupCount = 1
 	bridge.nodes = map[uint64]*Inode{
 		1: bridge.root,

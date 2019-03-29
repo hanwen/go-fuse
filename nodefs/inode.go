@@ -13,6 +13,8 @@ import (
 	"sync"
 	"syscall"
 	"unsafe"
+
+	"github.com/hanwen/go-fuse/fuse"
 )
 
 type parentData struct {
@@ -50,10 +52,14 @@ func (i *NodeAttr) Reserved() bool {
 // Operations instances, which is the extension interface for file
 // systems.  One can create fully-formed trees of Inodes ahead of time
 // by creating "persistent" Inodes.
+//
+// The Inode struct contains a lock, so it should not be
+// copied. Inodes should be obtained by calling Inode.NewInode() or
+// Inode.NewPersistentInode().
 type Inode struct {
 	nodeAttr NodeAttr
 
-	ops    InodeLink
+	ops    InodeEmbedder
 	bridge *rawBridge
 
 	// Following data is mutable.
@@ -88,6 +94,25 @@ type Inode struct {
 
 	children map[string]*Inode
 	parents  map[parentData]struct{}
+}
+
+func (n *Inode) embed() *Inode {
+	return n
+}
+
+func (n *Inode) EmbeddedInode() *Inode {
+	return n
+}
+
+func initInode(n *Inode, ops InodeEmbedder, attr NodeAttr, bridge *rawBridge, persistent bool) {
+	n.ops = ops
+	n.nodeAttr = attr
+	n.bridge = bridge
+	n.persistent = persistent
+	n.parents = make(map[parentData]struct{})
+	if attr.Mode == fuse.S_IFDIR {
+		n.children = make(map[string]*Inode)
+	}
 }
 
 // NodeAttr returns the (Ino, Gen) tuple for this node.
@@ -202,7 +227,7 @@ func (n *Inode) Forgotten() bool {
 
 // Operations returns the object implementing the file system
 // operations.
-func (n *Inode) Operations() InodeLink {
+func (n *Inode) Operations() InodeEmbedder {
 	return n.ops
 }
 
@@ -261,7 +286,7 @@ func (iparent *Inode) setEntry(name string, ichild *Inode) {
 
 // NewPersistentInode returns an Inode whose lifetime is not in
 // control of the kernel.
-func (n *Inode) NewPersistentInode(ctx context.Context, node InodeLink, id NodeAttr) *Inode {
+func (n *Inode) NewPersistentInode(ctx context.Context, node InodeEmbedder, id NodeAttr) *Inode {
 	return n.newInode(ctx, node, id, true)
 }
 
@@ -272,16 +297,16 @@ func (n *Inode) ForgetPersistent() {
 	n.removeRef(0, true)
 }
 
-// NewInode returns an inode for the given InodeLink. The mode should
-// be standard mode argument (eg. S_IFDIR). The inode number in id.Ino
-// argument is used to implement hard-links.  If it is given, and
-// another node with the same ID is known, that will node will be
+// NewInode returns an inode for the given InodeEmbedder. The mode
+// should be standard mode argument (eg. S_IFDIR). The inode number in
+// id.Ino argument is used to implement hard-links.  If it is given,
+// and another node with the same ID is known, that will node will be
 // returned, and the passed-in `node` is ignored.
-func (n *Inode) NewInode(ctx context.Context, ops InodeLink, id NodeAttr) *Inode {
+func (n *Inode) NewInode(ctx context.Context, node InodeEmbedder, id NodeAttr) *Inode {
 	return n.newInode(ctx, ops, id, false)
 }
 
-func (n *Inode) newInode(ctx context.Context, ops InodeLink, id NodeAttr, persistent bool) *Inode {
+func (n *Inode) newInode(ctx context.Context, ops InodeEmbedder, id NodeAttr, persistent bool) *Inode {
 	return n.bridge.newInode(ctx, ops, id, persistent)
 }
 

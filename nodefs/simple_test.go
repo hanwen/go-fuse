@@ -28,7 +28,7 @@ type testCase struct {
 	origDir string
 	mntDir  string
 
-	loopback InodeLink
+	loopback InodeEmbedder
 	rawFS    fuse.RawFileSystem
 	server   *fuse.Server
 }
@@ -437,7 +437,7 @@ func TestNotifyEntry(t *testing.T) {
 		t.Fatalf("got after %#v, want %#v", after, st)
 	}
 
-	if errno := tc.loopback.Inode().NotifyEntry("file"); errno != 0 {
+	if errno := tc.loopback.EmbeddedInode().NotifyEntry("file"); errno != 0 {
 		t.Errorf("notify failed: %v", errno)
 	}
 

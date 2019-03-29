@@ -17,11 +17,11 @@ import (
 )
 
 type dioRoot struct {
-	InodeEmbed
+	Inode
 }
 
 func (r *dioRoot) OnAdd(ctx context.Context) {
-	r.Inode().AddChild("file", r.Inode().NewInode(ctx, &dioFile{}, NodeAttr{}), false)
+	r.Inode.AddChild("file", r.Inode.NewInode(ctx, &dioFile{}, NodeAttr{}), false)
 }
 
 // A file handle that pretends that every hole/data starts at
@@ -44,7 +44,7 @@ func (fh *dioFH) Read(ctx context.Context, data []byte, off int64) (fuse.ReadRes
 
 // overrides Open so it can return a dioFH file handle
 type dioFile struct {
-	InodeEmbed
+	Inode
 }
 
 var _ = (Opener)((*dioFile)(nil))

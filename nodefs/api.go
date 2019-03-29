@@ -28,16 +28,23 @@
 // expressed through index-nodes (also known as "inode", see Inode) which
 // describe parent/child relation in between nodes and node-ID association.
 //
-// All error reporting must use the syscall.Errno type. The value 0
-// (`OK`) should be used to indicate success. The method names are
-// inspired on the system call names, so we have Listxattr rather than
-// ListXAttr.
+// The filesystem nodes are struct that embed the Inode type, so they
+// comply with the InodeEmbedder interface.  They should be
+// initialized by calling NewInode or NewPersistentInode before being
+// manipulated further, eg.
 //
-// A filesystem should provide nodes that embed InodeEmbed, so the
-// node comply with the InodeLink interface.  When filesystem is
-// mounted, its root InodeEmbed is associated with root of the tree,
-// and the tree is further built lazily when nodefs infrastructure
-// needs to lookup children of nodes to process client requests.
+//
+//  type myNode struct {
+//     Inode
+//  }
+//
+//  func (n *myNode) Lookup(ctx context.Context, name string,  ... ) (*Inode, syscall.Errno) {
+//    child := myNode{}
+//    return n.NewInode(ctx, &myNode{}, NodeAttr{Mode: syscall.S_IFDIR}), 0
+//  }
+//
+// On mounting, the root InodeEmbedder is associated with root of the
+// tree.
 //
 // The kernel can evict inode data to free up memory. It does so by
 // issuing FORGET calls. When a node has no children, and no kernel
@@ -55,6 +62,12 @@
 // systems should implement Lookuper instead.  The loopback file
 // system created by `NewLoopbackRoot` provides a straightforward
 // example.
+//
+// All error reporting must use the syscall.Errno type. The value 0
+// (`OK`) should be used to indicate success. The method names are
+// inspired on the system call names, so we have Listxattr rather than
+// ListXAttr.
+//
 
 package nodefs
 
@@ -66,26 +79,21 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-// InodeLink provides the machinery to connect user defined methods to
-// an Inode (a node in the filesystem tree).
+// InodeEmbedder is an interface for structs that embed Inode.
 //
-// In general, if InodeLink does not implement specific filesystem
-// methods, the filesystem will react as if it is a read-only
-// filesystem with a predefined tree structure. See zipfs_test.go for
-// an example.  A example is in zip_test.go
-type InodeLink interface {
+// In general, if an InodeEmbedder does not implement specific
+// filesystem methods, the filesystem will react as if it is a
+// read-only filesystem with a predefined tree structure. See
+// zipfs_test.go for an example.  A example is in zip_test.go
+type InodeEmbedder interface {
 	// populateInode and inode are used by nodefs internally to
 	// link Inode to a Node.
 	//
 	// See Inode() for the public API to retrieve an inode from Node.
-	inode() *Inode
-	init(ops InodeLink, attr NodeAttr, bridge *rawBridge, persistent bool)
+	embed() *Inode
 
-	// Inode returns the *Inode associated with this Operations
-	// instance.  The identity of the Inode does not change over
-	// the lifetime of the node object.  Inode() is provided by
-	// OperationStubs, and should not be reimplemented.
-	Inode() *Inode
+	// EmbeddedInode returns a pointer to the embedded inode.
+	EmbeddedInode() *Inode
 }
 
 // Statfs implements statistics for the filesystem that holds this
@@ -119,8 +127,7 @@ type Setattrer interface {
 	Setattr(ctx context.Context, f FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno
 }
 
-// OnAdd is called once this Operations object is attached to
-// an Inode.
+// OnAdd is called when this InodeEmbedder is initialized.
 type OnAdder interface {
 	OnAdd(ctx context.Context)
 }
@@ -196,7 +203,7 @@ type Flusher interface {
 }
 
 // This is called to before the file handle is forgotten. The
-// kernel ingores the return value of this method,
+// kernel ignores the return value of this method,
 // so any cleanup that requires specific synchronization or
 // could fail with I/O errors should happen in Flush instead.
 // The default implementation forwards to the FileHandle.
@@ -308,7 +315,7 @@ type Mknoder interface {
 // Link is similar to Lookup, but must create a new link to an existing Inode.
 // Default is to return EROFS.
 type Linker interface {
-	Link(ctx context.Context, target InodeLink, name string, out *fuse.EntryOut) (node *Inode, errno syscall.Errno)
+	Link(ctx context.Context, target InodeEmbedder, name string, out *fuse.EntryOut) (node *Inode, errno syscall.Errno)
 }
 
 // Symlink is similar to Lookup, but must create a new symbolic link.
@@ -343,7 +350,7 @@ type Rmdirer interface {
 // OK.
 // Default is to return EROFS.
 type Renamer interface {
-	Rename(ctx context.Context, name string, newParent InodeLink, newName string, flags uint32) syscall.Errno
+	Rename(ctx context.Context, name string, newParent InodeEmbedder, newName string, flags uint32) syscall.Errno
 }
 
 // FileHandle is a resource identifier for opened files.  FileHandles

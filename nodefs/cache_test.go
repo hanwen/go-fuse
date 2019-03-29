@@ -19,7 +19,7 @@ import (
 )
 
 type keepCacheFile struct {
-	InodeEmbed
+	Inode
 	keepCache bool
 
 	mu      sync.Mutex
@@ -66,7 +66,7 @@ var _ = (Opener)((*keepCacheFile)(nil))
 var _ = (Getattrer)((*keepCacheFile)(nil))
 
 type keepCacheRoot struct {
-	InodeEmbed
+	Inode
 
 	keep, nokeep *keepCacheFile
 }
@@ -74,7 +74,7 @@ type keepCacheRoot struct {
 var _ = (OnAdder)((*keepCacheRoot)(nil))
 
 func (r *keepCacheRoot) OnAdd(ctx context.Context) {
-	i := r.Inode()
+	i := &r.Inode
 
 	r.keep = &keepCacheFile{
 		keepCache: true,
@@ -119,7 +119,7 @@ func TestKeepCache(t *testing.T) {
 		t.Errorf("keep read 2 got %q want read 1 %q", c2, c1)
 	}
 
-	if s := root.keep.Inode().NotifyContent(0, 100); s != OK {
+	if s := root.keep.Inode.NotifyContent(0, 100); s != OK {
 		t.Errorf("NotifyContent: %v", s)
 	}
 
