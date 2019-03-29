@@ -5,8 +5,12 @@
 package nodefs
 
 import (
+	"context"
+	"path/filepath"
 	"syscall"
 	"testing"
+
+	"github.com/hanwen/go-fuse/fuse"
 )
 
 func TestReadonlyCreate(t *testing.T) {
@@ -18,5 +22,33 @@ func TestReadonlyCreate(t *testing.T) {
 	_, err := syscall.Creat(mntDir+"/test", 0644)
 	if want := syscall.EROFS; want != err {
 		t.Fatalf("got err %v, want %v", err, want)
+	}
+}
+
+func TestDefaultPermissions(t *testing.T) {
+	root := &Inode{}
+
+	mntDir, clean := testMount(t, root, &Options{
+		DefaultPermissions: true,
+		OnAdd: func(ctx context.Context) {
+			dir := root.NewPersistentInode(ctx, &Inode{}, NodeAttr{Mode: syscall.S_IFDIR})
+			file := root.NewPersistentInode(ctx, &Inode{}, NodeAttr{Mode: syscall.S_IFREG})
+
+			root.AddChild("dir", dir, false)
+			root.AddChild("file", file, false)
+		},
+	})
+	defer clean()
+
+	for k, v := range map[string]uint32{
+		"dir":  fuse.S_IFDIR | 0755,
+		"file": fuse.S_IFREG | 0644,
+	} {
+		var st syscall.Stat_t
+		if err := syscall.Lstat(filepath.Join(mntDir, k), &st); err != nil {
+			t.Error("Lstat", err)
+		} else if st.Mode != v {
+			t.Errorf("got %o want %o", st.Mode, v)
+		}
 	}
 }

@@ -454,4 +454,8 @@ type Options struct {
 	// OnAdd is an alternative way to specify the OnAdd
 	// functionality of the root node.
 	OnAdd func(ctx context.Context)
+
+	// DefaultPermissions sets all file permissions to 755 (dirs)
+	// or 644 (other files.)
+	DefaultPermissions bool
 }

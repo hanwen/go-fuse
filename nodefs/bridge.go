@@ -134,11 +134,21 @@ func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file F
 }
 
 func (b *rawBridge) setEntryOutTimeout(out *fuse.EntryOut) {
+	b.setAttr(&out.Attr)
 	if b.options.AttrTimeout != nil && out.AttrTimeout() == 0 {
 		out.SetAttrTimeout(*b.options.AttrTimeout)
 	}
 	if b.options.EntryTimeout != nil && out.EntryTimeout() == 0 {
 		out.SetEntryTimeout(*b.options.EntryTimeout)
+	}
+}
+
+func (b *rawBridge) setAttr(out *fuse.Attr) {
+	if b.options.DefaultPermissions && out.Mode&07777 == 0 {
+		out.Mode |= 0644
+		if out.Mode&syscall.S_IFDIR != 0 {
+			out.Mode |= 0111
+		}
 	}
 }
 
@@ -222,10 +232,9 @@ func (b *rawBridge) Lookup(cancel <-chan struct{}, header *fuse.InHeader, name s
 		return errnoToStatus(errno)
 	}
 
+	child.setEntryOut(out)
 	b.addNewChild(parent, name, child, nil, 0, out)
 	b.setEntryOutTimeout(out)
-
-	out.Mode = child.nodeAttr.Mode | (out.Mode & 07777)
 
 	return fuse.OK
 }
@@ -294,6 +303,7 @@ func (b *rawBridge) Mkdir(cancel <-chan struct{}, input *fuse.MkdirIn, name stri
 		log.Panicf("Mkdir: mode must be S_IFDIR (%o), got %o", fuse.S_IFDIR, out.Attr.Mode)
 	}
 
+	child.setEntryOut(out)
 	b.addNewChild(parent, name, child, nil, 0, out)
 	b.setEntryOutTimeout(out)
 	return fuse.OK
@@ -312,9 +322,9 @@ func (b *rawBridge) Mknod(cancel <-chan struct{}, input *fuse.MknodIn, name stri
 		return errnoToStatus(errno)
 	}
 
+	child.setEntryOut(out)
 	b.addNewChild(parent, name, child, nil, 0, out)
 	b.setEntryOutTimeout(out)
-	child.setEntryOut(out)
 	return fuse.OK
 }
 
@@ -349,8 +359,8 @@ func (b *rawBridge) Create(cancel <-chan struct{}, input *fuse.CreateIn, name st
 	out.AttrValid = temp.AttrValid
 	out.AttrValidNsec = temp.AttrValidNsec
 
-	b.setEntryOutTimeout(&out.EntryOut)
 	child.setEntryOut(&out.EntryOut)
+	b.setEntryOutTimeout(&out.EntryOut)
 
 	return fuse.OK
 }
@@ -399,9 +409,10 @@ func (b *rawBridge) getattr(ctx context.Context, n *Inode, f FileHandle, out *fu
 	}
 
 	if errno == 0 {
-		b.setAttrTimeout(out)
 		out.Ino = n.nodeAttr.Ino
 		out.Mode = (out.Attr.Mode & 07777) | n.nodeAttr.Mode
+		b.setAttr(&out.Attr)
+		b.setAttrTimeout(out)
 	}
 	return errno
 }
@@ -454,9 +465,9 @@ func (b *rawBridge) Link(cancel <-chan struct{}, input *fuse.LinkIn, name string
 			return errnoToStatus(errno)
 		}
 
+		child.setEntryOut(out)
 		b.addNewChild(parent, name, child, nil, 0, out)
 		b.setEntryOutTimeout(out)
-		child.setEntryOut(out)
 		return fuse.OK
 	}
 	return fuse.ENOTSUP
@@ -472,8 +483,8 @@ func (b *rawBridge) Symlink(cancel <-chan struct{}, header *fuse.InHeader, targe
 		}
 
 		b.addNewChild(parent, name, child, nil, 0, out)
-		b.setEntryOutTimeout(out)
 		child.setEntryOut(out)
+		b.setEntryOutTimeout(out)
 		return fuse.OK
 	}
 	return fuse.ENOTSUP
@@ -860,6 +871,7 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 			}
 		} else {
 			b.addNewChild(n, e.Name, child, nil, 0, entryOut)
+			child.setEntryOut(entryOut)
 			b.setEntryOutTimeout(entryOut)
 			if (e.Mode &^ 07777) != (child.nodeAttr.Mode &^ 07777) {
 				// should go back and change the
