@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/internal/testutil"
 )
 
 type dioRoot struct {
@@ -55,18 +54,8 @@ func (f *dioFile) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFl
 
 func TestDirectIO(t *testing.T) {
 	root := &dioRoot{}
-	mntDir := testutil.TempDir()
-
-	defer os.RemoveAll(mntDir)
-	server, err := Mount(mntDir, root, &Options{
-		MountOptions: fuse.MountOptions{
-			Debug: testutil.VerboseTest(),
-		},
-		FirstAutomaticIno: 1,
-
-		// no caching.
-	})
-	defer server.Unmount()
+	mntDir, clean := testMount(t, root, nil)
+	defer clean()
 
 	f, err := os.Open(mntDir + "/file")
 	if err != nil {

@@ -6,14 +6,12 @@ package nodefs
 
 import (
 	"context"
-	"os"
 	"os/exec"
 	"syscall"
 	"testing"
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/internal/testutil"
 )
 
 type interruptRoot struct {
@@ -54,22 +52,18 @@ func (o *interruptOps) Open(ctx context.Context, flags uint32) (FileHandle, uint
 // This currently doesn't test functionality, but is useful to investigate how
 // INTERRUPT opcodes are handled.
 func TestInterrupt(t *testing.T) {
-	mntDir := testutil.TempDir()
-	defer os.Remove(mntDir)
 	root := &interruptRoot{}
 
 	oneSec := time.Second
-	server, err := Mount(mntDir, root, &Options{
-		MountOptions: fuse.MountOptions{
-			Debug: testutil.VerboseTest(),
-		},
+	mntDir, clean := testMount(t, root, &Options{
 		EntryTimeout: &oneSec,
 		AttrTimeout:  &oneSec,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer server.Unmount()
+	defer func() {
+		if clean != nil {
+			clean()
+		}
+	}()
 
 	cmd := exec.Command("cat", mntDir+"/file")
 	if err := cmd.Start(); err != nil {
@@ -81,7 +75,9 @@ func TestInterrupt(t *testing.T) {
 		t.Errorf("Kill: %v", err)
 	}
 
-	server.Unmount()
+	clean()
+	clean = nil
+
 	if !root.child.interrupted {
 		t.Errorf("open request was not interrupted")
 	}

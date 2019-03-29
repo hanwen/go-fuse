@@ -9,13 +9,11 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"sync"
 	"syscall"
 	"testing"
 
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/internal/testutil"
 )
 
 type keepCacheFile struct {
@@ -26,6 +24,10 @@ type keepCacheFile struct {
 	content []byte
 	count   int
 }
+
+var _ = (Reader)((*keepCacheFile)(nil))
+var _ = (Opener)((*keepCacheFile)(nil))
+var _ = (Getattrer)((*keepCacheFile)(nil))
 
 func (f *keepCacheFile) setContent(delta int) {
 	f.mu.Lock()
@@ -61,10 +63,6 @@ func (f *keepCacheFile) Read(ctx context.Context, fh FileHandle, dest []byte, of
 	return fuse.ReadResultData(f.content[off:]), OK
 }
 
-var _ = (Reader)((*keepCacheFile)(nil))
-var _ = (Opener)((*keepCacheFile)(nil))
-var _ = (Getattrer)((*keepCacheFile)(nil))
-
 type keepCacheRoot struct {
 	Inode
 
@@ -93,18 +91,9 @@ func (r *keepCacheRoot) OnAdd(ctx context.Context) {
 // invalidation triggers if mtime or file size is changed, so only
 // change content but no metadata.
 func TestKeepCache(t *testing.T) {
-	mntDir := testutil.TempDir()
-	defer os.RemoveAll(mntDir)
 	root := &keepCacheRoot{}
-	server, err := Mount(mntDir, root, &Options{
-		MountOptions: fuse.MountOptions{
-			Debug: testutil.VerboseTest(),
-		},
-		FirstAutomaticIno: 1,
-
-		// no caching.
-	})
-	defer server.Unmount()
+	mntDir, clean := testMount(t, root, nil)
+	defer clean()
 	c1, err := ioutil.ReadFile(mntDir + "/keep")
 	if err != nil {
 		t.Fatalf("read keep 1: %v", err)
