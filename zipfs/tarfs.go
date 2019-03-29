@@ -9,11 +9,15 @@ import (
 	"bytes"
 	"compress/bzip2"
 	"compress/gzip"
-	"github.com/hanwen/go-fuse/fuse"
+	"context"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"syscall"
+
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/nodefs"
 )
 
 // TODO - handle symlinks.
@@ -40,9 +44,14 @@ func (f *TarFile) Data() []byte {
 	return f.data
 }
 
-func NewTarTree(r io.Reader) map[string]MemFile {
-	files := map[string]MemFile{}
-	tr := tar.NewReader(r)
+type tarRoot struct {
+	nodefs.Inode
+	rc io.ReadCloser
+}
+
+func (r *tarRoot) OnAdd(ctx context.Context) {
+	tr := tar.NewReader(r.rc)
+	defer r.rc.Close()
 
 	var longName *string
 	for {
@@ -74,35 +83,64 @@ func NewTarTree(r io.Reader) map[string]MemFile {
 
 		buf := bytes.NewBuffer(make([]byte, 0, hdr.Size))
 		io.Copy(buf, tr)
-
-		files[hdr.Name] = &TarFile{
-			Header: *hdr,
-			data:   buf.Bytes(),
+		df := &nodefs.MemRegularFile{
+			Data: buf.Bytes(),
 		}
+		dir, base := filepath.Split(filepath.Clean(hdr.Name))
+
+		p := r.EmbeddedInode()
+		for _, comp := range strings.Split(dir, "/") {
+			if len(comp) == 0 {
+				continue
+			}
+			ch := p.GetChild(comp)
+			if ch == nil {
+				p.AddChild(comp, p.NewPersistentInode(ctx,
+					&nodefs.Inode{},
+					nodefs.NodeAttr{Mode: syscall.S_IFDIR}), false)
+			}
+			p = ch
+		}
+
+		HeaderToFileInfo(&df.Attr, hdr)
+		p.AddChild(base, r.NewPersistentInode(ctx, df, nodefs.NodeAttr{}), false)
 	}
-	return files
 }
 
-func NewTarCompressedTree(name string, format string) (map[string]MemFile, error) {
+type readCloser struct {
+	io.Reader
+	close func() error
+}
+
+func (rc *readCloser) Close() error {
+	return rc.close()
+}
+
+func NewTarCompressedTree(name string, format string) (nodefs.InodeEmbedder, error) {
 	f, err := os.Open(name)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
 
-	var stream io.Reader
+	var stream io.ReadCloser
 	switch format {
 	case "gz":
 		unzip, err := gzip.NewReader(f)
 		if err != nil {
 			return nil, err
 		}
-		defer unzip.Close()
-		stream = unzip
+		stream = &readCloser{
+			unzip,
+			f.Close,
+		}
 	case "bz2":
 		unzip := bzip2.NewReader(f)
-		stream = unzip
+		stream = &readCloser{
+			unzip,
+			f.Close,
+		}
 	}
 
-	return NewTarTree(stream), nil
+	return &tarRoot{rc: stream}, nil
 }

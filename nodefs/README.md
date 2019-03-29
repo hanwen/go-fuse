@@ -60,3 +60,5 @@ To do/To decide
    * decide on a final package name
 
    * handle less open/create.
+
+   * Symlink []byte vs string.
