@@ -38,9 +38,10 @@ func testMount(t *testing.T, root InodeEmbedder, opts *Options) (string, func())
 
 func TestDataFile(t *testing.T) {
 	want := "hello"
-	mntDir, clean := testMount(t, &Inode{}, &Options{
+	root := &Inode{}
+	mntDir, clean := testMount(t, root, &Options{
 		FirstAutomaticIno: 1,
-		OnAdd: func(ctx context.Context, root InodeEmbedder) {
+		OnAdd: func(ctx context.Context) {
 			n := root.EmbeddedInode()
 			ch := n.NewPersistentInode(
 				ctx,

@@ -453,5 +453,5 @@ type Options struct {
 
 	// OnAdd is an alternative way to specify the OnAdd
 	// functionality of the root node.
-	OnAdd func(ctx context.Context, root InodeEmbedder)
+	OnAdd func(ctx context.Context)
 }

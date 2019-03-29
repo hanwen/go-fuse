@@ -188,7 +188,7 @@ func NewNodeFS(root InodeEmbedder, opts *Options) fuse.RawFileSystem {
 	bridge.files = []*fileEntry{{}}
 
 	if opts.OnAdd != nil {
-		opts.OnAdd(context.Background(), root)
+		opts.OnAdd(context.Background())
 	} else if oa, ok := root.(OnAdder); ok {
 		oa.OnAdd(context.Background())
 	}

@@ -9,7 +9,7 @@ import (
 	"bytes"
 	"context"
 	"io/ioutil"
-	"os"
+	"log"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -18,7 +18,6 @@ import (
 	"testing"
 
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/internal/testutil"
 )
 
 var testData = map[string]string{
@@ -62,20 +61,10 @@ func TestZipFS(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	root := &zipRoot{r: r}
+	root := &zipRoot{zr: r}
+	mntDir, clean := testMount(t, root, nil)
+	defer clean()
 
-	mntDir := testutil.TempDir()
-	defer os.Remove(mntDir)
-	server, err := Mount(mntDir, root, &Options{
-		MountOptions: fuse.MountOptions{
-			Debug: testutil.VerboseTest(),
-		},
-		FirstAutomaticIno: 1,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer server.Unmount()
 	for k, v := range testData {
 		c, err := ioutil.ReadFile(filepath.Join(mntDir, k))
 		if err != nil {
@@ -101,6 +90,33 @@ func TestZipFS(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v want %v", got, want)
+	}
+}
+
+func TestZipFSOnAdd(t *testing.T) {
+	zipBytes := createZip(testData)
+
+	r, err := zip.NewReader(&byteReaderAt{zipBytes}, int64(len(zipBytes)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	zr := &zipRoot{zr: r}
+
+	root := &Inode{}
+	mnt, clean := testMount(t, root, &Options{
+		OnAdd: func(ctx context.Context) {
+			root.AddChild("sub",
+				root.NewPersistentInode(ctx, zr, NodeAttr{Mode: syscall.S_IFDIR}), false)
+		},
+	})
+	defer clean()
+	c, err := ioutil.ReadFile(mnt + "/sub/dir/subdir/subfile")
+	if err != nil {
+		t.Fatal("ReadFile", err)
+	}
+	if got, want := string(c), "content3"; got != want {
+		t.Errorf("got %q, want %q", got, want)
 	}
 }
 
@@ -160,7 +176,7 @@ func (zf *zipFile) Read(ctx context.Context, f FileHandle, dest []byte, off int6
 type zipRoot struct {
 	Inode
 
-	r *zip.Reader
+	zr *zip.Reader
 }
 
 var _ = (OnAdder)((*zipRoot)(nil))
@@ -170,7 +186,7 @@ func (zr *zipRoot) OnAdd(ctx context.Context) {
 	// then construct a tree.  We construct the entire tree, and
 	// we don't want parts of the tree to disappear when the
 	// kernel is short on memory, so we use persistent inodes.
-	for _, f := range zr.r.File {
+	for _, f := range zr.zr.File {
 		dir, base := filepath.Split(f.Name)
 
 		p := &zr.Inode
@@ -190,4 +206,51 @@ func (zr *zipRoot) OnAdd(ctx context.Context) {
 		ch := p.NewPersistentInode(ctx, &zipFile{file: f}, NodeAttr{})
 		p.AddChild(base, ch, true)
 	}
+}
+
+// ExampleNewPersistentInode shows how to create a in-memory file
+// system a prefabricated tree.
+func ExampleNewPersistentInode() {
+	mntDir, _ := ioutil.TempDir("", "")
+
+	files := map[string]string{
+		"file":              "content",
+		"subdir/other-file": "content",
+	}
+
+	root := &Inode{}
+	server, err := Mount(mntDir, root, &Options{
+		MountOptions: fuse.MountOptions{Debug: true},
+		OnAdd: func(ctx context.Context) {
+			for name, content := range files {
+				dir, base := filepath.Split(name)
+
+				p := root
+				for _, component := range strings.Split(dir, "/") {
+					if len(component) == 0 {
+						continue
+					}
+					ch := p.GetChild(component)
+					if ch == nil {
+						ch = p.NewPersistentInode(ctx, &Inode{},
+							NodeAttr{Mode: syscall.S_IFDIR})
+						p.AddChild(component, ch, true)
+					}
+
+					p = ch
+				}
+				child := p.NewPersistentInode(ctx, &MemRegularFile{
+					Data: []byte(content),
+				}, NodeAttr{})
+				p.AddChild(base, child, true)
+			}
+		},
+	})
+	if err != nil {
+		log.Panic(err)
+	}
+
+	log.Printf("Mounted on %s", mntDir)
+	log.Printf("Unmount by calling 'fusermount -u %s'", mntDir)
+	server.Wait()
 }
