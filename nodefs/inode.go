@@ -130,14 +130,28 @@ func (n *Inode) Root() *Inode {
 	return n.bridge.root
 }
 
+func modeStr(m uint32) string {
+	return map[uint32]string{
+		syscall.S_IFREG:  "reg",
+		syscall.S_IFLNK:  "lnk",
+		syscall.S_IFDIR:  "dir",
+		syscall.S_IFSOCK: "soc",
+		syscall.S_IFIFO:  "pip",
+		syscall.S_IFCHR:  "chr",
+		syscall.S_IFBLK:  "blk",
+	}[m]
+}
+
 // debugString is used for debugging. Racy.
-func (n *Inode) debugString() string {
+func (n *Inode) String() string {
+	n.mu.Lock()
+	defer n.mu.Unlock()
 	var ss []string
 	for nm, ch := range n.children {
-		ss = append(ss, fmt.Sprintf("%q=%d", nm, ch.nodeAttr.Ino))
+		ss = append(ss, fmt.Sprintf("%q=%d[%s]", nm, ch.nodeAttr.Ino, modeStr(ch.nodeAttr.Mode)))
 	}
 
-	return fmt.Sprintf("%d: %s", n.nodeAttr, strings.Join(ss, ","))
+	return fmt.Sprintf("%d[%s]: %s", n.nodeAttr.Ino, modeStr(n.nodeAttr.Mode), strings.Join(ss, ","))
 }
 
 // sortNodes rearranges inode group in consistent order.
