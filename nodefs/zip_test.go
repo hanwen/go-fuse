@@ -208,43 +208,58 @@ func (zr *zipRoot) OnAdd(ctx context.Context) {
 	}
 }
 
-// ExampleNewPersistentInode shows how to create a in-memory file
-// system a prefabricated tree.
-func ExampleNewPersistentInode() {
+// Persistent inodes can be used to create an in-memory
+// prefabricated file system tree.
+func ExampleInode_NewPersistentInode() {
+	// This is where we'll mount the FS
 	mntDir, _ := ioutil.TempDir("", "")
 
 	files := map[string]string{
 		"file":              "content",
-		"subdir/other-file": "content",
+		"subdir/other-file": "other-content",
 	}
 
 	root := &Inode{}
+	populate := func(ctx context.Context) {
+		for name, content := range files {
+			dir, base := filepath.Split(name)
+
+			p := root
+
+			// Add directories leading up to the file.
+			for _, component := range strings.Split(dir, "/") {
+				if len(component) == 0 {
+					continue
+				}
+				ch := p.GetChild(component)
+				if ch == nil {
+					// Create a directory
+					ch = p.NewPersistentInode(ctx, &Inode{},
+						NodeAttr{Mode: syscall.S_IFDIR})
+					// Add it
+					p.AddChild(component, ch, true)
+				}
+
+				p = ch
+			}
+
+			// Create the file
+			child := p.NewPersistentInode(ctx, &MemRegularFile{
+				Data: []byte(content),
+			}, NodeAttr{})
+
+			// And add it
+			p.AddChild(base, child, true)
+		}
+	}
 	server, err := Mount(mntDir, root, &Options{
 		MountOptions: fuse.MountOptions{Debug: true},
-		OnAdd: func(ctx context.Context) {
-			for name, content := range files {
-				dir, base := filepath.Split(name)
 
-				p := root
-				for _, component := range strings.Split(dir, "/") {
-					if len(component) == 0 {
-						continue
-					}
-					ch := p.GetChild(component)
-					if ch == nil {
-						ch = p.NewPersistentInode(ctx, &Inode{},
-							NodeAttr{Mode: syscall.S_IFDIR})
-						p.AddChild(component, ch, true)
-					}
-
-					p = ch
-				}
-				child := p.NewPersistentInode(ctx, &MemRegularFile{
-					Data: []byte(content),
-				}, NodeAttr{})
-				p.AddChild(base, child, true)
-			}
-		},
+		// This adds read permissions to the files and
+		// directories, which is necessary for doing a chdir
+		// into the mount.
+		DefaultPermissions: true,
+		OnAdd:              populate,
 	})
 	if err != nil {
 		log.Panic(err)
