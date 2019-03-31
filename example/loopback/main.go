@@ -20,8 +20,7 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/fuse/nodefs"
-	"github.com/hanwen/go-fuse/fuse/pathfs"
+	"github.com/hanwen/go-fuse/nodefs"
 )
 
 func writeMemProfile(fn string, sigs <-chan os.Signal) {
@@ -48,7 +47,8 @@ func main() {
 	// Scans the arg list and sets up flags
 	debug := flag.Bool("debug", false, "print debugging messages.")
 	other := flag.Bool("allow-other", false, "mount with -o allowother.")
-	enableLinks := flag.Bool("l", false, "Enable hard link support")
+	// TODO
+	// link = flag.Bool("l", false, "Enable hard link support")
 	cpuprofile := flag.String("cpuprofile", "", "write cpu profile to this file")
 	memprofile := flag.String("memprofile", "", "write memory profile to this file")
 	flag.Parse()
@@ -78,36 +78,37 @@ func main() {
 		fmt.Printf("Note: You must unmount gracefully, otherwise the profile file(s) will stay empty!\n")
 	}
 
-	var finalFs pathfs.FileSystem
-	orig := flag.Arg(1)
-	loopbackfs := pathfs.NewLoopbackFileSystem(orig)
-	finalFs = loopbackfs
+	orig, _ := filepath.Abs(flag.Arg(1))
+	mountPoint, _ := filepath.Abs(flag.Arg(0))
 
-	opts := &nodefs.Options{
-		// These options are to be compatible with libfuse defaults,
-		// making benchmarking easier.
-		NegativeTimeout: time.Second,
-		AttrTimeout:     time.Second,
-		EntryTimeout:    time.Second,
-	}
-	// Enable ClientInodes so hard links work
-	pathFsOpts := &pathfs.PathNodeFsOptions{ClientInodes: *enableLinks}
-	pathFs := pathfs.NewPathNodeFs(finalFs, pathFsOpts)
-	conn := nodefs.NewFileSystemConnector(pathFs.Root(), opts)
-	mountPoint := flag.Arg(0)
-	origAbs, _ := filepath.Abs(orig)
-	mOpts := &fuse.MountOptions{
-		AllowOther: *other,
-		Name:       "loopbackfs",
-		FsName:     origAbs,
-		Debug:      *debug,
-	}
-	state, err := fuse.NewServer(conn.RawFS(), mountPoint, mOpts)
+	loopbackRoot, err := nodefs.NewLoopbackRoot(orig)
 	if err != nil {
-		fmt.Printf("Mount fail: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("NewLoopbackRoot: %v", err)
 	}
 
-	fmt.Println("Mounted!")
-	state.Serve()
+	sec := time.Second
+	rawFS := nodefs.NewNodeFS(loopbackRoot, &nodefs.Options{
+		EntryTimeout: &sec,
+		AttrTimeout:  &sec,
+	})
+
+	server, err := fuse.NewServer(rawFS, mountPoint,
+		&fuse.MountOptions{
+			AllowOther: *other,
+			Debug:      *debug,
+		})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	go func() {
+		err := server.WaitMount()
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println("Mounted!")
+		}
+	}()
+
+	server.Serve()
 }
