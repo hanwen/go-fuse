@@ -6,7 +6,6 @@ package nodefs
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"syscall"
 	"testing"
@@ -54,11 +53,23 @@ func TestDataFile(t *testing.T) {
 	})
 	defer clean()
 
-	c, err := ioutil.ReadFile(mntDir + "/file")
+	fd, err := syscall.Open(mntDir+"/file", syscall.O_RDONLY, 0)
 	if err != nil {
-		t.Fatalf("ReadFile: %v", err)
+		t.Fatalf("Open: %v", err)
 	}
-	if got := string(c); got != want {
+
+	var buf [1024]byte
+	n, err := syscall.Read(fd, buf[:])
+	if err != nil {
+		t.Errorf("Read: %v", err)
+	}
+
+	if err := syscall.Close(fd); err != nil {
+		t.Errorf("Close: %v", err)
+	}
+
+	got := string(buf[:n])
+	if got != want {
 		t.Errorf("got %q want %q", got, want)
 	}
 }

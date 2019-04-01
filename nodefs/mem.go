@@ -22,6 +22,7 @@ type MemRegularFile struct {
 var _ = (Opener)((*MemRegularFile)(nil))
 var _ = (Getattrer)((*MemRegularFile)(nil))
 var _ = (Reader)((*MemRegularFile)(nil))
+var _ = (Flusher)((*MemRegularFile)(nil))
 
 func (f *MemRegularFile) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
 	if flags&(syscall.O_RDWR) != 0 || flags&syscall.O_WRONLY != 0 {
@@ -36,6 +37,10 @@ func (f *MemRegularFile) Getattr(ctx context.Context, fh FileHandle, out *fuse.A
 	out.Mode ^= 0222
 	out.Attr.Size = uint64(len(f.Data))
 	return OK
+}
+
+func (f *MemRegularFile) Flush(ctx context.Context, fh FileHandle) syscall.Errno {
+	return 0
 }
 
 func (f *MemRegularFile) Read(ctx context.Context, fh FileHandle, dest []byte, off int64) (fuse.ReadResult, syscall.Errno) {
