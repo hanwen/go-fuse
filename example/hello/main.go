@@ -7,59 +7,49 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
+	"syscall"
 
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/fuse/nodefs"
-	"github.com/hanwen/go-fuse/fuse/pathfs"
+	"github.com/hanwen/go-fuse/nodefs"
 )
 
-type HelloFs struct {
-	pathfs.FileSystem
+type HelloRoot struct {
+	nodefs.Inode
 }
 
-func (me *HelloFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
-	switch name {
-	case "file.txt":
-		return &fuse.Attr{
-			Mode: fuse.S_IFREG | 0644, Size: uint64(len(name)),
-		}, fuse.OK
-	case "":
-		return &fuse.Attr{
-			Mode: fuse.S_IFDIR | 0755,
-		}, fuse.OK
-	}
-	return nil, fuse.ENOENT
+func (r *HelloRoot) OnAdd(ctx context.Context) {
+	ch := r.NewPersistentInode(
+		ctx, &nodefs.MemRegularFile{
+			Data: []byte("file.txt"),
+			Attr: fuse.Attr{
+				Mode: 0644,
+			},
+		}, nodefs.NodeAttr{Ino: 2})
+	r.AddChild("file.txt", ch, false)
 }
 
-func (me *HelloFs) OpenDir(name string, context *fuse.Context) (c []fuse.DirEntry, code fuse.Status) {
-	if name == "" {
-		c = []fuse.DirEntry{{Name: "file.txt", Mode: fuse.S_IFREG}}
-		return c, fuse.OK
-	}
-	return nil, fuse.ENOENT
+func (r *HelloRoot) Getattr(ctx context.Context, fh nodefs.FileHandle, out *fuse.AttrOut) syscall.Errno {
+	out.Mode = 0755
+	return 0
 }
 
-func (me *HelloFs) Open(name string, flags uint32, context *fuse.Context) (file nodefs.File, code fuse.Status) {
-	if name != "file.txt" {
-		return nil, fuse.ENOENT
-	}
-	if flags&fuse.O_ANYWRITE != 0 {
-		return nil, fuse.EPERM
-	}
-	return nodefs.NewDataFile([]byte(name)), fuse.OK
-}
+var _ = (nodefs.Getattrer)((*HelloRoot)(nil))
+var _ = (nodefs.OnAdder)((*HelloRoot)(nil))
 
 func main() {
+	debug := flag.Bool("debug", false, "print debug data")
 	flag.Parse()
 	if len(flag.Args()) < 1 {
 		log.Fatal("Usage:\n  hello MOUNTPOINT")
 	}
-	nfs := pathfs.NewPathNodeFs(&HelloFs{FileSystem: pathfs.NewDefaultFileSystem()}, nil)
-	server, _, err := nodefs.MountRoot(flag.Arg(0), nfs.Root(), nil)
+	opts := &nodefs.Options{}
+	opts.Debug = *debug
+	server, err := nodefs.Mount(flag.Arg(0), &HelloRoot{}, opts)
 	if err != nil {
 		log.Fatalf("Mount fail: %v\n", err)
 	}
-	server.Serve()
+	server.Wait()
 }
