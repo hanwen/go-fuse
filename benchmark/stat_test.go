@@ -13,32 +13,27 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"syscall"
 	"testing"
 	"time"
 
-	"github.com/hanwen/go-fuse/fuse/nodefs"
-	"github.com/hanwen/go-fuse/fuse/pathfs"
+	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/internal/testutil"
+	"github.com/hanwen/go-fuse/nodefs"
 )
 
-func setupFs(fs pathfs.FileSystem, N int) (string, func()) {
-	opts := &nodefs.Options{
-		EntryTimeout:    0.0,
-		AttrTimeout:     0.0,
-		NegativeTimeout: 0.0,
-	}
+func setupFs(fs nodefs.InodeEmbedder, N int) (string, func()) {
+	opts := &nodefs.Options{}
+	opts.Debug = testutil.VerboseTest()
 	mountPoint := testutil.TempDir()
-	nfs := pathfs.NewPathNodeFs(fs, nil)
-	state, _, err := nodefs.MountRoot(mountPoint, nfs.Root(), opts)
+	server, err := nodefs.Mount(mountPoint, fs, opts)
 	if err != nil {
-		panic(fmt.Sprintf("cannot mount %v", err)) // ugh - benchmark has no error methods.
+		log.Panicf("cannot mount %v", err)
 	}
 	lmap := NewLatencyMap()
 	if testutil.VerboseTest() {
-		state.RecordLatencies(lmap)
+		server.RecordLatencies(lmap)
 	}
-	go state.Serve()
-
 	return mountPoint, func() {
 		if testutil.VerboseTest() {
 			var total time.Duration
@@ -55,7 +50,7 @@ func setupFs(fs pathfs.FileSystem, N int) (string, func()) {
 			log.Printf("total %v, %v/bench op", total, total/time.Duration(N))
 		}
 
-		err := state.Unmount()
+		err := server.Unmount()
 		if err != nil {
 			log.Println("error during unmount", err)
 		} else {
@@ -65,11 +60,11 @@ func setupFs(fs pathfs.FileSystem, N int) (string, func()) {
 }
 
 func TestNewStatFs(t *testing.T) {
-	fs := NewStatFS()
+	fs := &StatFS{}
 	for _, n := range []string{
 		"file.txt", "sub/dir/foo.txt",
 		"sub/dir/bar.txt", "sub/marine.txt"} {
-		fs.AddFile(n)
+		fs.AddFile(n, fuse.Attr{Mode: syscall.S_IFREG})
 	}
 
 	wd, clean := setupFs(fs, 1)
@@ -116,13 +111,13 @@ func TestNewStatFs(t *testing.T) {
 
 func BenchmarkGoFuseStat(b *testing.B) {
 	b.StopTimer()
-	fs := NewStatFS()
+	fs := &StatFS{}
 
 	wd, _ := os.Getwd()
 	fileList := wd + "/testpaths.txt"
 	files := ReadLines(fileList)
 	for _, fn := range files {
-		fs.AddFile(fn)
+		fs.AddFile(fn, fuse.Attr{Mode: syscall.S_IFREG})
 	}
 
 	wd, clean := setupFs(fs, b.N)
@@ -151,13 +146,13 @@ func readdir(d string) error {
 
 func BenchmarkGoFuseReaddir(b *testing.B) {
 	b.StopTimer()
-	fs := NewStatFS()
+	fs := &StatFS{}
 
 	wd, _ := os.Getwd()
 	dirSet := map[string]struct{}{}
 
 	for _, fn := range ReadLines(wd + "/testpaths.txt") {
-		fs.AddFile(fn)
+		fs.AddFile(fn, fuse.Attr{Mode: syscall.S_IFREG})
 		dirSet[filepath.Dir(fn)] = struct{}{}
 	}
 

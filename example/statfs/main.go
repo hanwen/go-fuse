@@ -14,11 +14,12 @@ import (
 	"runtime"
 	"runtime/pprof"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/hanwen/go-fuse/benchmark"
-	"github.com/hanwen/go-fuse/fuse/nodefs"
-	"github.com/hanwen/go-fuse/fuse/pathfs"
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/nodefs"
 )
 
 func main() {
@@ -27,7 +28,7 @@ func main() {
 	profile := flag.String("profile", "", "record cpu profile.")
 	mem_profile := flag.String("mem-profile", "", "record memory profile.")
 	command := flag.String("run", "", "run this command after mounting.")
-	ttl := flag.Float64("ttl", 1.0, "attribute/entry cache TTL.")
+	ttl := flag.Duration("ttl", time.Second, "attribute/entry cache TTL.")
 	flag.Parse()
 	if flag.NArg() < 2 {
 		fmt.Fprintf(os.Stderr, "usage: %s MOUNTPOINT FILENAMES-FILE\n", os.Args[0])
@@ -48,21 +49,21 @@ func main() {
 			log.Fatalf("os.Create: %v", err)
 		}
 	}
-	fs := benchmark.NewStatFS()
+
+	fs := &benchmark.StatFS{}
 	lines := benchmark.ReadLines(flag.Arg(1))
 	for _, l := range lines {
-		fs.AddFile(l)
+		fs.AddFile(strings.TrimSpace(l),
+			fuse.Attr{Mode: syscall.S_IFREG})
 	}
-	nfs := pathfs.NewPathNodeFs(fs, nil)
 	opts := &nodefs.Options{
-		AttrTimeout:  time.Duration(*ttl * float64(time.Second)),
-		EntryTimeout: time.Duration(*ttl * float64(time.Second)),
-		Debug:        *debug,
+		AttrTimeout:  ttl,
+		EntryTimeout: ttl,
 	}
-	state, _, err := nodefs.MountRoot(flag.Arg(0), nfs.Root(), opts)
+	opts.Debug = *debug
+	server, err := nodefs.Mount(flag.Arg(0), fs, opts)
 	if err != nil {
-		fmt.Printf("Mount fail: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Mount fail: %v\n", err)
 	}
 
 	runtime.GC()
@@ -78,7 +79,7 @@ func main() {
 		cmd.Start()
 	}
 
-	state.Serve()
+	server.Wait()
 	if memProfFile != nil {
 		pprof.WriteHeapProfile(memProfFile)
 	}

@@ -5,65 +5,66 @@
 package benchmark
 
 import (
+	"context"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/fuse/pathfs"
+	"github.com/hanwen/go-fuse/nodefs"
 )
 
 type StatFS struct {
-	pathfs.FileSystem
-	entries map[string]*fuse.Attr
-	dirs    map[string][]fuse.DirEntry
+	nodefs.Inode
+
+	files map[string]fuse.Attr
 }
 
-func (fs *StatFS) Add(name string, a *fuse.Attr) {
-	name = strings.TrimRight(name, "/")
-	_, ok := fs.entries[name]
-	if ok {
-		return
+var _ = (nodefs.OnAdder)((*StatFS)(nil))
+
+func (r *StatFS) OnAdd(ctx context.Context) {
+	for nm, a := range r.files {
+		r.addFile(nm, a)
+	}
+	r.files = nil
+}
+
+func (r *StatFS) AddFile(name string, a fuse.Attr) {
+	if r.files == nil {
+		r.files = map[string]fuse.Attr{}
 	}
 
-	fs.entries[name] = a
-	if name == "/" || name == "" {
-		return
-	}
+	r.files[name] = a
+}
 
+func (r *StatFS) addFile(name string, a fuse.Attr) {
 	dir, base := filepath.Split(name)
-	dir = strings.TrimRight(dir, "/")
-	fs.dirs[dir] = append(fs.dirs[dir], fuse.DirEntry{Name: base, Mode: a.Mode})
-	fs.Add(dir, &fuse.Attr{Mode: fuse.S_IFDIR | 0755})
-}
 
-func (fs *StatFS) AddFile(name string) {
-	fs.Add(name, &fuse.Attr{Mode: fuse.S_IFREG | 0644})
-}
+	p := r.EmbeddedInode()
 
-func (fs *StatFS) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
-	if d := fs.dirs[name]; d != nil {
-		return &fuse.Attr{Mode: 0755 | fuse.S_IFDIR}, fuse.OK
+	// Add directories leading up to the file.
+	for _, component := range strings.Split(dir, "/") {
+		if len(component) == 0 {
+			continue
+		}
+		ch := p.GetChild(component)
+		if ch == nil {
+			// Create a directory
+			ch = p.NewPersistentInode(context.Background(), &nodefs.Inode{},
+				nodefs.NodeAttr{Mode: syscall.S_IFDIR})
+			// Add it
+			p.AddChild(component, ch, true)
+		}
+
+		p = ch
 	}
-	e := fs.entries[name]
-	if e == nil {
-		return nil, fuse.ENOENT
-	}
 
-	return e, fuse.OK
-}
+	// Create the file
+	child := p.NewPersistentInode(context.Background(), &nodefs.MemRegularFile{
+		Data: make([]byte, a.Size),
+		Attr: a,
+	}, nodefs.NodeAttr{})
 
-func (fs *StatFS) OpenDir(name string, context *fuse.Context) (stream []fuse.DirEntry, status fuse.Status) {
-	entries := fs.dirs[name]
-	if entries == nil {
-		return nil, fuse.ENOENT
-	}
-	return entries, fuse.OK
-}
-
-func NewStatFS() *StatFS {
-	return &StatFS{
-		FileSystem: pathfs.NewDefaultFileSystem(),
-		entries:    make(map[string]*fuse.Attr),
-		dirs:       make(map[string][]fuse.DirEntry),
-	}
+	// And add it
+	p.AddChild(base, child, true)
 }
