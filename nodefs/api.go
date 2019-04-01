@@ -104,13 +104,18 @@ type Statfser interface {
 	Statfs(ctx context.Context, out *fuse.StatfsOut) syscall.Errno
 }
 
-// Access should return if the caller can access the file with
-// the given mode. In this case, the context has data about
-// the real UID. For example a root-SUID binary called by user
-// susan gets the UID and GID for susan here.
+// Access should return if the caller can access the file with the
+// given mode.  This is used for two purposes: to determine if a user
+// may enter a directory, and to answer to implement the access system
+// call.  In the latter case, the context has data about the real
+// UID. For example, a root-SUID binary called by user susan gets the
+// UID and GID for susan here.
 //
 // If not defined, a default implementation will check traditional
-// unix permissions of the Getattr result agains the caller.
+// unix permissions of the Getattr result agains the caller. If so, it
+// is necessary to either return permissions from GetAttr/Lookup or
+// set Options.DefaultPermissions in order to allow chdir into the
+// FUSE mount.
 type Accesser interface {
 	Access(ctx context.Context, mask uint32) syscall.Errno
 }
@@ -455,7 +460,7 @@ type Options struct {
 	// functionality of the root node.
 	OnAdd func(ctx context.Context)
 
-	// DefaultPermissions sets all file permissions to 755 (dirs)
+	// DefaultPermissions sets null file permissions to 755 (dirs)
 	// or 644 (other files.)
 	DefaultPermissions bool
 }
