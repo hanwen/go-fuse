@@ -1,3 +1,5 @@
+// +build darwin
+
 // Copyright 2019 the Go-FUSE Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
@@ -14,19 +16,19 @@ import (
 	"github.com/hanwen/go-fuse/internal/utimens"
 )
 
-func (n *loopbackNode) GetXAttr(ctx context.Context, attr string, dest []byte) (uint32, syscall.Errno) {
+func (n *loopbackNode) Getxattr(ctx context.Context, attr string, dest []byte) (uint32, syscall.Errno) {
 	return 0, syscall.ENOSYS
 }
 
-func (n *loopbackNode) SetXAttr(ctx context.Context, attr string, data []byte, flags uint32) syscall.Errno {
+func (n *loopbackNode) Setxattr(ctx context.Context, attr string, data []byte, flags uint32) syscall.Errno {
 	return syscall.ENOSYS
 }
 
-func (n *loopbackNode) RemoveXAttr(ctx context.Context, attr string) syscall.Errno {
+func (n *loopbackNode) Removexattr(ctx context.Context, attr string) syscall.Errno {
 	return syscall.ENOSYS
 }
 
-func (n *loopbackNode) ListXAttr(ctx context.Context, dest []byte) (uint32, syscall.Errno) {
+func (n *loopbackNode) Listxattr(ctx context.Context, dest []byte) (uint32, syscall.Errno) {
 	return 0, syscall.ENOSYS
 }
 
@@ -95,11 +97,11 @@ func timeToTimeval(t *time.Time) syscall.Timeval {
 }
 
 // MacOS before High Sierra lacks utimensat() and UTIME_OMIT.
-// We emulate using utimes() and extra GetAttr() calls.
+// We emulate using utimes() and extra Getattr() calls.
 func (f *loopbackFile) utimens(a *time.Time, m *time.Time) syscall.Errno {
 	var attr fuse.AttrOut
 	if a == nil || m == nil {
-		errno := f.GetAttr(context.Background(), &attr)
+		errno := f.Getattr(context.Background(), &attr)
 		if errno != 0 {
 			return errno
 		}
@@ -107,4 +109,10 @@ func (f *loopbackFile) utimens(a *time.Time, m *time.Time) syscall.Errno {
 	tv := utimens.Fill(a, m, &attr.Attr)
 	err := syscall.Futimes(int(f.fd), tv)
 	return ToErrno(err)
+}
+
+func (n *loopbackNode) CopyFileRange(ctx context.Context, fhIn FileHandle,
+	offIn uint64, out *Inode, fhOut FileHandle, offOut uint64,
+	len uint64, flags uint64) (uint32, syscall.Errno) {
+	return 0, syscall.ENOSYS
 }
