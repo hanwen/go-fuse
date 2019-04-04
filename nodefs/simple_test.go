@@ -589,3 +589,24 @@ func TestMknod(t *testing.T) {
 		})
 	}
 }
+
+func TestTruncate(t *testing.T) {
+	tc := newTestCase(t, false, false)
+	defer tc.Clean()
+
+	if err := ioutil.WriteFile(tc.origDir+"/file", []byte("hello"), 0644); err != nil {
+		t.Errorf("WriteFile: %v", err)
+	}
+
+	if err := syscall.Truncate(tc.mntDir+"/file", 1); err != nil {
+		t.Fatalf("Truncate: %v", err)
+	}
+	var st syscall.Stat_t
+	if err := syscall.Lstat(tc.mntDir+"/file", &st); err != nil {
+		t.Fatalf("Lstat: %v", err)
+	}
+	if st.Size != 1 {
+		t.Errorf("got size %d, want 1", st.Size)
+	}
+
+}

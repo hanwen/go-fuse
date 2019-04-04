@@ -295,6 +295,79 @@ func (n *loopbackNode) Getattr(ctx context.Context, f FileHandle, out *fuse.Attr
 	return OK
 }
 
+var _ = (Setattrer)((*loopbackNode)(nil))
+
+func (n *loopbackNode) Setattr(ctx context.Context, f FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
+	p := n.path()
+	fsa, ok := f.(FileSetattrer)
+	if ok && fsa != nil {
+		fsa.Setattr(ctx, in, out)
+	} else {
+		if m, ok := in.GetMode(); ok {
+			if err := syscall.Chmod(p, m); err != nil {
+				return ToErrno(err)
+			}
+		}
+
+		uid, uok := in.GetUID()
+		gid, gok := in.GetGID()
+		if uok || gok {
+			suid := -1
+			sgid := -1
+			if uok {
+				suid = int(uid)
+			}
+			if gok {
+				sgid = int(gid)
+			}
+			if err := syscall.Chown(p, suid, sgid); err != nil {
+				return ToErrno(err)
+			}
+		}
+
+		mtime, mok := in.GetMTime()
+		atime, aok := in.GetATime()
+
+		if mok || aok {
+
+			ap := &atime
+			mp := &mtime
+			if !aok {
+				ap = nil
+			}
+			if !mok {
+				mp = nil
+			}
+			var ts [2]syscall.Timespec
+			ts[0] = fuse.UtimeToTimespec(ap)
+			ts[1] = fuse.UtimeToTimespec(mp)
+
+			if err := syscall.UtimesNano(p, ts[:]); err != nil {
+				return ToErrno(err)
+			}
+		}
+
+		if sz, ok := in.GetSize(); ok {
+			if err := syscall.Truncate(p, int64(sz)); err != nil {
+				return ToErrno(err)
+			}
+		}
+	}
+
+	fga, ok := f.(FileGetattrer)
+	if ok && fga != nil {
+		fga.Getattr(ctx, out)
+	} else {
+		st := syscall.Stat_t{}
+		err := syscall.Lstat(p, &st)
+		if err != nil {
+			return ToErrno(err)
+		}
+		out.FromStat(&st)
+	}
+	return OK
+}
+
 // NewLoopback returns a root node for a loopback file system whose
 // root is at the given root.
 func NewLoopbackRoot(root string) (InodeEmbedder, error) {
