@@ -46,12 +46,24 @@ func TestDataFile(t *testing.T) {
 				ctx,
 				&MemRegularFile{
 					Data: []byte(want),
+					Attr: fuse.Attr{
+						Mode: 0464,
+					},
 				},
 				NodeAttr{})
 			n.AddChild("file", ch, false)
 		},
 	})
 	defer clean()
+
+	var st syscall.Stat_t
+	if err := syscall.Lstat(mntDir+"/file", &st); err != nil {
+		t.Fatalf("Lstat: %v", err)
+	}
+
+	if want := uint32(syscall.S_IFREG | 0464); st.Mode != want {
+		t.Errorf("got mode %o, want %o", st.Mode, want)
+	}
 
 	fd, err := syscall.Open(mntDir+"/file", syscall.O_RDONLY, 0)
 	if err != nil {

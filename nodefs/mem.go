@@ -34,7 +34,6 @@ func (f *MemRegularFile) Open(ctx context.Context, flags uint32) (fh FileHandle,
 
 func (f *MemRegularFile) Getattr(ctx context.Context, fh FileHandle, out *fuse.AttrOut) syscall.Errno {
 	out.Attr = f.Attr
-	out.Mode ^= 0222
 	out.Attr.Size = uint64(len(f.Data))
 	return OK
 }
