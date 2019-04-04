@@ -11,6 +11,7 @@ import (
 	"compress/gzip"
 	"context"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,20 +31,6 @@ func HeaderToFileInfo(out *fuse.Attr, h *tar.Header) {
 	out.SetTimes(&h.AccessTime, &h.ModTime, &h.ChangeTime)
 }
 
-type TarFile struct {
-	data []byte
-	tar.Header
-}
-
-func (f *TarFile) Stat(out *fuse.Attr) {
-	HeaderToFileInfo(out, &f.Header)
-	out.Mode |= syscall.S_IFREG
-}
-
-func (f *TarFile) Data() []byte {
-	return f.data
-}
-
 type tarRoot struct {
 	nodefs.Inode
 	rc io.ReadCloser
@@ -61,7 +48,9 @@ func (r *tarRoot) OnAdd(ctx context.Context) {
 			break
 		}
 		if err != nil {
-			// handle error
+			log.Printf("Add: %v", err)
+			// XXX handle error
+			break
 		}
 
 		if hdr.Typeflag == 'L' {
@@ -83,9 +72,6 @@ func (r *tarRoot) OnAdd(ctx context.Context) {
 
 		buf := bytes.NewBuffer(make([]byte, 0, hdr.Size))
 		io.Copy(buf, tr)
-		df := &nodefs.MemRegularFile{
-			Data: buf.Bytes(),
-		}
 		dir, base := filepath.Split(filepath.Clean(hdr.Name))
 
 		p := r.EmbeddedInode()
@@ -95,15 +81,25 @@ func (r *tarRoot) OnAdd(ctx context.Context) {
 			}
 			ch := p.GetChild(comp)
 			if ch == nil {
-				p.AddChild(comp, p.NewPersistentInode(ctx,
+				ch = p.NewPersistentInode(ctx,
 					&nodefs.Inode{},
-					nodefs.NodeAttr{Mode: syscall.S_IFDIR}), false)
+					nodefs.NodeAttr{Mode: syscall.S_IFDIR})
+				p.AddChild(comp, ch, false)
 			}
 			p = ch
 		}
 
-		HeaderToFileInfo(&df.Attr, hdr)
-		p.AddChild(base, r.NewPersistentInode(ctx, df, nodefs.NodeAttr{}), false)
+		if hdr.Typeflag == tar.TypeSymlink {
+			p.AddChild(base, r.NewPersistentInode(ctx, &nodefs.MemSymlink{
+				Data: []byte(hdr.Linkname),
+			}, nodefs.NodeAttr{Mode: syscall.S_IFLNK}), false)
+		} else {
+			df := &nodefs.MemRegularFile{
+				Data: buf.Bytes(),
+			}
+			HeaderToFileInfo(&df.Attr, hdr)
+			p.AddChild(base, r.NewPersistentInode(ctx, df, nodefs.NodeAttr{}), false)
+		}
 	}
 }
 
@@ -121,7 +117,6 @@ func NewTarCompressedTree(name string, format string) (nodefs.InodeEmbedder, err
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
 
 	var stream io.ReadCloser
 	switch format {
