@@ -47,7 +47,7 @@ func (f *MemRegularFile) Read(ctx context.Context, fh FileHandle, dest []byte, o
 	if end > len(f.Data) {
 		end = len(f.Data)
 	}
-	return fuse.ReadResultData(f.Data[:end]), OK
+	return fuse.ReadResultData(f.Data[off:end]), OK
 }
 
 // MemSymlink is an inode holding a symlink in memory.

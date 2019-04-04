@@ -5,7 +5,10 @@
 package nodefs
 
 import (
+	"bytes"
 	"context"
+	"io/ioutil"
+	"math/rand"
 	"os"
 	"syscall"
 	"testing"
@@ -83,6 +86,38 @@ func TestDataFile(t *testing.T) {
 	got := string(buf[:n])
 	if got != want {
 		t.Errorf("got %q want %q", got, want)
+	}
+}
+
+func TestDataFileLargeRead(t *testing.T) {
+	root := &Inode{}
+
+	data := make([]byte, 256*1024)
+	rand.Read(data[:])
+	mntDir, clean := testMount(t, root, &Options{
+		FirstAutomaticIno: 1,
+		OnAdd: func(ctx context.Context) {
+			n := root.EmbeddedInode()
+			ch := n.NewPersistentInode(
+				ctx,
+				&MemRegularFile{
+					Data: data,
+					Attr: fuse.Attr{
+						Mode: 0464,
+					},
+				},
+				NodeAttr{})
+			n.AddChild("file", ch, false)
+		},
+	})
+	defer clean()
+	got, err := ioutil.ReadFile(mntDir + "/file")
+	if err != nil {
+		t.Fatalf("ReadFile: %v", err)
+	}
+
+	if !bytes.Equal(got, data) {
+		t.Errorf("roundtrip read had change")
 	}
 }
 
