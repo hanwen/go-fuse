@@ -96,6 +96,10 @@ type Inode struct {
 	parents  map[parentData]struct{}
 }
 
+func (n *Inode) IsDir() bool {
+	return n.nodeAttr.Mode&syscall.S_IFDIR != 0
+}
+
 func (n *Inode) embed() *Inode {
 	return n
 }
