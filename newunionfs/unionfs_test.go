@@ -1,0 +1,190 @@
+// Copyright 2019 the Go-FUSE Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+package unionfs
+
+import (
+	"bytes"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"syscall"
+	"testing"
+
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/internal/testutil"
+	"github.com/hanwen/go-fuse/nodefs"
+)
+
+type testCase struct {
+	dir    string
+	mnt    string
+	server *fuse.Server
+	rw     string
+	ro     string
+	root   *unionFSRoot
+}
+
+func (tc *testCase) Clean() {
+	if tc.server != nil {
+		tc.server.Unmount()
+		tc.server = nil
+	}
+	os.RemoveAll(tc.dir)
+}
+
+func newTestCase(t *testing.T) *testCase {
+	t.Helper()
+	dir := testutil.TempDir()
+
+	for _, d := range []string{"ro", "rw", "mnt", "ro/dir"} {
+		if err := os.Mkdir(filepath.Join(dir, d), 0755); err != nil {
+			t.Fatal("Mkdir", err)
+		}
+	}
+
+	opts := nodefs.Options{}
+	opts.Debug = testutil.VerboseTest()
+	tc := &testCase{
+		dir: dir,
+		mnt: dir + "/mnt",
+		rw:  dir + "/rw",
+		ro:  dir + "/ro",
+	}
+	tc.root = &unionFSRoot{
+		roots: []string{tc.rw, tc.ro},
+	}
+
+	server, err := nodefs.Mount(tc.mnt, tc.root, &opts)
+	if err != nil {
+		t.Fatal("Mount", err)
+	}
+
+	tc.server = server
+
+	if err := ioutil.WriteFile(tc.ro+"/dir/ro-file", []byte("bla"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	return tc
+}
+
+func TestBasic(t *testing.T) {
+	tc := newTestCase(t)
+	defer tc.Clean()
+
+	if fi, err := os.Lstat(tc.mnt + "/dir/ro-file"); err != nil {
+		t.Fatal(err)
+	} else if fi.Size() != 3 {
+		t.Errorf("got size %d, want 3", fi.Size())
+	}
+}
+
+func TestDelete(t *testing.T) {
+	tc := newTestCase(t)
+	defer tc.Clean()
+
+	if err := os.Remove(tc.mnt + "/dir/ro-file"); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := os.Lstat(tc.ro + "/dir/ro-file"); err != nil {
+		t.Fatal(err)
+	}
+
+	c, err := ioutil.ReadFile(filepath.Join(tc.rw, delDir, filePathHash("dir/ro-file")))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got, want := string(c), "dir/ro-file"; got != want {
+		t.Errorf("got %q want %q", got, want)
+	}
+}
+
+func TestDeleteMarker(t *testing.T) {
+	tc := newTestCase(t)
+	defer tc.Clean()
+
+	path := "dir/ro-file"
+	tc.root.delPath(path)
+
+	var st syscall.Stat_t
+	if err := syscall.Lstat(filepath.Join(tc.mnt, path), &st); err != syscall.ENOENT {
+		t.Fatalf("Lstat before: %v", err)
+	}
+
+	if errno := tc.root.rmMarker(path); errno != 0 {
+		t.Fatalf("rmMarker: %v", errno)
+	}
+
+	if err := syscall.Lstat(filepath.Join(tc.mnt, path), &st); err != nil {
+		t.Fatalf("Lstat after: %v", err)
+	}
+}
+
+func TestCreate(t *testing.T) {
+	tc := newTestCase(t)
+	defer tc.Clean()
+
+	path := "dir/ro-file"
+
+	if err := syscall.Unlink(filepath.Join(tc.mnt, path)); err != nil {
+		t.Fatalf("Unlink: %v", err)
+	}
+	want := []byte{42}
+	if err := ioutil.WriteFile(filepath.Join(tc.mnt, path), want, 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	if got, err := ioutil.ReadFile(filepath.Join(tc.mnt, path)); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	} else if !bytes.Equal(got, want) {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestPromote(t *testing.T) {
+	tc := newTestCase(t)
+	defer tc.Clean()
+
+	path := "dir/ro-file"
+	mPath := filepath.Join(tc.mnt, path)
+
+	want := []byte{42}
+	if err := ioutil.WriteFile(mPath, want, 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	if got, err := ioutil.ReadFile(mPath); err != nil {
+		t.Fatalf("ReadFile: %v", err)
+	} else if !bytes.Equal(got, want) {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestDeleteRevert(t *testing.T) {
+	tc := newTestCase(t)
+	defer tc.Clean()
+
+	path := "dir/ro-file"
+	mPath := filepath.Join(tc.mnt, path)
+	if err := ioutil.WriteFile(mPath, []byte{42}, 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	var st syscall.Stat_t
+	if err := syscall.Lstat(mPath, &st); err != nil {
+		t.Fatalf("Lstat before: %v", err)
+	} else if st.Size != 1 {
+		t.Fatalf("Stat: want size 1, got %#v", st)
+	}
+
+	if err := syscall.Unlink(mPath); err != nil {
+		t.Fatalf("Unlink: %v", err)
+	}
+	if err := syscall.Lstat(mPath, &st); err != syscall.ENOENT {
+		t.Fatalf("Lstat after: got %v, want ENOENT", err)
+	}
+}
