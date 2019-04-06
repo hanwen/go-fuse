@@ -15,6 +15,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/internal/testutil"
 	"github.com/hanwen/go-fuse/nodefs"
+	"github.com/hanwen/go-fuse/posixtest"
 )
 
 type testCase struct {
@@ -34,11 +35,15 @@ func (tc *testCase) Clean() {
 	os.RemoveAll(tc.dir)
 }
 
-func newTestCase(t *testing.T) *testCase {
+func newTestCase(t *testing.T, populate bool) *testCase {
 	t.Helper()
 	dir := testutil.TempDir()
+	dirs := []string{"ro", "rw", "mnt"}
+	if populate {
+		dirs = append(dirs, "ro/dir")
+	}
 
-	for _, d := range []string{"ro", "rw", "mnt", "ro/dir"} {
+	for _, d := range dirs {
 		if err := os.Mkdir(filepath.Join(dir, d), 0755); err != nil {
 			t.Fatal("Mkdir", err)
 		}
@@ -63,15 +68,17 @@ func newTestCase(t *testing.T) *testCase {
 
 	tc.server = server
 
-	if err := ioutil.WriteFile(tc.ro+"/dir/ro-file", []byte("bla"), 0644); err != nil {
-		t.Fatal(err)
+	if populate {
+		if err := ioutil.WriteFile(tc.ro+"/dir/ro-file", []byte("bla"), 0644); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	return tc
 }
 
 func TestBasic(t *testing.T) {
-	tc := newTestCase(t)
+	tc := newTestCase(t, true)
 	defer tc.Clean()
 
 	if fi, err := os.Lstat(tc.mnt + "/dir/ro-file"); err != nil {
@@ -82,7 +89,7 @@ func TestBasic(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	tc := newTestCase(t)
+	tc := newTestCase(t, true)
 	defer tc.Clean()
 
 	if err := os.Remove(tc.mnt + "/dir/ro-file"); err != nil {
@@ -104,7 +111,7 @@ func TestDelete(t *testing.T) {
 }
 
 func TestDeleteMarker(t *testing.T) {
-	tc := newTestCase(t)
+	tc := newTestCase(t, true)
 	defer tc.Clean()
 
 	path := "dir/ro-file"
@@ -125,7 +132,7 @@ func TestDeleteMarker(t *testing.T) {
 }
 
 func TestCreate(t *testing.T) {
-	tc := newTestCase(t)
+	tc := newTestCase(t, true)
 	defer tc.Clean()
 
 	path := "dir/ro-file"
@@ -146,7 +153,7 @@ func TestCreate(t *testing.T) {
 }
 
 func TestPromote(t *testing.T) {
-	tc := newTestCase(t)
+	tc := newTestCase(t, true)
 	defer tc.Clean()
 
 	path := "dir/ro-file"
@@ -165,7 +172,7 @@ func TestPromote(t *testing.T) {
 }
 
 func TestDeleteRevert(t *testing.T) {
-	tc := newTestCase(t)
+	tc := newTestCase(t, true)
 	defer tc.Clean()
 
 	path := "dir/ro-file"
@@ -186,5 +193,30 @@ func TestDeleteRevert(t *testing.T) {
 	}
 	if err := syscall.Lstat(mPath, &st); err != syscall.ENOENT {
 		t.Fatalf("Lstat after: got %v, want ENOENT", err)
+	}
+}
+
+func TestPosix(t *testing.T) {
+	cases := []string{
+		"SymlinkReadlink",
+		"FileBasic",
+		"TruncateFile",
+		"TruncateNoFile",
+		"FdLeak",
+		//		"MkdirRmdir",
+		//		"NlinkZero",
+		"ParallelFileOpen",
+		//		"Link",
+		//		"ReadDir",
+	}
+
+	for _, nm := range cases {
+		f := posixtest.All[nm]
+		t.Run(nm, func(t *testing.T) {
+			tc := newTestCase(t, false)
+			defer tc.Clean()
+
+			f(t, tc.mnt)
+		})
 	}
 }
