@@ -810,7 +810,7 @@ func (ms *Server) EntryNotify(parent uint64, name string) Status {
 // SupportsVersion returns true if the kernel supports the given
 // protocol version or newer.
 func (in *InitIn) SupportsVersion(maj, min uint32) bool {
-	return in.Major >= maj || (in.Major == maj && in.Minor >= min)
+	return in.Major > maj || (in.Major == maj && in.Minor >= min)
 }
 
 // SupportsNotify returns whether a certain notification type is
