@@ -293,6 +293,8 @@ func (b *rawBridge) Mkdir(cancel <-chan struct{}, input *fuse.MkdirIn, name stri
 	var errno syscall.Errno
 	if mops, ok := parent.ops.(Mkdirer); ok {
 		child, errno = mops.Mkdir(&fuse.Context{Caller: input.Caller, Cancel: cancel}, name, input.Mode, out)
+	} else {
+		return fuse.ENOTSUP
 	}
 
 	if errno != 0 {
