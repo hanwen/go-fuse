@@ -62,7 +62,7 @@ func TestZipFS(t *testing.T) {
 	}
 
 	root := &zipRoot{zr: r}
-	mntDir, clean := testMount(t, root, nil)
+	mntDir, _, clean := testMount(t, root, nil)
 	defer clean()
 
 	for k, v := range testData {
@@ -104,7 +104,7 @@ func TestZipFSOnAdd(t *testing.T) {
 	zr := &zipRoot{zr: r}
 
 	root := &Inode{}
-	mnt, clean := testMount(t, root, &Options{
+	mnt, _, clean := testMount(t, root, &Options{
 		OnAdd: func(ctx context.Context) {
 			root.AddChild("sub",
 				root.NewPersistentInode(ctx, zr, NodeAttr{Mode: syscall.S_IFDIR}), false)

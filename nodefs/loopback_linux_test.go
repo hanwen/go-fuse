@@ -140,6 +140,10 @@ func TestCopyFileRange(t *testing.T) {
 	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
+	if !tc.server.KernelSettings().SupportsVersion(7, 28) {
+		t.Skip("need v7.28 for CopyFileRange")
+	}
+
 	tc.writeOrig("src", "01234567890123456789", 0644)
 	tc.writeOrig("dst", "abcdefghijabcdefghij", 0644)
 

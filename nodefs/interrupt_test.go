@@ -55,7 +55,7 @@ func TestInterrupt(t *testing.T) {
 	root := &interruptRoot{}
 
 	oneSec := time.Second
-	mntDir, clean := testMount(t, root, &Options{
+	mntDir, _, clean := testMount(t, root, &Options{
 		EntryTimeout: &oneSec,
 		AttrTimeout:  &oneSec,
 	})

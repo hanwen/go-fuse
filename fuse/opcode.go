@@ -58,8 +58,8 @@ const (
 	_OP_FALLOCATE       = uint32(43) // protocol version 19.
 	_OP_READDIRPLUS     = uint32(44) // protocol version 21.
 	_OP_RENAME2         = uint32(45) // protocol version 23.
-	_OP_LSEEK           = uint32(46)
-	_OP_COPY_FILE_RANGE = uint32(47)
+	_OP_LSEEK           = uint32(46) // protocol version 24
+	_OP_COPY_FILE_RANGE = uint32(47) // protocol version 28.
 
 	// The following entries don't have to be compatible across Go-FUSE versions.
 	_OP_NOTIFY_INVAL_ENTRY    = uint32(100)

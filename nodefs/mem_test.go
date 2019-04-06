@@ -17,7 +17,7 @@ import (
 	"github.com/hanwen/go-fuse/internal/testutil"
 )
 
-func testMount(t *testing.T, root InodeEmbedder, opts *Options) (string, func()) {
+func testMount(t *testing.T, root InodeEmbedder, opts *Options) (string, *fuse.Server, func()) {
 	t.Helper()
 
 	mntDir := testutil.TempDir()
@@ -32,7 +32,7 @@ func testMount(t *testing.T, root InodeEmbedder, opts *Options) (string, func())
 	if err != nil {
 		t.Fatal(err)
 	}
-	return mntDir, func() {
+	return mntDir, server, func() {
 		server.Unmount()
 		os.Remove(mntDir)
 	}
@@ -41,7 +41,7 @@ func testMount(t *testing.T, root InodeEmbedder, opts *Options) (string, func())
 func TestDataFile(t *testing.T) {
 	want := "hello"
 	root := &Inode{}
-	mntDir, clean := testMount(t, root, &Options{
+	mntDir, _, clean := testMount(t, root, &Options{
 		FirstAutomaticIno: 1,
 		OnAdd: func(ctx context.Context) {
 			n := root.EmbeddedInode()
@@ -94,7 +94,7 @@ func TestDataFileLargeRead(t *testing.T) {
 
 	data := make([]byte, 256*1024)
 	rand.Read(data[:])
-	mntDir, clean := testMount(t, root, &Options{
+	mntDir, _, clean := testMount(t, root, &Options{
 		FirstAutomaticIno: 1,
 		OnAdd: func(ctx context.Context) {
 			n := root.EmbeddedInode()
@@ -137,7 +137,7 @@ func (s *SymlinkerRoot) Symlink(ctx context.Context, target, name string, out *f
 func TestDataSymlink(t *testing.T) {
 	root := &SymlinkerRoot{}
 
-	mntDir, clean := testMount(t, root, nil)
+	mntDir, _, clean := testMount(t, root, nil)
 	defer clean()
 
 	if err := syscall.Symlink("target", mntDir+"/link"); err != nil {

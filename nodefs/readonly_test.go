@@ -16,7 +16,7 @@ import (
 func TestReadonlyCreate(t *testing.T) {
 	root := &Inode{}
 
-	mntDir, clean := testMount(t, root, nil)
+	mntDir, _, clean := testMount(t, root, nil)
 	defer clean()
 
 	_, err := syscall.Creat(mntDir+"/test", 0644)
@@ -28,7 +28,7 @@ func TestReadonlyCreate(t *testing.T) {
 func TestDefaultPermissions(t *testing.T) {
 	root := &Inode{}
 
-	mntDir, clean := testMount(t, root, &Options{
+	mntDir, _, clean := testMount(t, root, &Options{
 		DefaultPermissions: true,
 		OnAdd: func(ctx context.Context) {
 			dir := root.NewPersistentInode(ctx, &Inode{}, NodeAttr{Mode: syscall.S_IFDIR})

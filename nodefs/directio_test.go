@@ -54,7 +54,7 @@ func (f *dioFile) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFl
 
 func TestDirectIO(t *testing.T) {
 	root := &dioRoot{}
-	mntDir, clean := testMount(t, root, nil)
+	mntDir, server, clean := testMount(t, root, nil)
 	defer clean()
 
 	f, err := os.Open(mntDir + "/file")
@@ -74,6 +74,9 @@ func TestDirectIO(t *testing.T) {
 		t.Errorf("got %q want %q", got, want)
 	}
 
+	if !server.KernelSettings().SupportsVersion(7, 24) {
+		t.Skip("Kernel does not support lseek")
+	}
 	if n, err := syscall.Seek(int(f.Fd()), 512, _SEEK_DATA); err != nil {
 		t.Errorf("Seek: %v", err)
 	} else if n != 1024 {
