@@ -334,7 +334,7 @@ type Symlinker interface {
 // reference for future reads/writes.
 // Default is to return EROFS.
 type Creater interface {
-	Create(ctx context.Context, name string, flags uint32, mode uint32) (node *Inode, fh FileHandle, fuseFlags uint32, errno syscall.Errno)
+	Create(ctx context.Context, name string, flags uint32, mode uint32, out *fuse.EntryOut) (node *Inode, fh FileHandle, fuseFlags uint32, errno syscall.Errno)
 }
 
 // Unlink should remove a child from this directory.  If the

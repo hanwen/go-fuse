@@ -337,7 +337,7 @@ func (b *rawBridge) Create(cancel <-chan struct{}, input *fuse.CreateIn, name st
 	var f FileHandle
 	var flags uint32
 	if mops, ok := parent.ops.(Creater); ok {
-		child, f, flags, errno = mops.Create(ctx, name, input.Flags, input.Mode)
+		child, f, flags, errno = mops.Create(ctx, name, input.Flags, input.Mode, &out.EntryOut)
 	} else {
 		return fuse.EROFS
 	}
@@ -353,15 +353,8 @@ func (b *rawBridge) Create(cancel <-chan struct{}, input *fuse.CreateIn, name st
 
 	out.OpenFlags = flags
 
-	var temp fuse.AttrOut
-	b.getattr(ctx, child, f, &temp)
-	out.Attr = temp.Attr
-	out.AttrValid = temp.AttrValid
-	out.AttrValidNsec = temp.AttrValidNsec
-
 	child.setEntryOut(&out.EntryOut)
 	b.setEntryOutTimeout(&out.EntryOut)
-
 	return fuse.OK
 }
 

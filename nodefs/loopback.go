@@ -41,7 +41,6 @@ var _ = (Mkdirer)((*loopbackNode)(nil))
 var _ = (Mknoder)((*loopbackNode)(nil))
 var _ = (Linker)((*loopbackNode)(nil))
 var _ = (Symlinker)((*loopbackNode)(nil))
-var _ = (Creater)((*loopbackNode)(nil))
 var _ = (Unlinker)((*loopbackNode)(nil))
 var _ = (Rmdirer)((*loopbackNode)(nil))
 var _ = (Renamer)((*loopbackNode)(nil))
@@ -182,7 +181,9 @@ func (r *loopbackRoot) idFromStat(st *syscall.Stat_t) NodeAttr {
 	}
 }
 
-func (n *loopbackNode) Create(ctx context.Context, name string, flags uint32, mode uint32) (inode *Inode, fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
+var _ = (Creater)((*loopbackNode)(nil))
+
+func (n *loopbackNode) Create(ctx context.Context, name string, flags uint32, mode uint32, out *fuse.EntryOut) (inode *Inode, fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
 	p := filepath.Join(n.path(), name)
 
 	fd, err := syscall.Open(p, int(flags)|os.O_CREATE, mode)
@@ -199,6 +200,8 @@ func (n *loopbackNode) Create(ctx context.Context, name string, flags uint32, mo
 	node := &loopbackNode{}
 	ch := n.NewInode(ctx, node, n.root().idFromStat(&st))
 	lf := NewLoopbackFile(fd)
+
+	out.FromStat(&st)
 	return ch, lf, 0, 0
 }
 
