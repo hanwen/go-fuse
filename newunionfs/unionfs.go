@@ -258,6 +258,45 @@ func (n *unionFSNode) Rmdir(ctx context.Context, name string) syscall.Errno {
 	return n.root().delPath(filepath.Join(n.Path(nil), name))
 }
 
+var _ = (nodefs.Symlinker)((*unionFSNode)(nil))
+
+func (n *unionFSNode) Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (*nodefs.Inode, syscall.Errno) {
+	n.promote()
+	path := filepath.Join(n.root().roots[0], n.Path(nil), name)
+	err := syscall.Symlink(target, path)
+
+	if err != nil {
+		return nil, err.(syscall.Errno)
+	}
+
+	var st syscall.Stat_t
+	if err := syscall.Lstat(path, &st); err != nil {
+		return nil, err.(syscall.Errno)
+	}
+
+	out.FromStat(&st)
+
+	ch := n.NewInode(ctx, &unionFSNode{}, nodefs.NodeAttr{
+		Mode: syscall.S_IFLNK,
+		Ino:  st.Ino,
+	})
+	return ch, 0
+}
+
+var _ = (nodefs.Readlinker)((*unionFSNode)(nil))
+
+func (n *unionFSNode) Readlink(ctx context.Context) ([]byte, syscall.Errno) {
+	nm, idx := n.getBranch(nil)
+
+	var buf [1024]byte
+	count, err := syscall.Readlink(filepath.Join(n.root().roots[idx], nm), buf[:])
+	if err != nil {
+		return nil, err.(syscall.Errno)
+	}
+
+	return buf[:count], 0
+}
+
 // getBranch returns the root where we can find the given file. It
 // will check the deletion markers in roots[0].
 func (n *unionFSNode) getBranch(st *syscall.Stat_t) (string, int) {
