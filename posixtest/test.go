@@ -19,6 +19,21 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
+var All = map[string]func(*testing.T, string){
+	"SymlinkReadlink":            SymlinkReadlink,
+	"FileBasic":                  FileBasic,
+	"TruncateFile":               TruncateFile,
+	"TruncateNoFile":             TruncateNoFile,
+	"FdLeak":                     FdLeak,
+	"MkdirRmdir":                 MkdirRmdir,
+	"NlinkZero":                  NlinkZero,
+	"ParallelFileOpen":           ParallelFileOpen,
+	"Link":                       Link,
+	"RenameOverwriteDestNoExist": RenameOverwriteDestNoExist,
+	"RenameOverwriteDestExist":   RenameOverwriteDestExist,
+	"ReadDir":                    ReadDir,
+}
+
 // SymlinkReadlink tests basic symlink functionality
 func SymlinkReadlink(t *testing.T, mnt string) {
 	err := os.Symlink("/foobar", mnt+"/link")
@@ -250,6 +265,14 @@ func Link(t *testing.T, mnt string) {
 	if st.Ino != beforeIno {
 		t.Errorf("Lstat after: got %d, want %d", st.Ino, beforeIno)
 	}
+}
+
+func RenameOverwriteDestNoExist(t *testing.T, mnt string) {
+	RenameOverwrite(t, mnt, false)
+}
+
+func RenameOverwriteDestExist(t *testing.T, mnt string) {
+	RenameOverwrite(t, mnt, true)
 }
 
 func RenameOverwrite(t *testing.T, mnt string, destExists bool) {
