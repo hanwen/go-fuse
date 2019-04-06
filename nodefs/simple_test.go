@@ -5,13 +5,11 @@
 package nodefs
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"sync"
 	"syscall"
 	"testing"
@@ -19,6 +17,7 @@ import (
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/internal/testutil"
+	"github.com/hanwen/go-fuse/posixtest"
 )
 
 type testCase struct {
@@ -132,72 +131,14 @@ func TestFileBasic(t *testing.T) {
 	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
-	content := []byte("hello world")
-	fn := tc.mntDir + "/file"
-
-	if err := ioutil.WriteFile(fn, content, 0755); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
-
-	if got, err := ioutil.ReadFile(fn); err != nil {
-		t.Fatalf("ReadFile: %v", err)
-	} else if bytes.Compare(got, content) != 0 {
-		t.Errorf("ReadFile: got %q, want %q", got, content)
-	}
-
-	f, err := os.Open(fn)
-	if err != nil {
-		t.Fatalf("Open: %v", err)
-	}
-
-	defer f.Close()
-
-	fi, err := f.Stat()
-
-	if err != nil {
-		t.Fatalf("Fstat: %v", err)
-	} else if int(fi.Size()) != len(content) {
-		t.Errorf("got size %d want 5", fi.Size())
-	}
-
-	stat := fuse.ToStatT(fi)
-	if got, want := uint32(stat.Mode), uint32(fuse.S_IFREG|0755); got != want {
-		t.Errorf("Fstat: got mode %o, want %o", got, want)
-	}
-
-	if err := f.Close(); err != nil {
-		t.Errorf("Close: %v", err)
-	}
+	posixtest.FileBasic(t, tc.mntDir)
 }
 
 func TestFileTruncate(t *testing.T) {
 	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
-	content := []byte("hello world")
-
-	tc.writeOrig("file", string(content), 0755)
-
-	f, err := os.OpenFile(tc.mntDir+"/file", os.O_RDWR, 0644)
-	if err != nil {
-		t.Fatalf("Open: %v", err)
-	}
-	defer f.Close()
-
-	const trunc = 5
-	if err := f.Truncate(5); err != nil {
-		t.Errorf("Truncate: %v", err)
-	}
-
-	if err := f.Close(); err != nil {
-		t.Errorf("Close: %v", err)
-	}
-
-	if got, err := ioutil.ReadFile(tc.origDir + "/file"); err != nil {
-		t.Fatalf("ReadFile: %v", err)
-	} else if want := content[:trunc]; bytes.Compare(got, want) != 0 {
-		t.Errorf("got %q, want %q", got, want)
-	}
+	posixtest.TruncateFile(t, tc.mntDir)
 }
 
 func TestFileFdLeak(t *testing.T) {
@@ -208,24 +149,7 @@ func TestFileFdLeak(t *testing.T) {
 		}
 	}()
 
-	tc.writeOrig("file", "hello world", 0755)
-
-	for i := 0; i < 100; i++ {
-		if _, err := ioutil.ReadFile(tc.mntDir + "/file"); err != nil {
-			t.Fatalf("ReadFile: %v", err)
-		}
-	}
-
-	if runtime.GOOS == "linux" {
-		infos, err := ioutil.ReadDir("/proc/self/fd")
-		if err != nil {
-			t.Errorf("ReadDir %v", err)
-		}
-
-		if len(infos) > 15 {
-			t.Errorf("found %d open file descriptors for 100x ReadFile", len(infos))
-		}
-	}
+	posixtest.FdLeak(t, tc.mntDir)
 
 	tc.Clean()
 	bridge := tc.rawFS.(*rawBridge)
@@ -240,54 +164,13 @@ func TestMkdir(t *testing.T) {
 	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
-	if err := os.Mkdir(tc.mntDir+"/dir", 0755); err != nil {
-		t.Fatalf("Mkdir: %v", err)
-	}
-
-	if fi, err := os.Lstat(tc.mntDir + "/dir"); err != nil {
-		t.Fatalf("Lstat %v", err)
-	} else if !fi.IsDir() {
-		t.Fatalf("is not a directory")
-	}
-
-	if err := os.Remove(tc.mntDir + "/dir"); err != nil {
-		t.Fatalf("Remove: %v", err)
-	}
+	posixtest.MkdirRmdir(t, tc.mntDir)
 }
 
 func testRenameOverwrite(t *testing.T, destExists bool) {
 	tc := newTestCase(t, true, true)
 	defer tc.Clean()
-
-	if err := os.Mkdir(tc.origDir+"/dir", 0755); err != nil {
-		t.Fatalf("Mkdir: %v", err)
-	}
-	tc.writeOrig("file", "hello", 0644)
-
-	if destExists {
-		tc.writeOrig("/dir/renamed", "xx", 0644)
-	}
-
-	st := syscall.Stat_t{}
-	if err := syscall.Lstat(tc.mntDir+"/file", &st); err != nil {
-		t.Fatalf("Lstat before: %v", err)
-	}
-	beforeIno := st.Ino
-	if err := os.Rename(tc.mntDir+"/file", tc.mntDir+"/dir/renamed"); err != nil {
-		t.Errorf("Rename: %v", err)
-	}
-
-	if fi, err := os.Lstat(tc.mntDir + "/file"); err == nil {
-		t.Fatalf("Lstat old: %v", fi)
-	}
-
-	if err := syscall.Lstat(tc.mntDir+"/dir/renamed", &st); err != nil {
-		t.Fatalf("Lstat after: %v", err)
-	}
-
-	if got := st.Ino; got != beforeIno {
-		t.Errorf("got ino %d, want %d", got, beforeIno)
-	}
+	posixtest.RenameOverwrite(t, tc.mntDir, destExists)
 }
 
 func TestRenameDestExist(t *testing.T) {
@@ -303,114 +186,28 @@ func TestNlinkZero(t *testing.T) {
 	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
-	src := tc.mntDir + "/src"
-	dst := tc.mntDir + "/dst"
-	if err := ioutil.WriteFile(src, []byte("source"), 0644); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
-
-	if err := ioutil.WriteFile(dst, []byte("dst"), 0644); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
-
-	f, err := syscall.Open(dst, 0, 0)
-	if err != nil {
-		t.Fatalf("Open: %v", err)
-	}
-	defer syscall.Close(f)
-
-	var st syscall.Stat_t
-	if err := syscall.Fstat(f, &st); err != nil {
-		t.Errorf("Fstat before: %v", err)
-	} else if st.Nlink != 1 {
-		t.Errorf("Nlink of file: got %d, want 1", st.Nlink)
-	}
-
-	if err := os.Rename(src, dst); err != nil {
-		t.Fatalf("Rename: %v", err)
-	}
-
-	if err := syscall.Fstat(f, &st); err != nil {
-		t.Errorf("Fstat after: %v", err)
-	} else if st.Nlink != 0 {
-		t.Errorf("Nlink of overwritten file: got %d, want 0", st.Nlink)
-	}
+	posixtest.NlinkZero(t, tc.mntDir)
 }
 
 func TestParallelFileOpen(t *testing.T) {
 	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
-	fn := tc.mntDir + "/file"
-	if err := ioutil.WriteFile(fn, []byte("content"), 0644); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
-
-	var wg sync.WaitGroup
-	one := func(b byte) {
-		f, err := os.OpenFile(fn, os.O_RDWR, 0644)
-		if err != nil {
-			t.Fatalf("OpenFile: %v", err)
-		}
-		var buf [10]byte
-		f.Read(buf[:])
-		buf[0] = b
-		f.WriteAt(buf[0:1], 2)
-		f.Close()
-		wg.Done()
-	}
-	for i := 0; i < 10; i++ {
-		wg.Add(1)
-		go one(byte(i))
-	}
-	wg.Wait()
+	posixtest.ParallelFileOpen(t, tc.mntDir)
 }
 
 func TestSymlink(t *testing.T) {
 	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
-	fn := tc.mntDir + "/link"
-	target := "target"
-	if err := os.Symlink(target, fn); err != nil {
-		t.Fatalf("Symlink: %v", err)
-	}
-
-	if got, err := os.Readlink(fn); err != nil {
-		t.Fatalf("Readlink: %v", err)
-	} else if got != target {
-		t.Errorf("Readlink: got %q, want %q", got, target)
-	}
+	posixtest.SymlinkReadlink(t, tc.mntDir)
 }
 
 func TestLink(t *testing.T) {
 	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
-	link := tc.mntDir + "/link"
-	target := tc.mntDir + "/target"
-
-	if err := ioutil.WriteFile(target, []byte("hello"), 0644); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
-
-	st := syscall.Stat_t{}
-	if err := syscall.Lstat(target, &st); err != nil {
-		t.Fatalf("Lstat before: %v", err)
-	}
-
-	beforeIno := st.Ino
-	if err := os.Link(target, link); err != nil {
-		t.Errorf("Link: %v", err)
-	}
-
-	if err := syscall.Lstat(link, &st); err != nil {
-		t.Fatalf("Lstat after: %v", err)
-	}
-
-	if st.Ino != beforeIno {
-		t.Errorf("Lstat after: got %d, want %d", st.Ino, beforeIno)
-	}
+	posixtest.Link(t, tc.mntDir)
 }
 
 func TestNotifyEntry(t *testing.T) {
@@ -450,38 +247,7 @@ func TestReadDir(t *testing.T) {
 	tc := newTestCase(t, true, true)
 	defer tc.Clean()
 
-	f, err := os.Open(tc.mntDir)
-	if err != nil {
-		t.Fatalf("Open: %v", err)
-	}
-	defer f.Close()
-
-	// add entries after opening the directory
-	want := map[string]bool{}
-	for i := 0; i < 110; i++ {
-		// 40 bytes of filename, so 110 entries overflows a
-		// 4096 page.
-		nm := fmt.Sprintf("file%036x", i)
-		want[nm] = true
-		tc.writeOrig(nm, "hello", 0644)
-	}
-
-	names, err := f.Readdirnames(-1)
-	if err != nil {
-		t.Fatalf("ReadDir: %v", err)
-	}
-	got := map[string]bool{}
-	for _, e := range names {
-		got[e] = true
-	}
-	if len(got) != len(want) {
-		t.Errorf("got %d entries, want %d", len(got), len(want))
-	}
-	for k := range got {
-		if !want[k] {
-			t.Errorf("got unknown name %q", k)
-		}
-	}
+	posixtest.ReadDir(t, tc.mntDir)
 }
 
 // This test is racy. If an external process consumes space while this
@@ -594,19 +360,5 @@ func TestTruncate(t *testing.T) {
 	tc := newTestCase(t, false, false)
 	defer tc.Clean()
 
-	if err := ioutil.WriteFile(tc.origDir+"/file", []byte("hello"), 0644); err != nil {
-		t.Errorf("WriteFile: %v", err)
-	}
-
-	if err := syscall.Truncate(tc.mntDir+"/file", 1); err != nil {
-		t.Fatalf("Truncate: %v", err)
-	}
-	var st syscall.Stat_t
-	if err := syscall.Lstat(tc.mntDir+"/file", &st); err != nil {
-		t.Fatalf("Lstat: %v", err)
-	}
-	if st.Size != 1 {
-		t.Errorf("got size %d, want 1", st.Size)
-	}
-
+	posixtest.TruncateNoFile(t, tc.mntDir)
 }

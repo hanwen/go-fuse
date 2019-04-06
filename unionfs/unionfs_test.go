@@ -22,6 +22,7 @@ import (
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
 	"github.com/hanwen/go-fuse/internal/testutil"
+	"github.com/hanwen/go-fuse/posixtest"
 )
 
 func TestFilePathHash(t *testing.T) {
@@ -203,19 +204,7 @@ func TestUnionFsSymlink(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
-	err := os.Symlink("/foobar", wd+"/mnt/link")
-	if err != nil {
-		t.Fatalf("Symlink: %v", err)
-	}
-
-	val, err := os.Readlink(wd + "/mnt/link")
-	if err != nil {
-		t.Fatalf("Readlink: %v", err)
-	}
-
-	if val != "/foobar" {
-		t.Errorf("symlink mismatch: %v", val)
-	}
+	posixtest.SymlinkReadlink(t, wd+"/mnt")
 }
 
 func TestUnionFsSymlinkPromote(t *testing.T) {
@@ -447,16 +436,7 @@ func TestUnionFsMkdir(t *testing.T) {
 	wd, clean := setupUfs(t)
 	defer clean()
 
-	dirname := wd + "/mnt/subdir"
-	err := os.Mkdir(dirname, 0755)
-	if err != nil {
-		t.Fatalf("Mkdir: %v", err)
-	}
-
-	err = os.Remove(dirname)
-	if err != nil {
-		t.Fatalf("Remove: %v", err)
-	}
+	posixtest.MkdirRmdir(t, wd+"/mnt")
 }
 
 func TestUnionFsMkdirPromote(t *testing.T) {
