@@ -26,7 +26,9 @@ type fileEntry struct {
 	nodeIndex int
 
 	// Directory
-	dirStream   DirStream
+	dirStream DirStream
+
+	mu          sync.Mutex
 	hasOverflow bool
 	overflow    fuse.DirEntry
 
@@ -833,16 +835,20 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 	if errno := b.setStream(cancel, input, n, f); errno != 0 {
 		return errnoToStatus(errno)
 	}
+
 	ctx := &fuse.Context{Caller: input.Caller, Cancel: cancel}
 	for f.dirStream.HasNext() {
 		var e fuse.DirEntry
 		var errno syscall.Errno
+
+		f.mu.Lock()
 		if f.hasOverflow {
 			e = f.overflow
 			f.hasOverflow = false
 		} else {
 			e, errno = f.dirStream.Next()
 		}
+		f.mu.Unlock()
 
 		if errno != 0 {
 			return errnoToStatus(errno)
@@ -850,8 +856,10 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 
 		entryOut := out.AddDirLookupEntry(e)
 		if entryOut == nil {
+			f.mu.Lock()
 			f.overflow = e
 			f.hasOverflow = true
+			f.mu.Unlock()
 			return fuse.OK
 		}
 
