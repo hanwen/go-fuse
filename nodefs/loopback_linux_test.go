@@ -9,9 +9,13 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"sync"
 	"syscall"
 	"testing"
+	"time"
 
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/internal/testutil"
 	"github.com/kylelemons/godebug/pretty"
 	"golang.org/x/sys/unix"
 )
@@ -197,4 +201,137 @@ func TestCopyFileRange(t *testing.T) {
 		t.Errorf("got %q want %q", got, want)
 	}
 
+}
+
+// Wait for a change in /proc/self/mounts. Efficient through the use of
+// unix.Poll().
+func waitProcMountsChange() error {
+	fd, err := syscall.Open("/proc/self/mounts", syscall.O_RDONLY, 0)
+	defer syscall.Close(fd)
+	if err != nil {
+		return err
+	}
+	pollFds := []unix.PollFd{
+		{
+			Fd:     int32(fd),
+			Events: unix.POLLPRI,
+		},
+	}
+	_, err = unix.Poll(pollFds, 1000)
+	return err
+}
+
+// Wait until mountpoint "mnt" shows up /proc/self/mounts
+func waitMount(mnt string) error {
+	for {
+		err := waitProcMountsChange()
+		if err != nil {
+			return err
+		}
+		content, err := ioutil.ReadFile("/proc/self/mounts")
+		if err != nil {
+			return err
+		}
+		if bytes.Contains(content, []byte(mnt)) {
+			return nil
+		}
+	}
+}
+
+// There is a hang that appears when enabling CAP_PARALLEL_DIROPS on Linux
+// 4.15.0: https://github.com/hanwen/go-fuse/issues/281
+// The hang was originally triggered by gvfs-udisks2-volume-monitor. This
+// test emulates what gvfs-udisks2-volume-monitor does.
+func TestParallelDiropsHang(t *testing.T) {
+	// We do NOT want to use newTestCase() here because we need to know the
+	// mnt path before the filesystem is mounted
+	dir := testutil.TempDir()
+	orig := dir + "/orig"
+	mnt := dir + "/mnt"
+	if err := os.Mkdir(orig, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(mnt, 0755); err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	// Unblock the goroutines onces the mount shows up in /proc/self/mounts
+	wait := make(chan struct{})
+	go func() {
+		err := waitMount(mnt)
+		if err != nil {
+			t.Error(err)
+		}
+		// Unblock the goroutines regardless of an error. We don't want to hang
+		// the test.
+		close(wait)
+	}()
+
+	// gvfs-udisks2-volume-monitor hits the mount with three threads - we try to
+	// emulate exactly what it does acc. to an strace log.
+	var wg sync.WaitGroup
+	wg.Add(3)
+	// [pid  2117] lstat(".../mnt/autorun.inf",  <unfinished ...>
+	go func() {
+		defer wg.Done()
+		<-wait
+		var st unix.Stat_t
+		unix.Lstat(mnt+"/autorun.inf", &st)
+	}()
+	// [pid  2116] open(".../mnt/.xdg-volume-info", O_RDONLY <unfinished ...>
+	go func() {
+		defer wg.Done()
+		<-wait
+		syscall.Open(mnt+"/.xdg-volume-info", syscall.O_RDONLY, 0)
+	}()
+	// 25 times this:
+	// [pid  1874] open(".../mnt", O_RDONLY|O_NONBLOCK|O_DIRECTORY|O_CLOEXEC <unfinished ...>
+	// [pid  1874] fstat(11, {st_mode=S_IFDIR|0775, st_size=4096, ...}) = 0
+	// [pid  1874] getdents(11, /* 2 entries */, 32768) = 48
+	// [pid  1874] close(11)                   = 0
+	go func() {
+		defer wg.Done()
+		<-wait
+		for i := 1; i <= 25; i++ {
+			f, err := os.Open(mnt)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			_, err = f.Stat()
+			if err != nil {
+				t.Error(err)
+				f.Close()
+				return
+			}
+			_, err = f.Readdirnames(-1)
+			if err != nil {
+				t.Errorf("iteration %d: fd %d: %v", i, f.Fd(), err)
+				return
+			}
+			f.Close()
+		}
+	}()
+
+	loopbackRoot, err := NewLoopbackRoot(orig)
+	if err != nil {
+		t.Fatalf("NewLoopbackRoot(%s): %v\n", orig, err)
+	}
+	sec := time.Second
+	opts := &Options{
+		AttrTimeout:  &sec,
+		EntryTimeout: &sec,
+	}
+	opts.Debug = testutil.VerboseTest()
+
+	rawFS := NewNodeFS(loopbackRoot, opts)
+	server, err := fuse.NewServer(rawFS, mnt, &opts.MountOptions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	go server.Serve()
+
+	wg.Wait()
+	server.Unmount()
 }
