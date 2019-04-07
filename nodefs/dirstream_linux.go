@@ -5,6 +5,7 @@
 package nodefs
 
 import (
+	"sync"
 	"syscall"
 	"unsafe"
 
@@ -14,7 +15,10 @@ import (
 type loopbackDirStream struct {
 	buf  []byte
 	todo []byte
-	fd   int
+
+	// Protects fd so we can guard against double close
+	mu sync.Mutex
+	fd int
 }
 
 // NewLoopbackDirStream open a directory for reading as a DirStream
@@ -37,14 +41,23 @@ func NewLoopbackDirStream(name string) (DirStream, syscall.Errno) {
 }
 
 func (ds *loopbackDirStream) Close() {
-	syscall.Close(ds.fd)
+	ds.mu.Lock()
+	defer ds.mu.Unlock()
+	if ds.fd != -1 {
+		syscall.Close(ds.fd)
+		ds.fd = -1
+	}
 }
 
 func (ds *loopbackDirStream) HasNext() bool {
+	ds.mu.Lock()
+	defer ds.mu.Unlock()
 	return len(ds.todo) > 0
 }
 
 func (ds *loopbackDirStream) Next() (fuse.DirEntry, syscall.Errno) {
+	ds.mu.Lock()
+	defer ds.mu.Unlock()
 	de := (*syscall.Dirent)(unsafe.Pointer(&ds.todo[0]))
 
 	nameBytes := ds.todo[unsafe.Offsetof(syscall.Dirent{}.Name):de.Reclen]

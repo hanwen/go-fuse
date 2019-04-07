@@ -13,6 +13,8 @@ import (
 )
 
 func (f *loopbackFile) Allocate(ctx context.Context, off uint64, sz uint64, mode uint32) syscall.Errno {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	err := syscall.Fallocate(f.fd, mode, int64(off), int64(sz))
 	if err != nil {
 		return ToErrno(err)

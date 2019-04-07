@@ -6,6 +6,8 @@ package nodefs
 
 import (
 	"context"
+	"sync"
+
 	//	"time"
 
 	"syscall"
@@ -21,6 +23,7 @@ func NewLoopbackFile(fd int) FileHandle {
 }
 
 type loopbackFile struct {
+	mu sync.Mutex
 	fd int
 }
 
@@ -39,21 +42,33 @@ var _ = (FileSetattrer)((*loopbackFile)(nil))
 var _ = (FileAllocater)((*loopbackFile)(nil))
 
 func (f *loopbackFile) Read(ctx context.Context, buf []byte, off int64) (res fuse.ReadResult, errno syscall.Errno) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	r := fuse.ReadResultFd(uintptr(f.fd), off, len(buf))
 	return r, OK
 }
 
 func (f *loopbackFile) Write(ctx context.Context, data []byte, off int64) (uint32, syscall.Errno) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	n, err := syscall.Pwrite(f.fd, data, off)
 	return uint32(n), ToErrno(err)
 }
 
 func (f *loopbackFile) Release(ctx context.Context) syscall.Errno {
-	err := syscall.Close(f.fd)
-	return ToErrno(err)
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.fd != -1 {
+		err := syscall.Close(f.fd)
+		f.fd = -1
+		return ToErrno(err)
+	}
+	return syscall.EBADF
 }
 
 func (f *loopbackFile) Flush(ctx context.Context) syscall.Errno {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	// Since Flush() may be called for each dup'd fd, we don't
 	// want to really close the file, we just want to flush. This
 	// is achieved by closing a dup'd fd.
@@ -67,6 +82,8 @@ func (f *loopbackFile) Flush(ctx context.Context) syscall.Errno {
 }
 
 func (f *loopbackFile) Fsync(ctx context.Context, flags uint32) (errno syscall.Errno) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	r := ToErrno(syscall.Fsync(f.fd))
 
 	return r
@@ -79,6 +96,8 @@ const (
 )
 
 func (f *loopbackFile) Getlk(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (errno syscall.Errno) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	flk := syscall.Flock_t{}
 	lk.ToFlockT(&flk)
 	errno = ToErrno(syscall.FcntlFlock(uintptr(f.fd), _OFD_GETLK, &flk))
@@ -95,6 +114,8 @@ func (f *loopbackFile) Setlkw(ctx context.Context, owner uint64, lk *fuse.FileLo
 }
 
 func (f *loopbackFile) setLock(ctx context.Context, owner uint64, lk *fuse.FileLock, flags uint32, blocking bool) (errno syscall.Errno) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	if (flags & fuse.FUSE_LK_FLOCK) != 0 {
 		var op int
 		switch lk.Typ {
@@ -133,6 +154,8 @@ func (f *loopbackFile) Setattr(ctx context.Context, in *fuse.SetAttrIn, out *fus
 }
 
 func (f *loopbackFile) setAttr(ctx context.Context, in *fuse.SetAttrIn) syscall.Errno {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	var errno syscall.Errno
 	if mode, ok := in.GetMode(); ok {
 		errno = ToErrno(syscall.Fchmod(f.fd, mode))
@@ -187,6 +210,8 @@ func (f *loopbackFile) setAttr(ctx context.Context, in *fuse.SetAttrIn) syscall.
 }
 
 func (f *loopbackFile) Getattr(ctx context.Context, a *fuse.AttrOut) syscall.Errno {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	st := syscall.Stat_t{}
 	err := syscall.Fstat(f.fd, &st)
 	if err != nil {
@@ -198,6 +223,8 @@ func (f *loopbackFile) Getattr(ctx context.Context, a *fuse.AttrOut) syscall.Err
 }
 
 func (f *loopbackFile) Lseek(ctx context.Context, off uint64, whence uint32) (uint64, syscall.Errno) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	n, err := unix.Seek(f.fd, int64(off), int(whence))
 	return uint64(n), ToErrno(err)
 }
