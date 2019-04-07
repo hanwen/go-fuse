@@ -250,6 +250,39 @@ func TestReadDir(t *testing.T) {
 	posixtest.ReadDir(t, tc.mntDir)
 }
 
+func TestReadDirStress(t *testing.T) {
+	tc := newTestCase(t, true, true)
+	defer tc.Clean()
+	// (ab)use posixtest.ReadDir to create 110 test files
+	posixtest.ReadDir(t, tc.mntDir)
+
+	var wg sync.WaitGroup
+	stress := func(gr int) {
+		defer wg.Done()
+		for i := 1; i < 100; i++ {
+			f, err := os.Open(tc.mntDir)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			_, err = f.Readdirnames(-1)
+			if err != nil {
+				t.Errorf("goroutine %d iteration %d: %v", gr, i, err)
+				f.Close()
+				return
+			}
+			f.Close()
+		}
+	}
+
+	n := 3
+	for i := 1; i <= n; i++ {
+		wg.Add(1)
+		go stress(i)
+	}
+	wg.Wait()
+}
+
 // This test is racy. If an external process consumes space while this
 // runs, we may see spurious differences between the two statfs() calls.
 func TestStatFs(t *testing.T) {
