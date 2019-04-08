@@ -66,7 +66,7 @@ func TestTar(t *testing.T) {
 	mnt := testutil.TempDir()
 	defer os.Remove(mnt)
 	opts := &nodefs.Options{}
-	opts.Debug = true
+	opts.Debug = testutil.VerboseTest()
 	s, err := nodefs.Mount(mnt, root, opts)
 	if err != nil {
 		t.Errorf("Mount: %v", err)

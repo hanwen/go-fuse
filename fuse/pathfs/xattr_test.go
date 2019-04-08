@@ -106,7 +106,7 @@ func xattrTestCase(t *testing.T, nm string, m map[string][]byte) (mountPoint str
 
 	nfs := NewPathNodeFs(xfs, nil)
 	state, _, err := nodefs.MountRoot(mountPoint, nfs.Root(),
-		&nodefs.Options{Debug: VerboseTest()})
+		&nodefs.Options{Debug: testutil.VerboseTest()})
 	if err != nil {
 		t.Fatalf("MountRoot failed: %v", err)
 	}

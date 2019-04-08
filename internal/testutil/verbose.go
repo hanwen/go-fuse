@@ -4,10 +4,12 @@
 
 package testutil
 
-import "flag"
+import (
+	"os"
+)
 
-// VerboseTest returns true if the testing framework is run with -v.
+// VerboseTest returns true if the testing framework is run DEBUG=1.
 func VerboseTest() bool {
-	flag := flag.Lookup("test.v")
-	return flag != nil && flag.Value.String() == "true"
+	val := os.Getenv("DEBUG")
+	return val == "1"
 }
