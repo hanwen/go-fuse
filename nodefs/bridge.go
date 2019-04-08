@@ -126,9 +126,9 @@ func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file F
 		fh = b.registerFile(child, file, fileFlags)
 	}
 
-	out.NodeId = child.nodeAttr.Ino
-	out.Generation = child.nodeAttr.Gen
-	out.Attr.Ino = child.nodeAttr.Ino
+	out.NodeId = child.stableAttr.Ino
+	out.Generation = child.stableAttr.Gen
+	out.Attr.Ino = child.stableAttr.Ino
 
 	b.mu.Unlock()
 	unlockNodes(parent, child)
@@ -406,8 +406,8 @@ func (b *rawBridge) getattr(ctx context.Context, n *Inode, f FileHandle, out *fu
 	}
 
 	if errno == 0 {
-		out.Ino = n.nodeAttr.Ino
-		out.Mode = (out.Attr.Mode & 07777) | n.nodeAttr.Mode
+		out.Ino = n.stableAttr.Ino
+		out.Mode = (out.Attr.Mode & 07777) | n.stableAttr.Mode
 		b.setAttr(&out.Attr)
 		b.setAttrTimeout(out)
 	}
@@ -872,12 +872,12 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 			b.addNewChild(n, e.Name, child, nil, 0, entryOut)
 			child.setEntryOut(entryOut)
 			b.setEntryOutTimeout(entryOut)
-			if (e.Mode &^ 07777) != (child.nodeAttr.Mode &^ 07777) {
+			if (e.Mode &^ 07777) != (child.stableAttr.Mode &^ 07777) {
 				// should go back and change the
 				// already serialized entry
-				log.Panicf("mode mismatch between readdir %o and lookup %o", e.Mode, child.nodeAttr.Mode)
+				log.Panicf("mode mismatch between readdir %o and lookup %o", e.Mode, child.stableAttr.Mode)
 			}
-			entryOut.Mode = child.nodeAttr.Mode | (entryOut.Mode & 07777)
+			entryOut.Mode = child.stableAttr.Mode | (entryOut.Mode & 07777)
 		}
 	}
 

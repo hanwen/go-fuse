@@ -57,7 +57,7 @@ func (i *StableAttr) Reserved() bool {
 // copied. Inodes should be obtained by calling Inode.NewInode() or
 // Inode.NewPersistentInode().
 type Inode struct {
-	nodeAttr StableAttr
+	stableAttr StableAttr
 
 	ops    InodeEmbedder
 	bridge *rawBridge
@@ -97,7 +97,7 @@ type Inode struct {
 }
 
 func (n *Inode) IsDir() bool {
-	return n.nodeAttr.Mode&syscall.S_IFDIR != 0
+	return n.stableAttr.Mode&syscall.S_IFDIR != 0
 }
 
 func (n *Inode) embed() *Inode {
@@ -110,7 +110,7 @@ func (n *Inode) EmbeddedInode() *Inode {
 
 func initInode(n *Inode, ops InodeEmbedder, attr StableAttr, bridge *rawBridge, persistent bool) {
 	n.ops = ops
-	n.nodeAttr = attr
+	n.stableAttr = attr
 	n.bridge = bridge
 	n.persistent = persistent
 	n.parents = make(map[parentData]struct{})
@@ -121,19 +121,19 @@ func initInode(n *Inode, ops InodeEmbedder, attr StableAttr, bridge *rawBridge, 
 
 // Set node ID and mode in EntryOut
 func (n *Inode) setEntryOut(out *fuse.EntryOut) {
-	out.NodeId = n.nodeAttr.Ino
-	out.Ino = n.nodeAttr.Ino
-	out.Mode = (out.Attr.Mode & 07777) | n.nodeAttr.Mode
+	out.NodeId = n.stableAttr.Ino
+	out.Ino = n.stableAttr.Ino
+	out.Mode = (out.Attr.Mode & 07777) | n.stableAttr.Mode
 }
 
 // StableAttr returns the (Ino, Gen) tuple for this node.
-func (n *Inode) StableAttr() NodeAttr {
-	return n.nodeAttr
+func (n *Inode) StableAttr() StableAttr {
+	return n.stableAttr
 }
 
 // Mode returns the filetype
 func (n *Inode) Mode() uint32 {
-	return n.nodeAttr.Mode
+	return n.stableAttr.Mode
 }
 
 // Returns the root of the tree
@@ -159,10 +159,10 @@ func (n *Inode) String() string {
 	defer n.mu.Unlock()
 	var ss []string
 	for nm, ch := range n.children {
-		ss = append(ss, fmt.Sprintf("%q=%d[%s]", nm, ch.nodeAttr.Ino, modeStr(ch.nodeAttr.Mode)))
+		ss = append(ss, fmt.Sprintf("%q=%d[%s]", nm, ch.stableAttr.Ino, modeStr(ch.stableAttr.Mode)))
 	}
 
-	return fmt.Sprintf("%d[%s]: %s", n.nodeAttr.Ino, modeStr(n.nodeAttr.Mode), strings.Join(ss, ","))
+	return fmt.Sprintf("%d[%s]: %s", n.stableAttr.Ino, modeStr(n.stableAttr.Mode), strings.Join(ss, ","))
 }
 
 // sortNodes rearranges inode group in consistent order.
@@ -391,7 +391,7 @@ retry:
 		}
 
 		n.bridge.mu.Lock()
-		delete(n.bridge.nodes, n.nodeAttr.Ino)
+		delete(n.bridge.nodes, n.stableAttr.Ino)
 		n.bridge.mu.Unlock()
 
 		unlockNodes(lockme...)
@@ -686,7 +686,7 @@ retry:
 // tuple should be invalidated. On next access, a LOOKUP operation
 // will be started.
 func (n *Inode) NotifyEntry(name string) syscall.Errno {
-	status := n.bridge.server.EntryNotify(n.nodeAttr.Ino, name)
+	status := n.bridge.server.EntryNotify(n.stableAttr.Ino, name)
 	return syscall.Errno(status)
 }
 
@@ -695,7 +695,7 @@ func (n *Inode) NotifyEntry(name string) syscall.Errno {
 // to NotifyEntry, but also sends an event to inotify watchers.
 func (n *Inode) NotifyDelete(name string, child *Inode) syscall.Errno {
 	// XXX arg ordering?
-	return syscall.Errno(n.bridge.server.DeleteNotify(n.nodeAttr.Ino, child.nodeAttr.Ino, name))
+	return syscall.Errno(n.bridge.server.DeleteNotify(n.stableAttr.Ino, child.stableAttr.Ino, name))
 
 }
 
@@ -703,16 +703,16 @@ func (n *Inode) NotifyDelete(name string, child *Inode) syscall.Errno {
 // inode should be flushed from buffers.
 func (n *Inode) NotifyContent(off, sz int64) syscall.Errno {
 	// XXX how does this work for directories?
-	return syscall.Errno(n.bridge.server.InodeNotify(n.nodeAttr.Ino, off, sz))
+	return syscall.Errno(n.bridge.server.InodeNotify(n.stableAttr.Ino, off, sz))
 }
 
 // WriteCache stores data in the kernel cache.
 func (n *Inode) WriteCache(offset int64, data []byte) syscall.Errno {
-	return syscall.Errno(n.bridge.server.InodeNotifyStoreCache(n.nodeAttr.Ino, offset, data))
+	return syscall.Errno(n.bridge.server.InodeNotifyStoreCache(n.stableAttr.Ino, offset, data))
 }
 
 // ReadCache reads data from the kernel cache.
 func (n *Inode) ReadCache(offset int64, dest []byte) (count int, errno syscall.Errno) {
-	c, s := n.bridge.server.InodeRetrieveCache(n.nodeAttr.Ino, offset, dest)
+	c, s := n.bridge.server.InodeRetrieveCache(n.stableAttr.Ino, offset, dest)
 	return c, syscall.Errno(s)
 }
