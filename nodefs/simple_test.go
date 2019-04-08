@@ -395,3 +395,7 @@ func TestTruncate(t *testing.T) {
 
 	posixtest.TruncateNoFile(t, tc.mntDir)
 }
+
+func init() {
+	syscall.Umask(0)
+}
