@@ -12,6 +12,10 @@ import (
 // HasAccess tests if a caller can access a file with permissions
 // `perm` in mode `mask`
 func HasAccess(callerUid, callerGid, fileUid, fileGid uint32, perm uint32, mask uint32) bool {
+	if callerUid == 0 {
+		// root can do anything.
+		return true
+	}
 	mask = mask & 7
 	if mask == 0 {
 		return true

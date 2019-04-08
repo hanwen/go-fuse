@@ -63,6 +63,7 @@ func TestHasAccess(t *testing.T) {
 		{myUid, myGid, myUid + 1, notMyGid, 0020, 002, false},
 		{myUid, myGid, myUid, myGid, 0000, 01, false},
 		{myUid, myGid, myUid, myGid, 0200, 01, false},
+		{0, myGid, myUid + 1, notMyGid, 0700, 01, true},
 	} {
 		got := HasAccess(tc.uid, tc.gid, tc.fuid, tc.fgid, tc.perm, tc.mask)
 		if got != tc.want {
