@@ -220,3 +220,7 @@ func TestPosix(t *testing.T) {
 		})
 	}
 }
+
+func init() {
+	syscall.Umask(0)
+}
