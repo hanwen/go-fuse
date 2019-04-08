@@ -254,6 +254,7 @@ const (
 	FOPEN_KEEP_CACHE  = (1 << 1)
 	FOPEN_NONSEEKABLE = (1 << 2)
 	FOPEN_CACHE_DIR   = (1 << 3)
+	FOPEN_STREAM      = (1 << 4)
 )
 
 type OpenOut struct {

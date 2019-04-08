@@ -69,6 +69,7 @@ var (
 		FOPEN_KEEP_CACHE:  "CACHE",
 		FOPEN_NONSEEKABLE: "NONSEEK",
 		FOPEN_CACHE_DIR:   "CACHE_DIR",
+		FOPEN_STREAM:      "STREAM",
 	}
 	accessFlagName = map[int64]string{
 		X_OK: "x",
