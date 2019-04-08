@@ -52,7 +52,6 @@ func (r *tarRoot) OnAdd(ctx context.Context) {
 			// XXX handle error
 			break
 		}
-
 		if hdr.Typeflag == 'L' {
 			buf := bytes.NewBuffer(make([]byte, 0, hdr.Size))
 			io.Copy(buf, tr)
@@ -64,10 +63,6 @@ func (r *tarRoot) OnAdd(ctx context.Context) {
 		if longName != nil {
 			hdr.Name = *longName
 			longName = nil
-		}
-
-		if strings.HasSuffix(hdr.Name, "/") {
-			continue
 		}
 
 		buf := bytes.NewBuffer(make([]byte, 0, hdr.Size))
@@ -89,16 +84,43 @@ func (r *tarRoot) OnAdd(ctx context.Context) {
 			p = ch
 		}
 
-		if hdr.Typeflag == tar.TypeSymlink {
-			p.AddChild(base, r.NewPersistentInode(ctx, &nodefs.MemSymlink{
+		var attr fuse.Attr
+		HeaderToFileInfo(&attr, hdr)
+		switch hdr.Typeflag {
+		case tar.TypeSymlink:
+			l := &nodefs.MemSymlink{
 				Data: []byte(hdr.Linkname),
-			}, nodefs.NodeAttr{Mode: syscall.S_IFLNK}), false)
-		} else {
+			}
+			l.Attr = attr
+			p.AddChild(base, r.NewPersistentInode(ctx, l, nodefs.NodeAttr{Mode: syscall.S_IFLNK}), false)
+
+		case tar.TypeLink:
+			log.Println("don't know how to handle Typelink")
+
+		case tar.TypeChar:
+			rf := &nodefs.MemRegularFile{}
+			rf.Attr = attr
+			p.AddChild(base, r.NewPersistentInode(ctx, rf, nodefs.NodeAttr{Mode: syscall.S_IFCHR}), false)
+		case tar.TypeBlock:
+			rf := &nodefs.MemRegularFile{}
+			rf.Attr = attr
+			p.AddChild(base, r.NewPersistentInode(ctx, rf, nodefs.NodeAttr{Mode: syscall.S_IFBLK}), false)
+		case tar.TypeDir:
+			rf := &nodefs.MemRegularFile{}
+			rf.Attr = attr
+			p.AddChild(base, r.NewPersistentInode(ctx, rf, nodefs.NodeAttr{Mode: syscall.S_IFDIR}), false)
+		case tar.TypeFifo:
+			rf := &nodefs.MemRegularFile{}
+			rf.Attr = attr
+			p.AddChild(base, r.NewPersistentInode(ctx, rf, nodefs.NodeAttr{Mode: syscall.S_IFIFO}), false)
+		case tar.TypeReg, tar.TypeRegA:
 			df := &nodefs.MemRegularFile{
 				Data: buf.Bytes(),
 			}
-			HeaderToFileInfo(&df.Attr, hdr)
+			df.Attr = attr
 			p.AddChild(base, r.NewPersistentInode(ctx, df, nodefs.NodeAttr{}), false)
+		default:
+			log.Printf("entry %q: unsupported type '%c'", hdr.Name, hdr.Typeflag)
 		}
 	}
 }

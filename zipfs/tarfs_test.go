@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -20,6 +21,7 @@ import (
 )
 
 var tarContents = map[string]string{
+	"emptydir/":       "",
 	"file.txt":        "content",
 	"dir/subfile.txt": "other content",
 }
@@ -48,14 +50,16 @@ func TestTar(t *testing.T) {
 		}
 
 		isLink := filepath.Base(k) == "link"
-
+		isDir := strings.HasSuffix(k, "/")
 		if isLink {
 			h.Typeflag = tar.TypeSymlink
 			h.Linkname = v
+		} else if isDir {
+			h.Typeflag = tar.TypeDir
 		}
 
 		w.WriteHeader(h)
-		if !isLink {
+		if !isLink && !isDir {
 			w.Write([]byte(v))
 		}
 	}
@@ -89,9 +93,15 @@ func TestTar(t *testing.T) {
 			if got != want {
 				t.Errorf("Readlink: got %q want %q", got, want)
 			}
+		} else if strings.HasSuffix(k, "/") {
+
+			if got, want := st.Mode, uint32(syscall.S_IFDIR|0464); got != want {
+				t.Errorf("dir %q: got mode %o, want %o", k, got, want)
+			}
+
 		} else {
 			if got, want := st.Mode, uint32(syscall.S_IFREG|0464); got != want {
-				t.Errorf("got mode %o, want %o", got, want)
+				t.Errorf("entry %q, got mode %o, want %o", k, got, want)
 			}
 
 			c, err := ioutil.ReadFile(p)
