@@ -127,7 +127,7 @@ func (n *Inode) setEntryOut(out *fuse.EntryOut) {
 }
 
 // StableAttr returns the (Ino, Gen) tuple for this node.
-func (n *Inode) StableAttr() NodeAttr {
+func (n *Inode) StableAttr() StableAttr {
 	return n.nodeAttr
 }
 
