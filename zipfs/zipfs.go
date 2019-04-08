@@ -66,13 +66,13 @@ func (zr *zipRoot) OnAdd(ctx context.Context) {
 			ch := p.GetChild(component)
 			if ch == nil {
 				ch = p.NewPersistentInode(ctx, &nodefs.Inode{},
-					nodefs.NodeAttr{Mode: fuse.S_IFDIR})
+					nodefs.StableAttr{Mode: fuse.S_IFDIR})
 				p.AddChild(component, ch, true)
 			}
 
 			p = ch
 		}
-		ch := p.NewPersistentInode(ctx, &zipFile{file: f}, nodefs.NodeAttr{})
+		ch := p.NewPersistentInode(ctx, &zipFile{file: f}, nodefs.StableAttr{})
 		p.AddChild(base, ch, true)
 	}
 }

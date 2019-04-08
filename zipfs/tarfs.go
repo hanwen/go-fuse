@@ -78,7 +78,7 @@ func (r *tarRoot) OnAdd(ctx context.Context) {
 			if ch == nil {
 				ch = p.NewPersistentInode(ctx,
 					&nodefs.Inode{},
-					nodefs.NodeAttr{Mode: syscall.S_IFDIR})
+					nodefs.StableAttr{Mode: syscall.S_IFDIR})
 				p.AddChild(comp, ch, false)
 			}
 			p = ch
@@ -92,7 +92,7 @@ func (r *tarRoot) OnAdd(ctx context.Context) {
 				Data: []byte(hdr.Linkname),
 			}
 			l.Attr = attr
-			p.AddChild(base, r.NewPersistentInode(ctx, l, nodefs.NodeAttr{Mode: syscall.S_IFLNK}), false)
+			p.AddChild(base, r.NewPersistentInode(ctx, l, nodefs.StableAttr{Mode: syscall.S_IFLNK}), false)
 
 		case tar.TypeLink:
 			log.Println("don't know how to handle Typelink")
@@ -100,25 +100,25 @@ func (r *tarRoot) OnAdd(ctx context.Context) {
 		case tar.TypeChar:
 			rf := &nodefs.MemRegularFile{}
 			rf.Attr = attr
-			p.AddChild(base, r.NewPersistentInode(ctx, rf, nodefs.NodeAttr{Mode: syscall.S_IFCHR}), false)
+			p.AddChild(base, r.NewPersistentInode(ctx, rf, nodefs.StableAttr{Mode: syscall.S_IFCHR}), false)
 		case tar.TypeBlock:
 			rf := &nodefs.MemRegularFile{}
 			rf.Attr = attr
-			p.AddChild(base, r.NewPersistentInode(ctx, rf, nodefs.NodeAttr{Mode: syscall.S_IFBLK}), false)
+			p.AddChild(base, r.NewPersistentInode(ctx, rf, nodefs.StableAttr{Mode: syscall.S_IFBLK}), false)
 		case tar.TypeDir:
 			rf := &nodefs.MemRegularFile{}
 			rf.Attr = attr
-			p.AddChild(base, r.NewPersistentInode(ctx, rf, nodefs.NodeAttr{Mode: syscall.S_IFDIR}), false)
+			p.AddChild(base, r.NewPersistentInode(ctx, rf, nodefs.StableAttr{Mode: syscall.S_IFDIR}), false)
 		case tar.TypeFifo:
 			rf := &nodefs.MemRegularFile{}
 			rf.Attr = attr
-			p.AddChild(base, r.NewPersistentInode(ctx, rf, nodefs.NodeAttr{Mode: syscall.S_IFIFO}), false)
+			p.AddChild(base, r.NewPersistentInode(ctx, rf, nodefs.StableAttr{Mode: syscall.S_IFIFO}), false)
 		case tar.TypeReg, tar.TypeRegA:
 			df := &nodefs.MemRegularFile{
 				Data: buf.Bytes(),
 			}
 			df.Attr = attr
-			p.AddChild(base, r.NewPersistentInode(ctx, df, nodefs.NodeAttr{}), false)
+			p.AddChild(base, r.NewPersistentInode(ctx, df, nodefs.StableAttr{}), false)
 		default:
 			log.Printf("entry %q: unsupported type '%c'", hdr.Name, hdr.Typeflag)
 		}

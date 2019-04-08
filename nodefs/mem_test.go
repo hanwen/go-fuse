@@ -53,7 +53,7 @@ func TestDataFile(t *testing.T) {
 						Mode: 0464,
 					},
 				},
-				NodeAttr{})
+				StableAttr{})
 			n.AddChild("file", ch, false)
 		},
 	})
@@ -106,7 +106,7 @@ func TestDataFileLargeRead(t *testing.T) {
 						Mode: 0464,
 					},
 				},
-				NodeAttr{})
+				StableAttr{})
 			n.AddChild("file", ch, false)
 		},
 	})
@@ -130,7 +130,7 @@ func (s *SymlinkerRoot) Symlink(ctx context.Context, target, name string, out *f
 		Data: []byte(target),
 	}
 
-	ch := s.NewPersistentInode(ctx, l, NodeAttr{Mode: syscall.S_IFLNK})
+	ch := s.NewPersistentInode(ctx, l, StableAttr{Mode: syscall.S_IFLNK})
 	return ch, 0
 }
 

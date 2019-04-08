@@ -27,7 +27,7 @@ func (r *HelloRoot) OnAdd(ctx context.Context) {
 			Attr: fuse.Attr{
 				Mode: 0644,
 			},
-		}, nodefs.NodeAttr{Ino: 2})
+		}, nodefs.StableAttr{Ino: 2})
 	r.AddChild("file.txt", ch, false)
 }
 

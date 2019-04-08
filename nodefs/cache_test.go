@@ -78,13 +78,13 @@ func (r *keepCacheRoot) OnAdd(ctx context.Context) {
 		keepCache: true,
 	}
 	r.keep.setContent(0)
-	i.AddChild("keep", i.NewInode(ctx, r.keep, NodeAttr{}), true)
+	i.AddChild("keep", i.NewInode(ctx, r.keep, StableAttr{}), true)
 
 	r.nokeep = &keepCacheFile{
 		keepCache: false,
 	}
 	r.nokeep.setContent(0)
-	i.AddChild("nokeep", i.NewInode(ctx, r.nokeep, NodeAttr{}), true)
+	i.AddChild("nokeep", i.NewInode(ctx, r.nokeep, StableAttr{}), true)
 }
 
 // Test FOPEN_KEEP_CACHE. This is a little subtle: the automatic cache

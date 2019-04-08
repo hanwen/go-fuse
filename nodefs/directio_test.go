@@ -20,7 +20,7 @@ type dioRoot struct {
 }
 
 func (r *dioRoot) OnAdd(ctx context.Context) {
-	r.Inode.AddChild("file", r.Inode.NewInode(ctx, &dioFile{}, NodeAttr{}), false)
+	r.Inode.AddChild("file", r.Inode.NewInode(ctx, &dioFile{}, StableAttr{}), false)
 }
 
 // A file handle that pretends that every hole/data starts at

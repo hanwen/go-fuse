@@ -52,7 +52,7 @@ func (n *loopbackNode) renameExchange(name string, newparent *loopbackNode, newN
 
 	// Double check that nodes didn't change from under us.
 	inode := &n.Inode
-	if inode.Root() != inode && inode.NodeAttr().Ino != n.root().idFromStat(&st).Ino {
+	if inode.Root() != inode && inode.StableAttr().Ino != n.root().idFromStat(&st).Ino {
 		return syscall.EBUSY
 	}
 	if err := syscall.Fstat(fd2, &st); err != nil {
@@ -60,7 +60,7 @@ func (n *loopbackNode) renameExchange(name string, newparent *loopbackNode, newN
 	}
 
 	newinode := &newparent.Inode
-	if newinode.Root() != newinode && newinode.NodeAttr().Ino != n.root().idFromStat(&st).Ino {
+	if newinode.Root() != newinode && newinode.StableAttr().Ino != n.root().idFromStat(&st).Ino {
 		return syscall.EBUSY
 	}
 

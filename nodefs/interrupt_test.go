@@ -25,7 +25,7 @@ func (r *interruptRoot) Lookup(ctx context.Context, name string, out *fuse.Entry
 	if name != "file" {
 		return nil, syscall.ENOENT
 	}
-	ch := r.Inode.NewInode(ctx, &r.child, NodeAttr{
+	ch := r.Inode.NewInode(ctx, &r.child, StableAttr{
 		Ino: 2,
 		Gen: 1})
 

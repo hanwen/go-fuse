@@ -162,7 +162,7 @@ func (n *loopbackNode) Rename(ctx context.Context, name string, newParent InodeE
 	return ToErrno(err)
 }
 
-func (r *loopbackRoot) idFromStat(st *syscall.Stat_t) NodeAttr {
+func (r *loopbackRoot) idFromStat(st *syscall.Stat_t) StableAttr {
 	// We compose an inode number by the underlying inode, and
 	// mixing in the device number. In traditional filesystems,
 	// the inode numbers are small. The device numbers are also
@@ -172,7 +172,7 @@ func (r *loopbackRoot) idFromStat(st *syscall.Stat_t) NodeAttr {
 	// the underlying filesystem
 	swapped := (uint64(st.Dev) << 32) | (uint64(st.Dev) >> 32)
 	swappedRootDev := (r.rootDev << 32) | (r.rootDev >> 32)
-	return NodeAttr{
+	return StableAttr{
 		Mode: uint32(st.Mode),
 		Gen:  1,
 		// This should work well for traditional backing FSes,

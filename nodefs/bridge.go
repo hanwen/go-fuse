@@ -51,7 +51,7 @@ type rawBridge struct {
 }
 
 // newInode creates creates new inode pointing to ops.
-func (b *rawBridge) newInodeUnlocked(ops InodeEmbedder, id NodeAttr, persistent bool) *Inode {
+func (b *rawBridge) newInodeUnlocked(ops InodeEmbedder, id StableAttr, persistent bool) *Inode {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -84,7 +84,7 @@ func (b *rawBridge) newInodeUnlocked(ops InodeEmbedder, id NodeAttr, persistent 
 	//	    file
 	//
 	// dir1.Lookup("file") and dir2.Lookup("file") are executed
-	// simultaneously.  The matching NodeAttrs ensure that we return the
+	// simultaneously.  The matching StableAttrs ensure that we return the
 	// same node.
 	old := b.nodes[id.Ino]
 	if old != nil {
@@ -101,7 +101,7 @@ func (b *rawBridge) newInodeUnlocked(ops InodeEmbedder, id NodeAttr, persistent 
 	return ops.embed()
 }
 
-func (b *rawBridge) newInode(ctx context.Context, ops InodeEmbedder, id NodeAttr, persistent bool) *Inode {
+func (b *rawBridge) newInode(ctx context.Context, ops InodeEmbedder, id StableAttr, persistent bool) *Inode {
 	ch := b.newInodeUnlocked(ops, id, persistent)
 	if ch != ops.embed() {
 		return ch
@@ -183,7 +183,7 @@ func NewNodeFS(root InodeEmbedder, opts *Options) fuse.RawFileSystem {
 	}
 
 	initInode(root.embed(), root,
-		NodeAttr{
+		StableAttr{
 			Ino:  1,
 			Mode: fuse.S_IFDIR,
 		},
@@ -792,7 +792,7 @@ func (b *rawBridge) getStream(ctx context.Context, inode *Inode) (DirStream, sys
 		for k, ch := range inode.Children() {
 			r = append(r, fuse.DirEntry{Mode: ch.Mode(),
 				Name: k,
-				Ino:  ch.NodeAttr().Ino})
+				Ino:  ch.StableAttr().Ino})
 		}
 		return NewListDirStream(r), 0
 	}

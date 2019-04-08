@@ -107,7 +107,7 @@ func TestZipFSOnAdd(t *testing.T) {
 	mnt, _, clean := testMount(t, root, &Options{
 		OnAdd: func(ctx context.Context) {
 			root.AddChild("sub",
-				root.NewPersistentInode(ctx, zr, NodeAttr{Mode: syscall.S_IFDIR}), false)
+				root.NewPersistentInode(ctx, zr, StableAttr{Mode: syscall.S_IFDIR}), false)
 		},
 	})
 	defer clean()
@@ -197,13 +197,13 @@ func (zr *zipRoot) OnAdd(ctx context.Context) {
 			ch := p.GetChild(component)
 			if ch == nil {
 				ch = p.NewPersistentInode(ctx, &Inode{},
-					NodeAttr{Mode: fuse.S_IFDIR})
+					StableAttr{Mode: fuse.S_IFDIR})
 				p.AddChild(component, ch, true)
 			}
 
 			p = ch
 		}
-		ch := p.NewPersistentInode(ctx, &zipFile{file: f}, NodeAttr{})
+		ch := p.NewPersistentInode(ctx, &zipFile{file: f}, StableAttr{})
 		p.AddChild(base, ch, true)
 	}
 }
@@ -235,7 +235,7 @@ func ExampleInode_NewPersistentInode() {
 				if ch == nil {
 					// Create a directory
 					ch = p.NewPersistentInode(ctx, &Inode{},
-						NodeAttr{Mode: syscall.S_IFDIR})
+						StableAttr{Mode: syscall.S_IFDIR})
 					// Add it
 					p.AddChild(component, ch, true)
 				}
@@ -246,7 +246,7 @@ func ExampleInode_NewPersistentInode() {
 			// Create the file
 			child := p.NewPersistentInode(ctx, &MemRegularFile{
 				Data: []byte(content),
-			}, NodeAttr{})
+			}, StableAttr{})
 
 			// And add it
 			p.AddChild(base, child, true)

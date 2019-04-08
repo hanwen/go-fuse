@@ -29,7 +29,7 @@ type MultiZipFs struct {
 }
 
 func (fs *MultiZipFs) OnAdd(ctx context.Context) {
-	n := fs.NewPersistentInode(ctx, &configRoot{}, nodefs.NodeAttr{Mode: syscall.S_IFDIR})
+	n := fs.NewPersistentInode(ctx, &configRoot{}, nodefs.StableAttr{Mode: syscall.S_IFDIR})
 
 	fs.AddChild("config", n, false)
 }
@@ -72,12 +72,12 @@ func (r *configRoot) Symlink(ctx context.Context, target string, base string, ou
 	}
 
 	_, parent := r.Parent()
-	ch := r.NewPersistentInode(ctx, root, nodefs.NodeAttr{Mode: syscall.S_IFDIR})
+	ch := r.NewPersistentInode(ctx, root, nodefs.StableAttr{Mode: syscall.S_IFDIR})
 	parent.AddChild(base, ch, false)
 
 	link := r.NewPersistentInode(ctx, &nodefs.MemSymlink{
 		Data: []byte(target),
-	}, nodefs.NodeAttr{Mode: syscall.S_IFLNK})
+	}, nodefs.StableAttr{Mode: syscall.S_IFLNK})
 	r.AddChild(base, link, false)
 	return link, 0
 }

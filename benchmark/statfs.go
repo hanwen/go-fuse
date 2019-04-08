@@ -51,7 +51,7 @@ func (r *StatFS) addFile(name string, a fuse.Attr) {
 		if ch == nil {
 			// Create a directory
 			ch = p.NewPersistentInode(context.Background(), &nodefs.Inode{},
-				nodefs.NodeAttr{Mode: syscall.S_IFDIR})
+				nodefs.StableAttr{Mode: syscall.S_IFDIR})
 			// Add it
 			p.AddChild(component, ch, true)
 		}
@@ -63,7 +63,7 @@ func (r *StatFS) addFile(name string, a fuse.Attr) {
 	child := p.NewPersistentInode(context.Background(), &nodefs.MemRegularFile{
 		Data: make([]byte, a.Size),
 		Attr: a,
-	}, nodefs.NodeAttr{})
+	}, nodefs.StableAttr{})
 
 	// And add it
 	p.AddChild(base, child, true)

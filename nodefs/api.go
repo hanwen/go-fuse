@@ -40,7 +40,7 @@
 //
 //  func (n *myNode) Lookup(ctx context.Context, name string,  ... ) (*Inode, syscall.Errno) {
 //    child := myNode{}
-//    return n.NewInode(ctx, &myNode{}, NodeAttr{Mode: syscall.S_IFDIR}), 0
+//    return n.NewInode(ctx, &myNode{}, StableAttr{Mode: syscall.S_IFDIR}), 0
 //  }
 //
 // On mounting, the root InodeEmbedder is associated with root of the

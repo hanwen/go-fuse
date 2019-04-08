@@ -188,7 +188,7 @@ func (n *unionFSNode) Create(ctx context.Context, name string, flags uint32, mod
 		return nil, nil, 0, err.(syscall.Errno)
 	}
 
-	ch := n.NewInode(ctx, &unionFSNode{}, nodefs.NodeAttr{Mode: st.Mode, Ino: st.Ino})
+	ch := n.NewInode(ctx, &unionFSNode{}, nodefs.StableAttr{Mode: st.Mode, Ino: st.Ino})
 	out.FromStat(&st)
 
 	return ch, nodefs.NewLoopbackFile(fd), 0, 0
@@ -238,7 +238,7 @@ func (n *unionFSNode) Lookup(ctx context.Context, name string, out *fuse.EntryOu
 	idx := n.root().getBranch(p, &st)
 	if idx >= 0 {
 		// XXX use idx in Ino?
-		ch := n.NewInode(ctx, &unionFSNode{}, nodefs.NodeAttr{Mode: st.Mode, Ino: st.Ino})
+		ch := n.NewInode(ctx, &unionFSNode{}, nodefs.StableAttr{Mode: st.Mode, Ino: st.Ino})
 		out.FromStat(&st)
 		out.Mode |= 0111
 		return ch, 0
@@ -276,7 +276,7 @@ func (n *unionFSNode) Symlink(ctx context.Context, target, name string, out *fus
 
 	out.FromStat(&st)
 
-	ch := n.NewInode(ctx, &unionFSNode{}, nodefs.NodeAttr{
+	ch := n.NewInode(ctx, &unionFSNode{}, nodefs.StableAttr{
 		Mode: syscall.S_IFLNK,
 		Ino:  st.Ino,
 	})
