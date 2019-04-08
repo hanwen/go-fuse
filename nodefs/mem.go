@@ -13,6 +13,7 @@ import (
 
 // MemRegularFile is a filesystem node that holds a read-only data
 // slice in memory.
+
 type MemRegularFile struct {
 	Inode
 	Data []byte
@@ -20,7 +21,6 @@ type MemRegularFile struct {
 }
 
 var _ = (Opener)((*MemRegularFile)(nil))
-var _ = (Getattrer)((*MemRegularFile)(nil))
 var _ = (Reader)((*MemRegularFile)(nil))
 var _ = (Flusher)((*MemRegularFile)(nil))
 
@@ -31,6 +31,8 @@ func (f *MemRegularFile) Open(ctx context.Context, flags uint32) (fh FileHandle,
 
 	return nil, fuse.FOPEN_KEEP_CACHE, OK
 }
+
+var _ = (Getattrer)((*MemRegularFile)(nil))
 
 func (f *MemRegularFile) Getattr(ctx context.Context, fh FileHandle, out *fuse.AttrOut) syscall.Errno {
 	out.Attr = f.Attr
@@ -53,6 +55,7 @@ func (f *MemRegularFile) Read(ctx context.Context, fh FileHandle, dest []byte, o
 // MemSymlink is an inode holding a symlink in memory.
 type MemSymlink struct {
 	Inode
+	Attr fuse.Attr
 	Data []byte
 }
 
@@ -60,4 +63,11 @@ var _ = (Readlinker)((*MemSymlink)(nil))
 
 func (l *MemSymlink) Readlink(ctx context.Context) ([]byte, syscall.Errno) {
 	return l.Data, OK
+}
+
+var _ = (Getattrer)((*MemSymlink)(nil))
+
+func (l *MemSymlink) Getattr(ctx context.Context, fh FileHandle, out *fuse.AttrOut) syscall.Errno {
+	out.Attr = l.Attr
+	return OK
 }
