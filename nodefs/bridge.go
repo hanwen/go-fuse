@@ -786,18 +786,17 @@ func (b *rawBridge) setStream(cancel <-chan struct{}, input *fuse.ReadIn, inode 
 }
 
 func (b *rawBridge) getStream(ctx context.Context, inode *Inode) (DirStream, syscall.Errno) {
-	rd, ok := inode.ops.(Readdirer)
-	if !ok {
-		r := []fuse.DirEntry{}
-		for k, ch := range inode.Children() {
-			r = append(r, fuse.DirEntry{Mode: ch.Mode(),
-				Name: k,
-				Ino:  ch.StableAttr().Ino})
-		}
-		return NewListDirStream(r), 0
+	if rd, ok := inode.ops.(Readdirer); ok {
+		return rd.Readdir(ctx)
 	}
 
-	return rd.Readdir(ctx)
+	r := []fuse.DirEntry{}
+	for k, ch := range inode.Children() {
+		r = append(r, fuse.DirEntry{Mode: ch.Mode(),
+			Name: k,
+			Ino:  ch.StableAttr().Ino})
+	}
+	return NewListDirStream(r), 0
 }
 
 func (b *rawBridge) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out *fuse.DirEntryList) fuse.Status {
