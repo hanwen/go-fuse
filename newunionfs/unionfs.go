@@ -37,6 +37,29 @@ type unionFSNode struct {
 
 const delDir = "DELETIONS"
 
+func (r *unionFSRoot) allMarkers(result map[string]struct{}) syscall.Errno {
+	dir := filepath.Join(r.roots[0], delDir)
+
+	ds, errno := nodefs.NewLoopbackDirStream(dir)
+	if errno != 0 {
+		return errno
+	}
+
+	defer ds.Close()
+	for ds.HasNext() {
+		e, errno := ds.Next()
+		if errno != 0 {
+			return errno
+		}
+		if e.Mode != syscall.S_IFREG {
+			continue
+		}
+		result[e.Name] = struct{}{}
+	}
+
+	return 0
+}
+
 func (r *unionFSRoot) rmMarker(name string) syscall.Errno {
 	err := syscall.Unlink(r.markerPath(name))
 	if err != nil {
@@ -295,6 +318,54 @@ func (n *unionFSNode) Readlink(ctx context.Context) ([]byte, syscall.Errno) {
 	}
 
 	return buf[:count], 0
+}
+
+var _ = (nodefs.Readdirer)((*unionFSNode)(nil))
+
+func (n *unionFSNode) Readdir(ctx context.Context) (nodefs.DirStream, syscall.Errno) {
+	root := n.root()
+
+	markers := map[string]struct{}{}
+	// ignore error: assume no markers
+	root.allMarkers(markers)
+
+	dir := n.Path(nil)
+
+	names := map[string]uint32{}
+	for i := range root.roots {
+		// deepest root first.
+		readRoot(root.roots[len(root.roots)-i-1], dir, names)
+	}
+
+	result := make([]fuse.DirEntry, 0, len(names))
+	for nm, mode := range names {
+		marker := filePathHash(filepath.Join(dir, nm))
+		if _, ok := markers[marker]; ok {
+			continue
+		}
+		result = append(result, fuse.DirEntry{
+			Name: nm,
+			Mode: mode,
+		})
+	}
+
+	return nodefs.NewListDirStream(result), 0
+}
+
+func readRoot(root string, dir string, result map[string]uint32) {
+	ds, errno := nodefs.NewLoopbackDirStream(filepath.Join(root, dir))
+	if errno != 0 {
+		return
+	}
+	defer ds.Close()
+	for ds.HasNext() {
+		e, errno := ds.Next()
+		if errno != 0 {
+			return
+		}
+
+		result[e.Name] = e.Mode
+	}
 }
 
 // getBranch returns the root where we can find the given file. It

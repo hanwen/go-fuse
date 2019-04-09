@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"syscall"
 	"testing"
 
@@ -196,6 +197,41 @@ func TestDeleteRevert(t *testing.T) {
 	}
 }
 
+func TestReaddir(t *testing.T) {
+	tc := newTestCase(t, true)
+	defer tc.Clean()
+
+	if err := ioutil.WriteFile(tc.ro+"/dir/file2", nil, 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	if err := os.Mkdir(tc.rw+"/dir", 0755); err != nil {
+		t.Fatalf("Mkdir: %v", err)
+	}
+	if err := ioutil.WriteFile(tc.rw+"/dir/file3", nil, 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	if err := os.Remove(tc.mnt + "/dir/ro-file"); err != nil {
+		t.Fatalf("Remove: %v", err)
+	}
+
+	res, err := ioutil.ReadDir(tc.mnt + "/dir")
+	if err != nil {
+		t.Fatalf("ReadDir: %v", err)
+	}
+
+	got := map[string]bool{}
+	want := map[string]bool{
+		"file2": true,
+		"file3": true,
+	}
+	for _, fi := range res {
+		got[fi.Name()] = true
+	}
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("got %v want %v", got, want)
+	}
+}
+
 func TestPosix(t *testing.T) {
 	cases := []string{
 		"SymlinkReadlink",
@@ -207,7 +243,7 @@ func TestPosix(t *testing.T) {
 		//		"NlinkZero",
 		"ParallelFileOpen",
 		//		"Link",
-		//		"ReadDir",
+		"ReadDir",
 	}
 
 	for _, nm := range cases {
