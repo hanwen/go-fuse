@@ -132,6 +132,15 @@ func TestDeleteMarker(t *testing.T) {
 	}
 }
 
+func TestCreateDeletions(t *testing.T) {
+	tc := newTestCase(t, true)
+	defer tc.Clean()
+
+	if _, err := syscall.Creat(filepath.Join(tc.mnt, delDir), 0644); err != syscall.EPERM {
+		t.Fatalf("got err %v, want EPERM", err)
+	}
+}
+
 func TestCreate(t *testing.T) {
 	tc := newTestCase(t, true)
 	defer tc.Clean()
@@ -194,6 +203,35 @@ func TestDeleteRevert(t *testing.T) {
 	}
 	if err := syscall.Lstat(mPath, &st); err != syscall.ENOENT {
 		t.Fatalf("Lstat after: got %v, want ENOENT", err)
+	}
+}
+
+func TestReaddirRoot(t *testing.T) {
+	tc := newTestCase(t, true)
+	defer tc.Clean()
+
+	if err := os.Remove(tc.mnt + "/dir/ro-file"); err != nil {
+		t.Fatalf("Remove: %v", err)
+	}
+
+	f, err := os.Open(tc.mnt)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer f.Close()
+
+	names, err := f.Readdirnames(-1)
+	if err != nil {
+		t.Fatalf("Readdirnames: %v", err)
+	}
+
+	got := map[string]bool{}
+	want := map[string]bool{"dir": true}
+	for _, nm := range names {
+		got[nm] = true
+	}
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("got %v want %v", got, want)
 	}
 }
 

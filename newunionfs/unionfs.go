@@ -37,6 +37,8 @@ type unionFSNode struct {
 
 const delDir = "DELETIONS"
 
+var delDirHash = filePathHash(delDir)
+
 func (r *unionFSRoot) allMarkers(result map[string]struct{}) syscall.Errno {
 	dir := filepath.Join(r.roots[0], delDir)
 
@@ -184,6 +186,10 @@ func (n *unionFSNode) Setattr(ctx context.Context, fh nodefs.FileHandle, in *fus
 var _ = (nodefs.Creater)((*unionFSNode)(nil))
 
 func (n *unionFSNode) Create(ctx context.Context, name string, flags uint32, mode uint32, out *fuse.EntryOut) (*nodefs.Inode, nodefs.FileHandle, uint32, syscall.Errno) {
+	if n.IsRoot() && name == delDir {
+		return nil, nil, 0, syscall.EPERM
+	}
+
 	var st syscall.Stat_t
 	dirName, idx := n.getBranch(&st)
 	if idx > 0 {
@@ -255,6 +261,10 @@ func (n *unionFSNode) Getattr(ctx context.Context, fh nodefs.FileHandle, out *fu
 var _ = (nodefs.Lookuper)((*unionFSNode)(nil))
 
 func (n *unionFSNode) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*nodefs.Inode, syscall.Errno) {
+	if n.IsRoot() && name == delDir {
+		return nil, syscall.ENOENT
+	}
+
 	var st syscall.Stat_t
 
 	p := filepath.Join(n.Path(nil), name)
@@ -325,7 +335,7 @@ var _ = (nodefs.Readdirer)((*unionFSNode)(nil))
 func (n *unionFSNode) Readdir(ctx context.Context) (nodefs.DirStream, syscall.Errno) {
 	root := n.root()
 
-	markers := map[string]struct{}{}
+	markers := map[string]struct{}{delDirHash: struct{}{}}
 	// ignore error: assume no markers
 	root.allMarkers(markers)
 
@@ -336,7 +346,6 @@ func (n *unionFSNode) Readdir(ctx context.Context) (nodefs.DirStream, syscall.Er
 		// deepest root first.
 		readRoot(root.roots[len(root.roots)-i-1], dir, names)
 	}
-
 	result := make([]fuse.DirEntry, 0, len(names))
 	for nm, mode := range names {
 		marker := filePathHash(filepath.Join(dir, nm))
