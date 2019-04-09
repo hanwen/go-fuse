@@ -47,7 +47,16 @@ func (tc *testCase) Clean() {
 	}
 }
 
-func newTestCase(t *testing.T, entryCache bool, attrCache bool) *testCase {
+type testOptions struct {
+	entryCache    bool
+	attrCache     bool
+	suppressDebug bool
+}
+
+func newTestCase(t *testing.T, opts *testOptions) *testCase {
+	if opts == nil {
+		opts = &testOptions{}
+	}
 	tc := &testCase{
 		dir: testutil.TempDir(),
 		T:   t,
@@ -70,11 +79,11 @@ func newTestCase(t *testing.T, entryCache bool, attrCache bool) *testCase {
 	oneSec := time.Second
 
 	attrDT := &oneSec
-	if !attrCache {
+	if !opts.attrCache {
 		attrDT = nil
 	}
 	entryDT := &oneSec
-	if !entryCache {
+	if !opts.entryCache {
 		entryDT = nil
 	}
 	tc.rawFS = NewNodeFS(tc.loopback, &Options{
@@ -82,10 +91,11 @@ func newTestCase(t *testing.T, entryCache bool, attrCache bool) *testCase {
 		AttrTimeout:  attrDT,
 	})
 
-	tc.server, err = fuse.NewServer(tc.rawFS, tc.mntDir,
-		&fuse.MountOptions{
-			Debug: testutil.VerboseTest(),
-		})
+	mOpts := &fuse.MountOptions{}
+	if !opts.suppressDebug {
+		mOpts.Debug = testutil.VerboseTest()
+	}
+	tc.server, err = fuse.NewServer(tc.rawFS, tc.mntDir, mOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +108,7 @@ func newTestCase(t *testing.T, entryCache bool, attrCache bool) *testCase {
 }
 
 func TestBasic(t *testing.T) {
-	tc := newTestCase(t, true, true)
+	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
 	defer tc.Clean()
 
 	tc.writeOrig("file", "hello", 0644)
@@ -128,21 +138,25 @@ func TestBasic(t *testing.T) {
 }
 
 func TestFileBasic(t *testing.T) {
-	tc := newTestCase(t, true, true)
+	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
 	defer tc.Clean()
 
 	posixtest.FileBasic(t, tc.mntDir)
 }
 
 func TestFileTruncate(t *testing.T) {
-	tc := newTestCase(t, true, true)
+	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
 	defer tc.Clean()
 
 	posixtest.TruncateFile(t, tc.mntDir)
 }
 
 func TestFileFdLeak(t *testing.T) {
-	tc := newTestCase(t, true, true)
+	tc := newTestCase(t, &testOptions{
+		suppressDebug: true,
+		attrCache:     true,
+		entryCache:    true,
+	})
 	defer func() {
 		if tc != nil {
 			tc.Clean()
@@ -161,14 +175,14 @@ func TestFileFdLeak(t *testing.T) {
 }
 
 func TestMkdir(t *testing.T) {
-	tc := newTestCase(t, true, true)
+	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
 	defer tc.Clean()
 
 	posixtest.MkdirRmdir(t, tc.mntDir)
 }
 
 func testRenameOverwrite(t *testing.T, destExists bool) {
-	tc := newTestCase(t, true, true)
+	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
 	defer tc.Clean()
 	posixtest.RenameOverwrite(t, tc.mntDir, destExists)
 }
@@ -183,35 +197,35 @@ func TestRenameDestNoExist(t *testing.T) {
 
 func TestNlinkZero(t *testing.T) {
 	// xfstest generic/035.
-	tc := newTestCase(t, true, true)
+	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
 	defer tc.Clean()
 
 	posixtest.NlinkZero(t, tc.mntDir)
 }
 
 func TestParallelFileOpen(t *testing.T) {
-	tc := newTestCase(t, true, true)
+	tc := newTestCase(t, &testOptions{suppressDebug: true, attrCache: true, entryCache: true})
 	defer tc.Clean()
 
 	posixtest.ParallelFileOpen(t, tc.mntDir)
 }
 
 func TestSymlink(t *testing.T) {
-	tc := newTestCase(t, true, true)
+	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
 	defer tc.Clean()
 
 	posixtest.SymlinkReadlink(t, tc.mntDir)
 }
 
 func TestLink(t *testing.T) {
-	tc := newTestCase(t, true, true)
+	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
 	defer tc.Clean()
 
 	posixtest.Link(t, tc.mntDir)
 }
 
 func TestNotifyEntry(t *testing.T) {
-	tc := newTestCase(t, true, true)
+	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
 	defer tc.Clean()
 
 	orig := tc.origDir + "/file"
@@ -244,14 +258,18 @@ func TestNotifyEntry(t *testing.T) {
 }
 
 func TestReadDir(t *testing.T) {
-	tc := newTestCase(t, true, true)
+	tc := newTestCase(t, &testOptions{
+		suppressDebug: true,
+		attrCache:     true,
+		entryCache:    true,
+	})
 	defer tc.Clean()
 
 	posixtest.ReadDir(t, tc.mntDir)
 }
 
 func TestReadDirStress(t *testing.T) {
-	tc := newTestCase(t, true, true)
+	tc := newTestCase(t, &testOptions{suppressDebug: true, attrCache: true, entryCache: true})
 	defer tc.Clean()
 	// (ab)use posixtest.ReadDir to create 110 test files
 	posixtest.ReadDir(t, tc.mntDir)
@@ -286,7 +304,7 @@ func TestReadDirStress(t *testing.T) {
 // This test is racy. If an external process consumes space while this
 // runs, we may see spurious differences between the two statfs() calls.
 func TestStatFs(t *testing.T) {
-	tc := newTestCase(t, true, true)
+	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
 	defer tc.Clean()
 
 	empty := syscall.Statfs_t{}
@@ -314,7 +332,7 @@ func TestGetAttrParallel(t *testing.T) {
 	// can be handled correctly. Here, test that closing and
 	// (f)stat in parallel don't lead to fstat on closed files.
 	// We can only test that if we switch off caching
-	tc := newTestCase(t, false, false)
+	tc := newTestCase(t, &testOptions{suppressDebug: true})
 	defer tc.Clean()
 
 	N := 100
@@ -355,7 +373,7 @@ func TestGetAttrParallel(t *testing.T) {
 }
 
 func TestMknod(t *testing.T) {
-	tc := newTestCase(t, false, false)
+	tc := newTestCase(t, &testOptions{})
 	defer tc.Clean()
 
 	modes := map[string]uint32{
@@ -390,7 +408,7 @@ func TestMknod(t *testing.T) {
 }
 
 func TestTruncate(t *testing.T) {
-	tc := newTestCase(t, false, false)
+	tc := newTestCase(t, &testOptions{})
 	defer tc.Clean()
 
 	posixtest.TruncateNoFile(t, tc.mntDir)

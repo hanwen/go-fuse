@@ -17,7 +17,7 @@ import (
 )
 
 func TestRenameExchange(t *testing.T) {
-	tc := newTestCase(t, true, true)
+	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
 	defer tc.Clean()
 
 	if err := os.Mkdir(tc.origDir+"/dir", 0755); err != nil {
@@ -74,7 +74,7 @@ func TestRenameExchange(t *testing.T) {
 }
 
 func TestRenameNoOverwrite(t *testing.T) {
-	tc := newTestCase(t, true, true)
+	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
 	defer tc.Clean()
 
 	if err := os.Mkdir(tc.origDir+"/dir", 0755); err != nil {
@@ -102,7 +102,7 @@ func TestRenameNoOverwrite(t *testing.T) {
 }
 
 func TestXAttr(t *testing.T) {
-	tc := newTestCase(t, true, true)
+	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
 	defer tc.Clean()
 
 	tc.writeOrig("file", "", 0644)
@@ -137,7 +137,7 @@ func TestXAttr(t *testing.T) {
 }
 
 func TestCopyFileRange(t *testing.T) {
-	tc := newTestCase(t, true, true)
+	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
 	defer tc.Clean()
 
 	if !tc.server.KernelSettings().SupportsVersion(7, 28) {
