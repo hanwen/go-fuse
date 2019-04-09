@@ -141,6 +141,11 @@ func (n *Inode) Root() *Inode {
 	return n.bridge.root
 }
 
+// Returns whether this is the root of the tree
+func (n *Inode) IsRoot() bool {
+	return n.bridge.root == n
+}
+
 func modeStr(m uint32) string {
 	return map[uint32]string{
 		syscall.S_IFREG:  "reg",
