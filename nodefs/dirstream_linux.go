@@ -63,12 +63,14 @@ func (ds *loopbackDirStream) Next() (fuse.DirEntry, syscall.Errno) {
 	nameBytes := ds.todo[unsafe.Offsetof(syscall.Dirent{}.Name):de.Reclen]
 	ds.todo = ds.todo[de.Reclen:]
 
-	for l := len(nameBytes); l > 0; l-- {
-		if nameBytes[l-1] != 0 {
+	// After the loop, l contains the index of the first '\0'.
+	l := 0
+	for l = range nameBytes {
+		if nameBytes[l] == 0 {
 			break
 		}
-		nameBytes = nameBytes[:l-1]
 	}
+	nameBytes = nameBytes[:l]
 	result := fuse.DirEntry{
 		Ino:  de.Ino,
 		Mode: (uint32(de.Type) << 12),
