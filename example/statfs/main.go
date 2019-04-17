@@ -18,8 +18,8 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/benchmark"
+	"github.com/hanwen/go-fuse/fs"
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/nodefs"
 )
 
 func main() {
@@ -50,18 +50,18 @@ func main() {
 		}
 	}
 
-	fs := &benchmark.StatFS{}
+	root := &benchmark.StatFS{}
 	lines := benchmark.ReadLines(flag.Arg(1))
 	for _, l := range lines {
-		fs.AddFile(strings.TrimSpace(l),
+		root.AddFile(strings.TrimSpace(l),
 			fuse.Attr{Mode: syscall.S_IFREG})
 	}
-	opts := &nodefs.Options{
+	opts := &fs.Options{
 		AttrTimeout:  ttl,
 		EntryTimeout: ttl,
 	}
 	opts.Debug = *debug
-	server, err := nodefs.Mount(flag.Arg(0), fs, opts)
+	server, err := fs.Mount(flag.Arg(0), root, opts)
 	if err != nil {
 		log.Fatalf("Mount fail: %v\n", err)
 	}

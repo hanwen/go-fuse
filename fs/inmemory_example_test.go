@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package nodefs_test
+package fs_test
 
 import (
 	"context"
@@ -12,8 +12,8 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/hanwen/go-fuse/fs"
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/nodefs"
 )
 
 // files contains the files we will expose as a file system
@@ -24,11 +24,11 @@ var files = map[string]string{
 
 // inMemoryFS is the root of the tree
 type inMemoryFS struct {
-	nodefs.Inode
+	fs.Inode
 }
 
 // Ensure that we implement NodeOnAdder
-var _ = (nodefs.NodeOnAdder)((*inMemoryFS)(nil))
+var _ = (fs.NodeOnAdder)((*inMemoryFS)(nil))
 
 // OnAdd is called on mounting the file system. Use it to populate
 // the file system tree.
@@ -46,8 +46,8 @@ func (root *inMemoryFS) OnAdd(ctx context.Context) {
 			ch := p.GetChild(component)
 			if ch == nil {
 				// Create a directory
-				ch = p.NewPersistentInode(ctx, &nodefs.Inode{},
-					nodefs.StableAttr{Mode: syscall.S_IFDIR})
+				ch = p.NewPersistentInode(ctx, &fs.Inode{},
+					fs.StableAttr{Mode: syscall.S_IFDIR})
 				// Add it
 				p.AddChild(component, ch, true)
 			}
@@ -58,9 +58,9 @@ func (root *inMemoryFS) OnAdd(ctx context.Context) {
 		// Create the file. The Inode must be persistent,
 		// because its life time is not under control of the
 		// kernel.
-		child := p.NewPersistentInode(ctx, &nodefs.MemRegularFile{
+		child := p.NewPersistentInode(ctx, &fs.MemRegularFile{
 			Data: []byte(content),
-		}, nodefs.StableAttr{})
+		}, fs.StableAttr{})
 
 		// And add it
 		p.AddChild(base, child, true)
@@ -73,7 +73,7 @@ func Example() {
 	mntDir, _ := ioutil.TempDir("", "")
 
 	root := &inMemoryFS{}
-	server, err := nodefs.Mount(mntDir, root, &nodefs.Options{
+	server, err := fs.Mount(mntDir, root, &fs.Options{
 		MountOptions: fuse.MountOptions{Debug: true},
 
 		// This adds read permissions to the files and

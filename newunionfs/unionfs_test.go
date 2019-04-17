@@ -13,9 +13,9 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/hanwen/go-fuse/fs"
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/internal/testutil"
-	"github.com/hanwen/go-fuse/nodefs"
 	"github.com/hanwen/go-fuse/posixtest"
 )
 
@@ -50,7 +50,7 @@ func newTestCase(t *testing.T, populate bool) *testCase {
 		}
 	}
 
-	opts := nodefs.Options{}
+	opts := fs.Options{}
 	opts.Debug = testutil.VerboseTest()
 	tc := &testCase{
 		dir: dir,
@@ -62,7 +62,7 @@ func newTestCase(t *testing.T, populate bool) *testCase {
 		roots: []string{tc.rw, tc.ro},
 	}
 
-	server, err := nodefs.Mount(tc.mnt, tc.root, &opts)
+	server, err := fs.Mount(tc.mnt, tc.root, &opts)
 	if err != nil {
 		t.Fatal("Mount", err)
 	}

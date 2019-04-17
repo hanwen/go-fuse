@@ -19,27 +19,27 @@ import (
 	"log"
 	"syscall"
 
+	"github.com/hanwen/go-fuse/fs"
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/nodefs"
 )
 
 // MultiZipFs is a filesystem that mounts zipfiles.
 type MultiZipFs struct {
-	nodefs.Inode
+	fs.Inode
 }
 
-func (fs *MultiZipFs) OnAdd(ctx context.Context) {
-	n := fs.NewPersistentInode(ctx, &configRoot{}, nodefs.StableAttr{Mode: syscall.S_IFDIR})
+func (root *MultiZipFs) OnAdd(ctx context.Context) {
+	n := root.NewPersistentInode(ctx, &configRoot{}, fs.StableAttr{Mode: syscall.S_IFDIR})
 
-	fs.AddChild("config", n, false)
+	root.AddChild("config", n, false)
 }
 
 type configRoot struct {
-	nodefs.Inode
+	fs.Inode
 }
 
-var _ = (nodefs.NodeUnlinker)((*configRoot)(nil))
-var _ = (nodefs.NodeSymlinker)((*configRoot)(nil))
+var _ = (fs.NodeUnlinker)((*configRoot)(nil))
+var _ = (fs.NodeSymlinker)((*configRoot)(nil))
 
 func (r *configRoot) Unlink(ctx context.Context, basename string) syscall.Errno {
 	if r.GetChild(basename) == nil {
@@ -64,7 +64,7 @@ func (r *configRoot) Unlink(ctx context.Context, basename string) syscall.Errno 
 	return 0
 }
 
-func (r *configRoot) Symlink(ctx context.Context, target string, base string, out *fuse.EntryOut) (*nodefs.Inode, syscall.Errno) {
+func (r *configRoot) Symlink(ctx context.Context, target string, base string, out *fuse.EntryOut) (*fs.Inode, syscall.Errno) {
 	root, err := NewArchiveFileSystem(target)
 	if err != nil {
 		log.Println("NewZipArchiveFileSystem failed.", err)
@@ -72,12 +72,12 @@ func (r *configRoot) Symlink(ctx context.Context, target string, base string, ou
 	}
 
 	_, parent := r.Parent()
-	ch := r.NewPersistentInode(ctx, root, nodefs.StableAttr{Mode: syscall.S_IFDIR})
+	ch := r.NewPersistentInode(ctx, root, fs.StableAttr{Mode: syscall.S_IFDIR})
 	parent.AddChild(base, ch, false)
 
-	link := r.NewPersistentInode(ctx, &nodefs.MemSymlink{
+	link := r.NewPersistentInode(ctx, &fs.MemSymlink{
 		Data: []byte(target),
-	}, nodefs.StableAttr{Mode: syscall.S_IFLNK})
+	}, fs.StableAttr{Mode: syscall.S_IFLNK})
 	r.AddChild(base, link, false)
 	return link, 0
 }

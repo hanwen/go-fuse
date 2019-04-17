@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/hanwen/go-fuse/nodefs"
+	"github.com/hanwen/go-fuse/fs"
 	"github.com/hanwen/go-fuse/zipfs"
 )
 
@@ -25,15 +25,15 @@ func main() {
 		os.Exit(2)
 	}
 
-	fs := &zipfs.MultiZipFs{}
+	root := &zipfs.MultiZipFs{}
 	sec := time.Second
-	opts := nodefs.Options{
+	opts := fs.Options{
 		EntryTimeout:       &sec,
 		AttrTimeout:        &sec,
 		DefaultPermissions: true,
 	}
 	opts.Debug = *debug
-	server, err := nodefs.Mount(flag.Arg(0), fs, &opts)
+	server, err := fs.Mount(flag.Arg(0), root, &opts)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)

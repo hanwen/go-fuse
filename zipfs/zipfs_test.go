@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hanwen/go-fuse/fs"
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/internal/testutil"
-	"github.com/hanwen/go-fuse/nodefs"
 )
 
 func testZipFile() string {
@@ -34,9 +34,9 @@ func setupZipfs(t *testing.T) (mountPoint string, cleanup func()) {
 	}
 
 	mountPoint = testutil.TempDir()
-	opts := &nodefs.Options{}
+	opts := &fs.Options{}
 	opts.Debug = testutil.VerboseTest()
-	server, err := nodefs.Mount(mountPoint, root, opts)
+	server, err := fs.Mount(mountPoint, root, opts)
 
 	return mountPoint, func() {
 		server.Unmount()

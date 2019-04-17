@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hanwen/go-fuse/fs"
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/internal/testutil"
-	"github.com/hanwen/go-fuse/nodefs"
 )
 
 const testTtl = 100 * time.Millisecond
@@ -22,13 +22,13 @@ func setupMzfs(t *testing.T) (mountPoint string, state *fuse.Server, cleanup fun
 	mountPoint = testutil.TempDir()
 
 	dt := testTtl
-	opts := &nodefs.Options{
+	opts := &fs.Options{
 		EntryTimeout: &dt,
 		AttrTimeout:  &dt,
 	}
 	opts.Debug = testutil.VerboseTest()
 
-	server, err := nodefs.Mount(mountPoint, root, opts)
+	server, err := fs.Mount(mountPoint, root, opts)
 	if err != nil {
 		t.Fatalf("MountNodeFileSystem failed: %v", err)
 	}

@@ -12,32 +12,32 @@ import (
 	"log"
 	"syscall"
 
+	"github.com/hanwen/go-fuse/fs"
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/nodefs"
 )
 
 type HelloRoot struct {
-	nodefs.Inode
+	fs.Inode
 }
 
 func (r *HelloRoot) OnAdd(ctx context.Context) {
 	ch := r.NewPersistentInode(
-		ctx, &nodefs.MemRegularFile{
+		ctx, &fs.MemRegularFile{
 			Data: []byte("file.txt"),
 			Attr: fuse.Attr{
 				Mode: 0644,
 			},
-		}, nodefs.StableAttr{Ino: 2})
+		}, fs.StableAttr{Ino: 2})
 	r.AddChild("file.txt", ch, false)
 }
 
-func (r *HelloRoot) Getattr(ctx context.Context, fh nodefs.FileHandle, out *fuse.AttrOut) syscall.Errno {
+func (r *HelloRoot) Getattr(ctx context.Context, fh fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
 	out.Mode = 0755
 	return 0
 }
 
-var _ = (nodefs.NodeGetattrer)((*HelloRoot)(nil))
-var _ = (nodefs.NodeOnAdder)((*HelloRoot)(nil))
+var _ = (fs.NodeGetattrer)((*HelloRoot)(nil))
+var _ = (fs.NodeOnAdder)((*HelloRoot)(nil))
 
 func main() {
 	debug := flag.Bool("debug", false, "print debug data")
@@ -45,9 +45,9 @@ func main() {
 	if len(flag.Args()) < 1 {
 		log.Fatal("Usage:\n  hello MOUNTPOINT")
 	}
-	opts := &nodefs.Options{}
+	opts := &fs.Options{}
 	opts.Debug = *debug
-	server, err := nodefs.Mount(flag.Arg(0), &HelloRoot{}, opts)
+	server, err := fs.Mount(flag.Arg(0), &HelloRoot{}, opts)
 	if err != nil {
 		log.Fatalf("Mount fail: %v\n", err)
 	}

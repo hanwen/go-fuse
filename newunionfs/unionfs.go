@@ -13,8 +13,8 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"github.com/hanwen/go-fuse/fs"
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/nodefs"
 )
 
 func filePathHash(path string) string {
@@ -32,7 +32,7 @@ type unionFSRoot struct {
 }
 
 type unionFSNode struct {
-	nodefs.Inode
+	fs.Inode
 }
 
 const delDir = "DELETIONS"
@@ -42,7 +42,7 @@ var delDirHash = filePathHash(delDir)
 func (r *unionFSRoot) allMarkers(result map[string]struct{}) syscall.Errno {
 	dir := filepath.Join(r.roots[0], delDir)
 
-	ds, errno := nodefs.NewLoopbackDirStream(dir)
+	ds, errno := fs.NewLoopbackDirStream(dir)
 	if errno != 0 {
 		return errno
 	}
@@ -85,7 +85,7 @@ func (r *unionFSRoot) writeMarker(name string) syscall.Errno {
 	dest := r.markerPath(name)
 
 	err := ioutil.WriteFile(dest, []byte(name), 0644)
-	return nodefs.ToErrno(err)
+	return fs.ToErrno(err)
 }
 
 func (r *unionFSRoot) markerPath(name string) string {
@@ -102,25 +102,25 @@ func (n *unionFSNode) root() *unionFSRoot {
 	return n.Root().Operations().(*unionFSRoot)
 }
 
-var _ = (nodefs.NodeSetattrer)((*unionFSNode)(nil))
+var _ = (fs.NodeSetattrer)((*unionFSNode)(nil))
 
-func (n *unionFSNode) Setattr(ctx context.Context, fh nodefs.FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
+func (n *unionFSNode) Setattr(ctx context.Context, fh fs.FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
 	if errno := n.promote(); errno != 0 {
 		return errno
 	}
 
 	if fh != nil {
-		return fh.(nodefs.FileSetattrer).Setattr(ctx, in, out)
+		return fh.(fs.FileSetattrer).Setattr(ctx, in, out)
 	}
 
 	p := filepath.Join(n.root().roots[0], n.Path(nil))
-	fsa, ok := fh.(nodefs.FileSetattrer)
+	fsa, ok := fh.(fs.FileSetattrer)
 	if ok && fsa != nil {
 		fsa.Setattr(ctx, in, out)
 	} else {
 		if m, ok := in.GetMode(); ok {
 			if err := syscall.Chmod(p, m); err != nil {
-				return nodefs.ToErrno(err)
+				return fs.ToErrno(err)
 			}
 		}
 
@@ -136,7 +136,7 @@ func (n *unionFSNode) Setattr(ctx context.Context, fh nodefs.FileHandle, in *fus
 				sgid = int(gid)
 			}
 			if err := syscall.Chown(p, suid, sgid); err != nil {
-				return nodefs.ToErrno(err)
+				return fs.ToErrno(err)
 			}
 		}
 
@@ -158,34 +158,34 @@ func (n *unionFSNode) Setattr(ctx context.Context, fh nodefs.FileHandle, in *fus
 			ts[1] = fuse.UtimeToTimespec(mp)
 
 			if err := syscall.UtimesNano(p, ts[:]); err != nil {
-				return nodefs.ToErrno(err)
+				return fs.ToErrno(err)
 			}
 		}
 
 		if sz, ok := in.GetSize(); ok {
 			if err := syscall.Truncate(p, int64(sz)); err != nil {
-				return nodefs.ToErrno(err)
+				return fs.ToErrno(err)
 			}
 		}
 	}
 
-	fga, ok := fh.(nodefs.FileGetattrer)
+	fga, ok := fh.(fs.FileGetattrer)
 	if ok && fga != nil {
 		fga.Getattr(ctx, out)
 	} else {
 		st := syscall.Stat_t{}
 		err := syscall.Lstat(p, &st)
 		if err != nil {
-			return nodefs.ToErrno(err)
+			return fs.ToErrno(err)
 		}
 		out.FromStat(&st)
 	}
 	return 0
 }
 
-var _ = (nodefs.NodeCreater)((*unionFSNode)(nil))
+var _ = (fs.NodeCreater)((*unionFSNode)(nil))
 
-func (n *unionFSNode) Create(ctx context.Context, name string, flags uint32, mode uint32, out *fuse.EntryOut) (*nodefs.Inode, nodefs.FileHandle, uint32, syscall.Errno) {
+func (n *unionFSNode) Create(ctx context.Context, name string, flags uint32, mode uint32, out *fuse.EntryOut) (*fs.Inode, fs.FileHandle, uint32, syscall.Errno) {
 	if n.IsRoot() && name == delDir {
 		return nil, nil, 0, syscall.EPERM
 	}
@@ -217,15 +217,15 @@ func (n *unionFSNode) Create(ctx context.Context, name string, flags uint32, mod
 		return nil, nil, 0, err.(syscall.Errno)
 	}
 
-	ch := n.NewInode(ctx, &unionFSNode{}, nodefs.StableAttr{Mode: st.Mode, Ino: st.Ino})
+	ch := n.NewInode(ctx, &unionFSNode{}, fs.StableAttr{Mode: st.Mode, Ino: st.Ino})
 	out.FromStat(&st)
 
-	return ch, nodefs.NewLoopbackFile(fd), 0, 0
+	return ch, fs.NewLoopbackFile(fd), 0, 0
 }
 
-var _ = (nodefs.NodeOpener)((*unionFSNode)(nil))
+var _ = (fs.NodeOpener)((*unionFSNode)(nil))
 
-func (n *unionFSNode) Open(ctx context.Context, flags uint32) (nodefs.FileHandle, uint32, syscall.Errno) {
+func (n *unionFSNode) Open(ctx context.Context, flags uint32) (fs.FileHandle, uint32, syscall.Errno) {
 	isWR := (flags&syscall.O_RDWR != 0) || (flags&syscall.O_WRONLY != 0)
 
 	var st syscall.Stat_t
@@ -242,12 +242,12 @@ func (n *unionFSNode) Open(ctx context.Context, flags uint32) (nodefs.FileHandle
 		return nil, 0, err.(syscall.Errno)
 	}
 
-	return nodefs.NewLoopbackFile(fd), 0, 0
+	return fs.NewLoopbackFile(fd), 0, 0
 }
 
-var _ = (nodefs.NodeGetattrer)((*unionFSNode)(nil))
+var _ = (fs.NodeGetattrer)((*unionFSNode)(nil))
 
-func (n *unionFSNode) Getattr(ctx context.Context, fh nodefs.FileHandle, out *fuse.AttrOut) syscall.Errno {
+func (n *unionFSNode) Getattr(ctx context.Context, fh fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
 	var st syscall.Stat_t
 	_, idx := n.getBranch(&st)
 	if idx < 0 {
@@ -258,9 +258,9 @@ func (n *unionFSNode) Getattr(ctx context.Context, fh nodefs.FileHandle, out *fu
 	return 0
 }
 
-var _ = (nodefs.NodeLookuper)((*unionFSNode)(nil))
+var _ = (fs.NodeLookuper)((*unionFSNode)(nil))
 
-func (n *unionFSNode) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*nodefs.Inode, syscall.Errno) {
+func (n *unionFSNode) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs.Inode, syscall.Errno) {
 	if n.IsRoot() && name == delDir {
 		return nil, syscall.ENOENT
 	}
@@ -271,7 +271,7 @@ func (n *unionFSNode) Lookup(ctx context.Context, name string, out *fuse.EntryOu
 	idx := n.root().getBranch(p, &st)
 	if idx >= 0 {
 		// XXX use idx in Ino?
-		ch := n.NewInode(ctx, &unionFSNode{}, nodefs.StableAttr{Mode: st.Mode, Ino: st.Ino})
+		ch := n.NewInode(ctx, &unionFSNode{}, fs.StableAttr{Mode: st.Mode, Ino: st.Ino})
 		out.FromStat(&st)
 		out.Mode |= 0111
 		return ch, 0
@@ -279,21 +279,21 @@ func (n *unionFSNode) Lookup(ctx context.Context, name string, out *fuse.EntryOu
 	return nil, syscall.ENOENT
 }
 
-var _ = (nodefs.NodeUnlinker)((*unionFSNode)(nil))
+var _ = (fs.NodeUnlinker)((*unionFSNode)(nil))
 
 func (n *unionFSNode) Unlink(ctx context.Context, name string) syscall.Errno {
 	return n.root().delPath(filepath.Join(n.Path(nil), name))
 }
 
-var _ = (nodefs.NodeRmdirer)((*unionFSNode)(nil))
+var _ = (fs.NodeRmdirer)((*unionFSNode)(nil))
 
 func (n *unionFSNode) Rmdir(ctx context.Context, name string) syscall.Errno {
 	return n.root().delPath(filepath.Join(n.Path(nil), name))
 }
 
-var _ = (nodefs.NodeSymlinker)((*unionFSNode)(nil))
+var _ = (fs.NodeSymlinker)((*unionFSNode)(nil))
 
-func (n *unionFSNode) Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (*nodefs.Inode, syscall.Errno) {
+func (n *unionFSNode) Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (*fs.Inode, syscall.Errno) {
 	n.promote()
 	path := filepath.Join(n.root().roots[0], n.Path(nil), name)
 	err := syscall.Symlink(target, path)
@@ -309,14 +309,14 @@ func (n *unionFSNode) Symlink(ctx context.Context, target, name string, out *fus
 
 	out.FromStat(&st)
 
-	ch := n.NewInode(ctx, &unionFSNode{}, nodefs.StableAttr{
+	ch := n.NewInode(ctx, &unionFSNode{}, fs.StableAttr{
 		Mode: syscall.S_IFLNK,
 		Ino:  st.Ino,
 	})
 	return ch, 0
 }
 
-var _ = (nodefs.NodeReadlinker)((*unionFSNode)(nil))
+var _ = (fs.NodeReadlinker)((*unionFSNode)(nil))
 
 func (n *unionFSNode) Readlink(ctx context.Context) ([]byte, syscall.Errno) {
 	nm, idx := n.getBranch(nil)
@@ -330,9 +330,9 @@ func (n *unionFSNode) Readlink(ctx context.Context) ([]byte, syscall.Errno) {
 	return buf[:count], 0
 }
 
-var _ = (nodefs.NodeReaddirer)((*unionFSNode)(nil))
+var _ = (fs.NodeReaddirer)((*unionFSNode)(nil))
 
-func (n *unionFSNode) Readdir(ctx context.Context) (nodefs.DirStream, syscall.Errno) {
+func (n *unionFSNode) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 	root := n.root()
 
 	markers := map[string]struct{}{delDirHash: struct{}{}}
@@ -358,11 +358,11 @@ func (n *unionFSNode) Readdir(ctx context.Context) (nodefs.DirStream, syscall.Er
 		})
 	}
 
-	return nodefs.NewListDirStream(result), 0
+	return fs.NewListDirStream(result), 0
 }
 
 func readRoot(root string, dir string, result map[string]uint32) {
-	ds, errno := nodefs.NewLoopbackDirStream(filepath.Join(root, dir))
+	ds, errno := fs.NewLoopbackDirStream(filepath.Join(root, dir))
 	if errno != 0 {
 		return
 	}
@@ -412,7 +412,7 @@ func (n *unionFSRoot) delPath(p string) syscall.Errno {
 	if idx == 0 {
 		err := syscall.Unlink(filepath.Join(r.roots[idx], p))
 		if err != nil {
-			return nodefs.ToErrno(err)
+			return fs.ToErrno(err)
 		}
 		idx = r.getBranch(p, &st)
 	}

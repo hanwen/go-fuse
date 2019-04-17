@@ -10,17 +10,17 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/hanwen/go-fuse/fs"
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/nodefs"
 )
 
 type StatFS struct {
-	nodefs.Inode
+	fs.Inode
 
 	files map[string]fuse.Attr
 }
 
-var _ = (nodefs.NodeOnAdder)((*StatFS)(nil))
+var _ = (fs.NodeOnAdder)((*StatFS)(nil))
 
 func (r *StatFS) OnAdd(ctx context.Context) {
 	for nm, a := range r.files {
@@ -50,8 +50,8 @@ func (r *StatFS) addFile(name string, a fuse.Attr) {
 		ch := p.GetChild(component)
 		if ch == nil {
 			// Create a directory
-			ch = p.NewPersistentInode(context.Background(), &nodefs.Inode{},
-				nodefs.StableAttr{Mode: syscall.S_IFDIR})
+			ch = p.NewPersistentInode(context.Background(), &fs.Inode{},
+				fs.StableAttr{Mode: syscall.S_IFDIR})
 			// Add it
 			p.AddChild(component, ch, true)
 		}
@@ -60,10 +60,10 @@ func (r *StatFS) addFile(name string, a fuse.Attr) {
 	}
 
 	// Create the file
-	child := p.NewPersistentInode(context.Background(), &nodefs.MemRegularFile{
+	child := p.NewPersistentInode(context.Background(), &fs.MemRegularFile{
 		Data: make([]byte, a.Size),
 		Attr: a,
-	}, nodefs.StableAttr{})
+	}, fs.StableAttr{})
 
 	// And add it
 	p.AddChild(base, child, true)

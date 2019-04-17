@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hanwen/go-fuse/nodefs"
+	"github.com/hanwen/go-fuse/fs"
 	"github.com/hanwen/go-fuse/zipfs"
 )
 
@@ -54,13 +54,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	opts := &nodefs.Options{
+	opts := &fs.Options{
 		AttrTimeout:        ttl,
 		EntryTimeout:       ttl,
 		DefaultPermissions: true,
 	}
 	opts.Debug = *debug
-	server, err := nodefs.Mount(flag.Arg(0), root, opts)
+	server, err := fs.Mount(flag.Arg(0), root, opts)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)

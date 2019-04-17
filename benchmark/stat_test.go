@@ -17,16 +17,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hanwen/go-fuse/fs"
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/internal/testutil"
-	"github.com/hanwen/go-fuse/nodefs"
 )
 
-func setupFs(fs nodefs.InodeEmbedder, N int) (string, func()) {
-	opts := &nodefs.Options{}
+func setupFs(node fs.InodeEmbedder, N int) (string, func()) {
+	opts := &fs.Options{}
 	opts.Debug = testutil.VerboseTest()
 	mountPoint := testutil.TempDir()
-	server, err := nodefs.Mount(mountPoint, fs, opts)
+	server, err := fs.Mount(mountPoint, node, opts)
 	if err != nil {
 		log.Panicf("cannot mount %v", err)
 	}

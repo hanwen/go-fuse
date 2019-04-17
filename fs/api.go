@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package nodefs provides infrastructure to build tree-organized filesystems.
+// Package fs provides infrastructure to build tree-organized filesystems.
 //
 // A tree-organized filesystem is similar to UNIX or Plan 9 filesystem: it
 // consists of nodes with each node being either a file or a directory. Files
@@ -71,7 +71,7 @@
 // Locks for networked filesystems are supported through the suite of
 // Getlk, Setlk and Setlkw methods. They alllow locks on regions of
 // regular files.
-package nodefs
+package fs
 
 import (
 	"context"
@@ -88,8 +88,8 @@ import (
 // read-only filesystem with a predefined tree structure. See
 // zipfs_test.go for an example.  A example is in zip_test.go
 type InodeEmbedder interface {
-	// populateInode and inode are used by nodefs internally to
-	// link Inode to a Node.
+	// populateInode and inode are used internally to link Inode
+	// to a Node.
 	//
 	// See Inode() for the public API to retrieve an inode from Node.
 	embed() *Inode

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package nodefs_test
+package fs_test
 
 import (
 	"fmt"
@@ -10,19 +10,19 @@ import (
 	"log"
 	"os"
 
+	"github.com/hanwen/go-fuse/fs"
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/nodefs"
 )
 
 // mountLoopback mounts dir under the given mountpoint
 func mountLoopback(dir, mntPoint string) (*fuse.Server, error) {
-	root, err := nodefs.NewLoopbackRoot(dir)
+	root, err := fs.NewLoopbackRoot(dir)
 	if err != nil {
 		return nil, err
 	}
 
 	// Make the root available under mntDir
-	return nodefs.Mount(mntPoint, root, &nodefs.Options{
+	return fs.Mount(mntPoint, root, &fs.Options{
 		MountOptions: fuse.MountOptions{Debug: true},
 	})
 }

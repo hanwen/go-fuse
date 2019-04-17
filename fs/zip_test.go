@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package nodefs_test
+package fs_test
 
 import (
 	"archive/zip"
@@ -16,8 +16,8 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/hanwen/go-fuse/fs"
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/nodefs"
 )
 
 var testData = map[string]string{
@@ -66,7 +66,7 @@ func TestZipFS(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server, err := nodefs.Mount(mntDir, root, nil)
+	server, err := fs.Mount(mntDir, root, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,15 +110,15 @@ func TestZipFSOnAdd(t *testing.T) {
 
 	zr := &zipRoot{zr: r}
 
-	root := &nodefs.Inode{}
+	root := &fs.Inode{}
 	mnt, err := ioutil.TempDir("", "ZipFS")
 	if err != nil {
 		t.Fatal(err)
 	}
-	server, err := nodefs.Mount(mnt, root, &nodefs.Options{
+	server, err := fs.Mount(mnt, root, &fs.Options{
 		OnAdd: func(ctx context.Context) {
 			root.AddChild("sub",
-				root.NewPersistentInode(ctx, zr, nodefs.StableAttr{Mode: syscall.S_IFDIR}), false)
+				root.NewPersistentInode(ctx, zr, fs.StableAttr{Mode: syscall.S_IFDIR}), false)
 		},
 	})
 	if err != nil {
@@ -137,25 +137,25 @@ func TestZipFSOnAdd(t *testing.T) {
 
 // zipFile is a file read from a zip archive.
 type zipFile struct {
-	nodefs.Inode
+	fs.Inode
 	file *zip.File
 
 	mu   sync.Mutex
 	data []byte
 }
 
-var _ = (nodefs.NodeOpener)((*zipFile)(nil))
-var _ = (nodefs.NodeGetattrer)((*zipFile)(nil))
+var _ = (fs.NodeOpener)((*zipFile)(nil))
+var _ = (fs.NodeGetattrer)((*zipFile)(nil))
 
 // Getattr sets the minimum, which is the size. A more full-featured
 // FS would also set timestamps and permissions.
-func (zf *zipFile) Getattr(ctx context.Context, f nodefs.FileHandle, out *fuse.AttrOut) syscall.Errno {
+func (zf *zipFile) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrOut) syscall.Errno {
 	out.Size = zf.file.UncompressedSize64
 	return 0
 }
 
 // Open lazily unpacks zip data
-func (zf *zipFile) Open(ctx context.Context, flags uint32) (nodefs.FileHandle, uint32, syscall.Errno) {
+func (zf *zipFile) Open(ctx context.Context, flags uint32) (fs.FileHandle, uint32, syscall.Errno) {
 	zf.mu.Lock()
 	defer zf.mu.Unlock()
 	if zf.data == nil {
@@ -174,27 +174,27 @@ func (zf *zipFile) Open(ctx context.Context, flags uint32) (nodefs.FileHandle, u
 	// We don't return a filehandle since we don't really need
 	// one.  The file content is immutable, so hint the kernel to
 	// cache the data.
-	return nil, fuse.FOPEN_KEEP_CACHE, nodefs.OK
+	return nil, fuse.FOPEN_KEEP_CACHE, fs.OK
 }
 
 // Read simply returns the data that was already unpacked in the Open call
-func (zf *zipFile) Read(ctx context.Context, f nodefs.FileHandle, dest []byte, off int64) (fuse.ReadResult, syscall.Errno) {
+func (zf *zipFile) Read(ctx context.Context, f fs.FileHandle, dest []byte, off int64) (fuse.ReadResult, syscall.Errno) {
 	end := int(off) + len(dest)
 	if end > len(zf.data) {
 		end = len(zf.data)
 	}
-	return fuse.ReadResultData(zf.data[off:end]), nodefs.OK
+	return fuse.ReadResultData(zf.data[off:end]), fs.OK
 }
 
 // zipRoot is the root of the Zip filesystem. Its only functionality
 // is populating the filesystem.
 type zipRoot struct {
-	nodefs.Inode
+	fs.Inode
 
 	zr *zip.Reader
 }
 
-var _ = (nodefs.NodeOnAdder)((*zipRoot)(nil))
+var _ = (fs.NodeOnAdder)((*zipRoot)(nil))
 
 func (zr *zipRoot) OnAdd(ctx context.Context) {
 	// OnAdd is called once we are attached to an Inode. We can
@@ -211,14 +211,14 @@ func (zr *zipRoot) OnAdd(ctx context.Context) {
 			}
 			ch := p.GetChild(component)
 			if ch == nil {
-				ch = p.NewPersistentInode(ctx, &nodefs.Inode{},
-					nodefs.StableAttr{Mode: fuse.S_IFDIR})
+				ch = p.NewPersistentInode(ctx, &fs.Inode{},
+					fs.StableAttr{Mode: fuse.S_IFDIR})
 				p.AddChild(component, ch, true)
 			}
 
 			p = ch
 		}
-		ch := p.NewPersistentInode(ctx, &zipFile{file: f}, nodefs.StableAttr{})
+		ch := p.NewPersistentInode(ctx, &zipFile{file: f}, fs.StableAttr{})
 		p.AddChild(base, ch, true)
 	}
 }

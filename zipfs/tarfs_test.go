@@ -16,8 +16,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hanwen/go-fuse/fs"
 	"github.com/hanwen/go-fuse/internal/testutil"
-	"github.com/hanwen/go-fuse/nodefs"
 )
 
 var tarContents = map[string]string{
@@ -69,9 +69,9 @@ func TestTar(t *testing.T) {
 
 	mnt := testutil.TempDir()
 	defer os.Remove(mnt)
-	opts := &nodefs.Options{}
-	opts.Debug = true
-	s, err := nodefs.Mount(mnt, root, opts)
+	opts := &fs.Options{}
+	opts.Debug = testutil.VerboseTest()
+	s, err := fs.Mount(mnt, root, opts)
 	if err != nil {
 		t.Errorf("Mount: %v", err)
 	}

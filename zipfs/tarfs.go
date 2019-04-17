@@ -17,8 +17,8 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/hanwen/go-fuse/fs"
 	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/nodefs"
 )
 
 // TODO - handle symlinks.
@@ -32,7 +32,7 @@ func HeaderToFileInfo(out *fuse.Attr, h *tar.Header) {
 }
 
 type tarRoot struct {
-	nodefs.Inode
+	fs.Inode
 	rc io.ReadCloser
 }
 
@@ -77,8 +77,8 @@ func (r *tarRoot) OnAdd(ctx context.Context) {
 			ch := p.GetChild(comp)
 			if ch == nil {
 				ch = p.NewPersistentInode(ctx,
-					&nodefs.Inode{},
-					nodefs.StableAttr{Mode: syscall.S_IFDIR})
+					&fs.Inode{},
+					fs.StableAttr{Mode: syscall.S_IFDIR})
 				p.AddChild(comp, ch, false)
 			}
 			p = ch
@@ -88,37 +88,37 @@ func (r *tarRoot) OnAdd(ctx context.Context) {
 		HeaderToFileInfo(&attr, hdr)
 		switch hdr.Typeflag {
 		case tar.TypeSymlink:
-			l := &nodefs.MemSymlink{
+			l := &fs.MemSymlink{
 				Data: []byte(hdr.Linkname),
 			}
 			l.Attr = attr
-			p.AddChild(base, r.NewPersistentInode(ctx, l, nodefs.StableAttr{Mode: syscall.S_IFLNK}), false)
+			p.AddChild(base, r.NewPersistentInode(ctx, l, fs.StableAttr{Mode: syscall.S_IFLNK}), false)
 
 		case tar.TypeLink:
 			log.Println("don't know how to handle Typelink")
 
 		case tar.TypeChar:
-			rf := &nodefs.MemRegularFile{}
+			rf := &fs.MemRegularFile{}
 			rf.Attr = attr
-			p.AddChild(base, r.NewPersistentInode(ctx, rf, nodefs.StableAttr{Mode: syscall.S_IFCHR}), false)
+			p.AddChild(base, r.NewPersistentInode(ctx, rf, fs.StableAttr{Mode: syscall.S_IFCHR}), false)
 		case tar.TypeBlock:
-			rf := &nodefs.MemRegularFile{}
+			rf := &fs.MemRegularFile{}
 			rf.Attr = attr
-			p.AddChild(base, r.NewPersistentInode(ctx, rf, nodefs.StableAttr{Mode: syscall.S_IFBLK}), false)
+			p.AddChild(base, r.NewPersistentInode(ctx, rf, fs.StableAttr{Mode: syscall.S_IFBLK}), false)
 		case tar.TypeDir:
-			rf := &nodefs.MemRegularFile{}
+			rf := &fs.MemRegularFile{}
 			rf.Attr = attr
-			p.AddChild(base, r.NewPersistentInode(ctx, rf, nodefs.StableAttr{Mode: syscall.S_IFDIR}), false)
+			p.AddChild(base, r.NewPersistentInode(ctx, rf, fs.StableAttr{Mode: syscall.S_IFDIR}), false)
 		case tar.TypeFifo:
-			rf := &nodefs.MemRegularFile{}
+			rf := &fs.MemRegularFile{}
 			rf.Attr = attr
-			p.AddChild(base, r.NewPersistentInode(ctx, rf, nodefs.StableAttr{Mode: syscall.S_IFIFO}), false)
+			p.AddChild(base, r.NewPersistentInode(ctx, rf, fs.StableAttr{Mode: syscall.S_IFIFO}), false)
 		case tar.TypeReg, tar.TypeRegA:
-			df := &nodefs.MemRegularFile{
+			df := &fs.MemRegularFile{
 				Data: buf.Bytes(),
 			}
 			df.Attr = attr
-			p.AddChild(base, r.NewPersistentInode(ctx, df, nodefs.StableAttr{}), false)
+			p.AddChild(base, r.NewPersistentInode(ctx, df, fs.StableAttr{}), false)
 		default:
 			log.Printf("entry %q: unsupported type '%c'", hdr.Name, hdr.Typeflag)
 		}
@@ -134,7 +134,7 @@ func (rc *readCloser) Close() error {
 	return rc.close()
 }
 
-func NewTarCompressedTree(name string, format string) (nodefs.InodeEmbedder, error) {
+func NewTarCompressedTree(name string, format string) (fs.InodeEmbedder, error) {
 	f, err := os.Open(name)
 	if err != nil {
 		return nil, err

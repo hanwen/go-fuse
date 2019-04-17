@@ -18,7 +18,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/hanwen/go-fuse/nodefs"
+	"github.com/hanwen/go-fuse/fs"
 )
 
 func writeMemProfile(fn string, sigs <-chan os.Signal) {
@@ -75,13 +75,13 @@ func main() {
 	}
 
 	orig := flag.Arg(1)
-	loopbackRoot, err := nodefs.NewLoopbackRoot(orig)
+	loopbackRoot, err := fs.NewLoopbackRoot(orig)
 	if err != nil {
 		log.Fatalf("NewLoopbackRoot(%s): %v\n", orig, err)
 	}
 
 	sec := time.Second
-	opts := &nodefs.Options{
+	opts := &fs.Options{
 		// These options are to be compatible with libfuse defaults,
 		// making benchmarking easier.
 		AttrTimeout:  &sec,
@@ -89,7 +89,7 @@ func main() {
 	}
 	opts.Debug = *debug
 	opts.AllowOther = *other
-	server, err := nodefs.Mount(flag.Arg(0), loopbackRoot, opts)
+	server, err := fs.Mount(flag.Arg(0), loopbackRoot, opts)
 	if err != nil {
 		log.Fatalf("Mount fail: %v\n", err)
 	}
