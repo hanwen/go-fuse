@@ -6,10 +6,8 @@ package zipfs
 
 import (
 	"archive/zip"
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -20,28 +18,6 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/nodefs"
 )
-
-type ZipFile struct {
-	*zip.File
-}
-
-func (f *ZipFile) Stat(out *fuse.Attr) {
-}
-
-func (f *ZipFile) Data() []byte {
-	zf := (*f)
-	rc, err := zf.Open()
-	if err != nil {
-		panic(err)
-	}
-	dest := bytes.NewBuffer(make([]byte, 0, f.UncompressedSize))
-
-	_, err = io.CopyN(dest, rc, int64(f.UncompressedSize))
-	if err != nil {
-		panic(err)
-	}
-	return dest.Bytes()
-}
 
 type zipRoot struct {
 	nodefs.Inode
