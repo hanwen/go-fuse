@@ -2,14 +2,13 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package nodefs
+package nodefs_test
 
 import (
 	"archive/zip"
 	"bytes"
 	"context"
 	"io/ioutil"
-	"log"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -18,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/nodefs"
 )
 
 var testData = map[string]string{
@@ -62,8 +62,15 @@ func TestZipFS(t *testing.T) {
 	}
 
 	root := &zipRoot{zr: r}
-	mntDir, _, clean := testMount(t, root, nil)
-	defer clean()
+	mntDir, err := ioutil.TempDir("", "ZipFS")
+	if err != nil {
+		t.Fatal(err)
+	}
+	server, err := nodefs.Mount(mntDir, root, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer server.Unmount()
 
 	for k, v := range testData {
 		c, err := ioutil.ReadFile(filepath.Join(mntDir, k))
@@ -103,14 +110,22 @@ func TestZipFSOnAdd(t *testing.T) {
 
 	zr := &zipRoot{zr: r}
 
-	root := &Inode{}
-	mnt, _, clean := testMount(t, root, &Options{
+	root := &nodefs.Inode{}
+	mnt, err := ioutil.TempDir("", "ZipFS")
+	if err != nil {
+		t.Fatal(err)
+	}
+	server, err := nodefs.Mount(mnt, root, &nodefs.Options{
 		OnAdd: func(ctx context.Context) {
 			root.AddChild("sub",
-				root.NewPersistentInode(ctx, zr, StableAttr{Mode: syscall.S_IFDIR}), false)
+				root.NewPersistentInode(ctx, zr, nodefs.StableAttr{Mode: syscall.S_IFDIR}), false)
 		},
 	})
-	defer clean()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer server.Unmount()
+
 	c, err := ioutil.ReadFile(mnt + "/sub/dir/subdir/subfile")
 	if err != nil {
 		t.Fatal("ReadFile", err)
@@ -122,25 +137,25 @@ func TestZipFSOnAdd(t *testing.T) {
 
 // zipFile is a file read from a zip archive.
 type zipFile struct {
-	Inode
+	nodefs.Inode
 	file *zip.File
 
 	mu   sync.Mutex
 	data []byte
 }
 
-var _ = (NodeOpener)((*zipFile)(nil))
-var _ = (NodeGetattrer)((*zipFile)(nil))
+var _ = (nodefs.NodeOpener)((*zipFile)(nil))
+var _ = (nodefs.NodeGetattrer)((*zipFile)(nil))
 
 // Getattr sets the minimum, which is the size. A more full-featured
 // FS would also set timestamps and permissions.
-func (zf *zipFile) Getattr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno {
+func (zf *zipFile) Getattr(ctx context.Context, f nodefs.FileHandle, out *fuse.AttrOut) syscall.Errno {
 	out.Size = zf.file.UncompressedSize64
-	return OK
+	return 0
 }
 
 // Open lazily unpacks zip data
-func (zf *zipFile) Open(ctx context.Context, flags uint32) (FileHandle, uint32, syscall.Errno) {
+func (zf *zipFile) Open(ctx context.Context, flags uint32) (nodefs.FileHandle, uint32, syscall.Errno) {
 	zf.mu.Lock()
 	defer zf.mu.Unlock()
 	if zf.data == nil {
@@ -159,27 +174,27 @@ func (zf *zipFile) Open(ctx context.Context, flags uint32) (FileHandle, uint32, 
 	// We don't return a filehandle since we don't really need
 	// one.  The file content is immutable, so hint the kernel to
 	// cache the data.
-	return nil, fuse.FOPEN_KEEP_CACHE, OK
+	return nil, fuse.FOPEN_KEEP_CACHE, nodefs.OK
 }
 
 // Read simply returns the data that was already unpacked in the Open call
-func (zf *zipFile) Read(ctx context.Context, f FileHandle, dest []byte, off int64) (fuse.ReadResult, syscall.Errno) {
+func (zf *zipFile) Read(ctx context.Context, f nodefs.FileHandle, dest []byte, off int64) (fuse.ReadResult, syscall.Errno) {
 	end := int(off) + len(dest)
 	if end > len(zf.data) {
 		end = len(zf.data)
 	}
-	return fuse.ReadResultData(zf.data[off:end]), OK
+	return fuse.ReadResultData(zf.data[off:end]), nodefs.OK
 }
 
 // zipRoot is the root of the Zip filesystem. Its only functionality
 // is populating the filesystem.
 type zipRoot struct {
-	Inode
+	nodefs.Inode
 
 	zr *zip.Reader
 }
 
-var _ = (NodeOnAdder)((*zipRoot)(nil))
+var _ = (nodefs.NodeOnAdder)((*zipRoot)(nil))
 
 func (zr *zipRoot) OnAdd(ctx context.Context) {
 	// OnAdd is called once we are attached to an Inode. We can
@@ -196,76 +211,14 @@ func (zr *zipRoot) OnAdd(ctx context.Context) {
 			}
 			ch := p.GetChild(component)
 			if ch == nil {
-				ch = p.NewPersistentInode(ctx, &Inode{},
-					StableAttr{Mode: fuse.S_IFDIR})
+				ch = p.NewPersistentInode(ctx, &nodefs.Inode{},
+					nodefs.StableAttr{Mode: fuse.S_IFDIR})
 				p.AddChild(component, ch, true)
 			}
 
 			p = ch
 		}
-		ch := p.NewPersistentInode(ctx, &zipFile{file: f}, StableAttr{})
+		ch := p.NewPersistentInode(ctx, &zipFile{file: f}, nodefs.StableAttr{})
 		p.AddChild(base, ch, true)
 	}
-}
-
-// Persistent inodes can be used to create an in-memory
-// prefabricated file system tree.
-func ExampleInode_NewPersistentInode() {
-	// This is where we'll mount the FS
-	mntDir, _ := ioutil.TempDir("", "")
-
-	files := map[string]string{
-		"file":              "content",
-		"subdir/other-file": "other-content",
-	}
-
-	root := &Inode{}
-	populate := func(ctx context.Context) {
-		for name, content := range files {
-			dir, base := filepath.Split(name)
-
-			p := root
-
-			// Add directories leading up to the file.
-			for _, component := range strings.Split(dir, "/") {
-				if len(component) == 0 {
-					continue
-				}
-				ch := p.GetChild(component)
-				if ch == nil {
-					// Create a directory
-					ch = p.NewPersistentInode(ctx, &Inode{},
-						StableAttr{Mode: syscall.S_IFDIR})
-					// Add it
-					p.AddChild(component, ch, true)
-				}
-
-				p = ch
-			}
-
-			// Create the file
-			child := p.NewPersistentInode(ctx, &MemRegularFile{
-				Data: []byte(content),
-			}, StableAttr{})
-
-			// And add it
-			p.AddChild(base, child, true)
-		}
-	}
-	server, err := Mount(mntDir, root, &Options{
-		MountOptions: fuse.MountOptions{Debug: true},
-
-		// This adds read permissions to the files and
-		// directories, which is necessary for doing a chdir
-		// into the mount.
-		DefaultPermissions: true,
-		OnAdd:              populate,
-	})
-	if err != nil {
-		log.Panic(err)
-	}
-
-	log.Printf("Mounted on %s", mntDir)
-	log.Printf("Unmount by calling 'fusermount -u %s'", mntDir)
-	server.Wait()
 }
