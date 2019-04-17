@@ -25,9 +25,9 @@ type keepCacheFile struct {
 	count   int
 }
 
-var _ = (Reader)((*keepCacheFile)(nil))
-var _ = (Opener)((*keepCacheFile)(nil))
-var _ = (Getattrer)((*keepCacheFile)(nil))
+var _ = (NodeReader)((*keepCacheFile)(nil))
+var _ = (NodeOpener)((*keepCacheFile)(nil))
+var _ = (NodeGetattrer)((*keepCacheFile)(nil))
 
 func (f *keepCacheFile) setContent(delta int) {
 	f.mu.Lock()
@@ -69,7 +69,7 @@ type keepCacheRoot struct {
 	keep, nokeep *keepCacheFile
 }
 
-var _ = (OnAdder)((*keepCacheRoot)(nil))
+var _ = (NodeOnAdder)((*keepCacheRoot)(nil))
 
 func (r *keepCacheRoot) OnAdd(ctx context.Context) {
 	i := &r.Inode

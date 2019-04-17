@@ -19,7 +19,7 @@ type interruptRoot struct {
 	child interruptOps
 }
 
-var _ = (Lookuper)((*interruptRoot)(nil))
+var _ = (NodeLookuper)((*interruptRoot)(nil))
 
 func (r *interruptRoot) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
 	if name != "file" {
@@ -37,7 +37,7 @@ type interruptOps struct {
 	interrupted bool
 }
 
-var _ = (Opener)((*interruptOps)(nil))
+var _ = (NodeOpener)((*interruptOps)(nil))
 
 func (o *interruptOps) Open(ctx context.Context, flags uint32) (FileHandle, uint32, syscall.Errno) {
 	select {

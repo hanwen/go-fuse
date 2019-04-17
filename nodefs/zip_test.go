@@ -129,8 +129,8 @@ type zipFile struct {
 	data []byte
 }
 
-var _ = (Opener)((*zipFile)(nil))
-var _ = (Getattrer)((*zipFile)(nil))
+var _ = (NodeOpener)((*zipFile)(nil))
+var _ = (NodeGetattrer)((*zipFile)(nil))
 
 // Getattr sets the minimum, which is the size. A more full-featured
 // FS would also set timestamps and permissions.
@@ -179,7 +179,7 @@ type zipRoot struct {
 	zr *zip.Reader
 }
 
-var _ = (OnAdder)((*zipRoot)(nil))
+var _ = (NodeOnAdder)((*zipRoot)(nil))
 
 func (zr *zipRoot) OnAdd(ctx context.Context) {
 	// OnAdd is called once we are attached to an Inode. We can

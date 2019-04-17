@@ -20,9 +20,9 @@ type MemRegularFile struct {
 	Attr fuse.Attr
 }
 
-var _ = (Opener)((*MemRegularFile)(nil))
-var _ = (Reader)((*MemRegularFile)(nil))
-var _ = (Flusher)((*MemRegularFile)(nil))
+var _ = (NodeOpener)((*MemRegularFile)(nil))
+var _ = (NodeReader)((*MemRegularFile)(nil))
+var _ = (NodeFlusher)((*MemRegularFile)(nil))
 
 func (f *MemRegularFile) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
 	if flags&(syscall.O_RDWR) != 0 || flags&syscall.O_WRONLY != 0 {
@@ -32,7 +32,7 @@ func (f *MemRegularFile) Open(ctx context.Context, flags uint32) (fh FileHandle,
 	return nil, fuse.FOPEN_KEEP_CACHE, OK
 }
 
-var _ = (Getattrer)((*MemRegularFile)(nil))
+var _ = (NodeGetattrer)((*MemRegularFile)(nil))
 
 func (f *MemRegularFile) Getattr(ctx context.Context, fh FileHandle, out *fuse.AttrOut) syscall.Errno {
 	out.Attr = f.Attr
@@ -59,13 +59,13 @@ type MemSymlink struct {
 	Data []byte
 }
 
-var _ = (Readlinker)((*MemSymlink)(nil))
+var _ = (NodeReadlinker)((*MemSymlink)(nil))
 
 func (l *MemSymlink) Readlink(ctx context.Context) ([]byte, syscall.Errno) {
 	return l.Data, OK
 }
 
-var _ = (Getattrer)((*MemSymlink)(nil))
+var _ = (NodeGetattrer)((*MemSymlink)(nil))
 
 func (l *MemSymlink) Getattr(ctx context.Context, fh FileHandle, out *fuse.AttrOut) syscall.Errno {
 	out.Attr = l.Attr

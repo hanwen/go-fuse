@@ -46,7 +46,7 @@ type dioFile struct {
 	Inode
 }
 
-var _ = (Opener)((*dioFile)(nil))
+var _ = (NodeOpener)((*dioFile)(nil))
 
 func (f *dioFile) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
 	return &dioFH{}, fuse.FOPEN_DIRECT_IO, OK

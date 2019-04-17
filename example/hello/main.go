@@ -36,8 +36,8 @@ func (r *HelloRoot) Getattr(ctx context.Context, fh nodefs.FileHandle, out *fuse
 	return 0
 }
 
-var _ = (nodefs.Getattrer)((*HelloRoot)(nil))
-var _ = (nodefs.OnAdder)((*HelloRoot)(nil))
+var _ = (nodefs.NodeGetattrer)((*HelloRoot)(nil))
+var _ = (nodefs.NodeOnAdder)((*HelloRoot)(nil))
 
 func main() {
 	debug := flag.Bool("debug", false, "print debug data")

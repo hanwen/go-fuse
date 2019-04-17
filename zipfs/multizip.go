@@ -38,8 +38,8 @@ type configRoot struct {
 	nodefs.Inode
 }
 
-var _ = (nodefs.Unlinker)((*configRoot)(nil))
-var _ = (nodefs.Symlinker)((*configRoot)(nil))
+var _ = (nodefs.NodeUnlinker)((*configRoot)(nil))
+var _ = (nodefs.NodeSymlinker)((*configRoot)(nil))
 
 func (r *configRoot) Unlink(ctx context.Context, basename string) syscall.Errno {
 	if r.GetChild(basename) == nil {

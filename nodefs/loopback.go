@@ -24,26 +24,26 @@ type loopbackNode struct {
 	Inode
 }
 
-var _ = (Statfser)((*loopbackNode)(nil))
-var _ = (Statfser)((*loopbackNode)(nil))
-var _ = (Getattrer)((*loopbackNode)(nil))
-var _ = (Getxattrer)((*loopbackNode)(nil))
-var _ = (Setxattrer)((*loopbackNode)(nil))
-var _ = (Removexattrer)((*loopbackNode)(nil))
-var _ = (Listxattrer)((*loopbackNode)(nil))
-var _ = (Readlinker)((*loopbackNode)(nil))
-var _ = (Opener)((*loopbackNode)(nil))
-var _ = (CopyFileRanger)((*loopbackNode)(nil))
-var _ = (Lookuper)((*loopbackNode)(nil))
-var _ = (Opendirer)((*loopbackNode)(nil))
-var _ = (Readdirer)((*loopbackNode)(nil))
-var _ = (Mkdirer)((*loopbackNode)(nil))
-var _ = (Mknoder)((*loopbackNode)(nil))
-var _ = (Linker)((*loopbackNode)(nil))
-var _ = (Symlinker)((*loopbackNode)(nil))
-var _ = (Unlinker)((*loopbackNode)(nil))
-var _ = (Rmdirer)((*loopbackNode)(nil))
-var _ = (Renamer)((*loopbackNode)(nil))
+var _ = (NodeStatfser)((*loopbackNode)(nil))
+var _ = (NodeStatfser)((*loopbackNode)(nil))
+var _ = (NodeGetattrer)((*loopbackNode)(nil))
+var _ = (NodeGetxattrer)((*loopbackNode)(nil))
+var _ = (NodeSetxattrer)((*loopbackNode)(nil))
+var _ = (NodeRemovexattrer)((*loopbackNode)(nil))
+var _ = (NodeListxattrer)((*loopbackNode)(nil))
+var _ = (NodeReadlinker)((*loopbackNode)(nil))
+var _ = (NodeOpener)((*loopbackNode)(nil))
+var _ = (NodeCopyFileRanger)((*loopbackNode)(nil))
+var _ = (NodeLookuper)((*loopbackNode)(nil))
+var _ = (NodeOpendirer)((*loopbackNode)(nil))
+var _ = (NodeReaddirer)((*loopbackNode)(nil))
+var _ = (NodeMkdirer)((*loopbackNode)(nil))
+var _ = (NodeMknoder)((*loopbackNode)(nil))
+var _ = (NodeLinker)((*loopbackNode)(nil))
+var _ = (NodeSymlinker)((*loopbackNode)(nil))
+var _ = (NodeUnlinker)((*loopbackNode)(nil))
+var _ = (NodeRmdirer)((*loopbackNode)(nil))
+var _ = (NodeRenamer)((*loopbackNode)(nil))
 
 func (n *loopbackNode) Statfs(ctx context.Context, out *fuse.StatfsOut) syscall.Errno {
 	s := syscall.Statfs_t{}
@@ -181,7 +181,7 @@ func (r *loopbackRoot) idFromStat(st *syscall.Stat_t) StableAttr {
 	}
 }
 
-var _ = (Creater)((*loopbackNode)(nil))
+var _ = (NodeCreater)((*loopbackNode)(nil))
 
 func (n *loopbackNode) Create(ctx context.Context, name string, flags uint32, mode uint32, out *fuse.EntryOut) (inode *Inode, fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
 	p := filepath.Join(n.path(), name)
@@ -298,7 +298,7 @@ func (n *loopbackNode) Getattr(ctx context.Context, f FileHandle, out *fuse.Attr
 	return OK
 }
 
-var _ = (Setattrer)((*loopbackNode)(nil))
+var _ = (NodeSetattrer)((*loopbackNode)(nil))
 
 func (n *loopbackNode) Setattr(ctx context.Context, f FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
 	p := n.path()

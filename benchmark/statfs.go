@@ -20,7 +20,7 @@ type StatFS struct {
 	files map[string]fuse.Attr
 }
 
-var _ = (nodefs.OnAdder)((*StatFS)(nil))
+var _ = (nodefs.NodeOnAdder)((*StatFS)(nil))
 
 func (r *StatFS) OnAdd(ctx context.Context) {
 	for nm, a := range r.files {

@@ -102,7 +102,7 @@ func (n *unionFSNode) root() *unionFSRoot {
 	return n.Root().Operations().(*unionFSRoot)
 }
 
-var _ = (nodefs.Setattrer)((*unionFSNode)(nil))
+var _ = (nodefs.NodeSetattrer)((*unionFSNode)(nil))
 
 func (n *unionFSNode) Setattr(ctx context.Context, fh nodefs.FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
 	if errno := n.promote(); errno != 0 {
@@ -183,7 +183,7 @@ func (n *unionFSNode) Setattr(ctx context.Context, fh nodefs.FileHandle, in *fus
 	return 0
 }
 
-var _ = (nodefs.Creater)((*unionFSNode)(nil))
+var _ = (nodefs.NodeCreater)((*unionFSNode)(nil))
 
 func (n *unionFSNode) Create(ctx context.Context, name string, flags uint32, mode uint32, out *fuse.EntryOut) (*nodefs.Inode, nodefs.FileHandle, uint32, syscall.Errno) {
 	if n.IsRoot() && name == delDir {
@@ -223,7 +223,7 @@ func (n *unionFSNode) Create(ctx context.Context, name string, flags uint32, mod
 	return ch, nodefs.NewLoopbackFile(fd), 0, 0
 }
 
-var _ = (nodefs.Opener)((*unionFSNode)(nil))
+var _ = (nodefs.NodeOpener)((*unionFSNode)(nil))
 
 func (n *unionFSNode) Open(ctx context.Context, flags uint32) (nodefs.FileHandle, uint32, syscall.Errno) {
 	isWR := (flags&syscall.O_RDWR != 0) || (flags&syscall.O_WRONLY != 0)
@@ -245,7 +245,7 @@ func (n *unionFSNode) Open(ctx context.Context, flags uint32) (nodefs.FileHandle
 	return nodefs.NewLoopbackFile(fd), 0, 0
 }
 
-var _ = (nodefs.Getattrer)((*unionFSNode)(nil))
+var _ = (nodefs.NodeGetattrer)((*unionFSNode)(nil))
 
 func (n *unionFSNode) Getattr(ctx context.Context, fh nodefs.FileHandle, out *fuse.AttrOut) syscall.Errno {
 	var st syscall.Stat_t
@@ -258,7 +258,7 @@ func (n *unionFSNode) Getattr(ctx context.Context, fh nodefs.FileHandle, out *fu
 	return 0
 }
 
-var _ = (nodefs.Lookuper)((*unionFSNode)(nil))
+var _ = (nodefs.NodeLookuper)((*unionFSNode)(nil))
 
 func (n *unionFSNode) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*nodefs.Inode, syscall.Errno) {
 	if n.IsRoot() && name == delDir {
@@ -279,19 +279,19 @@ func (n *unionFSNode) Lookup(ctx context.Context, name string, out *fuse.EntryOu
 	return nil, syscall.ENOENT
 }
 
-var _ = (nodefs.Unlinker)((*unionFSNode)(nil))
+var _ = (nodefs.NodeUnlinker)((*unionFSNode)(nil))
 
 func (n *unionFSNode) Unlink(ctx context.Context, name string) syscall.Errno {
 	return n.root().delPath(filepath.Join(n.Path(nil), name))
 }
 
-var _ = (nodefs.Rmdirer)((*unionFSNode)(nil))
+var _ = (nodefs.NodeRmdirer)((*unionFSNode)(nil))
 
 func (n *unionFSNode) Rmdir(ctx context.Context, name string) syscall.Errno {
 	return n.root().delPath(filepath.Join(n.Path(nil), name))
 }
 
-var _ = (nodefs.Symlinker)((*unionFSNode)(nil))
+var _ = (nodefs.NodeSymlinker)((*unionFSNode)(nil))
 
 func (n *unionFSNode) Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (*nodefs.Inode, syscall.Errno) {
 	n.promote()
@@ -316,7 +316,7 @@ func (n *unionFSNode) Symlink(ctx context.Context, target, name string, out *fus
 	return ch, 0
 }
 
-var _ = (nodefs.Readlinker)((*unionFSNode)(nil))
+var _ = (nodefs.NodeReadlinker)((*unionFSNode)(nil))
 
 func (n *unionFSNode) Readlink(ctx context.Context) ([]byte, syscall.Errno) {
 	nm, idx := n.getBranch(nil)
@@ -330,7 +330,7 @@ func (n *unionFSNode) Readlink(ctx context.Context) ([]byte, syscall.Errno) {
 	return buf[:count], 0
 }
 
-var _ = (nodefs.Readdirer)((*unionFSNode)(nil))
+var _ = (nodefs.NodeReaddirer)((*unionFSNode)(nil))
 
 func (n *unionFSNode) Readdir(ctx context.Context) (nodefs.DirStream, syscall.Errno) {
 	root := n.root()

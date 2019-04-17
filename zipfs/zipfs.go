@@ -25,7 +25,7 @@ type zipRoot struct {
 	zr *zip.ReadCloser
 }
 
-var _ = (nodefs.OnAdder)((*zipRoot)(nil))
+var _ = (nodefs.NodeOnAdder)((*zipRoot)(nil))
 
 func (zr *zipRoot) OnAdd(ctx context.Context) {
 	for _, f := range zr.zr.File {
@@ -72,8 +72,8 @@ type zipFile struct {
 	data []byte
 }
 
-var _ = (nodefs.Opener)((*zipFile)(nil))
-var _ = (nodefs.Getattrer)((*zipFile)(nil))
+var _ = (nodefs.NodeOpener)((*zipFile)(nil))
+var _ = (nodefs.NodeGetattrer)((*zipFile)(nil))
 
 // Getattr sets the minimum, which is the size. A more full-featured
 // FS would also set timestamps and permissions.
@@ -120,7 +120,7 @@ func (zf *zipFile) Read(ctx context.Context, f nodefs.FileHandle, dest []byte, o
 	return fuse.ReadResultData(zf.data[off:end]), 0
 }
 
-var _ = (nodefs.OnAdder)((*zipRoot)(nil))
+var _ = (nodefs.NodeOnAdder)((*zipRoot)(nil))
 
 func NewArchiveFileSystem(name string) (root nodefs.InodeEmbedder, err error) {
 	switch {
