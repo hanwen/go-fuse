@@ -733,6 +733,7 @@ func init() {
 		_OP_MKNOD:           func(ptr unsafe.Pointer) interface{} { return (*MknodIn)(ptr) },
 		_OP_CREATE:          func(ptr unsafe.Pointer) interface{} { return (*CreateIn)(ptr) },
 		_OP_READ:            func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
+		_OP_WRITE:           func(ptr unsafe.Pointer) interface{} { return (*WriteIn)(ptr) },
 		_OP_READDIR:         func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
 		_OP_ACCESS:          func(ptr unsafe.Pointer) interface{} { return (*AccessIn)(ptr) },
 		_OP_FORGET:          func(ptr unsafe.Pointer) interface{} { return (*ForgetIn)(ptr) },
