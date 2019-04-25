@@ -164,10 +164,10 @@ func (n *Inode) String() string {
 	defer n.mu.Unlock()
 	var ss []string
 	for nm, ch := range n.children {
-		ss = append(ss, fmt.Sprintf("%q=%d[%s]", nm, ch.stableAttr.Ino, modeStr(ch.stableAttr.Mode)))
+		ss = append(ss, fmt.Sprintf("%q=i%d[%s]", nm, ch.stableAttr.Ino, modeStr(ch.stableAttr.Mode)))
 	}
 
-	return fmt.Sprintf("%d[%s]: %s", n.stableAttr.Ino, modeStr(n.stableAttr.Mode), strings.Join(ss, ","))
+	return fmt.Sprintf("i%d (%s): %s", n.stableAttr.Ino, modeStr(n.stableAttr.Mode), strings.Join(ss, ","))
 }
 
 // sortNodes rearranges inode group in consistent order.
