@@ -303,6 +303,10 @@ func (b *rawBridge) Mkdir(cancel <-chan struct{}, input *fuse.MkdirIn, name stri
 		return errnoToStatus(errno)
 	}
 
+	if out.Attr.Mode&^07777 == 0 {
+		out.Attr.Mode |= fuse.S_IFDIR
+	}
+
 	if out.Attr.Mode&^07777 != fuse.S_IFDIR {
 		log.Panicf("Mkdir: mode must be S_IFDIR (%o), got %o", fuse.S_IFDIR, out.Attr.Mode)
 	}
