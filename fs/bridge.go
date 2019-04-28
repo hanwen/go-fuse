@@ -427,14 +427,15 @@ func (b *rawBridge) SetAttr(cancel <-chan struct{}, in *fuse.SetAttrIn, out *fus
 		f = nil
 	}
 
+	var errno = syscall.ENOTSUP
 	if fops, ok := n.ops.(NodeSetattrer); ok {
-		return errnoToStatus(fops.Setattr(ctx, f, in, out))
-	}
-	if fops, ok := f.(FileSetattrer); ok {
-		return errnoToStatus(fops.Setattr(ctx, in, out))
+		errno = fops.Setattr(ctx, f, in, out)
+	} else if fops, ok := f.(FileSetattrer); ok {
+		errno = fops.Setattr(ctx, in, out)
 	}
 
-	return fuse.ENOTSUP
+	out.Mode = n.stableAttr.Mode | (out.Mode & 07777)
+	return errnoToStatus(errno)
 }
 
 func (b *rawBridge) Rename(cancel <-chan struct{}, input *fuse.RenameIn, oldName string, newName string) fuse.Status {
