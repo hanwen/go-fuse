@@ -152,6 +152,12 @@ func (b *rawBridge) setAttr(out *fuse.Attr) {
 			out.Mode |= 0111
 		}
 	}
+	if b.options.UID != 0 && out.Uid == 0 {
+		out.Uid = b.options.UID
+	}
+	if b.options.GID != 0 && out.Gid == 0 {
+		out.Gid = b.options.GID
+	}
 }
 
 func (b *rawBridge) setAttrTimeout(out *fuse.AttrOut) {

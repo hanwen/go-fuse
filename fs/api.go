@@ -462,4 +462,10 @@ type Options struct {
 	// DefaultPermissions sets null file permissions to 755 (dirs)
 	// or 644 (other files.)
 	DefaultPermissions bool
+
+	// If nonzero, replace default (zero) UID with the given UID
+	UID uint32
+
+	// If nonzero, replace default (zero) GID with the given GID
+	GID uint32
 }

@@ -38,6 +38,35 @@ func testMount(t *testing.T, root InodeEmbedder, opts *Options) (string, *fuse.S
 	}
 }
 
+func TestDefaultOwner(t *testing.T) {
+	want := "hello"
+	root := &Inode{}
+	mntDir, _, clean := testMount(t, root, &Options{
+		FirstAutomaticIno: 1,
+		OnAdd: func(ctx context.Context) {
+			n := root.EmbeddedInode()
+			ch := n.NewPersistentInode(
+				ctx,
+				&MemRegularFile{
+					Data: []byte(want),
+				},
+				StableAttr{})
+			n.AddChild("file", ch, false)
+		},
+		UID: 42,
+		GID: 43,
+	})
+	defer clean()
+
+	var st syscall.Stat_t
+	if err := syscall.Lstat(mntDir+"/file", &st); err != nil {
+		t.Fatalf("Lstat: %v", err)
+	} else if st.Uid != 42 || st.Gid != 43 {
+		t.Fatalf("Got Lstat %d, %d want 42,43", st.Uid, st.Gid)
+	}
+
+}
+
 func TestDataFile(t *testing.T) {
 	want := "hello"
 	root := &Inode{}
