@@ -25,10 +25,11 @@ type fileEntry struct {
 	// index into Inode.openFiles
 	nodeIndex int
 
-	// Directory
-	dirStream DirStream
+	// Protects directory fields. Must be acquired before bridge.mu
+	mu sync.Mutex
 
-	mu          sync.Mutex
+	// Directory
+	dirStream   DirStream
 	hasOverflow bool
 	overflow    fuse.DirEntry
 
@@ -687,9 +688,13 @@ func (b *rawBridge) Release(cancel <-chan struct{}, input *fuse.ReleaseIn) {
 func (b *rawBridge) ReleaseDir(input *fuse.ReleaseIn) {
 	_, f := b.releaseFileEntry(input.NodeId, input.Fh)
 	f.wg.Wait()
+
+	f.mu.Lock()
 	if f.dirStream != nil {
 		f.dirStream.Close()
+		f.dirStream = nil
 	}
+	f.mu.Unlock()
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -780,6 +785,7 @@ func (b *rawBridge) OpenDir(cancel <-chan struct{}, input *fuse.OpenIn, out *fus
 	return fuse.OK
 }
 
+// setStream sets the directory part of f. Must hold f.mu
 func (b *rawBridge) setStream(cancel <-chan struct{}, input *fuse.ReadIn, inode *Inode, f *fileEntry) syscall.Errno {
 	if f.dirStream == nil || input.Offset == 0 {
 		if f.dirStream != nil {
@@ -815,6 +821,8 @@ func (b *rawBridge) getStream(ctx context.Context, inode *Inode) (DirStream, sys
 func (b *rawBridge) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out *fuse.DirEntryList) fuse.Status {
 	n, f := b.inode(input.NodeId, input.Fh)
 
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	if errno := b.setStream(cancel, input, n, f); errno != 0 {
 		return errnoToStatus(errno)
 	}
@@ -844,6 +852,8 @@ func (b *rawBridge) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out *fus
 func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out *fuse.DirEntryList) fuse.Status {
 	n, f := b.inode(input.NodeId, input.Fh)
 
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	if errno := b.setStream(cancel, input, n, f); errno != 0 {
 		return errnoToStatus(errno)
 	}
@@ -853,14 +863,12 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 		var e fuse.DirEntry
 		var errno syscall.Errno
 
-		f.mu.Lock()
 		if f.hasOverflow {
 			e = f.overflow
 			f.hasOverflow = false
 		} else {
 			e, errno = f.dirStream.Next()
 		}
-		f.mu.Unlock()
 
 		if errno != 0 {
 			return errnoToStatus(errno)
@@ -868,10 +876,8 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 
 		entryOut := out.AddDirLookupEntry(e)
 		if entryOut == nil {
-			f.mu.Lock()
 			f.overflow = e
 			f.hasOverflow = true
-			f.mu.Unlock()
 			return fuse.OK
 		}
 
