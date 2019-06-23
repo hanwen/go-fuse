@@ -64,7 +64,7 @@ func (n *loopbackNode) renameExchange(name string, newparent *loopbackNode, newN
 		return syscall.EBUSY
 	}
 
-	return ToErrno(unix.Renameat2(fd1, name, fd2, newName, unix.RENAME_EXCHANGE))
+	return ToErrno(unix.Renameat(fd1, name, fd2, newName))
 }
 
 func (n *loopbackNode) CopyFileRange(ctx context.Context, fhIn FileHandle,
