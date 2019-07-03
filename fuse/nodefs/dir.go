@@ -40,8 +40,12 @@ func (d *connectorDir) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out *
 	}
 
 	if input.Offset > uint64(len(d.stream)) {
-		// This shouldn't happen, but let's not crash.
-		return fuse.EINVAL
+		// See https://github.com/hanwen/go-fuse/issues/297
+		// This can happen for FUSE exported over NFS.  This
+		// seems incorrect, (maybe the kernel is using offsets
+		// from other opendir/readdir calls), it is harmless to reinforce that
+		// we have reached EOF.
+		return fuse.OK
 	}
 
 	todo := d.stream[input.Offset:]
@@ -75,8 +79,8 @@ func (d *connectorDir) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, o
 	}
 
 	if input.Offset > uint64(len(d.stream)) {
-		// This shouldn't happen, but let's not crash.
-		return fuse.EINVAL
+		// See comment in Readdir
+		return fuse.OK
 	}
 	todo := d.stream[input.Offset:]
 	for _, e := range todo {
