@@ -55,19 +55,24 @@ func (root *inMemoryFS) OnAdd(ctx context.Context) {
 			p = ch
 		}
 
+		// Make a file out of the content bytes. This type
+		// provides the open/read/flush methods.
+		embedder := &fs.MemRegularFile{
+			Data: []byte(content),
+		}
+
 		// Create the file. The Inode must be persistent,
 		// because its life time is not under control of the
 		// kernel.
-		child := p.NewPersistentInode(ctx, &fs.MemRegularFile{
-			Data: []byte(content),
-		}, fs.StableAttr{})
+		child := p.NewPersistentInode(ctx, embedder, fs.StableAttr{})
 
 		// And add it
 		p.AddChild(base, child, true)
 	}
 }
 
-// This demonstrates how to build a file system in memory.
+// This demonstrates how to build a file system in memory. The
+// read/write logic for the file is provided by the MemRegularFile type.
 func Example() {
 	// This is where we'll mount the FS
 	mntDir, _ := ioutil.TempDir("", "")

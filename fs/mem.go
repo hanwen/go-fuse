@@ -13,7 +13,6 @@ import (
 
 // MemRegularFile is a filesystem node that holds a read-only data
 // slice in memory.
-
 type MemRegularFile struct {
 	Inode
 	Data []byte
