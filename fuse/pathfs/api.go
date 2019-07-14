@@ -2,6 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// This package is deprecated. New projects should use the package
+// "github.com/hanwen/go-fuse/fs" instead.
+//
+// Package pathfs provides a file system API expressed in filenames.
 package pathfs
 
 import (

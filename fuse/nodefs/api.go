@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// This package is deprecated. New projects should use the package
+// "github.com/hanwen/go-fuse/fs" instead.
+//
 // The nodefs package offers a high level API that resembles the
 // kernel's idea of what an FS looks like.  File systems can have
 // multiple hard-links to one file, for example. It is also suited if
