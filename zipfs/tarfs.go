@@ -23,6 +23,7 @@ import (
 
 // TODO - handle symlinks.
 
+// HeaderToFileInfo fills a fuse.Attr struct from a tar.Header.
 func HeaderToFileInfo(out *fuse.Attr, h *tar.Header) {
 	out.Mode = uint32(h.Mode)
 	out.Size = uint64(h.Size)
@@ -35,6 +36,9 @@ type tarRoot struct {
 	fs.Inode
 	rc io.ReadCloser
 }
+
+// tarRoot implements NodeOnAdder
+var _ = (fs.NodeOnAdder)((*tarRoot)(nil))
 
 func (r *tarRoot) OnAdd(ctx context.Context) {
 	tr := tar.NewReader(r.rc)
@@ -134,6 +138,10 @@ func (rc *readCloser) Close() error {
 	return rc.close()
 }
 
+// NewTarCompressedTree creates the tree of a tar file as a FUSE
+// InodeEmbedder. The inode can either be mounted (as the root of a
+// FUSE mount), or added as a Child to some other FUSE tree, to make
+// the tar tree available.
 func NewTarCompressedTree(name string, format string) (fs.InodeEmbedder, error) {
 	f, err := os.Open(name)
 	if err != nil {
