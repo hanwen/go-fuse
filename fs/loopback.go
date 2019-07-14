@@ -372,7 +372,8 @@ func (n *loopbackNode) Setattr(ctx context.Context, f FileHandle, in *fuse.SetAt
 }
 
 // NewLoopback returns a root node for a loopback file system whose
-// root is at the given root.
+// root is at the given root. This node implements all NodeXxxxer
+// operations available.
 func NewLoopbackRoot(root string) (InodeEmbedder, error) {
 	var st syscall.Stat_t
 	err := syscall.Stat(root, &st)

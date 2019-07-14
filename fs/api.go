@@ -33,7 +33,6 @@
 // initialized by calling NewInode or NewPersistentInode before being
 // manipulated further, eg.
 //
-//
 //  type myNode struct {
 //     Inode
 //  }
@@ -82,6 +81,9 @@ import (
 )
 
 // InodeEmbedder is an interface for structs that embed Inode.
+//
+// InodeEmbedder objects usually should implement some of the NodeXxxx
+// interfaces, to provide user-defined file system behaviors.
 //
 // In general, if an InodeEmbedder does not implement specific
 // filesystem methods, the filesystem will react as if it is a
@@ -358,10 +360,17 @@ type NodeRenamer interface {
 	Rename(ctx context.Context, name string, newParent InodeEmbedder, newName string, flags uint32) syscall.Errno
 }
 
-// FileHandle is a resource identifier for opened files.  FileHandles
-// are useful in two cases: First, if the underlying storage systems
-// needs a handle for reading/writing. See the function
-// `NewLoopbackFile` for an example. Second, it is useful for
+// FileHandle is a resource identifier for opened files. Usually, a
+// FileHandle should implement some of the FileXxxx interfaces.
+//
+// All of the FileXxxx operations can also be implemented at the
+// InodeEmbedder level, for example, one can implement NodeReader
+// instead of FileReader.
+//
+// FileHandles are useful in two cases: First, if the underlying
+// storage systems needs a handle for reading/writing. This is the
+// case with Unix system calls, which need a file descriptor (See also
+// the function `NewLoopbackFile`). Second, it is useful for
 // implementing files whose contents are not tied to an inode. For
 // example, a file like `/proc/interrupts` has no fixed content, but
 // changes on each open call. This means that each file handle must
