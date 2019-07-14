@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// statfs is a main driver for the file system from
+// github.com/hanwen/go-fuse/benchmark, intended for benchmarking FUSE
+// libraries.
 package main
 
 import (

@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Mounts another directory as loopback for testing and benchmarking
-// purposes.
-
+// This is main program driver for the loopback filesystem from
+// github.com/hanwen/go-fuse/fs/, a filesystem that shunts operations
+// to an underlying file system.
 package main
 
 import (

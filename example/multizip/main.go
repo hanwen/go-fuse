@@ -2,6 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// This is main program driver for MultiZipFs from
+// github.com/hanwen/go-fuse/zipfs, a filesystem for mounting multiple
+// read-only archives. It can be used by symlinking to an archive file
+// from the config/ subdirectory.
 package main
 
 import (
