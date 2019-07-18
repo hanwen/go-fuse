@@ -4,10 +4,57 @@
 
 // Package fs provides infrastructure to build tree-organized filesystems.
 //
-// A tree-organized filesystem is similar to UNIX or Plan 9 filesystem: it
-// consists of nodes with each node being either a file or a directory. Files
-// are located at tree leafs. A directory node can have other nodes as its
-// children and refer to each child by name unique through the directory.
+// Structure of a file system implementation
+//
+// To create a file system, you should first define types for the
+// nodes of the file system tree.
+//
+//    struct myNode {
+//       fs.Inode
+//    }
+//
+//    // Node types must be InodeEmbedders
+//    var _ = (fs.InodeEmbedder)((*myNode)(nil))
+//
+//    // Node types should implement some file system operations, eg. Lookup
+//    var _ = (fs.NodeLookuper)((*myNode)(nil))
+//
+//    func (n *myNode) Lookup(ctx context.Context, name string,  ... ) (*Inode, syscall.Errno) {
+//      ops := myNode{}
+//      return n.NewInode(ctx, &ops, fs.StableAttr{Mode: syscall.S_IFDIR}), 0
+//    }
+//
+// The method names are inspired on the system call names, so we have
+// Listxattr rather than ListXAttr.
+//
+// the file system is mounted by calling mount on the root of the tree,
+//
+//    server, err := fs.Mount("/tmp/mnt", &myNode{}, &fs.Options{})
+//    ..
+//    // start serving the file system
+//    server.Wait()
+//
+// Error handling
+//
+// All error reporting must use the syscall.Errno type. This is an
+// integer with predefined error codes, where the value 0 (`OK`)
+// should be used to indicate success.
+//
+// File system concepts
+//
+// The FUSE API is very similar to Linux' internal VFS API for
+// defining file systems in the kernel. It is therefore useful to
+// understand some terminology.
+//
+// File content: the raw bytes that we store inside regular files.
+//
+// Path: a /-separated string path that describes location of a node
+// in the file system tree. For example
+//
+//	dir1/file
+//
+// describes path root → dir1 → file.
+//
 // There can be several paths leading from tree root to a particular node,
 // known as hard-linking, for example
 //
@@ -17,59 +64,105 @@
 //	    \  /
 //	    file
 //
-// A /-separated string path describes location of a node in the tree. For example
+// Inode: ("index node") points to the file content, and stores
+// metadata (size, timestamps) about a file or directory. Each
+// directory has a type (directory, symlink, regular file, etc.) and
+// an identity (a 64-bit number, unique to the file
+// system). Directories can have children.
 //
-//	dir1/file
+// The inode in the kernel is represented in Go-FUSE as the Inode
+// type.
 //
-// describes path root → dir1 → file.
+// While common OS APIs are phrased in terms of paths (strings), the
+// precise semantics of a file system are better described in terms of
+// Inodes. This allows us to specify what happens in corner cases,
+// such as writing data to deleted files.
 //
-// Each node is associated with integer ID uniquely identifying the node
-// throughout filesystem. The tree-level structure of any filesystem is
-// expressed through index-nodes (also known as "inode", see Inode) which
-// describe parent/child relation in between nodes and node-ID association.
+// File descriptor: a handle returned to opening a file. File
+// descriptors always refer to a single inode.
 //
-// The filesystem nodes are struct that embed the Inode type, so they
-// comply with the InodeEmbedder interface.  They should be
-// initialized by calling NewInode or NewPersistentInode before being
-// manipulated further, eg.
+// Dirent: a dirent maps (parent inode number, name string) tuple to
+// child inode, thus representing a parent/child relation (or the
+// absense thereof). Dirents do not have an equivalent type inside
+// Go-FUSE, but the result of Lookup operation essentially is a
+// dirent, which the kernel puts in a cache.
 //
-//  type myNode struct {
-//     Inode
-//  }
 //
-//  func (n *myNode) Lookup(ctx context.Context, name string,  ... ) (*Inode, syscall.Errno) {
-//    child := myNode{}
-//    return n.NewInode(ctx, &myNode{}, StableAttr{Mode: syscall.S_IFDIR}), 0
-//  }
+// Kernel caching
 //
-// On mounting, the root InodeEmbedder is associated with root of the
-// tree.
+// The kernel caches several pieces of information from the FUSE process:
 //
-// The kernel can evict inode data to free up memory. It does so by
-// issuing FORGET calls. When a node has no children, and no kernel
-// references, it is removed from the file system trees.
+// 1. File contents: enabled with the fuse.FOPEN_KEEP_CACHE return flag
+// in Open, manipulated with ReadCache and WriteCache, and invalidated
+// with Inode.NotifyContent
 //
-// File system trees can also be constructed in advance. This is done
-// by instantiating "persistent" inodes from the OnAdder
-// implementation. Persistent inodes remain in memory even if the
-// kernel has forgotten them.  See zip_test.go for an example of how
-// to do this.
+// 2. File Attributes (size, mtime, etc.): controlled with the
+// attribute timeout fields in fuse.AttrOut and fuse.EntryOut, which
+// get be populated from Getattr and Lookup
 //
-// File systems whose tree structures are on backing storage typically
-// discover the file system tree on-demand, and if the kernel is tight
-// on memory, parts of the tree are forgotten again. These file
-// systems should implement Lookuper instead.  The loopback file
-// system created by `NewLoopbackRoot` provides a straightforward
-// example.
+// 3. Directory entries (parent/child relations in the FS tree):
+// controlled with the timeout fields in fuse.EntryOut, and
+// invalidated with Inode.NotifyEntry and Inode.NotifyDelete.
 //
-// All error reporting must use the syscall.Errno type. The value 0
-// (`OK`) should be used to indicate success. The method names are
-// inspired on the system call names, so we have Listxattr rather than
-// ListXAttr.
+// Without Directory Entry timeouts, every operation on file "a/b/c"
+// must first do lookups for "a", "a/b" and "a/b/c", which is
+// expensive because of context switches between the kernel and the
+// FUSE process.
+//
+// Unsuccessful entry lookups can also be cached by setting an entry
+// timeout when Lookup returns ENOENT.
+//
+// The libfuse C library specifies 1 second timeouts for both
+// attribute and directory entries, but no timeout for negative
+// entries. by default. This can be achieve in go-fuse by setting
+// options on mount, eg.
+//
+//    sec := time.Second
+//    opts := fs.Options{
+//      EntryTimeout: &sec,
+//      AttrTimeout: &sec,
+//    }
+//
+// Locking
 //
 // Locks for networked filesystems are supported through the suite of
 // Getlk, Setlk and Setlkw methods. They alllow locks on regions of
 // regular files.
+//
+// Parallelism
+//
+// The VFS layer in the kernel is optimized to be highly parallel, and
+// this parallelism also affects FUSE file systems: many FUSE
+// operations can run in parallel, and this invites race
+// conditions. It is strongly recommended to test your FUSE file
+// system issuing file operations in parallel, and using the race
+// detector to weed out data races.
+//
+// Dynamically discovered file systems
+//
+// File system data usually cannot fit all in RAM, so the kernel must
+// discover the file system dynamically: as you are entering and list
+// directory contents, the kernel asks the FUSE server about the files
+// and directories you are busy reading/writing, and forgets parts of
+// your file system when it is low on memory.
+//
+// The two important operations for dynamic file systems are:
+// 1. Lookup, part of the NodeLookuper interface for discovering
+// individual children of directories, and 2. Readdir, part of the
+// NodeReaddirer interface for listing the contents of a directory.
+//
+// Static in-memory file systems
+//
+// For small, read-only file systems, getting the locking mechanics of
+// Lookup correct is tedious, so Go-FUSE provides a feature to
+// simplify building such file systems.
+//
+// Instead of discovering the FS tree on the fly, you can construct
+// the entire tree from an OnAdd method. Then, that in-memory tree
+// structure becomes the source of truth. This means you Go-FUSE must
+// remember Inodes even if the kernel is no longer interested in
+// them. This is done by instantiating "persistent" inodes.  See
+// zip_test.go for an example of how to do this.
 package fs
 
 import (
@@ -278,16 +371,31 @@ type DirStream interface {
 	Close()
 }
 
-// Lookup should find a direct child of the node by child
-// name.  If the entry does not exist, it should return ENOENT
-// and optionally set a NegativeTimeout in `out`. If it does
-// exist, it should return attribute data in `out` and return
-// the Inode for the child. A new inode can be created using
-// `Inode.NewInode`. The new Inode will be added to the FS
-// tree automatically if the return status is OK.
+// Lookup should find a direct child of a directory by the child's name.  If
+// the entry does not exist, it should return ENOENT and optionally
+// set a NegativeTimeout in `out`. If it does exist, it should return
+// attribute data in `out` and return the Inode for the child. A new
+// inode can be created using `Inode.NewInode`. The new Inode will be
+// added to the FS tree automatically if the return status is OK.
 //
-// If not defined, we look for an existing child with the given name,
-// or returns ENOENT.
+// If a directory does not implement NodeLookuper, the library looks
+// for an existing child with the given name.
+//
+// The input to a Lookup is {parent directory, name string}.
+//
+// Lookup, if successful, must return an *Inode. Once the Inode is
+// returned to the kernel, the kernel can issue further operations,
+// such as Open or Getxattr on that node.
+//
+// A successful Lookup also returns an EntryOut. Among others, this
+// contains file attributes (mode, size, mtime, etc.).
+//
+// FUSE supports other operations that modify the namespace. For
+// example, the Symlink, Create, Mknod, Link methods all create new
+// children in directories. Hence, they also return *Inode and must
+// populate their fuse.EntryOut arguments.
+
+//
 type NodeLookuper interface {
 	Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno)
 }
@@ -302,8 +410,15 @@ type NodeOpendirer interface {
 
 // ReadDir opens a stream of directory entries.
 //
-// The default ReadDir returns the list of currently known children
-// from the tree
+// Readdir essentiallly returns a list of strings, and it is allowed
+// for Readdir to return different results from Lookup. For example,
+// you can return nothing for Readdir ("ls my-fuse-mount" is empty),
+// while still implementing Lookup ("ls my-fuse-mount/a-specific-file"
+// shows a single file).
+//
+// If a directory does not implement NodeReaddirer, a list of
+// currently known children from the tree is returned. This means that
+// static in-memory file systems need not implement NodeReaddirer.
 type NodeReaddirer interface {
 	Readdir(ctx context.Context) (DirStream, syscall.Errno)
 }
