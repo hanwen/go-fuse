@@ -316,6 +316,15 @@ func (iparent *Inode) setEntry(name string, ichild *Inode) {
 
 // NewPersistentInode returns an Inode whose lifetime is not in
 // control of the kernel.
+//
+// When the kernel is short on memory, it will forget cached file
+// system information (directory entries and inode metadata). This is
+// announced with FORGET messages.  There are no guarantees if or when
+// this happens. When it happens, these are handled transparently by
+// go-fuse: all Inodes created with NewInode are released
+// automatically. NewPersistentInode creates inodes that go-fuse keeps
+// in memory, even if the kernel is not interested in them. This is
+// convenient for building static trees up-front.
 func (n *Inode) NewPersistentInode(ctx context.Context, node InodeEmbedder, id StableAttr) *Inode {
 	return n.newInode(ctx, node, id, true)
 }
