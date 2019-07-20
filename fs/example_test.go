@@ -14,9 +14,9 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 )
 
-// An example of creating a loopback file system, and mounting it onto
-// a directory
-func Example_mountLoopback() {
+// ExampleMount shows how to create a loopback file system, and
+// mounting it onto a directory
+func Example_mount() {
 	mntDir, _ := ioutil.TempDir("", "")
 	home := os.Getenv("HOME")
 	// Make $HOME available on a mount dir under /tmp/ . Caution:

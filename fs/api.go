@@ -66,7 +66,7 @@
 //
 // Inode: ("index node") points to the file content, and stores
 // metadata (size, timestamps) about a file or directory. Each
-// directory has a type (directory, symlink, regular file, etc.) and
+// inode has a type (directory, symlink, regular file, etc.) and
 // an identity (a 64-bit number, unique to the file
 // system). Directories can have children.
 //
