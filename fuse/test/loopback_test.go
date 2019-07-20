@@ -853,7 +853,7 @@ func TestIoctl(t *testing.T) {
 
 // This test is racy. If an external process consumes space while this
 // runs, we may see spurious differences between the two statfs() calls.
-func TestStatFs(t *testing.T) {
+func TestNonVerboseStatFs(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
@@ -875,7 +875,7 @@ func TestStatFs(t *testing.T) {
 	}
 }
 
-func TestFStatFs(t *testing.T) {
+func TestNonVerboseFStatFs(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
