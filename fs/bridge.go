@@ -743,8 +743,7 @@ func (b *rawBridge) Flush(cancel <-chan struct{}, input *fuse.FlushIn) fuse.Stat
 	if fl, ok := f.file.(FileFlusher); ok {
 		return errnoToStatus(fl.Flush(&fuse.Context{Caller: input.Caller, Cancel: cancel}))
 	}
-	// XXX should return OK to reflect r/o filesystem?
-	return fuse.ENOTSUP
+	return 0
 }
 
 func (b *rawBridge) Fsync(cancel <-chan struct{}, input *fuse.FsyncIn) fuse.Status {
