@@ -57,9 +57,8 @@ func main() {
 	}
 
 	opts := &fs.Options{
-		AttrTimeout:        ttl,
-		EntryTimeout:       ttl,
-		DefaultPermissions: true,
+		AttrTimeout:  ttl,
+		EntryTimeout: ttl,
 	}
 	opts.Debug = *debug
 	server, err := fs.Mount(flag.Arg(0), root, opts)
