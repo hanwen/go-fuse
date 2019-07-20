@@ -296,10 +296,10 @@ type NodeFsyncer interface {
 	Fsync(ctx context.Context, f FileHandle, flags uint32) syscall.Errno
 }
 
-// Flush is called for close() call on a file descriptor. In
-// case of duplicated descriptor, it may be called more than
-// once for a file.   The default implementation forwards to the
-// FileHandle.
+// Flush is called for close() call on a file descriptor. In case of
+// duplicated descriptor, it may be called more than once for a file.
+// The default implementation forwards to the FileHandle, or if
+// FileFlusher is not defined, returns OK.
 type NodeFlusher interface {
 	Flush(ctx context.Context, f FileHandle) syscall.Errno
 }
