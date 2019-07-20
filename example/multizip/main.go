@@ -32,9 +32,8 @@ func main() {
 	root := &zipfs.MultiZipFs{}
 	sec := time.Second
 	opts := fs.Options{
-		EntryTimeout:       &sec,
-		AttrTimeout:        &sec,
-		DefaultPermissions: true,
+		EntryTimeout: &sec,
+		AttrTimeout:  &sec,
 	}
 	opts.Debug = *debug
 	server, err := fs.Mount(flag.Arg(0), root, &opts)

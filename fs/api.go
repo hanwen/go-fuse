@@ -217,9 +217,12 @@ type NodeAccesser interface {
 	Access(ctx context.Context, mask uint32) syscall.Errno
 }
 
-// GetAttr reads attributes for an Inode. The library will
-// ensure that Mode and Ino are set correctly. For regular
-// files, Size should be set so it can be read correctly.
+// GetAttr reads attributes for an Inode. The library will ensure that
+// Mode and Ino are set correctly. For files that are not opened with
+// FOPEN_DIRECTIO, Size should be set so it can be read correctly.  If
+// returning zeroed permissions, the default behavior is to change the
+// mode of 0755 (directory) or 0644 (files). This can be switched off
+// with the Options.NullPermissions setting.
 type NodeGetattrer interface {
 	Getattr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno
 }
@@ -584,9 +587,11 @@ type Options struct {
 	// functionality of the root node.
 	OnAdd func(ctx context.Context)
 
-	// DefaultPermissions sets null file permissions to 755 (dirs)
-	// or 644 (other files.)
-	DefaultPermissions bool
+	// NullPermissions if set, leaves null file permissions
+	// alone. Otherwise, they are set to 755 (dirs) or 644 (other
+	// files.), which is necessary for doing a chdir into the FUSE
+	// directories.
+	NullPermissions bool
 
 	// If nonzero, replace default (zero) UID with the given UID
 	UID uint32

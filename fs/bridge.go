@@ -147,7 +147,7 @@ func (b *rawBridge) setEntryOutTimeout(out *fuse.EntryOut) {
 }
 
 func (b *rawBridge) setAttr(out *fuse.Attr) {
-	if b.options.DefaultPermissions && out.Mode&07777 == 0 {
+	if !b.options.NullPermissions && out.Mode&07777 == 0 {
 		out.Mode |= 0644
 		if out.Mode&syscall.S_IFDIR != 0 {
 			out.Mode |= 0111
