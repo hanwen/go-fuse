@@ -3,26 +3,30 @@
 [![Build Status](https://travis-ci.org/hanwen/go-fuse.svg?branch=master)](https://travis-ci.org/hanwen/go-fuse)
 [![GoDoc](https://godoc.org/github.com/hanwen/go-fuse?status.svg)](https://godoc.org/github.com/hanwen/go-fuse)
 
-native bindings for the FUSE kernel module.
+Go native bindings for the FUSE kernel module.
 
-## Highlights
+You should import and use
+[github.com/hanwen/go-fuse/fs](https://godoc.org/github.com/hanwen/go-fuse/fs)
+library.  It follows the wire protocol closely, but provides
+convenient abstractions for building both node and path based file
+systems
 
-* High speed: as fast as libfuse using the gc compiler for single
-threaded loads.
+Older, deprecated APIs are available at
+[github.com/hanwen/go-fuse/fuse/pathfs](https://godoc.org/github.com/hanwen/go-fuse/fuse/pathfs)
+and
+[github.com/hanwen/go-fuse/fuse/pathfs](https://godoc.org/github.com/hanwen/go-fuse/fuse/nodefs).
 
-* Supports in-process mounting of different FileSystems onto
-subdirectories of the FUSE mount.
+## Comparison with other FUSE libraries
 
-* Supports 3 interfaces for writing filesystems:
-  - `PathFileSystem`: define filesystems in terms path names.
-  - `NodeFileSystem`: define filesystems in terms of inodes.
-  - `RawFileSystem`: define filesystems in terms of FUSE's raw
-  wire protocol.
+The FUSE library gained a new, cleaned-up API during a rewrite
+completed in 2019. Find extensive documentation
+[here](https://godoc.org/github.com/hanwen/go-fuse/).
 
-* Both NodeFileSystem and PathFileSystem support manipulation of true
-  hardlinks.
+Further highlights of this library is
 
-* Includes two fleshed out examples, zipfs and unionfs.
+* Comprehensive and up to date protocol support (up to 7.12.28).
+
+* Performance that is competitive with libfuse.
 
 
 ## Examples
@@ -53,50 +57,6 @@ subdirectories of the FUSE mount.
   ls /tmp/mountpoint
   fusermount -u /tmp/mountpoint
   ```
-
-* `unionfs/unionfs.go`: implements a union mount using 1 R/W branch, and
-  multiple R/O branches.
-
-  ```shell
-  mkdir -p  /tmp/mountpoint /tmp/writable
-  example/unionfs/unionfs /tmp/mountpoint /tmp/writable /usr &
-  ls /tmp/mountpoint
-  ls -l /tmp/mountpoint/bin/vi
-  rm /tmp/mountpoint/bin/vi
-  ls -l /tmp/mountpoint/bin/vi
-  cat /tmp/writable/DELETION/*
-  ```
-
-* `union/autounionfs.go`: creates UnionFs mounts automatically based on
-  existence of READONLY symlinks.
-
-
-Tested on:
-
-- x86 32bits (Fedora 14).
-- x86 64bits (Ubuntu Lucid).
-
-
-## Benchmarks
-
-We use threaded stats over a read-only filesystem for benchmarking.
-Automated code is under benchmark/ directory. A simple C version of
-the same FS gives a FUSE baseline
-
-Data points (Go-FUSE version May 2012), 1000 files, high level
-interface, all kernel caching turned off, median stat time:
-
-platform                    libfuse     Go-FUSE      difference (%)
-
-Lenovo T60/Fedora16 (1cpu)  349us       355us        2% slower
-Lenovo T400/Lucid   (1cpu)  138us       140us        5% slower
-Dell T3500/Lucid    (1cpu)   72us        76us        5% slower
-
-On T60, for each file we have
-- Client side latency is 360us
-- 106us of this is server side latency (4.5x lookup 23us, 1x getattr 4us)
-- 16.5us is due to latency measurements.
-- 3us is due to garbage collection.
 
 ## macOS Support
 
@@ -133,12 +93,6 @@ This is not an official Google product.
 Grep source code for TODO.  Major topics:
 
 * Missing support for `CUSE`, `BMAP`, `IOCTL`
-
-* In the path API, renames are racy; See also:
-
-    http://sourceforge.net/mailarchive/message.php?msg_id=27550667
-
-  Don't use the path API if you care about correctness.
 
 ## License
 
