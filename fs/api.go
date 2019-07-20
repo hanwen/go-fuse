@@ -583,9 +583,11 @@ type Options struct {
 	// functionality of the root node.
 	OnAdd func(ctx context.Context)
 
-	// DefaultPermissions sets null file permissions to 755 (dirs)
-	// or 644 (other files.)
-	DefaultPermissions bool
+	// NullPermissions if set, leaves null file permissions
+	// alone. Otherwise, they are set to 755 (dirs) or 644 (other
+	// files.), which is necessary for doing a chdir into the FUSE
+	// directories.
+	NullPermissions bool
 
 	// If nonzero, replace default (zero) UID with the given UID
 	UID uint32
