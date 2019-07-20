@@ -161,8 +161,9 @@
 // the entire tree from an OnAdd method. Then, that in-memory tree
 // structure becomes the source of truth. This means you Go-FUSE must
 // remember Inodes even if the kernel is no longer interested in
-// them. This is done by instantiating "persistent" inodes.  See
-// zip_test.go for an example of how to do this.
+// them. This is done by instantiating "persistent" inodes from the
+// OnAdd method of the root node.  See the ZipFS example for a
+// runnable example of how to do this.
 package fs
 
 import (
@@ -180,8 +181,7 @@ import (
 //
 // In general, if an InodeEmbedder does not implement specific
 // filesystem methods, the filesystem will react as if it is a
-// read-only filesystem with a predefined tree structure. See
-// zipfs_test.go for an example.  A example is in zip_test.go
+// read-only filesystem with a predefined tree structure.
 type InodeEmbedder interface {
 	// populateInode and inode are used internally to link Inode
 	// to a Node.
