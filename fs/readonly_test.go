@@ -29,7 +29,6 @@ func TestDefaultPermissions(t *testing.T) {
 	root := &Inode{}
 
 	mntDir, _, clean := testMount(t, root, &Options{
-		DefaultPermissions: true,
 		OnAdd: func(ctx context.Context) {
 			dir := root.NewPersistentInode(ctx, &Inode{}, StableAttr{Mode: syscall.S_IFDIR})
 			file := root.NewPersistentInode(ctx, &Inode{}, StableAttr{Mode: syscall.S_IFREG})

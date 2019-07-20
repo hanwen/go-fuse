@@ -80,11 +80,6 @@ func Example() {
 	root := &inMemoryFS{}
 	server, err := fs.Mount(mntDir, root, &fs.Options{
 		MountOptions: fuse.MountOptions{Debug: true},
-
-		// This adds read permissions to the files and
-		// directories, which is necessary for doing a chdir
-		// into the mount.
-		DefaultPermissions: true,
 	})
 	if err != nil {
 		log.Panic(err)
