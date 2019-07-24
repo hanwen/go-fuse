@@ -14,7 +14,7 @@ systems
 Older, deprecated APIs are available at
 [github.com/hanwen/go-fuse/fuse/pathfs](https://godoc.org/github.com/hanwen/go-fuse/fuse/pathfs)
 and
-[github.com/hanwen/go-fuse/fuse/pathfs](https://godoc.org/github.com/hanwen/go-fuse/fuse/nodefs).
+[github.com/hanwen/go-fuse/fuse/nodefs](https://godoc.org/github.com/hanwen/go-fuse/fuse/nodefs).
 
 ## Comparison with other FUSE libraries
 
