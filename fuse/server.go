@@ -255,13 +255,14 @@ func handleEINTR(fn func() error) (err error) {
 // Returns a new request, or error. In case exitIdle is given, returns
 // nil, OK if we have too many readers already.
 func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
+	req = ms.reqPool.Get().(*request)
+	dest := ms.readPool.Get().([]byte)
+
 	ms.reqMu.Lock()
 	if ms.reqReaders > _MAX_READERS {
 		ms.reqMu.Unlock()
 		return nil, OK
 	}
-	req = ms.reqPool.Get().(*request)
-	dest := ms.readPool.Get().([]byte)
 	ms.reqReaders++
 	ms.reqMu.Unlock()
 
