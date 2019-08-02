@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // This package is deprecated. New projects should use the package
-// "github.com/hanwen/go-fuse/fs" instead.
+// "github.com/hanwen/go-fuse/v2/fs" instead.
 //
 // The nodefs package offers a high level API that resembles the
 // kernel's idea of what an FS looks like.  File systems can have
@@ -15,7 +15,7 @@ package nodefs
 import (
 	"time"
 
-	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/v2/fuse"
 )
 
 // The Node interface implements the user-defined file system

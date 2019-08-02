@@ -7,7 +7,7 @@ package unionfs
 import (
 	"os"
 
-	"github.com/hanwen/go-fuse/fuse/pathfs"
+	"github.com/hanwen/go-fuse/v2/fuse/pathfs"
 )
 
 func NewUnionFsFromRoots(roots []string, opts *UnionFsOptions, roCaching bool) (pathfs.FileSystem, error) {

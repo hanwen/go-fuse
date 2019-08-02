@@ -10,8 +10,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/hanwen/go-fuse/fs"
-	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/v2/fs"
+	"github.com/hanwen/go-fuse/v2/fuse"
 )
 
 // ExampleMount shows how to create a loopback file system, and

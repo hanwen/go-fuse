@@ -20,9 +20,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/hanwen/go-fuse/benchmark"
-	"github.com/hanwen/go-fuse/fs"
-	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/v2/benchmark"
+	"github.com/hanwen/go-fuse/v2/fs"
+	"github.com/hanwen/go-fuse/v2/fuse"
 )
 
 func main() {

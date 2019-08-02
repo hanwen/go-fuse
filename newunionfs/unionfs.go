@@ -13,8 +13,8 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/hanwen/go-fuse/fs"
-	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/v2/fs"
+	"github.com/hanwen/go-fuse/v2/fuse"
 )
 
 func filePathHash(path string) string {

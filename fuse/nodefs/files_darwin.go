@@ -9,8 +9,8 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/internal/utimens"
+	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v2/internal/utimens"
 )
 
 func (f *loopbackFile) Allocate(off uint64, sz uint64, mode uint32) fuse.Status {

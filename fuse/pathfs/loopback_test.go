@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/internal/testutil"
+	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v2/internal/testutil"
 )
 
 // Check that loopbackFileSystem.Utimens() works as expected

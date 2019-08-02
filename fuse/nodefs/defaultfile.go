@@ -7,7 +7,7 @@ package nodefs
 import (
 	"time"
 
-	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/v2/fuse"
 )
 
 type defaultFile struct{}

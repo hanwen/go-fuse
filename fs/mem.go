@@ -8,7 +8,7 @@ import (
 	"context"
 	"syscall"
 
-	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/v2/fuse"
 )
 
 // MemRegularFile is a filesystem node that holds a read-only data

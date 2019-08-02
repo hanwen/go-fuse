@@ -14,10 +14,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/fuse/nodefs"
-	"github.com/hanwen/go-fuse/fuse/pathfs"
-	"github.com/hanwen/go-fuse/internal/testutil"
+	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v2/fuse/nodefs"
+	"github.com/hanwen/go-fuse/v2/fuse/pathfs"
+	"github.com/hanwen/go-fuse/v2/internal/testutil"
 )
 
 type cacheFs struct {
@@ -54,7 +54,7 @@ func setupCacheTest(t *testing.T) (string, *pathfs.PathNodeFs, func()) {
 	}
 
 	opts := nodefs.NewOptions()
-	opts.AttrTimeout = 10*time.Millisecond
+	opts.AttrTimeout = 10 * time.Millisecond
 	opts.Debug = testutil.VerboseTest()
 	state, _, err := nodefs.Mount(dir+"/mnt", pfs.Root(), mntOpts, opts)
 	if err != nil {
@@ -121,7 +121,7 @@ func TestFopenKeepCache(t *testing.T) {
 	}
 
 	// sleep a bit to make sure mtime of file for before and after are different
-	time.Sleep(20*time.Millisecond)
+	time.Sleep(20 * time.Millisecond)
 
 	xwriteFile(wd+"/orig/file.txt", after)
 	mtimeAfter := xstat(wd + "/orig/file.txt").ModTime()
@@ -134,7 +134,7 @@ func TestFopenKeepCache(t *testing.T) {
 	//
 	// this way we make sure the kernel knows updated size/mtime before we
 	// try to read the file next time.
-	time.Sleep(100*time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	_ = xstat(wd + "/mnt/file.txt")
 
 	c = xreadFile(wd + "/mnt/file.txt")

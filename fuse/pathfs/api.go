@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // This package is deprecated. New projects should use the package
-// "github.com/hanwen/go-fuse/fs" instead.
+// "github.com/hanwen/go-fuse/v2/fs" instead.
 //
 // Package pathfs provides a file system API expressed in filenames.
 package pathfs
@@ -11,8 +11,8 @@ package pathfs
 import (
 	"time"
 
-	"github.com/hanwen/go-fuse/fuse"
-	"github.com/hanwen/go-fuse/fuse/nodefs"
+	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v2/fuse/nodefs"
 )
 
 // A filesystem API that uses paths rather than inodes.  A minimal
