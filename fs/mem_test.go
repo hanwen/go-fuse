@@ -64,7 +64,6 @@ func TestDefaultOwner(t *testing.T) {
 	} else if st.Uid != 42 || st.Gid != 43 {
 		t.Fatalf("Got Lstat %d, %d want 42,43", st.Uid, st.Gid)
 	}
-
 }
 
 func TestDataFile(t *testing.T) {
@@ -115,6 +114,17 @@ func TestDataFile(t *testing.T) {
 	got := string(buf[:n])
 	if got != want {
 		t.Errorf("got %q want %q", got, want)
+	}
+
+	replace := []byte("replaced!")
+	if err := ioutil.WriteFile(mntDir+"/file", replace, 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	if gotBytes, err := ioutil.ReadFile(mntDir + "/file"); err != nil {
+		t.Fatalf("ReadFile: %v", err)
+	} else if bytes.Compare(replace, gotBytes) != 0 {
+		t.Fatalf("read: got %q want %q", gotBytes, replace)
 	}
 }
 

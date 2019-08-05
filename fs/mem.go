@@ -6,6 +6,7 @@ package fs
 
 import (
 	"context"
+	"sync"
 	"syscall"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
@@ -15,27 +16,55 @@ import (
 // slice in memory.
 type MemRegularFile struct {
 	Inode
+
+	mu   sync.Mutex
 	Data []byte
 	Attr fuse.Attr
 }
 
 var _ = (NodeOpener)((*MemRegularFile)(nil))
 var _ = (NodeReader)((*MemRegularFile)(nil))
+var _ = (NodeWriter)((*MemRegularFile)(nil))
+var _ = (NodeSetattrer)((*MemRegularFile)(nil))
 var _ = (NodeFlusher)((*MemRegularFile)(nil))
 
 func (f *MemRegularFile) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
-	if flags&(syscall.O_RDWR) != 0 || flags&syscall.O_WRONLY != 0 {
-		return nil, 0, syscall.EPERM
+	return nil, fuse.FOPEN_KEEP_CACHE, OK
+}
+
+func (f *MemRegularFile) Write(ctx context.Context, fh FileHandle, data []byte, off int64) (uint32, syscall.Errno) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	end := int64(len(data)) + off
+	if int64(len(f.Data)) < end {
+		n := make([]byte, end)
+		copy(n, f.Data)
+		f.Data = n
 	}
 
-	return nil, fuse.FOPEN_KEEP_CACHE, OK
+	copy(f.Data[off:off+int64(len(data))], data)
+
+	return uint32(len(data)), 0
 }
 
 var _ = (NodeGetattrer)((*MemRegularFile)(nil))
 
 func (f *MemRegularFile) Getattr(ctx context.Context, fh FileHandle, out *fuse.AttrOut) syscall.Errno {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	out.Attr = f.Attr
 	out.Attr.Size = uint64(len(f.Data))
+	return OK
+}
+
+func (f *MemRegularFile) Setattr(ctx context.Context, fh FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if sz, ok := in.GetSize(); ok {
+		f.Data = f.Data[:sz]
+	}
+	out.Attr = f.Attr
+	out.Size = uint64(len(f.Data))
 	return OK
 }
 
@@ -44,6 +73,8 @@ func (f *MemRegularFile) Flush(ctx context.Context, fh FileHandle) syscall.Errno
 }
 
 func (f *MemRegularFile) Read(ctx context.Context, fh FileHandle, dest []byte, off int64) (fuse.ReadResult, syscall.Errno) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	end := int(off) + len(dest)
 	if end > len(f.Data) {
 		end = len(f.Data)
