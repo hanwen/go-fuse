@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/fuse"
 )
 
 func TestReadonlyCreate(t *testing.T) {

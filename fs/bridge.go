@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/hanwen/go-fuse/v2/fuse"
-	"github.com/hanwen/go-fuse/v2/internal"
+	"github.com/hanwen/go-fuse/fuse"
+	"github.com/hanwen/go-fuse/internal"
 )
 
 func errnoToStatus(errno syscall.Errno) fuse.Status {
