@@ -108,7 +108,7 @@ func (ms *Server) Unmount() (err error) {
 	}
 	delay := time.Duration(0)
 	for try := 0; try < 5; try++ {
-		err = unmount(ms.mountPoint)
+		err = unmount(ms.mountPoint, ms.opts)
 		if err == nil {
 			break
 		}
