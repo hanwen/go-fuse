@@ -7,6 +7,7 @@ package fuse
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -29,6 +30,41 @@ func unixgramSocketpair() (l, r *os.File, err error) {
 // Create a FUSE FS on the specified mount point.  The returned
 // mount point is always absolute.
 func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, err error) {
+	if os.Geteuid() == 0 {
+		// attempt to skip use of fusermount if running as root
+		fd, err := syscall.Open("/dev/fuse", os.O_RDWR, 0)
+		if err == nil {
+			// managed to open dev/fuse, attempt to mount
+			source := opts.FsName
+			if source == "" {
+				source = opts.Name
+			}
+
+			var flags uintptr
+			flags |= syscall.MS_NOSUID|syscall.MS_NODEV
+
+			// we build the option string here to make sure it doesn't include anything we should be handling here
+			var r []string
+			r = append(r, opts.Options...)
+
+			if opts.AllowOther {
+				r = append(r, "allow_other")
+			}
+
+			err = syscall.Mount(opts.FsName, mountPoint, "fuse."+opts.Name, flags, strings.Join(append(r, fmt.Sprintf("fd=%d,rootmode=40000,user_id=0,group_id=0", fd)), ","))
+			if err == nil {
+				// success
+				return fd, nil
+			} else if opts.Debug {
+				log.Printf("Warning: Call to mount failed: %s", err)
+			}
+			syscall.Close(fd)
+		} else if opts.Debug {
+			log.Printf("Warning: Failed to open /dev/fuse: %s", err)
+		}
+		// in case errors happened we just fall back to the standard fusermount process
+	}
+
 	local, remote, err := unixgramSocketpair()
 	if err != nil {
 		return
