@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ca753715_e8ca7901",
+        "filename": "fuse/mount_linux.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 33,
+      "author": {
+        "id": 1017031
+      },
+      "writtenOn": "2019-09-09T12:07:26Z",
+      "side": 1,
+      "message": "The check for EUID\u003d0 is actually not needed. /dev/fuse is usually readable-writable for _all_ users and it is sys.Mount that is usually failing with EPERM for non-root. However since we anyway fallback on using /bin/fusermount if any of open(/dev/fuse) or sys_mount fails, imho it is better to drop the `if EUID\u003d\u003d0` check and just see what kernel gives us.",
+      "revId": "c909554950e7bec0fd6d2bff35aaba80b5704a25",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e22caa13_38b339db",
+        "filename": "fuse/mount_linux.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 119,
+      "author": {
+        "id": 1017031
+      },
+      "writtenOn": "2019-09-09T12:07:26Z",
+      "side": 1,
+      "message": "We can do here similarly. Just try sys_umount, and if it is EPERM fallback to /bin/fusermount.",
+      "revId": "c909554950e7bec0fd6d2bff35aaba80b5704a25",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
