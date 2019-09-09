@@ -116,6 +116,13 @@ func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, e
 }
 
 func unmount(mountPoint string) (err error) {
+	if os.Geteuid() == 0 {
+		err := syscall.Unmount(mountPoint, 0)
+		if err == nil {
+			return nil
+		}
+	}
+
 	bin, err := fusermountBinary()
 	if err != nil {
 		return err
