@@ -96,6 +96,10 @@ func TestDataFile(t *testing.T) {
 		t.Errorf("got mode %o, want %o", st.Mode, want)
 	}
 
+	if st.Size != int64(len(want)) || st.Blocks != 8 || st.Blksize != 4096 {
+		t.Errorf("got %#v, want sz = %d, 8 blocks, 4096 blocksize", st, len(want))
+	}
+
 	fd, err := syscall.Open(mntDir+"/file", syscall.O_RDONLY, 0)
 	if err != nil {
 		t.Fatalf("Open: %v", err)
