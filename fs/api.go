@@ -222,7 +222,8 @@ type NodeAccesser interface {
 // FOPEN_DIRECTIO, Size should be set so it can be read correctly.  If
 // returning zeroed permissions, the default behavior is to change the
 // mode of 0755 (directory) or 0644 (files). This can be switched off
-// with the Options.NullPermissions setting.
+// with the Options.NullPermissions setting. If blksize is unset, 4096
+// is assumed, and the 'blocks' field is set accordingly.
 type NodeGetattrer interface {
 	Getattr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno
 }

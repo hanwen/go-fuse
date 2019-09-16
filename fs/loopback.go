@@ -56,7 +56,6 @@ func (n *loopbackNode) Statfs(ctx context.Context, out *fuse.StatfsOut) syscall.
 }
 
 func (n *loopbackRoot) Getattr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno {
-
 	st := syscall.Stat_t{}
 	err := syscall.Stat(n.rootPath, &st)
 	if err != nil {

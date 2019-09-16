@@ -159,6 +159,7 @@ func (b *rawBridge) setAttr(out *fuse.Attr) {
 	if b.options.GID != 0 && out.Gid == 0 {
 		out.Gid = b.options.GID
 	}
+	setBlocks(out)
 }
 
 func (b *rawBridge) setAttrTimeout(out *fuse.AttrOut) {
@@ -244,7 +245,6 @@ func (b *rawBridge) Lookup(cancel <-chan struct{}, header *fuse.InHeader, name s
 	child.setEntryOut(out)
 	b.addNewChild(parent, name, child, nil, 0, out)
 	b.setEntryOutTimeout(out)
-
 	return fuse.OK
 }
 
