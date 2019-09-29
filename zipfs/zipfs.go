@@ -84,7 +84,9 @@ func (zf *zipFile) Getattr(ctx context.Context, f fs.FileHandle, out *fuse.AttrO
 	out.Atime = out.Mtime
 	out.Ctime = out.Mtime
 	out.Size = zf.file.UncompressedSize64
-	out.Blocks = (out.Size + 511) / 512
+	const bs = 512
+	out.Blksize = bs
+	out.Blocks = (out.Size + bs - 1) / bs
 	return 0
 }
 
