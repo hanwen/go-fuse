@@ -545,6 +545,8 @@ retry:
 		for _, nm := range names {
 			ch := n.children[nm]
 			delete(n.children, nm)
+			delete(ch.parents, parentData{nm, n})
+
 			ch.changeCounter++
 		}
 		n.changeCounter++
