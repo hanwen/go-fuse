@@ -29,6 +29,7 @@ var All = map[string]func(*testing.T, string){
 	"NlinkZero":                  NlinkZero,
 	"ParallelFileOpen":           ParallelFileOpen,
 	"Link":                       Link,
+	"LinkUnlinkRename":           LinkUnlinkRename,
 	"RenameOverwriteDestNoExist": RenameOverwriteDestNoExist,
 	"RenameOverwriteDestExist":   RenameOverwriteDestExist,
 	"ReadDir":                    ReadDir,
@@ -345,5 +346,28 @@ func ReadDir(t *testing.T, mnt string) {
 		if !want[k] {
 			t.Errorf("got unknown name %q", k)
 		}
+	}
+}
+
+// LinkUnlinkRename implements rename with a link/unlink sequence
+func LinkUnlinkRename(t *testing.T, mnt string) {
+	content := []byte("hello")
+	tmp := mnt + "/tmpfile"
+	if err := ioutil.WriteFile(tmp, content, 0644); err != nil {
+		t.Fatalf("WriteFile %q: %v", tmp, err)
+	}
+
+	dest := mnt + "/file"
+	if err := syscall.Link(tmp, dest); err != nil {
+		t.Fatalf("Link %q %q: %v", tmp, dest, err)
+	}
+	if err := syscall.Unlink(tmp); err != nil {
+		t.Fatalf("Unlink %q: %v", tmp, err)
+	}
+
+	if back, err := ioutil.ReadFile(dest); err != nil {
+		t.Fatalf("Read %q: %v", dest, err)
+	} else if bytes.Compare(back, content) != 0 {
+		t.Fatalf("Read got %q want %q", back, content)
 	}
 }
