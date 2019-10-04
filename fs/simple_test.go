@@ -137,20 +137,6 @@ func TestBasic(t *testing.T) {
 	}
 }
 
-func TestFileBasic(t *testing.T) {
-	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
-	defer tc.Clean()
-
-	posixtest.FileBasic(t, tc.mntDir)
-}
-
-func TestFileTruncate(t *testing.T) {
-	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
-	defer tc.Clean()
-
-	posixtest.TruncateFile(t, tc.mntDir)
-}
-
 func TestFileFdLeak(t *testing.T) {
 	tc := newTestCase(t, &testOptions{
 		suppressDebug: true,
@@ -172,56 +158,6 @@ func TestFileFdLeak(t *testing.T) {
 	if got := len(bridge.files); got > 3 {
 		t.Errorf("found %d used file handles, should be <= 3", got)
 	}
-}
-
-func TestMkdir(t *testing.T) {
-	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
-	defer tc.Clean()
-
-	posixtest.MkdirRmdir(t, tc.mntDir)
-}
-
-func testRenameOverwrite(t *testing.T, destExists bool) {
-	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
-	defer tc.Clean()
-	posixtest.RenameOverwrite(t, tc.mntDir, destExists)
-}
-
-func TestRenameDestExist(t *testing.T) {
-	testRenameOverwrite(t, true)
-}
-
-func TestRenameDestNoExist(t *testing.T) {
-	testRenameOverwrite(t, false)
-}
-
-func TestNlinkZero(t *testing.T) {
-	// xfstest generic/035.
-	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
-	defer tc.Clean()
-
-	posixtest.NlinkZero(t, tc.mntDir)
-}
-
-func TestParallelFileOpen(t *testing.T) {
-	tc := newTestCase(t, &testOptions{suppressDebug: true, attrCache: true, entryCache: true})
-	defer tc.Clean()
-
-	posixtest.ParallelFileOpen(t, tc.mntDir)
-}
-
-func TestSymlink(t *testing.T) {
-	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
-	defer tc.Clean()
-
-	posixtest.SymlinkReadlink(t, tc.mntDir)
-}
-
-func TestLink(t *testing.T) {
-	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
-	defer tc.Clean()
-
-	posixtest.Link(t, tc.mntDir)
 }
 
 func TestNotifyEntry(t *testing.T) {
@@ -255,17 +191,6 @@ func TestNotifyEntry(t *testing.T) {
 	if err := syscall.Lstat(fn, &after); err != syscall.ENOENT {
 		t.Fatalf("Lstat after: got %v, want ENOENT", err)
 	}
-}
-
-func TestReadDir(t *testing.T) {
-	tc := newTestCase(t, &testOptions{
-		suppressDebug: true,
-		attrCache:     true,
-		entryCache:    true,
-	})
-	defer tc.Clean()
-
-	posixtest.ReadDir(t, tc.mntDir)
 }
 
 func TestReadDirStress(t *testing.T) {
@@ -407,11 +332,22 @@ func TestMknod(t *testing.T) {
 	}
 }
 
-func TestTruncate(t *testing.T) {
-	tc := newTestCase(t, &testOptions{})
-	defer tc.Clean()
+func TestPosix(t *testing.T) {
+	noisy := map[string]bool{
+		"ParallelFileOpen": true,
+		"ReadDir":          true,
+	}
 
-	posixtest.TruncateNoFile(t, tc.mntDir)
+	for nm, fn := range posixtest.All {
+		t.Run(nm, func(t *testing.T) {
+			tc := newTestCase(t, &testOptions{
+				suppressDebug: noisy[nm],
+				attrCache:     true, entryCache: true})
+			defer tc.Clean()
+
+			fn(t, tc.mntDir)
+		})
+	}
 }
 
 func init() {
