@@ -271,6 +271,7 @@ func (n *Inode) Path(root *Inode) string {
 		// We don't try to take all locks at the same time, because
 		// the caller won't use the "path" string under lock anyway.
 		p.mu.Lock()
+		// Select an arbitrary parent
 		for pd = range p.parents {
 			break
 		}
