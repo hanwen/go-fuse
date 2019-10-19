@@ -196,8 +196,14 @@ func TestNotifyEntry(t *testing.T) {
 func TestReadDirStress(t *testing.T) {
 	tc := newTestCase(t, &testOptions{suppressDebug: true, attrCache: true, entryCache: true})
 	defer tc.Clean()
-	// (ab)use posixtest.ReadDir to create 110 test files
-	posixtest.ReadDir(t, tc.mntDir)
+
+	// Create 110 entries
+	for i := 0; i < 110; i++ {
+		name := fmt.Sprintf("file%036x", i)
+		if err := ioutil.WriteFile(filepath.Join(tc.mntDir, name), []byte("hello"), 0644); err != nil {
+			t.Fatalf("WriteFile %q: %v", name, err)
+		}
+	}
 
 	var wg sync.WaitGroup
 	stress := func(gr int) {

@@ -312,39 +312,39 @@ func RenameOverwrite(t *testing.T, mnt string, destExists bool) {
 	}
 }
 
+// ReadDir creates 110 files one by one, checking that we get the expected
+// entries after each file creation.
 func ReadDir(t *testing.T, mnt string) {
-	f, err := os.Open(mnt)
-	if err != nil {
-		t.Fatalf("Open: %v", err)
-	}
-	defer f.Close()
-
-	// add entries after opening the directory
 	want := map[string]bool{}
+	// 40 bytes of filename, so 110 entries overflows a
+	// 4096 page.
 	for i := 0; i < 110; i++ {
-		// 40 bytes of filename, so 110 entries overflows a
-		// 4096 page.
 		nm := fmt.Sprintf("file%036x", i)
 		want[nm] = true
 		if err := ioutil.WriteFile(filepath.Join(mnt, nm), []byte("hello"), 0644); err != nil {
 			t.Fatalf("WriteFile %q: %v", nm, err)
 		}
-	}
-
-	names, err := f.Readdirnames(-1)
-	if err != nil {
-		t.Fatalf("ReadDir: %v", err)
-	}
-	got := map[string]bool{}
-	for _, e := range names {
-		got[e] = true
-	}
-	if len(got) != len(want) {
-		t.Errorf("got %d entries, want %d", len(got), len(want))
-	}
-	for k := range got {
-		if !want[k] {
-			t.Errorf("got unknown name %q", k)
+		// Verify that we get the expected entries
+		f, err := os.Open(mnt)
+		if err != nil {
+			t.Fatalf("Open: %v", err)
+		}
+		names, err := f.Readdirnames(-1)
+		if err != nil {
+			t.Fatalf("ReadDir: %v", err)
+		}
+		f.Close()
+		got := map[string]bool{}
+		for _, e := range names {
+			got[e] = true
+		}
+		if len(got) != len(want) {
+			t.Errorf("got %d entries, want %d", len(got), len(want))
+		}
+		for k := range got {
+			if !want[k] {
+				t.Errorf("got unknown name %q", k)
+			}
 		}
 	}
 }
