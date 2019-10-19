@@ -858,7 +858,7 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 	}
 
 	ctx := &fuse.Context{Caller: input.Caller, Cancel: cancel}
-	for f.dirStream.HasNext() {
+	for f.dirStream.HasNext() || f.hasOverflow {
 		var e fuse.DirEntry
 		var errno syscall.Errno
 
