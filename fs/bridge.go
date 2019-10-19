@@ -116,6 +116,9 @@ func (b *rawBridge) newInode(ctx context.Context, ops InodeEmbedder, id StableAt
 
 // addNewChild inserts the child into the tree. Returns file handle if file != nil.
 func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file FileHandle, fileFlags uint32, out *fuse.EntryOut) uint32 {
+	if name == "." || name == ".." {
+		log.Panicf("BUG: tried to add virtual entry %q to the actual tree", name)
+	}
 	lockNodes(parent, child)
 	parent.setEntry(name, child)
 	b.mu.Lock()
@@ -878,6 +881,15 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 			f.overflow = e
 			f.hasOverflow = true
 			return fuse.OK
+		}
+
+		// Virtual entries "." and ".." should be part of the
+		// directory listing, but not part of the filesystem tree.
+		// The values in EntryOut are ignored by Linux
+		// (see fuse_direntplus_link() in linux/fs/fuse/readdir.c), so leave
+		// them at zero-value.
+		if e.Name == "." || e.Name == ".." {
+			continue
 		}
 
 		child, errno := b.lookup(ctx, n, e.Name, entryOut)
