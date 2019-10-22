@@ -150,13 +150,9 @@ func FdLeak(t *testing.T, mnt string) {
 	}
 
 	if runtime.GOOS == "linux" {
-		infos, err := ioutil.ReadDir("/proc/self/fd")
-		if err != nil {
-			t.Errorf("ReadDir %v", err)
-		}
-
+		infos := listFds(0, "")
 		if len(infos) > 15 {
-			t.Errorf("found %d open file descriptors for 100x ReadFile", len(infos))
+			t.Errorf("found %d open file descriptors for 100x ReadFile: %v", len(infos), infos)
 		}
 	}
 }
