@@ -105,6 +105,14 @@ func (l *DirEntryList) AddDirLookupEntry(e DirEntry) *EntryOut {
 	return result
 }
 
+// FixMode overrides the mode of the last direntry that was added. This can
+// be needed when a directory changes while READDIRPLUS is running.
+func (l *DirEntryList) FixMode(mode uint32) {
+	oldLen := len(l.buf) - int(unsafe.Sizeof(_Dirent{}))
+	dirent := (*_Dirent)(unsafe.Pointer(&l.buf[oldLen]))
+	dirent.Typ = (mode & 0170000) >> 12
+}
+
 func (l *DirEntryList) bytes() []byte {
 	return l.buf
 }

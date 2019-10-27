@@ -902,9 +902,8 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 			child.setEntryOut(entryOut)
 			b.setEntryOutTimeout(entryOut)
 			if (e.Mode &^ 07777) != (child.stableAttr.Mode &^ 07777) {
-				// should go back and change the
-				// already serialized entry
-				log.Panicf("mode mismatch between readdir %o and lookup %o", e.Mode, child.stableAttr.Mode)
+				// The file type has changed behind our back. Use the new value.
+				out.FixMode(child.stableAttr.Mode)
 			}
 			entryOut.Mode = child.stableAttr.Mode | (entryOut.Mode & 07777)
 		}
