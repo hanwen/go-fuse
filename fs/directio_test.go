@@ -52,7 +52,8 @@ func (f *dioFile) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFl
 	return &dioFH{}, fuse.FOPEN_DIRECT_IO, OK
 }
 
-func TestDirectIO(t *testing.T) {
+// this tests FOPEN_DIRECT_IO (as opposed to O_DIRECTIO)
+func TestFUSEDirectIO(t *testing.T) {
 	root := &dioRoot{}
 	mntDir, server, clean := testMount(t, root, nil)
 	defer clean()
