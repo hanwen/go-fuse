@@ -50,7 +50,8 @@ type request struct {
 
 	// Request storage. For large inputs and outputs, use data
 	// obtained through bufferpool.
-	bufferPoolInputBuf  []byte
+	bufferPoolInputBuf []byte
+
 	bufferPoolOutputBuf []byte
 
 	// For small pieces of data, we use the following inlines

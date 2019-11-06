@@ -33,6 +33,52 @@ var All = map[string]func(*testing.T, string){
 	"RenameOverwriteDestNoExist": RenameOverwriteDestNoExist,
 	"RenameOverwriteDestExist":   RenameOverwriteDestExist,
 	"ReadDir":                    ReadDir,
+	"DirectIO":                   DirectIO,
+}
+
+func DirectIO(t *testing.T, mnt string) {
+	data := bytes.Repeat([]byte("hoi"), 4096)
+	fn := mnt + "/file.txt"
+	err := ioutil.WriteFile(fn, data, 0644)
+	if err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	fd, err := syscall.Open(fn, syscall.O_DIRECT|syscall.O_RDWR, 0644)
+	if err == syscall.EINVAL {
+		t.Skip("FS does not support O_DIRECT")
+	}
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer func() {
+		if fd != 0 {
+			syscall.Close(fd)
+		}
+	}()
+	data = bytes.Repeat([]byte("bye"), 4096)
+	if n, err := syscall.Write(fd, data); err != nil || n != len(data) {
+		t.Fatalf("Write: %v (%d)", err, n)
+	}
+
+	err = syscall.Close(fd)
+	fd = 0
+	if err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+	fd, err = syscall.Open(fn, syscall.O_DIRECT|syscall.O_RDWR, 0644)
+	if err != nil {
+		t.Fatalf("Open 2: %v", err)
+	}
+
+	roundtrip := bytes.Repeat([]byte("xxx"), 4096)
+	if n, err := syscall.Read(fd, data); err != nil || n != len(data) {
+		t.Fatalf("ReadAt: %v (%d)", err, n)
+	}
+
+	if bytes.Compare(roundtrip, data) != 0 {
+		t.Errorf("roundtrip made changes: got %q.., want %q..", roundtrip[:10], data[:10])
+	}
 }
 
 // SymlinkReadlink tests basic symlink functionality
