@@ -22,6 +22,7 @@ import (
 	"github.com/hanwen/go-fuse/v2/fuse/nodefs"
 	"github.com/hanwen/go-fuse/v2/fuse/pathfs"
 	"github.com/hanwen/go-fuse/v2/internal/testutil"
+	"github.com/hanwen/go-fuse/v2/posixtest"
 )
 
 type testCase struct {
@@ -236,26 +237,6 @@ func TestWriteThrough(t *testing.T) {
 	CompareSlices(t, slice[:n], content)
 }
 
-func TestMkdirRmdir(t *testing.T) {
-	tc := NewTestCase(t)
-	defer tc.Cleanup()
-
-	// Mkdir/Rmdir.
-	if err := os.Mkdir(tc.mountSubdir, 0777); err != nil {
-		t.Fatalf("Mkdir failed: %v", err)
-	}
-
-	if fi, err := os.Lstat(tc.origSubdir); err != nil {
-		t.Fatalf("Lstat(%q): %v", tc.origSubdir, err)
-	} else if !fi.IsDir() {
-		t.Errorf("Not a directory: %v", fi)
-	}
-
-	if err := os.Remove(tc.mountSubdir); err != nil {
-		t.Fatalf("Remove failed: %v", err)
-	}
-}
-
 func TestLinkCreate(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
@@ -399,71 +380,26 @@ func TestLinkForget(t *testing.T) {
 	}
 }
 
-func TestSymlink(t *testing.T) {
-	tc := NewTestCase(t)
-	defer tc.Cleanup()
-
-	contents := []byte{1, 2, 3}
-	tc.WriteFile(tc.origFile, []byte(contents), 0700)
-
-	linkFile := "symlink-file"
-	orig := "hello.txt"
-	err := os.Symlink(orig, filepath.Join(tc.mnt, linkFile))
-
-	if err != nil {
-		t.Fatalf("Symlink failed: %v", err)
+func TestPosix(t *testing.T) {
+	tests := []string{
+		"SymlinkReadlink",
+		"MkdirRmdir",
+		"RenameOverwriteDestNoExist",
+		"RenameOverwriteDestExist",
+		"ReadDir",
+		"ReadDirPicksUpCreate",
 	}
+	for _, k := range tests {
+		f := posixtest.All[k]
+		if f == nil {
+			t.Fatalf("test %s missing", k)
+		}
+		t.Run(k, func(t *testing.T) {
+			tc := NewTestCase(t)
+			defer tc.Cleanup()
 
-	origLink := filepath.Join(tc.orig, linkFile)
-	fi, err := os.Lstat(origLink)
-	if err != nil {
-		t.Fatalf("Lstat failed: %v", err)
-	}
-
-	if fi.Mode()&os.ModeSymlink == 0 {
-		t.Errorf("not a symlink: %v", fi)
-		return
-	}
-
-	read, err := os.Readlink(filepath.Join(tc.mnt, linkFile))
-	if err != nil {
-		t.Fatalf("Readlink failed: %v", err)
-	}
-
-	if read != orig {
-		t.Errorf("unexpected symlink value '%v'", read)
-	}
-}
-
-func TestRename(t *testing.T) {
-	tc := NewTestCase(t)
-	defer tc.Cleanup()
-
-	contents := []byte{1, 2, 3}
-	tc.WriteFile(tc.origFile, []byte(contents), 0700)
-	sd := tc.mnt + "/testRename"
-	tc.Mkdir(sd, 0777)
-
-	subFile := sd + "/subfile"
-	if err := os.Rename(tc.mountFile, subFile); err != nil {
-		t.Fatalf("Rename failed: %v", err)
-	}
-	f, _ := os.Lstat(tc.origFile)
-	if f != nil {
-		t.Errorf("original %v still exists.", tc.origFile)
-	}
-	if _, err := os.Lstat(subFile); err != nil {
-		t.Errorf("destination %q does not exist: %v", subFile, err)
-	}
-}
-
-func TestRenameNonExistent(t *testing.T) {
-	tc := NewTestCase(t)
-	defer tc.Cleanup()
-
-	err := os.Rename(tc.mnt+"/doesnotexist", tc.mnt+"/doesnotmatter")
-	if !os.IsNotExist(err) {
-		t.Errorf("got err %v, want ENOENT", err)
+			f(t, tc.mnt)
+		})
 	}
 }
 
@@ -490,24 +426,6 @@ func TestDelRename(t *testing.T) {
 
 	s := sd + "/src"
 	tc.WriteFile(s, []byte("blabla"), 0644)
-	if err := os.Rename(s, d); err != nil {
-		t.Fatalf("Rename failed: %v", err)
-	}
-}
-
-func TestOverwriteRename(t *testing.T) {
-	tc := NewTestCase(t)
-	defer tc.Cleanup()
-
-	sd := tc.mnt + "/testOverwriteRename"
-	tc.Mkdir(sd, 0755)
-
-	d := sd + "/dest"
-	tc.WriteFile(d, []byte("blabla"), 0644)
-
-	s := sd + "/src"
-	tc.WriteFile(s, []byte("blabla"), 0644)
-
 	if err := os.Rename(s, d); err != nil {
 		t.Fatalf("Rename failed: %v", err)
 	}
@@ -555,44 +473,6 @@ func TestMknod(t *testing.T) {
 		t.Errorf("Lstat(%q): %v", tc.origFile, err)
 	} else if fi.Mode()&os.ModeNamedPipe == 0 {
 		t.Errorf("Expected FIFO filetype, got %x", fi.Mode())
-	}
-}
-
-func TestReaddir(t *testing.T) {
-	tc := NewTestCase(t)
-	defer tc.Cleanup()
-
-	contents := []byte{1, 2, 3}
-	tc.Mkdir(tc.origSubdir, 0777)
-
-	dir, err := os.Open(tc.mnt)
-	if err != nil {
-		t.Fatalf("Open failed: %v", err)
-	}
-	defer dir.Close()
-
-	// READDIR should show "hello.txt" even if it is created after the OPENDIR.
-	// https://github.com/hanwen/go-fuse/issues/252
-	tc.WriteFile(tc.origFile, []byte(contents), 0700)
-
-	infos, err := dir.Readdir(10)
-	if err != nil {
-		t.Fatalf("Readdir failed: %v", err)
-	}
-
-	wanted := map[string]bool{
-		"hello.txt": true,
-		"subdir":    true,
-	}
-	if len(wanted) != len(infos) {
-		t.Errorf("Wrong number of directory entries: want=%d have=%d", len(wanted), len(infos))
-	} else {
-		for _, v := range infos {
-			_, ok := wanted[v.Name()]
-			if !ok {
-				t.Errorf("Unexpected name %v", v.Name())
-			}
-		}
 	}
 }
 
@@ -813,23 +693,6 @@ func TestLargeDirRead(t *testing.T) {
 	}
 }
 
-func TestRootDir(t *testing.T) {
-	tc := NewTestCase(t)
-	defer tc.Cleanup()
-
-	d, err := os.Open(tc.mnt)
-	if err != nil {
-		t.Fatalf("Open failed: %v", err)
-	}
-	if _, err := d.Readdirnames(-1); err != nil {
-		t.Fatalf("Readdirnames failed: %v", err)
-	}
-
-	if err := d.Close(); err != nil {
-		t.Fatalf("Close failed: %v", err)
-	}
-}
-
 func ioctl(fd int, cmd int, arg uintptr) (int, int) {
 	r0, _, e1 := syscall.Syscall(
 		syscall.SYS_IOCTL, uintptr(fd), uintptr(cmd), uintptr(arg))
@@ -1001,5 +864,4 @@ func TestLookupKnownChildrenAttrCopied(t *testing.T) {
 	} else if fi.Mode() != mode {
 		t.Fatalf("got mode %o, want %o", fi.Mode(), mode)
 	}
-
 }

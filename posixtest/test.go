@@ -33,6 +33,7 @@ var All = map[string]func(*testing.T, string){
 	"RenameOverwriteDestNoExist": RenameOverwriteDestNoExist,
 	"RenameOverwriteDestExist":   RenameOverwriteDestExist,
 	"ReadDir":                    ReadDir,
+	"ReadDirPicksUpCreate":       ReadDirPicksUpCreate,
 }
 
 // SymlinkReadlink tests basic symlink functionality
@@ -262,6 +263,10 @@ func Link(t *testing.T, mnt string) {
 	if st.Ino != beforeIno {
 		t.Errorf("Lstat after: got %d, want %d", st.Ino, beforeIno)
 	}
+
+	if st.Nlink != 2 {
+		t.Errorf("Expect 2 links, got %d", st.Nlink)
+	}
 }
 
 func RenameOverwriteDestNoExist(t *testing.T, mnt string) {
@@ -342,6 +347,27 @@ func ReadDir(t *testing.T, mnt string) {
 				t.Errorf("got unknown name %q", k)
 			}
 		}
+	}
+}
+
+// Readdir should pick file created after open, but before readdir.
+func ReadDirPicksUpCreate(t *testing.T, mnt string) {
+	f, err := os.Open(mnt)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+
+	if err := ioutil.WriteFile(mnt+"/file", []byte{42}, 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	names, err := f.Readdirnames(-1)
+	if err != nil {
+		t.Fatalf("ReadDir: %v", err)
+	}
+	f.Close()
+
+	if len(names) != 1 || names[0] != "file" {
+		t.Errorf("missing file created after opendir")
 	}
 }
 
