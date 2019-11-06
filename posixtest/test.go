@@ -20,6 +20,7 @@ import (
 )
 
 var All = map[string]func(*testing.T, string){
+	"AppendWrite":                AppendWrite,
 	"SymlinkReadlink":            SymlinkReadlink,
 	"FileBasic":                  FileBasic,
 	"TruncateFile":               TruncateFile,
@@ -391,5 +392,40 @@ func LinkUnlinkRename(t *testing.T, mnt string) {
 		t.Fatalf("Read %q: %v", dest, err)
 	} else if bytes.Compare(back, content) != 0 {
 		t.Fatalf("Read got %q want %q", back, content)
+	}
+}
+
+// test open with O_APPEND
+func AppendWrite(t *testing.T, mnt string) {
+	fd, err := syscall.Open(mnt+"/file", syscall.O_WRONLY|syscall.O_APPEND|syscall.O_CREAT, 0644)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer func() {
+		if fd != 0 {
+			syscall.Close(fd)
+		}
+	}()
+	if _, err := syscall.Write(fd, []byte("hello")); err != nil {
+		t.Fatalf("Write 1: %v", err)
+	}
+
+	if _, err := syscall.Write(fd, []byte("world")); err != nil {
+		t.Fatalf("Write 2: %v", err)
+	}
+
+	if err := syscall.Close(fd); err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	fd = 0
+	want := []byte("helloworld")
+
+	got, err := ioutil.ReadFile(mnt + "/file")
+	if err != nil {
+		t.Fatalf("ReadFile: %v", err)
+	}
+
+	if bytes.Compare(got, want) != 0 {
+		t.Errorf("got %q want %q", got, want)
 	}
 }

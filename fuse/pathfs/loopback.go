@@ -119,6 +119,9 @@ func (fs *loopbackFileSystem) OpenDir(name string, context *fuse.Context) (strea
 }
 
 func (fs *loopbackFileSystem) Open(name string, flags uint32, context *fuse.Context) (fuseFile nodefs.File, status fuse.Status) {
+	// filter out append. The kernel layer will translate the
+	// offsets for us appropriately.
+	flags = flags &^ syscall.O_APPEND
 	f, err := os.OpenFile(fs.GetPath(name), int(flags), 0)
 	if err != nil {
 		return nil, fuse.ToStatus(err)
@@ -190,6 +193,7 @@ func (fs *loopbackFileSystem) Access(name string, mode uint32, context *fuse.Con
 }
 
 func (fs *loopbackFileSystem) Create(path string, flags uint32, mode uint32, context *fuse.Context) (fuseFile nodefs.File, code fuse.Status) {
+	flags = flags &^ syscall.O_APPEND
 	f, err := os.OpenFile(fs.GetPath(path), int(flags)|os.O_CREATE, os.FileMode(mode))
 	return nodefs.NewLoopbackFile(f), fuse.ToStatus(err)
 }
