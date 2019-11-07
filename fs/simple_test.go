@@ -51,14 +51,18 @@ type testOptions struct {
 	entryCache    bool
 	attrCache     bool
 	suppressDebug bool
+	testDir       string
 }
 
 func newTestCase(t *testing.T, opts *testOptions) *testCase {
 	if opts == nil {
 		opts = &testOptions{}
 	}
+	if opts.testDir == "" {
+		opts.testDir = testutil.TempDir()
+	}
 	tc := &testCase{
-		dir: testutil.TempDir(),
+		dir: opts.testDir,
 		T:   t,
 	}
 	tc.origDir = tc.dir + "/orig"
@@ -354,6 +358,31 @@ func TestPosix(t *testing.T) {
 			fn(t, tc.mntDir)
 		})
 	}
+}
+
+func TestOpenDirectIO(t *testing.T) {
+	// Apparently, tmpfs does not allow O_DIRECT, so try to create
+	// a test temp directory in the home directory.
+	ext4Dir := filepath.Join(os.Getenv("HOME"), ".go-fuse-test")
+	if err := os.MkdirAll(ext4Dir, 0755); err != nil {
+		t.Fatalf("MkdirAll: %v", err)
+	}
+	defer os.RemoveAll(ext4Dir)
+
+	posixtest.DirectIO(t, ext4Dir)
+	if t.Failed() {
+		t.Skip("DirectIO failed on underlying FS")
+	}
+
+	opts := testOptions{
+		testDir:    ext4Dir,
+		attrCache:  true,
+		entryCache: true,
+	}
+
+	tc := newTestCase(t, &opts)
+	defer tc.Clean()
+	posixtest.DirectIO(t, tc.mntDir)
 }
 
 func init() {
