@@ -876,8 +876,8 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 			return errnoToStatus(errno)
 		}
 
-		entryOut := out.AddDirLookupEntry(e)
-		if entryOut == nil {
+		entryOut, direntOut := out.AddDirLookupEntry(e)
+		if entryOut == nil || direntOut == nil {
 			f.overflow = e
 			f.hasOverflow = true
 			return fuse.OK
@@ -903,7 +903,7 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 			b.setEntryOutTimeout(entryOut)
 			if (e.Mode &^ 07777) != (child.stableAttr.Mode &^ 07777) {
 				// The file type has changed behind our back. Use the new value.
-				out.FixMode(child.stableAttr.Mode)
+				direntOut.Typ = (child.stableAttr.Mode & 0170000) >> 12
 			}
 			entryOut.Mode = child.stableAttr.Mode | (entryOut.Mode & 07777)
 		}
