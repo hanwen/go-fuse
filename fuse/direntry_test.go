@@ -2,25 +2,10 @@ package fuse
 
 import (
 	"encoding/hex"
+	"strings"
 	"syscall"
 	"testing"
-	"unsafe"
 )
-
-// extractDirentplusTyp extracts _Dirent.Typ from the first entry in a
-// READDIRPLUS output buffer.
-func extractDirentplusTyp(buf []byte) uint32 {
-	// "buf" is a READDIRPLUS output buffer and looks like this in memory:
-	// 1) fuse.EntryOut
-	// 2) fuse._Dirent
-	// 3) Name (null-terminated)
-	// 4) Padding to align to 8 bytes
-	// [repeat]
-	off := int(unsafe.Sizeof(EntryOut{})) + int(unsafe.Offsetof(_Dirent{}.Typ))
-	_ = buf[off+3] // boundary check
-	typ := (*uint32)(unsafe.Pointer(&buf[off]))
-	return *typ
-}
 
 // TestFixMode tests that DirEntryList.FixMode() works as expected.
 func TestFixMode(t *testing.T) {
@@ -35,8 +20,8 @@ func TestFixMode(t *testing.T) {
 	// "typ" should look like a directory
 	have := extractDirentplusTyp(buf)
 	want := uint32(syscall.S_IFDIR) >> 12
-	if have != want {
-		t.Errorf("wrong type: %x, want %x", have, want)
+	if *have != want {
+		t.Errorf("wrong type: %x, want %x", *have, want)
 		t.Log(hex.Dump(buf))
 	}
 
@@ -45,8 +30,31 @@ func TestFixMode(t *testing.T) {
 	dirents.FixMode(syscall.S_IFREG)
 	have = extractDirentplusTyp(buf)
 	want = uint32(syscall.S_IFREG) >> 12
-	if have != want {
-		t.Errorf("wrong type: %x, want %x", have, want)
+	if *have != want {
+		t.Errorf("wrong type: %x, want %x", *have, want)
 		t.Log(hex.Dump(buf))
+	}
+}
+
+// TestExtractDirentplusTyp tests that extractDirentplusTyp works as expected
+func TestExtractDirentplusTyp(t *testing.T) {
+	buf := make([]byte, 100000)
+	dirents := NewDirEntryList(buf, 0)
+	for i := uint32(0); i < 255; i++ {
+		// Exercise all possible values (even if they make no sense)
+		want := i & 017
+		e := DirEntry{
+			Mode: want << 12,
+			// Exercise all possible name lengths
+			Name: strings.Repeat("x", int(i)),
+		}
+		res := dirents.AddDirLookupEntry(e)
+		if res == nil {
+			t.Fatal("buf too small")
+		}
+		have := extractDirentplusTyp(dirents.buf[dirents.lastEntry:])
+		if *have != want {
+			t.Error()
+		}
 	}
 }

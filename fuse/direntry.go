@@ -36,9 +36,10 @@ func (d DirEntry) String() string {
 // DirEntryList holds the return value for READDIR and READDIRPLUS
 // opcodes.
 type DirEntryList struct {
-	buf    []byte
-	size   int
-	offset uint64
+	buf       []byte
+	size      int    // capacity of the underlying buffer
+	offset    uint64 // entry count (NOT a byte offset)
+	lastEntry int    // byte offset of the last entry. Used by FixMode().
 }
 
 // NewDirEntryList creates a DirEntryList with the given data buffer
@@ -66,6 +67,7 @@ func (l *DirEntryList) Add(prefix int, name string, inode uint64, mode uint32) b
 	padding := (8 - len(name)&7) & 7
 	delta := padding + direntSize + len(name) + prefix
 	oldLen := len(l.buf)
+	l.lastEntry = oldLen
 	newLen := delta + oldLen
 
 	if newLen > l.size {
@@ -108,11 +110,24 @@ func (l *DirEntryList) AddDirLookupEntry(e DirEntry) *EntryOut {
 // FixMode overrides the mode of the last direntry that was added. This can
 // be needed when a directory changes while READDIRPLUS is running.
 func (l *DirEntryList) FixMode(mode uint32) {
-	oldLen := len(l.buf) - int(unsafe.Sizeof(_Dirent{}))
-	dirent := (*_Dirent)(unsafe.Pointer(&l.buf[oldLen]))
-	dirent.Typ = (mode & 0170000) >> 12
+	typ := extractDirentplusTyp(l.buf[l.lastEntry:])
+	*typ = (mode & 0170000) >> 12
 }
 
 func (l *DirEntryList) bytes() []byte {
 	return l.buf
+}
+
+// extractDirentplusTyp extracts _Dirent.Typ from the first entry in a
+// READDIRPLUS output buffer.
+func extractDirentplusTyp(buf []byte) *uint32 {
+	// "buf" is a READDIRPLUS output buffer and looks like this in memory:
+	// 1) fuse.EntryOut
+	// 2) fuse._Dirent
+	// 3) Name (null-terminated)
+	// 4) Padding to align to 8 bytes
+	off := int(unsafe.Sizeof(EntryOut{})) + int(unsafe.Offsetof(_Dirent{}.Typ))
+	_ = buf[off+3] // boundary check
+	typ := (*uint32)(unsafe.Pointer(&buf[off]))
+	return typ
 }
