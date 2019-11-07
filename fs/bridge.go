@@ -899,7 +899,7 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 			b.addNewChild(n, e.Name, child, nil, 0, entryOut)
 			child.setEntryOut(entryOut)
 			b.setEntryOutTimeout(entryOut)
-			if (e.Mode &^ 07777) != (child.stableAttr.Mode &^ 07777) {
+			if e.Mode&syscall.S_IFMT != child.stableAttr.Mode&syscall.S_IFMT {
 				// The file type has changed behind our back. Use the new value.
 				out.FixMode(child.stableAttr.Mode)
 			}
