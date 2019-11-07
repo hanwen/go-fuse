@@ -15,6 +15,7 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"unsafe"
 )
 
 const (
@@ -175,8 +176,11 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 			cancel: make(chan struct{}),
 		}
 	}
-	ms.readPool.New = func() interface{} { return make([]byte, o.MaxWrite+pageSize) }
-
+	ms.readPool.New = func() interface{} {
+		buf := make([]byte, o.MaxWrite+int(maxInputSize)+logicalBlockSize)
+		buf = alignSlice(buf, unsafe.Sizeof(WriteIn{}), logicalBlockSize, uintptr(o.MaxWrite)+maxInputSize)
+		return buf
+	}
 	mountPoint = filepath.Clean(mountPoint)
 	if !filepath.IsAbs(mountPoint) {
 		cwd, err := os.Getwd()
@@ -479,6 +483,15 @@ func (ms *Server) handleRequest(req *request) Status {
 	return Status(errNo)
 }
 
+// alignSlice ensures that the byte at alignedByte is aligned with the
+// given logical block size.  The input slice should be at least (size
+// + blockSize)
+func alignSlice(buf []byte, alignedByte, blockSize, size uintptr) []byte {
+	misaligned := uintptr(unsafe.Pointer(&buf[alignedByte])) & (blockSize - 1)
+	buf = buf[blockSize-misaligned:]
+	return buf[:size]
+}
+
 func (ms *Server) allocOut(req *request, size uint32) []byte {
 	if cap(req.bufferPoolOutputBuf) >= int(size) {
 		req.bufferPoolOutputBuf = req.bufferPoolOutputBuf[:size]
@@ -486,7 +499,10 @@ func (ms *Server) allocOut(req *request, size uint32) []byte {
 	}
 	if req.bufferPoolOutputBuf != nil {
 		ms.buffers.FreeBuffer(req.bufferPoolOutputBuf)
+		req.bufferPoolOutputBuf = nil
 	}
+	// As this allocated a multiple of the page size, very likely
+	// this is aligned to logicalBlockSize too, which is smaller.
 	req.bufferPoolOutputBuf = ms.buffers.AllocBuffer(size)
 	return req.bufferPoolOutputBuf
 }
