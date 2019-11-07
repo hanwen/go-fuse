@@ -37,8 +37,8 @@ func (d DirEntry) String() string {
 // opcodes.
 type DirEntryList struct {
 	buf    []byte
-	size   int
-	offset uint64
+	size   int    // capacity of the underlying buffer
+	offset uint64 // entry count (NOT a byte offset)
 }
 
 // NewDirEntryList creates a DirEntryList with the given data buffer
@@ -90,27 +90,28 @@ func (l *DirEntryList) Add(prefix int, name string, inode uint64, mode uint32) b
 	return true
 }
 
-// AddDirLookupEntry is used for ReadDirPlus. It serializes a DirEntry
-// and returns the space for entry. If no space is left, returns a nil
-// pointer.
-func (l *DirEntryList) AddDirLookupEntry(e DirEntry) *EntryOut {
-	lastStart := len(l.buf)
-	ok := l.Add(int(unsafe.Sizeof(EntryOut{})), e.Name,
-		e.Ino, e.Mode)
+// AddDirLookupEntry is used for ReadDirPlus. If reserves and zeroizes space
+// for an EntryOut struct and serializes a DirEntry.
+// On success, it returns pointers to both structs.
+// If not enough space was left, it returns two nil pointers.
+//
+// The resulting READDIRPLUS output buffer looks like this in memory:
+// 1) EntryOut{}
+// 2) _Dirent{}
+// 3) Name (null-terminated)
+// 4) Padding to align to 8 bytes
+// [repeat]
+func (l *DirEntryList) AddDirLookupEntry(e DirEntry) (*EntryOut, *_Dirent) {
+	const entryOutSize = int(unsafe.Sizeof(EntryOut{}))
+	oldLen := len(l.buf)
+	ok := l.Add(entryOutSize, e.Name, e.Ino, e.Mode)
 	if !ok {
-		return nil
+		return nil, nil
 	}
-	result := (*EntryOut)(unsafe.Pointer(&l.buf[lastStart]))
-	*result = EntryOut{}
-	return result
-}
-
-// FixMode overrides the mode of the last direntry that was added. This can
-// be needed when a directory changes while READDIRPLUS is running.
-func (l *DirEntryList) FixMode(mode uint32) {
-	oldLen := len(l.buf) - int(unsafe.Sizeof(_Dirent{}))
-	dirent := (*_Dirent)(unsafe.Pointer(&l.buf[oldLen]))
-	dirent.Typ = (mode & 0170000) >> 12
+	entryOut := (*EntryOut)(unsafe.Pointer(&l.buf[oldLen]))
+	*entryOut = EntryOut{} // zeroize
+	dirent := (*_Dirent)(unsafe.Pointer(&l.buf[oldLen+entryOutSize]))
+	return entryOut, dirent
 }
 
 func (l *DirEntryList) bytes() []byte {

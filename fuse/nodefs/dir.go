@@ -91,7 +91,7 @@ func (d *connectorDir) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, o
 
 		// we have to be sure entry will fit if we try to add
 		// it, or we'll mess up the lookup counts.
-		entryDest := out.AddDirLookupEntry(e)
+		entryDest, _ := out.AddDirLookupEntry(e)
 		if entryDest == nil {
 			break
 		}
