@@ -32,4 +32,6 @@ const (
 	CUSE_INIT = 4096
 
 	O_ANYWRITE = uint32(os.O_WRONLY | os.O_RDWR | os.O_APPEND | os.O_CREATE | os.O_TRUNC)
+
+	logicalBlockSize = 512
 )
