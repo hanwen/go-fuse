@@ -465,6 +465,7 @@ func (b *rawBridge) Rename(cancel <-chan struct{}, input *fuse.RenameIn, oldName
 
 			return errnoToStatus(errno)
 		}
+		return errno
 	}
 	return fuse.ENOTSUP
 }
