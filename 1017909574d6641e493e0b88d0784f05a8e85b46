@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "82e421f0_f20bf94b",
+        "filename": "fuse/direntry.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 129,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2019-11-08T14:48:28Z",
+      "side": 1,
+      "message": "I agree with sleckner\u0027s comment: could we just store the pointer to the last one of these and avoid the arithmetic?",
+      "range": {
+        "startLine": 129,
+        "startChar": 19,
+        "endLine": 129,
+        "endChar": 25
+      },
+      "revId": "1017909574d6641e493e0b88d0784f05a8e85b46",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
