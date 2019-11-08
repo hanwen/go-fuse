@@ -6,7 +6,9 @@ package fs
 
 import (
 	"context"
-	"math/rand"
+	"fmt"
+	"hash/crc32"
+	"log"
 	"os"
 	"syscall"
 	"testing"
@@ -26,7 +28,8 @@ func (fn *randomTypeTest) Lookup(ctx context.Context, name string, out *fuse.Ent
 	stable := StableAttr{
 		Mode: fuse.S_IFDIR,
 	}
-	if rand.Intn(2) == 0 {
+
+	if crc32.ChecksumIEEE([]byte(name))%2 == 0 {
 		stable.Mode = fuse.S_IFREG
 	}
 
@@ -41,7 +44,7 @@ func (fn *randomTypeTest) Readdir(ctx context.Context) (DirStream, syscall.Errno
 
 	for i := 0; i < 100; i++ {
 		entries = append(entries, fuse.DirEntry{
-			Name: "one",
+			Name: fmt.Sprintf("%d", i),
 			Mode: fuse.S_IFDIR,
 		})
 	}
@@ -60,8 +63,21 @@ func TestReaddirTypeFixup(t *testing.T) {
 	}
 	defer f.Close()
 
-	// No panic.
-	if _, err := f.Readdir(-1); err != nil {
+	ds, errno := NewLoopbackDirStream(mntDir)
+	if errno != 0 {
 		t.Fatalf("readdir: %v", err)
+	}
+
+	for ds.HasNext() {
+		e, err := ds.Next()
+		if err != 0 {
+			t.Errorf("Next: %d", err)
+		}
+		log.Println(e.Name)
+		gotIsDir := (e.Mode & syscall.S_IFDIR) != 0
+		wantIsdir := (crc32.ChecksumIEEE([]byte(e.Name)) % 2) == 1
+		if gotIsDir != wantIsdir {
+			t.Errorf("%q: isdir %v, want %v", e.Name, gotIsDir, wantIsdir)
+		}
 	}
 }
