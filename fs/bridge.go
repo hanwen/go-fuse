@@ -462,9 +462,8 @@ func (b *rawBridge) Rename(cancel <-chan struct{}, input *fuse.RenameIn, oldName
 					log.Println("MvChild failed")
 				}
 			}
-
-			return errnoToStatus(errno)
 		}
+		return errnoToStatus(errno)
 	}
 	return fuse.ENOTSUP
 }
