@@ -431,11 +431,10 @@ func (b *rawBridge) getattr(ctx context.Context, n *Inode, f FileHandle, out *fu
 func (b *rawBridge) SetAttr(cancel <-chan struct{}, in *fuse.SetAttrIn, out *fuse.AttrOut) fuse.Status {
 	ctx := &fuse.Context{Caller: in.Caller, Cancel: cancel}
 
-	n, fEntry := b.inode(in.NodeId, in.Fh)
+	fh, _ := in.GetFh()
+
+	n, fEntry := b.inode(in.NodeId, fh)
 	f := fEntry.file
-	if in.Valid&fuse.FATTR_FH == 0 {
-		f = nil
-	}
 
 	var errno = syscall.ENOTSUP
 	if fops, ok := n.ops.(NodeSetattrer); ok {

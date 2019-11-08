@@ -159,6 +159,7 @@ type SetAttrInCommon struct {
 	Unused5 uint32
 }
 
+// GetFh returns the file handle if available, or 0 if undefined.
 func (s *SetAttrInCommon) GetFh() (uint64, bool) {
 	if s.Valid&FATTR_FH != 0 {
 		return s.Fh, true
