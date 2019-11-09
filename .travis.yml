@@ -26,7 +26,13 @@ install:
   - go get -t -race ./...
 
 # Travis CI has a no-output-timeout of 10 minutes.
-# Set a lower test timeout so we get proper backtraces
+# Set "go test -timeout" lower so we get proper backtraces
 # on a hung test.
+# The tests sometimes hang in a way that "go test -timeout"
+# does not work anymore. Use the external "timeout" command
+# as backup, triggering 1 minute later.
 script:
-  - go test -timeout 5m -v ./...
+  - set -e # fail fast
+  - timeout -s QUIT -k 10s 90s go test -failfast -timeout 1m -v ./fs
+  - timeout -s QUIT -k 10s 6m  go test -failfast -timeout 5m -v ./...
+  - set +e # restore
