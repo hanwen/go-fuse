@@ -59,6 +59,10 @@ func (b *rawBridge) newInodeUnlocked(ops InodeEmbedder, id StableAttr, persisten
 	if id.Reserved() {
 		log.Panicf("using reserved ID %d for inode number", id.Ino)
 	}
+	id.Mode = id.Mode &^ 07777
+	if id.Mode == 0 {
+		id.Mode = fuse.S_IFREG
+	}
 
 	// This ops already was populated. Just return it.
 	if ops.embed().bridge != nil {
@@ -87,14 +91,33 @@ func (b *rawBridge) newInodeUnlocked(ops InodeEmbedder, id StableAttr, persisten
 	// dir1.Lookup("file") and dir2.Lookup("file") are executed
 	// simultaneously.  The matching StableAttrs ensure that we return the
 	// same node.
-	old := b.nodes[id.Ino]
-	if old != nil {
+	for {
+		old := b.nodes[id.Ino]
+		if old == nil {
+			break
+		}
+		// Node already exists - increment lookupCount and return it.
+		//
+		// The inode lock must be taken before the bridge lock to prevent
+		// deadlock. So unlock and relock in the right order.
+		b.mu.Unlock()
+		// b.nodes[id.Ino] may get replaced here!
+		old.mu.Lock()
+		b.mu.Lock()
+		// Check that b.nodes[id.Ino] is still the same, otherwise try again
+		old2 := b.nodes[id.Ino]
+		if old != old2 {
+			// try again
+			old.mu.Unlock()
+			continue
+		}
+		if old.stableAttr != id {
+			log.Printf("type mismatch: old=%x new=%x\n", old.stableAttr.Mode, id.Mode)
+		}
+		old.lookupCount++
+		old.changeCounter++
+		old.mu.Unlock()
 		return old
-	}
-
-	id.Mode = id.Mode &^ 07777
-	if id.Mode == 0 {
-		id.Mode = fuse.S_IFREG
 	}
 
 	b.nodes[id.Ino] = ops.embed()
@@ -122,8 +145,6 @@ func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file F
 	lockNodes(parent, child)
 	parent.setEntry(name, child)
 	b.mu.Lock()
-
-	child.lookupCount++
 
 	var fh uint32
 	if file != nil {
