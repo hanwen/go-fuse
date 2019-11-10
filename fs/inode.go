@@ -114,6 +114,7 @@ func initInode(n *Inode, ops InodeEmbedder, attr StableAttr, bridge *rawBridge, 
 	n.bridge = bridge
 	n.persistent = persistent
 	n.parents = make(map[parentData]struct{})
+	n.lookupCount = 1
 	if attr.Mode == fuse.S_IFDIR {
 		n.children = make(map[string]*Inode)
 	}
