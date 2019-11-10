@@ -112,7 +112,14 @@ func (b *rawBridge) newInodeUnlocked(ops InodeEmbedder, id StableAttr, persisten
 			continue
 		}
 		if old.stableAttr != id {
-			log.Printf("type mismatch: old=%x new=%x\n", old.stableAttr.Mode, id.Mode)
+			// The inode number changed file type. This means the old inode
+			// was deleted (but have not processed the FORGET yet) and recreated.
+			// Wait for the FORGET to arrive.
+			// TODO: use a less stupid way to wait for the FORGET? Solve the problem
+			// another way?
+			old.mu.Unlock()
+			time.Sleep(1 * time.Millisecond)
+			continue
 		}
 		old.lookupCount++
 		old.changeCounter++
