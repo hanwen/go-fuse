@@ -45,6 +45,7 @@ func main() {
 	// Scans the arg list and sets up flags
 	debug := flag.Bool("debug", false, "print debugging messages.")
 	other := flag.Bool("allow-other", false, "mount with -o allowother.")
+	quiet := flag.Bool("q", false, "quiet")
 	cpuprofile := flag.String("cpuprofile", "", "write cpu profile to this file")
 	memprofile := flag.String("memprofile", "", "write memory profile to this file")
 	flag.Parse()
@@ -55,7 +56,9 @@ func main() {
 		os.Exit(2)
 	}
 	if *cpuprofile != "" {
-		fmt.Printf("Writing cpu profile to %s\n", *cpuprofile)
+		if !*quiet {
+			fmt.Printf("Writing cpu profile to %s\n", *cpuprofile)
+		}
 		f, err := os.Create(*cpuprofile)
 		if err != nil {
 			fmt.Println(err)
@@ -65,13 +68,17 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 	if *memprofile != "" {
-		log.Printf("send SIGUSR1 to %d to dump memory profile", os.Getpid())
+		if !*quiet {
+			log.Printf("send SIGUSR1 to %d to dump memory profile", os.Getpid())
+		}
 		profSig := make(chan os.Signal, 1)
 		signal.Notify(profSig, syscall.SIGUSR1)
 		go writeMemProfile(*memprofile, profSig)
 	}
 	if *cpuprofile != "" || *memprofile != "" {
-		fmt.Printf("Note: You must unmount gracefully, otherwise the profile file(s) will stay empty!\n")
+		if !*quiet {
+			fmt.Printf("Note: You must unmount gracefully, otherwise the profile file(s) will stay empty!\n")
+		}
 	}
 
 	orig := flag.Arg(1)
@@ -97,7 +104,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Mount fail: %v\n", err)
 	}
-
-	fmt.Println("Mounted!")
+	if !*quiet {
+		fmt.Println("Mounted!")
+	}
 	server.Wait()
 }
