@@ -7,6 +7,7 @@ package fs
 import (
 	"context"
 	"log"
+	"math/rand"
 	"sync"
 	"syscall"
 	"time"
@@ -76,6 +77,12 @@ func (b *rawBridge) newInodeUnlocked(ops InodeEmbedder, id StableAttr, persisten
 		}
 	}
 
+	// Only the file type bits matter
+	id.Mode = id.Mode & syscall.S_IFMT
+	if id.Mode == 0 {
+		id.Mode = fuse.S_IFREG
+	}
+
 	// the same node can be looked up through 2 paths in parallel, eg.
 	//
 	//	    root
@@ -87,19 +94,43 @@ func (b *rawBridge) newInodeUnlocked(ops InodeEmbedder, id StableAttr, persisten
 	// dir1.Lookup("file") and dir2.Lookup("file") are executed
 	// simultaneously.  The matching StableAttrs ensure that we return the
 	// same node.
-	old := b.nodes[id.Ino]
-	if old != nil {
-		return old
-	}
-
-	id.Mode = id.Mode &^ 07777
-	if id.Mode == 0 {
-		id.Mode = fuse.S_IFREG
+	var t time.Duration
+	for {
+		old := b.nodes[id.Ino]
+		if old == nil {
+			break
+		}
+		if old.stableAttr == id {
+			return old
+		}
+		b.mu.Unlock()
+		const typechangeDebug = false
+		if typechangeDebug {
+			log.Printf("Ino:%d typechange %#x -> %#x, sleep=%v", old.stableAttr.Ino, old.stableAttr.Mode,
+				id.Mode, t)
+		}
+		t = expSleep(t)
+		b.mu.Lock()
 	}
 
 	b.nodes[id.Ino] = ops.embed()
 	initInode(ops.embed(), ops, id, b, persistent)
 	return ops.embed()
+}
+
+// expSleep sleeps for time `t` and returns an exponentially increasing value
+// for the next sleep time, capped at 1 ms.
+func expSleep(t time.Duration) time.Duration {
+	if t == 0 {
+		return time.Microsecond
+	}
+	time.Sleep(t)
+	// Next sleep is between t and 2*t
+	t += time.Duration(rand.Int63n(int64(t)))
+	if t >= time.Millisecond {
+		return time.Millisecond
+	}
+	return t
 }
 
 func (b *rawBridge) newInode(ctx context.Context, ops InodeEmbedder, id StableAttr, persistent bool) *Inode {
