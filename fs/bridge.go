@@ -123,7 +123,13 @@ func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file F
 	parent.setEntry(name, child)
 	b.mu.Lock()
 
+	// Due to concurrent FORGETs, lookupCount may have dropped to zero.
+	// This means it MAY have been deleted from nodes[] already. Add it back.
+	if child.lookupCount == 0 {
+		b.nodes[child.stableAttr.Ino] = child
+	}
 	child.lookupCount++
+	child.changeCounter++
 
 	var fh uint32
 	if file != nil {
