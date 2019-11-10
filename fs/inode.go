@@ -64,9 +64,8 @@ type Inode struct {
 
 	// Following data is mutable.
 
-	// protected by bridge.mu
-
 	// file handles.
+	// protected by bridge.mu
 	openFiles []uint32
 
 	// mu protects the following mutable fields. When locking
@@ -78,6 +77,7 @@ type Inode struct {
 	// from the tree, even if there are no live references. This
 	// must be set on creation, and can only be changed to false
 	// by calling removeRef.
+	// When you change this, you MUST increment changeCounter.
 	persistent bool
 
 	// changeCounter increments every time the mutable state
@@ -90,10 +90,16 @@ type Inode struct {
 	changeCounter uint32
 
 	// Number of kernel refs to this node.
+	// When you change this, you MUST increment changeCounter.
 	lookupCount uint64
 
+	// Children of this Inode.
+	// When you change this, you MUST increment changeCounter.
 	children map[string]*Inode
-	parents  map[parentData]struct{}
+
+	// Parents of this Inode. Can be more than one due to hard links.
+	// When you change this, you MUST increment changeCounter.
+	parents map[parentData]struct{}
 }
 
 func (n *Inode) IsDir() bool {
