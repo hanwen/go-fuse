@@ -405,9 +405,12 @@ retry:
 			panic("lookupCount changed")
 		}
 
-		n.bridge.mu.Lock()
+		// keep intermediant reference to bridge
+		bridge := n.bridge
+		bridge.mu.Lock()
 		delete(n.bridge.nodes, n.stableAttr.Ino)
-		n.bridge.mu.Unlock()
+		n.bridge = nil
+		bridge.mu.Unlock()
 
 		unlockNodes(lockme...)
 		break
