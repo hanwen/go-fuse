@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7a4972e8_c3ede1d4",
+        "filename": "fs/bridge.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 121,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2019-11-22T09:49:59Z",
+      "side": 1,
+      "message": "this is too long. Can you try exponential backoff here?  I\u0027d suggest waiting for a microsecond and then multiplying the delay with factor (1 + rand(1)) until the delay is 1 ms.",
+      "range": {
+        "startLine": 121,
+        "startChar": 23,
+        "endLine": 121,
+        "endChar": 34
+      },
+      "revId": "c8f877c2a777b528361d1bbdfc20a84a9d867d1e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
