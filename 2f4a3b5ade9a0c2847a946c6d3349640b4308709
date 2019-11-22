@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8b46af6f_aab27ad6",
+        "filename": "fuse/direntry.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 104,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2019-11-22T09:58:10Z",
+      "side": 1,
+      "message": "this is a private type, but DirEntryList and AddDirLookupEntry is public.\n\nCan we have DirEntryList.FixupMode() method instead?",
+      "range": {
+        "startLine": 104,
+        "startChar": 65,
+        "endLine": 104,
+        "endChar": 73
+      },
+      "revId": "2f4a3b5ade9a0c2847a946c6d3349640b4308709",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
