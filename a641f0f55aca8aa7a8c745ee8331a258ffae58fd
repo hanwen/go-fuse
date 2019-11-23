@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "e726f49e_f0c5eb6e",
+        "filename": "fs/bridge.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 62,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2019-11-23T16:31:05Z",
+      "side": 1,
+      "message": "This has to be moved up because otherwise the\n\nif old.stableAttr !\u003d id\n\ncheck does not work",
+      "parentUuid": "3cd3dc63_581ab952",
+      "range": {
+        "startLine": 62,
+        "startChar": 14,
+        "endLine": 62,
+        "endChar": 18
+      },
+      "revId": "a641f0f55aca8aa7a8c745ee8331a258ffae58fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5f195fb0_7d206556",
         "filename": "fs/inode.go",
         "patchSetId": 2
@@ -45,6 +69,30 @@
       "revId": "a641f0f55aca8aa7a8c745ee8331a258ffae58fd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d5b683a3_59414a60",
+        "filename": "fs/inode.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 117,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2019-11-23T16:31:05Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5f195fb0_7d206556",
+      "range": {
+        "startLine": 117,
+        "startChar": 3,
+        "endLine": 117,
+        "endChar": 14
+      },
+      "revId": "a641f0f55aca8aa7a8c745ee8331a258ffae58fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
