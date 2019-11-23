@@ -22,6 +22,30 @@
       "revId": "2f4a3b5ade9a0c2847a946c6d3349640b4308709",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0e864137_7b3fab88",
+        "filename": "fuse/direntry.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 104,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2019-11-23T16:28:50Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "8b46af6f_aab27ad6",
+      "range": {
+        "startLine": 104,
+        "startChar": 65,
+        "endLine": 104,
+        "endChar": 73
+      },
+      "revId": "2f4a3b5ade9a0c2847a946c6d3349640b4308709",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
