@@ -5,6 +5,9 @@
 package fs
 
 import (
+	"context"
+	"os"
+	"syscall"
 	"testing"
 	"unsafe"
 
@@ -74,4 +77,48 @@ func TestBridgeReaddirPlusVirtualEntries(t *testing.T) {
 	if entry2.NodeId != 0 {
 		t.Errorf("entry2 NodeId should be 0, but is %d", entry2.NodeId)
 	}
+}
+
+// TestTypeChange simulates inode number reuse that happens on real
+// filesystems. For go-fuse, inode number reuse can look like a file changing
+// to a directory or vice versa. Acutally, the old inode does not exist anymore,
+// we just have not received the FORGET yet.
+func TestTypeChange(t *testing.T) {
+	rootNode := testTypeChangeIno{}
+	mnt, _, clean := testMount(t, &rootNode, nil)
+	defer clean()
+
+	for i := 0; i < 100; i++ {
+		fi, _ := os.Stat(mnt + "/file")
+		syscall.Unlink(mnt + "/file")
+		fi, _ = os.Stat(mnt + "/dir")
+		if !fi.IsDir() {
+			t.Fatal("should be a dir now")
+		}
+		syscall.Rmdir(mnt + "/dir")
+		fi, _ = os.Stat(mnt + "/file")
+		if fi.IsDir() {
+			t.Fatal("should be a file now")
+		}
+	}
+}
+
+type testTypeChangeIno struct {
+	Inode
+}
+
+// Lookup function for TestTypeChange: if name == "dir", returns a node of
+// type dir, otherwise of type file.
+func (fn *testTypeChangeIno) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
+	mode := uint32(fuse.S_IFREG)
+	if name == "dir" {
+		mode = fuse.S_IFDIR
+	}
+	stable := StableAttr{
+		Mode: mode,
+		Ino:  1234,
+	}
+	childFN := &testTypeChangeIno{}
+	child := fn.NewInode(ctx, childFN, stable)
+	return child, syscall.F_OK
 }
