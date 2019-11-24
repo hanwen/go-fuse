@@ -124,7 +124,30 @@ func TestXAttr(t *testing.T) {
 	if err := syscall.Setxattr(tc.mntDir+"/file", attr, value, 0); err != nil {
 		t.Fatalf("Setxattr: %v", err)
 	}
-	sz, err := syscall.Getxattr(tc.mntDir+"/file", attr, buf)
+
+	sz, err := syscall.Listxattr(tc.mntDir+"/file", nil)
+	if err != nil {
+		t.Fatalf("Listxattr: %v", err)
+	}
+	buf = make([]byte, sz)
+	if _, err := syscall.Listxattr(tc.mntDir+"/file", buf); err != nil {
+		t.Fatalf("Listxattr: %v", err)
+	} else {
+		attributes := bytes.Split(buf[:sz], []byte{0})
+		found := false
+		for _, a := range attributes {
+			if string(a) == attr {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			t.Fatalf("Listxattr: %q (not found: %q", buf[:sz], attr)
+		}
+	}
+
+	sz, err = syscall.Getxattr(tc.mntDir+"/file", attr, buf)
 	if err != nil {
 		t.Fatalf("Getxattr: %v", err)
 	}
