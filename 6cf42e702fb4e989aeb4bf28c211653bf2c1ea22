@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b4cdebe3_d1051eb3",
+        "filename": "fs/bridge.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 104,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2019-11-25T12:14:58Z",
+      "side": 1,
+      "message": "could do with comment in the code.",
+      "range": {
+        "startLine": 102,
+        "startChar": 3,
+        "endLine": 104,
+        "endChar": 13
+      },
+      "revId": "6cf42e702fb4e989aeb4bf28c211653bf2c1ea22",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
