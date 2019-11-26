@@ -155,9 +155,9 @@ func (n *loopbackNode) Rename(ctx context.Context, name string, newParent InodeE
 	}
 
 	p1 := filepath.Join(n.path(), name)
-
 	p2 := filepath.Join(newParentLoopback.path(), newName)
-	err := os.Rename(p1, p2)
+
+	err := syscall.Rename(p1, p2)
 	return ToErrno(err)
 }
 

@@ -33,6 +33,7 @@ var All = map[string]func(*testing.T, string){
 	"LinkUnlinkRename":           LinkUnlinkRename,
 	"RenameOverwriteDestNoExist": RenameOverwriteDestNoExist,
 	"RenameOverwriteDestExist":   RenameOverwriteDestExist,
+	"RenameOpenDir":              RenameOpenDir,
 	"ReadDir":                    ReadDir,
 	"ReadDirPicksUpCreate":       ReadDirPicksUpCreate,
 	"DirectIO":                   DirectIO,
@@ -351,6 +352,41 @@ func RenameOverwrite(t *testing.T, mnt string, destExists bool) {
 
 	if got := st.Ino; got != beforeIno {
 		t.Errorf("got ino %d, want %d", got, beforeIno)
+	}
+}
+
+func RenameOpenDir(t *testing.T, mnt string) {
+	if err := os.Mkdir(mnt+"/dir1", 0755); err != nil {
+		t.Fatalf("Mkdir: %v", err)
+	}
+
+	if err := os.Mkdir(mnt+"/dir2", 0755); err != nil {
+		t.Fatalf("Mkdir: %v", err)
+	}
+
+	var st1 syscall.Stat_t
+	if err := syscall.Stat(mnt+"/dir2", &st1); err != nil {
+		t.Fatalf("Stat: %v", err)
+	}
+
+	fd, err := syscall.Open(mnt+"/dir2", syscall.O_RDONLY, 0)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer syscall.Close(fd)
+	if err := syscall.Rename(mnt+"/dir1", mnt+"/dir2"); err != nil {
+		t.Fatalf("Rename: %v", err)
+	}
+
+	var st2 syscall.Stat_t
+	if err := syscall.Fstat(fd, &st2); err != nil {
+		t.Fatalf("Fstat: %v", err)
+	}
+	if st2.Mode&syscall.S_IFMT != syscall.S_IFDIR {
+		t.Errorf("got mode %o, want %o", st2.Mode, syscall.S_IFDIR)
+	}
+	if st2.Ino != st1.Ino {
+		t.Errorf("got ino %d, want %d", st2.Ino, st1.Ino)
 	}
 }
 
