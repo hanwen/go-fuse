@@ -599,4 +599,8 @@ type Options struct {
 
 	// If nonzero, replace default (zero) GID with the given GID
 	GID uint32
+
+	// ServerCallbacks can be provided to stub out notification
+	// functions for testing a filesystem without mounting it.
+	ServerCallbacks ServerCallbacks
 }

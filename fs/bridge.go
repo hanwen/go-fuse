@@ -37,10 +37,21 @@ type fileEntry struct {
 	wg sync.WaitGroup
 }
 
+// ServerCallbacks are calls into the kernel to manipulate the inode,
+// entry and page cache.  They are stubbed so filesystems can be
+// unittested without mounting them.
+type ServerCallbacks interface {
+	DeleteNotify(parent uint64, child uint64, name string) fuse.Status
+	EntryNotify(parent uint64, name string) fuse.Status
+	InodeNotify(node uint64, off int64, length int64) fuse.Status
+	InodeRetrieveCache(node uint64, offset int64, dest []byte) (n int, st fuse.Status)
+	InodeNotifyStoreCache(node uint64, offset int64, data []byte) fuse.Status
+}
+
 type rawBridge struct {
 	options Options
 	root    *Inode
-	server  *fuse.Server
+	server  ServerCallbacks
 
 	// mu protects the following data.  Locks for inodes must be
 	// taken before rawBridge.mu
@@ -213,6 +224,7 @@ func (b *rawBridge) setAttrTimeout(out *fuse.AttrOut) {
 func NewNodeFS(root InodeEmbedder, opts *Options) fuse.RawFileSystem {
 	bridge := &rawBridge{
 		automaticIno: opts.FirstAutomaticIno,
+		server:       opts.ServerCallbacks,
 	}
 	if bridge.automaticIno == 1 {
 		bridge.automaticIno++
