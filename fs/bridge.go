@@ -106,7 +106,8 @@ func (b *rawBridge) newInodeUnlocked(ops InodeEmbedder, id StableAttr, persisten
 	// simultaneously.  The matching StableAttrs ensure that we return the
 	// same node.
 	var t time.Duration
-	for {
+	t0 := time.Now()
+	for i := 1; true; i++ {
 		old := b.nodes[id.Ino]
 		if old == nil {
 			break
@@ -121,6 +122,9 @@ func (b *rawBridge) newInodeUnlocked(ops InodeEmbedder, id StableAttr, persisten
 				id.Mode, t)
 		}
 		t = expSleep(t)
+		if i%5000 == 0 {
+			log.Printf("blocked for %.0f seconds waiting for FORGET on i%d", time.Since(t0).Seconds(), id.Ino)
+		}
 		b.mu.Lock()
 	}
 
