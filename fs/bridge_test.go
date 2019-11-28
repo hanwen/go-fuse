@@ -107,12 +107,19 @@ type testTypeChangeIno struct {
 	Inode
 }
 
-// Lookup function for TestTypeChange: if name == "dir", returns a node of
-// type dir, otherwise of type file.
+// Lookup function for TestTypeChange:
+// If name == "dir", returns a node of type dir,
+// if name == "file" of type file,
+// otherwise ENOENT.
 func (fn *testTypeChangeIno) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
-	mode := uint32(fuse.S_IFREG)
-	if name == "dir" {
-		mode = fuse.S_IFDIR
+	var mode uint32
+	switch name {
+	case "file":
+		mode = syscall.S_IFREG
+	case "dir":
+		mode = syscall.S_IFDIR
+	default:
+		return nil, syscall.ENOENT
 	}
 	stable := StableAttr{
 		Mode: mode,
