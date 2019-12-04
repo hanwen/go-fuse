@@ -22,6 +22,30 @@
       "revId": "d1649606506f83710139fe10fba0c1a261588212",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "33ac74fc_4c7592b1",
+        "filename": "fs/bridge_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 118,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2019-12-04T09:15:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "27d48f78_80aa337f",
+      "range": {
+        "startLine": 118,
+        "startChar": 9,
+        "endLine": 118,
+        "endChar": 13
+      },
+      "revId": "d1649606506f83710139fe10fba0c1a261588212",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
