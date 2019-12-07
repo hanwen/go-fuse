@@ -424,8 +424,8 @@ func RenameOpenDir(t *testing.T, mnt string) {
 	if err := os.Mkdir(mnt+"/dir1", 0755); err != nil {
 		t.Fatalf("Mkdir: %v", err)
 	}
-
-	if err := os.Mkdir(mnt+"/dir2", 0755); err != nil {
+	// Different permissions so directories are easier to tell apart
+	if err := os.Mkdir(mnt+"/dir2", 0700); err != nil {
 		t.Fatalf("Mkdir: %v", err)
 	}
 
@@ -445,13 +445,17 @@ func RenameOpenDir(t *testing.T, mnt string) {
 
 	var st2 syscall.Stat_t
 	if err := syscall.Fstat(fd, &st2); err != nil {
-		t.Fatalf("Fstat: %v", err)
+		t.Skipf("Fstat failed: %v. Known limitation - see https://github.com/hanwen/go-fuse/issues/55", err)
 	}
 	if st2.Mode&syscall.S_IFMT != syscall.S_IFDIR {
 		t.Errorf("got mode %o, want %o", st2.Mode, syscall.S_IFDIR)
 	}
 	if st2.Ino != st1.Ino {
 		t.Errorf("got ino %d, want %d", st2.Ino, st1.Ino)
+	}
+	if st2.Mode&0777 != st1.Mode&0777 {
+		t.Skipf("got permissions %#o, want %#o. Known limitation - see https://github.com/hanwen/go-fuse/issues/55",
+			st2.Mode&0777, st1.Mode&0777)
 	}
 }
 

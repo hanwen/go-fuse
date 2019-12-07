@@ -475,6 +475,9 @@ func (b *rawBridge) getattr(ctx context.Context, n *Inode, f FileHandle, out *fu
 	}
 
 	if errno == 0 {
+		if out.Ino != 0 && n.stableAttr.Ino > 1 && out.Ino != n.stableAttr.Ino {
+			b.logf("warning: rawBridge.getattr: overriding ino %d with %d", out.Ino, n.stableAttr.Ino)
+		}
 		out.Ino = n.stableAttr.Ino
 		out.Mode = (out.Attr.Mode & 07777) | n.stableAttr.Mode
 		b.setAttr(&out.Attr)
