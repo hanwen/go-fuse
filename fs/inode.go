@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"sort"
 	"strings"
 	"sync"
@@ -267,7 +268,11 @@ func (n *Inode) Operations() InodeEmbedder {
 	return n.ops
 }
 
-// Path returns a path string to the inode relative to the root.
+// Path returns a path string to the inode relative to `root`.
+// Pass nil to walk the hierarchy as far up as possible.
+//
+// If you set `root`, Path() warns if it finds an orphaned Inode, i.e.
+// if it does not end up at `root` after walking the hierarchy.
 func (n *Inode) Path(root *Inode) string {
 	var segments []string
 	p := n
@@ -276,12 +281,18 @@ func (n *Inode) Path(root *Inode) string {
 
 		// We don't try to take all locks at the same time, because
 		// the caller won't use the "path" string under lock anyway.
+		found := false
 		p.mu.Lock()
 		// Select an arbitrary parent
 		for pd = range p.parents {
+			found = true
 			break
 		}
 		p.mu.Unlock()
+		if found == false {
+			p = nil
+			break
+		}
 		if pd.parent == nil {
 			break
 		}
@@ -290,9 +301,12 @@ func (n *Inode) Path(root *Inode) string {
 		p = pd.parent
 	}
 
-	if p == nil {
+	if root != nil && root != p {
+		deletedPlaceholder := fmt.Sprintf(".go-fuse.%d/deleted", rand.Uint64())
+		n.bridge.logf("warning: Inode.Path: inode i%d is orphaned, replacing segment with %q",
+			n.stableAttr.Ino, deletedPlaceholder)
 		// NOSUBMIT - should replace rather than append?
-		segments = append(segments, ".deleted")
+		segments = append(segments, deletedPlaceholder)
 	}
 
 	i := 0
