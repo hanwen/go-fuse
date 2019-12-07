@@ -22,6 +22,30 @@
       "revId": "27a608b5ddb6e763fb9d1d6b6197756591952f20",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3f26d90d_d823667a",
+        "filename": "posixtest/test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 259,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2019-12-07T23:51:01Z",
+      "side": 1,
+      "message": "I have reworded the function comment and made the test more sensitive as well. The results are not mixed up, the logic does work fine.",
+      "parentUuid": "5b029a71_c13b9caa",
+      "range": {
+        "startLine": 259,
+        "startChar": 1,
+        "endLine": 259,
+        "endChar": 48
+      },
+      "revId": "27a608b5ddb6e763fb9d1d6b6197756591952f20",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
