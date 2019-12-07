@@ -28,6 +28,7 @@ var All = map[string]func(*testing.T, string){
 	"FdLeak":                     FdLeak,
 	"MkdirRmdir":                 MkdirRmdir,
 	"NlinkZero":                  NlinkZero,
+	"FstatDeleted":               FstatDeleted,
 	"ParallelFileOpen":           ParallelFileOpen,
 	"Link":                       Link,
 	"LinkUnlinkRename":           LinkUnlinkRename,
@@ -253,6 +254,62 @@ func NlinkZero(t *testing.T, mnt string) {
 		t.Errorf("Nlink of overwritten file: got %d, want 0", st.Nlink)
 	}
 
+}
+
+// FstatDeleted is similar to NlinkZero, but Fstat()s multiple deleted files
+// in random order and checks that the results match an earlier Stat().
+//
+// Excercises the fd-finding logic in rawBridge.GetAttr.
+func FstatDeleted(t *testing.T, mnt string) {
+	const iMax = 9
+	type file struct {
+		fd int
+		st syscall.Stat_t
+	}
+	files := make(map[int]file)
+	for i := 0; i <= iMax; i++ {
+		// Create files with different sizes
+		path := fmt.Sprintf("%s/%d", mnt, i)
+		content := make([]byte, i)
+		err := ioutil.WriteFile(path, content, 0644)
+		if err != nil {
+			t.Fatalf("WriteFile: %v", err)
+		}
+		var st syscall.Stat_t
+		err = syscall.Stat(path, &st)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Open
+		fd, err := syscall.Open(path, syscall.O_RDONLY, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		files[i] = file{fd, st}
+		defer syscall.Close(fd)
+		// Delete
+		err = syscall.Unlink(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	// Fstat in random order
+	for _, v := range files {
+		var st syscall.Stat_t
+		err := syscall.Fstat(v.fd, &st)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Ignore ctime, changes on unlink
+		v.st.Ctim = syscall.Timespec{}
+		st.Ctim = syscall.Timespec{}
+		// Nlink value should have dropped to zero
+		v.st.Nlink = 0
+		// Rest should stay the same
+		if v.st != st {
+			t.Errorf("stat mismatch: want=%v\n have=%v", v.st, st)
+		}
+	}
 }
 
 func ParallelFileOpen(t *testing.T, mnt string) {
