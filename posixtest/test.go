@@ -12,13 +12,13 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"sync"
 	"syscall"
 	"testing"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
 )
 
+// All holds a map of all test functions
 var All = map[string]func(*testing.T, string){
 	"AppendWrite":                AppendWrite,
 	"SymlinkReadlink":            SymlinkReadlink,
@@ -261,24 +261,30 @@ func ParallelFileOpen(t *testing.T, mnt string) {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	var wg sync.WaitGroup
+	N := 10
+	errs := make(chan error, N)
 	one := func(b byte) {
 		f, err := os.OpenFile(fn, os.O_RDWR, 0644)
 		if err != nil {
-			t.Fatalf("OpenFile: %v", err)
+			errs <- err
+			return
 		}
 		var buf [10]byte
 		f.Read(buf[:])
 		buf[0] = b
 		f.WriteAt(buf[0:1], 2)
 		f.Close()
-		wg.Done()
+		errs <- nil
 	}
-	for i := 0; i < 10; i++ {
-		wg.Add(1)
+	for i := 0; i < N; i++ {
 		go one(byte(i))
 	}
-	wg.Wait()
+
+	for i := 0; i < N; i++ {
+		if e := <-errs; e != nil {
+			t.Error(e)
+		}
+	}
 }
 
 func Link(t *testing.T, mnt string) {

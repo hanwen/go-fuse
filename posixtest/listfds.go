@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package posixtest file systems for generic posix conformance.
 package posixtest
 
 import (
