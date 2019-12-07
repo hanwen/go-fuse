@@ -6,7 +6,9 @@ package fs
 
 import (
 	"context"
+	"log"
 	"os"
+	"strings"
 	"syscall"
 	"testing"
 	"unsafe"
@@ -132,4 +134,68 @@ func (fn *testTypeChangeIno) Lookup(ctx context.Context, name string, out *fuse.
 	childFN := &testTypeChangeIno{}
 	child := fn.NewInode(ctx, childFN, stable)
 	return child, syscall.F_OK
+}
+
+// TestDeletedInodePath checks that Inode.Path returns ".deleted" if an Inode is
+// disconnected from the hierarchy (=orphaned)
+func TestDeletedInodePath(t *testing.T) {
+	rootNode := testDeletedIno{}
+	mnt, _, clean := testMount(t, &rootNode, &Options{Logger: log.New(os.Stderr, "", 0)})
+	defer clean()
+
+	// Open a file handle so the kernel cannot FORGET the inode
+	fd, err := os.Open(mnt + "/dir")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fd.Close()
+
+	// Delete it so the inode does not have a path anymore
+	err = syscall.Rmdir(mnt + "/dir")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootNode.deleted = true
+
+	// Our Getattr implementation `testDeletedIno.Getattr` should return
+	// ENFILE when everything looks ok, EILSEQ otherwise.
+	var st syscall.Stat_t
+	err = syscall.Fstat(int(fd.Fd()), &st)
+	if err != syscall.ENFILE {
+		t.Error(err)
+	}
+}
+
+type testDeletedIno struct {
+	Inode
+
+	deleted bool
+}
+
+func (n *testDeletedIno) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
+	if n.Root().Operations().(*testDeletedIno).deleted {
+		return nil, syscall.ENOENT
+	}
+	if name != "dir" {
+		return nil, syscall.ENOENT
+	}
+	childNode := &testDeletedIno{}
+	stable := StableAttr{Mode: syscall.S_IFDIR, Ino: 999}
+	child := n.NewInode(ctx, childNode, stable)
+	return child, syscall.F_OK
+}
+
+func (n *testDeletedIno) Opendir(ctx context.Context) syscall.Errno {
+	return OK
+}
+
+func (n *testDeletedIno) Getattr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno {
+	prefix := ".go-fuse"
+	p := n.Path(n.Root())
+	if strings.HasPrefix(p, prefix) {
+		// Return ENFILE when things look ok
+		return syscall.ENFILE
+	}
+	// Otherwise EILSEQ
+	return syscall.EILSEQ
 }

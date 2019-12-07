@@ -70,7 +70,7 @@ func (n *loopbackNode) root() *loopbackRoot {
 }
 
 func (n *loopbackNode) path() string {
-	path := n.Path(nil)
+	path := n.Path(n.Root())
 	return filepath.Join(n.root().rootPath, path)
 }
 
