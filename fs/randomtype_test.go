@@ -71,6 +71,7 @@ func TestReaddirTypeFixup(t *testing.T) {
 	if errno != 0 {
 		t.Fatalf("readdir: %v", err)
 	}
+	defer ds.Close()
 
 	for ds.HasNext() {
 		e, err := ds.Next()

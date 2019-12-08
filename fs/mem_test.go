@@ -33,8 +33,12 @@ func testMount(t *testing.T, root InodeEmbedder, opts *Options) (string, *fuse.S
 		t.Fatal(err)
 	}
 	return mntDir, server, func() {
-		server.Unmount()
-		os.Remove(mntDir)
+		if err := server.Unmount(); err != nil {
+			t.Errorf("testMount: Unmount failed: %v", err)
+		}
+		if err := os.Remove(mntDir); err != nil {
+			t.Errorf("testMount: Remove failed: %v", err)
+		}
 	}
 }
 
