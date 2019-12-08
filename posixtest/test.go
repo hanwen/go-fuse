@@ -37,6 +37,7 @@ var All = map[string]func(*testing.T, string){
 	"ReadDir":                    ReadDir,
 	"ReadDirPicksUpCreate":       ReadDirPicksUpCreate,
 	"DirectIO":                   DirectIO,
+	"OpenAt":                     OpenAt,
 }
 
 func DirectIO(t *testing.T, mnt string) {
@@ -503,5 +504,36 @@ func AppendWrite(t *testing.T, mnt string) {
 
 	if bytes.Compare(got, want) != 0 {
 		t.Errorf("got %q want %q", got, want)
+	}
+}
+
+// OpenAt tests syscall.Openat().
+//
+// Hint:
+// $ go test ./fs -run TestPosix/OpenAt -v
+func OpenAt(t *testing.T, mnt string) {
+	dir1 := mnt + "/dir1"
+	err := os.Mkdir(dir1, 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dirfd, err := syscall.Open(dir1, syscall.O_RDONLY, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer syscall.Close(dirfd)
+	dir2 := mnt + "/dir2"
+	err = os.Rename(dir1, dir2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fd, err := syscall.Openat(dirfd, "file1", syscall.O_CREAT, 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer syscall.Close(fd)
+	_, err = os.Stat(dir2 + "/file1")
+	if err != nil {
+		t.Error(err)
 	}
 }
