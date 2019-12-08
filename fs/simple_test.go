@@ -32,6 +32,7 @@ type testCase struct {
 	server   *fuse.Server
 }
 
+// writeOrig writes a file into the backing directory of the loopback mount
 func (tc *testCase) writeOrig(path, content string, mode os.FileMode) {
 	if err := ioutil.WriteFile(filepath.Join(tc.origDir, path), []byte(content), mode); err != nil {
 		tc.Fatal(err)
@@ -54,6 +55,8 @@ type testOptions struct {
 	testDir       string
 }
 
+// newTestCase creates the directories `orig` and `mnt` inside a temporary
+// directory and mounts a loopback filesystem, backed by `orig`, on `mnt`.
 func newTestCase(t *testing.T, opts *testOptions) *testCase {
 	if opts == nil {
 		opts = &testOptions{}

@@ -163,6 +163,28 @@ func TestXAttr(t *testing.T) {
 	}
 }
 
+// TestXAttrSymlink verifies that we did not forget to use Lgetxattr instead
+// of Getxattr. This test is Linux-specific because it depends on the behavoir
+// of the `security` namespace.
+//
+// On Linux, symlinks can not have xattrs in the `user` namespace, so we
+// try to read something from `security`. Writing would need root rights,
+// so don't even bother. See `man 7 xattr` for more info.
+func TestXAttrSymlink(t *testing.T) {
+	tc := newTestCase(t, nil)
+	defer tc.Clean()
+
+	path := tc.mntDir + "/symlink"
+	if err := syscall.Symlink("target/does/not/exist", path); err != nil {
+		t.Fatal(err)
+	}
+	buf := make([]byte, 10)
+	_, err := unix.Lgetxattr(path, "security.foo", buf)
+	if err != unix.ENODATA {
+		t.Errorf("want %d=ENODATA, got error %d=%q instead", unix.ENODATA, err, err)
+	}
+}
+
 func TestCopyFileRange(t *testing.T) {
 	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
 	defer tc.Clean()
