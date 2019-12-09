@@ -53,18 +53,21 @@ func TestHasAccess(t *testing.T) {
 
 	_ = myOtherGid
 	_ = notMyGid
-	for i, tc := range []testcase{
+	cases := []testcase{
 		{myUid, myGid, myUid, myGid, 0100, 01, true},
 		{myUid, myGid, myUid + 1, notMyGid, 0001, 0001, true},
 		{myUid, myGid, myUid + 1, notMyGid, 0000, 0001, false},
 		{myUid, myGid, myUid + 1, notMyGid, 0007, 0000, true},
-
-		{myUid, myGid, myUid + 1, myOtherGid, 0020, 002, true},
 		{myUid, myGid, myUid + 1, notMyGid, 0020, 002, false},
 		{myUid, myGid, myUid, myGid, 0000, 01, false},
 		{myUid, myGid, myUid, myGid, 0200, 01, false},
 		{0, myGid, myUid + 1, notMyGid, 0700, 01, true},
-	} {
+	}
+
+	if myOtherGid != 0 {
+		cases = append(cases, testcase{myUid, myGid, myUid + 1, myOtherGid, 0020, 002, true})
+	}
+	for i, tc := range cases {
 		got := HasAccess(tc.uid, tc.gid, tc.fuid, tc.fgid, tc.perm, tc.mask)
 		if got != tc.want {
 			t.Errorf("%d: accessCheck(%v): got %v, want %v", i, tc, got, tc.want)
