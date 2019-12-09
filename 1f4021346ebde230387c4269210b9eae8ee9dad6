@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "55afae3b_7ff9ed2f",
+        "filename": "fs/loopback_linux_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 186,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2019-12-09T18:50:44Z",
+      "side": 1,
+      "message": "why Log it? Can we check explicitly which error we want to get back ?",
+      "range": {
+        "startLine": 186,
+        "startChar": 1,
+        "endLine": 186,
+        "endChar": 12
+      },
+      "revId": "1f4021346ebde230387c4269210b9eae8ee9dad6",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
