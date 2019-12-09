@@ -55,27 +55,26 @@ func TestBridgeReaddirPlusVirtualEntries(t *testing.T) {
 	// Round up to 8.
 	const entry2off = (entryOutSize + direntSize + len(".\x00") + 7) / 8 * 8
 
+	names := map[string]*fuse.EntryOut{}
 	// 1st entry should be "."
 	entry1 := (*fuse.EntryOut)(unsafe.Pointer(&buf[0]))
 	name1 := string(buf[entryOutSize+direntSize : entryOutSize+direntSize+2])
-	if name1 != ".\x00" {
-		t.Errorf("Unexpected 1st entry %q", name1)
-	}
-	t.Logf("entry1 %q: %#v", name1, entry1)
+	names[name1] = entry1
 
 	// 2nd entry should be ".."
 	entry2 := (*fuse.EntryOut)(unsafe.Pointer(&buf[entry2off]))
 	name2 := string(buf[entry2off+entryOutSize+direntSize : entry2off+entryOutSize+direntSize+2])
-	if name2 != ".." {
-		t.Errorf("Unexpected 2nd entry %q", name2)
-	}
-	t.Logf("entry2 %q: %#v", name2, entry2)
 
-	if entry1.NodeId != 0 {
-		t.Errorf("entry1 NodeId should be 0, but is %d", entry1.NodeId)
+	names[name2] = entry2
+
+	if len(names) != 2 || names[".\000"] == nil || names[".."] == nil {
+		t.Fatalf(`got %v, want {".\\0", ".."}`, names)
 	}
-	if entry2.NodeId != 0 {
-		t.Errorf("entry2 NodeId should be 0, but is %d", entry2.NodeId)
+
+	for k, v := range names {
+		if v.NodeId != 0 {
+			t.Errorf("entry %q NodeId should be 0, but is %d", k, v.NodeId)
+		}
 	}
 }
 
