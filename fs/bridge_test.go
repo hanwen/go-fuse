@@ -31,6 +31,11 @@ func TestBridgeReaddirPlusVirtualEntries(t *testing.T) {
 	if !status.Ok() {
 		t.Fatal(status)
 	}
+	releaseIn := fuse.ReleaseIn{
+		Fh: openOut.Fh,
+	}
+	releaseIn.NodeId = 1
+	defer rb.ReleaseDir(&releaseIn)
 
 	// We only populate what rawBridge.ReadDirPlus() actually looks at.
 	readIn := fuse.ReadIn{}
