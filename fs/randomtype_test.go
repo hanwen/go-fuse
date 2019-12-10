@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"hash/crc32"
 	"os"
+	"sync"
 	"syscall"
 	"testing"
 
@@ -17,6 +18,8 @@ import (
 
 type randomTypeTest struct {
 	Inode
+
+	wg sync.WaitGroup
 }
 
 var _ = (NodeLookuper)((*randomTypeTest)(nil))
@@ -38,17 +41,30 @@ func (fn *randomTypeTest) Lookup(ctx context.Context, name string, out *fuse.Ent
 	return child, syscall.F_OK
 }
 
+type synchronizedDirStream struct {
+	DirStream
+
+	wg *sync.WaitGroup
+}
+
+func (s *synchronizedDirStream) Close() {
+	s.wg.Done()
+}
+
 // Readdir will always return one child dir.
 func (fn *randomTypeTest) Readdir(ctx context.Context) (DirStream, syscall.Errno) {
 	var entries []fuse.DirEntry
-
+	fn.wg.Add(1)
 	for i := 0; i < 100; i++ {
 		entries = append(entries, fuse.DirEntry{
 			Name: fmt.Sprintf("%d", i),
 			Mode: fuse.S_IFDIR,
 		})
 	}
-	return NewListDirStream(entries), syscall.F_OK
+	return &synchronizedDirStream{
+		DirStream: NewListDirStream(entries),
+		wg:        &fn.wg,
+	}, syscall.F_OK
 }
 
 // TestReaddirTypeFixup tests that DirEntryList.FixMode() works as expected.
@@ -71,7 +87,6 @@ func TestReaddirTypeFixup(t *testing.T) {
 	if errno != 0 {
 		t.Fatalf("readdir: %v", err)
 	}
-	defer ds.Close()
 
 	for ds.HasNext() {
 		e, err := ds.Next()
@@ -85,4 +100,9 @@ func TestReaddirTypeFixup(t *testing.T) {
 			t.Errorf("%q: isdir %v, want %v", e.Name, gotIsDir, wantIsdir)
 		}
 	}
+
+	ds.Close()
+
+	// Wait for close to be registered, so the unmount doesn't fail.
+	root.wg.Wait()
 }
