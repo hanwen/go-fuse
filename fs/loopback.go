@@ -55,9 +55,9 @@ func (n *loopbackNode) Statfs(ctx context.Context, out *fuse.StatfsOut) syscall.
 	return OK
 }
 
-func (n *loopbackRoot) Getattr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno {
+func (r *loopbackRoot) Getattr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno {
 	st := syscall.Stat_t{}
-	err := syscall.Stat(n.rootPath, &st)
+	err := syscall.Stat(r.rootPath, &st)
 	if err != nil {
 		return ToErrno(err)
 	}
@@ -211,7 +211,7 @@ func (n *loopbackNode) Symlink(ctx context.Context, target, name string, out *fu
 		return nil, ToErrno(err)
 	}
 	st := syscall.Stat_t{}
-	if syscall.Lstat(p, &st); err != nil {
+	if err := syscall.Lstat(p, &st); err != nil {
 		syscall.Unlink(p)
 		return nil, ToErrno(err)
 	}
@@ -231,7 +231,7 @@ func (n *loopbackNode) Link(ctx context.Context, target InodeEmbedder, name stri
 		return nil, ToErrno(err)
 	}
 	st := syscall.Stat_t{}
-	if syscall.Lstat(p, &st); err != nil {
+	if err := syscall.Lstat(p, &st); err != nil {
 		syscall.Unlink(p)
 		return nil, ToErrno(err)
 	}
@@ -288,7 +288,7 @@ func (n *loopbackNode) Getattr(ctx context.Context, f FileHandle, out *fuse.Attr
 	}
 	p := n.path()
 
-	var err error = nil
+	var err error
 	st := syscall.Stat_t{}
 	err = syscall.Lstat(p, &st)
 	if err != nil {
@@ -371,7 +371,7 @@ func (n *loopbackNode) Setattr(ctx context.Context, f FileHandle, in *fuse.SetAt
 	return OK
 }
 
-// NewLoopback returns a root node for a loopback file system whose
+// NewLoopbackRoot returns a root node for a loopback file system whose
 // root is at the given root. This node implements all NodeXxxxer
 // operations available.
 func NewLoopbackRoot(root string) (InodeEmbedder, error) {
