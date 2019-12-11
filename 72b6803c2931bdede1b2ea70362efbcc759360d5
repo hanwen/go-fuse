@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "13b947e4_7c8621b5",
+        "filename": "fs/inode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 306,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2019-12-11T21:58:21Z",
+      "side": 1,
+      "message": "This is a bug in the filesystem - the user will receive ENOENT errors in any case, and this warning at least tells them that the problem is in the filesystem.",
+      "parentUuid": "42366054_d6b5b088",
+      "revId": "72b6803c2931bdede1b2ea70362efbcc759360d5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "298bc6de_44ef04f3",
         "filename": "fs/inode_test.go",
         "patchSetId": 1
@@ -30,6 +48,30 @@
       "writtenOn": "2019-12-09T18:45:54Z",
       "side": 1,
       "message": "This is not using any blessed APIs. \n\nCan\u0027t you create this situation from through the APIs by creating a GetAttr() on a deleted file, and checking from within the Getattr handler that self.Path() returns something with \"deleted\" in the name?",
+      "range": {
+        "startLine": 27,
+        "startChar": 2,
+        "endLine": 27,
+        "endChar": 59
+      },
+      "revId": "72b6803c2931bdede1b2ea70362efbcc759360d5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8283dd84_dc75b80f",
+        "filename": "fs/inode_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2019-12-11T21:58:21Z",
+      "side": 1,
+      "message": "Will try",
+      "parentUuid": "298bc6de_44ef04f3",
       "range": {
         "startLine": 27,
         "startChar": 2,
