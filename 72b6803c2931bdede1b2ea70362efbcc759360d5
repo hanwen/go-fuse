@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "c297c48c_245a7f69",
+        "filename": "fs/inode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 306,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2019-12-12T09:01:57Z",
+      "side": 1,
+      "message": "but that depends, right? The caller will receive a path with \"...deleted...\" in it, so it can tell this is happening, and the caller can decide to log a warning.\n\nPerhaps this should return (string, bool) so the caller can distinguish deletions more easily.",
+      "parentUuid": "13b947e4_7c8621b5",
+      "revId": "72b6803c2931bdede1b2ea70362efbcc759360d5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "298bc6de_44ef04f3",
         "filename": "fs/inode_test.go",
         "patchSetId": 1
