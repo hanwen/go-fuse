@@ -55,6 +55,24 @@
     },
     {
       "key": {
+        "uuid": "e5ae6f13_3d53a57c",
+        "filename": "fs/inode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 306,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2019-12-15T18:37:23Z",
+      "side": 1,
+      "message": "(string, bool) is fine for me, maybe (string, error) is more generic?\n\nIn any case, I think we should log or propagate the error. I have spent a lot of time debugging spurious ENOENT errors in the early days of gocryptfs, which were ultimately caused by this.",
+      "parentUuid": "c297c48c_245a7f69",
+      "revId": "72b6803c2931bdede1b2ea70362efbcc759360d5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "298bc6de_44ef04f3",
         "filename": "fs/inode_test.go",
         "patchSetId": 1
