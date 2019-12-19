@@ -116,11 +116,7 @@ func (b *rawBridge) newInodeUnlocked(ops InodeEmbedder, id StableAttr, persisten
 			return old
 		}
 		b.mu.Unlock()
-		const typechangeDebug = false
-		if typechangeDebug {
-			log.Printf("Ino:%d typechange %#x -> %#x, sleep=%v", old.stableAttr.Ino, old.stableAttr.Mode,
-				id.Mode, t)
-		}
+
 		t = expSleep(t)
 		if i%5000 == 0 {
 			log.Printf("blocked for %.0f seconds waiting for FORGET on i%d", time.Since(t0).Seconds(), id.Ino)
