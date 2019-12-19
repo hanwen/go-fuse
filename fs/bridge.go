@@ -119,7 +119,7 @@ func (b *rawBridge) newInodeUnlocked(ops InodeEmbedder, id StableAttr, persisten
 
 		t = expSleep(t)
 		if i%5000 == 0 {
-			log.Printf("blocked for %.0f seconds waiting for FORGET on i%d", time.Since(t0).Seconds(), id.Ino)
+			b.logf("blocked for %.0f seconds waiting for FORGET on i%d", time.Since(t0).Seconds(), id.Ino)
 		}
 		b.mu.Lock()
 	}
@@ -127,6 +127,12 @@ func (b *rawBridge) newInodeUnlocked(ops InodeEmbedder, id StableAttr, persisten
 	b.nodes[id.Ino] = ops.embed()
 	initInode(ops.embed(), ops, id, b, persistent)
 	return ops.embed()
+}
+
+func (b *rawBridge) logf(format string, args ...interface{}) {
+	if b.options.Logger != nil {
+		b.options.Logger.Printf(format, args...)
+	}
 }
 
 // expSleep sleeps for time `t` and returns an exponentially increasing value
