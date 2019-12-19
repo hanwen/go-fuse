@@ -574,7 +574,8 @@ retry:
 }
 
 // MvChild executes a rename. If overwrite is set, a child at the
-// destination will be overwritten, should it exist.
+// destination will be overwritten, should it exist. It returns false
+// if 'overwrite' is false, and the destination exists.
 func (n *Inode) MvChild(old string, newParent *Inode, newName string, overwrite bool) bool {
 	if len(newName) == 0 {
 		log.Panicf("empty newName for MvChild")

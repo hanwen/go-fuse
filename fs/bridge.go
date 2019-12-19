@@ -510,9 +510,8 @@ func (b *rawBridge) Rename(cancel <-chan struct{}, input *fuse.RenameIn, oldName
 			if input.Flags&RENAME_EXCHANGE != 0 {
 				p1.ExchangeChild(oldName, p2, newName)
 			} else {
-				if ok := p1.MvChild(oldName, p2, newName, true); !ok {
-					log.Println("MvChild failed")
-				}
+				// MvChild cannot fail with overwrite=true.
+				_ = p1.MvChild(oldName, p2, newName, true)
 			}
 		}
 		return errnoToStatus(errno)
