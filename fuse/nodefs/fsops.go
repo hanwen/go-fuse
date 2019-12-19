@@ -28,7 +28,7 @@ func (c *rawBridge) Fsync(cancel <-chan struct{}, input *fuse.FsyncIn) fuse.Stat
 	opened := node.mount.getOpenedFile(input.Fh)
 
 	if opened != nil {
-		return opened.WithFlags.File.Fsync(int(input.FsyncFlags))
+		return opened.WithFlags.File.Fsync(int(input.FsyncFlags), &fuse.Context{Caller: input.Caller, Cancel: cancel})
 	}
 
 	return fuse.ENOSYS
@@ -491,7 +491,7 @@ func (c *rawBridge) Flush(cancel <-chan struct{}, input *fuse.FlushIn) fuse.Stat
 	opened := node.mount.getOpenedFile(input.Fh)
 
 	if opened != nil {
-		return opened.WithFlags.File.Flush()
+		return opened.WithFlags.File.Flush(&fuse.Context{Caller: input.Caller, Cancel: cancel})
 	}
 	return fuse.OK
 }

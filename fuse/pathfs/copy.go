@@ -16,7 +16,7 @@ func CopyFile(srcFs, destFs FileSystem, srcFile, destFile string, context *fuse.
 		return code
 	}
 	defer src.Release()
-	defer src.Flush()
+	defer src.Flush(context)
 
 	attr, code := srcFs.GetAttr(srcFile, context)
 	if !code.Ok() {
@@ -28,12 +28,12 @@ func CopyFile(srcFs, destFs FileSystem, srcFile, destFile string, context *fuse.
 		return code
 	}
 	defer dst.Release()
-	defer dst.Flush()
+	defer dst.Flush(context)
 
 	buf := make([]byte, 128*(1<<10))
 	off := int64(0)
 	for {
-		res, code := src.Read(buf, off)
+		res, code := src.Read(buf, off, context)
 		if !code.Ok() {
 			return code
 		}
@@ -45,7 +45,7 @@ func CopyFile(srcFs, destFs FileSystem, srcFile, destFile string, context *fuse.
 		if len(data) == 0 {
 			break
 		}
-		n, code := dst.Write(data, off)
+		n, code := dst.Write(data, off, context)
 		if !code.Ok() {
 			return code
 		}

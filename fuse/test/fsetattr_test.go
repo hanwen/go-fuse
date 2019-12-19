@@ -29,7 +29,7 @@ func (f *MutableDataFile) String() string {
 	return "MutableDataFile"
 }
 
-func (f *MutableDataFile) Read(buf []byte, off int64) (fuse.ReadResult, fuse.Status) {
+func (f *MutableDataFile) Read(buf []byte, off int64, ctx *fuse.Context) (fuse.ReadResult, fuse.Status) {
 	end := int(off) + len(buf)
 	if end > len(f.data) {
 		end = len(f.data)
@@ -38,7 +38,7 @@ func (f *MutableDataFile) Read(buf []byte, off int64) (fuse.ReadResult, fuse.Sta
 	return fuse.ReadResultData(f.data[off:end]), fuse.OK
 }
 
-func (f *MutableDataFile) Write(d []byte, off int64) (uint32, fuse.Status) {
+func (f *MutableDataFile) Write(d []byte, off int64, ctx *fuse.Context) (uint32, fuse.Status) {
 	end := int64(len(d)) + off
 	if int(end) > len(f.data) {
 		data := make([]byte, len(f.data), end)
@@ -51,7 +51,7 @@ func (f *MutableDataFile) Write(d []byte, off int64) (uint32, fuse.Status) {
 	return uint32(end - off), fuse.OK
 }
 
-func (f *MutableDataFile) Flush() fuse.Status {
+func (f *MutableDataFile) Flush(ctx *fuse.Context) fuse.Status {
 	return fuse.OK
 }
 
@@ -64,34 +64,34 @@ func (f *MutableDataFile) getAttr(out *fuse.Attr) {
 	out.Size = uint64(len(f.data))
 }
 
-func (f *MutableDataFile) GetAttr(out *fuse.Attr) fuse.Status {
+func (f *MutableDataFile) GetAttr(out *fuse.Attr, ctx *fuse.Context) fuse.Status {
 	f.GetAttrCalled = true
 	f.getAttr(out)
 	return fuse.OK
 }
 
-func (f *MutableDataFile) Utimens(atime *time.Time, mtime *time.Time) fuse.Status {
+func (f *MutableDataFile) Utimens(atime *time.Time, mtime *time.Time, ctx *fuse.Context) fuse.Status {
 	f.Attr.SetTimes(atime, mtime, nil)
 	return fuse.OK
 }
 
-func (f *MutableDataFile) Truncate(size uint64) fuse.Status {
+func (f *MutableDataFile) Truncate(size uint64, ctx *fuse.Context) fuse.Status {
 	f.data = f.data[:size]
 	return fuse.OK
 }
 
-func (f *MutableDataFile) Chown(uid uint32, gid uint32) fuse.Status {
+func (f *MutableDataFile) Chown(uid uint32, gid uint32, ctx *fuse.Context) fuse.Status {
 	f.Attr.Uid = uid
 	f.Attr.Gid = gid
 	return fuse.OK
 }
 
-func (f *MutableDataFile) Chmod(perms uint32) fuse.Status {
+func (f *MutableDataFile) Chmod(perms uint32, ctx *fuse.Context) fuse.Status {
 	f.Attr.Mode = (f.Attr.Mode &^ 07777) | perms
 	return fuse.OK
 }
 
-func (f *MutableDataFile) Fsync(flags int) fuse.Status {
+func (f *MutableDataFile) Fsync(flags int, ctx *fuse.Context) fuse.Status {
 	f.FsyncCalled = true
 	return fuse.OK
 }

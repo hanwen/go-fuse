@@ -11,9 +11,9 @@ import (
 	"github.com/hanwen/go-fuse/v2/fuse"
 )
 
-func (f *loopbackFile) Allocate(off uint64, sz uint64, mode uint32) fuse.Status {
+func (f *loopbackFile) Allocate(off uint64, sz uint64, mode uint32, ctx *fuse.Context) fuse.Status {
 	f.lock.Lock()
-	err := syscall.Fallocate(int(f.File.Fd()), mode, int64(off), int64(sz))
+	err := syscall.Fallocate(int(f.File.Fd()), mode, int64(off), int64(sz))	// XXX cancel not propagated
 	f.lock.Unlock()
 	if err != nil {
 		return fuse.ToStatus(err)
@@ -22,12 +22,12 @@ func (f *loopbackFile) Allocate(off uint64, sz uint64, mode uint32) fuse.Status 
 }
 
 // Utimens - file handle based version of loopbackFileSystem.Utimens()
-func (f *loopbackFile) Utimens(a *time.Time, m *time.Time) fuse.Status {
+func (f *loopbackFile) Utimens(a *time.Time, m *time.Time, ctx *fuse.Context) fuse.Status {
 	var ts [2]syscall.Timespec
 	ts[0] = fuse.UtimeToTimespec(a)
 	ts[1] = fuse.UtimeToTimespec(m)
 	f.lock.Lock()
-	err := futimens(int(f.File.Fd()), &ts)
+	err := futimens(int(f.File.Fd()), &ts) // XXX cancel not propagated
 	f.lock.Unlock()
 	return fuse.ToStatus(err)
 }

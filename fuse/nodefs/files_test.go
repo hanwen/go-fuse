@@ -26,7 +26,7 @@ func TestLoopbackFileUtimens(t *testing.T) {
 	f := NewLoopbackFile(f2)
 
 	utimensFn := func(atime *time.Time, mtime *time.Time) fuse.Status {
-		return f.Utimens(atime, mtime)
+		return f.Utimens(atime, mtime, &fuse.Context{Cancel: nil})
 	}
 	testutil.TestLoopbackUtimens(t, path, utimensFn)
 }

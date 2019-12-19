@@ -36,40 +36,40 @@ func (f *lockingFile) String() string {
 	return fmt.Sprintf("lockingFile(%s)", f.file.String())
 }
 
-func (f *lockingFile) Read(buf []byte, off int64) (fuse.ReadResult, fuse.Status) {
+func (f *lockingFile) Read(buf []byte, off int64, ctx *fuse.Context) (fuse.ReadResult, fuse.Status) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.file.Read(buf, off)
+	return f.file.Read(buf, off, ctx)
 }
 
-func (f *lockingFile) Write(data []byte, off int64) (uint32, fuse.Status) {
+func (f *lockingFile) Write(data []byte, off int64, ctx *fuse.Context) (uint32, fuse.Status) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.file.Write(data, off)
+	return f.file.Write(data, off, ctx)
 }
 
-func (f *lockingFile) Flush() fuse.Status {
+func (f *lockingFile) Flush(ctx *fuse.Context) fuse.Status {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.file.Flush()
+	return f.file.Flush(ctx)
 }
 
-func (f *lockingFile) GetLk(owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (code fuse.Status) {
+func (f *lockingFile) GetLk(owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock, ctx *fuse.Context) (code fuse.Status) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.file.GetLk(owner, lk, flags, out)
+	return f.file.GetLk(owner, lk, flags, out, ctx)
 }
 
-func (f *lockingFile) SetLk(owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status) {
+func (f *lockingFile) SetLk(owner uint64, lk *fuse.FileLock, flags uint32, ctx *fuse.Context) (code fuse.Status) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.file.SetLk(owner, lk, flags)
+	return f.file.SetLk(owner, lk, flags, ctx)
 }
 
-func (f *lockingFile) SetLkw(owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status) {
+func (f *lockingFile) SetLkw(owner uint64, lk *fuse.FileLock, flags uint32, ctx *fuse.Context) (code fuse.Status) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.file.SetLkw(owner, lk, flags)
+	return f.file.SetLkw(owner, lk, flags, ctx)
 }
 
 func (f *lockingFile) Release() {
@@ -78,44 +78,44 @@ func (f *lockingFile) Release() {
 	f.file.Release()
 }
 
-func (f *lockingFile) GetAttr(a *fuse.Attr) fuse.Status {
+func (f *lockingFile) GetAttr(a *fuse.Attr, ctx *fuse.Context) fuse.Status {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.file.GetAttr(a)
+	return f.file.GetAttr(a, ctx)
 }
 
-func (f *lockingFile) Fsync(flags int) (code fuse.Status) {
+func (f *lockingFile) Fsync(flags int, ctx *fuse.Context) (code fuse.Status) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.file.Fsync(flags)
+	return f.file.Fsync(flags, ctx)
 }
 
-func (f *lockingFile) Utimens(atime *time.Time, mtime *time.Time) fuse.Status {
+func (f *lockingFile) Utimens(atime *time.Time, mtime *time.Time, ctx *fuse.Context) fuse.Status {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.file.Utimens(atime, mtime)
+	return f.file.Utimens(atime, mtime, ctx)
 }
 
-func (f *lockingFile) Truncate(size uint64) fuse.Status {
+func (f *lockingFile) Truncate(size uint64, ctx *fuse.Context) fuse.Status {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.file.Truncate(size)
+	return f.file.Truncate(size, ctx)
 }
 
-func (f *lockingFile) Chown(uid uint32, gid uint32) fuse.Status {
+func (f *lockingFile) Chown(uid uint32, gid uint32, ctx *fuse.Context) fuse.Status {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.file.Chown(uid, gid)
+	return f.file.Chown(uid, gid, ctx)
 }
 
-func (f *lockingFile) Chmod(perms uint32) fuse.Status {
+func (f *lockingFile) Chmod(perms uint32, ctx *fuse.Context) fuse.Status {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.file.Chmod(perms)
+	return f.file.Chmod(perms, ctx)
 }
 
-func (f *lockingFile) Allocate(off uint64, size uint64, mode uint32) (code fuse.Status) {
+func (f *lockingFile) Allocate(off uint64, size uint64, mode uint32, ctx *fuse.Context) (code fuse.Status) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.file.Allocate(off, size, mode)
+	return f.file.Allocate(off, size, mode, ctx)
 }

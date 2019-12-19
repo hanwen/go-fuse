@@ -127,7 +127,7 @@ func (n *defaultNode) ListXAttr(context *fuse.Context) (attrs []string, code fus
 
 func (n *defaultNode) GetAttr(out *fuse.Attr, file File, context *fuse.Context) (code fuse.Status) {
 	if file != nil {
-		return file.GetAttr(out)
+		return file.GetAttr(out, context)
 	}
 	if n.Inode().IsDir() {
 		out.Mode = fuse.S_IFDIR | 0755
@@ -171,14 +171,14 @@ func (n *defaultNode) Fallocate(file File, off uint64, size uint64, mode uint32,
 
 func (n *defaultNode) Read(file File, dest []byte, off int64, context *fuse.Context) (fuse.ReadResult, fuse.Status) {
 	if file != nil {
-		return file.Read(dest, off)
+		return file.Read(dest, off, context)
 	}
 	return nil, fuse.ENOSYS
 }
 
 func (n *defaultNode) Write(file File, data []byte, off int64, context *fuse.Context) (written uint32, code fuse.Status) {
 	if file != nil {
-		return file.Write(data, off)
+		return file.Write(data, off, context)
 	}
 	return 0, fuse.ENOSYS
 }

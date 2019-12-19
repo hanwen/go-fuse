@@ -144,34 +144,34 @@ type File interface {
 	// the inner file here.
 	InnerFile() File
 
-	Read(dest []byte, off int64) (fuse.ReadResult, fuse.Status)
-	Write(data []byte, off int64) (written uint32, code fuse.Status)
+	Read(dest []byte, off int64, ctx *fuse.Context) (fuse.ReadResult, fuse.Status)
+	Write(data []byte, off int64, ctx *fuse.Context) (written uint32, code fuse.Status)
 
 	// File locking
-	GetLk(owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (code fuse.Status)
-	SetLk(owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status)
-	SetLkw(owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status)
+	GetLk(owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock, ctx *fuse.Context) (code fuse.Status)
+	SetLk(owner uint64, lk *fuse.FileLock, flags uint32, ctx *fuse.Context) (code fuse.Status)
+	SetLkw(owner uint64, lk *fuse.FileLock, flags uint32, ctx *fuse.Context) (code fuse.Status)
 
 	// Flush is called for close() call on a file descriptor. In
 	// case of duplicated descriptor, it may be called more than
 	// once for a file.
-	Flush() fuse.Status
+	Flush(ctx *fuse.Context) fuse.Status
 
 	// This is called to before the file handle is forgotten. This
 	// method has no return value, so nothing can synchronizes on
 	// the call. Any cleanup that requires specific synchronization or
 	// could fail with I/O errors should happen in Flush instead.
-	Release()
-	Fsync(flags int) (code fuse.Status)
+	Release() // XXX +ctx ?
+	Fsync(flags int, ctx *fuse.Context) (code fuse.Status)
 
 	// The methods below may be called on closed files, due to
 	// concurrency.  In that case, you should return EBADF.
-	Truncate(size uint64) fuse.Status
-	GetAttr(out *fuse.Attr) fuse.Status
-	Chown(uid uint32, gid uint32) fuse.Status
-	Chmod(perms uint32) fuse.Status
-	Utimens(atime *time.Time, mtime *time.Time) fuse.Status
-	Allocate(off uint64, size uint64, mode uint32) (code fuse.Status)
+	Truncate(size uint64, ctx *fuse.Context) fuse.Status
+	GetAttr(out *fuse.Attr, ctx *fuse.Context) fuse.Status
+	Chown(uid uint32, gid uint32, ctx *fuse.Context) fuse.Status
+	Chmod(perms uint32, ctx *fuse.Context) fuse.Status
+	Utimens(atime *time.Time, mtime *time.Time, ctx *fuse.Context) fuse.Status
+	Allocate(off uint64, size uint64, mode uint32, ctx *fuse.Context) (code fuse.Status)
 }
 
 // Wrap a File return in this to set FUSE flags.  Also used internally

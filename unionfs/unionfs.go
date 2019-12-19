@@ -276,8 +276,9 @@ func (fs *unionFS) putDeletion(name string) (code fuse.Status) {
 		return fuse.EPERM
 	}
 	defer f.Release()
-	defer f.Flush()
-	n, code := f.Write([]byte(name), 0)
+	ctx := &fuse.Context{Cancel: nil}
+	defer f.Flush(ctx)
+	n, code := f.Write([]byte(name), 0, ctx)
 	if int(n) != len(name) || !code.Ok() {
 		panic(fmt.Sprintf("Error for writing %v: %v, %v (exp %v) %v", name, marker, n, len(name), code))
 	}
@@ -334,7 +335,7 @@ func (fs *unionFS) Promote(name string, srcResult branchResult, context *fuse.Co
 				uf.layer = 0
 				f := uf.File
 				uf.File, code = fs.fileSystems[0].Open(name, fileWrapper.OpenFlags, context)
-				f.Flush()
+				f.Flush(context)
 				f.Release()
 			}
 		}
@@ -949,7 +950,7 @@ func (fs *unionFS) DropSubFsCaches() {
 		if code.Ok() && a.IsRegular() {
 			f, _ := fs.Open(_DROP_CACHE, uint32(os.O_WRONLY), nil)
 			if f != nil {
-				f.Flush()
+				f.Flush(&fuse.Context{Cancel: nil})
 				f.Release()
 			}
 		}
@@ -1028,8 +1029,8 @@ func (fs *unionFsFile) InnerFile() (file nodefs.File) {
 
 // We can't hook on Release. Release has no response, so it is not
 // ordered wrt any following calls.
-func (fs *unionFsFile) Flush() (code fuse.Status) {
-	code = fs.File.Flush()
+func (fs *unionFsFile) Flush(ctx *fuse.Context) (code fuse.Status) {
+	code = fs.File.Flush(ctx)
 	path := fs.ufs.nodeFs.Path(fs.node)
 	fs.ufs.branchCache.GetFresh(path)
 	return code
@@ -1039,8 +1040,8 @@ func (fs *unionFsFile) SetInode(node *nodefs.Inode) {
 	fs.node = node
 }
 
-func (fs *unionFsFile) GetAttr(out *fuse.Attr) fuse.Status {
-	code := fs.File.GetAttr(out)
+func (fs *unionFsFile) GetAttr(out *fuse.Attr, ctx *fuse.Context) fuse.Status {
+	code := fs.File.GetAttr(out, ctx)
 	if code.Ok() {
 		out.Mode |= 0200
 	}

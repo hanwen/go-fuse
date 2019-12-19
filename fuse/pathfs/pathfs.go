@@ -404,7 +404,7 @@ func (n *pathInode) ListXAttr(context *fuse.Context) (attrs []string, code fuse.
 }
 
 func (n *pathInode) Flush(file nodefs.File, openFlags uint32, context *fuse.Context) (code fuse.Status) {
-	return file.Flush()
+	return file.Flush(context)
 }
 
 func (n *pathInode) OpenDir(context *fuse.Context) ([]fuse.DirEntry, fuse.Status) {
@@ -592,7 +592,7 @@ func (n *pathInode) GetAttr(out *fuse.Attr, file nodefs.File, context *fuse.Cont
 	}
 	// If we have found an open file, try to fstat it.
 	if file != nil {
-		code = file.GetAttr(out)
+		code = file.GetAttr(out, context)
 		if code.Ok() {
 			return code
 		}
@@ -629,7 +629,7 @@ func (n *pathInode) Chmod(file nodefs.File, perms uint32, context *fuse.Context)
 	// Note that Linux currently (Linux 4.4) DOES NOT pass a file descriptor
 	// to FUSE for fchmod. We still check because that may change in the future.
 	if file != nil {
-		code = file.Chmod(perms)
+		code = file.Chmod(perms, context)
 		if code != fuse.ENOSYS {
 			return code
 		}
@@ -637,8 +637,7 @@ func (n *pathInode) Chmod(file nodefs.File, perms uint32, context *fuse.Context)
 
 	files := n.Inode().Files(fuse.O_ANYWRITE)
 	for _, f := range files {
-		// TODO - pass context
-		code = f.Chmod(perms)
+		code = f.Chmod(perms, context)
 		if code.Ok() {
 			return
 		}
@@ -654,7 +653,7 @@ func (n *pathInode) Chown(file nodefs.File, uid uint32, gid uint32, context *fus
 	// Note that Linux currently (Linux 4.4) DOES NOT pass a file descriptor
 	// to FUSE for fchown. We still check because it may change in the future.
 	if file != nil {
-		code = file.Chown(uid, gid)
+		code = file.Chown(uid, gid, context)
 		if code != fuse.ENOSYS {
 			return code
 		}
@@ -662,8 +661,7 @@ func (n *pathInode) Chown(file nodefs.File, uid uint32, gid uint32, context *fus
 
 	files := n.Inode().Files(fuse.O_ANYWRITE)
 	for _, f := range files {
-		// TODO - pass context
-		code = f.Chown(uid, gid)
+		code = f.Chown(uid, gid, context)
 		if code.Ok() {
 			return code
 		}
@@ -679,7 +677,7 @@ func (n *pathInode) Truncate(file nodefs.File, size uint64, context *fuse.Contex
 	// A file descriptor was passed in AND the filesystem implements the
 	// operation on the file handle. This the common case for ftruncate.
 	if file != nil {
-		code = file.Truncate(size)
+		code = file.Truncate(size, context)
 		if code != fuse.ENOSYS {
 			return code
 		}
@@ -687,8 +685,7 @@ func (n *pathInode) Truncate(file nodefs.File, size uint64, context *fuse.Contex
 
 	files := n.Inode().Files(fuse.O_ANYWRITE)
 	for _, f := range files {
-		// TODO - pass context
-		code = f.Truncate(size)
+		code = f.Truncate(size, context)
 		if code.Ok() {
 			return code
 		}
@@ -703,7 +700,7 @@ func (n *pathInode) Utimens(file nodefs.File, atime *time.Time, mtime *time.Time
 	// Note that Linux currently (Linux 4.4) DOES NOT pass a file descriptor
 	// to FUSE for futimens. We still check because it may change in the future.
 	if file != nil {
-		code = file.Utimens(atime, mtime)
+		code = file.Utimens(atime, mtime, context)
 		if code != fuse.ENOSYS {
 			return code
 		}
@@ -711,8 +708,7 @@ func (n *pathInode) Utimens(file nodefs.File, atime *time.Time, mtime *time.Time
 
 	files := n.Inode().Files(fuse.O_ANYWRITE)
 	for _, f := range files {
-		// TODO - pass context
-		code = f.Utimens(atime, mtime)
+		code = f.Utimens(atime, mtime, context)
 		if code.Ok() {
 			return code
 		}
@@ -725,7 +721,7 @@ func (n *pathInode) Utimens(file nodefs.File, atime *time.Time, mtime *time.Time
 
 func (n *pathInode) Fallocate(file nodefs.File, off uint64, size uint64, mode uint32, context *fuse.Context) (code fuse.Status) {
 	if file != nil {
-		code = file.Allocate(off, size, mode)
+		code = file.Allocate(off, size, mode, context)
 		if code.Ok() {
 			return code
 		}
@@ -733,8 +729,7 @@ func (n *pathInode) Fallocate(file nodefs.File, off uint64, size uint64, mode ui
 
 	files := n.Inode().Files(fuse.O_ANYWRITE)
 	for _, f := range files {
-		// TODO - pass context
-		code = f.Allocate(off, size, mode)
+		code = f.Allocate(off, size, mode, context)
 		if code.Ok() {
 			return code
 		}
@@ -745,35 +740,35 @@ func (n *pathInode) Fallocate(file nodefs.File, off uint64, size uint64, mode ui
 
 func (n *pathInode) Read(file nodefs.File, dest []byte, off int64, context *fuse.Context) (fuse.ReadResult, fuse.Status) {
 	if file != nil {
-		return file.Read(dest, off)
+		return file.Read(dest, off, context)
 	}
 	return nil, fuse.ENOSYS
 }
 
 func (n *pathInode) Write(file nodefs.File, data []byte, off int64, context *fuse.Context) (written uint32, code fuse.Status) {
 	if file != nil {
-		return file.Write(data, off)
+		return file.Write(data, off, context)
 	}
 	return 0, fuse.ENOSYS
 }
 
 func (n *pathInode) GetLk(file nodefs.File, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock, context *fuse.Context) (code fuse.Status) {
 	if file != nil {
-		return file.GetLk(owner, lk, flags, out)
+		return file.GetLk(owner, lk, flags, out, context)
 	}
 	return fuse.ENOSYS
 }
 
 func (n *pathInode) SetLk(file nodefs.File, owner uint64, lk *fuse.FileLock, flags uint32, context *fuse.Context) (code fuse.Status) {
 	if file != nil {
-		return file.SetLk(owner, lk, flags)
+		return file.SetLk(owner, lk, flags, context)
 	}
 	return fuse.ENOSYS
 }
 
 func (n *pathInode) SetLkw(file nodefs.File, owner uint64, lk *fuse.FileLock, flags uint32, context *fuse.Context) (code fuse.Status) {
 	if file != nil {
-		return file.SetLkw(owner, lk, flags)
+		return file.SetLkw(owner, lk, flags, context)
 	}
 	return fuse.ENOSYS
 }

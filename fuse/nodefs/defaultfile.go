@@ -29,27 +29,27 @@ func (f *defaultFile) String() string {
 	return "defaultFile"
 }
 
-func (f *defaultFile) Read(buf []byte, off int64) (fuse.ReadResult, fuse.Status) {
+func (f *defaultFile) Read(buf []byte, off int64, ctx *fuse.Context) (fuse.ReadResult, fuse.Status) {
 	return nil, fuse.ENOSYS
 }
 
-func (f *defaultFile) Write(data []byte, off int64) (uint32, fuse.Status) {
+func (f *defaultFile) Write(data []byte, off int64, ctx *fuse.Context) (uint32, fuse.Status) {
 	return 0, fuse.ENOSYS
 }
 
-func (f *defaultFile) GetLk(owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) (code fuse.Status) {
+func (f *defaultFile) GetLk(owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock, ctx *fuse.Context) (code fuse.Status) {
 	return fuse.ENOSYS
 }
 
-func (f *defaultFile) SetLk(owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status) {
+func (f *defaultFile) SetLk(owner uint64, lk *fuse.FileLock, flags uint32, ctx *fuse.Context) (code fuse.Status) {
 	return fuse.ENOSYS
 }
 
-func (f *defaultFile) SetLkw(owner uint64, lk *fuse.FileLock, flags uint32) (code fuse.Status) {
+func (f *defaultFile) SetLkw(owner uint64, lk *fuse.FileLock, flags uint32, ctx *fuse.Context) (code fuse.Status) {
 	return fuse.ENOSYS
 }
 
-func (f *defaultFile) Flush() fuse.Status {
+func (f *defaultFile) Flush(ctx *fuse.Context) fuse.Status {
 	return fuse.OK
 }
 
@@ -57,30 +57,30 @@ func (f *defaultFile) Release() {
 
 }
 
-func (f *defaultFile) GetAttr(*fuse.Attr) fuse.Status {
+func (f *defaultFile) GetAttr(_ *fuse.Attr, ctx *fuse.Context) fuse.Status {
 	return fuse.ENOSYS
 }
 
-func (f *defaultFile) Fsync(flags int) (code fuse.Status) {
+func (f *defaultFile) Fsync(flags int, ctx *fuse.Context) (code fuse.Status) {
 	return fuse.ENOSYS
 }
 
-func (f *defaultFile) Utimens(atime *time.Time, mtime *time.Time) fuse.Status {
+func (f *defaultFile) Utimens(atime *time.Time, mtime *time.Time, ctx *fuse.Context) fuse.Status {
 	return fuse.ENOSYS
 }
 
-func (f *defaultFile) Truncate(size uint64) fuse.Status {
+func (f *defaultFile) Truncate(size uint64, ctx *fuse.Context) fuse.Status {
 	return fuse.ENOSYS
 }
 
-func (f *defaultFile) Chown(uid uint32, gid uint32) fuse.Status {
+func (f *defaultFile) Chown(uid uint32, gid uint32, ctx *fuse.Context) fuse.Status {
 	return fuse.ENOSYS
 }
 
-func (f *defaultFile) Chmod(perms uint32) fuse.Status {
+func (f *defaultFile) Chmod(perms uint32, ctx *fuse.Context) fuse.Status {
 	return fuse.ENOSYS
 }
 
-func (f *defaultFile) Allocate(off uint64, size uint64, mode uint32) (code fuse.Status) {
+func (f *defaultFile) Allocate(off uint64, size uint64, mode uint32, ctx *fuse.Context) (code fuse.Status) {
 	return fuse.ENOSYS
 }

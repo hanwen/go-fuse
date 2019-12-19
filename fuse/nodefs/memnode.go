@@ -162,8 +162,8 @@ func (n *memNodeFile) InnerFile() File {
 	return n.File
 }
 
-func (n *memNodeFile) Flush() fuse.Status {
-	code := n.File.Flush()
+func (n *memNodeFile) Flush(ctx *fuse.Context) fuse.Status {
+	code := n.File.Flush(ctx)
 
 	if !code.Ok() {
 		return code
@@ -205,7 +205,7 @@ func (n *memNode) GetAttr(fi *fuse.Attr, file File, context *fuse.Context) (code
 
 func (n *memNode) Truncate(file File, size uint64, context *fuse.Context) (code fuse.Status) {
 	if file != nil {
-		code = file.Truncate(size)
+		code = file.Truncate(size, context)
 	} else {
 		err := os.Truncate(n.filename(), int64(size))
 		code = fuse.ToStatus(err)
