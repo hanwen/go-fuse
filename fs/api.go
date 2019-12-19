@@ -168,6 +168,7 @@ package fs
 
 import (
 	"context"
+	"log"
 	"syscall"
 	"time"
 
@@ -603,4 +604,10 @@ type Options struct {
 	// ServerCallbacks can be provided to stub out notification
 	// functions for testing a filesystem without mounting it.
 	ServerCallbacks ServerCallbacks
+
+	// Logger is a sink for diagnostic messages. Diagnostic
+	// messages are printed under conditions where we cannot
+	// return error, but want to signal something seems off
+	// anyway. If unset, no messages are printed.
+	Logger *log.Logger
 }
