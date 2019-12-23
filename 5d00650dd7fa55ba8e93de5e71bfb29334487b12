@@ -22,6 +22,30 @@
       "revId": "5d00650dd7fa55ba8e93de5e71bfb29334487b12",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8cb99202_d8ee6c26",
+        "filename": "posixtest/test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 310,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2019-12-23T16:37:27Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "3739860c_04c102a2",
+      "range": {
+        "startLine": 310,
+        "startChar": 3,
+        "endLine": 310,
+        "endChar": 41
+      },
+      "revId": "5d00650dd7fa55ba8e93de5e71bfb29334487b12",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
