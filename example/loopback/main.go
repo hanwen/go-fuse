@@ -106,6 +106,10 @@ func main() {
 	opts.MountOptions.Name = "loopback"
 	// Leave file permissions on "000" files as-is
 	opts.NullPermissions = true
+	// Enable diagnostics logging
+	if !*quiet {
+		opts.Logger = log.New(os.Stderr, "", 0)
+	}
 	server, err := fs.Mount(flag.Arg(0), loopbackRoot, opts)
 	if err != nil {
 		log.Fatalf("Mount fail: %v\n", err)
