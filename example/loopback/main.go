@@ -100,6 +100,8 @@ func main() {
 	opts.MountOptions.Options = append(opts.MountOptions.Options, "fsname="+orig)
 	// Second column in "df -T" will be shown as "fuse." + Name
 	opts.MountOptions.Name = "loopback"
+	// Enable diagnostics logging
+	opts.Logger = log.New(os.Stderr, "", 0)
 	server, err := fs.Mount(flag.Arg(0), loopbackRoot, opts)
 	if err != nil {
 		log.Fatalf("Mount fail: %v\n", err)
