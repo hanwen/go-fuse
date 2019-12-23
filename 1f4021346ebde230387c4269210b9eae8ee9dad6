@@ -22,6 +22,30 @@
       "revId": "1f4021346ebde230387c4269210b9eae8ee9dad6",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "05f0af65_97835f6e",
+        "filename": "fs/loopback_linux_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 186,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2019-12-23T15:00:00Z",
+      "side": 1,
+      "message": "The concern was that we may get different errors, depending on whether the underlying FS supports xattrs or not. But that\u0027s probably an unnecessary complication, we can assume that $TMPDIR supports it. Log dropped and explicit check for ENODATA added.",
+      "parentUuid": "55afae3b_7ff9ed2f",
+      "range": {
+        "startLine": 186,
+        "startChar": 1,
+        "endLine": 186,
+        "endChar": 12
+      },
+      "revId": "1f4021346ebde230387c4269210b9eae8ee9dad6",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
