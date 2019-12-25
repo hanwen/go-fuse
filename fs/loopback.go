@@ -89,12 +89,26 @@ func (n *loopbackNode) Lookup(ctx context.Context, name string, out *fuse.EntryO
 	return ch, 0
 }
 
+// preserveOwner sets uid and gid of `path` according to the caller information
+// in `ctx`.
+func (n *loopbackNode) preserveOwner(ctx context.Context, path string) error {
+	if os.Getuid() != 0 {
+		return nil
+	}
+	caller, ok := fuse.FromContext(ctx)
+	if !ok {
+		return nil
+	}
+	return syscall.Lchown(path, int(caller.Uid), int(caller.Gid))
+}
+
 func (n *loopbackNode) Mknod(ctx context.Context, name string, mode, rdev uint32, out *fuse.EntryOut) (*Inode, syscall.Errno) {
 	p := filepath.Join(n.path(), name)
 	err := syscall.Mknod(p, mode, int(rdev))
 	if err != nil {
 		return nil, ToErrno(err)
 	}
+	n.preserveOwner(ctx, p)
 	st := syscall.Stat_t{}
 	if err := syscall.Lstat(p, &st); err != nil {
 		syscall.Rmdir(p)
@@ -115,6 +129,7 @@ func (n *loopbackNode) Mkdir(ctx context.Context, name string, mode uint32, out 
 	if err != nil {
 		return nil, ToErrno(err)
 	}
+	n.preserveOwner(ctx, p)
 	st := syscall.Stat_t{}
 	if err := syscall.Lstat(p, &st); err != nil {
 		syscall.Rmdir(p)
@@ -189,7 +204,7 @@ func (n *loopbackNode) Create(ctx context.Context, name string, flags uint32, mo
 	if err != nil {
 		return nil, nil, 0, ToErrno(err)
 	}
-
+	n.preserveOwner(ctx, p)
 	st := syscall.Stat_t{}
 	if err := syscall.Fstat(fd, &st); err != nil {
 		syscall.Close(fd)
@@ -210,6 +225,7 @@ func (n *loopbackNode) Symlink(ctx context.Context, target, name string, out *fu
 	if err != nil {
 		return nil, ToErrno(err)
 	}
+	n.preserveOwner(ctx, p)
 	st := syscall.Stat_t{}
 	if err := syscall.Lstat(p, &st); err != nil {
 		syscall.Unlink(p)
