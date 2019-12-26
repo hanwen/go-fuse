@@ -104,6 +104,8 @@ func main() {
 	opts.MountOptions.Options = append(opts.MountOptions.Options, "fsname="+orig)
 	// Second column in "df -T" will be shown as "fuse." + Name
 	opts.MountOptions.Name = "loopback"
+	// Leave file permissions on "000" files as-is
+	opts.NullPermissions = true
 	server, err := fs.Mount(flag.Arg(0), loopbackRoot, opts)
 	if err != nil {
 		log.Fatalf("Mount fail: %v\n", err)
