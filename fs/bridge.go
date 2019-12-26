@@ -811,7 +811,7 @@ func (b *rawBridge) Fallocate(cancel <-chan struct{}, input *fuse.FallocateIn) f
 	if a, ok := n.ops.(NodeAllocater); ok {
 		return errnoToStatus(a.Allocate(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.Offset, input.Length, input.Mode))
 	}
-	if a, ok := n.ops.(FileAllocater); ok {
+	if a, ok := f.file.(FileAllocater); ok {
 		return errnoToStatus(a.Allocate(&fuse.Context{Caller: input.Caller, Cancel: cancel}, input.Offset, input.Length, input.Mode))
 	}
 	return fuse.ENOTSUP
