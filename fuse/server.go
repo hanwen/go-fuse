@@ -458,14 +458,8 @@ func (ms *Server) handleRequest(req *request) Status {
 		log.Println(req.InputDebug())
 	}
 
-	if req.inHeader.NodeId == pollHackInode {
-		// We want to avoid switching off features through our
-		// poll hack, so don't use ENOSYS
-		req.status = EIO
-		if req.inHeader.Opcode == _OP_POLL {
-			req.status = ENOSYS
-		}
-	} else if req.inHeader.NodeId == FUSE_ROOT_ID && len(req.filenames) > 0 && req.filenames[0] == pollHackName {
+	if req.inHeader.NodeId == pollHackInode ||
+		req.inHeader.NodeId == FUSE_ROOT_ID && len(req.filenames) > 0 && req.filenames[0] == pollHackName {
 		doPollHackLookup(ms, req)
 	} else if req.status.Ok() && req.handler.Func == nil {
 		log.Printf("Unimplemented opcode %v", operationName(req.inHeader.Opcode))
