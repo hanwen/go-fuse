@@ -96,6 +96,10 @@ func main() {
 	}
 	opts.Debug = *debug
 	opts.AllowOther = *other
+	if opts.AllowOther {
+		// Make the kernel check file permissions for us
+		opts.MountOptions.Options = append(opts.MountOptions.Options, "default_permissions")
+	}
 	// First column in "df -T": original dir
 	opts.MountOptions.Options = append(opts.MountOptions.Options, "fsname="+orig)
 	// Second column in "df -T" will be shown as "fuse." + Name
