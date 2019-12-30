@@ -40,6 +40,7 @@ var All = map[string]func(*testing.T, string){
 	"DirectIO":                   DirectIO,
 	"OpenAt":                     OpenAt,
 	"Fallocate":                  Fallocate,
+	"DirSeek":                    DirSeek,
 }
 
 func DirectIO(t *testing.T, mnt string) {
