@@ -33,6 +33,12 @@ type fileEntry struct {
 	dirStream   DirStream
 	hasOverflow bool
 	overflow    fuse.DirEntry
+	// dirOffset is the current location in the directory (see `telldir(3)`).
+	// The value is equivalent to `d_off` (see `getdents(2)`) of the last
+	// directory entry sent to the kernel so far.
+	// If `dirOffset` and `fuse.DirEntryList.offset` disagree, then a
+	// directory seek has taken place.
+	dirOffset uint64
 
 	wg sync.WaitGroup
 }
@@ -842,23 +848,45 @@ func (b *rawBridge) OpenDir(cancel <-chan struct{}, input *fuse.OpenIn, out *fus
 	return fuse.OK
 }
 
-// setStream sets the directory part of f. Must hold f.mu
-func (b *rawBridge) setStream(cancel <-chan struct{}, input *fuse.ReadIn, inode *Inode, f *fileEntry) syscall.Errno {
-	if f.dirStream == nil || input.Offset == 0 {
+// setStream makes sure `f.dirStream` and associated state variables are set and
+// seeks to offset requested in `input`. Caller must hold `f.mu`.
+// The `eof` return value shows if `f.dirStream` ended before the requested
+// offset was reached.
+func (b *rawBridge) setStream(cancel <-chan struct{}, input *fuse.ReadIn, inode *Inode, f *fileEntry) (status fuse.Status, eof bool) {
+	// Get a new directory stream in the following cases:
+	// 1) f.dirStream == nil ............ First READDIR[PLUS] on this file handle.
+	// 2) input.Offset == 0 ............. Start reading the directory again from
+	//                                    the beginning (user called rewinddir(3) or lseek(2)).
+	// 3) input.Offset < f.nextOffset ... Seek back (user called seekdir(3) or lseek(2)).
+	if f.dirStream == nil || input.Offset == 0 || input.Offset < f.dirOffset {
 		if f.dirStream != nil {
 			f.dirStream.Close()
 			f.dirStream = nil
 		}
 		str, errno := b.getStream(&fuse.Context{Caller: input.Caller, Cancel: cancel}, inode)
 		if errno != 0 {
-			return errno
+			return errnoToStatus(errno), false
 		}
-
+		f.dirOffset = 0
 		f.hasOverflow = false
 		f.dirStream = str
 	}
 
-	return 0
+	// Seek forward?
+	for f.dirOffset < input.Offset {
+		f.hasOverflow = false
+		if !f.dirStream.HasNext() {
+			// Seek past end of directory. This is not an error, but the
+			// user will get an empty directory listing.
+			return fuse.OK, true
+		}
+		_, errno := f.dirStream.Next()
+		if errno != 0 {
+			return errnoToStatus(errno), true
+		}
+		f.dirOffset++
+	}
+	return fuse.OK, false
 }
 
 func (b *rawBridge) getStream(ctx context.Context, inode *Inode) (DirStream, syscall.Errno) {
@@ -880,14 +908,19 @@ func (b *rawBridge) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out *fus
 
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	if errno := b.setStream(cancel, input, n, f); errno != 0 {
-		return errnoToStatus(errno)
+
+	status, eof := b.setStream(cancel, input, n, f)
+	if !status.Ok() {
+		return status
+	} else if eof {
+		return fuse.OK
 	}
 
 	if f.hasOverflow {
 		// always succeeds.
 		out.AddDirEntry(f.overflow)
 		f.hasOverflow = false
+		f.dirOffset++
 	}
 
 	for f.dirStream.HasNext() {
@@ -901,8 +934,8 @@ func (b *rawBridge) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out *fus
 			f.hasOverflow = true
 			return errnoToStatus(errno)
 		}
+		f.dirOffset++
 	}
-
 	return fuse.OK
 }
 
@@ -911,8 +944,12 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	if errno := b.setStream(cancel, input, n, f); errno != 0 {
-		return errnoToStatus(errno)
+
+	status, eof := b.setStream(cancel, input, n, f)
+	if !status.Ok() {
+		return status
+	} else if eof {
+		return fuse.OK
 	}
 
 	ctx := &fuse.Context{Caller: input.Caller, Cancel: cancel}
@@ -935,8 +972,10 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 		if entryOut == nil {
 			f.overflow = e
 			f.hasOverflow = true
+
 			return fuse.OK
 		}
+		f.dirOffset++
 
 		// Virtual entries "." and ".." should be part of the
 		// directory listing, but not part of the filesystem tree.
@@ -963,7 +1002,6 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 			entryOut.Mode = child.stableAttr.Mode | (entryOut.Mode & 07777)
 		}
 	}
-
 	return fuse.OK
 }
 
