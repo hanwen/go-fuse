@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"testing"
 	"unsafe"
@@ -155,7 +156,7 @@ func TestDeletedInodePath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rootNode.deleted = true
+	atomic.StoreInt32(&rootNode.deleted, 1)
 
 	// Our Getattr implementation `testDeletedIno.Getattr` should return
 	// ENFILE when everything looks ok, EILSEQ otherwise.
@@ -169,11 +170,12 @@ func TestDeletedInodePath(t *testing.T) {
 type testDeletedIno struct {
 	Inode
 
-	deleted bool
+	deleted int32
 }
 
 func (n *testDeletedIno) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
-	if n.Root().Operations().(*testDeletedIno).deleted {
+	ino := n.Root().Operations().(*testDeletedIno)
+	if atomic.LoadInt32(&ino.deleted) == 1 {
 		return nil, syscall.ENOENT
 	}
 	if name != "dir" {
