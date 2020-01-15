@@ -202,6 +202,10 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		// TODO - unmount as well?
 		return nil, fmt.Errorf("init: %s", code)
 	}
+
+	// This prepares for Serve being called somewhere, either
+	// synchronously or asynchronously.
+	ms.loops.Add(1)
 	return ms, nil
 }
 
@@ -360,7 +364,6 @@ func (ms *Server) recordStats(req *request) {
 //
 // Each filesystem operation executes in a separate goroutine.
 func (ms *Server) Serve() {
-	ms.loops.Add(1)
 	ms.loop(false)
 	ms.loops.Wait()
 
@@ -386,7 +389,8 @@ func (ms *Server) Serve() {
 	}
 }
 
-// Wait waits for the serve loop to exit
+// Wait waits for the serve loop to exit. This should only be called
+// after Serve has been called, or it will hang indefinitely.
 func (ms *Server) Wait() {
 	ms.loops.Wait()
 }
