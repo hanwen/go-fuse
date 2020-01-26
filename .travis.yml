@@ -1,4 +1,7 @@
 sudo: required
+# Ubuntu 18.04 "Bionic", https://docs.travis-ci.com/user/reference/bionic/
+# Kernel 5.0.0-1026-gcp
+dist: bionic
 
 language: go
 go_import_path: github.com/hanwen/go-fuse
