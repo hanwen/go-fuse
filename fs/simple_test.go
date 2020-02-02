@@ -365,9 +365,9 @@ func TestPosix(t *testing.T) {
 
 func TestOpenDirectIO(t *testing.T) {
 	// Apparently, tmpfs does not allow O_DIRECT, so try to create
-	// a test temp directory in the home directory.
-	ext4Dir := filepath.Join(os.Getenv("HOME"), ".go-fuse-test")
-	if err := os.MkdirAll(ext4Dir, 0755); err != nil {
+	// a test temp directory in /var/tmp.
+	ext4Dir, err := ioutil.TempDir("/var/tmp", "go-fuse.TestOpenDirectIO")
+	if err != nil {
 		t.Fatalf("MkdirAll: %v", err)
 	}
 	defer os.RemoveAll(ext4Dir)
