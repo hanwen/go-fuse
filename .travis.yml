@@ -36,6 +36,6 @@ install:
 # as backup, triggering 1 minute later.
 script:
   - set -e # fail fast
-  - timeout -s QUIT -k 10s 90s go test -failfast -timeout 1m -v ./fs
-  - timeout -s QUIT -k 10s 6m  go test -failfast -timeout 5m -v ./...
+  - timeout -s QUIT -k 10s 90s go test -failfast -timeout 1m -p 1 -v ./fs
+  - timeout -s QUIT -k 10s 6m  go test -failfast -timeout 5m -p 1 -v ./...
   - set +e # restore
