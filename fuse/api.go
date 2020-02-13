@@ -167,6 +167,10 @@ type MountOptions struct {
 	// Options passed to syscall.Mount, the default value used by fusermount
 	// is syscall.MS_NOSUID|syscall.MS_NODEV
 	DirectMountFlags uintptr
+
+	// Number of pages to request.  If less than 32, use default (i.e. 32). This number is
+	// capped at the kernel maximum i.e. 256.
+	MaxPages uint16
 }
 
 // RawFileSystem is an interface close to the FUSE wire protocol.
