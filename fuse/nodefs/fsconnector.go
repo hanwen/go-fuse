@@ -42,7 +42,10 @@ type FileSystemConnector struct {
 	// forgotten nodes to the kernel. Problems solved by this lock:
 	// https://github.com/hanwen/go-fuse/issues/168
 	// https://github.com/rfjakob/gocryptfs/issues/322
-	lookupLock sync.Mutex
+	//
+	// The lock is shared: several concurrent Lookups are allowed to be
+	// run simultaneously, while Forget is exclusive.
+	lookupLock sync.RWMutex
 }
 
 // NewOptions generates FUSE options that correspond to libfuse's
