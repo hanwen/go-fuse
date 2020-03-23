@@ -95,8 +95,9 @@ func (c *FileSystemConnector) internalLookup(cancel <-chan struct{}, out *fuse.A
 
 func (c *rawBridge) Lookup(cancel <-chan struct{}, header *fuse.InHeader, name string, out *fuse.EntryOut) (code fuse.Status) {
 	// Prevent Lookup() and Forget() from running concurrently.
-	c.lookupLock.Lock()
-	defer c.lookupLock.Unlock()
+	// Allow several Lookups to be run simultaneously.
+	c.lookupLock.RLock()
+	defer c.lookupLock.RUnlock()
 
 	parent := c.toInode(header.NodeId)
 	if !parent.IsDir() {
