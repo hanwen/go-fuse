@@ -22,6 +22,30 @@
       "revId": "f9c9e8da0807643baf699c01de429135c0c32371",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b4c65048_5686607c",
+        "filename": "fuse/nodefs/fsops.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 120,
+      "author": {
+        "id": 1017031
+      },
+      "writtenOn": "2020-03-24T12:09:16Z",
+      "side": 1,
+      "message": "Thanks for feedback. The treelock is taken only by Inode.GetChild called by internalLookup, and treelock is not held at the time when we call lookupUpdate. LookupUpdate is just a short wrapper around fsconn.inodeMap.Register(), with inodeMap synchronizing its operations with mutex embedded into it (typeof(inodeMap) \u003d handleMap).\n\nThis way there, it seems, is no race that race detector would report, but the more I look at nodefs locking, the more I understand that something is generally not right with it.\n\nlookupUpdate is also called by rawBrige.childLookup, which in turn is called by:\n\n- rawBridge.Mknod\n- rawBridge.Mkdir\n- rawBridge.Symlink\n- rawBridge.Link\n- rawBridge.Create\n\n_without_ taking neither lockupLock _nor_ treelock.\n\nShould we update all those places explaining that childLookup/lookupUpdate work without any lock depending only on inodeMap operations being synchronized? It could be done, but by just that explanation it becomes clear that there are many races in nodefs.\n\nLike I said in the description, I understand that my patch does not fix nodefs locking, but at least it removes deadlock related to parallel lookup while preserving \"don\u0027t return forgotten nodes\" property. I\u0027ve tried to make the fix small and incremental, because otherwise the fix would be to review nodefs locking in full which is comparable to reviewing and moving to newer fs package.\n\nSaid that, if you still prefer we add a comment, are you ok with\n\n```\n--- a/fuse/nodefs/fsops.go\n+++ b/fuse/nodefs/fsops.go\n@@ -117,6 +117,8 @@ func (c *rawBridge) Lookup(cancel \u003c-chan struct{}, header *fuse.InHeader, name s\n        }\n \n        child.mount.fillEntry(out)\n+       // register/update use count for nodeID associated with child\n+       // this operation is synchronized via lock embedded into c.inodeMap\n        out.NodeId, out.Generation \u003d c.fsConn().lookupUpdate(child)\n        if out.Ino \u003d\u003d 0 {\n                out.Ino \u003d out.NodeId\n```\n\n?",
+      "parentUuid": "44aaffea_bafd8343",
+      "range": {
+        "startLine": 120,
+        "startChar": 41,
+        "endLine": 120,
+        "endChar": 53
+      },
+      "revId": "f9c9e8da0807643baf699c01de429135c0c32371",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
