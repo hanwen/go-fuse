@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "44aaffea_bafd8343",
+        "filename": "fuse/nodefs/fsops.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 120,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2020-03-24T07:24:30Z",
+      "side": 1,
+      "message": "this does a write, but I think we\u0027re saying this is OK because the tree structure is protected by treelock?  Can you add more documentation.",
+      "range": {
+        "startLine": 120,
+        "startChar": 41,
+        "endLine": 120,
+        "endChar": 53
+      },
+      "revId": "f9c9e8da0807643baf699c01de429135c0c32371",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
