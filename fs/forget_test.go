@@ -83,13 +83,14 @@ func TestForget(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer os.RemoveAll(dir)
 
 	rawFS := NewNodeFS(root, options)
 	server, err := fuse.NewServer(rawFS, dir, &options.MountOptions)
 	if err != nil {
 		t.Fatal(err)
 	}
-
+	defer server.Unmount()
 	go server.Serve()
 	if err := server.WaitMount(); err != nil {
 		t.Fatal(err)
