@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4b0b80de_6c044910",
+        "filename": "fs/bridge.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 855,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2020-04-03T19:36:16Z",
+      "side": 1,
+      "message": "can we keep this as errno? Status was a mistake, and I want to keep it in the fuse/ package.",
+      "range": {
+        "startLine": 855,
+        "startChar": 109,
+        "endLine": 855,
+        "endChar": 121
+      },
+      "revId": "3f31fbb8a3ea4aefb28d25691db55ffdfdf8c825",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
