@@ -194,7 +194,11 @@ func lookPathFallback(file string, fallbackDir string) (string, error) {
 }
 
 func fusermountBinary() (string, error) {
-	return lookPathFallback("fusermount", "/bin")
+	bin, err := lookPathFallback("fusermount", "/bin")
+	if err != nil {
+		bin, err = lookPathFallback("fusermount3", "/bin")
+	}
+	return bin, err
 }
 
 func umountBinary() (string, error) {
