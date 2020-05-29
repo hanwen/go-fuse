@@ -303,6 +303,7 @@ func doBatchForget(server *Server, req *request) {
 		// We have no return value to complain, so log an error.
 		log.Printf("Too few bytes for batch forget. Got %d bytes, want %d (%d entries)",
 			len(req.arg), wantBytes, in.Count)
+		return
 	}
 
 	h := &reflect.SliceHeader{
