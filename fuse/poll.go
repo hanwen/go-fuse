@@ -15,23 +15,18 @@ func doPollHackLookup(ms *Server, req *request) {
 		Nlink: 1,
 	}
 	switch req.inHeader.Opcode {
-	case _OP_CREATE:
-		out := (*CreateOut)(req.outData())
-		out.EntryOut = EntryOut{
+	case _OP_LOOKUP:
+		out := (*EntryOut)(req.outData())
+		*out = EntryOut{
 			NodeId: pollHackInode,
 			Attr:   attr,
 		}
-		out.OpenOut = OpenOut{
+		req.status = OK
+	case _OP_OPEN:
+		out := (*OpenOut)(req.outData())
+		*out = OpenOut{
 			Fh: pollHackInode,
 		}
-		req.status = OK
-	case _OP_LOOKUP:
-		out := (*EntryOut)(req.outData())
-		*out = EntryOut{}
-		req.status = ENOENT
-	case _OP_GETATTR:
-		out := (*AttrOut)(req.outData())
-		out.Attr = attr
 		req.status = OK
 	case _OP_POLL:
 		req.status = ENOSYS

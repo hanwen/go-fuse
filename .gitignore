@@ -12,3 +12,5 @@ example/loopback/loopback
 example/multizip/multizip
 example/bulkstat/bulkstat
 example/zipfs/zipfs
+# test binaries
+*.test
