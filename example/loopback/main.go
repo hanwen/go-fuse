@@ -46,6 +46,7 @@ func main() {
 	debug := flag.Bool("debug", false, "print debugging messages.")
 	other := flag.Bool("allow-other", false, "mount with -o allowother.")
 	quiet := flag.Bool("q", false, "quiet")
+	ro := flag.Bool("ro", false, "mount read-only")
 	cpuprofile := flag.String("cpuprofile", "", "write cpu profile to this file")
 	memprofile := flag.String("memprofile", "", "write memory profile to this file")
 	flag.Parse()
@@ -99,6 +100,9 @@ func main() {
 	if opts.AllowOther {
 		// Make the kernel check file permissions for us
 		opts.MountOptions.Options = append(opts.MountOptions.Options, "default_permissions")
+	}
+	if *ro {
+		opts.MountOptions.Options = append(opts.MountOptions.Options, "ro")
 	}
 	// First column in "df -T": original dir
 	opts.MountOptions.Options = append(opts.MountOptions.Options, "fsname="+orig)
