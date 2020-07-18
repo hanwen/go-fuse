@@ -380,3 +380,8 @@ func TestParallelDiropsHang(t *testing.T) {
 	wg.Wait()
 	server.Unmount()
 }
+
+func TestRoMount(t *testing.T) {
+	tc := newTestCase(t, &testOptions{ro: true})
+	defer tc.Clean()
+}

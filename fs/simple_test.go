@@ -53,6 +53,7 @@ type testOptions struct {
 	attrCache     bool
 	suppressDebug bool
 	testDir       string
+	ro            bool
 }
 
 // newTestCase creates the directories `orig` and `mnt` inside a temporary
@@ -101,6 +102,9 @@ func newTestCase(t *testing.T, opts *testOptions) *testCase {
 	mOpts := &fuse.MountOptions{}
 	if !opts.suppressDebug {
 		mOpts.Debug = testutil.VerboseTest()
+	}
+	if opts.ro {
+		mOpts.Options = append(mOpts.Options, "ro")
 	}
 	tc.server, err = fuse.NewServer(tc.rawFS, tc.mntDir, mOpts)
 	if err != nil {
