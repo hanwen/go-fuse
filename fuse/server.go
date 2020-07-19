@@ -128,6 +128,24 @@ func (ms *Server) Unmount() (err error) {
 	return err
 }
 
+// ForceClose closes the connection to /dev/fuse immediately, regardless of
+// any running I/O or open files.
+// This is an emergency measure to immediately stop a mount. Try Unmount first!
+// ForceClose will cause a bunch of
+// "Failed to read from fuse conn" error messages and will leave a broken
+// mountpoint behind ("transport endpoint is not connected").
+func (ms *Server) ForceClose() {
+	// ForceClose will cause other error messages - at least give them some context.
+	log.Printf("ForceClose: force-closing /dev/fuse (fd %d)", ms.mountFd)
+	ms.writeMu.Lock()
+	fd := ms.mountFd
+	// The fd number may be recycled immediately after the close. Overwrite
+	// it with -1 to prevent misdirected reads and writes.
+	ms.mountFd = -1
+	syscall.Close(fd)
+	ms.writeMu.Unlock()
+}
+
 // NewServer creates a server and attaches it to the given directory.
 func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server, error) {
 	if opts == nil {
