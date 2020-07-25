@@ -88,8 +88,19 @@ func (r *request) InputDebug() string {
 		names = fmt.Sprintf("%q", r.filenames)
 	}
 
-	if len(r.arg) > 0 {
-		names += fmt.Sprintf(" %db", len(r.arg))
+	if l := len(r.arg); l > 0 {
+		data := ""
+		if len(r.filenames) == 0 {
+			dots := ""
+			if l > 8 {
+				l = 8
+				dots = "..."
+			}
+
+			data = fmt.Sprintf("%q%s", r.arg[:l], dots)
+		}
+
+		names += fmt.Sprintf("%s %db", data, len(r.arg))
 	}
 
 	return fmt.Sprintf("rx %d: %s i%d %s%s",
