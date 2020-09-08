@@ -28,6 +28,10 @@ func doPollHackLookup(ms *Server, req *request) {
 			Fh: pollHackInode,
 		}
 		req.status = OK
+	case _OP_GETATTR:
+		out := (*AttrOut)(req.outData())
+		out.Attr = attr
+		req.status = OK
 	case _OP_POLL:
 		req.status = ENOSYS
 	default:
