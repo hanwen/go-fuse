@@ -380,6 +380,8 @@ func (n *Inode) removeRef(nlookup uint64, dropPersistence bool) (forgotten bool,
 	n.mu.Lock()
 	if nlookup > 0 && dropPersistence {
 		log.Panic("only one allowed")
+	} else if nlookup > n.lookupCount {
+		log.Panicf("i%d lookupCount underflow: lookupCount=%d, decrement=%d", n.stableAttr.Ino, n.lookupCount, nlookup)
 	} else if nlookup > 0 {
 
 		n.lookupCount -= nlookup
