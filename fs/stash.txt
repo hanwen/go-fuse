@@ -1,0 +1,107 @@
+func TestFsstress(t *testing.T) {
+	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
+	defer tc.Clean()
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	runtime.GOMAXPROCS(100)
+	for n := 1; n < 10; n++ {
+		fmt.Sprintf("")
+		dirN := fmt.Sprintf("%s/dir%d", tc.mntDir, n)
+		go func() {
+			for {
+				fd, err := syscall.Creat(dirN, 0700)
+				if err != nil && err != syscall.EEXIST && err != syscall.EISDIR {
+					t.Error(err)
+				}
+				if err == nil {
+					syscall.Close(fd)
+				}
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+			}
+
+		}()
+		go func() {
+			for {
+				err := syscall.Unlink(dirN)
+				if err != nil && err != syscall.ENOENT && err != syscall.EISDIR {
+					t.Error(err)
+				}
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+			}
+
+		}()
+		go func() {
+			for {
+				err := syscall.Mkdir(dirN, 0700)
+				if err != nil && err != syscall.EEXIST {
+					t.Error(err)
+				}
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+			}
+
+		}()
+		go func() {
+			for {
+				err := syscall.Rmdir(dirN)
+				if err != nil && err != syscall.ENOENT && err != syscall.ENOTDIR {
+					t.Error(err)
+				}
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+			}
+
+		}()
+		go func() {
+			buf := make([]byte, 1024)
+			fd, err := syscall.Open(tc.mntDir, syscall.O_RDONLY, 0)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			defer syscall.Close(fd)
+			for {
+				_, err := syscall.Getdents(fd, buf)
+				if err != nil {
+					t.Error(err)
+				}
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+			}
+		}()
+		go func() {
+			for {
+				var st syscall.Stat_t
+				err := syscall.Stat(dirN, &st)
+				if err != nil && err != syscall.ENOENT {
+					t.Error(err)
+				}
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+			}
+		}()
+	}
+	time.Sleep(60 * time.Second)
+	cancel()
+}
