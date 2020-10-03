@@ -103,7 +103,7 @@ func (r *request) InputDebug() string {
 		names += fmt.Sprintf("%s %db", data, len(r.arg))
 	}
 
-	return fmt.Sprintf("rx %d: %s i%d %s%s",
+	return fmt.Sprintf("rx %d: %s n%d %s%s",
 		r.inHeader.Unique, operationName(r.inHeader.Opcode), r.inHeader.NodeId,
 		val, names)
 }
