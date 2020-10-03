@@ -309,8 +309,8 @@ func (n *Inode) Path(root *Inode) string {
 
 	if root != nil && root != p {
 		deletedPlaceholder := fmt.Sprintf(".go-fuse.%d/deleted", rand.Uint64())
-		n.bridge.logf("warning: Inode.Path: inode i%d is orphaned, replacing segment with %q",
-			n.stableAttr.Ino, deletedPlaceholder)
+		n.bridge.logf("warning: Inode.Path: n%d is orphaned, replacing segment with %q",
+			n.nodeId, deletedPlaceholder)
 		// NOSUBMIT - should replace rather than append?
 		segments = append(segments, deletedPlaceholder)
 	}
@@ -451,7 +451,7 @@ retry:
 		n.changeCounter++
 
 		if n.lookupCount != 0 {
-			log.Panicf("i%d %p lookupCount changed: %d", n.nodeId, n, n.lookupCount)
+			log.Panicf("n%d %p lookupCount changed: %d", n.nodeId, n, n.lookupCount)
 		}
 
 		unlockNodes(lockme...)
