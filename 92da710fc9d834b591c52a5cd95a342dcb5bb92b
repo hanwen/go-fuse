@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "13d65113_3f576b7a",
+        "filename": "fuse/test/cachecontrol_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 205,
+      "author": {
+        "id": 1017031
+      },
+      "writtenOn": "2020-10-07T15:12:39Z",
+      "side": 1,
+      "message": "Jacob, thanks for analyzing and fixing this. There is already xmlock function - that checks for errors - defined above. Please use it instead of unix.Mlock and ignoring returned error.\n\nOn line 192 above there is already call to xmlock(fmmap) with probably the same rationale as in this patch. However I\u0027ve missed that the locked region becomes invalidated upon call to invalidae kernel cache.\n\nTo complete the patch, in addition to unix.Mlock -\u003e xmlock, I thus suggest to\n\n- remove global xmlock (@L192)\n\nOtherwise the patch looks correct (and I\u0027ve verified that it does not work via runtime.LockOSThread, because that does not lead to immediate creation of another OS thread for other goroutines).\n\nThanks",
+      "revId": "92da710fc9d834b591c52a5cd95a342dcb5bb92b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}

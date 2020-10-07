@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "332a4c85_91ffba63",
+        "filename": "fuse/test/cachecontrol_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 192,
+      "author": {
+        "id": 1017031
+      },
+      "writtenOn": "2020-10-07T15:12:39Z",
+      "side": 0,
+      "message": "Here",
+      "revId": "0b6cbc5150825082d3edd3c4be05e9d3991792a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
