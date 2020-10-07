@@ -34,6 +34,24 @@
       "revId": "92da710fc9d834b591c52a5cd95a342dcb5bb92b",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9e0c572a_c72d1e25",
+        "filename": "fuse/test/cachecontrol_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 205,
+      "author": {
+        "id": 1017031
+      },
+      "writtenOn": "2020-10-07T18:48:22Z",
+      "side": 1,
+      "message": "This issue is actually not specific to FUSE as it is unsafe, for similar reason, to access mmaped regions from go at all. The only safe way to access a mmaped region from go (backed by arbitrary file, including on networked filesystem) is to surround the access with entersyscall/exitsyscall (+catch SIGBUS and turn that into error).\n\nJust for the reference.",
+      "parentUuid": "1e34a6b5_57d66fa3",
+      "revId": "92da710fc9d834b591c52a5cd95a342dcb5bb92b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
