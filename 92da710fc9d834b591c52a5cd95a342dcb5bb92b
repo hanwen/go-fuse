@@ -70,6 +70,24 @@
       "revId": "92da710fc9d834b591c52a5cd95a342dcb5bb92b",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2f7c2124_64b428ab",
+        "filename": "fuse/test/cachecontrol_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 205,
+      "author": {
+        "id": 1017031
+      },
+      "writtenOn": "2020-10-07T19:31:36Z",
+      "side": 1,
+      "message": "Yes, right. Hang in regular case, deadlock in case of FUSE server living in the same Go process.",
+      "parentUuid": "c44d5c38_f590940e",
+      "revId": "92da710fc9d834b591c52a5cd95a342dcb5bb92b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
