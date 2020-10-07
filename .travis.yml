@@ -15,6 +15,11 @@ go:
   - 1.15.x
   - master
 
+env:
+  - GOMAXPROCS=1
+  # vvv = native `nproc`
+  - GOMAXPROCS=
+
 matrix:
  fast_finish: true
  allow_failures:
