@@ -194,6 +194,15 @@ func TestCacheControl(t *testing.T) {
 	// assertMmapRead asserts that file's mmaped memory reads as dataOK.
 	assertMmapRead := func(subj, dataOK string) {
 		t.Helper()
+		// Use the Mlock() syscall to get the mmap'ed range into the kernel
+		// cache, triggering FUSE reads as neccessary. A blocked syscall does
+		// not count towards GOMAXPROCS, so there should be a thread available
+		// to handle the FUSE reads.
+		// If we don't Mlock() first, the memory comparison triggers a page
+		// fault, which blocks the thread, and deadlocks the test reliably at
+		// GOMAXPROCS=1.
+		// Fixes https://github.com/hanwen/go-fuse/issues/261 .
+		unix.Mlock(fmmap)
 		if string(fmmap) != dataOK {
 			t.Fatalf("%s: file mmap: got %q  ; want %q", subj, fmmap, dataOK)
 		}
