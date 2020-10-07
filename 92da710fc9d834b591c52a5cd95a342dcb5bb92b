@@ -52,6 +52,24 @@
       "revId": "92da710fc9d834b591c52a5cd95a342dcb5bb92b",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c44d5c38_f590940e",
+        "filename": "fuse/test/cachecontrol_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 205,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2020-10-07T19:27:27Z",
+      "side": 1,
+      "message": "IIUC, you\u0027re saying that accessing a mmap\u0027d file might cause the Go program to hang until the file system is finished with I/O?  \n\nThat is still different from deadlocking the program, because the same process is also serving the FUSE filesystem in a test, right?",
+      "parentUuid": "9e0c572a_c72d1e25",
+      "revId": "92da710fc9d834b591c52a5cd95a342dcb5bb92b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }

@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1abef878_88526923",
+        "filename": "fuse/api.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2020-10-07T19:27:27Z",
+      "side": 1,
+      "message": ", this typically happens in unittest of a filesystem.",
+      "range": {
+        "startLine": 70,
+        "startChar": 59,
+        "endLine": 70,
+        "endChar": 67
+      },
+      "revId": "6f34541d925714583f428560fb26f4ed4eb544de",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
