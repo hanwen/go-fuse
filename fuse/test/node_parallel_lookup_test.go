@@ -98,6 +98,11 @@ func TestNodeParallelLookup(t *testing.T) {
 		}
 	}()
 
+	// the test will deadlock if the client cannot issue several lookups simultaneously
+	if srv.KernelSettings().Flags & fuse.CAP_PARALLEL_DIROPS == 0 {
+		t.Skip("Kernel serializes dir lookups")
+	}
+
 	// spawn 2 threads to access the files in parallel
 	// this will deadlock if nodefs does not allow simultaneous Lookups to be handled.
 	// see https://github.com/hanwen/go-fuse/commit/d0fca860 for context.
