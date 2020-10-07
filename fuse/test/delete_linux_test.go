@@ -81,8 +81,7 @@ func TestDeleteNotify(t *testing.T) {
 		return
 	}
 	buf := bytes.Buffer{}
-	cmd := exec.Command("/usr/bin/tail", "-f", "testfile")
-	cmd.Dir = mnt + "/testdir"
+	cmd := exec.Command("/usr/bin/tail", "-f", mnt+"/testdir/testfile")
 	cmd.Stdin = &buf
 	cmd.Stdout = &bytes.Buffer{}
 	cmd.Stderr = os.Stderr
