@@ -16,6 +16,24 @@
       "revId": "92da710fc9d834b591c52a5cd95a342dcb5bb92b",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1e34a6b5_57d66fa3",
+        "filename": "fuse/test/cachecontrol_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 205,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2020-10-07T18:09:41Z",
+      "side": 1,
+      "message": "this looks suspiciously similar to the problem with the POLL opcode. Fortunately, the Go runtime doesn\u0027t use mmap by default on files, but this does require that folks exercise care if they use mmap on a file backed by FUSE from the same process. I think we should add some documentation to highlight this.",
+      "parentUuid": "13d65113_3f576b7a",
+      "revId": "92da710fc9d834b591c52a5cd95a342dcb5bb92b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
