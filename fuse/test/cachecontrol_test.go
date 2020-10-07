@@ -221,6 +221,16 @@ func TestCacheControl(t *testing.T) {
 	// make sure cache reads as empty right after invalidation
 	assertCacheRead("after invalcache", "")
 
+	// Use the Mlock() syscall to get the mmap'ed range into the kernel
+	// cache again, triggering FUSE reads as neccessary. A blocked syscall does
+	// not count towards GOMAXPROCS, so there should be a thread available
+	// to handle the FUSE reads.
+	// If we don't Mlock() first, the memory comparison triggers a page
+	// fault, which blocks the thread, and deadlocks the test reliably at
+	// GOMAXPROCS=1.
+	// Fixes https://github.com/hanwen/go-fuse/issues/261 .
+	xmlock(fmmap)
+
 	// make sure mmapped data, file and cache read as original data
 	assertMmapRead("after invalcache", data0)
 	assertFileRead("after invalcache", data0)
