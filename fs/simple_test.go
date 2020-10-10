@@ -5,11 +5,16 @@
 package fs
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
+	"strings"
 	"sync"
 	"syscall"
 	"testing"
@@ -390,6 +395,105 @@ func TestOpenDirectIO(t *testing.T) {
 	tc := newTestCase(t, &opts)
 	defer tc.Clean()
 	posixtest.DirectIO(t, tc.mntDir)
+}
+
+// TestFsstress is loosely modeled after xfstest's fsstress. It performs rapid
+// parallel removes / creates / readdirs. Coupled with inode reuse, this test
+// used to deadlock go-fuse quite quickly.
+func TestFsstress(t *testing.T) {
+	tc := newTestCase(t, &testOptions{suppressDebug: true, attrCache: true, entryCache: true})
+	defer tc.Clean()
+
+	{
+		old := runtime.GOMAXPROCS(100)
+		defer runtime.GOMAXPROCS(old)
+	}
+
+	var wg sync.WaitGroup
+	ctx, cancel := context.WithCancel(context.Background())
+
+	ops := map[string]func(string) error{
+		"mkdir":      func(p string) error { return syscall.Mkdir(p, 0700) },
+		"mknod_reg":  func(p string) error { return syscall.Mknod(p, 0700|syscall.S_IFREG, 0) },
+		"remove":     os.Remove,
+		"unlink":     syscall.Unlink,
+		"mknod_sock": func(p string) error { return syscall.Mknod(p, 0700|syscall.S_IFSOCK, 0) },
+		"mknod_fifo": func(p string) error { return syscall.Mknod(p, 0700|syscall.S_IFIFO, 0) },
+		"mkfifo":     func(p string) error { return syscall.Mkfifo(p, 0700) },
+		"symlink":    func(p string) error { return syscall.Symlink("foo", p) },
+		"creat": func(p string) error {
+			fd, err := syscall.Open(p, syscall.O_CREAT|syscall.O_EXCL, 0700)
+			if err == nil {
+				syscall.Close(fd)
+			}
+			return err
+		},
+	}
+
+	opLoop := func(k string, n int) {
+		defer wg.Done()
+		op := ops[k]
+		for {
+			p := fmt.Sprintf("%s/%s.%d", tc.mntDir, t.Name(), n)
+			op(p)
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+		}
+	}
+
+	readdirLoop := func() {
+		defer wg.Done()
+		for {
+			f, err := os.Open(tc.mntDir)
+			if err != nil {
+				panic(err)
+			}
+			_, err = f.Readdir(0)
+			if err != nil {
+				panic(err)
+			}
+			f.Close()
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+		}
+	}
+
+	for i := 1; i < 10; i++ {
+		for k := range ops {
+			wg.Add(1)
+			go opLoop(k, i)
+		}
+	}
+
+	wg.Add(1)
+	go readdirLoop()
+
+	// An external "ls" loop has a destructive effect that I am unable to
+	// reproduce through in-process operations.
+	if strings.ContainsAny(tc.mntDir, "'\\") {
+		// But let's not enable shell injection.
+		log.Panicf("shell injection attempt? mntDir=%q", tc.mntDir)
+	}
+	// --color=always enables xattr lookups for extra stress
+	cmd := exec.Command("bash", "-c", "while true ; do ls -l --color=always '"+tc.mntDir+"'; done")
+	err := cmd.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cmd.Process.Kill()
+
+	// Run the test for 10 seconds
+	time.Sleep(10 * time.Second)
+
+	cancel()
+
+	wg.Wait()
 }
 
 func init() {
