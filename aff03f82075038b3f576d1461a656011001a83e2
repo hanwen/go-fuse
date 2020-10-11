@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "15c7a016_f7240773",
+        "filename": "fs/bridge.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2020-10-11T10:59:27Z",
+      "side": 1,
+      "message": "I think this should remain uint64.  We shouldnt have the same Ino with different Mode types simultaneously.",
+      "range": {
+        "startLine": 65,
+        "startChar": 18,
+        "endLine": 65,
+        "endChar": 28
+      },
+      "revId": "aff03f82075038b3f576d1461a656011001a83e2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "59e1cccc_a77dda12",
+        "filename": "fs/bridge.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 69,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2020-10-11T10:59:27Z",
+      "side": 1,
+      "message": "nodeid vs ino is confusing naming. Maybe something like kernelNodeID or kernelIno ?",
+      "range": {
+        "startLine": 69,
+        "startChar": 1,
+        "endLine": 69,
+        "endChar": 10
+      },
+      "revId": "aff03f82075038b3f576d1461a656011001a83e2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "57cc32f2_af694a22",
+        "filename": "fs/inode.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2020-10-11T10:59:27Z",
+      "side": 1,
+      "message": "this is mutable, right? should move below comment and document which lock protects it.",
+      "range": {
+        "startLine": 66,
+        "startChar": 1,
+        "endLine": 66,
+        "endChar": 7
+      },
+      "revId": "aff03f82075038b3f576d1461a656011001a83e2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8a41f16f_5a4ed3c3",
+        "filename": "fs/inode.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 736,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2020-10-11T10:59:27Z",
+      "side": 1,
+      "message": "if this is mutable, shouldnt this take a lock?",
+      "range": {
+        "startLine": 736,
+        "startChar": 41,
+        "endLine": 736,
+        "endChar": 47
+      },
+      "revId": "aff03f82075038b3f576d1461a656011001a83e2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
