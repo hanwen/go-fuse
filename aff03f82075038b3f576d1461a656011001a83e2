@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "69088958_4592039a",
+        "filename": "fs/bridge.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2020-10-11T12:13:31Z",
+      "side": 1,
+      "message": "Due to concurrency, we unfortunately do have the same Ino with different types simultaneously.\nThe only other way I see is to wait out a type change like this: https://github.com/hanwen/go-fuse/commit/7090b027aaf74e3da80d86c028430ba6865b488c (which can deadlock).",
+      "parentUuid": "15c7a016_f7240773",
+      "range": {
+        "startLine": 65,
+        "startChar": 18,
+        "endLine": 65,
+        "endChar": 28
+      },
+      "revId": "aff03f82075038b3f576d1461a656011001a83e2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "59e1cccc_a77dda12",
         "filename": "fs/bridge.go",
         "patchSetId": 4
@@ -36,6 +60,30 @@
       "writtenOn": "2020-10-11T10:59:27Z",
       "side": 1,
       "message": "nodeid vs ino is confusing naming. Maybe something like kernelNodeID or kernelIno ?",
+      "range": {
+        "startLine": 69,
+        "startChar": 1,
+        "endLine": 69,
+        "endChar": 10
+      },
+      "revId": "aff03f82075038b3f576d1461a656011001a83e2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "46b57ed1_97c3e307",
+        "filename": "fs/bridge.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 69,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2020-10-11T12:13:31Z",
+      "side": 1,
+      "message": "Ok",
+      "parentUuid": "59e1cccc_a77dda12",
       "range": {
         "startLine": 69,
         "startChar": 1,
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "df04251a_cbd1e727",
+        "filename": "fs/inode.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2020-10-11T12:13:31Z",
+      "side": 1,
+      "message": "This is only written once, at the moment pretty late, in addNewChild(). But I don\u0027t see why this can\u0027t already be set in initInode(), then it\u0027s truly immutable.",
+      "parentUuid": "57cc32f2_af694a22",
+      "range": {
+        "startLine": 66,
+        "startChar": 1,
+        "endLine": 66,
+        "endChar": 7
+      },
+      "revId": "aff03f82075038b3f576d1461a656011001a83e2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8a41f16f_5a4ed3c3",
         "filename": "fs/inode.go",
         "patchSetId": 4
@@ -82,6 +154,30 @@
       "writtenOn": "2020-10-11T10:59:27Z",
       "side": 1,
       "message": "if this is mutable, shouldnt this take a lock?",
+      "range": {
+        "startLine": 736,
+        "startChar": 41,
+        "endLine": 736,
+        "endChar": 47
+      },
+      "revId": "aff03f82075038b3f576d1461a656011001a83e2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1a3f4e13_05810074",
+        "filename": "fs/inode.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 736,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2020-10-11T12:13:31Z",
+      "side": 1,
+      "message": "I will move setting nodeid to initInode(), then nodeid is immutable.",
+      "parentUuid": "8a41f16f_5a4ed3c3",
       "range": {
         "startLine": 736,
         "startChar": 41,
