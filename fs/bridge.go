@@ -118,7 +118,8 @@ func (b *rawBridge) newInodeUnlocked(ops InodeEmbedder, id StableAttr, persisten
 		}
 	}
 
-	initInode(ops.embed(), ops, id, b, persistent)
+	initInode(ops.embed(), ops, id, b, persistent, b.nextNodeId)
+	b.nextNodeId++
 	return ops.embed()
 }
 
@@ -198,10 +199,6 @@ func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file F
 
 	child.lookupCount++
 	child.changeCounter++
-	if child.nodeId == 0 {
-		child.nodeId = b.nextNodeId
-		b.nextNodeId++
-	}
 
 	b.kernelNodeIds[child.nodeId] = child
 	// Any node that might be there is overwritten - it is obsolete now
@@ -286,10 +283,10 @@ func NewNodeFS(root InodeEmbedder, opts *Options) fuse.RawFileSystem {
 		},
 		bridge,
 		false,
+		1,
 	)
 	bridge.root = root.embed()
 	bridge.root.lookupCount = 1
-	bridge.root.nodeId = 1
 	bridge.kernelNodeIds = map[uint64]*Inode{
 		1: bridge.root,
 	}

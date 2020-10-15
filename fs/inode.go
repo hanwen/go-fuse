@@ -120,11 +120,12 @@ func (n *Inode) EmbeddedInode() *Inode {
 	return n
 }
 
-func initInode(n *Inode, ops InodeEmbedder, attr StableAttr, bridge *rawBridge, persistent bool) {
+func initInode(n *Inode, ops InodeEmbedder, attr StableAttr, bridge *rawBridge, persistent bool, nodeId uint64) {
 	n.ops = ops
 	n.stableAttr = attr
 	n.bridge = bridge
 	n.persistent = persistent
+	n.nodeId = nodeId
 	n.parents = make(map[parentData]struct{})
 	if attr.Mode == fuse.S_IFDIR {
 		n.children = make(map[string]*Inode)
