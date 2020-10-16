@@ -16,6 +16,24 @@
       "revId": "a4734d9962d3001e558baae28e4f067c15c51c88",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "44ba3537_06ee7505",
+        "filename": "fs/stash.txt",
+        "patchSetId": 6
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2020-10-16T21:54:03Z",
+      "side": 1,
+      "message": "Whoops this should not have been committed. Deleted now.",
+      "parentUuid": "f5e3cecf_ad30ddae",
+      "revId": "a4734d9962d3001e558baae28e4f067c15c51c88",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
