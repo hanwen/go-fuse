@@ -34,9 +34,16 @@ func doPollHackLookup(ms *Server, req *request) {
 		req.status = OK
 	case _OP_POLL:
 		req.status = ENOSYS
+
+	case _OP_ACCESS, _OP_FLUSH, _OP_RELEASE:
+		// Avoid upsetting the OSX mount process.
+		req.status = OK
 	default:
 		// We want to avoid switching off features through our
-		// poll hack, so don't use ENOSYS
+		// poll hack, so don't use ENOSYS. It would be nice if
+		// we could transmit no error code at all, but for
+		// some opcodes, we'd have to invent credible data to
+		// return as well.
 		req.status = ERANGE
 	}
 }
