@@ -8,6 +8,7 @@ package fs
 
 import (
 	"context"
+	"path/filepath"
 	"syscall"
 
 	"golang.org/x/sys/unix"
@@ -33,13 +34,14 @@ func (n *loopbackNode) Listxattr(ctx context.Context, dest []byte) (uint32, sysc
 	return uint32(sz), ToErrno(err)
 }
 
-func (n *loopbackNode) renameExchange(name string, newparent *loopbackNode, newName string) syscall.Errno {
+func (n *loopbackNode) renameExchange(name string, newparent InodeEmbedder, newName string) syscall.Errno {
 	fd1, err := syscall.Open(n.path(), syscall.O_DIRECTORY, 0)
 	if err != nil {
 		return ToErrno(err)
 	}
 	defer syscall.Close(fd1)
-	fd2, err := syscall.Open(newparent.path(), syscall.O_DIRECTORY, 0)
+	p2 := filepath.Join(n.rootData.rootPath, newparent.EmbeddedInode().Path(nil))
+	fd2, err := syscall.Open(p2, syscall.O_DIRECTORY, 0)
 	defer syscall.Close(fd2)
 	if err != nil {
 		return ToErrno(err)
@@ -52,15 +54,15 @@ func (n *loopbackNode) renameExchange(name string, newparent *loopbackNode, newN
 
 	// Double check that nodes didn't change from under us.
 	inode := &n.Inode
-	if inode.Root() != inode && inode.StableAttr().Ino != n.root().idFromStat(&st).Ino {
+	if inode.Root() != inode && inode.StableAttr().Ino != n.rootData.idFromStat(&st).Ino {
 		return syscall.EBUSY
 	}
 	if err := syscall.Fstat(fd2, &st); err != nil {
 		return ToErrno(err)
 	}
 
-	newinode := &newparent.Inode
-	if newinode.Root() != newinode && newinode.StableAttr().Ino != n.root().idFromStat(&st).Ino {
+	newinode := newparent.EmbeddedInode()
+	if newinode.Root() != newinode && newinode.StableAttr().Ino != n.rootData.idFromStat(&st).Ino {
 		return syscall.EBUSY
 	}
 

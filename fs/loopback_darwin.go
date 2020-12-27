@@ -32,7 +32,7 @@ func (n *loopbackNode) Listxattr(ctx context.Context, dest []byte) (uint32, sysc
 	return 0, syscall.ENOSYS
 }
 
-func (n *loopbackNode) renameExchange(name string, newparent *loopbackNode, newName string) syscall.Errno {
+func (n *loopbackNode) renameExchange(name string, newparent InodeEmbedder, newName string) syscall.Errno {
 	return syscall.ENOSYS
 }
 
