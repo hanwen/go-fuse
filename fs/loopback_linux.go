@@ -40,7 +40,7 @@ func (n *loopbackNode) renameExchange(name string, newparent InodeEmbedder, newN
 		return ToErrno(err)
 	}
 	defer syscall.Close(fd1)
-	p2 := filepath.Join(n.rootData.rootPath, newparent.EmbeddedInode().Path(nil))
+	p2 := filepath.Join(n.RootData.Path, newparent.EmbeddedInode().Path(nil))
 	fd2, err := syscall.Open(p2, syscall.O_DIRECTORY, 0)
 	defer syscall.Close(fd2)
 	if err != nil {
@@ -54,7 +54,7 @@ func (n *loopbackNode) renameExchange(name string, newparent InodeEmbedder, newN
 
 	// Double check that nodes didn't change from under us.
 	inode := &n.Inode
-	if inode.Root() != inode && inode.StableAttr().Ino != n.rootData.idFromStat(&st).Ino {
+	if inode.Root() != inode && inode.StableAttr().Ino != n.RootData.idFromStat(&st).Ino {
 		return syscall.EBUSY
 	}
 	if err := syscall.Fstat(fd2, &st); err != nil {
@@ -62,7 +62,7 @@ func (n *loopbackNode) renameExchange(name string, newparent InodeEmbedder, newN
 	}
 
 	newinode := newparent.EmbeddedInode()
-	if newinode.Root() != newinode && newinode.StableAttr().Ino != n.rootData.idFromStat(&st).Ino {
+	if newinode.Root() != newinode && newinode.StableAttr().Ino != n.RootData.idFromStat(&st).Ino {
 		return syscall.EBUSY
 	}
 
