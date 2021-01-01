@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "bf8d2da8_978c228c",
+        "filename": "fs/loopback.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 104,
+      "author": {
+        "id": 1018752
+      },
+      "writtenOn": "2021-01-01T17:56:24Z",
+      "side": 1,
+      "message": "Isn\u0027t n.Root() the root of the fuse filesystem?\nShouldn\u0027t this be relative to the RootData?\ne.g. if I put a LoopbackRoot at /foo/bar, LoopbackNode.path() for /foo/bar/a/b should be just a/b",
+      "revId": "e2e9988d410c28c8d03dbc8a269835bedb2a016f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
