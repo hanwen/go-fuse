@@ -68,6 +68,7 @@ func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, e
 	}
 
 	go func() {
+		// wait inside a goroutine or otherwise it would block forever for unknown reasons
 		if err := cmd.Wait(); err != nil {
 			err = fmt.Errorf("mount_osxfusefs failed: %v. Stderr: %s, Stdout: %s",
 				err, errOut.String(), out.String())
