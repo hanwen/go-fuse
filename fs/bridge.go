@@ -418,6 +418,8 @@ func (b *rawBridge) Mknod(cancel <-chan struct{}, input *fuse.MknodIn, name stri
 	var errno syscall.Errno
 	if mops, ok := parent.ops.(NodeMknoder); ok {
 		child, errno = mops.Mknod(&fuse.Context{Caller: input.Caller, Cancel: cancel}, name, input.Mode, input.Rdev, out)
+	} else {
+		return fuse.ENOTSUP
 	}
 
 	if errno != 0 {
