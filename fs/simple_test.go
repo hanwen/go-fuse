@@ -356,6 +356,24 @@ func TestMknod(t *testing.T) {
 	}
 }
 
+func TestMknodNotSupported(t *testing.T) {
+	mountPoint := testutil.TempDir()
+	defer os.Remove(mountPoint)
+
+	server, err := Mount(mountPoint, &Inode{}, nil)
+	if err != nil {
+		t.Fatalf("cannot mount: %v", err)
+	}
+
+	defer server.Unmount()
+
+	name := filepath.Join(mountPoint, "foo")
+
+	if got, want := syscall.Mknod(name, syscall.S_IFREG|0755, (8<<8)|0), syscall.ENOTSUP; got != want {
+		t.Fatalf("mknod: got %v, want %v", got, want)
+	}
+}
+
 func TestPosix(t *testing.T) {
 	noisy := map[string]bool{
 		"ParallelFileOpen": true,
