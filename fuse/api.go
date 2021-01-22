@@ -167,6 +167,11 @@ type MountOptions struct {
 	// Options passed to syscall.Mount, the default value used by fusermount
 	// is syscall.MS_NOSUID|syscall.MS_NODEV
 	DirectMountFlags uintptr
+
+	// Connections is the number of FUSE worker connections. Using a value > 1
+	// (currently only supported under Linux) might increase throughput in some
+	// workloads. Defaults to 1.
+	Connections int
 }
 
 // RawFileSystem is an interface close to the FUSE wire protocol.

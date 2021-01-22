@@ -28,7 +28,7 @@ func (s *Server) setSplice() {
 //
 // This dance is neccessary because header and payload cannot be split across
 // two splices and we cannot seek in a pipe buffer.
-func (ms *Server) trySplice(header []byte, req *request, fdData *readResultFd) error {
+func (ms *Server) trySplice(mountFd int, header []byte, req *request, fdData *readResultFd) error {
 	var err error
 
 	// Get a pair of connected pipes
@@ -88,7 +88,7 @@ func (ms *Server) trySplice(header []byte, req *request, fdData *readResultFd) e
 	}
 
 	// Write header + data to /dev/fuse
-	_, err = pair2.WriteTo(uintptr(ms.mountFd), total)
+	_, err = pair2.WriteTo(uintptr(mountFd), total)
 	if err != nil {
 		return err
 	}
