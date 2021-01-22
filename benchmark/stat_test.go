@@ -23,7 +23,11 @@ import (
 )
 
 func setupFs(node fs.InodeEmbedder, N int) (string, func()) {
-	opts := &fs.Options{}
+	opts := &fs.Options{
+		MountOptions: fuse.MountOptions{
+			Connections: 1,
+		},
+	}
 	opts.Debug = testutil.VerboseTest()
 	mountPoint := testutil.TempDir()
 	server, err := fs.Mount(mountPoint, node, opts)

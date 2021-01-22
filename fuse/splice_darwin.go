@@ -12,6 +12,6 @@ func (s *Server) setSplice() {
 	s.canSplice = false
 }
 
-func (ms *Server) trySplice(header []byte, req *request, fdData *readResultFd) error {
+func (ms *Server) trySplice(mountFd int, header []byte, req *request, fdData *readResultFd) error {
 	return fmt.Errorf("unimplemented")
 }
