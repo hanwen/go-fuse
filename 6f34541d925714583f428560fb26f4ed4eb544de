@@ -1,6 +1,7 @@
 {
   "comments": [
     {
+      "unresolved": true,
       "key": {
         "uuid": "1abef878_88526923",
         "filename": "fuse/api.go",
@@ -20,8 +21,31 @@
         "endChar": 67
       },
       "revId": "6f34541d925714583f428560fb26f4ed4eb544de",
-      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
-      "unresolved": true
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "b36eadc6_86157ecf",
+        "filename": "fuse/api.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-01-25T16:28:49Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "1abef878_88526923",
+      "range": {
+        "startLine": 70,
+        "startChar": 59,
+        "endLine": 70,
+        "endChar": 67
+      },
+      "revId": "6f34541d925714583f428560fb26f4ed4eb544de",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }

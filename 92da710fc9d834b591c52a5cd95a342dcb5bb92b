@@ -1,6 +1,7 @@
 {
   "comments": [
     {
+      "unresolved": true,
       "key": {
         "uuid": "13d65113_3f576b7a",
         "filename": "fuse/test/cachecontrol_test.go",
@@ -14,10 +15,10 @@
       "side": 1,
       "message": "Jacob, thanks for analyzing and fixing this. There is already xmlock function - that checks for errors - defined above. Please use it instead of unix.Mlock and ignoring returned error.\n\nOn line 192 above there is already call to xmlock(fmmap) with probably the same rationale as in this patch. However I\u0027ve missed that the locked region becomes invalidated upon call to invalidae kernel cache.\n\nTo complete the patch, in addition to unix.Mlock -\u003e xmlock, I thus suggest to\n\n- remove global xmlock (@L192)\n\nOtherwise the patch looks correct (and I\u0027ve verified that it does not work via runtime.LockOSThread, because that does not lead to immediate creation of another OS thread for other goroutines).\n\nThanks",
       "revId": "92da710fc9d834b591c52a5cd95a342dcb5bb92b",
-      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
-      "unresolved": true
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": true,
       "key": {
         "uuid": "1e34a6b5_57d66fa3",
         "filename": "fuse/test/cachecontrol_test.go",
@@ -32,10 +33,10 @@
       "message": "this looks suspiciously similar to the problem with the POLL opcode. Fortunately, the Go runtime doesn\u0027t use mmap by default on files, but this does require that folks exercise care if they use mmap on a file backed by FUSE from the same process. I think we should add some documentation to highlight this.",
       "parentUuid": "13d65113_3f576b7a",
       "revId": "92da710fc9d834b591c52a5cd95a342dcb5bb92b",
-      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
-      "unresolved": true
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": true,
       "key": {
         "uuid": "9e0c572a_c72d1e25",
         "filename": "fuse/test/cachecontrol_test.go",
@@ -50,10 +51,10 @@
       "message": "This issue is actually not specific to FUSE as it is unsafe, for similar reason, to access mmaped regions from go at all. The only safe way to access a mmaped region from go (backed by arbitrary file, including on networked filesystem) is to surround the access with entersyscall/exitsyscall (+catch SIGBUS and turn that into error).\n\nJust for the reference.",
       "parentUuid": "1e34a6b5_57d66fa3",
       "revId": "92da710fc9d834b591c52a5cd95a342dcb5bb92b",
-      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
-      "unresolved": true
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": true,
       "key": {
         "uuid": "c44d5c38_f590940e",
         "filename": "fuse/test/cachecontrol_test.go",
@@ -68,10 +69,10 @@
       "message": "IIUC, you\u0027re saying that accessing a mmap\u0027d file might cause the Go program to hang until the file system is finished with I/O?  \n\nThat is still different from deadlocking the program, because the same process is also serving the FUSE filesystem in a test, right?",
       "parentUuid": "9e0c572a_c72d1e25",
       "revId": "92da710fc9d834b591c52a5cd95a342dcb5bb92b",
-      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
-      "unresolved": true
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": true,
       "key": {
         "uuid": "2f7c2124_64b428ab",
         "filename": "fuse/test/cachecontrol_test.go",
@@ -86,8 +87,25 @@
       "message": "Yes, right. Hang in regular case, deadlock in case of FUSE server living in the same Go process.",
       "parentUuid": "c44d5c38_f590940e",
       "revId": "92da710fc9d834b591c52a5cd95a342dcb5bb92b",
-      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
-      "unresolved": true
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "7645c966_3ceabec7",
+        "filename": "fuse/test/cachecontrol_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 205,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-01-25T16:28:49Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "2f7c2124_64b428ab",
+      "revId": "92da710fc9d834b591c52a5cd95a342dcb5bb92b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
