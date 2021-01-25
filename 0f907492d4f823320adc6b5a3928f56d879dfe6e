@@ -1,0 +1,90 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "376bd1e0_f6cfe19c",
+        "filename": "benchmark/read_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 5,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-01-25T16:23:21Z",
+      "side": 1,
+      "message": "why a separate package?",
+      "range": {
+        "startLine": 5,
+        "startChar": 8,
+        "endLine": 5,
+        "endChar": 17
+      },
+      "revId": "0f907492d4f823320adc6b5a3928f56d879dfe6e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "63682710_11b5c079",
+        "filename": "benchmark/stat_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-01-25T16:23:21Z",
+      "side": 1,
+      "message": "this isn\u0027t necessary, right?",
+      "range": {
+        "startLine": 28,
+        "startChar": 2,
+        "endLine": 28,
+        "endChar": 18
+      },
+      "revId": "0f907492d4f823320adc6b5a3928f56d879dfe6e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "3e90c0cb_15ca3018",
+        "filename": "fuse/api.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 172,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-01-25T16:23:21Z",
+      "side": 1,
+      "message": "// increases throughput",
+      "revId": "0f907492d4f823320adc6b5a3928f56d879dfe6e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6c1a34d5_2b25e60f",
+        "filename": "fuse/server.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 209,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-01-25T16:23:21Z",
+      "side": 1,
+      "message": "have you looked at how expensive the clone operation is? Is it worth it to automatically do this, eg. as part of increasing the number of readers (see line 324).\n\nI suspect it might be a bit slow, but if it is not, it might be better to have the number of fds scale automatically with the load that the file system receives.\n\nCan you add benchmark results to the commit message? how does it scale beyond 2 connections?",
+      "range": {
+        "startLine": 209,
+        "startChar": 3,
+        "endLine": 209,
+        "endChar": 38
+      },
+      "revId": "0f907492d4f823320adc6b5a3928f56d879dfe6e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
