@@ -199,6 +199,30 @@
       },
       "revId": "0f907492d4f823320adc6b5a3928f56d879dfe6e",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "0e6e5638_275724ec",
+        "filename": "fuse/server.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 209,
+      "author": {
+        "id": 1018834
+      },
+      "writtenOn": "2021-01-26T16:18:41Z",
+      "side": 1,
+      "message": "Actually the performance improvement on my laptop seem to come solely from effectively increasing _MAX_READERS. Need to test more on my other machines...",
+      "parentUuid": "ce9ce12f_57344443",
+      "range": {
+        "startLine": 209,
+        "startChar": 3,
+        "endLine": 209,
+        "endChar": 38
+      },
+      "revId": "0f907492d4f823320adc6b5a3928f56d879dfe6e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
