@@ -175,6 +175,30 @@
       },
       "revId": "0f907492d4f823320adc6b5a3928f56d879dfe6e",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ce9ce12f_57344443",
+        "filename": "fuse/server.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 209,
+      "author": {
+        "id": 1018834
+      },
+      "writtenOn": "2021-01-26T14:50:12Z",
+      "side": 1,
+      "message": "Pushed changes based on the review comments but still looking into scaling number of connections automatically. Just naively cloning a new connection before dispatching a new loop gives worse performance. Limiting how often we add new connections could be a viable strategy though. For example if add a new connection at most once every 10 ms my read benchmark hits 21 GB/s (see my latest commit message for results when hard-coding the number of connections). The question is just how to tune this interval and the maximum number of connections/readers. Will experiment a bit more...",
+      "parentUuid": "2004883b_4d301c5d",
+      "range": {
+        "startLine": 209,
+        "startChar": 3,
+        "endLine": 209,
+        "endChar": 38
+      },
+      "revId": "0f907492d4f823320adc6b5a3928f56d879dfe6e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
