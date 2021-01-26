@@ -50,6 +50,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "12904748_1ff2a928",
+        "filename": "benchmark/read_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 5,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-01-26T18:39:06Z",
+      "side": 1,
+      "message": "sorry, I was confused; I didn\u0027t remember there was a benchmark directory.",
+      "parentUuid": "e197741f_e94c649a",
+      "range": {
+        "startLine": 5,
+        "startChar": 8,
+        "endLine": 5,
+        "endChar": 17
+      },
+      "revId": "0f907492d4f823320adc6b5a3928f56d879dfe6e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "63682710_11b5c079",
         "filename": "benchmark/stat_test.go",
         "patchSetId": 1
@@ -215,6 +239,30 @@
       "side": 1,
       "message": "Actually the performance improvement on my laptop seem to come solely from effectively increasing _MAX_READERS. Need to test more on my other machines...",
       "parentUuid": "ce9ce12f_57344443",
+      "range": {
+        "startLine": 209,
+        "startChar": 3,
+        "endLine": 209,
+        "endChar": 38
+      },
+      "revId": "0f907492d4f823320adc6b5a3928f56d879dfe6e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "adfba88f_c82324de",
+        "filename": "fuse/server.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 209,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-01-26T18:39:06Z",
+      "side": 1,
+      "message": "Ah! Yes, this also why I wanted to know why cloning fds would make it go faster. AFAIK, I don\u0027t know that there is a special structure backing the fd where parallelism helps things go faster.\n\nit would be interesting to make MAX_READERS tunable, or even better, make it auto-tunable.\n\nCan you test with a FS that does some amount of work? If you have a nop filesystem, you\u0027re basically testing how fast the FUSE framework itself goes, which is basically how fast it can allocate request buffers and parse out headers. Maybe some flavor of an in-memory filesystem where you read/write data.",
+      "parentUuid": "0e6e5638_275724ec",
       "range": {
         "startLine": 209,
         "startChar": 3,
