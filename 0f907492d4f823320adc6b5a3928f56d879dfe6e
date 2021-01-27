@@ -271,6 +271,30 @@
       },
       "revId": "0f907492d4f823320adc6b5a3928f56d879dfe6e",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b2f9ad6b_7dbb3045",
+        "filename": "fuse/server.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 209,
+      "author": {
+        "id": 1018834
+      },
+      "writtenOn": "2021-01-27T10:24:04Z",
+      "side": 1,
+      "message": "\u003e Ah! Yes, this also why I wanted to know why cloning fds would make it go faster. AFAIK, I don\u0027t know that there is a special structure backing the fd where parallelism helps things go faster.\n\nIndeed, on my 96 core system the improvements are all thanks to effectively higher MAX_READERS. I will close the github issue (and \"abandon\" this change I suppose).\n\n\u003e it would be interesting to make MAX_READERS tunable, or even better, make it auto-tunable.\n\nIn my experiments, something like maxReaders :\u003d max(16, numCores) seems to work well. I don\u0027t see any improvements with MAX_READERS \u003e 16 on the 96 core system even when I turn up the jobs variable. I will submit a new issue later at some point.\n\n\u003e Can you test with a FS that does some amount of work? If you have a nop filesystem, you\u0027re basically testing how fast the FUSE framework itself goes, which is basically how fast it can allocate request buffers and parse out headers. Maybe some flavor of an in-memory filesystem where you read/write data.\n\nYeah, the purpose of the nop filesytem was just to get an idea of what the ceiling is for the real filesystem implementation.\n\nI haven\u0027t retested with my real filesystem implementation but with the PoC commit I referred to in the github issue I saw improvements with 20-30%. Not as dramatic as for the nop filesystem but still worth to tweak the MAX_READERS logic I think.",
+      "parentUuid": "adfba88f_c82324de",
+      "range": {
+        "startLine": 209,
+        "startChar": 3,
+        "endLine": 209,
+        "endChar": 38
+      },
+      "revId": "0f907492d4f823320adc6b5a3928f56d879dfe6e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
