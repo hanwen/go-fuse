@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "de78c75f_56214468",
+        "filename": "fuse/server.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-01-28T19:16:31Z",
+      "side": 1,
+      "message": "gomaxprocs ?",
+      "range": {
+        "startLine": 32,
+        "startChar": 22,
+        "endLine": 32,
+        "endChar": 28
+      },
+      "revId": "9a2d2c267514fa6c6997a7ee12b40abf827bc5f5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
