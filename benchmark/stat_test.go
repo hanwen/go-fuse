@@ -129,7 +129,7 @@ func BenchmarkGoFuseStat(b *testing.B) {
 
 	threads := runtime.GOMAXPROCS(0)
 	if err := TestingBOnePass(b, threads, fileList, wd); err != nil {
-		log.Fatalf("TestingBOnePass %v8", err)
+		b.Fatalf("TestingBOnePass %v8", err)
 	}
 }
 
@@ -252,6 +252,8 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 	f.Close()
 
 	mountPoint := testutil.TempDir()
+	defer os.RemoveAll(mountPoint)
+
 	cmd := exec.Command(wd+"/cstatfs",
 		"-o",
 		"entry_timeout=0.0,attr_timeout=0.0,ac_attr_timeout=0.0,negative_timeout=0.0",
@@ -274,6 +276,6 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 	os.Lstat(mountPoint)
 	threads := runtime.GOMAXPROCS(0)
 	if err := TestingBOnePass(b, threads, fileList, mountPoint); err != nil {
-		log.Fatalf("TestingBOnePass %v", err)
+		b.Fatalf("TestingBOnePass %v", err)
 	}
 }

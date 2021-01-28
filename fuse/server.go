@@ -21,7 +21,21 @@ import (
 const (
 	// The kernel caps writes at 128k.
 	MAX_KERNEL_WRITE = 128 * 1024
+
+	minMaxReaders = 2
+	maxMaxReaders = 16
 )
+
+var maxReaders int
+
+func init() {
+	maxReaders = runtime.GOMAXPROCS(0)
+	if maxReaders < minMaxReaders {
+		maxReaders = minMaxReaders
+	} else if maxReaders > maxMaxReaders {
+		maxReaders = maxMaxReaders
+	}
+}
 
 // Server contains the logic for reading from the FUSE device and
 // translating it to RawFileSystem interface calls.
@@ -238,9 +252,6 @@ func (ms *Server) DebugData() string {
 	return fmt.Sprintf("readers: %d", r)
 }
 
-// What is a good number?  Maybe the number of CPUs?
-const _MAX_READERS = 2
-
 // handleEINTR retries the given function until it doesn't return syscall.EINTR.
 // This is similar to the HANDLE_EINTR() macro from Chromium ( see
 // https://code.google.com/p/chromium/codesearch#chromium/src/base/posix/eintr_wrapper.h
@@ -267,7 +278,7 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 	dest := ms.readPool.Get().([]byte)
 
 	ms.reqMu.Lock()
-	if ms.reqReaders > _MAX_READERS {
+	if ms.reqReaders > maxReaders {
 		ms.reqMu.Unlock()
 		return nil, OK
 	}
