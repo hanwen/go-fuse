@@ -22,6 +22,30 @@
       },
       "revId": "9a2d2c267514fa6c6997a7ee12b40abf827bc5f5",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "53b6c7c7_c70c56ca",
+        "filename": "fuse/server.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 1018834
+      },
+      "writtenOn": "2021-01-29T07:30:56Z",
+      "side": 1,
+      "message": "Probably makes sense, fixed in new patch set.",
+      "parentUuid": "de78c75f_56214468",
+      "range": {
+        "startLine": 32,
+        "startChar": 22,
+        "endLine": 32,
+        "endChar": 28
+      },
+      "revId": "9a2d2c267514fa6c6997a7ee12b40abf827bc5f5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }

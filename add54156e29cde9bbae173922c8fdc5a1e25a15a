@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "ba4fd33c_a92c2d97",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1018834
+      },
+      "writtenOn": "2021-01-29T07:30:56Z",
+      "side": 1,
+      "message": "NumCPU -\u003e GOMAXPROCS",
+      "revId": "add54156e29cde9bbae173922c8fdc5a1e25a15a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
