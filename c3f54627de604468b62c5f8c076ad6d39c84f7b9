@@ -16,6 +16,29 @@
       "message": "Added a unit test.",
       "revId": "c3f54627de604468b62c5f8c076ad6d39c84f7b9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "87f7e245_59cf0839",
+        "filename": "fs/simple_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 373,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-01-30T10:57:31Z",
+      "side": 1,
+      "message": "per Go style guidelines, this needs to be inverted \"got X want Y\". You can use \"want\" as a shorter var name rather than \"expected\"",
+      "range": {
+        "startLine": 373,
+        "startChar": 18,
+        "endLine": 373,
+        "endChar": 39
+      },
+      "revId": "c3f54627de604468b62c5f8c076ad6d39c84f7b9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
