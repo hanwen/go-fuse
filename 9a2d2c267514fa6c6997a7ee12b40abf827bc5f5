@@ -46,6 +46,30 @@
       },
       "revId": "9a2d2c267514fa6c6997a7ee12b40abf827bc5f5",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "89af799d_3f47c211",
+        "filename": "fuse/server.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-02-10T20:35:05Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "53b6c7c7_c70c56ca",
+      "range": {
+        "startLine": 32,
+        "startChar": 22,
+        "endLine": 32,
+        "endChar": 28
+      },
+      "revId": "9a2d2c267514fa6c6997a7ee12b40abf827bc5f5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
