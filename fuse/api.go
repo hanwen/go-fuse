@@ -173,6 +173,13 @@ type MountOptions struct {
 	// Options passed to syscall.Mount, the default value used by fusermount
 	// is syscall.MS_NOSUID|syscall.MS_NODEV
 	DirectMountFlags uintptr
+
+	// EnableAcls enables kernel ACL support.
+	//
+	// See the comments to FUSE_CAP_POSIX_ACL
+	// in https://github.com/libfuse/libfuse/blob/master/include/fuse_common.h
+	// for details.
+	EnableAcl bool
 }
 
 // RawFileSystem is an interface close to the FUSE wire protocol.
