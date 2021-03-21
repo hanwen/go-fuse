@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "a2e112e3_4ad26418",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2021-03-21T18:14:27Z",
+      "side": 1,
+      "message": "I think we should switch this (Select an arbitrary parent)\n\nhttps://github.com/hanwen/go-fuse/blob/0f728ba15b38579efefc3dc47821882ca18ffea7/fs/inode.go#L293\n\nto something like LRU. What do you think?\n\nUse case is people syncing the storage directory with Dropbox et al, which happens behind our back.",
+      "revId": "5972a8d72d3e51038df90e384585f44c4547305d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
