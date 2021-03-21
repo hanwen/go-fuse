@@ -16,6 +16,23 @@
       "message": "Changed to got/want naming convention.",
       "revId": "efd237096163892c9f8db22a0d87a4e86281838d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "5e337f8f_3a513ffb",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2021-03-21T18:11:44Z",
+      "side": 1,
+      "message": "Tested, looks good.\nThe new test indeed causes a crash with the \"return fuse.ENOTSUP\" removed,\nand works fine with the patch as-is.",
+      "revId": "efd237096163892c9f8db22a0d87a4e86281838d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
