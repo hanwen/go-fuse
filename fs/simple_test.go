@@ -612,6 +612,51 @@ func TestFsstress(t *testing.T) {
 	}
 }
 
+// TestStaleHardlinks creates a lot of hard links and deletes them again
+// behind the back of the loopback fs. Then opens the original file.
+//
+// Fails at the moment. Core of the problem:
+//
+// 18:41:50.796468 rx 136: LOOKUP n1 ["link0"] 6b
+// 18:41:50.796489 tx 136:     OK, {n2 g1 tE=0s tA=0s {M0100600 SZ=0 L=1 1026:1026 B0*4096 i0:269663 A 1616348510.793212 M 1616348510.793212 C 1616348510.795212}}
+// 18:41:50.796535 rx 138: OPEN n2 {O_RDONLY,0x8000}
+// 18:41:50.796557 tx 138:     2=no such file or directory, {Fh 0 }
+func TestStaleHardlinks(t *testing.T) {
+	// Disable all caches we can disable
+	tc := newTestCase(t, &testOptions{attrCache: false, entryCache: false})
+	defer tc.Clean()
+
+	// "link0" is original file
+	link0 := tc.mntDir + "/link0"
+	if fd, err := syscall.Creat(link0, 0600); err != nil {
+		t.Fatal(err)
+	} else {
+		syscall.Close(fd)
+	}
+	// Create hardlinks via mntDir
+	for i := 1; i < 20; i++ {
+		linki := fmt.Sprintf(tc.mntDir+"/link%d", i)
+		if err := syscall.Link(link0, linki); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// Delete hardlinks via origDir (behind loopback fs's back)
+	for i := 1; i < 20; i++ {
+		linki := fmt.Sprintf(tc.origDir+"/link%d", i)
+		if err := syscall.Unlink(linki); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// Try to open link0 via mntDir
+	fd, err := syscall.Open(link0, syscall.O_RDONLY, 0)
+	if err != nil {
+		t.Error(err)
+	} else {
+		syscall.Close(fd)
+	}
+
+}
+
 func init() {
 	syscall.Umask(0)
 }
