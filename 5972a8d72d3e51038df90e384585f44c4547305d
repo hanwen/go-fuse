@@ -16,6 +16,24 @@
       "message": "I think we should switch this (Select an arbitrary parent)\n\nhttps://github.com/hanwen/go-fuse/blob/0f728ba15b38579efefc3dc47821882ca18ffea7/fs/inode.go#L293\n\nto something like LRU. What do you think?\n\nUse case is people syncing the storage directory with Dropbox et al, which happens behind our back.",
       "revId": "5972a8d72d3e51038df90e384585f44c4547305d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "fe0b8779_af2eea8b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-03-22T06:35:29Z",
+      "side": 1,
+      "message": "yeah, assuming it is possible to make that efficient. Maybe using a circular buffer would work.",
+      "parentUuid": "a2e112e3_4ad26418",
+      "revId": "5972a8d72d3e51038df90e384585f44c4547305d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
