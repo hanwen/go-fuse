@@ -21,6 +21,13 @@ import (
 	"github.com/hanwen/go-fuse/v2/fuse"
 )
 
+// Release decreases the open count. The kernel doesn't wait with
+// returning from close(), so if the caller is too quick to
+// unlink/rename after calling close(), this may still trigger EBUSY.
+// Kludge around this by sleeping for a bit before we check business.
+var delay = flag.Duration("delay", 10*time.Microsecond,
+	"wait this long before checking business")
+
 // WindowsNode is a loopback FS node keeping track of open counts.
 type WindowsNode struct {
 	// WindowsNode inherits most functionality from LoopbackNode.
@@ -68,9 +75,6 @@ func (n *WindowsNode) Create(ctx context.Context, name string, flags uint32, mod
 
 var _ = (fs.NodeReleaser)((*WindowsNode)(nil))
 
-// Release decreases the open count. The kernel doesn't wait with
-// returning from close(), so if the caller is too quick to
-// unlink/rename after calling close(), this may still trigger EBUSY.
 func (n *WindowsNode) Release(ctx context.Context, f fs.FileHandle) syscall.Errno {
 	n.decrement()
 	if fr, ok := f.(fs.FileReleaser); ok {
@@ -80,6 +84,7 @@ func (n *WindowsNode) Release(ctx context.Context, f fs.FileHandle) syscall.Errn
 }
 
 func isBusy(parent *fs.Inode, name string) bool {
+	time.Sleep(*delay)
 	if ch := parent.GetChild(name); ch != nil {
 		if wn, ok := ch.Operations().(*WindowsNode); ok {
 			wn.mu.Lock()
