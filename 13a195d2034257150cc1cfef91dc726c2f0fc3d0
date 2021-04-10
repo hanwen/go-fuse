@@ -16,6 +16,92 @@
       "message": "How about this?",
       "revId": "13a195d2034257150cc1cfef91dc726c2f0fc3d0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "ecc22cc6_4043ca32",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-04-10T10:24:46Z",
+      "side": 1,
+      "message": "some nits.",
+      "revId": "13a195d2034257150cc1cfef91dc726c2f0fc3d0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a37d7ff6_082c3d0c",
+        "filename": "fs/inode_parents.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-04-10T10:24:46Z",
+      "side": 1,
+      "message": "(c) header.",
+      "range": {
+        "startLine": 1,
+        "startChar": 0,
+        "endLine": 1,
+        "endChar": 7
+      },
+      "revId": "13a195d2034257150cc1cfef91dc726c2f0fc3d0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "aba68843_0f162bad",
+        "filename": "fs/inode_parents.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-04-10T10:24:46Z",
+      "side": 1,
+      "message": "add doc for the nil case.",
+      "range": {
+        "startLine": 9,
+        "startChar": 41,
+        "endLine": 9,
+        "endChar": 47
+      },
+      "revId": "13a195d2034257150cc1cfef91dc726c2f0fc3d0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "851d4c17_e676c4e0",
+        "filename": "fs/inode_parents.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-04-10T10:24:46Z",
+      "side": 1,
+      "message": "can there ever be case where this is called and p.newest \u003d\u003d nil ?",
+      "range": {
+        "startLine": 57,
+        "startChar": 7,
+        "endLine": 57,
+        "endChar": 13
+      },
+      "revId": "13a195d2034257150cc1cfef91dc726c2f0fc3d0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
