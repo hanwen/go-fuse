@@ -58,6 +58,30 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "1222cda9_0cb2c3e6",
+        "filename": "fs/inode_parents.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2021-04-23T11:01:24Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a37d7ff6_082c3d0c",
+      "range": {
+        "startLine": 1,
+        "startChar": 0,
+        "endLine": 1,
+        "endChar": 7
+      },
+      "revId": "13a195d2034257150cc1cfef91dc726c2f0fc3d0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "aba68843_0f162bad",
@@ -94,6 +118,30 @@
       "writtenOn": "2021-04-10T10:24:46Z",
       "side": 1,
       "message": "can there ever be case where this is called and p.newest \u003d\u003d nil ?",
+      "range": {
+        "startLine": 57,
+        "startChar": 7,
+        "endLine": 57,
+        "endChar": 13
+      },
+      "revId": "13a195d2034257150cc1cfef91dc726c2f0fc3d0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "552215e0_a09f7a65",
+        "filename": "fs/inode_parents.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2021-04-23T11:01:24Z",
+      "side": 1,
+      "message": "Ack, better safe than sorry",
+      "parentUuid": "851d4c17_e676c4e0",
       "range": {
         "startLine": 57,
         "startChar": 7,
