@@ -265,6 +265,13 @@ type OpenOut struct {
 }
 
 // To be set in InitIn/InitOut.Flags.
+//
+// Keep in sync with either of
+// * https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/uapi/linux/fuse.h
+// * https://github.com/libfuse/libfuse/blob/master/include/fuse_kernel.h
+// but NOT with
+// * https://github.com/libfuse/libfuse/blob/master/include/fuse_common.h
+// This file has CAP_HANDLE_KILLPRIV and CAP_POSIX_ACL reversed!
 const (
 	CAP_ASYNC_READ          = (1 << 0)
 	CAP_POSIX_LOCKS         = (1 << 1)
@@ -285,8 +292,8 @@ const (
 	CAP_WRITEBACK_CACHE     = (1 << 16)
 	CAP_NO_OPEN_SUPPORT     = (1 << 17)
 	CAP_PARALLEL_DIROPS     = (1 << 18)
-	CAP_POSIX_ACL           = (1 << 19)
-	CAP_HANDLE_KILLPRIV     = (1 << 20)
+	CAP_HANDLE_KILLPRIV     = (1 << 19)
+	CAP_POSIX_ACL           = (1 << 20)
 	CAP_ABORT_ERROR         = (1 << 21)
 	CAP_MAX_PAGES           = (1 << 22)
 	CAP_CACHE_SYMLINKS      = (1 << 23)
