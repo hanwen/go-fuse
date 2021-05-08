@@ -165,6 +165,23 @@ type MountOptions struct {
 	// The filesystem is fully responsible for invalidating data cache.
 	ExplicitDataCacheControl bool
 
+	// SyncRead is off by default, which means that go-fuse enable the
+	// FUSE_CAP_ASYNC_READ capability.
+	// The kernel then submits multiple concurrent reads to service
+	// userspace requests and kernel readahead.
+	//
+	// Setting SyncRead disables the FUSE_CAP_ASYNC_READ capability.
+	// The kernel then only sends one read request per file handle at a time,
+	// and orders the requests by offset.
+	//
+	// This is useful if reading out of order or concurrently is expensive for
+	// (example: Amazon Cloud Drive).
+	//
+	// See the comment to FUSE_CAP_ASYNC_READ in
+	// https://github.com/libfuse/libfuse/blob/master/include/fuse_common.h
+	// for more details.
+	SyncRead bool
+
 	// If set, fuse will first attempt to use syscall.Mount instead of
 	// fusermount to mount the filesystem. This will not update /etc/mtab
 	// but might be needed if fusermount is not available.
