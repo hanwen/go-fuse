@@ -31,9 +31,9 @@ Further highlights of this library is
 
 ## Examples
 
-* `example/hello/main.go` contains a 60-line "hello world" filesystem
+* [`example/hello/main.go`](example/hello/main.go) contains a 60-line "hello world" filesystem
 
-* `zipfs/zipfs.go` contains a small and simple read-only filesystem for
+* [`zipfs/zipfs.go`](zipfs/zipfs.go) contains a small and simple read-only filesystem for
   zip and tar files. The corresponding command is in example/zipfs/
   For example,
 
@@ -44,10 +44,10 @@ Further highlights of this library is
   fusermount -u /tmp/mountpoint
   ````
 
-* `zipfs/multizipfs.go` shows how to use in-process mounts to
+* [`zipfs/multizip.go`](zipfs/multizip.go) shows how to use in-process mounts to
   combine multiple Go-FUSE filesystems into a larger filesystem.
 
-* `fuse/loopback.go` mounts another piece of the filesystem.
+* [`fs/loopback.go`](fs/loopback.go) mounts another piece of the filesystem.
   Functionally, it is similar to a symlink.  A binary to run is in
   example/loopback/ . For example
 
