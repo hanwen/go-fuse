@@ -22,6 +22,30 @@
       },
       "revId": "526035bbd02b2c4c70b3bc855418f4e85518d0c6",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "a5d66d04_37840aa7",
+        "filename": "fuse/types.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 274,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2021-05-30T06:38:02Z",
+      "side": 1,
+      "message": "This probably started out as a typo in libfuse, but now it\u0027s set in stone as it is library ABI.\n\nlibfuse internally translates between library ABI an kernel ABI:\nhttps://github.com/libfuse/libfuse/blob/0b6d97cf5938f6b4885e487c3bd7b02144b1ea56/lib/fuse_lowlevel.c#L1962\n\n                if (arg-\u003eflags \u0026 FUSE_POSIX_ACL)\n                        se-\u003econn.capable |\u003d FUSE_CAP_POSIX_ACL;",
+      "parentUuid": "d763c490_ef7f73ab",
+      "range": {
+        "startLine": 273,
+        "startChar": 73,
+        "endLine": 274,
+        "endChar": 64
+      },
+      "revId": "526035bbd02b2c4c70b3bc855418f4e85518d0c6",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
