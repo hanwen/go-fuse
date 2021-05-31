@@ -7,6 +7,7 @@ package fs
 import (
 	"context"
 	"log"
+	"runtime/debug"
 	"sync"
 	"syscall"
 	"time"
@@ -81,6 +82,12 @@ type rawBridge struct {
 	kernelNodeIds map[uint64]*Inode
 	// nextNodeID is the next free NodeID. Increment after copying the value.
 	nextNodeId uint64
+	// nodeCountHigh records the highest number of entries we had in the
+	// kernelNodeIds map.
+	// As the size of stableAttrs tracks kernelNodeIds (+- a few entries due to
+	// concurrent FORGETs, LOOKUPs, and the fixed NodeID 1), this is also a good
+	// estimate for stableAttrs.
+	nodeCountHigh int
 
 	files     []*fileEntry
 	freeFiles []uint32
@@ -201,6 +208,9 @@ func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file F
 	child.changeCounter++
 
 	b.kernelNodeIds[child.nodeId] = child
+	if len(b.kernelNodeIds) > b.nodeCountHigh {
+		b.nodeCountHigh = len(b.kernelNodeIds)
+	}
 	// Any node that might be there is overwritten - it is obsolete now
 	b.stableAttrs[id] = child
 	if file != nil {
@@ -465,7 +475,47 @@ func (b *rawBridge) Create(cancel <-chan struct{}, input *fuse.CreateIn, name st
 
 func (b *rawBridge) Forget(nodeid, nlookup uint64) {
 	n, _ := b.inode(nodeid, 0)
-	n.removeRef(nlookup, false)
+	forgotten, _ := n.removeRef(nlookup, false)
+
+	if forgotten {
+		b.compactMemory()
+	}
+}
+
+// compactMemory tries to free memory that was previously used by forgotten
+// nodes.
+//
+// Maps do not free all memory when elements get deleted
+// ( https://github.com/golang/go/issues/20135 ).
+// As a workaround, we recreate our two big maps (stableAttrs & kernelNodeIds)
+// every time they have shrunk dramatically (100 x smaller).
+// In this case, `nodeCountHigh` is reset to the new (smaller) size.
+func (b *rawBridge) compactMemory() {
+	b.mu.Lock()
+
+	if b.nodeCountHigh <= len(b.kernelNodeIds)*100 {
+		b.mu.Unlock()
+		return
+	}
+
+	tmpStableAttrs := make(map[StableAttr]*Inode, len(b.stableAttrs))
+	for i, v := range b.stableAttrs {
+		tmpStableAttrs[i] = v
+	}
+	b.stableAttrs = tmpStableAttrs
+
+	tmpKernelNodeIds := make(map[uint64]*Inode, len(b.kernelNodeIds))
+	for i, v := range b.kernelNodeIds {
+		tmpKernelNodeIds[i] = v
+	}
+	b.kernelNodeIds = tmpKernelNodeIds
+
+	b.nodeCountHigh = len(b.kernelNodeIds)
+
+	b.mu.Unlock()
+
+	// Run outside b.mu
+	debug.FreeOSMemory()
 }
 
 func (b *rawBridge) SetDebug(debug bool) {}
