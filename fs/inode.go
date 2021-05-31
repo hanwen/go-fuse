@@ -390,8 +390,8 @@ func (n *Inode) removeRef(nlookup uint64, dropPersistence bool) (forgotten bool,
 	n.bridge.mu.Lock()
 	if n.lookupCount == 0 {
 		forgotten = true
-		// Dropping the node from inoMap guarantees that no new references to this node are
-		// handed out to the kernel, hence we can also safely delete it from nodeidMap.
+		// Dropping the node from stableAttrs guarantees that no new references to this node are
+		// handed out to the kernel, hence we can also safely delete it from kernelNodeIds.
 		delete(n.bridge.stableAttrs, n.stableAttr)
 		delete(n.bridge.kernelNodeIds, n.nodeId)
 	}
