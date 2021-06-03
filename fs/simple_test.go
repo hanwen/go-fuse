@@ -104,6 +104,7 @@ func newTestCase(t *testing.T, opts *testOptions) *testCase {
 	tc.rawFS = NewNodeFS(tc.loopback, &Options{
 		EntryTimeout: entryDT,
 		AttrTimeout:  attrDT,
+		Logger:       log.New(os.Stderr, "", 0),
 	})
 
 	mOpts := &fuse.MountOptions{}
