@@ -72,12 +72,21 @@ type Server struct {
 
 	// for implementing single threaded processing.
 	requestProcessingMu sync.Mutex
+
+	// Logger for debug messages and warnings
+	log Logger
 }
 
 // SetDebug is deprecated. Use MountOptions.Debug instead.
 func (ms *Server) SetDebug(dbg bool) {
 	// This will typically trigger the race detector.
 	ms.opts.Debug = dbg
+}
+
+// SetLogger can be used to specify a standard of custom logger
+// used by the server.
+func (ms *Server) SetLogger(log Logger) {
+	ms.log = log
 }
 
 // KernelSettings returns the Init message from the kernel, so
@@ -184,6 +193,7 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		// error-out, meaning that unmount will hang.
 		singleReader: runtime.GOOS == "darwin",
 		ready:        make(chan error, 1),
+		log:          log.New(os.Stderr, "", log.LstdFlags),
 	}
 	ms.reqPool.New = func() interface{} {
 		return &request{
@@ -442,11 +452,11 @@ exit:
 		case ENODEV:
 			// unmount
 			if ms.opts.Debug {
-				log.Printf("received ENODEV (unmount request), thread exiting")
+				ms.log.Println("received ENODEV (unmount request), thread exiting")
 			}
 			break exit
 		default: // some other error?
-			log.Printf("Failed to read from fuse conn: %v", errNo)
+			ms.log.Printf("Failed to read from fuse conn: %v", errNo)
 			break exit
 		}
 
@@ -470,14 +480,14 @@ func (ms *Server) handleRequest(req *request) Status {
 	}
 
 	if req.status.Ok() && ms.opts.Debug {
-		log.Println(req.InputDebug())
+		ms.log.Println(req.InputDebug())
 	}
 
 	if req.inHeader.NodeId == pollHackInode ||
 		req.inHeader.NodeId == FUSE_ROOT_ID && len(req.filenames) > 0 && req.filenames[0] == pollHackName {
 		doPollHackLookup(ms, req)
 	} else if req.status.Ok() && req.handler.Func == nil {
-		log.Printf("Unimplemented opcode %v", operationName(req.inHeader.Opcode))
+		ms.log.Printf("Unimplemented opcode %v", operationName(req.inHeader.Opcode))
 		req.status = ENOSYS
 	} else if req.status.Ok() {
 		req.handler.Func(ms, req)
@@ -485,7 +495,7 @@ func (ms *Server) handleRequest(req *request) Status {
 
 	errNo := ms.write(req)
 	if errNo != 0 {
-		log.Printf("writer: Write/Writev failed, err: %v. opcode: %v",
+		ms.log.Printf("writer: Write/Writev failed, err: %v. opcode: %v",
 			errNo, operationName(req.inHeader.Opcode))
 	}
 	ms.returnRequest(req)
@@ -529,7 +539,7 @@ func (ms *Server) write(req *request) Status {
 
 	header := req.serializeHeader(req.flatDataSize())
 	if ms.opts.Debug {
-		log.Println(req.OutputDebug())
+		ms.log.Println(req.OutputDebug())
 	}
 
 	if header == nil {
@@ -566,7 +576,7 @@ func (ms *Server) InodeNotify(node uint64, off int64, length int64) Status {
 	ms.writeMu.Unlock()
 
 	if ms.opts.Debug {
-		log.Println("Response: INODE_NOTIFY", result)
+		ms.log.Println("Response: INODE_NOTIFY", result)
 	}
 	return result
 }
@@ -625,7 +635,7 @@ func (ms *Server) inodeNotifyStoreCache32(node uint64, offset int64, data []byte
 	ms.writeMu.Unlock()
 
 	if ms.opts.Debug {
-		log.Printf("Response: INODE_NOTIFY_STORE_CACHE: %v", result)
+		ms.log.Printf("Response: INODE_NOTIFY_STORE_CACHE: %v", result)
 	}
 	return result
 }
@@ -717,7 +727,7 @@ func (ms *Server) inodeRetrieveCache1(node uint64, offset int64, dest []byte) (n
 	ms.writeMu.Unlock()
 
 	if ms.opts.Debug {
-		log.Printf("Response: NOTIFY_RETRIEVE_CACHE: %v", result)
+		ms.log.Printf("Response: NOTIFY_RETRIEVE_CACHE: %v", result)
 	}
 	if result != OK {
 		ms.retrieveMu.Lock()
@@ -731,7 +741,7 @@ func (ms *Server) inodeRetrieveCache1(node uint64, offset int64, dest []byte) (n
 			// unexpected NotifyReply with our notifyUnique, then
 			// retrieveNext wraps, makes full cycle, and another
 			// retrieve request is made with the same notifyUnique.
-			log.Printf("W: INODE_RETRIEVE_CACHE: request with notifyUnique=%d mutated", q.NotifyUnique)
+			ms.log.Printf("W: INODE_RETRIEVE_CACHE: request with notifyUnique=%d mutated", q.NotifyUnique)
 		}
 		ms.retrieveMu.Unlock()
 		return 0, result
@@ -792,7 +802,7 @@ func (ms *Server) DeleteNotify(parent uint64, child uint64, name string) Status 
 	ms.writeMu.Unlock()
 
 	if ms.opts.Debug {
-		log.Printf("Response: DELETE_NOTIFY: %v", result)
+		ms.log.Printf("Response: DELETE_NOTIFY: %v", result)
 	}
 	return result
 }
@@ -828,7 +838,7 @@ func (ms *Server) EntryNotify(parent uint64, name string) Status {
 	ms.writeMu.Unlock()
 
 	if ms.opts.Debug {
-		log.Printf("Response: ENTRY_NOTIFY: %v", result)
+		ms.log.Printf("Response: ENTRY_NOTIFY: %v", result)
 	}
 	return result
 }
