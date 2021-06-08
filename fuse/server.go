@@ -485,8 +485,15 @@ func (ms *Server) handleRequest(req *request) Status {
 
 	errNo := ms.write(req)
 	if errNo != 0 {
-		log.Printf("writer: Write/Writev failed, err: %v. opcode: %v",
-			errNo, operationName(req.inHeader.Opcode))
+		// Unless debugging is enabled, ignore ENOENT for INTERRUPT responses
+		// which indicates that the referred request is no longer known by the
+		// kernel. This is a normal if the referred request already has
+		// completed.
+		if ms.opts.Debug || !(req.inHeader.Opcode == _OP_INTERRUPT && errNo == ENOENT) {
+			log.Printf("writer: Write/Writev failed, err: %v. opcode: %v",
+				errNo, operationName(req.inHeader.Opcode))
+		}
+
 	}
 	ms.returnRequest(req)
 	return Status(errNo)
