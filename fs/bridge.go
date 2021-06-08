@@ -1061,20 +1061,24 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 			continue
 		}
 
-		child, errno := b.lookup(ctx, n, e.Name, entryOut)
-		if errno != 0 {
-			if b.options.NegativeTimeout != nil {
-				entryOut.SetEntryTimeout(*b.options.NegativeTimeout)
-			}
+		if plusStream, ok := f.dirStream.(DirPlusStream); ok {
+			plusStream.Plus(entryOut)
 		} else {
-			child, _ = b.addNewChild(n, e.Name, child, nil, 0, entryOut)
-			child.setEntryOut(entryOut)
-			b.setEntryOutTimeout(entryOut)
-			if e.Mode&syscall.S_IFMT != child.stableAttr.Mode&syscall.S_IFMT {
-				// The file type has changed behind our back. Use the new value.
-				out.FixMode(child.stableAttr.Mode)
+			child, errno := b.lookup(ctx, n, e.Name, entryOut)
+			if errno != 0 {
+				if b.options.NegativeTimeout != nil {
+					entryOut.SetEntryTimeout(*b.options.NegativeTimeout)
+				}
+			} else {
+				child, _ = b.addNewChild(n, e.Name, child, nil, 0, entryOut)
+				child.setEntryOut(entryOut)
+				b.setEntryOutTimeout(entryOut)
+				if e.Mode&syscall.S_IFMT != child.stableAttr.Mode&syscall.S_IFMT {
+					// The file type has changed behind our back. Use the new value.
+					out.FixMode(child.stableAttr.Mode)
+				}
+				entryOut.Mode = child.stableAttr.Mode | (entryOut.Mode & 07777)
 			}
-			entryOut.Mode = child.stableAttr.Mode | (entryOut.Mode & 07777)
 		}
 	}
 
