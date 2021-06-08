@@ -377,6 +377,13 @@ type DirStream interface {
 	Close()
 }
 
+// DirPlusStream implements readdirplus without an extra Lookup for each entry.
+type DirPlusStream interface {
+	DirStream
+	// Plus is called after each successful DirStream.Next if we're serving a readdirplus call.
+	Plus(*fuse.EntryOut)
+}
+
 // Lookup should find a direct child of a directory by the child's name.  If
 // the entry does not exist, it should return ENOENT and optionally
 // set a NegativeTimeout in `out`. If it does exist, it should return
