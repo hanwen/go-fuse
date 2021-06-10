@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1f4340a5_81595ab2",
+        "filename": "fs/bridge.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 501,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-06-10T19:47:37Z",
+      "side": 1,
+      "message": "make(map.. , len(map(b.stableAttr)) ?\n\nsame below.",
+      "range": {
+        "startLine": 501,
+        "startChar": 45,
+        "endLine": 501,
+        "endChar": 46
+      },
+      "revId": "0872a7332b86a183e4c8f80562e72083ad8f796e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
