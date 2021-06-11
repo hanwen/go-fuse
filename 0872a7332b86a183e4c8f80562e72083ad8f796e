@@ -24,6 +24,30 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "0386d94f_b7f04c0c",
+        "filename": "fs/bridge.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 501,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2021-06-11T13:04:56Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "1f4340a5_81595ab2",
+      "range": {
+        "startLine": 501,
+        "startChar": 45,
+        "endLine": 501,
+        "endChar": 46
+      },
+      "revId": "0872a7332b86a183e4c8f80562e72083ad8f796e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "60ab137c_e79c4dd5",
@@ -37,6 +61,30 @@
       "writtenOn": "2021-06-10T19:48:47Z",
       "side": 1,
       "message": "nit: seems unrelated. Separate commit?",
+      "range": {
+        "startLine": 393,
+        "startChar": 2,
+        "endLine": 394,
+        "endChar": 85
+      },
+      "revId": "0872a7332b86a183e4c8f80562e72083ad8f796e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9d432910_5c65248f",
+        "filename": "fs/inode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 394,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2021-06-11T13:04:56Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "60ab137c_e79c4dd5",
       "range": {
         "startLine": 393,
         "startChar": 2,
