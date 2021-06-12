@@ -310,11 +310,7 @@ func (c *rawBridge) Rename(cancel <-chan struct{}, input *fuse.RenameIn, oldName
 	}
 	oldParent := c.toInode(input.NodeId)
 
-	child := oldParent.GetChild(oldName)
-	if child == nil {
-		return fuse.ENOENT
-	}
-	if child.mountPoint != nil {
+	if child := oldParent.GetChild(oldName); child != nil && child.mountPoint != nil {
 		return fuse.EBUSY
 	}
 
