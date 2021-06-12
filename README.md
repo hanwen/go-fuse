@@ -18,7 +18,7 @@ and
 
 ## Comparison with other FUSE libraries
 
-The FUSE library gained a new, cleaned-up API during a rewrite
+The FUSE library gained a new, cleaned-up API v2 during a rewrite
 completed in 2019. Find extensive documentation
 [here](https://godoc.org/github.com/hanwen/go-fuse/).
 

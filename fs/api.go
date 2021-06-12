@@ -9,7 +9,7 @@
 // To create a file system, you should first define types for the
 // nodes of the file system tree.
 //
-//    struct myNode {
+//    type myNode struct {
 //       fs.Inode
 //    }
 //
@@ -19,7 +19,7 @@
 //    // Node types should implement some file system operations, eg. Lookup
 //    var _ = (fs.NodeLookuper)((*myNode)(nil))
 //
-//    func (n *myNode) Lookup(ctx context.Context, name string,  ... ) (*Inode, syscall.Errno) {
+//    func (n *myNode) Lookup(ctx context.Context, name string,  ... ) (*fs.Inode, syscall.Errno) {
 //      ops := myNode{}
 //      return n.NewInode(ctx, &ops, fs.StableAttr{Mode: syscall.S_IFDIR}), 0
 //    }
