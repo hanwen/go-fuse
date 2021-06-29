@@ -114,6 +114,9 @@ func doInit(server *Server, req *request) {
 	if server.opts.EnableAcl {
 		kernelFlags |= CAP_POSIX_ACL
 	}
+	if server.opts.EnableWriteback {
+		kernelFlags |= CAP_WRITEBACK_CACHE
+	}
 	if server.opts.SyncRead {
 		// Clear CAP_ASYNC_READ
 		kernelFlags &= ^uint64(CAP_ASYNC_READ)
