@@ -180,6 +180,9 @@ type MountOptions struct {
 	// in https://github.com/libfuse/libfuse/blob/master/include/fuse_common.h
 	// for details.
 	EnableAcl bool
+
+	// EnableWriteback enables kernel writeback cache.
+	EnableWriteback bool
 }
 
 // RawFileSystem is an interface close to the FUSE wire protocol.
