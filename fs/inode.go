@@ -104,7 +104,7 @@ type Inode struct {
 }
 
 func (n *Inode) IsDir() bool {
-	return n.stableAttr.Mode&syscall.S_IFDIR != 0
+	return n.stableAttr.Mode&syscall.S_IFMT == syscall.S_IFDIR
 }
 
 func (n *Inode) embed() *Inode {
