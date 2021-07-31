@@ -27,8 +27,8 @@ type StableAttr struct {
 
 	// The inode number must be unique among the currently live
 	// objects in the file system. It is used to communicate to
-	// the kernel about this file object. The values uint64(-1),
-	// and 1 are reserved. When using Ino==0, a unique, sequential
+	// the kernel about this file object. The value uint64(-1)
+	// is reserved. When using Ino==0, a unique, sequential
 	// number is assigned (starting at 2^63 by default) on Inode creation.
 	Ino uint64
 
@@ -41,7 +41,7 @@ type StableAttr struct {
 
 // Reserved returns if the StableAttr is using reserved Inode numbers.
 func (i *StableAttr) Reserved() bool {
-	return i.Ino == 1 || i.Ino == ^uint64(0)
+	return i.Ino == ^uint64(0) // fuse.pollHackInode = ^uint64(0)
 }
 
 // Inode is a node in VFS tree.  Inodes are one-to-one mapped to

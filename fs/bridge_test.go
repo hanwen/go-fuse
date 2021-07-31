@@ -201,3 +201,36 @@ func (n *testDeletedIno) Getattr(ctx context.Context, f FileHandle, out *fuse.At
 	// Otherwise EILSEQ
 	return syscall.EILSEQ
 }
+
+// TestIno1 tests that inode number 1 is allowed.
+//
+// We used to panic like this because inode number 1 was special:
+//
+//    panic: using reserved ID 1 for inode number
+//
+func TestIno1(t *testing.T) {
+	rootNode := testIno1{}
+	mnt, _, clean := testMount(t, &rootNode, nil)
+	defer clean()
+
+	_, err := os.Stat(mnt + "/ino1")
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+type testIno1 struct {
+	Inode
+}
+
+func (fn *testIno1) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
+	if name != "ino1" {
+		return nil, syscall.ENOENT
+	}
+	stable := StableAttr{
+		Mode: syscall.S_IFREG,
+		Ino:  1,
+	}
+	child := fn.NewInode(ctx, &testIno1{}, stable)
+	return child, 0
+}

@@ -270,9 +270,6 @@ func NewNodeFS(root InodeEmbedder, opts *Options) fuse.RawFileSystem {
 		nextNodeId:   2, // the root node has nodeid 1
 		stableAttrs:  make(map[StableAttr]*Inode),
 	}
-	if bridge.automaticIno == 1 {
-		bridge.automaticIno++
-	}
 
 	if bridge.automaticIno == 0 {
 		bridge.automaticIno = 1 << 63
