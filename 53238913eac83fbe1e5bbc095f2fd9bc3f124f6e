@@ -16,6 +16,24 @@
       "message": "check that fi.Ino \u003d\u003d 1 ?",
       "revId": "53238913eac83fbe1e5bbc095f2fd9bc3f124f6e",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "74f2fa74_f42fb7e0",
+        "filename": "fs/bridge_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 219,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-08-02T12:05:07Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "80d772f7_58c32607",
+      "revId": "53238913eac83fbe1e5bbc095f2fd9bc3f124f6e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
