@@ -870,5 +870,10 @@ func (ms *Server) WaitMount() error {
 	if err != nil {
 		return err
 	}
+	if parseFuseFd(ms.mountPoint) >= 0 {
+		// Magic `/dev/fd/N` mountpoint. We don't know the real mountpoint, so
+		// we cannot run the poll hack.
+		return nil
+	}
 	return pollHack(ms.mountPoint)
 }
