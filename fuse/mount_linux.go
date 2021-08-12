@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strconv"
 	"strings"
 	"syscall"
 	"unsafe"
@@ -118,6 +119,20 @@ func callFusermount(mountPoint string, opts *MountOptions) (fd int, err error) {
 	return
 }
 
+// parseFuseFd checks if `mountPoint` is the special form /dev/fd/N (with N >= 0),
+// and returns N in this case. Returns -1 otherwise.
+func parseFuseFd(mountPoint string) (fd int) {
+	dir, file := path.Split(mountPoint)
+	if dir != "/dev/fd/" {
+		return -1
+	}
+	fd, err := strconv.Atoi(file)
+	if err != nil || fd <= 0 {
+		return -1
+	}
+	return fd
+}
+
 // Create a FUSE FS on the specified mount point.  The returned
 // mount point is always absolute.
 func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, err error) {
@@ -128,6 +143,23 @@ func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, e
 		} else if opts.Debug {
 			log.Printf("mount: failed to do direct mount: %s", err)
 		}
+	}
+
+	// libfuse introduced [1] a special `/dev/fd/N` syntax for the mountpoint:
+	// It means that a privileged parent process:
+	//
+	// * Opened /dev/fuse
+	// * Called mount() on a real mountpoint directory
+	// * Inherited the fd to /dev/fuse to us
+	// * Informs us about the fd number via /dev/fd/N
+	//
+	// [1] https://github.com/libfuse/libfuse/commit/64e11073b9347fcf9c6d1eea143763ba9e946f70
+	fd = parseFuseFd(mountPoint)
+	if fd >= 0 {
+		syscall.CloseOnExec(fd)
+		close(ready)
+
+		return fd, nil
 	}
 
 	// Usual case: mount via the `fusermount` suid helper
