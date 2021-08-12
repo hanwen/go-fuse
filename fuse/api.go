@@ -82,6 +82,45 @@
 //
 // Package github.com/hanwen/go-fuse/v2/fs provides way to implement
 // filesystems in terms of paths and/or inodes.
+//
+// Mount styles
+//
+// The NewServer() handles mounting the filesystem, which
+// involves opening `/dev/fuse` and calling the
+// `mount(2)` syscall. The latter needs root permissions.
+// This is handled in one of three ways:
+//
+// 1) go-fuse opens `/dev/fuse` and executes the `fusermount`
+// setuid-root helper to call `mount(2)` for us. This is the default.
+// Does not need root permissions but needs `fusermount` installed.
+//
+// 2) If `MountOptions.DirectMount` is set, go-fuse calls `mount(2)` itself.
+// Needs root permissions, but works without `fusermount`.
+//
+// 3) If `mountPoint` has the magic `/dev/fd/N` syntax, it means that that a
+// privileged parent process:
+//
+// * Opened /dev/fuse
+//
+// * Called mount(2) on a real mountpoint directory that we don't know about
+//
+// * Inherited the fd to /dev/fuse to us
+//
+// * Informs us about the fd number via /dev/fd/N
+//
+// This magic syntax originates from libfuse [1] and allows the FUSE server to
+// run without any privileges and without needing `fusermount`, as the parent
+// process performs all privileged operations.
+//
+// The "privileged parent" is usually a container manager like Singularity [2],
+// but for testing, it can also be  the `mount.fuse3` helper with the
+// `drop_privileges,setuid=$USER` flags. Example below for gocryptfs:
+//
+//	$ sudo mount.fuse3 "/usr/local/bin/gocryptfs#/tmp/cipher" /tmp/mnt -o drop_privileges,setuid=$USER
+//
+// [1] https://github.com/libfuse/libfuse/commit/64e11073b9347fcf9c6d1eea143763ba9e946f70
+//
+// [2] https://sylabs.io/guides/3.7/user-guide/bind_paths_and_mounts.html#fuse-mounts
 package fuse
 
 // Types for users to implement.
