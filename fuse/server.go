@@ -108,6 +108,13 @@ func (ms *Server) RecordLatencies(l LatencyMap) {
 // Unmount calls fusermount -u on the mount. This has the effect of
 // shutting down the filesystem. After the Server is unmounted, it
 // should be discarded.
+//
+// Does not work when we were mounted with the magic /dev/fd/N mountpoint syntax,
+// as we do not know the real mountpoint. Unmount using
+//
+//   fusermount -u /path/to/real/mountpoint
+//
+/// in this case.
 func (ms *Server) Unmount() (err error) {
 	if ms.mountPoint == "" {
 		return nil
@@ -134,7 +141,44 @@ func (ms *Server) Unmount() (err error) {
 	return err
 }
 
-// NewServer creates a server and attaches it to the given directory.
+// NewServer creates a FUSE server and attaches ("mounts") it to the
+// `mountPoint` directory.
+//
+// Mounting to `mountPoint` involves opening `/dev/fuse` and calling the
+// `mount(2)` syscall. The latter needs root permissions. This is handled in one
+// of three ways:
+//
+// 1) go-fuse opens `/dev/fuse` and executes the `fusermount`
+// setuid-root helper to call `mount(2)` for us. This is the default.
+// Does not need root permissions but needs `fusermount` installed.
+//
+// 2) If `opts.DirectMount` is set, go-fuse calls `mount(2)` itself. Needs root
+// permissions, but works without `fusermount`.
+//
+// 3) If `mountPoint` has the magic `/dev/fd/N` syntax, it means that that a
+// privileged parent process:
+//
+// * Opened /dev/fuse
+//
+// * Called mount(2) on a real mountpoint directory that we don't know about
+//
+// * Inherited the fd to /dev/fuse to us
+//
+// * Informs us about the fd number via /dev/fd/N
+//
+// This magic syntax originates from libfuse [1] and allows the FUSE server to
+// run without any privileges and without needing `fusermount`, as the parent
+// process performs all privileged operations.
+//
+// The "privileged parent" is usually a container manager like Singularity [2],
+// but for testing, it can also be  the `mount.fuse3` helper with the
+// `drop_privileges,setuid=$USER` flags. Example below for gocryptfs:
+//
+//	$ sudo mount.fuse3 "/usr/local/bin/gocryptfs#/tmp/cipher" /tmp/mnt -o drop_privileges,setuid=$USER
+//
+// [1] https://github.com/libfuse/libfuse/commit/64e11073b9347fcf9c6d1eea143763ba9e946f70
+//
+// [2] https://sylabs.io/guides/3.7/user-guide/bind_paths_and_mounts.html#fuse-mounts
 func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server, error) {
 	if opts == nil {
 		opts = &MountOptions{
@@ -869,6 +913,11 @@ func (ms *Server) WaitMount() error {
 	err := <-ms.ready
 	if err != nil {
 		return err
+	}
+	if parseFuseFd(ms.mountPoint) >= 0 {
+		// Magic `/dev/fd/N` mountpoint. We don't know the real mountpoint, so
+		// we cannot run the poll hack.
+		return nil
 	}
 	return pollHack(ms.mountPoint)
 }

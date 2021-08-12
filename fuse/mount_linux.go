@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strconv"
 	"strings"
 	"syscall"
 	"unsafe"
@@ -118,6 +119,20 @@ func callFusermount(mountPoint string, opts *MountOptions) (fd int, err error) {
 	return
 }
 
+// parseFuseFd checks if `mountPoint` is the special form /dev/fd/N (with N >= 0),
+// and returns N in this case. Returns -1 otherwise.
+func parseFuseFd(mountPoint string) (fd int) {
+	dir, file := path.Split(mountPoint)
+	if dir != "/dev/fd/" {
+		return -1
+	}
+	fd, err := strconv.Atoi(file)
+	if err != nil || fd <= 0 {
+		return -1
+	}
+	return fd
+}
+
 // Create a FUSE FS on the specified mount point.  The returned
 // mount point is always absolute.
 func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, err error) {
@@ -130,17 +145,24 @@ func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, e
 		}
 	}
 
-	// Usual case: mount via the `fusermount` suid helper
-	fd, err = callFusermount(mountPoint, opts)
-	if err != nil {
-		return
+	// Magic `/dev/fd/N` mountpoint. See the docs for NewServer() for how this
+	// works.
+	fd = parseFuseFd(mountPoint)
+	if fd >= 0 {
+		if opts.Debug {
+			log.Printf("mount: magic mountpoint %q, using fd %d", mountPoint, fd)
+		}
+	} else {
+		// Usual case: mount via the `fusermount` suid helper
+		fd, err = callFusermount(mountPoint, opts)
+		if err != nil {
+			return
+		}
 	}
-
 	// golang sets CLOEXEC on file descriptors when they are
 	// acquired through normal operations (e.g. open).
 	// Buf for fd, we have to set CLOEXEC manually
 	syscall.CloseOnExec(fd)
-
 	close(ready)
 	return fd, err
 }
