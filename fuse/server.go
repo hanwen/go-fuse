@@ -108,9 +108,19 @@ func (ms *Server) RecordLatencies(l LatencyMap) {
 // Unmount calls fusermount -u on the mount. This has the effect of
 // shutting down the filesystem. After the Server is unmounted, it
 // should be discarded.
+//
+// Does not work when we were mounted with the magic /dev/fd/N mountpoint syntax,
+// as we do not know the real mountpoint. Unmount using
+//
+//   fusermount -u /path/to/real/mountpoint
+//
+/// in this case.
 func (ms *Server) Unmount() (err error) {
 	if ms.mountPoint == "" {
 		return nil
+	}
+	if parseFuseFd(ms.mountPoint) >= 0 {
+		return fmt.Errorf("Cannot unmount magic mountpoint %q. Please use `fusermount -u REALMOUNTPOINT` instead.", ms.mountPoint)
 	}
 	delay := time.Duration(0)
 	for try := 0; try < 5; try++ {
@@ -134,7 +144,11 @@ func (ms *Server) Unmount() (err error) {
 	return err
 }
 
-// NewServer creates a server and attaches it to the given directory.
+// NewServer creates a FUSE server and attaches ("mounts") it to the
+// `mountPoint` directory.
+//
+// See the "Mount styles" section in the package documentation if you want to
+// know about the inner workings of the mount process. Usually you do not.
 func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server, error) {
 	if opts == nil {
 		opts = &MountOptions{
@@ -869,6 +883,11 @@ func (ms *Server) WaitMount() error {
 	err := <-ms.ready
 	if err != nil {
 		return err
+	}
+	if parseFuseFd(ms.mountPoint) >= 0 {
+		// Magic `/dev/fd/N` mountpoint. We don't know the real mountpoint, so
+		// we cannot run the poll hack.
+		return nil
 	}
 	return pollHack(ms.mountPoint)
 }
