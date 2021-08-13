@@ -36,6 +36,24 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "2f2077e3_171552e1",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 4
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-08-13T16:33:21Z",
+      "side": 1,
+      "message": "thanks.  It\u0027s better, but it highlights that there are now 2 ways to use NewServer, and 2 ways of unmounting the result. \n\nWouldn\u0027t it be better to have a NewServer() and NewServerFd() ?\n\nwe could plug an alternate unmount routine, so we provide a decent error message if you try to Unmount a server created with NewServerFd.\n\nthanks for explaining pollhack, but callers also have to know they can\u0027t write unittests agains a mount that uses NewServerFd (or alternatively, they should implement the pollhack themselves by writing to the .go-fuse-pollhack file.)",
+      "parentUuid": "96e00364_a12e80ab",
+      "revId": "9eb97fe17d41efef2a4b72e1a818866325196677",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "9f099098_3bde2d95",
