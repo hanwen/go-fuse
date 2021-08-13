@@ -1,0 +1,90 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "052dcad6_a3ad4218",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 4
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-08-13T07:57:12Z",
+      "side": 1,
+      "message": "shouldn\u0027t this feature (and its implications) be documented in public doc strings?",
+      "revId": "9eb97fe17d41efef2a4b72e1a818866325196677",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9f099098_3bde2d95",
+        "filename": "fuse/mount_linux.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 157,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-08-13T07:57:12Z",
+      "side": 1,
+      "message": "```\nif fd :\u003d .. ; fd  \u003e\u003d 0 {\n\n}\n```\n\nI wonder if it makes sense to fold callFusermount and parserFuseFd in one fucntion. Now, you\u0027re duplicating CloseOnExec and close()",
+      "range": {
+        "startLine": 157,
+        "startChar": 0,
+        "endLine": 157,
+        "endChar": 1
+      },
+      "revId": "9eb97fe17d41efef2a4b72e1a818866325196677",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "cbb619d3_7c8cd9ad",
+        "filename": "fuse/mount_linux_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-08-13T07:57:12Z",
+      "side": 1,
+      "message": "for the test, sure. What should people do in normal use?",
+      "range": {
+        "startLine": 57,
+        "startChar": 1,
+        "endLine": 57,
+        "endChar": 34
+      },
+      "revId": "9eb97fe17d41efef2a4b72e1a818866325196677",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2153ad46_b75f93a8",
+        "filename": "fuse/server.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 876,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-08-13T07:57:12Z",
+      "side": 1,
+      "message": "does this mean we\u0027ll have hangs again? How is the test you just added protected against that?",
+      "range": {
+        "startLine": 875,
+        "startChar": 2,
+        "endLine": 876,
+        "endChar": 2
+      },
+      "revId": "9eb97fe17d41efef2a4b72e1a818866325196677",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
