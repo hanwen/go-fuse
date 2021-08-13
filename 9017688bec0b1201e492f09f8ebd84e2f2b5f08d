@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b8e81588_35b3eecb",
+        "filename": "fuse/server.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 181,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2021-08-13T13:39:00Z",
+      "side": 1,
+      "message": "Note: lots of blank lines are so that the html rendered by godoc looks nice",
+      "revId": "9017688bec0b1201e492f09f8ebd84e2f2b5f08d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
