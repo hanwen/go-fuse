@@ -54,6 +54,24 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "8cf99ecc_e6fe8f07",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 4
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2021-08-14T11:19:30Z",
+      "side": 1,
+      "message": "With NewServerFd, the library user need extra code to handle /dev/fd/N. I like what libfuse did and followed suit: Transparently handle /dev/fd/N for existing library users. But we can do NewServerFd if you prefer.\n\nAnother option is to add something like DevFdRealMountPoint to the mount opts. \n\nHowever, this is only useful in tests - in production use, the filesystem does not know the mountpoint.",
+      "parentUuid": "2f2077e3_171552e1",
+      "revId": "9eb97fe17d41efef2a4b72e1a818866325196677",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "9f099098_3bde2d95",
