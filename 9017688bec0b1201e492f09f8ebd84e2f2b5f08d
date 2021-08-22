@@ -16,6 +16,24 @@
       "message": "Note: lots of blank lines are so that the html rendered by godoc looks nice",
       "revId": "9017688bec0b1201e492f09f8ebd84e2f2b5f08d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c5b3b12d_1e2172ae",
+        "filename": "fuse/server.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 181,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-08-22T09:29:01Z",
+      "side": 1,
+      "message": "I tried for a bit to see if it is possible to split the server into a Server{} and fdServer{}, but gave up, so I think we can stick with this organization of code.\n\nre documentation: \n\nI think it\u0027s good that we have this documented in detail, but I worry that the huge amount of info about /dev/fd/X is distracting to beginner folks, for whom building the filesystem itself is already a huge cognitive load. Could this be moved to a heading (\"Mount styles\") in api.go, so it will appear at the top under https://pkg.go.dev/github.com/hanwen/go-fuse/v2/fs ?",
+      "parentUuid": "b8e81588_35b3eecb",
+      "revId": "9017688bec0b1201e492f09f8ebd84e2f2b5f08d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
