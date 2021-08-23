@@ -52,6 +52,24 @@
       "parentUuid": "c5b3b12d_1e2172ae",
       "revId": "9017688bec0b1201e492f09f8ebd84e2f2b5f08d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2c15f79a_12bd9d4f",
+        "filename": "fuse/server.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 181,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-08-23T09:10:06Z",
+      "side": 1,
+      "message": "ah yes.",
+      "parentUuid": "8cb3ce59_0117c4d5",
+      "revId": "9017688bec0b1201e492f09f8ebd84e2f2b5f08d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
