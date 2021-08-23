@@ -16,6 +16,23 @@
       "message": "Now with specific error message on Server.Unmount().",
       "revId": "39a161fd87ee2bf52097481a43867766951481b9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "64ea9300_d25bcb2a",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 6
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-08-23T09:10:15Z",
+      "side": 1,
+      "message": "whoops",
+      "revId": "39a161fd87ee2bf52097481a43867766951481b9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
