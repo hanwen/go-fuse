@@ -11,7 +11,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"strconv"
 	"strings"
 	"syscall"
 	"unsafe"
@@ -117,20 +116,6 @@ func callFusermount(mountPoint string, opts *MountOptions) (fd int, err error) {
 	}
 
 	return
-}
-
-// parseFuseFd checks if `mountPoint` is the special form /dev/fd/N (with N >= 0),
-// and returns N in this case. Returns -1 otherwise.
-func parseFuseFd(mountPoint string) (fd int) {
-	dir, file := path.Split(mountPoint)
-	if dir != "/dev/fd/" {
-		return -1
-	}
-	fd, err := strconv.Atoi(file)
-	if err != nil || fd <= 0 {
-		return -1
-	}
-	return fd
 }
 
 // Create a FUSE FS on the specified mount point.  The returned

@@ -9,8 +9,10 @@ import (
 	"log"
 	"math"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -890,4 +892,18 @@ func (ms *Server) WaitMount() error {
 		return nil
 	}
 	return pollHack(ms.mountPoint)
+}
+
+// parseFuseFd checks if `mountPoint` is the special form /dev/fd/N (with N >= 0),
+// and returns N in this case. Returns -1 otherwise.
+func parseFuseFd(mountPoint string) (fd int) {
+	dir, file := path.Split(mountPoint)
+	if dir != "/dev/fd/" {
+		return -1
+	}
+	fd, err := strconv.Atoi(file)
+	if err != nil || fd <= 0 {
+		return -1
+	}
+	return fd
 }
