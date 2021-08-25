@@ -1,6 +1,6 @@
 # GO-FUSE
 
-[![Build Status](https://travis-ci.org/hanwen/go-fuse.svg?branch=master)](https://travis-ci.org/hanwen/go-fuse)
+[![CI](https://github.com/hanwen/go-fuse/actions/workflows/ci.yml/badge.svg)](https://github.com/hanwen/go-fuse/actions/workflows/ci.yml)
 [![GoDoc](https://godoc.org/github.com/hanwen/go-fuse?status.svg)](https://godoc.org/github.com/hanwen/go-fuse)
 
 Go native bindings for the FUSE kernel module.

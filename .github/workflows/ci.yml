@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron:  '0 12 * * *' # Every day noon UTC
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        go:
+          - "1.13.x" # Ubuntu 20.04 LTS "focal"
+          - "1.15.x" # Debian 11 "Bullseye"
+          - "1.16.x" # Golang upstream stable
+          - "1.17.x" # Golang upstream stable
+      # Don't cancel everything when one Go version fails
+      fail-fast: false
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Install Go ${{ matrix.go }}
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go }}
+
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0 # Make "git describe" work
+
+    # CI platform specific setup steps happen here
+    - run: sudo apt-get install -qq fuse3 libssl-dev libfuse-dev
+
+    # Actual test steps are in all.bash
+    - run: ./all.bash
