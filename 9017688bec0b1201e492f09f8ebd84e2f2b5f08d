@@ -88,6 +88,24 @@
       "parentUuid": "2c15f79a_12bd9d4f",
       "revId": "9017688bec0b1201e492f09f8ebd84e2f2b5f08d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "15772af0_fe5b6a77",
+        "filename": "fuse/server.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 181,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2021-08-25T06:09:29Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "46aef892_a1098401",
+      "revId": "9017688bec0b1201e492f09f8ebd84e2f2b5f08d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
