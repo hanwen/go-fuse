@@ -14,3 +14,6 @@ example/bulkstat/bulkstat
 example/zipfs/zipfs
 # test binaries
 *.test
+benchmark/bulkstat.bin
+benchmark/bulkstat/main
+benchmark/cstatfs

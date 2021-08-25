@@ -1,50 +1,19 @@
 #!/bin/sh
-set -eu
+set -eux
 
-for d in fuse fuse/nodefs fuse/pathfs fuse/test zipfs unionfs \
-    example/hello example/loopback example/zipfs \
-    example/multizip example/unionfs example/memfs \
-    example/autounionfs example/statfs ; \
-do
-  go build -o /dev/null github.com/hanwen/go-fuse/${d}
-done
+# Everything must compile on Linux
+go build ./...
 
+# Not everything compiles on MacOS (try GOOS=darwin go build ./...).
+# But our key packages should.
+GOOS=darwin go build ./fuse/... ./fs/... ./example/loopback/...
 
-for d in fuse zipfs unionfs fuse/test
-do
-    (
-        cd $d
-
-        # Make sure it compiles on all platforms.
-        for GOOS in darwin linux ; do
-          export GOOS
-          go test -c -i github.com/hanwen/go-fuse/$d
-        done
-
-        echo "go test github.com/hanwen/go-fuse/$d"
-        go test github.com/hanwen/go-fuse/$d
-        echo "go test -race github.com/hanwen/go-fuse/$d"
-        go test -race github.com/hanwen/go-fuse/$d
-    )
-done
-
-for target in "clean" "install" ; do
-  for d in fuse fuse/nodefs fuse/pathfs fuse/test zipfs unionfs \
-    example/hello example/loopback example/zipfs \
-    example/multizip example/unionfs example/memfs \
-    example/autounionfs example/statfs ; \
-  do
-    if test "${target}" = "install" && test "${d}" = "fuse/test"; then
-      continue
-    fi
-    echo "go ${target} github.com/hanwen/go-fuse/${d}"
-    go ${target} github.com/hanwen/go-fuse/${d}
-  done
-done
-
+# Run the tests. Why the flags:
+# -timeout 5m ... Get a backtrace on a hung test before the CI system kills us
+# -p 1 .......... Run tests serially, which also means we get live output
+#                 instead of per-package buffering.
+# -count 1 ...... Disable result caching, so we can see flakey tests
+go test -timeout 5m -p 1 -count 1 ./...
 
 make -C benchmark
-for d in benchmark
-do
-  go test github.com/hanwen/go-fuse/benchmark -test.bench '.*' -test.cpu 1,2
-done
+go test ./benchmark -test.bench '.*' -test.cpu 1,2
