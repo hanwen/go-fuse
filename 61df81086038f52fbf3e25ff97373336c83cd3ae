@@ -16,6 +16,24 @@
       "message": "Sorry about that! Is there a way to have CI with gerrithub?",
       "revId": "61df81086038f52fbf3e25ff97373336c83cd3ae",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "4613ac23_2103a392",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-08-27T11:31:53Z",
+      "side": 1,
+      "message": "it\u0027s certainly possible, but I don\u0027t know if who offers this out of the box. Let me look into it.",
+      "parentUuid": "3c58490a_9439af74",
+      "revId": "61df81086038f52fbf3e25ff97373336c83cd3ae",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
