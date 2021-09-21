@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "04a280dd_43f0c379",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-09-21T17:37:02Z",
+      "side": 1,
+      "message": "Could you provide a meaningful test/example?\n\n ",
+      "revId": "eb3234f6f1b2c1c0eb9a5a11322612546ebb8aa4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "70ebf4f9_922085c7",
+        "filename": "fs/api.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 384,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-09-21T17:37:02Z",
+      "side": 1,
+      "message": "This can\u0027t return error; document how implementers should deal with I/O errors.",
+      "range": {
+        "startLine": 384,
+        "startChar": 1,
+        "endLine": 384,
+        "endChar": 5
+      },
+      "revId": "eb3234f6f1b2c1c0eb9a5a11322612546ebb8aa4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
