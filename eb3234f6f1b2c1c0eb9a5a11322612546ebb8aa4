@@ -18,6 +18,23 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "c01b3ae2_a03c7859",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1019495
+      },
+      "writtenOn": "2021-09-22T16:35:42Z",
+      "side": 1,
+      "message": "I\u0027m happy to add testing and improve the docs, but I\u0027ll wait until the thread about overall feasibility is resolved.",
+      "revId": "eb3234f6f1b2c1c0eb9a5a11322612546ebb8aa4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "70ebf4f9_922085c7",
@@ -54,6 +71,24 @@
       "writtenOn": "2021-09-22T13:02:01Z",
       "side": 1,
       "message": "I thought about this for a bit more, but I think this is not going to work.\n\nThe problem is that ReaddirPlus also comes with the assumption that the lookup count (Inode.lookupCount) for the child is incremented. By just returning the user value, you can later get system calls for inodes that Go-fuse doesn\u0027t know about.\n\nWhy is the lookup call a problem for you?",
+      "revId": "eb3234f6f1b2c1c0eb9a5a11322612546ebb8aa4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9c96db4f_ac07e0a0",
+        "filename": "fs/bridge.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1065,
+      "author": {
+        "id": 1019495
+      },
+      "writtenOn": "2021-09-22T16:35:42Z",
+      "side": 1,
+      "message": "My use case is a FUSE filesystem representing remote objects (in S3). Readdir is served by a \"list\" request to S3 which efficiently returns many objects, including enough information for readdirplus/getattr (name, size, mode). An individual Lookup requires its own separate request so a series of Readdir + O(n) Lookups is much more costly (in latency, $, etc.).\n\nAlternatively, our implementation could basically manage its own DirEntry cache, but I was trying to reduce complexity. (Details if you\u0027re interested: https://github.com/grailbio/base/commit/42c6f599e6df3286a1e54b78b5769067fd49892c.)\n\nIf Plus() returned an inode (like Lookup), would that let the bridge correctly update the count? (Right now our Plus calls AddChild but if I\u0027m understanding correctly, that\u0027s not quite correct.)\n\n(I\u0027m learning about FUSE/filesystems as I go along; thanks for taking the time to review!)",
+      "parentUuid": "fabfe7dd_ea5bd4be",
       "revId": "eb3234f6f1b2c1c0eb9a5a11322612546ebb8aa4",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
