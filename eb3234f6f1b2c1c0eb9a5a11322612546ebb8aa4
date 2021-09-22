@@ -39,6 +39,23 @@
       },
       "revId": "eb3234f6f1b2c1c0eb9a5a11322612546ebb8aa4",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "fabfe7dd_ea5bd4be",
+        "filename": "fs/bridge.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1065,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-09-22T13:02:01Z",
+      "side": 1,
+      "message": "I thought about this for a bit more, but I think this is not going to work.\n\nThe problem is that ReaddirPlus also comes with the assumption that the lookup count (Inode.lookupCount) for the child is incremented. By just returning the user value, you can later get system calls for inodes that Go-fuse doesn\u0027t know about.\n\nWhy is the lookup call a problem for you?",
+      "revId": "eb3234f6f1b2c1c0eb9a5a11322612546ebb8aa4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
