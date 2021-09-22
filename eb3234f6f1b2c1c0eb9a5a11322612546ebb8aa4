@@ -91,6 +91,24 @@
       "parentUuid": "fabfe7dd_ea5bd4be",
       "revId": "eb3234f6f1b2c1c0eb9a5a11322612546ebb8aa4",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "eff24419_0c0848c8",
+        "filename": "fs/bridge.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1065,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-09-22T18:45:02Z",
+      "side": 1,
+      "message": "you could look go-mtpfs for inspiration. It fetches directory content on first access (be it lookup or readdir) and then responds using the FS tree as a backing store.\n\nhttps://github.com/hanwen/go-mtpfs/blob/master/fs/fs.go#L354\n\nthis uses persistent inodes, so that may not work for you.",
+      "parentUuid": "9c96db4f_ac07e0a0",
+      "revId": "eb3234f6f1b2c1c0eb9a5a11322612546ebb8aa4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
