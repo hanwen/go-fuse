@@ -400,11 +400,19 @@ func doFsyncDir(server *Server, req *request) {
 }
 
 func doSetXAttr(server *Server, req *request) {
+	if server.opts.DisableXAttrs {
+		req.status = ENOSYS
+		return
+	}
 	splits := bytes.SplitN(req.arg, []byte{0}, 2)
 	req.status = server.fileSystem.SetXAttr(req.cancel, (*SetXAttrIn)(req.inData), string(splits[0]), splits[1])
 }
 
 func doRemoveXAttr(server *Server, req *request) {
+	if server.opts.DisableXAttrs {
+		req.status = ENOSYS
+		return
+	}
 	req.status = server.fileSystem.RemoveXAttr(req.cancel, req.inHeader, req.filenames[0])
 }
 
