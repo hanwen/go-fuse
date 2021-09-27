@@ -109,6 +109,24 @@
       "parentUuid": "9c96db4f_ac07e0a0",
       "revId": "eb3234f6f1b2c1c0eb9a5a11322612546ebb8aa4",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "871f489f_05c0c9a3",
+        "filename": "fs/bridge.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1065,
+      "author": {
+        "id": 1019495
+      },
+      "writtenOn": "2021-09-27T19:40:04Z",
+      "side": 1,
+      "message": "Thanks for the reference. As you guessed, I\u0027d prefer not to use persistent inodes for S3 because there are potentially very many objects and I want to let the kernel drop inodes to save memory.\n\nI just tried something similar, though: in `DirStream.Next` I call `AddChild(..., NewInode(...), true)`. Then in `Lookup` I first try to `GetChild` based on the name, and otherwise execute the required S3 operations. In my testing so far, this seems to work—the `Lookup`s are being satisfied by `GetChild`.\n\nIf I\u0027m understanding correctly, if there\u0027s memory pressure at the time, it\u0027s possible for the inode to be discarded between my `AddChild` and `GetChild`, but I\u0027m ok with that since there\u0027s a fallback path. However, I\u0027d be concerned if this could cause real errors or inconsistency.\n\nDoes this sound reasonable, or is there something I\u0027m overlooking here?",
+      "parentUuid": "eff24419_0c0848c8",
+      "revId": "eb3234f6f1b2c1c0eb9a5a11322612546ebb8aa4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
