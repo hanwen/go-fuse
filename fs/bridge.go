@@ -283,11 +283,17 @@ func NewNodeFS(root InodeEmbedder, opts *Options) fuse.RawFileSystem {
 		bridge.options.AttrTimeout = &oneSec
 	}
 
+	stableAttr := StableAttr{
+		Ino:  root.embed().StableAttr().Ino,
+		Mode: fuse.S_IFDIR,
+	}
+	if opts.RootStableAttr != nil {
+		stableAttr.Ino = opts.RootStableAttr.Ino
+		stableAttr.Gen = opts.RootStableAttr.Gen
+	}
+
 	initInode(root.embed(), root,
-		StableAttr{
-			Ino:  root.embed().StableAttr().Ino,
-			Mode: fuse.S_IFDIR,
-		},
+		stableAttr,
 		bridge,
 		false,
 		1,
