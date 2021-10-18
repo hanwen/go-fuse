@@ -127,6 +127,24 @@
       "parentUuid": "eff24419_0c0848c8",
       "revId": "eb3234f6f1b2c1c0eb9a5a11322612546ebb8aa4",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d57691dc_ddaef3f3",
+        "filename": "fs/bridge.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1065,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-10-18T19:01:30Z",
+      "side": 1,
+      "message": "to me, it looks a bit weird: what do you do if you have 2 sequential OpneDir/ReadDir operations? What happens if one of the readdirs is aborted before you reach the end? I think it might be simpler to understand if you interpose your own caching layer.",
+      "parentUuid": "871f489f_05c0c9a3",
+      "revId": "eb3234f6f1b2c1c0eb9a5a11322612546ebb8aa4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
