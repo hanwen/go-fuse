@@ -221,7 +221,7 @@
 //
 // Instead of discovering the FS tree on the fly, you can construct
 // the entire tree from an OnAdd method. Then, that in-memory tree
-// structure becomes the source of truth. This means you Go-FUSE must
+// structure becomes the source of truth. This means that Go-FUSE must
 // remember Inodes even if the kernel is no longer interested in
 // them. This is done by instantiating "persistent" inodes from the
 // OnAdd method of the root node.  See the ZipFS example for a
