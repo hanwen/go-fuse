@@ -5,8 +5,11 @@
 package test
 
 import (
+	"flag"
+	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"syscall"
 	"testing"
 	"time"
@@ -14,7 +17,17 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v2/internal/testutil"
 )
+
+var enableOverlayfsTest bool
+var enableOverlayfsTestFlag string = "test.overlayfs"
+
+func init() {
+	// flag to enable test with overayfs. This would not work on kernel 5.15
+	// so don't enable on that kernel.
+	flag.BoolVar(&enableOverlayfsTest, enableOverlayfsTestFlag, false, "enable tests with overlayfs (would fail on kernel 5.15)")
+}
 
 func TestTouch(t *testing.T) {
 	ts := NewTestCase(t)
@@ -116,6 +129,40 @@ func clearStatfs(s *syscall.Statfs_t) {
 	s.Spare = empty.Spare
 	// TODO - figure out what this is for.
 	s.Flags = 0
+}
+
+// Check that fuse mount can serve as a overlayfs lowerdir.
+func TestOverlayfs(t *testing.T) {
+	if !enableOverlayfsTest {
+		t.Skipf("this test must be enabled through the flag %q", enableOverlayfsTestFlag)
+	}
+	if os.Getuid() != 0 {
+		t.Skip("this test requires root")
+	}
+	tc := NewTestCase(t)
+	defer tc.Cleanup()
+
+	testfile := "test"
+	content := randomData(125)
+	tc.Mkdir(tc.origSubdir, 0777)
+	tc.WriteFile(filepath.Join(tc.origSubdir, testfile), content, 0700)
+
+	tmpMergedDir := testutil.TempDir()
+	defer os.RemoveAll(tmpMergedDir)
+	tmpWorkDir := testutil.TempDir()
+	defer os.RemoveAll(tmpWorkDir)
+	tmpUpperDir := testutil.TempDir()
+	defer os.RemoveAll(tmpUpperDir)
+	if err := unix.Mount("overlay", tmpMergedDir, "overlay", 0,
+		fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", tc.mnt, tmpUpperDir, tmpWorkDir)); err != nil {
+		t.Fatalf("failed to mount overlay: %v", err)
+	}
+	defer unix.Unmount(tmpMergedDir, 0)
+
+	err := os.Chtimes(filepath.Join(tmpMergedDir, "subdir", testfile), time.Unix(42, 0), time.Unix(43, 0))
+	if err != nil {
+		t.Fatalf("Chtimes failed: %v", err)
+	}
 }
 
 func TestFallocate(t *testing.T) {
