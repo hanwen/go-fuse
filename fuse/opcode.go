@@ -10,6 +10,7 @@ import (
 	"log"
 	"reflect"
 	"runtime"
+	"syscall"
 	"time"
 	"unsafe"
 )
@@ -442,7 +443,7 @@ func doStatFs(server *Server, req *request) {
 }
 
 func doIoctl(server *Server, req *request) {
-	req.status = ENOSYS
+	req.status = Status(syscall.ENOTTY)
 }
 
 func doDestroy(server *Server, req *request) {
