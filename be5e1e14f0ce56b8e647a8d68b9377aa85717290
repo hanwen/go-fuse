@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "24c80816_8d8c96e9",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-11-25T21:33:36Z",
+      "side": 1,
+      "message": "I realize I didn\u0027t have a project watch setup, so I didn\u0027t notice the change. Sorry.",
+      "revId": "be5e1e14f0ce56b8e647a8d68b9377aa85717290",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "68285c7a_5e104a93",
+        "filename": "example/root-ino/main.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 6,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-11-25T21:33:36Z",
+      "side": 1,
+      "message": "this is a bit of a niche use-case, so I\u0027d rather not have the example. Can you make a unittest instead?",
+      "range": {
+        "startLine": 5,
+        "startChar": 0,
+        "endLine": 6,
+        "endChar": 34
+      },
+      "revId": "be5e1e14f0ce56b8e647a8d68b9377aa85717290",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
