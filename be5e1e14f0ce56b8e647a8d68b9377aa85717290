@@ -63,6 +63,30 @@
       },
       "revId": "be5e1e14f0ce56b8e647a8d68b9377aa85717290",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2afaafe6_71732f73",
+        "filename": "example/root-ino/main.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 6,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2021-12-19T10:20:56Z",
+      "side": 1,
+      "message": "yeah, even better. Independently, we should have a unittest, though.",
+      "parentUuid": "2bd321b2_529bda2c",
+      "range": {
+        "startLine": 5,
+        "startChar": 0,
+        "endLine": 6,
+        "endChar": 34
+      },
+      "revId": "be5e1e14f0ce56b8e647a8d68b9377aa85717290",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
