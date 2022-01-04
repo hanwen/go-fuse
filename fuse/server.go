@@ -310,6 +310,7 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 	if err != nil {
 		code = ToStatus(err)
 		ms.reqPool.Put(req)
+		ms.readPool.Put(dest)
 		ms.reqMu.Lock()
 		ms.reqReaders--
 		ms.reqMu.Unlock()
