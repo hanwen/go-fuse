@@ -75,6 +75,22 @@ func TestRenameExchange(t *testing.T) {
 	if !reflect.DeepEqual(after2, before1) {
 		t.Errorf("after2, before1: %#v, %#v", after2, before1)
 	}
+
+	root := tc.loopback.EmbeddedInode().Root()
+	ino1 := root.GetChild("file")
+	if ino1 == nil {
+		t.Fatalf("root.GetChild(%q): null inode", "file")
+	}
+	ino2 := root.GetChild("dir").GetChild("file")
+	if ino2 == nil {
+		t.Fatalf("dir.GetChild(%q): null inode", "file")
+	}
+	if ino1.StableAttr().Ino != after1.Ino {
+		t.Errorf("got inode %d for %q, want %d", ino1.StableAttr().Ino, "file", after1.Ino)
+	}
+	if ino2.StableAttr().Ino != after2.Ino {
+		t.Errorf("got inode %d for %q want %d", ino2.StableAttr().Ino, "dir/file", after2.Ino)
+	}
 }
 
 func TestRenameNoOverwrite(t *testing.T) {
