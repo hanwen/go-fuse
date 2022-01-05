@@ -55,6 +55,27 @@ func (tc *testCase) Clean() {
 	}
 }
 
+func (tc *testCase) getInodeByPath(path string) *Inode {
+	bridge := tc.rawFS.(*rawBridge)
+	root := bridge.root
+
+	path = filepath.Clean(path)
+	pathItem := strings.Split(path, "/")
+	ino := root
+
+	for _, item := range pathItem {
+		if len(item) == 0 {
+			continue
+		}
+		if child, ok := ino.Children()[item]; !ok {
+			return nil
+		} else {
+			ino = child
+		}
+	}
+	return ino
+}
+
 type testOptions struct {
 	entryCache    bool
 	attrCache     bool
