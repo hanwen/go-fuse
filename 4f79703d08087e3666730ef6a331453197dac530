@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d4c822ff_a629bf8a",
+        "filename": "fs/loopback_linux_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 81,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2022-01-05T17:32:48Z",
+      "side": 1,
+      "message": "your bugfix itself looks good, but here you are looking into the implementation of the file system. The test should only look at the externally visible effects, ie. by issuing syscalls to files inside the mountpoint.",
+      "range": {
+        "startLine": 79,
+        "startChar": 1,
+        "endLine": 81,
+        "endChar": 1
+      },
+      "revId": "4f79703d08087e3666730ef6a331453197dac530",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
