@@ -22,6 +22,30 @@
       },
       "revId": "4f79703d08087e3666730ef6a331453197dac530",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ae9b9cd2_df76ca7e",
+        "filename": "fs/loopback_linux_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 81,
+      "author": {
+        "id": 1019773
+      },
+      "writtenOn": "2022-01-06T16:34:43Z",
+      "side": 1,
+      "message": "However, loopback filesystem call syscalls \u0027lstat\u0027 directly to lookup, so this bugfix cannot recurrent in loopback filesystem. In mine filesystem which is a network filesystem, the Lookup API need some immutable metadata from Inode(implementation of the file system). Lookup API get Inode from Inode.children firstly, then issue request to server. If Lookup API can\u0027t find children Inode from Inode.children, it will issue request to server to get metadata. Therefore, the unittest use implementation to prove this bug. If I use syscalls, I should implement a file system by rewriting lookup or readdir.",
+      "parentUuid": "d4c822ff_a629bf8a",
+      "range": {
+        "startLine": 79,
+        "startChar": 1,
+        "endLine": 81,
+        "endChar": 1
+      },
+      "revId": "4f79703d08087e3666730ef6a331453197dac530",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
