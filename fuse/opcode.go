@@ -70,6 +70,13 @@ const (
 	_OP_NOTIFY_DELETE         = uint32(104) // protocol version 18
 
 	_OPCODE_COUNT = uint32(105)
+
+	// Linux kernel constants from fs/fuse/fuse_i.h
+	//
+	// Default value in all kernels and upper limit in Linux 4.19 and older
+	_FUSE_DEFAULT_MAX_PAGES_PER_REQ = 32
+	// Upper limit in Linux v4.20+
+	_FUSE_MAX_MAX_PAGES = 256
 )
 
 ////////////////////////////////////////////////////////////////
@@ -123,6 +130,25 @@ func doInit(server *Server, req *request) {
 	if input.Minor >= 13 {
 		server.setSplice()
 	}
+
+	// Linux 4.20 added the ability to increase WRITE and READ (with O_DIRECT)
+	// sizes from 128 kiB to 1 MiB via the MAX_PAGES flag
+	// ( https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=5da784cce4308ae10a79e3c8c41b13fb9568e4e0 ).
+	maxPagesLimit := _FUSE_DEFAULT_MAX_PAGES_PER_REQ
+	if input.Flags&CAP_MAX_PAGES != 0 {
+		maxPagesLimit = _FUSE_MAX_MAX_PAGES
+	}
+	// Like libfuse, we calculate the appropriate MAX_PAGES from MaxWrite
+	// ( https://github.com/libfuse/libfuse/commit/027d0d17c8a4605109f09d9c988e255b64a2c19a )
+	maxPages := 0
+	if input.Flags&CAP_MAX_PAGES != 0 {
+		// Round up like libfuse
+		maxPages = (server.opts.MaxWrite-1)/syscall.Getpagesize() + 1
+		server.kernelSettings.Flags |= CAP_MAX_PAGES
+	}
+	if server.opts.MaxWrite > maxPagesLimit*syscall.Getpagesize() {
+		log.Printf("warning: MaxWrite=%d but kernel will cap to %d", maxPagesLimit*syscall.Getpagesize(), maxPagesLimit*syscall.Getpagesize())
+	}
 	server.reqMu.Unlock()
 
 	out := (*InitOut)(req.outData())
@@ -134,6 +160,7 @@ func doInit(server *Server, req *request) {
 		MaxWrite:            uint32(server.opts.MaxWrite),
 		CongestionThreshold: uint16(server.opts.MaxBackground * 3 / 4),
 		MaxBackground:       uint16(server.opts.MaxBackground),
+		MaxPages:            uint16(maxPages),
 	}
 
 	if server.opts.MaxReadAhead != 0 && uint32(server.opts.MaxReadAhead) < out.MaxReadAhead {
