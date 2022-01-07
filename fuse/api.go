@@ -153,12 +153,42 @@ type MountOptions struct {
 	// async I/O.  Concurrency for synchronous I/O is not limited.
 	MaxBackground int
 
-	// Write size to use.  If 0, use default. This number is
-	// capped at the kernel maximum.
+	// MaxWrite is the max size for read and write requests. If 0, use
+	// default (currently 64 kiB).
+	// This number is internally capped at MAX_KERNEL_WRITE (higher values don't make
+	// sense).
+	//
+	// Non-direct-io reads are mostly served via kernel readahead, which is
+	// additionally subject to the MaxReadAhead limit.
+	//
+	// Implementation notes:
+	//
+	// There's four values the Linux kernel looks at when deciding the request size:
+	// * MaxWrite, passed via InitOut.MaxWrite. Limits the WRITE size.
+	// * max_read, passed via a string mount option. Limits the READ size.
+	//   go-fuse sets max_read equal to MaxWrite.
+	//   You can see the current max_read value in /proc/self/mounts .
+	// * MaxPages, passed via InitOut.MaxPages. In Linux 4.20 and later, the value
+	//   can go up to 1 MiB and go-fuse calculates the MaxPages value acc.
+	//   to MaxWrite, rounding up.
+	//   On older kernels, the value is fixed at 128 kiB and the
+	//   passed value is ignored. No request can be larger than MaxPages, so
+	//   READ and WRITE are effectively capped at MaxPages.
+	// * MaxReadAhead, passed via InitOut.MaxReadAhead.
 	MaxWrite int
 
-	// Max read ahead to use.  If 0, use default. This number is
-	// capped at the kernel maximum.
+	// MaxReadAhead is the max read ahead size to use. It controls how much data the
+	// kernel reads in advance to satisfy future read requests from applications.
+	// How much exactly is subject to clever heuristics in the kernel
+	// (see https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/mm/readahead.c?h=v6.2-rc5#n375
+	// if you are brave).
+	//
+	// If 0, use default. This number is capped at the kernel maximum
+	// (128 kiB on Linux) and cannot be larger than MaxWrite.
+	//
+	// MaxReadAhead only affects buffered reads (=non-direct-io), but even then, the
+	// kernel can and does send larger reads to satisfy read reqests from applications
+	// (up to MaxWrite or VM_READAHEAD_PAGES=128 kiB, whichever is less).
 	MaxReadAhead int
 
 	// If IgnoreSecurityLabels is set, all security related xattr
