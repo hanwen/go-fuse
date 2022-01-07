@@ -153,12 +153,20 @@ type MountOptions struct {
 	// async I/O.  Concurrency for synchronous I/O is not limited.
 	MaxBackground int
 
-	// Write size to use.  If 0, use default. This number is
-	// capped at the kernel maximum.
+	// MaxWrite is the max size for read and write requests. If 0, use
+	// default (currently 64 kiB).
+	// This number is capped at the kernel maximum (1 MiB on Linux 4.20+).
+	//
+	// Non-direct-io reads are mostly served via kernel readahead, which is
+	// additionally subject to the MaxReadAhead limit.
 	MaxWrite int
 
-	// Max read ahead to use.  If 0, use default. This number is
-	// capped at the kernel maximum.
+	// MaxReadAhead is the max read ahead size to use. If 0, use default. This
+	// number is capped at the kernel maximum (128 kiB on Linux) and cannot
+	// be larger than MaxWrite.
+	//
+	// MaxReadAhead only affects non-direct-io, but even then, the kernel can and
+	// does sometime send larger reads as it sees fit (up to the MaxWrite limit).
 	MaxReadAhead int
 
 	// If IgnoreSecurityLabels is set, all security related xattr

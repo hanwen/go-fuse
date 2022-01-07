@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	// The kernel caps writes at 128k.
-	MAX_KERNEL_WRITE = 128 * 1024
+	// Linux v4.20+ caps writes at 1 MiB
+	MAX_KERNEL_WRITE = 1024 * 1024
 
 	// Linux kernel constant from include/uapi/linux/fuse.h
 	// Reads from /dev/fuse that are smaller fail with EINVAL.
