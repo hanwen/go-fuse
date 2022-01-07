@@ -46,6 +46,30 @@
       },
       "revId": "4f79703d08087e3666730ef6a331453197dac530",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "8f1ebf38_1dbae075",
+        "filename": "fs/loopback_linux_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 81,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2022-01-07T10:42:31Z",
+      "side": 1,
+      "message": "good point. However, there is still no need to delve into the implementation of rawBridge.\n\nYou could do\n\n```\nroot :\u003d tc.loopback.EmbeddedInode()\nch1 :\u003d root.GetChild(\"file\") \nch2 :\u003d root.GetChild(\"dir\").GetChild(\"file\")\n```\n\nto get at the inodes directly.",
+      "parentUuid": "ae9b9cd2_df76ca7e",
+      "range": {
+        "startLine": 79,
+        "startChar": 1,
+        "endLine": 81,
+        "endChar": 1
+      },
+      "revId": "4f79703d08087e3666730ef6a331453197dac530",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
