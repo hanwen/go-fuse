@@ -64,3 +64,37 @@ func TestMountDevFd(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+// TestMountMaxWrite makes sure that mounting works with all MaxWrite settings.
+// We used to fail with EINVAL below 8k because readPool got too small.
+func TestMountMaxWrite(t *testing.T) {
+	opts := []MountOptions{
+		{MaxWrite: 0}, // go-fuse default
+		{MaxWrite: 1},
+		{MaxWrite: 123},
+		{MaxWrite: 1 * 1024},
+		{MaxWrite: 4 * 1024},
+		{MaxWrite: 8 * 1024},
+		{MaxWrite: 64 * 1024},  // go-fuse default
+		{MaxWrite: 128 * 1024}, // limit in Linux v4.19 and older
+		{MaxWrite: 999 * 1024},
+		{MaxWrite: 1024 * 1024}, // limit in Linux v4.20+
+	}
+	for _, o := range opts {
+		name := fmt.Sprintf("MaxWrite%d", o.MaxWrite)
+		t.Run(name, func(t *testing.T) {
+			mnt, err := ioutil.TempDir("", name)
+			if err != nil {
+				t.Fatal(err)
+			}
+			fs := NewDefaultRawFileSystem()
+			srv, err := NewServer(fs, mnt, &o)
+			if err != nil {
+				t.Error(err)
+			} else {
+				go srv.Serve()
+				srv.Unmount()
+			}
+		})
+	}
+}
