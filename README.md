@@ -1,7 +1,7 @@
 # GO-FUSE
 
 [![CI](https://github.com/hanwen/go-fuse/actions/workflows/ci.yml/badge.svg)](https://github.com/hanwen/go-fuse/actions/workflows/ci.yml)
-[![GoDoc](https://godoc.org/github.com/hanwen/go-fuse?status.svg)](https://godoc.org/github.com/hanwen/go-fuse)
+[![GoDoc](https://godoc.org/github.com/hanwen/go-fuse/v2?status.svg)](https://godoc.org/github.com/hanwen/go-fuse/v2)
 
 Go native bindings for the FUSE kernel module.
 
