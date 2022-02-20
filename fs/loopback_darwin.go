@@ -101,7 +101,7 @@ func timeToTimeval(t *time.Time) syscall.Timeval {
 func (f *loopbackFile) utimens(a *time.Time, m *time.Time) syscall.Errno {
 	var attr fuse.AttrOut
 	if a == nil || m == nil {
-		errno := f.Getattr(context.Background(), &attr)
+		errno := f.getattr(context.Background(), &attr)
 		if errno != 0 {
 			return errno
 		}

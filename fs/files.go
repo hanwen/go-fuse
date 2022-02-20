@@ -214,6 +214,10 @@ func (f *loopbackFile) setAttr(ctx context.Context, in *fuse.SetAttrIn) syscall.
 func (f *loopbackFile) Getattr(ctx context.Context, a *fuse.AttrOut) syscall.Errno {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	return f.getattr(ctx, a)
+}
+
+func (f *loopbackFile) getattr(ctx context.Context, a *fuse.AttrOut) syscall.Errno {
 	st := syscall.Stat_t{}
 	err := syscall.Fstat(f.fd, &st)
 	if err != nil {
