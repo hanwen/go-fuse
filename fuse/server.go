@@ -262,6 +262,13 @@ func (o *MountOptions) optionsStrings() []string {
 		r = append(r, "subtype="+o.Name)
 	}
 
+	// OSXFUSE applies a 60-second timeout for file operations. This
+	// is inconsistent with how FUSE works on Linux, where operations
+	// last as long as the daemon is willing to let them run.
+	if runtime.GOOS == "darwin" {
+		r = append(r, "daemon_timeout=0")
+	}
+
 	return r
 }
 
