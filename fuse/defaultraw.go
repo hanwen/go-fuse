@@ -140,11 +140,11 @@ func (fs *defaultRawFileSystem) Fsync(cancel <-chan struct{}, input *FsyncIn) (c
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) ReadDir(cancel <-chan struct{}, input *ReadIn, l *DirEntryList) Status {
+func (fs *defaultRawFileSystem) ReadDir(cancel <-chan struct{}, input *ReadIn, l ReadDirEntryList) Status {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) ReadDirPlus(cancel <-chan struct{}, input *ReadIn, l *DirEntryList) Status {
+func (fs *defaultRawFileSystem) ReadDirPlus(cancel <-chan struct{}, input *ReadIn, l ReadDirPlusEntryList) Status {
 	return ENOSYS
 }
 

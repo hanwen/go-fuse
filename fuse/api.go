@@ -331,8 +331,8 @@ type RawFileSystem interface {
 
 	// Directory handling
 	OpenDir(cancel <-chan struct{}, input *OpenIn, out *OpenOut) (status Status)
-	ReadDir(cancel <-chan struct{}, input *ReadIn, out *DirEntryList) Status
-	ReadDirPlus(cancel <-chan struct{}, input *ReadIn, out *DirEntryList) Status
+	ReadDir(cancel <-chan struct{}, input *ReadIn, out ReadDirEntryList) Status
+	ReadDirPlus(cancel <-chan struct{}, input *ReadIn, out ReadDirPlusEntryList) Status
 	ReleaseDir(input *ReleaseIn)
 	FsyncDir(cancel <-chan struct{}, input *FsyncIn) (code Status)
 

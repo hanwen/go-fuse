@@ -39,35 +39,28 @@ type DirEntryList struct {
 	buf []byte
 	// capacity of the underlying buffer
 	size int
-	// offset is the requested location in the directory. go-fuse
-	// currently counts in number of directory entries, but this is an
-	// implementation detail and may change in the future.
-	// If `offset` and `fs.fileEntry.dirOffset` disagree, then a
-	// directory seek has taken place.
-	offset uint64
 	// pointer to the last serialized _Dirent. Used by FixMode().
 	lastDirent *_Dirent
 }
 
 // NewDirEntryList creates a DirEntryList with the given data buffer
 // and offset.
-func NewDirEntryList(data []byte, off uint64) *DirEntryList {
+func NewDirEntryList(data []byte) *DirEntryList {
 	return &DirEntryList{
 		buf:    data[:0],
 		size:   len(data),
-		offset: off,
 	}
 }
 
 // AddDirEntry tries to add an entry, and reports whether it
 // succeeded.
-func (l *DirEntryList) AddDirEntry(e DirEntry) bool {
-	return l.Add(0, e.Name, e.Ino, e.Mode)
+func (l *DirEntryList) AddDirEntry(e DirEntry, off uint64) bool {
+	return l.add(0, e.Name, e.Ino, e.Mode, off)
 }
 
 // Add adds a direntry to the DirEntryList, returning whether it
 // succeeded.
-func (l *DirEntryList) Add(prefix int, name string, inode uint64, mode uint32) bool {
+func (l *DirEntryList) add(prefix int, name string, inode uint64, mode uint32, off uint64) bool {
 	if inode == 0 {
 		inode = FUSE_UNKNOWN_INO
 	}
@@ -82,7 +75,7 @@ func (l *DirEntryList) Add(prefix int, name string, inode uint64, mode uint32) b
 	l.buf = l.buf[:newLen]
 	oldLen += prefix
 	dirent := (*_Dirent)(unsafe.Pointer(&l.buf[oldLen]))
-	dirent.Off = l.offset + 1
+	dirent.Off = off
 	dirent.Ino = inode
 	dirent.NameLen = uint32(len(name))
 	dirent.Typ = modeToType(mode)
@@ -94,7 +87,6 @@ func (l *DirEntryList) Add(prefix int, name string, inode uint64, mode uint32) b
 		copy(l.buf[oldLen:], eightPadding[:padding])
 	}
 
-	l.offset = dirent.Off
 	return true
 }
 
@@ -109,10 +101,10 @@ func (l *DirEntryList) Add(prefix int, name string, inode uint64, mode uint32) b
 // 3) Name (null-terminated)
 // 4) Padding to align to 8 bytes
 // [repeat]
-func (l *DirEntryList) AddDirLookupEntry(e DirEntry) *EntryOut {
+func (l *DirEntryList) AddDirLookupEntry(e DirEntry, off uint64) *EntryOut {
 	const entryOutSize = int(unsafe.Sizeof(EntryOut{}))
 	oldLen := len(l.buf)
-	ok := l.Add(entryOutSize, e.Name, e.Ino, e.Mode)
+	ok := l.add(entryOutSize, e.Name, e.Ino, e.Mode, off)
 	if !ok {
 		return nil
 	}
@@ -138,4 +130,14 @@ func (l *DirEntryList) FixMode(mode uint32) {
 
 func (l *DirEntryList) bytes() []byte {
 	return l.buf
+}
+
+type ReadDirEntryList interface {
+	AddDirEntry(e DirEntry, off uint64) bool
+	FixMode(mode uint32)
+}
+
+type ReadDirPlusEntryList interface {
+	AddDirLookupEntry(e DirEntry, off uint64) *EntryOut
+	FixMode(mode uint32)
 }
