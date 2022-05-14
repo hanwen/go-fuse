@@ -29,7 +29,7 @@ type FileSystemConnector struct {
 	debug bool
 
 	// Callbacks for talking back to the kernel.
-	server *fuse.Server
+	server fuse.ServerCallbacks
 
 	// Translate between uint64 handles and *Inode.
 	inodeMap handleMap
@@ -81,7 +81,7 @@ func NewFileSystemConnector(root Node, opts *Options) (c *FileSystemConnector) {
 }
 
 // Server returns the fuse.Server that talking to the kernel.
-func (c *FileSystemConnector) Server() *fuse.Server {
+func (c *FileSystemConnector) Server() fuse.ServerCallbacks {
 	return c.server
 }
 
