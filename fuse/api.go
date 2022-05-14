@@ -231,6 +231,17 @@ type MountOptions struct {
 	EnableAcl bool
 }
 
+// ServerCallbacks are calls into the kernel to manipulate the inode,
+// entry and page cache.  They are stubbed so filesystems can be
+// unittested without mounting them.
+type ServerCallbacks interface {
+	DeleteNotify(parent uint64, child uint64, name string) Status
+	EntryNotify(parent uint64, name string) Status
+	InodeNotify(node uint64, off int64, length int64) Status
+	InodeRetrieveCache(node uint64, offset int64, dest []byte) (n int, st Status)
+	InodeNotifyStoreCache(node uint64, offset int64, data []byte) Status
+}
+
 // RawFileSystem is an interface close to the FUSE wire protocol.
 //
 // Unless you really know what you are doing, you should not implement
@@ -341,5 +352,5 @@ type RawFileSystem interface {
 	// This is called on processing the first request. The
 	// filesystem implementation can use the server argument to
 	// talk back to the kernel (through notify methods).
-	Init(*Server)
+	Init(ServerCallbacks)
 }

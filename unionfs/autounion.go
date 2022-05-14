@@ -361,14 +361,19 @@ func (fs *autoUnionFs) DebugData() string {
 	if conn.Server() == nil {
 		return "autoUnionFs.mountState not set"
 	}
-	setting := conn.Server().KernelSettings()
-	msg := fmt.Sprintf(
-		"Version: %v\n"+
-			"Bufferpool: %v\n"+
-			"Kernel: %v\n",
-		fs.options.Version,
-		conn.Server().DebugData(),
-		&setting)
+	var msg string
+	if s, ok := conn.Server().(*fuse.Server); ok {
+		setting := s.KernelSettings()
+		msg = fmt.Sprintf(
+			"Version: %v\n"+
+				"Bufferpool: %v\n"+
+				"Kernel: %v\n",
+			fs.options.Version,
+			s.DebugData(),
+			&setting)
+	} else {
+		msg = fmt.Sprintf("Version: %v\n", fs.options.Version)
+	}
 
 	if conn != nil {
 		msg += fmt.Sprintf("Live inodes: %d\n", conn.InodeHandleCount())

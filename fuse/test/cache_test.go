@@ -142,7 +142,7 @@ func TestFopenKeepCache(t *testing.T) {
 		t.Fatalf("ReadFile: got %q, want cached %q", c, before)
 	}
 
-	if minor := pathfs.Connector().Server().KernelSettings().Minor; minor < 12 {
+	if minor := pathfs.Connector().Server().(*fuse.Server).KernelSettings().Minor; minor < 12 {
 		t.Skipf("protocol v%d has no notify support.", minor)
 	}
 
