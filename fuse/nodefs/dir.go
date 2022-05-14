@@ -22,7 +22,7 @@ type connectorDir struct {
 	stream []fuse.DirEntry
 }
 
-func (d *connectorDir) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out *fuse.DirEntryList) (code fuse.Status) {
+func (d *connectorDir) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out fuse.ReadDirEntryList) (code fuse.Status) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -54,7 +54,7 @@ func (d *connectorDir) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out *
 			log.Printf("got empty directory entry, mode %o.", e.Mode)
 			continue
 		}
-		ok := out.AddDirEntry(e)
+		ok := out.AddDirEntry(e, input.Offset+1)
 		if !ok {
 			break
 		}
@@ -62,7 +62,7 @@ func (d *connectorDir) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out *
 	return fuse.OK
 }
 
-func (d *connectorDir) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out *fuse.DirEntryList) (code fuse.Status) {
+func (d *connectorDir) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out fuse.ReadDirPlusEntryList) (code fuse.Status) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -91,7 +91,7 @@ func (d *connectorDir) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, o
 
 		// we have to be sure entry will fit if we try to add
 		// it, or we'll mess up the lookup counts.
-		entryDest := out.AddDirLookupEntry(e)
+		entryDest := out.AddDirLookupEntry(e, input.Offset+1)
 		if entryDest == nil {
 			break
 		}
@@ -108,6 +108,6 @@ func (d *connectorDir) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, o
 }
 
 type rawDir interface {
-	ReadDir(out *fuse.DirEntryList, input *fuse.ReadIn, c *fuse.Context) fuse.Status
-	ReadDirPlus(out *fuse.DirEntryList, input *fuse.ReadIn, c *fuse.Context) fuse.Status
+	ReadDir(out fuse.ReadDirEntryList, input *fuse.ReadIn, c *fuse.Context) fuse.Status
+	ReadDirPlus(out fuse.ReadDirPlusEntryList, input *fuse.ReadIn, c *fuse.Context) fuse.Status
 }

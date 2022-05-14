@@ -978,7 +978,7 @@ func (b *rawBridge) getStream(ctx context.Context, inode *Inode) (DirStream, sys
 	return NewListDirStream(r), 0
 }
 
-func (b *rawBridge) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out *fuse.DirEntryList) fuse.Status {
+func (b *rawBridge) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out fuse.ReadDirEntryList) fuse.Status {
 	n, f := b.inode(input.NodeId, input.Fh)
 
 	f.mu.Lock()
@@ -993,7 +993,7 @@ func (b *rawBridge) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out *fus
 
 	if f.hasOverflow {
 		// always succeeds.
-		out.AddDirEntry(f.overflow)
+		out.AddDirEntry(f.overflow, f.dirOffset+1)
 		f.hasOverflow = false
 		f.dirOffset++
 	}
@@ -1004,7 +1004,7 @@ func (b *rawBridge) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out *fus
 		if errno != 0 {
 			return errnoToStatus(errno)
 		}
-		if !out.AddDirEntry(e) {
+		if !out.AddDirEntry(e, f.dirOffset+1) {
 			f.overflow = e
 			f.hasOverflow = true
 			return errnoToStatus(errno)
@@ -1015,7 +1015,7 @@ func (b *rawBridge) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out *fus
 	return fuse.OK
 }
 
-func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out *fuse.DirEntryList) fuse.Status {
+func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out fuse.ReadDirPlusEntryList) fuse.Status {
 	n, f := b.inode(input.NodeId, input.Fh)
 
 	f.mu.Lock()
@@ -1044,7 +1044,7 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 			return errnoToStatus(errno)
 		}
 
-		entryOut := out.AddDirLookupEntry(e)
+		entryOut := out.AddDirLookupEntry(e, f.dirOffset+1)
 		if entryOut == nil {
 			f.overflow = e
 			f.hasOverflow = true

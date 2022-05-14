@@ -172,13 +172,13 @@ func (c *rawBridge) OpenDir(cancel <-chan struct{}, input *fuse.OpenIn, out *fus
 	return fuse.OK
 }
 
-func (c *rawBridge) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out *fuse.DirEntryList) fuse.Status {
+func (c *rawBridge) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out fuse.ReadDirEntryList) fuse.Status {
 	node := c.toInode(input.NodeId)
 	opened := node.mount.getOpenedFile(input.Fh)
 	return opened.dir.ReadDir(cancel, input, out)
 }
 
-func (c *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out *fuse.DirEntryList) fuse.Status {
+func (c *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out fuse.ReadDirPlusEntryList) fuse.Status {
 	node := c.toInode(input.NodeId)
 	opened := node.mount.getOpenedFile(input.Fh)
 	return opened.dir.ReadDirPlus(cancel, input, out)

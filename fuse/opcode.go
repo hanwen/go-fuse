@@ -168,7 +168,7 @@ func doCreate(server *Server, req *request) {
 func doReadDir(server *Server, req *request) {
 	in := (*ReadIn)(req.inData)
 	buf := server.allocOut(req, in.Size)
-	out := NewDirEntryList(buf, uint64(in.Offset))
+	out := NewDirEntryList(buf)
 
 	code := server.fileSystem.ReadDir(req.cancel, in, out)
 	req.flatData = out.bytes()
@@ -178,7 +178,7 @@ func doReadDir(server *Server, req *request) {
 func doReadDirPlus(server *Server, req *request) {
 	in := (*ReadIn)(req.inData)
 	buf := server.allocOut(req, in.Size)
-	out := NewDirEntryList(buf, uint64(in.Offset))
+	out := NewDirEntryList(buf)
 
 	code := server.fileSystem.ReadDirPlus(req.cancel, in, out)
 	req.flatData = out.bytes()
