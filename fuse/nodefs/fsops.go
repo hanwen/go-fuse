@@ -56,7 +56,7 @@ func (c *rawBridge) String() string {
 	return name
 }
 
-func (c *rawBridge) Init(s *fuse.Server) {
+func (c *rawBridge) Init(s fuse.ServerCallbacks) {
 	c.server = s
 	c.rootNode.Node().OnMount((*FileSystemConnector)(c))
 }

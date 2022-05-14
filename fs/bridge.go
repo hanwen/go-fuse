@@ -43,16 +43,7 @@ type fileEntry struct {
 	wg sync.WaitGroup
 }
 
-// ServerCallbacks are calls into the kernel to manipulate the inode,
-// entry and page cache.  They are stubbed so filesystems can be
-// unittested without mounting them.
-type ServerCallbacks interface {
-	DeleteNotify(parent uint64, child uint64, name string) fuse.Status
-	EntryNotify(parent uint64, name string) fuse.Status
-	InodeNotify(node uint64, off int64, length int64) fuse.Status
-	InodeRetrieveCache(node uint64, offset int64, dest []byte) (n int, st fuse.Status)
-	InodeNotifyStoreCache(node uint64, offset int64, data []byte) fuse.Status
-}
+type ServerCallbacks = fuse.ServerCallbacks
 
 type rawBridge struct {
 	options Options
@@ -1100,7 +1091,7 @@ func (b *rawBridge) StatFs(cancel <-chan struct{}, input *fuse.InHeader, out *fu
 	return fuse.OK
 }
 
-func (b *rawBridge) Init(s *fuse.Server) {
+func (b *rawBridge) Init(s ServerCallbacks) {
 	b.server = s
 }
 
