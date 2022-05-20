@@ -487,11 +487,16 @@ func ReadDir(t *testing.T, mnt string) {
 			got[e] = true
 		}
 		if len(got) != len(want) {
-			t.Errorf("got %d entries, want %d", len(got), len(want))
+			t.Errorf("mismatch got %d want %d", len(got), len(want))
 		}
 		for k := range got {
 			if !want[k] {
-				t.Errorf("got unknown name %q", k)
+				t.Errorf("got extra entry %q", k)
+			}
+		}
+		for k := range want {
+			if !got[k] {
+				t.Errorf("missing entry %q", k)
 			}
 		}
 	}
