@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "52337a76_3bdd9745",
+        "filename": "fuse/api.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 335,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2022-06-27T08:36:44Z",
+      "side": 1,
+      "message": "this is not backward compatible. Also, why do you need to expose the readdir/telldir cookies? The semantics of how open/read/rewind interact with changes to the directory are pretty hairy.",
+      "range": {
+        "startLine": 335,
+        "startChar": 56,
+        "endLine": 335,
+        "endChar": 76
+      },
+      "revId": "df82879fafb19dd71b82f101cf3af7b6ab220c0e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
