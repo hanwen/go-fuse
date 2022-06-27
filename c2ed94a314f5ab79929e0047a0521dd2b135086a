@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2daeef7c_00f46ce9",
+        "filename": "fuse/api.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 355,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2022-06-27T08:34:11Z",
+      "side": 1,
+      "message": "this change is not backward compatible.",
+      "range": {
+        "startLine": 355,
+        "startChar": 6,
+        "endLine": 355,
+        "endChar": 21
+      },
+      "revId": "c2ed94a314f5ab79929e0047a0521dd2b135086a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
