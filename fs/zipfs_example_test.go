@@ -91,6 +91,9 @@ func (zr *zipRoot) OnAdd(ctx context.Context) {
 	// we don't want parts of the tree to disappear when the
 	// kernel is short on memory, so we use persistent inodes.
 	for _, f := range zr.zr.File {
+		if f.FileInfo().IsDir() {
+			continue
+		}
 		dir, base := filepath.Split(f.Name)
 
 		p := &zr.Inode
