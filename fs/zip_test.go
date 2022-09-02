@@ -9,8 +9,11 @@ import (
 	"bytes"
 	"context"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
+	"sort"
+	"strings"
 	"syscall"
 	"testing"
 
@@ -19,6 +22,7 @@ import (
 
 var testData = map[string]string{
 	"file.txt":           "content",
+	"dir/":               "",
 	"dir/subfile1":       "content2",
 	"dir/subdir/subfile": "content3",
 }
@@ -27,9 +31,17 @@ func createZip(data map[string]string) []byte {
 	buf := &bytes.Buffer{}
 
 	zw := zip.NewWriter(buf)
-	for k, v := range data {
+	var keys []string
+	for k := range data {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
 		fw, _ := zw.Create(k)
-		fw.Write([]byte(v))
+		d := []byte(testData[k])
+		if len(d) > 0 {
+			fw.Write(d)
+		}
 	}
 
 	zw.Close()
@@ -67,6 +79,15 @@ func TestZipFS(t *testing.T) {
 	defer server.Unmount()
 
 	for k, v := range testData {
+		if strings.HasSuffix(k, "/") {
+			fi, err := os.Stat(filepath.Join(mntDir, k))
+			if err != nil {
+				t.Errorf("stat %s: %v", k, err)
+			} else if !fi.IsDir() {
+				t.Errorf("want isdir, got %v", fi)
+			}
+			continue
+		}
 		c, err := ioutil.ReadFile(filepath.Join(mntDir, k))
 		if err != nil {
 			t.Fatal(err)

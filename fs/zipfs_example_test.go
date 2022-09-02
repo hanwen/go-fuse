@@ -107,6 +107,11 @@ func (zr *zipRoot) OnAdd(ctx context.Context) {
 
 			p = ch
 		}
+
+		if f.FileInfo().IsDir() {
+			continue
+		}
+
 		ch := p.NewPersistentInode(ctx, &zipFile{file: f}, fs.StableAttr{})
 		p.AddChild(base, ch, true)
 	}
