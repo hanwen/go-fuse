@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "48c160d3_12242eb6",
+        "filename": "fs/zipfs_example_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 113,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2022-09-03T18:41:39Z",
+      "side": 1,
+      "message": "could you do the check here? arguably, we should add the directory even if there no files in it",
+      "range": {
+        "startLine": 113,
+        "startChar": 1,
+        "endLine": 113,
+        "endChar": 2
+      },
+      "revId": "0df03d817445c1ee2975cb1ab58a6413f23ad4bb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
