@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -eux
 
 # Everything must compile on Linux
