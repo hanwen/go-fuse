@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d8496763_46043f5f",
+        "filename": "fuse/api.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 234,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2022-11-17T17:55:08Z",
+      "side": 1,
+      "message": "ran gofmt.",
+      "range": {
+        "startLine": 231,
+        "startChar": 15,
+        "endLine": 234,
+        "endChar": 66
+      },
+      "revId": "6d31839df4172cf9b42ab7c69def2d7749f74e51",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
