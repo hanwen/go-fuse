@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/v2/fs"
+	"github.com/hanwen/go-fuse/v2/fuse"
 )
 
 func writeMemProfile(fn string, sigs <-chan os.Signal) {
@@ -90,13 +91,19 @@ func main() {
 
 	sec := time.Second
 	opts := &fs.Options{
-		// These options are to be compatible with libfuse defaults,
+		// The timeout options are to be compatible with libfuse defaults,
 		// making benchmarking easier.
 		AttrTimeout:  &sec,
 		EntryTimeout: &sec,
+
+		NullPermissions: true, // Leave file permissions on "000" files as-is
+
+		MountOptions: fuse.MountOptions{
+			AllowOther: *other,
+			Debug:      *debug,
+			Name:       "loopback", // Second column in "df -T" will be shown as "fuse." + Name
+		},
 	}
-	opts.Debug = *debug
-	opts.AllowOther = *other
 	if opts.AllowOther {
 		// Make the kernel check file permissions for us
 		opts.MountOptions.Options = append(opts.MountOptions.Options, "default_permissions")
@@ -106,10 +113,6 @@ func main() {
 	}
 	// First column in "df -T": original dir
 	opts.MountOptions.Options = append(opts.MountOptions.Options, "fsname="+orig)
-	// Second column in "df -T" will be shown as "fuse." + Name
-	opts.MountOptions.Name = "loopback"
-	// Leave file permissions on "000" files as-is
-	opts.NullPermissions = true
 	// Enable diagnostics logging
 	if !*quiet {
 		opts.Logger = log.New(os.Stderr, "", 0)
