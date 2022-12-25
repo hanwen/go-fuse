@@ -48,6 +48,8 @@ func main() {
 	other := flag.Bool("allow-other", false, "mount with -o allowother.")
 	quiet := flag.Bool("q", false, "quiet")
 	ro := flag.Bool("ro", false, "mount read-only")
+	directmount := flag.Bool("directmount", false, "try to call the mount syscall instead of executing fusermount")
+	directmountstrict := flag.Bool("directmountstrict", false, "like directmount, but don't fall back to fusermount")
 	cpuprofile := flag.String("cpuprofile", "", "write cpu profile to this file")
 	memprofile := flag.String("memprofile", "", "write memory profile to this file")
 	flag.Parse()
@@ -99,10 +101,12 @@ func main() {
 		NullPermissions: true, // Leave file permissions on "000" files as-is
 
 		MountOptions: fuse.MountOptions{
-			AllowOther: *other,
-			Debug:      *debug,
-			FsName:     orig,       // First column in "df -T": original dir
-			Name:       "loopback", // Second column in "df -T" will be shown as "fuse." + Name
+			AllowOther:        *other,
+			Debug:             *debug,
+			DirectMount:       *directmount,
+			DirectMountStrict: *directmountstrict,
+			FsName:            orig,       // First column in "df -T": original dir
+			Name:              "loopback", // Second column in "df -T" will be shown as "fuse." + Name
 		},
 	}
 	if opts.AllowOther {
