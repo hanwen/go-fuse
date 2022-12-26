@@ -56,11 +56,13 @@ func (tc *testCase) Clean() {
 }
 
 type testOptions struct {
-	entryCache    bool
-	attrCache     bool
-	suppressDebug bool
-	testDir       string
-	ro            bool
+	entryCache        bool
+	attrCache         bool
+	suppressDebug     bool
+	testDir           string
+	ro                bool
+	directMount       bool // sets MountOptions.DirectMount
+	directMountStrict bool // sets MountOptions.DirectMountStrict
 }
 
 // newTestCase creates the directories `orig` and `mnt` inside a temporary
@@ -107,7 +109,10 @@ func newTestCase(t *testing.T, opts *testOptions) *testCase {
 		Logger:       log.New(os.Stderr, "", 0),
 	})
 
-	mOpts := &fuse.MountOptions{}
+	mOpts := &fuse.MountOptions{
+		DirectMount:       opts.directMount,
+		DirectMountStrict: opts.directMountStrict,
+	}
 	if !opts.suppressDebug {
 		mOpts.Debug = testutil.VerboseTest()
 	}

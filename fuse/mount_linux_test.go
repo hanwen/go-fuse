@@ -3,8 +3,11 @@ package fuse
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"syscall"
 	"testing"
+
+	"github.com/moby/sys/mountinfo"
 )
 
 // TestMountDevFd tests the special `/dev/fd/N` mountpoint syntax, where a
@@ -96,5 +99,79 @@ func TestMountMaxWrite(t *testing.T) {
 				srv.Unmount()
 			}
 		})
+	}
+}
+
+// mountCheckOptions mounts a defaultRawFileSystem and extracts the resulting effective
+// mount options from /proc/self/mounts.
+// The mount options are a comma-separated string like this:
+// rw,nosuid,nodev,relatime,user_id=1026,group_id=1026
+func mountCheckOptions(t *testing.T, opts MountOptions) (info mountinfo.Info) {
+	mnt, err := ioutil.TempDir("", t.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	fs := NewDefaultRawFileSystem()
+	srv, err := NewServer(fs, mnt, &opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Check mount options
+	mounts, err := mountinfo.GetMounts(mountinfo.SingleEntryFilter(mnt))
+	if err != nil {
+		t.Error(err)
+	}
+	if len(mounts) != 1 {
+		t.Errorf("Could not find mountpoint %q in /proc/self/mountinfo", mnt)
+	}
+	orig := *mounts[0]
+	t.Logf("full mountinfo: %#v", orig)
+	// We are only interested in some fields, as the others are arbitrary id numbers
+	// or contain random strings like "/tmp/TestDirectMount1126361240".
+	//
+	// What are all those fields: Look for "/proc/[pid]/mountinfo" in
+	// https://man7.org/linux/man-pages/man5/proc.5.html .
+	info = mountinfo.Info{
+		Options:    orig.Options,
+		Source:     orig.Source,
+		FSType:     orig.FSType,
+		VFSOptions: orig.VFSOptions,
+		Optional:   orig.Optional,
+	}
+	// server needs to run for Unmount to work
+	go srv.Serve()
+	err = srv.Unmount()
+	if err != nil {
+		t.Error(err)
+	}
+	return info
+}
+
+// TestDirectMount checks that DirectMount and DirectMountStrict work and show the
+// same effective mount options in /proc/self/mounts
+func TestDirectMount(t *testing.T) {
+	opts := MountOptions{
+		Debug: true,
+	}
+	// Without DirectMount - i.e. using fusermount
+	t.Log("Normal fusermount mount")
+	o1 := mountCheckOptions(t, opts)
+	// With DirectMount
+	t.Log("DirectMount")
+	opts.DirectMount = true
+	o2 := mountCheckOptions(t, opts)
+	if o2 != o1 {
+		t.Errorf("Effective mount options differ between DirectMount and fusermount mount:\n%#v\n%#v",
+			o2, o1)
+	}
+	// With DirectMountStrict
+	if os.Geteuid() == 0 {
+		t.Log("DirectMountStrict")
+		opts.DirectMountStrict = true
+		o3 := mountCheckOptions(t, opts)
+		if o3 != o1 {
+			t.Errorf("Effective mount options differ between DirectMountStrict and fusermount mount: \n%#v\n%#v",
+				o3, o1)
+		}
 	}
 }
