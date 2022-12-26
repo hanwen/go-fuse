@@ -217,7 +217,14 @@ type MountOptions struct {
 	// If set, fuse will first attempt to use syscall.Mount instead of
 	// fusermount to mount the filesystem. This will not update /etc/mtab
 	// but might be needed if fusermount is not available.
+	// Also, Server.Unmount will attempt syscall.Unmount before calling
+	// fusermount.
 	DirectMount bool
+
+	// DirectMountStrict is like DirectMount but no fallback to fusermount is
+	// performed. If both DirectMount and DirectMountStrict are set,
+	// DirectMountStrict wins.
+	DirectMountStrict bool
 
 	// Options passed to syscall.Mount, the default value used by fusermount
 	// is syscall.MS_NOSUID|syscall.MS_NODEV

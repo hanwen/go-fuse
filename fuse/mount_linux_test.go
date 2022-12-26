@@ -3,6 +3,8 @@ package fuse
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
+	"strings"
 	"syscall"
 	"testing"
 )
@@ -96,5 +98,79 @@ func TestMountMaxWrite(t *testing.T) {
 				srv.Unmount()
 			}
 		})
+	}
+}
+
+// mountCheckOptions mounts a defaultRawFileSystem and extracts the resulting effective
+// mount options from /proc/self/mounts.
+// The mount options are a comma-separated string like this:
+// rw,nosuid,nodev,relatime,user_id=1026,group_id=1026
+func mountCheckOptions(t *testing.T, opts MountOptions) (mountOpts string) {
+	mnt, err := ioutil.TempDir("", t.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	fs := NewDefaultRawFileSystem()
+	srv, err := NewServer(fs, mnt, &opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Check mount options
+	m, err := ioutil.ReadFile("/proc/self/mounts")
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	lines := strings.Split(string(m), "\n")
+	for _, l := range lines {
+		if !strings.Contains(l, mnt) {
+			continue
+		}
+		t.Logf("Found in /proc/self/mounts: %s", l)
+		found = true
+		// This is safe because spaces in the fields are replaced with `\040` by
+		// the kernel.
+		fields := strings.Split(l, " ")
+		mountOpts = fields[3]
+		break
+	}
+	if !found {
+		t.Errorf("Could not find mountpoint %q in /proc/self/mounts", mnt)
+	}
+	// server needs to run for Unmount to work
+	go srv.Serve()
+	err = srv.Unmount()
+	if err != nil {
+		t.Error(err)
+	}
+	return mountOpts
+}
+
+// TestDirectMount checks that DirectMount and DirectMountStrict work and show the
+// same effective mount options in /proc/self/mounts
+func TestDirectMount(t *testing.T) {
+	opts := MountOptions{
+		Debug: true,
+	}
+	// Without DirectMount - i.e. using fusermount
+	t.Log("Normal fusermount mount")
+	o1 := mountCheckOptions(t, opts)
+	// With DirectMount
+	t.Log("DirectMount")
+	opts.DirectMount = true
+	o2 := mountCheckOptions(t, opts)
+	if o2 != o1 {
+		t.Errorf("Effective mount options differ between DirectMount (%q) and fusermount (%q) mount",
+			o2, o1)
+	}
+	// With DirectMountStrict
+	if os.Geteuid() == 0 {
+		t.Log("DirectMountStrict")
+		opts.DirectMountStrict = true
+		o3 := mountCheckOptions(t, opts)
+		if o3 != o1 {
+			t.Errorf("Effective mount options differ between DirectMountStrict (%q) and fusermount (%q) mount",
+				o3, o1)
+		}
 	}
 }
