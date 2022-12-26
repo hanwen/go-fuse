@@ -101,6 +101,7 @@ func main() {
 		MountOptions: fuse.MountOptions{
 			AllowOther: *other,
 			Debug:      *debug,
+			FsName:     orig,       // First column in "df -T": original dir
 			Name:       "loopback", // Second column in "df -T" will be shown as "fuse." + Name
 		},
 	}
@@ -111,8 +112,6 @@ func main() {
 	if *ro {
 		opts.MountOptions.Options = append(opts.MountOptions.Options, "ro")
 	}
-	// First column in "df -T": original dir
-	opts.MountOptions.Options = append(opts.MountOptions.Options, "fsname="+orig)
 	// Enable diagnostics logging
 	if !*quiet {
 		opts.Logger = log.New(os.Stderr, "", 0)
