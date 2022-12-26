@@ -401,3 +401,15 @@ func TestRoMount(t *testing.T) {
 	tc := newTestCase(t, &testOptions{ro: true})
 	defer tc.Clean()
 }
+
+func TestDirectMount(t *testing.T) {
+	opts := &testOptions{
+		directMount: true,
+	}
+	if os.Geteuid() == 0 {
+		t.Log("running as root, setting DirectMountStrict")
+		opts.directMountStrict = true
+	}
+	tc := newTestCase(t, opts)
+	defer tc.Clean()
+}

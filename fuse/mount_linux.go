@@ -57,6 +57,10 @@ func mountDirect(mountPoint string, opts *MountOptions, ready chan<- error) (fd 
 		r = append(r, "allow_other")
 	}
 
+	if opts.Debug {
+		log.Printf("mountDirect: calling syscall.Mount(%q, %q, %q, %#x, %q)",
+			opts.FsName, mountPoint, "fuse."+opts.Name, opts.DirectMountFlags, strings.Join(r, ","))
+	}
 	err = syscall.Mount(opts.FsName, mountPoint, "fuse."+opts.Name, opts.DirectMountFlags, strings.Join(r, ","))
 	if err != nil {
 		syscall.Close(fd)
@@ -125,12 +129,15 @@ func callFusermount(mountPoint string, opts *MountOptions) (fd int, err error) {
 // Create a FUSE FS on the specified mount point.  The returned
 // mount point is always absolute.
 func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, err error) {
-	if opts.DirectMount {
+	if opts.DirectMount || opts.DirectMountStrict {
 		fd, err := mountDirect(mountPoint, opts, ready)
 		if err == nil {
 			return fd, nil
 		} else if opts.Debug {
 			log.Printf("mount: failed to do direct mount: %s", err)
+		}
+		if opts.DirectMountStrict {
+			return -1, err
 		}
 	}
 
@@ -157,11 +164,14 @@ func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, e
 }
 
 func unmount(mountPoint string, opts *MountOptions) (err error) {
-	if opts.DirectMount {
+	if opts.DirectMount || opts.DirectMountStrict {
 		// Attempt to directly unmount, if fails fallback to fusermount method
 		err := syscall.Unmount(mountPoint, 0)
 		if err == nil {
 			return nil
+		}
+		if opts.DirectMountStrict {
+			return err
 		}
 	}
 
