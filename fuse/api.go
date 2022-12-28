@@ -226,8 +226,11 @@ type MountOptions struct {
 	// DirectMountStrict wins.
 	DirectMountStrict bool
 
-	// Options passed to syscall.Mount, the default value used by fusermount
-	// is syscall.MS_NOSUID|syscall.MS_NODEV
+	// DirectMountFlags are the mountflags passed to syscall.Mount. If zero, the
+	// default value used by fusermount are used: syscall.MS_NOSUID|syscall.MS_NODEV.
+	//
+	// If you actually *want* zero flags, pass syscall.MS_MGC_VAL, which is ignored
+	// by the kernel. See `man 2 mount` for details about MS_MGC_VAL.
 	DirectMountFlags uintptr
 
 	// EnableAcls enables kernel ACL support.
