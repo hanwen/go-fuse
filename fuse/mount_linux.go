@@ -46,12 +46,19 @@ func mountDirect(mountPoint string, opts *MountOptions, ready chan<- error) (fd 
 		flags = opts.DirectMountFlags
 	}
 
-	// some values we need to pass to mount, but override possible since opts.Options comes after
+	var st syscall.Stat_t
+	err = syscall.Stat(mountPoint, &st)
+	if err != nil {
+		return
+	}
+
+	// some values we need to pass to mount - we do as fusermount does.
+	// override possible since opts.Options comes after.
 	var r = []string{
 		fmt.Sprintf("fd=%d", fd),
-		"rootmode=40000",
-		"user_id=0",
-		"group_id=0",
+		fmt.Sprintf("rootmode=%o", st.Mode&syscall.S_IFMT),
+		fmt.Sprintf("user_id=%d", os.Geteuid()),
+		fmt.Sprintf("group_id=%d", os.Getegid()),
 	}
 	r = append(r, opts.Options...)
 
