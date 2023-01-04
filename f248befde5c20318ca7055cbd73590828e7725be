@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6f8f1ec5_b326ea4e",
+        "filename": "fuse/mount_linux_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 133,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-01-04T11:29:33Z",
+      "side": 1,
+      "message": "this should be done first, and then check fields[1] for mnt?",
+      "revId": "f248befde5c20318ca7055cbd73590828e7725be",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "82d05c0d_9c08d398",
+        "filename": "fuse/mount_linux_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 139,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-01-04T11:29:33Z",
+      "side": 1,
+      "message": "could the parsing of proc/mounts be in a separate function?",
+      "range": {
+        "startLine": 123,
+        "startChar": 1,
+        "endLine": 139,
+        "endChar": 2
+      },
+      "revId": "f248befde5c20318ca7055cbd73590828e7725be",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
