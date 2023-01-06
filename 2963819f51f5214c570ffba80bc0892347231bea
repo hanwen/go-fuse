@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "1773d2be_d08fdff1",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2023-01-06T15:45:20Z",
+      "side": 1,
+      "message": "Replaced my simple /proc/self/mounts parsing with https://pkg.go.dev/github.com/moby/sys/mountinfo which seems nice, maintained and small. The test got a lot more detailed it uses /proc/self/mountinfo instead of /proc/self/mounts.",
+      "revId": "2963819f51f5214c570ffba80bc0892347231bea",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
