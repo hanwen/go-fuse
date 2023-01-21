@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "3ee628de_7c9df332",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 8
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-01-21T22:01:29Z",
+      "side": 1,
+      "message": "looks OK, but one question/nit.",
+      "revId": "716ca8ae2b27a8206719c9a3b90b903e5c707f17",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "39295e12_85635fd0",
+        "filename": "fuse/opcode.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 147,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-01-21T22:01:29Z",
+      "side": 1,
+      "message": "unnecessary? The flags are copied form input at l.98",
+      "range": {
+        "startLine": 147,
+        "startChar": 2,
+        "endLine": 147,
+        "endChar": 46
+      },
+      "revId": "716ca8ae2b27a8206719c9a3b90b903e5c707f17",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
