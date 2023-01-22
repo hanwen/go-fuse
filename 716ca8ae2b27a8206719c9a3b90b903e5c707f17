@@ -63,6 +63,30 @@
       },
       "revId": "716ca8ae2b27a8206719c9a3b90b903e5c707f17",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f0f048c4_57f6301a",
+        "filename": "fuse/opcode.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 147,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-01-22T20:41:42Z",
+      "side": 1,
+      "message": "\u003eIn libfuse, and in this PR, MaxWrite sets max_pages in the background. This controls the WRITE sizes, good. But it also increases the READ sizes as a side effect, which seems ugly. Adding insult to injury, there\u0027s no API to control the READ sizes.\n\nwhat\u0027s the real intended use of these parameters? For performance oriented FSes, both should be at the max anyway. For resource constrained situations, both should be tuned down. Is there is a use for making one larger, but the other small?",
+      "parentUuid": "9f0a6a1d_1b738cc9",
+      "range": {
+        "startLine": 147,
+        "startChar": 2,
+        "endLine": 147,
+        "endChar": 46
+      },
+      "revId": "716ca8ae2b27a8206719c9a3b90b903e5c707f17",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
