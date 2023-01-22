@@ -39,6 +39,30 @@
       },
       "revId": "716ca8ae2b27a8206719c9a3b90b903e5c707f17",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9f0a6a1d_1b738cc9",
+        "filename": "fuse/opcode.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 147,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2023-01-22T11:52:20Z",
+      "side": 1,
+      "message": "True, will fix.\n\nHowever, I dug through the kernel source code again, and now I\u0027m unsure if following the libfuse API is the right choice.\n\nIn libfuse, and in this PR, MaxWrite sets max_pages in the background. This controls the WRITE sizes, good. But it also increases the READ sizes as a side effect, which seems ugly. Adding insult to injury, there\u0027s no API to control the READ sizes.\n\nI\u0027m thinking about exposing MaxRead as well. Unfortunately, this gets passed via a mount option string to the kernel (max_read\u003dxxx) and not via INIT.\n\nOr maybe exposing MaxPages directly.",
+      "parentUuid": "39295e12_85635fd0",
+      "range": {
+        "startLine": 147,
+        "startChar": 2,
+        "endLine": 147,
+        "endChar": 46
+      },
+      "revId": "716ca8ae2b27a8206719c9a3b90b903e5c707f17",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
