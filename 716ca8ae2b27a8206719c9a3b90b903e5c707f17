@@ -87,6 +87,30 @@
       },
       "revId": "716ca8ae2b27a8206719c9a3b90b903e5c707f17",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "18c896ad_6ca61249",
+        "filename": "fuse/opcode.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 147,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2023-01-22T20:49:41Z",
+      "side": 1,
+      "message": "I imagined something like cloud storage with different constraints on WRITE and READ, but that\u0027s speculation. I don\u0027t have a use for both being different.\n\nOnly expose MaxWrite until somebody asks for MaxRead, and assume nobody will?",
+      "parentUuid": "f0f048c4_57f6301a",
+      "range": {
+        "startLine": 147,
+        "startChar": 2,
+        "endLine": 147,
+        "endChar": 46
+      },
+      "revId": "716ca8ae2b27a8206719c9a3b90b903e5c707f17",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
