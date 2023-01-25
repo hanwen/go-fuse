@@ -96,6 +96,30 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": true,
+      "key": {
+        "uuid": "cfe5fadf_38604a2c",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 13
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2023-01-25T19:41:15Z",
+      "side": 1,
+      "message": "Also works fine on https://app.vagrantup.com/debian/boxes/stretch64 (Linux 4.9.0). On the next older one, https://app.vagrantup.com/debian/boxes/jessie64 , I could not ssh in because \"sign_and_send_pubkey: no mutual signature supported\" and I stopped there 😊",
+      "parentUuid": "f2476cfb_d760dcde",
+      "range": {
+        "startLine": 19,
+        "startChar": 30,
+        "endLine": 19,
+        "endChar": 55
+      },
+      "revId": "2b129bf86694b7c167938cb7713f576c6150074c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": false,
       "key": {
         "uuid": "7615a152_fcbf5eb7",
