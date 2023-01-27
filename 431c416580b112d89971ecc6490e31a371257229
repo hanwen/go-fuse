@@ -65,6 +65,30 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "fd9f472a_e428e814",
+        "filename": "fs/maxwrite_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 67,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2023-01-27T22:42:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "cc69816a_facd16a9",
+      "range": {
+        "startLine": 67,
+        "startChar": 34,
+        "endLine": 67,
+        "endChar": 42
+      },
+      "revId": "431c416580b112d89971ecc6490e31a371257229",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "15afc10b_ce660eff",
@@ -136,6 +160,30 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "0bd3c8f6_8eb91be1",
+        "filename": "fs/maxwrite_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2023-01-27T22:42:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b73f2a7e_746a47d6",
+      "range": {
+        "startLine": 91,
+        "startChar": 4,
+        "endLine": 93,
+        "endChar": 56
+      },
+      "revId": "431c416580b112d89971ecc6490e31a371257229",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "41f85651_3e2b5635",
@@ -183,6 +231,30 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "754102d1_f1167800",
+        "filename": "fs/maxwrite_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 168,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2023-01-27T22:42:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "84125b6d_c2aac014",
+      "range": {
+        "startLine": 167,
+        "startChar": 3,
+        "endLine": 168,
+        "endChar": 84
+      },
+      "revId": "431c416580b112d89971ecc6490e31a371257229",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "2ebe1d41_1f885101",
@@ -220,6 +292,30 @@
       "side": 1,
       "message": "Ack",
       "parentUuid": "2ebe1d41_1f885101",
+      "range": {
+        "startLine": 134,
+        "startChar": 15,
+        "endLine": 134,
+        "endChar": 16
+      },
+      "revId": "431c416580b112d89971ecc6490e31a371257229",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "dcd8a77d_5c67c598",
+        "filename": "fuse/opcode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 134,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2023-01-27T22:42:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "3c50cc53_6303305c",
       "range": {
         "startLine": 134,
         "startChar": 15,

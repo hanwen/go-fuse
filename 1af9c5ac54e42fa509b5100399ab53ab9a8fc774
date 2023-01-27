@@ -24,6 +24,30 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "5495432a_77f374cb",
+        "filename": "fs/maxwrite_test.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 172,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2023-01-27T22:42:25Z",
+      "side": 1,
+      "message": "Written as 128*1024 to match code above",
+      "parentUuid": "d7d158df_3da9c885",
+      "range": {
+        "startLine": 172,
+        "startChar": 21,
+        "endLine": 172,
+        "endChar": 27
+      },
+      "revId": "1af9c5ac54e42fa509b5100399ab53ab9a8fc774",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "9c0e3c84_e93574b8",
@@ -37,6 +61,30 @@
       "writtenOn": "2023-01-27T21:29:28Z",
       "side": 1,
       "message": "this breaks API. Please leave this as is, and mark as deprecated if necessary.",
+      "range": {
+        "startLine": 32,
+        "startChar": 1,
+        "endLine": 32,
+        "endChar": 3
+      },
+      "revId": "1af9c5ac54e42fa509b5100399ab53ab9a8fc774",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "31119eb3_07acfb12",
+        "filename": "fuse/server.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2023-01-27T22:42:25Z",
+      "side": 1,
+      "message": "No, this is a completely new constant. I added it as exported first, but then changed my mind. In any case, the constant is new.",
+      "parentUuid": "9c0e3c84_e93574b8",
       "range": {
         "startLine": 32,
         "startChar": 1,
