@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 // Copyright 2019 the Go-FUSE Authors. All rights reserved.
