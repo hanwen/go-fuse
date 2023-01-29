@@ -299,6 +299,7 @@ const (
 	CAP_CACHE_SYMLINKS      = (1 << 23)
 	CAP_NO_OPENDIR_SUPPORT  = (1 << 24)
 	CAP_EXPLICIT_INVAL_DATA = (1 << 25)
+	CAP_EXPIRE_ONLY         = (1 << 26)
 )
 
 type InitIn struct {
