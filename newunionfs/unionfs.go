@@ -335,7 +335,7 @@ var _ = (fs.NodeReaddirer)((*unionFSNode)(nil))
 func (n *unionFSNode) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) {
 	root := n.root()
 
-	markers := map[string]struct{}{delDirHash: struct{}{}}
+	markers := map[string]struct{}{delDirHash: {}}
 	// ignore error: assume no markers
 	root.allMarkers(markers)
 

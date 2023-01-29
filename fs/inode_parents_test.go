@@ -18,11 +18,11 @@ func TestInodeParents(t *testing.T) {
 
 	// non-dupes should be stored
 	all := []parentData{
-		parentData{"foo", &ino1},
-		parentData{"foo2", &ino1},
-		parentData{"foo3", &ino1},
-		parentData{"foo", &ino2},
-		parentData{"foo", &ino3},
+		{"foo", &ino1},
+		{"foo2", &ino1},
+		{"foo3", &ino1},
+		{"foo", &ino2},
+		{"foo", &ino3},
 	}
 	for i, v := range all {
 		p.add(v)
