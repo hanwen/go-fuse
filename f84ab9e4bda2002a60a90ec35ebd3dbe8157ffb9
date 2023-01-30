@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "8712a488_9ad1d545",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 4
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2023-01-30T07:37:41Z",
+      "side": 1,
+      "message": "Thanks for the +2, can I also get the merge? 😊\n\nRebased to master.",
+      "revId": "f84ab9e4bda2002a60a90ec35ebd3dbe8157ffb9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
