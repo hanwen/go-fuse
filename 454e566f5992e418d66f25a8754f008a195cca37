@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "dd238694_e47f4766",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2023-01-30T07:48:59Z",
+      "side": 1,
+      "message": "Hmmm I don\u0027t get it. 1\u003c\u003c26 is FUSE_MAP_ALIGNMENT\nhttps://github.com/libfuse/libfuse/blob/db35a37def14b72181f3630efeea0e0433103c41/include/fuse_kernel.h#L389\n\nFUSE_EXPIRE_ONLY is 1\u003c\u003c0 but it\u0027s not a capability\nhttps://github.com/libfuse/libfuse/blob/db35a37def14b72181f3630efeea0e0433103c41/include/fuse_kernel.h#L501",
+      "revId": "454e566f5992e418d66f25a8754f008a195cca37",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
