@@ -610,4 +610,8 @@ type Options struct {
 	// return error, but want to signal something seems off
 	// anyway. If unset, no messages are printed.
 	Logger *log.Logger
+
+	// RootStableAttr is an optional way to set e.g. Ino and/or Gen for
+	// the root directory when calling fs.Mount(), Mode is ignored.
+	RootStableAttr *StableAttr
 }

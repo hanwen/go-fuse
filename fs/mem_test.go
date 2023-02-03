@@ -70,6 +70,26 @@ func TestDefaultOwner(t *testing.T) {
 	}
 }
 
+func TestRootInode(t *testing.T) {
+	var rootIno uint64 = 42
+	root := &Inode{}
+
+	mntDir, _, clean := testMount(t, root, &Options{
+		RootStableAttr: &StableAttr{
+			Ino: rootIno,
+			Gen: 1,
+		},
+	})
+	defer clean()
+
+	var st syscall.Stat_t
+	if err := syscall.Lstat(mntDir, &st); err != nil {
+		t.Fatalf("Lstat: %v", err)
+	} else if st.Ino != rootIno {
+		t.Fatalf("Got Lstat inode %d, want %d", st.Ino, rootIno)
+	}
+}
+
 func TestDataFile(t *testing.T) {
 	want := "hello"
 	root := &Inode{}
