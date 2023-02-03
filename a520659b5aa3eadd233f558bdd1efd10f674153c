@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "3c37bdd0_fe0e35f0",
+        "filename": "fs/root_inode_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-02-03T17:36:10Z",
+      "side": 1,
+      "message": "this looks a bit overengineered. Can\u0027t you just add test case to mem_test.go?",
+      "range": {
+        "startLine": 19,
+        "startChar": 5,
+        "endLine": 19,
+        "endChar": 15
+      },
+      "revId": "a520659b5aa3eadd233f558bdd1efd10f674153c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
