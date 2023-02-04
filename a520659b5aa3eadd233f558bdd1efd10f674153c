@@ -22,6 +22,30 @@
       },
       "revId": "a520659b5aa3eadd233f558bdd1efd10f674153c",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e69838cc_d131825c",
+        "filename": "fs/root_inode_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 1020462
+      },
+      "writtenOn": "2023-02-04T16:42:51Z",
+      "side": 1,
+      "message": "Makes sense. I\u0027m going to put the test on it.",
+      "parentUuid": "3c37bdd0_fe0e35f0",
+      "range": {
+        "startLine": 19,
+        "startChar": 5,
+        "endLine": 19,
+        "endChar": 15
+      },
+      "revId": "a520659b5aa3eadd233f558bdd1efd10f674153c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
