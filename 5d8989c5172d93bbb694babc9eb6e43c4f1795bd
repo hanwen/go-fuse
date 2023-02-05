@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "48c3a41c_5c2cc3cf",
+        "filename": "fs/api.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 615,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-02-05T15:40:57Z",
+      "side": 1,
+      "message": "\"Mode is ignored\"",
+      "revId": "5d8989c5172d93bbb694babc9eb6e43c4f1795bd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "17e2f8a8_13909100",
+        "filename": "fs/mem_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 91,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-02-05T15:40:57Z",
+      "side": 1,
+      "message": "unnecessary",
+      "range": {
+        "startLine": 82,
+        "startChar": 2,
+        "endLine": 91,
+        "endChar": 4
+      },
+      "revId": "5d8989c5172d93bbb694babc9eb6e43c4f1795bd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
