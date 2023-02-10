@@ -89,6 +89,9 @@ var _ = (NodeSymlinker)((*LoopbackNode)(nil))
 var _ = (NodeUnlinker)((*LoopbackNode)(nil))
 var _ = (NodeRmdirer)((*LoopbackNode)(nil))
 var _ = (NodeRenamer)((*LoopbackNode)(nil))
+var _ = (NodeGetlker)((*LoopbackNode)(nil))
+var _ = (NodeSetlker)((*LoopbackNode)(nil))
+var _ = (NodeSetlkwer)((*LoopbackNode)(nil))
 
 func (n *LoopbackNode) Statfs(ctx context.Context, out *fuse.StatfsOut) syscall.Errno {
 	s := syscall.Statfs_t{}
@@ -396,6 +399,57 @@ func (n *LoopbackNode) Setattr(ctx context.Context, f FileHandle, in *fuse.SetAt
 		out.FromStat(&st)
 	}
 	return OK
+}
+
+func (n *LoopbackNode) Getlk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32, out *fuse.FileLock) syscall.Errno {
+	// If n is a directory, we need manually open the FileHandle because
+	// OpenDir does not register the file descriptor returned from the open
+	// syscall. This also applies to the methods below.
+	if n.IsDir() {
+		fd, err := syscall.Open(n.path(), syscall.O_DIRECTORY, 0755)
+		if err != nil {
+			return ToErrno(err)
+		}
+		defer syscall.Close(fd)
+		f = NewLoopbackFile(fd)
+	}
+	fgl, ok := f.(FileGetlker)
+	if !ok || fgl == nil {
+		return syscall.ENOTSUP
+	}
+	return fgl.Getlk(ctx, owner, lk, flags, out)
+}
+
+func (n *LoopbackNode) Setlk(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) syscall.Errno {
+	if n.IsDir() {
+		fd, err := syscall.Open(n.path(), syscall.O_DIRECTORY, 0755)
+		if err != nil {
+			return ToErrno(err)
+		}
+		defer syscall.Close(fd)
+		f = NewLoopbackFile(fd)
+	}
+	fsl, ok := f.(FileSetlker)
+	if !ok || fsl == nil {
+		return syscall.ENOTSUP
+	}
+	return fsl.Setlk(ctx, owner, lk, flags)
+}
+
+func (n *LoopbackNode) Setlkw(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) syscall.Errno {
+	if n.IsDir() {
+		fd, err := syscall.Open(n.path(), syscall.O_DIRECTORY, 0755)
+		if err != nil {
+			return ToErrno(err)
+		}
+		defer syscall.Close(fd)
+		f = NewLoopbackFile(fd)
+	}
+	fsl, ok := f.(FileSetlkwer)
+	if !ok || fsl == nil {
+		return syscall.ENOTSUP
+	}
+	return fsl.Setlkw(ctx, owner, lk, flags)
 }
 
 // NewLoopbackRoot returns a root node for a loopback file system whose
