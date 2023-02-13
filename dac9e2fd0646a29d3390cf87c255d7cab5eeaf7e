@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f1cb2a46_34839513",
+        "filename": "fs/bridge.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 796,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-02-13T12:43:19Z",
+      "side": 1,
+      "message": "this should be a separate commit.",
+      "range": {
+        "startLine": 796,
+        "startChar": 16,
+        "endLine": 796,
+        "endChar": 20
+      },
+      "revId": "dac9e2fd0646a29d3390cf87c255d7cab5eeaf7e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "beec4ca7_df8f4d41",
+        "filename": "fs/loopback.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 413,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-02-13T12:43:19Z",
+      "side": 1,
+      "message": "does this work? I\u0027d think closing the file releases the lock.\n\nplease add a test that exercises your newly added functionality.\n\nI\u0027d think you have to persist the fd in the loopbackNode, and release it from ReleaseDir",
+      "range": {
+        "startLine": 413,
+        "startChar": 16,
+        "endLine": 413,
+        "endChar": 21
+      },
+      "revId": "dac9e2fd0646a29d3390cf87c255d7cab5eeaf7e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
