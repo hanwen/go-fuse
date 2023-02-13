@@ -78,7 +78,6 @@ func TestReaddirTypeFixup(t *testing.T) {
 		if err != 0 {
 			t.Errorf("Next: %d", err)
 		}
-		t.Logf("%q: mode=0x%x", e.Name, e.Mode)
 		gotIsDir := (e.Mode & syscall.S_IFDIR) != 0
 		wantIsdir := (crc32.ChecksumIEEE([]byte(e.Name)) % 2) == 1
 		if gotIsDir != wantIsdir {
