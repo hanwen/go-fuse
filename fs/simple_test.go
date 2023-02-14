@@ -25,6 +25,7 @@ import (
 	"github.com/hanwen/go-fuse/v2/fuse"
 	"github.com/hanwen/go-fuse/v2/internal/testutil"
 	"github.com/hanwen/go-fuse/v2/posixtest"
+	"golang.org/x/sys/unix"
 )
 
 type testCase struct {
@@ -57,6 +58,7 @@ func (tc *testCase) Clean() {
 
 type testOptions struct {
 	entryCache        bool
+	enableLocks       bool
 	attrCache         bool
 	suppressDebug     bool
 	testDir           string
@@ -112,6 +114,7 @@ func newTestCase(t *testing.T, opts *testOptions) *testCase {
 	mOpts := &fuse.MountOptions{
 		DirectMount:       opts.directMount,
 		DirectMountStrict: opts.directMountStrict,
+		EnableLocks:       opts.enableLocks,
 	}
 	if !opts.suppressDebug {
 		mOpts.Debug = testutil.VerboseTest()
@@ -429,7 +432,7 @@ func TestOpenDirectIO(t *testing.T) {
 //
 // Note: Run as
 //
-//     TMPDIR=/var/tmp go test -run TestFsstress
+//	TMPDIR=/var/tmp go test -run TestFsstress
 //
 // to make sure the backing filesystem is ext4. /tmp is tmpfs on modern Linux
 // distributions, and tmpfs does not reuse inode numbers, hiding the problem.
@@ -679,6 +682,40 @@ func TestStaleHardlinks(t *testing.T) {
 		syscall.Close(fd)
 	}
 
+}
+
+func TestPOSIXLocks(t *testing.T) {
+	tc := newTestCase(t, &testOptions{enableLocks: true})
+	defer tc.Clean()
+	filename := tc.mntDir + "/test"
+
+	f1, err := os.Create(filename)
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
+	defer f1.Close()
+	wlk := syscall.Flock_t{
+		Type:  syscall.F_WRLCK,
+		Start: 0,
+		Len:   0,
+	}
+	if err := syscall.FcntlFlock(f1.Fd(), unix.F_OFD_SETLK, &wlk); err != nil {
+		t.Fatalf("FcntlFlock failed: %v", err)
+	}
+
+	f2, err := os.OpenFile(filename, os.O_RDWR, 0766)
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
+	defer f2.Close()
+	rlk := syscall.Flock_t{
+		Type:  syscall.F_RDLCK,
+		Start: 0,
+		Len:   0,
+	}
+	if err := syscall.FcntlFlock(f2.Fd(), unix.F_OFD_SETLK, &rlk); ToErrno(err) != syscall.EAGAIN {
+		t.Errorf("FcntlFlock returned %v, expected EAGAIN", err)
+	}
 }
 
 func init() {
