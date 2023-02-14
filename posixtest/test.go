@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
+	"golang.org/x/sys/unix"
 )
 
 // All holds a map of all test functions
@@ -41,6 +42,8 @@ var All = map[string]func(*testing.T, string){
 	"OpenAt":                     OpenAt,
 	"Fallocate":                  Fallocate,
 	"DirSeek":                    DirSeek,
+	"FcntlFlockSetLk":            FcntlFlockSetLk,
+	"FcntlFlockLocksFile":        FcntlFlockLocksFile,
 }
 
 func DirectIO(t *testing.T, mnt string) {
@@ -629,5 +632,70 @@ func Fallocate(t *testing.T, mnt string) {
 	if fi.Size() < (1024 + 4096) {
 		t.Fatalf("fallocate should have changed file size. Got %d bytes",
 			fi.Size())
+	}
+}
+
+func FcntlFlockSetLk(t *testing.T, mnt string) {
+	cmds := []int{syscall.F_SETLK, syscall.F_SETLKW}
+	for _, cmd := range cmds {
+		filename := mnt + "/test"
+		f1, err := os.Create(filename)
+		if err != nil {
+			t.Fatalf("Open failed: %v", err)
+		}
+		wlk := syscall.Flock_t{
+			Type:  syscall.F_WRLCK,
+			Start: 0,
+			Len:   0,
+		}
+		if err := syscall.FcntlFlock(f1.Fd(), cmd, &wlk); err != nil {
+			t.Fatalf("FcntlFlock failed: %v", err)
+		}
+
+		f2, err := os.OpenFile(filename, os.O_RDWR, 0766)
+		if err != nil {
+			t.Fatalf("Open failed: %v", err)
+		}
+		lk := syscall.Flock_t{}
+		if err := syscall.FcntlFlock(f2.Fd(), unix.F_OFD_GETLK, &lk); err != nil {
+			t.Errorf("FcntlFlock failed: %v", err)
+		}
+		if lk.Type != syscall.F_WRLCK {
+			t.Errorf("got lk.Type=%v, want %v", lk.Type, syscall.F_WRLCK)
+
+		}
+		f1.Close()
+		f2.Close()
+	}
+}
+
+func FcntlFlockLocksFile(t *testing.T, mnt string) {
+	filename := mnt + "/test"
+	f1, err := os.Create(filename)
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
+	defer f1.Close()
+	wlk := syscall.Flock_t{
+		Type:  syscall.F_WRLCK,
+		Start: 0,
+		Len:   0,
+	}
+	if err := syscall.FcntlFlock(f1.Fd(), unix.F_OFD_SETLK, &wlk); err != nil {
+		t.Fatalf("FcntlFlock failed: %v", err)
+	}
+
+	f2, err := os.OpenFile(filename, os.O_RDWR, 0766)
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
+	defer f2.Close()
+	rlk := syscall.Flock_t{
+		Type:  syscall.F_RDLCK,
+		Start: 0,
+		Len:   0,
+	}
+	if err := syscall.FcntlFlock(f2.Fd(), unix.F_OFD_SETLK, &rlk); err != syscall.EAGAIN {
+		t.Errorf("FcntlFlock returned %v, expected EAGAIN", err)
 	}
 }
