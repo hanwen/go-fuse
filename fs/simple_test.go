@@ -57,6 +57,7 @@ func (tc *testCase) Clean() {
 
 type testOptions struct {
 	entryCache        bool
+	enableLocks       bool
 	attrCache         bool
 	suppressDebug     bool
 	testDir           string
@@ -112,6 +113,7 @@ func newTestCase(t *testing.T, opts *testOptions) *testCase {
 	mOpts := &fuse.MountOptions{
 		DirectMount:       opts.directMount,
 		DirectMountStrict: opts.directMountStrict,
+		EnableLocks:       opts.enableLocks,
 	}
 	if !opts.suppressDebug {
 		mOpts.Debug = testutil.VerboseTest()
@@ -390,7 +392,10 @@ func TestPosix(t *testing.T) {
 		t.Run(nm, func(t *testing.T) {
 			tc := newTestCase(t, &testOptions{
 				suppressDebug: noisy[nm],
-				attrCache:     true, entryCache: true})
+				attrCache:     true,
+				entryCache:    true,
+				enableLocks:   true,
+			})
 			defer tc.Clean()
 
 			fn(t, tc.mntDir)
@@ -429,7 +434,7 @@ func TestOpenDirectIO(t *testing.T) {
 //
 // Note: Run as
 //
-//     TMPDIR=/var/tmp go test -run TestFsstress
+//	TMPDIR=/var/tmp go test -run TestFsstress
 //
 // to make sure the backing filesystem is ext4. /tmp is tmpfs on modern Linux
 // distributions, and tmpfs does not reuse inode numbers, hiding the problem.
