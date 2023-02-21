@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5184d6d2_80a42c28",
+        "filename": "posixtest/test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 637,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-02-21T20:53:15Z",
+      "side": 1,
+      "message": "you had 2 tests in your original change? the test that checks for EAGAIN is missing now?",
+      "range": {
+        "startLine": 637,
+        "startChar": 5,
+        "endLine": 637,
+        "endChar": 15
+      },
+      "revId": "451f96137d9fa7b9bcac134ef98613fe8531a6e7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
