@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "3a22dae9_8481062f",
+        "filename": "posixtest/test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 666,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-02-21T22:28:03Z",
+      "side": 1,
+      "message": "leaks fd on test failure. Use defer like you had before, and use `fmt.Sprintf(\"file%d\", i)` as the file name.",
+      "range": {
+        "startLine": 666,
+        "startChar": 1,
+        "endLine": 666,
+        "endChar": 12
+      },
+      "revId": "fa5576737f22bc975b25188492a57138fb5fdde0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
