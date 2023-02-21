@@ -22,6 +22,30 @@
       },
       "revId": "44eb50491da23c622f17e7bcd05e755d73b3be9d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "af97217e_89211312",
+        "filename": "posixtest/test.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 669,
+      "author": {
+        "id": 1020884
+      },
+      "writtenOn": "2023-02-21T22:09:37Z",
+      "side": 1,
+      "message": "Sorry, it was the same. Updated now to reduce code duplication.",
+      "parentUuid": "d7ffa8ed_c75e0a32",
+      "range": {
+        "startLine": 669,
+        "startChar": 5,
+        "endLine": 669,
+        "endChar": 21
+      },
+      "revId": "44eb50491da23c622f17e7bcd05e755d73b3be9d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
