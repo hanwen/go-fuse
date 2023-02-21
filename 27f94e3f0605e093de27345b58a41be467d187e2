@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e70374a4_20da7041",
+        "filename": "posixtest/test.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 640,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-02-21T22:45:58Z",
+      "side": 1,
+      "message": "does this work? misses a / in the filename.",
+      "range": {
+        "startLine": 640,
+        "startChar": 24,
+        "endLine": 640,
+        "endChar": 31
+      },
+      "revId": "27f94e3f0605e093de27345b58a41be467d187e2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
