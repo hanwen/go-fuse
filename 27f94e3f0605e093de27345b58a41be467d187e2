@@ -22,6 +22,30 @@
       },
       "revId": "27f94e3f0605e093de27345b58a41be467d187e2",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e396f94e_afef6a63",
+        "filename": "posixtest/test.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 640,
+      "author": {
+        "id": 1020884
+      },
+      "writtenOn": "2023-02-21T22:56:01Z",
+      "side": 1,
+      "message": "The tests were passing, but it wasn\u0027t actually using the fuse mount. Fixed now.",
+      "parentUuid": "e70374a4_20da7041",
+      "range": {
+        "startLine": 640,
+        "startChar": 24,
+        "endLine": 640,
+        "endChar": 31
+      },
+      "revId": "27f94e3f0605e093de27345b58a41be467d187e2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
