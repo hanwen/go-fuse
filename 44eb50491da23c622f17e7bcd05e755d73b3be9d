@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d7ffa8ed_c75e0a32",
+        "filename": "posixtest/test.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 669,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-02-21T21:59:03Z",
+      "side": 1,
+      "message": "i\u0027ve been staring at this, but it looks exactly like the previous test. Can you make this more clear? Or maybe you can fold the two tests together to cut duplicate code?",
+      "range": {
+        "startLine": 669,
+        "startChar": 5,
+        "endLine": 669,
+        "endChar": 21
+      },
+      "revId": "44eb50491da23c622f17e7bcd05e755d73b3be9d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
