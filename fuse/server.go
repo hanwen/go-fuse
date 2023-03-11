@@ -320,12 +320,7 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 	req = ms.reqPool.Get().(*request)
 	dest := ms.readPool.Get().([]byte)
 
-	var n int
-	err := handleEINTR(func() error {
-		var err error
-		n, err = syscall.Read(ms.mountFd, dest)
-		return err
-	})
+	n, err := ms.systemRead(dest)
 	if err != nil {
 		code = ToStatus(err)
 		ms.reqPool.Put(req)
@@ -518,7 +513,10 @@ func (ms *Server) handleRequest(req *request) Status {
 		req.handler.Func(ms, req)
 	}
 
+	ms.writeMu.Lock()
 	errNo := ms.write(req)
+	ms.writeMu.Unlock()
+
 	if errNo != 0 {
 		// Unless debugging is enabled, ignore ENOENT for INTERRUPT responses
 		// which indicates that the referred request is no longer known by the

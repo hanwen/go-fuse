@@ -40,3 +40,13 @@ func (ms *Server) systemWrite(req *request, header []byte) Status {
 	}
 	return ToStatus(err)
 }
+
+func (ms *Server) systemRead(dest []byte) (int, error) {
+	var n int
+	err := handleEINTR(func() error {
+		var err error
+		n, err = syscall.Read(ms.mountFd, dest)
+		return err
+	})
+	return n, err
+}
