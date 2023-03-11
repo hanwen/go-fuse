@@ -14,20 +14,105 @@ import (
 	"unsafe"
 )
 
+const FUSET_SRV_PATH = "/usr/local/bin/go-nfsv4"
+
+var osxFuse bool
+
 func unixgramSocketpair() (l, r *os.File, err error) {
 	fd, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_STREAM, 0)
 	if err != nil {
 		return nil, nil, os.NewSyscallError("socketpair",
 			err.(syscall.Errno))
 	}
-	l = os.NewFile(uintptr(fd[0]), "socketpair-half1")
-	r = os.NewFile(uintptr(fd[1]), "socketpair-half2")
+	l = os.NewFile(uintptr(fd[0]), fmt.Sprintf("socketpair-half%d", fd[0]))
+	r = os.NewFile(uintptr(fd[1]), fmt.Sprintf("socketpair-half%d", fd[1]))
 	return
+}
+
+func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, err error) {
+	if fuset_bin, err := fusetBinary(); err == nil {
+		osxFuse = false
+		return mount_fuset(fuset_bin, mountPoint, opts, ready)
+	} else if osxfuse_bin, err := fusermountBinary(); err == nil {
+		osxFuse = true
+		return mount_osxfuse(osxfuse_bin, mountPoint, opts, ready)
+	}
+	return -1, fmt.Errorf("not FUSE-T nor osxFuse found")
+}
+
+// Declare these as globals to prevent them from being garbage collected,
+// as we utilize the underlying file descriptors rather than the objects.
+var local, local_mon, remote, remote_mon *os.File
+
+// Create a FUSE FS on the specified mount point.  The returned
+// mount point is always absolute.
+func mount_fuset(bin string, mountPoint string, opts *MountOptions, ready chan<- error) (fd int, err error) {
+	local, remote, err = unixgramSocketpair()
+	if err != nil {
+		return
+	}
+	defer remote.Close()
+
+	local_mon, remote_mon, err = unixgramSocketpair()
+	if err != nil {
+		return
+	}
+	defer remote_mon.Close()
+
+	args := []string{}
+	if opts.Debug {
+		args = append(args, "-d")
+	}
+	if opts.FsName != "" {
+		args = append(args, "--volname")
+		args = append(args, opts.FsName)
+	}
+	for _, opts := range opts.optionsStrings() {
+		if opts == "ro" {
+			args = append(args, "-r")
+		}
+	}
+
+	args = append(args, fmt.Sprintf("--rwsize=%d", opts.MaxWrite))
+	args = append(args, mountPoint)
+	cmd := exec.Command(bin, args...)
+	cmd.ExtraFiles = []*os.File{remote, remote_mon} // fd would be (index + 3)
+
+	envs := []string{}
+	envs = append(envs, "_FUSE_COMMFD=3")
+	envs = append(envs, "_FUSE_MONFD=4")
+	envs = append(envs, "_FUSE_COMMVERS=2")
+	cmd.Env = append(os.Environ(), envs...)
+
+	syscall.CloseOnExec(int(local.Fd()))
+	syscall.CloseOnExec(int(local_mon.Fd()))
+
+	if err = cmd.Start(); err != nil {
+		return
+	}
+	cmd.Process.Release()
+	fd = int(local.Fd())
+	go func() {
+		if _, err = local_mon.Write([]byte("mount")); err != nil {
+			err = fmt.Errorf("fuse-t failed: %v", err)
+		} else {
+			reply := make([]byte, 4)
+			if _, err = local_mon.Read(reply); err != nil {
+				fmt.Printf("mount read  %v\n", err)
+				err = fmt.Errorf("fuse-t failed: %v", err)
+			}
+		}
+
+		ready <- err
+		close(ready)
+	}()
+
+	return fd, err
 }
 
 // Create a FUSE FS on the specified mount point.  The returned
 // mount point is always absolute.
-func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, err error) {
+func mount_osxfuse(bin string, mountPoint string, opts *MountOptions, ready chan<- error) (fd int, err error) {
 	local, remote, err := unixgramSocketpair()
 	if err != nil {
 		return
@@ -35,11 +120,6 @@ func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, e
 
 	defer local.Close()
 	defer remote.Close()
-
-	bin, err := fusermountBinary()
-	if err != nil {
-		return 0, err
-	}
 
 	cmd := exec.Command(bin,
 		"-o", strings.Join(opts.optionsStrings(), ","),
@@ -130,4 +210,17 @@ func fusermountBinary() (string, error) {
 	}
 
 	return "", fmt.Errorf("no FUSE mount utility found")
+}
+
+func fusetBinary() (string, error) {
+	srv_path := os.Getenv("FUSE_NFSSRV_PATH")
+	if srv_path == "" {
+		srv_path = FUSET_SRV_PATH
+	}
+
+	if _, err := os.Stat(srv_path); err == nil {
+		return srv_path, nil
+	}
+
+	return "", fmt.Errorf("FUSE-T not found")
 }
