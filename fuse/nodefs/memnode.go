@@ -203,6 +203,17 @@ func (n *memNode) GetAttr(fi *fuse.Attr, file File, context *fuse.Context) (code
 	return fuse.OK
 }
 
+func (n *memNode) Lookup(fi *fuse.Attr, name string, context *fuse.Context) (node *Inode, code fuse.Status) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	*fi = n.info
+	if n.Inode().GetChild(name) == nil {
+		return nil, fuse.ENOENT
+	}
+	return n.Inode().GetChild(name), fuse.OK
+}
+
 func (n *memNode) Truncate(file File, size uint64, context *fuse.Context) (code fuse.Status) {
 	if file != nil {
 		code = file.Truncate(size)
