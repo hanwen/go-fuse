@@ -95,12 +95,12 @@ func TestTar(t *testing.T) {
 			}
 		} else if strings.HasSuffix(k, "/") {
 
-			if got, want := st.Mode, uint32(syscall.S_IFDIR|0464); got != want {
+			if got, want := uint32(st.Mode), uint32(syscall.S_IFDIR|0464); got != want {
 				t.Errorf("dir %q: got mode %o, want %o", k, got, want)
 			}
 
 		} else {
-			if got, want := st.Mode, uint32(syscall.S_IFREG|0464); got != want {
+			if got, want := uint32(st.Mode), uint32(syscall.S_IFREG|0464); got != want {
 				t.Errorf("entry %q, got mode %o, want %o", k, got, want)
 			}
 
