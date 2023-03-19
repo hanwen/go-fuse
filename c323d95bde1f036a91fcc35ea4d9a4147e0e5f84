@@ -1,0 +1,67 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c3617307_9913ee8a",
+        "filename": "fuse/server.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 516,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-03-19T16:00:25Z",
+      "side": 1,
+      "message": "this looks like an oversight, and should trigger the race detector on Linux too?\n\nCan you explain better why this is needed, and if applicable, separate out in a test?\n\nif this is necessary, Server.write should take the lock in a smaller scope.",
+      "range": {
+        "startLine": 516,
+        "startChar": 0,
+        "endLine": 516,
+        "endChar": 1
+      },
+      "revId": "c323d95bde1f036a91fcc35ea4d9a4147e0e5f84",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d6a14732_6e5e40e0",
+        "filename": "fuse/server_darwin.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-03-19T16:00:25Z",
+      "side": 1,
+      "message": "must be a data member of Server.",
+      "range": {
+        "startLine": 58,
+        "startChar": 0,
+        "endLine": 58,
+        "endChar": 23
+      },
+      "revId": "c323d95bde1f036a91fcc35ea4d9a4147e0e5f84",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "469a4ebc_e1e9a1a5",
+        "filename": "fuse/server_linux.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-03-19T16:00:25Z",
+      "side": 1,
+      "message": "since the body of the function is shared between OSX and linux, this code should  go into shared .go file (maybe `singleRead` ?)",
+      "revId": "c323d95bde1f036a91fcc35ea4d9a4147e0e5f84",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
