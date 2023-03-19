@@ -1,0 +1,165 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "dfda19bc_4d247e3c",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 1
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-03-19T16:01:37Z",
+      "side": 1,
+      "message": "this needs much more context, especially because fuse-t is (AFAICT) closed source. \n\nWhere can one find FUSE-T ? What are license implications of using it? How does FUSE-T talk to the FS server? Should we be prepared for protocol changes?",
+      "range": {
+        "startLine": 6,
+        "startChar": 0,
+        "endLine": 7,
+        "endChar": 25
+      },
+      "revId": "4a50a33e537674f86c6f3d70236f8d589e4f0534",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "005fba50_06cfd5a1",
+        "filename": "fuse/mount_darwin.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 17,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-03-19T16:01:37Z",
+      "side": 1,
+      "message": "do not export.",
+      "range": {
+        "startLine": 17,
+        "startChar": 6,
+        "endLine": 17,
+        "endChar": 20
+      },
+      "revId": "4a50a33e537674f86c6f3d70236f8d589e4f0534",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "880eb040_266af20e",
+        "filename": "fuse/mount_darwin.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-03-19T16:01:37Z",
+      "side": 1,
+      "message": "odd phrasing. \"fuse: cannot find FUSE-T or OSXFUSE\" (not sure about capitalization for OSXFUSE)",
+      "range": {
+        "startLine": 40,
+        "startChar": 24,
+        "endLine": 40,
+        "endChar": 52
+      },
+      "revId": "4a50a33e537674f86c6f3d70236f8d589e4f0534",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "8d6afc8f_30f3a777",
+        "filename": "fuse/mount_darwin.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-03-19T16:01:37Z",
+      "side": 1,
+      "message": "naming is out of style (localMon would be more idiomatic)\n\nI\u0027m unhappy with the existence of these files as global variables: how would you make a process that services two FUSE mounts? Can you avoid using os.File altogether to avoid the os.File finalizer?",
+      "range": {
+        "startLine": 45,
+        "startChar": 11,
+        "endLine": 45,
+        "endChar": 20
+      },
+      "revId": "4a50a33e537674f86c6f3d70236f8d589e4f0534",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ca15fbcd_ac5415b3",
+        "filename": "fuse/mount_darwin.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-03-19T16:01:37Z",
+      "side": 1,
+      "message": "style: \"\u003cfunction-name\u003e creates a ...\"\n\n(I know this is copied code, but let\u0027s be style conformant for new code.)",
+      "range": {
+        "startLine": 47,
+        "startChar": 3,
+        "endLine": 47,
+        "endChar": 9
+      },
+      "revId": "4a50a33e537674f86c6f3d70236f8d589e4f0534",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "8e8e7d2a_ac4bd2b6",
+        "filename": "fuse/mount_darwin.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-03-19T16:01:37Z",
+      "side": 1,
+      "message": "mountFUSET",
+      "range": {
+        "startLine": 49,
+        "startChar": 5,
+        "endLine": 49,
+        "endChar": 16
+      },
+      "revId": "4a50a33e537674f86c6f3d70236f8d589e4f0534",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "bf65968b_1c5030d4",
+        "filename": "fuse/mount_darwin.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 215,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-03-19T16:01:37Z",
+      "side": 1,
+      "message": "fuseTBinary",
+      "range": {
+        "startLine": 215,
+        "startChar": 5,
+        "endLine": 215,
+        "endChar": 16
+      },
+      "revId": "4a50a33e537674f86c6f3d70236f8d589e4f0534",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
