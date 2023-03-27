@@ -172,7 +172,7 @@ func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, e
 	return fd, err
 }
 
-func unmount(mountPoint string, opts *MountOptions) (err error) {
+func Unmount(mountPoint string, opts *MountOptions) (err error) {
 	if opts.DirectMount || opts.DirectMountStrict {
 		// Attempt to directly unmount, if fails fallback to fusermount method
 		err := syscall.Unmount(mountPoint, 0)
