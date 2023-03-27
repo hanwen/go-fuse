@@ -411,7 +411,7 @@ type NodeLookuper interface {
 // this method is just for performing sanity/permission
 // checks. The default is to return success.
 type NodeOpendirer interface {
-	Opendir(ctx context.Context) syscall.Errno
+	Opendir(ctx context.Context) (fuseFlags uint32, err syscall.Errno)
 }
 
 // ReadDir opens a stream of directory entries.

@@ -293,13 +293,13 @@ func (n *LoopbackNode) Open(ctx context.Context, flags uint32) (fh FileHandle, f
 
 var _ = (NodeOpendirer)((*LoopbackNode)(nil))
 
-func (n *LoopbackNode) Opendir(ctx context.Context) syscall.Errno {
+func (n *LoopbackNode) Opendir(ctx context.Context) (uint32, syscall.Errno) {
 	fd, err := syscall.Open(n.path(), syscall.O_DIRECTORY, 0755)
 	if err != nil {
-		return ToErrno(err)
+		return 0, ToErrno(err)
 	}
 	syscall.Close(fd)
-	return OK
+	return 0, OK
 }
 
 var _ = (NodeReaddirer)((*LoopbackNode)(nil))
