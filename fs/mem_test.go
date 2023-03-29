@@ -7,11 +7,15 @@ package fs
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"reflect"
+	"sync"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
 	"github.com/hanwen/go-fuse/v2/internal/testutil"
@@ -216,4 +220,70 @@ func TestDataSymlink(t *testing.T) {
 	} else if want := "target"; got != want {
 		t.Errorf("Readlink: got %q want %q", got, want)
 	}
+}
+
+func TestReaddirplusParallel(t *testing.T) {
+	root := &Inode{}
+	N := 100
+	oneSec := time.Second
+	names := map[string]int64{}
+	mntDir, _, clean := testMount(t, root, &Options{
+		FirstAutomaticIno: 1,
+		EntryTimeout:      &oneSec,
+		AttrTimeout:       &oneSec,
+		OnAdd: func(ctx context.Context) {
+			n := root.EmbeddedInode()
+
+			for i := 0; i < N; i++ {
+				ch := n.NewPersistentInode(
+					ctx,
+					&MemRegularFile{
+						Data: bytes.Repeat([]byte{'x'}, i),
+					},
+					StableAttr{})
+
+				name := fmt.Sprintf("file%04d", i)
+				names[name] = int64(i)
+				n.AddChild(name, ch, false)
+			}
+		},
+	})
+	defer clean()
+
+	read := func() (map[string]int64, error) {
+		es, err := os.ReadDir(mntDir)
+		if err != nil {
+			return nil, err
+		}
+
+		r := map[string]int64{}
+		for _, e := range es {
+			inf, err := e.Info()
+			if err != nil {
+				return nil, err
+			}
+			r[e.Name()] = inf.Size()
+		}
+		return r, nil
+	}
+
+	var wg sync.WaitGroup
+	for i := 0; i < N; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			res, err := read()
+			if err != nil {
+				t.Errorf("readdir: %v", err)
+			}
+			if got, want := len(res), len(names); got != want {
+				t.Errorf("got %d want %d", got, want)
+				return
+			}
+			if !reflect.DeepEqual(res, names) {
+				t.Errorf("maps have different content")
+			}
+		}()
+	}
+	wg.Wait()
 }

@@ -511,6 +511,41 @@ func (n *Inode) Children() map[string]*Inode {
 	return r
 }
 
+type childEntry struct {
+	Name  string
+	Inode *Inode
+}
+
+// childrenList returns the list of children of this directory Inode.
+// The result is guaranteed to be stable as long as the directory did
+// not change.
+func (n *Inode) childrenList() []childEntry {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	r := make([]childEntry, 0, 2*len(n.children))
+
+	// The spec doesn't guarantee this, but as long as maps remain
+	// backed by hash tables, the simplest mechanism for
+	// randomization is picking a random start index. We undo this
+	// here by picking a deterministic start index again. If the
+	// Go runtime ever implements a memory moving GC, we might
+	// have to look at the keys instead.
+	minNode := ^uintptr(0)
+	minIdx := -1
+	for k, v := range n.children {
+		if p := uintptr(unsafe.Pointer(v)); p < minNode {
+			minIdx = len(r)
+			minNode = p
+		}
+		r = append(r, childEntry{Name: k, Inode: v})
+	}
+
+	if minIdx > 0 {
+		r = append(r[minIdx:], r[:minIdx]...)
+	}
+	return r
+}
+
 // Parents returns a parent of this Inode, or nil if this Inode is
 // deleted or is the root
 func (n *Inode) Parent() (string, *Inode) {
