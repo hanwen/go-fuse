@@ -975,11 +975,12 @@ func (b *rawBridge) getStream(ctx context.Context, inode *Inode) (DirStream, sys
 		return rd.Readdir(ctx)
 	}
 
-	r := []fuse.DirEntry{}
-	for k, ch := range inode.Children() {
-		r = append(r, fuse.DirEntry{Mode: ch.Mode(),
-			Name: k,
-			Ino:  ch.StableAttr().Ino})
+	lst := inode.childrenList()
+	r := make([]fuse.DirEntry, 0, len(lst))
+	for _, e := range lst {
+		r = append(r, fuse.DirEntry{Mode: e.Inode.Mode(),
+			Name: e.Name,
+			Ino:  e.Inode.StableAttr().Ino})
 	}
 	return NewListDirStream(r), 0
 }
