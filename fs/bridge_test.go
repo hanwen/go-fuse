@@ -184,8 +184,10 @@ func (n *testDeletedIno) Lookup(ctx context.Context, name string, out *fuse.Entr
 	return child, syscall.F_OK
 }
 
-func (n *testDeletedIno) Opendir(ctx context.Context) syscall.Errno {
-	return OK
+var _ = (NodeOpendirer)((*testDeletedIno)(nil))
+
+func (n *testDeletedIno) Opendir(ctx context.Context) (uint32, syscall.Errno) {
+	return 0, OK
 }
 
 func (n *testDeletedIno) Getattr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno {
