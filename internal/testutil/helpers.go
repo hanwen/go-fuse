@@ -16,8 +16,9 @@ import (
 // Called by TestLoopbackFileUtimens and TestLoopbackFileSystemUtimens.
 //
 // Parameters:
-//   path ........ path to the backing file
-//   utimensFn ... Utimens() function that acts on the backing file
+//
+//	path ........ path to the backing file
+//	utimensFn ... Utimens() function that acts on the backing file
 func TestLoopbackUtimens(t *testing.T, path string, utimensFn func(atime *time.Time, mtime *time.Time) fuse.Status) {
 	// Arbitrary date: 05/02/2018 @ 7:57pm (UTC)
 	t0sec := int64(1525291058)

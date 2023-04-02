@@ -19,17 +19,16 @@ import (
 // numbers are regular files, while composite numbers are directories
 // containing all smaller numbers, eg.
 //
-//   $ ls -F  /tmp/x/6
-//   2  3  4/  5
+//	$ ls -F  /tmp/x/6
+//	2  3  4/  5
 //
 // the file system nodes are deduplicated using inode numbers. The
 // number 2 appears in many directories, but it is actually the represented
 // by the same numberNode{} object, with inode number 2.
 //
-//   $ ls -i1  /tmp/x/2  /tmp/x/8/6/4/2
-//   2 /tmp/x/2
-//   2 /tmp/x/8/6/4/2
-//
+//	$ ls -i1  /tmp/x/2  /tmp/x/8/6/4/2
+//	2 /tmp/x/2
+//	2 /tmp/x/8/6/4/2
 type numberNode struct {
 	// Must embed an Inode for the struct to work as a node.
 	fs.Inode

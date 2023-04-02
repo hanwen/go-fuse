@@ -206,8 +206,7 @@ func (n *testDeletedIno) Getattr(ctx context.Context, f FileHandle, out *fuse.At
 //
 // We used to panic like this because inode number 1 was special:
 //
-//    panic: using reserved ID 1 for inode number
-//
+//	panic: using reserved ID 1 for inode number
 func TestIno1(t *testing.T) {
 	rootNode := testIno1{}
 	mnt, _, clean := testMount(t, &rootNode, nil)
