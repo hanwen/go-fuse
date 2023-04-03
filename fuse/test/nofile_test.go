@@ -6,7 +6,6 @@ package test
 
 import (
 	"io/ioutil"
-	"os"
 	"sync/atomic"
 	"testing"
 
@@ -51,13 +50,7 @@ func (d *NoFileNode) Open(flags uint32, context *fuse.Context) (nodefs.File, fus
 }
 
 func TestNoFile(t *testing.T) {
-	dir := testutil.TempDir()
-	defer func() {
-		err := os.Remove(dir)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}()
+	dir := t.TempDir()
 
 	// setup a filesystem with 2 files:
 	//

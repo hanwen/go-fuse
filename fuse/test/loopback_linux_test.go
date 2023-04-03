@@ -17,7 +17,6 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
-	"github.com/hanwen/go-fuse/v2/internal/testutil"
 )
 
 var enableOverlayfsTest bool
@@ -147,11 +146,9 @@ func TestOverlayfs(t *testing.T) {
 	tc.Mkdir(tc.origSubdir, 0777)
 	tc.WriteFile(filepath.Join(tc.origSubdir, testfile), content, 0700)
 
-	tmpMergedDir := testutil.TempDir()
-	defer os.RemoveAll(tmpMergedDir)
-	tmpWorkDir := testutil.TempDir()
-	defer os.RemoveAll(tmpWorkDir)
-	tmpUpperDir := testutil.TempDir()
+	tmpMergedDir := t.TempDir()
+	tmpWorkDir := t.TempDir()
+	tmpUpperDir := t.TempDir()
 	defer os.RemoveAll(tmpUpperDir)
 	if err := unix.Mount("overlay", tmpMergedDir, "overlay", 0,
 		fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", tc.mnt, tmpUpperDir, tmpWorkDir)); err != nil {

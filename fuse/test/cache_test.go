@@ -37,7 +37,7 @@ func (fs *cacheFs) Open(name string, flags uint32, context *fuse.Context) (fuseF
 }
 
 func setupCacheTest(t *testing.T) (string, *pathfs.PathNodeFs, func()) {
-	dir := testutil.TempDir()
+	dir := t.TempDir()
 	os.Mkdir(dir+"/mnt", 0755)
 	os.Mkdir(dir+"/orig", 0755)
 
@@ -65,10 +65,7 @@ func setupCacheTest(t *testing.T) (string, *pathfs.PathNodeFs, func()) {
 		t.Fatal("WaitMount", err)
 	}
 	return dir, pfs, func() {
-		err := state.Unmount()
-		if err == nil {
-			os.RemoveAll(dir)
-		}
+		state.Unmount()
 	}
 }
 
@@ -186,8 +183,7 @@ func TestNonseekable(t *testing.T) {
 	fs := &nonseekFs{FileSystem: pathfs.NewDefaultFileSystem()}
 	fs.Length = 200 * 1024
 
-	dir := testutil.TempDir()
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 	nfs := pathfs.NewPathNodeFs(fs, nil)
 	opts := nodefs.NewOptions()
 	opts.Debug = testutil.VerboseTest()
@@ -216,8 +212,7 @@ func TestNonseekable(t *testing.T) {
 }
 
 func TestGetAttrRace(t *testing.T) {
-	dir := testutil.TempDir()
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 	os.Mkdir(dir+"/mnt", 0755)
 	os.Mkdir(dir+"/orig", 0755)
 

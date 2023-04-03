@@ -50,9 +50,6 @@ func (tc *testCase) clean() {
 	if err := tc.server.Unmount(); err != nil {
 		tc.Fatal(err)
 	}
-	if err := os.RemoveAll(tc.dir); err != nil {
-		tc.Fatal(err)
-	}
 }
 
 type testOptions struct {
@@ -73,7 +70,7 @@ func newTestCase(t *testing.T, opts *testOptions) *testCase {
 		opts = &testOptions{}
 	}
 	if opts.testDir == "" {
-		opts.testDir = testutil.TempDir()
+		opts.testDir = t.TempDir()
 	}
 	tc := &testCase{
 		dir: opts.testDir,
@@ -356,8 +353,7 @@ func TestMknod(t *testing.T) {
 }
 
 func TestMknodNotSupported(t *testing.T) {
-	mountPoint := testutil.TempDir()
-	defer os.Remove(mountPoint)
+	mountPoint := t.TempDir()
 
 	server, err := Mount(mountPoint, &Inode{}, nil)
 	if err != nil {

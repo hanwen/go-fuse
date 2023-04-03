@@ -143,7 +143,7 @@ func NewFile() *MutableDataFile {
 }
 
 func setupFAttrTest(t *testing.T, fs pathfs.FileSystem) (dir string, clean func()) {
-	dir = testutil.TempDir()
+	dir = t.TempDir()
 	nfs := pathfs.NewPathNodeFs(fs, nil)
 	opts := nodefs.NewOptions()
 	opts.Debug = testutil.VerboseTest()
@@ -161,8 +161,6 @@ func setupFAttrTest(t *testing.T, fs pathfs.FileSystem) (dir string, clean func(
 	clean = func() {
 		if err := state.Unmount(); err != nil {
 			t.Errorf("cleanup: Unmount: %v", err)
-		} else {
-			os.RemoveAll(dir)
 		}
 	}
 

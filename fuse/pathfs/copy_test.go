@@ -6,17 +6,12 @@ package pathfs
 
 import (
 	"io/ioutil"
-	"os"
 	"testing"
-
-	"github.com/hanwen/go-fuse/v2/internal/testutil"
 )
 
 func TestCopyFile(t *testing.T) {
-	d1 := testutil.TempDir()
-	defer os.RemoveAll(d1)
-	d2 := testutil.TempDir()
-	defer os.RemoveAll(d2)
+	d1 := t.TempDir()
+	d2 := t.TempDir()
 
 	fs1 := NewLoopbackFileSystem(d1)
 	fs2 := NewLoopbackFileSystem(d2)

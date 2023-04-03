@@ -35,7 +35,7 @@ func (fs *ownerFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse
 }
 
 func setupOwnerTest(t *testing.T, opts *nodefs.Options) (workdir string, cleanup func()) {
-	wd := testutil.TempDir()
+	wd := t.TempDir()
 
 	opts.Debug = testutil.VerboseTest()
 	fs := &ownerFs{NewDefaultFileSystem()}
@@ -50,7 +50,6 @@ func setupOwnerTest(t *testing.T, opts *nodefs.Options) (workdir string, cleanup
 	}
 	return wd, func() {
 		state.Unmount()
-		os.RemoveAll(wd)
 	}
 }
 

@@ -15,7 +15,6 @@ import (
 	"github.com/hanwen/go-fuse/v2/fuse"
 	"github.com/hanwen/go-fuse/v2/fuse/nodefs"
 	"github.com/hanwen/go-fuse/v2/fuse/pathfs"
-	"github.com/hanwen/go-fuse/v2/internal/testutil"
 )
 
 func TestMountOnExisting(t *testing.T) {
@@ -171,8 +170,7 @@ func TestDeletedUnmount(t *testing.T) {
 }
 
 func TestDefaultNodeMount(t *testing.T) {
-	dir := testutil.TempDir()
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 	root := nodefs.NewDefaultNode()
 	s, conn, err := nodefs.MountRoot(dir, root, nil)
 	if err != nil {
@@ -198,8 +196,7 @@ func TestDefaultNodeMount(t *testing.T) {
 }
 
 func TestLiveness(t *testing.T) {
-	dir := testutil.TempDir()
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 	root := nodefs.NewDefaultNode()
 	s, _, err := nodefs.MountRoot(dir, root, nil)
 	if err != nil {

@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
 	"testing"
 
 	"golang.org/x/sync/errgroup"
@@ -58,13 +57,7 @@ func verifyFileRead(path string, dataOK string) error {
 }
 
 func TestNodeParallelLookup(t *testing.T) {
-	dir := testutil.TempDir()
-	defer func() {
-		err := os.Remove(dir)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}()
+	dir := t.TempDir()
 
 	root := &tRoot{
 		Node:     nodefs.NewDefaultNode(),

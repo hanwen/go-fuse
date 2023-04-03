@@ -8,7 +8,6 @@
 package test
 
 import (
-	"os"
 	"path/filepath"
 	"syscall"
 	"testing"
@@ -40,8 +39,7 @@ func (n *xattrChildNode) GetXAttr(attr string, context *fuse.Context) ([]byte, f
 }
 
 func TestDefaultXAttr(t *testing.T) {
-	dir := testutil.TempDir()
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	root := &xattrNode{
 		Node: nodefs.NewDefaultNode(),
@@ -70,8 +68,7 @@ func TestDefaultXAttr(t *testing.T) {
 }
 
 func TestEmptyXAttr(t *testing.T) {
-	dir := testutil.TempDir()
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	root := &xattrNode{
 		Node: nodefs.NewDefaultNode(),

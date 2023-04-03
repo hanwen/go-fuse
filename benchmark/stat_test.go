@@ -25,7 +25,10 @@ import (
 func setupFs(node fs.InodeEmbedder, N int) (string, func()) {
 	opts := &fs.Options{}
 	opts.Debug = testutil.VerboseTest()
-	mountPoint := testutil.TempDir()
+	mountPoint, err := os.MkdirTemp("", "")
+	if err != nil {
+		log.Panicf("TempDir: %v", err)
+	}
 	server, err := fs.Mount(mountPoint, node, opts)
 	if err != nil {
 		log.Panicf("cannot mount %v", err)
@@ -53,8 +56,6 @@ func setupFs(node fs.InodeEmbedder, N int) (string, func()) {
 		err := server.Unmount()
 		if err != nil {
 			log.Println("error during unmount", err)
-		} else {
-			os.RemoveAll(mountPoint)
 		}
 	}
 }
@@ -251,8 +252,10 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 	}
 	f.Close()
 
-	mountPoint := testutil.TempDir()
-	defer os.RemoveAll(mountPoint)
+	mountPoint, err := os.MkdirTemp("", "")
+	if err != nil {
+		b.Fatalf("MkdirTemp: %v", err)
+	}
 
 	cmd := exec.Command(wd+"/cstatfs",
 		"-o",
