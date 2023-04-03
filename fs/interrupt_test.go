@@ -55,15 +55,10 @@ func TestInterrupt(t *testing.T) {
 	root := &interruptRoot{}
 
 	oneSec := time.Second
-	mntDir, _, clean := testMount(t, root, &Options{
+	mntDir, server := testMount(t, root, &Options{
 		EntryTimeout: &oneSec,
 		AttrTimeout:  &oneSec,
 	})
-	defer func() {
-		if clean != nil {
-			clean()
-		}
-	}()
 
 	cmd := exec.Command("cat", mntDir+"/file")
 	if err := cmd.Start(); err != nil {
@@ -74,9 +69,7 @@ func TestInterrupt(t *testing.T) {
 	if err := cmd.Process.Kill(); err != nil {
 		t.Errorf("Kill: %v", err)
 	}
-
-	clean()
-	clean = nil
+	server.Unmount()
 
 	if !root.child.interrupted {
 		t.Errorf("open request was not interrupted")

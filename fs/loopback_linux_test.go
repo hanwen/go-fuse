@@ -22,7 +22,6 @@ import (
 
 func TestRenameExchange(t *testing.T) {
 	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
-	defer tc.Clean()
 
 	if err := os.Mkdir(tc.origDir+"/dir", 0755); err != nil {
 		t.Fatalf("Mkdir: %v", err)
@@ -95,7 +94,6 @@ func TestRenameExchange(t *testing.T) {
 
 func TestRenameNoOverwrite(t *testing.T) {
 	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
-	defer tc.Clean()
 
 	if err := os.Mkdir(tc.origDir+"/dir", 0755); err != nil {
 		t.Fatalf("Mkdir: %v", err)
@@ -123,7 +121,6 @@ func TestRenameNoOverwrite(t *testing.T) {
 
 func TestXAttr(t *testing.T) {
 	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
-	defer tc.Clean()
 
 	tc.writeOrig("file", "", 0644)
 
@@ -188,7 +185,6 @@ func TestXAttr(t *testing.T) {
 // so don't even bother. See `man 7 xattr` for more info.
 func TestXAttrSymlink(t *testing.T) {
 	tc := newTestCase(t, nil)
-	defer tc.Clean()
 
 	path := tc.mntDir + "/symlink"
 	if err := syscall.Symlink("target/does/not/exist", path); err != nil {
@@ -203,7 +199,6 @@ func TestXAttrSymlink(t *testing.T) {
 
 func TestCopyFileRange(t *testing.T) {
 	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
-	defer tc.Clean()
 
 	if !tc.server.KernelSettings().SupportsVersion(7, 28) {
 		t.Skip("need v7.28 for CopyFileRange")
@@ -398,8 +393,7 @@ func TestParallelDiropsHang(t *testing.T) {
 }
 
 func TestRoMount(t *testing.T) {
-	tc := newTestCase(t, &testOptions{ro: true})
-	defer tc.Clean()
+	newTestCase(t, &testOptions{ro: true})
 }
 
 func TestDirectMount(t *testing.T) {
@@ -410,6 +404,5 @@ func TestDirectMount(t *testing.T) {
 		t.Log("running as root, setting DirectMountStrict")
 		opts.directMountStrict = true
 	}
-	tc := newTestCase(t, opts)
-	defer tc.Clean()
+	newTestCase(t, opts)
 }

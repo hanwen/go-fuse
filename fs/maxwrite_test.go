@@ -152,8 +152,7 @@ func TestMaxWrite(t *testing.T) {
 			root := &maxWriteTestRoot{}
 			root.resetStats()
 
-			mntDir, srv, clean := testMount(t, root, &Options{MountOptions: tc})
-			defer clean()
+			mntDir, srv := testMount(t, root, &Options{MountOptions: tc})
 
 			readAheadWant := tc.MaxReadAhead
 			if readAheadWant == 0 {

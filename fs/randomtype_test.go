@@ -55,8 +55,7 @@ func (fn *randomTypeTest) Readdir(ctx context.Context) (DirStream, syscall.Errno
 func TestReaddirTypeFixup(t *testing.T) {
 	root := &randomTypeTest{}
 
-	mntDir, _, clean := testMount(t, root, nil)
-	defer clean()
+	mntDir, _ := testMount(t, root, nil)
 
 	f, err := os.Open(mntDir)
 	if err != nil {
