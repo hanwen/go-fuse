@@ -77,7 +77,7 @@ func NewTestCase(t *testing.T) *testCase {
 	const subdir string = "subdir"
 
 	var err error
-	tc.tmpDir = testutil.TempDir()
+	tc.tmpDir = t.TempDir()
 	tc.orig = tc.tmpDir + "/orig"
 	tc.mnt = tc.tmpDir + "/mnt"
 
@@ -125,7 +125,6 @@ func (tc *testCase) Cleanup() {
 	if err != nil {
 		tc.tester.Fatalf("Unmount failed: %v", err)
 	}
-	os.RemoveAll(tc.tmpDir)
 }
 
 func (tc *testCase) rootNode() *nodefs.Inode {
@@ -774,8 +773,7 @@ func TestNonVerboseFStatFs(t *testing.T) {
 }
 
 func TestOriginalIsSymlink(t *testing.T) {
-	tmpDir := testutil.TempDir()
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 	orig := tmpDir + "/orig"
 	err := os.Mkdir(orig, 0755)
 	if err != nil {

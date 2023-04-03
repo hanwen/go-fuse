@@ -34,8 +34,7 @@ func (f *flipNode) GetAttr(out *fuse.Attr, file nodefs.File, c *fuse.Context) fu
 }
 
 func TestDeleteNotify(t *testing.T) {
-	dir := testutil.TempDir()
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 	root := nodefs.NewMemNodeFSRoot(dir + "/backing")
 	conn := nodefs.NewFileSystemConnector(root,
 		&nodefs.Options{PortableInodes: true})

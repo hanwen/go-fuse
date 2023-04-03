@@ -78,7 +78,7 @@ type NotifyTest struct {
 func NewNotifyTest(t *testing.T) *NotifyTest {
 	me := &NotifyTest{}
 	me.fs = newNotifyFs()
-	me.dir = testutil.TempDir()
+	me.dir = t.TempDir()
 	entryTTL := 100 * time.Millisecond
 	opts := &nodefs.Options{
 		EntryTimeout:    entryTTL,

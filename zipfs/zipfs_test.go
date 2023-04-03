@@ -33,14 +33,13 @@ func setupZipfs(t *testing.T) (mountPoint string, cleanup func()) {
 		t.Fatalf("NewArchiveFileSystem failed: %v", err)
 	}
 
-	mountPoint = testutil.TempDir()
+	mountPoint = t.TempDir()
 	opts := &fs.Options{}
 	opts.Debug = testutil.VerboseTest()
 	server, err := fs.Mount(mountPoint, root, opts)
 
 	return mountPoint, func() {
 		server.Unmount()
-		os.RemoveAll(mountPoint)
 	}
 }
 

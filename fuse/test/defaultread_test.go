@@ -6,7 +6,6 @@ package test
 
 import (
 	"io/ioutil"
-	"os"
 	"testing"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
@@ -42,7 +41,7 @@ func defaultReadTest(t *testing.T) (root string, cleanup func()) {
 	}
 
 	var err error
-	dir := testutil.TempDir()
+	dir := t.TempDir()
 	pathfs := pathfs.NewPathNodeFs(fs, nil)
 	opts := nodefs.NewOptions()
 	opts.Debug = testutil.VerboseTest()
@@ -57,7 +56,6 @@ func defaultReadTest(t *testing.T) (root string, cleanup func()) {
 	}
 	return dir, func() {
 		state.Unmount()
-		os.Remove(dir)
 	}
 }
 

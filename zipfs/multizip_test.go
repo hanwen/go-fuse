@@ -19,7 +19,7 @@ const testTtl = 100 * time.Millisecond
 
 func setupMzfs(t *testing.T) (mountPoint string, state *fuse.Server, cleanup func()) {
 	root := &MultiZipFs{}
-	mountPoint = testutil.TempDir()
+	mountPoint = t.TempDir()
 
 	dt := testTtl
 	opts := &fs.Options{
@@ -34,7 +34,6 @@ func setupMzfs(t *testing.T) (mountPoint string, state *fuse.Server, cleanup fun
 	}
 	return mountPoint, server, func() {
 		server.Unmount()
-		os.RemoveAll(mountPoint)
 	}
 }
 

@@ -33,12 +33,11 @@ func (tc *testCase) Clean() {
 		tc.server.Unmount()
 		tc.server = nil
 	}
-	os.RemoveAll(tc.dir)
 }
 
 func newTestCase(t *testing.T, populate bool) *testCase {
 	t.Helper()
-	dir := testutil.TempDir()
+	dir := t.TempDir()
 	dirs := []string{"ro", "rw", "mnt"}
 	if populate {
 		dirs = append(dirs, "ro/dir")

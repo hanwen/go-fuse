@@ -24,7 +24,7 @@ import (
 func testMount(t *testing.T, root InodeEmbedder, opts *Options) (string, *fuse.Server) {
 	t.Helper()
 
-	mntDir := testutil.TempDir()
+	mntDir := t.TempDir()
 	if opts == nil {
 		opts = &Options{
 			FirstAutomaticIno: 1,
@@ -39,9 +39,6 @@ func testMount(t *testing.T, root InodeEmbedder, opts *Options) (string, *fuse.S
 	t.Cleanup(func() {
 		if err := server.Unmount(); err != nil {
 			t.Fatalf("testMount: Unmount failed: %v", err)
-		}
-		if err := syscall.Rmdir(mntDir); err != nil {
-			t.Errorf("testMount: Remove failed: %v", err)
 		}
 	})
 	return mntDir, server
