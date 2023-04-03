@@ -22,7 +22,6 @@ import (
 func TestBridgeReaddirPlusVirtualEntries(t *testing.T) {
 	// Set suppressDebug as we do our own logging
 	tc := newTestCase(t, &testOptions{suppressDebug: true})
-	defer tc.Clean()
 
 	rb := tc.rawFS.(*rawBridge)
 
@@ -92,8 +91,7 @@ func TestBridgeReaddirPlusVirtualEntries(t *testing.T) {
 // we just have not received the FORGET yet.
 func TestTypeChange(t *testing.T) {
 	rootNode := testTypeChangeIno{}
-	mnt, _, clean := testMount(t, &rootNode, nil)
-	defer clean()
+	mnt, _ := testMount(t, &rootNode, nil)
 
 	for i := 0; i < 100; i++ {
 		fi, _ := os.Stat(mnt + "/file")
@@ -141,8 +139,7 @@ func (fn *testTypeChangeIno) Lookup(ctx context.Context, name string, out *fuse.
 // disconnected from the hierarchy (=orphaned)
 func TestDeletedInodePath(t *testing.T) {
 	rootNode := testDeletedIno{}
-	mnt, _, clean := testMount(t, &rootNode, &Options{Logger: log.New(os.Stderr, "", 0)})
-	defer clean()
+	mnt, _ := testMount(t, &rootNode, &Options{Logger: log.New(os.Stderr, "", 0)})
 
 	// Open a file handle so the kernel cannot FORGET the inode
 	fd, err := os.Open(mnt + "/dir")
@@ -209,8 +206,7 @@ func (n *testDeletedIno) Getattr(ctx context.Context, f FileHandle, out *fuse.At
 //	panic: using reserved ID 1 for inode number
 func TestIno1(t *testing.T) {
 	rootNode := testIno1{}
-	mnt, _, clean := testMount(t, &rootNode, nil)
-	defer clean()
+	mnt, _ := testMount(t, &rootNode, nil)
 
 	var st syscall.Stat_t
 	err := syscall.Stat(mnt+"/ino1", &st)

@@ -21,7 +21,7 @@ import (
 	"github.com/hanwen/go-fuse/v2/internal/testutil"
 )
 
-func testMount(t *testing.T, root InodeEmbedder, opts *Options) (string, *fuse.Server, func()) {
+func testMount(t *testing.T, root InodeEmbedder, opts *Options) (string, *fuse.Server) {
 	t.Helper()
 
 	mntDir := testutil.TempDir()
@@ -36,20 +36,21 @@ func testMount(t *testing.T, root InodeEmbedder, opts *Options) (string, *fuse.S
 	if err != nil {
 		t.Fatal(err)
 	}
-	return mntDir, server, func() {
+	t.Cleanup(func() {
 		if err := server.Unmount(); err != nil {
 			t.Fatalf("testMount: Unmount failed: %v", err)
 		}
 		if err := syscall.Rmdir(mntDir); err != nil {
 			t.Errorf("testMount: Remove failed: %v", err)
 		}
-	}
+	})
+	return mntDir, server
 }
 
 func TestDefaultOwner(t *testing.T) {
 	want := "hello"
 	root := &Inode{}
-	mntDir, _, clean := testMount(t, root, &Options{
+	mntDir, _ := testMount(t, root, &Options{
 		FirstAutomaticIno: 1,
 		OnAdd: func(ctx context.Context) {
 			n := root.EmbeddedInode()
@@ -64,7 +65,6 @@ func TestDefaultOwner(t *testing.T) {
 		UID: 42,
 		GID: 43,
 	})
-	defer clean()
 
 	var st syscall.Stat_t
 	if err := syscall.Lstat(mntDir+"/file", &st); err != nil {
@@ -78,13 +78,12 @@ func TestRootInode(t *testing.T) {
 	var rootIno uint64 = 42
 	root := &Inode{}
 
-	mntDir, _, clean := testMount(t, root, &Options{
+	mntDir, _ := testMount(t, root, &Options{
 		RootStableAttr: &StableAttr{
 			Ino: rootIno,
 			Gen: 1,
 		},
 	})
-	defer clean()
 
 	var st syscall.Stat_t
 	if err := syscall.Lstat(mntDir, &st); err != nil {
@@ -97,7 +96,7 @@ func TestRootInode(t *testing.T) {
 func TestDataFile(t *testing.T) {
 	want := "hello"
 	root := &Inode{}
-	mntDir, _, clean := testMount(t, root, &Options{
+	mntDir, _ := testMount(t, root, &Options{
 		FirstAutomaticIno: 1,
 		OnAdd: func(ctx context.Context) {
 			n := root.EmbeddedInode()
@@ -113,7 +112,6 @@ func TestDataFile(t *testing.T) {
 			n.AddChild("file", ch, false)
 		},
 	})
-	defer clean()
 
 	var st syscall.Stat_t
 	if err := syscall.Lstat(mntDir+"/file", &st); err != nil {
@@ -165,7 +163,7 @@ func TestDataFileLargeRead(t *testing.T) {
 
 	data := make([]byte, 256*1024)
 	rand.Read(data[:])
-	mntDir, _, clean := testMount(t, root, &Options{
+	mntDir, _ := testMount(t, root, &Options{
 		FirstAutomaticIno: 1,
 		OnAdd: func(ctx context.Context) {
 			n := root.EmbeddedInode()
@@ -181,7 +179,6 @@ func TestDataFileLargeRead(t *testing.T) {
 			n.AddChild("file", ch, false)
 		},
 	})
-	defer clean()
 	got, err := ioutil.ReadFile(mntDir + "/file")
 	if err != nil {
 		t.Fatalf("ReadFile: %v", err)
@@ -208,8 +205,7 @@ func (s *SymlinkerRoot) Symlink(ctx context.Context, target, name string, out *f
 func TestDataSymlink(t *testing.T) {
 	root := &SymlinkerRoot{}
 
-	mntDir, _, clean := testMount(t, root, nil)
-	defer clean()
+	mntDir, _ := testMount(t, root, nil)
 
 	if err := syscall.Symlink("target", mntDir+"/link"); err != nil {
 		t.Fatalf("Symlink: %v", err)
@@ -231,7 +227,7 @@ func TestReaddirplusParallel(t *testing.T) {
 
 	oneSec := time.Second
 	names := map[string]int64{}
-	mntDir, _, clean := testMount(t, root, &Options{
+	mntDir, _ := testMount(t, root, &Options{
 		FirstAutomaticIno: 1,
 		EntryTimeout:      &oneSec,
 		AttrTimeout:       &oneSec,
@@ -252,7 +248,6 @@ func TestReaddirplusParallel(t *testing.T) {
 			}
 		},
 	})
-	defer clean()
 
 	read := func() (map[string]int64, error) {
 		es, err := os.ReadDir(mntDir)

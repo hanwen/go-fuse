@@ -16,8 +16,7 @@ import (
 func TestReadonlyCreate(t *testing.T) {
 	root := &Inode{}
 
-	mntDir, _, clean := testMount(t, root, nil)
-	defer clean()
+	mntDir, _ := testMount(t, root, nil)
 
 	_, err := syscall.Creat(mntDir+"/test", 0644)
 	if want := syscall.EROFS; want != err {
@@ -28,7 +27,7 @@ func TestReadonlyCreate(t *testing.T) {
 func TestDefaultPermissions(t *testing.T) {
 	root := &Inode{}
 
-	mntDir, _, clean := testMount(t, root, &Options{
+	mntDir, _ := testMount(t, root, &Options{
 		OnAdd: func(ctx context.Context) {
 			dir := root.NewPersistentInode(ctx, &Inode{}, StableAttr{Mode: syscall.S_IFDIR})
 			file := root.NewPersistentInode(ctx, &Inode{}, StableAttr{Mode: syscall.S_IFREG})
@@ -37,7 +36,6 @@ func TestDefaultPermissions(t *testing.T) {
 			root.AddChild("file", file, false)
 		},
 	})
-	defer clean()
 
 	for k, v := range map[string]uint32{
 		"dir":  fuse.S_IFDIR | 0755,

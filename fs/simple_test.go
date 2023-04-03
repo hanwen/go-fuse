@@ -46,7 +46,7 @@ func (tc *testCase) writeOrig(path, content string, mode os.FileMode) {
 	}
 }
 
-func (tc *testCase) Clean() {
+func (tc *testCase) clean() {
 	if err := tc.server.Unmount(); err != nil {
 		tc.Fatal(err)
 	}
@@ -130,12 +130,13 @@ func newTestCase(t *testing.T, opts *testOptions) *testCase {
 	if err := tc.server.WaitMount(); err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(tc.clean)
+
 	return tc
 }
 
 func TestBasic(t *testing.T) {
 	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
-	defer tc.Clean()
 
 	tc.writeOrig("file", "hello", 0644)
 
@@ -169,15 +170,10 @@ func TestFileFdLeak(t *testing.T) {
 		attrCache:     true,
 		entryCache:    true,
 	})
-	defer func() {
-		if tc != nil {
-			tc.Clean()
-		}
-	}()
 
 	posixtest.FdLeak(t, tc.mntDir)
 
-	tc.Clean()
+	tc.clean()
 	bridge := tc.rawFS.(*rawBridge)
 	tc = nil
 
@@ -188,7 +184,6 @@ func TestFileFdLeak(t *testing.T) {
 
 func TestNotifyEntry(t *testing.T) {
 	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
-	defer tc.Clean()
 
 	orig := tc.origDir + "/file"
 	fn := tc.mntDir + "/file"
@@ -221,7 +216,6 @@ func TestNotifyEntry(t *testing.T) {
 
 func TestReadDirStress(t *testing.T) {
 	tc := newTestCase(t, &testOptions{suppressDebug: true, attrCache: true, entryCache: true})
-	defer tc.Clean()
 
 	// Create 110 entries
 	for i := 0; i < 110; i++ {
@@ -262,7 +256,6 @@ func TestReadDirStress(t *testing.T) {
 // runs, we may see spurious differences between the two statfs() calls.
 func TestStatFs(t *testing.T) {
 	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
-	defer tc.Clean()
 
 	empty := syscall.Statfs_t{}
 	orig := empty
@@ -290,7 +283,6 @@ func TestGetAttrParallel(t *testing.T) {
 	// (f)stat in parallel don't lead to fstat on closed files.
 	// We can only test that if we switch off caching
 	tc := newTestCase(t, &testOptions{suppressDebug: true})
-	defer tc.Clean()
 
 	N := 100
 
@@ -331,7 +323,6 @@ func TestGetAttrParallel(t *testing.T) {
 
 func TestMknod(t *testing.T) {
 	tc := newTestCase(t, &testOptions{})
-	defer tc.Clean()
 
 	modes := map[string]uint32{
 		"regular": syscall.S_IFREG,
@@ -396,7 +387,6 @@ func TestPosix(t *testing.T) {
 				entryCache:    true,
 				enableLocks:   true,
 			})
-			defer tc.Clean()
 
 			fn(t, tc.mntDir)
 		})
@@ -424,7 +414,6 @@ func TestOpenDirectIO(t *testing.T) {
 	}
 
 	tc := newTestCase(t, &opts)
-	defer tc.Clean()
 	posixtest.DirectIO(t, tc.mntDir)
 }
 
@@ -440,7 +429,6 @@ func TestOpenDirectIO(t *testing.T) {
 // distributions, and tmpfs does not reuse inode numbers, hiding the problem.
 func TestFsstress(t *testing.T) {
 	tc := newTestCase(t, &testOptions{suppressDebug: true, attrCache: true, entryCache: true})
-	defer tc.Clean()
 
 	{
 		old := runtime.GOMAXPROCS(100)
@@ -653,7 +641,6 @@ func TestFsstress(t *testing.T) {
 func TestStaleHardlinks(t *testing.T) {
 	// Disable all caches we can disable
 	tc := newTestCase(t, &testOptions{attrCache: false, entryCache: false})
-	defer tc.Clean()
 
 	// "link0" is original file
 	link0 := tc.mntDir + "/link0"

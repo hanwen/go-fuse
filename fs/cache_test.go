@@ -92,8 +92,8 @@ func (r *keepCacheRoot) OnAdd(ctx context.Context) {
 // change content but no metadata.
 func TestKeepCache(t *testing.T) {
 	root := &keepCacheRoot{}
-	mntDir, _, clean := testMount(t, root, nil)
-	defer clean()
+	mntDir, _ := testMount(t, root, nil)
+
 	c1, err := ioutil.ReadFile(mntDir + "/keep")
 	if err != nil {
 		t.Fatalf("read keep 1: %v", err)
