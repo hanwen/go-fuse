@@ -28,13 +28,7 @@ func (d *truncatableFile) Truncate(file nodefs.File, size uint64, context *fuse.
 // TestNilFileTruncation verifies that the FUSE server process does not
 // crash when file truncation is performed on nil file handles.
 func TestNilFileTruncation(t *testing.T) {
-	dir := testutil.TempDir()
-	defer func() {
-		err := os.Remove(dir)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}()
+	dir := t.TempDir()
 
 	root := nodefs.NewDefaultNode()
 	opts := nodefs.NewOptions()

@@ -123,8 +123,7 @@ func TestFlockInvoked(t *testing.T) {
 		t.Skip("flock command not found.")
 	}
 
-	dir := testutil.TempDir()
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	opts := &nodefs.Options{
 		Owner: fuse.CurrentOwner(),
@@ -188,17 +187,8 @@ func TestNoLockSupport(t *testing.T) {
 		t.Skip("flock command not found.")
 	}
 
-	tmp, err := ioutil.TempDir("", "TestNoLockSupport")
-	if err != nil {
-		t.Fatal(err)
-	}
-	mnt, err := ioutil.TempDir("", "TestNoLockSupport")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	defer os.RemoveAll(tmp)
-	defer os.RemoveAll(mnt)
+	tmp := t.TempDir()
+	mnt := t.TempDir()
 
 	opts := &nodefs.Options{
 		Owner: fuse.CurrentOwner(),

@@ -52,13 +52,7 @@ func (d *DataNode) Read(_ nodefs.File, dest []byte, off int64, _ *fuse.Context) 
 
 // TestCacheControl verifies that FUSE server process can store/retrieve kernel data cache.
 func TestCacheControl(t *testing.T) {
-	dir := testutil.TempDir()
-	defer func() {
-		err := os.Remove(dir)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}()
+	dir := t.TempDir()
 
 	// setup a filesystem with 1 file
 	root := nodefs.NewDefaultNode()

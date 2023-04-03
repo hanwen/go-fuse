@@ -16,8 +16,7 @@ import (
 )
 
 func TestDefaultNodeGetAttr(t *testing.T) {
-	dir := testutil.TempDir()
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	opts := &nodefs.Options{
 		// Note: defaultNode.GetAttr() calling file.GetAttr() is only useful if

@@ -61,7 +61,7 @@ func (n *rootNode) Lookup(out *fuse.Attr, name string, context *fuse.Context) (*
 }
 
 func TestUpdateNode(t *testing.T) {
-	dir := testutil.TempDir()
+	dir := t.TempDir()
 	root := &rootNode{
 		Node:    nodefs.NewDefaultNode(),
 		backing: map[string]string{"a": "aaa"},

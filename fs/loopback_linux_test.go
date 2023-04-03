@@ -301,7 +301,7 @@ func waitMount(mnt string) error {
 func TestParallelDiropsHang(t *testing.T) {
 	// We do NOT want to use newTestCase() here because we need to know the
 	// mnt path before the filesystem is mounted
-	dir := testutil.TempDir()
+	dir := t.TempDir()
 	orig := dir + "/orig"
 	mnt := dir + "/mnt"
 	if err := os.Mkdir(orig, 0755); err != nil {
@@ -310,7 +310,6 @@ func TestParallelDiropsHang(t *testing.T) {
 	if err := os.Mkdir(mnt, 0755); err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(dir)
 
 	// Unblock the goroutines onces the mount shows up in /proc/self/mounts
 	wait := make(chan struct{})
