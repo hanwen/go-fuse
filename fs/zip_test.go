@@ -59,10 +59,7 @@ func TestZipFS(t *testing.T) {
 	}
 
 	root := &zipRoot{zr: r}
-	mntDir, err := ioutil.TempDir("", "ZipFS")
-	if err != nil {
-		t.Fatal(err)
-	}
+	mntDir := t.TempDir()
 	server, err := fs.Mount(mntDir, root, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -108,10 +105,7 @@ func TestZipFSOnAdd(t *testing.T) {
 	zr := &zipRoot{zr: r}
 
 	root := &fs.Inode{}
-	mnt, err := ioutil.TempDir("", "ZipFS")
-	if err != nil {
-		t.Fatal(err)
-	}
+	mnt := t.TempDir()
 	server, err := fs.Mount(mnt, root, &fs.Options{
 		OnAdd: func(ctx context.Context) {
 			root.AddChild("sub",

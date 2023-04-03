@@ -79,11 +79,7 @@ func TestForget(t *testing.T) {
 		EntryTimeout:      &sec,
 	}
 	options.Debug = testutil.VerboseTest()
-	dir, err := ioutil.TempDir("", "TestForget")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	rawFS := NewNodeFS(root, options)
 	server, err := fuse.NewServer(rawFS, dir, &options.MountOptions)
