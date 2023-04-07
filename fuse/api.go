@@ -223,6 +223,11 @@ type MountOptions struct {
 	// you must implement the GetLk/SetLk/SetLkw methods.
 	EnableLocks bool
 
+	// If set, all Readlink return values are cached, and filesystems
+	// must use content notification to force a new Readlink
+	// call.
+	EnableSymlinkCaching bool
+
 	// If set, ask kernel not to do automatic data cache invalidation.
 	// The filesystem is fully responsible for invalidating data cache.
 	ExplicitDataCacheControl bool
