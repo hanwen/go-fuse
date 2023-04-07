@@ -30,9 +30,11 @@ type fileEntry struct {
 	mu sync.Mutex
 
 	// Directory
-	dirStream   DirStream
-	hasOverflow bool
-	overflow    fuse.DirEntry
+	dirStream     DirStream
+	hasOverflow   bool
+	overflow      fuse.DirEntry
+	overflowErrno syscall.Errno
+
 	// dirOffset is the current location in the directory (see `telldir(3)`).
 	// The value is equivalent to `d_off` (see `getdents(2)`) of the last
 	// directory entry sent to the kernel so far.
@@ -1000,17 +1002,30 @@ func (b *rawBridge) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out *fus
 
 	if f.hasOverflow {
 		// always succeeds.
-		out.AddDirEntry(f.overflow)
 		f.hasOverflow = false
+		if f.overflowErrno != 0 {
+			return errnoToStatus(f.overflowErrno)
+		}
+
+		out.AddDirEntry(f.overflow)
 		f.dirOffset++
 	}
 
+	first := true
 	for f.dirStream.HasNext() {
 		e, errno := f.dirStream.Next()
 
 		if errno != 0 {
-			return errnoToStatus(errno)
+			if first {
+				return errnoToStatus(errno)
+			} else {
+				f.hasOverflow = true
+				f.overflowErrno = errno
+				return fuse.OK
+			}
 		}
+
+		first = false
 		if !out.AddDirEntry(e) {
 			f.overflow = e
 			f.hasOverflow = true
@@ -1036,20 +1051,30 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 	}
 
 	ctx := &fuse.Context{Caller: input.Caller, Cancel: cancel}
+
+	first := true
 	for f.dirStream.HasNext() || f.hasOverflow {
 		var e fuse.DirEntry
 		var errno syscall.Errno
 
 		if f.hasOverflow {
 			e = f.overflow
+			errno = f.overflowErrno
 			f.hasOverflow = false
 		} else {
 			e, errno = f.dirStream.Next()
 		}
 
 		if errno != 0 {
-			return errnoToStatus(errno)
+			if first {
+				return errnoToStatus(errno)
+			} else {
+				f.overflowErrno = errno
+				f.hasOverflow = true
+				return fuse.OK
+			}
 		}
+		first = false
 
 		entryOut := out.AddDirLookupEntry(e)
 		if entryOut == nil {
