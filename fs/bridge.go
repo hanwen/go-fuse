@@ -766,12 +766,13 @@ func (b *rawBridge) registerFile(n *Inode, f FileHandle, flags uint32) uint32 {
 func (b *rawBridge) Read(cancel <-chan struct{}, input *fuse.ReadIn, buf []byte) (fuse.ReadResult, fuse.Status) {
 	n, f := b.inode(input.NodeId, input.Fh)
 
+	ctx := &fuse.Context{Caller: input.Caller, Cancel: cancel}
 	if fops, ok := n.ops.(NodeReader); ok {
-		res, errno := fops.Read(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, buf, int64(input.Offset))
+		res, errno := fops.Read(ctx, f.file, buf, int64(input.Offset))
 		return res, errnoToStatus(errno)
 	}
 	if fr, ok := f.file.(FileReader); ok {
-		res, errno := fr.Read(&fuse.Context{Caller: input.Caller, Cancel: cancel}, buf, int64(input.Offset))
+		res, errno := fr.Read(ctx, buf, int64(input.Offset))
 		return res, errnoToStatus(errno)
 	}
 
@@ -781,32 +782,35 @@ func (b *rawBridge) Read(cancel <-chan struct{}, input *fuse.ReadIn, buf []byte)
 func (b *rawBridge) GetLk(cancel <-chan struct{}, input *fuse.LkIn, out *fuse.LkOut) fuse.Status {
 	n, f := b.inode(input.NodeId, input.Fh)
 
+	ctx := &fuse.Context{Caller: input.Caller, Cancel: cancel}
 	if lops, ok := n.ops.(NodeGetlker); ok {
-		return errnoToStatus(lops.Getlk(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.Owner, &input.Lk, input.LkFlags, &out.Lk))
+		return errnoToStatus(lops.Getlk(ctx, f.file, input.Owner, &input.Lk, input.LkFlags, &out.Lk))
 	}
 	if gl, ok := f.file.(FileGetlker); ok {
-		return errnoToStatus(gl.Getlk(&fuse.Context{Caller: input.Caller, Cancel: cancel}, input.Owner, &input.Lk, input.LkFlags, &out.Lk))
+		return errnoToStatus(gl.Getlk(ctx, input.Owner, &input.Lk, input.LkFlags, &out.Lk))
 	}
 	return fuse.ENOTSUP
 }
 
 func (b *rawBridge) SetLk(cancel <-chan struct{}, input *fuse.LkIn) fuse.Status {
 	n, f := b.inode(input.NodeId, input.Fh)
+	ctx := &fuse.Context{Caller: input.Caller, Cancel: cancel}
 	if lops, ok := n.ops.(NodeSetlker); ok {
-		return errnoToStatus(lops.Setlk(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.Owner, &input.Lk, input.LkFlags))
+		return errnoToStatus(lops.Setlk(ctx, f.file, input.Owner, &input.Lk, input.LkFlags))
 	}
 	if sl, ok := f.file.(FileSetlker); ok {
-		return errnoToStatus(sl.Setlk(&fuse.Context{Caller: input.Caller, Cancel: cancel}, input.Owner, &input.Lk, input.LkFlags))
+		return errnoToStatus(sl.Setlk(ctx, input.Owner, &input.Lk, input.LkFlags))
 	}
 	return fuse.ENOTSUP
 }
 func (b *rawBridge) SetLkw(cancel <-chan struct{}, input *fuse.LkIn) fuse.Status {
 	n, f := b.inode(input.NodeId, input.Fh)
+	ctx := &fuse.Context{Caller: input.Caller, Cancel: cancel}
 	if lops, ok := n.ops.(NodeSetlkwer); ok {
-		return errnoToStatus(lops.Setlkw(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.Owner, &input.Lk, input.LkFlags))
+		return errnoToStatus(lops.Setlkw(ctx, f.file, input.Owner, &input.Lk, input.LkFlags))
 	}
 	if sl, ok := f.file.(FileSetlkwer); ok {
-		return errnoToStatus(sl.Setlkw(&fuse.Context{Caller: input.Caller, Cancel: cancel}, input.Owner, &input.Lk, input.LkFlags))
+		return errnoToStatus(sl.Setlkw(ctx, input.Owner, &input.Lk, input.LkFlags))
 	}
 	return fuse.ENOTSUP
 }
@@ -819,10 +823,11 @@ func (b *rawBridge) Release(cancel <-chan struct{}, input *fuse.ReleaseIn) {
 
 	f.wg.Wait()
 
+	ctx := &fuse.Context{Caller: input.Caller, Cancel: cancel}
 	if r, ok := n.ops.(NodeReleaser); ok {
-		r.Release(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file)
+		r.Release(ctx, f.file)
 	} else if r, ok := f.file.(FileReleaser); ok {
-		r.Release(&fuse.Context{Caller: input.Caller, Cancel: cancel})
+		r.Release(ctx)
 	}
 
 	b.mu.Lock()
@@ -868,12 +873,13 @@ func (b *rawBridge) releaseFileEntry(nid uint64, fh uint64) (*Inode, *fileEntry)
 func (b *rawBridge) Write(cancel <-chan struct{}, input *fuse.WriteIn, data []byte) (written uint32, status fuse.Status) {
 	n, f := b.inode(input.NodeId, input.Fh)
 
+	ctx := &fuse.Context{Caller: input.Caller, Cancel: cancel}
 	if wr, ok := n.ops.(NodeWriter); ok {
-		w, errno := wr.Write(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, data, int64(input.Offset))
+		w, errno := wr.Write(ctx, f.file, data, int64(input.Offset))
 		return w, errnoToStatus(errno)
 	}
 	if fr, ok := f.file.(FileWriter); ok {
-		w, errno := fr.Write(&fuse.Context{Caller: input.Caller, Cancel: cancel}, data, int64(input.Offset))
+		w, errno := fr.Write(ctx, data, int64(input.Offset))
 		return w, errnoToStatus(errno)
 	}
 
@@ -882,33 +888,36 @@ func (b *rawBridge) Write(cancel <-chan struct{}, input *fuse.WriteIn, data []by
 
 func (b *rawBridge) Flush(cancel <-chan struct{}, input *fuse.FlushIn) fuse.Status {
 	n, f := b.inode(input.NodeId, input.Fh)
+	ctx := &fuse.Context{Caller: input.Caller, Cancel: cancel}
 	if fl, ok := n.ops.(NodeFlusher); ok {
-		return errnoToStatus(fl.Flush(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file))
+		return errnoToStatus(fl.Flush(ctx, f.file))
 	}
 	if fl, ok := f.file.(FileFlusher); ok {
-		return errnoToStatus(fl.Flush(&fuse.Context{Caller: input.Caller, Cancel: cancel}))
+		return errnoToStatus(fl.Flush(ctx))
 	}
 	return 0
 }
 
 func (b *rawBridge) Fsync(cancel <-chan struct{}, input *fuse.FsyncIn) fuse.Status {
 	n, f := b.inode(input.NodeId, input.Fh)
+	ctx := &fuse.Context{Caller: input.Caller, Cancel: cancel}
 	if fs, ok := n.ops.(NodeFsyncer); ok {
-		return errnoToStatus(fs.Fsync(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.FsyncFlags))
+		return errnoToStatus(fs.Fsync(ctx, f.file, input.FsyncFlags))
 	}
 	if fs, ok := f.file.(FileFsyncer); ok {
-		return errnoToStatus(fs.Fsync(&fuse.Context{Caller: input.Caller, Cancel: cancel}, input.FsyncFlags))
+		return errnoToStatus(fs.Fsync(ctx, input.FsyncFlags))
 	}
 	return fuse.ENOTSUP
 }
 
 func (b *rawBridge) Fallocate(cancel <-chan struct{}, input *fuse.FallocateIn) fuse.Status {
 	n, f := b.inode(input.NodeId, input.Fh)
+	ctx := &fuse.Context{Caller: input.Caller, Cancel: cancel}
 	if a, ok := n.ops.(NodeAllocater); ok {
-		return errnoToStatus(a.Allocate(&fuse.Context{Caller: input.Caller, Cancel: cancel}, f.file, input.Offset, input.Length, input.Mode))
+		return errnoToStatus(a.Allocate(ctx, f.file, input.Offset, input.Length, input.Mode))
 	}
 	if a, ok := f.file.(FileAllocater); ok {
-		return errnoToStatus(a.Allocate(&fuse.Context{Caller: input.Caller, Cancel: cancel}, input.Offset, input.Length, input.Mode))
+		return errnoToStatus(a.Allocate(ctx, input.Offset, input.Length, input.Mode))
 	}
 	return fuse.ENOTSUP
 }
