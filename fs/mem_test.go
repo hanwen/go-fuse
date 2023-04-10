@@ -19,6 +19,7 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fuse"
 	"github.com/hanwen/go-fuse/v2/internal/testutil"
+	"github.com/hanwen/go-fuse/v2/posixtest"
 )
 
 func testMount(t *testing.T, root InodeEmbedder, opts *Options) (string, *fuse.Server) {
@@ -88,6 +89,28 @@ func TestRootInode(t *testing.T) {
 	} else if st.Ino != rootIno {
 		t.Fatalf("Got Lstat inode %d, want %d", st.Ino, rootIno)
 	}
+}
+
+func TestLseekDefault(t *testing.T) {
+	data := []byte("hello")
+	root := &Inode{}
+	mntDir, _ := testMount(t, root, &Options{
+		FirstAutomaticIno: 1,
+		OnAdd: func(ctx context.Context) {
+			n := root.EmbeddedInode()
+			ch := n.NewPersistentInode(
+				ctx,
+				&MemRegularFile{
+					Data: data,
+					Attr: fuse.Attr{
+						Mode: 0464,
+					},
+				}, StableAttr{})
+			n.AddChild("file.bin", ch, false)
+		},
+	})
+
+	posixtest.LseekHoleSeeksToEOF(t, mntDir)
 }
 
 func TestDataFile(t *testing.T) {

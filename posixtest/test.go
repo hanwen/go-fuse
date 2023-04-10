@@ -33,6 +33,7 @@ var All = map[string]func(*testing.T, string){
 	"ParallelFileOpen":           ParallelFileOpen,
 	"Link":                       Link,
 	"LinkUnlinkRename":           LinkUnlinkRename,
+	"LseekHoleSeeksToEOF":        LseekHoleSeeksToEOF,
 	"RenameOverwriteDestNoExist": RenameOverwriteDestNoExist,
 	"RenameOverwriteDestExist":   RenameOverwriteDestExist,
 	"RenameOpenDir":              RenameOpenDir,
@@ -696,5 +697,26 @@ func FcntlFlockLocksFile(t *testing.T, mnt string) {
 	}
 	if err := syscall.FcntlFlock(f2.Fd(), syscall.F_SETLK, &rlk); err != syscall.EAGAIN {
 		t.Errorf("FcntlFlock returned %v, expected EAGAIN", err)
+	}
+}
+
+func LseekHoleSeeksToEOF(t *testing.T, mnt string) {
+	fn := filepath.Join(mnt, "file.bin")
+	content := bytes.Repeat([]byte("abcxyz\n"), 1024)
+	if err := ioutil.WriteFile(fn, content, 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	fd, err := syscall.Open(fn, syscall.O_RDONLY, 0644)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer syscall.Close(fd)
+
+	off, err := unix.Seek(fd, int64(len(content)/2), unix.SEEK_HOLE)
+	if err != nil {
+		t.Fatalf("Seek: %v", err)
+	} else if off != int64(len(content)) {
+		t.Errorf("got offset %d, want %d", off, len(content))
 	}
 }
