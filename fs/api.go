@@ -409,14 +409,14 @@ type NodeLookuper interface {
 }
 
 // OpenDir opens a directory Inode for reading its
-// contents. The actual reading is driven from ReadDir, so
+// contents. The actual reading is driven from Readdir, so
 // this method is just for performing sanity/permission
 // checks. The default is to return success.
 type NodeOpendirer interface {
 	Opendir(ctx context.Context) syscall.Errno
 }
 
-// ReadDir opens a stream of directory entries.
+// Readdir opens a stream of directory entries.
 //
 // Readdir essentiallly returns a list of strings, and it is allowed
 // for Readdir to return different results from Lookup. For example,
