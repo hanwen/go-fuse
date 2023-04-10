@@ -22,6 +22,30 @@
       },
       "revId": "0df03d817445c1ee2975cb1ab58a6413f23ad4bb",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "39b2d554_a6b22396",
+        "filename": "fs/zipfs_example_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 113,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-04-10T09:28:44Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "48c160d3_12242eb6",
+      "range": {
+        "startLine": 113,
+        "startChar": 1,
+        "endLine": 113,
+        "endChar": 2
+      },
+      "revId": "0df03d817445c1ee2975cb1ab58a6413f23ad4bb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
