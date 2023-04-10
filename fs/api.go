@@ -416,7 +416,7 @@ type NodeOpendirer interface {
 	Opendir(ctx context.Context) syscall.Errno
 }
 
-// ReadDir opens a stream of directory entries.
+// Readdir opens a stream of directory entries.
 //
 // Readdir essentiallly returns a list of strings, and it is allowed
 // for Readdir to return different results from Lookup. For example,
