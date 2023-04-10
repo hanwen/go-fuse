@@ -346,16 +346,27 @@ func (n *unionFSNode) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno)
 		// deepest root first.
 		readRoot(root.roots[len(root.roots)-i-1], dir, names)
 	}
-	result := make([]fuse.DirEntry, 0, len(names))
+	result := make([]fuse.DirEntry, 0, 2*len(names))
+	maxIdx := -1
+	maxName := ""
 	for nm, mode := range names {
 		marker := filePathHash(filepath.Join(dir, nm))
 		if _, ok := markers[marker]; ok {
 			continue
 		}
+		if nm > maxName {
+			maxName = nm
+			maxIdx = len(result)
+		}
+
 		result = append(result, fuse.DirEntry{
 			Name: nm,
 			Mode: mode,
 		})
+	}
+
+	if len(result) > 0 {
+		result = append(result[maxIdx:], result[:maxIdx]...)
 	}
 
 	return fs.NewListDirStream(result), 0
