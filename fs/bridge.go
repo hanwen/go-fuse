@@ -1153,21 +1153,33 @@ func (b *rawBridge) CopyFileRange(cancel <-chan struct{}, in *fuse.CopyFileRange
 func (b *rawBridge) Lseek(cancel <-chan struct{}, in *fuse.LseekIn, out *fuse.LseekOut) fuse.Status {
 	n, f := b.inode(in.NodeId, in.Fh)
 
+	ctx := &fuse.Context{Caller: in.Caller, Cancel: cancel}
+
 	ls, ok := n.ops.(NodeLseeker)
 	if ok {
-		off, errno := ls.Lseek(&fuse.Context{Caller: in.Caller, Cancel: cancel},
+		off, errno := ls.Lseek(ctx,
 			f.file, in.Offset, in.Whence)
 		out.Offset = off
 		return errnoToStatus(errno)
 	}
 	if fs, ok := f.file.(FileLseeker); ok {
-		off, errno := fs.Lseek(&fuse.Context{Caller: in.Caller, Cancel: cancel}, in.Offset, in.Whence)
+		off, errno := fs.Lseek(ctx, in.Offset, in.Whence)
 		out.Offset = off
 		return errnoToStatus(errno)
 	}
 
-	if in.Whence == _SEEK_DATA || in.Whence == _SEEK_HOLE {
+	if in.Whence == _SEEK_DATA {
 		out.Offset = in.Offset
+		return fuse.OK
+	}
+
+	if in.Whence == _SEEK_HOLE {
+		var attr fuse.AttrOut
+		if s := b.getattr(ctx, n, nil, &attr); s != 0 {
+			return errnoToStatus(s)
+		}
+
+		out.Offset = attr.Size
 		return fuse.OK
 	}
 
