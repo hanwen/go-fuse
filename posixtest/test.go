@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -45,6 +46,7 @@ var All = map[string]func(*testing.T, string){
 	"DirSeek":                    DirSeek,
 	"FcntlFlockSetLk":            FcntlFlockSetLk,
 	"FcntlFlockLocksFile":        FcntlFlockLocksFile,
+	"UnixSocket":                 UnixSocket,
 }
 
 func DirectIO(t *testing.T, mnt string) {
@@ -719,4 +721,37 @@ func LseekHoleSeeksToEOF(t *testing.T, mnt string) {
 	} else if off != int64(len(content)) {
 		t.Errorf("got offset %d, want %d", off, len(content))
 	}
+}
+
+func UnixSocket(t *testing.T, mnt string) {
+	want := "hello"
+	fn := filepath.Join(mnt, "sock")
+	l, err := net.Listen("unix", fn)
+	if err != nil {
+		t.Fatalf("Listen: %v", err)
+	}
+	go func() {
+		conn, err := l.Accept()
+		if err != nil {
+			return
+		}
+		conn.Write([]byte(want))
+		conn.Close()
+	}()
+	c, err := net.Dial("unix", fn)
+	if err != nil {
+		t.Fatalf("Dial: %v", err)
+	}
+
+	buf := make([]byte, 1024)
+	n, err := c.Read(buf)
+	if err != nil {
+		t.Fatalf("Read: %v", err)
+	}
+	got := string(buf[:n])
+	if got != want {
+		t.Errorf("got %q want %q", got, want)
+	}
+	c.Close()
+	l.Close()
 }
