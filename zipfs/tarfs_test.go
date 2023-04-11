@@ -67,8 +67,7 @@ func TestTar(t *testing.T) {
 
 	root := &tarRoot{rc: &addClose{buf}}
 
-	mnt := testutil.TempDir()
-	defer os.Remove(mnt)
+	mnt := t.TempDir()
 	opts := &fs.Options{}
 	opts.Debug = testutil.VerboseTest()
 	s, err := fs.Mount(mnt, root, opts)

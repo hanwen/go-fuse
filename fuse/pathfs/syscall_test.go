@@ -9,14 +9,16 @@ package pathfs
 
 import (
 	"os"
+	"path/filepath"
 	"reflect"
 	"syscall"
 	"testing"
 )
 
 func TestSysUtimensat(t *testing.T) {
-	symlink := "/tmp/TestSysUtimensat"
-	os.Remove(symlink)
+	dir := t.TempDir()
+
+	symlink := filepath.Join(dir, "symlink")
 	err := os.Symlink("/nonexisting/file", symlink)
 	if err != nil {
 		t.Fatal(err)

@@ -55,8 +55,7 @@ func (f *dioFile) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFl
 // this tests FOPEN_DIRECT_IO (as opposed to O_DIRECTIO)
 func TestFUSEDirectIO(t *testing.T) {
 	root := &dioRoot{}
-	mntDir, server, clean := testMount(t, root, nil)
-	defer clean()
+	mntDir, server := testMount(t, root, nil)
 
 	f, err := os.Open(mntDir + "/file")
 	if err != nil {

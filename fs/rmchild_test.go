@@ -16,7 +16,7 @@ import (
 func TestRmChildParallel(t *testing.T) {
 	want := "hello"
 	root := &Inode{}
-	_, _, clean := testMount(t, root, &Options{
+	testMount(t, root, &Options{
 		FirstAutomaticIno: 1,
 		OnAdd: func(ctx context.Context) {
 			n := root.EmbeddedInode()
@@ -53,5 +53,4 @@ func TestRmChildParallel(t *testing.T) {
 			wg.Wait()
 		},
 	})
-	defer clean()
 }

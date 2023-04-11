@@ -101,7 +101,9 @@ func doInit(server *Server, req *request) {
 	if server.opts.EnableLocks {
 		server.kernelSettings.Flags |= CAP_FLOCK_LOCKS | CAP_POSIX_LOCKS
 	}
-
+	if server.opts.EnableSymlinkCaching {
+		server.kernelSettings.Flags |= CAP_CACHE_SYMLINKS
+	}
 	if server.opts.EnableAcl {
 		server.kernelSettings.Flags |= CAP_POSIX_ACL
 	}

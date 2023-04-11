@@ -16,7 +16,6 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fuse"
 	"github.com/hanwen/go-fuse/v2/fuse/nodefs"
-	"github.com/hanwen/go-fuse/v2/internal/testutil"
 )
 
 var xattrGolden = map[string][]byte{
@@ -103,7 +102,7 @@ func (fs *XAttrTestFs) RemoveXAttr(name string, attr string, context *fuse.Conte
 
 func xattrTestCase(t *testing.T, nm string, m map[string][]byte) (mountPoint string, cleanup func()) {
 	xfs := NewXAttrFs(nm, m)
-	mountPoint = testutil.TempDir()
+	mountPoint = t.TempDir()
 
 	nfs := NewPathNodeFs(xfs, nil)
 	state, _, err := nodefs.MountRoot(mountPoint, nfs.Root(),
@@ -115,7 +114,6 @@ func xattrTestCase(t *testing.T, nm string, m map[string][]byte) (mountPoint str
 	go state.Serve()
 	return mountPoint, func() {
 		state.Unmount()
-		os.RemoveAll(mountPoint)
 	}
 }
 

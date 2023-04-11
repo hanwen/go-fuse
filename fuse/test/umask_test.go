@@ -34,7 +34,7 @@ func (fs *umaskFS) Mkdir(name string, mode uint32, context *fuse.Context) (code 
 }
 
 func TestUmask(t *testing.T) {
-	tmpDir := testutil.TempDir()
+	tmpDir := t.TempDir()
 	orig := tmpDir + "/orig"
 	mnt := tmpDir + "/mnt"
 

@@ -7,20 +7,25 @@ package fs
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"reflect"
+	"sync"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
 	"github.com/hanwen/go-fuse/v2/internal/testutil"
+	"github.com/hanwen/go-fuse/v2/posixtest"
 )
 
-func testMount(t *testing.T, root InodeEmbedder, opts *Options) (string, *fuse.Server, func()) {
+func testMount(t *testing.T, root InodeEmbedder, opts *Options) (string, *fuse.Server) {
 	t.Helper()
 
-	mntDir := testutil.TempDir()
+	mntDir := t.TempDir()
 	if opts == nil {
 		opts = &Options{
 			FirstAutomaticIno: 1,
@@ -32,20 +37,18 @@ func testMount(t *testing.T, root InodeEmbedder, opts *Options) (string, *fuse.S
 	if err != nil {
 		t.Fatal(err)
 	}
-	return mntDir, server, func() {
+	t.Cleanup(func() {
 		if err := server.Unmount(); err != nil {
 			t.Fatalf("testMount: Unmount failed: %v", err)
 		}
-		if err := syscall.Rmdir(mntDir); err != nil {
-			t.Errorf("testMount: Remove failed: %v", err)
-		}
-	}
+	})
+	return mntDir, server
 }
 
 func TestDefaultOwner(t *testing.T) {
 	want := "hello"
 	root := &Inode{}
-	mntDir, _, clean := testMount(t, root, &Options{
+	mntDir, _ := testMount(t, root, &Options{
 		FirstAutomaticIno: 1,
 		OnAdd: func(ctx context.Context) {
 			n := root.EmbeddedInode()
@@ -60,7 +63,6 @@ func TestDefaultOwner(t *testing.T) {
 		UID: 42,
 		GID: 43,
 	})
-	defer clean()
 
 	var st syscall.Stat_t
 	if err := syscall.Lstat(mntDir+"/file", &st); err != nil {
@@ -74,13 +76,12 @@ func TestRootInode(t *testing.T) {
 	var rootIno uint64 = 42
 	root := &Inode{}
 
-	mntDir, _, clean := testMount(t, root, &Options{
+	mntDir, _ := testMount(t, root, &Options{
 		RootStableAttr: &StableAttr{
 			Ino: rootIno,
 			Gen: 1,
 		},
 	})
-	defer clean()
 
 	var st syscall.Stat_t
 	if err := syscall.Lstat(mntDir, &st); err != nil {
@@ -90,10 +91,32 @@ func TestRootInode(t *testing.T) {
 	}
 }
 
+func TestLseekDefault(t *testing.T) {
+	data := []byte("hello")
+	root := &Inode{}
+	mntDir, _ := testMount(t, root, &Options{
+		FirstAutomaticIno: 1,
+		OnAdd: func(ctx context.Context) {
+			n := root.EmbeddedInode()
+			ch := n.NewPersistentInode(
+				ctx,
+				&MemRegularFile{
+					Data: data,
+					Attr: fuse.Attr{
+						Mode: 0464,
+					},
+				}, StableAttr{})
+			n.AddChild("file.bin", ch, false)
+		},
+	})
+
+	posixtest.LseekHoleSeeksToEOF(t, mntDir)
+}
+
 func TestDataFile(t *testing.T) {
 	want := "hello"
 	root := &Inode{}
-	mntDir, _, clean := testMount(t, root, &Options{
+	mntDir, _ := testMount(t, root, &Options{
 		FirstAutomaticIno: 1,
 		OnAdd: func(ctx context.Context) {
 			n := root.EmbeddedInode()
@@ -109,7 +132,6 @@ func TestDataFile(t *testing.T) {
 			n.AddChild("file", ch, false)
 		},
 	})
-	defer clean()
 
 	var st syscall.Stat_t
 	if err := syscall.Lstat(mntDir+"/file", &st); err != nil {
@@ -161,7 +183,7 @@ func TestDataFileLargeRead(t *testing.T) {
 
 	data := make([]byte, 256*1024)
 	rand.Read(data[:])
-	mntDir, _, clean := testMount(t, root, &Options{
+	mntDir, _ := testMount(t, root, &Options{
 		FirstAutomaticIno: 1,
 		OnAdd: func(ctx context.Context) {
 			n := root.EmbeddedInode()
@@ -177,7 +199,6 @@ func TestDataFileLargeRead(t *testing.T) {
 			n.AddChild("file", ch, false)
 		},
 	})
-	defer clean()
 	got, err := ioutil.ReadFile(mntDir + "/file")
 	if err != nil {
 		t.Fatalf("ReadFile: %v", err)
@@ -204,8 +225,7 @@ func (s *SymlinkerRoot) Symlink(ctx context.Context, target, name string, out *f
 func TestDataSymlink(t *testing.T) {
 	root := &SymlinkerRoot{}
 
-	mntDir, _, clean := testMount(t, root, nil)
-	defer clean()
+	mntDir, _ := testMount(t, root, nil)
 
 	if err := syscall.Symlink("target", mntDir+"/link"); err != nil {
 		t.Fatalf("Symlink: %v", err)
@@ -216,4 +236,69 @@ func TestDataSymlink(t *testing.T) {
 	} else if want := "target"; got != want {
 		t.Errorf("Readlink: got %q want %q", got, want)
 	}
+}
+
+func TestReaddirplusParallel(t *testing.T) {
+	root := &Inode{}
+	N := 100
+	oneSec := time.Second
+	names := map[string]int64{}
+	mntDir, _ := testMount(t, root, &Options{
+		FirstAutomaticIno: 1,
+		EntryTimeout:      &oneSec,
+		AttrTimeout:       &oneSec,
+		OnAdd: func(ctx context.Context) {
+			n := root.EmbeddedInode()
+
+			for i := 0; i < N; i++ {
+				ch := n.NewPersistentInode(
+					ctx,
+					&MemRegularFile{
+						Data: bytes.Repeat([]byte{'x'}, i),
+					},
+					StableAttr{})
+
+				name := fmt.Sprintf("file%04d", i)
+				names[name] = int64(i)
+				n.AddChild(name, ch, false)
+			}
+		},
+	})
+
+	read := func() (map[string]int64, error) {
+		es, err := os.ReadDir(mntDir)
+		if err != nil {
+			return nil, err
+		}
+
+		r := map[string]int64{}
+		for _, e := range es {
+			inf, err := e.Info()
+			if err != nil {
+				return nil, err
+			}
+			r[e.Name()] = inf.Size()
+		}
+		return r, nil
+	}
+
+	var wg sync.WaitGroup
+	for i := 0; i < N; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			res, err := read()
+			if err != nil {
+				t.Errorf("readdir: %v", err)
+			}
+			if got, want := len(res), len(names); got != want {
+				t.Errorf("got %d want %d", got, want)
+				return
+			}
+			if !reflect.DeepEqual(res, names) {
+				t.Errorf("maps have different content")
+			}
+		}()
+	}
+	wg.Wait()
 }

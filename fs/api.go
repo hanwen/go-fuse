@@ -418,7 +418,10 @@ type NodeOpendirer interface {
 // for Readdir to return different results from Lookup. For example,
 // you can return nothing for Readdir ("ls my-fuse-mount" is empty),
 // while still implementing Lookup ("ls my-fuse-mount/a-specific-file"
-// shows a single file).
+// shows a single file). The DirStream returned must be deterministic;
+// a randomized result (e.g. due to map iteration) can lead to entries
+// disappearing if multiple processes read the same directory
+// concurrently.
 //
 // If a directory does not implement NodeReaddirer, a list of
 // currently known children from the tree is returned. This means that

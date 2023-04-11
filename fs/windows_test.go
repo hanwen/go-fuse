@@ -17,16 +17,8 @@ import (
 )
 
 func TestWindowsEmulations(t *testing.T) {
-	mntDir, err := ioutil.TempDir("", "ZipFS")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(mntDir)
-	origDir, err := ioutil.TempDir("", "ZipFS")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(origDir)
+	mntDir := t.TempDir()
+	origDir := t.TempDir()
 
 	rootData := &fs.LoopbackRoot{
 		NewNode: newWindowsNode,

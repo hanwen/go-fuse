@@ -9,11 +9,15 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"log"
+	"os"
 	"sync"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v2/internal/testutil"
 )
 
 type keepCacheFile struct {
@@ -92,8 +96,8 @@ func (r *keepCacheRoot) OnAdd(ctx context.Context) {
 // change content but no metadata.
 func TestKeepCache(t *testing.T) {
 	root := &keepCacheRoot{}
-	mntDir, _, clean := testMount(t, root, nil)
-	defer clean()
+	mntDir, _ := testMount(t, root, nil)
+
 	c1, err := ioutil.ReadFile(mntDir + "/keep")
 	if err != nil {
 		t.Fatalf("read keep 1: %v", err)
@@ -132,5 +136,105 @@ func TestKeepCache(t *testing.T) {
 
 	if bytes.Compare(nc1, nc2) == 0 {
 		t.Errorf("nokeep read 2 got %q want read 1 %q", c2, c1)
+	}
+}
+
+type countingSymlink struct {
+	Inode
+
+	mu        sync.Mutex
+	readCount int
+	data      []byte
+}
+
+var _ = (NodeGetattrer)((*countingSymlink)(nil))
+
+func (l *countingSymlink) Getattr(ctx context.Context, fh FileHandle, out *fuse.AttrOut) syscall.Errno {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	out.Attr.Size = uint64(len(l.data))
+	return 0
+}
+
+var _ = (NodeReadlinker)((*countingSymlink)(nil))
+
+func (l *countingSymlink) Readlink(ctx context.Context) ([]byte, syscall.Errno) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.readCount++
+	return l.data, 0
+}
+
+func (l *countingSymlink) count() int {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.readCount
+}
+
+func TestSymlinkCaching(t *testing.T) {
+	mnt := t.TempDir()
+	want := "target"
+	link := countingSymlink{
+		data: []byte(want),
+	}
+	sz := len(link.data)
+	root := &Inode{}
+	dt := 10 * time.Millisecond
+	opts := &Options{
+		EntryTimeout: &dt,
+		AttrTimeout:  &dt,
+		OnAdd: func(ctx context.Context) {
+			root.AddChild("link",
+				root.NewPersistentInode(ctx, &link, StableAttr{Mode: syscall.S_IFLNK}), false)
+		},
+	}
+	opts.Debug = testutil.VerboseTest()
+	opts.EnableSymlinkCaching = true
+
+	server, err := Mount(mnt, root, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer server.Unmount()
+
+	for i := 0; i < 2; i++ {
+		if got, err := os.Readlink(mnt + "/link"); err != nil {
+			t.Fatal(err)
+		} else if got != want {
+			t.Fatalf("got %q want %q", got, want)
+		}
+	}
+
+	if c := link.count(); c != 1 {
+		t.Errorf("got %d want 1", c)
+	}
+
+	if errno := link.NotifyContent(0, int64(sz)); errno != 0 {
+		t.Fatalf("NotifyContent: %v", errno)
+	}
+	if _, err := os.Readlink(mnt + "/link"); err != nil {
+		t.Fatal(err)
+	}
+
+	if c := link.count(); c != 2 {
+		t.Errorf("got %d want 2", c)
+	}
+
+	// The actual test goes till here. The below is just to
+	// clarify behavior of the feature: changed attributes do not
+	// trigger reread, and the Attr.Size is used to truncate a
+	// previous read result.
+	link.mu.Lock()
+	link.data = []byte("x")
+	link.mu.Unlock()
+
+	time.Sleep((3 * dt) / 2)
+	if l, err := os.Readlink(mnt + "/link"); err != nil {
+		t.Fatal(err)
+	} else if l != want[:1] {
+		log.Printf("got %q want %q", l, want[:1])
+	}
+	if c := link.count(); c != 2 {
+		t.Errorf("got %d want 2", c)
 	}
 }
