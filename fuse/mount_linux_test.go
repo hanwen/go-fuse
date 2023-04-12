@@ -125,7 +125,9 @@ func mountCheckOptions(t *testing.T, opts MountOptions) (info mountinfo.Info) {
 		t.Errorf("Could not find mountpoint %q in /proc/self/mountinfo", mnt)
 	}
 	orig := *mounts[0]
-	t.Logf("full mountinfo: %#v", orig)
+	if testing.Verbose() {
+		t.Logf("full mountinfo: %#v", orig)
+	}
 	// We are only interested in some fields, as the others are arbitrary id numbers
 	// or contain random strings like "/tmp/TestDirectMount1126361240".
 	//
@@ -150,28 +152,38 @@ func mountCheckOptions(t *testing.T, opts MountOptions) (info mountinfo.Info) {
 // TestDirectMount checks that DirectMount and DirectMountStrict work and show the
 // same effective mount options in /proc/self/mounts
 func TestDirectMount(t *testing.T) {
-	opts := MountOptions{
-		Debug: true,
+	optsTable := []MountOptions{
+		{Debug: true},
+		{Debug: true, AllowOther: true},
+		{Debug: true, MaxWrite: 9999},
+		{Debug: true, FsName: "aaa"},
+		{Debug: true, Name: "bbb"},
+		{Debug: true, FsName: "ccc", Name: "ddd"},
 	}
-	// Without DirectMount - i.e. using fusermount
-	t.Log("Normal fusermount mount")
-	o1 := mountCheckOptions(t, opts)
-	// With DirectMount
-	t.Log("DirectMount")
-	opts.DirectMount = true
-	o2 := mountCheckOptions(t, opts)
-	if o2 != o1 {
-		t.Errorf("Effective mount options differ between DirectMount and fusermount mount:\n%#v\n%#v",
-			o2, o1)
-	}
-	// With DirectMountStrict
-	if os.Geteuid() == 0 {
-		t.Log("DirectMountStrict")
-		opts.DirectMountStrict = true
-		o3 := mountCheckOptions(t, opts)
-		if o3 != o1 {
-			t.Errorf("Effective mount options differ between DirectMountStrict and fusermount mount: \n%#v\n%#v",
-				o3, o1)
+	for _, opts := range optsTable {
+		// Without DirectMount - i.e. using fusermount
+		o1 := mountCheckOptions(t, opts)
+		// With DirectMount
+		opts.DirectMount = true
+		o2 := mountCheckOptions(t, opts)
+		if o2 != o1 {
+			t.Errorf(`DirectMount effective mount options mismatch:
+DirectMount: %#v
+fusermount:  %#v`, o2, o1)
+
+			// When this already fails then DirectMountStrict will fail the same way.
+			// Skip it for less noise in the logs.
+			continue
+		}
+		if os.Geteuid() == 0 {
+			// With DirectMountStrict
+			opts.DirectMountStrict = true
+			o3 := mountCheckOptions(t, opts)
+			if o3 != o1 {
+				t.Errorf(`DirectMountStrict effective mount options mismatch:
+DirectMountStrict: %#v
+fusermount:        %#v`, o3, o1)
+			}
 		}
 	}
 }
