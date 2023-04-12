@@ -59,6 +59,8 @@ func mountDirect(mountPoint string, opts *MountOptions, ready chan<- error) (fd 
 		fmt.Sprintf("rootmode=%o", st.Mode&syscall.S_IFMT),
 		fmt.Sprintf("user_id=%d", os.Geteuid()),
 		fmt.Sprintf("group_id=%d", os.Getegid()),
+		// match what we do with fusermount
+		fmt.Sprintf("max_read=%d", opts.MaxWrite),
 	}
 	r = append(r, opts.Options...)
 
