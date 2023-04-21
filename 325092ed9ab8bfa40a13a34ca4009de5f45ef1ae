@@ -16,6 +16,41 @@
       "message": "on a related note: CI for recent Go versions says \n\n```\n2023/04/20 12:05:37 callFusermount: executing [\"/usr/bin/fusermount3\" \"/tmp/TestDirectMount082211491\" \"-o\" \"allow_other,subtype\u003d/tmp/go-build3922130,max_read\u003d131072\"]\n/usr/bin/fusermount3: option allow_other only allowed if \u0027user_allow_other\u0027 is set in /etc/fuse.conf\n```\n\nbut I don\u0027t understand how this is possible. TestDirectMount doesn\u0027t seem to set AllowOther.",
       "revId": "325092ed9ab8bfa40a13a34ca4009de5f45ef1ae",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "3f7e37a1_efa1bf46",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2023-04-21T18:32:44Z",
+      "side": 1,
+      "message": "I would like to keep Debian 11, as it\u0027s the latest Debian release.\n\nProblems seem easy to fix, I\u0027ll update this CR.",
+      "revId": "325092ed9ab8bfa40a13a34ca4009de5f45ef1ae",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "fb712dd7_fcc96f52",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2023-04-21T18:32:44Z",
+      "side": 1,
+      "message": "But it does: https://github.com/hanwen/go-fuse/blob/7b59dbf3943354f2a6d232ebf99fd690e17364ae/fuse/mount_linux_test.go#L157\n\nI will fix the github job to enable user_allow_other",
+      "parentUuid": "806c6fad_731e644e",
+      "revId": "325092ed9ab8bfa40a13a34ca4009de5f45ef1ae",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
