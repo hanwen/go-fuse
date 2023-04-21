@@ -68,6 +68,23 @@
       "message": "Maybe do it the other way round to not stall this.\n\nI\u0027ll add Debian 11 back in a follow-up commit on top of this.",
       "revId": "325092ed9ab8bfa40a13a34ca4009de5f45ef1ae",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "0557e2cf_54811383",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2023-04-21T18:50:23Z",
+      "side": 1,
+      "message": "Github chokes on the tab here\n\n\n\t  - \"1.19.x\" # Golang upstream stable\n Check failure on line 17 in .github/workflows/ci.yml\n\nGitHub Actions\n/ .github/workflows/ci.yml\nInvalid workflow file\nYou have an error in your yaml syntax on line 17",
+      "revId": "325092ed9ab8bfa40a13a34ca4009de5f45ef1ae",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
