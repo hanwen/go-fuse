@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "806c6fad_731e644e",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-04-21T11:19:55Z",
+      "side": 1,
+      "message": "on a related note: CI for recent Go versions says \n\n```\n2023/04/20 12:05:37 callFusermount: executing [\"/usr/bin/fusermount3\" \"/tmp/TestDirectMount082211491\" \"-o\" \"allow_other,subtype\u003d/tmp/go-build3922130,max_read\u003d131072\"]\n/usr/bin/fusermount3: option allow_other only allowed if \u0027user_allow_other\u0027 is set in /etc/fuse.conf\n```\n\nbut I don\u0027t understand how this is possible. TestDirectMount doesn\u0027t seem to set AllowOther.",
+      "revId": "325092ed9ab8bfa40a13a34ca4009de5f45ef1ae",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
