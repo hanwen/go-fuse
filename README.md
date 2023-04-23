@@ -1,7 +1,7 @@
-# GO-FUSE
+# Go-FUSE
 
 [![CI](https://github.com/hanwen/go-fuse/actions/workflows/ci.yml/badge.svg)](https://github.com/hanwen/go-fuse/actions/workflows/ci.yml)
-[![GoDoc](https://godoc.org/github.com/hanwen/go-fuse?status.svg)](https://godoc.org/github.com/hanwen/go-fuse/v2)
+[![GoDoc](https://godoc.org/github.com/hanwen/go-fuse/v2/fs?status.svg)](https://godoc.org/github.com/hanwen/go-fuse/v2/fs)
 
 Go native bindings for the FUSE kernel module.
 
@@ -20,7 +20,7 @@ and
 
 The FUSE library gained a new, cleaned-up API during a rewrite
 completed in 2019. Find extensive documentation
-[here](https://godoc.org/github.com/hanwen/go-fuse/v2).
+[here](https://godoc.org/github.com/hanwen/go-fuse/v2/fs).
 
 Further highlights of this library is
 
@@ -31,9 +31,9 @@ Further highlights of this library is
 
 ## Examples
 
-* `example/hello/main.go` contains a 60-line "hello world" filesystem
+* [example/hello/](example/hello/main.go) contains a 60-line "hello world" filesystem
 
-* `zipfs/zipfs.go` contains a small and simple read-only filesystem for
+* [zipfs/zipfs](zipfs/zipfs.go) contains a small and simple read-only filesystem for
   zip and tar files. The corresponding command is in example/zipfs/
   For example,
 
@@ -44,10 +44,10 @@ Further highlights of this library is
   fusermount -u /tmp/mountpoint
   ````
 
-* `zipfs/multizipfs.go` shows how to use in-process mounts to
-  combine multiple Go-FUSE filesystems into a larger filesystem.
+* [zipfs/multizipfs](zipfs/multizipfs.go) shows how to use combine
+  simple Go-FUSE filesystems into a larger filesystem.
 
-* `fuse/loopback.go` mounts another piece of the filesystem.
+* [example/loopback](example/loopback/main.go) mounts another piece of the filesystem.
   Functionally, it is similar to a symlink.  A binary to run is in
   example/loopback/ . For example
 
@@ -60,7 +60,7 @@ Further highlights of this library is
 
 ## macOS Support
 
-go-fuse works somewhat on OSX. Known limitations:
+Go-FUSE works somewhat on OSX. Known limitations:
 
 * All of the limitations of OSXFUSE, including lack of support for
   NOTIFY.
@@ -82,17 +82,12 @@ go-fuse works somewhat on OSX. Known limitations:
 ## Bugs
 
 Yes, probably.  Report them through
-https://github.com/hanwen/go-fuse/issues
+https://github.com/hanwen/go-fuse/issues. Please include a debug trace
+(set `fuse.MountOptions.Debug` to `true`).
 
 ## Disclaimer
 
 This is not an official Google product.
-
-## Known Problems
-
-Grep source code for TODO.  Major topics:
-
-* Missing support for `CUSE`, `BMAP`, `IOCTL`
 
 ## License
 
