@@ -19,9 +19,11 @@
 //	// Node types should implement some file system operations, eg. Lookup
 //	var _ = (fs.NodeLookuper)((*myNode)(nil))
 //
-//	func (n *myNode) Lookup(ctx context.Context, name string,  ... ) (*Inode, syscall.Errno) {
+//	func (n *myNode) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
 //	  ops := myNode{}
-//	  return n.NewInode(ctx, &ops, fs.StableAttr{Mode: syscall.S_IFDIR}), 0
+//        out.Mode = 0755
+//        out.Size = 42
+//	  return n.NewInode(ctx, &ops, fs.StableAttr{Mode: syscall.S_IFREG}), 0
 //	}
 //
 // The method names are inspired on the system call names, so we have
@@ -399,7 +401,6 @@ type DirStream interface {
 // example, the Symlink, Create, Mknod, Link methods all create new
 // children in directories. Hence, they also return *Inode and must
 // populate their fuse.EntryOut arguments.
-
 type NodeLookuper interface {
 	Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno)
 }
