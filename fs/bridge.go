@@ -548,15 +548,10 @@ func (b *rawBridge) GetAttr(cancel <-chan struct{}, input *fuse.GetAttrIn, out *
 func (b *rawBridge) getattr(ctx context.Context, n *Inode, f FileHandle, out *fuse.AttrOut) syscall.Errno {
 	var errno syscall.Errno
 
-	var fg FileGetattrer
-	if f != nil {
-		fg, _ = f.(FileGetattrer)
-	}
-
-	if fops, ok := n.ops.(NodeGetattrer); ok {
-		errno = fops.Getattr(ctx, f, out)
-	} else if fg != nil {
-		errno = fg.Getattr(ctx, out)
+	if nodeOps, ok := n.ops.(NodeGetattrer); ok {
+		errno = nodeOps.Getattr(ctx, f, out)
+	} else if fileOps, ok := f.(FileGetattrer); ok {
+		errno = fileOps.Getattr(ctx, out)
 	} else {
 		// We set Mode below, which is the minimum for success
 	}

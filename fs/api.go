@@ -225,7 +225,10 @@ type NodeAccesser interface {
 // returning zeroed permissions, the default behavior is to change the
 // mode of 0755 (directory) or 0644 (files). This can be switched off
 // with the Options.NullPermissions setting. If blksize is unset, 4096
-// is assumed, and the 'blocks' field is set accordingly.
+// is assumed, and the 'blocks' field is set accordingly. The 'f'
+// argument is provided for consistency, however, in practice the
+// kernel never sends a file handle, even if the Getattr call
+// originated from a fstat system call.
 type NodeGetattrer interface {
 	Getattr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno
 }
