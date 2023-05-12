@@ -187,3 +187,31 @@ fusermount:        %#v`, o3, o1)
 		}
 	}
 }
+
+// TestEscapedMountOption tests that fusermount doesn't exit when when using commas or backslashs in options.
+// It also tests that commas or backslashs in options are correctly propagated to /proc/mounts.
+func TestEscapedMountOption(t *testing.T) {
+	fsname := `fsname,with\,many,comm\as,and\backsl\\ashs`
+	opts := &MountOptions{
+		FsName: fsname,
+	}
+	mnt := t.TempDir()
+	fs := NewDefaultRawFileSystem()
+	srv, err := NewServer(fs, mnt, opts)
+	if err != nil {
+		t.Error(err)
+	}
+	go srv.Serve()
+	defer srv.Unmount()
+	mounts, err := mountinfo.GetMounts(mountinfo.SingleEntryFilter(mnt))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(mounts) != 1 {
+		t.Fatalf("Could not find mountpoint %q in /proc/self/mountinfo", mnt)
+	}
+	m := *mounts[0]
+	if m.Source != fsname {
+		t.Errorf("mountinfo(%q): got %q want %q", mnt, m.Source, fsname)
+	}
+}

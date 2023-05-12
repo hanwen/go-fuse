@@ -185,12 +185,6 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		o.Name = strings.Replace(name[:l], ",", ";", -1)
 	}
 
-	for _, s := range o.optionsStrings() {
-		if strings.Contains(s, ",") {
-			return nil, fmt.Errorf("found ',' in option string %q", s)
-		}
-	}
-
 	maxReaders := runtime.GOMAXPROCS(0)
 	if maxReaders < minMaxReaders {
 		maxReaders = minMaxReaders
@@ -251,6 +245,10 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 	return ms, nil
 }
 
+func escape(optionValue string) string {
+	return strings.Replace(strings.Replace(optionValue, `\`, `\\`, -1), `,`, `\,`, -1)
+}
+
 func (o *MountOptions) optionsStrings() []string {
 	var r []string
 	r = append(r, o.Options...)
@@ -273,7 +271,15 @@ func (o *MountOptions) optionsStrings() []string {
 		r = append(r, "daemon_timeout=0")
 	}
 
-	return r
+	// Commas and backslashs in an option need to be escaped, because
+	// options are separated by a comma and backslashs are used to
+	// escape other characters.
+	var rEscaped []string
+	for _, s := range r {
+		rEscaped = append(rEscaped, escape(s))
+	}
+
+	return rEscaped
 }
 
 // DebugData returns internal status information for debugging
