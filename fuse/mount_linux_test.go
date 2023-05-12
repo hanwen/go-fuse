@@ -187,3 +187,31 @@ fusermount:        %#v`, o3, o1)
 		}
 	}
 }
+
+// TestEscapedMountOption tests that fusermount doesn't exit when when using commas in options.
+// It also tests that commas in options are correctly propagated to /proc/mounts.
+func TestEscapedMountOption(t *testing.T) {
+	fsname := "fsname,with,many,commas,"
+	opts := &MountOptions{
+		FsName: fsname,
+	}
+	mnt := t.TempDir()
+	fs := NewDefaultRawFileSystem()
+	srv, err := NewServer(fs, mnt, opts)
+	if err != nil {
+		t.Error(err)
+	}
+	go srv.Serve()
+	defer srv.Unmount()
+	mounts, err := mountinfo.GetMounts(mountinfo.SingleEntryFilter(mnt))
+	if err != nil {
+		t.Error(err)
+	}
+	if len(mounts) != 1 {
+		t.Errorf("Could not find mountpoint %q in /proc/self/mountinfo", mnt)
+	}
+	orig := *mounts[0]
+	if orig.Source != fsname {
+		t.Errorf("fsname incorrectly propagated to /proc/mounts.\nwanted:\t%s\ngot:\t%s", fsname, orig.Source)
+	}
+}
