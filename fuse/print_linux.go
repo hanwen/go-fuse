@@ -37,7 +37,7 @@ func (in *CreateIn) string() string {
 }
 
 func (in *GetAttrIn) string() string {
-	return fmt.Sprintf("{Fh %d}", in.Fh_)
+	return fmt.Sprintf("{Fh %d %s}", in.Fh_, flagString(getAttrFlagNames, int64(in.Flags_), ""))
 }
 
 func (in *MknodIn) string() string {

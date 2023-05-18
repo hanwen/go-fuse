@@ -77,6 +77,9 @@ var (
 		W_OK: "w",
 		R_OK: "r",
 	}
+	getAttrFlagNames = map[int64]string{
+		FUSE_GETATTR_FH: "FH",
+	}
 )
 
 func flagString(names map[int64]string, fl int64, def string) string {
