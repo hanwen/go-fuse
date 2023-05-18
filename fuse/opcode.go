@@ -786,6 +786,7 @@ func init() {
 		_OP_READ:            func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
 		_OP_WRITE:           func(ptr unsafe.Pointer) interface{} { return (*WriteIn)(ptr) },
 		_OP_READDIR:         func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
+		_OP_FSYNCDIR:        func(ptr unsafe.Pointer) interface{} { return (*FsyncIn)(ptr) },
 		_OP_ACCESS:          func(ptr unsafe.Pointer) interface{} { return (*AccessIn)(ptr) },
 		_OP_FORGET:          func(ptr unsafe.Pointer) interface{} { return (*ForgetIn)(ptr) },
 		_OP_BATCH_FORGET:    func(ptr unsafe.Pointer) interface{} { return (*_BatchForgetIn)(ptr) },
