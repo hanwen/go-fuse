@@ -220,3 +220,19 @@ func TestLiveness(t *testing.T) {
 		t.Fatalf("ReadDir: %v", err)
 	}
 }
+
+// Test that fusermount doesn't exit when when using commas in options.
+func TestEscapedMountOption(t *testing.T) {
+	opts := &fuse.MountOptions{
+		FsName: "fsname,with,many,commas,",
+	}
+	mnt := t.TempDir()
+	fs := fuse.NewDefaultRawFileSystem()
+	srv, err := fuse.NewServer(fs, mnt, opts)
+	if err != nil {
+		t.Error(err)
+	} else {
+		go srv.Serve()
+		srv.Unmount()
+	}
+}
