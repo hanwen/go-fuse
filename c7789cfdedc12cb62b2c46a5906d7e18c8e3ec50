@@ -34,6 +34,24 @@
       "parentUuid": "4300bb8f_d7c7338c",
       "revId": "c7789cfdedc12cb62b2c46a5906d7e18c8e3ec50",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f31b99e1_73878201",
+        "filename": "fuse/test/mount_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 237,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-05-26T18:52:31Z",
+      "side": 1,
+      "message": "sgtm.",
+      "parentUuid": "9302cff7_1003b209",
+      "revId": "c7789cfdedc12cb62b2c46a5906d7e18c8e3ec50",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
