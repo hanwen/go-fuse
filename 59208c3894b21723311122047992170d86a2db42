@@ -16,6 +16,24 @@
       "message": "this should be squashed into the predecessor change.",
       "revId": "59208c3894b21723311122047992170d86a2db42",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "391a3d82_473800ed",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1021467
+      },
+      "writtenOn": "2023-05-26T13:16:58Z",
+      "side": 1,
+      "message": "thanks for the feedback Han-Wen! I submitted both changes into https://review.gerrithub.io/c/hanwen/go-fuse/+/554639/2",
+      "parentUuid": "0928b460_7434c2c3",
+      "revId": "59208c3894b21723311122047992170d86a2db42",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
