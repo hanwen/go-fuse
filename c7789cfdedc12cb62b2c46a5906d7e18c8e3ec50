@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4300bb8f_d7c7338c",
+        "filename": "fuse/test/mount_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 237,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-05-26T13:18:38Z",
+      "side": 1,
+      "message": "can you check that the commas make it into /proc/mounts ?",
+      "revId": "c7789cfdedc12cb62b2c46a5906d7e18c8e3ec50",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
