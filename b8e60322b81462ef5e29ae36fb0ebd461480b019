@@ -222,6 +222,24 @@
       "parentUuid": "7bcacefb_d47770b2",
       "revId": "b8e60322b81462ef5e29ae36fb0ebd461480b019",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "0e27f9e2_4428d09b",
+        "filename": "fuse/server.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 280,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-05-31T18:04:48Z",
+      "side": 1,
+      "message": "wouldn´t it be `\"comma\\\\\\\\as\"` ? you have 2 levels of escape: one for Go strings, and one for fusermount?",
+      "parentUuid": "bcf873be_4407cb58",
+      "revId": "b8e60322b81462ef5e29ae36fb0ebd461480b019",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
