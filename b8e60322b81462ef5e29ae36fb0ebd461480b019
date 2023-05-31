@@ -1,0 +1,113 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a423bc9f_4f877c4f",
+        "filename": "fuse/mount_linux_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 208,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-05-31T11:29:11Z",
+      "side": 1,
+      "message": "Fatal",
+      "range": {
+        "startLine": 208,
+        "startChar": 4,
+        "endLine": 208,
+        "endChar": 9
+      },
+      "revId": "b8e60322b81462ef5e29ae36fb0ebd461480b019",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "3f8fe42a_e9641296",
+        "filename": "fuse/mount_linux_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 211,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-05-31T11:29:11Z",
+      "side": 1,
+      "message": "Fatalf",
+      "range": {
+        "startLine": 211,
+        "startChar": 4,
+        "endLine": 211,
+        "endChar": 10
+      },
+      "revId": "b8e60322b81462ef5e29ae36fb0ebd461480b019",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5b53977e_bd421b46",
+        "filename": "fuse/mount_linux_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 213,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-05-31T11:29:11Z",
+      "side": 1,
+      "message": "nit: I don\u0027t understand why this is called `orig`",
+      "range": {
+        "startLine": 213,
+        "startChar": 1,
+        "endLine": 213,
+        "endChar": 5
+      },
+      "revId": "b8e60322b81462ef5e29ae36fb0ebd461480b019",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "381efe5f_3cb4df17",
+        "filename": "fuse/mount_linux_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 215,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-05-31T11:29:11Z",
+      "side": 1,
+      "message": "order should be got, want.\n\nPrefer short messages, eg. \n\n```\nErrorf(\"mountinfo(%q): got %q want %q\", mnt, orig.Source, fsname)\n```",
+      "range": {
+        "startLine": 215,
+        "startChar": 12,
+        "endLine": 215,
+        "endChar": 18
+      },
+      "revId": "b8e60322b81462ef5e29ae36fb0ebd461480b019",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7bcacefb_d47770b2",
+        "filename": "fuse/server.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 280,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-05-31T11:29:11Z",
+      "side": 1,
+      "message": "what happens if there is \u0027\\\u0027 in the fsname?",
+      "revId": "b8e60322b81462ef5e29ae36fb0ebd461480b019",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
