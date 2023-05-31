@@ -108,6 +108,24 @@
       "message": "what happens if there is \u0027\\\u0027 in the fsname?",
       "revId": "b8e60322b81462ef5e29ae36fb0ebd461480b019",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "bcf873be_4407cb58",
+        "filename": "fuse/server.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 280,
+      "author": {
+        "id": 1021467
+      },
+      "writtenOn": "2023-05-31T16:33:48Z",
+      "side": 1,
+      "message": "Good point, perhaps we should also escape it, what do you think?\n\nSomething like\n\n`strings.Replace(strings.Replace(optionValue, \"\\\\\", \"\\\\\\\\\", -1), \",\", \"\\\\,\", -1)`\n\nand we change `escapeComma` to `escapeOption`?\n\n---\n\nOr in greater detail:\n\nWith something like `\"com\\\\mas\"`:\n\nThe \"\\\" disappears, e.g. `{FsName: \"com\\\\mas\"}` appears as \"commas\" in `/proc/mounts`.\n(This was already true before this patch).\n\n\nWith something like \"comm\\\\,as\":\n\nThis currently leads to `fusermount exited with code 256` (\u0027cause an unescaped comma is passed).\n\n\nI think the cleanest solution would be to escape `\\`.\nI wonder if there are any other characters which need to be escaped, but I couldn\u0027t get more out of https://github.com/libfuse/libfuse/blob/7297044ada625da583211f0a574410cddb4f7d8d/util/fusermount.c#L54.",
+      "parentUuid": "7bcacefb_d47770b2",
+      "revId": "b8e60322b81462ef5e29ae36fb0ebd461480b019",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
