@@ -24,6 +24,30 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "c2dcd6ee_7c4fe7f7",
+        "filename": "fuse/mount_linux_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 208,
+      "author": {
+        "id": 1021467
+      },
+      "writtenOn": "2023-05-31T16:45:26Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a423bc9f_4f877c4f",
+      "range": {
+        "startLine": 208,
+        "startChar": 4,
+        "endLine": 208,
+        "endChar": 9
+      },
+      "revId": "b8e60322b81462ef5e29ae36fb0ebd461480b019",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "3f8fe42a_e9641296",
@@ -37,6 +61,30 @@
       "writtenOn": "2023-05-31T11:29:11Z",
       "side": 1,
       "message": "Fatalf",
+      "range": {
+        "startLine": 211,
+        "startChar": 4,
+        "endLine": 211,
+        "endChar": 10
+      },
+      "revId": "b8e60322b81462ef5e29ae36fb0ebd461480b019",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "0c37672a_c1f30b6c",
+        "filename": "fuse/mount_linux_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 211,
+      "author": {
+        "id": 1021467
+      },
+      "writtenOn": "2023-05-31T16:45:26Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "3f8fe42a_e9641296",
       "range": {
         "startLine": 211,
         "startChar": 4,
@@ -70,6 +118,30 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "b4ad1354_76dbf38d",
+        "filename": "fuse/mount_linux_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 213,
+      "author": {
+        "id": 1021467
+      },
+      "writtenOn": "2023-05-31T16:45:26Z",
+      "side": 1,
+      "message": "right, this doesn\u0027t make sense, renamed to \u0027m\u0027 for \u0027mount\u0027",
+      "parentUuid": "5b53977e_bd421b46",
+      "range": {
+        "startLine": 213,
+        "startChar": 1,
+        "endLine": 213,
+        "endChar": 5
+      },
+      "revId": "b8e60322b81462ef5e29ae36fb0ebd461480b019",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "381efe5f_3cb4df17",
@@ -83,6 +155,30 @@
       "writtenOn": "2023-05-31T11:29:11Z",
       "side": 1,
       "message": "order should be got, want.\n\nPrefer short messages, eg. \n\n```\nErrorf(\"mountinfo(%q): got %q want %q\", mnt, orig.Source, fsname)\n```",
+      "range": {
+        "startLine": 215,
+        "startChar": 12,
+        "endLine": 215,
+        "endChar": 18
+      },
+      "revId": "b8e60322b81462ef5e29ae36fb0ebd461480b019",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "8d0eb7b7_65ec75d7",
+        "filename": "fuse/mount_linux_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 215,
+      "author": {
+        "id": 1021467
+      },
+      "writtenOn": "2023-05-31T16:45:26Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "381efe5f_3cb4df17",
       "range": {
         "startLine": 215,
         "startChar": 12,
