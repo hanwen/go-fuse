@@ -240,6 +240,24 @@
       "parentUuid": "bcf873be_4407cb58",
       "revId": "b8e60322b81462ef5e29ae36fb0ebd461480b019",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "472fb503_bab90c39",
+        "filename": "fuse/server.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 280,
+      "author": {
+        "id": 1021467
+      },
+      "writtenOn": "2023-05-31T18:31:38Z",
+      "side": 1,
+      "message": "wait, sorry I don\u0027t understand which part of my answer you are referring to with `\"comma\\\\\\\\as\"`, could you please explain it again?\n\nAll examples I used were meant to be golang strings.\n\nIf I specify `fsname` in new `TestEscapedMountOption` as `\"fsname,wi\\\\th,many,commas,\"` (string, not string literal) with the current state of patch set (patch set 4) tests return:\n\n`mount_linux_test.go:215: mountinfo(\"/tmp/TestEscapedMountOption773328478/001\"): got \"fsname,with,many,commas,\" want \"fsname,wi\\\\th,many,commas,\"`\n\nWhen replacing\n\n`return strings.Replace(optionValue, \",\", \"\\\\,\", -1)`\n\nwith\n\n`return strings.Replace(strings.Replace(optionValue, \"\\\\\", \"\\\\\\\\\", -1), \",\", \"\\\\,\", -1)`\n\nthis error disappears.\n\n(maybe I should use string literals in the inner `Replace`, so it may be less confusing?)",
+      "parentUuid": "0e27f9e2_4428d09b",
+      "revId": "b8e60322b81462ef5e29ae36fb0ebd461480b019",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
