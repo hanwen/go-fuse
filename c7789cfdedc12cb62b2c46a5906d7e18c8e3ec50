@@ -52,6 +52,24 @@
       "parentUuid": "9302cff7_1003b209",
       "revId": "c7789cfdedc12cb62b2c46a5906d7e18c8e3ec50",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "081497ae_0ffe56db",
+        "filename": "fuse/test/mount_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 237,
+      "author": {
+        "id": 1021467
+      },
+      "writtenOn": "2023-05-31T09:20:24Z",
+      "side": 1,
+      "message": "both changes were applied in https://review.gerrithub.io/c/hanwen/go-fuse/+/554639/3 : \n\n- check commas appear in `/proc/mounts`\n- move tests to `fuse/mount_linux_test.go`",
+      "parentUuid": "f31b99e1_73878201",
+      "revId": "c7789cfdedc12cb62b2c46a5906d7e18c8e3ec50",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
