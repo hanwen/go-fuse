@@ -276,6 +276,24 @@
       "parentUuid": "472fb503_bab90c39",
       "revId": "b8e60322b81462ef5e29ae36fb0ebd461480b019",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ca571dc7_392f9d72",
+        "filename": "fuse/server.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 280,
+      "author": {
+        "id": 1021467
+      },
+      "writtenOn": "2023-06-07T15:26:17Z",
+      "side": 1,
+      "message": "If my test [1] correctly checks the FS name in mountinfo, yes.\n\n(when changing [1] to raise the error if they are equal, the test returns:\n\n```\nFAIL: TestEscapedMountOption (0.00s)\n    mount_linux_test.go:215: mountinfo(\"/tmp/TestEscapedMountOption2628374291/001\"): got \"fsname,with\\\\,many,commas,\" want \"fsname,with\\\\,many,commas,\"\n```   \n)\n\nI\u0027ll push the changes with the additional escape to a new patchset, so maybe they are more straightforward to discuss.\n\n[1] https://github.com/levinzimmermannn/go-fuse/blob/f9013615a4c2a49e9311cb1994bf5c38424324ae/fuse/mount_linux_test.go#L213-L215",
+      "parentUuid": "83cfceb0_02072e4b",
+      "revId": "b8e60322b81462ef5e29ae36fb0ebd461480b019",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
