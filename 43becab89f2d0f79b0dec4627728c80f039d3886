@@ -1,4 +1,22 @@
 {
-  "comments": [],
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "017b0fa4_08c1b382",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1017031
+      },
+      "writtenOn": "2023-06-08T19:13:07Z",
+      "side": 1,
+      "message": "Thanks, Han-Wen.\n\nThough somehow I do not see this patch to appear in https://github.com/hanwen/go-fuse.git - the latest commit there is still 4edb751b (fuse/mount_linux_test/DirectMount: Verify FsName \\w comma/backslash works).\n\nWould you please have a look?",
+      "revId": "43becab89f2d0f79b0dec4627728c80f039d3886",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ],
   "submitRequirementResults": []
 }
