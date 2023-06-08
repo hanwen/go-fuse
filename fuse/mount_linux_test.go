@@ -159,6 +159,9 @@ func TestDirectMount(t *testing.T) {
 		{Debug: true, FsName: "aaa"},
 		{Debug: true, Name: "bbb"},
 		{Debug: true, FsName: "ccc", Name: "ddd"},
+		{Debug: true, FsName: "a,b"},
+		{Debug: true, FsName: `a\b`},
+		{Debug: true, FsName: `a\,b`},
 	}
 	for _, opts := range optsTable {
 		// Without DirectMount - i.e. using fusermount
