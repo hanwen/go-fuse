@@ -294,6 +294,24 @@
       "parentUuid": "83cfceb0_02072e4b",
       "revId": "b8e60322b81462ef5e29ae36fb0ebd461480b019",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "7a36ab3e_77673b71",
+        "filename": "fuse/server.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 280,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-06-08T09:49:10Z",
+      "side": 1,
+      "message": "sorry, I was confused. I thought you were suggesting it didn´t work, but it does work.",
+      "parentUuid": "ca571dc7_392f9d72",
+      "revId": "b8e60322b81462ef5e29ae36fb0ebd461480b019",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
