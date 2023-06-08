@@ -15,6 +15,7 @@ jobs:
           - "1.17.x" # Golang upstream stable
           - "1.18.x" # Golang upstream stable
           - "1.19.x" # Golang upstream stable
+          - "1.20.x" # Golang upstream stable
       # Don't cancel everything when one Go version fails
       fail-fast: false
     runs-on: ubuntu-latest
