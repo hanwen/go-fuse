@@ -116,14 +116,14 @@ func (ms *Server) RecordLatencies(l LatencyMap) {
 
 // Unmount calls fusermount -u on the mount. This has the effect of
 // shutting down the filesystem. After the Server is unmounted, it
-// should be discarded.
+// should be discarded.  This function is idempotent.
 //
 // Does not work when we were mounted with the magic /dev/fd/N mountpoint syntax,
 // as we do not know the real mountpoint. Unmount using
 //
 //	fusermount -u /path/to/real/mountpoint
 //
-// / in this case.
+// in this case.
 func (ms *Server) Unmount() (err error) {
 	if ms.mountPoint == "" {
 		return nil
