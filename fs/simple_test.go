@@ -585,6 +585,12 @@ func TestFsstress(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	wg.Add(1)
+	go func() {
+		cmd.Wait()
+		wg.Done()
+	}()
+
 	defer cmd.Process.Kill()
 
 	// Run the test for 1 second. If it deadlocks, it usually does within 20ms.
@@ -608,6 +614,7 @@ func TestFsstress(t *testing.T) {
 		}
 	}
 
+	cmd.Process.Kill()
 	if waitTimeout(&wg, time.Second) {
 		t.Errorf("timeout waiting for goroutines to exit (deadlocked?)")
 	}
