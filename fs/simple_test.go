@@ -585,12 +585,19 @@ func TestFsstress(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	wg.Add(1)
+	go func() {
+		cmd.Wait()
+		wg.Done()
+	}()
+
 	defer cmd.Process.Kill()
 
 	// Run the test for 1 second. If it deadlocks, it usually does within 20ms.
 	time.Sleep(1 * time.Second)
 
 	cancel()
+	cmd.Process.Kill()
 
 	// waitTimeout waits for the waitgroup for the specified max timeout.
 	// Returns true if waiting timed out.
