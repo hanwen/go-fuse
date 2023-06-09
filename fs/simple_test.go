@@ -232,12 +232,11 @@ func TestReadDirStress(t *testing.T) {
 				return
 			}
 			_, err = f.Readdirnames(-1)
+			f.Close()
 			if err != nil {
 				t.Errorf("goroutine %d iteration %d: %v", gr, i, err)
-				f.Close()
 				return
 			}
-			f.Close()
 		}
 	}
 
@@ -247,6 +246,7 @@ func TestReadDirStress(t *testing.T) {
 		go stress(i)
 	}
 	wg.Wait()
+
 }
 
 // This test is racy. If an external process consumes space while this
