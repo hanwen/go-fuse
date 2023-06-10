@@ -16,6 +16,9 @@ jobs:
           - "1.18.x" # Golang upstream stable
           - "1.19.x" # Golang upstream stable
           - "1.20.x" # Golang upstream stable
+        GOMAXPROCS:
+          - ""  # Use all cpus (default).
+          - "1" # Single-cpu mode. Some failures are only visible like this.
       # Don't cancel everything when one Go version fails
       fail-fast: false
     runs-on: ubuntu-latest
@@ -35,4 +38,4 @@ jobs:
     - run: echo user_allow_other | sudo tee -a /etc/fuse.conf
 
     # Actual test steps are in all.bash
-    - run: ./all.bash
+    - run: GOMAXPROCS="${{ matrix.GOMAXPROCS }}" ./all.bash
