@@ -99,11 +99,15 @@ func TestFopenKeepCache(t *testing.T) {
 		return st
 	}
 
-	// XXX Linux FUSE client automatically invalidates cache of a file if it sees size change.
-	//     As workaround we keep len(before) == len(after) to avoid that codepath.
-	//     See https://github.com/hanwen/go-fuse/pull/273 for details.
+	// Without CAP_EXPLICIT_INVAL_DATA Linux FUSE client automatically
+	// invalidates cache of a file if it sees size change. As workaround we
+	// keep len(before) == len(after) to avoid that codepath.
 	//
-	// TODO use len(before) != len(after) if kernel supports precise control over data cache.
+	// With CAP_EXPLICIT_INVAL_DATA - even when data cache stays the same,
+	// but st_size changes, Linux reads file content as dcache[:st_size],
+	// i.e. either truncated (st_size↓) or extended (st_size↑). Here
+	// len(before) == len(after) also helps to avoid dealing with those
+	// peculiarities.
 	before := "before"
 	after := "afterX"
 	if len(before) != len(after) {
@@ -130,7 +134,8 @@ func TestFopenKeepCache(t *testing.T) {
 	// this forces kernel client to relookup/regetattr the file and reread the attributes.
 	//
 	// this way we make sure the kernel knows updated size/mtime before we
-	// try to read the file next time.
+	// try to read the file next time, which should invalidate data cache
+	// if CAP_EXPLICIT_INVAL_DATA was not negotiated.
 	time.Sleep(100 * time.Millisecond)
 	_ = xstat(wd + "/mnt/file.txt")
 
@@ -143,9 +148,9 @@ func TestFopenKeepCache(t *testing.T) {
 		t.Skipf("protocol v%d has no notify support.", minor)
 	}
 
-	code := pathfs.EntryNotify("", "file.txt")
+	code := pathfs.FileNotify("file.txt", 0, 0) // invalidate direntry and whole data cache
 	if !code.Ok() {
-		t.Errorf("EntryNotify: %v", code)
+		t.Errorf("FileNotify: %v", code)
 	}
 
 	c = xreadFile(wd + "/mnt/file.txt")
