@@ -16,6 +16,24 @@
       "message": "thanks!",
       "revId": "d213835023ecef3493567239165654022530ed8a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "5f7a95c5_7db55c0c",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1017031
+      },
+      "writtenOn": "2023-06-12T08:51:59Z",
+      "side": 1,
+      "message": "Thanks for applying as well.",
+      "parentUuid": "0752d1c0_edc9405b",
+      "revId": "d213835023ecef3493567239165654022530ed8a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ],
   "submitRequirementResults": []
