@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e52e7033_346a30d7",
+        "filename": "fs/simple_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 600,
+      "author": {
+        "id": 1017031
+      },
+      "writtenOn": "2023-06-12T09:18:16Z",
+      "side": 1,
+      "message": "Han-Wen, thanks for asking for review. I\u0027m not familiar with TestFsstress, but offhand it looks that `defer cmd.Process.Kill()` on L594 becomes unnecessary after hereby added kill.\n\nThis is not a proper review though as I prefer to focus on analyzing base fuse package failures first (e.g. https://github.com/hanwen/go-fuse/issues/472)",
+      "revId": "255ab74173c351f74e892cd5d4ba0210eb21313f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
