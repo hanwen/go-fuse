@@ -1,4 +1,22 @@
 {
-  "comments": [],
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2e3ff10e_d883e73b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1017031
+      },
+      "writtenOn": "2023-06-12T09:19:33Z",
+      "side": 1,
+      "message": "Thanks Han-Wen. Unfortunately merged patch is again not propagated to github. Could you please push it there manually?",
+      "revId": "238293d891ac198a02326513ec6084156cdcc55b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ],
   "submitRequirementResults": []
 }
