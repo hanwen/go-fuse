@@ -7,6 +7,7 @@ package fuse
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"syscall"
 )
@@ -84,7 +85,16 @@ var (
 
 func flagString(names map[int64]string, fl int64, def string) string {
 	s := []string{}
-	for k, v := range names {
+	// emit flags in their numeric order
+	vk := make([]int64, 0, len(names))
+	for k := range names {
+		vk = append(vk, k)
+	}
+	sort.Slice(vk, func(i, j int) bool {
+		return vk[i] < vk[j]
+	})
+	for _, k := range vk {
+		v := names[k]
 		if fl&k != 0 {
 			s = append(s, v)
 			fl ^= k
