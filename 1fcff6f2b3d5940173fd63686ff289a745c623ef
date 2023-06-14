@@ -16,6 +16,29 @@
       "message": "( I originally forgot to include the test into the patch; now fixed )",
       "revId": "1fcff6f2b3d5940173fd63686ff289a745c623ef",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2f2fa5bc_d41f1f4f",
+        "filename": "fuse/print.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-06-14T18:04:42Z",
+      "side": 1,
+      "message": "wouldn\u0027t it be simpler to shift a 0x1 left until you\u0027ve seen all the bist in `fl`?",
+      "range": {
+        "startLine": 93,
+        "startChar": 6,
+        "endLine": 93,
+        "endChar": 11
+      },
+      "revId": "1fcff6f2b3d5940173fd63686ff289a745c623ef",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
