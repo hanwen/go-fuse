@@ -10,9 +10,9 @@ import (
 )
 
 func init() {
-	openFlagNames[syscall.O_DIRECT] = "DIRECT"
-	openFlagNames[syscall.O_LARGEFILE] = "LARGEFILE"
-	openFlagNames[syscall_O_NOATIME] = "NOATIME"
+	openFlagNames.set(syscall.O_DIRECT, "DIRECT")
+	openFlagNames.set(syscall.O_LARGEFILE, "LARGEFILE")
+	openFlagNames.set(syscall_O_NOATIME, "NOATIME")
 }
 
 func (a *Attr) string() string {
