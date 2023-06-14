@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "666c028d_e67383e3",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1017031
+      },
+      "writtenOn": "2023-06-14T11:17:36Z",
+      "side": 1,
+      "message": "( I originally forgot to include the test into the patch; now fixed )",
+      "revId": "1fcff6f2b3d5940173fd63686ff289a745c623ef",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
