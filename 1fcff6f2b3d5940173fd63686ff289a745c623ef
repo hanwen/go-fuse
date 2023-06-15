@@ -63,6 +63,30 @@
       },
       "revId": "1fcff6f2b3d5940173fd63686ff289a745c623ef",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "800dab6e_02e027a7",
+        "filename": "fuse/print.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-06-15T08:17:12Z",
+      "side": 1,
+      "message": "let\u0027s change the current code? The flag names are only used for debugging. In \nzerrors_linux_amd64.go I see\n\n```\n        O_DSYNC                          \u003d 0x1000\n        O_RSYNC                          \u003d 0x101000\n        O_FSYNC                          \u003d 0x101000     \n        O_SYNC                           \u003d 0x101000\n```\n\nwe could introduce DSYNC and leave 0x100000 alone. \n\nThat\u0027s the only one, right?\n\nI\u0027m worried that introducing a sort is going make things slower and make reproducing race conditions harder with printing turned on.",
+      "parentUuid": "394b992b_9b82b362",
+      "range": {
+        "startLine": 93,
+        "startChar": 6,
+        "endLine": 93,
+        "endChar": 11
+      },
+      "revId": "1fcff6f2b3d5940173fd63686ff289a745c623ef",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
