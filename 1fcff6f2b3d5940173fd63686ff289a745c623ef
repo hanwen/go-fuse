@@ -87,6 +87,30 @@
       },
       "revId": "1fcff6f2b3d5940173fd63686ff289a745c623ef",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "41bbb192_3050efe7",
+        "filename": "fuse/print.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 1017031
+      },
+      "writtenOn": "2023-06-15T20:11:55Z",
+      "side": 1,
+      "message": "Ok, I understand the desire to avoid sorting.\n\nI contemplated a bit and looked around. Unfortunately it is not only O_SYNC, but also e.g. O_TMPFILE which has two bits, and this is only on Linux, while many other systems might also have their peculiarities.\n\nI do not want to delve into endless game hitting such peculiarities and trying to fix them over and over.\n\nInstead I\u0027ve implemented a scheme where flags with several bits are supported, but we still do not use sorting at all. The data structure, that describes flag names, is now plain array instead of a map. Now flagString, probably, runs a bit faster due to that.\n\nPlease take another look.\n\nThanks beforehand,\nKirill",
+      "parentUuid": "800dab6e_02e027a7",
+      "range": {
+        "startLine": 93,
+        "startChar": 6,
+        "endLine": 93,
+        "endChar": 11
+      },
+      "revId": "1fcff6f2b3d5940173fd63686ff289a745c623ef",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
