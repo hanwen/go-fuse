@@ -39,6 +39,30 @@
       },
       "revId": "1fcff6f2b3d5940173fd63686ff289a745c623ef",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "394b992b_9b82b362",
+        "filename": "fuse/print.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 1017031
+      },
+      "writtenOn": "2023-06-15T07:48:26Z",
+      "side": 1,
+      "message": "Unfortunately that will not be equivalent to current code and also not all flags have only one bit set. I get\n\n```\nSYNC (101000)   nbits \u003d 2\npanic: not all flags have nbits\u003d1\n```\n\nwith the following verification patch:\n\n```\ndiff --git a/fuse/print.go b/fuse/print.go\nindex b767909..f50b38f 100644\n--- a/fuse/print.go\n+++ b/fuse/print.go\n@@ -10,6 +10,7 @@ import (\n        \"sort\"\n        \"strings\"\n        \"syscall\"\n+       \"math/bits\"\n )\n \n var (\n@@ -83,6 +84,31 @@ var (\n        }\n )\n \n+func checkFlags(names map[int64]string) (ok bool) {\n+       for k, v :\u003d range names {\n+               nbits :\u003d bits.OnesCount64(uint64(k))\n+               if nbits !\u003d 1 {\n+                       fmt.Printf(\"%s (%x)\\tnbits \u003d %d\\n\", v, k, nbits)\n+                       ok \u003d false\n+               }\n+       }\n+       return ok\n+}\n+\n+func init() {\n+       ok :\u003d true\n+       vnames :\u003d []map[int64]string{writeFlagNames, readFlagNames, initFlagNames, releaseFlagNames, openFlagNames, fuseOpenFlagNames, accessFlagName, getAttrFlagNames}\n+       for _, names :\u003d range vnames {\n+               nok :\u003d checkFlags(names)\n+               if !nok {\n+                       ok \u003d false\n+               }\n+       }\n+       if !ok {\n+               panic(\"not all flags have nbits\u003d1\")\n+       }\n+}\n+\n func flagString(names map[int64]string, fl int64, def string) string {\n        s :\u003d []string{}\n        // emit flags in their numeric order\n```",
+      "parentUuid": "2f2fa5bc_d41f1f4f",
+      "range": {
+        "startLine": 93,
+        "startChar": 6,
+        "endLine": 93,
+        "endChar": 11
+      },
+      "revId": "1fcff6f2b3d5940173fd63686ff289a745c623ef",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
