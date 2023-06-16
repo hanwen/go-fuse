@@ -7,7 +7,6 @@ package fs
 import (
 	"fmt"
 	"strings"
-	"unsafe"
 )
 
 type childEntry struct {
@@ -15,28 +14,76 @@ type childEntry struct {
 	Inode *Inode
 }
 
+// inodeChildren is a hashmap with deterministic ordering. It is
+// important to return the children in a deterministic order for 2
+// reasons:
+//
+// 1. if the ordering is non-deterministic, multiple concurrent
+// readdirs can lead to cache corruption (see issue #391)
+//
+// 2. it simplifies the implementation of directory seeking: the NFS
+// protocol doesn't open and close directories. Instead, a directory
+// read must always be continued from a previously handed out offset.
+//
+// By storing the entries in insertion order, and marking them with a
+// int64 logical timestamp, the logical timestamp can serve as readdir
+// cookie.
 type inodeChildren struct {
-	children map[string]*Inode
+	// index into children slice.
+	childrenMap map[string]int
+	children    []childEntry
 }
 
 func (c *inodeChildren) init() {
-	c.children = make(map[string]*Inode)
+	c.childrenMap = make(map[string]int)
 }
 
 func (c *inodeChildren) String() string {
 	var ss []string
-	for nm, ch := range c.children {
-		ss = append(ss, fmt.Sprintf("%q=i%d[%s]", nm, ch.stableAttr.Ino, modeStr(ch.stableAttr.Mode)))
+	for _, e := range c.children {
+		ch := e.Inode
+		ss = append(ss, fmt.Sprintf("%q=i%d[%s]", e.Name, ch.stableAttr.Ino, modeStr(ch.stableAttr.Mode)))
 	}
 	return strings.Join(ss, ",")
 }
 
 func (c *inodeChildren) get(name string) *Inode {
-	return c.children[name]
+	idx, ok := c.childrenMap[name]
+	if !ok {
+		return nil
+	}
+
+	return c.children[idx].Inode
+}
+
+func (c *inodeChildren) compact() {
+	nc := make([]childEntry, 0, 2*len(c.childrenMap)+1)
+	nm := make(map[string]int, len(nc))
+	for _, e := range c.children {
+		if e.Inode == nil {
+			continue
+		}
+		nm[e.Name] = len(nc)
+		nc = append(nc, e)
+	}
+
+	c.childrenMap = nm
+	c.children = nc
 }
 
 func (c *inodeChildren) set(parent *Inode, name string, ch *Inode) {
-	c.children[name] = ch
+	idx, ok := c.childrenMap[name]
+	if !ok {
+		if cap(c.children) == len(c.children) {
+			c.compact()
+		}
+
+		idx = len(c.children)
+		c.children = append(c.children, childEntry{})
+	}
+
+	c.childrenMap[name] = idx
+	c.children[idx] = childEntry{Name: name, Inode: ch}
 	parent.changeCounter++
 
 	ch.parents.add(parentData{name, parent})
@@ -44,51 +91,40 @@ func (c *inodeChildren) set(parent *Inode, name string, ch *Inode) {
 }
 
 func (c *inodeChildren) len() int {
-	return len(c.children)
+	return len(c.childrenMap)
 }
 
 func (c *inodeChildren) toMap() map[string]*Inode {
-	r := make(map[string]*Inode, len(c.children))
-	for k, v := range c.children {
-		r[k] = v
+	r := make(map[string]*Inode, len(c.childrenMap))
+	for _, e := range c.children {
+		if e.Inode != nil {
+			r[e.Name] = e.Inode
+		}
 	}
 	return r
 }
 
 func (c *inodeChildren) del(parent *Inode, name string) {
-	ch := c.children[name]
-	if ch == nil {
+	idx, ok := c.childrenMap[name]
+	if !ok {
 		return
 	}
 
-	delete(c.children, name)
+	ch := c.children[idx].Inode
+
+	delete(c.childrenMap, name)
+	c.children[idx] = childEntry{}
 	ch.parents.delete(parentData{name, parent})
 	ch.changeCounter++
 	parent.changeCounter++
 }
 
 func (c *inodeChildren) list() []childEntry {
-	r := make([]childEntry, 0, 2*len(c.children))
-
-	// The spec doesn't guarantee this, but as long as maps remain
-	// backed by hash tables, the simplest mechanism for
-	// randomization is picking a random start index. We undo this
-	// here by picking a deterministic start index again. If the
-	// Go runtime ever implements a memory moving GC, we might
-	// have to look at the keys instead.
-	minNode := ^uintptr(0)
-	minIdx := -1
-	for k, v := range c.children {
-		if p := uintptr(unsafe.Pointer(v)); p < minNode {
-			minIdx = len(r)
-			minNode = p
+	r := make([]childEntry, 0, len(c.childrenMap))
+	for _, e := range c.children {
+		if e.Inode != nil {
+			r = append(r, e)
 		}
-		r = append(r, childEntry{Name: k, Inode: v})
-	}
-
-	if minIdx > 0 {
-		r = append(r[minIdx:], r[:minIdx]...)
 	}
 	return r
-
 }
