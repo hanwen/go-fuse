@@ -135,6 +135,30 @@
       },
       "revId": "1fcff6f2b3d5940173fd63686ff289a745c623ef",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d46e45d9_fb9ea594",
+        "filename": "fuse/print.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 1017031
+      },
+      "writtenOn": "2023-06-16T17:09:09Z",
+      "side": 1,
+      "message": "Thanks",
+      "parentUuid": "0e1bbac3_d0303e96",
+      "range": {
+        "startLine": 93,
+        "startChar": 6,
+        "endLine": 93,
+        "endChar": 11
+      },
+      "revId": "1fcff6f2b3d5940173fd63686ff289a745c623ef",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }

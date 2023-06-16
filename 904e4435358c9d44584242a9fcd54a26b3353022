@@ -24,6 +24,30 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "186ca63d_f185452c",
+        "filename": "fuse/print.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 86,
+      "author": {
+        "id": 1017031
+      },
+      "writtenOn": "2023-06-16T17:09:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "f56f0be3_4920cd23",
+      "range": {
+        "startLine": 86,
+        "startChar": 19,
+        "endLine": 86,
+        "endChar": 20
+      },
+      "revId": "904e4435358c9d44584242a9fcd54a26b3353022",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "de016b87_88adae34",
@@ -41,6 +65,24 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "ea52c869_3ca7fb3d",
+        "filename": "fuse/print.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1017031
+      },
+      "writtenOn": "2023-06-16T17:09:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "de016b87_88adae34",
+      "revId": "904e4435358c9d44584242a9fcd54a26b3353022",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "9cbd50ed_d836c29c",
@@ -54,6 +96,24 @@
       "writtenOn": "2023-06-16T09:52:15Z",
       "side": 1,
       "message": "reorder: default only applies if fl \u003d\u003d 0.",
+      "revId": "904e4435358c9d44584242a9fcd54a26b3353022",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "6b83e4c2_386c036e",
+        "filename": "fuse/print.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 136,
+      "author": {
+        "id": 1017031
+      },
+      "writtenOn": "2023-06-16T17:09:09Z",
+      "side": 1,
+      "message": "Thanks, I\u0027m fixing this in separate patch.",
+      "parentUuid": "9cbd50ed_d836c29c",
       "revId": "904e4435358c9d44584242a9fcd54a26b3353022",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
