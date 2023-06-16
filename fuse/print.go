@@ -133,11 +133,11 @@ func flagString(names *flagNames, fl int64, def string) string {
 			}
 		}
 	}
-	if len(s) == 0 && def != "" {
-		s = []string{def}
-	}
 	if fl != 0 {
 		s = append(s, fmt.Sprintf("0x%x", fl))
+	}
+	if len(s) == 0 && def != "" {
+		s = []string{def}
 	}
 
 	return strings.Join(s, ",")
