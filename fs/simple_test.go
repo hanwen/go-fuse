@@ -163,7 +163,7 @@ func TestBasic(t *testing.T) {
 
 func TestFileFdLeak(t *testing.T) {
 	tc := newTestCase(t, &testOptions{
-		suppressDebug: true,
+		suppressDebug: false,
 		attrCache:     true,
 		entryCache:    true,
 	})
@@ -174,8 +174,9 @@ func TestFileFdLeak(t *testing.T) {
 	bridge := tc.rawFS.(*rawBridge)
 	tc = nil
 
-	if got := len(bridge.files); got > 3 {
-		t.Errorf("found %d used file handles, should be <= 3", got)
+	// posixtest.FdLeak also uses 15 as a limit.
+	if got, want := len(bridge.files), 15; got > want {
+		t.Errorf("found %d used file handles, should be <= %d", got, want)
 	}
 }
 
