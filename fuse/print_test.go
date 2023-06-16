@@ -20,3 +20,33 @@ func TestFlagStringOrder(t *testing.T) {
 		}
 	}
 }
+
+// verify how flagString handles provided default.
+func TestFlagStringDefault(t *testing.T) {
+	names := newFlagNames(map[int64]string{
+		1: "AAA",
+		2: "BBB",
+		4: "CCC",
+	})
+
+	testv := []struct {
+		flags int64
+		def   string
+		strok string
+	}{
+		{0, "", ""},
+		{0, "X", "X"},
+		{1, "X", "AAA"},
+		{5, "X", "AAA,CCC"},
+		{8, "X", "0x8"},
+		{9, "X", "AAA,0x8"},
+	}
+
+	for _, test := range testv {
+		str := flagString(names, test.flags, test.def)
+		if str != test.strok {
+			t.Errorf("flagString(%x, %q) -> got %q ;  want %q",
+				test.flags, test.def, str, test.strok)
+		}
+	}
+}
