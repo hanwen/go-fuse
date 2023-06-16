@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f0ab1199_a94c46eb",
+        "filename": "fuse/print.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 140,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-06-16T21:29:12Z",
+      "side": 1,
+      "message": "return def",
+      "range": {
+        "startLine": 140,
+        "startChar": 3,
+        "endLine": 140,
+        "endChar": 19
+      },
+      "revId": "19017cfc54e27fd2696d98c3d8bc930091fe4686",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
