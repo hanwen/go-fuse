@@ -1,0 +1,61 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f56f0be3_4920cd23",
+        "filename": "fuse/print.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 86,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-06-16T09:52:15Z",
+      "side": 1,
+      "message": "can drop the indirection.",
+      "range": {
+        "startLine": 86,
+        "startChar": 19,
+        "endLine": 86,
+        "endChar": 20
+      },
+      "revId": "904e4435358c9d44584242a9fcd54a26b3353022",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "de016b87_88adae34",
+        "filename": "fuse/print.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-06-16T09:52:15Z",
+      "side": 1,
+      "message": "`if fl\u003d\u003d 0  { break }`",
+      "revId": "904e4435358c9d44584242a9fcd54a26b3353022",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9cbd50ed_d836c29c",
+        "filename": "fuse/print.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 136,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-06-16T09:52:15Z",
+      "side": 1,
+      "message": "reorder: default only applies if fl \u003d\u003d 0.",
+      "revId": "904e4435358c9d44584242a9fcd54a26b3353022",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
