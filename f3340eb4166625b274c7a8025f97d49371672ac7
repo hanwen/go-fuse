@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "2133537e_78f4b984",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1017031
+      },
+      "writtenOn": "2023-06-17T19:13:40Z",
+      "side": 1,
+      "message": "Han-Wen, thanks for asking for review. At the high level I think this change is good. I wonder though whether it makes sense to try to use any thirdparty library for ordered map structure.",
+      "revId": "f3340eb4166625b274c7a8025f97d49371672ac7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
