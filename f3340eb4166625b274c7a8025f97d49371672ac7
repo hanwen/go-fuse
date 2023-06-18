@@ -34,6 +34,24 @@
       "parentUuid": "2133537e_78f4b984",
       "revId": "f3340eb4166625b274c7a8025f97d49371672ac7",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "de705fa8_c604252d",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1017031
+      },
+      "writtenOn": "2023-06-18T12:07:20Z",
+      "side": 1,
+      "message": "Ok, I see.\n\nFor the reference: I recall that builtin map is optimized for \"very very large maps\":\n\nhttps://github.com/golang/go/issues/19495\nhttps://github.com/golang/go/issues/3885#issuecomment-66068800\n\nwhich is likely not the case list of children.\n\nThis way a custom map can actually beat builtin map on performance for maps, say, not exceeding 10-20K entries.",
+      "parentUuid": "95f33f6d_ec7dec9f",
+      "revId": "f3340eb4166625b274c7a8025f97d49371672ac7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
