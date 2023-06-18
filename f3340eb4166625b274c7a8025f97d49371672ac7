@@ -16,6 +16,24 @@
       "message": "Han-Wen, thanks for asking for review. At the high level I think this change is good. I wonder though whether it makes sense to try to use any thirdparty library for ordered map structure.",
       "revId": "f3340eb4166625b274c7a8025f97d49371672ac7",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "95f33f6d_ec7dec9f",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-06-18T10:53:59Z",
+      "side": 1,
+      "message": "Right now, the strings are duplicated (once in the slice, once in the map). That inefficiency could be removed by using a custom hashmap, but it will be hard to beat the built-in map for performance.",
+      "parentUuid": "2133537e_78f4b984",
+      "revId": "f3340eb4166625b274c7a8025f97d49371672ac7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
