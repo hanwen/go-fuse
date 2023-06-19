@@ -70,6 +70,24 @@
       "parentUuid": "de705fa8_c604252d",
       "revId": "f3340eb4166625b274c7a8025f97d49371672ac7",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "5d4aae89_71ce7a11",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1017031
+      },
+      "writtenOn": "2023-06-19T06:21:01Z",
+      "side": 1,
+      "message": "Thanks, I agree - it makes sense to measure first instead of optimizing or not blindly.",
+      "parentUuid": "17476182_107aa919",
+      "revId": "f3340eb4166625b274c7a8025f97d49371672ac7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
