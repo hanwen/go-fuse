@@ -138,7 +138,6 @@ func mountCheckOptions(t *testing.T, opts MountOptions) (info mountinfo.Info) {
 		Source:     orig.Source,
 		FSType:     orig.FSType,
 		VFSOptions: orig.VFSOptions,
-		Optional:   orig.Optional,
 	}
 	// server needs to run for Unmount to work
 	go srv.Serve()
