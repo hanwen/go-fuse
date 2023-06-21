@@ -16,6 +16,24 @@
       "message": "Was deleting these two lines intentional?",
       "revId": "e5b78843571c1cbec36a007cf25fc16682b90c28",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1856c39b_04fffa14",
+        "filename": "fs/inode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 433,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-06-21T22:39:29Z",
+      "side": 0,
+      "message": "yes. the old code tries to be clever and drop all the parents at once, but the new code just does it one at a time.",
+      "parentUuid": "0577387f_f785fca8",
+      "revId": "e5b78843571c1cbec36a007cf25fc16682b90c28",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
