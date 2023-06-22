@@ -165,7 +165,9 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		}
 	}
 	o := *opts
-
+	if o.Logger == nil {
+		o.Logger = log.Default()
+	}
 	if o.MaxWrite < 0 {
 		o.MaxWrite = 0
 	}
@@ -483,11 +485,11 @@ exit:
 		case ENODEV:
 			// unmount
 			if ms.opts.Debug {
-				log.Printf("received ENODEV (unmount request), thread exiting")
+				ms.opts.Logger.Printf("received ENODEV (unmount request), thread exiting")
 			}
 			break exit
 		default: // some other error?
-			log.Printf("Failed to read from fuse conn: %v", errNo)
+			ms.opts.Logger.Printf("Failed to read from fuse conn: %v", errNo)
 			break exit
 		}
 
@@ -511,14 +513,14 @@ func (ms *Server) handleRequest(req *request) Status {
 	}
 
 	if req.status.Ok() && ms.opts.Debug {
-		log.Println(req.InputDebug())
+		ms.opts.Logger.Println(req.InputDebug())
 	}
 
 	if req.inHeader.NodeId == pollHackInode ||
 		req.inHeader.NodeId == FUSE_ROOT_ID && len(req.filenames) > 0 && req.filenames[0] == pollHackName {
 		doPollHackLookup(ms, req)
 	} else if req.status.Ok() && req.handler.Func == nil {
-		log.Printf("Unimplemented opcode %v", operationName(req.inHeader.Opcode))
+		ms.opts.Logger.Printf("Unimplemented opcode %v", operationName(req.inHeader.Opcode))
 		req.status = ENOSYS
 	} else if req.status.Ok() {
 		req.handler.Func(ms, req)
@@ -531,7 +533,7 @@ func (ms *Server) handleRequest(req *request) Status {
 		// kernel. This is a normal if the referred request already has
 		// completed.
 		if ms.opts.Debug || !(req.inHeader.Opcode == _OP_INTERRUPT && errNo == ENOENT) {
-			log.Printf("writer: Write/Writev failed, err: %v. opcode: %v",
+			ms.opts.Logger.Printf("writer: Write/Writev failed, err: %v. opcode: %v",
 				errNo, operationName(req.inHeader.Opcode))
 		}
 
@@ -577,7 +579,7 @@ func (ms *Server) write(req *request) Status {
 
 	header := req.serializeHeader(req.flatDataSize())
 	if ms.opts.Debug {
-		log.Println(req.OutputDebug())
+		ms.opts.Logger.Println(req.OutputDebug())
 	}
 
 	if header == nil {
@@ -614,7 +616,7 @@ func (ms *Server) InodeNotify(node uint64, off int64, length int64) Status {
 	ms.writeMu.Unlock()
 
 	if ms.opts.Debug {
-		log.Println("Response: INODE_NOTIFY", result)
+		ms.opts.Logger.Println("Response: INODE_NOTIFY", result)
 	}
 	return result
 }
@@ -673,7 +675,7 @@ func (ms *Server) inodeNotifyStoreCache32(node uint64, offset int64, data []byte
 	ms.writeMu.Unlock()
 
 	if ms.opts.Debug {
-		log.Printf("Response: INODE_NOTIFY_STORE_CACHE: %v", result)
+		ms.opts.Logger.Printf("Response: INODE_NOTIFY_STORE_CACHE: %v", result)
 	}
 	return result
 }
@@ -765,7 +767,7 @@ func (ms *Server) inodeRetrieveCache1(node uint64, offset int64, dest []byte) (n
 	ms.writeMu.Unlock()
 
 	if ms.opts.Debug {
-		log.Printf("Response: NOTIFY_RETRIEVE_CACHE: %v", result)
+		ms.opts.Logger.Printf("Response: NOTIFY_RETRIEVE_CACHE: %v", result)
 	}
 	if result != OK {
 		ms.retrieveMu.Lock()
@@ -779,7 +781,7 @@ func (ms *Server) inodeRetrieveCache1(node uint64, offset int64, dest []byte) (n
 			// unexpected NotifyReply with our notifyUnique, then
 			// retrieveNext wraps, makes full cycle, and another
 			// retrieve request is made with the same notifyUnique.
-			log.Printf("W: INODE_RETRIEVE_CACHE: request with notifyUnique=%d mutated", q.NotifyUnique)
+			ms.opts.Logger.Printf("W: INODE_RETRIEVE_CACHE: request with notifyUnique=%d mutated", q.NotifyUnique)
 		}
 		ms.retrieveMu.Unlock()
 		return 0, result
@@ -840,7 +842,7 @@ func (ms *Server) DeleteNotify(parent uint64, child uint64, name string) Status 
 	ms.writeMu.Unlock()
 
 	if ms.opts.Debug {
-		log.Printf("Response: DELETE_NOTIFY: %v", result)
+		ms.opts.Logger.Printf("Response: DELETE_NOTIFY: %v", result)
 	}
 	return result
 }
@@ -876,7 +878,7 @@ func (ms *Server) EntryNotify(parent uint64, name string) Status {
 	ms.writeMu.Unlock()
 
 	if ms.opts.Debug {
-		log.Printf("Response: ENTRY_NOTIFY: %v", result)
+		ms.opts.Logger.Printf("Response: ENTRY_NOTIFY: %v", result)
 	}
 	return result
 }
