@@ -163,7 +163,7 @@ func TestBasic(t *testing.T) {
 
 func TestFileFdLeak(t *testing.T) {
 	tc := newTestCase(t, &testOptions{
-		suppressDebug: true,
+		suppressDebug: false,
 		attrCache:     true,
 		entryCache:    true,
 	})
@@ -174,8 +174,9 @@ func TestFileFdLeak(t *testing.T) {
 	bridge := tc.rawFS.(*rawBridge)
 	tc = nil
 
-	if got := len(bridge.files); got > 3 {
-		t.Errorf("found %d used file handles, should be <= 3", got)
+	// posixtest.FdLeak also uses 15 as a limit.
+	if got, want := len(bridge.files), 15; got > want {
+		t.Errorf("found %d used file handles, should be <= %d", got, want)
 	}
 }
 
@@ -232,12 +233,11 @@ func TestReadDirStress(t *testing.T) {
 				return
 			}
 			_, err = f.Readdirnames(-1)
+			f.Close()
 			if err != nil {
 				t.Errorf("goroutine %d iteration %d: %v", gr, i, err)
-				f.Close()
 				return
 			}
-			f.Close()
 		}
 	}
 
@@ -247,6 +247,7 @@ func TestReadDirStress(t *testing.T) {
 		go stress(i)
 	}
 	wg.Wait()
+
 }
 
 // This test is racy. If an external process consumes space while this
@@ -585,12 +586,19 @@ func TestFsstress(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	wg.Add(1)
+	go func() {
+		cmd.Wait()
+		wg.Done()
+	}()
+
 	defer cmd.Process.Kill()
 
 	// Run the test for 1 second. If it deadlocks, it usually does within 20ms.
 	time.Sleep(1 * time.Second)
 
 	cancel()
+	cmd.Process.Kill()
 
 	// waitTimeout waits for the waitgroup for the specified max timeout.
 	// Returns true if waiting timed out.

@@ -648,10 +648,13 @@ func TestLargeDirRead(t *testing.T) {
 	nameSet := make(map[string]bool)
 	for i := 0; i < created; i++ {
 		// Should vary file name length.
-		base := fmt.Sprintf("file%d%s", i,
+		base := fmt.Sprintf("file%d.%s", i,
 			randomLengthString(len(longname)))
 		name := filepath.Join(subdir, base)
 
+		if nameSet[base] {
+			panic(fmt.Sprintf("duplicate name %q", base))
+		}
 		nameSet[base] = true
 
 		tc.WriteFile(name, []byte("bla"), 0777)
