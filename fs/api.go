@@ -9,7 +9,7 @@
 // To create a file system, you should first define types for the
 // nodes of the file system tree.
 //
-//	struct myNode {
+//	type myNode struct {
 //	   fs.Inode
 //	}
 //
