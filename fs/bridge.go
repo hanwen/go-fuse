@@ -1175,18 +1175,22 @@ func (b *rawBridge) Lseek(cancel <-chan struct{}, in *fuse.LseekIn, out *fuse.Ls
 		out.Offset = off
 		return errnoToStatus(errno)
 	}
-
+	var attr fuse.AttrOut
+	if s := b.getattr(ctx, n, nil, &attr); s != 0 {
+		return errnoToStatus(s)
+	}
 	if in.Whence == _SEEK_DATA {
+		if in.Offset >= attr.Size {
+			return errnoToStatus(syscall.ENXIO)
+		}
 		out.Offset = in.Offset
 		return fuse.OK
 	}
 
 	if in.Whence == _SEEK_HOLE {
-		var attr fuse.AttrOut
-		if s := b.getattr(ctx, n, nil, &attr); s != 0 {
-			return errnoToStatus(s)
+		if in.Offset > attr.Size {
+			return errnoToStatus(syscall.ENXIO)
 		}
-
 		out.Offset = attr.Size
 		return fuse.OK
 	}

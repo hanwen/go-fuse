@@ -7,6 +7,7 @@ package posixtest
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -34,6 +35,7 @@ var All = map[string]func(*testing.T, string){
 	"Link":                       Link,
 	"LinkUnlinkRename":           LinkUnlinkRename,
 	"LseekHoleSeeksToEOF":        LseekHoleSeeksToEOF,
+	"LseekEnxioCheck":            LseekEnxioCheck,
 	"RenameOverwriteDestNoExist": RenameOverwriteDestNoExist,
 	"RenameOverwriteDestExist":   RenameOverwriteDestExist,
 	"RenameOpenDir":              RenameOpenDir,
@@ -718,5 +720,50 @@ func LseekHoleSeeksToEOF(t *testing.T, mnt string) {
 		t.Fatalf("Seek: %v", err)
 	} else if off != int64(len(content)) {
 		t.Errorf("got offset %d, want %d", off, len(content))
+	}
+}
+
+func LseekEnxioCheck(t *testing.T, mnt string) {
+	fn := filepath.Join(mnt, "file.bin")
+	content := bytes.Repeat([]byte("abcxyz\n"), 1024)
+	if err := ioutil.WriteFile(fn, content, 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	fd, err := syscall.Open(fn, syscall.O_RDONLY, 0644)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	defer syscall.Close(fd)
+
+	testCases := []struct {
+		name   string
+		offset int64
+		whence int
+	}{
+		{
+			name:   "Lseek SEEK_DATA where offset is at EOF returns ENXIO",
+			offset: int64(len(content)),
+			whence: unix.SEEK_DATA,
+		},
+		{
+			name:   "Lseek SEEK_DATA where offset greater than EOF returns ENXIO",
+			offset: int64(len(content)) + 1,
+			whence: unix.SEEK_DATA,
+		},
+		{
+			name:   "Lseek SEEK_HOLE where offset is greater than EOF returns ENXIO",
+			offset: int64(len(content)) + 1,
+			whence: unix.SEEK_HOLE,
+		},
+	}
+
+	for _, tc := range testCases {
+		_, err := unix.Seek(fd, tc.offset, tc.whence)
+		if err != nil {
+			if !errors.Is(err, syscall.ENXIO) {
+				t.Errorf("Failed test case: %s; got %v, want %v", tc.name, err, syscall.ENXIO)
+			}
+		}
 	}
 }
