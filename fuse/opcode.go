@@ -62,6 +62,12 @@ const (
 	_OP_LSEEK           = uint32(46) // protocol version 24
 	_OP_COPY_FILE_RANGE = uint32(47) // protocol version 28.
 
+	_OP_SETUPMAPPING  = 48
+	_OP_REMOVEMAPPING = 49
+	_OP_SYNCFS        = 50
+	_OP_TMPFILE       = 51
+	_OP_STATX         = 52
+
 	// The following entries don't have to be compatible across Go-FUSE versions.
 	_OP_NOTIFY_INVAL_ENTRY    = uint32(100)
 	_OP_NOTIFY_INVAL_INODE    = uint32(101)
@@ -692,6 +698,10 @@ func init() {
 		_OP_RENAME2:               "RENAME2",
 		_OP_LSEEK:                 "LSEEK",
 		_OP_COPY_FILE_RANGE:       "COPY_FILE_RANGE",
+		_OP_SETUPMAPPING:          "SETUPMAPPING",
+		_OP_REMOVEMAPPING:         "REMOVEMAPPING",
+		_OP_SYNCFS:                "SYNCFS",
+		_OP_TMPFILE:               "TMPFILE",
 	} {
 		operationHandlers[op].Name = v
 	}
