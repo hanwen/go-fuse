@@ -46,6 +46,17 @@ var (
 		CAP_CACHE_SYMLINKS:      "CACHE_SYMLINKS",
 		CAP_NO_OPENDIR_SUPPORT:  "NO_OPENDIR_SUPPORT",
 		CAP_EXPLICIT_INVAL_DATA: "EXPLICIT_INVAL_DATA",
+		CAP_MAP_ALIGNMENT:       "MAP_ALIGNMENT",
+		CAP_SUBMOUNTS:           "SUBMOUNTS",
+		CAP_HANDLE_KILLPRIV_V2:  "HANDLE_KILLPRIV_V2",
+		CAP_SETXATTR_EXT:        "SETXATTR_EXT",
+		CAP_INIT_EXT:            "INIT_EXT",
+		CAP_INIT_RESERVED:       "INIT_RESERVED",
+		CAP_SECURITY_CTX:        "SECURITY_CTX",
+		CAP_HAS_INODE_DAX:       "HAS_INODE_DAX",
+		CAP_CREATE_SUPP_GROUP:   "CREATE_SUPP_GROUP",
+		CAP_HAS_EXPIRE_ONLY:     "HAS_EXPIRE_ONLY",
+		CAP_DIRECT_IO_RELAX:     "DIRECT_IO_RELAX",
 	})
 	releaseFlagNames = newFlagNames(map[int64]string{
 		RELEASE_FLUSH: "FLUSH",
@@ -209,7 +220,7 @@ func (in *OpenOut) string() string {
 func (in *InitIn) string() string {
 	return fmt.Sprintf("{%d.%d Ra %d %s}",
 		in.Major, in.Minor, in.MaxReadAhead,
-		flagString(initFlagNames, int64(in.Flags), ""))
+		flagString(initFlagNames, int64(in.Flags)|(int64(in.Flags2)<<32), ""))
 }
 
 func (o *InitOut) string() string {
