@@ -57,22 +57,23 @@ var (
 		CAP_CREATE_SUPP_GROUP:   "CREATE_SUPP_GROUP",
 		CAP_HAS_EXPIRE_ONLY:     "HAS_EXPIRE_ONLY",
 		CAP_DIRECT_IO_RELAX:     "DIRECT_IO_RELAX",
+		CAP_SUPPRESS_XATTR:      "SUPPRESS_XATTR",
 	})
 	releaseFlagNames = newFlagNames(map[int64]string{
 		RELEASE_FLUSH: "FLUSH",
 	})
 	openFlagNames = newFlagNames(map[int64]string{
-		int64(os.O_WRONLY):        "WRONLY",
-		int64(os.O_RDWR):          "RDWR",
-		int64(os.O_APPEND):        "APPEND",
-		int64(syscall.O_ASYNC):    "ASYNC",
-		int64(os.O_CREATE):        "CREAT",
-		int64(os.O_EXCL):          "EXCL",
-		int64(syscall.O_NOCTTY):   "NOCTTY",
-		int64(syscall.O_NONBLOCK): "NONBLOCK",
-		int64(os.O_SYNC):          "SYNC",
-		int64(os.O_TRUNC):         "TRUNC",
-
+		int64(os.O_WRONLY):         "WRONLY",
+		int64(os.O_RDWR):           "RDWR",
+		int64(os.O_APPEND):         "APPEND",
+		int64(syscall.O_ASYNC):     "ASYNC",
+		int64(os.O_CREATE):         "CREAT",
+		int64(os.O_EXCL):           "EXCL",
+		int64(syscall.O_NOCTTY):    "NOCTTY",
+		int64(syscall.O_NONBLOCK):  "NONBLOCK",
+		int64(os.O_SYNC):           "SYNC",
+		int64(os.O_TRUNC):          "TRUNC",
+		0x8000:                     "LARGEFILE",
 		int64(syscall.O_CLOEXEC):   "CLOEXEC",
 		int64(syscall.O_DIRECTORY): "DIRECTORY",
 	})

@@ -265,6 +265,7 @@ func (o *MountOptions) optionsStrings() []string {
 		r = append(r, "subtype="+o.Name)
 	}
 	r = append(r, fmt.Sprintf("max_read=%d", o.MaxWrite))
+	r = append(r, "nosuid")
 
 	// OSXFUSE applies a 60-second timeout for file operations. This
 	// is inconsistent with how FUSE works on Linux, where operations

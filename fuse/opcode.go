@@ -104,6 +104,8 @@ func doInit(server *Server, req *request) {
 	server.kernelSettings.Flags = input.Flags & (CAP_ASYNC_READ | CAP_BIG_WRITES | CAP_FILE_OPS |
 		CAP_READDIRPLUS | CAP_NO_OPEN_SUPPORT | CAP_PARALLEL_DIROPS | CAP_MAX_PAGES)
 
+	server.kernelSettings.Flags2 = (1 << (37 - 32))
+
 	if server.opts.EnableLocks {
 		server.kernelSettings.Flags |= CAP_FLOCK_LOCKS | CAP_POSIX_LOCKS
 	}
@@ -150,6 +152,7 @@ func doInit(server *Server, req *request) {
 		Minor:               _OUR_MINOR_VERSION,
 		MaxReadAhead:        input.MaxReadAhead,
 		Flags:               server.kernelSettings.Flags,
+		Flags2:              server.kernelSettings.Flags2,
 		MaxWrite:            uint32(server.opts.MaxWrite),
 		CongestionThreshold: uint16(server.opts.MaxBackground * 3 / 4),
 		MaxBackground:       uint16(server.opts.MaxBackground),
