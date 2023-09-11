@@ -378,6 +378,8 @@ func (b *rawBridge) Rmdir(cancel <-chan struct{}, header *fuse.InHeader, name st
 		errno = mops.Rmdir(&fuse.Context{Caller: header.Caller, Cancel: cancel}, name)
 	}
 
+	// TODO - this should not succeed silently.
+
 	if errno == 0 {
 		parent.RmChild(name)
 	}
@@ -390,6 +392,8 @@ func (b *rawBridge) Unlink(cancel <-chan struct{}, header *fuse.InHeader, name s
 	if mops, ok := parent.ops.(NodeUnlinker); ok {
 		errno = mops.Unlink(&fuse.Context{Caller: header.Caller, Cancel: cancel}, name)
 	}
+
+	// TODO - this should not succeed silently.
 
 	if errno == 0 {
 		parent.RmChild(name)

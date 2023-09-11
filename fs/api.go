@@ -233,7 +233,7 @@ type NodeGetattrer interface {
 	Getattr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno
 }
 
-// SetAttr sets attributes for an Inode.
+// SetAttr sets attributes for an Inode. Default is to return ENOTSUP.
 type NodeSetattrer interface {
 	Setattr(ctx context.Context, f FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno
 }
@@ -435,25 +435,25 @@ type NodeReaddirer interface {
 }
 
 // Mkdir is similar to Lookup, but must create a directory entry and Inode.
-// Default is to return EROFS.
+// Default is to return ENOTSUP.
 type NodeMkdirer interface {
 	Mkdir(ctx context.Context, name string, mode uint32, out *fuse.EntryOut) (*Inode, syscall.Errno)
 }
 
 // Mknod is similar to Lookup, but must create a device entry and Inode.
-// Default is to return EROFS.
+// Default is to return ENOTSUP.
 type NodeMknoder interface {
 	Mknod(ctx context.Context, name string, mode uint32, dev uint32, out *fuse.EntryOut) (*Inode, syscall.Errno)
 }
 
 // Link is similar to Lookup, but must create a new link to an existing Inode.
-// Default is to return EROFS.
+// Default is to return ENOTSUP.
 type NodeLinker interface {
 	Link(ctx context.Context, target InodeEmbedder, name string, out *fuse.EntryOut) (node *Inode, errno syscall.Errno)
 }
 
 // Symlink is similar to Lookup, but must create a new symbolic link.
-// Default is to return EROFS.
+// Default is to return ENOTSUP.
 type NodeSymlinker interface {
 	Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (node *Inode, errno syscall.Errno)
 }
@@ -468,20 +468,20 @@ type NodeCreater interface {
 
 // Unlink should remove a child from this directory.  If the
 // return status is OK, the Inode is removed as child in the
-// FS tree automatically. Default is to return EROFS.
+// FS tree automatically. Default is to return success.
 type NodeUnlinker interface {
 	Unlink(ctx context.Context, name string) syscall.Errno
 }
 
 // Rmdir is like Unlink but for directories.
-// Default is to return EROFS.
+// Default is to return success.
 type NodeRmdirer interface {
 	Rmdir(ctx context.Context, name string) syscall.Errno
 }
 
 // Rename should move a child from one directory to a different
 // one. The change is effected in the FS tree if the return status is
-// OK. Default is to return EROFS.
+// OK. Default is to return ENOTSUP.
 type NodeRenamer interface {
 	Rename(ctx context.Context, name string, newParent InodeEmbedder, newName string, flags uint32) syscall.Errno
 }
