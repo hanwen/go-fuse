@@ -325,8 +325,10 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 	ms.reqReaders++
 	ms.reqMu.Unlock()
 
-	req = ms.reqPool.Get().(*request)
-	dest := ms.readPool.Get().([]byte)
+	reqIface := ms.reqPool.Get()
+	req = reqIface.(*request)
+	destIface := ms.readPool.Get()
+	dest := destIface.([]byte)
 
 	var n int
 	err := handleEINTR(func() error {
@@ -336,7 +338,7 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 	})
 	if err != nil {
 		code = ToStatus(err)
-		ms.reqPool.Put(req)
+		ms.reqPool.Put(reqIface)
 		ms.reqMu.Lock()
 		ms.reqReaders--
 		ms.reqMu.Unlock()
@@ -357,8 +359,7 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 	req.inflightIndex = len(ms.reqInflight)
 	ms.reqInflight = append(ms.reqInflight, req)
 	if !gobbled {
-		ms.readPool.Put(dest)
-		dest = nil
+		ms.readPool.Put(destIface)
 	}
 	ms.reqReaders--
 	if !ms.singleReader && ms.reqReaders <= 0 {
