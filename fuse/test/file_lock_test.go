@@ -32,6 +32,17 @@ func TestFlockExclusive(t *testing.T) {
 	contents := []byte{1, 2, 3}
 	tc.WriteFile(tc.origFile, []byte(contents), 0700)
 
+	for {
+		f, err := os.Open("/dev/null")
+		if err != nil {
+			t.Fatalf("Open(/dev/null): %v", err)
+		}
+		defer f.Close()
+		if f.Fd() > 3 {
+			break
+		}
+	}
+
 	f, err := os.OpenFile(tc.mountFile, os.O_WRONLY, 0)
 	if err != nil {
 		t.Fatalf("OpenFile(%q): %v", tc.mountFile, err)
