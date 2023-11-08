@@ -139,6 +139,52 @@
 // system issuing file operations in parallel, and using the race
 // detector to weed out data races.
 //
+// # Deadlocks
+//
+// The Go runtime multiplexes Goroutines onto operating system
+// threads, and makes assumptions that some system calls do not
+// block. When accessing a file system from the same process that
+// serves the file system (e.g. in unittests), this can lead to
+// deadlocks, especially when GOMAXPROCS=1. The following deadlocks
+// are known:
+//
+// 1. Spawning a subprocess uses a fork/exec sequence. In this
+// sequence, the child process uses dup3() to remap file
+// descriptors. If the destination fd happens to be backed by Go-FUSE,
+// the dup3() call will implicitly close the fd, generating a FLUSH
+// operation. If there is no thread left to respond, the process is deadlocked.
+//
+//	f1, err := os.Open("/fusemnt/file1")
+//	// f1.Fd() == 3
+//	f2, err := os.Open("/fusemnt/file1")
+//	// f2.Fd() == 4
+//
+//	cmd := exec.Command("/bin/true")
+//	cmd.ExtraFiles = []*os.File{f2}
+//	// f2 (fd 4) is moved to fd 3. Deadlocks with GOMAXPROCS=1.
+//	cmd.Start()
+//
+// This can be avoided by ensuring that file descriptors pointing into
+// FUSE mounts and file descriptors passed into subprocesses do not
+// overlap, e.g. inserting the following before the above example:
+//
+//	for {
+//		f, _ := os.Open("/dev/null")
+//		defer f.Close()
+//		if f.Fd() > 3 {
+//			break
+//		}
+//	}
+//
+// 2. The Go runtime uses the epoll system call to schedule
+// goroutines, and assumes that epoll does not block. However, the
+// FUSE kernel module implements the POLL opcode. If the Go runtime
+// calls epoll() with files opened on a FUSE mount, and if there is
+// only one thread available for execution, there is no thread left to
+// respond to the POLL opcode, leading to deadlock. To prevent this
+// from happening, Go-FUSE centrally disables the POLL opcode. (See
+// commit 4f10e248ebabd3cdf9c0aa3ae58fd15235f82a79)
+//
 // # Dynamically discovered file systems
 //
 // File system data usually cannot fit all in RAM, so the kernel must
