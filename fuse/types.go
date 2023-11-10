@@ -305,9 +305,6 @@ const (
 	CAP_MAP_ALIGNMENT       = (1 << 26)
 	CAP_SUBMOUNTS           = (1 << 27)
 	CAP_HANDLE_KILLPRIV_V2  = (1 << 28)
-	CAP_SETXATTR_EXT        = (1 << 29)
-	CAP_INIT_EXT            = (1 << 30)
-	CAP_INIT_RESERVED       = (1 << 31)
 
 	/* bits 32..63 get shifted down 32 bits into the Flags2 field */
 	CAP_SECURITY_CTX      = (1 << 32)

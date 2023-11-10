@@ -15,6 +15,16 @@ const (
 	EREMOTEIO = Status(syscall.EREMOTEIO)
 )
 
+// To be set in InitIn/InitOut.Flags.
+//
+// This flags conflict with https://github.com/osxfuse/fuse/blob/master/include/fuse_common.h
+// and should be used only on Linux.
+const (
+	CAP_SETXATTR_EXT  = (1 << 29)
+	CAP_INIT_EXT      = (1 << 30)
+	CAP_INIT_RESERVED = (1 << 31)
+)
+
 type Attr struct {
 	Ino  uint64
 	Size uint64
