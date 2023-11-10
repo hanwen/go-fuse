@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "fe6d1d61_f7183e52",
+        "filename": "fuse/print_darwin.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-11-10T18:46:02Z",
+      "side": 1,
+      "message": "this is already wired up, you just have to fill out renameExchange() in loopback_darwin.go (not in this change, though)",
+      "range": {
+        "startLine": 13,
+        "startChar": 19,
+        "endLine": 13,
+        "endChar": 35
+      },
+      "revId": "3d9ac93f7c1307df391fd46ce924bfb655390f0c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "51a4ac3f_46516ce4",
+        "filename": "fuse/types.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 310,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-11-10T18:46:02Z",
+      "side": 1,
+      "message": "these are linux specific too.",
+      "range": {
+        "startLine": 304,
+        "startChar": 0,
+        "endLine": 310,
+        "endChar": 1
+      },
+      "revId": "3d9ac93f7c1307df391fd46ce924bfb655390f0c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
