@@ -88,6 +88,24 @@
       "parentUuid": "e2772887_b226fabc",
       "revId": "aab5a0dd1b9eea289e9f0cda96a283baaa1b5d10",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "53f319c2_fa868b38",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1037162
+      },
+      "writtenOn": "2023-11-10T15:48:40Z",
+      "side": 1,
+      "message": "I noticed that there are no more open source versions, the last open source version was 3, the current version is 4.",
+      "parentUuid": "ae707614_cd38d574",
+      "revId": "aab5a0dd1b9eea289e9f0cda96a283baaa1b5d10",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ],
   "submitRequirementResults": []
