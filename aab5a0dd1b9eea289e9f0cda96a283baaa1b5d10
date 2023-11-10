@@ -106,6 +106,24 @@
       "parentUuid": "ae707614_cd38d574",
       "revId": "aab5a0dd1b9eea289e9f0cda96a283baaa1b5d10",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "2c9494b7_cbcc7c3d",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1037162
+      },
+      "writtenOn": "2023-11-10T15:57:19Z",
+      "side": 1,
+      "message": "But the source code for writing libraries is still available, and this is exactly what we need.\n\nhttps://github.com/macfuse/library",
+      "parentUuid": "53f319c2_fa868b38",
+      "revId": "aab5a0dd1b9eea289e9f0cda96a283baaa1b5d10",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ],
   "submitRequirementResults": []
