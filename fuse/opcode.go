@@ -127,7 +127,7 @@ func doInit(server *Server, req *request) {
 		// we don't want CAP_AUTO_INVAL_DATA even if we cannot go into fully explicit mode
 		dataCacheMode = 0
 
-		explicit := input.Flags & CAP_EXPLICIT_INVAL_DATA
+		explicit := explicitDataCacheMode(input.Flags)
 		if explicit != 0 {
 			dataCacheMode = explicit
 		}
