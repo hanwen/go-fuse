@@ -45,6 +45,30 @@
       },
       "revId": "3d9ac93f7c1307df391fd46ce924bfb655390f0c",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1c6dd5b2_250fcd0a",
+        "filename": "fuse/types.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 310,
+      "author": {
+        "id": 1037162
+      },
+      "writtenOn": "2023-11-10T20:10:10Z",
+      "side": 1,
+      "message": "Yes, but they don\u0027t conflict with MACFUSE. If we decide to move them too, we should move these ones as well:\n\n```go\n\tCAP_AUTO_INVAL_DATA  \u003d (1 \u003c\u003c 12)\n\tCAP_READDIRPLUS      \u003d (1 \u003c\u003c 13)\n\tCAP_READDIRPLUS_AUTO \u003d (1 \u003c\u003c 14)\n\tCAP_ASYNC_DIO        \u003d (1 \u003c\u003c 15)\n\tCAP_WRITEBACK_CACHE  \u003d (1 \u003c\u003c 16)\n\tCAP_NO_OPEN_SUPPORT  \u003d (1 \u003c\u003c 17)\n\tCAP_PARALLEL_DIROPS  \u003d (1 \u003c\u003c 18)\n\tCAP_HANDLE_KILLPRIV  \u003d (1 \u003c\u003c 19)\n\tCAP_POSIX_ACL        \u003d (1 \u003c\u003c 20)\n\tCAP_ABORT_ERROR      \u003d (1 \u003c\u003c 21)\n\tCAP_MAX_PAGES        \u003d (1 \u003c\u003c 22)\n\tCAP_CACHE_SYMLINKS   \u003d (1 \u003c\u003c 23)\n```\n\nBecause they are not in the macfuse sources.",
+      "parentUuid": "51a4ac3f_46516ce4",
+      "range": {
+        "startLine": 304,
+        "startChar": 0,
+        "endLine": 310,
+        "endChar": 1
+      },
+      "revId": "3d9ac93f7c1307df391fd46ce924bfb655390f0c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }

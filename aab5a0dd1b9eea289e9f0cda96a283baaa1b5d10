@@ -22,6 +22,30 @@
       },
       "revId": "aab5a0dd1b9eea289e9f0cda96a283baaa1b5d10",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "caadce15_2d11b9b4",
+        "filename": "fuse/opcode.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1037162
+      },
+      "writtenOn": "2023-11-10T20:10:10Z",
+      "side": 0,
+      "message": "done, thank you",
+      "parentUuid": "c42774c7_f30585ec",
+      "range": {
+        "startLine": 130,
+        "startChar": 28,
+        "endLine": 130,
+        "endChar": 51
+      },
+      "revId": "aab5a0dd1b9eea289e9f0cda96a283baaa1b5d10",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
