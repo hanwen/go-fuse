@@ -24,6 +24,30 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "5be8cbb2_c86e877f",
+        "filename": "fuse/print_darwin.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1037162
+      },
+      "writtenOn": "2023-11-10T20:32:59Z",
+      "side": 1,
+      "message": "Ok, I\u0027ll do it in the next change",
+      "parentUuid": "fe6d1d61_f7183e52",
+      "range": {
+        "startLine": 13,
+        "startChar": 19,
+        "endLine": 13,
+        "endChar": 35
+      },
+      "revId": "3d9ac93f7c1307df391fd46ce924bfb655390f0c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "51a4ac3f_46516ce4",
