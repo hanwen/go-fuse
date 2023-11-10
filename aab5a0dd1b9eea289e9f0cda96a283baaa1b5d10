@@ -16,6 +16,24 @@
       "message": "Also, I noticed other flags in osxfuse sources which are not in the go-fuse source code:\n\n```cpp\n#  define FUSE_CAP_RENAME_SWAP\t\t(1 \u003c\u003c 25)\n#  define FUSE_CAP_RENAME_EXCL\t\t(1 \u003c\u003c 26)\n#  define FUSE_CAP_ALLOCATE\t\t(1 \u003c\u003c 27)\n#  define FUSE_CAP_EXCHANGE_DATA\t(1 \u003c\u003c 28)\n```",
       "revId": "aab5a0dd1b9eea289e9f0cda96a283baaa1b5d10",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d1bf9327_0c0dd569",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1037162
+      },
+      "writtenOn": "2023-11-10T02:21:45Z",
+      "side": 1,
+      "message": "These may conflict with go-fuse flags:\n\n```go\nCAP_EXPLICIT_INVAL_DATA \u003d (1 \u003c\u003c 25)\nCAP_MAP_ALIGNMENT \u003d (1 \u003c\u003c 26)\nCAP_SUBMOUNTS \u003d (1 \u003c\u003c 27)\nCAP_HANDLE_KILLPRIV_V2 \u003d (1 \u003c\u003c 28)\n```",
+      "parentUuid": "bcea1b84_6c1c508b",
+      "revId": "aab5a0dd1b9eea289e9f0cda96a283baaa1b5d10",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
