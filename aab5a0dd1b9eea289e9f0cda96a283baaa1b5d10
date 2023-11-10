@@ -34,6 +34,24 @@
       "parentUuid": "bcea1b84_6c1c508b",
       "revId": "aab5a0dd1b9eea289e9f0cda96a283baaa1b5d10",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "bf6beaa3_7ec555c1",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-11-10T11:36:27Z",
+      "side": 1,
+      "message": "I guess they should be moved too.\n\nI am confused about the status of osxfuse, though. I heard newer versions of OSX made it impossible to load the kernel module, so OSXFUSE was essentially going away?",
+      "parentUuid": "d1bf9327_0c0dd569",
+      "revId": "aab5a0dd1b9eea289e9f0cda96a283baaa1b5d10",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
