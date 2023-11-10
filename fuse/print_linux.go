@@ -13,6 +13,9 @@ func init() {
 	openFlagNames.set(syscall.O_DIRECT, "DIRECT")
 	openFlagNames.set(syscall.O_LARGEFILE, "LARGEFILE")
 	openFlagNames.set(syscall_O_NOATIME, "NOATIME")
+	initFlagNames.set(CAP_SETXATTR_EXT, "SETXATTR_EXT")
+	initFlagNames.set(CAP_INIT_EXT, "INIT_EXT")
+	initFlagNames.set(CAP_INIT_RESERVED, "INIT_RESERVED")
 }
 
 func (a *Attr) string() string {
