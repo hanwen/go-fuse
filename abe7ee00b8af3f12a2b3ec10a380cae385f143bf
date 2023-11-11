@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "fe4dc206_0021c9ef",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1037162
+      },
+      "writtenOn": "2023-11-11T16:17:49Z",
+      "side": 1,
+      "message": "As you ask in \nhttps://review.gerrithub.io/c/hanwen/go-fuse/+/1172015/2/fuse/print_darwin.go#13 \nI prepared this change to support renameExchange in loopback for darwin.\n\nBut this turned out to be a non-trivial change, so for now I called it a draft.",
+      "revId": "abe7ee00b8af3f12a2b3ec10a380cae385f143bf",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
