@@ -102,7 +102,7 @@ func doInit(server *Server, req *request) {
 	server.reqMu.Lock()
 	server.kernelSettings = *input
 	server.kernelSettings.Flags = input.Flags & (CAP_ASYNC_READ | CAP_BIG_WRITES | CAP_FILE_OPS |
-		CAP_READDIRPLUS | CAP_NO_OPEN_SUPPORT | CAP_PARALLEL_DIROPS | CAP_MAX_PAGES)
+		CAP_READDIRPLUS | CAP_NO_OPEN_SUPPORT | CAP_PARALLEL_DIROPS | CAP_MAX_PAGES | CAP_RENAME_SWAP)
 
 	if server.opts.EnableLocks {
 		server.kernelSettings.Flags |= CAP_FLOCK_LOCKS | CAP_POSIX_LOCKS
@@ -443,6 +443,10 @@ func doSymlink(server *Server, req *request) {
 }
 
 func doRename(server *Server, req *request) {
+	if server.kernelSettings.supportsRenameSwap() {
+		doRename2(server, req)
+		return
+	}
 	in1 := (*Rename1In)(req.inData)
 	in := RenameIn{
 		InHeader: in1.InHeader,

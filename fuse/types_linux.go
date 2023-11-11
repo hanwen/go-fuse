@@ -28,6 +28,9 @@ const (
 	CAP_SETXATTR_EXT        = (1 << 29)
 	CAP_INIT_EXT            = (1 << 30)
 	CAP_INIT_RESERVED       = (1 << 31)
+
+	// CAP_RENAME_SWAP only exists on OSX.
+	CAP_RENAME_SWAP = 0x0
 )
 
 type Attr struct {
