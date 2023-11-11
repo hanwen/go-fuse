@@ -73,9 +73,10 @@ type Server struct {
 	retrieveNext uint64
 	retrieveTab  map[uint64]*retrieveCacheRequest // notifyUnique -> retrieve request
 
-	singleReader bool
-	canSplice    bool
-	loops        sync.WaitGroup
+	singleReader  bool
+	canSplice     bool
+	canRenameSwap bool
+	loops         sync.WaitGroup
 
 	ready chan error
 

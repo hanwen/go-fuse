@@ -138,6 +138,19 @@ func doInit(server *Server, req *request) {
 		server.setSplice()
 	}
 
+	renameSwap := input.Flags & uint32(CAP_RENAME_SWAP)
+	if renameSwap != 0 {
+		server.canRenameSwap = true
+
+		// closed-source macfuse 4.x has broken compatibility with osxfuse 3.x:
+		// it passes an additional 64-bit field (flags) as in RenameIn, not Rename1In
+		// macfuse doesn't want change the behaviour back which is motivated by
+		// not breaking compatibility the second time, look here for details:
+		// https://github.com/osxfuse/osxfuse/issues/839
+		// https://github.com/macfuse/library/blob/eee4f806272fcfba3c8ee662647068f8e3abab72/lib/fuse_lowlevel.c#L1299-L1305
+		getHandler(_OP_RENAME).InputSize = unsafe.Sizeof(RenameIn{})
+	}
+
 	// maxPages is the maximum request size we want the kernel to use, in units of
 	// memory pages (usually 4kiB). Linux v4.19 and older ignore this and always use
 	// 128kiB.
@@ -443,6 +456,12 @@ func doSymlink(server *Server, req *request) {
 }
 
 func doRename(server *Server, req *request) {
+	// see for details:
+	// https://github.com/macfuse/library/blob/eee4f806272fcfba3c8ee662647068f8e3abab72/lib/fuse_lowlevel.c#L1299-L1305
+	if server.canRenameSwap {
+		doRename2(server, req)
+		return
+	}
 	in1 := (*Rename1In)(req.inData)
 	in := RenameIn{
 		InHeader: in1.InHeader,
