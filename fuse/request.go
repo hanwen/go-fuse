@@ -172,7 +172,7 @@ func (r *request) parseHeader() Status {
 	return OK
 }
 
-func (r *request) parse() {
+func (r *request) parse(kernelSettings InitIn) {
 	r.arg = r.inputBuf[:]
 	r.handler = getHandler(r.inHeader.Opcode)
 	if r.handler == nil {
@@ -182,6 +182,9 @@ func (r *request) parse() {
 	}
 
 	inSz := int(r.handler.InputSize)
+	if r.inHeader.Opcode == _OP_RENAME && kernelSettings.supportsRenameSwap() {
+		inSz = int(unsafe.Sizeof(RenameIn{}))
+	}
 	if r.inHeader.Opcode == _OP_INIT && inSz > len(r.arg) {
 		// Minor version 36 extended the size of InitIn struct
 		inSz = len(r.arg)

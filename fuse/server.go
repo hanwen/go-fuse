@@ -508,7 +508,7 @@ func (ms *Server) handleRequest(req *request) Status {
 		defer ms.requestProcessingMu.Unlock()
 	}
 
-	req.parse()
+	req.parse(ms.kernelSettings)
 	if req.handler == nil {
 		req.status = ENOSYS
 	}
@@ -904,6 +904,12 @@ func (in *InitIn) SupportsNotify(notifyType int) bool {
 		return in.SupportsVersion(7, 18)
 	}
 	return false
+}
+
+// supportsRenameSwap returns whether the kernel supports the
+// renamex_np(2) syscall. This is only supported on OS X.
+func (in *InitIn) supportsRenameSwap() bool {
+	return in.Flags&CAP_RENAME_SWAP != 0
 }
 
 // WaitMount waits for the first request to be served. Use this to
