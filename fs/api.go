@@ -145,14 +145,28 @@
 // threads, and makes assumptions that some system calls do not
 // block. When accessing a file system from the same process that
 // serves the file system (e.g. in unittests), this can lead to
-// deadlocks, especially when GOMAXPROCS=1. The following deadlocks
-// are known:
+// deadlocks, especially when GOMAXPROCS=1, when the Go runtime
+// assumes a system call does not block, but actually is served by the
+// Go-FUSE process.
 //
-// 1. Spawning a subprocess uses a fork/exec sequence. In this
-// sequence, the child process uses dup3() to remap file
-// descriptors. If the destination fd happens to be backed by Go-FUSE,
-// the dup3() call will implicitly close the fd, generating a FLUSH
-// operation. If there is no thread left to respond, the process is deadlocked.
+// The following deadlocks are known:
+//
+// 1. Spawning a subprocess uses a fork/exec sequence: the process
+// forks itself into a parent and child. The parent waits for the
+// child to signal that the exec failed or succeeded, while the child
+// sets up process before calling exec(). If any setup that triggers a
+// FUSE request can cause a deadlock.
+//
+// 1a. If the subprocess has a directory specified, the child will
+// chdir into that directory. This generates an ACCESS operation on
+// the directory. This deadlock can be avoided by returning
+// syscall.ENOSYS in the Access implementation, and ensuring
+// access() is called before initiating the subprocess.
+//
+// 1b. If the subprocess inherits files, the child process uses dup3()
+// to remap file descriptors. If the destination fd happens to be
+// backed by Go-FUSE, the dup3() call will implicitly close the fd,
+// generating a FLUSH operation, eg.
 //
 //	f1, err := os.Open("/fusemnt/file1")
 //	// f1.Fd() == 3
@@ -176,14 +190,12 @@
 //		}
 //	}
 //
-// 2. The Go runtime uses the epoll system call to schedule
-// goroutines, and assumes that epoll does not block. However, the
-// FUSE kernel module implements the POLL opcode. If the Go runtime
-// calls epoll() with files opened on a FUSE mount, and if there is
-// only one thread available for execution, there is no thread left to
-// respond to the POLL opcode, leading to deadlock. To prevent this
-// from happening, Go-FUSE centrally disables the POLL opcode. (See
-// commit 4f10e248ebabd3cdf9c0aa3ae58fd15235f82a79)
+// 2. The Go runtime uses the epoll system call to understand which
+// goroutines can respond to I/O.  The runtime assumes that epoll does
+// not block, but if files are on a FUSE filesystem, the kernel will
+// generate a POLL operation. To prevent this from happening, Go-FUSE
+// centrally disables the POLL opcode. (See commit
+// 4f10e248ebabd3cdf9c0aa3ae58fd15235f82a79)
 //
 // # Dynamically discovered file systems
 //
