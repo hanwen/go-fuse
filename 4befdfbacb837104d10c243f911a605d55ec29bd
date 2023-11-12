@@ -1,0 +1,67 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "fb54527a_24a871ec",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-11-12T16:25:28Z",
+      "side": 1,
+      "message": "there is a test in loopback_linux_test that has to move to a shared location.",
+      "revId": "4befdfbacb837104d10c243f911a605d55ec29bd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b50d599c_abd7dc70",
+        "filename": "fuse/opcode.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 151,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-11-12T16:25:28Z",
+      "side": 1,
+      "message": "this would be incorrect if two mounts negotiate different capability flags. Can you do this in request.parse() instead? _OP_INIT has something similar there too.\n\naside, can you add/update the section in README about OSX support? I don\u0027t have a Mac, so I don\u0027t know the details.",
+      "range": {
+        "startLine": 151,
+        "startChar": 25,
+        "endLine": 151,
+        "endChar": 34
+      },
+      "revId": "4befdfbacb837104d10c243f911a605d55ec29bd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d83141fc_6a0541f8",
+        "filename": "fuse/server.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 78,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-11-12T16:25:28Z",
+      "side": 1,
+      "message": "do you have to store this? doesnt kernelSettings contain the same info?",
+      "range": {
+        "startLine": 78,
+        "startChar": 1,
+        "endLine": 78,
+        "endChar": 14
+      },
+      "revId": "4befdfbacb837104d10c243f911a605d55ec29bd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
