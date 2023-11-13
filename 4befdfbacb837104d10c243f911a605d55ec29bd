@@ -151,6 +151,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "a8f9374f_e0ae3874",
+        "filename": "fuse/opcode.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 151,
+      "author": {
+        "id": 1037162
+      },
+      "writtenOn": "2023-11-13T04:18:00Z",
+      "side": 1,
+      "message": "I checked briefly and it seems that NOTIFY works (and there is code for NOTIFY in the macfuse source code), although the README says that NOTIFY is not supported.\n\nI’ll try to better understand how this should work in order to understand whether this mechanism is supported or not.",
+      "parentUuid": "ac1a617c_390b956f",
+      "range": {
+        "startLine": 151,
+        "startChar": 25,
+        "endLine": 151,
+        "endChar": 34
+      },
+      "revId": "4befdfbacb837104d10c243f911a605d55ec29bd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "d83141fc_6a0541f8",
         "filename": "fuse/server.go",
         "patchSetId": 3
