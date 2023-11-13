@@ -18,6 +18,24 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "5bcb45b5_f2152743",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1037162
+      },
+      "writtenOn": "2023-11-13T00:27:03Z",
+      "side": 1,
+      "message": "Yes, I even tried to do this before submitting the changes, but...\n\n```\n# github.com/hanwen/go-fuse/v2/posixtest\n../posixtest/test.go:54:70: undefined: syscall.O_DIRECT\n../posixtest/test.go:76:37: undefined: syscall.O_DIRECT\n../posixtest/test.go:312:8: v.st.Ctim undefined (type syscall.Stat_t has no field or method Ctim)\n../posixtest/test.go:313:6: st.Ctim undefined (type syscall.Stat_t has no field or method Ctim)\n../posixtest/test.go:610:21: undefined: syscall.Openat\n../posixtest/test.go:627:16: undefined: syscall.Fallocate\n../posixtest/xfstests.go:50:18: undefined: unix.Getdents\n../posixtest/xfstests.go:63:27: d.Off undefined (type *\"golang.org/x/sys/unix\".Dirent has no field or method Off)\n../posixtest/xfstests.go:65:19: d.Off undefined (type *\"golang.org/x/sys/unix\".Dirent has no field or method Off)\n../posixtest/xfstests.go:68:26: d.Off undefined (type *\"golang.org/x/sys/unix\".Dirent has no field or method Off)\n../posixtest/xfstests.go:68:26: too many errors\n```\n\nI\u0027m thinking about the best way to do this. Then I won\u0027t have to manually test my changes.",
+      "parentUuid": "fb54527a_24a871ec",
+      "revId": "4befdfbacb837104d10c243f911a605d55ec29bd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "b50d599c_abd7dc70",
