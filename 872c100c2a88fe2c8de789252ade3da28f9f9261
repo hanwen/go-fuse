@@ -24,6 +24,30 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "4283141b_8da9c104",
+        "filename": "fuse/opcode.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 446,
+      "author": {
+        "id": 1037162
+      },
+      "writtenOn": "2023-11-13T11:21:19Z",
+      "side": 1,
+      "message": "done",
+      "parentUuid": "155d4e34_5b8e977b",
+      "range": {
+        "startLine": 446,
+        "startChar": 26,
+        "endLine": 446,
+        "endChar": 27
+      },
+      "revId": "872c100c2a88fe2c8de789252ade3da28f9f9261",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "378e3b2a_11ec220b",
@@ -47,6 +71,30 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "08f4aa62_236b5a82",
+        "filename": "fuse/server.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 511,
+      "author": {
+        "id": 1037162
+      },
+      "writtenOn": "2023-11-13T11:21:19Z",
+      "side": 1,
+      "message": "done",
+      "parentUuid": "378e3b2a_11ec220b",
+      "range": {
+        "startLine": 511,
+        "startChar": 14,
+        "endLine": 511,
+        "endChar": 15
+      },
+      "revId": "872c100c2a88fe2c8de789252ade3da28f9f9261",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "bbb3dd7b_9608406f",
@@ -60,6 +108,30 @@
       "writtenOn": "2023-11-13T09:49:36Z",
       "side": 1,
       "message": "this is correct, but misleading. \n\n```CAP_RENAME_SWAP only exists om OSX.```",
+      "range": {
+        "startLine": 32,
+        "startChar": 20,
+        "endLine": 32,
+        "endChar": 22
+      },
+      "revId": "872c100c2a88fe2c8de789252ade3da28f9f9261",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "03e1efe7_10f5f80e",
+        "filename": "fuse/types_linux.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 1037162
+      },
+      "writtenOn": "2023-11-13T11:21:19Z",
+      "side": 1,
+      "message": "done",
+      "parentUuid": "bbb3dd7b_9608406f",
       "range": {
         "startLine": 32,
         "startChar": 20,
