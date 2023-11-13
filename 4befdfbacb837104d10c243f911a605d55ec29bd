@@ -257,6 +257,30 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "35e892f7_42ac9ef3",
+        "filename": "fuse/opcode.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 151,
+      "author": {
+        "id": 1037162
+      },
+      "writtenOn": "2023-11-13T11:45:10Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "40a6c056_7a2f6566",
+      "range": {
+        "startLine": 151,
+        "startChar": 25,
+        "endLine": 151,
+        "endChar": 34
+      },
+      "revId": "4befdfbacb837104d10c243f911a605d55ec29bd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "d83141fc_6a0541f8",
