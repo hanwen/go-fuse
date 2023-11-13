@@ -65,6 +65,30 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "1aba9e55_d2ea790c",
+        "filename": "fuse/opcode.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 151,
+      "author": {
+        "id": 1037162
+      },
+      "writtenOn": "2023-11-13T00:01:54Z",
+      "side": 1,
+      "message": "Thanks for the review. I thought about this, but thought it was an unlikely situation and that it would be better not to pass additional arguments to request.parse(). But now I see that this solution is better.",
+      "parentUuid": "b4d3e5a7_a9baab79",
+      "range": {
+        "startLine": 151,
+        "startChar": 25,
+        "endLine": 151,
+        "endChar": 34
+      },
+      "revId": "4befdfbacb837104d10c243f911a605d55ec29bd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "d83141fc_6a0541f8",
@@ -78,6 +102,30 @@
       "writtenOn": "2023-11-12T16:25:28Z",
       "side": 1,
       "message": "do you have to store this? doesnt kernelSettings contain the same info?",
+      "range": {
+        "startLine": 78,
+        "startChar": 1,
+        "endLine": 78,
+        "endChar": 14
+      },
+      "revId": "4befdfbacb837104d10c243f911a605d55ec29bd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "39326a73_5bc9bc74",
+        "filename": "fuse/server.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 78,
+      "author": {
+        "id": 1037162
+      },
+      "writtenOn": "2023-11-13T00:01:54Z",
+      "side": 1,
+      "message": "Thanks for the advice, I put this in kernelSettings.",
+      "parentUuid": "d83141fc_6a0541f8",
       "range": {
         "startLine": 78,
         "startChar": 1,
