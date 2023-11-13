@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "155d4e34_5b8e977b",
+        "filename": "fuse/opcode.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 446,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-11-13T09:49:36Z",
+      "side": 1,
+      "message": "don\u0027t export.",
+      "range": {
+        "startLine": 446,
+        "startChar": 26,
+        "endLine": 446,
+        "endChar": 27
+      },
+      "revId": "872c100c2a88fe2c8de789252ade3da28f9f9261",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "378e3b2a_11ec220b",
+        "filename": "fuse/server.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 511,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-11-13T09:49:36Z",
+      "side": 1,
+      "message": "access kernelSettings directly.",
+      "range": {
+        "startLine": 511,
+        "startChar": 14,
+        "endLine": 511,
+        "endChar": 15
+      },
+      "revId": "872c100c2a88fe2c8de789252ade3da28f9f9261",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "bbb3dd7b_9608406f",
+        "filename": "fuse/types_linux.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-11-13T09:49:36Z",
+      "side": 1,
+      "message": "this is correct, but misleading. \n\n```CAP_RENAME_SWAP only exists om OSX.```",
+      "range": {
+        "startLine": 32,
+        "startChar": 20,
+        "endLine": 32,
+        "endChar": 22
+      },
+      "revId": "872c100c2a88fe2c8de789252ade3da28f9f9261",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
