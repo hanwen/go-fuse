@@ -126,17 +126,18 @@ type Owner struct {
 }
 
 const ( // SetAttrIn.Valid
-	FATTR_MODE      = (1 << 0)
-	FATTR_UID       = (1 << 1)
-	FATTR_GID       = (1 << 2)
-	FATTR_SIZE      = (1 << 3)
-	FATTR_ATIME     = (1 << 4)
-	FATTR_MTIME     = (1 << 5)
-	FATTR_FH        = (1 << 6)
-	FATTR_ATIME_NOW = (1 << 7)
-	FATTR_MTIME_NOW = (1 << 8)
-	FATTR_LOCKOWNER = (1 << 9)
-	FATTR_CTIME     = (1 << 10)
+	FATTR_MODE         = (1 << 0)
+	FATTR_UID          = (1 << 1)
+	FATTR_GID          = (1 << 2)
+	FATTR_SIZE         = (1 << 3)
+	FATTR_ATIME        = (1 << 4)
+	FATTR_MTIME        = (1 << 5)
+	FATTR_FH           = (1 << 6)
+	FATTR_ATIME_NOW    = (1 << 7)
+	FATTR_MTIME_NOW    = (1 << 8)
+	FATTR_LOCKOWNER    = (1 << 9)
+	FATTR_CTIME        = (1 << 10)
+	FATTR_KILL_SUIDGID = (1 << 11)
 )
 
 type SetAttrInCommon struct {
@@ -251,11 +252,13 @@ type OpenIn struct {
 
 const (
 	// OpenOut.Flags
-	FOPEN_DIRECT_IO   = (1 << 0)
-	FOPEN_KEEP_CACHE  = (1 << 1)
-	FOPEN_NONSEEKABLE = (1 << 2)
-	FOPEN_CACHE_DIR   = (1 << 3)
-	FOPEN_STREAM      = (1 << 4)
+	FOPEN_DIRECT_IO              = (1 << 0)
+	FOPEN_KEEP_CACHE             = (1 << 1)
+	FOPEN_NONSEEKABLE            = (1 << 2)
+	FOPEN_CACHE_DIR              = (1 << 3)
+	FOPEN_STREAM                 = (1 << 4)
+	FOPEN_NOFLUSH                = (1 << 5)
+	FOPEN_PARALLEL_DIRECT_WRITES = (1 << 6)
 )
 
 type OpenOut struct {
@@ -273,32 +276,37 @@ type OpenOut struct {
 // * https://github.com/libfuse/libfuse/blob/master/include/fuse_common.h
 // This file has CAP_HANDLE_KILLPRIV and CAP_POSIX_ACL reversed!
 const (
-	CAP_ASYNC_READ          = (1 << 0)
-	CAP_POSIX_LOCKS         = (1 << 1)
-	CAP_FILE_OPS            = (1 << 2)
-	CAP_ATOMIC_O_TRUNC      = (1 << 3)
-	CAP_EXPORT_SUPPORT      = (1 << 4)
-	CAP_BIG_WRITES          = (1 << 5)
-	CAP_DONT_MASK           = (1 << 6)
-	CAP_SPLICE_WRITE        = (1 << 7)
-	CAP_SPLICE_MOVE         = (1 << 8)
-	CAP_SPLICE_READ         = (1 << 9)
-	CAP_FLOCK_LOCKS         = (1 << 10)
-	CAP_IOCTL_DIR           = (1 << 11)
-	CAP_AUTO_INVAL_DATA     = (1 << 12)
-	CAP_READDIRPLUS         = (1 << 13)
-	CAP_READDIRPLUS_AUTO    = (1 << 14)
-	CAP_ASYNC_DIO           = (1 << 15)
-	CAP_WRITEBACK_CACHE     = (1 << 16)
-	CAP_NO_OPEN_SUPPORT     = (1 << 17)
-	CAP_PARALLEL_DIROPS     = (1 << 18)
-	CAP_HANDLE_KILLPRIV     = (1 << 19)
-	CAP_POSIX_ACL           = (1 << 20)
-	CAP_ABORT_ERROR         = (1 << 21)
-	CAP_MAX_PAGES           = (1 << 22)
-	CAP_CACHE_SYMLINKS      = (1 << 23)
-	CAP_NO_OPENDIR_SUPPORT  = (1 << 24)
-	CAP_EXPLICIT_INVAL_DATA = (1 << 25)
+	CAP_ASYNC_READ       = (1 << 0)
+	CAP_POSIX_LOCKS      = (1 << 1)
+	CAP_FILE_OPS         = (1 << 2)
+	CAP_ATOMIC_O_TRUNC   = (1 << 3)
+	CAP_EXPORT_SUPPORT   = (1 << 4)
+	CAP_BIG_WRITES       = (1 << 5)
+	CAP_DONT_MASK        = (1 << 6)
+	CAP_SPLICE_WRITE     = (1 << 7)
+	CAP_SPLICE_MOVE      = (1 << 8)
+	CAP_SPLICE_READ      = (1 << 9)
+	CAP_FLOCK_LOCKS      = (1 << 10)
+	CAP_IOCTL_DIR        = (1 << 11)
+	CAP_AUTO_INVAL_DATA  = (1 << 12)
+	CAP_READDIRPLUS      = (1 << 13)
+	CAP_READDIRPLUS_AUTO = (1 << 14)
+	CAP_ASYNC_DIO        = (1 << 15)
+	CAP_WRITEBACK_CACHE  = (1 << 16)
+	CAP_NO_OPEN_SUPPORT  = (1 << 17)
+	CAP_PARALLEL_DIROPS  = (1 << 18)
+	CAP_HANDLE_KILLPRIV  = (1 << 19)
+	CAP_POSIX_ACL        = (1 << 20)
+	CAP_ABORT_ERROR      = (1 << 21)
+	CAP_MAX_PAGES        = (1 << 22)
+	CAP_CACHE_SYMLINKS   = (1 << 23)
+
+	/* bits 32..63 get shifted down 32 bits into the Flags2 field */
+	CAP_SECURITY_CTX      = (1 << 32)
+	CAP_HAS_INODE_DAX     = (1 << 33)
+	CAP_CREATE_SUPP_GROUP = (1 << 34)
+	CAP_HAS_EXPIRE_ONLY   = (1 << 35)
+	CAP_DIRECT_IO_RELAX   = (1 << 36)
 )
 
 type InitIn struct {
@@ -308,6 +316,8 @@ type InitIn struct {
 	Minor        uint32
 	MaxReadAhead uint32
 	Flags        uint32
+	Flags2       uint32
+	Unused       [11]uint32
 }
 
 type InitOut struct {
@@ -321,7 +331,8 @@ type InitOut struct {
 	TimeGran            uint32
 	MaxPages            uint16
 	Padding             uint16
-	Unused              [8]uint32
+	Flags2              uint32
+	Unused              [7]uint32
 }
 
 type _CuseInitIn struct {
@@ -645,8 +656,9 @@ const (
 )
 
 const (
-	WRITE_CACHE     = (1 << 0)
-	WRITE_LOCKOWNER = (1 << 1)
+	WRITE_CACHE        = (1 << 0)
+	WRITE_LOCKOWNER    = (1 << 1)
+	WRITE_KILL_SUIDGID = (1 << 2)
 )
 
 type FallocateIn struct {

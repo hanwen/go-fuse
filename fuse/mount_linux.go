@@ -7,7 +7,6 @@ package fuse
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -69,7 +68,7 @@ func mountDirect(mountPoint string, opts *MountOptions, ready chan<- error) (fd 
 	}
 
 	if opts.Debug {
-		log.Printf("mountDirect: calling syscall.Mount(%q, %q, %q, %#x, %q)",
+		opts.Logger.Printf("mountDirect: calling syscall.Mount(%q, %q, %q, %#x, %q)",
 			source, mountPoint, "fuse."+opts.Name, flags, strings.Join(r, ","))
 	}
 	err = syscall.Mount(source, mountPoint, "fuse."+opts.Name, flags, strings.Join(r, ","))
@@ -108,7 +107,7 @@ func callFusermount(mountPoint string, opts *MountOptions) (fd int, err error) {
 		cmd = append(cmd, "-o", strings.Join(s, ","))
 	}
 	if opts.Debug {
-		log.Printf("callFusermount: executing %q", cmd)
+		opts.Logger.Printf("callFusermount: executing %q", cmd)
 	}
 	proc, err := os.StartProcess(bin,
 		cmd,
@@ -145,7 +144,7 @@ func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, e
 		if err == nil {
 			return fd, nil
 		} else if opts.Debug {
-			log.Printf("mount: failed to do direct mount: %s", err)
+			opts.Logger.Printf("mount: failed to do direct mount: %s", err)
 		}
 		if opts.DirectMountStrict {
 			return -1, err
@@ -157,7 +156,7 @@ func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, e
 	fd = parseFuseFd(mountPoint)
 	if fd >= 0 {
 		if opts.Debug {
-			log.Printf("mount: magic mountpoint %q, using fd %d", mountPoint, fd)
+			opts.Logger.Printf("mount: magic mountpoint %q, using fd %d", mountPoint, fd)
 		}
 	} else {
 		// Usual case: mount via the `fusermount` suid helper
@@ -194,7 +193,7 @@ func unmount(mountPoint string, opts *MountOptions) (err error) {
 	cmd := exec.Command(bin, "-u", mountPoint)
 	cmd.Stderr = &errBuf
 	if opts.Debug {
-		log.Printf("unmount: executing %q", cmd.Args)
+		opts.Logger.Printf("unmount: executing %q", cmd.Args)
 	}
 	err = cmd.Run()
 	if errBuf.Len() > 0 {

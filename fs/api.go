@@ -139,6 +139,67 @@
 // system issuing file operations in parallel, and using the race
 // detector to weed out data races.
 //
+// # Deadlocks
+//
+// The Go runtime multiplexes Goroutines onto operating system
+// threads, and makes assumptions that some system calls do not
+// block. When accessing a file system from the same process that
+// serves the file system (e.g. in unittests), this can lead to
+// deadlocks, especially when GOMAXPROCS=1, when the Go runtime
+// assumes a system call does not block, but actually is served by the
+// Go-FUSE process.
+//
+// The following deadlocks are known:
+//
+// 1. Spawning a subprocess uses a fork/exec sequence: the process
+// forks itself into a parent and child. The parent waits for the
+// child to signal that the exec failed or succeeded, while the child
+// prepares for calling exec(). Any setup step in the child that
+// triggers a FUSE request can cause a deadlock.
+//
+// 1a. If the subprocess has a directory specified, the child will
+// chdir into that directory. This generates an ACCESS operation on
+// the directory.
+//
+// This deadlock can be avoided by disabling the ACCESS
+// operation: return syscall.ENOSYS in the Access implementation, and
+// ensure it is triggered called before initiating the subprocess.
+//
+// 1b. If the subprocess inherits files, the child process uses dup3()
+// to remap file descriptors. If the destination fd happens to be
+// backed by Go-FUSE, the dup3() call will implicitly close the fd,
+// generating a FLUSH operation, eg.
+//
+//	f1, err := os.Open("/fusemnt/file1")
+//	// f1.Fd() == 3
+//	f2, err := os.Open("/fusemnt/file1")
+//	// f2.Fd() == 4
+//
+//	cmd := exec.Command("/bin/true")
+//	cmd.ExtraFiles = []*os.File{f2}
+//	// f2 (fd 4) is moved to fd 3. Deadlocks with GOMAXPROCS=1.
+//	cmd.Start()
+//
+// This deadlock can be avoided by ensuring that file descriptors
+// pointing into FUSE mounts and file descriptors passed into
+// subprocesses do not overlap, e.g. inserting the following before
+// the above example:
+//
+//	for {
+//		f, _ := os.Open("/dev/null")
+//		defer f.Close()
+//		if f.Fd() > 3 {
+//			break
+//		}
+//	}
+//
+// 2. The Go runtime uses the epoll system call to understand which
+// goroutines can respond to I/O.  The runtime assumes that epoll does
+// not block, but if files are on a FUSE filesystem, the kernel will
+// generate a POLL operation. To prevent this from happening, Go-FUSE
+// disables the POLL opcode on mount. To ensure this has happened, call
+// WaitMount.
+//
 // # Dynamically discovered file systems
 //
 // File system data usually cannot fit all in RAM, so the kernel must
@@ -233,7 +294,7 @@ type NodeGetattrer interface {
 	Getattr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno
 }
 
-// SetAttr sets attributes for an Inode.
+// SetAttr sets attributes for an Inode. Default is to return ENOTSUP.
 type NodeSetattrer interface {
 	Setattr(ctx context.Context, f FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno
 }
@@ -409,14 +470,14 @@ type NodeLookuper interface {
 }
 
 // OpenDir opens a directory Inode for reading its
-// contents. The actual reading is driven from ReadDir, so
+// contents. The actual reading is driven from Readdir, so
 // this method is just for performing sanity/permission
 // checks. The default is to return success.
 type NodeOpendirer interface {
 	Opendir(ctx context.Context) syscall.Errno
 }
 
-// ReadDir opens a stream of directory entries.
+// Readdir opens a stream of directory entries.
 //
 // Readdir essentiallly returns a list of strings, and it is allowed
 // for Readdir to return different results from Lookup. For example,
@@ -435,25 +496,25 @@ type NodeReaddirer interface {
 }
 
 // Mkdir is similar to Lookup, but must create a directory entry and Inode.
-// Default is to return EROFS.
+// Default is to return ENOTSUP.
 type NodeMkdirer interface {
 	Mkdir(ctx context.Context, name string, mode uint32, out *fuse.EntryOut) (*Inode, syscall.Errno)
 }
 
 // Mknod is similar to Lookup, but must create a device entry and Inode.
-// Default is to return EROFS.
+// Default is to return ENOTSUP.
 type NodeMknoder interface {
 	Mknod(ctx context.Context, name string, mode uint32, dev uint32, out *fuse.EntryOut) (*Inode, syscall.Errno)
 }
 
 // Link is similar to Lookup, but must create a new link to an existing Inode.
-// Default is to return EROFS.
+// Default is to return ENOTSUP.
 type NodeLinker interface {
 	Link(ctx context.Context, target InodeEmbedder, name string, out *fuse.EntryOut) (node *Inode, errno syscall.Errno)
 }
 
 // Symlink is similar to Lookup, but must create a new symbolic link.
-// Default is to return EROFS.
+// Default is to return ENOTSUP.
 type NodeSymlinker interface {
 	Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (node *Inode, errno syscall.Errno)
 }
@@ -468,20 +529,20 @@ type NodeCreater interface {
 
 // Unlink should remove a child from this directory.  If the
 // return status is OK, the Inode is removed as child in the
-// FS tree automatically. Default is to return EROFS.
+// FS tree automatically. Default is to return success.
 type NodeUnlinker interface {
 	Unlink(ctx context.Context, name string) syscall.Errno
 }
 
 // Rmdir is like Unlink but for directories.
-// Default is to return EROFS.
+// Default is to return success.
 type NodeRmdirer interface {
 	Rmdir(ctx context.Context, name string) syscall.Errno
 }
 
 // Rename should move a child from one directory to a different
 // one. The change is effected in the FS tree if the return status is
-// OK. Default is to return EROFS.
+// OK. Default is to return ENOTSUP.
 type NodeRenamer interface {
 	Rename(ctx context.Context, name string, newParent InodeEmbedder, newName string, flags uint32) syscall.Errno
 }

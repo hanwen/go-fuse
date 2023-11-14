@@ -122,6 +122,8 @@
 // [2] https://sylabs.io/guides/3.7/user-guide/bind_paths_and_mounts.html#fuse-mounts
 package fuse
 
+import "log"
+
 // Types for users to implement.
 
 // The result of Read is an array of bytes, but for performance
@@ -218,6 +220,9 @@ type MountOptions struct {
 
 	// If set, print debugging information.
 	Debug bool
+
+	// If set, sink for debug statements.
+	Logger *log.Logger
 
 	// If set, ask kernel to forward file locks to FUSE. If using,
 	// you must implement the GetLk/SetLk/SetLkw methods.

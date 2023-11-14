@@ -9,6 +9,11 @@ import (
 )
 
 func init() {
+	initFlagNames.set(CAP_NODE_RWLOCK, "NODE_RWLOCK")
+	initFlagNames.set(CAP_RENAME_SWAP, "RENAME_SWAP")
+	initFlagNames.set(CAP_RENAME_EXCL, "RENAME_EXCL")
+	initFlagNames.set(CAP_ALLOCATE, "ALLOCATE")
+	initFlagNames.set(CAP_EXCHANGE_DATA, "EXCHANGE_DATA")
 	initFlagNames.set(CAP_XTIMES, "XTIMES")
 	initFlagNames.set(CAP_VOL_RENAME, "VOL_RENAME")
 	initFlagNames.set(CAP_CASE_INSENSITIVE, "CASE_INSENSITIVE")

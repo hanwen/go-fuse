@@ -62,6 +62,12 @@ const (
 	_OP_LSEEK           = uint32(46) // protocol version 24
 	_OP_COPY_FILE_RANGE = uint32(47) // protocol version 28.
 
+	_OP_SETUPMAPPING  = 48
+	_OP_REMOVEMAPPING = 49
+	_OP_SYNCFS        = 50
+	_OP_TMPFILE       = 51
+	_OP_STATX         = 52
+
 	// The following entries don't have to be compatible across Go-FUSE versions.
 	_OP_NOTIFY_INVAL_ENTRY    = uint32(100)
 	_OP_NOTIFY_INVAL_INODE    = uint32(101)
@@ -96,7 +102,7 @@ func doInit(server *Server, req *request) {
 	server.reqMu.Lock()
 	server.kernelSettings = *input
 	server.kernelSettings.Flags = input.Flags & (CAP_ASYNC_READ | CAP_BIG_WRITES | CAP_FILE_OPS |
-		CAP_READDIRPLUS | CAP_NO_OPEN_SUPPORT | CAP_PARALLEL_DIROPS | CAP_MAX_PAGES)
+		CAP_READDIRPLUS | CAP_NO_OPEN_SUPPORT | CAP_PARALLEL_DIROPS | CAP_MAX_PAGES | CAP_RENAME_SWAP)
 
 	if server.opts.EnableLocks {
 		server.kernelSettings.Flags |= CAP_FLOCK_LOCKS | CAP_POSIX_LOCKS
@@ -229,7 +235,7 @@ func doNotifyReply(server *Server, req *request) {
 	server.retrieveMu.Unlock()
 
 	badf := func(format string, argv ...interface{}) {
-		log.Printf("notify reply: "+format, argv...)
+		server.opts.Logger.Printf("notify reply: "+format, argv...)
 	}
 
 	if reading == nil {
@@ -328,7 +334,7 @@ func doBatchForget(server *Server, req *request) {
 	wantBytes := uintptr(in.Count) * unsafe.Sizeof(_ForgetOne{})
 	if uintptr(len(req.arg)) < wantBytes {
 		// We have no return value to complain, so log an error.
-		log.Printf("Too few bytes for batch forget. Got %d bytes, want %d (%d entries)",
+		server.opts.Logger.Printf("Too few bytes for batch forget. Got %d bytes, want %d (%d entries)",
 			len(req.arg), wantBytes, in.Count)
 	}
 
@@ -341,7 +347,7 @@ func doBatchForget(server *Server, req *request) {
 	forgets := *(*[]_ForgetOne)(unsafe.Pointer(h))
 	for i, f := range forgets {
 		if server.opts.Debug {
-			log.Printf("doBatchForget: rx %d %d/%d: FORGET n%d {Nlookup=%d}",
+			server.opts.Logger.Printf("doBatchForget: rx %d %d/%d: FORGET n%d {Nlookup=%d}",
 				req.inHeader.Unique, i+1, len(forgets), f.NodeId, f.Nlookup)
 		}
 		if f.NodeId == pollHackInode {
@@ -437,6 +443,10 @@ func doSymlink(server *Server, req *request) {
 }
 
 func doRename(server *Server, req *request) {
+	if server.kernelSettings.supportsRenameSwap() {
+		doRename2(server, req)
+		return
+	}
 	in1 := (*Rename1In)(req.inData)
 	in := RenameIn{
 		InHeader: in1.InHeader,
@@ -692,6 +702,10 @@ func init() {
 		_OP_RENAME2:               "RENAME2",
 		_OP_LSEEK:                 "LSEEK",
 		_OP_COPY_FILE_RANGE:       "COPY_FILE_RANGE",
+		_OP_SETUPMAPPING:          "SETUPMAPPING",
+		_OP_REMOVEMAPPING:         "REMOVEMAPPING",
+		_OP_SYNCFS:                "SYNCFS",
+		_OP_TMPFILE:               "TMPFILE",
 	} {
 		operationHandlers[op].Name = v
 	}

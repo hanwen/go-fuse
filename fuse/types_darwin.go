@@ -145,9 +145,17 @@ type GetXAttrIn struct {
 }
 
 const (
+	CAP_NODE_RWLOCK      = (1 << 24)
+	CAP_RENAME_SWAP      = (1 << 25)
+	CAP_RENAME_EXCL      = (1 << 26)
+	CAP_ALLOCATE         = (1 << 27)
+	CAP_EXCHANGE_DATA    = (1 << 28)
 	CAP_CASE_INSENSITIVE = (1 << 29)
 	CAP_VOL_RENAME       = (1 << 30)
 	CAP_XTIMES           = (1 << 31)
+
+	// CAP_EXPLICIT_INVAL_DATA is not supported on Darwin.
+	CAP_EXPLICIT_INVAL_DATA = 0x0
 )
 
 type GetxtimesOut struct {
