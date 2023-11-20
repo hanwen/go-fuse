@@ -26,6 +26,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "56ab64e4_764051a8",
+        "filename": "fuse/mount_darwin.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1037516
+      },
+      "writtenOn": "2023-11-20T17:06:48Z",
+      "side": 1,
+      "message": "I think it can be shared. The original code is separated in two files so I didn\u0027t make that change.",
+      "parentUuid": "3ce90d07_573f6462",
+      "range": {
+        "startLine": 94,
+        "startChar": 5,
+        "endLine": 94,
+        "endChar": 18
+      },
+      "revId": "f97d1722b2e230c0c802c972ea33074c549b8eea",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "20fcd0b7_ed391af9",
         "filename": "fuse/mount_linux.go",
         "patchSetId": 1
@@ -37,6 +61,24 @@
       "writtenOn": "2023-11-20T16:48:34Z",
       "side": 1,
       "message": "this should panic, as it is not a user accessible function.",
+      "revId": "f97d1722b2e230c0c802c972ea33074c549b8eea",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "bf171300_ed3b7e99",
+        "filename": "fuse/mount_linux.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 214,
+      "author": {
+        "id": 1037516
+      },
+      "writtenOn": "2023-11-20T17:06:48Z",
+      "side": 1,
+      "message": "Acknowledged",
+      "parentUuid": "20fcd0b7_ed391af9",
       "revId": "f97d1722b2e230c0c802c972ea33074c549b8eea",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
@@ -54,6 +96,30 @@
       "writtenOn": "2023-11-20T16:48:34Z",
       "side": 1,
       "message": "is there any error checking left to do?",
+      "range": {
+        "startLine": 221,
+        "startChar": 40,
+        "endLine": 221,
+        "endChar": 59
+      },
+      "revId": "f97d1722b2e230c0c802c972ea33074c549b8eea",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "164f6298_0da49ab8",
+        "filename": "fuse/mount_linux.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 221,
+      "author": {
+        "id": 1037516
+      },
+      "writtenOn": "2023-11-20T17:06:48Z",
+      "side": 1,
+      "message": "This todo has been left here for 12 years and I have no idea what it means. Return the err should be fine I think.",
+      "parentUuid": "022bc3cc_272e2952",
       "range": {
         "startLine": 221,
         "startChar": 40,
