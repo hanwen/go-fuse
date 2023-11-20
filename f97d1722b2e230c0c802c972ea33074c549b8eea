@@ -1,0 +1,67 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "3ce90d07_573f6462",
+        "filename": "fuse/mount_darwin.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-11-20T16:48:34Z",
+      "side": 1,
+      "message": "couldn\u0027t this function be shared between darwin and osx? It\u0027s as if i\u0027m reading the same thing twice.\n\n(note that I don\u0027t have a mac to test this.)",
+      "range": {
+        "startLine": 94,
+        "startChar": 5,
+        "endLine": 94,
+        "endChar": 18
+      },
+      "revId": "f97d1722b2e230c0c802c972ea33074c549b8eea",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "20fcd0b7_ed391af9",
+        "filename": "fuse/mount_linux.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 214,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-11-20T16:48:34Z",
+      "side": 1,
+      "message": "this should panic, as it is not a user accessible function.",
+      "revId": "f97d1722b2e230c0c802c972ea33074c549b8eea",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "022bc3cc_272e2952",
+        "filename": "fuse/mount_linux.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 221,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-11-20T16:48:34Z",
+      "side": 1,
+      "message": "is there any error checking left to do?",
+      "range": {
+        "startLine": 221,
+        "startChar": 40,
+        "endLine": 221,
+        "endChar": 59
+      },
+      "revId": "f97d1722b2e230c0c802c972ea33074c549b8eea",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
