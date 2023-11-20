@@ -22,6 +22,30 @@
       },
       "revId": "ddc08e84b24a11be86b4faa75a9bc2b3ee70d49f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "af19e5d0_55f57933",
+        "filename": "fuse/mount.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 17,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2023-11-20T18:28:28Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4a00a74b_7ef638d4",
+      "range": {
+        "startLine": 17,
+        "startChar": 5,
+        "endLine": 17,
+        "endChar": 7
+      },
+      "revId": "ddc08e84b24a11be86b4faa75a9bc2b3ee70d49f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
