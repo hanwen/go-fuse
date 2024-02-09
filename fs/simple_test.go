@@ -680,3 +680,44 @@ func TestStaleHardlinks(t *testing.T) {
 func init() {
 	syscall.Umask(0)
 }
+
+func testMountDir(dir string) error {
+	opts := &Options{}
+	opts.Debug = testutil.VerboseTest()
+	server, err := Mount(dir, &Inode{}, opts)
+	if err != nil {
+		return err
+	}
+
+	server.Unmount()
+	server.Wait()
+	return nil
+}
+
+func TestParallelMount(t *testing.T) {
+	before := runtime.GOMAXPROCS(1)
+	defer runtime.GOMAXPROCS(before)
+	N := 1000
+	todo := make(chan string, N)
+	result := make(chan error, N)
+	for i := 0; i < N; i++ {
+		todo <- t.TempDir()
+	}
+	close(todo)
+
+	P := 2
+	for i := 0; i < P; i++ {
+		go func() {
+			for d := range todo {
+				result <- testMountDir(d)
+			}
+		}()
+	}
+
+	for i := 0; i < N; i++ {
+		e := <-result
+		if e != nil {
+			t.Error(e)
+		}
+	}
+}

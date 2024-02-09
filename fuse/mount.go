@@ -7,6 +7,29 @@ import (
 	"syscall"
 )
 
+var reservedFDs []*os.File
+
+func init() {
+	// Both Darwin and Linux invoke a subprocess with one
+	// inherited file descriptor to create the mount. To protect
+	// against deadlock, we must ensure that file descriptor 3
+	// never points to a FUSE filesystem. We do this by simply
+	// grabbing fd 3 and never releasing it. (This is not
+	// completely foolproof: a preceding init routine could grab fd 3,
+	// and then release it later.)
+	for {
+		f, err := os.Open(os.DevNull)
+		if err != nil {
+			panic(fmt.Sprintf("open(%q): %v", os.DevNull, err))
+		}
+		if f.Fd() > 3 {
+			f.Close()
+			break
+		}
+		reservedFDs = append(reservedFDs, f)
+	}
+}
+
 func getConnection(local *os.File) (int, error) {
 	conn, err := net.FileConn(local)
 	if err != nil {
