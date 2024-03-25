@@ -5,7 +5,9 @@
 package fuse
 
 import (
+	"sync"
 	"syscall"
+	"unsafe"
 )
 
 func (ms *Server) systemWrite(req *request, header []byte) Status {
@@ -29,4 +31,55 @@ func (ms *Server) systemWrite(req *request, header []byte) Status {
 		req.readResult.Done()
 	}
 	return ToStatus(err)
+}
+
+func readAll(fd int, dest []byte) (int, error) {
+	offset := 0
+
+	for offset < len(dest) {
+		// read the remaining buffer
+		err := handleEINTR(func() error {
+			n, err := syscall.Read(fd, dest[offset:])
+			if n == 0 && err == nil {
+				// remote fd closed
+				return syscall.EIO
+			}
+			offset += n
+			return err
+		})
+		if err != nil {
+			return offset, err
+		}
+	}
+	return offset, nil
+}
+
+// for a stream connection we need to have a single reader
+var readLock sync.Mutex
+
+func (ms *Server) systemRead(dest []byte) (int, error) {
+	var n int
+	if osxFuse {
+		err := handleEINTR(func() error {
+			var err error
+			n, err = syscall.Read(ms.mountFd, dest)
+			return err
+		})
+		return n, err
+	}
+
+	readLock.Lock()
+	defer readLock.Unlock()
+
+	// read request length
+	if _, err := readAll(ms.mountFd, dest[0:4]); err != nil {
+		return 0, err
+	}
+
+	l := *(*uint32)(unsafe.Pointer(&dest[0]))
+	// read remaining request
+	if _, err := readAll(ms.mountFd, dest[4:l]); err != nil {
+		return n, err
+	}
+	return int(l), nil
 }
