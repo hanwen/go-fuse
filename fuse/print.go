@@ -54,19 +54,16 @@ var (
 		RELEASE_FLUSH: "FLUSH",
 	})
 	openFlagNames = newFlagNames(map[int64]string{
-		int64(os.O_WRONLY):        "WRONLY",
-		int64(os.O_RDWR):          "RDWR",
-		int64(os.O_APPEND):        "APPEND",
-		int64(syscall.O_ASYNC):    "ASYNC",
-		int64(os.O_CREATE):        "CREAT",
-		int64(os.O_EXCL):          "EXCL",
-		int64(syscall.O_NOCTTY):   "NOCTTY",
-		int64(syscall.O_NONBLOCK): "NONBLOCK",
-		int64(os.O_SYNC):          "SYNC",
-		int64(os.O_TRUNC):         "TRUNC",
-		// syscall.O_LARGEFILE is 0x0 on x86_64, but the
-		// kernel supplies 0x8000 anyway.
-		0x8000:                     "LARGEFILE",
+		int64(os.O_WRONLY):         "WRONLY",
+		int64(os.O_RDWR):           "RDWR",
+		int64(os.O_APPEND):         "APPEND",
+		int64(syscall.O_ASYNC):     "ASYNC",
+		int64(os.O_CREATE):         "CREAT",
+		int64(os.O_EXCL):           "EXCL",
+		int64(syscall.O_NOCTTY):    "NOCTTY",
+		int64(syscall.O_NONBLOCK):  "NONBLOCK",
+		int64(os.O_SYNC):           "SYNC",
+		int64(os.O_TRUNC):          "TRUNC",
 		int64(syscall.O_CLOEXEC):   "CLOEXEC",
 		int64(syscall.O_DIRECTORY): "DIRECTORY",
 	})
@@ -353,4 +350,19 @@ func Print(obj interface{}) string {
 		return t.string()
 	}
 	return fmt.Sprintf("%T: %v", obj, obj)
+}
+
+func (a *Attr) string() string {
+	return fmt.Sprintf(
+		"{M0%o SZ=%d L=%d "+
+			"%d:%d "+
+			"B%d*%d i%d:%d "+
+			"A %f "+
+			"M %f "+
+			"C %f}",
+		a.Mode, a.Size, a.Nlink,
+		a.Uid, a.Gid,
+		a.Blocks, a.Blksize,
+		a.Rdev, a.Ino, ft(a.Atime, a.Atimensec), ft(a.Mtime, a.Mtimensec),
+		ft(a.Ctime, a.Ctimensec))
 }
