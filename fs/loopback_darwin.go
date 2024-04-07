@@ -123,3 +123,7 @@ func (n *LoopbackNode) CopyFileRange(ctx context.Context, fhIn FileHandle,
 	len uint64, flags uint64) (uint32, syscall.Errno) {
 	return 0, syscall.ENOSYS
 }
+
+func intDev(dev uint32) int {
+	return int(dev)
+}

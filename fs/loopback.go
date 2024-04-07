@@ -123,7 +123,7 @@ var _ = (NodeMknoder)((*LoopbackNode)(nil))
 
 func (n *LoopbackNode) Mknod(ctx context.Context, name string, mode, rdev uint32, out *fuse.EntryOut) (*Inode, syscall.Errno) {
 	p := filepath.Join(n.path(), name)
-	err := syscall.Mknod(p, mode, int(rdev))
+	err := syscall.Mknod(p, mode, intDev(rdev))
 	if err != nil {
 		return nil, ToErrno(err)
 	}

@@ -61,3 +61,7 @@ func (n *LoopbackNode) CopyFileRange(ctx context.Context, fhIn FileHandle,
 	count, err := unix.CopyFileRange(lfIn.fd, &signedOffIn, lfOut.fd, &signedOffOut, int(len), int(flags))
 	return uint32(count), ToErrno(err)
 }
+
+func intDev(dev uint32) int {
+	return int(dev)
+}
