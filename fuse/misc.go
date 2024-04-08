@@ -70,8 +70,6 @@ func CurrentOwner() *Owner {
 	}
 }
 
-const _UTIME_OMIT = ((1 << 30) - 2)
-
 // UtimeToTimespec converts a "Time" pointer as passed to Utimens to a
 // "Timespec" that can be passed to the utimensat syscall.
 // A nil pointer is converted to the special UTIME_OMIT value.
