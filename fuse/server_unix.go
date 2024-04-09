@@ -6,6 +6,11 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// OSX and FreeBSD has races when multiple routines read
+// from the FUSE device: on unmount, sometime some reads
+// do not error-out, meaning that unmount will hang.
+const useSingleReader = true
+
 func (ms *Server) systemWrite(req *request, header []byte) Status {
 	if req.flatDataSize() == 0 {
 		err := handleEINTR(func() error {
