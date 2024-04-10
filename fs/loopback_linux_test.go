@@ -45,63 +45,6 @@ func TestRenameNoOverwrite(t *testing.T) {
 	}
 }
 
-func TestXAttr(t *testing.T) {
-	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
-
-	tc.writeOrig("file", "", 0644)
-
-	buf := make([]byte, 1024)
-	attr := "user.xattrtest"
-	if _, err := syscall.Getxattr(tc.mntDir+"/file", attr, buf); err == syscall.ENOTSUP {
-		t.Skip("$TMP does not support xattrs. Rerun this test with a $TMPDIR override")
-	}
-
-	if _, err := syscall.Getxattr(tc.mntDir+"/file", attr, buf); err != syscall.ENODATA {
-		t.Fatalf("got %v want ENOATTR", err)
-	}
-	value := []byte("value")
-	if err := syscall.Setxattr(tc.mntDir+"/file", attr, value, 0); err != nil {
-		t.Fatalf("Setxattr: %v", err)
-	}
-
-	sz, err := syscall.Listxattr(tc.mntDir+"/file", nil)
-	if err != nil {
-		t.Fatalf("Listxattr: %v", err)
-	}
-	buf = make([]byte, sz)
-	if _, err := syscall.Listxattr(tc.mntDir+"/file", buf); err != nil {
-		t.Fatalf("Listxattr: %v", err)
-	} else {
-		attributes := bytes.Split(buf[:sz], []byte{0})
-		found := false
-		for _, a := range attributes {
-			if string(a) == attr {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			t.Fatalf("Listxattr: %q (not found: %q", buf[:sz], attr)
-		}
-	}
-
-	sz, err = syscall.Getxattr(tc.mntDir+"/file", attr, buf)
-	if err != nil {
-		t.Fatalf("Getxattr: %v", err)
-	}
-	if bytes.Compare(buf[:sz], value) != 0 {
-		t.Fatalf("Getxattr got %q want %q", buf[:sz], value)
-	}
-	if err := syscall.Removexattr(tc.mntDir+"/file", attr); err != nil {
-		t.Fatalf("Removexattr: %v", err)
-	}
-
-	if _, err := syscall.Getxattr(tc.mntDir+"/file", attr, buf); err != syscall.ENODATA {
-		t.Fatalf("got %v want ENOATTR", err)
-	}
-}
-
 // TestXAttrSymlink verifies that we did not forget to use Lgetxattr instead
 // of Getxattr. This test is Linux-specific because it depends on the behavoir
 // of the `security` namespace.

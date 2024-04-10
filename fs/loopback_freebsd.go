@@ -3,40 +3,86 @@ package fs
 import (
 	"context"
 	"syscall"
+
+	"golang.org/x/sys/unix"
 )
 
-var _ = (NodeGetxattrer)((*LoopbackNode)(nil))
+// FreeBSD has added copy_file_range(2) since FreeBSD 12. However,
+// golang.org/x/sys/unix hasn't add corresponding syscall constant or
+// wrap function. Here we define the syscall constant until sys/unix
+// provides.
+const sys_COPY_FILE_RANGE = 569
 
-func (n *LoopbackNode) Getxattr(ctx context.Context, attr string, dest []byte) (uint32, syscall.Errno) {
-	return 0, syscall.ENOSYS
+// TODO: replace the manual syscall when sys/unix provides CopyFileRange
+// for FreeBSD
+func doCopyFileRange(fdIn int, offIn int64, fdOut int, offOut int64,
+	len int, flags int) (uint32, syscall.Errno) {
+	count, _, errno := unix.Syscall6(sys_COPY_FILE_RANGE,
+		uintptr(fdIn), uintptr(offIn), uintptr(fdOut), uintptr(offOut),
+		uintptr(len), uintptr(flags),
+	)
+	return uint32(count), errno
 }
 
-var _ = (NodeSetxattrer)((*LoopbackNode)(nil))
-
-func (n *LoopbackNode) Setxattr(ctx context.Context, attr string, data []byte, flags uint32) syscall.Errno {
-	return syscall.ENOSYS
+func intDev(dev uint32) uint64 {
+	return uint64(dev)
 }
 
-var _ = (NodeRemovexattrer)((*LoopbackNode)(nil))
+// BSDs syscall use different convention of data buf retrieved
+// through syscall `unix.Listxattr`.
+// Ref: extattr_list_file(2)
+func retrieveAttrName(buf []byte) [][]byte {
+	var attrList [][]byte
+	for p := 0; p < len(buf); {
+		attrNameLen := int(buf[p])
+		p++
+		attrName := buf[p : p+attrNameLen]
+		attrList = append(attrList, attrName)
+		p += attrNameLen
+	}
+	return attrList
+}
 
-func (n *LoopbackNode) Removexattr(ctx context.Context, attr string) syscall.Errno {
-	return syscall.ENOSYS
+// Since FUSE on FreeBSD expect Linux flavor data format of
+// listxattr, we should reconstruct it with data returned by
+// FreeBSD's syscall. And here we have added a "user." prefix
+// to put them under "user" namespace, which is readable and
+// writable for normal user, for a userspace implemented FS.
+func rebuildAttrBuf(attrList [][]byte) []byte {
+	ret := make([]byte, 0)
+	for _, attrName := range attrList {
+		nsAttrName := append([]byte("user."), attrName...)
+		ret = append(ret, nsAttrName...)
+		ret = append(ret, 0x0)
+	}
+	return ret
 }
 
 var _ = (NodeListxattrer)((*LoopbackNode)(nil))
 
 func (n *LoopbackNode) Listxattr(ctx context.Context, dest []byte) (uint32, syscall.Errno) {
-	return 0, syscall.ENOSYS
-}
-
-var _ = (NodeCopyFileRanger)((*LoopbackNode)(nil))
-
-func (n *LoopbackNode) CopyFileRange(ctx context.Context, fhIn FileHandle,
-	offIn uint64, out *Inode, fhOut FileHandle, offOut uint64,
-	len uint64, flags uint64) (uint32, syscall.Errno) {
-	return 0, syscall.ENOSYS
-}
-
-func intDev(dev uint32) uint64 {
-	return uint64(dev)
+	// In order to simulate same data format as Linux does,
+	// and the size of returned buf is required to match, we must
+	// call unix.Llistxattr twice.
+	sz, err := unix.Llistxattr(n.path(), nil)
+	if err != nil {
+		return uint32(sz), ToErrno(err)
+	}
+	rawBuf := make([]byte, sz)
+	sz, err = unix.Llistxattr(n.path(), rawBuf)
+	if err != nil {
+		return uint32(sz), ToErrno(err)
+	}
+	attrList := retrieveAttrName(rawBuf)
+	rebuiltBuf := rebuildAttrBuf(attrList)
+	sz = len(rebuiltBuf)
+	if len(dest) != 0 {
+		// When len(dest) is 0, which means that caller wants to get
+		// the size. If len(dest) is less than len(rebuiltBuf), but greater
+		// than 0 dest will be also filled with data from rebuiltBuf,
+		// but truncated to len(dest). copy() function will do the same.
+		// And this behaviour is same as FreeBSD's syscall extattr_list_file(2).
+		sz = copy(dest, rebuiltBuf)
+	}
+	return uint32(sz), ToErrno(err)
 }
