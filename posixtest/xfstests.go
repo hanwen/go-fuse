@@ -11,6 +11,10 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+type dirent struct {
+	unix.Dirent
+}
+
 // DirSeek tests that seeking on a directory works for
 // https://github.com/hanwen/go-fuse/issues/344 .
 //
@@ -47,7 +51,7 @@ func DirSeek(t *testing.T, mnt string) {
 
 	total := 0
 	for {
-		n, err := unix.Getdents(fd, buf)
+		n, err := unix.ReadDirent(fd, buf)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -55,24 +59,24 @@ func DirSeek(t *testing.T, mnt string) {
 			break
 		}
 		for bpos := 0; bpos < n; total++ {
-			d := (*unix.Dirent)(unsafe.Pointer(&buf[bpos]))
+			d := (*dirent)(unsafe.Pointer(&buf[bpos]))
 			if total > historyLen {
 				t.Fatal("too many files")
 			}
 			for i := 0; i < total; i++ {
-				if offHistory[i] == d.Off {
+				if offHistory[i] == d.off() {
 					t.Errorf("entries %d and %d gave duplicate d.Off %d",
-						i, total, d.Off)
+						i, total, d.off())
 				}
 			}
-			offHistory[total] = d.Off
-			inoHistory[total] = d.Ino
+			offHistory[total] = d.off()
+			inoHistory[total] = d.ino()
 			bpos += int(d.Reclen)
 		}
 	}
 
 	// check if seek works correctly
-	d := (*unix.Dirent)(unsafe.Pointer(&buf[0]))
+	d := (*dirent)(unsafe.Pointer(&buf[0]))
 	for i := total - 1; i >= 0; i-- {
 		var seekTo int64
 		if i > 0 {
@@ -83,7 +87,7 @@ func DirSeek(t *testing.T, mnt string) {
 			t.Fatal(err)
 		}
 
-		n, err := unix.Getdents(fd, buf)
+		n, err := unix.ReadDirent(fd, buf)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -92,9 +96,9 @@ func DirSeek(t *testing.T, mnt string) {
 			continue
 		}
 
-		if d.Ino != inoHistory[i] {
+		if d.ino() != inoHistory[i] {
 			t.Errorf("entry %d has inode %d, expected %d",
-				i, d.Ino, inoHistory[i])
+				i, d.ino(), inoHistory[i])
 		}
 	}
 }
