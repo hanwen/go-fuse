@@ -13,6 +13,7 @@ import (
 	"syscall"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v2/internal/fallocate"
 	"golang.org/x/sys/unix"
 )
 
@@ -240,4 +241,14 @@ func (f *loopbackFile) Lseek(ctx context.Context, off uint64, whence uint32) (ui
 	defer f.mu.Unlock()
 	n, err := unix.Seek(f.fd, int64(off), int(whence))
 	return uint64(n), ToErrno(err)
+}
+
+func (f *loopbackFile) Allocate(ctx context.Context, off uint64, sz uint64, mode uint32) syscall.Errno {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	err := fallocate.Fallocate(f.fd, mode, int64(off), int64(sz))
+	if err != nil {
+		return ToErrno(err)
+	}
+	return OK
 }

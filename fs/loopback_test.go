@@ -6,6 +6,7 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/hanwen/go-fuse/v2/internal/renameat"
 	"github.com/kylelemons/godebug/pretty"
 	"golang.org/x/sys/unix"
 )
@@ -38,7 +39,7 @@ func TestRenameExchange(t *testing.T) {
 		t.Fatalf("Fstatat: %v", err)
 	}
 
-	if err := unix.Renameat2(f1, "file", f2, "file", unix.RENAME_EXCHANGE); err != nil {
+	if err := renameat.Renameat(f1, "file", f2, "file", renameat.RENAME_EXCHANGE); err != nil {
 		t.Errorf("rename EXCHANGE: %v", err)
 	}
 

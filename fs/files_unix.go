@@ -1,13 +1,23 @@
-// Copyright 2016 the Go-FUSE Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+//go:build !darwin
 
 package fs
 
 import (
 	"syscall"
+	"time"
 	"unsafe"
+
+	"github.com/hanwen/go-fuse/v2/fuse"
 )
+
+// Utimens - file handle based version of loopbackFileSystem.Utimens()
+func (f *loopbackFile) utimens(a *time.Time, m *time.Time) syscall.Errno {
+	var ts [2]syscall.Timespec
+	ts[0] = fuse.UtimeToTimespec(a)
+	ts[1] = fuse.UtimeToTimespec(m)
+	err := futimens(int(f.fd), &ts)
+	return ToErrno(err)
+}
 
 // futimens - futimens(3) calls utimensat(2) with "pathname" set to null and
 // "flags" set to zero
