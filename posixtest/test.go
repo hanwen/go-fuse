@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v2/internal/fallocate"
 	"golang.org/x/sys/unix"
 )
 
@@ -272,7 +273,7 @@ func FstatDeleted(t *testing.T, mnt string) {
 	const iMax = 9
 	type file struct {
 		fd int
-		st syscall.Stat_t
+		st unix.Stat_t
 	}
 	files := make(map[int]file)
 	for i := 0; i <= iMax; i++ {
@@ -283,8 +284,8 @@ func FstatDeleted(t *testing.T, mnt string) {
 		if err != nil {
 			t.Fatalf("WriteFile: %v", err)
 		}
-		var st syscall.Stat_t
-		err = syscall.Stat(path, &st)
+		var st unix.Stat_t
+		err = unix.Stat(path, &st)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -303,14 +304,14 @@ func FstatDeleted(t *testing.T, mnt string) {
 	}
 	// Fstat in random order
 	for _, v := range files {
-		var st syscall.Stat_t
-		err := syscall.Fstat(v.fd, &st)
+		var st unix.Stat_t
+		err := unix.Fstat(v.fd, &st)
 		if err != nil {
 			t.Fatal(err)
 		}
 		// Ignore ctime, changes on unlink
-		v.st.Ctim = syscall.Timespec{}
-		st.Ctim = syscall.Timespec{}
+		v.st.Ctim = unix.Timespec{}
+		st.Ctim = unix.Timespec{}
 		// Nlink value should have dropped to zero
 		v.st.Nlink = 0
 		// Rest should stay the same
@@ -607,7 +608,7 @@ func OpenAt(t *testing.T, mnt string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fd, err := syscall.Openat(dirfd, "file1", syscall.O_CREAT, 0700)
+	fd, err := unix.Openat(dirfd, "file1", syscall.O_CREAT, 0700)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -624,7 +625,7 @@ func Fallocate(t *testing.T, mnt string) {
 		t.Fatalf("OpenFile failed: %v", err)
 	}
 	defer rwFile.Close()
-	err = syscall.Fallocate(int(rwFile.Fd()), 0, 1024, 4096)
+	err = fallocate.Fallocate(int(rwFile.Fd()), 0, 1024, 4096)
 	if err != nil {
 		t.Fatalf("Fallocate failed: %v", err)
 	}
