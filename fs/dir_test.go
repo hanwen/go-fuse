@@ -45,7 +45,7 @@ func (ds *errDirStream) Next() (fuse.DirEntry, syscall.Errno) {
 			Mode: fuse.S_IFREG,
 			Name: "last",
 			Ino:  3,
-		}, syscall.EKEYEXPIRED
+		}, syscall.EBADMSG
 	}
 
 	panic("boom")
@@ -76,9 +76,14 @@ func TestDirStreamError(t *testing.T) {
 				} else if e.Name != "first" {
 					t.Errorf("got %q want 'first'", e.Name)
 				}
-
-				if _, errno := ds.Next(); errno != syscall.EKEYEXPIRED {
-					t.Errorf("got errno %v, want EKEYEXPIRED", errno)
+				// Here we need choose a errno to test if errno could be passed and handled
+				// correctly by the fuse library. To build the test on different platform,
+				// an errno which defined on each platform should be chosen. And if the
+				// chosen integer number is not a valid errno, the fuse in kernel would refuse
+				// and throw an error, which is observed on Linux.
+				// Here we choose to use EBADMSG, which is defined on multiple Unix-like OSes.
+				if _, errno := ds.Next(); errno != syscall.EBADMSG {
+					t.Errorf("got errno %v, want EBADMSG", errno)
 				}
 			})
 	}

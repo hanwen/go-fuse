@@ -11,14 +11,14 @@ import (
 	"testing"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
+	"golang.org/x/sys/unix"
 )
 
 func TestReadonlyCreate(t *testing.T) {
 	root := &Inode{}
 
 	mntDir, _ := testMount(t, root, nil)
-
-	_, err := syscall.Creat(mntDir+"/test", 0644)
+	_, err := unix.Open(mntDir+"/test", unix.O_CREAT, 0644)
 	if want := syscall.EROFS; want != err {
 		t.Fatalf("got err %v, want %v", err, want)
 	}
@@ -44,7 +44,7 @@ func TestDefaultPermissions(t *testing.T) {
 		var st syscall.Stat_t
 		if err := syscall.Lstat(filepath.Join(mntDir, k), &st); err != nil {
 			t.Error("Lstat", err)
-		} else if st.Mode != v {
+		} else if uint(st.Mode) != uint(v) {
 			t.Errorf("got %o want %o", st.Mode, v)
 		}
 	}

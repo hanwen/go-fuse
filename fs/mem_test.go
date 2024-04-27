@@ -137,8 +137,7 @@ func TestDataFile(t *testing.T) {
 	if err := syscall.Lstat(mntDir+"/file", &st); err != nil {
 		t.Fatalf("Lstat: %v", err)
 	}
-
-	if want := uint32(syscall.S_IFREG | 0464); st.Mode != want {
+	if want := uint(syscall.S_IFREG | 0464); uint(st.Mode) != want {
 		t.Errorf("got mode %o, want %o", st.Mode, want)
 	}
 

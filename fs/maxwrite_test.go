@@ -244,7 +244,7 @@ func bdiReadahead(mnt string) int {
 	if err != nil {
 		panic(err)
 	}
-	path := fmt.Sprintf("/sys/class/bdi/%d:%d/read_ahead_kb", unix.Major(st.Dev), unix.Minor(st.Dev))
+	path := fmt.Sprintf("/sys/class/bdi/%d:%d/read_ahead_kb", unix.Major(uint64(st.Dev)), unix.Minor(uint64(st.Dev)))
 	buf, err := ioutil.ReadFile(path)
 	if err != nil {
 		panic(err)

@@ -25,6 +25,7 @@ import (
 	"github.com/hanwen/go-fuse/v2/fuse"
 	"github.com/hanwen/go-fuse/v2/internal/testutil"
 	"github.com/hanwen/go-fuse/v2/posixtest"
+	"golang.org/x/sys/unix"
 )
 
 type testCase struct {
@@ -339,7 +340,7 @@ func TestMknod(t *testing.T) {
 			var st syscall.Stat_t
 			if err := syscall.Stat(p, &st); err != nil {
 				got := st.Mode &^ 07777
-				if want := mode; got != want {
+				if want := uint(mode); want != uint(got) {
 					t.Fatalf("stat(%s): got %o want %o", nm, got, want)
 				}
 			}
@@ -648,7 +649,7 @@ func TestStaleHardlinks(t *testing.T) {
 
 	// "link0" is original file
 	link0 := tc.mntDir + "/link0"
-	if fd, err := syscall.Creat(link0, 0600); err != nil {
+	if fd, err := unix.Open(link0, unix.O_CREAT, 0600); err != nil {
 		t.Fatal(err)
 	} else {
 		syscall.Close(fd)
