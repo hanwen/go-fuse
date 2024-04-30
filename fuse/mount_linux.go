@@ -191,7 +191,7 @@ func unmount(mountPoint string, opts *MountOptions) (err error) {
 	errBuf := bytes.Buffer{}
 	args := []string{"-u", mountPoint}
 	if opts.LazyUnmount {
-		args = append(args, "-z")
+		args[0] = "-uz"
 	}
 	cmd := exec.Command(bin, args...)
 	cmd.Stderr = &errBuf
