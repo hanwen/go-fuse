@@ -698,7 +698,10 @@ func testMountDir(dir string) error {
 func TestParallelMount(t *testing.T) {
 	before := runtime.GOMAXPROCS(1)
 	defer runtime.GOMAXPROCS(before)
-	N := 1000
+	// Per default, only 1000 FUSE mounts are allowed, then you get
+	// > /usr/bin/fusermount3: too many FUSE filesystems mounted; mount_max=N can be set in /etc/fuse.conf
+	// Let's stay well below 1000.
+	N := 900
 	todo := make(chan string, N)
 	result := make(chan error, N)
 	for i := 0; i < N; i++ {
