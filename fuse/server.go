@@ -76,6 +76,7 @@ type Server struct {
 	singleReader bool
 	canSplice    bool
 	loops        sync.WaitGroup
+	serving      bool // for preventing duplicate Serve() calls
 
 	ready chan error
 
@@ -416,6 +417,14 @@ func (ms *Server) recordStats(req *request) {
 //
 // Each filesystem operation executes in a separate goroutine.
 func (ms *Server) Serve() {
+	if ms.serving {
+		// Calling Serve() multiple times leads to a panic on unmount and fun
+		// debugging sessions ( https://github.com/hanwen/go-fuse/issues/512 ).
+		// Catch it early.
+		log.Panic("Serve() must only be called once, you have called it a second time")
+	}
+	ms.serving = true
+
 	ms.loop(false)
 	ms.loops.Wait()
 
