@@ -127,7 +127,7 @@ func TestFopenKeepCache(t *testing.T) {
 	xwriteFile(wd+"/orig/file.txt", after)
 	mtimeAfter := xstat(wd + "/orig/file.txt").ModTime()
 	if δ := mtimeAfter.Sub(mtimeBefore); δ == 0 {
-		panic(fmt.Sprintf("mtime(orig/before) == mtime(orig/after)"))
+		panic("mtime(orig/before) == mtime(orig/after)")
 	}
 
 	// sleep enough time for file attributes to expire; restat the file after.

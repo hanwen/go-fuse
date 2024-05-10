@@ -116,7 +116,7 @@ func (r *request) OutputDebug() string {
 
 	max := 1024
 	if len(dataStr) > max {
-		dataStr = dataStr[:max] + fmt.Sprintf(" ...trimmed")
+		dataStr = dataStr[:max] + " ...trimmed"
 	}
 
 	flatStr := ""
