@@ -7,9 +7,9 @@ import (
 func fallocate(fd int, mode uint32, off int64, len int64) error {
 	// Ignore mode
 	_ = mode
-	_, _, errno := unix.Syscall(unix.SYS_POSIX_FALLOCATE, uintptr(fd), uintptr(off), uintptr(len))
-	if errno != 0 {
-		return errno
+	ret, _, _ := unix.Syscall(unix.SYS_POSIX_FALLOCATE, uintptr(fd), uintptr(off), uintptr(len))
+	if ret != 0 {
+		return unix.Errno(ret)
 	}
 	return nil
 }
