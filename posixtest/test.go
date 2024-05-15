@@ -662,12 +662,11 @@ func FcntlFlockSetLk(t *testing.T, mnt string) {
 		}
 		defer f2.Close()
 		lk := syscall.Flock_t{}
-		if err := syscall.FcntlFlock(f2.Fd(), unix.F_OFD_GETLK, &lk); err != nil {
+		if err := sysFcntlFlockGetOFDLock(f2.Fd(), &lk); err != nil {
 			t.Errorf("FcntlFlock failed: %v", err)
 		}
 		if lk.Type != syscall.F_WRLCK {
 			t.Errorf("got lk.Type=%v, want %v", lk.Type, syscall.F_WRLCK)
-
 		}
 	}
 }
