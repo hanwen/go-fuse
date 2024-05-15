@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+const unix_UTIME_OMIT = 0x0
+
 // timeToTimeval - Convert time.Time to syscall.Timeval
 //
 // Note: This does not use syscall.NsecToTimespec because

@@ -7,6 +7,8 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+const unix_UTIME_OMIT = unix.UTIME_OMIT
+
 // FreeBSD has added copy_file_range(2) since FreeBSD 12. However,
 // golang.org/x/sys/unix hasn't add corresponding syscall constant or
 // wrap function. Here we define the syscall constant until sys/unix

@@ -13,6 +13,8 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+const unix_UTIME_OMIT = unix.UTIME_OMIT
+
 func doCopyFileRange(fdIn int, offIn int64, fdOut int, offOut int64,
 	len int, flags int) (uint32, syscall.Errno) {
 	count, err := unix.CopyFileRange(fdIn, &offIn, fdOut, &offOut, len, flags)

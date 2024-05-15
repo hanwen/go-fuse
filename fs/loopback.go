@@ -403,8 +403,8 @@ func (n *LoopbackNode) Setattr(ctx context.Context, f FileHandle, in *fuse.SetAt
 		atime, aok := in.GetATime()
 
 		if mok || aok {
-			ta := unix.Timespec{Nsec: unix.UTIME_OMIT}
-			tm := unix.Timespec{Nsec: unix.UTIME_OMIT}
+			ta := unix.Timespec{Nsec: unix_UTIME_OMIT}
+			tm := unix.Timespec{Nsec: unix_UTIME_OMIT}
 			var err error
 			if aok {
 				ta, err = unix.TimeToTimespec(atime)
