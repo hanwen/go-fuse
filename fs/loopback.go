@@ -403,20 +403,23 @@ func (n *LoopbackNode) Setattr(ctx context.Context, f FileHandle, in *fuse.SetAt
 		atime, aok := in.GetATime()
 
 		if mok || aok {
-
-			ap := &atime
-			mp := &mtime
-			if !aok {
-				ap = nil
+			ta := unix.Timespec{Nsec: unix.UTIME_OMIT}
+			tm := unix.Timespec{Nsec: unix.UTIME_OMIT}
+			var err error
+			if aok {
+				ta, err = unix.TimeToTimespec(atime)
+				if err != nil {
+					return ToErrno(err)
+				}
 			}
-			if !mok {
-				mp = nil
+			if mok {
+				tm, err = unix.TimeToTimespec(mtime)
+				if err != nil {
+					return ToErrno(err)
+				}
 			}
-			var ts [2]syscall.Timespec
-			ts[0] = fuse.UtimeToTimespec(ap)
-			ts[1] = fuse.UtimeToTimespec(mp)
-
-			if err := syscall.UtimesNano(p, ts[:]); err != nil {
+			ts := []unix.Timespec{ta, tm}
+			if err := unix.UtimesNanoAt(unix.AT_FDCWD, p, ts, unix.AT_SYMLINK_NOFOLLOW); err != nil {
 				return ToErrno(err)
 			}
 		}

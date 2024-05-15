@@ -48,6 +48,32 @@ var All = map[string]func(*testing.T, string){
 	"DirSeek":                    DirSeek,
 	"FcntlFlockSetLk":            FcntlFlockSetLk,
 	"FcntlFlockLocksFile":        FcntlFlockLocksFile,
+	"SetattrSymlink":             SetattrSymlink,
+}
+
+func SetattrSymlink(t *testing.T, mnt string) {
+	l := filepath.Join(mnt, "link")
+	if err := os.Symlink("doesnotexist", l); err != nil {
+		t.Fatalf("symlink: %v", err)
+	}
+
+	tvs := []unix.Timeval{
+		{Sec: 42, Usec: 1},
+		{Sec: 43, Usec: 2},
+	}
+	if err := unix.Lutimes(l, tvs); err != nil {
+		t.Fatalf("Lutimes: %v", err)
+	}
+
+	var st unix.Stat_t
+	if err := unix.Lstat(l, &st); err != nil {
+		t.Fatalf("Lstat: %v", err)
+	}
+
+	if st.Mtim.Sec != 43 {
+		// Can't check atime; it's hard to prevent implicit readlink calls.
+		t.Fatalf("got mtime %v, want 43", st.Mtim)
+	}
 }
 
 func DirectIO(t *testing.T, mnt string) {
