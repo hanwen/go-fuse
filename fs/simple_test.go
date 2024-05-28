@@ -647,28 +647,38 @@ func TestStaleHardlinks(t *testing.T) {
 	// Disable all caches we can disable
 	tc := newTestCase(t, &testOptions{attrCache: false, entryCache: false})
 
+	// gvfsd-trash sets an inotify watch on mntDir and stat()s every file that is
+	// created, racing with the test logic ( https://github.com/hanwen/go-fuse/issues/478 ).
+	// Use a subdir to prevent that.
+	if err := os.Mkdir(tc.mntDir+"/x", 0755); err != nil {
+		t.Fatal(err)
+	}
+
 	// "link0" is original file
-	link0 := tc.mntDir + "/link0"
+	link0 := tc.mntDir + "/x/link0"
 	if fd, err := unix.Open(link0, unix.O_CREAT, 0600); err != nil {
 		t.Fatal(err)
 	} else {
 		syscall.Close(fd)
 	}
 	// Create hardlinks via mntDir
+	t.Logf("create link1...20, pid=%d", os.Getpid())
 	for i := 1; i < 20; i++ {
-		linki := fmt.Sprintf(tc.mntDir+"/link%d", i)
+		linki := fmt.Sprintf(tc.mntDir+"/x/link%d", i)
 		if err := syscall.Link(link0, linki); err != nil {
 			t.Fatal(err)
 		}
 	}
 	// Delete hardlinks via origDir (behind loopback fs's back)
+	t.Log("delete link1...20 behind loopback's back")
 	for i := 1; i < 20; i++ {
-		linki := fmt.Sprintf(tc.origDir+"/link%d", i)
+		linki := fmt.Sprintf(tc.origDir+"/x/link%d", i)
 		if err := syscall.Unlink(linki); err != nil {
 			t.Fatal(err)
 		}
 	}
 	// Try to open link0 via mntDir
+	t.Log("open link0")
 	fd, err := syscall.Open(link0, syscall.O_RDONLY, 0)
 	if err != nil {
 		t.Error(err)
