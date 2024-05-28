@@ -106,6 +106,7 @@ output. Here is how to read it:
 - `tA` and `tE` means timeout for attributes and directory entry correspondingly;
 - `[<off> +<size>)` means data range from `<off>` inclusive till `<off>+<size>` exclusive;
 - `Xb` means `X bytes`.
+- `pX` means the request originated from PID `x`. 0 means the request originated from the kernel.
 
 Every line is prefixed with either `rx <unique>` or `tx <unique>` to denote
 whether it was for kernel request, which Go-FUSE received, or reply, which
@@ -114,24 +115,24 @@ Go-FUSE sent back to kernel.
 Example debug log output:
 
 ```
-rx 2: LOOKUP i1 [".wcfs"] 6b
+rx 2: LOOKUP i1 [".wcfs"] 6b p5874
 tx 2:     OK, {i3 g2 tE=1s tA=1s {M040755 SZ=0 L=0 1000:1000 B0*0 i0:3 A 0.000000 M 0.000000 C 0.000000}}
-rx 3: LOOKUP i3 ["zurl"] 5b
+rx 3: LOOKUP i3 ["zurl"] 5b p5874
 tx 3:     OK, {i4 g3 tE=1s tA=1s {M0100644 SZ=33 L=1 1000:1000 B0*0 i0:4 A 0.000000 M 0.000000 C 0.000000}}
-rx 4: OPEN i4 {O_RDONLY,0x8000}
+rx 4: OPEN i4 {O_RDONLY,0x8000} p5874
 tx 4:     38=function not implemented, {Fh 0 }
-rx 5: READ i4 {Fh 0 [0 +4096)  L 0 RDONLY,0x8000}
+rx 5: READ i4 {Fh 0 [0 +4096)  L 0 RDONLY,0x8000} p5874
 tx 5:     OK,  33b data "file:///"...
-rx 6: GETATTR i4 {Fh 0}
+rx 6: GETATTR i4 {Fh 0} p5874
 tx 6:     OK, {tA=1s {M0100644 SZ=33 L=1 1000:1000 B0*0 i0:4 A 0.000000 M 0.000000 C 0.000000}}
-rx 7: FLUSH i4 {Fh 0}
+rx 7: FLUSH i4 {Fh 0} p5874
 tx 7:     OK
-rx 8: LOOKUP i1 ["head"] 5b
+rx 8: LOOKUP i1 ["head"] 5b p5874
 tx 8:     OK, {i5 g4 tE=1s tA=1s {M040755 SZ=0 L=0 1000:1000 B0*0 i0:5 A 0.000000 M 0.000000 C 0.000000}}
-rx 9: LOOKUP i5 ["bigfile"] 8b
+rx 9: LOOKUP i5 ["bigfile"] 8b p5874
 tx 9:     OK, {i6 g5 tE=1s tA=1s {M040755 SZ=0 L=0 1000:1000 B0*0 i0:6 A 0.000000 M 0.000000 C 0.000000}}
-rx 10: FLUSH i4 {Fh 0}
+rx 10: FLUSH i4 {Fh 0} p5874
 tx 10:     OK
-rx 11: GETATTR i1 {Fh 0}
+rx 11: GETATTR i1 {Fh 0} p5874
 tx 11:     OK, {tA=1s {M040755 SZ=0 L=1 1000:1000 B0*0 i0:1 A 0.000000 M 0.000000 C 0.000000}}
 ```
