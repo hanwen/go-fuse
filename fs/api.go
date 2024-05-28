@@ -381,7 +381,7 @@ type NodeFlusher interface {
 // could fail with I/O errors should happen in Flush instead.
 // The default implementation forwards to the FileHandle.
 type NodeReleaser interface {
-	Release(ctx context.Context, f FileHandle) syscall.Errno
+	Release(ctx context.Context, f FileHandle, in *fuse.ReleaseIn) syscall.Errno
 }
 
 // Allocate preallocates space for future writes, so they will
@@ -570,7 +570,7 @@ type FileHandle interface {
 
 // See NodeReleaser.
 type FileReleaser interface {
-	Release(ctx context.Context) syscall.Errno
+	Release(ctx context.Context, in *fuse.ReleaseIn) syscall.Errno
 }
 
 // See NodeGetattrer.

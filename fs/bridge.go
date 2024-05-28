@@ -824,9 +824,9 @@ func (b *rawBridge) Release(cancel <-chan struct{}, input *fuse.ReleaseIn) {
 
 	ctx := &fuse.Context{Caller: input.Caller, Cancel: cancel}
 	if r, ok := n.ops.(NodeReleaser); ok {
-		r.Release(ctx, f.file)
+		r.Release(ctx, f.file, input)
 	} else if r, ok := f.file.(FileReleaser); ok {
-		r.Release(ctx)
+		r.Release(ctx, input)
 	}
 
 	b.mu.Lock()

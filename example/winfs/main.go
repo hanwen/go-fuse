@@ -75,10 +75,10 @@ func (n *WindowsNode) Create(ctx context.Context, name string, flags uint32, mod
 
 var _ = (fs.NodeReleaser)((*WindowsNode)(nil))
 
-func (n *WindowsNode) Release(ctx context.Context, f fs.FileHandle) syscall.Errno {
+func (n *WindowsNode) Release(ctx context.Context, f fs.FileHandle, in *fuse.ReleaseIn) syscall.Errno {
 	n.decrement()
 	if fr, ok := f.(fs.FileReleaser); ok {
-		return fr.Release(ctx)
+		return fr.Release(ctx, in)
 	}
 	return 0
 }
