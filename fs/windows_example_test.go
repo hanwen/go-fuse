@@ -55,13 +55,13 @@ var _ = (fs.NodeReleaser)((*WindowsNode)(nil))
 // Release decreases the open count. The kernel doesn't wait with
 // returning from close(), so if the caller is too quick to
 // unlink/rename after calling close(), this may still trigger EBUSY.
-func (n *WindowsNode) Release(ctx context.Context, f fs.FileHandle) syscall.Errno {
+func (n *WindowsNode) Release(ctx context.Context, f fs.FileHandle, in *fuse.ReleaseIn) syscall.Errno {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
 	n.openCount--
 	if fr, ok := f.(fs.FileReleaser); ok {
-		return fr.Release(ctx)
+		return fr.Release(ctx, in)
 	}
 	return 0
 }

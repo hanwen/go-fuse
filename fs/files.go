@@ -58,7 +58,7 @@ func (f *loopbackFile) Write(ctx context.Context, data []byte, off int64) (uint3
 	return uint32(n), ToErrno(err)
 }
 
-func (f *loopbackFile) Release(ctx context.Context) syscall.Errno {
+func (f *loopbackFile) Release(ctx context.Context, in *fuse.ReleaseIn) syscall.Errno {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.fd != -1 {
