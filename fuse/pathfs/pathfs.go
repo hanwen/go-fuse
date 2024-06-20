@@ -603,17 +603,15 @@ func (n *pathInode) GetAttr(out *fuse.Attr, file nodefs.File, context *fuse.Cont
 	}
 	// If we don't have an open file, or fstat on it failed due to an internal
 	// error, stat by path.
-	if file == nil || code == fuse.ENOSYS || code == fuse.EBADF {
-		fi, code = n.fs.GetAttr(n.GetPath(), context)
-		if !code.Ok() {
-			return code
-		}
-		// This is a bug in the filesystem implementation, but let's not
-		// crash.
-		if fi == nil {
-			log.Printf("Bug: fs.GetAttr returned OK with nil data")
-			return fuse.EINVAL
-		}
+	fi, code = n.fs.GetAttr(n.GetPath(), context)
+	if !code.Ok() {
+		return code
+	}
+	// This is a bug in the filesystem implementation, but let's not
+	// crash.
+	if fi == nil {
+		log.Printf("Bug: fs.GetAttr returned OK with nil data")
+		return fuse.EINVAL
 	}
 	// Set inode number (unless already set or disabled).
 	n.setClientInode(fi.Ino)
