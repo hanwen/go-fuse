@@ -248,6 +248,14 @@ func unlockNodes(ns ...*Inode) {
 	}
 }
 
+// Initialized returns true if this inode has been initialized and added to the
+// filesystem tree.
+func (n *Inode) Initialized() bool {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	return n.changeCounter > 0
+}
+
 // Forgotten returns true if the kernel holds no references to this
 // inode.  This can be used for background cleanup tasks, since the
 // kernel has no way of reviving forgotten nodes by its own

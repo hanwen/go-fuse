@@ -233,3 +233,36 @@ func (fn *testIno1) Lookup(ctx context.Context, name string, out *fuse.EntryOut)
 	child := fn.NewInode(ctx, &testIno1{}, stable)
 	return child, 0
 }
+
+func TestForgottenIno(t *testing.T) {
+	rootNode := testForgottenIno{}
+	testMount(t, &rootNode, nil)
+	if rootNode.Initialized() && rootNode.Forgotten() {
+		t.Error("newly-created inode should not be forgotten")
+	}
+	ino, errno := rootNode.Lookup(context.TODO(), "test", nil)
+	if errno != syscall.F_OK {
+		t.Error("error creating new inode")
+	}
+	if ino.Initialized() && ino.Forgotten() {
+		t.Error("newly-created inode should not be forgotten")
+	}
+	ok := rootNode.AddChild("test", ino, false)
+	if !ok {
+		t.Error("error adding child inode to fs")
+	}
+	if ino.Initialized() && ino.Forgotten() {
+		t.Error("newly-mounted inode should not be forgotten")
+	}
+}
+
+type testForgottenIno struct {
+	Inode
+}
+
+func (n *testForgottenIno) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
+	childNode := &testForgottenIno{}
+	stable := StableAttr{Mode: syscall.S_IFREG, Ino: 999}
+	child := n.NewInode(ctx, childNode, stable)
+	return child, syscall.F_OK
+}
