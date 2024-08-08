@@ -1251,3 +1251,7 @@ func (b *rawBridge) Lseek(cancel <-chan struct{}, in *fuse.LseekIn, out *fuse.Ls
 
 	return fuse.ENOTSUP
 }
+
+func (fs *rawBridge) Ioctl(cancel <-chan struct{}, in *fuse.IoctlIn, out *fuse.IoctlOut, bufIn, bufOut []byte) fuse.Status {
+	return fuse.ENOSYS
+}

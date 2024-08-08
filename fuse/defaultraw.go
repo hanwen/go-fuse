@@ -166,3 +166,7 @@ func (fs *defaultRawFileSystem) CopyFileRange(cancel <-chan struct{}, input *Cop
 func (fs *defaultRawFileSystem) Lseek(cancel <-chan struct{}, in *LseekIn, out *LseekOut) Status {
 	return ENOSYS
 }
+
+func (fs *defaultRawFileSystem) Ioctl(cancel <-chan struct{}, in *IoctlIn, out *IoctlOut, bufIn, bufOut []byte) Status {
+	return ENOSYS
+}

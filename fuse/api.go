@@ -284,6 +284,10 @@ type MountOptions struct {
 	// directory queries (i.e. 'ls' without '-l') can be faster with
 	// ReadDir, as no per-file stat calls are needed
 	DisableReadDirPlus bool
+
+	// EnableIoctl enables manipulates the underlying device
+	// parameters of special files
+	EnableIoctl bool
 }
 
 // RawFileSystem is an interface close to the FUSE wire protocol.
@@ -393,6 +397,8 @@ type RawFileSystem interface {
 	FsyncDir(cancel <-chan struct{}, input *FsyncIn) (code Status)
 
 	StatFs(cancel <-chan struct{}, input *InHeader, out *StatfsOut) (code Status)
+
+	Ioctl(cancel <-chan struct{}, in *IoctlIn, out *IoctlOut, bufIn, bufOut []byte) Status
 
 	// This is called on processing the first request. The
 	// filesystem implementation can use the server argument to
