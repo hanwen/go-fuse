@@ -18,15 +18,16 @@ func init() {
 	// completely foolproof: a preceding init routine could grab fd 3,
 	// and then release it later.)
 	for {
-		f, err := os.Open(os.DevNull)
+		r, w, err := os.Pipe()
 		if err != nil {
-			panic(fmt.Sprintf("open(%q): %v", os.DevNull, err))
+			panic(fmt.Sprintf("os.Pipe(): %v", err))
 		}
-		if f.Fd() > 3 {
-			f.Close()
+		w.Close()
+		if r.Fd() > 3 {
+			r.Close()
 			break
 		}
-		reservedFDs = append(reservedFDs, f)
+		reservedFDs = append(reservedFDs, r)
 	}
 }
 
