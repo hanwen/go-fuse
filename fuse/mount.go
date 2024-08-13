@@ -17,23 +17,23 @@ func init() {
 	// grabbing fd 3 and never releasing it. (This is not
 	// completely foolproof: a preceding init routine could grab fd 3,
 	// and then release it later.)
-	fdPair, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_STREAM | syscall.SOCK_NONBLOCK, 0)
-	if err != nil {
-			panic(fmt.Sprintf("socketpair(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0): %v", err))
-	}
-	syscall.Close(fdPair[1])
-	fd := fdPair[0]
-
+	fdPair := []int{0, 0}
 	for {
-		if fd > 3 {
-			syscall.Close(fd)
+		err := syscall.Pipe2(fdPair, syscall.O_CLOEXEC | syscall.O_NONBLOCK)
+		if err != nil {
+				panic(fmt.Sprintf("pipe2([]int{0, 0}, O_CLOEXEC | O_NONBLOCK): %v", err))
+		}
+		if fdPair[0] > 3 || fdPair[1] > 3 {
+			for fd := range(fdPair) {
+				if fd > 3 {
+					syscall.Close(fd)
+				} else {
+					reservedFDs = append(reservedFDs, fd)
+				}
+			}
 			break
 		}
-		reservedFDs = append(reservedFDs, fd)
-		fd, err = syscall.Dup(fd)
-		if err != nil {
-			panic(fmt.Sprintf("Dup(%q): %v", fd, err))
-		}
+		reservedFDs = append(reservedFDs, fdPair...)
 	}
 }
 
