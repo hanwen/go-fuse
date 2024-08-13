@@ -21,7 +21,7 @@ func init() {
 	for {
 		err := syscall.Pipe2(fdPair, syscall.O_CLOEXEC | syscall.O_NONBLOCK)
 		if err != nil {
-				panic(fmt.Sprintf("pipe2([]int{0, 0}, O_CLOEXEC | O_NONBLOCK): %v", err))
+			panic(fmt.Sprintf("pipe2([]int{0, 0}, O_CLOEXEC | O_NONBLOCK): %v", err))
 		}
 		if fdPair[0] > 3 || fdPair[1] > 3 {
 			for fd := range(fdPair) {
