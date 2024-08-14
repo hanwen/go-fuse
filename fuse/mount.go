@@ -7,7 +7,7 @@ import (
 	"syscall"
 )
 
-var reservedFDs []int
+var reservedFDs []*os.File
 
 func init() {
 	// Both Darwin and Linux invoke a subprocess with one
@@ -17,23 +17,24 @@ func init() {
 	// grabbing fd 3 and never releasing it. (This is not
 	// completely foolproof: a preceding init routine could grab fd 3,
 	// and then release it later.)
-	fdPair := []int{0, 0}
+	pipes := []*os.File{nil, nil}
 	for {
-		err := syscall.Pipe2(fdPair, syscall.O_CLOEXEC | syscall.O_NONBLOCK)
+		var err error
+		pipes[0], pipes[1], err = os.Pipe()
 		if err != nil {
-			panic(fmt.Sprintf("pipe2([]int{0, 0}, O_CLOEXEC | O_NONBLOCK): %v", err))
+			panic(fmt.Sprintf("os.Pipe(): %v", err))
 		}
-		if fdPair[0] > 3 || fdPair[1] > 3 {
-			for fd := range(fdPair) {
-				if fd > 3 {
-					syscall.Close(fd)
+		if pipes[0].Fd() > 3 || pipes[1].Fd() > 3 {
+			for _, pipe := range(pipes) {
+				if pipe.Fd() > 3 {
+					pipe.Close()
 				} else {
-					reservedFDs = append(reservedFDs, fd)
+					reservedFDs = append(reservedFDs, pipe)
 				}
 			}
 			break
 		}
-		reservedFDs = append(reservedFDs, fdPair...)
+		reservedFDs = append(reservedFDs, pipes...)
 	}
 }
 
