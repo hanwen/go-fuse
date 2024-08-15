@@ -8,6 +8,10 @@ import (
 	"testing"
 )
 
+func init() {
+	isTest = true
+}
+
 // verify that flagString always formats flags in the same order.
 func TestFlagStringOrder(t *testing.T) {
 	var flags int64 = CAP_ASYNC_READ | CAP_SPLICE_WRITE | CAP_READDIRPLUS | CAP_MAX_PAGES | CAP_EXPLICIT_INVAL_DATA

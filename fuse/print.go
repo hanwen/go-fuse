@@ -12,6 +12,7 @@ import (
 )
 
 var (
+	isTest         bool
 	writeFlagNames = newFlagNames([]flagNameEntry{
 		{WRITE_CACHE, "CACHE"},
 		{WRITE_LOCKOWNER, "LOCKOWNER"},
@@ -111,7 +112,7 @@ func (names *flagNames) set(flag int64, name string) {
 	entry := flagNameEntry{bits: flag, name: name}
 	for i := 0; i < 64; i++ {
 		if flag&(1<<i) != 0 {
-			if ie := names[i]; ie.bits != 0 {
+			if ie := names[i]; ie.bits != 0 && isTest {
 				panic(fmt.Sprintf("%s (%x) overlaps with %s (%x)", name, flag, ie.name, ie.bits))
 			}
 			names[i] = entry
