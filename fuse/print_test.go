@@ -23,10 +23,10 @@ func TestFlagStringOrder(t *testing.T) {
 
 // verify how flagString handles provided default.
 func TestFlagStringDefault(t *testing.T) {
-	names := newFlagNames(map[int64]string{
-		1: "AAA",
-		2: "BBB",
-		4: "CCC",
+	names := newFlagNames([]flagNameEntry{
+		{1, "AAA"},
+		{2, "BBB"},
+		{4, "CCC"},
 	})
 
 	testv := []struct {
