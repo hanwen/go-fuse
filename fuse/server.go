@@ -477,6 +477,33 @@ func (ms *Server) handleInit() Status {
 	return OK
 }
 
+// loop is the FUSE event loop. The simplistic way of calling this is
+// with singleReader=true, which has a single goroutine reading the
+// device, and spawning a new goroutine for each request. It is
+// however 2x slower than processing the request inline with the
+// reader. The latter requires more logic, because whenever we start
+// processing the request, we have to make sure a new routine is
+// spawned to read the device.
+//
+// Benchmark results i5-8350 pinned at 2Ghz:
+//
+// singleReader = true
+//
+// BenchmarkGoFuseRead            	     954	   1137408 ns/op	1843.80 MB/s	    5459 B/op	     173 allocs/op
+// BenchmarkGoFuseRead-2          	    1327	    798635 ns/op	2625.92 MB/s	    5072 B/op	     169 allocs/op
+// BenchmarkGoFuseStat            	    1530	    750944 ns/op
+// BenchmarkGoFuseStat-2          	    8455	    120091 ns/op
+// BenchmarkGoFuseReaddir         	     741	   1561004 ns/op
+// BenchmarkGoFuseReaddir-2       	    2508	    599821 ns/op
+//
+// singleReader = false
+//
+// BenchmarkGoFuseRead            	    1890	    671576 ns/op	3122.73 MB/s	    5393 B/op	     136 allocs/op
+// BenchmarkGoFuseRead-2          	    2948	    429578 ns/op	4881.88 MB/s	   32235 B/op	     157 allocs/op
+// BenchmarkGoFuseStat            	    7886	    153546 ns/op
+// BenchmarkGoFuseStat-2          	    9310	    121332 ns/op
+// BenchmarkGoFuseReaddir         	    4074	    361568 ns/op
+// BenchmarkGoFuseReaddir-2       	    3511	    319765 ns/op
 func (ms *Server) loop(exitIdle bool) {
 	defer ms.loops.Done()
 exit:
