@@ -256,12 +256,13 @@ const (
 	FOPEN_STREAM                 = (1 << 4)
 	FOPEN_NOFLUSH                = (1 << 5)
 	FOPEN_PARALLEL_DIRECT_WRITES = (1 << 6)
+	FOPEN_PASSTHROUGH            = (1 << 7)
 )
 
 type OpenOut struct {
 	Fh        uint64
 	OpenFlags uint32
-	Padding   uint32
+	BackingID int32
 }
 
 // To be set in InitIn/InitOut.Flags.
@@ -303,7 +304,10 @@ const (
 	CAP_HAS_INODE_DAX     = (1 << 33)
 	CAP_CREATE_SUPP_GROUP = (1 << 34)
 	CAP_HAS_EXPIRE_ONLY   = (1 << 35)
-	CAP_DIRECT_IO_RELAX   = (1 << 36)
+	CAP_DIRECT_IO_RELAX   = (1 << 36) // DIRECT_IO_ALLOW_MMAP ?
+	CAP_PASSTHROUGH       = (1 << 37)
+	CAP_NO_EXPORT_SUPPORT = (1 << 38)
+	CAP_HAS_RESEND        = (1 << 39)
 )
 
 type InitIn struct {
@@ -329,7 +333,13 @@ type InitOut struct {
 	MaxPages            uint16
 	Padding             uint16
 	Flags2              uint32
-	Unused              [7]uint32
+	MaxStackDepth       uint32
+	Unused              [6]uint32
+}
+
+func (o *InitOut) setFlags(flags uint64) {
+	o.Flags = uint32(flags)
+	o.Flags2 = uint32(flags >> 32)
 }
 
 type _CuseInitIn struct {
@@ -516,6 +526,7 @@ const (
 	NOTIFY_STORE_CACHE    = -4 // store data into kernel cache of an inode
 	NOTIFY_RETRIEVE_CACHE = -5 // retrieve data from kernel cache of an inode
 	NOTIFY_DELETE         = -6 // notify kernel that a directory entry has been deleted
+	NOTIFY_RESEND         = -7
 
 // NOTIFY_CODE_MAX     = -6
 )

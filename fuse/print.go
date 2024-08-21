@@ -50,6 +50,9 @@ var (
 		{CAP_CREATE_SUPP_GROUP, "CREATE_SUPP_GROUP"},
 		{CAP_HAS_EXPIRE_ONLY, "HAS_EXPIRE_ONLY"},
 		{CAP_DIRECT_IO_RELAX, "DIRECT_IO_RELAX"},
+		{CAP_PASSTHROUGH, "PASSTHROUGH"},
+		{CAP_NO_EXPORT_SUPPORT, "NO_EXPORT_SUPPORT"},
+		{CAP_HAS_RESEND, "HAS_RESEND"},
 	})
 	releaseFlagNames = newFlagNames([]flagNameEntry{
 		{RELEASE_FLUSH, "FLUSH"},
@@ -74,6 +77,9 @@ var (
 		{FOPEN_NONSEEKABLE, "NONSEEK"},
 		{FOPEN_CACHE_DIR, "CACHE_DIR"},
 		{FOPEN_STREAM, "STREAM"},
+		{FOPEN_NOFLUSH, "NOFLUSH"},
+		{FOPEN_PARALLEL_DIRECT_WRITES, "PARALLEL_DIRECT_WRITES"},
+		{FOPEN_PASSTHROUGH, "PASSTHROUGH"},
 	})
 	accessFlagName = newFlagNames([]flagNameEntry{
 		{X_OK, "x"},
@@ -205,7 +211,11 @@ func (in *OpenIn) string() string {
 }
 
 func (in *OpenOut) string() string {
-	return fmt.Sprintf("{Fh %d %s}", in.Fh,
+	backing := ""
+	if in.BackingID != 0 {
+		backing = fmt.Sprintf("backing=%d ", in.BackingID)
+	}
+	return fmt.Sprintf("{Fh %d %s %s}", in.Fh, backing,
 		flagString(fuseOpenFlagNames, int64(in.OpenFlags), ""))
 }
 
@@ -216,11 +226,11 @@ func (in *InitIn) string() string {
 }
 
 func (o *InitOut) string() string {
-	return fmt.Sprintf("{%d.%d Ra %d %s %d/%d Wr %d Tg %d MaxPages %d}",
+	return fmt.Sprintf("{%d.%d Ra %d %s %d/%d Wr %d Tg %d MaxPages %d MaxStack %d}",
 		o.Major, o.Minor, o.MaxReadAhead,
-		flagString(initFlagNames, int64(o.Flags), ""),
+		flagString(initFlagNames, int64(o.Flags)|int64(o.Flags2)<<32, ""),
 		o.CongestionThreshold, o.MaxBackground, o.MaxWrite,
-		o.TimeGran, o.MaxPages)
+		o.TimeGran, o.MaxPages, o.MaxStackDepth)
 }
 
 func (s *FsyncIn) string() string {
