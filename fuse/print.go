@@ -269,7 +269,7 @@ func (o *EntryOut) string() string {
 }
 
 func (o *CreateOut) string() string {
-	return fmt.Sprintf("{n%d g%d %v %v}", o.NodeId, o.Generation, &o.EntryOut, &o.OpenOut)
+	return fmt.Sprintf("{n%d g%d %v %v}", o.NodeId, o.Generation, &o.EntryOut, o.OpenOut.string())
 }
 
 func (o *StatfsOut) string() string {
