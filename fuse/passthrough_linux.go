@@ -25,7 +25,9 @@ type backingMap struct {
 // directly for read and write calls. On success a backing ID is
 // returned. The backing ID should unregistered using
 // UnregisterBackingFd() once the file is released. For now, the flags
-// argument is unused, and should be 0.
+// argument is unused, and should be 0. Within the kernel, an inode
+// can only have a single backing file, so multiple Open/Create calls
+// should coordinate to return a consistent backing ID.
 func (ms *Server) RegisterBackingFd(fd int, flags uint32) (int32, syscall.Errno) {
 	m := backingMap{
 		Fd:    int32(fd),
