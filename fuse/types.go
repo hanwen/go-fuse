@@ -299,6 +299,7 @@ const (
 	CAP_MAX_PAGES        = (1 << 22)
 	CAP_CACHE_SYMLINKS   = (1 << 23)
 
+	/* bits 24..31 differ across linux and mac */
 	/* bits 32..63 get shifted down 32 bits into the Flags2 field */
 	CAP_SECURITY_CTX      = (1 << 32)
 	CAP_HAS_INODE_DAX     = (1 << 33)
@@ -335,11 +336,6 @@ type InitOut struct {
 	Flags2              uint32
 	MaxStackDepth       uint32
 	Unused              [6]uint32
-}
-
-func (o *InitOut) setFlags(flags uint64) {
-	o.Flags = uint32(flags)
-	o.Flags2 = uint32(flags >> 32)
 }
 
 type _CuseInitIn struct {
