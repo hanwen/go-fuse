@@ -23,6 +23,8 @@ func errnoToStatus(errno syscall.Errno) fuse.Status {
 type fileEntry struct {
 	file FileHandle
 
+	backingID int32
+
 	// index into Inode.openFiles
 	nodeIndex int
 
@@ -63,6 +65,11 @@ type ServerCallbacks interface {
 	InodeNotifyStoreCache(node uint64, offset int64, data []byte) fuse.Status
 }
 
+type serverBackingFdCallbacks interface {
+	RegisterBackingFd(fd int, flags uint32) (int32, syscall.Errno)
+	UnregisterBackingFd(id int32) syscall.Errno
+}
+
 type rawBridge struct {
 	options Options
 	root    *Inode
@@ -98,7 +105,9 @@ type rawBridge struct {
 	// estimate for stableAttrs.
 	nodeCountHigh int
 
-	files     []*fileEntry
+	files []*fileEntry
+
+	// indices of files that are not allocated.
 	freeFiles []uint32
 }
 
@@ -480,8 +489,11 @@ func (b *rawBridge) Create(cancel <-chan struct{}, input *fuse.CreateIn, name st
 	}
 
 	child, fe := b.addNewChild(parent, name, child, f, input.Flags|syscall.O_CREAT|syscall.O_EXCL, &out.EntryOut)
-
 	out.Fh = uint64(fe.fh)
+	if fe.backingID != 0 {
+		out.BackingID = fe.backingID
+		flags |= fuse.FOPEN_PASSTHROUGH
+	}
 	out.OpenFlags = flags
 
 	child.setEntryOut(&out.EntryOut)
@@ -742,6 +754,11 @@ func (b *rawBridge) Open(cancel <-chan struct{}, input *fuse.OpenIn, out *fuse.O
 			defer b.mu.Unlock()
 			fe := b.registerFile(n, f, input.Flags)
 			out.Fh = uint64(fe.fh)
+
+			if fe.backingID != 0 {
+				out.BackingID = fe.backingID
+				flags |= fuse.FOPEN_PASSTHROUGH
+			}
 		}
 		out.OpenFlags = flags
 		return fuse.OK
@@ -766,6 +783,22 @@ func (b *rawBridge) registerFile(n *Inode, f FileHandle, flags uint32) *fileEntr
 	fe.nodeIndex = len(n.openFiles)
 	fe.file = f
 	n.openFiles = append(n.openFiles, fe.fh)
+
+	// TODO: should also check for CAP_SYS_ADMIN
+	// TODO: don't do this if CAP_PASSTHROUGH is missing.
+	// TODO: do this only on linux.
+	// TODO: fold serverBackingFdCallbacks into ServerCallbacks and bump API version
+	if bc, ok := b.server.(serverBackingFdCallbacks); ok {
+		if pth, ok := f.(FilePassthroughFder); ok {
+			fd := pth.PassthroughFd()
+			id, errno := bc.RegisterBackingFd(fd, 0)
+			if errno != 0 {
+				// This happens if we're not root.
+			} else {
+				fe.backingID = id
+			}
+		}
+	}
 	return fe
 }
 
@@ -838,6 +871,7 @@ func (b *rawBridge) Release(cancel <-chan struct{}, input *fuse.ReleaseIn) {
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	b.unregisterBackingID(f)
 	b.freeFiles = append(b.freeFiles, uint32(input.Fh))
 }
 
@@ -854,7 +888,18 @@ func (b *rawBridge) ReleaseDir(input *fuse.ReleaseIn) {
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	b.unregisterBackingID(f)
 	b.freeFiles = append(b.freeFiles, uint32(input.Fh))
+}
+
+func (b *rawBridge) unregisterBackingID(fe *fileEntry) {
+	if fe != nil && fe.backingID != 0 {
+		errno := b.server.(serverBackingFdCallbacks).UnregisterBackingFd(fe.backingID)
+		if errno != 0 && b.options.Logger != nil {
+			b.options.Logger.Printf("UnregisterBackingFd: %v", errno)
+		}
+		fe.backingID = 0
+	}
 }
 
 func (b *rawBridge) releaseFileEntry(nid uint64, fh uint64) (*Inode, *fileEntry) {
