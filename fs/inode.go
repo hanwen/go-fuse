@@ -69,6 +69,11 @@ type Inode struct {
 	// protected by bridge.mu
 	openFiles []uint32
 
+	// backing files, protected by bridge.mu
+	backingIDRefcount int
+	backingID         int32
+	backingFd         int
+
 	// mu protects the following mutable fields. When locking
 	// multiple Inodes, locks must be acquired using
 	// lockNodes/unlockNodes
