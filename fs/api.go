@@ -9,22 +9,22 @@
 // To create a file system, you should first define types for the
 // nodes of the file system tree.
 //
-//	type myNode struct {
-//	   fs.Inode
-//	}
+//		type myNode struct {
+//		   fs.Inode
+//		}
 //
-//	// Node types must be InodeEmbedders
-//	var _ = (fs.InodeEmbedder)((*myNode)(nil))
+//		// Node types must be InodeEmbedders
+//		var _ = (fs.InodeEmbedder)((*myNode)(nil))
 //
-//	// Node types should implement some file system operations, eg. Lookup
-//	var _ = (fs.NodeLookuper)((*myNode)(nil))
+//		// Node types should implement some file system operations, eg. Lookup
+//		var _ = (fs.NodeLookuper)((*myNode)(nil))
 //
-//	func (n *myNode) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
-//	  ops := myNode{}
-//        out.Mode = 0755
-//        out.Size = 42
-//	  return n.NewInode(ctx, &ops, fs.StableAttr{Mode: syscall.S_IFREG}), 0
-//	}
+//		func (n *myNode) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
+//		  ops := myNode{}
+//	       out.Mode = 0755
+//	       out.Size = 42
+//		  return n.NewInode(ctx, &ops, fs.StableAttr{Mode: syscall.S_IFREG}), 0
+//		}
 //
 // The method names are inspired on the system call names, so we have
 // Listxattr rather than ListXAttr.
@@ -566,6 +566,14 @@ type NodeRenamer interface {
 // FOPEN_DIRECT_IO flag from their `Open` method. See directio_test.go
 // for an example.
 type FileHandle interface {
+}
+
+// FilePassthroughHandler is a file handle backed by a physical
+// file. The handle returned should be an open file descriptor, and
+// the kernel will execute read/write operations directly on the
+// backing file, bypassing the FUSE process.
+type FilePassthroughHandler interface {
+	PassthroughHandle() int
 }
 
 // See NodeReleaser.

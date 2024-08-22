@@ -54,6 +54,8 @@ type ServerCallbacks interface {
 	InodeNotify(node uint64, off int64, length int64) fuse.Status
 	InodeRetrieveCache(node uint64, offset int64, dest []byte) (n int, st fuse.Status)
 	InodeNotifyStoreCache(node uint64, offset int64, data []byte) fuse.Status
+	RegisterBackingFd(fd int) (int32, syscall.Errno)
+	UnregisterBackingFd(id int32) syscall.Errno
 }
 
 type rawBridge struct {
@@ -476,6 +478,11 @@ func (b *rawBridge) Create(cancel <-chan struct{}, input *fuse.CreateIn, name st
 
 	out.Fh = uint64(fh)
 	out.OpenFlags = flags
+	if pth, ok := f.(FilePassthroughHandler); ok {
+		_ = pth
+		// out.BackingID = pth.PassthroughHandle()
+		//		out.OpenFlags |= fuse.FOPEN_PASSTHROUGH
+	}
 
 	child.setEntryOut(&out.EntryOut)
 	b.setEntryOutTimeout(&out.EntryOut)
@@ -736,6 +743,16 @@ func (b *rawBridge) Open(cancel <-chan struct{}, input *fuse.OpenIn, out *fuse.O
 			out.Fh = uint64(b.registerFile(n, f, input.Flags))
 		}
 		out.OpenFlags = flags
+		if pth, ok := f.(FilePassthroughHandler); ok {
+			fd := pth.PassthroughHandle()
+			id, errno := b.server.RegisterBackingFd(fd)
+			if errno != 0 {
+				log.Printf("RegisterBackingFd: %v %v", id, errno)
+			} else {
+				out.BackingID = id
+				out.OpenFlags |= fuse.FOPEN_PASSTHROUGH
+			}
+		}
 		return fuse.OK
 	}
 

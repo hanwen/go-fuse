@@ -136,10 +136,25 @@ func FileBasic(t *testing.T, mnt string) {
 	content := []byte("hello world")
 	fn := mnt + "/file"
 
+	if got, err := ioutil.ReadFile("/proc/self/status"); err != nil {
+		t.Fatalf("ReadFile: %v", err)
+	} else {
+		t.Log(string(got))
+	}
+
 	if err := ioutil.WriteFile(fn, content, 0755); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
-
+	f1, err := os.Open(fn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f1.Close()
+	f2, err2 := os.Open(fn)
+	if err2 != nil {
+		t.Fatal(err2)
+	}
+	defer f2.Close()
 	if got, err := ioutil.ReadFile(fn); err != nil {
 		t.Fatalf("ReadFile: %v", err)
 	} else if bytes.Compare(got, content) != 0 {

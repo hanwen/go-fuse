@@ -14,6 +14,7 @@ func (ms *Server) systemWrite(req *request, header []byte) Status {
 	if req.flatDataSize() == 0 {
 		err := handleEINTR(func() error {
 			_, err := syscall.Write(ms.mountFd, header)
+
 			return err
 		})
 		return ToStatus(err)
@@ -39,5 +40,6 @@ func (ms *Server) systemWrite(req *request, header []byte) Status {
 	if req.readResult != nil {
 		req.readResult.Done()
 	}
+
 	return ToStatus(err)
 }
