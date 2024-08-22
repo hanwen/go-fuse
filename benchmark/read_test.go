@@ -87,7 +87,7 @@ func BenchmarkGoFuseFDRead(b *testing.B) {
 		b.Fatal(err)
 	}
 	mnt := setupFS(root, b.N, b)
-	benchmarkRead(mnt, b, 32, "")
+	benchmarkRead(mnt, b, 1, "")
 }
 
 var libfusePath = flag.String("passthrough_hp", "", "path to libfuse's passthrough_hp")
@@ -130,5 +130,5 @@ func BenchmarkLibfuseHP(b *testing.B) {
 		}
 	}
 
-	benchmarkRead(mnt, b, 32, "")
+	benchmarkRead(mnt, b, 1, "")
 }
