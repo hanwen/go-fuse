@@ -289,9 +289,10 @@ type MountOptions struct {
 // RawFileSystem is an interface close to the FUSE wire protocol.
 //
 // Unless you really know what you are doing, you should not implement
-// this, but rather the nodefs.Node or pathfs.FileSystem interfaces; the
-// details of getting interactions with open files, renames, and threading
-// right etc. are somewhat tricky and not very interesting.
+// this, but rather the interfaces associated with
+// fs.InodeEmbedder. The details of getting interactions with open
+// files, renames, and threading right etc. are somewhat tricky and
+// not very interesting.
 //
 // Each FUSE request results in a corresponding method called by Server.
 // Several calls may be made simultaneously, because the server typically calls
