@@ -45,3 +45,8 @@ func (s *StatfsOut) FromStatfsT(statfs *syscall.Statfs_t) {
 	s.Frsize = uint32(statfs.Frsize)
 	s.NameLen = uint32(statfs.Namelen)
 }
+
+func (o *InitOut) setFlags(flags uint64) {
+	o.Flags = uint32(flags) | CAP_INIT_EXT
+	o.Flags2 = uint32(flags >> 32)
+}

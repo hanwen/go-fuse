@@ -125,3 +125,7 @@ func (s *StatfsOut) FromStatfsT(statfs *syscall.Statfs_t) {
 		s.Bavail /= adj
 	}
 }
+
+func (o *InitOut) setFlags(flags uint64) {
+	o.Flags = uint32(flags)
+}
