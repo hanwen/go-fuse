@@ -63,6 +63,12 @@ type ServerCallbacks interface {
 	InodeNotifyStoreCache(node uint64, offset int64, data []byte) fuse.Status
 }
 
+// TODO: fold serverBackingFdCallbacks into ServerCallbacks and bump API version
+type serverBackingFdCallbacks interface {
+	RegisterBackingFd(*fuse.BackingMap) (int32, syscall.Errno)
+	UnregisterBackingFd(id int32) syscall.Errno
+}
+
 type rawBridge struct {
 	options Options
 	root    *Inode
@@ -98,8 +104,13 @@ type rawBridge struct {
 	// estimate for stableAttrs.
 	nodeCountHigh int
 
-	files     []*fileEntry
+	files []*fileEntry
+
+	// indices of files that are not allocated.
 	freeFiles []uint32
+
+	// If set, don't try to register backing file for Create/Open calls.
+	disableBackingFiles bool
 }
 
 // newInode creates creates new inode pointing to ops.
@@ -480,10 +491,10 @@ func (b *rawBridge) Create(cancel <-chan struct{}, input *fuse.CreateIn, name st
 	}
 
 	child, fe := b.addNewChild(parent, name, child, f, input.Flags|syscall.O_CREAT|syscall.O_EXCL, &out.EntryOut)
-
 	out.Fh = uint64(fe.fh)
 	out.OpenFlags = flags
 
+	b.addBackingID(child, f, &out.OpenOut)
 	child.setEntryOut(&out.EntryOut)
 	b.setEntryOutTimeout(&out.EntryOut)
 	return fuse.OK
@@ -736,18 +747,80 @@ func (b *rawBridge) Open(cancel <-chan struct{}, input *fuse.OpenIn, out *fuse.O
 		if errno != 0 {
 			return errnoToStatus(errno)
 		}
+		out.OpenFlags = flags
 
 		if f != nil {
 			b.mu.Lock()
 			defer b.mu.Unlock()
 			fe := b.registerFile(n, f, input.Flags)
 			out.Fh = uint64(fe.fh)
+
+			b.addBackingID(n, f, out)
 		}
-		out.OpenFlags = flags
 		return fuse.OK
 	}
 
 	return fuse.ENOTSUP
+}
+
+// must hold bridge.mu
+func (b *rawBridge) addBackingID(n *Inode, f FileHandle, out *fuse.OpenOut) {
+	if b.disableBackingFiles {
+		return
+	}
+
+	bc, ok := b.server.(serverBackingFdCallbacks)
+	if !ok {
+		b.disableBackingFiles = true
+		return
+	}
+	pth, ok := f.(FilePassthroughFder)
+	if !ok {
+		return
+	}
+
+	if n.backingID == 0 {
+		fd, ok := pth.PassthroughFd()
+		if !ok {
+			return
+		}
+		m := fuse.BackingMap{
+			Fd: int32(fd),
+		}
+		id, errno := bc.RegisterBackingFd(&m)
+		if errno != 0 {
+			// This happens if we're not root or CAP_PASSTHROUGH is missing.
+			b.disableBackingFiles = true
+		} else {
+			n.backingID = id
+		}
+	}
+
+	if n.backingID != 0 {
+		out.BackingID = n.backingID
+		out.OpenFlags |= fuse.FOPEN_PASSTHROUGH
+		out.OpenFlags &= ^uint32(fuse.FOPEN_KEEP_CACHE)
+		n.backingIDRefcount++
+	}
+}
+
+// must hold bridge.mu
+func (b *rawBridge) releaseBackingIDRef(n *Inode) {
+	if n.backingID == 0 {
+		return
+	}
+
+	n.backingIDRefcount--
+	if n.backingIDRefcount == 0 {
+		errno := b.server.(serverBackingFdCallbacks).UnregisterBackingFd(n.backingID)
+		if errno != 0 {
+			b.logf("UnregisterBackingFd: %v", errno)
+		}
+		n.backingID = 0
+		n.backingIDRefcount = 0
+	} else if n.backingIDRefcount < 0 {
+		log.Panic("backingIDRefcount underflow")
+	}
 }
 
 // registerFile hands out a file handle. Must have bridge.mu
@@ -766,6 +839,7 @@ func (b *rawBridge) registerFile(n *Inode, f FileHandle, flags uint32) *fileEntr
 	fe.nodeIndex = len(n.openFiles)
 	fe.file = f
 	n.openFiles = append(n.openFiles, fe.fh)
+
 	return fe
 }
 
@@ -838,11 +912,13 @@ func (b *rawBridge) Release(cancel <-chan struct{}, input *fuse.ReleaseIn) {
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
+
+	b.releaseBackingIDRef(n)
 	b.freeFiles = append(b.freeFiles, uint32(input.Fh))
 }
 
 func (b *rawBridge) ReleaseDir(input *fuse.ReleaseIn) {
-	_, f := b.releaseFileEntry(input.NodeId, input.Fh)
+	n, f := b.releaseFileEntry(input.NodeId, input.Fh)
 	f.wg.Wait()
 
 	f.mu.Lock()
@@ -854,6 +930,7 @@ func (b *rawBridge) ReleaseDir(input *fuse.ReleaseIn) {
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	b.releaseBackingIDRef(n)
 	b.freeFiles = append(b.freeFiles, uint32(input.Fh))
 }
 

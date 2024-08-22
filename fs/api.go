@@ -10,7 +10,7 @@
 // nodes of the file system tree.
 //
 //	type myNode struct {
-//	   fs.Inode
+//		fs.Inode
 //	}
 //
 //	// Node types must be InodeEmbedders
@@ -20,10 +20,10 @@
 //	var _ = (fs.NodeLookuper)((*myNode)(nil))
 //
 //	func (n *myNode) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
-//	  ops := myNode{}
-//        out.Mode = 0755
-//        out.Size = 42
-//	  return n.NewInode(ctx, &ops, fs.StableAttr{Mode: syscall.S_IFREG}), 0
+//		ops := myNode{}
+//		out.Mode = 0755
+//		out.Size = 42
+//		return n.NewInode(ctx, &ops, fs.StableAttr{Mode: syscall.S_IFREG}), 0
 //	}
 //
 // The method names are inspired on the system call names, so we have
@@ -566,6 +566,17 @@ type NodeRenamer interface {
 // FOPEN_DIRECT_IO flag from their `Open` method. See directio_test.go
 // for an example.
 type FileHandle interface {
+}
+
+// FilePassthroughFder is a file backed by a physical
+// file. PassthroughFd should return an open file descriptor (and
+// true), and the kernel will execute read/write operations directly
+// on the backing file, bypassing the FUSE process. This function will
+// be called once when processing the Create or Open operation, so
+// there is no concern about concurrent access to the Fd. If the
+// function returns false, passthrough will not be used for this file.
+type FilePassthroughFder interface {
+	PassthroughFd() (int, bool)
 }
 
 // See NodeReleaser.
