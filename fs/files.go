@@ -43,6 +43,14 @@ var _ = (FileFlusher)((*loopbackFile)(nil))
 var _ = (FileFsyncer)((*loopbackFile)(nil))
 var _ = (FileSetattrer)((*loopbackFile)(nil))
 var _ = (FileAllocater)((*loopbackFile)(nil))
+var _ = (FilePassthroughFder)((*loopbackFile)(nil))
+
+func (f *loopbackFile) PassthroughFd() int {
+	// This Fd is not accessed concurrently, but lock anyway for uniformity.
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.fd
+}
 
 func (f *loopbackFile) Read(ctx context.Context, buf []byte, off int64) (res fuse.ReadResult, errno syscall.Errno) {
 	f.mu.Lock()
