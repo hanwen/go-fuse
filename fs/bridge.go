@@ -26,6 +26,9 @@ type fileEntry struct {
 	// index into Inode.openFiles
 	nodeIndex int
 
+	// Handle number which we communicate to the kernel.
+	fh uint32
+
 	// Protects directory fields. Must be acquired before bridge.mu
 	mu sync.Mutex
 
@@ -42,6 +45,10 @@ type fileEntry struct {
 	// directory seek has taken place.
 	dirOffset uint64
 
+	// We try to associate a file for stat() calls, but the kernel
+	// can issue a RELEASE and GETATTR in parallel. This waitgroup
+	// avoids that the RELEASE will invalidate the file descriptor
+	// before we finish processing GETATTR.
 	wg sync.WaitGroup
 }
 
@@ -154,7 +161,7 @@ func (b *rawBridge) newInode(ctx context.Context, ops InodeEmbedder, id StableAt
 // Unless fileFlags has the syscall.O_EXCL bit set, child.stableAttr will be used
 // to find an already-known node. If one is found, `child` is ignored and the
 // already-known one is used. The node that was actually used is returned.
-func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file FileHandle, fileFlags uint32, out *fuse.EntryOut) (selected *Inode, fh uint32) {
+func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file FileHandle, fileFlags uint32, out *fuse.EntryOut) (selected *Inode, fe *fileEntry) {
 	if name == "." || name == ".." {
 		log.Panicf("BUG: tried to add virtual entry %q to the actual tree", name)
 	}
@@ -216,7 +223,7 @@ func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file F
 	// Any node that might be there is overwritten - it is obsolete now
 	b.stableAttrs[id] = child
 	if file != nil {
-		fh = b.registerFile(child, file, fileFlags)
+		fe = b.registerFile(child, file, fileFlags)
 	}
 
 	parent.setEntry(name, child)
@@ -228,7 +235,7 @@ func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file F
 	b.mu.Unlock()
 	unlockNodes(parent, child)
 
-	return child, fh
+	return child, fe
 }
 
 func (b *rawBridge) setEntryOutTimeout(out *fuse.EntryOut) {
@@ -472,9 +479,9 @@ func (b *rawBridge) Create(cancel <-chan struct{}, input *fuse.CreateIn, name st
 		return errnoToStatus(errno)
 	}
 
-	child, fh := b.addNewChild(parent, name, child, f, input.Flags|syscall.O_CREAT|syscall.O_EXCL, &out.EntryOut)
+	child, fe := b.addNewChild(parent, name, child, f, input.Flags|syscall.O_CREAT|syscall.O_EXCL, &out.EntryOut)
 
-	out.Fh = uint64(fh)
+	out.Fh = uint64(fe.fh)
 	out.OpenFlags = flags
 
 	child.setEntryOut(&out.EntryOut)
@@ -733,7 +740,8 @@ func (b *rawBridge) Open(cancel <-chan struct{}, input *fuse.OpenIn, out *fuse.O
 		if f != nil {
 			b.mu.Lock()
 			defer b.mu.Unlock()
-			out.Fh = uint64(b.registerFile(n, f, input.Flags))
+			fe := b.registerFile(n, f, input.Flags)
+			out.Fh = uint64(fe.fh)
 		}
 		out.OpenFlags = flags
 		return fuse.OK
@@ -743,23 +751,22 @@ func (b *rawBridge) Open(cancel <-chan struct{}, input *fuse.OpenIn, out *fuse.O
 }
 
 // registerFile hands out a file handle. Must have bridge.mu
-func (b *rawBridge) registerFile(n *Inode, f FileHandle, flags uint32) uint32 {
-	var fh uint32
+func (b *rawBridge) registerFile(n *Inode, f FileHandle, flags uint32) *fileEntry {
+	fe := &fileEntry{}
 	if len(b.freeFiles) > 0 {
 		last := len(b.freeFiles) - 1
-		fh = b.freeFiles[last]
+		fe.fh = b.freeFiles[last]
 		b.freeFiles = b.freeFiles[:last]
+		b.files[fe.fh] = fe
 	} else {
-		fh = uint32(len(b.files))
-		b.files = append(b.files, &fileEntry{})
+		fe.fh = uint32(len(b.files))
+		b.files = append(b.files, fe)
 	}
 
-	fileEntry := b.files[fh]
-	fileEntry.nodeIndex = len(n.openFiles)
-	fileEntry.file = f
-
-	n.openFiles = append(n.openFiles, fh)
-	return fh
+	fe.nodeIndex = len(n.openFiles)
+	fe.file = f
+	n.openFiles = append(n.openFiles, fe.fh)
+	return fe
 }
 
 func (b *rawBridge) Read(cancel <-chan struct{}, input *fuse.ReadIn, buf []byte) (fuse.ReadResult, fuse.Status) {
@@ -933,7 +940,8 @@ func (b *rawBridge) OpenDir(cancel <-chan struct{}, input *fuse.OpenIn, out *fus
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	out.Fh = uint64(b.registerFile(n, nil, 0))
+	fe := b.registerFile(n, nil, 0)
+	out.Fh = uint64(fe.fh)
 	return fuse.OK
 }
 
