@@ -7,32 +7,22 @@ package benchmark
 // Routines for benchmarking fuse.
 
 import (
-	"bufio"
+	"bytes"
 	"log"
 	"os"
 )
 
 func ReadLines(name string) []string {
-	f, err := os.Open(name)
+	data, err := os.ReadFile(name)
 	if err != nil {
-		log.Fatal("ReadLines: ", err)
+		log.Fatal("ReadFile: ", err)
 	}
-	defer f.Close()
-	r := bufio.NewReader(f)
 
-	l := []string{}
-	for {
-		line, _, err := r.ReadLine()
-		if line == nil || err != nil {
-			break
+	var lines []string
+	for _, l := range bytes.Split(data, []byte("\n")) {
+		if len(l) > 0 {
+			lines = append(lines, string(l))
 		}
-
-		fn := string(line)
-		l = append(l, fn)
 	}
-	if len(l) == 0 {
-		log.Fatal("no files added")
-	}
-
-	return l
+	return lines
 }
