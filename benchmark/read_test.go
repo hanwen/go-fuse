@@ -24,8 +24,7 @@ func BenchmarkGoFuseMemoryRead(b *testing.B) {
 const blockSize = 64 * 1024
 
 func benchmarkGoFuseRead(root fs.InodeEmbedder, b *testing.B) {
-	wd, clean := setupFs(root, b.N)
-	defer clean()
+	wd := setupFS(root, b.N, b)
 
 	jobs := 32
 	cmds := make([]*exec.Cmd, jobs)

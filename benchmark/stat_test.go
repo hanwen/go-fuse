@@ -22,22 +22,19 @@ import (
 	"github.com/hanwen/go-fuse/v2/internal/testutil"
 )
 
-func setupFs(node fs.InodeEmbedder, N int) (string, func()) {
+func setupFS(node fs.InodeEmbedder, N int, tb testing.TB) string {
 	opts := &fs.Options{}
 	opts.Debug = testutil.VerboseTest()
-	mountPoint, err := os.MkdirTemp("", "")
-	if err != nil {
-		log.Panicf("TempDir: %v", err)
-	}
+	mountPoint := tb.TempDir()
 	server, err := fs.Mount(mountPoint, node, opts)
 	if err != nil {
-		log.Panicf("cannot mount %v", err)
+		tb.Fatalf("cannot mount %v", err)
 	}
 	lmap := NewLatencyMap()
 	if testutil.VerboseTest() {
 		server.RecordLatencies(lmap)
 	}
-	return mountPoint, func() {
+	tb.Cleanup(func() {
 		if testutil.VerboseTest() {
 			var total time.Duration
 			for _, n := range []string{"LOOKUP", "GETATTR", "OPENDIR", "READDIR",
@@ -57,7 +54,8 @@ func setupFs(node fs.InodeEmbedder, N int) (string, func()) {
 		if err != nil {
 			log.Println("error during unmount", err)
 		}
-	}
+	})
+	return mountPoint
 }
 
 func TestNewStatFs(t *testing.T) {
@@ -68,8 +66,7 @@ func TestNewStatFs(t *testing.T) {
 		fs.AddFile(n, fuse.Attr{Mode: syscall.S_IFREG})
 	}
 
-	wd, clean := setupFs(fs, 1)
-	defer clean()
+	wd := setupFS(fs, 1, t)
 
 	names, err := ioutil.ReadDir(wd)
 	if err != nil {
@@ -121,15 +118,14 @@ func BenchmarkGoFuseStat(b *testing.B) {
 		fs.AddFile(fn, fuse.Attr{Mode: syscall.S_IFREG})
 	}
 
-	wd, clean := setupFs(fs, b.N)
-	defer clean()
+	mnt := setupFS(fs, b.N, b)
 
 	for i, l := range files {
-		files[i] = filepath.Join(wd, l)
+		files[i] = filepath.Join(mnt, l)
 	}
 
 	threads := runtime.GOMAXPROCS(0)
-	if err := TestingBOnePass(b, threads, fileList, wd); err != nil {
+	if err := TestingBOnePass(b, threads, fileList, mnt); err != nil {
 		b.Fatalf("TestingBOnePass %v8", err)
 	}
 }
@@ -157,12 +153,11 @@ func BenchmarkGoFuseReaddir(b *testing.B) {
 		dirSet[filepath.Dir(fn)] = struct{}{}
 	}
 
-	wd, clean := setupFs(fs, b.N)
-	defer clean()
+	mnt := setupFS(fs, b.N, b)
 
 	var dirs []string
 	for dir := range dirSet {
-		dirs = append(dirs, filepath.Join(wd, dir))
+		dirs = append(dirs, filepath.Join(mnt, dir))
 	}
 	b.StartTimer()
 	todo := b.N
