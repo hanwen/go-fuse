@@ -6,85 +6,129 @@ package benchmark
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
 	"testing"
+	"time"
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/internal/testutil"
-	"golang.org/x/sync/errgroup"
 )
 
 func BenchmarkGoFuseMemoryRead(b *testing.B) {
 	root := &readFS{}
-	benchmarkGoFuseRead(root, b)
+	mnt := setupFS(root, b.N, b)
+	benchmarkRead(mnt, b, 32, "direct")
 }
 
 const blockSize = 64 * 1024
 
-func benchmarkGoFuseRead(root fs.InodeEmbedder, b *testing.B) {
-	wd := setupFS(root, b.N, b)
-
-	jobs := 32
-	cmds := make([]*exec.Cmd, jobs)
-	for i := 0; i < jobs; i++ {
-		cmds[i] = exec.Command("dd",
-			fmt.Sprintf("if=%s/foo.txt", wd),
-			"iflag=direct",
+func benchmarkRead(mnt string, b *testing.B, readers int, ddflag string) {
+	var cmds []*exec.Cmd
+	for i := 0; i < readers; i++ {
+		cmd := exec.Command("dd",
+			fmt.Sprintf("if=%s/foo.txt", mnt),
 			"of=/dev/null",
 			fmt.Sprintf("bs=%d", blockSize),
 			fmt.Sprintf("count=%d", b.N))
-		if testutil.VerboseTest() {
-			cmds[i].Stdout = os.Stdout
-			cmds[i].Stderr = os.Stderr
+		if ddflag != "" {
+			cmd.Args = append(cmd.Args, "iflag="+ddflag)
 		}
+		if testutil.VerboseTest() {
+			cmd.Stderr = os.Stderr
+			cmd.Stdout = os.Stdout
+		} else {
+			buf := &bytes.Buffer{}
+			cmd.Stderr = buf
+			cmd.Stdout = buf
+		}
+		cmds = append(cmds, cmd)
 	}
 
-	b.SetBytes(int64(jobs * blockSize))
+	b.SetBytes(int64(readers * blockSize))
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	var eg errgroup.Group
-	for i := 0; i < jobs; i++ {
-		i := i
-		eg.Go(func() error {
-			return cmds[i].Run()
-		})
+	result := make(chan error, readers)
+	for _, cmd := range cmds {
+		go func(cmd *exec.Cmd) {
+			err := cmd.Run()
+			if buf, ok := cmd.Stdout.(*bytes.Buffer); ok && err != nil {
+				err = fmt.Errorf("%v: output=%s", err, buf.String())
+			}
+			result <- err
+		}(cmd)
 	}
-
-	if err := eg.Wait(); err != nil {
-		b.Fatalf("dd failed: %v", err)
+	failures := 0
+	for range cmds {
+		if err := <-result; err != nil {
+			b.Errorf("dd failed: %v", err)
+			failures++
+		}
 	}
-
+	if failures > 0 {
+		b.Errorf("%d out of %d commands", failures, readers)
+	}
 	b.StopTimer()
 }
 
 func BenchmarkGoFuseFDRead(b *testing.B) {
 	orig := b.TempDir()
 	fn := orig + "/foo.txt"
-	f, err := os.Create(fn)
-	if err != nil {
-		b.Fatal(err)
-	}
-	defer f.Close()
-	if err := f.Chmod(0777); err != nil {
-		b.Fatal(err)
-	}
-	data := bytes.Repeat([]byte{42}, blockSize)
-	for i := 0; i < b.N; i++ {
-		_, err := f.Write(data)
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-	if err := f.Close(); err != nil {
+
+	data := bytes.Repeat([]byte{42}, blockSize*b.N)
+	if err := os.WriteFile(fn, data, 0666); err != nil {
 		b.Fatal(err)
 	}
 	root, err := fs.NewLoopbackRoot(orig)
 	if err != nil {
 		b.Fatal(err)
 	}
+	mnt := setupFS(root, b.N, b)
+	benchmarkRead(mnt, b, 32, "")
+}
 
-	benchmarkGoFuseRead(root, b)
+var libfusePath = flag.String("passthrough_hp", "", "path to libfuse's passthrough_hp")
+
+func BenchmarkLibfuseHP(b *testing.B) {
+	orig := b.TempDir()
+	mnt := b.TempDir()
+	if *libfusePath == "" {
+		b.Skip("must set --passthrough_hp")
+	}
+
+	origFN := orig + "/foo.txt"
+	data := bytes.Repeat([]byte{42}, blockSize*b.N)
+	if err := os.WriteFile(origFN, data, 0666); err != nil {
+		b.Fatal(err)
+	}
+	fn := mnt + "/foo.txt"
+	cmd := exec.Command(*libfusePath, "--foreground")
+	if testutil.VerboseTest() {
+		cmd.Args = append(cmd.Args, "--debug", "--debug-fuse")
+	}
+	cmd.Args = append(cmd.Args, orig, mnt)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+
+	if err := cmd.Start(); err != nil {
+		b.Fatal(err)
+	}
+	b.Cleanup(func() { exec.Command("fusermount", "-u", mnt).Run() })
+
+	dt := time.Millisecond
+	for {
+		if _, err := os.Stat(fn); err == nil {
+			break
+		}
+		time.Sleep(dt)
+		dt *= 2
+		if dt > time.Second {
+			b.Fatal("file did not appear")
+		}
+	}
+
+	benchmarkRead(mnt, b, 32, "")
 }
