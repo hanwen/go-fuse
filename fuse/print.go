@@ -215,7 +215,7 @@ func (in *OpenOut) string() string {
 	if in.BackingID != 0 {
 		backing = fmt.Sprintf("backing=%d ", in.BackingID)
 	}
-	return fmt.Sprintf("{Fh %d %s %s}", in.Fh, backing,
+	return fmt.Sprintf("{Fh %d %s%s}", in.Fh, backing,
 		flagString(fuseOpenFlagNames, int64(in.OpenFlags), ""))
 }
 
