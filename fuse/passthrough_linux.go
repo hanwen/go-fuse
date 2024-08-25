@@ -37,7 +37,9 @@ func (ms *Server) RegisterBackingFd(fd int, flags uint32) (int32, syscall.Errno)
 	ms.writeMu.Lock()
 	id, _, errno := syscall.Syscall(syscall.SYS_IOCTL, uintptr(ms.mountFd), uintptr(_DEV_IOC_BACKING_OPEN), uintptr(unsafe.Pointer(&m)))
 	ms.writeMu.Unlock()
-
+	if ms.opts.Debug {
+		ms.opts.Logger.Printf("ioctl: BACKING_OPEN %d (flags %x): id %d (%v)", fd, flags, id, errno)
+	}
 	return int32(id), errno
 }
 
@@ -45,8 +47,11 @@ func (ms *Server) RegisterBackingFd(fd int, flags uint32) (int32, syscall.Errno)
 // should have been acquired before using RegisterBackingFd.
 func (ms *Server) UnregisterBackingFd(id int32) syscall.Errno {
 	ms.writeMu.Lock()
-	_, _, ep := syscall.Syscall(syscall.SYS_IOCTL, uintptr(ms.mountFd), uintptr(_DEV_IOC_BACKING_CLOSE), uintptr(unsafe.Pointer(&id)))
+	_, _, errno := syscall.Syscall(syscall.SYS_IOCTL, uintptr(ms.mountFd), uintptr(_DEV_IOC_BACKING_CLOSE), uintptr(unsafe.Pointer(&id)))
 	ms.writeMu.Unlock()
 
-	return ep
+	if ms.opts.Debug {
+		ms.opts.Logger.Printf("ioctl: BACKING_CLOSE id %d: %v", id, errno)
+	}
+	return errno
 }
