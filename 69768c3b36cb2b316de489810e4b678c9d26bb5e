@@ -51,6 +51,126 @@
       "parentUuid": "6dc7b546_dfe10ebc",
       "revId": "69768c3b36cb2b316de489810e4b678c9d26bb5e",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d30ea13b_e424906b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 8
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2024-08-26T18:22:08Z",
+      "side": 1,
+      "message": "Thanks! Yes the MB/s I got when *not* running as root seem too high",
+      "parentUuid": "9b523f05_365aae85",
+      "revId": "69768c3b36cb2b316de489810e4b678c9d26bb5e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "298e4f40_e4dba75f",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 8
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2024-08-26T18:22:08Z",
+      "side": 1,
+      "message": "Benchmark still unhappy here:\n\n\n\ngo-fuse/benchmark$ go build -v \u0026\u0026 sudo /usr/local/go/bin/go test -run \"abc\" -bench \u0027(Libfuse|FD)\u0027 --passthrough_hp ~/code/libfuse/build/example/passthrough_hp -test.cpu\u003d1,2,4\ngoos: linux\ngoarch: amd64\npkg: github.com/hanwen/go-fuse/v2/benchmark\ncpu: Intel(R) Core(TM) i5-3470 CPU @ 3.20GHz\nBenchmarkGoFuseFDRead     \t    9130\t    128751 ns/op\t16288.46 MB/s\t      64 B/op\t       0 allocs/op\nBenchmarkGoFuseFDRead-2   \t--- FAIL: BenchmarkGoFuseFDRead\n    read_test.go:67: dd failed: fork/exec /usr/bin/dd: bad file descriptor: output\u003d\n    read_test.go:72: 1 out of 32 commands\n--- FAIL: BenchmarkGoFuseFDRead-2\n    read_test.go:67: dd failed: fork/exec /usr/bin/dd: bad file descriptor: output\u003d\n    read_test.go:72: 1 out of 32 commands\nBenchmarkGoFuseFDRead-4   \t--- FAIL: BenchmarkGoFuseFDRead\n    read_test.go:67: dd failed: signal: broken pipe: output\u003d\n    read_test.go:67: dd failed: signal: broken pipe: output\u003d****************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************\n    read_test.go:67: dd failed: exit status 1: output\u003ddd: closing input file \u0027/tmp/BenchmarkGoFuseFDRead3938259507/002/foo.txt\u0027: Bad file descriptor\n    read_test.go:72: 3 out of 32 commands\n--- FAIL: BenchmarkGoFuseFDRead-4\n    read_test.go:67: dd failed: signal: broken pipe: output\u003d\n    read_test.go:67: dd failed: signal: broken pipe: output\u003d****************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************\n    read_test.go:67: dd failed: exit status 1: output\u003ddd: closing input file \u0027/tmp/BenchmarkGoFuseFDRead3938259507/002/foo.txt\u0027: Bad file descriptor\n    read_test.go:72: 3 out of 32 commands\nmount: (hint) your fstab has been modified, but systemd still uses\n       the old version; use \u0027systemctl daemon-reload\u0027 to reload.\nBenchmarkLibfuseHP        \tmount: (hint) your fstab has been modified, but systemd still uses\n       the old version; use \u0027systemctl daemon-reload\u0027 to reload.\nmount: (hint) your fstab has been modified, but systemd still uses\n       the old version; use \u0027systemctl daemon-reload\u0027 to reload.\nmount: (hint) your fstab has been modified, but systemd still uses\n       the old version; use \u0027systemctl daemon-reload\u0027 to reload.\n    9122\t    128817 ns/op\t16280.15 MB/s\t      27 B/op\t       0 allocs/op\nBenchmarkLibfuseHP-2      \tmount: (hint) your fstab has been modified, but systemd still uses\n       the old version; use \u0027systemctl daemon-reload\u0027 to reload.\nmount: (hint) your fstab has been modified, but systemd still uses\n       the old version; use \u0027systemctl daemon-reload\u0027 to reload.\nmount: (hint) your fstab has been modified, but systemd still uses\n       the old version; use \u0027systemctl daemon-reload\u0027 to reload.\nmount: (hint) your fstab has been modified, but systemd still uses\n       the old version; use \u0027systemctl daemon-reload\u0027 to reload.\n    9195\t    133405 ns/op\t15720.23 MB/s\t      27 B/op\t       0 allocs/op\nBenchmarkLibfuseHP-4      \tmount: (hint) your fstab has been modified, but systemd still uses\n       the old version; use \u0027systemctl daemon-reload\u0027 to reload.\nmount: (hint) your fstab has been modified, but systemd still uses\n       the old version; use \u0027systemctl daemon-reload\u0027 to reload.\nmount: (hint) your fstab has been modified, but systemd still uses\n       the old version; use \u0027systemctl daemon-reload\u0027 to reload.\nmount: (hint) your fstab has been modified, but systemd still uses\n       the old version; use \u0027systemctl daemon-reload\u0027 to reload.\n    8911\t    133179 ns/op\t15746.82 MB/s\t      28 B/op\t       0 allocs/op\nPASS\nok  \tgithub.com/hanwen/go-fuse/v2/benchmark\t9.692s",
+      "revId": "69768c3b36cb2b316de489810e4b678c9d26bb5e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a6809cf0_c7d5bd48",
+        "filename": "fs/bridge.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 771,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2024-08-26T18:22:08Z",
+      "side": 1,
+      "message": "Nitpick: Untangle the ifs and convert to early returns?\n\nif b.disableBackingFiles {\n    return\n}\n\nbc, ok :\u003d b.server.(serverBackingFdCallbacks)\nif !ok {\n    return\n}\n\npth, ok :\u003d f.(FilePassthroughFder)\nif !ok {\n    return\n}\n\n...",
+      "revId": "69768c3b36cb2b316de489810e4b678c9d26bb5e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d550ad81_b0cf06c9",
+        "filename": "fs/bridge.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 779,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2024-08-26T18:22:08Z",
+      "side": 1,
+      "message": "I like the extra robustness, however, this will double the fd usage and may cause filesystems to hit `too many open files` where they ran fine before.",
+      "revId": "69768c3b36cb2b316de489810e4b678c9d26bb5e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "38399d4f_6369af64",
+        "filename": "fs/bridge.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 799,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2024-08-26T18:22:08Z",
+      "side": 1,
+      "message": "Disable FOPEN_KEEP_CACHE like libfuse does? In go-fuse that means masking it out.\nlibfuse code: https://github.com/libfuse/libfuse/pull/919/commits/4d69b34b9c0dec7dbef6fac3a56c38697928b882#diff-9405752b4e56d192188c39fe1be61c8b4811f75f7595a7105bf0ce99807e4d1fR844",
+      "revId": "69768c3b36cb2b316de489810e4b678c9d26bb5e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b79ca02f_1290707d",
+        "filename": "fs/bridge.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 806,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2024-08-26T18:22:08Z",
+      "side": 1,
+      "message": "Nitpick: early return instead:\n\nif n.backingID \u003d\u003d 0 {\nreturn\n}",
+      "revId": "69768c3b36cb2b316de489810e4b678c9d26bb5e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6b129717_162281e3",
+        "filename": "fs/bridge.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 808,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2024-08-26T18:22:08Z",
+      "side": 1,
+      "message": "Add panic on backingIDRefcount underflow?",
+      "revId": "69768c3b36cb2b316de489810e4b678c9d26bb5e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
