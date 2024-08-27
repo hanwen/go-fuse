@@ -255,7 +255,7 @@ func unlockNodes(ns ...*Inode) {
 func (n *Inode) Forgotten() bool {
 	n.mu.Lock()
 	defer n.mu.Unlock()
-	return n.lookupCount == 0 && n.parents.count() == 0 && !n.persistent
+	return n.lookupCount == 0 && n.parents.count() == 0 && !n.persistent && n.bridge != nil
 }
 
 // Operations returns the object implementing the file system
