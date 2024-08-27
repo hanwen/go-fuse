@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d6eaeed5_cf840511",
+        "filename": "fs/bridge.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 829,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2024-08-27T08:32:09Z",
+      "side": 1,
+      "message": "(cough.)",
+      "revId": "a2b58c3c3378449e42084b238775b1d2ec863a6f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
