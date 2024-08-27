@@ -38,6 +38,7 @@ func (ds *errDirStream) Next() (fuse.DirEntry, syscall.Errno) {
 			Mode: fuse.S_IFREG,
 			Name: "first",
 			Ino:  2,
+			Off:  100,
 		}, 0
 	}
 	if ds.num == 2 {
@@ -45,6 +46,7 @@ func (ds *errDirStream) Next() (fuse.DirEntry, syscall.Errno) {
 			Mode: fuse.S_IFREG,
 			Name: "last",
 			Ino:  3,
+			Off:  200,
 		}, syscall.EBADMSG
 	}
 
@@ -75,7 +77,14 @@ func TestDirStreamError(t *testing.T) {
 					t.Errorf("ds.Next: %v", errno)
 				} else if e.Name != "first" {
 					t.Errorf("got %q want 'first'", e.Name)
+				} else if e.Off != 100 {
+					t.Errorf("got off %d, want 100", e.Off)
 				}
+
+				if !ds.HasNext() {
+					t.Fatalf("got !HasNext")
+				}
+
 				// Here we need choose a errno to test if errno could be passed and handled
 				// correctly by the fuse library. To build the test on different platform,
 				// an errno which defined on each platform should be chosen. And if the

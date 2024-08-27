@@ -1053,11 +1053,14 @@ func (b *rawBridge) setStream(cancel <-chan struct{}, input *fuse.ReadIn, inode 
 			// user will get an empty directory listing.
 			return 0, true
 		}
-		_, errno := f.dirStream.Next()
+		de, errno := f.dirStream.Next()
 		if errno != 0 {
 			return errno, true
 		}
-		f.dirOffset++
+		if de.Off == 0 {
+			de.Off = f.dirOffset + 1
+		}
+		f.dirOffset = de.Off
 	}
 
 	return 0, false

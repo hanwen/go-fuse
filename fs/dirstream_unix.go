@@ -88,6 +88,7 @@ func (ds *loopbackDirStream) Next() (fuse.DirEntry, syscall.Errno) {
 		Ino:  de.Ino,
 		Mode: (uint32(de.Type) << 12),
 		Name: string(nameBytes),
+		Off:  uint64(de.Off),
 	}
 	return result, ds.load()
 }
