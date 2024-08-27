@@ -107,6 +107,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "64d06d31_ffe9b98f",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 8
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2024-08-27T08:12:03Z",
+      "side": 1,
+      "message": "This fails with \"too many open files\":\n```\ngo-fuse/fs$ git diff\ndiff --git a/fs/passthrough_test.go b/fs/passthrough_test.go\nindex 95ac5bf..e4e590f 100644\n--- a/fs/passthrough_test.go\n+++ b/fs/passthrough_test.go\n@@ -66,8 +66,11 @@ func TestPassthrough(t *testing.T) {\n \n        fn :\u003d mnt + \"/file\"\n        want :\u003d \"hello there\"\n-       if err :\u003d os.WriteFile(fn, []byte(want), 0666); err !\u003d nil {\n-               t.Fatalf(\"WriteFile: %v\", err)\n+\n+       for i :\u003d 1; 1 \u003c 10000; i++ {\n+               if err :\u003d os.WriteFile(fn, []byte(want), 0666); err !\u003d nil {\n+                       t.Fatalf(\"WriteFile: %v\", err)\n+               }\n        }\n \n        f, err :\u003d os.Open(fn)\n```",
+      "parentUuid": "a9f5a8cd_84c46913",
+      "revId": "69768c3b36cb2b316de489810e4b678c9d26bb5e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "a6809cf0_c7d5bd48",
         "filename": "fs/bridge.go",
         "patchSetId": 8
