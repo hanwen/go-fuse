@@ -88,6 +88,23 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "a9f5a8cd_84c46913",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 8
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2024-08-27T08:09:54Z",
+      "side": 1,
+      "message": "In testing, I see that we are leaking one fd per open (I\u0027m not yet sure where).",
+      "revId": "69768c3b36cb2b316de489810e4b678c9d26bb5e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "a6809cf0_c7d5bd48",
