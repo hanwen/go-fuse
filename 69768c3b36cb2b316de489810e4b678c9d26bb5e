@@ -123,6 +123,42 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "4c36fbee_955f7fb4",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 8
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2024-08-27T08:26:54Z",
+      "side": 1,
+      "message": "could it be that the daemon hits the FD limit you described elsewhere? It works fine over here, obviously. I have \n\n```\n# ulimit -a\nreal-time non-blocking time  (microseconds, -R) unlimited\ncore file size              (blocks, -c) 0\ndata seg size               (kbytes, -d) unlimited\nscheduling priority                 (-e) 0\nfile size                   (blocks, -f) unlimited\npending signals                     (-i) 127167\nmax locked memory           (kbytes, -l) 8192\nmax memory size             (kbytes, -m) unlimited\nopen files                          (-n) 1024\npipe size                (512 bytes, -p) 8\nPOSIX message queues         (bytes, -q) 819200\nreal-time priority                  (-r) 0\nstack size                  (kbytes, -s) 8192\ncpu time                   (seconds, -t) unlimited\nmax user processes                  (-u) 127167\nvirtual memory              (kbytes, -v) unlimited\nfile locks                          (-x) unlimited\n```\n\nI\u0027m also puzzled by the `output\u003d****...`, as dd shouldn\u0027t normally print the data it processes? (char 42 \u003d \u0027*\u0027).",
+      "parentUuid": "298e4f40_e4dba75f",
+      "revId": "69768c3b36cb2b316de489810e4b678c9d26bb5e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "cc9491c4_29d04f3a",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 8
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2024-08-27T08:26:54Z",
+      "side": 1,
+      "message": "i\u0027ll have a look.",
+      "parentUuid": "64d06d31_ffe9b98f",
+      "revId": "69768c3b36cb2b316de489810e4b678c9d26bb5e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "a6809cf0_c7d5bd48",
@@ -136,6 +172,24 @@
       "writtenOn": "2024-08-26T18:22:08Z",
       "side": 1,
       "message": "Nitpick: Untangle the ifs and convert to early returns?\n\nif b.disableBackingFiles {\n    return\n}\n\nbc, ok :\u003d b.server.(serverBackingFdCallbacks)\nif !ok {\n    return\n}\n\npth, ok :\u003d f.(FilePassthroughFder)\nif !ok {\n    return\n}\n\n...",
+      "revId": "69768c3b36cb2b316de489810e4b678c9d26bb5e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "ac5f598a_c72b219a",
+        "filename": "fs/bridge.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 771,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2024-08-27T08:26:54Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a6809cf0_c7d5bd48",
       "revId": "69768c3b36cb2b316de489810e4b678c9d26bb5e",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
@@ -159,6 +213,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "b8b98cde_b5a78161",
+        "filename": "fs/bridge.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 779,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2024-08-27T08:26:54Z",
+      "side": 1,
+      "message": "Let me ask on the fs list what the contract is. It also seems to work if you close the fd right after allocating the backing ID.",
+      "parentUuid": "d550ad81_b0cf06c9",
+      "revId": "69768c3b36cb2b316de489810e4b678c9d26bb5e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "38399d4f_6369af64",
         "filename": "fs/bridge.go",
         "patchSetId": 8
@@ -170,6 +242,24 @@
       "writtenOn": "2024-08-26T18:22:08Z",
       "side": 1,
       "message": "Disable FOPEN_KEEP_CACHE like libfuse does? In go-fuse that means masking it out.\nlibfuse code: https://github.com/libfuse/libfuse/pull/919/commits/4d69b34b9c0dec7dbef6fac3a56c38697928b882#diff-9405752b4e56d192188c39fe1be61c8b4811f75f7595a7105bf0ce99807e4d1fR844",
+      "revId": "69768c3b36cb2b316de489810e4b678c9d26bb5e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "310bae69_f6f31bc2",
+        "filename": "fs/bridge.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 799,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2024-08-27T08:26:54Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "38399d4f_6369af64",
       "revId": "69768c3b36cb2b316de489810e4b678c9d26bb5e",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
@@ -191,6 +281,24 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "bb5ddc62_4ee0d0d9",
+        "filename": "fs/bridge.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 806,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2024-08-27T08:26:54Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b79ca02f_1290707d",
+      "revId": "69768c3b36cb2b316de489810e4b678c9d26bb5e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "6b129717_162281e3",
@@ -204,6 +312,24 @@
       "writtenOn": "2024-08-26T18:22:08Z",
       "side": 1,
       "message": "Add panic on backingIDRefcount underflow?",
+      "revId": "69768c3b36cb2b316de489810e4b678c9d26bb5e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "f4c6e259_ecf34a5b",
+        "filename": "fs/bridge.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 808,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2024-08-27T08:26:54Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6b129717_162281e3",
       "revId": "69768c3b36cb2b316de489810e4b678c9d26bb5e",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
