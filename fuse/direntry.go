@@ -4,8 +4,6 @@
 
 package fuse
 
-// all of the code for DirEntryList.
-
 import (
 	"fmt"
 	"unsafe"
@@ -27,10 +25,14 @@ type DirEntry struct {
 
 	// Ino is the inode number.
 	Ino uint64
+
+	// Off is the offset in the directory stream. The offset is
+	// thought to be after the entry.
+	Off uint64
 }
 
-func (d DirEntry) String() string {
-	return fmt.Sprintf("%o: %q ino=%d", d.Mode, d.Name, d.Ino)
+func (d *DirEntry) String() string {
+	return fmt.Sprintf("%d: %q ino=%d (%o)", d.Off, d.Name, d.Ino, d.Mode)
 }
 
 // DirEntryList holds the return value for READDIR and READDIRPLUS
@@ -60,19 +62,22 @@ func NewDirEntryList(data []byte, off uint64) *DirEntryList {
 }
 
 // AddDirEntry tries to add an entry, and reports whether it
-// succeeded.
+// succeeded.  If adding a 0 offset entry, the offset is taken to be
+// the last offset + 1.
 func (l *DirEntryList) AddDirEntry(e DirEntry) bool {
-	return l.Add(0, e.Name, e.Ino, e.Mode)
+	// TODO: take pointer arg, merge with AddDirLookupEntry.
+	return l.addDirEntry(&e, 0)
 }
 
-// Add adds a direntry to the DirEntryList, returning whether it
-// succeeded.
-func (l *DirEntryList) Add(prefix int, name string, inode uint64, mode uint32) bool {
-	if inode == 0 {
-		inode = FUSE_UNKNOWN_INO
+func (l *DirEntryList) addDirEntry(e *DirEntry, prefix int) bool {
+	if e.Ino == 0 {
+		e.Ino = FUSE_UNKNOWN_INO
 	}
-	padding := (8 - len(name)&7) & 7
-	delta := padding + direntSize + len(name) + prefix
+	if e.Off == 0 {
+		e.Off = l.Offset + 1
+	}
+	padding := (8 - len(e.Name)&7) & 7
+	delta := padding + direntSize + len(e.Name) + prefix
 	oldLen := len(l.buf)
 	newLen := delta + oldLen
 
@@ -82,13 +87,13 @@ func (l *DirEntryList) Add(prefix int, name string, inode uint64, mode uint32) b
 	l.buf = l.buf[:newLen]
 	oldLen += prefix
 	dirent := (*_Dirent)(unsafe.Pointer(&l.buf[oldLen]))
-	dirent.Off = l.Offset + 1
-	dirent.Ino = inode
-	dirent.NameLen = uint32(len(name))
-	dirent.Typ = modeToType(mode)
+	dirent.Off = e.Off
+	dirent.Ino = e.Ino
+	dirent.NameLen = uint32(len(e.Name))
+	dirent.Typ = modeToType(e.Mode)
 	oldLen += direntSize
-	copy(l.buf[oldLen:], name)
-	oldLen += len(name)
+	copy(l.buf[oldLen:], e.Name)
+	oldLen += len(e.Name)
 
 	if padding > 0 {
 		copy(l.buf[oldLen:], eightPadding[:padding])
@@ -98,27 +103,43 @@ func (l *DirEntryList) Add(prefix int, name string, inode uint64, mode uint32) b
 	return true
 }
 
-// AddDirLookupEntry is used for ReadDirPlus. If reserves and zeroizes space
-// for an EntryOut struct and serializes a DirEntry.
-// On success, it returns pointers to both structs.
-// If not enough space was left, it returns two nil pointers.
+// Add adds a direntry to the DirEntryList, returning wheither it
+// succeeded. Prefix is the amount of padding to add before the DirEntry.
 //
-// The resulting READDIRPLUS output buffer looks like this in memory:
-// 1) EntryOut{}
-// 2) _Dirent{}
-// 3) Name (null-terminated)
-// 4) Padding to align to 8 bytes
-// [repeat]
+// Deprecated: use AddDirLookupEntry or AddDirEntry.
+func (l *DirEntryList) Add(prefix int, name string, inode uint64, mode uint32) bool {
+	// TODO: remove.
+	e := DirEntry{
+		Name: name,
+		Mode: mode,
+		Off:  l.Offset + 1,
+		Ino:  inode,
+	}
+	return l.addDirEntry(&e, prefix)
+}
+
+// AddDirLookupEntry is used for ReadDirPlus. If reserves and zeroes
+// space for an EntryOut struct and serializes the DirEntry. If adding
+// a 0 offset entry, the offset is taken to be the last offset + 1.
+// If the entry does not fit, it returns nil.
 func (l *DirEntryList) AddDirLookupEntry(e DirEntry) *EntryOut {
+	// The resulting READDIRPLUS output buffer looks like this in memory:
+	// 1) EntryOut{}
+	// 2) _Dirent{}
+	// 3) Name (null-terminated)
+	// 4) Padding to align to 8 bytes
+	// [repeat]
+
+	// TODO: should take pointer as argument.
 	const entryOutSize = int(unsafe.Sizeof(EntryOut{}))
 	oldLen := len(l.buf)
-	ok := l.Add(entryOutSize, e.Name, e.Ino, e.Mode)
+	ok := l.addDirEntry(&e, entryOutSize)
 	if !ok {
 		return nil
 	}
 	l.lastDirent = (*_Dirent)(unsafe.Pointer(&l.buf[oldLen+entryOutSize]))
 	entryOut := (*EntryOut)(unsafe.Pointer(&l.buf[oldLen]))
-	*entryOut = EntryOut{} // zeroize
+	*entryOut = EntryOut{}
 	return entryOut
 }
 
