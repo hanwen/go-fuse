@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d96fda41_e0f4ba7c",
+        "filename": "fs/passthrough_test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 77,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2024-08-27T19:50:42Z",
+      "side": 1,
+      "message": "Double close",
+      "revId": "dda41e1f5c3fe616d79a3559c6ecd276b7cc633c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
