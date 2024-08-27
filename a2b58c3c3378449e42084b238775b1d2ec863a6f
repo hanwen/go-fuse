@@ -34,6 +34,24 @@
       "parentUuid": "d6eaeed5_cf840511",
       "revId": "a2b58c3c3378449e42084b238775b1d2ec863a6f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9784d88b_e0efea9e",
+        "filename": "fs/bridge.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 829,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2024-08-27T09:43:16Z",
+      "side": 1,
+      "message": "Heh. That closed stdin. And I guess it explains the benchmark carnage.",
+      "parentUuid": "3bb71246_d1370161",
+      "revId": "a2b58c3c3378449e42084b238775b1d2ec863a6f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
