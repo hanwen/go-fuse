@@ -177,6 +177,24 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "f6696d39_44e380ed",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 8
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2024-08-27T09:19:01Z",
+      "side": 1,
+      "message": "But 611a595cc31614888a5d38ea11e39d2e57ba4a22 seems to have this fixed. No trouble even with\n\n```\n@@ -87,7 +87,7 @@ func BenchmarkGoFuseFDRead(b *testing.B) {\n                b.Fatal(err)\n        }\n        mnt :\u003d setupFS(root, b.N, b)\n-       benchmarkRead(mnt, b, 1, \"\")\n+       benchmarkRead(mnt, b, 32, \"\")\n }\n```",
+      "parentUuid": "4a114936_b2e245b5",
+      "revId": "69768c3b36cb2b316de489810e4b678c9d26bb5e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "a6809cf0_c7d5bd48",
