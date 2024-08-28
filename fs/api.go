@@ -304,6 +304,14 @@ type NodeOnAdder interface {
 	OnAdd(ctx context.Context)
 }
 
+// OnTreeAdd is called right after the corresponding Inode is added
+// into the tree as the result of a directory operation (Lookup,
+// Create, Mkdir, Symlink, Mknod, etc.). As a result, OnTreeAdd may be
+// called an arbitrary number of times on a node (once for every Lookup).
+type NodeOnTreeAdder interface {
+	OnTreeAdd(ctx context.Context)
+}
+
 // Getxattr should read data for the given attribute into
 // `dest` and return the number of bytes. If `dest` is too
 // small, it should return ERANGE and the size of the attribute.

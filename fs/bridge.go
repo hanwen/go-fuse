@@ -246,6 +246,10 @@ func (b *rawBridge) addNewChild(ctx context.Context, parent *Inode, name string,
 	b.mu.Unlock()
 	unlockNodes(parent, child)
 
+	if oat, ok := child.ops.(NodeOnTreeAdder); ok {
+		oat.OnTreeAdd(ctx)
+	}
+
 	return child, fe
 }
 
@@ -744,6 +748,7 @@ func (b *rawBridge) Open(cancel <-chan struct{}, input *fuse.OpenIn, out *fuse.O
 	if !ok {
 		return fuse.ENOTSUP
 	}
+
 	f, flags, errno := op.Open(&fuse.Context{Caller: input.Caller, Cancel: cancel}, input.Flags)
 	if errno != 0 {
 		return errnoToStatus(errno)
