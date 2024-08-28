@@ -766,3 +766,10 @@ type WriteIn struct {
 	Flags      uint32
 	Padding    uint32
 }
+
+// Data for registering a file as backing an inode.
+type BackingMap struct {
+	Fd      int32
+	Flags   uint32
+	padding uint64
+}

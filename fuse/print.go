@@ -377,3 +377,7 @@ func (a *Attr) string() string {
 		a.Rdev, a.Ino, ft(a.Atime, a.Atimensec), ft(a.Mtime, a.Mtimensec),
 		ft(a.Ctime, a.Ctimensec))
 }
+
+func (m *BackingMap) string() string {
+	return fmt.Sprintf("{fd %d, flags 0x%x}", m.Fd, m.Flags)
+}
