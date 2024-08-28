@@ -16,6 +16,24 @@
       "message": "Double close",
       "revId": "dda41e1f5c3fe616d79a3559c6ecd276b7cc633c",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "04300af3_40455996",
+        "filename": "fs/passthrough_test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 77,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2024-08-28T09:45:24Z",
+      "side": 1,
+      "message": "it\u0027s allowed according to the docs. I\u0027m doing it so we don\u0027t leak a FD in case one of the Fatal() calls trigger.",
+      "parentUuid": "d96fda41_e0f4ba7c",
+      "revId": "dda41e1f5c3fe616d79a3559c6ecd276b7cc633c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
