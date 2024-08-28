@@ -172,7 +172,7 @@ func (b *rawBridge) newInode(ctx context.Context, ops InodeEmbedder, id StableAt
 // Unless fileFlags has the syscall.O_EXCL bit set, child.stableAttr will be used
 // to find an already-known node. If one is found, `child` is ignored and the
 // already-known one is used. The node that was actually used is returned.
-func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file FileHandle, fileFlags uint32, out *fuse.EntryOut) (selected *Inode, fe *fileEntry) {
+func (b *rawBridge) addNewChild(ctx context.Context, parent *Inode, name string, child *Inode, file FileHandle, fileFlags uint32, out *fuse.EntryOut) (selected *Inode, fe *fileEntry) {
 	if name == "." || name == ".." {
 		log.Panicf("BUG: tried to add virtual entry %q to the actual tree", name)
 	}
@@ -245,6 +245,10 @@ func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file F
 
 	b.mu.Unlock()
 	unlockNodes(parent, child)
+
+	if oat, ok := child.ops.(NodeOnTreeAdder); ok {
+		oat.OnTreeAdd(ctx)
+	}
 
 	return child, fe
 }
@@ -362,7 +366,7 @@ func (b *rawBridge) Lookup(cancel <-chan struct{}, header *fuse.InHeader, name s
 		return errnoToStatus(errno)
 	}
 
-	child, _ = b.addNewChild(parent, name, child, nil, 0, out)
+	child, _ = b.addNewChild(ctx, parent, name, child, nil, 0, out)
 	child.setEntryOut(out)
 	b.setEntryOutTimeout(out)
 	return fuse.OK
@@ -441,7 +445,7 @@ func (b *rawBridge) Mkdir(cancel <-chan struct{}, input *fuse.MkdirIn, name stri
 		log.Panicf("Mkdir: mode must be S_IFDIR (%o), got %o", fuse.S_IFDIR, out.Attr.Mode)
 	}
 
-	child, _ = b.addNewChild(parent, name, child, nil, syscall.O_EXCL, out)
+	child, _ = b.addNewChild(ctx, parent, name, child, nil, syscall.O_EXCL, out)
 	child.setEntryOut(out)
 	b.setEntryOutTimeout(out)
 	return fuse.OK
@@ -460,7 +464,7 @@ func (b *rawBridge) Mknod(cancel <-chan struct{}, input *fuse.MknodIn, name stri
 		return errnoToStatus(errno)
 	}
 
-	child, _ = b.addNewChild(parent, name, child, nil, syscall.O_EXCL, out)
+	child, _ = b.addNewChild(ctx, parent, name, child, nil, syscall.O_EXCL, out)
 	child.setEntryOut(out)
 	b.setEntryOutTimeout(out)
 	return fuse.OK
@@ -483,7 +487,7 @@ func (b *rawBridge) Create(cancel <-chan struct{}, input *fuse.CreateIn, name st
 		return errnoToStatus(errno)
 	}
 
-	child, fe := b.addNewChild(parent, name, child, f, input.Flags|syscall.O_CREAT|syscall.O_EXCL, &out.EntryOut)
+	child, fe := b.addNewChild(ctx, parent, name, child, f, input.Flags|syscall.O_CREAT|syscall.O_EXCL, &out.EntryOut)
 	out.Fh = uint64(fe.fh)
 	out.OpenFlags = flags
 
@@ -636,7 +640,7 @@ func (b *rawBridge) Link(cancel <-chan struct{}, input *fuse.LinkIn, name string
 		return errnoToStatus(errno)
 	}
 
-	child, _ = b.addNewChild(parent, name, child, nil, 0, out)
+	child, _ = b.addNewChild(ctx, parent, name, child, nil, 0, out)
 	child.setEntryOut(out)
 	b.setEntryOutTimeout(out)
 	return fuse.OK
@@ -655,7 +659,7 @@ func (b *rawBridge) Symlink(cancel <-chan struct{}, header *fuse.InHeader, targe
 		return errnoToStatus(status)
 	}
 
-	child, _ = b.addNewChild(parent, name, child, nil, syscall.O_EXCL, out)
+	child, _ = b.addNewChild(ctx, parent, name, child, nil, syscall.O_EXCL, out)
 	child.setEntryOut(out)
 	b.setEntryOutTimeout(out)
 	return fuse.OK
@@ -744,6 +748,7 @@ func (b *rawBridge) Open(cancel <-chan struct{}, input *fuse.OpenIn, out *fuse.O
 	if !ok {
 		return fuse.ENOTSUP
 	}
+
 	f, flags, errno := op.Open(&fuse.Context{Caller: input.Caller, Cancel: cancel}, input.Flags)
 	if errno != 0 {
 		return errnoToStatus(errno)
@@ -1190,7 +1195,7 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 				entryOut.SetEntryTimeout(*b.options.NegativeTimeout)
 			}
 		} else {
-			child, _ = b.addNewChild(n, e.Name, child, nil, 0, entryOut)
+			child, _ = b.addNewChild(ctx, n, e.Name, child, nil, 0, entryOut)
 			child.setEntryOut(entryOut)
 			b.setEntryOutTimeout(entryOut)
 			if e.Mode&syscall.S_IFMT != child.stableAttr.Mode&syscall.S_IFMT {
