@@ -30,6 +30,11 @@ type LoopbackRoot struct {
 	// to a LOOKUP/CREATE/MKDIR/MKNOD opcode. If not set, use a
 	// LoopbackNode.
 	NewNode func(rootData *LoopbackRoot, parent *Inode, name string, st *syscall.Stat_t) InodeEmbedder
+
+	// RootNode is the root of the Loopback. This must be set if
+	// the Loopback file system is not the root of the FUSE
+	// mount. It is set automatically by NewLoopbackRoot.
+	RootNode InodeEmbedder
 }
 
 func (r *LoopbackRoot) newNode(parent *Inode, name string, st *syscall.Stat_t) InodeEmbedder {
@@ -85,8 +90,19 @@ func (n *LoopbackNode) Statfs(ctx context.Context, out *fuse.StatfsOut) syscall.
 
 // path returns the full path to the file in the underlying file
 // system.
+func (n *LoopbackNode) root() *Inode {
+	var rootNode *Inode
+	if n.RootData.RootNode != nil {
+		rootNode = n.RootData.RootNode.EmbeddedInode()
+	} else {
+		rootNode = n.Root()
+	}
+
+	return rootNode
+}
+
 func (n *LoopbackNode) path() string {
-	path := n.Path(n.Root())
+	path := n.Path(n.root())
 	return filepath.Join(n.RootData.Path, path)
 }
 
@@ -239,16 +255,15 @@ func (n *LoopbackNode) renameExchange(name string, newparent InodeEmbedder, newN
 	}
 
 	// Double check that nodes didn't change from under us.
-	inode := &n.Inode
-	if inode.Root() != inode && inode.StableAttr().Ino != n.RootData.idFromStat(&st).Ino {
+	if n.root() != n.EmbeddedInode() && n.Inode.StableAttr().Ino != n.RootData.idFromStat(&st).Ino {
 		return syscall.EBUSY
 	}
 	if err := syscall.Fstat(fd2, &st); err != nil {
 		return ToErrno(err)
 	}
 
-	newinode := newparent.EmbeddedInode()
-	if newinode.Root() != newinode && newinode.StableAttr().Ino != n.RootData.idFromStat(&st).Ino {
+	newinode, ok := newparent.(*LoopbackNode)
+	if (!ok || newinode.root() != newparent.EmbeddedInode()) && newinode.StableAttr().Ino != n.RootData.idFromStat(&st).Ino {
 		return syscall.EBUSY
 	}
 
@@ -500,5 +515,7 @@ func NewLoopbackRoot(rootPath string) (InodeEmbedder, error) {
 		Dev:  uint64(st.Dev),
 	}
 
-	return root.newNode(nil, "", &st), nil
+	rootNode := root.newNode(nil, "", &st)
+	root.RootNode = rootNode
+	return rootNode, nil
 }
