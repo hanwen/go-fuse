@@ -30,6 +30,11 @@ type LoopbackRoot struct {
 	// to a LOOKUP/CREATE/MKDIR/MKNOD opcode. If not set, use a
 	// LoopbackNode.
 	NewNode func(rootData *LoopbackRoot, parent *Inode, name string, st *syscall.Stat_t) InodeEmbedder
+
+	// RootNode is the root of the Loopback. This must be set if
+	// the Loopback file system is not the root of the FUSE
+	// mount. It is set automatically by NewLoopbackRoot.
+	RootNode InodeEmbedder
 }
 
 func (r *LoopbackRoot) newNode(parent *Inode, name string, st *syscall.Stat_t) InodeEmbedder {
@@ -86,7 +91,14 @@ func (n *LoopbackNode) Statfs(ctx context.Context, out *fuse.StatfsOut) syscall.
 // path returns the full path to the file in the underlying file
 // system.
 func (n *LoopbackNode) path() string {
-	path := n.Path(n.Root())
+	var rootNode *Inode
+	if n.RootData.RootNode != nil {
+		rootNode = n.RootData.RootNode.EmbeddedInode()
+	} else {
+		rootNode = n.Root()
+	}
+
+	path := n.Path(rootNode)
 	return filepath.Join(n.RootData.Path, path)
 }
 
@@ -500,5 +512,7 @@ func NewLoopbackRoot(rootPath string) (InodeEmbedder, error) {
 		Dev:  uint64(st.Dev),
 	}
 
-	return root.newNode(nil, "", &st), nil
+	rootNode := root.newNode(nil, "", &st)
+	root.RootNode = rootNode
+	return rootNode, nil
 }
