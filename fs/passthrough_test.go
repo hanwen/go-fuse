@@ -64,6 +64,9 @@ func TestPassthrough(t *testing.T) {
 	}
 	defer server.Unmount()
 
+	if 0 == server.KernelSettings().Flags64()&fuse.CAP_PASSTHROUGH {
+		t.Skip("Kernel does not support passthrough")
+	}
 	fn := mnt + "/file"
 	want := "hello there"
 	if err := os.WriteFile(fn, []byte(want), 0666); err != nil {
