@@ -322,6 +322,10 @@ type InitIn struct {
 	Unused       [11]uint32
 }
 
+func (i *InitIn) Flags64() uint64 {
+	return uint64(i.Flags) | uint64(i.Flags2)<<32
+}
+
 type InitOut struct {
 	Major               uint32
 	Minor               uint32
@@ -336,6 +340,10 @@ type InitOut struct {
 	Flags2              uint32
 	MaxStackDepth       uint32
 	Unused              [6]uint32
+}
+
+func (o *InitOut) Flags64() uint64 {
+	return uint64(o.Flags) | uint64(o.Flags2)<<32
 }
 
 type _CuseInitIn struct {

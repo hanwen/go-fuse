@@ -222,13 +222,13 @@ func (in *OpenOut) string() string {
 func (in *InitIn) string() string {
 	return fmt.Sprintf("{%d.%d Ra %d %s}",
 		in.Major, in.Minor, in.MaxReadAhead,
-		flagString(initFlagNames, int64(in.Flags)|(int64(in.Flags2)<<32), ""))
+		flagString(initFlagNames, int64(in.Flags64()), ""))
 }
 
 func (o *InitOut) string() string {
 	return fmt.Sprintf("{%d.%d Ra %d %s %d/%d Wr %d Tg %d MaxPages %d MaxStack %d}",
 		o.Major, o.Minor, o.MaxReadAhead,
-		flagString(initFlagNames, int64(o.Flags)|int64(o.Flags2)<<32, ""),
+		flagString(initFlagNames, int64(o.Flags64()), ""),
 		o.CongestionThreshold, o.MaxBackground, o.MaxWrite,
 		o.TimeGran, o.MaxPages, o.MaxStackDepth)
 }

@@ -99,7 +99,7 @@ func doInit(server *Server, req *request) {
 		return
 	}
 
-	kernelFlags := uint64(input.Flags) | uint64(input.Flags2)<<32
+	kernelFlags := input.Flags64()
 	server.reqMu.Lock()
 	server.kernelSettings = *input
 	kernelFlags &= (CAP_ASYNC_READ | CAP_BIG_WRITES | CAP_FILE_OPS |
