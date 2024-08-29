@@ -2,12 +2,14 @@ package fs
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"reflect"
 	"syscall"
 	"testing"
 
+	"github.com/hanwen/go-fuse/v2/fuse"
 	"github.com/hanwen/go-fuse/v2/internal/renameat"
 	"github.com/kylelemons/godebug/pretty"
 	"golang.org/x/sys/unix"
@@ -145,5 +147,35 @@ func TestXAttr(t *testing.T) {
 
 	if _, err := unix.Getxattr(tc.mntDir+"/file", attr, buf); err != ENOATTR {
 		t.Fatalf("got %v want ENOATTR", err)
+	}
+}
+
+func TestLoopbackNonRoot(t *testing.T) {
+	backing := t.TempDir()
+	content := []byte("hello")
+	if err := os.WriteFile(backing+"/file.txt", content, 0666); err != nil {
+		t.Fatal(err)
+	}
+
+	root := &Inode{}
+	mnt, _ := testMount(t, root, &Options{
+		OnAdd: func(ctx context.Context) {
+			lnode := &LoopbackNode{
+				RootData: &LoopbackRoot{
+					Path: backing,
+				},
+			}
+			lnode.RootData.RootNode = lnode
+			sub := root.NewPersistentInode(ctx, lnode, StableAttr{Mode: fuse.S_IFDIR})
+			root.AddChild("sub", sub, true)
+		},
+	})
+
+	fi, err := os.Lstat(mnt + "/sub/file.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fi.Size() != int64(len(content)) {
+		t.Errorf("got %d bytes, want %d", fi.Size(), len(content))
 	}
 }
