@@ -12,6 +12,9 @@ import (
 type childEntry struct {
 	Name  string
 	Inode *Inode
+
+	// TODO: store int64 changeCounter of the parent, so we can
+	// use the changeCounter as a directory offset.
 }
 
 // inodeChildren is a hashmap with deterministic ordering. It is
