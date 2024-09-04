@@ -1084,6 +1084,8 @@ func (b *rawBridge) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out *fus
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
+	defer func() { f.dirOffset = out.Offset }()
+
 	errno, eof := b.setStream(cancel, input, n, f)
 	if errno != 0 {
 		return errnoToStatus(errno)
@@ -1099,7 +1101,6 @@ func (b *rawBridge) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out *fus
 		f.hasOverflow = false
 		// always succeeds.
 		out.AddDirEntry(f.overflow)
-		f.dirOffset++
 	}
 
 	first := true
@@ -1122,7 +1123,6 @@ func (b *rawBridge) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out *fus
 			f.hasOverflow = true
 			return errnoToStatus(errno)
 		}
-		f.dirOffset++
 	}
 
 	return fuse.OK
@@ -1133,6 +1133,8 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 
 	f.mu.Lock()
 	defer f.mu.Unlock()
+
+	defer func() { f.dirOffset = out.Offset }()
 
 	errno, eof := b.setStream(cancel, input, n, f)
 	if errno != 0 {
@@ -1173,7 +1175,6 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 			f.hasOverflow = true
 			return fuse.OK
 		}
-		f.dirOffset++
 
 		// Virtual entries "." and ".." should be part of the
 		// directory listing, but not part of the filesystem tree.

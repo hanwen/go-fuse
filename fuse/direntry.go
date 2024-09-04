@@ -39,12 +39,12 @@ type DirEntryList struct {
 	buf []byte
 	// capacity of the underlying buffer
 	size int
-	// offset is the requested location in the directory. go-fuse
-	// currently counts in number of directory entries, but this is an
-	// implementation detail and may change in the future.
-	// If `offset` and `fs.fileEntry.dirOffset` disagree, then a
-	// directory seek has taken place.
-	offset uint64
+
+	// Offset holds the offset for the next entry to be added. It
+	// is the offset supplied at construction time, or the Offset
+	// of the last DirEntry that was added.
+	Offset uint64
+
 	// pointer to the last serialized _Dirent. Used by FixMode().
 	lastDirent *_Dirent
 }
@@ -55,7 +55,7 @@ func NewDirEntryList(data []byte, off uint64) *DirEntryList {
 	return &DirEntryList{
 		buf:    data[:0],
 		size:   len(data),
-		offset: off,
+		Offset: off,
 	}
 }
 
@@ -82,7 +82,7 @@ func (l *DirEntryList) Add(prefix int, name string, inode uint64, mode uint32) b
 	l.buf = l.buf[:newLen]
 	oldLen += prefix
 	dirent := (*_Dirent)(unsafe.Pointer(&l.buf[oldLen]))
-	dirent.Off = l.offset + 1
+	dirent.Off = l.Offset + 1
 	dirent.Ino = inode
 	dirent.NameLen = uint32(len(name))
 	dirent.Typ = modeToType(mode)
@@ -94,7 +94,7 @@ func (l *DirEntryList) Add(prefix int, name string, inode uint64, mode uint32) b
 		copy(l.buf[oldLen:], eightPadding[:padding])
 	}
 
-	l.offset = dirent.Off
+	l.Offset = dirent.Off
 	return true
 }
 
