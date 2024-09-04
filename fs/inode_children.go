@@ -58,7 +58,7 @@ func (c *inodeChildren) get(name string) *Inode {
 
 func (c *inodeChildren) compact() {
 	nc := make([]childEntry, 0, 2*len(c.childrenMap)+1)
-	nm := make(map[string]int, len(nc))
+	nm := make(map[string]int, len(c.childrenMap))
 	for _, e := range c.children {
 		if e.Inode == nil {
 			continue
