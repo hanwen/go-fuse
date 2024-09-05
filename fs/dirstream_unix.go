@@ -17,17 +17,20 @@ import (
 )
 
 type loopbackDirStream struct {
-	buf       []byte
+	buf []byte
+
+	// Protects mutable members
+	mu sync.Mutex
+
+	// mutable
 	todo      []byte
 	todoErrno syscall.Errno
-
-	// Protects fd so we can guard against double close
-	mu sync.Mutex
-	fd int
+	fd        int
 }
 
 // NewLoopbackDirStream open a directory for reading as a DirStream
 func NewLoopbackDirStream(name string) (DirStream, syscall.Errno) {
+	// TODO: should return concrete type.
 	fd, err := syscall.Open(name, syscall.O_DIRECTORY, 0755)
 	if err != nil {
 		return nil, ToErrno(err)
@@ -38,10 +41,7 @@ func NewLoopbackDirStream(name string) (DirStream, syscall.Errno) {
 		fd:  fd,
 	}
 
-	if err := ds.load(); err != 0 {
-		ds.Close()
-		return nil, err
-	}
+	ds.load()
 	return ds, OK
 }
 
@@ -87,12 +87,13 @@ func (ds *loopbackDirStream) Next() (fuse.DirEntry, syscall.Errno) {
 		Name: string(nameBytes),
 		Off:  uint64(de.Off),
 	}
-	return result, ds.load()
+	ds.load()
+	return result, 0
 }
 
-func (ds *loopbackDirStream) load() syscall.Errno {
+func (ds *loopbackDirStream) load() {
 	if len(ds.todo) > 0 {
-		return OK
+		return
 	}
 
 	n, err := unix.Getdents(ds.fd, ds.buf)
@@ -101,5 +102,4 @@ func (ds *loopbackDirStream) load() syscall.Errno {
 	}
 	ds.todo = ds.buf[:n]
 	ds.todoErrno = ToErrno(err)
-	return OK
 }
