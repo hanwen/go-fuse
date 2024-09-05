@@ -7,6 +7,7 @@
 package fs
 
 import (
+	"bytes"
 	"sync"
 	"syscall"
 	"unsafe"
@@ -76,14 +77,10 @@ func (ds *loopbackDirStream) Next() (fuse.DirEntry, syscall.Errno) {
 	nameBytes := ds.todo[unsafe.Offsetof(dirent{}.Name):de.Reclen]
 	ds.todo = ds.todo[de.Reclen:]
 
-	// After the loop, l contains the index of the first '\0'.
-	l := 0
-	for l = range nameBytes {
-		if nameBytes[l] == 0 {
-			break
-		}
+	l := bytes.IndexByte(nameBytes, 0)
+	if l >= 0 {
+		nameBytes = nameBytes[:l]
 	}
-	nameBytes = nameBytes[:l]
 	result := fuse.DirEntry{
 		Ino:  de.Ino,
 		Mode: (uint32(de.Type) << 12),
