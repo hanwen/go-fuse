@@ -9,8 +9,6 @@ import (
 	"unsafe"
 )
 
-var eightPadding [8]byte
-
 const direntSize = int(unsafe.Sizeof(_Dirent{}))
 
 // DirEntry is a type for PathFileSystem and NodeFileSystem to return
@@ -96,9 +94,8 @@ func (l *DirEntryList) addDirEntry(e *DirEntry, prefix int) bool {
 	oldLen += len(e.Name)
 
 	if padding > 0 {
-		copy(l.buf[oldLen:], eightPadding[:padding])
+		l.buf[oldLen] = 0
 	}
-
 	l.Offset = dirent.Off
 	return true
 }
