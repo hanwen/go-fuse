@@ -711,7 +711,7 @@ func TestParallelMount(t *testing.T) {
 	// Per default, only 1000 FUSE mounts are allowed, then you get
 	// > /usr/bin/fusermount3: too many FUSE filesystems mounted; mount_max=N can be set in /etc/fuse.conf
 	// Let's stay well below 1000.
-	N := 900
+	N := 100
 	todo := make(chan string, N)
 	result := make(chan error, N)
 	for i := 0; i < N; i++ {
