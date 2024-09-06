@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"log"
 	"path/filepath"
+	"sort"
 	"syscall"
 
 	"github.com/hanwen/go-fuse/v2/fs"
@@ -346,17 +347,11 @@ func (n *unionFSNode) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno)
 		// deepest root first.
 		readRoot(root.roots[len(root.roots)-i-1], dir, names)
 	}
-	result := make([]fuse.DirEntry, 0, 2*len(names))
-	maxIdx := -1
-	maxName := ""
+	result := make([]fuse.DirEntry, 0, len(names))
 	for nm, mode := range names {
 		marker := filePathHash(filepath.Join(dir, nm))
 		if _, ok := markers[marker]; ok {
 			continue
-		}
-		if nm > maxName {
-			maxName = nm
-			maxIdx = len(result)
 		}
 
 		result = append(result, fuse.DirEntry{
@@ -364,11 +359,7 @@ func (n *unionFSNode) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno)
 			Mode: mode,
 		})
 	}
-
-	if len(result) > 0 {
-		result = append(result[maxIdx:], result[:maxIdx]...)
-	}
-
+	sort.Slice(result, func(i, j int) bool { return result[i].Name < result[j].Name })
 	return fs.NewListDirStream(result), 0
 }
 
