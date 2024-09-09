@@ -240,6 +240,7 @@ func TestDataSymlink(t *testing.T) {
 func TestReaddirplusParallel(t *testing.T) {
 	root := &Inode{}
 	N := 100
+	P := 100
 	oneSec := time.Second
 	names := map[string]int64{}
 	mntDir, _ := testMount(t, root, &Options{
@@ -282,13 +283,14 @@ func TestReaddirplusParallel(t *testing.T) {
 	}
 
 	var wg sync.WaitGroup
-	for i := 0; i < N; i++ {
+	for i := 0; i < P; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			res, err := read()
 			if err != nil {
 				t.Errorf("readdir: %v", err)
+				return
 			}
 			if got, want := len(res), len(names); got != want {
 				t.Errorf("got %d want %d", got, want)
