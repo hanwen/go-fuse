@@ -322,3 +322,31 @@ func TestReaddirplusParallel(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+func TestReaddirplusConsistency(t *testing.T) {
+	root := &Inode{}
+	N := 100
+	oneSec := time.Second
+	mnt, _ := testMount(t, root, &Options{
+		FirstAutomaticIno: 1,
+		EntryTimeout:      &oneSec,
+		AttrTimeout:       &oneSec,
+		OnAdd: func(ctx context.Context) {
+			n := root.EmbeddedInode()
+
+			for i := 0; i < N; i++ {
+				ch := n.NewPersistentInode(
+					ctx,
+					&MemRegularFile{
+						Data: bytes.Repeat([]byte{'x'}, i),
+					},
+					StableAttr{})
+
+				name := fmt.Sprintf("file%04d", i)
+				n.AddChild(name, ch, false)
+			}
+		},
+	})
+
+	posixtest.ReadDirConsistency(t, mnt)
+}

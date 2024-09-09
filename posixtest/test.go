@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"syscall"
 	"testing"
@@ -41,6 +42,7 @@ var All = map[string]func(*testing.T, string){
 	"RenameOverwriteDestExist":   RenameOverwriteDestExist,
 	"RenameOpenDir":              RenameOpenDir,
 	"ReadDir":                    ReadDir,
+	"ReadDirConsistency":         ReadDirConsistency,
 	"DirectIO":                   DirectIO,
 	"OpenAt":                     OpenAt,
 	"Fallocate":                  Fallocate,
@@ -553,6 +555,27 @@ func ReadDir(t *testing.T, mnt string) {
 				t.Errorf("missing entry %q", k)
 			}
 		}
+	}
+}
+
+// Creates files, read them back using readdir
+func ReadDirConsistency(t *testing.T, mnt string) {
+	var results [][]fuse.DirEntry
+	for i := 0; i < 2; i++ {
+		fd, err := syscall.Open(mnt, syscall.O_DIRECTORY, 0)
+		if err != nil {
+			t.Fatalf("Open: %v", err)
+		}
+		defer syscall.Close(fd)
+
+		r, err := readAllDirEntries(fd)
+		if err != nil {
+			t.Fatalf("ReadDir: %v", err)
+		}
+		results = append(results, r)
+	}
+	if !reflect.DeepEqual(results[0], results[1]) {
+		t.Errorf("got %v, want %v", results[0], results[1])
 	}
 }
 
