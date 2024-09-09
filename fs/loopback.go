@@ -364,7 +364,9 @@ var _ = (NodeGetattrer)((*LoopbackNode)(nil))
 
 func (n *LoopbackNode) Getattr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno {
 	if f != nil {
-		return f.(FileGetattrer).Getattr(ctx, out)
+		if fga, ok := f.(FileGetattrer); ok {
+			return fga.Getattr(ctx, out)
+		}
 	}
 
 	p := n.path()
