@@ -382,6 +382,8 @@ type NodeFlusher interface {
 // The default implementation forwards to the FileHandle.
 type NodeReleaser interface {
 	Release(ctx context.Context, f FileHandle) syscall.Errno
+
+	// TODO - what about ReleaseIn?
 }
 
 // Allocate preallocates space for future writes, so they will
@@ -396,6 +398,8 @@ type NodeCopyFileRanger interface {
 	CopyFileRange(ctx context.Context, fhIn FileHandle,
 		offIn uint64, out *Inode, fhOut FileHandle, offOut uint64,
 		len uint64, flags uint64) (uint32, syscall.Errno)
+
+	// Ugh. should have been called Copyfilerange
 }
 
 // Lseek is used to implement holes: it should return the
