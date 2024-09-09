@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"hash/crc32"
 	"os"
+	"strings"
 	"syscall"
 	"testing"
 
@@ -24,6 +25,10 @@ var _ = (NodeReaddirer)((*randomTypeTest)(nil))
 
 // Lookup finds a dir.
 func (fn *randomTypeTest) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
+	if !strings.HasPrefix(name, "randomTypeTest") {
+		return nil, syscall.ENOENT
+	}
+
 	stable := StableAttr{
 		Mode: fuse.S_IFDIR,
 	}
@@ -44,7 +49,7 @@ func (fn *randomTypeTest) Readdir(ctx context.Context) (DirStream, syscall.Errno
 
 	for i := 0; i < 100; i++ {
 		entries = append(entries, fuse.DirEntry{
-			Name: fmt.Sprintf("%d", i),
+			Name: fmt.Sprintf("randomTypeTest%d", i),
 			Mode: fuse.S_IFDIR,
 		})
 	}
@@ -76,6 +81,9 @@ func TestReaddirTypeFixup(t *testing.T) {
 		e, err := ds.Next()
 		if err != 0 {
 			t.Errorf("Next: %d", err)
+		}
+		if !strings.HasPrefix(e.Name, "randomTypeTest") {
+			t.Errorf("stray file %q", e.Name)
 		}
 		gotIsDir := (e.Mode & syscall.S_IFDIR) != 0
 		wantIsdir := (crc32.ChecksumIEEE([]byte(e.Name)) % 2) == 1
