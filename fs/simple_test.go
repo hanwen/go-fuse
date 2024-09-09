@@ -398,7 +398,7 @@ func TestOpenDirectIO(t *testing.T) {
 	if err != nil {
 		t.Fatalf("MkdirAll: %v", err)
 	}
-	defer os.RemoveAll(ext4Dir)
+	t.Cleanup(func() { os.RemoveAll(ext4Dir) })
 
 	posixtest.DirectIO(t, ext4Dir)
 	if t.Failed() {
