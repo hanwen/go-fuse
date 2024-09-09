@@ -46,23 +46,9 @@ func DirSeek(t *testing.T, mnt string) {
 		t.Fatal(err)
 	}
 	defer syscall.Close(fd)
-
-	var result []fuse.DirEntry
-	for {
-		n, err := unix.ReadDirent(fd, buf)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if n == 0 {
-			break
-		}
-		todo := buf[:n]
-		for len(todo) > 0 {
-			var de fuse.DirEntry
-			n := de.Parse(todo)
-			todo = todo[n:]
-			result = append(result, de)
-		}
+	result, err := readAllDirEntries(fd)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	// check if seek works correctly

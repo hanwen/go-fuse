@@ -492,6 +492,28 @@ func RenameOpenDir(t *testing.T, mnt string) {
 	}
 }
 
+func readAllDirEntries(fd int) ([]fuse.DirEntry, error) {
+	var buf [4096]byte
+	var result []fuse.DirEntry
+	for {
+		n, err := unix.ReadDirent(fd, buf[:])
+		if err != nil {
+			return nil, err
+		}
+		if n == 0 {
+			break
+		}
+		todo := buf[:n]
+		for len(todo) > 0 {
+			var de fuse.DirEntry
+			n := de.Parse(todo)
+			todo = todo[n:]
+			result = append(result, de)
+		}
+	}
+	return result, nil
+}
+
 // ReadDir creates 110 files one by one, checking that we get the expected
 // entries after each file creation.
 func ReadDir(t *testing.T, mnt string) {
