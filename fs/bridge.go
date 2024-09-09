@@ -1081,57 +1081,15 @@ func (b *rawBridge) getStream(ctx context.Context, inode *Inode) (DirStream, sys
 	return NewListDirStream(r), 0
 }
 
-func (b *rawBridge) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out *fuse.DirEntryList) fuse.Status {
-	n, f := b.inode(input.NodeId, input.Fh)
-
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	defer func() { f.dirOffset = out.Offset }()
-
-	errno, eof := b.setStream(cancel, input, n, f)
-	if errno != 0 {
-		return errnoToStatus(errno)
-	} else if eof {
-		return fuse.OK
-	}
-
-	if f.hasOverflow {
-		if f.overflowErrno != 0 {
-			return errnoToStatus(f.overflowErrno)
-		}
-
-		f.hasOverflow = false
-		// always succeeds.
-		out.AddDirEntry(f.overflow)
-	}
-
-	first := true
-	for f.dirStream.HasNext() {
-		e, errno := f.dirStream.Next()
-
-		if errno != 0 {
-			if first {
-				return errnoToStatus(errno)
-			} else {
-				f.hasOverflow = true
-				f.overflowErrno = errno
-				return fuse.OK
-			}
-		}
-
-		first = false
-		if !out.AddDirEntry(e) {
-			f.overflow = e
-			f.hasOverflow = true
-			return errnoToStatus(errno)
-		}
-	}
-
-	return fuse.OK
+func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out *fuse.DirEntryList) fuse.Status {
+	return b.readDirMaybeLookup(cancel, input, out, true)
 }
 
-func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out *fuse.DirEntryList) fuse.Status {
+func (b *rawBridge) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out *fuse.DirEntryList) fuse.Status {
+	return b.readDirMaybeLookup(cancel, input, out, false)
+}
+
+func (b *rawBridge) readDirMaybeLookup(cancel <-chan struct{}, input *fuse.ReadIn, out *fuse.DirEntryList, lookup bool) fuse.Status {
 	n, f := b.inode(input.NodeId, input.Fh)
 
 	f.mu.Lock()
@@ -1171,6 +1129,15 @@ func (b *rawBridge) ReadDirPlus(cancel <-chan struct{}, input *fuse.ReadIn, out 
 			}
 		}
 		first = false
+
+		if !lookup {
+			if !out.AddDirEntry(e) {
+				f.overflow = e
+				f.hasOverflow = true
+				return fuse.OK
+			}
+			continue
+		}
 
 		entryOut := out.AddDirLookupEntry(e)
 		if entryOut == nil {
