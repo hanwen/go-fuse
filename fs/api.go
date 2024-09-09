@@ -654,6 +654,36 @@ type FileAllocater interface {
 	Allocate(ctx context.Context, off uint64, size uint64, mode uint32) syscall.Errno
 }
 
+// Opens a directory. This supersedes NodeOpendirer, allowing to pass
+// back flags (eg. FOPEN_CACHE_DIR).
+type NodeOpendirHandler interface {
+	OpendirHandle(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, errno syscall.Errno)
+}
+
+// FileReaddirenter is a directory that supports reading.
+type FileReaddirenter interface {
+	// Read a single directory entry.
+	Readdirent(ctx context.Context) (*fuse.DirEntry, syscall.Errno)
+}
+
+// FileFsyncer is a directory that supports fsyncdir.
+type FileFsyncdirer interface {
+	Fsyncdir(ctx context.Context, flags uint32) syscall.Errno
+}
+
+// FileSeekdirer is directory that supports seeking. `off` is an
+// opaque uint64 value, where only the value 0 is reserved for the
+// start of the stream. (See https://lwn.net/Articles/544520/ for
+// background).
+type FileSeekdirer interface {
+	Seekdir(ctx context.Context, off uint64) syscall.Errno
+}
+
+// FileReleasedirer is a directory that supports a cleanup operation.
+type FileReleasedirer interface {
+	Releasedir(ctx context.Context, releaseFlags uint32)
+}
+
 // Options sets options for the entire filesystem
 type Options struct {
 	// MountOptions contain the options for mounting the fuse server

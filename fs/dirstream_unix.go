@@ -7,6 +7,7 @@
 package fs
 
 import (
+	"context"
 	"sync"
 	"syscall"
 
@@ -38,7 +39,6 @@ func NewLoopbackDirStream(name string) (DirStream, syscall.Errno) {
 		buf: make([]byte, 4096),
 		fd:  fd,
 	}
-
 	ds.load()
 	return ds, OK
 }
@@ -52,10 +52,50 @@ func (ds *loopbackDirStream) Close() {
 	}
 }
 
+var _ = (FileReleasedirer)((*loopbackDirStream)(nil))
+
+func (ds *loopbackDirStream) Releasedir(ctx context.Context, flags uint32) {
+	ds.Close()
+}
+
+var _ = (FileSeekdirer)((*loopbackDirStream)(nil))
+
+func (ds *loopbackDirStream) Seekdir(ctx context.Context, off uint64) syscall.Errno {
+	ds.mu.Lock()
+	defer ds.mu.Unlock()
+	_, errno := unix.Seek(ds.fd, int64(off), unix.SEEK_SET)
+	if errno != nil {
+		return ToErrno(errno)
+	}
+
+	ds.todo = nil
+	ds.todoErrno = 0
+	ds.load()
+	return 0
+}
+
+var _ = (FileFsyncdirer)((*loopbackDirStream)(nil))
+
+func (ds *loopbackDirStream) Fsyncdir(ctx context.Context, flags uint32) syscall.Errno {
+	ds.mu.Lock()
+	defer ds.mu.Unlock()
+	return ToErrno(syscall.Fsync(ds.fd))
+}
+
 func (ds *loopbackDirStream) HasNext() bool {
 	ds.mu.Lock()
 	defer ds.mu.Unlock()
 	return len(ds.todo) > 0 || ds.todoErrno != 0
+}
+
+var _ = (FileReaddirenter)((*loopbackDirStream)(nil))
+
+func (ds *loopbackDirStream) Readdirent(ctx context.Context) (*fuse.DirEntry, syscall.Errno) {
+	if !ds.HasNext() {
+		return nil, 0
+	}
+	de, errno := ds.Next()
+	return &de, errno
 }
 
 func (ds *loopbackDirStream) Next() (fuse.DirEntry, syscall.Errno) {
