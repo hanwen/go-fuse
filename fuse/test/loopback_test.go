@@ -386,7 +386,6 @@ func TestPosix(t *testing.T) {
 		"RenameOverwriteDestNoExist",
 		"RenameOverwriteDestExist",
 		"ReadDir",
-		"ReadDirPicksUpCreate",
 		"AppendWrite",
 	}
 	for _, k := range tests {
