@@ -17,10 +17,7 @@ import (
 const testTtl = 100 * time.Millisecond
 
 func setupMemNodeTest(t *testing.T) (wd string, root Node, clean func()) {
-	tmp, err := ioutil.TempDir("", "go-fuse-memnode_test")
-	if err != nil {
-		t.Fatalf("TempDir failed: %v", err)
-	}
+	tmp := t.TempDir()
 	back := tmp + "/backing"
 	os.Mkdir(back, 0700)
 	root = NewMemNodeFSRoot(back)

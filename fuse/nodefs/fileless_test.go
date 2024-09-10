@@ -59,11 +59,7 @@ func (n *nodeReadNode) Lookup(out *fuse.Attr, name string, context *fuse.Context
 }
 
 func TestNoOpen(t *testing.T) {
-	dir, err := ioutil.TempDir("", "nodefs")
-	if err != nil {
-		t.Fatalf("TempDir: %v", err)
-	}
-
+	dir := t.TempDir()
 	root := newNodeReadNode(true, true, nil)
 	root.noOpen = true
 
@@ -102,10 +98,7 @@ func TestNoOpen(t *testing.T) {
 }
 
 func TestNodeRead(t *testing.T) {
-	dir, err := ioutil.TempDir("", "nodefs")
-	if err != nil {
-		t.Fatalf("TempDir: %v", err)
-	}
+	dir := t.TempDir()
 
 	root := newNodeReadNode(false, true, nil)
 	opts := NewOptions()
