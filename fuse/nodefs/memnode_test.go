@@ -16,7 +16,7 @@ import (
 
 const testTtl = 100 * time.Millisecond
 
-func setupMemNodeTest(t *testing.T) (wd string, root Node, clean func()) {
+func setupMemNodeTest(t *testing.T) (wd string, root Node) {
 	tmp := t.TempDir()
 	back := tmp + "/backing"
 	os.Mkdir(back, 0700)
@@ -43,15 +43,15 @@ func setupMemNodeTest(t *testing.T) (wd string, root Node, clean func()) {
 	if err := state.WaitMount(); err != nil {
 		t.Fatal("WaitMount", err)
 	}
-	return mnt, root, func() {
+	t.Cleanup(func() {
 		state.Unmount()
-		os.RemoveAll(tmp)
-	}
+	})
+
+	return mnt, root
 }
 
 func TestMemNodeFsWrite(t *testing.T) {
-	wd, _, clean := setupMemNodeTest(t)
-	defer clean()
+	wd, _ := setupMemNodeTest(t)
 	want := "hello"
 
 	err := ioutil.WriteFile(wd+"/test", []byte(want), 0644)
@@ -66,8 +66,7 @@ func TestMemNodeFsWrite(t *testing.T) {
 }
 
 func TestMemNodeFsBasic(t *testing.T) {
-	wd, _, clean := setupMemNodeTest(t)
-	defer clean()
+	wd, _ := setupMemNodeTest(t)
 
 	err := ioutil.WriteFile(wd+"/test", []byte{42}, 0644)
 	if err != nil {
@@ -89,8 +88,7 @@ func TestMemNodeFsBasic(t *testing.T) {
 }
 
 func TestMemNodeSetattr(t *testing.T) {
-	wd, _, clean := setupMemNodeTest(t)
-	defer clean()
+	wd, _ := setupMemNodeTest(t)
 
 	f, err := os.OpenFile(wd+"/test", os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {

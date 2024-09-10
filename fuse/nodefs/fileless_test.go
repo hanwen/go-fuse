@@ -67,7 +67,7 @@ func TestNoOpen(t *testing.T) {
 	if err != nil {
 		t.Fatalf("MountRoot: %v", err)
 	}
-	defer s.Unmount()
+	t.Cleanup(func() { s.Unmount() })
 	go s.Serve()
 	if err := s.WaitMount(); err != nil {
 		t.Fatal("WaitMount", err)
