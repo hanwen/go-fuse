@@ -7,6 +7,7 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/hanwen/go-fuse/v2/internal/testutil"
 	"github.com/moby/sys/mountinfo"
 )
 
@@ -152,17 +153,18 @@ func mountCheckOptions(t *testing.T, opts MountOptions) (info mountinfo.Info) {
 // same effective mount options in /proc/self/mounts
 func TestDirectMount(t *testing.T) {
 	optsTable := []MountOptions{
-		{Debug: true},
-		{Debug: true, AllowOther: true},
-		{Debug: true, MaxWrite: 9999},
-		{Debug: true, FsName: "aaa"},
-		{Debug: true, Name: "bbb"},
-		{Debug: true, FsName: "ccc", Name: "ddd"},
-		{Debug: true, FsName: "a,b"},
-		{Debug: true, FsName: `a\b`},
-		{Debug: true, FsName: `a\,b`},
+		{},
+		{AllowOther: true},
+		{MaxWrite: 9999},
+		{FsName: "aaa"},
+		{Name: "bbb"},
+		{FsName: "ccc", Name: "ddd"},
+		{FsName: "a,b"},
+		{FsName: `a\b`},
+		{FsName: `a\,b`},
 	}
 	for _, opts := range optsTable {
+		opts.Debug = testutil.VerboseTest()
 		// Without DirectMount - i.e. using fusermount
 		o1 := mountCheckOptions(t, opts)
 		// With DirectMount
