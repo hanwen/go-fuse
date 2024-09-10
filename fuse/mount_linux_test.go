@@ -36,7 +36,7 @@ func TestMountDevFd(t *testing.T) {
 	// See if we can feed fdMountPoint to NewServer
 	fs := NewDefaultRawFileSystem()
 	opts := MountOptions{
-		Debug: true,
+		Debug: testutil.VerboseTest(),
 	}
 	srv, err := NewServer(fs, fdMountPoint, &opts)
 	if err != nil {
