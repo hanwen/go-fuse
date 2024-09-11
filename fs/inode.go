@@ -170,12 +170,17 @@ func modeStr(m uint32) string {
 	}[m]
 }
 
+func (a StableAttr) String() string {
+	return fmt.Sprintf("i%d g%d (%s)",
+		a.Ino, a.Gen, modeStr(a.Mode))
+}
+
 // debugString is used for debugging. Racy.
 func (n *Inode) String() string {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
-	return fmt.Sprintf("i%d (%s): %s", n.stableAttr.Ino, modeStr(n.stableAttr.Mode), n.children.String())
+	return fmt.Sprintf("%s: %s", n.stableAttr.String(), n.children.String())
 }
 
 // sortNodes rearranges inode group in consistent order.
