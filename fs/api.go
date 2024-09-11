@@ -426,6 +426,17 @@ type NodeSetlkwer interface {
 	Setlkw(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) syscall.Errno
 }
 
+// OnForget is called when the node becomes unreachable. This can
+// happen because the kernel issues a FORGET request,
+// ForgetPersistent() is called on the inode, or the last child of the
+// directory disappears. Implementers must make sure that the inode
+// cannot be revived concurrently by a LOOKUP call. Modifying the tree
+// using RmChild and AddChild can also trigger a spurious OnForget;
+// use MvChild instead.
+type NodeOnForgetter interface {
+	OnForget()
+}
+
 // DirStream lists directory entries.
 type DirStream interface {
 	// HasNext indicates if there are further entries. HasNext
