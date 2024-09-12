@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/user"
 	"path/filepath"
 	"syscall"
 	"testing"
@@ -63,11 +62,7 @@ func (n *allChildrenNode) Readdir(ctx context.Context) (DirStream, syscall.Errno
 }
 
 func TestForget(t *testing.T) {
-	u, err := user.Current()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if u.Uid != "0" {
+	if os.Geteuid() != 0 {
 		t.Skip("must run test as root")
 	}
 	root := &allChildrenNode{
