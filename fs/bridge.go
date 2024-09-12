@@ -37,6 +37,9 @@ type fileEntry struct {
 	overflow      fuse.DirEntry
 	overflowErrno syscall.Errno
 
+	// Store the last read, in case readdir was interrupted.
+	lastRead []fuse.DirEntry
+
 	// dirOffset is the current location in the directory (see `telldir(3)`).
 	// The value is equivalent to `d_off` (see `getdents(2)`) of the last
 	// directory entry sent to the kernel so far.
@@ -834,6 +837,9 @@ func (b *rawBridge) registerFile(n *Inode, f FileHandle, flags uint32) *fileEntr
 		b.files = append(b.files, fe)
 	}
 
+	if _, ok := f.(FileReaddirenter); ok {
+		fe.lastRead = make([]fuse.DirEntry, 0, 100)
+	}
 	fe.nodeIndex = len(n.openFiles)
 	fe.file = f
 	n.openFiles = append(n.openFiles, fe.fh)
@@ -1069,10 +1075,41 @@ func (b *rawBridge) ReadDir(cancel <-chan struct{}, input *fuse.ReadIn, out *fus
 func (b *rawBridge) readDirMaybeLookup(cancel <-chan struct{}, input *fuse.ReadIn, out *fuse.DirEntryList, lookup bool) fuse.Status {
 	n, f := b.inode(input.NodeId, input.Fh)
 
+	direnter, ok := f.file.(FileReaddirenter)
+	if !ok {
+		return fuse.OK
+	}
+	getdent := direnter.Readdirent
+
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
 	ctx := &fuse.Context{Caller: input.Caller, Cancel: cancel}
+	interruptedRead := false
+	if input.Offset != f.dirOffset {
+		// If the last readdir(plus) was interrupted, the
+		// kernel may consume just one entry from the readdir,
+		// and redo it.
+		for i, e := range f.lastRead {
+			if e.Off == input.Offset {
+				interruptedRead = true
+				todo := f.lastRead[i+1:]
+				todo = make([]fuse.DirEntry, len(todo))
+				copy(todo, f.lastRead[i+1:])
+				getdent = func(context.Context) (*fuse.DirEntry, syscall.Errno) {
+					if len(todo) > 0 {
+						de := &todo[0]
+						todo = todo[1:]
+						return de, 0
+					}
+					return nil, 0
+				}
+				f.dirOffset = input.Offset
+				break
+			}
+		}
+	}
+
 	if input.Offset != f.dirOffset {
 		if sd, ok := f.file.(FileSeekdirer); ok {
 			errno := sd.Seekdir(ctx, input.Offset)
@@ -1091,17 +1128,12 @@ func (b *rawBridge) readDirMaybeLookup(cancel <-chan struct{}, input *fuse.ReadI
 		f.dirOffset = out.Offset
 	}()
 
-	fre, ok := f.file.(FileReaddirenter)
-	if !ok {
-		return fuse.OK
-	}
-	getdent := fre.Readdirent
 	first := true
-
+	f.lastRead = f.lastRead[:0]
 	for {
 		var de *fuse.DirEntry
 		var errno syscall.Errno
-		if f.hasOverflow {
+		if f.hasOverflow && !interruptedRead {
 			f.hasOverflow = false
 			if f.overflowErrno != 0 {
 				return errnoToStatus(f.overflowErrno)
@@ -1125,13 +1157,18 @@ func (b *rawBridge) readDirMaybeLookup(cancel <-chan struct{}, input *fuse.ReadI
 		}
 
 		first = false
-
+		if de.Off == 0 {
+			// This logic is dup from fuse.DirEntryList, but we need the offset here so it is part of lastRead
+			de.Off = out.Offset + 1
+		}
 		if !lookup {
 			if !out.AddDirEntry(*de) {
 				f.overflow = *de
 				f.hasOverflow = true
 				return fuse.OK
 			}
+
+			f.lastRead = append(f.lastRead, *de)
 			continue
 		}
 
@@ -1141,6 +1178,7 @@ func (b *rawBridge) readDirMaybeLookup(cancel <-chan struct{}, input *fuse.ReadI
 			f.hasOverflow = true
 			return fuse.OK
 		}
+		f.lastRead = append(f.lastRead, *de)
 
 		// Virtual entries "." and ".." should be part of the
 		// directory listing, but not part of the filesystem tree.
