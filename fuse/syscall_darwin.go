@@ -11,8 +11,16 @@ import (
 )
 
 func getxattr(path string, attr string, dest []byte) (sz int, errno int) {
-	pathBs := syscall.StringBytePtr(path)
-	attrBs := syscall.StringBytePtr(attr)
+	pathBs, err := syscall.BytePtrFromString(path)
+	if err != nil {
+		return 0, int(syscall.EINVAL)
+	}
+
+	attrBs, err := syscall.BytePtrFromString(attr)
+	if err != nil {
+		return 0, int(syscall.EINVAL)
+	}
+
 	size, _, errNo := syscall.Syscall6(
 		syscall.SYS_GETXATTR,
 		uintptr(unsafe.Pointer(pathBs)),
@@ -39,7 +47,11 @@ func GetXAttr(path string, attr string, dest []byte) (value []byte, errno int) {
 }
 
 func listxattr(path string, dest []byte) (sz int, errno int) {
-	pathbs := syscall.StringBytePtr(path)
+	pathbs, err := syscall.BytePtrFromString(path)
+	if err != nil {
+		return 0, int(syscall.EINVAL)
+	}
+
 	var destPointer unsafe.Pointer
 	if len(dest) > 0 {
 		destPointer = unsafe.Pointer(&dest[0])
@@ -76,8 +88,16 @@ func ListXAttr(path string) (attributes []string, errno int) {
 }
 
 func Setxattr(path string, attr string, data []byte, flags int) (errno int) {
-	pathbs := syscall.StringBytePtr(path)
-	attrbs := syscall.StringBytePtr(attr)
+	pathbs, err := syscall.BytePtrFromString(path)
+	if err != nil {
+		return int(syscall.EINVAL)
+	}
+
+	attrbs, err := syscall.BytePtrFromString(attr)
+	if err != nil {
+		return int(syscall.EINVAL)
+	}
+
 	_, _, errNo := syscall.Syscall6(
 		syscall.SYS_SETXATTR,
 		uintptr(unsafe.Pointer(pathbs)),
@@ -90,8 +110,16 @@ func Setxattr(path string, attr string, data []byte, flags int) (errno int) {
 }
 
 func Removexattr(path string, attr string) (errno int) {
-	pathbs := syscall.StringBytePtr(path)
-	attrbs := syscall.StringBytePtr(attr)
+	pathbs, err := syscall.BytePtrFromString(path)
+	if err != nil {
+		return int(syscall.EINVAL)
+	}
+
+	attrbs, err := syscall.BytePtrFromString(attr)
+	if err != nil {
+		return int(syscall.EINVAL)
+	}
+
 	_, _, errNo := syscall.Syscall(
 		syscall.SYS_REMOVEXATTR,
 		uintptr(unsafe.Pointer(pathbs)),
