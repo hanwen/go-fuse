@@ -652,7 +652,7 @@ func TestLargeDirRead(t *testing.T) {
 		name := filepath.Join(subdir, base)
 
 		if nameSet[base] {
-			panic(fmt.Sprintf("duplicate name %q", base))
+			t.Fatalf("duplicate name %q", base)
 		}
 		nameSet[base] = true
 

@@ -6,7 +6,6 @@ package test
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"runtime"
@@ -111,7 +110,7 @@ func TestFopenKeepCache(t *testing.T) {
 	before := "before"
 	after := "afterX"
 	if len(before) != len(after) {
-		panic("len(before) != len(after)")
+		t.Fatal("len(before) != len(after)")
 	}
 
 	xwriteFile(wd+"/orig/file.txt", before)
@@ -127,7 +126,7 @@ func TestFopenKeepCache(t *testing.T) {
 	xwriteFile(wd+"/orig/file.txt", after)
 	mtimeAfter := xstat(wd + "/orig/file.txt").ModTime()
 	if δ := mtimeAfter.Sub(mtimeBefore); δ == 0 {
-		panic(fmt.Sprintf("mtime(orig/before) == mtime(orig/after)"))
+		t.Fatal("mtime(orig/before) == mtime(orig/after)")
 	}
 
 	// sleep enough time for file attributes to expire; restat the file after.

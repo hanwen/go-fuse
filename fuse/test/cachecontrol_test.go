@@ -262,7 +262,7 @@ func TestCacheControl(t *testing.T) {
 		for i := uint32(0); i < lbig/4; i++ {
 			err := binary.Write(buf, binary.BigEndian, i+0x01020304)
 			if err != nil {
-				panic(err) // Buffer.Write does not error
+				t.Fatal(err)
 			}
 		}
 		dataBig := buf.String()
