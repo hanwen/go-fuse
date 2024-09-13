@@ -1,19 +1,20 @@
+// Copyright 2019 the Go-FUSE Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package posixtest
 
 import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"reflect"
 	"syscall"
 	"testing"
-	"unsafe"
 
+	"github.com/hanwen/go-fuse/v2/fuse"
 	"golang.org/x/sys/unix"
 )
-
-type dirent struct {
-	unix.Dirent
-}
 
 // DirSeek tests that seeking on a directory works for
 // https://github.com/hanwen/go-fuse/issues/344 .
@@ -40,8 +41,6 @@ func DirSeek(t *testing.T, mnt string) {
 	// From C app xfstests/src/t_dir_offset2.c
 	const bufSize = 4096
 	const historyLen = 1024
-	offHistory := make([]int64, historyLen)
-	inoHistory := make([]uint64, historyLen)
 	buf := make([]byte, bufSize)
 	fd, err := syscall.Open(ttt, syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
 	if err != nil {
@@ -49,7 +48,7 @@ func DirSeek(t *testing.T, mnt string) {
 	}
 	defer syscall.Close(fd)
 
-	total := 0
+	var result []fuse.DirEntry
 	for {
 		n, err := unix.ReadDirent(fd, buf)
 		if err != nil {
@@ -58,29 +57,20 @@ func DirSeek(t *testing.T, mnt string) {
 		if n == 0 {
 			break
 		}
-		for bpos := 0; bpos < n; total++ {
-			d := (*dirent)(unsafe.Pointer(&buf[bpos]))
-			if total > historyLen {
-				t.Fatal("too many files")
-			}
-			for i := 0; i < total; i++ {
-				if offHistory[i] == d.off() {
-					t.Errorf("entries %d and %d gave duplicate d.Off %d",
-						i, total, d.off())
-				}
-			}
-			offHistory[total] = d.off()
-			inoHistory[total] = d.ino()
-			bpos += int(d.Reclen)
+		todo := buf[:n]
+		for len(todo) > 0 {
+			var de fuse.DirEntry
+			n := de.Parse(todo)
+			todo = todo[n:]
+			result = append(result, de)
 		}
 	}
 
 	// check if seek works correctly
-	d := (*dirent)(unsafe.Pointer(&buf[0]))
-	for i := total - 1; i >= 0; i-- {
+	for i := len(result) - 1; i >= 0; i-- {
 		var seekTo int64
 		if i > 0 {
-			seekTo = offHistory[i-1]
+			seekTo = int64(result[i-1].Off)
 		}
 		_, err = unix.Seek(fd, seekTo, os.SEEK_SET)
 		if err != nil {
@@ -96,9 +86,12 @@ func DirSeek(t *testing.T, mnt string) {
 			continue
 		}
 
-		if d.ino() != inoHistory[i] {
-			t.Errorf("entry %d has inode %d, expected %d",
-				i, d.ino(), inoHistory[i])
+		var de fuse.DirEntry
+		de.Parse(buf)
+
+		if !reflect.DeepEqual(&de, &result[i]) {
+			t.Errorf("entry %d: got %v, want %v",
+				i, de, result[i])
 		}
 	}
 }
