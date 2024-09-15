@@ -40,7 +40,6 @@ func DirSeek(t *testing.T, mnt string) {
 
 	// From C app xfstests/src/t_dir_offset2.c
 	const bufSize = 4096
-	const historyLen = 1024
 	buf := make([]byte, bufSize)
 	fd, err := syscall.Open(ttt, syscall.O_RDONLY|syscall.O_DIRECTORY, 0)
 	if err != nil {
