@@ -237,6 +237,19 @@ func TestDataSymlink(t *testing.T) {
 	}
 }
 
+func readDirStream(st DirStream) (result []fuse.DirEntry, errno syscall.Errno) {
+	for st.HasNext() {
+		var de fuse.DirEntry
+		de, errno = st.Next()
+		if errno != 0 {
+			return
+		}
+
+		result = append(result, de)
+	}
+	return
+}
+
 func TestReaddirplusParallel(t *testing.T) {
 	root := &Inode{}
 	N := 100
@@ -265,39 +278,45 @@ func TestReaddirplusParallel(t *testing.T) {
 		},
 	})
 
-	read := func() (map[string]int64, error) {
-		es, err := os.ReadDir(mntDir)
-		if err != nil {
-			return nil, err
+	read := func() ([]fuse.DirEntry, error) {
+		ds, errno := NewLoopbackDirStream(mntDir)
+		if errno != 0 {
+			return nil, errno
 		}
-
-		r := map[string]int64{}
-		for _, e := range es {
-			inf, err := e.Info()
-			if err != nil {
-				return nil, err
-			}
-			r[e.Name()] = inf.Size()
+		defer ds.Close()
+		es, errno := readDirStream(ds)
+		if errno != 0 {
+			return nil, errno
 		}
-		return r, nil
+		return es, nil
 	}
 
+	want, err := read()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(want) != N {
+		t.Fatalf("read back %d entries, want %d", len(want), N)
+	}
 	var wg sync.WaitGroup
 	for i := 0; i < P; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			res, err := read()
+			got, err := read()
 			if err != nil {
 				t.Errorf("readdir: %v", err)
 				return
 			}
-			if got, want := len(res), len(names); got != want {
-				t.Errorf("got %d want %d", got, want)
+			if len(got) != len(want) {
+				t.Errorf("got len %d, want %d", len(got), len(want))
 				return
 			}
-			if !reflect.DeepEqual(res, names) {
-				t.Errorf("maps have different content")
+			for i := 0; i < len(got) && i < len(want); i++ {
+				if !reflect.DeepEqual(got[i], want[i]) {
+					t.Errorf("entry %d: got %v, want %v", i, got[i], want[i])
+					return
+				}
 			}
 		}()
 	}
