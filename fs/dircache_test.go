@@ -64,7 +64,11 @@ func TestDirCacheFlag(t *testing.T) {
 	root := &dirCacheTestNode{}
 	opts := Options{}
 	opts.DisableReadDirPlus = true
-	mnt, _ := testMount(t, root, &opts)
+	mnt, server := testMount(t, root, &opts)
+
+	if !server.KernelSettings().SupportsVersion(7, 28) {
+		t.Skip("need v7.28 for directory caching")
+	}
 
 	s, errno := NewLoopbackDirStream(mnt)
 	if errno != 0 {
