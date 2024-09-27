@@ -1,6 +1,9 @@
 #!/bin/bash
 set -eux
 
+# Kernel version is relevant to debugging CI failures
+uname -a
+
 # Everything must compile on Linux
 go build ./...
 
