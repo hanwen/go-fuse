@@ -1045,6 +1045,9 @@ func (b *rawBridge) OpenDir(cancel <-chan struct{}, input *fuse.OpenIn, out *fus
 		fh = &dirStreamAsFile{creator: ctor}
 	}
 
+	if fuseFlags&(fuse.FOPEN_CACHE_DIR|fuse.FOPEN_KEEP_CACHE) != 0 {
+		fuseFlags |= fuse.FOPEN_CACHE_DIR | fuse.FOPEN_KEEP_CACHE
+	}
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	fe := b.registerFile(n, fh, 0)
