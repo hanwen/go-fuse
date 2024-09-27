@@ -5,22 +5,34 @@
 
 Go native bindings for the FUSE kernel module.
 
-You should import and use
+Use
 [github.com/hanwen/go-fuse/v2/fs](https://godoc.org/github.com/hanwen/go-fuse/v2/fs)
 library.  It follows the wire protocol closely, but provides
 convenient abstractions for building both node and path based file
 systems
 
-Older, deprecated APIs are available at
-[github.com/hanwen/go-fuse/fuse/pathfs](https://godoc.org/github.com/hanwen/go-fuse/v2/fuse/pathfs)
-and
-[github.com/hanwen/go-fuse/fuse/nodefs](https://godoc.org/github.com/hanwen/go-fuse/v2/fuse/nodefs).
+## Release notes
+
+v2.6
+
+* general:
+  * drop support for go1.16 
+* fuse:
+  * FreeBSD support
+  * passthrough support for increased performance
+  * DirEntryList.Offset and DirEntry.Off are visible now; add DirEntry.Parse 
+* fs:
+  * new directory API, supporting caching and file handles for Readdir and FsyncDir 
+  * passthrough support for increased performance
+  * allow LoopbackNode to be used as non-root
+  * OnForget method
+
+v2.5
+
+* Support for RenameExchange on Darwin
+
 
 ## Comparison with other FUSE libraries
-
-The FUSE library gained a new, cleaned-up API during a rewrite
-completed in 2019. Find extensive documentation
-[here](https://godoc.org/github.com/hanwen/go-fuse/v2/fs).
 
 Further highlights of this library is
 
@@ -60,7 +72,8 @@ Further highlights of this library is
 
 ## macOS Support
 
-Go-FUSE works somewhat on OSX. Known limitations:
+The main developer (hanwen@) does not own a Mac to test, but accepts
+patches to make Go-FUSE work on Mac.
 
 * All of the limitations of OSXFUSE, including lack of support for
   NOTIFY.
@@ -81,58 +94,11 @@ Go-FUSE works somewhat on OSX. Known limitations:
 
 ## Bugs
 
-Yes, probably.  Report them through
-https://github.com/hanwen/go-fuse/issues. Please include a debug trace
-(set `fuse.MountOptions.Debug` to `true`).
-
-## Disclaimer
-
-This is not an official Google product.
+Report them through https://github.com/hanwen/go-fuse/issues. Please
+include a debug trace (set `fuse.MountOptions.Debug` to `true`).
 
 ## License
 
 Like Go, this library is distributed under the new BSD license.  See
 accompanying LICENSE file.
 
---------
-
-## Appendix I. Go-FUSE log format
-
-To increase signal/noise ratio Go-FUSE uses abbreviations in its debug log
-output. Here is how to read it:
-
-- `iX` means `inode X`;
-- `gX` means `generation X`;
-- `tA` and `tE` means timeout for attributes and directory entry correspondingly;
-- `[<off> +<size>)` means data range from `<off>` inclusive till `<off>+<size>` exclusive;
-- `Xb` means `X bytes`.
-- `pX` means the request originated from PID `x`. 0 means the request originated from the kernel.
-
-Every line is prefixed with either `rx <unique>` or `tx <unique>` to denote
-whether it was for kernel request, which Go-FUSE received, or reply, which
-Go-FUSE sent back to kernel.
-
-Example debug log output:
-
-```
-rx 2: LOOKUP i1 [".wcfs"] 6b p5874
-tx 2:     OK, {i3 g2 tE=1s tA=1s {M040755 SZ=0 L=0 1000:1000 B0*0 i0:3 A 0.000000 M 0.000000 C 0.000000}}
-rx 3: LOOKUP i3 ["zurl"] 5b p5874
-tx 3:     OK, {i4 g3 tE=1s tA=1s {M0100644 SZ=33 L=1 1000:1000 B0*0 i0:4 A 0.000000 M 0.000000 C 0.000000}}
-rx 4: OPEN i4 {O_RDONLY,0x8000} p5874
-tx 4:     38=function not implemented, {Fh 0 }
-rx 5: READ i4 {Fh 0 [0 +4096)  L 0 RDONLY,0x8000} p5874
-tx 5:     OK,  33b data "file:///"...
-rx 6: GETATTR i4 {Fh 0} p5874
-tx 6:     OK, {tA=1s {M0100644 SZ=33 L=1 1000:1000 B0*0 i0:4 A 0.000000 M 0.000000 C 0.000000}}
-rx 7: FLUSH i4 {Fh 0} p5874
-tx 7:     OK
-rx 8: LOOKUP i1 ["head"] 5b p5874
-tx 8:     OK, {i5 g4 tE=1s tA=1s {M040755 SZ=0 L=0 1000:1000 B0*0 i0:5 A 0.000000 M 0.000000 C 0.000000}}
-rx 9: LOOKUP i5 ["bigfile"] 8b p5874
-tx 9:     OK, {i6 g5 tE=1s tA=1s {M040755 SZ=0 L=0 1000:1000 B0*0 i0:6 A 0.000000 M 0.000000 C 0.000000}}
-rx 10: FLUSH i4 {Fh 0} p5874
-tx 10:     OK
-rx 11: GETATTR i1 {Fh 0} p5874
-tx 11:     OK, {tA=1s {M040755 SZ=0 L=1 1000:1000 B0*0 i0:1 A 0.000000 M 0.000000 C 0.000000}}
-```
