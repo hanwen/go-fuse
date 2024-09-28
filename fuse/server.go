@@ -67,6 +67,7 @@ type Server struct {
 	reqReaders     int
 	reqInflight    []*request
 	kernelSettings InitIn
+	connectionDead bool
 
 	// in-flight notify-retrieve queries
 	retrieveMu   sync.Mutex
@@ -517,7 +518,10 @@ exit:
 		case ENOENT:
 			continue
 		case ENODEV:
-			// unmount
+			// Mount was killed. The obvious place to
+			// cancel outstanding requests is at the end
+			// of Serve, but that reader might be blocked.
+			ms.cancelAll()
 			if ms.opts.Debug {
 				ms.opts.Logger.Printf("received ENODEV (unmount request), thread exiting")
 			}
@@ -533,6 +537,19 @@ exit:
 			ms.handleRequest(req)
 		}
 	}
+}
+
+func (ms *Server) cancelAll() {
+	ms.reqMu.Lock()
+	defer ms.reqMu.Unlock()
+	ms.connectionDead = true
+	for _, req := range ms.reqInflight {
+		if !req.interrupted {
+			close(req.cancel)
+			req.interrupted = true
+		}
+	}
+	// Leave ms.reqInflight alone, or returnRequest will barf.
 }
 
 func (ms *Server) handleRequest(req *request) Status {
@@ -617,7 +634,14 @@ func (ms *Server) write(req *request) Status {
 			return OK
 		}
 	}
-
+	if req.status == EINTR {
+		ms.reqMu.Lock()
+		dead := ms.connectionDead
+		ms.reqMu.Unlock()
+		if dead {
+			return OK
+		}
+	}
 	header := req.serializeHeader(req.flatDataSize())
 	if ms.opts.Debug {
 		ms.opts.Logger.Println(req.OutputDebug())
