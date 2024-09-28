@@ -120,6 +120,16 @@
 // [1] https://github.com/libfuse/libfuse/commit/64e11073b9347fcf9c6d1eea143763ba9e946f70
 //
 // [2] https://sylabs.io/guides/3.7/user-guide/bind_paths_and_mounts.html#fuse-mounts
+//
+// # Aborting a file system
+//
+// A caller that has an open file in a buggy or crashed FUSE
+// filesystem will be hung. The easiest way to clean up this situation
+// is through the fusectl filesystem. By writing into
+// /sys/fs/fuse/connection/$ID/abort, reads from the FUSE device fail,
+// and all callers receive ENOTCONN (transport endpoint not connected)
+// on their pending syscalls.  The FUSE connection ID can be found as
+// the Dev field in the Stat_t result for a file in the mount.
 package fuse
 
 import "log"
