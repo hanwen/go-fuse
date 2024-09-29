@@ -11,6 +11,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"path"
@@ -52,6 +53,7 @@ func main() {
 	directmountstrict := flag.Bool("directmountstrict", false, "like directmount, but don't fall back to fusermount")
 	cpuprofile := flag.String("cpuprofile", "", "write cpu profile to this file")
 	memprofile := flag.String("memprofile", "", "write memory profile to this file")
+	socket := flag.Bool("socket", false, "interpret mountpoint as a socket")
 	flag.Parse()
 	if flag.NArg() < 2 {
 		fmt.Printf("usage: %s MOUNTPOINT ORIGINAL\n", path.Base(os.Args[0]))
@@ -120,9 +122,34 @@ func main() {
 	if !*quiet {
 		opts.Logger = log.New(os.Stderr, "", 0)
 	}
-	server, err := fs.Mount(flag.Arg(0), loopbackRoot, opts)
-	if err != nil {
-		log.Fatalf("Mount fail: %v\n", err)
+
+	var server *fuse.Server
+	if *socket {
+		l, err := net.ListenUnix("unix", &net.UnixAddr{flag.Arg(0), "unix"})
+		if err != nil {
+			log.Fatal("Listen", err)
+		}
+		for {
+			var discard [12]byte
+			conn, err := l.AcceptUnix()
+			if err != nil {
+				break
+			}
+			f, err := conn.File()
+			if err != nil {
+				log.Fatal(err)
+			}
+			f.Read(discard[:])
+			server, err = fs.MountFd(int(f.Fd()), loopbackRoot, opts)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	} else {
+		server, err = fs.Mount(flag.Arg(0), loopbackRoot, opts)
+		if err != nil {
+			log.Fatalf("Mount fail: %v\n", err)
+		}
 	}
 	if !*quiet {
 		fmt.Println("Mounted!")

@@ -155,18 +155,7 @@ func (ms *Server) Unmount() (err error) {
 	return err
 }
 
-// NewServer creates a FUSE server and attaches ("mounts") it to the
-// `mountPoint` directory.
-//
-// See the "Mount styles" section in the package documentation if you want to
-// know about the inner workings of the mount process. Usually you do not.
-func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server, error) {
-	if opts == nil {
-		opts = &MountOptions{
-			MaxBackground: _DEFAULT_BACKGROUND_TASKS,
-		}
-	}
-	o := *opts
+func (o *MountOptions) setDefaults() {
 	if o.Logger == nil {
 		o.Logger = log.Default()
 	}
@@ -179,45 +168,14 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 	if o.MaxWrite > MAX_KERNEL_WRITE {
 		o.MaxWrite = MAX_KERNEL_WRITE
 	}
+}
 
-	if o.Name == "" {
-		name := fs.String()
-		l := len(name)
-		if l > _MAX_NAME_LEN {
-			l = _MAX_NAME_LEN
-		}
-		o.Name = strings.Replace(name[:l], ",", ";", -1)
-	}
-
-	maxReaders := runtime.GOMAXPROCS(0)
-	if maxReaders < minMaxReaders {
-		maxReaders = minMaxReaders
-	} else if maxReaders > maxMaxReaders {
-		maxReaders = maxMaxReaders
-	}
-
-	ms := &Server{
-		fileSystem:   fs,
-		opts:         &o,
-		maxReaders:   maxReaders,
-		retrieveTab:  make(map[uint64]*retrieveCacheRequest),
-		singleReader: useSingleReader,
-		ready:        make(chan error, 1),
-	}
-	ms.reqPool.New = func() interface{} {
-		return &request{
-			cancel: make(chan struct{}),
-		}
-	}
-	ms.readPool.New = func() interface{} {
-		targetSize := o.MaxWrite + int(maxInputSize)
-		if targetSize < _FUSE_MIN_READ_BUFFER {
-			targetSize = _FUSE_MIN_READ_BUFFER
-		}
-		buf := make([]byte, targetSize+logicalBlockSize)
-		buf = alignSlice(buf, unsafe.Sizeof(WriteIn{}), logicalBlockSize, uintptr(targetSize))
-		return buf
-	}
+// NewServer creates a FUSE server and attaches ("mounts") it to the
+// `mountPoint` directory.
+//
+// See the "Mount styles" section in the package documentation if you want to
+// know about the inner workings of the mount process. Usually you do not.
+func NewServer(fs RawFileSystem, mountPoint string, inOpts *MountOptions) (*Server, error) {
 	mountPoint = filepath.Clean(mountPoint)
 	if !filepath.IsAbs(mountPoint) {
 		cwd, err := os.Getwd()
@@ -226,13 +184,68 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		}
 		mountPoint = filepath.Clean(filepath.Join(cwd, mountPoint))
 	}
-	fd, err := mount(mountPoint, &o, ms.ready)
+
+	if inOpts == nil {
+		inOpts = &MountOptions{
+			MaxBackground: _DEFAULT_BACKGROUND_TASKS,
+		}
+	}
+	opts := *inOpts
+	opts.setDefaults()
+
+	if opts.Name == "" {
+		name := fs.String()
+		l := len(name)
+		if l > _MAX_NAME_LEN {
+			l = _MAX_NAME_LEN
+		}
+		opts.Name = strings.Replace(name[:l], ",", ";", -1)
+	}
+	ready := make(chan error, 1)
+	fd, err := mount(mountPoint, &opts, ready)
 	if err != nil {
 		return nil, err
 	}
+	return newServerFromFd(fs, fd, mountPoint, &opts, ready)
+}
 
-	ms.mountPoint = mountPoint
-	ms.mountFd = fd
+func NewServerFromFd(fs RawFileSystem, fd int, inOpts *MountOptions) (*Server, error) {
+	inOpts.setDefaults()
+	ready := make(chan error, 1)
+	return newServerFromFd(fs, fd, "", inOpts, ready)
+}
+
+func newServerFromFd(fs RawFileSystem, fd int, mountPoint string, opts *MountOptions, ready chan error) (*Server, error) {
+	maxReaders := runtime.GOMAXPROCS(0)
+	if maxReaders < minMaxReaders {
+		maxReaders = minMaxReaders
+	} else if maxReaders > maxMaxReaders {
+		maxReaders = maxMaxReaders
+	}
+	ms := &Server{
+		fileSystem:   fs,
+		opts:         opts,
+		maxReaders:   maxReaders,
+		retrieveTab:  make(map[uint64]*retrieveCacheRequest),
+		singleReader: useSingleReader,
+		ready:        ready,
+		mountPoint:   mountPoint,
+		mountFd:      fd,
+	}
+	ms.reqPool.New = func() interface{} {
+		return &request{
+			cancel: make(chan struct{}),
+		}
+	}
+	ms.readPool.New = func() interface{} {
+		targetSize := opts.MaxWrite + int(maxInputSize)
+		if targetSize < _FUSE_MIN_READ_BUFFER {
+			targetSize = _FUSE_MIN_READ_BUFFER
+		}
+		buf := make([]byte, targetSize+logicalBlockSize)
+		buf = alignSlice(buf, unsafe.Sizeof(WriteIn{}), logicalBlockSize, uintptr(targetSize))
+		return buf
+	}
 
 	if code := ms.handleInit(); !code.Ok() {
 		syscall.Close(fd)

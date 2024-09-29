@@ -38,3 +38,28 @@ func Mount(dir string, root InodeEmbedder, options *Options) (*fuse.Server, erro
 
 	return server, nil
 }
+
+func MountFd(fd int, root InodeEmbedder, options *Options) (*fuse.Server, error) {
+	if options == nil {
+		oneSec := time.Second
+		options = &Options{
+			EntryTimeout: &oneSec,
+			AttrTimeout:  &oneSec,
+		}
+	}
+
+	rawFS := NewNodeFS(root, options)
+	server, err := fuse.NewServerFromFd(rawFS, fd, &options.MountOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	go server.Serve()
+	if err := server.WaitMount(); err != nil {
+		// we don't shutdown the serve loop. If the mount does
+		// not succeed, the loop won't work and exit.
+		return nil, err
+	}
+
+	return server, nil
+}
