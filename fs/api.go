@@ -19,7 +19,7 @@
 //	// Node types should implement some file system operations, eg. Lookup
 //	var _ = (fs.NodeLookuper)((*myNode)(nil))
 //
-//	func (n *myNode) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
+//	func (n *myNode) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*fs.Inode, syscall.Errno) {
 //		ops := myNode{}
 //		out.Mode = 0755
 //		out.Size = 42
