@@ -6,7 +6,6 @@ package unionfs
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -69,7 +68,7 @@ func newTestCase(t *testing.T, populate bool) *testCase {
 	tc.server = server
 
 	if populate {
-		if err := ioutil.WriteFile(tc.ro+"/dir/ro-file", []byte("bla"), 0644); err != nil {
+		if err := os.WriteFile(tc.ro+"/dir/ro-file", []byte("bla"), 0644); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -100,7 +99,7 @@ func TestDelete(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	c, err := ioutil.ReadFile(filepath.Join(tc.rw, delDir, filePathHash("dir/ro-file")))
+	c, err := os.ReadFile(filepath.Join(tc.rw, delDir, filePathHash("dir/ro-file")))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,11 +149,11 @@ func TestCreate(t *testing.T) {
 		t.Fatalf("Unlink: %v", err)
 	}
 	want := []byte{42}
-	if err := ioutil.WriteFile(filepath.Join(tc.mnt, path), want, 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(tc.mnt, path), want, 0644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	if got, err := ioutil.ReadFile(filepath.Join(tc.mnt, path)); err != nil {
+	if got, err := os.ReadFile(filepath.Join(tc.mnt, path)); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	} else if !bytes.Equal(got, want) {
 		t.Errorf("got %q, want %q", got, want)
@@ -169,11 +168,11 @@ func TestPromote(t *testing.T) {
 	mPath := filepath.Join(tc.mnt, path)
 
 	want := []byte{42}
-	if err := ioutil.WriteFile(mPath, want, 0644); err != nil {
+	if err := os.WriteFile(mPath, want, 0644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	if got, err := ioutil.ReadFile(mPath); err != nil {
+	if got, err := os.ReadFile(mPath); err != nil {
 		t.Fatalf("ReadFile: %v", err)
 	} else if !bytes.Equal(got, want) {
 		t.Errorf("got %q, want %q", got, want)
@@ -186,7 +185,7 @@ func TestDeleteRevert(t *testing.T) {
 
 	path := "dir/ro-file"
 	mPath := filepath.Join(tc.mnt, path)
-	if err := ioutil.WriteFile(mPath, []byte{42}, 0644); err != nil {
+	if err := os.WriteFile(mPath, []byte{42}, 0644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
@@ -238,20 +237,20 @@ func TestReaddir(t *testing.T) {
 	tc := newTestCase(t, true)
 	defer tc.Clean()
 
-	if err := ioutil.WriteFile(tc.ro+"/dir/file2", nil, 0644); err != nil {
+	if err := os.WriteFile(tc.ro+"/dir/file2", nil, 0644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 	if err := os.Mkdir(tc.rw+"/dir", 0755); err != nil {
 		t.Fatalf("Mkdir: %v", err)
 	}
-	if err := ioutil.WriteFile(tc.rw+"/dir/file3", nil, 0644); err != nil {
+	if err := os.WriteFile(tc.rw+"/dir/file3", nil, 0644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 	if err := os.Remove(tc.mnt + "/dir/ro-file"); err != nil {
 		t.Fatalf("Remove: %v", err)
 	}
 
-	res, err := ioutil.ReadDir(tc.mnt + "/dir")
+	res, err := os.ReadDir(tc.mnt + "/dir")
 	if err != nil {
 		t.Fatalf("ReadDir: %v", err)
 	}

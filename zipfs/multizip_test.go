@@ -5,7 +5,6 @@
 package zipfs
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -58,7 +57,7 @@ func TestMultiZipFs(t *testing.T) {
 
 	zipFile := testZipFile()
 
-	entries, err := ioutil.ReadDir(mountPoint)
+	entries, err := os.ReadDir(mountPoint)
 	if err != nil {
 		t.Fatalf("ReadDir failed: %v", err)
 	}
@@ -76,7 +75,7 @@ func TestMultiZipFs(t *testing.T) {
 		t.Errorf("Expect directory at /zipmount")
 	}
 
-	entries, err = ioutil.ReadDir(mountPoint)
+	entries, err = os.ReadDir(mountPoint)
 	if err != nil {
 		t.Fatalf("ReadDir failed: %v", err)
 	}
@@ -122,7 +121,7 @@ func TestMultiZipFs(t *testing.T) {
 			t.Errorf("stat should fail after unmount, got %#v", fi)
 		}
 	} else {
-		entries, err = ioutil.ReadDir(mountPoint)
+		entries, err = os.ReadDir(mountPoint)
 		if err != nil {
 			t.Fatalf("ReadDir failed: %v", err)
 		}

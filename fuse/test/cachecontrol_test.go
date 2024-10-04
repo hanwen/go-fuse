@@ -9,7 +9,6 @@ package test
 import (
 	"bytes"
 	"encoding/binary"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -82,7 +81,7 @@ func TestCacheControl(t *testing.T) {
 	assertFileRead := func(subj, dataOK string) {
 		t.Helper()
 
-		v, err := ioutil.ReadFile(dir + "/hello.txt")
+		v, err := os.ReadFile(dir + "/hello.txt")
 		if err != nil {
 			t.Fatalf("%s: file read: %s", subj, err)
 		}

@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -53,10 +52,10 @@ func (tc *testCase) Mkdir(name string, mode os.FileMode) {
 	}
 }
 
-// WriteFile is a utility wrapper for ioutil.WriteFile, aborting the
+// WriteFile is a utility wrapper for os.WriteFile, aborting the
 // test if it fails.
 func (tc *testCase) WriteFile(name string, content []byte, mode os.FileMode) {
-	if err := ioutil.WriteFile(name, content, mode); err != nil {
+	if err := os.WriteFile(name, content, mode); err != nil {
 		if len(content) > 50 {
 			content = append(content[:50], '.', '.', '.')
 		}
@@ -268,7 +267,7 @@ func TestLinkCreate(t *testing.T) {
 	if stat.Ino != subStat.Ino {
 		t.Errorf("Link succeeded, but inode numbers different: %v %v", stat.Ino, subStat.Ino)
 	}
-	readback, err := ioutil.ReadFile(mountSubfile)
+	readback, err := os.ReadFile(mountSubfile)
 	if err != nil {
 		t.Fatalf("ReadFile failed: %v", err)
 	}
@@ -279,7 +278,7 @@ func TestLinkCreate(t *testing.T) {
 		t.Fatalf("Remove failed: %v", err)
 	}
 
-	_, err = ioutil.ReadFile(mountSubfile)
+	_, err = os.ReadFile(mountSubfile)
 	if err != nil {
 		t.Fatalf("ReadFile failed: %v", err)
 	}
@@ -318,7 +317,7 @@ func TestLinkExisting(t *testing.T) {
 		t.Errorf("linked files should have identical inodes %v %v", s1.Ino, s2.Ino)
 	}
 
-	back, err := ioutil.ReadFile(tc.mnt + "/file1")
+	back, err := os.ReadFile(tc.mnt + "/file1")
 	if err != nil {
 		t.Fatalf("ReadFile failed: %v", err)
 	}
@@ -534,7 +533,7 @@ func TestReadZero(t *testing.T) {
 	defer tc.Cleanup()
 	tc.WriteFile(tc.origFile, []byte{}, 0644)
 
-	back, err := ioutil.ReadFile(tc.mountFile)
+	back, err := os.ReadFile(tc.mountFile)
 	if err != nil {
 		t.Fatalf("ReadFile(%q): %v", tc.mountFile, err)
 	} else if len(back) != 0 {
@@ -599,7 +598,7 @@ func TestReadLarge(t *testing.T) {
 	content := randomData(385 * 1023)
 	tc.WriteFile(tc.origFile, []byte(content), 0644)
 
-	back, err := ioutil.ReadFile(tc.mountFile)
+	back, err := os.ReadFile(tc.mountFile)
 	if err != nil {
 		t.Fatalf("ReadFile failed: %v", err)
 	}
@@ -613,7 +612,7 @@ func TestWriteLarge(t *testing.T) {
 	content := randomData(385 * 1023)
 	tc.WriteFile(tc.mountFile, []byte(content), 0644)
 
-	back, err := ioutil.ReadFile(tc.origFile)
+	back, err := os.ReadFile(tc.origFile)
 	if err != nil {
 		t.Fatalf("ReadFile failed: %v", err)
 	}
@@ -849,7 +848,7 @@ func TestLookupKnownChildrenAttrCopied(t *testing.T) {
 	tc := NewTestCase(t)
 	defer tc.Cleanup()
 
-	if err := ioutil.WriteFile(tc.mountFile, []byte("hello"), 0644); err != nil {
+	if err := os.WriteFile(tc.mountFile, []byte("hello"), 0644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
@@ -951,7 +950,7 @@ func testLoopbackUtimens(t *testing.T, path string, utimensFn func(atime *time.T
 // Check that loopbackFileSystem.Utimens() works as expected
 func TestPathfsLoopbackFileSystemUtimens(t *testing.T) {
 	fs := pathfs.NewLoopbackFileSystem(os.TempDir())
-	f, err := ioutil.TempFile("", "TestLoopbackFileSystemUtimens")
+	f, err := os.CreateTemp("", "TestLoopbackFileSystemUtimens")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -968,7 +967,7 @@ func TestPathfsLoopbackFileSystemUtimens(t *testing.T) {
 
 // Check that loopbackFile.Utimens() works as expected
 func TestNodefsLoopbackFileUtimens(t *testing.T) {
-	f2, err := ioutil.TempFile("", "TestLoopbackFileUtimens")
+	f2, err := os.CreateTemp("", "TestLoopbackFileUtimens")
 	if err != nil {
 		t.Fatal(err)
 	}

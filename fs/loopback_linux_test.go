@@ -6,7 +6,6 @@ package fs
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"sync"
 	"syscall"
@@ -115,7 +114,7 @@ func TestCopyFileRange(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Close dst: %v", err)
 	}
-	c, err := ioutil.ReadFile(tc.mntDir + "/dst")
+	c, err := os.ReadFile(tc.mntDir + "/dst")
 	if err != nil {
 		t.Fatalf("ReadFile: %v", err)
 	}
@@ -153,7 +152,7 @@ func waitMount(mnt string) error {
 		if err != nil {
 			return err
 		}
-		content, err := ioutil.ReadFile("/proc/self/mounts")
+		content, err := os.ReadFile("/proc/self/mounts")
 		if err != nil {
 			return err
 		}

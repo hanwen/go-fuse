@@ -6,8 +6,8 @@ package fs_test
 
 import (
 	"context"
-	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -75,7 +75,7 @@ func (root *inMemoryFS) OnAdd(ctx context.Context) {
 // read/write logic for the file is provided by the MemRegularFile type.
 func Example() {
 	// This is where we'll mount the FS
-	mntDir, _ := ioutil.TempDir("", "")
+	mntDir, _ := os.MkdirTemp("", "")
 
 	root := &inMemoryFS{}
 	server, err := fs.Mount(mntDir, root, &fs.Options{

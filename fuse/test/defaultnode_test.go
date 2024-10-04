@@ -5,7 +5,6 @@
 package test
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -59,7 +58,7 @@ func TestDefaultNodeGetAttr(t *testing.T) {
 	}
 
 	// But when we open the file, we should get the content
-	content, err := ioutil.ReadFile(filepath)
+	content, err := os.ReadFile(filepath)
 	if err != nil {
 		t.Fatalf("ReadFile: %v", err)
 	}

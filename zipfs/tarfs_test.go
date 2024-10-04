@@ -8,7 +8,6 @@ import (
 	"archive/tar"
 	"bytes"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -103,7 +102,7 @@ func TestTar(t *testing.T) {
 				t.Errorf("entry %q, got mode %o, want %o", k, got, want)
 			}
 
-			c, err := ioutil.ReadFile(p)
+			c, err := os.ReadFile(p)
 			if err != nil {
 				t.Errorf("read %q: %v", k, err)
 				got := string(c)

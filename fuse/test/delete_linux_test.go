@@ -6,7 +6,6 @@ package test
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"syscall"
@@ -69,7 +68,7 @@ func TestDeleteNotify(t *testing.T) {
 	}
 	root.Inode().NewChild("testdir", true, &flip)
 
-	err = ioutil.WriteFile(mnt+"/testdir/testfile", []byte{42}, 0644)
+	err = os.WriteFile(mnt+"/testdir/testfile", []byte{42}, 0644)
 	if err != nil {
 		t.Fatal(err)
 	}

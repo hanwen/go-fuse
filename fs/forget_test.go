@@ -7,7 +7,6 @@ package fs
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -97,7 +96,7 @@ func TestForget(t *testing.T) {
 	}
 
 	log.Println("dropping cache")
-	if err := ioutil.WriteFile("/proc/sys/vm/drop_caches", []byte("2"), 0644); err != nil {
+	if err := os.WriteFile("/proc/sys/vm/drop_caches", []byte("2"), 0644); err != nil {
 
 	}
 	time.Sleep(time.Second)

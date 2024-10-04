@@ -9,8 +9,8 @@ package test
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 	"testing"
 
 	"golang.org/x/sync/errgroup"
@@ -46,7 +46,7 @@ func (r *tRoot) Lookup(out *fuse.Attr, name string, fctx *fuse.Context) (*nodefs
 
 // verifyFileRead verifies that file @path has content == dataOK.
 func verifyFileRead(path string, dataOK string) error {
-	v, err := ioutil.ReadFile(path)
+	v, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}

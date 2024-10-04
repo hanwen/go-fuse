@@ -5,7 +5,6 @@
 package test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -72,7 +71,7 @@ func TestMountReaddir(t *testing.T) {
 		t.Fatal("mount should succeed")
 	}
 
-	entries, err := ioutil.ReadDir(ts.mnt)
+	entries, err := os.ReadDir(ts.mnt)
 	if err != nil {
 		t.Fatalf("ReadDir failed: %v", err)
 	}
@@ -86,7 +85,7 @@ func TestRecursiveMount(t *testing.T) {
 	ts := NewTestCase(t)
 	defer ts.Cleanup()
 
-	err := ioutil.WriteFile(ts.orig+"/hello.txt", []byte("blabla"), 0644)
+	err := os.WriteFile(ts.orig+"/hello.txt", []byte("blabla"), 0644)
 	if err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
@@ -186,7 +185,7 @@ func TestDefaultNodeMount(t *testing.T) {
 		t.Fatalf("Mount: %v", err)
 	}
 
-	if entries, err := ioutil.ReadDir(dir); err != nil {
+	if entries, err := os.ReadDir(dir); err != nil {
 		t.Fatalf("ReadDir: %v", err)
 	} else if len(entries) != 1 {
 		t.Fatalf("got %d entries", len(entries))
@@ -208,7 +207,7 @@ func TestLiveness(t *testing.T) {
 	}
 	defer s.Unmount()
 
-	if _, err := ioutil.ReadDir(dir); err != nil {
+	if _, err := os.ReadDir(dir); err != nil {
 		t.Fatalf("ReadDir: %v", err)
 	}
 
@@ -216,7 +215,7 @@ func TestLiveness(t *testing.T) {
 	runtime.GC()
 	runtime.GC()
 
-	if _, err := ioutil.ReadDir(dir); err != nil {
+	if _, err := os.ReadDir(dir); err != nil {
 		t.Fatalf("ReadDir: %v", err)
 	}
 }

@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"reflect"
@@ -166,11 +165,11 @@ func TestDataFile(t *testing.T) {
 	}
 
 	replace := []byte("replaced!")
-	if err := ioutil.WriteFile(mntDir+"/file", replace, 0644); err != nil {
+	if err := os.WriteFile(mntDir+"/file", replace, 0644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	if gotBytes, err := ioutil.ReadFile(mntDir + "/file"); err != nil {
+	if gotBytes, err := os.ReadFile(mntDir + "/file"); err != nil {
 		t.Fatalf("ReadFile: %v", err)
 	} else if bytes.Compare(replace, gotBytes) != 0 {
 		t.Fatalf("read: got %q want %q", gotBytes, replace)
@@ -198,7 +197,7 @@ func TestDataFileLargeRead(t *testing.T) {
 			n.AddChild("file", ch, false)
 		},
 	})
-	got, err := ioutil.ReadFile(mntDir + "/file")
+	got, err := os.ReadFile(mntDir + "/file")
 	if err != nil {
 		t.Fatalf("ReadFile: %v", err)
 	}

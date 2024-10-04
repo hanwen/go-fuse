@@ -7,7 +7,6 @@
 package splice
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 )
@@ -19,18 +18,18 @@ func check(err error) {
 }
 
 func TestCopyFile(t *testing.T) {
-	src, _ := ioutil.TempFile("", "termite")
-	err := ioutil.WriteFile(src.Name(), []byte("hello"), 0644)
+	src, _ := os.CreateTemp("", "termite")
+	err := os.WriteFile(src.Name(), []byte("hello"), 0644)
 	if err != nil {
 		t.Error(err)
 	}
-	dst, _ := ioutil.TempFile("", "termite")
+	dst, _ := os.CreateTemp("", "termite")
 	err = CopyFile(dst.Name(), src.Name(), 0755)
 	if err != nil {
 		t.Error(err)
 	}
 
-	c, err := ioutil.ReadFile(dst.Name())
+	c, err := os.ReadFile(dst.Name())
 	if err != nil {
 		t.Error(err)
 	}
@@ -40,7 +39,7 @@ func TestCopyFile(t *testing.T) {
 }
 
 func TestSpliceCopy(t *testing.T) {
-	src, err := ioutil.TempFile("", "termite")
+	src, err := os.CreateTemp("", "termite")
 	check(err)
 	bs := make([]byte, 2*1024*1024)
 	for i := range bs {
@@ -52,7 +51,7 @@ func TestSpliceCopy(t *testing.T) {
 	check(err)
 	src, err = os.Open(src.Name())
 	check(err)
-	dst, err := ioutil.TempFile("", "termite")
+	dst, err := os.CreateTemp("", "termite")
 	check(err)
 
 	if maxPipeSize%4096 != 0 || maxPipeSize < 4096 {

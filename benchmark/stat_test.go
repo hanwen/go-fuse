@@ -6,7 +6,6 @@ package benchmark
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -68,7 +67,7 @@ func TestNewStatFs(t *testing.T) {
 
 	wd := setupFS(fs, 1, t)
 
-	names, err := ioutil.ReadDir(wd)
+	names, err := os.ReadDir(wd)
 	if err != nil {
 		t.Fatalf("failed: %v", err)
 	}
@@ -83,14 +82,14 @@ func TestNewStatFs(t *testing.T) {
 	if !fi.IsDir() {
 		t.Error("mode", fi)
 	}
-	names, err = ioutil.ReadDir(wd + "/sub")
+	names, err = os.ReadDir(wd + "/sub")
 	if err != nil {
 		t.Fatalf("failed: %v", err)
 	}
 	if len(names) != 2 {
 		t.Error("readdir /sub", names)
 	}
-	names, err = ioutil.ReadDir(wd + "/sub/dir")
+	names, err = os.ReadDir(wd + "/sub/dir")
 	if err != nil {
 		t.Fatalf("failed: %v", err)
 	}
@@ -237,7 +236,7 @@ func BenchmarkCFuseThreadedStat(b *testing.B) {
 		out = append(out, k)
 	}
 
-	f, err := ioutil.TempFile("", "")
+	f, err := os.CreateTemp("", "")
 	if err != nil {
 		b.Fatalf("failed: %v", err)
 	}

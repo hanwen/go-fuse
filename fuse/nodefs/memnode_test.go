@@ -5,7 +5,6 @@
 package nodefs
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -54,12 +53,12 @@ func TestMemNodeFsWrite(t *testing.T) {
 	wd, _ := setupMemNodeTest(t)
 	want := "hello"
 
-	err := ioutil.WriteFile(wd+"/test", []byte(want), 0644)
+	err := os.WriteFile(wd+"/test", []byte(want), 0644)
 	if err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	content, err := ioutil.ReadFile(wd + "/test")
+	content, err := os.ReadFile(wd + "/test")
 	if string(content) != want {
 		t.Fatalf("content mismatch: got %q, want %q", content, want)
 	}
@@ -68,7 +67,7 @@ func TestMemNodeFsWrite(t *testing.T) {
 func TestMemNodeFsBasic(t *testing.T) {
 	wd, _ := setupMemNodeTest(t)
 
-	err := ioutil.WriteFile(wd+"/test", []byte{42}, 0644)
+	err := os.WriteFile(wd+"/test", []byte{42}, 0644)
 	if err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
@@ -81,7 +80,7 @@ func TestMemNodeFsBasic(t *testing.T) {
 		t.Errorf("Size after write incorrect: got %d want 1", fi.Size())
 	}
 
-	entries, err := ioutil.ReadDir(wd)
+	entries, err := os.ReadDir(wd)
 	if len(entries) != 1 || entries[0].Name() != "test" {
 		t.Fatalf("Readdir got %v, expected 1 file named 'test'", entries)
 	}

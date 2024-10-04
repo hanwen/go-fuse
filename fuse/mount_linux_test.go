@@ -2,7 +2,6 @@ package fuse
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"syscall"
 	"testing"
@@ -17,11 +16,7 @@ import (
 // In this test, we simulate a privileged parent by using the `fusermount` suid
 // helper.
 func TestMountDevFd(t *testing.T) {
-	realMountPoint, err := ioutil.TempDir("", t.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer syscall.Rmdir(realMountPoint)
+	realMountPoint := t.TempDir()
 
 	// Call the fusermount suid helper to obtain the file descriptor in place
 	// of a privileged parent.
@@ -87,10 +82,7 @@ func TestMountMaxWrite(t *testing.T) {
 	for _, o := range opts {
 		name := fmt.Sprintf("MaxWrite%d", o.MaxWrite)
 		t.Run(name, func(t *testing.T) {
-			mnt, err := ioutil.TempDir("", name)
-			if err != nil {
-				t.Fatal(err)
-			}
+			mnt := t.TempDir()
 			fs := NewDefaultRawFileSystem()
 			srv, err := NewServer(fs, mnt, &o)
 			if err != nil {
@@ -108,10 +100,7 @@ func TestMountMaxWrite(t *testing.T) {
 // The mount options are a comma-separated string like this:
 // rw,nosuid,nodev,relatime,user_id=1026,group_id=1026
 func mountCheckOptions(t *testing.T, opts MountOptions) (info mountinfo.Info) {
-	mnt, err := ioutil.TempDir("", t.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
+	mnt := t.TempDir()
 	fs := NewDefaultRawFileSystem()
 	srv, err := NewServer(fs, mnt, &opts)
 	if err != nil {

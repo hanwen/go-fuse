@@ -7,7 +7,6 @@ package test
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -33,7 +32,7 @@ func TestTouch(t *testing.T) {
 	defer ts.Cleanup()
 
 	contents := []byte{1, 2, 3}
-	err := ioutil.WriteFile(ts.origFile, []byte(contents), 0700)
+	err := os.WriteFile(ts.origFile, []byte(contents), 0700)
 	if err != nil {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
@@ -92,7 +91,7 @@ func TestUtimesNano(t *testing.T) {
 	defer tc.Cleanup()
 
 	path := tc.mountFile
-	err := ioutil.WriteFile(path, []byte("xyz"), 0600)
+	err := os.WriteFile(path, []byte("xyz"), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -213,7 +212,7 @@ func TestReaddirInodes(t *testing.T) {
 	// create "hello.txt"
 	filename := "hello.txt"
 	path := tc.orig + "/" + filename
-	err := ioutil.WriteFile(path, []byte("xyz"), 0600)
+	err := os.WriteFile(path, []byte("xyz"), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}

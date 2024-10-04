@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"sync"
@@ -98,12 +97,12 @@ func TestKeepCache(t *testing.T) {
 	root := &keepCacheRoot{}
 	mntDir, _ := testMount(t, root, nil)
 
-	c1, err := ioutil.ReadFile(mntDir + "/keep")
+	c1, err := os.ReadFile(mntDir + "/keep")
 	if err != nil {
 		t.Fatalf("read keep 1: %v", err)
 	}
 
-	c2, err := ioutil.ReadFile(mntDir + "/keep")
+	c2, err := os.ReadFile(mntDir + "/keep")
 	if err != nil {
 		t.Fatalf("read keep 2: %v", err)
 	}
@@ -116,7 +115,7 @@ func TestKeepCache(t *testing.T) {
 		t.Errorf("NotifyContent: %v", s)
 	}
 
-	c3, err := ioutil.ReadFile(mntDir + "/keep")
+	c3, err := os.ReadFile(mntDir + "/keep")
 	if err != nil {
 		t.Fatalf("read keep 3: %v", err)
 	}
@@ -124,12 +123,12 @@ func TestKeepCache(t *testing.T) {
 		t.Errorf("keep read 3 got %q want different", c3)
 	}
 
-	nc1, err := ioutil.ReadFile(mntDir + "/nokeep")
+	nc1, err := os.ReadFile(mntDir + "/nokeep")
 	if err != nil {
 		t.Fatalf("read keep 1: %v", err)
 	}
 
-	nc2, err := ioutil.ReadFile(mntDir + "/nokeep")
+	nc2, err := os.ReadFile(mntDir + "/nokeep")
 	if err != nil {
 		t.Fatalf("read keep 2: %v", err)
 	}

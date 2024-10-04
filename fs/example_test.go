@@ -6,7 +6,6 @@ package fs_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -17,7 +16,7 @@ import (
 // ExampleMount shows how to create a loopback file system, and
 // mounting it onto a directory
 func Example_mount() {
-	mntDir, _ := ioutil.TempDir("", "")
+	mntDir, _ := os.MkdirTemp("", "")
 	home := os.Getenv("HOME")
 	// Make $HOME available on a mount dir under /tmp/ . Caution:
 	// write operations are also mirrored.

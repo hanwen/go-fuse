@@ -7,7 +7,7 @@
 package splice
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
 )
 
@@ -21,8 +21,8 @@ func TestPairSize(t *testing.T) {
 		b[i] = byte(i)
 	}
 
-	f, _ := ioutil.TempFile("", "splice")
-	err := ioutil.WriteFile(f.Name(), b, 0644)
+	f, _ := os.CreateTemp("", "splice")
+	err := os.WriteFile(f.Name(), b, 0644)
 	if err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}

@@ -6,7 +6,6 @@ package posixtest
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"syscall"
@@ -32,7 +31,7 @@ func DirSeek(t *testing.T, mnt string) {
 	}
 	for i := 1; i <= 168; i++ {
 		path := fmt.Sprintf("%s/%d", ttt, i)
-		err = ioutil.WriteFile(path, nil, 0600)
+		err = os.WriteFile(path, nil, 0600)
 		if err != nil {
 			t.Fatal(err)
 		}

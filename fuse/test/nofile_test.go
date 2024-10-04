@@ -5,7 +5,7 @@
 package test
 
 import (
-	"io/ioutil"
+	"os"
 	"sync/atomic"
 	"testing"
 
@@ -87,7 +87,7 @@ func TestNoFile(t *testing.T) {
 
 		nopenPre := atomic.LoadInt32(&node.nopen)
 
-		v, err := ioutil.ReadFile(dir + path)
+		v, err := os.ReadFile(dir + path)
 		if err != nil {
 			t.Fatalf("%s: read: %s", path, err)
 		}

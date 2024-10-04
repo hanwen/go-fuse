@@ -8,8 +8,8 @@ import (
 	"context"
 	"crypto/md5"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 	"sort"
 	"syscall"
@@ -85,7 +85,7 @@ func (r *unionFSRoot) writeMarker(name string) syscall.Errno {
 
 	dest := r.markerPath(name)
 
-	err := ioutil.WriteFile(dest, []byte(name), 0644)
+	err := os.WriteFile(dest, []byte(name), 0644)
 	return fs.ToErrno(err)
 }
 

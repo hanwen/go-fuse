@@ -8,7 +8,7 @@ import (
 	"archive/zip"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -99,7 +99,7 @@ func (zf *zipFile) Open(ctx context.Context, flags uint32) (fs.FileHandle, uint3
 		if err != nil {
 			return nil, 0, syscall.EIO
 		}
-		content, err := ioutil.ReadAll(rc)
+		content, err := io.ReadAll(rc)
 		if err != nil {
 			return nil, 0, syscall.EIO
 		}

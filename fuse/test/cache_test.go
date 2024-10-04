@@ -6,7 +6,6 @@ package test
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"runtime"
 	"sync"
@@ -78,14 +77,14 @@ func TestFopenKeepCache(t *testing.T) {
 
 	// x{read,write}File reads/writes file@path and fail on error
 	xreadFile := func(path string) string {
-		data, err := ioutil.ReadFile(path)
+		data, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatal(err)
 		}
 		return string(data)
 	}
 	xwriteFile := func(path, data string) {
-		if err := ioutil.WriteFile(path, []byte(data), 0644); err != nil {
+		if err := os.WriteFile(path, []byte(data), 0644); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -243,7 +242,7 @@ func TestGetAttrRace(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			fn := dir + "/mnt/file"
-			err := ioutil.WriteFile(fn, []byte{42}, 0644)
+			err := os.WriteFile(fn, []byte{42}, 0644)
 			if err != nil {
 				statErr = err
 				return

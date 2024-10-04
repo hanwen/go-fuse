@@ -5,7 +5,7 @@
 package nodefs
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
@@ -77,7 +77,7 @@ func TestNoOpen(t *testing.T) {
 		t.Skip("Kernel does not support open-less read/writes. Skipping test.")
 	}
 
-	content, err := ioutil.ReadFile(dir + "/file")
+	content, err := os.ReadFile(dir + "/file")
 	if err != nil {
 		t.Fatalf("ReadFile: %v", err)
 	}
@@ -86,7 +86,7 @@ func TestNoOpen(t *testing.T) {
 		t.Fatalf("got %q, want %q", content, want)
 	}
 
-	content, err = ioutil.ReadFile(dir + "/file2")
+	content, err = os.ReadFile(dir + "/file2")
 	if err != nil {
 		t.Fatalf("ReadFile: %v", err)
 	}
@@ -112,7 +112,7 @@ func TestNodeRead(t *testing.T) {
 	if err := s.WaitMount(); err != nil {
 		t.Fatal("WaitMount", err)
 	}
-	content, err := ioutil.ReadFile(dir + "/file")
+	content, err := os.ReadFile(dir + "/file")
 	if err != nil {
 		t.Fatalf("ReadFile: %v", err)
 	}

@@ -10,7 +10,6 @@ package splice
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"sync"
@@ -39,7 +38,7 @@ var (
 )
 
 func init() {
-	content, err := ioutil.ReadFile("/proc/sys/fs/pipe-max-size")
+	content, err := os.ReadFile("/proc/sys/fs/pipe-max-size")
 	if err != nil {
 		maxPipeSize = DefaultPipeSize
 	} else {

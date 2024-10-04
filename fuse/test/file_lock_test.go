@@ -8,7 +8,6 @@
 package test
 
 import (
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -225,7 +224,7 @@ func TestNoLockSupport(t *testing.T) {
 	defer s.Unmount()
 
 	fn := mnt + "/file.txt"
-	if err := ioutil.WriteFile(fn, []byte("content"), 0644); err != nil {
+	if err := os.WriteFile(fn, []byte("content"), 0644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 

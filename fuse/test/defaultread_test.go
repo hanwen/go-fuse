@@ -5,7 +5,7 @@
 package test
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
@@ -63,7 +63,7 @@ func TestDefaultRead(t *testing.T) {
 	root, clean := defaultReadTest(t)
 	defer clean()
 
-	_, err := ioutil.ReadFile(root + "/file")
+	_, err := os.ReadFile(root + "/file")
 	if err == nil {
 		t.Fatal("should have failed read.")
 	}

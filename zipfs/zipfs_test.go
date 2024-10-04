@@ -5,7 +5,6 @@
 package zipfs
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -46,7 +45,8 @@ func setupZipfs(t *testing.T) (mountPoint string, cleanup func()) {
 func TestZipFs(t *testing.T) {
 	mountPoint, clean := setupZipfs(t)
 	defer clean()
-	entries, err := ioutil.ReadDir(mountPoint)
+	entries, err := os.ReadDir(mountPoint)
+
 	if err != nil {
 		t.Fatalf("ReadDir failed: %v", err)
 	}

@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -137,11 +136,11 @@ func FileBasic(t *testing.T, mnt string) {
 	content := []byte("hello world")
 	fn := mnt + "/file"
 
-	if err := ioutil.WriteFile(fn, content, 0755); err != nil {
+	if err := os.WriteFile(fn, content, 0755); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	if got, err := ioutil.ReadFile(fn); err != nil {
+	if got, err := os.ReadFile(fn); err != nil {
 		t.Fatalf("ReadFile: %v", err)
 	} else if bytes.Compare(got, content) != 0 {
 		t.Errorf("ReadFile: got %q, want %q", got, content)
@@ -174,7 +173,7 @@ func FileBasic(t *testing.T, mnt string) {
 func TruncateFile(t *testing.T, mnt string) {
 	content := []byte("hello world")
 	fn := mnt + "/file"
-	if err := ioutil.WriteFile(fn, content, 0755); err != nil {
+	if err := os.WriteFile(fn, content, 0755); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
@@ -193,7 +192,7 @@ func TruncateFile(t *testing.T, mnt string) {
 		t.Errorf("Close: %v", err)
 	}
 
-	if got, err := ioutil.ReadFile(fn); err != nil {
+	if got, err := os.ReadFile(fn); err != nil {
 		t.Fatalf("ReadFile: %v", err)
 	} else if want := content[:trunc]; bytes.Compare(got, want) != 0 {
 		t.Errorf("got %q, want %q", got, want)
@@ -201,7 +200,7 @@ func TruncateFile(t *testing.T, mnt string) {
 }
 func TruncateNoFile(t *testing.T, mnt string) {
 	fn := mnt + "/file"
-	if err := ioutil.WriteFile(fn, []byte("hello"), 0644); err != nil {
+	if err := os.WriteFile(fn, []byte("hello"), 0644); err != nil {
 		t.Errorf("WriteFile: %v", err)
 	}
 
@@ -220,12 +219,12 @@ func TruncateNoFile(t *testing.T, mnt string) {
 func FdLeak(t *testing.T, mnt string) {
 	fn := mnt + "/file"
 
-	if err := ioutil.WriteFile(fn, []byte("hello world"), 0755); err != nil {
+	if err := os.WriteFile(fn, []byte("hello world"), 0755); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
 	for i := 0; i < 100; i++ {
-		if _, err := ioutil.ReadFile(fn); err != nil {
+		if _, err := os.ReadFile(fn); err != nil {
 			t.Fatalf("ReadFile: %v", err)
 		}
 	}
@@ -259,11 +258,11 @@ func MkdirRmdir(t *testing.T, mnt string) {
 func NlinkZero(t *testing.T, mnt string) {
 	src := mnt + "/src"
 	dst := mnt + "/dst"
-	if err := ioutil.WriteFile(src, []byte("source"), 0644); err != nil {
+	if err := os.WriteFile(src, []byte("source"), 0644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	if err := ioutil.WriteFile(dst, []byte("dst"), 0644); err != nil {
+	if err := os.WriteFile(dst, []byte("dst"), 0644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
@@ -307,7 +306,7 @@ func FstatDeleted(t *testing.T, mnt string) {
 		// Create files with different sizes
 		path := fmt.Sprintf("%s/%d", mnt, i)
 		content := make([]byte, i)
-		err := ioutil.WriteFile(path, content, 0644)
+		err := os.WriteFile(path, content, 0644)
 		if err != nil {
 			t.Fatalf("WriteFile: %v", err)
 		}
@@ -350,7 +349,7 @@ func FstatDeleted(t *testing.T, mnt string) {
 
 func ParallelFileOpen(t *testing.T, mnt string) {
 	fn := mnt + "/file"
-	if err := ioutil.WriteFile(fn, []byte("content"), 0644); err != nil {
+	if err := os.WriteFile(fn, []byte("content"), 0644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
@@ -384,7 +383,7 @@ func Link(t *testing.T, mnt string) {
 	link := mnt + "/link"
 	target := mnt + "/target"
 
-	if err := ioutil.WriteFile(target, []byte("hello"), 0644); err != nil {
+	if err := os.WriteFile(target, []byte("hello"), 0644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
@@ -423,12 +422,12 @@ func RenameOverwrite(t *testing.T, mnt string, destExists bool) {
 	if err := os.Mkdir(mnt+"/dir", 0755); err != nil {
 		t.Fatalf("Mkdir: %v", err)
 	}
-	if err := ioutil.WriteFile(mnt+"/file", []byte("hello"), 0644); err != nil {
+	if err := os.WriteFile(mnt+"/file", []byte("hello"), 0644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
 	if destExists {
-		if err := ioutil.WriteFile(mnt+"/dir/renamed", []byte("xx"), 0644); err != nil {
+		if err := os.WriteFile(mnt+"/dir/renamed", []byte("xx"), 0644); err != nil {
 			t.Fatalf("WriteFile dest: %v", err)
 		}
 	}
@@ -525,7 +524,7 @@ func ReadDir(t *testing.T, mnt string) {
 	for i := 0; i < 110; i++ {
 		nm := fmt.Sprintf("file%036x", i)
 		want[nm] = true
-		if err := ioutil.WriteFile(filepath.Join(mnt, nm), []byte("hello"), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(mnt, nm), []byte("hello"), 0644); err != nil {
 			t.Fatalf("WriteFile %q: %v", nm, err)
 		}
 		// Verify that we get the expected entries
@@ -583,7 +582,7 @@ func ReadDirConsistency(t *testing.T, mnt string) {
 func LinkUnlinkRename(t *testing.T, mnt string) {
 	content := []byte("hello")
 	tmp := mnt + "/tmpfile"
-	if err := ioutil.WriteFile(tmp, content, 0644); err != nil {
+	if err := os.WriteFile(tmp, content, 0644); err != nil {
 		t.Fatalf("WriteFile %q: %v", tmp, err)
 	}
 
@@ -595,7 +594,7 @@ func LinkUnlinkRename(t *testing.T, mnt string) {
 		t.Fatalf("Unlink %q: %v", tmp, err)
 	}
 
-	if back, err := ioutil.ReadFile(dest); err != nil {
+	if back, err := os.ReadFile(dest); err != nil {
 		t.Fatalf("Read %q: %v", dest, err)
 	} else if bytes.Compare(back, content) != 0 {
 		t.Fatalf("Read got %q want %q", back, content)
@@ -627,7 +626,7 @@ func AppendWrite(t *testing.T, mnt string) {
 	fd = 0
 	want := []byte("helloworld")
 
-	got, err := ioutil.ReadFile(mnt + "/file")
+	got, err := os.ReadFile(mnt + "/file")
 	if err != nil {
 		t.Fatalf("ReadFile: %v", err)
 	}
@@ -754,7 +753,7 @@ func FcntlFlockLocksFile(t *testing.T, mnt string) {
 func LseekHoleSeeksToEOF(t *testing.T, mnt string) {
 	fn := filepath.Join(mnt, "file.bin")
 	content := bytes.Repeat([]byte("abcxyz\n"), 1024)
-	if err := ioutil.WriteFile(fn, content, 0644); err != nil {
+	if err := os.WriteFile(fn, content, 0644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
@@ -775,7 +774,7 @@ func LseekHoleSeeksToEOF(t *testing.T, mnt string) {
 func LseekEnxioCheck(t *testing.T, mnt string) {
 	fn := filepath.Join(mnt, "file.bin")
 	content := bytes.Repeat([]byte("abcxyz\n"), 1024)
-	if err := ioutil.WriteFile(fn, content, 0644); err != nil {
+	if err := os.WriteFile(fn, content, 0644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 

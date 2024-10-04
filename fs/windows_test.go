@@ -6,7 +6,6 @@ package fs_test
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"syscall"
 	"testing"
@@ -34,11 +33,11 @@ func TestWindowsEmulations(t *testing.T) {
 
 	data := []byte("hello")
 	nm := mntDir + "/file"
-	if err := ioutil.WriteFile(nm, data, 0644); err != nil {
+	if err := os.WriteFile(nm, data, 0644); err != nil {
 		t.Fatal(err)
 	}
 
-	if got, err := ioutil.ReadFile(nm); err != nil {
+	if got, err := os.ReadFile(nm); err != nil {
 		t.Fatal(err)
 	} else if bytes.Compare(got, data) != 0 {
 		t.Fatalf("got %q want %q", got, data)
