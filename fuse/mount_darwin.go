@@ -26,7 +26,7 @@ func unixgramSocketpair() (l, r *os.File, err error) {
 
 // Create a FUSE FS on the specified mount point.  The returned
 // mount point is always absolute.
-func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, err error) {
+func mount(mountPoint string, opts *MountOptions) (fd int, err error) {
 	local, remote, err := unixgramSocketpair()
 	if err != nil {
 		return
@@ -65,7 +65,7 @@ func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, e
 	if err != nil {
 		return -1, err
 	}
-
+	ready := make(chan error, 1)
 	go func() {
 		// wait inside a goroutine or otherwise it would block forever for unknown reasons
 		if err := cmd.Wait(); err != nil {
@@ -81,7 +81,9 @@ func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, e
 	// acquired through normal operations (e.g. open).
 	// Buf for fd, we have to set CLOEXEC manually
 	syscall.CloseOnExec(fd)
-
+	if err == nil {
+		err = <-ready
+	}
 	return fd, err
 }
 

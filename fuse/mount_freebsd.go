@@ -41,7 +41,7 @@ func callMountFuseFs(mountPoint string, opts *MountOptions) (fd int, err error) 
 	return int(f.Fd()), nil
 }
 
-func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, err error) {
+func mount(mountPoint string, opts *MountOptions) (fd int, err error) {
 	// Using the same logic from libfuse to prevent chaos
 	for {
 		f, err := os.OpenFile("/dev/null", os.O_RDWR, 0o000)
@@ -74,7 +74,6 @@ func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, e
 	// Buf for fd, we have to set CLOEXEC manually
 	syscall.CloseOnExec(fd)
 
-	close(ready)
 	return fd, err
 }
 
