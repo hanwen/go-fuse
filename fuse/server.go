@@ -187,34 +187,6 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		o.Name = strings.Replace(name[:l], ",", ";", -1)
 	}
 
-	maxReaders := runtime.GOMAXPROCS(0)
-	if maxReaders < minMaxReaders {
-		maxReaders = minMaxReaders
-	} else if maxReaders > maxMaxReaders {
-		maxReaders = maxMaxReaders
-	}
-
-	ms := &Server{
-		fileSystem:   fs,
-		opts:         &o,
-		maxReaders:   maxReaders,
-		retrieveTab:  make(map[uint64]*retrieveCacheRequest),
-		singleReader: useSingleReader,
-	}
-	ms.reqPool.New = func() interface{} {
-		return &request{
-			cancel: make(chan struct{}),
-		}
-	}
-	ms.readPool.New = func() interface{} {
-		targetSize := o.MaxWrite + int(maxInputSize)
-		if targetSize < _FUSE_MIN_READ_BUFFER {
-			targetSize = _FUSE_MIN_READ_BUFFER
-		}
-		buf := make([]byte, targetSize+logicalBlockSize)
-		buf = alignSlice(buf, unsafe.Sizeof(WriteIn{}), logicalBlockSize, uintptr(targetSize))
-		return buf
-	}
 	mountPoint = filepath.Clean(mountPoint)
 	if !filepath.IsAbs(mountPoint) {
 		cwd, err := os.Getwd()
@@ -227,9 +199,40 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 	if err != nil {
 		return nil, err
 	}
+	return newServerFromFd(fs, mountPoint, &o, fd)
+}
 
-	ms.mountPoint = mountPoint
-	ms.mountFd = fd
+func newServerFromFd(fs RawFileSystem, mountPoint string, opts *MountOptions, fd int) (*Server, error) {
+	maxReaders := runtime.GOMAXPROCS(0)
+	if maxReaders < minMaxReaders {
+		maxReaders = minMaxReaders
+	} else if maxReaders > maxMaxReaders {
+		maxReaders = maxMaxReaders
+	}
+
+	ms := &Server{
+		fileSystem:   fs,
+		opts:         opts,
+		maxReaders:   maxReaders,
+		retrieveTab:  make(map[uint64]*retrieveCacheRequest),
+		singleReader: useSingleReader,
+		mountPoint:   mountPoint,
+		mountFd:      fd,
+	}
+	ms.reqPool.New = func() interface{} {
+		return &request{
+			cancel: make(chan struct{}),
+		}
+	}
+	ms.readPool.New = func() interface{} {
+		targetSize := opts.MaxWrite + int(maxInputSize)
+		if targetSize < _FUSE_MIN_READ_BUFFER {
+			targetSize = _FUSE_MIN_READ_BUFFER
+		}
+		buf := make([]byte, targetSize+logicalBlockSize)
+		buf = alignSlice(buf, unsafe.Sizeof(WriteIn{}), logicalBlockSize, uintptr(targetSize))
+		return buf
+	}
 
 	if code := ms.handleInit(); !code.Ok() {
 		syscall.Close(fd)
