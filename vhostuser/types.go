@@ -84,6 +84,13 @@ const (
 )
 
 var featureNames = map[int]string{
+	F_NOTIFY_ON_EMPTY:    "NOTIFY_ON_EMPTY",
+	F_LOG_ALL:            "LOG_ALL",
+	F_ANY_LAYOUT:         "ANY_LAYOUT",
+	RING_F_INDIRECT_DESC: "RING_F_INDIRECT_DESC",
+	RING_F_EVENT_IDX:     "RING_F_EVENT_IDX",
+	F_PROTOCOL_FEATURES:  "PROTOCOL_FEATURES",
+
 	F_VERSION_1:         "VERSION_1",
 	F_ACCESS_PLATFORM:   "ACCESS_PLATFORM",
 	F_RING_PACKED:       "RING_PACKED",
@@ -229,13 +236,29 @@ type GetFeaturesReply struct {
 }
 
 var decodeIn = map[uint32]func(unsafe.Pointer) interface{}{
+	REQ_ADD_MEM_REG:           func(p unsafe.Pointer) interface{} { return (*VhostUserMemRegMsg)(p) },
 	REQ_SET_FEATURES:          func(p unsafe.Pointer) interface{} { return (*SetFeaturesRequest)(p) },
 	REQ_SET_PROTOCOL_FEATURES: func(p unsafe.Pointer) interface{} { return (*SetProtocolFeaturesRequest)(p) },
+	REQ_SET_VRING_ADDR:        func(p unsafe.Pointer) interface{} { return (*VhostVringAddr)(p) },
+	REQ_SET_VRING_BASE:        func(p unsafe.Pointer) interface{} { return (*VhostVringState)(p) },
+	REQ_SET_VRING_CALL:        func(p unsafe.Pointer) interface{} { return (*U64Payload)(p) },
+	REQ_SET_VRING_ENABLE:      func(p unsafe.Pointer) interface{} { return (*VhostVringState)(p) },
+	REQ_SET_VRING_ERR:         func(p unsafe.Pointer) interface{} { return (*U64Payload)(p) },
+	REQ_SET_VRING_KICK:        func(p unsafe.Pointer) interface{} { return (*U64Payload)(p) },
+	REQ_SET_VRING_NUM:         func(p unsafe.Pointer) interface{} { return (*VhostVringState)(p) },
 }
 
 var decodeOut = map[uint32]func(unsafe.Pointer) interface{}{
 	REQ_GET_FEATURES:          func(p unsafe.Pointer) interface{} { return (*GetFeaturesReply)(p) },
 	REQ_GET_PROTOCOL_FEATURES: func(p unsafe.Pointer) interface{} { return (*GetProtocolFeaturesReply)(p) },
+}
+
+var inFDCount = map[uint32]int{
+	REQ_SET_BACKEND_REQ_FD: 1,
+	REQ_SET_VRING_CALL:     1,
+	REQ_SET_VRING_ERR:      1,
+	REQ_ADD_MEM_REG:        1,
+	REQ_SET_VRING_KICK:     1,
 }
 
 func (r *GetFeaturesReply) String() string {
@@ -245,6 +268,11 @@ func (r *GetFeaturesReply) String() string {
 
 type SetFeaturesRequest struct {
 	Mask uint64
+}
+
+func (r *SetFeaturesRequest) String() string {
+	return fmt.Sprintf("{%s}",
+		maskToString(featureNames, r.Mask))
 }
 
 type GetProtocolFeaturesReply struct {
@@ -263,6 +291,14 @@ type SetProtocolFeaturesRequest struct {
 func (r *SetProtocolFeaturesRequest) String() string {
 	return fmt.Sprintf("{%s}",
 		maskToString(protocolFeatureNames, r.Mask))
+}
+
+type U64Payload struct {
+	Num uint64
+}
+
+func (p *U64Payload) String() string {
+	return fmt.Sprintf("{%d}", p.Num)
 }
 
 /*
@@ -285,15 +321,19 @@ typedef union {
 } VhostUserPayload;
 */
 
-type VhostRingState struct {
-	Index uintptr
-	Num   uintptr
+type VhostVringState struct {
+	Index uint32
+	Num   uint32 // unsigned int?
+}
+
+func (s *VhostVringState) String() string {
+	return fmt.Sprintf("idx %d num %d", s.Index, s.Num)
 }
 
 type VhostVringAddr struct {
-	Index uintptr
+	Index uint32
 	/* Option flags. */
-	Flags uintptr
+	Flags uint32
 	/* Flag values: */
 	/* Whether log address is valid. If set enables logging. */
 	//#define VHOST_VRING_F_LOG 0
@@ -310,11 +350,72 @@ type VhostVringAddr struct {
 	LogGuestAddr uint64
 }
 
+func (a *VhostVringAddr) String() string {
+	return fmt.Sprintf("idx %d flags %x Desc %x Used %x Avail %x LogGuest %x",
+		a.Index, a.Flags, a.DescUserAddr, a.UsedUserAddr,
+		a.AvailUserAddr, a.LogGuestAddr)
+}
+
+// virtio_ring.h
+
+// must be aligned on 4 bytes, but that's automatic?
+type VringUsedElement struct {
+	ID  uint32
+	Len uint32
+}
+
+// aligned 4 bytes
+type VringUsed struct {
+	Flags uint16
+	Idx   uint16
+	Ring0 VringUsedElement
+}
+
+// qemu:include/standard-headers/linux/virtio_ring.h
+const (
+	/* This marks a buffer as continuing via the next field. */
+	VRING_DESC_F_NEXT = 1
+	/* This marks a buffer as write-only (otherwise read-only). */
+	VRING_DESC_F_WRITE = 2
+	/* This means the buffer contains a list of buffer descriptors. */
+	VRING_DESC_F_INDIRECT = 4
+)
+
+var vringDescNames = map[int]string{
+	0: "NEXT",
+	1: "WRITE",
+	2: "INDIRECT",
+}
+
+// Aligned 16 byte
+type VringDesc struct {
+	Addr  uint64
+	Len   uint32
+	Flags uint16
+	Next  uint16
+}
+
+func (d *VringDesc) String() string {
+	return fmt.Sprintf("[0x%x,+0x%x) %s next %d", d.Addr, d.Len, maskToString(vringDescNames, uint64(d.Flags)), d.Next)
+}
+
+// aligned on 2 bytes
+type VringAvail struct {
+	Flags uint16
+	Idx   uint16
+	Ring0 uint16
+}
+
 type VhostUserMemoryRegion struct {
 	GuestPhysAddr uint64
 	MemorySize    uint64
-	UserspaceAddr uint64
+	DriverAddr    uint64
 	MmapOffset    uint64
+}
+
+func (r *VhostUserMemoryRegion) String() string {
+	return fmt.Sprintf("Guest [0x%x,+0x%x) Driver %x MmapOff %x",
+		r.GuestPhysAddr, r.MemorySize, r.DriverAddr, r.MmapOffset)
 }
 
 type VhostUserMemory struct {

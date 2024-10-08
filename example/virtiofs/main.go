@@ -32,8 +32,8 @@ func main() {
 			break
 		}
 
-		dev := vhostuser.FSDevice{}
-		srv := vhostuser.NewServer(conn, &dev)
+		dev := vhostuser.NewFSDevice()
+		srv := vhostuser.NewServer(conn, dev)
 		if err := srv.Serve(); err != nil {
 			log.Printf("Serve: %v %T", err, err)
 		}
