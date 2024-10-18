@@ -86,7 +86,7 @@ const (
 ////////////////////////////////////////////////////////////////
 
 func doInit(server *Server, req *request) {
-	input := (*InitIn)(req.inData)
+	input := (*InitIn)(req.inData())
 	if input.Major != _FUSE_KERNEL_VERSION {
 		log.Printf("Major versions does not match. Given %d, want %d\n", input.Major, _FUSE_KERNEL_VERSION)
 		req.status = EIO
@@ -176,7 +176,7 @@ func doInit(server *Server, req *request) {
 
 func doOpen(server *Server, req *request) {
 	out := (*OpenOut)(req.outData())
-	status := server.fileSystem.Open(req.cancel, (*OpenIn)(req.inData), out)
+	status := server.fileSystem.Open(req.cancel, (*OpenIn)(req.inData()), out)
 	req.status = status
 	if status != OK {
 		return
@@ -185,12 +185,12 @@ func doOpen(server *Server, req *request) {
 
 func doCreate(server *Server, req *request) {
 	out := (*CreateOut)(req.outData())
-	status := server.fileSystem.Create(req.cancel, (*CreateIn)(req.inData), req.filenames[0], out)
+	status := server.fileSystem.Create(req.cancel, (*CreateIn)(req.inData()), req.filenames[0], out)
 	req.status = status
 }
 
 func doReadDir(server *Server, req *request) {
-	in := (*ReadIn)(req.inData)
+	in := (*ReadIn)(req.inData())
 	buf := server.allocOut(req, in.Size)
 	out := NewDirEntryList(buf, uint64(in.Offset))
 
@@ -200,7 +200,7 @@ func doReadDir(server *Server, req *request) {
 }
 
 func doReadDirPlus(server *Server, req *request) {
-	in := (*ReadIn)(req.inData)
+	in := (*ReadIn)(req.inData())
 	buf := server.allocOut(req, in.Size)
 	out := NewDirEntryList(buf, uint64(in.Offset))
 
@@ -211,24 +211,24 @@ func doReadDirPlus(server *Server, req *request) {
 
 func doOpenDir(server *Server, req *request) {
 	out := (*OpenOut)(req.outData())
-	status := server.fileSystem.OpenDir(req.cancel, (*OpenIn)(req.inData), out)
+	status := server.fileSystem.OpenDir(req.cancel, (*OpenIn)(req.inData()), out)
 	req.status = status
 }
 
 func doSetattr(server *Server, req *request) {
 	out := (*AttrOut)(req.outData())
-	req.status = server.fileSystem.SetAttr(req.cancel, (*SetAttrIn)(req.inData), out)
+	req.status = server.fileSystem.SetAttr(req.cancel, (*SetAttrIn)(req.inData()), out)
 }
 
 func doWrite(server *Server, req *request) {
-	n, status := server.fileSystem.Write(req.cancel, (*WriteIn)(req.inData), req.arg)
+	n, status := server.fileSystem.Write(req.cancel, (*WriteIn)(req.inData()), req.arg)
 	o := (*WriteOut)(req.outData())
 	o.Size = n
 	req.status = status
 }
 
 func doNotifyReply(server *Server, req *request) {
-	reply := (*NotifyRetrieveIn)(req.inData)
+	reply := (*NotifyRetrieveIn)(req.inData())
 	server.retrieveMu.Lock()
 	reading := server.retrieveTab[reply.Unique]
 	delete(server.retrieveTab, reply.Unique)
@@ -284,7 +284,7 @@ func doGetXAttr(server *Server, req *request) {
 		}
 	}
 
-	input := (*GetXAttrIn)(req.inData)
+	input := (*GetXAttrIn)(req.inData())
 
 	req.flatData = server.allocOut(req, input.Size)
 	out := (*GetXAttrOut)(req.outData())
@@ -317,20 +317,20 @@ func doGetXAttr(server *Server, req *request) {
 
 func doGetAttr(server *Server, req *request) {
 	out := (*AttrOut)(req.outData())
-	s := server.fileSystem.GetAttr(req.cancel, (*GetAttrIn)(req.inData), out)
+	s := server.fileSystem.GetAttr(req.cancel, (*GetAttrIn)(req.inData()), out)
 	req.status = s
 }
 
 // doForget - forget one NodeId
 func doForget(server *Server, req *request) {
 	if !server.opts.RememberInodes {
-		server.fileSystem.Forget(req.inHeader().NodeId, (*ForgetIn)(req.inData).Nlookup)
+		server.fileSystem.Forget(req.inHeader().NodeId, (*ForgetIn)(req.inData()).Nlookup)
 	}
 }
 
 // doBatchForget - forget a list of NodeIds
 func doBatchForget(server *Server, req *request) {
-	in := (*_BatchForgetIn)(req.inData)
+	in := (*_BatchForgetIn)(req.inData())
 	wantBytes := uintptr(in.Count) * unsafe.Sizeof(_ForgetOne{})
 	if uintptr(len(req.arg)) < wantBytes {
 		// We have no return value to complain, so log an error.
@@ -364,12 +364,12 @@ func doLookup(server *Server, req *request) {
 func doMknod(server *Server, req *request) {
 	out := (*EntryOut)(req.outData())
 
-	req.status = server.fileSystem.Mknod(req.cancel, (*MknodIn)(req.inData), req.filenames[0], out)
+	req.status = server.fileSystem.Mknod(req.cancel, (*MknodIn)(req.inData()), req.filenames[0], out)
 }
 
 func doMkdir(server *Server, req *request) {
 	out := (*EntryOut)(req.outData())
-	req.status = server.fileSystem.Mkdir(req.cancel, (*MkdirIn)(req.inData), req.filenames[0], out)
+	req.status = server.fileSystem.Mkdir(req.cancel, (*MkdirIn)(req.inData()), req.filenames[0], out)
 }
 
 func doUnlink(server *Server, req *request) {
@@ -382,11 +382,11 @@ func doRmdir(server *Server, req *request) {
 
 func doLink(server *Server, req *request) {
 	out := (*EntryOut)(req.outData())
-	req.status = server.fileSystem.Link(req.cancel, (*LinkIn)(req.inData), req.filenames[0], out)
+	req.status = server.fileSystem.Link(req.cancel, (*LinkIn)(req.inData()), req.filenames[0], out)
 }
 
 func doRead(server *Server, req *request) {
-	in := (*ReadIn)(req.inData)
+	in := (*ReadIn)(req.inData())
 	buf := server.allocOut(req, in.Size)
 
 	req.readResult, req.status = server.fileSystem.Read(req.cancel, in, buf)
@@ -399,28 +399,28 @@ func doRead(server *Server, req *request) {
 }
 
 func doFlush(server *Server, req *request) {
-	req.status = server.fileSystem.Flush(req.cancel, (*FlushIn)(req.inData))
+	req.status = server.fileSystem.Flush(req.cancel, (*FlushIn)(req.inData()))
 }
 
 func doRelease(server *Server, req *request) {
-	server.fileSystem.Release(req.cancel, (*ReleaseIn)(req.inData))
+	server.fileSystem.Release(req.cancel, (*ReleaseIn)(req.inData()))
 }
 
 func doFsync(server *Server, req *request) {
-	req.status = server.fileSystem.Fsync(req.cancel, (*FsyncIn)(req.inData))
+	req.status = server.fileSystem.Fsync(req.cancel, (*FsyncIn)(req.inData()))
 }
 
 func doReleaseDir(server *Server, req *request) {
-	server.fileSystem.ReleaseDir((*ReleaseIn)(req.inData))
+	server.fileSystem.ReleaseDir((*ReleaseIn)(req.inData()))
 }
 
 func doFsyncDir(server *Server, req *request) {
-	req.status = server.fileSystem.FsyncDir(req.cancel, (*FsyncIn)(req.inData))
+	req.status = server.fileSystem.FsyncDir(req.cancel, (*FsyncIn)(req.inData()))
 }
 
 func doSetXAttr(server *Server, req *request) {
 	splits := bytes.SplitN(req.arg, []byte{0}, 2)
-	req.status = server.fileSystem.SetXAttr(req.cancel, (*SetXAttrIn)(req.inData), string(splits[0]), splits[1])
+	req.status = server.fileSystem.SetXAttr(req.cancel, (*SetXAttrIn)(req.inData()), string(splits[0]), splits[1])
 }
 
 func doRemoveXAttr(server *Server, req *request) {
@@ -428,7 +428,7 @@ func doRemoveXAttr(server *Server, req *request) {
 }
 
 func doAccess(server *Server, req *request) {
-	req.status = server.fileSystem.Access(req.cancel, (*AccessIn)(req.inData))
+	req.status = server.fileSystem.Access(req.cancel, (*AccessIn)(req.inData()))
 }
 
 func doSymlink(server *Server, req *request) {
@@ -441,7 +441,7 @@ func doRename(server *Server, req *request) {
 		doRename2(server, req)
 		return
 	}
-	in1 := (*Rename1In)(req.inData)
+	in1 := (*Rename1In)(req.inData())
 	in := RenameIn{
 		InHeader: in1.InHeader,
 		Newdir:   in1.Newdir,
@@ -450,7 +450,7 @@ func doRename(server *Server, req *request) {
 }
 
 func doRename2(server *Server, req *request) {
-	req.status = server.fileSystem.Rename(req.cancel, (*RenameIn)(req.inData), req.filenames[0], req.filenames[1])
+	req.status = server.fileSystem.Rename(req.cancel, (*RenameIn)(req.inData()), req.filenames[0], req.filenames[1])
 }
 
 func doStatFs(server *Server, req *request) {
@@ -473,36 +473,36 @@ func doDestroy(server *Server, req *request) {
 }
 
 func doFallocate(server *Server, req *request) {
-	req.status = server.fileSystem.Fallocate(req.cancel, (*FallocateIn)(req.inData))
+	req.status = server.fileSystem.Fallocate(req.cancel, (*FallocateIn)(req.inData()))
 }
 
 func doGetLk(server *Server, req *request) {
-	req.status = server.fileSystem.GetLk(req.cancel, (*LkIn)(req.inData), (*LkOut)(req.outData()))
+	req.status = server.fileSystem.GetLk(req.cancel, (*LkIn)(req.inData()), (*LkOut)(req.outData()))
 }
 
 func doSetLk(server *Server, req *request) {
-	req.status = server.fileSystem.SetLk(req.cancel, (*LkIn)(req.inData))
+	req.status = server.fileSystem.SetLk(req.cancel, (*LkIn)(req.inData()))
 }
 
 func doSetLkw(server *Server, req *request) {
-	req.status = server.fileSystem.SetLkw(req.cancel, (*LkIn)(req.inData))
+	req.status = server.fileSystem.SetLkw(req.cancel, (*LkIn)(req.inData()))
 }
 
 func doLseek(server *Server, req *request) {
-	in := (*LseekIn)(req.inData)
+	in := (*LseekIn)(req.inData())
 	out := (*LseekOut)(req.outData())
 	req.status = server.fileSystem.Lseek(req.cancel, in, out)
 }
 
 func doCopyFileRange(server *Server, req *request) {
-	in := (*CopyFileRangeIn)(req.inData)
+	in := (*CopyFileRangeIn)(req.inData())
 	out := (*WriteOut)(req.outData())
 
 	out.Size, req.status = server.fileSystem.CopyFileRange(req.cancel, in)
 }
 
 func doInterrupt(server *Server, req *request) {
-	input := (*InterruptIn)(req.inData)
+	input := (*InterruptIn)(req.inData())
 	server.reqMu.Lock()
 	defer server.reqMu.Unlock()
 

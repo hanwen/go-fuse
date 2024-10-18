@@ -344,14 +344,14 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 	if ms.latencies != nil {
 		req.startTime = time.Now()
 	}
+	ms.reqMu.Lock()
+	defer ms.reqMu.Unlock()
 	gobbled := req.setInput(dest[:n])
 	if len(req.inputBuf) < int(unsafe.Sizeof(InHeader{})) {
 		log.Printf("Short read for input header: %v", req.inputBuf)
 		return nil, EINVAL
 	}
 
-	ms.reqMu.Lock()
-	defer ms.reqMu.Unlock()
 	req.inflightIndex = len(ms.reqInflight)
 	ms.reqInflight = append(ms.reqInflight, req)
 	if !gobbled {
@@ -653,11 +653,9 @@ func (ms *Server) write(req *request) Status {
 }
 
 func newNotifyRequest(opcode uint32) *request {
-	return &request{
-		inData: unsafe.Pointer(&InHeader{
-			Opcode: opcode,
-		}),
-		handler: operationHandlers[opcode],
+	r := &request{
+		inputBuf: make([]byte, unsafe.Sizeof(InHeader{})),
+		handler:  operationHandlers[opcode],
 		status: map[uint32]Status{
 			_OP_NOTIFY_INVAL_INODE:    NOTIFY_INVAL_INODE,
 			_OP_NOTIFY_INVAL_ENTRY:    NOTIFY_INVAL_ENTRY,
@@ -666,7 +664,8 @@ func newNotifyRequest(opcode uint32) *request {
 			_OP_NOTIFY_DELETE:         NOTIFY_DELETE,
 		}[opcode],
 	}
-
+	r.inHeader().Opcode = opcode
+	return r
 }
 
 // InodeNotify invalidates the information associated with the inode

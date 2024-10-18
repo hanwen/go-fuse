@@ -27,8 +27,7 @@ type request struct {
 	inputBuf []byte
 
 	// These split up inputBuf.
-	inData unsafe.Pointer // pointer to the XxxIn data
-	arg    []byte         // argument to the operation, eg. data to write.
+	arg []byte // argument to the operation, eg. data to write.
 
 	filenames []string // filename arguments
 
@@ -63,12 +62,11 @@ type request struct {
 }
 
 func (r *request) inHeader() *InHeader {
-	return (*InHeader)(r.inData)
+	return (*InHeader)(r.inData())
 }
 
 func (r *request) clear() {
 	r.inputBuf = nil
-	r.inData = nil
 	r.arg = nil
 	r.filenames = nil
 	r.status = OK
@@ -82,7 +80,7 @@ func (r *request) clear() {
 func (r *request) InputDebug() string {
 	val := ""
 	if r.handler != nil && r.handler.DecodeIn != nil {
-		val = fmt.Sprintf("%v ", Print(r.handler.DecodeIn(r.inData)))
+		val = fmt.Sprintf("%v ", Print(r.handler.DecodeIn(r.inData())))
 	}
 
 	names := ""
@@ -164,8 +162,11 @@ func (r *request) setInput(input []byte) bool {
 	return true
 }
 
+func (r *request) inData() unsafe.Pointer {
+	return unsafe.Pointer(&r.inputBuf[0])
+}
+
 func (r *request) parse(kernelSettings *InitIn) {
-	r.inData = unsafe.Pointer(&r.inputBuf[0])
 	r.handler = getHandler(r.inHeader().Opcode)
 	if r.handler == nil {
 		log.Printf("Unknown opcode %d", r.inHeader().Opcode)
@@ -242,7 +243,7 @@ func (r *request) serializeHeader(flatDataSize int) (header []byte) {
 	// structured GetXAttrOut, no flat data) and get/list xattr data
 	// (return no structured data, but only flat data)
 	if r.inHeader().Opcode == _OP_GETXATTR || r.inHeader().Opcode == _OP_LISTXATTR {
-		if (*GetXAttrIn)(r.inData).Size != 0 {
+		if (*GetXAttrIn)(r.inData()).Size != 0 {
 			dataLength = 0
 		}
 	}
