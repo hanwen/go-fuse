@@ -275,7 +275,7 @@ func doGetXAttr(server *Server, req *request) {
 		return
 	}
 
-	if server.opts.IgnoreSecurityLabels && req.inHeader.Opcode == _OP_GETXATTR {
+	if server.opts.IgnoreSecurityLabels && req.inHeader().Opcode == _OP_GETXATTR {
 		fn := req.filenames[0]
 		if fn == _SECURITY_CAPABILITY || fn == _SECURITY_ACL_DEFAULT ||
 			fn == _SECURITY_ACL {
@@ -290,11 +290,11 @@ func doGetXAttr(server *Server, req *request) {
 	out := (*GetXAttrOut)(req.outData())
 
 	var n uint32
-	switch req.inHeader.Opcode {
+	switch req.inHeader().Opcode {
 	case _OP_GETXATTR:
-		n, req.status = server.fileSystem.GetXAttr(req.cancel, req.inHeader, req.filenames[0], req.flatData)
+		n, req.status = server.fileSystem.GetXAttr(req.cancel, req.inHeader(), req.filenames[0], req.flatData)
 	case _OP_LISTXATTR:
-		n, req.status = server.fileSystem.ListXAttr(req.cancel, req.inHeader, req.flatData)
+		n, req.status = server.fileSystem.ListXAttr(req.cancel, req.inHeader(), req.flatData)
 	default:
 		req.status = ENOSYS
 	}
@@ -324,7 +324,7 @@ func doGetAttr(server *Server, req *request) {
 // doForget - forget one NodeId
 func doForget(server *Server, req *request) {
 	if !server.opts.RememberInodes {
-		server.fileSystem.Forget(req.inHeader.NodeId, (*ForgetIn)(req.inData).Nlookup)
+		server.fileSystem.Forget(req.inHeader().NodeId, (*ForgetIn)(req.inData).Nlookup)
 	}
 }
 
@@ -342,7 +342,7 @@ func doBatchForget(server *Server, req *request) {
 	for i, f := range forgets {
 		if server.opts.Debug {
 			server.opts.Logger.Printf("doBatchForget: rx %d %d/%d: FORGET n%d {Nlookup=%d}",
-				req.inHeader.Unique, i+1, len(forgets), f.NodeId, f.Nlookup)
+				req.inHeader().Unique, i+1, len(forgets), f.NodeId, f.Nlookup)
 		}
 		if f.NodeId == pollHackInode {
 			continue
@@ -352,12 +352,12 @@ func doBatchForget(server *Server, req *request) {
 }
 
 func doReadlink(server *Server, req *request) {
-	req.flatData, req.status = server.fileSystem.Readlink(req.cancel, req.inHeader)
+	req.flatData, req.status = server.fileSystem.Readlink(req.cancel, req.inHeader())
 }
 
 func doLookup(server *Server, req *request) {
 	out := (*EntryOut)(req.outData())
-	s := server.fileSystem.Lookup(req.cancel, req.inHeader, req.filenames[0], out)
+	s := server.fileSystem.Lookup(req.cancel, req.inHeader(), req.filenames[0], out)
 	req.status = s
 }
 
@@ -373,11 +373,11 @@ func doMkdir(server *Server, req *request) {
 }
 
 func doUnlink(server *Server, req *request) {
-	req.status = server.fileSystem.Unlink(req.cancel, req.inHeader, req.filenames[0])
+	req.status = server.fileSystem.Unlink(req.cancel, req.inHeader(), req.filenames[0])
 }
 
 func doRmdir(server *Server, req *request) {
-	req.status = server.fileSystem.Rmdir(req.cancel, req.inHeader, req.filenames[0])
+	req.status = server.fileSystem.Rmdir(req.cancel, req.inHeader(), req.filenames[0])
 }
 
 func doLink(server *Server, req *request) {
@@ -424,7 +424,7 @@ func doSetXAttr(server *Server, req *request) {
 }
 
 func doRemoveXAttr(server *Server, req *request) {
-	req.status = server.fileSystem.RemoveXAttr(req.cancel, req.inHeader, req.filenames[0])
+	req.status = server.fileSystem.RemoveXAttr(req.cancel, req.inHeader(), req.filenames[0])
 }
 
 func doAccess(server *Server, req *request) {
@@ -433,7 +433,7 @@ func doAccess(server *Server, req *request) {
 
 func doSymlink(server *Server, req *request) {
 	out := (*EntryOut)(req.outData())
-	req.status = server.fileSystem.Symlink(req.cancel, req.inHeader, req.filenames[1], req.filenames[0], out)
+	req.status = server.fileSystem.Symlink(req.cancel, req.inHeader(), req.filenames[1], req.filenames[0], out)
 }
 
 func doRename(server *Server, req *request) {
@@ -455,7 +455,7 @@ func doRename2(server *Server, req *request) {
 
 func doStatFs(server *Server, req *request) {
 	out := (*StatfsOut)(req.outData())
-	req.status = server.fileSystem.StatFs(req.cancel, req.inHeader, out)
+	req.status = server.fileSystem.StatFs(req.cancel, req.inHeader(), out)
 	if req.status == ENOSYS && runtime.GOOS == "darwin" {
 		// OSX FUSE requires Statfs to be implemented for the
 		// mount to succeed.
@@ -508,7 +508,7 @@ func doInterrupt(server *Server, req *request) {
 
 	// This is slow, but this operation is rare.
 	for _, inflight := range server.reqInflight {
-		if input.Unique == inflight.inHeader.Unique && !inflight.interrupted {
+		if input.Unique == inflight.inHeader().Unique && !inflight.interrupted {
 			close(inflight.cancel)
 			inflight.interrupted = true
 			req.status = OK

@@ -345,13 +345,13 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 		req.startTime = time.Now()
 	}
 	gobbled := req.setInput(dest[:n])
+	if len(req.inputBuf) < int(unsafe.Sizeof(InHeader{})) {
+		log.Printf("Short read for input header: %v", req.inputBuf)
+		return nil, EINVAL
+	}
 
 	ms.reqMu.Lock()
 	defer ms.reqMu.Unlock()
-	// Must parse request.Unique under lock
-	if status := req.parseHeader(); !status.Ok() {
-		return nil, status
-	}
 	req.inflightIndex = len(ms.reqInflight)
 	ms.reqInflight = append(ms.reqInflight, req)
 	if !gobbled {
@@ -404,7 +404,7 @@ func (ms *Server) returnRequest(req *request) {
 func (ms *Server) recordStats(req *request) {
 	if ms.latencies != nil {
 		dt := time.Now().Sub(req.startTime)
-		opname := operationName(req.inHeader.Opcode)
+		opname := operationName(req.inHeader().Opcode)
 		ms.latencies.Add(opname, dt)
 	}
 }
@@ -564,11 +564,11 @@ func (ms *Server) handleRequest(req *request) Status {
 		ms.opts.Logger.Println(req.InputDebug())
 	}
 
-	if req.inHeader.NodeId == pollHackInode ||
-		req.inHeader.NodeId == FUSE_ROOT_ID && len(req.filenames) > 0 && req.filenames[0] == pollHackName {
+	if req.inHeader().NodeId == pollHackInode ||
+		req.inHeader().NodeId == FUSE_ROOT_ID && len(req.filenames) > 0 && req.filenames[0] == pollHackName {
 		doPollHackLookup(ms, req)
 	} else if req.status.Ok() && req.handler.Func == nil {
-		ms.opts.Logger.Printf("Unimplemented opcode %v", operationName(req.inHeader.Opcode))
+		ms.opts.Logger.Printf("Unimplemented opcode %v", operationName(req.inHeader().Opcode))
 		req.status = ENOSYS
 	} else if req.status.Ok() {
 		req.handler.Func(ms, req)
@@ -587,10 +587,10 @@ func (ms *Server) handleRequest(req *request) Status {
 		// RELEASE. This is because RELEASE is analogous to
 		// FORGET, and is not synchronized with the calling
 		// process, but does require a response.
-		if ms.opts.Debug || !(errNo == ENOENT && (req.inHeader.Opcode == _OP_INTERRUPT ||
-			req.inHeader.Opcode == _OP_RELEASE)) {
+		if ms.opts.Debug || !(errNo == ENOENT && (req.inHeader().Opcode == _OP_INTERRUPT ||
+			req.inHeader().Opcode == _OP_RELEASE)) {
 			ms.opts.Logger.Printf("writer: Write/Writev failed, err: %v. opcode: %v",
-				errNo, operationName(req.inHeader.Opcode))
+				errNo, operationName(req.inHeader().Opcode))
 		}
 	}
 	ms.returnRequest(req)
@@ -623,7 +623,7 @@ func (ms *Server) allocOut(req *request, size uint32) []byte {
 
 func (ms *Server) write(req *request) Status {
 	// Forget/NotifyReply do not wait for reply from filesystem server.
-	switch req.inHeader.Opcode {
+	switch req.inHeader().Opcode {
 	case _OP_FORGET, _OP_BATCH_FORGET, _OP_NOTIFY_REPLY:
 		return OK
 	case _OP_INTERRUPT:
@@ -654,9 +654,9 @@ func (ms *Server) write(req *request) Status {
 
 func newNotifyRequest(opcode uint32) *request {
 	return &request{
-		inHeader: &InHeader{
+		inData: unsafe.Pointer(&InHeader{
 			Opcode: opcode,
-		},
+		}),
 		handler: operationHandlers[opcode],
 		status: map[uint32]Status{
 			_OP_NOTIFY_INVAL_INODE:    NOTIFY_INVAL_INODE,

@@ -27,9 +27,8 @@ type request struct {
 	inputBuf []byte
 
 	// These split up inputBuf.
-	inHeader *InHeader      // generic header
-	inData   unsafe.Pointer // per op data
-	arg      []byte         // flat data.
+	inData unsafe.Pointer // pointer to the XxxIn data
+	arg    []byte         // argument to the operation, eg. data to write.
 
 	filenames []string // filename arguments
 
@@ -63,9 +62,12 @@ type request struct {
 	smallInputBuf [128]byte
 }
 
+func (r *request) inHeader() *InHeader {
+	return (*InHeader)(r.inData)
+}
+
 func (r *request) clear() {
 	r.inputBuf = nil
-	r.inHeader = nil
 	r.inData = nil
 	r.arg = nil
 	r.filenames = nil
@@ -104,8 +106,8 @@ func (r *request) InputDebug() string {
 	}
 
 	return fmt.Sprintf("rx %d: %s n%d %s%s p%d",
-		r.inHeader.Unique, operationName(r.inHeader.Opcode), r.inHeader.NodeId,
-		val, names, r.inHeader.Caller.Pid)
+		r.inHeader().Unique, operationName(r.inHeader().Opcode), r.inHeader().NodeId,
+		val, names, r.inHeader().Caller.Pid)
 }
 
 func (r *request) OutputDebug() string {
@@ -146,7 +148,7 @@ func (r *request) OutputDebug() string {
 		extraStr = ", " + extraStr
 	}
 	return fmt.Sprintf("tx %d:     %v%s",
-		r.inHeader.Unique, r.status, extraStr)
+		r.inHeader().Unique, r.status, extraStr)
 }
 
 // setInput returns true if it takes ownership of the argument, false if not.
@@ -162,49 +164,38 @@ func (r *request) setInput(input []byte) bool {
 	return true
 }
 
-func (r *request) parseHeader() Status {
-	if len(r.inputBuf) < int(unsafe.Sizeof(InHeader{})) {
-		log.Printf("Short read for input header: %v", r.inputBuf)
-		return EINVAL
-	}
-
-	r.inHeader = (*InHeader)(unsafe.Pointer(&r.inputBuf[0]))
-	return OK
-}
-
 func (r *request) parse(kernelSettings *InitIn) {
-	r.arg = r.inputBuf[:]
-	r.handler = getHandler(r.inHeader.Opcode)
+	r.inData = unsafe.Pointer(&r.inputBuf[0])
+	r.handler = getHandler(r.inHeader().Opcode)
 	if r.handler == nil {
-		log.Printf("Unknown opcode %d", r.inHeader.Opcode)
+		log.Printf("Unknown opcode %d", r.inHeader().Opcode)
 		r.status = ENOSYS
 		return
 	}
 
 	inSz := int(r.handler.InputSize)
-	if r.inHeader.Opcode == _OP_RENAME && kernelSettings.supportsRenameSwap() {
+	if r.inHeader().Opcode == _OP_RENAME && kernelSettings.supportsRenameSwap() {
 		inSz = int(unsafe.Sizeof(RenameIn{}))
 	}
-	if r.inHeader.Opcode == _OP_INIT && inSz > len(r.arg) {
+	if r.inHeader().Opcode == _OP_INIT && inSz > len(r.arg) {
 		// Minor version 36 extended the size of InitIn struct
-		inSz = len(r.arg)
+		inSz = len(r.inputBuf)
 	}
-	if len(r.arg) < inSz {
-		log.Printf("Short read for %v: %v", operationName(r.inHeader.Opcode), r.arg)
+	if len(r.inputBuf) < inSz {
+		log.Printf("Short read for %v: %q", operationName(r.inHeader().Opcode), r.inputBuf)
 		r.status = EIO
 		return
 	}
 
 	if r.handler.InputSize > 0 {
-		r.inData = unsafe.Pointer(&r.arg[0])
-		r.arg = r.arg[inSz:]
+		r.arg = r.inputBuf[inSz:]
 	} else {
-		r.arg = r.arg[unsafe.Sizeof(InHeader{}):]
+		r.arg = r.inputBuf[unsafe.Sizeof(InHeader{}):]
 	}
 
 	count := r.handler.FileNames
 	if count > 0 {
-		if count == 1 && r.inHeader.Opcode == _OP_SETXATTR {
+		if count == 1 && r.inHeader().Opcode == _OP_SETXATTR {
 			// SETXATTR is special: the only opcode with a file name AND a
 			// binary argument.
 			splits := bytes.SplitN(r.arg, []byte{0}, 2)
@@ -250,7 +241,7 @@ func (r *request) serializeHeader(flatDataSize int) (header []byte) {
 	// [GET|LIST]XATTR is two opcodes in one: get/list xattr size (return
 	// structured GetXAttrOut, no flat data) and get/list xattr data
 	// (return no structured data, but only flat data)
-	if r.inHeader.Opcode == _OP_GETXATTR || r.inHeader.Opcode == _OP_LISTXATTR {
+	if r.inHeader().Opcode == _OP_GETXATTR || r.inHeader().Opcode == _OP_LISTXATTR {
 		if (*GetXAttrIn)(r.inData).Size != 0 {
 			dataLength = 0
 		}
@@ -258,7 +249,7 @@ func (r *request) serializeHeader(flatDataSize int) (header []byte) {
 
 	header = r.outBuf[:sizeOfOutHeader+dataLength]
 	o := (*OutHeader)(unsafe.Pointer(&header[0]))
-	o.Unique = r.inHeader.Unique
+	o.Unique = r.inHeader().Unique
 	o.Status = int32(-r.status)
 	o.Length = uint32(
 		int(sizeOfOutHeader) + int(dataLength) + flatDataSize)
