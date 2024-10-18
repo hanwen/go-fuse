@@ -110,8 +110,8 @@ func TestNodeParallelLookup(t *testing.T) {
 
 	// wait till both threads queue into Lookup
 	expect := map[string]struct{}{ // set of expected lookups
-		"hello": struct{}{},
-		"world": struct{}{},
+		"hello": {},
+		"world": {},
 	}
 loop:
 	for len(expect) > 0 {
