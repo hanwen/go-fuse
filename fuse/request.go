@@ -172,7 +172,7 @@ func (r *request) parseHeader() Status {
 	return OK
 }
 
-func (r *request) parse(kernelSettings InitIn) {
+func (r *request) parse(kernelSettings *InitIn) {
 	r.arg = r.inputBuf[:]
 	r.handler = getHandler(r.inHeader.Opcode)
 	if r.handler == nil {

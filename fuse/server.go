@@ -555,7 +555,7 @@ func (ms *Server) handleRequest(req *request) Status {
 		defer ms.requestProcessingMu.Unlock()
 	}
 
-	req.parse(ms.kernelSettings)
+	req.parse(&ms.kernelSettings)
 	if req.handler == nil {
 		req.status = ENOSYS
 	}
