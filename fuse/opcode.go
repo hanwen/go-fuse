@@ -527,12 +527,13 @@ type operationFunc func(*Server, *request)
 type castPointerFunc func(unsafe.Pointer) interface{}
 
 type operationHandler struct {
-	Name        string
-	Func        operationFunc
-	InputSize   uintptr
-	OutputSize  uintptr
-	DecodeIn    castPointerFunc
-	DecodeOut   castPointerFunc
+	Name       string
+	Func       operationFunc
+	InputSize  uintptr
+	OutputSize uintptr
+
+	InType      interface{}
+	OutType     interface{}
 	FileNames   int
 	FileNameOut bool
 }
@@ -753,69 +754,69 @@ func init() {
 	}
 
 	// Outputs.
-	for op, f := range map[uint32]castPointerFunc{
-		_OP_LOOKUP:                func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
-		_OP_OPEN:                  func(ptr unsafe.Pointer) interface{} { return (*OpenOut)(ptr) },
-		_OP_OPENDIR:               func(ptr unsafe.Pointer) interface{} { return (*OpenOut)(ptr) },
-		_OP_GETATTR:               func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
-		_OP_CREATE:                func(ptr unsafe.Pointer) interface{} { return (*CreateOut)(ptr) },
-		_OP_LINK:                  func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
-		_OP_SETATTR:               func(ptr unsafe.Pointer) interface{} { return (*AttrOut)(ptr) },
-		_OP_INIT:                  func(ptr unsafe.Pointer) interface{} { return (*InitOut)(ptr) },
-		_OP_MKDIR:                 func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
-		_OP_MKNOD:                 func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
-		_OP_NOTIFY_INVAL_ENTRY:    func(ptr unsafe.Pointer) interface{} { return (*NotifyInvalEntryOut)(ptr) },
-		_OP_NOTIFY_INVAL_INODE:    func(ptr unsafe.Pointer) interface{} { return (*NotifyInvalInodeOut)(ptr) },
-		_OP_NOTIFY_STORE_CACHE:    func(ptr unsafe.Pointer) interface{} { return (*NotifyStoreOut)(ptr) },
-		_OP_NOTIFY_RETRIEVE_CACHE: func(ptr unsafe.Pointer) interface{} { return (*NotifyRetrieveOut)(ptr) },
-		_OP_NOTIFY_DELETE:         func(ptr unsafe.Pointer) interface{} { return (*NotifyInvalDeleteOut)(ptr) },
-		_OP_STATFS:                func(ptr unsafe.Pointer) interface{} { return (*StatfsOut)(ptr) },
-		_OP_SYMLINK:               func(ptr unsafe.Pointer) interface{} { return (*EntryOut)(ptr) },
-		_OP_GETLK:                 func(ptr unsafe.Pointer) interface{} { return (*LkOut)(ptr) },
-		_OP_LSEEK:                 func(ptr unsafe.Pointer) interface{} { return (*LseekOut)(ptr) },
-		_OP_COPY_FILE_RANGE:       func(ptr unsafe.Pointer) interface{} { return (*WriteOut)(ptr) },
+	for op, f := range map[uint32]interface{}{
+		_OP_LOOKUP:                EntryOut{},
+		_OP_OPEN:                  OpenOut{},
+		_OP_OPENDIR:               OpenOut{},
+		_OP_GETATTR:               AttrOut{},
+		_OP_CREATE:                CreateOut{},
+		_OP_LINK:                  EntryOut{},
+		_OP_SETATTR:               AttrOut{},
+		_OP_INIT:                  InitOut{},
+		_OP_MKDIR:                 EntryOut{},
+		_OP_MKNOD:                 EntryOut{},
+		_OP_NOTIFY_INVAL_ENTRY:    NotifyInvalEntryOut{},
+		_OP_NOTIFY_INVAL_INODE:    NotifyInvalInodeOut{},
+		_OP_NOTIFY_STORE_CACHE:    NotifyStoreOut{},
+		_OP_NOTIFY_RETRIEVE_CACHE: NotifyRetrieveOut{},
+		_OP_NOTIFY_DELETE:         NotifyInvalDeleteOut{},
+		_OP_STATFS:                StatfsOut{},
+		_OP_SYMLINK:               EntryOut{},
+		_OP_GETLK:                 LkOut{},
+		_OP_LSEEK:                 LseekOut{},
+		_OP_COPY_FILE_RANGE:       WriteOut{},
 	} {
-		operationHandlers[op].DecodeOut = f
+		operationHandlers[op].OutType = f
 	}
 
 	// Inputs.
-	for op, f := range map[uint32]castPointerFunc{
-		_OP_FLUSH:           func(ptr unsafe.Pointer) interface{} { return (*FlushIn)(ptr) },
-		_OP_GETATTR:         func(ptr unsafe.Pointer) interface{} { return (*GetAttrIn)(ptr) },
-		_OP_SETXATTR:        func(ptr unsafe.Pointer) interface{} { return (*SetXAttrIn)(ptr) },
-		_OP_GETXATTR:        func(ptr unsafe.Pointer) interface{} { return (*GetXAttrIn)(ptr) },
-		_OP_LISTXATTR:       func(ptr unsafe.Pointer) interface{} { return (*GetXAttrIn)(ptr) },
-		_OP_SETATTR:         func(ptr unsafe.Pointer) interface{} { return (*SetAttrIn)(ptr) },
-		_OP_INIT:            func(ptr unsafe.Pointer) interface{} { return (*InitIn)(ptr) },
-		_OP_IOCTL:           func(ptr unsafe.Pointer) interface{} { return (*_IoctlIn)(ptr) },
-		_OP_OPEN:            func(ptr unsafe.Pointer) interface{} { return (*OpenIn)(ptr) },
-		_OP_OPENDIR:         func(ptr unsafe.Pointer) interface{} { return (*OpenIn)(ptr) },
-		_OP_MKNOD:           func(ptr unsafe.Pointer) interface{} { return (*MknodIn)(ptr) },
-		_OP_CREATE:          func(ptr unsafe.Pointer) interface{} { return (*CreateIn)(ptr) },
-		_OP_READ:            func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
-		_OP_WRITE:           func(ptr unsafe.Pointer) interface{} { return (*WriteIn)(ptr) },
-		_OP_READDIR:         func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
-		_OP_FSYNCDIR:        func(ptr unsafe.Pointer) interface{} { return (*FsyncIn)(ptr) },
-		_OP_ACCESS:          func(ptr unsafe.Pointer) interface{} { return (*AccessIn)(ptr) },
-		_OP_FORGET:          func(ptr unsafe.Pointer) interface{} { return (*ForgetIn)(ptr) },
-		_OP_BATCH_FORGET:    func(ptr unsafe.Pointer) interface{} { return (*_BatchForgetIn)(ptr) },
-		_OP_LINK:            func(ptr unsafe.Pointer) interface{} { return (*LinkIn)(ptr) },
-		_OP_MKDIR:           func(ptr unsafe.Pointer) interface{} { return (*MkdirIn)(ptr) },
-		_OP_RELEASE:         func(ptr unsafe.Pointer) interface{} { return (*ReleaseIn)(ptr) },
-		_OP_RELEASEDIR:      func(ptr unsafe.Pointer) interface{} { return (*ReleaseIn)(ptr) },
-		_OP_FALLOCATE:       func(ptr unsafe.Pointer) interface{} { return (*FallocateIn)(ptr) },
-		_OP_NOTIFY_REPLY:    func(ptr unsafe.Pointer) interface{} { return (*NotifyRetrieveIn)(ptr) },
-		_OP_READDIRPLUS:     func(ptr unsafe.Pointer) interface{} { return (*ReadIn)(ptr) },
-		_OP_RENAME:          func(ptr unsafe.Pointer) interface{} { return (*Rename1In)(ptr) },
-		_OP_GETLK:           func(ptr unsafe.Pointer) interface{} { return (*LkIn)(ptr) },
-		_OP_SETLK:           func(ptr unsafe.Pointer) interface{} { return (*LkIn)(ptr) },
-		_OP_SETLKW:          func(ptr unsafe.Pointer) interface{} { return (*LkIn)(ptr) },
-		_OP_RENAME2:         func(ptr unsafe.Pointer) interface{} { return (*RenameIn)(ptr) },
-		_OP_INTERRUPT:       func(ptr unsafe.Pointer) interface{} { return (*InterruptIn)(ptr) },
-		_OP_LSEEK:           func(ptr unsafe.Pointer) interface{} { return (*LseekIn)(ptr) },
-		_OP_COPY_FILE_RANGE: func(ptr unsafe.Pointer) interface{} { return (*CopyFileRangeIn)(ptr) },
+	for op, f := range map[uint32]interface{}{
+		_OP_FLUSH:           FlushIn{},
+		_OP_GETATTR:         GetAttrIn{},
+		_OP_SETXATTR:        SetXAttrIn{},
+		_OP_GETXATTR:        GetXAttrIn{},
+		_OP_LISTXATTR:       GetXAttrIn{},
+		_OP_SETATTR:         SetAttrIn{},
+		_OP_INIT:            InitIn{},
+		_OP_IOCTL:           _IoctlIn{},
+		_OP_OPEN:            OpenIn{},
+		_OP_OPENDIR:         OpenIn{},
+		_OP_MKNOD:           MknodIn{},
+		_OP_CREATE:          CreateIn{},
+		_OP_READ:            ReadIn{},
+		_OP_WRITE:           WriteIn{},
+		_OP_READDIR:         ReadIn{},
+		_OP_FSYNCDIR:        FsyncIn{},
+		_OP_ACCESS:          AccessIn{},
+		_OP_FORGET:          ForgetIn{},
+		_OP_BATCH_FORGET:    _BatchForgetIn{},
+		_OP_LINK:            LinkIn{},
+		_OP_MKDIR:           MkdirIn{},
+		_OP_RELEASE:         ReleaseIn{},
+		_OP_RELEASEDIR:      ReleaseIn{},
+		_OP_FALLOCATE:       FallocateIn{},
+		_OP_NOTIFY_REPLY:    NotifyRetrieveIn{},
+		_OP_READDIRPLUS:     ReadIn{},
+		_OP_RENAME:          Rename1In{},
+		_OP_GETLK:           LkIn{},
+		_OP_SETLK:           LkIn{},
+		_OP_SETLKW:          LkIn{},
+		_OP_RENAME2:         RenameIn{},
+		_OP_INTERRUPT:       InterruptIn{},
+		_OP_LSEEK:           LseekIn{},
+		_OP_COPY_FILE_RANGE: CopyFileRangeIn{},
 	} {
-		operationHandlers[op].DecodeIn = f
+		operationHandlers[op].InType = f
 	}
 
 	// File name args.

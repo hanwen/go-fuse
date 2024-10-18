@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
 	"time"
 	"unsafe"
@@ -77,10 +78,14 @@ func (r *request) clear() {
 	r.readResult = nil
 }
 
+func asType(ptr unsafe.Pointer, typ interface{}) interface{} {
+	return reflect.NewAt(reflect.ValueOf(typ).Type(), ptr).Interface()
+}
+
 func (r *request) InputDebug() string {
 	val := ""
-	if r.handler != nil && r.handler.DecodeIn != nil {
-		val = fmt.Sprintf("%v ", Print(r.handler.DecodeIn(r.inData())))
+	if r.handler != nil && r.handler.InType != nil {
+		val = Print(asType(r.inData(), r.handler.InType))
 	}
 
 	names := ""
@@ -110,8 +115,8 @@ func (r *request) InputDebug() string {
 
 func (r *request) OutputDebug() string {
 	var dataStr string
-	if r.handler != nil && r.handler.DecodeOut != nil && r.handler.OutputSize > 0 {
-		dataStr = Print(r.handler.DecodeOut(r.outData()))
+	if r.handler != nil && r.handler.OutType != nil && r.handler.OutputSize > 0 {
+		dataStr = Print(asType(r.outData(), r.handler.OutType))
 	}
 
 	max := 1024
