@@ -652,6 +652,23 @@ func (ms *Server) write(req *request) Status {
 	return s
 }
 
+func newNotifyRequest(opcode uint32) *request {
+	return &request{
+		inHeader: &InHeader{
+			Opcode: opcode,
+		},
+		handler: operationHandlers[opcode],
+		status: map[uint32]Status{
+			_OP_NOTIFY_INVAL_INODE:    NOTIFY_INVAL_INODE,
+			_OP_NOTIFY_INVAL_ENTRY:    NOTIFY_INVAL_ENTRY,
+			_OP_NOTIFY_STORE_CACHE:    NOTIFY_STORE_CACHE,
+			_OP_NOTIFY_RETRIEVE_CACHE: NOTIFY_RETRIEVE_CACHE,
+			_OP_NOTIFY_DELETE:         NOTIFY_DELETE,
+		}[opcode],
+	}
+
+}
+
 // InodeNotify invalidates the information associated with the inode
 // (ie. data cache, attributes, etc.)
 func (ms *Server) InodeNotify(node uint64, off int64, length int64) Status {
@@ -659,13 +676,7 @@ func (ms *Server) InodeNotify(node uint64, off int64, length int64) Status {
 		return ENOSYS
 	}
 
-	req := request{
-		inHeader: &InHeader{
-			Opcode: _OP_NOTIFY_INVAL_INODE,
-		},
-		handler: operationHandlers[_OP_NOTIFY_INVAL_INODE],
-		status:  NOTIFY_INVAL_INODE,
-	}
+	req := newNotifyRequest(_OP_NOTIFY_INVAL_INODE)
 
 	entry := (*NotifyInvalInodeOut)(req.outData())
 	entry.Ino = node
@@ -674,7 +685,7 @@ func (ms *Server) InodeNotify(node uint64, off int64, length int64) Status {
 
 	// Protect against concurrent close.
 	ms.writeMu.Lock()
-	result := ms.write(&req)
+	result := ms.write(req)
 	ms.writeMu.Unlock()
 
 	if ms.opts.Debug {
@@ -716,13 +727,7 @@ func (ms *Server) InodeNotifyStoreCache(node uint64, offset int64, data []byte) 
 // inodeNotifyStoreCache32 is internal worker for InodeNotifyStoreCache which
 // handles data chunks not larger than 2GB.
 func (ms *Server) inodeNotifyStoreCache32(node uint64, offset int64, data []byte) Status {
-	req := request{
-		inHeader: &InHeader{
-			Opcode: _OP_NOTIFY_STORE_CACHE,
-		},
-		handler: operationHandlers[_OP_NOTIFY_STORE_CACHE],
-		status:  NOTIFY_STORE_CACHE,
-	}
+	req := newNotifyRequest(_OP_NOTIFY_STORE_CACHE)
 
 	store := (*NotifyStoreOut)(req.outData())
 	store.Nodeid = node
@@ -733,7 +738,7 @@ func (ms *Server) inodeNotifyStoreCache32(node uint64, offset int64, data []byte
 
 	// Protect against concurrent close.
 	ms.writeMu.Lock()
-	result := ms.write(&req)
+	result := ms.write(req)
 	ms.writeMu.Unlock()
 
 	if ms.opts.Debug {
@@ -786,13 +791,7 @@ func (ms *Server) inodeRetrieveCache1(node uint64, offset int64, dest []byte) (n
 		return 0, ENOSYS
 	}
 
-	req := request{
-		inHeader: &InHeader{
-			Opcode: _OP_NOTIFY_RETRIEVE_CACHE,
-		},
-		handler: operationHandlers[_OP_NOTIFY_RETRIEVE_CACHE],
-		status:  NOTIFY_RETRIEVE_CACHE,
-	}
+	req := newNotifyRequest(_OP_NOTIFY_RETRIEVE_CACHE)
 
 	// retrieve up to 2GB not to overflow uint32 size in NotifyRetrieveOut.
 	// see InodeNotifyStoreCache in similar place for why it is only 2GB, not 4GB.
@@ -825,7 +824,7 @@ func (ms *Server) inodeRetrieveCache1(node uint64, offset int64, dest []byte) (n
 
 	// Protect against concurrent close.
 	ms.writeMu.Lock()
-	result := ms.write(&req)
+	result := ms.write(req)
 	ms.writeMu.Unlock()
 
 	if ms.opts.Debug {
@@ -878,13 +877,7 @@ func (ms *Server) DeleteNotify(parent uint64, child uint64, name string) Status 
 		return ms.EntryNotify(parent, name)
 	}
 
-	req := request{
-		inHeader: &InHeader{
-			Opcode: _OP_NOTIFY_DELETE,
-		},
-		handler: operationHandlers[_OP_NOTIFY_DELETE],
-		status:  NOTIFY_DELETE,
-	}
+	req := newNotifyRequest(_OP_NOTIFY_DELETE)
 
 	entry := (*NotifyInvalDeleteOut)(req.outData())
 	entry.Parent = parent
@@ -900,7 +893,7 @@ func (ms *Server) DeleteNotify(parent uint64, child uint64, name string) Status 
 
 	// Protect against concurrent close.
 	ms.writeMu.Lock()
-	result := ms.write(&req)
+	result := ms.write(req)
 	ms.writeMu.Unlock()
 
 	if ms.opts.Debug {
@@ -916,13 +909,7 @@ func (ms *Server) EntryNotify(parent uint64, name string) Status {
 	if !ms.kernelSettings.SupportsNotify(NOTIFY_INVAL_ENTRY) {
 		return ENOSYS
 	}
-	req := request{
-		inHeader: &InHeader{
-			Opcode: _OP_NOTIFY_INVAL_ENTRY,
-		},
-		handler: operationHandlers[_OP_NOTIFY_INVAL_ENTRY],
-		status:  NOTIFY_INVAL_ENTRY,
-	}
+	req := newNotifyRequest(_OP_NOTIFY_INVAL_ENTRY)
 	entry := (*NotifyInvalEntryOut)(req.outData())
 	entry.Parent = parent
 	entry.NameLen = uint32(len(name))
@@ -936,7 +923,7 @@ func (ms *Server) EntryNotify(parent uint64, name string) Status {
 
 	// Protect against concurrent close.
 	ms.writeMu.Lock()
-	result := ms.write(&req)
+	result := ms.write(req)
 	ms.writeMu.Unlock()
 
 	if ms.opts.Debug {
