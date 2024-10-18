@@ -26,7 +26,7 @@ func (s *Server) setSplice() {
 //  4. Splice data from "pair1" into "pair2"                   --> pair2: [header][payload]
 //  3. Splice the data from "pair2" into /dev/fuse
 //
-// This dance is neccessary because header and payload cannot be split across
+// This dance is necessary because header and payload cannot be split across
 // two splices and we cannot seek in a pipe buffer.
 func (ms *Server) trySplice(header []byte, req *request, fdData *readResultFd) error {
 	var err error
