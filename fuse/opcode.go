@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"reflect"
 	"runtime"
 	"syscall"
 	"time"
@@ -339,13 +338,7 @@ func doBatchForget(server *Server, req *request) {
 			len(req.arg), wantBytes, in.Count)
 	}
 
-	h := &reflect.SliceHeader{
-		Data: uintptr(unsafe.Pointer(&req.arg[0])),
-		Len:  int(in.Count),
-		Cap:  int(in.Count),
-	}
-
-	forgets := *(*[]_ForgetOne)(unsafe.Pointer(h))
+	forgets := unsafe.Slice((*_ForgetOne)(unsafe.Pointer(&req.arg[0])), in.Count)
 	for i, f := range forgets {
 		if server.opts.Debug {
 			server.opts.Logger.Printf("doBatchForget: rx %d %d/%d: FORGET n%d {Nlookup=%d}",
