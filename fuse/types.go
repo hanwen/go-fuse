@@ -580,27 +580,32 @@ type EntryOut struct {
 	Attr
 }
 
-// EntryTimeout returns entry timeout currently
+// EntryTimeout returns the timeout in nanoseconds for a directory
+// entry (existence or non-existence of a file within a directory).
 func (o *EntryOut) EntryTimeout() time.Duration {
 	return time.Duration(uint64(o.EntryValidNsec) + o.EntryValid*1e9)
 }
 
+// AttrTimeout returns the TTL in nanoseconds of the attribute data.
 func (o *EntryOut) AttrTimeout() time.Duration {
 	return time.Duration(uint64(o.AttrValidNsec) + o.AttrValid*1e9)
 }
 
+// SetEntryTimeout sets the entry TTL.
 func (o *EntryOut) SetEntryTimeout(dt time.Duration) {
 	ns := int64(dt)
 	o.EntryValidNsec = uint32(ns % 1e9)
 	o.EntryValid = uint64(ns / 1e9)
 }
 
+// SetAttrTimeout sets the attribute TTL.
 func (o *EntryOut) SetAttrTimeout(dt time.Duration) {
 	ns := int64(dt)
 	o.AttrValidNsec = uint32(ns % 1e9)
 	o.AttrValid = uint64(ns / 1e9)
 }
 
+// AttrOut is the type returned by the Getattr call.
 type AttrOut struct {
 	AttrValid     uint64
 	AttrValidNsec uint32
