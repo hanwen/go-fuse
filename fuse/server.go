@@ -556,7 +556,8 @@ func (ms *Server) handleRequest(req *request) Status {
 	}
 
 	req.parse(&ms.kernelSettings)
-	if req.handler == nil {
+	h := getHandler(req.inHeader().Opcode)
+	if h == nil {
 		req.status = ENOSYS
 	}
 
@@ -567,11 +568,11 @@ func (ms *Server) handleRequest(req *request) Status {
 	if req.inHeader().NodeId == pollHackInode ||
 		req.inHeader().NodeId == FUSE_ROOT_ID && len(req.filenames) > 0 && req.filenames[0] == pollHackName {
 		doPollHackLookup(ms, req)
-	} else if req.status.Ok() && req.handler.Func == nil {
+	} else if req.status.Ok() && h.Func == nil {
 		ms.opts.Logger.Printf("Unimplemented opcode %v", operationName(req.inHeader().Opcode))
 		req.status = ENOSYS
 	} else if req.status.Ok() {
-		req.handler.Func(ms, req)
+		h.Func(ms, req)
 	}
 
 	errNo := ms.write(req)
@@ -640,6 +641,12 @@ func (ms *Server) write(req *request) Status {
 		}
 	}
 	header := req.serializeHeader(req.flatDataSize())
+
+	if req.inHeader().Opcode == _OP_INIT && ms.kernelSettings.Minor <= 22 {
+		// v8-v22 don't have TimeGran and further fields.
+		req.outHeader().Length = uint32(sizeOfOutHeader) + 24
+	}
+
 	if ms.opts.Debug {
 		ms.opts.Logger.Println(req.OutputDebug())
 	}
@@ -655,7 +662,6 @@ func (ms *Server) write(req *request) Status {
 func newNotifyRequest(opcode uint32) *request {
 	r := &request{
 		inputBuf: make([]byte, unsafe.Sizeof(InHeader{})),
-		handler:  operationHandlers[opcode],
 		status: map[uint32]Status{
 			_OP_NOTIFY_INVAL_INODE:    NOTIFY_INVAL_INODE,
 			_OP_NOTIFY_INVAL_ENTRY:    NOTIFY_INVAL_ENTRY,

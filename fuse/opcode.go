@@ -163,14 +163,6 @@ func doInit(server *Server, req *request) {
 		out.Minor = input.Minor
 	}
 
-	if out.Minor <= 22 {
-		tweaked := *req.handler
-
-		// v8-v22 don't have TimeGran and further fields.
-		tweaked.OutputSize = 24
-		req.handler = &tweaked
-	}
-
 	req.status = OK
 }
 

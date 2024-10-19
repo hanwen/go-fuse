@@ -44,9 +44,6 @@ type request struct {
 	// Start timestamp for timing info.
 	startTime time.Time
 
-	// All information pertaining to opcode of this request.
-	handler *operationHandler
-
 	// Request storage. For large inputs and outputs, use data
 	// obtained through bufferpool.
 	bufferPoolInputBuf  []byte
@@ -78,7 +75,6 @@ func (r *request) clear() {
 	r.flatData = nil
 	r.fdData = nil
 	r.startTime = time.Time{}
-	r.handler = nil
 	r.readResult = nil
 }
 
@@ -88,8 +84,8 @@ func asType(ptr unsafe.Pointer, typ interface{}) interface{} {
 
 func (r *request) InputDebug() string {
 	val := ""
-	if r.handler != nil && r.handler.InType != nil {
-		val = Print(asType(r.inData(), r.handler.InType))
+	if h := getHandler(r.inHeader().Opcode); h != nil && h.InType != nil {
+		val = Print(asType(r.inData(), h.InType))
 	}
 
 	names := ""
@@ -119,8 +115,9 @@ func (r *request) InputDebug() string {
 
 func (r *request) OutputDebug() string {
 	var dataStr string
-	if r.handler != nil && r.handler.OutType != nil && r.outHeader().Length > uint32(sizeOfOutHeader) {
-		dataStr = Print(asType(r.outData(), r.handler.OutType))
+	h := getHandler(r.inHeader().Opcode)
+	if h != nil && h.OutType != nil && r.outHeader().Length > uint32(sizeOfOutHeader) {
+		dataStr = Print(asType(r.outData(), h.OutType))
 	}
 
 	max := 1024
@@ -130,7 +127,7 @@ func (r *request) OutputDebug() string {
 
 	flatStr := ""
 	if r.flatDataSize() > 0 {
-		if r.handler != nil && r.handler.FileNameOut {
+		if h != nil && h.FileNameOut {
 			s := strings.TrimRight(string(r.flatData), "\x00")
 			flatStr = fmt.Sprintf(" %q", s)
 		} else {
@@ -176,14 +173,14 @@ func (r *request) inData() unsafe.Pointer {
 }
 
 func (r *request) parse(kernelSettings *InitIn) {
-	r.handler = getHandler(r.inHeader().Opcode)
-	if r.handler == nil {
+	h := getHandler(r.inHeader().Opcode)
+	if h == nil {
 		log.Printf("Unknown opcode %d", r.inHeader().Opcode)
 		r.status = ENOSYS
 		return
 	}
 
-	inSz := int(r.handler.InputSize)
+	inSz := int(h.InputSize)
 	if r.inHeader().Opcode == _OP_RENAME && kernelSettings.supportsRenameSwap() {
 		inSz = int(unsafe.Sizeof(RenameIn{}))
 	}
@@ -197,13 +194,13 @@ func (r *request) parse(kernelSettings *InitIn) {
 		return
 	}
 
-	if r.handler.InputSize > 0 {
+	if h.InputSize > 0 {
 		r.arg = r.inputBuf[inSz:]
 	} else {
 		r.arg = r.inputBuf[unsafe.Sizeof(InHeader{}):]
 	}
 
-	count := r.handler.FileNames
+	count := h.FileNames
 	if count > 0 {
 		if count == 1 && r.inHeader().Opcode == _OP_SETXATTR {
 			// SETXATTR is special: the only opcode with a file name AND a
@@ -225,8 +222,8 @@ func (r *request) parse(kernelSettings *InitIn) {
 		}
 	}
 
-	copy(r.outBuf[:r.handler.OutputSize+sizeOfOutHeader],
-		zeroOutBuf[:r.handler.OutputSize+sizeOfOutHeader])
+	copy(r.outBuf[:h.OutputSize+sizeOfOutHeader],
+		zeroOutBuf[:h.OutputSize+sizeOfOutHeader])
 
 }
 
@@ -239,8 +236,9 @@ func (r *request) outData() unsafe.Pointer {
 func (r *request) serializeHeader(flatDataSize int) (header []byte) {
 	var dataLength uintptr
 
-	if r.handler != nil {
-		dataLength = r.handler.OutputSize
+	h := getHandler(r.inHeader().Opcode)
+	if h != nil {
+		dataLength = h.OutputSize
 	}
 	if r.status > OK {
 		// only do this for positive status; negative status
