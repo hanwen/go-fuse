@@ -640,7 +640,7 @@ func (ms *Server) write(req *request) Status {
 			return OK
 		}
 	}
-	header := req.serializeHeader(req.flatDataSize())
+	req.serializeHeader(req.flatDataSize())
 
 	if req.inHeader().Opcode == _OP_INIT && ms.kernelSettings.Minor <= 22 {
 		// v8-v22 don't have TimeGran and further fields.
@@ -651,17 +651,14 @@ func (ms *Server) write(req *request) Status {
 		ms.opts.Logger.Println(req.OutputDebug())
 	}
 
-	if header == nil {
-		return OK
-	}
-
-	s := ms.systemWrite(req, header)
+	s := ms.systemWrite(req)
 	return s
 }
 
 func newNotifyRequest(opcode uint32) *request {
 	r := &request{
-		inputBuf: make([]byte, unsafe.Sizeof(InHeader{})),
+		inputBuf:  make([]byte, unsafe.Sizeof(InHeader{})),
+		outputBuf: make([]byte, sizeOfOutHeader+getHandler(opcode).OutputSize),
 		status: map[uint32]Status{
 			_OP_NOTIFY_INVAL_INODE:    NOTIFY_INVAL_INODE,
 			_OP_NOTIFY_INVAL_ENTRY:    NOTIFY_INVAL_ENTRY,

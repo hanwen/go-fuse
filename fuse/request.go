@@ -25,7 +25,11 @@ type request struct {
 	// written under Server.reqMu
 	interrupted bool
 
+	// inHeader + opcode specific data
 	inputBuf []byte
+
+	// outHeader + opcode specific data.
+	outputBuf []byte
 
 	// These split up inputBuf.
 	arg []byte // argument to the operation, eg. data to write.
@@ -64,11 +68,12 @@ func (r *request) inHeader() *InHeader {
 }
 
 func (r *request) outHeader() *OutHeader {
-	return (*OutHeader)(unsafe.Pointer(&r.outBuf[0]))
+	return (*OutHeader)(unsafe.Pointer(&r.outputBuf[0]))
 }
 
 func (r *request) clear() {
 	r.inputBuf = nil
+	r.outputBuf = nil
 	r.arg = nil
 	r.filenames = nil
 	r.status = OK
@@ -116,7 +121,7 @@ func (r *request) InputDebug() string {
 func (r *request) OutputDebug() string {
 	var dataStr string
 	h := getHandler(r.inHeader().Opcode)
-	if h != nil && h.OutType != nil && r.outHeader().Length > uint32(sizeOfOutHeader) {
+	if h != nil && h.OutType != nil && len(r.outputBuf) > int(sizeOfOutHeader) {
 		dataStr = Print(asType(r.outData(), h.OutType))
 	}
 
@@ -222,18 +227,17 @@ func (r *request) parse(kernelSettings *InitIn) {
 		}
 	}
 
-	copy(r.outBuf[:h.OutputSize+sizeOfOutHeader],
-		zeroOutBuf[:h.OutputSize+sizeOfOutHeader])
-
+	r.outputBuf = r.outBuf[:h.OutputSize+sizeOfOutHeader]
+	copy(r.outputBuf, zeroOutBuf[:])
 }
 
 func (r *request) outData() unsafe.Pointer {
-	return unsafe.Pointer(&r.outBuf[sizeOfOutHeader])
+	return unsafe.Pointer(&r.outputBuf[sizeOfOutHeader])
 }
 
 // serializeHeader serializes the response header. The header points
 // to an internal buffer of the receiver.
-func (r *request) serializeHeader(flatDataSize int) (header []byte) {
+func (r *request) serializeHeader(flatDataSize int) {
 	var dataLength uintptr
 
 	h := getHandler(r.inHeader().Opcode)
@@ -255,14 +259,13 @@ func (r *request) serializeHeader(flatDataSize int) (header []byte) {
 		}
 	}
 
-	header = r.outBuf[:sizeOfOutHeader+dataLength]
-
 	o := r.outHeader()
 	o.Unique = r.inHeader().Unique
 	o.Status = int32(-r.status)
 	o.Length = uint32(
 		int(sizeOfOutHeader) + int(dataLength) + flatDataSize)
-	return header
+
+	r.outputBuf = r.outputBuf[:dataLength+sizeOfOutHeader]
 }
 
 func (r *request) flatDataSize() int {

@@ -10,18 +10,17 @@ import (
 
 const useSingleReader = false
 
-func (ms *Server) systemWrite(req *request, header []byte) Status {
+func (ms *Server) systemWrite(req *request) Status {
 	if req.flatDataSize() == 0 {
 		err := handleEINTR(func() error {
-			_, err := syscall.Write(ms.mountFd, header)
+			_, err := syscall.Write(ms.mountFd, req.outputBuf)
 			return err
 		})
 		return ToStatus(err)
 	}
-
 	if req.fdData != nil {
 		if ms.canSplice {
-			err := ms.trySplice(header, req, req.fdData)
+			err := ms.trySplice(req, req.fdData)
 			if err == nil {
 				req.readResult.Done()
 				return OK
@@ -32,10 +31,10 @@ func (ms *Server) systemWrite(req *request, header []byte) Status {
 		sz := req.flatDataSize()
 		buf := ms.allocOut(req, uint32(sz))
 		req.flatData, req.status = req.fdData.Bytes(buf)
-		header = req.serializeHeader(len(req.flatData))
+		req.serializeHeader(len(req.flatData))
 	}
 
-	_, err := writev(ms.mountFd, [][]byte{header, req.flatData})
+	_, err := writev(ms.mountFd, [][]byte{req.outputBuf, req.flatData})
 	if req.readResult != nil {
 		req.readResult.Done()
 	}

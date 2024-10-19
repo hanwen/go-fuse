@@ -11,10 +11,10 @@ import (
 // do not error-out, meaning that unmount will hang.
 const useSingleReader = true
 
-func (ms *Server) systemWrite(req *request, header []byte) Status {
+func (ms *Server) systemWrite(req *request) Status {
 	if req.flatDataSize() == 0 {
 		err := handleEINTR(func() error {
-			_, err := unix.Write(ms.mountFd, header)
+			_, err := unix.Write(ms.mountFd, req.outputBuf)
 			return err
 		})
 		return ToStatus(err)
@@ -24,10 +24,10 @@ func (ms *Server) systemWrite(req *request, header []byte) Status {
 		sz := req.flatDataSize()
 		buf := ms.allocOut(req, uint32(sz))
 		req.flatData, req.status = req.fdData.Bytes(buf)
-		header = req.serializeHeader(len(req.flatData))
+		req.serializeHeader(len(req.flatData))
 	}
 
-	_, err := writev(int(ms.mountFd), [][]byte{header, req.flatData})
+	_, err := writev(int(ms.mountFd), [][]byte{req.outputBuf, req.flatData})
 	if req.readResult != nil {
 		req.readResult.Done()
 	}
