@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"syscall"
 	"testing"
+	"time"
 	"unsafe"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
@@ -232,4 +233,40 @@ func (fn *testIno1) Lookup(ctx context.Context, name string, out *fuse.EntryOut)
 	}
 	child := fn.NewInode(ctx, &testIno1{}, stable)
 	return child, 0
+}
+
+type lookupCountRoot struct {
+	Inode
+	count uint32
+}
+
+func (r *lookupCountRoot) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
+	if name == "TestNegativeLookupCache" {
+		atomic.AddUint32(&r.count, 1)
+	}
+	return nil, syscall.ENOENT
+}
+
+func TestNegativeLookupCache(t *testing.T) {
+	for count, negCache := range []bool{true, false} {
+		r := lookupCountRoot{}
+		opt := &Options{}
+		if negCache {
+			sec := time.Second
+			opt.NegativeTimeout = &sec
+		}
+
+		mnt, _ := testMount(t, &r, opt)
+		fn := mnt + "/TestNegativeLookupCache"
+		for i := 0; i < 2; i++ {
+			var st syscall.Stat_t
+			if err := syscall.Lstat(fn, &st); err != syscall.ENOENT {
+				t.Errorf("got %v, want ENOENT", err)
+			}
+		}
+		want := uint32(count + 1)
+		if got := atomic.LoadUint32(&r.count); got != want {
+			t.Errorf("negCache=%v: got count %d, want %d", negCache, got, want)
+		}
+	}
 }

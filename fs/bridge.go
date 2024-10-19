@@ -358,8 +358,9 @@ func (b *rawBridge) Lookup(cancel <-chan struct{}, header *fuse.InHeader, name s
 	child, errno := b.lookup(ctx, parent, name, out)
 
 	if errno != 0 {
-		if b.options.NegativeTimeout != nil && out.EntryTimeout() == 0 {
+		if errno == syscall.ENOENT && b.options.NegativeTimeout != nil && out.EntryTimeout() == 0 {
 			out.SetEntryTimeout(*b.options.NegativeTimeout)
+			errno = 0
 		}
 		return errnoToStatus(errno)
 	}
@@ -479,9 +480,6 @@ func (b *rawBridge) Create(cancel <-chan struct{}, input *fuse.CreateIn, name st
 	child, f, flags, errno := mops.Create(ctx, name, input.Flags, input.Mode, &out.EntryOut)
 
 	if errno != 0 {
-		if b.options.NegativeTimeout != nil {
-			out.SetEntryTimeout(*b.options.NegativeTimeout)
-		}
 		return errnoToStatus(errno)
 	}
 
@@ -1196,6 +1194,9 @@ func (b *rawBridge) readDirMaybeLookup(cancel <-chan struct{}, input *fuse.ReadI
 		if errno != 0 {
 			if b.options.NegativeTimeout != nil {
 				entryOut.SetEntryTimeout(*b.options.NegativeTimeout)
+
+				// TODO: maybe simply not produce the dirent here?
+				// test?
 			}
 		} else {
 			child, _ = b.addNewChild(n, de.Name, child, nil, 0, entryOut)
