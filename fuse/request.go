@@ -66,6 +66,10 @@ func (r *request) inHeader() *InHeader {
 	return (*InHeader)(r.inData())
 }
 
+func (r *request) outHeader() *OutHeader {
+	return (*OutHeader)(unsafe.Pointer(&r.outBuf[0]))
+}
+
 func (r *request) clear() {
 	r.inputBuf = nil
 	r.arg = nil
@@ -115,7 +119,7 @@ func (r *request) InputDebug() string {
 
 func (r *request) OutputDebug() string {
 	var dataStr string
-	if r.handler != nil && r.handler.OutType != nil && r.handler.OutputSize > 0 {
+	if r.handler != nil && r.handler.OutType != nil && r.outHeader().Length > uint32(sizeOfOutHeader) {
 		dataStr = Print(asType(r.outData(), r.handler.OutType))
 	}
 
@@ -254,7 +258,8 @@ func (r *request) serializeHeader(flatDataSize int) (header []byte) {
 	}
 
 	header = r.outBuf[:sizeOfOutHeader+dataLength]
-	o := (*OutHeader)(unsafe.Pointer(&header[0]))
+
+	o := r.outHeader()
 	o.Unique = r.inHeader().Unique
 	o.Status = int32(-r.status)
 	o.Length = uint32(
