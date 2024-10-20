@@ -352,6 +352,10 @@ func (o *LseekOut) string() string {
 	return fmt.Sprintf("{%d}", o.Offset)
 }
 
+func (p *_PollIn) string() string {
+	return fmt.Sprintf("Fh %d Kh %d Flags 0x%x", p.Fh, p.Kh, p.Flags)
+}
+
 // Print pretty prints FUSE data types for kernel communication
 func Print(obj interface{}) string {
 	t, ok := obj.(interface {
