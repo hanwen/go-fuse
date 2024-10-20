@@ -11,7 +11,7 @@ import (
 const useSingleReader = false
 
 func (ms *Server) systemWrite(req *request) Status {
-	if req.flatDataSize() == 0 {
+	if req.outPayloadSize() == 0 {
 		err := handleEINTR(func() error {
 			_, err := syscall.Write(ms.mountFd, req.outputBuf)
 			return err
@@ -28,13 +28,13 @@ func (ms *Server) systemWrite(req *request) Status {
 			ms.opts.Logger.Println("trySplice:", err)
 		}
 
-		sz := req.flatDataSize()
+		sz := req.outPayloadSize()
 		buf := ms.allocOut(req, uint32(sz))
-		req.flatData, req.status = req.fdData.Bytes(buf)
-		req.serializeHeader(len(req.flatData))
+		req.outPayload, req.status = req.fdData.Bytes(buf)
+		req.serializeHeader(len(req.outPayload))
 	}
 
-	_, err := writev(ms.mountFd, [][]byte{req.outputBuf, req.flatData})
+	_, err := writev(ms.mountFd, [][]byte{req.outputBuf, req.outPayload})
 	if req.readResult != nil {
 		req.readResult.Done()
 	}

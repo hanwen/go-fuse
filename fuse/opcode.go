@@ -187,7 +187,7 @@ func doReadDir(server *Server, req *request) {
 	out := NewDirEntryList(buf, uint64(in.Offset))
 
 	code := server.fileSystem.ReadDir(req.cancel, in, out)
-	req.flatData = out.bytes()
+	req.outPayload = out.bytes()
 	req.status = code
 }
 
@@ -197,7 +197,7 @@ func doReadDirPlus(server *Server, req *request) {
 	out := NewDirEntryList(buf, uint64(in.Offset))
 
 	code := server.fileSystem.ReadDirPlus(req.cancel, in, out)
-	req.flatData = out.bytes()
+	req.outPayload = out.bytes()
 	req.status = code
 }
 
@@ -213,7 +213,7 @@ func doSetattr(server *Server, req *request) {
 }
 
 func doWrite(server *Server, req *request) {
-	n, status := server.fileSystem.Write(req.cancel, (*WriteIn)(req.inData()), req.arg)
+	n, status := server.fileSystem.Write(req.cancel, (*WriteIn)(req.inData()), req.inPayload)
 	o := (*WriteOut)(req.outData())
 	o.Size = n
 	req.status = status
@@ -249,11 +249,11 @@ func doNotifyReply(server *Server, req *request) {
 		return
 	}
 
-	if len(reading.dest) < len(req.arg) {
-		badf("too much data: requested %db, got %db (will use only %db)", len(reading.dest), len(req.arg), len(reading.dest))
+	if len(reading.dest) < len(req.inPayload) {
+		badf("too much data: requested %db, got %db (will use only %db)", len(reading.dest), len(req.inPayload), len(reading.dest))
 	}
 
-	reading.n = copy(reading.dest, req.arg)
+	reading.n = copy(reading.dest, req.inPayload)
 	reading.st = OK
 }
 
@@ -278,15 +278,15 @@ func doGetXAttr(server *Server, req *request) {
 
 	input := (*GetXAttrIn)(req.inData())
 
-	req.flatData = server.allocOut(req, input.Size)
+	req.outPayload = server.allocOut(req, input.Size)
 	out := (*GetXAttrOut)(req.outData())
 
 	var n uint32
 	switch req.inHeader().Opcode {
 	case _OP_GETXATTR:
-		n, req.status = server.fileSystem.GetXAttr(req.cancel, req.inHeader(), req.filename(), req.flatData)
+		n, req.status = server.fileSystem.GetXAttr(req.cancel, req.inHeader(), req.filename(), req.outPayload)
 	case _OP_LISTXATTR:
-		n, req.status = server.fileSystem.ListXAttr(req.cancel, req.inHeader(), req.flatData)
+		n, req.status = server.fileSystem.ListXAttr(req.cancel, req.inHeader(), req.outPayload)
 	default:
 		req.status = ENOSYS
 	}
@@ -298,12 +298,12 @@ func doGetXAttr(server *Server, req *request) {
 	} else if req.status.Ok() {
 		// ListXAttr called with an empty buffer returns the current size of
 		// the list but does not touch the buffer (see man 2 listxattr).
-		if len(req.flatData) > 0 {
-			req.flatData = req.flatData[:n]
+		if len(req.outPayload) > 0 {
+			req.outPayload = req.outPayload[:n]
 		}
 		out.Size = n
 	} else {
-		req.flatData = req.flatData[:0]
+		req.outPayload = req.outPayload[:0]
 	}
 }
 
@@ -324,13 +324,13 @@ func doForget(server *Server, req *request) {
 func doBatchForget(server *Server, req *request) {
 	in := (*_BatchForgetIn)(req.inData())
 	wantBytes := uintptr(in.Count) * unsafe.Sizeof(_ForgetOne{})
-	if uintptr(len(req.arg)) < wantBytes {
+	if uintptr(len(req.inPayload)) < wantBytes {
 		// We have no return value to complain, so log an error.
 		server.opts.Logger.Printf("Too few bytes for batch forget. Got %d bytes, want %d (%d entries)",
-			len(req.arg), wantBytes, in.Count)
+			len(req.inPayload), wantBytes, in.Count)
 	}
 
-	forgets := unsafe.Slice((*_ForgetOne)(unsafe.Pointer(&req.arg[0])), in.Count)
+	forgets := unsafe.Slice((*_ForgetOne)(unsafe.Pointer(&req.inPayload[0])), in.Count)
 	for i, f := range forgets {
 		if server.opts.Debug {
 			server.opts.Logger.Printf("doBatchForget: rx %d %d/%d: FORGET n%d {Nlookup=%d}",
@@ -344,7 +344,7 @@ func doBatchForget(server *Server, req *request) {
 }
 
 func doReadlink(server *Server, req *request) {
-	req.flatData, req.status = server.fileSystem.Readlink(req.cancel, req.inHeader())
+	req.outPayload, req.status = server.fileSystem.Readlink(req.cancel, req.inHeader())
 }
 
 func doLookup(server *Server, req *request) {
@@ -383,9 +383,9 @@ func doRead(server *Server, req *request) {
 	req.readResult, req.status = server.fileSystem.Read(req.cancel, in, buf)
 	if fd, ok := req.readResult.(*readResultFd); ok {
 		req.fdData = fd
-		req.flatData = nil
+		req.outPayload = nil
 	} else if req.readResult != nil && req.status.Ok() {
-		req.flatData, req.status = req.readResult.Bytes(buf)
+		req.outPayload, req.status = req.readResult.Bytes(buf)
 	}
 }
 
@@ -410,8 +410,8 @@ func doFsyncDir(server *Server, req *request) {
 }
 
 func doSetXAttr(server *Server, req *request) {
-	i := bytes.IndexByte(req.arg, 0)
-	req.status = server.fileSystem.SetXAttr(req.cancel, (*SetXAttrIn)(req.inData()), string(req.arg[:i]), req.arg[i+1:])
+	i := bytes.IndexByte(req.inPayload, 0)
+	req.status = server.fileSystem.SetXAttr(req.cancel, (*SetXAttrIn)(req.inData()), string(req.inPayload[:i]), req.inPayload[i+1:])
 }
 
 func doRemoveXAttr(server *Server, req *request) {

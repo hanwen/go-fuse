@@ -640,7 +640,7 @@ func (ms *Server) write(req *request) Status {
 			return OK
 		}
 	}
-	req.serializeHeader(req.flatDataSize())
+	req.serializeHeader(req.outPayloadSize())
 
 	if req.inHeader().Opcode == _OP_INIT && ms.kernelSettings.Minor <= 22 {
 		// v8-v22 don't have TimeGran and further fields.
@@ -736,7 +736,7 @@ func (ms *Server) inodeNotifyStoreCache32(node uint64, offset int64, data []byte
 	store.Offset = uint64(offset) // NOTE not int64, as it is e.g. in NotifyInvalInodeOut
 	store.Size = uint32(len(data))
 
-	req.flatData = data
+	req.outPayload = data
 
 	// Protect against concurrent close.
 	ms.writeMu.Lock()
@@ -891,7 +891,7 @@ func (ms *Server) DeleteNotify(parent uint64, child uint64, name string) Status 
 	nameBytes := make([]byte, len(name)+1)
 	copy(nameBytes, name)
 	nameBytes[len(nameBytes)-1] = '\000'
-	req.flatData = nameBytes
+	req.outPayload = nameBytes
 
 	// Protect against concurrent close.
 	ms.writeMu.Lock()
@@ -921,7 +921,7 @@ func (ms *Server) EntryNotify(parent uint64, name string) Status {
 	nameBytes := make([]byte, len(name)+1)
 	copy(nameBytes, name)
 	nameBytes[len(nameBytes)-1] = '\000'
-	req.flatData = nameBytes
+	req.outPayload = nameBytes
 
 	// Protect against concurrent close.
 	ms.writeMu.Lock()

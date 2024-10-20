@@ -31,13 +31,15 @@ type request struct {
 	// outHeader + opcode specific data.
 	outputBuf []byte
 
-	// These split up inputBuf.
-	arg []byte // argument to the operation, eg. data to write.
+	// Unstructured input (filenames, data for WRITE call)
+	inPayload []byte
 
 	// Output data.
-	status   Status
-	flatData []byte
-	fdData   *readResultFd
+	status Status
+
+	// Unstructured output. Only one of these is non-nil.
+	outPayload []byte
+	fdData     *readResultFd
 
 	// In case of read, keep read result here so we can call
 	// Done() on it.
@@ -72,9 +74,9 @@ func (r *request) outHeader() *OutHeader {
 func (r *request) clear() {
 	r.inputBuf = nil
 	r.outputBuf = nil
-	r.arg = nil
+	r.inPayload = nil
 	r.status = OK
-	r.flatData = nil
+	r.outPayload = nil
 	r.fdData = nil
 	r.startTime = time.Time{}
 	r.readResult = nil
@@ -103,14 +105,14 @@ func (r *request) InputDebug() string {
 	} else if h.FileNames == 2 {
 		n1, n2 := r.filenames()
 		names = fmt.Sprintf("%q %q", n1, n2)
-	} else if l := len(r.arg); l > 0 {
+	} else if l := len(r.inPayload); l > 0 {
 		dots := ""
 		if l > 8 {
 			l = 8
 			dots = "..."
 		}
 
-		names = fmt.Sprintf("%q%s %db", r.arg[:l], dots, len(r.arg))
+		names = fmt.Sprintf("%q%s %db", r.inPayload[:l], dots, len(r.inPayload))
 	}
 
 	return fmt.Sprintf("rx %d: %s n%d %s%s p%d",
@@ -131,24 +133,24 @@ func (r *request) OutputDebug() string {
 	}
 
 	flatStr := ""
-	if r.flatDataSize() > 0 {
+	if r.outPayloadSize() > 0 {
 		if h != nil && h.FileNameOut {
-			s := strings.TrimRight(string(r.flatData), "\x00")
+			s := strings.TrimRight(string(r.outPayload), "\x00")
 			flatStr = fmt.Sprintf(" %q", s)
 		} else {
 			spl := ""
 			if r.fdData != nil {
 				spl = " (fd data)"
 			} else {
-				l := len(r.flatData)
+				l := len(r.outPayload)
 				s := ""
 				if l > 8 {
 					l = 8
 					s = "..."
 				}
-				spl = fmt.Sprintf(" %q%s", r.flatData[:l], s)
+				spl = fmt.Sprintf(" %q%s", r.outPayload[:l], s)
 			}
-			flatStr = fmt.Sprintf(" %db data%s", r.flatDataSize(), spl)
+			flatStr = fmt.Sprintf(" %db data%s", r.outPayloadSize(), spl)
 		}
 	}
 
@@ -189,7 +191,7 @@ func (r *request) parse(kernelSettings *InitIn) {
 	if r.inHeader().Opcode == _OP_RENAME && kernelSettings.supportsRenameSwap() {
 		inSz = int(unsafe.Sizeof(RenameIn{}))
 	}
-	if r.inHeader().Opcode == _OP_INIT && inSz > len(r.arg) {
+	if r.inHeader().Opcode == _OP_INIT && inSz > len(r.inPayload) {
 		// Minor version 36 extended the size of InitIn struct
 		inSz = len(r.inputBuf)
 	}
@@ -200,9 +202,9 @@ func (r *request) parse(kernelSettings *InitIn) {
 	}
 
 	if h.InputSize > 0 {
-		r.arg = r.inputBuf[inSz:]
+		r.inPayload = r.inputBuf[inSz:]
 	} else {
-		r.arg = r.inputBuf[unsafe.Sizeof(InHeader{}):]
+		r.inPayload = r.inputBuf[unsafe.Sizeof(InHeader{}):]
 	}
 
 	r.outputBuf = r.outBuf[:h.OutputSize+sizeOfOutHeader]
@@ -214,19 +216,19 @@ func (r *request) outData() unsafe.Pointer {
 }
 
 func (r *request) filename() string {
-	return string(r.arg[:len(r.arg)-1])
+	return string(r.inPayload[:len(r.inPayload)-1])
 }
 
 func (r *request) filenames() (string, string) {
-	i1 := bytes.IndexByte(r.arg, 0)
-	s1 := string(r.arg[:i1])
-	s2 := string(r.arg[i1+1 : len(r.arg)-1])
+	i1 := bytes.IndexByte(r.inPayload, 0)
+	s1 := string(r.inPayload[:i1])
+	s2 := string(r.inPayload[i1+1 : len(r.inPayload)-1])
 	return s1, s2
 }
 
 // serializeHeader serializes the response header. The header points
 // to an internal buffer of the receiver.
-func (r *request) serializeHeader(flatDataSize int) {
+func (r *request) serializeHeader(outPayloadSize int) {
 	var dataLength uintptr
 
 	h := getHandler(r.inHeader().Opcode)
@@ -252,14 +254,14 @@ func (r *request) serializeHeader(flatDataSize int) {
 	o.Unique = r.inHeader().Unique
 	o.Status = int32(-r.status)
 	o.Length = uint32(
-		int(sizeOfOutHeader) + int(dataLength) + flatDataSize)
+		int(sizeOfOutHeader) + int(dataLength) + outPayloadSize)
 
 	r.outputBuf = r.outputBuf[:dataLength+sizeOfOutHeader]
 }
 
-func (r *request) flatDataSize() int {
+func (r *request) outPayloadSize() int {
 	if r.fdData != nil {
 		return r.fdData.Size()
 	}
-	return len(r.flatData)
+	return len(r.outPayload)
 }
