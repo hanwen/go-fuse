@@ -179,36 +179,45 @@ func (r *request) inData() unsafe.Pointer {
 	return unsafe.Pointer(&r.inputBuf[0])
 }
 
-func (r *request) parse(kernelSettings *InitIn) {
-	h := getHandler(r.inHeader().Opcode)
+func parseRequest(in []byte, kernelSettings *InitIn) (h *operationHandler, inSize, outSize, payloadSize int, errno Status) {
+	inSize = int(unsafe.Sizeof(InHeader{}))
+	if len(in) < inSize {
+		errno = EIO
+		return
+	}
+	inData := unsafe.Pointer(&in[0])
+	hdr := (*InHeader)(inData)
+	h = getHandler(hdr.Opcode)
 	if h == nil {
-		log.Printf("Unknown opcode %d", r.inHeader().Opcode)
-		r.status = ENOSYS
+		log.Printf("Unknown opcode %d", hdr.Opcode)
+		errno = ENOSYS
 		return
 	}
-
-	inSz := int(h.InputSize)
-	if r.inHeader().Opcode == _OP_RENAME && kernelSettings.supportsRenameSwap() {
-		inSz = int(unsafe.Sizeof(RenameIn{}))
-	}
-	if r.inHeader().Opcode == _OP_INIT && inSz > len(r.inPayload) {
-		// Minor version 36 extended the size of InitIn struct
-		inSz = len(r.inputBuf)
-	}
-	if len(r.inputBuf) < inSz {
-		log.Printf("Short read for %v: %q", operationName(r.inHeader().Opcode), r.inputBuf)
-		r.status = EIO
-		return
-	}
-
 	if h.InputSize > 0 {
-		r.inPayload = r.inputBuf[inSz:]
-	} else {
-		r.inPayload = r.inputBuf[unsafe.Sizeof(InHeader{}):]
+		inSize = int(h.InputSize)
+	}
+	if hdr.Opcode == _OP_RENAME && kernelSettings.supportsRenameSwap() {
+		inSize = int(unsafe.Sizeof(RenameIn{}))
+	}
+	if hdr.Opcode == _OP_INIT && inSize > len(in) {
+		// Minor version 36 extended the size of InitIn struct
+		inSize = len(in)
+	}
+	if len(in) < inSize {
+		log.Printf("Short read for %v: %q", h.Name, in)
+		errno = EIO
+		return
 	}
 
-	r.outputBuf = r.outBuf[:h.OutputSize+sizeOfOutHeader]
-	copy(r.outputBuf, zeroOutBuf[:])
+	switch hdr.Opcode {
+	case _OP_READDIR, _OP_READDIRPLUS, _OP_READ:
+		payloadSize = int(((*ReadIn)(inData)).Size)
+	case _OP_GETXATTR, _OP_LISTXATTR:
+		payloadSize = int(((*GetXAttrIn)(inData)).Size)
+	}
+
+	outSize = int(h.OutputSize)
+	return
 }
 
 func (r *request) outData() unsafe.Pointer {
@@ -239,6 +248,7 @@ func (r *request) serializeHeader(outPayloadSize int) {
 		// only do this for positive status; negative status
 		// is used for notification.
 		dataLength = 0
+		outPayloadSize = 0
 	}
 
 	// [GET|LIST]XATTR is two opcodes in one: get/list xattr size (return
@@ -257,6 +267,9 @@ func (r *request) serializeHeader(outPayloadSize int) {
 		int(sizeOfOutHeader) + int(dataLength) + outPayloadSize)
 
 	r.outputBuf = r.outputBuf[:dataLength+sizeOfOutHeader]
+	if r.outPayload != nil {
+		r.outPayload = r.outPayload[:outPayloadSize]
+	}
 }
 
 func (r *request) outPayloadSize() int {

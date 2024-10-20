@@ -555,10 +555,17 @@ func (ms *Server) handleRequest(req *request) Status {
 		defer ms.requestProcessingMu.Unlock()
 	}
 
-	req.parse(&ms.kernelSettings)
-	h := getHandler(req.inHeader().Opcode)
-	if h == nil {
-		req.status = ENOSYS
+	h, inSize, outSize, outPayloadSize, code := parseRequest(req.inputBuf, &ms.kernelSettings)
+	if !code.Ok() {
+		return code
+	}
+
+	req.inPayload = req.inputBuf[inSize:]
+	req.inputBuf = req.inputBuf[:inSize]
+	req.outputBuf = req.outBuf[:outSize+int(sizeOfOutHeader)]
+	copy(req.outputBuf, zeroOutBuf[:])
+	if outPayloadSize > 0 {
+		req.outPayload = ms.allocOut(req, uint32(outPayloadSize))
 	}
 
 	if req.status.Ok() && ms.opts.Debug {

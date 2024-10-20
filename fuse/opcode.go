@@ -183,9 +183,7 @@ func doCreate(server *Server, req *request) {
 
 func doReadDir(server *Server, req *request) {
 	in := (*ReadIn)(req.inData())
-	buf := server.allocOut(req, in.Size)
-	out := NewDirEntryList(buf, uint64(in.Offset))
-
+	out := NewDirEntryList(req.outPayload, uint64(in.Offset))
 	code := server.fileSystem.ReadDir(req.cancel, in, out)
 	req.outPayload = out.bytes()
 	req.status = code
@@ -193,8 +191,7 @@ func doReadDir(server *Server, req *request) {
 
 func doReadDirPlus(server *Server, req *request) {
 	in := (*ReadIn)(req.inData())
-	buf := server.allocOut(req, in.Size)
-	out := NewDirEntryList(buf, uint64(in.Offset))
+	out := NewDirEntryList(req.outPayload, uint64(in.Offset))
 
 	code := server.fileSystem.ReadDirPlus(req.cancel, in, out)
 	req.outPayload = out.bytes()
@@ -277,8 +274,6 @@ func doGetXAttr(server *Server, req *request) {
 	}
 
 	input := (*GetXAttrIn)(req.inData())
-
-	req.outPayload = server.allocOut(req, input.Size)
 	out := (*GetXAttrOut)(req.outData())
 
 	var n uint32
@@ -378,14 +373,12 @@ func doLink(server *Server, req *request) {
 
 func doRead(server *Server, req *request) {
 	in := (*ReadIn)(req.inData())
-	buf := server.allocOut(req, in.Size)
-
-	req.readResult, req.status = server.fileSystem.Read(req.cancel, in, buf)
+	req.readResult, req.status = server.fileSystem.Read(req.cancel, in, req.outPayload)
 	if fd, ok := req.readResult.(*readResultFd); ok {
 		req.fdData = fd
 		req.outPayload = nil
 	} else if req.readResult != nil && req.status.Ok() {
-		req.outPayload, req.status = req.readResult.Bytes(buf)
+		req.outPayload, req.status = req.readResult.Bytes(req.outPayload)
 	}
 }
 
