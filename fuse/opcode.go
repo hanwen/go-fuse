@@ -177,7 +177,7 @@ func doOpen(server *Server, req *request) {
 
 func doCreate(server *Server, req *request) {
 	out := (*CreateOut)(req.outData())
-	status := server.fileSystem.Create(req.cancel, (*CreateIn)(req.inData()), req.filenames[0], out)
+	status := server.fileSystem.Create(req.cancel, (*CreateIn)(req.inData()), req.filename(), out)
 	req.status = status
 }
 
@@ -268,7 +268,7 @@ func doGetXAttr(server *Server, req *request) {
 	}
 
 	if server.opts.IgnoreSecurityLabels && req.inHeader().Opcode == _OP_GETXATTR {
-		fn := req.filenames[0]
+		fn := req.filename()
 		if fn == _SECURITY_CAPABILITY || fn == _SECURITY_ACL_DEFAULT ||
 			fn == _SECURITY_ACL {
 			req.status = ENOATTR
@@ -284,7 +284,7 @@ func doGetXAttr(server *Server, req *request) {
 	var n uint32
 	switch req.inHeader().Opcode {
 	case _OP_GETXATTR:
-		n, req.status = server.fileSystem.GetXAttr(req.cancel, req.inHeader(), req.filenames[0], req.flatData)
+		n, req.status = server.fileSystem.GetXAttr(req.cancel, req.inHeader(), req.filename(), req.flatData)
 	case _OP_LISTXATTR:
 		n, req.status = server.fileSystem.ListXAttr(req.cancel, req.inHeader(), req.flatData)
 	default:
@@ -349,32 +349,31 @@ func doReadlink(server *Server, req *request) {
 
 func doLookup(server *Server, req *request) {
 	out := (*EntryOut)(req.outData())
-	s := server.fileSystem.Lookup(req.cancel, req.inHeader(), req.filenames[0], out)
-	req.status = s
+	req.status = server.fileSystem.Lookup(req.cancel, req.inHeader(), req.filename(), out)
 }
 
 func doMknod(server *Server, req *request) {
 	out := (*EntryOut)(req.outData())
 
-	req.status = server.fileSystem.Mknod(req.cancel, (*MknodIn)(req.inData()), req.filenames[0], out)
+	req.status = server.fileSystem.Mknod(req.cancel, (*MknodIn)(req.inData()), req.filename(), out)
 }
 
 func doMkdir(server *Server, req *request) {
 	out := (*EntryOut)(req.outData())
-	req.status = server.fileSystem.Mkdir(req.cancel, (*MkdirIn)(req.inData()), req.filenames[0], out)
+	req.status = server.fileSystem.Mkdir(req.cancel, (*MkdirIn)(req.inData()), req.filename(), out)
 }
 
 func doUnlink(server *Server, req *request) {
-	req.status = server.fileSystem.Unlink(req.cancel, req.inHeader(), req.filenames[0])
+	req.status = server.fileSystem.Unlink(req.cancel, req.inHeader(), req.filename())
 }
 
 func doRmdir(server *Server, req *request) {
-	req.status = server.fileSystem.Rmdir(req.cancel, req.inHeader(), req.filenames[0])
+	req.status = server.fileSystem.Rmdir(req.cancel, req.inHeader(), req.filename())
 }
 
 func doLink(server *Server, req *request) {
 	out := (*EntryOut)(req.outData())
-	req.status = server.fileSystem.Link(req.cancel, (*LinkIn)(req.inData()), req.filenames[0], out)
+	req.status = server.fileSystem.Link(req.cancel, (*LinkIn)(req.inData()), req.filename(), out)
 }
 
 func doRead(server *Server, req *request) {
@@ -411,12 +410,12 @@ func doFsyncDir(server *Server, req *request) {
 }
 
 func doSetXAttr(server *Server, req *request) {
-	splits := bytes.SplitN(req.arg, []byte{0}, 2)
-	req.status = server.fileSystem.SetXAttr(req.cancel, (*SetXAttrIn)(req.inData()), string(splits[0]), splits[1])
+	i := bytes.IndexByte(req.arg, 0)
+	req.status = server.fileSystem.SetXAttr(req.cancel, (*SetXAttrIn)(req.inData()), string(req.arg[:i]), req.arg[i+1:])
 }
 
 func doRemoveXAttr(server *Server, req *request) {
-	req.status = server.fileSystem.RemoveXAttr(req.cancel, req.inHeader(), req.filenames[0])
+	req.status = server.fileSystem.RemoveXAttr(req.cancel, req.inHeader(), req.filename())
 }
 
 func doAccess(server *Server, req *request) {
@@ -425,7 +424,9 @@ func doAccess(server *Server, req *request) {
 
 func doSymlink(server *Server, req *request) {
 	out := (*EntryOut)(req.outData())
-	req.status = server.fileSystem.Symlink(req.cancel, req.inHeader(), req.filenames[1], req.filenames[0], out)
+	n1, n2 := req.filenames()
+
+	req.status = server.fileSystem.Symlink(req.cancel, req.inHeader(), n2, n1, out)
 }
 
 func doRename(server *Server, req *request) {
@@ -438,11 +439,13 @@ func doRename(server *Server, req *request) {
 		InHeader: in1.InHeader,
 		Newdir:   in1.Newdir,
 	}
-	req.status = server.fileSystem.Rename(req.cancel, &in, req.filenames[0], req.filenames[1])
+	n1, n2 := req.filenames()
+	req.status = server.fileSystem.Rename(req.cancel, &in, n1, n2)
 }
 
 func doRename2(server *Server, req *request) {
-	req.status = server.fileSystem.Rename(req.cancel, (*RenameIn)(req.inData()), req.filenames[0], req.filenames[1])
+	n1, n2 := req.filenames()
+	req.status = server.fileSystem.Rename(req.cancel, (*RenameIn)(req.inData()), n1, n2)
 }
 
 func doStatFs(server *Server, req *request) {

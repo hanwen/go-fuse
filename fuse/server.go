@@ -566,7 +566,7 @@ func (ms *Server) handleRequest(req *request) Status {
 	}
 
 	if req.inHeader().NodeId == pollHackInode ||
-		req.inHeader().NodeId == FUSE_ROOT_ID && len(req.filenames) > 0 && req.filenames[0] == pollHackName {
+		req.inHeader().NodeId == FUSE_ROOT_ID && h.FileNames > 0 && req.filename() == pollHackName {
 		doPollHackLookup(ms, req)
 	} else if req.status.Ok() && h.Func == nil {
 		ms.opts.Logger.Printf("Unimplemented opcode %v", operationName(req.inHeader().Opcode))

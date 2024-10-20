@@ -34,8 +34,6 @@ type request struct {
 	// These split up inputBuf.
 	arg []byte // argument to the operation, eg. data to write.
 
-	filenames []string // filename arguments
-
 	// Output data.
 	status   Status
 	flatData []byte
@@ -75,7 +73,6 @@ func (r *request) clear() {
 	r.inputBuf = nil
 	r.outputBuf = nil
 	r.arg = nil
-	r.filenames = nil
 	r.status = OK
 	r.flatData = nil
 	r.fdData = nil
@@ -93,33 +90,32 @@ func typSize(typ interface{}) uintptr {
 
 func (r *request) InputDebug() string {
 	val := ""
-	if h := getHandler(r.inHeader().Opcode); h != nil && h.InType != nil {
+
+	hdr := r.inHeader()
+	h := getHandler(hdr.Opcode)
+	if h != nil && h.InType != nil {
 		val = Print(asType(r.inData(), h.InType))
 	}
 
 	names := ""
-	if r.filenames != nil {
-		names = fmt.Sprintf("%q", r.filenames)
-	}
-
-	if l := len(r.arg); l > 0 {
-		data := ""
-		if len(r.filenames) == 0 {
-			dots := ""
-			if l > 8 {
-				l = 8
-				dots = "..."
-			}
-
-			data = fmt.Sprintf("%q%s", r.arg[:l], dots)
+	if h.FileNames == 1 {
+		names = fmt.Sprintf("%q", r.filename())
+	} else if h.FileNames == 2 {
+		n1, n2 := r.filenames()
+		names = fmt.Sprintf("%q %q", n1, n2)
+	} else if l := len(r.arg); l > 0 {
+		dots := ""
+		if l > 8 {
+			l = 8
+			dots = "..."
 		}
 
-		names += fmt.Sprintf("%s %db", data, len(r.arg))
+		names = fmt.Sprintf("%q%s %db", r.arg[:l], dots, len(r.arg))
 	}
 
 	return fmt.Sprintf("rx %d: %s n%d %s%s p%d",
-		r.inHeader().Unique, operationName(r.inHeader().Opcode), r.inHeader().NodeId,
-		val, names, r.inHeader().Caller.Pid)
+		hdr.Unique, operationName(hdr.Opcode), hdr.NodeId,
+		val, names, hdr.Caller.Pid)
 }
 
 func (r *request) OutputDebug() string {
@@ -209,34 +205,23 @@ func (r *request) parse(kernelSettings *InitIn) {
 		r.arg = r.inputBuf[unsafe.Sizeof(InHeader{}):]
 	}
 
-	count := h.FileNames
-	if count > 0 {
-		if count == 1 && r.inHeader().Opcode == _OP_SETXATTR {
-			// SETXATTR is special: the only opcode with a file name AND a
-			// binary argument.
-			splits := bytes.SplitN(r.arg, []byte{0}, 2)
-			r.filenames = []string{string(splits[0])}
-		} else if count == 1 {
-			r.filenames = []string{string(r.arg[:len(r.arg)-1])}
-		} else {
-			names := bytes.SplitN(r.arg[:len(r.arg)-1], []byte{0}, count)
-			r.filenames = make([]string, len(names))
-			for i, n := range names {
-				r.filenames[i] = string(n)
-			}
-			if len(names) != count {
-				log.Println("filename argument mismatch", names, count)
-				r.status = EIO
-			}
-		}
-	}
-
 	r.outputBuf = r.outBuf[:h.OutputSize+sizeOfOutHeader]
 	copy(r.outputBuf, zeroOutBuf[:])
 }
 
 func (r *request) outData() unsafe.Pointer {
 	return unsafe.Pointer(&r.outputBuf[sizeOfOutHeader])
+}
+
+func (r *request) filename() string {
+	return string(r.arg[:len(r.arg)-1])
+}
+
+func (r *request) filenames() (string, string) {
+	i1 := bytes.IndexByte(r.arg, 0)
+	s1 := string(r.arg[:i1])
+	s2 := string(r.arg[i1+1 : len(r.arg)-1])
+	return s1, s2
 }
 
 // serializeHeader serializes the response header. The header points
