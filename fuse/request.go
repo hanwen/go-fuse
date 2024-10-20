@@ -87,6 +87,10 @@ func asType(ptr unsafe.Pointer, typ interface{}) interface{} {
 	return reflect.NewAt(reflect.ValueOf(typ).Type(), ptr).Interface()
 }
 
+func typSize(typ interface{}) uintptr {
+	return reflect.ValueOf(typ).Type().Size()
+}
+
 func (r *request) InputDebug() string {
 	val := ""
 	if h := getHandler(r.inHeader().Opcode); h != nil && h.InType != nil {

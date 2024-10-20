@@ -561,83 +561,6 @@ func init() {
 		operationHandlers[op].FileNameOut = true
 	}
 
-	maxInputSize = 0
-	for op, sz := range map[uint32]uintptr{
-		_OP_FORGET:          unsafe.Sizeof(ForgetIn{}),
-		_OP_BATCH_FORGET:    unsafe.Sizeof(_BatchForgetIn{}),
-		_OP_GETATTR:         unsafe.Sizeof(GetAttrIn{}),
-		_OP_SETATTR:         unsafe.Sizeof(SetAttrIn{}),
-		_OP_MKNOD:           unsafe.Sizeof(MknodIn{}),
-		_OP_MKDIR:           unsafe.Sizeof(MkdirIn{}),
-		_OP_RENAME:          unsafe.Sizeof(Rename1In{}),
-		_OP_LINK:            unsafe.Sizeof(LinkIn{}),
-		_OP_OPEN:            unsafe.Sizeof(OpenIn{}),
-		_OP_READ:            unsafe.Sizeof(ReadIn{}),
-		_OP_WRITE:           unsafe.Sizeof(WriteIn{}),
-		_OP_RELEASE:         unsafe.Sizeof(ReleaseIn{}),
-		_OP_FSYNC:           unsafe.Sizeof(FsyncIn{}),
-		_OP_SETXATTR:        unsafe.Sizeof(SetXAttrIn{}),
-		_OP_GETXATTR:        unsafe.Sizeof(GetXAttrIn{}),
-		_OP_LISTXATTR:       unsafe.Sizeof(GetXAttrIn{}),
-		_OP_FLUSH:           unsafe.Sizeof(FlushIn{}),
-		_OP_INIT:            unsafe.Sizeof(InitIn{}),
-		_OP_OPENDIR:         unsafe.Sizeof(OpenIn{}),
-		_OP_READDIR:         unsafe.Sizeof(ReadIn{}),
-		_OP_RELEASEDIR:      unsafe.Sizeof(ReleaseIn{}),
-		_OP_FSYNCDIR:        unsafe.Sizeof(FsyncIn{}),
-		_OP_GETLK:           unsafe.Sizeof(LkIn{}),
-		_OP_SETLK:           unsafe.Sizeof(LkIn{}),
-		_OP_SETLKW:          unsafe.Sizeof(LkIn{}),
-		_OP_ACCESS:          unsafe.Sizeof(AccessIn{}),
-		_OP_CREATE:          unsafe.Sizeof(CreateIn{}),
-		_OP_INTERRUPT:       unsafe.Sizeof(InterruptIn{}),
-		_OP_BMAP:            unsafe.Sizeof(_BmapIn{}),
-		_OP_IOCTL:           unsafe.Sizeof(_IoctlIn{}),
-		_OP_POLL:            unsafe.Sizeof(_PollIn{}),
-		_OP_NOTIFY_REPLY:    unsafe.Sizeof(NotifyRetrieveIn{}),
-		_OP_FALLOCATE:       unsafe.Sizeof(FallocateIn{}),
-		_OP_READDIRPLUS:     unsafe.Sizeof(ReadIn{}),
-		_OP_RENAME2:         unsafe.Sizeof(RenameIn{}),
-		_OP_LSEEK:           unsafe.Sizeof(LseekIn{}),
-		_OP_COPY_FILE_RANGE: unsafe.Sizeof(CopyFileRangeIn{}),
-	} {
-		operationHandlers[op].InputSize = sz
-		if sz > maxInputSize {
-			maxInputSize = sz
-		}
-	}
-
-	for op, sz := range map[uint32]uintptr{
-		_OP_LOOKUP:                unsafe.Sizeof(EntryOut{}),
-		_OP_GETATTR:               unsafe.Sizeof(AttrOut{}),
-		_OP_SETATTR:               unsafe.Sizeof(AttrOut{}),
-		_OP_SYMLINK:               unsafe.Sizeof(EntryOut{}),
-		_OP_MKNOD:                 unsafe.Sizeof(EntryOut{}),
-		_OP_MKDIR:                 unsafe.Sizeof(EntryOut{}),
-		_OP_LINK:                  unsafe.Sizeof(EntryOut{}),
-		_OP_OPEN:                  unsafe.Sizeof(OpenOut{}),
-		_OP_WRITE:                 unsafe.Sizeof(WriteOut{}),
-		_OP_STATFS:                unsafe.Sizeof(StatfsOut{}),
-		_OP_GETXATTR:              unsafe.Sizeof(GetXAttrOut{}),
-		_OP_LISTXATTR:             unsafe.Sizeof(GetXAttrOut{}),
-		_OP_INIT:                  unsafe.Sizeof(InitOut{}),
-		_OP_OPENDIR:               unsafe.Sizeof(OpenOut{}),
-		_OP_GETLK:                 unsafe.Sizeof(LkOut{}),
-		_OP_CREATE:                unsafe.Sizeof(CreateOut{}),
-		_OP_BMAP:                  unsafe.Sizeof(_BmapOut{}),
-		_OP_IOCTL:                 unsafe.Sizeof(_IoctlOut{}),
-		_OP_POLL:                  unsafe.Sizeof(_PollOut{}),
-		_OP_NOTIFY_INVAL_ENTRY:    unsafe.Sizeof(NotifyInvalEntryOut{}),
-		_OP_NOTIFY_INVAL_INODE:    unsafe.Sizeof(NotifyInvalInodeOut{}),
-		_OP_NOTIFY_STORE_CACHE:    unsafe.Sizeof(NotifyStoreOut{}),
-		_OP_NOTIFY_RETRIEVE_CACHE: unsafe.Sizeof(NotifyRetrieveOut{}),
-		_OP_NOTIFY_DELETE:         unsafe.Sizeof(NotifyInvalDeleteOut{}),
-		_OP_LSEEK:                 unsafe.Sizeof(LseekOut{}),
-		_OP_COPY_FILE_RANGE:       unsafe.Sizeof(WriteOut{}),
-	} {
-		operationHandlers[op].OutputSize = sz
-	}
-
 	for op, v := range map[uint32]string{
 		_OP_LOOKUP:                "LOOKUP",
 		_OP_FORGET:                "FORGET",
@@ -747,68 +670,83 @@ func init() {
 
 	// Outputs.
 	for op, f := range map[uint32]interface{}{
-		_OP_LOOKUP:                EntryOut{},
-		_OP_OPEN:                  OpenOut{},
-		_OP_OPENDIR:               OpenOut{},
-		_OP_GETATTR:               AttrOut{},
+		_OP_BMAP:                  _BmapOut{},
+		_OP_COPY_FILE_RANGE:       WriteOut{},
 		_OP_CREATE:                CreateOut{},
-		_OP_LINK:                  EntryOut{},
-		_OP_SETATTR:               AttrOut{},
+		_OP_GETATTR:               AttrOut{},
+		_OP_GETLK:                 LkOut{},
+		_OP_GETXATTR:              GetXAttrOut{},
 		_OP_INIT:                  InitOut{},
+		_OP_IOCTL:                 _IoctlOut{},
+		_OP_LINK:                  EntryOut{},
+		_OP_LISTXATTR:             GetXAttrOut{},
+		_OP_LOOKUP:                EntryOut{},
+		_OP_LSEEK:                 LseekOut{},
 		_OP_MKDIR:                 EntryOut{},
 		_OP_MKNOD:                 EntryOut{},
+		_OP_NOTIFY_DELETE:         NotifyInvalDeleteOut{},
 		_OP_NOTIFY_INVAL_ENTRY:    NotifyInvalEntryOut{},
 		_OP_NOTIFY_INVAL_INODE:    NotifyInvalInodeOut{},
-		_OP_NOTIFY_STORE_CACHE:    NotifyStoreOut{},
 		_OP_NOTIFY_RETRIEVE_CACHE: NotifyRetrieveOut{},
-		_OP_NOTIFY_DELETE:         NotifyInvalDeleteOut{},
+		_OP_NOTIFY_STORE_CACHE:    NotifyStoreOut{},
+		_OP_OPEN:                  OpenOut{},
+		_OP_OPENDIR:               OpenOut{},
+		_OP_POLL:                  _PollOut{},
+		_OP_SETATTR:               AttrOut{},
 		_OP_STATFS:                StatfsOut{},
 		_OP_SYMLINK:               EntryOut{},
-		_OP_GETLK:                 LkOut{},
-		_OP_LSEEK:                 LseekOut{},
-		_OP_COPY_FILE_RANGE:       WriteOut{},
+		_OP_WRITE:                 WriteOut{},
 	} {
 		operationHandlers[op].OutType = f
+		operationHandlers[op].OutputSize = typSize(f)
 	}
 
 	// Inputs.
 	for op, f := range map[uint32]interface{}{
+		_OP_ACCESS:          AccessIn{},
+		_OP_BATCH_FORGET:    _BatchForgetIn{},
+		_OP_BMAP:            _BmapIn{},
+		_OP_COPY_FILE_RANGE: CopyFileRangeIn{},
+		_OP_CREATE:          CreateIn{},
+		_OP_FALLOCATE:       FallocateIn{},
 		_OP_FLUSH:           FlushIn{},
+		_OP_FORGET:          ForgetIn{},
+		_OP_FSYNC:           FsyncIn{},
+		_OP_FSYNCDIR:        FsyncIn{},
 		_OP_GETATTR:         GetAttrIn{},
-		_OP_SETXATTR:        SetXAttrIn{},
+		_OP_GETLK:           LkIn{},
 		_OP_GETXATTR:        GetXAttrIn{},
-		_OP_LISTXATTR:       GetXAttrIn{},
-		_OP_SETATTR:         SetAttrIn{},
 		_OP_INIT:            InitIn{},
+		_OP_INTERRUPT:       InterruptIn{},
 		_OP_IOCTL:           _IoctlIn{},
+		_OP_LINK:            LinkIn{},
+		_OP_LISTXATTR:       GetXAttrIn{},
+		_OP_LSEEK:           LseekIn{},
+		_OP_MKDIR:           MkdirIn{},
+		_OP_MKNOD:           MknodIn{},
+		_OP_NOTIFY_REPLY:    NotifyRetrieveIn{},
 		_OP_OPEN:            OpenIn{},
 		_OP_OPENDIR:         OpenIn{},
-		_OP_MKNOD:           MknodIn{},
-		_OP_CREATE:          CreateIn{},
+		_OP_POLL:            _PollIn{},
 		_OP_READ:            ReadIn{},
-		_OP_WRITE:           WriteIn{},
 		_OP_READDIR:         ReadIn{},
-		_OP_FSYNCDIR:        FsyncIn{},
-		_OP_ACCESS:          AccessIn{},
-		_OP_FORGET:          ForgetIn{},
-		_OP_BATCH_FORGET:    _BatchForgetIn{},
-		_OP_LINK:            LinkIn{},
-		_OP_MKDIR:           MkdirIn{},
+		_OP_READDIRPLUS:     ReadIn{},
 		_OP_RELEASE:         ReleaseIn{},
 		_OP_RELEASEDIR:      ReleaseIn{},
-		_OP_FALLOCATE:       FallocateIn{},
-		_OP_NOTIFY_REPLY:    NotifyRetrieveIn{},
-		_OP_READDIRPLUS:     ReadIn{},
+		_OP_RENAME2:         RenameIn{},
 		_OP_RENAME:          Rename1In{},
-		_OP_GETLK:           LkIn{},
+		_OP_SETATTR:         SetAttrIn{},
 		_OP_SETLK:           LkIn{},
 		_OP_SETLKW:          LkIn{},
-		_OP_RENAME2:         RenameIn{},
-		_OP_INTERRUPT:       InterruptIn{},
-		_OP_LSEEK:           LseekIn{},
-		_OP_COPY_FILE_RANGE: CopyFileRangeIn{},
+		_OP_SETXATTR:        SetXAttrIn{},
+		_OP_WRITE:           WriteIn{},
 	} {
 		operationHandlers[op].InType = f
+		sz := typSize(f)
+		operationHandlers[op].InputSize = sz
+		if maxInputSize < sz {
+			maxInputSize = sz
+		}
 	}
 
 	// File name args.
