@@ -1,19 +1,16 @@
 //go:build !freebsd
 
+// Copyright 2024 the Go-FUSE Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 package fs
 
 import (
-	"bytes"
 	"context"
 	"syscall"
 
 	"golang.org/x/sys/unix"
 )
-
-func retrieveAttrName(buf []byte) [][]byte {
-	attributes := bytes.Split(buf, []byte{0})
-	return attributes
-}
 
 var _ = (NodeListxattrer)((*LoopbackNode)(nil))
 

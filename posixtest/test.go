@@ -18,6 +18,7 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fuse"
 	"github.com/hanwen/go-fuse/v2/internal/fallocate"
+	"github.com/hanwen/go-fuse/v2/internal/xattr"
 	"golang.org/x/sys/unix"
 )
 
@@ -49,6 +50,7 @@ var All = map[string]func(*testing.T, string){
 	"FcntlFlockSetLk":            FcntlFlockSetLk,
 	"FcntlFlockLocksFile":        FcntlFlockLocksFile,
 	"SetattrSymlink":             SetattrSymlink,
+	"XAttr":                      XAttr,
 }
 
 func SetattrSymlink(t *testing.T, mnt string) {
@@ -813,5 +815,67 @@ func LseekEnxioCheck(t *testing.T, mnt string) {
 				t.Errorf("Failed test case: %s; got %v, want %v", tc.name, err, syscall.ENXIO)
 			}
 		}
+	}
+}
+
+// XAttr; they aren't posix but cross-platform enough to put into posixtest/
+func XAttr(t *testing.T, mntDir string) {
+	buf := make([]byte, 1024)
+	attrNameSpace := "user"
+	attrName := "xattrtest"
+	attr := fmt.Sprintf("%s.%s", attrNameSpace, attrName)
+	fn := mntDir + "/file"
+
+	if err := os.WriteFile(fn, []byte{}, 0666); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	if _, err := unix.Getxattr(fn, attr, buf); err == unix.ENOTSUP {
+		t.Skipf("filesystem for %s does not support xattrs. Rerun this test with a $TMPDIR override", fn)
+	}
+
+	if _, err := unix.Getxattr(fn, attr, buf); err != xattr.ENOATTR {
+		t.Fatalf("got %v want ENOATTR", err)
+	}
+	value := []byte("value")
+	if err := unix.Setxattr(fn, attr, value, 0); err != nil {
+		t.Fatalf("Setxattr: %v", err)
+	}
+
+	sz, err := unix.Listxattr(fn, nil)
+	if err != nil {
+		t.Fatalf("Listxattr: %v", err)
+	}
+	buf = make([]byte, sz)
+	if _, err := unix.Listxattr(fn, buf); err != nil {
+		t.Fatalf("Listxattr: %v", err)
+	} else {
+		attributes := xattr.ParseAttrNames(buf[:sz])
+		found := false
+		for _, a := range attributes {
+			if string(a) == attr || attrNameSpace+string(a) == attr {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			t.Fatalf("Listxattr: %q (not found: %q", attributes, attr)
+		}
+	}
+
+	sz, err = unix.Getxattr(fn, attr, buf)
+	if err != nil {
+		t.Fatalf("Getxattr: %v", err)
+	}
+	if bytes.Compare(buf[:sz], value) != 0 {
+		t.Fatalf("Getxattr got %q want %q", buf[:sz], value)
+	}
+	if err := unix.Removexattr(fn, attr); err != nil {
+		t.Fatalf("Removexattr: %v", err)
+	}
+
+	if _, err := unix.Getxattr(fn, attr, buf); err != xattr.ENOATTR {
+		t.Fatalf("got %v want ENOATTR", err)
 	}
 }

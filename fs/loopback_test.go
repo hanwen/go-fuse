@@ -1,9 +1,7 @@
 package fs
 
 import (
-	"bytes"
 	"context"
-	"fmt"
 	"os"
 	"reflect"
 	"syscall"
@@ -88,65 +86,6 @@ func TestRenameExchange(t *testing.T) {
 	}
 	if ino2.StableAttr().Ino != after2.Ino {
 		t.Errorf("got inode %d for %q want %d", ino2.StableAttr().Ino, "dir/file", after2.Ino)
-	}
-}
-
-func TestXAttr(t *testing.T) {
-	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
-
-	tc.writeOrig("file", "", 0644)
-
-	buf := make([]byte, 1024)
-	attrNameSpace := "user"
-	attrName := "xattrtest"
-	attr := fmt.Sprintf("%s.%s", attrNameSpace, attrName)
-	if _, err := unix.Getxattr(tc.mntDir+"/file", attr, buf); err == unix.ENOTSUP {
-		t.Skip("$TMP does not support xattrs. Rerun this test with a $TMPDIR override")
-	}
-
-	if _, err := unix.Getxattr(tc.mntDir+"/file", attr, buf); err != ENOATTR {
-		t.Fatalf("got %v want ENOATTR", err)
-	}
-	value := []byte("value")
-	if err := unix.Setxattr(tc.mntDir+"/file", attr, value, 0); err != nil {
-		t.Fatalf("Setxattr: %v", err)
-	}
-
-	sz, err := unix.Listxattr(tc.mntDir+"/file", nil)
-	if err != nil {
-		t.Fatalf("Listxattr: %v", err)
-	}
-	buf = make([]byte, sz)
-	if _, err := unix.Listxattr(tc.mntDir+"/file", buf); err != nil {
-		t.Fatalf("Listxattr: %v", err)
-	} else {
-		attributes := retrieveAttrName(buf[:sz])
-		found := false
-		for _, a := range attributes {
-			if string(a) == attr || attrNameSpace+string(a) == attr {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			t.Fatalf("Listxattr: %q (not found: %q", attributes, attr)
-		}
-	}
-
-	sz, err = unix.Getxattr(tc.mntDir+"/file", attr, buf)
-	if err != nil {
-		t.Fatalf("Getxattr: %v", err)
-	}
-	if bytes.Compare(buf[:sz], value) != 0 {
-		t.Fatalf("Getxattr got %q want %q", buf[:sz], value)
-	}
-	if err := unix.Removexattr(tc.mntDir+"/file", attr); err != nil {
-		t.Fatalf("Removexattr: %v", err)
-	}
-
-	if _, err := unix.Getxattr(tc.mntDir+"/file", attr, buf); err != ENOATTR {
-		t.Fatalf("got %v want ENOATTR", err)
 	}
 }
 
