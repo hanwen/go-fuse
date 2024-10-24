@@ -21,9 +21,7 @@ func (ms *Server) systemWrite(req *request) Status {
 	}
 
 	if req.fdData != nil {
-		sz := req.outPayloadSize()
-		buf := ms.allocOut(req, uint32(sz))
-		req.outPayload, req.status = req.fdData.Bytes(buf)
+		req.outPayload, req.status = req.fdData.Bytes(req.outPayload)
 		req.serializeHeader(len(req.outPayload))
 	}
 

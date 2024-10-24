@@ -376,7 +376,6 @@ func doRead(server *Server, req *request) {
 	req.readResult, req.status = server.fileSystem.Read(req.cancel, in, req.outPayload)
 	if fd, ok := req.readResult.(*readResultFd); ok {
 		req.fdData = fd
-		req.outPayload = nil
 	} else if req.readResult != nil && req.status.Ok() {
 		req.outPayload, req.status = req.readResult.Bytes(req.outPayload)
 	}

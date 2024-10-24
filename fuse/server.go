@@ -569,7 +569,7 @@ func (ms *Server) handleRequest(req *request) Status {
 	req.outputBuf = req.outBuf[:outSize+int(sizeOfOutHeader)]
 	copy(req.outputBuf, zeroOutBuf[:])
 	if outPayloadSize > 0 {
-		req.outPayload = ms.allocOut(req, uint32(outPayloadSize))
+		req.outPayload = ms.buffers.AllocBuffer(uint32(outPayloadSize))
 	}
 
 	if req.status.Ok() && ms.opts.Debug {
@@ -616,21 +616,6 @@ func alignSlice(buf []byte, alignedByte, blockSize, size uintptr) []byte {
 	misaligned := uintptr(unsafe.Pointer(&buf[alignedByte])) & (blockSize - 1)
 	buf = buf[blockSize-misaligned:]
 	return buf[:size]
-}
-
-func (ms *Server) allocOut(req *request, size uint32) []byte {
-	if cap(req.bufferPoolOutputBuf) >= int(size) {
-		req.bufferPoolOutputBuf = req.bufferPoolOutputBuf[:size]
-		return req.bufferPoolOutputBuf
-	}
-	if req.bufferPoolOutputBuf != nil {
-		ms.buffers.FreeBuffer(req.bufferPoolOutputBuf)
-		req.bufferPoolOutputBuf = nil
-	}
-	// As this allocated a multiple of the page size, very likely
-	// this is aligned to logicalBlockSize too, which is smaller.
-	req.bufferPoolOutputBuf = ms.buffers.AllocBuffer(size)
-	return req.bufferPoolOutputBuf
 }
 
 func (ms *Server) write(req *request) Status {
