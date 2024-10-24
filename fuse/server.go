@@ -211,6 +211,10 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		if targetSize < _FUSE_MIN_READ_BUFFER {
 			targetSize = _FUSE_MIN_READ_BUFFER
 		}
+		// O_DIRECT typically requires buffers aligned to
+		// blocksize (see man 2 open), but requirements vary
+		// across file systems. Presumably, we could also fix
+		// this by reading the requests using readv.
 		buf := make([]byte, targetSize+logicalBlockSize)
 		buf = alignSlice(buf, unsafe.Sizeof(WriteIn{}), logicalBlockSize, uintptr(targetSize))
 		return buf
