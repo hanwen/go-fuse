@@ -65,9 +65,7 @@ type Server struct {
 	readPool       sync.Pool
 	reqMu          sync.Mutex
 	reqReaders     int
-	reqInflight    []*request
 	kernelSettings InitIn
-	connectionDead bool
 
 	// in-flight notify-retrieve queries
 	retrieveMu   sync.Mutex
@@ -81,6 +79,10 @@ type Server struct {
 
 	// for implementing single threaded processing.
 	requestProcessingMu sync.Mutex
+
+	interruptMu    sync.Mutex
+	reqInflight    []*request
+	connectionDead bool
 }
 
 // SetDebug is deprecated. Use MountOptions.Debug instead.
@@ -356,8 +358,6 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 		return nil, EINVAL
 	}
 
-	req.inflightIndex = len(ms.reqInflight)
-	ms.reqInflight = append(ms.reqInflight, req)
 	if !gobbled {
 		ms.readPool.Put(destIface)
 	}
@@ -372,24 +372,7 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 
 // returnRequest returns a request to the pool of unused requests.
 func (ms *Server) returnRequest(req *request) {
-	ms.reqMu.Lock()
-	this := req.inflightIndex
-	last := len(ms.reqInflight) - 1
-
-	if last != this {
-		ms.reqInflight[this] = ms.reqInflight[last]
-		ms.reqInflight[this].inflightIndex = this
-	}
-	ms.reqInflight = ms.reqInflight[:last]
-	interrupted := req.interrupted
-	ms.reqMu.Unlock()
-
 	ms.recordStats(req)
-	if interrupted {
-		// Don't reposses data, because someone might still
-		// be looking at it
-		return
-	}
 
 	if req.bufferPoolOutputBuf != nil {
 		ms.buffers.FreeBuffer(req.bufferPoolOutputBuf)
@@ -540,9 +523,44 @@ exit:
 	}
 }
 
+func (ms *Server) addInflight(req *request) {
+	ms.interruptMu.Lock()
+	defer ms.interruptMu.Unlock()
+	req.inflightIndex = len(ms.reqInflight)
+	ms.reqInflight = append(ms.reqInflight, req)
+}
+
+func (ms *Server) dropInflight(req *request) {
+	ms.interruptMu.Lock()
+	defer ms.interruptMu.Unlock()
+	this := req.inflightIndex
+	last := len(ms.reqInflight) - 1
+	if last != this {
+		ms.reqInflight[this] = ms.reqInflight[last]
+		ms.reqInflight[this].inflightIndex = this
+	}
+	ms.reqInflight = ms.reqInflight[:last]
+}
+
+func (ms *Server) interruptRequest(unique uint64) Status {
+	ms.interruptMu.Lock()
+	defer ms.interruptMu.Unlock()
+
+	// This is slow, but this operation is rare.
+	for _, inflight := range ms.reqInflight {
+		if unique == inflight.inHeader().Unique && !inflight.interrupted {
+			close(inflight.cancel)
+			inflight.interrupted = true
+			return OK
+		}
+	}
+
+	return EAGAIN
+}
+
 func (ms *Server) cancelAll() {
-	ms.reqMu.Lock()
-	defer ms.reqMu.Unlock()
+	ms.interruptMu.Lock()
+	defer ms.interruptMu.Unlock()
 	ms.connectionDead = true
 	for _, req := range ms.reqInflight {
 		if !req.interrupted {
@@ -550,7 +568,7 @@ func (ms *Server) cancelAll() {
 			req.interrupted = true
 		}
 	}
-	// Leave ms.reqInflight alone, or returnRequest will barf.
+	// Leave ms.reqInflight alone, or dropInflight will barf.
 }
 
 func (ms *Server) handleRequest(req *request) Status {
@@ -571,6 +589,14 @@ func (ms *Server) handleRequest(req *request) Status {
 	if outPayloadSize > 0 {
 		req.outPayload = ms.buffers.AllocBuffer(uint32(outPayloadSize))
 	}
+	code = ms.innerHandleRequest(h, req)
+	ms.returnRequest(req)
+	return code
+}
+
+func (ms *Server) innerHandleRequest(h *operationHandler, req *request) Status {
+	ms.addInflight(req)
+	defer ms.dropInflight(req)
 
 	if req.status.Ok() && ms.opts.Debug {
 		ms.opts.Logger.Println(req.InputDebug())
@@ -605,7 +631,6 @@ func (ms *Server) handleRequest(req *request) Status {
 				errNo, operationName(req.inHeader().Opcode))
 		}
 	}
-	ms.returnRequest(req)
 	return Status(errNo)
 }
 
@@ -629,9 +654,9 @@ func (ms *Server) write(req *request) Status {
 		}
 	}
 	if req.status == EINTR {
-		ms.reqMu.Lock()
+		ms.interruptMu.Lock()
 		dead := ms.connectionDead
-		ms.reqMu.Unlock()
+		ms.interruptMu.Unlock()
 		if dead {
 			return OK
 		}

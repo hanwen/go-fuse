@@ -22,7 +22,7 @@ type request struct {
 
 	cancel chan struct{}
 
-	// written under Server.reqMu
+	// written under Server.interruptMu
 	interrupted bool
 
 	// inHeader + opcode specific data

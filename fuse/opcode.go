@@ -10,7 +10,6 @@ import (
 	"log"
 	"runtime"
 	"syscall"
-	"time"
 	"unsafe"
 )
 
@@ -490,22 +489,7 @@ func doCopyFileRange(server *Server, req *request) {
 
 func doInterrupt(server *Server, req *request) {
 	input := (*InterruptIn)(req.inData())
-	server.reqMu.Lock()
-	defer server.reqMu.Unlock()
-
-	// This is slow, but this operation is rare.
-	for _, inflight := range server.reqInflight {
-		if input.Unique == inflight.inHeader().Unique && !inflight.interrupted {
-			close(inflight.cancel)
-			inflight.interrupted = true
-			req.status = OK
-			return
-		}
-	}
-
-	// not found; wait for a bit
-	time.Sleep(10 * time.Microsecond)
-	req.status = EAGAIN
+	req.status = server.interruptRequest(input.Unique)
 }
 
 ////////////////////////////////////////////////////////////////
