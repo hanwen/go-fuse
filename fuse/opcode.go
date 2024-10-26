@@ -98,7 +98,7 @@ func doInit(server *Server, req *request) {
 	}
 
 	kernelFlags := input.Flags64()
-	server.reqMu.Lock()
+
 	server.kernelSettings = *input
 	kernelFlags &= (CAP_ASYNC_READ | CAP_BIG_WRITES | CAP_FILE_OPS |
 		CAP_READDIRPLUS | CAP_NO_OPEN_SUPPORT | CAP_PARALLEL_DIROPS | CAP_MAX_PAGES | CAP_RENAME_SWAP | CAP_PASSTHROUGH)
@@ -141,7 +141,6 @@ func doInit(server *Server, req *request) {
 	// memory pages (usually 4kiB). Linux v4.19 and older ignore this and always use
 	// 128kiB.
 	maxPages := (server.opts.MaxWrite-1)/syscall.Getpagesize() + 1 // Round up
-	server.reqMu.Unlock()
 
 	out := (*InitOut)(req.outData())
 	*out = InitOut{
