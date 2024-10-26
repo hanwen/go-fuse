@@ -35,20 +35,38 @@ const (
 	maxMaxReaders = 16
 )
 
+type protocolServer struct {
+	fileSystem RawFileSystem
+
+	interruptMu    sync.Mutex
+	reqInflight    []*request
+	connectionDead bool
+
+	latencies LatencyMap
+
+	// in-flight notify-retrieve queries
+	retrieveMu   sync.Mutex
+	retrieveNext uint64
+	retrieveTab  map[uint64]*retrieveCacheRequest // notifyUnique -> retrieve request
+
+	kernelSettings InitIn
+
+	opts *MountOptions
+}
+
 // Server contains the logic for reading from the FUSE device and
 // translating it to RawFileSystem interface calls.
 type Server struct {
+	protocolServer
+
 	// Empty if unmounted.
 	mountPoint string
-	fileSystem RawFileSystem
 
 	// writeMu serializes close and notify writes
 	writeMu sync.Mutex
 
 	// I/O with kernel and daemon.
 	mountFd int
-
-	latencies LatencyMap
 
 	opts *MountOptions
 
@@ -62,15 +80,9 @@ type Server struct {
 	reqPool sync.Pool
 
 	// Pool for raw requests data
-	readPool       sync.Pool
-	reqMu          sync.Mutex
-	reqReaders     int
-	kernelSettings InitIn
-
-	// in-flight notify-retrieve queries
-	retrieveMu   sync.Mutex
-	retrieveNext uint64
-	retrieveTab  map[uint64]*retrieveCacheRequest // notifyUnique -> retrieve request
+	readPool   sync.Pool
+	reqMu      sync.Mutex
+	reqReaders int
 
 	singleReader bool
 	canSplice    bool
@@ -82,10 +94,6 @@ type Server struct {
 
 	// for implementing single threaded processing.
 	requestProcessingMu sync.Mutex
-
-	interruptMu    sync.Mutex
-	reqInflight    []*request
-	connectionDead bool
 }
 
 // SetDebug is deprecated. Use MountOptions.Debug instead.
@@ -207,10 +215,13 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 	}
 
 	ms := &Server{
-		fileSystem:   fs,
+		protocolServer: protocolServer{
+			fileSystem:  fs,
+			retrieveTab: make(map[uint64]*retrieveCacheRequest),
+			opts:        &o,
+		},
 		opts:         &o,
 		maxReaders:   maxReaders,
-		retrieveTab:  make(map[uint64]*retrieveCacheRequest),
 		singleReader: useSingleReader,
 		ready:        make(chan error, 1),
 	}
@@ -543,14 +554,14 @@ exit:
 	}
 }
 
-func (ms *Server) addInflight(req *request) {
+func (ms *protocolServer) addInflight(req *request) {
 	ms.interruptMu.Lock()
 	defer ms.interruptMu.Unlock()
 	req.inflightIndex = len(ms.reqInflight)
 	ms.reqInflight = append(ms.reqInflight, req)
 }
 
-func (ms *Server) dropInflight(req *request) {
+func (ms *protocolServer) dropInflight(req *request) {
 	ms.interruptMu.Lock()
 	defer ms.interruptMu.Unlock()
 	this := req.inflightIndex
@@ -562,7 +573,7 @@ func (ms *Server) dropInflight(req *request) {
 	ms.reqInflight = ms.reqInflight[:last]
 }
 
-func (ms *Server) interruptRequest(unique uint64) Status {
+func (ms *protocolServer) interruptRequest(unique uint64) Status {
 	ms.interruptMu.Lock()
 	defer ms.interruptMu.Unlock()
 
@@ -578,7 +589,7 @@ func (ms *Server) interruptRequest(unique uint64) Status {
 	return EAGAIN
 }
 
-func (ms *Server) cancelAll() {
+func (ms *protocolServer) cancelAll() {
 	ms.interruptMu.Lock()
 	defer ms.interruptMu.Unlock()
 	ms.connectionDead = true
@@ -611,11 +622,10 @@ func (ms *Server) handleRequest(req *requestAlloc) Status {
 	if outPayloadSize > 0 {
 		req.outPayload = ms.buffers.AllocBuffer(uint32(outPayloadSize))
 	}
-	ms.innerHandleRequest(h, &req.request)
+	ms.protocolServer.handleRequest(h, &req.request)
 	if req.suppressReply {
 		return OK
 	}
-
 	errno := ms.write(&req.request)
 	if errno != 0 {
 		// Ignore ENOENT for INTERRUPT responses which
@@ -623,7 +633,7 @@ func (ms *Server) handleRequest(req *requestAlloc) Status {
 		// known by the kernel. This is a normal if the
 		// referred request already has completed.
 		//
-		// Ignore ENOENT for RELEASE(DIR) responses.  When the FS
+		// Ignore ENOENT for RELEASE responses.  When the FS
 		// is unmounted directly after a file close, the
 		// device can go away while we are still processing
 		// RELEASE. This is because RELEASE is analogous to
@@ -639,7 +649,7 @@ func (ms *Server) handleRequest(req *requestAlloc) Status {
 	return errno
 }
 
-func (ms *Server) innerHandleRequest(h *operationHandler, req *request) {
+func (ms *protocolServer) handleRequest(h *operationHandler, req *request) {
 	ms.addInflight(req)
 	defer ms.dropInflight(req)
 

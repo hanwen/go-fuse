@@ -189,6 +189,7 @@ func (r *request) inData() unsafe.Pointer {
 	return unsafe.Pointer(&r.inputBuf[0])
 }
 
+// note: outSize is without OutHeader
 func parseRequest(in []byte, kernelSettings *InitIn) (h *operationHandler, inSize, outSize, outPayloadSize int, errno Status) {
 	inSize = int(unsafe.Sizeof(InHeader{}))
 	if len(in) < inSize {
@@ -206,7 +207,7 @@ func parseRequest(in []byte, kernelSettings *InitIn) (h *operationHandler, inSiz
 	if h.InputSize > 0 {
 		inSize = int(h.InputSize)
 	}
-	if hdr.Opcode == _OP_RENAME && kernelSettings.supportsRenameSwap() {
+	if kernelSettings != nil && hdr.Opcode == _OP_RENAME && kernelSettings.supportsRenameSwap() {
 		inSize = int(unsafe.Sizeof(RenameIn{}))
 	}
 	if hdr.Opcode == _OP_INIT && inSize > len(in) {
