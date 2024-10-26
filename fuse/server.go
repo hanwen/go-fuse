@@ -661,12 +661,13 @@ func (ms *Server) write(req *request) Status {
 			return OK
 		}
 	}
-	req.serializeHeader(req.outPayloadSize())
 
 	if req.inHeader().Opcode == _OP_INIT && ms.kernelSettings.Minor <= 22 {
 		// v8-v22 don't have TimeGran and further fields.
+		// This includes osxfuse (a.k.a. macfuse).
 		req.outHeader().Length = uint32(sizeOfOutHeader) + 24
 	}
+	req.serializeHeader(req.outPayloadSize())
 
 	if ms.opts.Debug {
 		ms.opts.Logger.Println(req.OutputDebug())
