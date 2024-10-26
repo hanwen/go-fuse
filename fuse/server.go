@@ -204,8 +204,10 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		singleReader: useSingleReader,
 	}
 	ms.reqPool.New = func() interface{} {
-		return &request{
-			cancel: make(chan struct{}),
+		return &requestAlloc{
+			request: request{
+				cancel: make(chan struct{}),
+			},
 		}
 	}
 	ms.readPool.New = func() interface{} {
@@ -318,7 +320,7 @@ func handleEINTR(fn func() error) (err error) {
 
 // Returns a new request, or error. In case exitIdle is given, returns
 // nil, OK if we have too many readers already.
-func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
+func (ms *Server) readRequest(exitIdle bool) (req *requestAlloc, code Status) {
 	ms.reqMu.Lock()
 	if ms.reqReaders > ms.maxReaders {
 		ms.reqMu.Unlock()
@@ -328,7 +330,7 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 	ms.reqMu.Unlock()
 
 	reqIface := ms.reqPool.Get()
-	req = reqIface.(*request)
+	req = reqIface.(*requestAlloc)
 	destIface := ms.readPool.Get()
 	dest := destIface.([]byte)
 
@@ -371,14 +373,17 @@ func (ms *Server) readRequest(exitIdle bool) (req *request, code Status) {
 }
 
 // returnRequest returns a request to the pool of unused requests.
-func (ms *Server) returnRequest(req *request) {
-	ms.recordStats(req)
+func (ms *Server) returnRequest(req *requestAlloc) {
+	ms.recordStats(&req.request)
 
 	if req.bufferPoolOutputBuf != nil {
 		ms.buffers.FreeBuffer(req.bufferPoolOutputBuf)
 		req.bufferPoolOutputBuf = nil
 	}
-
+	if req.interrupted {
+		req.interrupted = false
+		req.cancel = make(chan struct{}, 0)
+	}
 	req.clear()
 
 	if p := req.bufferPoolInputBuf; p != nil {
@@ -571,7 +576,7 @@ func (ms *Server) cancelAll() {
 	// Leave ms.reqInflight alone, or dropInflight will barf.
 }
 
-func (ms *Server) handleRequest(req *request) Status {
+func (ms *Server) handleRequest(req *requestAlloc) Status {
 	if ms.opts.SingleThreaded {
 		ms.requestProcessingMu.Lock()
 		defer ms.requestProcessingMu.Unlock()
@@ -589,7 +594,7 @@ func (ms *Server) handleRequest(req *request) Status {
 	if outPayloadSize > 0 {
 		req.outPayload = ms.buffers.AllocBuffer(uint32(outPayloadSize))
 	}
-	code = ms.innerHandleRequest(h, req)
+	code = ms.innerHandleRequest(h, &req.request)
 	ms.returnRequest(req)
 	return code
 }

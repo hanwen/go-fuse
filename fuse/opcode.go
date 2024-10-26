@@ -747,7 +747,7 @@ func init() {
 		operationHandlers[op].FileNames = count
 	}
 
-	var r request
+	var r requestAlloc
 	sizeOfOutHeader := unsafe.Sizeof(OutHeader{})
 	for code, h := range operationHandlers {
 		if h.OutputSize+sizeOfOutHeader > unsafe.Sizeof(r.outBuf) {

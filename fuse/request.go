@@ -47,6 +47,12 @@ type request struct {
 
 	// Start timestamp for timing info.
 	startTime time.Time
+}
+
+// requestAlloc holds the request, plus I/O buffers, which are
+// reused across requests.
+type requestAlloc struct {
+	request
 
 	// Request storage. For large inputs and outputs, use data
 	// obtained through bufferpool.
@@ -163,7 +169,7 @@ func (r *request) OutputDebug() string {
 }
 
 // setInput returns true if it takes ownership of the argument, false if not.
-func (r *request) setInput(input []byte) bool {
+func (r *requestAlloc) setInput(input []byte) bool {
 	if len(input) < len(r.smallInputBuf) {
 		copy(r.smallInputBuf[:], input)
 		r.inputBuf = r.smallInputBuf[:len(input)]
