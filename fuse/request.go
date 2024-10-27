@@ -223,7 +223,7 @@ func parseRequest(in []byte, kernelSettings *InitIn) (h *operationHandler, inSiz
 	if h.InputSize > 0 {
 		inSize = int(h.InputSize)
 	}
-	if kernelSettings != nil && hdr.Opcode == _OP_RENAME && kernelSettings.supportsRenameSwap() {
+	if hdr.Opcode == _OP_RENAME && kernelSettings.supportsRenameSwap() {
 		inSize = int(unsafe.Sizeof(RenameIn{}))
 	}
 	if hdr.Opcode == _OP_INIT && inSize > len(in) {
