@@ -5,6 +5,7 @@
 package fuse
 
 import (
+	"log"
 	"sync"
 	"syscall"
 )
@@ -127,4 +128,147 @@ func (ms *protocolServer) cancelAll() {
 		}
 	}
 	// Leave ms.reqInflight alone, or dropInflight will barf.
+}
+
+// ProtocolServer bridges from FUSE request/response types to the
+// Go-FUSE RawFileSystem API calls.
+//
+// EXPERIMENTAL: not subject to API stability.
+type ProtocolServer struct {
+	protocolServer
+}
+
+// NewProtocolServer creates a ProtocolServer for the RawFileSystem.
+//
+// EXPERIMENTAL: not subject to API stability.
+func NewProtocolServer(fs RawFileSystem, opts *MountOptions) *ProtocolServer {
+	return &ProtocolServer{
+		protocolServer: protocolServer{
+			fileSystem:  fs,
+			retrieveTab: make(map[uint64]*retrieveCacheRequest),
+			opts:        opts,
+		},
+	}
+}
+func iovLen(iov [][]byte) int {
+	var r int
+	for _, e := range iov {
+		r += len(e)
+	}
+	return r
+}
+
+// HandleRequest parses the iov in `in`, calls into the raw
+// filesystem, and puts the result in `out` which should have enough
+// space. The return value is the number of response bytes written.
+//
+// EXPERIMENTAL: not subject to API stability.
+func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, Status) {
+
+	// for virtiofs, we get
+	//
+	// 2026/04/17 13:34:40 in: 40 32
+	// 2026/04/17 13:34:40 out: 16 16 4096
+	//
+	// ie. the iov looks like {header , variable size, payload},
+	// for both input and output.
+	//
+	// Our input data types have the InHeader embedded in the FooIn
+	// types, so we can never make this efficient.
+	//
+	// The output types don't have the output header embedded, so we could do something here.
+	inTogether := make([]byte, iovLen(in[:min(2, len(in))]))
+	copy(inTogether, in[0])
+	if len(in) > 1 {
+		copy(inTogether[len(in[0]):], in[1])
+	}
+	h, inSize, outSize, outPayloadSize, errno := parseRequest(inTogether, nil)
+	if errno != 0 {
+		return 0, errno
+	}
+	req := request{
+		cancel:        make(chan struct{}),
+		inputBuf:      inTogether[:inSize],
+		suppressReply: h.SuppressReply,
+	}
+
+	if len(in) > 2 {
+		req.inPayload = in[2]
+	} else {
+		req.inPayload = inTogether[inSize:]
+	}
+
+	startOut := out
+	if !h.SuppressReply {
+		if len(out) > 0 && len(out[0]) == int(sizeOfOutHeader) {
+			req.outHeaderBuf = out[0]
+			out = out[1:]
+		} else {
+			log.Panicf("op %v: got %v, out iov should start with 16 bytes", h.Name, iovLens(startOut))
+		}
+
+		if outSize > 0 {
+			if len(out) > 0 && len(out[0]) == outSize {
+				req.outDataBuf = out[0]
+				out = out[1:]
+			} else {
+				log.Panicf("op %v: got %v, outData iov should have %d bytes", h.Name, iovLens(startOut), outSize)
+			}
+		}
+
+		if len(out) > 0 {
+			if len(out[0]) < outPayloadSize {
+				log.Panicf("op %s: got %v, payload iov should have %d bytes", h.Name, iovLens(startOut), outPayloadSize)
+			}
+			req.outPayload = out[0]
+			out = out[1:]
+		} else if outPayloadSize != 0 {
+			log.Panicf("got %v, payload iov should have %d bytes", iovLens(startOut), outPayloadSize)
+		}
+	}
+
+	beforePayload := req.outPayload
+	ps.protocolServer.handleRequest(h, &req)
+	if len(req.outPayload) > 0 {
+		if &beforePayload[0] != &req.outPayload[0] {
+			copy(beforePayload, req.outPayload)
+			beforePayload = beforePayload[:len(req.outPayload)]
+			req.outPayload = beforePayload
+		}
+	}
+
+	return iovLen(startOut), 0
+}
+
+func iovLens(in [][]byte) []int {
+	var lens []int
+	for _, b := range in {
+		lens = append(lens, len(b))
+	}
+	return lens
+}
+
+func iovCopy(dest [][]byte, src [][]byte) int {
+	var s, d []byte
+	var copied int
+	for {
+		if len(s)+len(src) == 0 || len(d)+len(dest) == 0 {
+			break
+		}
+		if len(s) == 0 {
+			s = src[0]
+			src = src[1:]
+			continue
+		}
+		if len(d) == 0 {
+			d = dest[0]
+			dest = dest[1:]
+			continue
+		}
+		n := copy(d, s)
+		d = d[n:]
+		s = s[n:]
+		copied += n
+	}
+	return copied
 }
