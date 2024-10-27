@@ -731,6 +731,9 @@ type Options struct {
 	// messages are printed under conditions where we cannot
 	// return error, but want to signal something seems off
 	// anyway. If unset, no messages are printed.
+	//
+	// This field shadows (and thus, is distinct) from
+	// MountOptions.Logger.
 	Logger *log.Logger
 
 	// RootStableAttr is an optional way to set e.g. Ino and/or Gen for
