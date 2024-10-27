@@ -1,48 +1,57 @@
 package fs
 
 import (
+	"context"
+	"os"
+	"syscall"
 	"testing"
+	"time"
+
 	"github.com/hanwen/go-fuse/v2/fuse"
 )
 
-// Create a dummy rawBridge for testing
-type dummyRawBridge struct{}
-
-// Define a FileEntry structure with fh that rawBridge can use in Create
-type FileEntry struct {
-	fh int
+// CustomFS is our file system structure.
+type CustomFS struct {
+	Inode
 }
 
-// Implementing the Create method
-func (b *dummyRawBridge) Create(cancel <-chan struct{}, input *fuse.CreateIn, name string, out *fuse.CreateOut) fuse.Status {
-	// Let's assume that fe remains nil in this implementation.
-	var fe *FileEntry // fe will be nil
-
-	// Problem area
-	if fe != nil {
-	  out.Fh = uint64(fe.fh)
-	}
-
-	return fuse.OK
+// Implement Create method for CustomFS
+func (f *CustomFS) Create(ctx context.Context, name string, flags uint32, mode uint32, out *fuse.EntryOut) (inode *Inode, fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
+	child := f.NewPersistentInode(ctx, &Inode{}, StableAttr{Mode: fuse.S_IFREG})
+	return child, nil, 0, syscall.F_OK
 }
 
-func TestRawBridgeCreateNilFileEntry(t *testing.T) {
-	// Create a rawBridge instance for the test
-	bridge := &dummyRawBridge{}
-
-	// Create dummy input data
-	input := &fuse.CreateIn{}
-	out := &fuse.CreateOut{}
-	cancel := make(<-chan struct{})
-
-	// We call Create with conditions that make fe nil
-	status := bridge.Create(cancel, input, "testfile", out)
-
-	// Check the status for errors
-	if status != fuse.OK {
-		t.Fatalf("Expected status OK, got %v", status)
+func TestFileSystem(t *testing.T) {
+	// Create a temporary directory for mounting
+	mountDir, err := os.MkdirTemp("", "go-fuse-test")
+	if err != nil {
+		t.Fatalf("failed to create temp directory: %v", err)
 	}
+	defer os.RemoveAll(mountDir)
 
-	// If the test passes without panic, we output a successful result
-	t.Log("Test passed without panic when fe is nil")
+	// Create a file system instance
+	root := &CustomFS{}
+	opts := &Options{}
+	opts.MountOptions.Options = append(opts.MountOptions.Options, "rw")
+	server, err := Mount(mountDir, root, &Options{})
+	if err != nil {
+		t.Fatalf("failed to mount filesystem: %v", err)
+	}
+	defer server.Unmount()
+
+	// Waiting for the file system to mount
+	time.Sleep(100 * time.Millisecond)
+
+	// Checking file creation
+	filePath := mountDir + "/test.file"
+	file, err := os.Create(filePath)
+	if err != nil {
+		t.Fatalf("failed to create file in mounted filesystem: %v", err)
+	}
+	file.Close()
+
+	// Check that the file was created
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		t.Fatalf("file not created in mounted filesystem")
+	}
 }
