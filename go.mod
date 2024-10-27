@@ -7,4 +7,4 @@ require (
 	golang.org/x/sys v0.28.0
 )
 
-go 1.17
+go 1.21
