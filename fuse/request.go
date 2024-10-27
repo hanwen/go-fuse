@@ -122,7 +122,7 @@ func (r *request) InputDebug() string {
 			dots = "..."
 		}
 
-		names = fmt.Sprintf("%q%s %db", r.inPayload[:l], dots, len(r.inPayload))
+		names = fmt.Sprintf(" %q%s %db", r.inPayload[:l], dots, len(r.inPayload))
 	}
 
 	return fmt.Sprintf("rx %d: %s n%d %s%s p%d",

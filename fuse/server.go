@@ -35,8 +35,7 @@ const (
 	maxMaxReaders = 16
 )
 
-// Server contains the logic for reading from the FUSE device and
-// translating it to RawFileSystem interface calls.
+// Server contains the logic for reading from the FUSE device.
 type Server struct {
 	protocolServer
 
