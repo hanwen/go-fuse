@@ -131,3 +131,82 @@ func (ms *protocolServer) cancelAll() {
 	}
 	// Leave ms.reqInflight alone, or dropInflight will barf.
 }
+
+// ProtocolServer bridges from FUSE request/response types to the
+// Go-FUSE RawFileSystem API calls.
+//
+// EXPERIMENTAL: not subject to API stability.
+type ProtocolServer struct {
+	protocolServer
+}
+
+// NewProtocolServer creates a ProtocolServer for the RawFileSystem.
+//
+// EXPERIMENTAL: not subject to API stability.
+func NewProtocolServer(fs RawFileSystem, opts *MountOptions) *ProtocolServer {
+	return &ProtocolServer{
+		protocolServer: protocolServer{
+			fileSystem:  fs,
+			retrieveTab: make(map[uint64]*retrieveCacheRequest),
+			opts:        opts,
+		},
+	}
+}
+func iovLen(iov [][]byte) int {
+	var r int
+	for _, e := range iov {
+		r += len(e)
+	}
+	return r
+}
+
+// HandleRequest parses the iov in `in`, calls into the raw
+// filesystem, and puts the result in `out` which should have enough
+// space.
+//
+// EXPERIMENTAL: not subject to API stability.
+func (ps *ProtocolServer) HandleRequest(in [][]byte,
+	out [][]byte) (int, Status) {
+	inTogether := make([]byte, iovLen(in))
+	copied := 0
+	for _, e := range in {
+		n := copy(inTogether[copied:], e)
+		copied += n
+	}
+	h, inSize, outSize, outPayloadSize, errno := parseRequest(inTogether, nil)
+	if errno != 0 {
+		return 0, errno
+	}
+	req := request{
+		cancel:     make(chan struct{}),
+		inputBuf:   inTogether[:inSize],
+		outputBuf:  make([]byte, outSize+int(sizeOfOutHeader)),
+		outPayload: make([]byte, outPayloadSize), // todo: use IOV passed-in here.
+		inPayload:  inTogether[inSize:],
+	}
+	ps.protocolServer.handleRequest(h, &req)
+	return iovCopy(out, [][]byte{req.outputBuf, req.outPayload}), 0
+}
+
+func iovCopy(dest [][]byte, src [][]byte) int {
+	var s, d []byte
+	var copied int
+	for {
+		if len(src) == 0 || len(dest) == 0 {
+			break
+		}
+		if len(s) == 0 {
+			s = src[0]
+			src = src[1:]
+		}
+		if len(d) == 0 {
+			d = dest[0]
+			dest = dest[1:]
+		}
+		n := copy(d, s)
+		d = d[n:]
+		s = s[n:]
+		copied += n
+	}
+	return copied
+}
