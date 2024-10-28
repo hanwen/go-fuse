@@ -155,6 +155,15 @@ func (ms *Server) Unmount() (err error) {
 	return err
 }
 
+// alignSlice ensures that the byte at alignedByte is aligned with the
+// given logical block size.  The input slice should be at least (size
+// + blockSize)
+func alignSlice(buf []byte, alignedByte, blockSize, size uintptr) []byte {
+	misaligned := uintptr(unsafe.Pointer(&buf[alignedByte])) & (blockSize - 1)
+	buf = buf[blockSize-misaligned:]
+	return buf[:size]
+}
+
 // NewServer creates a FUSE server and attaches ("mounts") it to the
 // `mountPoint` directory.
 //
@@ -637,15 +646,6 @@ func (ms *Server) innerHandleRequest(h *operationHandler, req *request) Status {
 		}
 	}
 	return Status(errNo)
-}
-
-// alignSlice ensures that the byte at alignedByte is aligned with the
-// given logical block size.  The input slice should be at least (size
-// + blockSize)
-func alignSlice(buf []byte, alignedByte, blockSize, size uintptr) []byte {
-	misaligned := uintptr(unsafe.Pointer(&buf[alignedByte])) & (blockSize - 1)
-	buf = buf[blockSize-misaligned:]
-	return buf[:size]
 }
 
 func (ms *Server) write(req *request) Status {
