@@ -133,10 +133,6 @@ func doInit(server *Server, req *request) {
 	}
 	kernelFlags |= dataCacheMode
 
-	if input.Minor >= 13 {
-		server.setSplice()
-	}
-
 	// maxPages is the maximum request size we want the kernel to use, in units of
 	// memory pages (usually 4kiB). Linux v4.19 and older ignore this and always use
 	// 128kiB.

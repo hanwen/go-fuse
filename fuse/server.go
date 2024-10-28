@@ -470,6 +470,10 @@ func (ms *Server) handleInit() Status {
 		return code
 	}
 
+	if ms.kernelSettings.Minor >= 13 {
+		ms.setSplice()
+	}
+
 	// INIT is handled. Init the file system, but don't accept
 	// incoming requests, so the file system can setup itself.
 	ms.fileSystem.Init(ms)
