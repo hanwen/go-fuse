@@ -639,13 +639,14 @@ func (ms *Server) innerHandleRequest(h *operationHandler, req *request) Status {
 		// known by the kernel. This is a normal if the
 		// referred request already has completed.
 		//
-		// Ignore ENOENT for RELEASE responses.  When the FS
+		// Ignore ENOENT for RELEASE(DIR) responses.  When the FS
 		// is unmounted directly after a file close, the
 		// device can go away while we are still processing
 		// RELEASE. This is because RELEASE is analogous to
 		// FORGET, and is not synchronized with the calling
 		// process, but does require a response.
 		if ms.opts.Debug || !(errNo == ENOENT && (req.inHeader().Opcode == _OP_INTERRUPT ||
+			req.inHeader().Opcode == _OP_RELEASEDIR ||
 			req.inHeader().Opcode == _OP_RELEASE)) {
 			ms.opts.Logger.Printf("writer: Write/Writev failed, err: %v. opcode: %v",
 				errNo, operationName(req.inHeader().Opcode))
