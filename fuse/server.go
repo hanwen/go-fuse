@@ -592,6 +592,7 @@ func (ms *Server) cancelAll() {
 }
 
 func (ms *Server) handleRequest(req *requestAlloc) Status {
+	defer ms.returnRequest(req)
 	if ms.opts.SingleThreaded {
 		ms.requestProcessingMu.Lock()
 		defer ms.requestProcessingMu.Unlock()
@@ -599,6 +600,7 @@ func (ms *Server) handleRequest(req *requestAlloc) Status {
 
 	h, inSize, outSize, outPayloadSize, code := parseRequest(req.inputBuf, &ms.kernelSettings)
 	if !code.Ok() {
+		ms.opts.Logger.Printf("parseRequest: %v", code)
 		return code
 	}
 
@@ -609,12 +611,39 @@ func (ms *Server) handleRequest(req *requestAlloc) Status {
 	if outPayloadSize > 0 {
 		req.outPayload = ms.buffers.AllocBuffer(uint32(outPayloadSize))
 	}
-	code = ms.innerHandleRequest(h, &req.request)
-	ms.returnRequest(req)
+	ms.innerHandleRequest(h, &req.request)
+	code = ms.write(&req.request)
 	return code
 }
 
-func (ms *Server) innerHandleRequest(h *operationHandler, req *request) Status {
+func (ms *Server) write(req *request) Status {
+	if req.suppressReply {
+		return OK
+	}
+	errno := ms.systemWrite(req)
+	if errno != 0 {
+		// Ignore ENOENT for INTERRUPT responses which
+		// indicates that the referred request is no longer
+		// known by the kernel. This is a normal if the
+		// referred request already has completed.
+		//
+		// Ignore ENOENT for RELEASE(DIR) responses.  When the FS
+		// is unmounted directly after a file close, the
+		// device can go away while we are still processing
+		// RELEASE. This is because RELEASE is analogous to
+		// FORGET, and is not synchronized with the calling
+		// process, but does require a response.
+		if ms.opts.Debug || !(errno == ENOENT && (req.inHeader().Opcode == _OP_INTERRUPT ||
+			req.inHeader().Opcode == _OP_RELEASEDIR ||
+			req.inHeader().Opcode == _OP_RELEASE)) {
+			ms.opts.Logger.Printf("writer: Write/Writev failed, err: %v. opcode: %v",
+				errno, operationName(req.inHeader().Opcode))
+		}
+	}
+	return errno
+}
+
+func (ms *Server) innerHandleRequest(h *operationHandler, req *request) {
 	ms.addInflight(req)
 	defer ms.dropInflight(req)
 
@@ -632,37 +661,14 @@ func (ms *Server) innerHandleRequest(h *operationHandler, req *request) Status {
 		h.Func(ms, req)
 	}
 
-	errNo := ms.write(req)
-	if errNo != 0 {
-		// Ignore ENOENT for INTERRUPT responses which
-		// indicates that the referred request is no longer
-		// known by the kernel. This is a normal if the
-		// referred request already has completed.
-		//
-		// Ignore ENOENT for RELEASE(DIR) responses.  When the FS
-		// is unmounted directly after a file close, the
-		// device can go away while we are still processing
-		// RELEASE. This is because RELEASE is analogous to
-		// FORGET, and is not synchronized with the calling
-		// process, but does require a response.
-		if ms.opts.Debug || !(errNo == ENOENT && (req.inHeader().Opcode == _OP_INTERRUPT ||
-			req.inHeader().Opcode == _OP_RELEASEDIR ||
-			req.inHeader().Opcode == _OP_RELEASE)) {
-			ms.opts.Logger.Printf("writer: Write/Writev failed, err: %v. opcode: %v",
-				errNo, operationName(req.inHeader().Opcode))
-		}
-	}
-	return Status(errNo)
-}
-
-func (ms *Server) write(req *request) Status {
 	// Forget/NotifyReply do not wait for reply from filesystem server.
 	switch req.inHeader().Opcode {
 	case _OP_FORGET, _OP_BATCH_FORGET, _OP_NOTIFY_REPLY:
-		return OK
+		req.suppressReply = true
 	case _OP_INTERRUPT:
+		// ? what other status can interrupt generate?
 		if req.status.Ok() {
-			return OK
+			req.suppressReply = true
 		}
 	}
 	if req.status == EINTR {
@@ -670,10 +676,12 @@ func (ms *Server) write(req *request) Status {
 		dead := ms.connectionDead
 		ms.interruptMu.Unlock()
 		if dead {
-			return OK
+			req.suppressReply = true
 		}
 	}
-
+	if req.suppressReply {
+		return
+	}
 	if req.inHeader().Opcode == _OP_INIT && ms.kernelSettings.Minor <= 22 {
 		// v8-v22 don't have TimeGran and further fields.
 		// This includes osxfuse (a.k.a. macfuse).
@@ -684,9 +692,6 @@ func (ms *Server) write(req *request) Status {
 	if ms.opts.Debug {
 		ms.opts.Logger.Println(req.OutputDebug())
 	}
-
-	s := ms.systemWrite(req)
-	return s
 }
 
 func (ms *Server) notifyWrite(req *request) Status {

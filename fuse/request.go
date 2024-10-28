@@ -22,6 +22,8 @@ type request struct {
 
 	cancel chan struct{}
 
+	suppressReply bool
+
 	// written under Server.interruptMu
 	interrupted bool
 
@@ -77,7 +79,9 @@ func (r *request) outHeader() *OutHeader {
 	return (*OutHeader)(unsafe.Pointer(&r.outputBuf[0]))
 }
 
+// TODO - benchmark to see if this is necessary?
 func (r *request) clear() {
+	r.suppressReply = false
 	r.inputBuf = nil
 	r.outputBuf = nil
 	r.inPayload = nil
