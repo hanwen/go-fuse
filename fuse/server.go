@@ -688,6 +688,25 @@ func (ms *Server) write(req *request) Status {
 	return s
 }
 
+func (ms *Server) notifyWrite(req *request) Status {
+	req.serializeHeader(req.outPayloadSize())
+
+	if ms.opts.Debug {
+		ms.opts.Logger.Println(req.OutputDebug())
+	}
+
+	// Protect against concurrent close.
+	ms.writeMu.Lock()
+	result := ms.systemWrite(req)
+	ms.writeMu.Unlock()
+
+	if ms.opts.Debug {
+		h := getHandler(req.inHeader().Opcode)
+		ms.opts.Logger.Printf("Response %s: %v", h.Name, result)
+	}
+	return result
+}
+
 func newNotifyRequest(opcode uint32) *request {
 	r := &request{
 		inputBuf:  make([]byte, unsafe.Sizeof(InHeader{})),
@@ -718,15 +737,7 @@ func (ms *Server) InodeNotify(node uint64, off int64, length int64) Status {
 	entry.Off = off
 	entry.Length = length
 
-	// Protect against concurrent close.
-	ms.writeMu.Lock()
-	result := ms.write(req)
-	ms.writeMu.Unlock()
-
-	if ms.opts.Debug {
-		ms.opts.Logger.Println("Response: INODE_NOTIFY", result)
-	}
-	return result
+	return ms.notifyWrite(req)
 }
 
 // InodeNotifyStoreCache tells kernel to store data into inode's cache.
@@ -771,15 +782,7 @@ func (ms *Server) inodeNotifyStoreCache32(node uint64, offset int64, data []byte
 
 	req.outPayload = data
 
-	// Protect against concurrent close.
-	ms.writeMu.Lock()
-	result := ms.write(req)
-	ms.writeMu.Unlock()
-
-	if ms.opts.Debug {
-		ms.opts.Logger.Printf("Response: INODE_NOTIFY_STORE_CACHE: %v", result)
-	}
-	return result
+	return ms.notifyWrite(req)
 }
 
 // InodeRetrieveCache retrieves data from kernel's inode cache.
@@ -858,13 +861,7 @@ func (ms *Server) inodeRetrieveCache1(node uint64, offset int64, dest []byte) (n
 	ms.retrieveMu.Unlock()
 
 	// Protect against concurrent close.
-	ms.writeMu.Lock()
-	result := ms.write(req)
-	ms.writeMu.Unlock()
-
-	if ms.opts.Debug {
-		ms.opts.Logger.Printf("Response: NOTIFY_RETRIEVE_CACHE: %v", result)
-	}
+	result := ms.notifyWrite(req)
 	if result != OK {
 		ms.retrieveMu.Lock()
 		r := ms.retrieveTab[q.NotifyUnique]
@@ -926,15 +923,7 @@ func (ms *Server) DeleteNotify(parent uint64, child uint64, name string) Status 
 	nameBytes[len(nameBytes)-1] = '\000'
 	req.outPayload = nameBytes
 
-	// Protect against concurrent close.
-	ms.writeMu.Lock()
-	result := ms.write(req)
-	ms.writeMu.Unlock()
-
-	if ms.opts.Debug {
-		ms.opts.Logger.Printf("Response: DELETE_NOTIFY: %v", result)
-	}
-	return result
+	return ms.notifyWrite(req)
 }
 
 // EntryNotify should be used if the existence status of an entry
@@ -956,15 +945,7 @@ func (ms *Server) EntryNotify(parent uint64, name string) Status {
 	nameBytes[len(nameBytes)-1] = '\000'
 	req.outPayload = nameBytes
 
-	// Protect against concurrent close.
-	ms.writeMu.Lock()
-	result := ms.write(req)
-	ms.writeMu.Unlock()
-
-	if ms.opts.Debug {
-		ms.opts.Logger.Printf("Response: ENTRY_NOTIFY: %v", result)
-	}
-	return result
+	return ms.notifyWrite(req)
 }
 
 // SupportsVersion returns true if the kernel supports the given
