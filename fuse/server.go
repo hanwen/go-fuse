@@ -95,9 +95,7 @@ func (ms *Server) SetDebug(dbg bool) {
 // filesystems can adapt to availability of features of the kernel
 // driver. The message should not be altered.
 func (ms *Server) KernelSettings() *InitIn {
-	ms.reqMu.Lock()
 	s := ms.kernelSettings
-	ms.reqMu.Unlock()
 
 	return &s
 }
