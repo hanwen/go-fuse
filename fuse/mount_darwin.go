@@ -26,7 +26,7 @@ func unixgramSocketpair() (l, r *os.File, err error) {
 
 // Create a FUSE FS on the specified mount point.  The returned
 // mount point is always absolute.
-func mount(mountPoint string, opts *MountOptions) (fd int, err error) {
+func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, err error) {
 	local, remote, err := unixgramSocketpair()
 	if err != nil {
 		return
@@ -65,9 +65,14 @@ func mount(mountPoint string, opts *MountOptions) (fd int, err error) {
 	if err != nil {
 		return -1, err
 	}
-	ready := make(chan error, 1)
+
 	go func() {
-		// wait inside a goroutine or otherwise it would block forever for unknown reasons
+		// On macos, mount_osxfuse is not just a suid
+		// wrapper. It interacts with the FS setup, and will
+		// not exit until the filesystem has successfully
+		// responded to INIT and STATFS. This means we can
+		// only wait on the mount_osxfuse process after the
+		// server has fully started
 		if err := cmd.Wait(); err != nil {
 			err = fmt.Errorf("mount_osxfusefs failed: %v. Stderr: %s, Stdout: %s",
 				err, errOut.String(), out.String())
@@ -81,9 +86,7 @@ func mount(mountPoint string, opts *MountOptions) (fd int, err error) {
 	// acquired through normal operations (e.g. open).
 	// Buf for fd, we have to set CLOEXEC manually
 	syscall.CloseOnExec(fd)
-	if err == nil {
-		err = <-ready
-	}
+
 	return fd, err
 }
 

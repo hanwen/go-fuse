@@ -77,6 +77,9 @@ type Server struct {
 	loops        sync.WaitGroup
 	serving      bool // for preventing duplicate Serve() calls
 
+	// Used to implement WaitMount on macos.
+	ready chan error
+
 	// for implementing single threaded processing.
 	requestProcessingMu sync.Mutex
 
@@ -209,6 +212,7 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		maxReaders:   maxReaders,
 		retrieveTab:  make(map[uint64]*retrieveCacheRequest),
 		singleReader: useSingleReader,
+		ready:        make(chan error, 1),
 	}
 	ms.reqPool.New = func() interface{} {
 		return &requestAlloc{
@@ -238,7 +242,7 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		}
 		mountPoint = filepath.Clean(filepath.Join(cwd, mountPoint))
 	}
-	fd, err := mount(mountPoint, &o)
+	fd, err := mount(mountPoint, &o, ms.ready)
 	if err != nil {
 		return nil, err
 	}
@@ -995,6 +999,10 @@ func (in *InitIn) supportsRenameSwap() bool {
 // avoid racing between accessing the (empty or not yet mounted)
 // mountpoint, and the OS trying to setup the user-space mount.
 func (ms *Server) WaitMount() error {
+	err := <-ms.ready
+	if err != nil {
+		return err
+	}
 	if parseFuseFd(ms.mountPoint) >= 0 {
 		// Magic `/dev/fd/N` mountpoint. We don't know the real mountpoint, so
 		// we cannot run the poll hack.
