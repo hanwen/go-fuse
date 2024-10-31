@@ -329,6 +329,10 @@ type MountOptions struct {
 	// directory queries (i.e. 'ls' without '-l') can be faster with
 	// ReadDir, as no per-file stat calls are needed
 	DisableReadDirPlus bool
+
+	// LazyUnmount is used to calling fusermount with -z flag which make unmount
+	// works even if resource is still busy
+	LazyUnmount bool
 }
 
 // RawFileSystem is an interface close to the FUSE wire protocol.
