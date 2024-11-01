@@ -612,15 +612,11 @@ func (ms *Server) handleRequest(req *requestAlloc) Status {
 		req.outPayload = ms.buffers.AllocBuffer(uint32(outPayloadSize))
 	}
 	ms.innerHandleRequest(h, &req.request)
-	code = ms.write(&req.request)
-	return code
-}
-
-func (ms *Server) write(req *request) Status {
 	if req.suppressReply {
 		return OK
 	}
-	errno := ms.systemWrite(req)
+
+	errno := ms.write(&req.request)
 	if errno != 0 {
 		// Ignore ENOENT for INTERRUPT responses which
 		// indicates that the referred request is no longer
@@ -703,7 +699,7 @@ func (ms *Server) notifyWrite(req *request) Status {
 
 	// Protect against concurrent close.
 	ms.writeMu.Lock()
-	result := ms.systemWrite(req)
+	result := ms.write(req)
 	ms.writeMu.Unlock()
 
 	if ms.opts.Debug {
