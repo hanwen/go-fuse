@@ -189,7 +189,7 @@ func (r *request) inData() unsafe.Pointer {
 	return unsafe.Pointer(&r.inputBuf[0])
 }
 
-func parseRequest(in []byte, kernelSettings *InitIn) (h *operationHandler, inSize, outSize, payloadSize int, errno Status) {
+func parseRequest(in []byte, kernelSettings *InitIn) (h *operationHandler, inSize, outSize, outPayloadSize int, errno Status) {
 	inSize = int(unsafe.Sizeof(InHeader{}))
 	if len(in) < inSize {
 		errno = EIO
@@ -221,9 +221,9 @@ func parseRequest(in []byte, kernelSettings *InitIn) (h *operationHandler, inSiz
 
 	switch hdr.Opcode {
 	case _OP_READDIR, _OP_READDIRPLUS, _OP_READ:
-		payloadSize = int(((*ReadIn)(inData)).Size)
+		outPayloadSize = int(((*ReadIn)(inData)).Size)
 	case _OP_GETXATTR, _OP_LISTXATTR:
-		payloadSize = int(((*GetXAttrIn)(inData)).Size)
+		outPayloadSize = int(((*GetXAttrIn)(inData)).Size)
 	}
 
 	outSize = int(h.OutputSize)
