@@ -111,10 +111,10 @@ func (r *request) InputDebug() string {
 
 	names := ""
 	if h.FileNames == 1 {
-		names = fmt.Sprintf("%q", r.filename())
+		names = fmt.Sprintf(" %q", r.filename())
 	} else if h.FileNames == 2 {
 		n1, n2 := r.filenames()
-		names = fmt.Sprintf("%q %q", n1, n2)
+		names = fmt.Sprintf(" %q %q", n1, n2)
 	} else if l := len(r.inPayload); l > 0 {
 		dots := ""
 		if l > 8 {
