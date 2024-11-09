@@ -329,6 +329,9 @@ type MountOptions struct {
 	// directory queries (i.e. 'ls' without '-l') can be faster with
 	// ReadDir, as no per-file stat calls are needed
 	DisableReadDirPlus bool
+
+	// Disable splicing from files to the FUSE device.
+	DisableSplice bool
 }
 
 // RawFileSystem is an interface close to the FUSE wire protocol.

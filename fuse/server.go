@@ -693,6 +693,11 @@ func (ms *protocolServer) handleRequest(h *operationHandler, req *request) {
 		// This includes osxfuse (a.k.a. macfuse).
 		req.outHeader().Length = uint32(sizeOfOutHeader) + 24
 	}
+	if req.fdData != nil && ms.opts.DisableSplice {
+		req.outPayload, req.status = req.fdData.Bytes(req.outPayload)
+		req.fdData = nil
+	}
+
 	req.serializeHeader(req.outPayloadSize())
 
 	if ms.opts.Debug {

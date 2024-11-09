@@ -61,6 +61,7 @@ type testOptions struct {
 	ro                bool
 	directMount       bool // sets MountOptions.DirectMount
 	directMountStrict bool // sets MountOptions.DirectMountStrict
+	disableSplice     bool // sets MountOptions.DisableSplice
 }
 
 // newTestCase creates the directories `orig` and `mnt` inside a temporary
@@ -111,6 +112,7 @@ func newTestCase(t *testing.T, opts *testOptions) *testCase {
 		DirectMount:       opts.directMount,
 		DirectMountStrict: opts.directMountStrict,
 		EnableLocks:       opts.enableLocks,
+		DisableSplice:     opts.disableSplice,
 	}
 	if !opts.suppressDebug {
 		mOpts.Debug = testutil.VerboseTest()
@@ -388,6 +390,14 @@ func TestPosix(t *testing.T) {
 			fn(t, tc.mntDir)
 		})
 	}
+}
+
+func TestReadDisableSplice(t *testing.T) {
+	tc := newTestCase(t, &testOptions{
+		disableSplice: true,
+	})
+
+	posixtest.FileBasic(t, tc.mntDir)
 }
 
 func TestOpenDirectIO(t *testing.T) {
