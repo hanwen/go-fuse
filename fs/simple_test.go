@@ -744,3 +744,27 @@ func TestParallelMount(t *testing.T) {
 		}
 	}
 }
+
+type handleLessCreateNode struct {
+	Inode
+}
+
+var _ = (NodeCreater)((*handleLessCreateNode)(nil))
+
+func (n *handleLessCreateNode) Create(ctx context.Context, name string, flags uint32, mode uint32, out *fuse.EntryOut) (node *Inode, fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
+	f := &MemRegularFile{
+		Attr: fuse.Attr{
+			Mode: mode,
+		},
+	}
+	ch := n.NewPersistentInode(ctx, f, StableAttr{Mode: fuse.S_IFREG})
+	n.AddChild(name, ch, true)
+	return ch, nil, fuse.FOPEN_KEEP_CACHE, 0
+}
+
+func TestHandleLessCreate(t *testing.T) {
+	hlcn := &handleLessCreateNode{}
+	dir, _ := testMount(t, hlcn, nil)
+
+	posixtest.FileBasic(t, dir)
+}
