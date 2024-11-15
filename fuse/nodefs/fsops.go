@@ -503,3 +503,7 @@ func (c *rawBridge) CopyFileRange(cancel <-chan struct{}, input *fuse.CopyFileRa
 func (fs *rawBridge) Lseek(cancel <-chan struct{}, in *fuse.LseekIn, out *fuse.LseekOut) fuse.Status {
 	return fuse.ENOSYS
 }
+
+func (fs *rawBridge) Statx(cancel <-chan struct{}, in *fuse.StatxIn, out *fuse.StatxOut) fuse.Status {
+	return fuse.ENOSYS
+}

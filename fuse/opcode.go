@@ -481,6 +481,13 @@ func doCopyFileRange(server *protocolServer, req *request) {
 	out.Size, req.status = server.fileSystem.CopyFileRange(req.cancel, in)
 }
 
+func doStatx(server *protocolServer, req *request) {
+	in := (*StatxIn)(req.inData())
+	out := (*StatxOut)(req.outData())
+
+	req.status = server.fileSystem.Statx(req.cancel, in, out)
+}
+
 func doInterrupt(server *protocolServer, req *request) {
 	input := (*InterruptIn)(req.inData())
 	req.status = server.interruptRequest(input.Unique)
@@ -589,6 +596,7 @@ func init() {
 		_OP_REMOVEMAPPING:         "REMOVEMAPPING",
 		_OP_SYNCFS:                "SYNCFS",
 		_OP_TMPFILE:               "TMPFILE",
+		_OP_STATX:                 "STATX",
 	} {
 		operationHandlers[op].Name = v
 	}
@@ -637,6 +645,7 @@ func init() {
 		_OP_INTERRUPT:       doInterrupt,
 		_OP_COPY_FILE_RANGE: doCopyFileRange,
 		_OP_LSEEK:           doLseek,
+		_OP_STATX:           doStatx,
 	} {
 		operationHandlers[op].Func = v
 	}
@@ -669,6 +678,7 @@ func init() {
 		_OP_STATFS:                StatfsOut{},
 		_OP_SYMLINK:               EntryOut{},
 		_OP_WRITE:                 WriteOut{},
+		_OP_STATX:                 StatxOut{},
 	} {
 		operationHandlers[op].OutType = f
 		operationHandlers[op].OutputSize = typSize(f)
@@ -712,6 +722,7 @@ func init() {
 		_OP_SETLK:           LkIn{},
 		_OP_SETLKW:          LkIn{},
 		_OP_SETXATTR:        SetXAttrIn{},
+		_OP_STATX:           StatxIn{},
 		_OP_WRITE:           WriteIn{},
 	} {
 		operationHandlers[op].InType = f

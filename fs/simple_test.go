@@ -24,6 +24,7 @@ import (
 	"github.com/hanwen/go-fuse/v2/fuse"
 	"github.com/hanwen/go-fuse/v2/internal/testutil"
 	"github.com/hanwen/go-fuse/v2/posixtest"
+	"github.com/kylelemons/godebug/pretty"
 	"golang.org/x/sys/unix"
 )
 
@@ -767,4 +768,75 @@ func TestHandleLessCreate(t *testing.T) {
 	dir, _ := testMount(t, hlcn, nil)
 
 	posixtest.FileBasic(t, dir)
+}
+
+func lstatxPath(p string) (*unix.Statx_t, error) {
+	var r unix.Statx_t
+	err := unix.Statx(unix.AT_FDCWD, p, unix.AT_SYMLINK_NOFOLLOW,
+		(unix.STATX_BASIC_STATS | unix.STATX_BTIME |
+			unix.STATX_MNT_ID), // unix.STATX_DIOALIGN
+		&r)
+	return &r, err
+}
+
+func clearStatx(st *unix.Statx_t) {
+	st.Dev_minor = 0
+	st.Dev_major = 0
+	st.Mnt_id = 0
+	st.Attributes_mask = 0
+}
+
+func TestStatx(t *testing.T) {
+	tc := newTestCase(t, &testOptions{attrCache: false, entryCache: false})
+	if err := os.WriteFile(tc.origDir+"/file", []byte("blabla"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	oFile := tc.origDir + "/file"
+	want, err := lstatxPath(oFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mFile := tc.mntDir + "/file"
+	got, err := lstatxPath(mFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	clearStatx(got)
+	clearStatx(want)
+	if diff := pretty.Compare(got, want); diff != "" {
+		t.Errorf("got, want: %s", diff)
+	}
+
+	// the following works, but does not set Fh in StatxIn
+	oFD, err := os.Open(oFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer oFD.Close()
+	mFD, err := os.Open(mFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mFD.Close()
+
+	var osx, msx unix.Statx_t
+	if err := unix.Statx(int(oFD.Fd()), "", unix.AT_EMPTY_PATH,
+		(unix.STATX_BASIC_STATS | unix.STATX_BTIME |
+			unix.STATX_MNT_ID), // unix.STATX_DIOALIGN
+		&osx); err != nil {
+		t.Fatal(err)
+	}
+	if err := unix.Statx(int(mFD.Fd()), "", unix.AT_EMPTY_PATH,
+		(unix.STATX_BASIC_STATS | unix.STATX_BTIME |
+			unix.STATX_MNT_ID), // unix.STATX_DIOALIGN
+		&msx); err != nil {
+		t.Fatal(err)
+	}
+
+	clearStatx(&msx)
+	clearStatx(&osx)
+	if diff := pretty.Compare(msx, osx); diff != "" {
+		t.Errorf("got, want: %s", diff)
+	}
 }
