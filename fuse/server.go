@@ -554,6 +554,7 @@ func (ms *Server) handleRequest(req *requestAlloc) Status {
 	copy(req.outputBuf, zeroOutBuf[:])
 	if outPayloadSize > 0 {
 		req.outPayload = ms.buffers.AllocBuffer(uint32(outPayloadSize))
+		req.bufferPoolOutputBuf = req.outPayload
 	}
 	ms.protocolServer.handleRequest(h, &req.request)
 	if req.suppressReply {
