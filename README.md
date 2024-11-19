@@ -13,6 +13,10 @@ systems
 
 ## Release notes
 
+v2.7
+
+* fuse, fs: support STATX
+
 v2.6
 
 * general:
