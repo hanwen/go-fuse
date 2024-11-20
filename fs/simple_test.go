@@ -779,7 +779,30 @@ func lstatxPath(p string) (*unix.Statx_t, error) {
 	return &r, err
 }
 
-func clearStatx(st *unix.Statx_t) {
+func clearStatx(st *unix.Statx_t, mask uint32) {
+	st.Mask = mask
+	if mask&(unix.STATX_TYPE|unix.STATX_MODE) == 0 {
+		st.Mode = 0
+	}
+	if mask&(unix.STATX_NLINK) == 0 {
+		st.Nlink = 0
+	}
+	if mask&(unix.STATX_INO) == 0 {
+		st.Ino = 0
+	}
+	if mask&(unix.STATX_ATIME) == 0 {
+		st.Atime = unix.StatxTimestamp{}
+	}
+	if mask&(unix.STATX_BTIME) == 0 {
+		st.Btime = unix.StatxTimestamp{}
+	}
+	if mask&(unix.STATX_CTIME) == 0 {
+		st.Ctime = unix.StatxTimestamp{}
+	}
+	if mask&(unix.STATX_MTIME) == 0 {
+		st.Mtime = unix.StatxTimestamp{}
+	}
+
 	st.Dev_minor = 0
 	st.Dev_major = 0
 	st.Mnt_id = 0
@@ -802,8 +825,9 @@ func TestStatx(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	clearStatx(got)
-	clearStatx(want)
+	mask := got.Mask & want.Mask
+	clearStatx(got, mask)
+	clearStatx(want, mask)
 	if diff := pretty.Compare(got, want); diff != "" {
 		t.Errorf("got, want: %s", diff)
 	}
@@ -834,8 +858,9 @@ func TestStatx(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	clearStatx(&msx)
-	clearStatx(&osx)
+	mask = msx.Mask & osx.Mask
+	clearStatx(&msx, mask)
+	clearStatx(&osx, mask)
 	if diff := pretty.Compare(msx, osx); diff != "" {
 		t.Errorf("got, want: %s", diff)
 	}
