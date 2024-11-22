@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "78fe2b90_30f204bf",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1038420
+      },
+      "writtenOn": "2024-11-22T01:24:44Z",
+      "side": 1,
+      "message": "I patched this and verified that it both fixes the proximal crasher,\nand preserves the ability of filesystems to mount and serve for all\nthe cases I typically use. Thank you for the quick fix!",
+      "revId": "466ec56f0571993dc5642f35a7bcf015549f0fa0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
