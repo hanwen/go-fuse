@@ -87,6 +87,10 @@ func TestBufferPoolRequestHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// The last FreeBuffer happens after returning OK for the
+	// read, so thread scheduling may cause it to happen after we
+	// check.  Unmount to be sure we have finished all the work.
+	srv.Unmount()
 	ctr := srv.buffers.counters()
 	for i, c := range ctr {
 		if c != 0 {
