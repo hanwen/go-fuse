@@ -53,6 +53,7 @@ var (
 		{CAP_PASSTHROUGH, "PASSTHROUGH"},
 		{CAP_NO_EXPORT_SUPPORT, "NO_EXPORT_SUPPORT"},
 		{CAP_HAS_RESEND, "HAS_RESEND"},
+		{CAP_ALLOW_IDMAP, "ALLOW_IDMAP"},
 	})
 	releaseFlagNames = newFlagNames([]flagNameEntry{
 		{RELEASE_FLUSH, "FLUSH"},

@@ -309,6 +309,7 @@ const (
 	CAP_PASSTHROUGH          = (1 << 37)
 	CAP_NO_EXPORT_SUPPORT    = (1 << 38)
 	CAP_HAS_RESEND           = (1 << 39)
+	CAP_ALLOW_IDMAP          = (1 << 40)
 )
 
 type InitIn struct {
