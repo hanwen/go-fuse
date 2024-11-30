@@ -146,7 +146,7 @@ func doInit(server *protocolServer, req *request) {
 		CongestionThreshold: uint16(server.opts.MaxBackground * 3 / 4),
 		MaxBackground:       uint16(server.opts.MaxBackground),
 		MaxPages:            uint16(maxPages),
-		MaxStackDepth:       1,
+		MaxStackDepth:       server.opts.MaxStackDepth,
 	}
 	out.setFlags(kernelFlags)
 	if server.opts.MaxReadAhead != 0 && uint32(server.opts.MaxReadAhead) < out.MaxReadAhead {

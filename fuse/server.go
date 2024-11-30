@@ -178,7 +178,9 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 	if o.MaxWrite > MAX_KERNEL_WRITE {
 		o.MaxWrite = MAX_KERNEL_WRITE
 	}
-
+	if o.MaxStackDepth == 0 {
+		o.MaxStackDepth = 1
+	}
 	if o.Name == "" {
 		name := fs.String()
 		l := len(name)

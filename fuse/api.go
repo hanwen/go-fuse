@@ -332,6 +332,9 @@ type MountOptions struct {
 
 	// Disable splicing from files to the FUSE device.
 	DisableSplice bool
+
+	// Maximum stacking depth for passthrough files. Defaults to 1.
+	MaxStackDepth int
 }
 
 // RawFileSystem is an interface close to the FUSE wire protocol.
