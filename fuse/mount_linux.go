@@ -65,6 +65,9 @@ func mountDirect(mountPoint string, opts *MountOptions, ready chan<- error) (fd 
 	if opts.AllowOther {
 		r = append(r, "allow_other")
 	}
+	if opts.IDMappedMount && !opts.containsOption("default_permissions") {
+		r = append(r, "default_permissions")
+	}
 
 	if opts.Debug {
 		opts.Logger.Printf("mountDirect: calling syscall.Mount(%q, %q, %q, %#x, %q)",

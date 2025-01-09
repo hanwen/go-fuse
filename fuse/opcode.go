@@ -100,7 +100,7 @@ func doInit(server *protocolServer, req *request) {
 	kernelFlags := input.Flags64()
 	server.kernelSettings = *input
 	kernelFlags &= (CAP_ASYNC_READ | CAP_BIG_WRITES | CAP_FILE_OPS |
-		CAP_READDIRPLUS | CAP_NO_OPEN_SUPPORT | CAP_PARALLEL_DIROPS | CAP_MAX_PAGES | CAP_RENAME_SWAP | CAP_PASSTHROUGH)
+		CAP_READDIRPLUS | CAP_NO_OPEN_SUPPORT | CAP_PARALLEL_DIROPS | CAP_MAX_PAGES | CAP_RENAME_SWAP | CAP_PASSTHROUGH | CAP_ALLOW_IDMAP)
 
 	if server.opts.EnableLocks {
 		kernelFlags |= CAP_FLOCK_LOCKS | CAP_POSIX_LOCKS
@@ -118,6 +118,14 @@ func doInit(server *protocolServer, req *request) {
 	if server.opts.DisableReadDirPlus {
 		// Clear CAP_READDIRPLUS
 		kernelFlags &= ^uint64(CAP_READDIRPLUS)
+	}
+	if server.opts.IDMappedMount {
+		if kernelFlags&CAP_ALLOW_IDMAP == 0 {
+			log.Print("The kernel does not support ID-mapped mount\n")
+		}
+	} else {
+		// Clear CAP_ALLOW_IDMAP
+		kernelFlags &= ^uint64(CAP_ALLOW_IDMAP)
 	}
 
 	dataCacheMode := kernelFlags & CAP_AUTO_INVAL_DATA

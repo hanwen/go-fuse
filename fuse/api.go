@@ -335,6 +335,11 @@ type MountOptions struct {
 
 	// Maximum stacking depth for passthrough files. Defaults to 1.
 	MaxStackDepth int
+
+	// Enable ID-mapped mount if the Kernel supports it.
+	// Note that enabling id-mapped mount will automatically turns on the
+	// "default_permissions" mount option.
+	IDMappedMount bool
 }
 
 // RawFileSystem is an interface close to the FUSE wire protocol.
