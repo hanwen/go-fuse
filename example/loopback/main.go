@@ -46,6 +46,7 @@ func main() {
 	// Scans the arg list and sets up flags
 	debug := flag.Bool("debug", false, "print debugging messages.")
 	other := flag.Bool("allow-other", false, "mount with -o allowother.")
+	idmap := flag.Bool("idmapped", false, "enable id-mapped mount")
 	quiet := flag.Bool("q", false, "quiet")
 	ro := flag.Bool("ro", false, "mount read-only")
 	directmount := flag.Bool("directmount", false, "try to call the mount syscall instead of executing fusermount")
@@ -105,6 +106,7 @@ func main() {
 			Debug:             *debug,
 			DirectMount:       *directmount,
 			DirectMountStrict: *directmountstrict,
+			IDMappedMount:     *idmap,
 			FsName:            orig,       // First column in "df -T": original dir
 			Name:              "loopback", // Second column in "df -T" will be shown as "fuse." + Name
 		},
