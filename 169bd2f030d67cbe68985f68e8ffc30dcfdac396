@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "be1fb2b5_d0c67de1",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1038576
+      },
+      "writtenOn": "2025-01-09T03:37:15Z",
+      "side": 1,
+      "message": "Hi @hanwen, the ID-mapped mount support in FUSE was added in the 6.12 kernel. I think it would be a useful feature to support in go-fuse. Could you please take a look at this patch when you get a chance? I\u0027m happy to iterate on this further to address any feedback or changes needed. Thanks!",
+      "revId": "169bd2f030d67cbe68985f68e8ffc30dcfdac396",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
