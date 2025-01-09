@@ -44,5 +44,5 @@ func NewLoopbackDirStream(nm string) (DirStream, syscall.Errno) {
 		}
 	}
 
-	return &dirArray{entries}, OK
+	return &dirArray{entries: entries}, OK
 }
