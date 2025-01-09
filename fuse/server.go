@@ -281,6 +281,9 @@ func (o *MountOptions) optionsStrings() []string {
 	if runtime.GOOS == "darwin" {
 		r = append(r, "daemon_timeout=0")
 	}
+	if o.IDMappedMount && !o.containsOption("default_permissions") {
+		r = append(r, "default_permissions")
+	}
 
 	// Commas and backslashs in an option need to be escaped, because
 	// options are separated by a comma and backslashs are used to
@@ -291,6 +294,15 @@ func (o *MountOptions) optionsStrings() []string {
 	}
 
 	return rEscaped
+}
+
+func (o *MountOptions) containsOption(opt string) bool {
+	for _, o := range o.Options {
+		if o == opt {
+			return true
+		}
+	}
+	return false
 }
 
 // DebugData returns internal status information for debugging
