@@ -63,6 +63,7 @@ type testOptions struct {
 	directMount       bool // sets MountOptions.DirectMount
 	directMountStrict bool // sets MountOptions.DirectMountStrict
 	disableSplice     bool // sets MountOptions.DisableSplice
+	idMappedMount     bool // sets MountOptions.IDMappedMount
 }
 
 // newTestCase creates the directories `orig` and `mnt` inside a temporary
@@ -114,12 +115,16 @@ func newTestCase(t *testing.T, opts *testOptions) *testCase {
 		DirectMountStrict: opts.directMountStrict,
 		EnableLocks:       opts.enableLocks,
 		DisableSplice:     opts.disableSplice,
+		IDMappedMount:     opts.idMappedMount,
 	}
 	if !opts.suppressDebug {
 		mOpts.Debug = testutil.VerboseTest()
 	}
 	if opts.ro {
 		mOpts.Options = append(mOpts.Options, "ro")
+	}
+	if opts.idMappedMount {
+		mOpts.Options = append(mOpts.Options, "default_permissions")
 	}
 	tc.server, err = fuse.NewServer(tc.rawFS, tc.mntDir, mOpts)
 	if err != nil {
