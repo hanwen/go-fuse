@@ -12,17 +12,26 @@ import (
 )
 
 type dirArray struct {
+	idx     int
 	entries []fuse.DirEntry
 }
 
 func (a *dirArray) HasNext() bool {
-	return len(a.entries) > 0
+	return len(a.entries[a.idx:]) > 0
 }
 
 func (a *dirArray) Next() (fuse.DirEntry, syscall.Errno) {
-	e := a.entries[0]
-	a.entries = a.entries[1:]
+	e := a.entries[a.idx]
+	a.idx++
 	return e, 0
+}
+
+func (a *dirArray) Seekdir(ctx context.Context, off uint64) syscall.Errno {
+	if off < 0 || int(off) > len(a.entries) {
+		return syscall.EINVAL
+	}
+	a.idx = int(off)
+	return 0
 }
 
 func (a *dirArray) Close() {
@@ -31,7 +40,7 @@ func (a *dirArray) Close() {
 
 // NewListDirStream wraps a slice of DirEntry as a DirStream.
 func NewListDirStream(list []fuse.DirEntry) DirStream {
-	return &dirArray{list}
+	return &dirArray{entries: list}
 }
 
 // implement FileReaddirenter/FileReleasedirer
@@ -59,4 +68,18 @@ func (d *dirStreamAsFile) Readdirent(ctx context.Context) (de *fuse.DirEntry, er
 
 	e, errno := d.ds.Next()
 	return &e, errno
+}
+
+func (d *dirStreamAsFile) Seekdir(ctx context.Context, off uint64) syscall.Errno {
+	if d.ds == nil {
+		var errno syscall.Errno
+		d.ds, errno = d.creator(ctx)
+		if errno != 0 {
+			return errno
+		}
+	}
+	if sd, ok := d.ds.(FileSeekdirer); ok {
+		return sd.Seekdir(ctx, off)
+	}
+	return syscall.ENOTSUP
 }
