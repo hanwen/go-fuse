@@ -27,10 +27,11 @@ func (a *dirArray) Next() (fuse.DirEntry, syscall.Errno) {
 }
 
 func (a *dirArray) Seekdir(ctx context.Context, off uint64) syscall.Errno {
-	if off < 0 || int(off) > len(a.entries) {
+	idx := int(off)
+	if idx < 0 || idx > len(a.entries) {
 		return syscall.EINVAL
 	}
-	a.idx = int(off)
+	a.idx = idx
 	return 0
 }
 
