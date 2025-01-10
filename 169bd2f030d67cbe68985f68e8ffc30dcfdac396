@@ -16,6 +16,64 @@
       "message": "Hi @hanwen, the ID-mapped mount support in FUSE was added in the 6.12 kernel. I think it would be a useful feature to support in go-fuse. Could you please take a look at this patch when you get a chance? I\u0027m happy to iterate on this further to address any feedback or changes needed. Thanks!",
       "revId": "169bd2f030d67cbe68985f68e8ffc30dcfdac396",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "1c4350c6_6d1c399a",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-01-10T13:12:39Z",
+      "side": 1,
+      "message": "the extensive test is nice, but seems excessive given that there aren\u0027t really any new code paths that this change adds. Also, why the option? Could we just enable the CAP_ALLOW_IDMAP unconditionally?",
+      "parentUuid": "be1fb2b5_d0c67de1",
+      "revId": "169bd2f030d67cbe68985f68e8ffc30dcfdac396",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "05ef9de6_c311eb13",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-01-10T13:12:39Z",
+      "side": 1,
+      "message": "thanks for the change! \n\nWhen",
+      "revId": "169bd2f030d67cbe68985f68e8ffc30dcfdac396",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c903707c_f1e95e20",
+        "filename": "fs/idmapped_mount_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-01-10T13:12:39Z",
+      "side": 1,
+      "message": "huh, where does EBADF come from?",
+      "range": {
+        "startLine": 66,
+        "startChar": 28,
+        "endLine": 66,
+        "endChar": 44
+      },
+      "revId": "169bd2f030d67cbe68985f68e8ffc30dcfdac396",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
