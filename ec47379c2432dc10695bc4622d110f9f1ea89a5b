@@ -1,0 +1,176 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b34e5700_fb8d34c7",
+        "filename": "fs/dirstream.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-01-10T12:55:33Z",
+      "side": 1,
+      "message": "a.idx \u003c len(a.entries)",
+      "range": {
+        "startLine": 20,
+        "startChar": 14,
+        "endLine": 20,
+        "endChar": 21
+      },
+      "revId": "ec47379c2432dc10695bc4622d110f9f1ea89a5b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4a885ca7_a18956aa",
+        "filename": "fs/dirstream.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-01-10T12:55:33Z",
+      "side": 1,
+      "message": "this should also set e.Off or else results are inconsistent if the caller provides their own offset in the dir entries.",
+      "revId": "ec47379c2432dc10695bc4622d110f9f1ea89a5b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c69a0dc7_cd326c0f",
+        "filename": "fs/dirstream_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-01-10T12:55:33Z",
+      "side": 1,
+      "message": "this is correct, but we don´t want to lose coverage if that changes (and I can see that happen; the current implementation is suboptimal because it buffers everything in memory). Can you implement something that returns an array directory explictly?",
+      "range": {
+        "startLine": 12,
+        "startChar": 35,
+        "endLine": 13,
+        "endChar": 22
+      },
+      "revId": "ec47379c2432dc10695bc4622d110f9f1ea89a5b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "83add5f3_ddf89480",
+        "filename": "fs/dirstream_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-01-10T12:55:33Z",
+      "side": 1,
+      "message": "this is  a bit more than the requirement specifies. The spec is that you can seek to previously returned offset. To test that, you´d read all of the dir first, and then check that seeking to a random previous offset gets the expected result.",
+      "range": {
+        "startLine": 33,
+        "startChar": 1,
+        "endLine": 34,
+        "endChar": 1
+      },
+      "revId": "ec47379c2432dc10695bc4622d110f9f1ea89a5b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e3f29594_7b9436f1",
+        "filename": "fs/dirstream_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 88,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-01-10T12:55:33Z",
+      "side": 1,
+      "message": "I don\u0027t understand this comment. Is this maybe about the ReadDir implementation in the `os` package? I recommend using the syscall interface directly (see dir_test.go) so you don\u0027t have to wonder about the intermediate buffering in the os package.",
+      "range": {
+        "startLine": 87,
+        "startChar": 0,
+        "endLine": 88,
+        "endChar": 89
+      },
+      "revId": "ec47379c2432dc10695bc4622d110f9f1ea89a5b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "682ef63e_2095ee90",
+        "filename": "fs/dirstream_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-01-10T12:55:33Z",
+      "side": 1,
+      "message": "\"got %v, want non-EOF error\"",
+      "range": {
+        "startLine": 93,
+        "startChar": 30,
+        "endLine": 93,
+        "endChar": 35
+      },
+      "revId": "ec47379c2432dc10695bc4622d110f9f1ea89a5b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5e68c965_93dabe1e",
+        "filename": "fs/dirstream_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-01-10T12:55:33Z",
+      "side": 1,
+      "message": "style nit: these should look like \n\n``` \nif err :\u003d ... ; err !\u003d nil { \n\n}\n```",
+      "revId": "ec47379c2432dc10695bc4622d110f9f1ea89a5b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9d64c48b_8ce93464",
+        "filename": "fs/dirstream_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 104,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-01-10T12:55:33Z",
+      "side": 1,
+      "message": "per Go coding style, the order is always (got, want)\n\n\nhttps://go.dev/wiki/CodeReviewComments#useful-test-failures",
+      "range": {
+        "startLine": 104,
+        "startChar": 12,
+        "endLine": 104,
+        "endChar": 39
+      },
+      "revId": "ec47379c2432dc10695bc4622d110f9f1ea89a5b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
