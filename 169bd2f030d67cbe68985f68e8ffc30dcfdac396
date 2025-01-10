@@ -70,6 +70,42 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "fb8d4d46_e999897f",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1038576
+      },
+      "writtenOn": "2025-01-10T20:10:25Z",
+      "side": 1,
+      "message": "I wrote the test case to simplify the feature validation, because currently there isn\u0027t an existing tool to perform an id-mapped mount. The only one that I can find is this source code https://raw.githubusercontent.com/brauner/mount-idmapped/master/mount-idmapped.c (referenced by the lwn article) which requires compilation. Therefore I thought a test case could make the testing easier. But I am happy to remove the test if it\u0027s excessive. Please let me know.\n\nMy original implementation simply enabled CAP_ALLOW_IDMAP unconditionally without requiring a flag. But I realized it would break the regular use cases. The current implementation in the kernel requires the server to opt in this feature by passing in this flag AND specifying the \"default_permissions\" mount option. Passing the flag without the mount option will result in init failure. So I had to introduce the flag to turn on this feature as needed.",
+      "parentUuid": "1c4350c6_6d1c399a",
+      "revId": "169bd2f030d67cbe68985f68e8ffc30dcfdac396",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "c2a07e9a_1c6ea6d4",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1038576
+      },
+      "writtenOn": "2025-01-10T20:10:25Z",
+      "side": 1,
+      "message": "It seems like the FUSE_OWNER_UID_GID_EXT didn\u0027t eventually make into the kernel. The discussion can be found in this thread https://lore.kernel.org/all/CAJfpegsVY97_5mHSc06mSw79FehFWtoXT\u003dhhTUK_E-Yhr7OAuQ@mail.gmail.com/. So the final patch only had the FUSE_ALLOW_IDMAP and requires \"default_permissions\".",
+      "parentUuid": "7d63ea41_06371431",
+      "revId": "169bd2f030d67cbe68985f68e8ffc30dcfdac396",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "c903707c_f1e95e20",
@@ -83,6 +119,30 @@
       "writtenOn": "2025-01-10T13:12:39Z",
       "side": 1,
       "message": "huh, where does EBADF come from?",
+      "range": {
+        "startLine": 66,
+        "startChar": 28,
+        "endLine": 66,
+        "endChar": 44
+      },
+      "revId": "169bd2f030d67cbe68985f68e8ffc30dcfdac396",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "915ef918_b728a273",
+        "filename": "fs/idmapped_mount_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1038576
+      },
+      "writtenOn": "2025-01-10T20:10:25Z",
+      "side": 1,
+      "message": "In fact this parameter could be any value since the \"source\" parameter contains an absolute path. Per open_tree manpage (https://github.com/brauner/man-pages-md/blob/main/open_tree.md), the dirfd parameter will be ignored if the 2nd parameter is an absolute path. Instead of passing a random value, I think EBADF makes this clearer. The reference implementation in https://raw.githubusercontent.com/brauner/mount-idmapped/master/mount-idmapped.c also used EBADF for this syscall.",
+      "parentUuid": "c903707c_f1e95e20",
       "range": {
         "startLine": 66,
         "startChar": 28,
