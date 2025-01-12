@@ -40,6 +40,16 @@ func (a *dirArray) Close() {
 
 }
 
+func (a *dirArray) Releasedir(ctx context.Context, releaseFlags uint32) {}
+
+func (a *dirArray) Readdirent(ctx context.Context) (de *fuse.DirEntry, errno syscall.Errno) {
+	if !a.HasNext() {
+		return nil, 0
+	}
+	e, errno := a.Next()
+	return &e, errno
+}
+
 // NewListDirStream wraps a slice of DirEntry as a DirStream.
 func NewListDirStream(list []fuse.DirEntry) DirStream {
 	return &dirArray{entries: list}
