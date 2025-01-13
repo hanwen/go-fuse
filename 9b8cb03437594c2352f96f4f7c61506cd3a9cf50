@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "579a4f87_df09f1f5",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-01-13T20:13:27Z",
+      "side": 1,
+      "message": "can you check if https://review.gerrithub.io/c/hanwen/go-fuse/+/1206966 might already fix this?",
+      "revId": "9b8cb03437594c2352f96f4f7c61506cd3a9cf50",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
