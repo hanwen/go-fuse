@@ -1,0 +1,90 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1bdb264d_256d08bd",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 2
+      },
+      "lineNbr": 15,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-01-13T20:12:08Z",
+      "side": 1,
+      "message": "can you make a coherent text out of this?\n\nfirst line should be something like \n```\nfs: support seeking for dirStreamAsFile and dirArray\n```\nthen reasoning why this is a good change in a separate paragraph. \n\nInclude a link to the GH issue.",
+      "range": {
+        "startLine": 6,
+        "startChar": 0,
+        "endLine": 15,
+        "endChar": 35
+      },
+      "revId": "47328586188a40e49057de57c2574b819ba8a7f5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "c18e3cf5_531df3ec",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-01-13T20:12:08Z",
+      "side": 1,
+      "message": "can you",
+      "revId": "47328586188a40e49057de57c2574b819ba8a7f5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d3bcd44f_b4a6d01e",
+        "filename": "fs/dirstream_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-01-13T20:12:08Z",
+      "side": 1,
+      "message": "you can just populate DirEntries without the children actually existing. This also saves you from sorting them just use `Sprintf(\"name%04d\", i)` as the name.",
+      "range": {
+        "startLine": 20,
+        "startChar": 1,
+        "endLine": 28,
+        "endChar": 2
+      },
+      "revId": "47328586188a40e49057de57c2574b819ba8a7f5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4b79c60d_1b9deacb",
+        "filename": "fs/dirstream_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-01-13T20:12:08Z",
+      "side": 1,
+      "message": "this is unnecessary, see above.",
+      "range": {
+        "startLine": 55,
+        "startChar": 38,
+        "endLine": 58,
+        "endChar": 37
+      },
+      "revId": "47328586188a40e49057de57c2574b819ba8a7f5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
