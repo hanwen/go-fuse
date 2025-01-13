@@ -16,6 +16,24 @@
       "message": "can you check if https://review.gerrithub.io/c/hanwen/go-fuse/+/1206966 might already fix this?",
       "revId": "9b8cb03437594c2352f96f4f7c61506cd3a9cf50",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "3cb5e0c4_dd5648b6",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1038587
+      },
+      "writtenOn": "2025-01-13T20:25:18Z",
+      "side": 1,
+      "message": "Hi Han-Wen, I checked and it doesn\u0027t fix NewLoopbackDirStream on darwin. With https://review.gerrithub.io/c/hanwen/go-fuse/+/1206966, dirArray still fail at https://github.com/hanwen/go-fuse/blob/f1d40d03b1735029e2a7f213db962476bf9ff010/fs/bridge.go#L1081-L1083",
+      "parentUuid": "579a4f87_df09f1f5",
+      "revId": "9b8cb03437594c2352f96f4f7c61506cd3a9cf50",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
