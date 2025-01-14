@@ -1,0 +1,90 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "762fa778_43e47228",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-01-14T08:25:30Z",
+      "side": 1,
+      "message": "thanks for bearing with me. Almost there.",
+      "revId": "112e756fe546099886553566d0e4a857eaa20b1c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c1dbde37_ba7f0289",
+        "filename": "fs/dirstream_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-01-14T08:25:30Z",
+      "side": 1,
+      "message": "add copyright header.",
+      "range": {
+        "startLine": 1,
+        "startChar": 0,
+        "endLine": 1,
+        "endChar": 7
+      },
+      "revId": "112e756fe546099886553566d0e4a857eaa20b1c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4d67c61e_b9704b56",
+        "filename": "fs/dirstream_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-01-14T08:25:30Z",
+      "side": 1,
+      "message": "use testMount()",
+      "range": {
+        "startLine": 32,
+        "startChar": 1,
+        "endLine": 40,
+        "endChar": 42
+      },
+      "revId": "112e756fe546099886553566d0e4a857eaa20b1c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f6bf3058_5ec4aefb",
+        "filename": "fs/dirstream_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-01-14T08:25:30Z",
+      "side": 1,
+      "message": "drop (superfluous.)",
+      "range": {
+        "startLine": 45,
+        "startChar": 0,
+        "endLine": 46,
+        "endChar": 38
+      },
+      "revId": "112e756fe546099886553566d0e4a857eaa20b1c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
