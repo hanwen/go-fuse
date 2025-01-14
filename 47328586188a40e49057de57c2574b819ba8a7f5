@@ -26,6 +26,30 @@
     {
       "unresolved": false,
       "key": {
+        "uuid": "da1f9445_c68c7ad3",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 2
+      },
+      "lineNbr": 15,
+      "author": {
+        "id": 1038580
+      },
+      "writtenOn": "2025-01-14T00:57:12Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "1bdb264d_256d08bd",
+      "range": {
+        "startLine": 6,
+        "startChar": 0,
+        "endLine": 15,
+        "endChar": 35
+      },
+      "revId": "47328586188a40e49057de57c2574b819ba8a7f5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
         "uuid": "c18e3cf5_531df3ec",
         "filename": "/PATCHSET_LEVEL",
         "patchSetId": 2
@@ -64,6 +88,30 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "67992b97_68310e10",
+        "filename": "fs/dirstream_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1038580
+      },
+      "writtenOn": "2025-01-14T00:57:12Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "d3bcd44f_b4a6d01e",
+      "range": {
+        "startLine": 20,
+        "startChar": 1,
+        "endLine": 28,
+        "endChar": 2
+      },
+      "revId": "47328586188a40e49057de57c2574b819ba8a7f5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "4b79c60d_1b9deacb",
@@ -77,6 +125,30 @@
       "writtenOn": "2025-01-13T20:12:08Z",
       "side": 1,
       "message": "this is unnecessary, see above.",
+      "range": {
+        "startLine": 55,
+        "startChar": 38,
+        "endLine": 58,
+        "endChar": 37
+      },
+      "revId": "47328586188a40e49057de57c2574b819ba8a7f5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e57c8efc_0950f6e0",
+        "filename": "fs/dirstream_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1038580
+      },
+      "writtenOn": "2025-01-14T00:57:12Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4b79c60d_1b9deacb",
       "range": {
         "startLine": 55,
         "startChar": 38,
