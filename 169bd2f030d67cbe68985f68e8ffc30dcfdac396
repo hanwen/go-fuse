@@ -24,6 +24,30 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": true,
+      "key": {
+        "uuid": "7ea10d51_1c495377",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 1
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1038576
+      },
+      "writtenOn": "2025-01-14T22:26:26Z",
+      "side": 1,
+      "message": "The implementation in the kernel says the following wrt uid/gid in the header.\nhttps://elixir.bootlin.com/linux/v6.12.6/source/fs/fuse/dev.c#L155\n\u003e For those FUSE servers who support idmapped mounts,\n\u003e we send UID/GID only along with \"inode creation\"\n\u003e fuse requests, otherwise idmap \u003d\u003d \u0026invalid_mnt_idmap and\n\u003e req-\u003ein.h.{u,g}id will be equal to FUSE_INVALID_UIDGID (-1).\n\nLooking into the actual fuse operations, here are a few places where uid/gid will contain valid values:\n* automic_open\n* mknod, mkdir, symlink, link\n* renam",
+      "parentUuid": "ee303258_f29eacc0",
+      "range": {
+        "startLine": 13,
+        "startChar": 58,
+        "endLine": 16,
+        "endChar": 21
+      },
+      "revId": "169bd2f030d67cbe68985f68e8ffc30dcfdac396",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": false,
       "key": {
         "uuid": "be1fb2b5_d0c67de1",
@@ -218,6 +242,30 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "baadfd9d_e1fb49ee",
+        "filename": "fs/idmapped_mount_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1038576
+      },
+      "writtenOn": "2025-01-14T22:26:26Z",
+      "side": 1,
+      "message": "Acknowledged",
+      "parentUuid": "d7c63dae_fdbdb6ba",
+      "range": {
+        "startLine": 66,
+        "startChar": 28,
+        "endLine": 66,
+        "endChar": 44
+      },
+      "revId": "169bd2f030d67cbe68985f68e8ffc30dcfdac396",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "2ed74a52_a28e6828",
@@ -231,6 +279,30 @@
       "writtenOn": "2025-01-14T17:20:00Z",
       "side": 1,
       "message": "```suggestion\n\t// Enabling id-mapped mount will automatically turn on the\n```",
+      "range": {
+        "startLine": 340,
+        "startChar": 4,
+        "endLine": 340,
+        "endChar": 13
+      },
+      "revId": "169bd2f030d67cbe68985f68e8ffc30dcfdac396",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "87e14704_4b8ae12a",
+        "filename": "fuse/api.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 340,
+      "author": {
+        "id": 1038576
+      },
+      "writtenOn": "2025-01-14T22:26:26Z",
+      "side": 1,
+      "message": "Acknowledged",
+      "parentUuid": "2ed74a52_a28e6828",
       "range": {
         "startLine": 340,
         "startChar": 4,
@@ -258,6 +330,24 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "eea5e494_ad1d1ae7",
+        "filename": "fuse/api.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 341,
+      "author": {
+        "id": 1038576
+      },
+      "writtenOn": "2025-01-14T22:26:26Z",
+      "side": 1,
+      "message": "Acknowledged",
+      "parentUuid": "378d1831_94eff982",
+      "revId": "169bd2f030d67cbe68985f68e8ffc30dcfdac396",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "d5983544_42286a3a",
@@ -271,6 +361,30 @@
       "writtenOn": "2025-01-14T17:20:00Z",
       "side": 1,
       "message": "there is a options.Logger to do this more cleanly, but what is the value of the message? If itś not support the ID map will fail later on?",
+      "range": {
+        "startLine": 124,
+        "startChar": 6,
+        "endLine": 124,
+        "endChar": 7
+      },
+      "revId": "169bd2f030d67cbe68985f68e8ffc30dcfdac396",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "41506b1c_15968b47",
+        "filename": "fuse/opcode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 124,
+      "author": {
+        "id": 1038576
+      },
+      "writtenOn": "2025-01-14T22:26:26Z",
+      "side": 1,
+      "message": "If the kernel does not support id-mapped mount, the fuse will still mount successfully. But the subsequent mount_setattr and move_mount syscalls will fail. I think this flag will be helpful to troubleshoot failures in those subsequent operations.\n\nIn the new revision, I updated the code to use options.Logger. But I\u0027m fine with removing this log if it deems unnecessary.",
+      "parentUuid": "d5983544_42286a3a",
       "range": {
         "startLine": 124,
         "startChar": 6,
