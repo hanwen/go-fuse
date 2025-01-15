@@ -18,6 +18,24 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "a363fe22_88b78ae9",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1038576
+      },
+      "writtenOn": "2025-01-15T21:48:42Z",
+      "side": 1,
+      "message": "Yes - our [soci-snapshotter](https://github.com/awslabs/soci-snapshotter) depends on go-fuse to perform on-demand container image downloads. really appreciate your effort on this library!",
+      "parentUuid": "5f1eb9d4_b968ec1f",
+      "revId": "0ad5f4b9f4663525816e2fb6b9503ecd9fa725e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "23e8d724_ca138fce",
