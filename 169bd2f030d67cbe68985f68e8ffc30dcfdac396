@@ -48,6 +48,30 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": true,
+      "key": {
+        "uuid": "b6c9bc79_d05e9f0a",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 1
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-01-15T18:16:08Z",
+      "side": 1,
+      "message": "that sounds useful to document as well with the option. Maybe \"If set, valid UID/GIDs are only sent for requests that create new inodes\"",
+      "parentUuid": "7ea10d51_1c495377",
+      "range": {
+        "startLine": 13,
+        "startChar": 58,
+        "endLine": 16,
+        "endChar": 21
+      },
+      "revId": "169bd2f030d67cbe68985f68e8ffc30dcfdac396",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": false,
       "key": {
         "uuid": "be1fb2b5_d0c67de1",
@@ -385,6 +409,30 @@
       "side": 1,
       "message": "If the kernel does not support id-mapped mount, the fuse will still mount successfully. But the subsequent mount_setattr and move_mount syscalls will fail. I think this flag will be helpful to troubleshoot failures in those subsequent operations.\n\nIn the new revision, I updated the code to use options.Logger. But I\u0027m fine with removing this log if it deems unnecessary.",
       "parentUuid": "d5983544_42286a3a",
+      "range": {
+        "startLine": 124,
+        "startChar": 6,
+        "endLine": 124,
+        "endChar": 7
+      },
+      "revId": "169bd2f030d67cbe68985f68e8ffc30dcfdac396",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9243b15c_73af4091",
+        "filename": "fuse/opcode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 124,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-01-15T18:16:08Z",
+      "side": 1,
+      "message": "let\u0027s remove it.",
+      "parentUuid": "41506b1c_15968b47",
       "range": {
         "startLine": 124,
         "startChar": 6,

@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "5f1eb9d4_b968ec1f",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-01-15T18:16:08Z",
+      "side": 1,
+      "message": "thanks; mostly ok. If you address the last comments, I\u0027ll submit.\n\nout of curiosity: do you use go-fuse at $DAYJOB ?",
+      "revId": "0ad5f4b9f4663525816e2fb6b9503ecd9fa725e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "23e8d724_ca138fce",
+        "filename": "fuse/api.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 345,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-01-15T18:16:08Z",
+      "side": 1,
+      "message": "FUSE",
+      "range": {
+        "startLine": 345,
+        "startChar": 61,
+        "endLine": 345,
+        "endChar": 65
+      },
+      "revId": "0ad5f4b9f4663525816e2fb6b9503ecd9fa725e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
