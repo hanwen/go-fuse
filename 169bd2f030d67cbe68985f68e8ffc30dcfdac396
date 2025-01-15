@@ -72,6 +72,30 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": true,
+      "key": {
+        "uuid": "19329ace_5f41b412",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 1
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1038576
+      },
+      "writtenOn": "2025-01-15T21:13:30Z",
+      "side": 1,
+      "message": "ack. updated.",
+      "parentUuid": "b6c9bc79_d05e9f0a",
+      "range": {
+        "startLine": 13,
+        "startChar": 58,
+        "endLine": 16,
+        "endChar": 21
+      },
+      "revId": "169bd2f030d67cbe68985f68e8ffc30dcfdac396",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": false,
       "key": {
         "uuid": "be1fb2b5_d0c67de1",
@@ -433,6 +457,30 @@
       "side": 1,
       "message": "let\u0027s remove it.",
       "parentUuid": "41506b1c_15968b47",
+      "range": {
+        "startLine": 124,
+        "startChar": 6,
+        "endLine": 124,
+        "endChar": 7
+      },
+      "revId": "169bd2f030d67cbe68985f68e8ffc30dcfdac396",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "f7000b4f_b6cca841",
+        "filename": "fuse/opcode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 124,
+      "author": {
+        "id": 1038576
+      },
+      "writtenOn": "2025-01-15T21:13:30Z",
+      "side": 1,
+      "message": "Acknowledged",
+      "parentUuid": "9243b15c_73af4091",
       "range": {
         "startLine": 124,
         "startChar": 6,

@@ -39,6 +39,30 @@
       },
       "revId": "0ad5f4b9f4663525816e2fb6b9503ecd9fa725e0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "55faab1a_11bae750",
+        "filename": "fuse/api.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 345,
+      "author": {
+        "id": 1038576
+      },
+      "writtenOn": "2025-01-15T21:13:30Z",
+      "side": 1,
+      "message": "Acknowledged",
+      "parentUuid": "23e8d724_ca138fce",
+      "range": {
+        "startLine": 345,
+        "startChar": 61,
+        "endLine": 345,
+        "endChar": 65
+      },
+      "revId": "0ad5f4b9f4663525816e2fb6b9503ecd9fa725e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
