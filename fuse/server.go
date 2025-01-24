@@ -376,12 +376,18 @@ func (ms *Server) readRequest(exitIdle bool) (req *requestAlloc, code Status) {
 		log.Printf("Short read for input header: %v", req.inputBuf)
 		return nil, EINVAL
 	}
+	opCode := ((*InHeader)(unsafe.Pointer(&req.inputBuf[0]))).Opcode
+	/* These messages don't expect reply, so they cost nothing for
+	   the kernel to send. Make sure we're not overwhelmed by not
+	   spawning a new reader.
+	*/
+	needsBackPressure := (opCode == _OP_FORGET || opCode == _OP_BATCH_FORGET)
 
 	if !gobbled {
 		ms.readPool.Put(destIface)
 	}
 	ms.reqReaders--
-	if !ms.singleReader && ms.reqReaders <= 0 {
+	if !ms.singleReader && ms.reqReaders <= 0 && !needsBackPressure {
 		ms.loops.Add(1)
 		go ms.loop(true)
 	}
