@@ -124,17 +124,12 @@ func doInit(server *protocolServer, req *request) {
 		kernelFlags &= ^uint64(CAP_ALLOW_IDMAP)
 	}
 
-	dataCacheMode := kernelFlags & CAP_AUTO_INVAL_DATA
 	if server.opts.ExplicitDataCacheControl {
 		// we don't want CAP_AUTO_INVAL_DATA even if we cannot go into fully explicit mode
-		dataCacheMode = 0
-
-		explicit := kernelFlags & CAP_EXPLICIT_INVAL_DATA
-		if explicit != 0 {
-			dataCacheMode = explicit
-		}
+		kernelFlags |= input.Flags64() & CAP_EXPLICIT_INVAL_DATA
+	} else {
+		kernelFlags |= input.Flags64() & CAP_AUTO_INVAL_DATA
 	}
-	kernelFlags |= dataCacheMode
 
 	// maxPages is the maximum request size we want the kernel to use, in units of
 	// memory pages (usually 4kiB). Linux v4.19 and older ignore this and always use

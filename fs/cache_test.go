@@ -17,6 +17,7 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fuse"
 	"github.com/hanwen/go-fuse/v2/internal/testutil"
+	"golang.org/x/sys/unix"
 )
 
 type keepCacheFile struct {
@@ -235,5 +236,86 @@ func TestSymlinkCaching(t *testing.T) {
 	}
 	if c := link.count(); c != 2 {
 		t.Errorf("got %d want 2", c)
+	}
+}
+
+type mmapTestNode struct {
+	Inode
+
+	mu      sync.Mutex
+	content []byte
+	mtime   time.Time
+}
+
+var _ = (NodeOpener)((*mmapTestNode)(nil))
+
+func (f *mmapTestNode) Open(ctx context.Context, openFlags uint32) (fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
+	return nil, 0, 0
+}
+
+var _ = (NodeReader)((*mmapTestNode)(nil))
+
+func (f *mmapTestNode) Read(ctx context.Context, fh FileHandle, dest []byte, off int64) (fuse.ReadResult, syscall.Errno) {
+	return fuse.ReadResultData(f.content[off : int(off)+len(dest)]), OK
+}
+
+var _ = (NodeGetattrer)((*mmapTestNode)(nil))
+
+func (f *mmapTestNode) Getattr(ctx context.Context, fh FileHandle, out *fuse.AttrOut) syscall.Errno {
+	out.Size = uint64(len(f.content))
+	out.SetTimes(nil, &f.mtime, nil)
+	return OK
+}
+
+/* Exercise mmap() and AUTO_INVAL_DATA */
+func TestMMap(t *testing.T) {
+	mnt := t.TempDir()
+
+	node := mmapTestNode{
+		content: bytes.Repeat([]byte{'x'}, 4096),
+		mtime:   time.Now(),
+	}
+	root := &Inode{}
+	dt := 10 * time.Millisecond
+	opts := &Options{
+		EntryTimeout: &dt,
+		AttrTimeout:  &dt,
+		OnAdd: func(ctx context.Context) {
+			root.AddChild("file",
+				root.NewPersistentInode(ctx, &node, StableAttr{Mode: syscall.S_IFREG}), false)
+		},
+	}
+	opts.Debug = testutil.VerboseTest()
+
+	srv, err := Mount(mnt, root, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer srv.Unmount()
+	f, err := os.Open(mnt + "/file")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	data, err := unix.Mmap(int(f.Fd()), 0, int(8<<10), unix.PROT_READ, unix.MAP_SHARED)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unix.Munmap(data)
+	if data[1] != 'x' {
+		t.Errorf("got %c want x", data[1])
+	}
+
+	node.mu.Lock()
+	node.mtime = node.mtime.Add(time.Hour)
+	node.content = bytes.Repeat([]byte{'y'}, 4096)
+	node.mu.Unlock()
+
+	if _, err := f.Stat(); err != nil {
+		t.Fatal(err)
+	}
+
+	if data[1] != 'y' {
+		t.Errorf("got %c want y", data[1])
 	}
 }
