@@ -286,7 +286,7 @@ const (
 	CAP_SPLICE_READ      = (1 << 9)
 	CAP_FLOCK_LOCKS      = (1 << 10)
 	CAP_IOCTL_DIR        = (1 << 11)
-	CAP_AUTO_INVAL_DATA  = (1 << 12)
+	CAP_AUTO_INVAL_DATA  = (1 << 12) // mtime changes invalidate page cache.
 	CAP_READDIRPLUS      = (1 << 13)
 	CAP_READDIRPLUS_AUTO = (1 << 14)
 	CAP_ASYNC_DIO        = (1 << 15)
