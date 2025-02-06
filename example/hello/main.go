@@ -10,10 +10,15 @@ import (
 	"context"
 	"flag"
 	"log"
+	"os/exec"
 	"syscall"
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
+)
+
+const (
+	fusermountBin = "fusermount"
 )
 
 type HelloRoot struct {
@@ -46,6 +51,10 @@ func main() {
 		log.Fatal("Usage:\n  hello MOUNTPOINT")
 	}
 	opts := &fs.Options{}
+	if _, err := exec.LookPath(fusermountBin); err != nil {
+		log.Printf("%s not installed; trying direct mount", fusermountBin)
+		opts.DirectMount = true
+	}
 	opts.Debug = *debug
 	server, err := fs.Mount(flag.Arg(0), &HelloRoot{}, opts)
 	if err != nil {
