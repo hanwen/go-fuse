@@ -200,6 +200,10 @@
 // disables the POLL opcode on mount. To ensure this has happened, call
 // WaitMount.
 //
+// 3. Memory mapping a file served by FUSE. Accessing the mapped
+// memory generates a page fault, which blocks the OS thread running
+// the goroutine.
+//
 // # Dynamically discovered file systems
 //
 // File system data usually cannot fit all in RAM, so the kernel must
