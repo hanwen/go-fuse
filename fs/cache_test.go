@@ -17,7 +17,6 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fuse"
 	"github.com/hanwen/go-fuse/v2/internal/testutil"
-	"golang.org/x/sys/unix"
 )
 
 type keepCacheFile struct {
@@ -239,7 +238,7 @@ func TestSymlinkCaching(t *testing.T) {
 	}
 }
 
-type mmapTestNode struct {
+type autoInvalNode struct {
 	Inode
 
 	mu      sync.Mutex
@@ -247,31 +246,34 @@ type mmapTestNode struct {
 	mtime   time.Time
 }
 
-var _ = (NodeOpener)((*mmapTestNode)(nil))
+var _ = (NodeOpener)((*autoInvalNode)(nil))
 
-func (f *mmapTestNode) Open(ctx context.Context, openFlags uint32) (fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
+func (f *autoInvalNode) Open(ctx context.Context, openFlags uint32) (fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
 	return nil, 0, 0
 }
 
-var _ = (NodeReader)((*mmapTestNode)(nil))
+var _ = (NodeReader)((*autoInvalNode)(nil))
 
-func (f *mmapTestNode) Read(ctx context.Context, fh FileHandle, dest []byte, off int64) (fuse.ReadResult, syscall.Errno) {
+func (f *autoInvalNode) Read(ctx context.Context, fh FileHandle, dest []byte, off int64) (fuse.ReadResult, syscall.Errno) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	return fuse.ReadResultData(f.content[off : int(off)+len(dest)]), OK
 }
 
-var _ = (NodeGetattrer)((*mmapTestNode)(nil))
+var _ = (NodeGetattrer)((*autoInvalNode)(nil))
 
-func (f *mmapTestNode) Getattr(ctx context.Context, fh FileHandle, out *fuse.AttrOut) syscall.Errno {
+func (f *autoInvalNode) Getattr(ctx context.Context, fh FileHandle, out *fuse.AttrOut) syscall.Errno {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	out.Size = uint64(len(f.content))
 	out.SetTimes(nil, &f.mtime, nil)
 	return OK
 }
 
-/* Exercise mmap() and AUTO_INVAL_DATA */
-func TestMMap(t *testing.T) {
+/* Test AUTO_INVAL_DATA */
+func TestAutoInvalData(t *testing.T) {
 	mnt := t.TempDir()
-
-	node := mmapTestNode{
+	node := autoInvalNode{
 		content: bytes.Repeat([]byte{'x'}, 4096),
 		mtime:   time.Now(),
 	}
@@ -297,22 +299,30 @@ func TestMMap(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer f.Close()
-	data, err := unix.Mmap(int(f.Fd()), 0, int(8<<10), unix.PROT_READ, unix.MAP_SHARED)
-	if err != nil {
+
+	data := make([]byte, len(node.content))
+	if _, err := f.Read(data); err != nil {
 		t.Fatal(err)
 	}
-	defer unix.Munmap(data)
+
 	if data[1] != 'x' {
 		t.Errorf("got %c want x", data[1])
+	}
+
+	if _, err := f.Seek(0, 0); err != nil {
+		t.Fatal(err)
 	}
 
 	node.mu.Lock()
 	node.mtime = node.mtime.Add(time.Hour)
 	node.content = bytes.Repeat([]byte{'y'}, 4096)
 	node.mu.Unlock()
-
 	if _, err := f.Stat(); err != nil {
 		t.Fatal(err)
+	}
+
+	if n, err := f.Read(data); err != nil || len(data) != n {
+		t.Fatalf("Read: %d, %v", n, err)
 	}
 
 	if data[1] != 'y' {
