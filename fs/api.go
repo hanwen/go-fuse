@@ -250,8 +250,7 @@ import (
 // filesystem methods, the filesystem will react as if it is a
 // read-only filesystem with a predefined tree structure.
 type InodeEmbedder interface {
-	// populateInode and inode are used internally to link Inode
-	// to a Node.
+	// inode is used internally to link Inode to a Node.
 	//
 	// See Inode() for the public API to retrieve an inode from Node.
 	embed() *Inode
