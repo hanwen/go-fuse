@@ -76,6 +76,16 @@ type LoopbackNode struct {
 	RootData *LoopbackRoot
 }
 
+// loopbackNodeEmbedder can only be implemented by the LoopbackNode
+// concrete type.
+type loopbackNodeEmbedder interface {
+	loopbackNode() *LoopbackNode
+}
+
+func (n *LoopbackNode) loopbackNode() *LoopbackNode {
+	return n
+}
+
 var _ = (NodeStatfser)((*LoopbackNode)(nil))
 
 func (n *LoopbackNode) Statfs(ctx context.Context, out *fuse.StatfsOut) syscall.Errno {
@@ -201,12 +211,21 @@ func (n *LoopbackNode) Unlink(ctx context.Context, name string) syscall.Errno {
 var _ = (NodeRenamer)((*LoopbackNode)(nil))
 
 func (n *LoopbackNode) Rename(ctx context.Context, name string, newParent InodeEmbedder, newName string, flags uint32) syscall.Errno {
+	e2, ok := newParent.(loopbackNodeEmbedder)
+	if !ok {
+		return syscall.EXDEV
+	}
+
+	if e2.loopbackNode().RootData != n.RootData {
+		return syscall.EXDEV
+	}
+
 	if flags&RENAME_EXCHANGE != 0 {
-		return n.renameExchange(name, newParent, newName)
+		return n.renameExchange(name, e2.loopbackNode(), newName)
 	}
 
 	p1 := filepath.Join(n.path(), name)
-	p2 := filepath.Join(n.RootData.Path, newParent.EmbeddedInode().Path(nil), newName)
+	p2 := filepath.Join(e2.loopbackNode().path(), newName)
 
 	err := syscall.Rename(p1, p2)
 	return ToErrno(err)
@@ -236,13 +255,13 @@ func (n *LoopbackNode) Create(ctx context.Context, name string, flags uint32, mo
 	return ch, lf, 0, 0
 }
 
-func (n *LoopbackNode) renameExchange(name string, newparent InodeEmbedder, newName string) syscall.Errno {
+func (n *LoopbackNode) renameExchange(name string, newParent *LoopbackNode, newName string) syscall.Errno {
 	fd1, err := syscall.Open(n.path(), syscall.O_DIRECTORY, 0)
 	if err != nil {
 		return ToErrno(err)
 	}
 	defer syscall.Close(fd1)
-	p2 := filepath.Join(n.RootData.Path, newparent.EmbeddedInode().Path(nil))
+	p2 := newParent.path()
 	fd2, err := syscall.Open(p2, syscall.O_DIRECTORY, 0)
 	defer syscall.Close(fd2)
 	if err != nil {
@@ -262,8 +281,7 @@ func (n *LoopbackNode) renameExchange(name string, newparent InodeEmbedder, newN
 		return ToErrno(err)
 	}
 
-	newinode, ok := newparent.(*LoopbackNode)
-	if (!ok || newinode.root() != newparent.EmbeddedInode()) && newinode.StableAttr().Ino != n.RootData.idFromStat(&st).Ino {
+	if (newParent.root() != newParent.EmbeddedInode()) && newParent.Inode.StableAttr().Ino != n.RootData.idFromStat(&st).Ino {
 		return syscall.EBUSY
 	}
 
