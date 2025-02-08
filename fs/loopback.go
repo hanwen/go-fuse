@@ -76,6 +76,18 @@ type LoopbackNode struct {
 	RootData *LoopbackRoot
 }
 
+type loopbackRootData LoopbackRoot
+
+// loopbackNodeEmbedder can only be implemented by the LoopbackNode
+// concrete type.
+type loopbackNodeEmbedder interface {
+	loopbackNode() *LoopbackNode
+}
+
+func (n *LoopbackNode) loopbackNode() *LoopbackNode {
+	return n
+}
+
 var _ = (NodeStatfser)((*LoopbackNode)(nil))
 
 func (n *LoopbackNode) Statfs(ctx context.Context, out *fuse.StatfsOut) syscall.Errno {
@@ -205,8 +217,17 @@ func (n *LoopbackNode) Rename(ctx context.Context, name string, newParent InodeE
 		return n.renameExchange(name, newParent, newName)
 	}
 
+	e2, ok := newParent.(loopbackNodeEmbedder)
+	if !ok {
+		return syscall.EXDEV
+	}
+
+	if e2.loopbackNode().RootData != n.RootData {
+		return syscall.EXDEV
+	}
+
 	p1 := filepath.Join(n.path(), name)
-	p2 := filepath.Join(n.RootData.Path, newParent.EmbeddedInode().Path(nil), newName)
+	p2 := filepath.Join(e2.loopbackNode().path(), newName)
 
 	err := syscall.Rename(p1, p2)
 	return ToErrno(err)

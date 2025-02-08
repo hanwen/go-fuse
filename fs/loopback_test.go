@@ -1,6 +1,7 @@
 package fs
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"reflect"
@@ -91,28 +92,62 @@ func TestRenameExchange(t *testing.T) {
 
 func TestLoopbackNonRoot(t *testing.T) {
 	backing := t.TempDir()
+	backing2 := t.TempDir()
 	content := []byte("hello")
 	if err := os.WriteFile(backing+"/file.txt", content, 0666); err != nil {
+		t.Fatal(err)
+	}
+	lnode, err := NewLoopbackRoot(backing)
+	if err != nil {
+		t.Fatal(err)
+	}
+	differentRoot, err := NewLoopbackRoot(backing2)
+	if err != nil {
 		t.Fatal(err)
 	}
 
 	root := &Inode{}
 	mnt, _ := testMount(t, root, &Options{
 		OnAdd: func(ctx context.Context) {
-			lnode, err := NewLoopbackRoot(backing)
-			if err != nil {
-				return
-			}
 			sub := root.NewPersistentInode(ctx, lnode, StableAttr{Mode: fuse.S_IFDIR})
 			root.AddChild("sub", sub, true)
+
+			sub2 := root.NewPersistentInode(ctx, differentRoot, StableAttr{Mode: fuse.S_IFDIR})
+			root.AddChild("differentRoot", sub2, true)
 		},
 	})
 
-	fi, err := os.Lstat(mnt + "/sub/file.txt")
+	fn := mnt + "/sub/file.txt"
+	fi, err := os.Lstat(fn)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if fi.Size() != int64(len(content)) {
 		t.Errorf("got %d bytes, want %d", fi.Size(), len(content))
+	}
+
+	if err := syscall.Rename(fn, mnt+"/file"); err != syscall.EXDEV {
+		t.Errorf("got %v, want EXDEV", err)
+	}
+
+	if err := syscall.Rename(fn, mnt+"/differentRoot/file"); err != syscall.EXDEV {
+		t.Fatalf("got %v, want EXDEV", err)
+	}
+
+	if err := os.Mkdir(mnt+"/sub/sub2", 0755); err != nil {
+		t.Fatalf("Mkdir: %v", err)
+	}
+
+	fn2 := mnt + "/sub/sub2/renamed"
+	if err := syscall.Rename(fn, fn2); err != nil {
+		t.Fatalf("got %v, want EXDEV", err)
+	}
+
+	data, err := os.ReadFile(fn2)
+	if err != nil {
+		t.Fatalf("ReadFile: %v", err)
+	}
+	if bytes.Compare(data, content) != 0 {
+		t.Errorf("got %q, want %q", data, content)
 	}
 }
