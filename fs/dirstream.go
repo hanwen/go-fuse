@@ -48,6 +48,15 @@ func (a *dirArray) Readdirent(ctx context.Context) (de *fuse.DirEntry, errno sys
 	}
 	e, errno := a.Next()
 	return &e, errno
+
+// NewLoopbackDirStream opens a directory for reading as a DirStream
+func NewLoopbackDirStream(name string) (DirStream, syscall.Errno) {
+	// TODO: should return concrete type.
+	fd, err := syscall.Open(name, syscall.O_DIRECTORY, 0755)
+	if err != nil {
+		return nil, ToErrno(err)
+	}
+	return NewLoopbackDirStreamFd(fd)
 }
 
 // NewListDirStream wraps a slice of DirEntry as a DirStream.
