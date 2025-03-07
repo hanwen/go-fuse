@@ -16,6 +16,24 @@
       "message": "The code looks fine, but I don\u0027t understand the attack. Are you using the dirstream code here as a generic utility for reading directories?",
       "revId": "216e54932a48254d949871bf07f58d48f5046ec2",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "98a7e476_7d70dda4",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-03-07T18:55:17Z",
+      "side": 1,
+      "message": "The attack goes like this:\nThread 1 loops making \"foo\" a directory or a symlink to /etc\nThread 2 loops opening and reading \"foo\"\nAt some point Thread 2 will read /etc.\n\nTo defend against this you need to use Openat with O_NOFOLLOW for each component in the path. gocryptfs does this ( https://github.com/rfjakob/gocryptfs/blob/master/internal/syscallcompat/open_nofollow.go ).\n\nI want to wrap loopbackDirStream to implement the new directory API. loopbackDirStream will handle reading the plaintext directory, and gocryptfs will only have to encrypt the file names.",
+      "parentUuid": "1dfd5fd1_6b5490fe",
+      "revId": "216e54932a48254d949871bf07f58d48f5046ec2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
