@@ -34,6 +34,24 @@
       "parentUuid": "1dfd5fd1_6b5490fe",
       "revId": "216e54932a48254d949871bf07f58d48f5046ec2",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "724bcb94_66301fd8",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-03-07T19:39:39Z",
+      "side": 1,
+      "message": "I guess you are saying that the loopback example is unsafe if used with allow_other and mounted as root? (which isn\u0027t a huge surprise; I was mostly interested in FUSE applications where server and client are owned by the same user)\n\nMaybe we should add a note about this? We could also reimplmeent loopback using fds, but I fear it would run out of fds quickly.",
+      "parentUuid": "98a7e476_7d70dda4",
+      "revId": "216e54932a48254d949871bf07f58d48f5046ec2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
