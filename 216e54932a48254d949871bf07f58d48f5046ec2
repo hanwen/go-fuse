@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "1dfd5fd1_6b5490fe",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-03-07T18:23:39Z",
+      "side": 1,
+      "message": "The code looks fine, but I don\u0027t understand the attack. Are you using the dirstream code here as a generic utility for reading directories?",
+      "revId": "216e54932a48254d949871bf07f58d48f5046ec2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
