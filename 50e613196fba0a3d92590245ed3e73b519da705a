@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "81ae00a2_5cc07c04",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-03-08T22:07:46Z",
+      "side": 1,
+      "message": "Potential starting point for symlink safety.\n\nNot sure how to fix the leaking fd. I could not find a after-unmount cleanup callback.",
+      "revId": "50e613196fba0a3d92590245ed3e73b519da705a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
