@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v2/internal/openat"
 	"github.com/hanwen/go-fuse/v2/internal/renameat"
 	"golang.org/x/sys/unix"
 )
@@ -20,7 +21,13 @@ import (
 // underlying POSIX file system.
 type LoopbackRoot struct {
 	// The path to the root of the underlying file system.
+	//
+	// When loopback only uses symlink-safe functions (like OpenatNofollow), we
+	// should be able to delete Path and only rely on Fd.
 	Path string
+
+	// File descriptor to the root directory on the underlying file system.
+	Fd int
 
 	// The device on which the Path resides. This must be set if
 	// the underlying filesystem crosses file systems.
@@ -350,10 +357,11 @@ func (n *LoopbackNode) Readlink(ctx context.Context) ([]byte, syscall.Errno) {
 
 var _ = (NodeOpener)((*LoopbackNode)(nil))
 
+// Symlink-safe through use of OpenSymlinkAware.
 func (n *LoopbackNode) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
 	flags = flags &^ syscall.O_APPEND
-	p := n.path()
-	f, err := syscall.Open(p, int(flags), 0)
+
+	f, err := openat.OpenSymlinkAware(n.RootData.Path, n.Path(n.root()), int(flags), 0)
 	if err != nil {
 		return nil, 0, ToErrno(err)
 	}
