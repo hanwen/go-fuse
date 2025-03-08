@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v2/internal/openat"
 	"github.com/hanwen/go-fuse/v2/internal/renameat"
 	"golang.org/x/sys/unix"
 )
@@ -111,9 +112,14 @@ func (n *LoopbackNode) root() *Inode {
 	return rootNode
 }
 
+// relativePath returns the path the node, relative to to the root directory
+func (n *LoopbackNode) relativePath() string {
+	return n.Path(n.root())
+}
+
+// path returns the absolute path to the node
 func (n *LoopbackNode) path() string {
-	path := n.Path(n.root())
-	return filepath.Join(n.RootData.Path, path)
+	return filepath.Join(n.RootData.Path, n.relativePath())
 }
 
 var _ = (NodeLookuper)((*LoopbackNode)(nil))
@@ -350,10 +356,11 @@ func (n *LoopbackNode) Readlink(ctx context.Context) ([]byte, syscall.Errno) {
 
 var _ = (NodeOpener)((*LoopbackNode)(nil))
 
+// Symlink-safe through use of OpenSymlinkAware.
 func (n *LoopbackNode) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
 	flags = flags &^ syscall.O_APPEND
-	p := n.path()
-	f, err := syscall.Open(p, int(flags), 0)
+
+	f, err := openat.OpenSymlinkAware(n.RootData.Path, n.relativePath(), int(flags), 0)
 	if err != nil {
 		return nil, 0, ToErrno(err)
 	}
