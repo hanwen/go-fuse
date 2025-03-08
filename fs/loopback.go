@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v2/internal/openat"
 	"github.com/hanwen/go-fuse/v2/internal/renameat"
 	"golang.org/x/sys/unix"
 )
@@ -20,7 +21,13 @@ import (
 // underlying POSIX file system.
 type LoopbackRoot struct {
 	// The path to the root of the underlying file system.
+	//
+	// When loopback only uses symlink-safe functions (like OpenatNofollow), we
+	// should be able to delete Path and only rely on Fd.
 	Path string
+
+	// File descriptor to the root directory on the underlying file system.
+	Fd int
 
 	// The device on which the Path resides. This must be set if
 	// the underlying filesystem crosses file systems.
@@ -352,8 +359,8 @@ var _ = (NodeOpener)((*LoopbackNode)(nil))
 
 func (n *LoopbackNode) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
 	flags = flags &^ syscall.O_APPEND
-	p := n.path()
-	f, err := syscall.Open(p, int(flags), 0)
+
+	f, err := openat.OpenatNofollow(n.RootData.Fd, n.Path(n.root()), int(flags), 0)
 	if err != nil {
 		return nil, 0, ToErrno(err)
 	}
@@ -523,14 +530,29 @@ func (n *LoopbackNode) CopyFileRange(ctx context.Context, fhIn FileHandle,
 // root is at the given root. This node implements all NodeXxxxer
 // operations available.
 func NewLoopbackRoot(rootPath string) (InodeEmbedder, error) {
+	// Here we do follow symlinks. The user may have set up the directory tree
+	// with symlinks, that's not neccessarily malicous, but a normal use case.
+	//
+	// Quoting openat2(2) for RESOLVE_NO_SYMLINKS:
+	//
+	//   Setting this flag indiscriminately—i.e., for
+	//   purposes not specifically related to security—for
+	//   all uses of openat2() may result in spurious errors
+	//   on previously functional systems.
+	fd, err := syscall.Open(rootPath, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_CLOEXEC, 0)
+	if err != nil {
+		return nil, err
+	}
+
 	var st syscall.Stat_t
-	err := syscall.Stat(rootPath, &st)
+	err = syscall.Fstat(fd, &st)
 	if err != nil {
 		return nil, err
 	}
 
 	root := &LoopbackRoot{
 		Path: rootPath,
+		Fd:   fd, // BUG: fd leaks on umount
 		Dev:  uint64(st.Dev),
 	}
 
