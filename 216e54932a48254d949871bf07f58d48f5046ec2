@@ -52,6 +52,24 @@
       "parentUuid": "98a7e476_7d70dda4",
       "revId": "216e54932a48254d949871bf07f58d48f5046ec2",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "31ac0c4c_a0b8bca8",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-03-08T21:23:21Z",
+      "side": 1,
+      "message": "The root-mount case is the worst, yes. You could also imagine a FTP server running on the FUSE mount, where the server is supposed to restrict users to a subtree.\n\nlibfuse has an example that uses a fd for each node. It just explodes once it hits the fd limit (I was not impressed :) ).\n\nOn linux we could use https://man7.org/linux/man-pages/man2/open_by_handle_at.2.html , but this needs root permissions.\n\nLinux also has https://man7.org/linux/man-pages/man2/openat2.2.html with RESOLVE_NO_SYMLINKS. Making Open() and Create() secure using RESOLVE_NO_SYMLINKS is easy, but there is a long tail of the other calls. For example node.Mkdir(\"foo\") needs to be implemented with openat2(node.path()) + mkdirat(dirfd, \"foo\")",
+      "parentUuid": "724bcb94_66301fd8",
+      "revId": "216e54932a48254d949871bf07f58d48f5046ec2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ],
   "submitRequirementResults": []
