@@ -16,6 +16,24 @@
       "message": "is this the right place? IIUC, we need a fd in all directory nodes. If we do that, we can close the fd in OnForget",
       "revId": "630f8fceaf7ce624be529e55d63697df42a027fb",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "0a84ec82_ff4afd00",
+        "filename": "fs/loopback.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 30,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-03-09T17:52:18Z",
+      "side": 1,
+      "message": "We don\u0027t need it and cannot have it anyway because of fd count restrictions.\n\nStarting from the root dir fd we can safely call openat2.",
+      "parentUuid": "52bbb9fb_5c6bb9a2",
+      "revId": "630f8fceaf7ce624be529e55d63697df42a027fb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
