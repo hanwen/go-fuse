@@ -3,6 +3,29 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "7c84eb25_0e05bf77",
+        "filename": "fs/loopback.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-03-11T07:21:22Z",
+      "side": 1,
+      "message": "what doesn \u0027completely converted\u0027 mean?",
+      "range": {
+        "startLine": 26,
+        "startChar": 4,
+        "endLine": 26,
+        "endChar": 10
+      },
+      "revId": "630f8fceaf7ce624be529e55d63697df42a027fb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "52bbb9fb_5c6bb9a2",
         "filename": "fs/loopback.go",
         "patchSetId": 2
@@ -32,6 +55,47 @@
       "side": 1,
       "message": "We don\u0027t need it and cannot have it anyway because of fd count restrictions.\n\nStarting from the root dir fd we can safely call openat2.",
       "parentUuid": "52bbb9fb_5c6bb9a2",
+      "revId": "630f8fceaf7ce624be529e55d63697df42a027fb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e77cbc2c_fd76fdda",
+        "filename": "fs/loopback.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 30,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-03-11T07:21:22Z",
+      "side": 1,
+      "message": "ack.",
+      "parentUuid": "0a84ec82_ff4afd00",
+      "revId": "630f8fceaf7ce624be529e55d63697df42a027fb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "96c4265b_32bef75f",
+        "filename": "fs/loopback.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 555,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-03-11T07:21:22Z",
+      "side": 1,
+      "message": "this is not really a bug. If the NewXxx allocates a resource, the Xxx should have a Close() method. The problem is that the return type is InodeEmbedder, and it should have been the concrete type instead.\n\nalternatively, we could add a new API contract, which is that the root receives OnForget after an unmount.",
+      "range": {
+        "startLine": 555,
+        "startChar": 2,
+        "endLine": 555,
+        "endChar": 4
+      },
       "revId": "630f8fceaf7ce624be529e55d63697df42a027fb",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
