@@ -20,6 +20,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "eb254ac1_eb280f7f",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-03-14T16:07:05Z",
+      "side": 1,
+      "message": "For the symlink attack? Yes",
+      "parentUuid": "edeb221d_ce40c2c9",
+      "revId": "630f8fceaf7ce624be529e55d63697df42a027fb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "7c84eb25_0e05bf77",
         "filename": "fs/loopback.go",
         "patchSetId": 2
