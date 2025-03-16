@@ -38,6 +38,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "a13a4fa5_eedae2fd",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-03-16T20:54:50Z",
+      "side": 1,
+      "message": "Here you are: https://review.gerrithub.io/c/hanwen/go-fuse/+/1211571/1",
+      "parentUuid": "eb254ac1_eb280f7f",
+      "revId": "630f8fceaf7ce624be529e55d63697df42a027fb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "7c84eb25_0e05bf77",
         "filename": "fs/loopback.go",
         "patchSetId": 2
@@ -49,6 +67,30 @@
       "writtenOn": "2025-03-11T07:21:22Z",
       "side": 1,
       "message": "what doesn \u0027completely converted\u0027 mean?",
+      "range": {
+        "startLine": 26,
+        "startChar": 4,
+        "endLine": 26,
+        "endChar": 10
+      },
+      "revId": "630f8fceaf7ce624be529e55d63697df42a027fb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "746744a1_e5daa273",
+        "filename": "fs/loopback.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-03-16T20:54:50Z",
+      "side": 1,
+      "message": "Reworded. When all symlink-unsafe functions are replaced by symlink-safe variants.",
+      "parentUuid": "7c84eb25_0e05bf77",
       "range": {
         "startLine": 26,
         "startChar": 4,
@@ -125,6 +167,30 @@
       "writtenOn": "2025-03-11T07:21:22Z",
       "side": 1,
       "message": "this is not really a bug. If the NewXxx allocates a resource, the Xxx should have a Close() method. The problem is that the return type is InodeEmbedder, and it should have been the concrete type instead.\n\nalternatively, we could add a new API contract, which is that the root receives OnForget after an unmount.",
+      "range": {
+        "startLine": 555,
+        "startChar": 2,
+        "endLine": 555,
+        "endChar": 4
+      },
+      "revId": "630f8fceaf7ce624be529e55d63697df42a027fb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "256f71b3_643e3c75",
+        "filename": "fs/loopback.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 555,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-03-16T20:54:50Z",
+      "side": 1,
+      "message": "What I mean here is that it\u0027s a bug in my patch or a problem in my approach.\n\nRunning OnForget on root sounds good.",
+      "parentUuid": "96c4265b_32bef75f",
       "range": {
         "startLine": 555,
         "startChar": 2,
