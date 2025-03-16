@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"sync"
 	"syscall"
 	"testing"
 
@@ -51,6 +52,7 @@ var All = map[string]func(*testing.T, string){
 	"FcntlFlockLocksFile":        FcntlFlockLocksFile,
 	"SetattrSymlink":             SetattrSymlink,
 	"XAttr":                      XAttr,
+	"OpenSymlinkRace":            OpenSymlinkRace,
 }
 
 func SetattrSymlink(t *testing.T, mnt string) {
@@ -878,4 +880,144 @@ func XAttr(t *testing.T, mntDir string) {
 	if _, err := unix.Getxattr(fn, attr, buf); err != xattr.ENOATTR {
 		t.Fatalf("got %v want ENOATTR", err)
 	}
+}
+
+// Test if Open() is vulnerable to symlink-race attacks using two goroutines:
+//
+// goroutine "shuffler":
+// In a loop:
+// * Replace empty file "OpenSymlinkRace" with a symlink pointing to /etc/passwd
+// * Replace back with empty file
+//
+// goroutine "opener":
+// In a loop:
+// * Open "OpenSymlinkRace" and call Fstat on it. Now there's three cases:
+//  1. Size=0: we opened the empty file created by shuffler. Normal and uninteresting.
+//  2. Size>0 but Dev number different: we (this test) opened /etc/passwd ourselves
+//     because we resolved the symlink. Normal.
+//  3. Size>0 and Dev number matches the FUSE mount: go-fuse opened /etc/passwd.
+//     The attack has worked.
+func OpenSymlinkRace(t *testing.T, mnt string) {
+	path := mnt + "/OpenSymlinkRace"
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	const iterations = 1000
+
+	fd, err := syscall.Creat(path, 0600)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	// Find and save the device number of the FUSE mount
+	var st syscall.Stat_t
+	err = syscall.Fstat(fd, &st)
+	fuseMountDev := st.Dev
+	if err != nil {
+		t.Fatal(err)
+	}
+	syscall.Close(fd)
+
+	// Shuffler
+	go func() {
+		defer wg.Done()
+		tmp := path + ".tmp"
+		for i := 0; i < iterations; i++ {
+			// Stop when another thread has failed
+			if t.Failed() {
+				return
+			}
+
+			// Make "path" a regular file
+			fd, err := syscall.Creat(tmp, 0600)
+			if err != nil {
+				t.Errorf("shuffler: Creat: %v", err)
+				return
+			}
+			syscall.Close(fd)
+			err = syscall.Rename(tmp, path)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+
+			// Make "path" a symlink
+			err = syscall.Symlink("/etc/passwd", tmp)
+			if err != nil {
+				t.Errorf("shuffler: Symlink: %v", err)
+				return
+			}
+			err = syscall.Rename(tmp, path)
+			if err != nil {
+				t.Errorf("shuffler: Rename: %v", err)
+				return
+			}
+		}
+	}()
+
+	// Keep some statistics
+	type statsT struct {
+		EINVAL          int
+		ENOENT          int
+		ELOOP           int
+		empty           int
+		resolvedSymlink int
+	}
+	var stats statsT
+
+	// Opener
+	go func() {
+		defer wg.Done()
+		var st syscall.Stat_t
+
+		for i := 0; i < iterations; i++ {
+			// Stop when another thread has failed
+			if t.Failed() {
+				return
+			}
+
+			fd, err := syscall.Open(path, syscall.O_RDONLY, 0)
+			if err != nil {
+				if err == syscall.EINVAL {
+					// Happens when the kernel tries to read the symlink but
+					// it's already a file again in the backing directory
+					stats.EINVAL++
+					continue
+				}
+				if err == syscall.ELOOP {
+					// Looks like there's some symlink-safety
+					stats.ELOOP++
+					continue
+				}
+				if err == syscall.ENOENT {
+					// Not sure why we get these, but we do
+					stats.ENOENT++
+					continue
+				}
+				t.Errorf("opener: Open: %v", err)
+				return
+			}
+			err = syscall.Fstat(fd, &st)
+			syscall.Close(fd)
+			if err != nil {
+				t.Errorf("opener: Fstat: %v", err)
+				return
+			}
+			if st.Size == 0 {
+				stats.empty++
+				continue
+			}
+			if st.Dev != fuseMountDev {
+				stats.resolvedSymlink++
+			} else {
+				// go-fuse has opened /etc/passwd
+				t.Errorf("opener: successful symlink attack in iteration %d. We tricked go-fuse into opening /etc/passwd.", i)
+				return
+			}
+		}
+	}()
+
+	wg.Wait()
+	t.Logf("opener stats: %#v", stats)
 }
