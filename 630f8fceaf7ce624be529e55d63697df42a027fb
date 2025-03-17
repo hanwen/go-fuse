@@ -199,6 +199,30 @@
       },
       "revId": "630f8fceaf7ce624be529e55d63697df42a027fb",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "586b862b_2c8677b6",
+        "filename": "fs/loopback.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 555,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-03-17T07:26:47Z",
+      "side": 1,
+      "message": "I\u0027ll get that working this week, then we\u0027ll submit the whole bunch together.",
+      "parentUuid": "256f71b3_643e3c75",
+      "range": {
+        "startLine": 555,
+        "startChar": 2,
+        "endLine": 555,
+        "endChar": 4
+      },
+      "revId": "630f8fceaf7ce624be529e55d63697df42a027fb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
