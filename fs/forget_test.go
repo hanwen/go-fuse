@@ -7,7 +7,6 @@ package fs
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -68,10 +67,10 @@ func TestForget(t *testing.T) {
 	root := &allChildrenNode{
 		depth: 2,
 	}
-	sec := time.Second
+	ttl := 10 * time.Millisecond
 	options := &Options{
 		FirstAutomaticIno: 1,
-		EntryTimeout:      &sec,
+		EntryTimeout:      &ttl,
 	}
 	options.Debug = testutil.VerboseTest()
 	dir := t.TempDir()
@@ -95,11 +94,11 @@ func TestForget(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	log.Println("dropping cache")
+	t.Log("dropping cache")
 	if err := os.WriteFile("/proc/sys/vm/drop_caches", []byte("2"), 0644); err != nil {
 
 	}
-	time.Sleep(time.Second)
+	time.Sleep(ttl)
 
 	bridge := rawFS.(*rawBridge)
 	bridge.mu.Lock()
