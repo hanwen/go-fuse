@@ -461,6 +461,8 @@ func (ms *Server) Serve() {
 		reading.st = ENODEV
 		close(reading.ready)
 	}
+
+	ms.fileSystem.OnUnmount()
 }
 
 // Wait waits for the serve loop to exit. This should only be called
