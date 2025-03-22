@@ -462,4 +462,7 @@ type RawFileSystem interface {
 	// filesystem implementation can use the server argument to
 	// talk back to the kernel (through notify methods).
 	Init(*Server)
+
+	// Called after processing the last request.
+	OnUnmount()
 }

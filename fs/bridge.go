@@ -1294,3 +1294,9 @@ func (b *rawBridge) Lseek(cancel <-chan struct{}, in *fuse.LseekIn, out *fuse.Ls
 
 	return fuse.ENOTSUP
 }
+
+func (b *rawBridge) OnUnmount() {
+	if of, ok := b.root.ops.(NodeOnForgetter); ok {
+		of.OnForget()
+	}
+}

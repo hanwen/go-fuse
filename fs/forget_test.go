@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"testing"
 	"time"
@@ -113,10 +114,14 @@ type forgetTestRootNode struct {
 	Inode
 
 	mu            sync.Mutex
-	onForgetCount int
+	onForgetCount atomic.Int32
 
 	fileNode *forgetTestSubNode
 	dirNode  *forgetTestSubNode
+}
+
+func (n *forgetTestRootNode) OnForget() {
+	n.onForgetCount.Add(1)
 }
 
 type forgetTestSubNode struct {
@@ -125,9 +130,7 @@ type forgetTestSubNode struct {
 }
 
 func (n *forgetTestSubNode) OnForget() {
-	n.root.mu.Lock()
-	defer n.root.mu.Unlock()
-	n.root.onForgetCount++
+	n.root.OnForget()
 }
 
 func (n *forgetTestSubNode) OnAdd(ctx context.Context) {
@@ -163,7 +166,7 @@ func (n *forgetTestRootNode) Lookup(ctx context.Context, name string, out *fuse.
 
 func TestOnForget(t *testing.T) {
 	root := &forgetTestRootNode{}
-	mnt, _ := testMount(t, root, nil)
+	mnt, srv := testMount(t, root, nil)
 
 	sub := mnt + "/subdir"
 	_, err := os.Stat(sub)
@@ -191,16 +194,20 @@ func TestOnForget(t *testing.T) {
 	// The kernel issues FORGET immediately, but it takes a bit to
 	// process the request.
 	time.Sleep(time.Millisecond)
-	root.mu.Lock()
-	if root.onForgetCount != 0 {
-		t.Errorf("got count %d, want 0", root.onForgetCount)
+	if got := root.onForgetCount.Load(); got != 0 {
+		t.Errorf("got count %d, want 0", got)
 	}
-	root.mu.Unlock()
 
 	root.fileNode.ForgetPersistent()
-	root.mu.Lock()
-	if root.onForgetCount != 2 {
-		t.Errorf("got count %d, want 2", root.onForgetCount)
+	if got := root.onForgetCount.Load(); got != 2 {
+		t.Errorf("got count %d, want 2", got)
 	}
-	root.mu.Unlock()
+
+	if err := srv.Unmount(); err != nil {
+		t.Errorf("Unmount: %v", err)
+	}
+
+	if got := root.onForgetCount.Load(); got != 3 {
+		t.Errorf("got count %d, want 3", got)
+	}
 }
