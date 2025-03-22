@@ -19,6 +19,10 @@ type defaultRawFileSystem struct{}
 func (fs *defaultRawFileSystem) Init(*Server) {
 }
 
+func (fs *defaultRawFileSystem) OnUnmount() {
+
+}
+
 func (fs *defaultRawFileSystem) String() string {
 	return os.Args[0]
 }
