@@ -20,6 +20,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "74ee005d_00f0bb1f",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-03-23T21:19:35Z",
+      "side": 1,
+      "message": "@hanwenn@gmail.com acceptable or should I rework this to open and close the fd inside each FUSE operation?",
+      "parentUuid": "4430fea4_7e37d9e5",
+      "revId": "567d54d9242ba872977182054ff71dd8bbff4b39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "a68046d1_ef2afbe7",
         "filename": "fs/loopback.go",
         "patchSetId": 5
