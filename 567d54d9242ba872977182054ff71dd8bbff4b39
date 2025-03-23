@@ -3,6 +3,23 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "4430fea4_7e37d9e5",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-03-23T21:13:20Z",
+      "side": 1,
+      "message": "ISSUE: I just noticed that this changes the API, because LoopbackRoot is exported, and Fd is now mandatory.\n\nInternal breakage example: https://review.gerrithub.io/c/hanwen/go-fuse/+/1212014/1\n(it uses Fd \u003d 0, which incidentially does not point to a directory).",
+      "revId": "567d54d9242ba872977182054ff71dd8bbff4b39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "a68046d1_ef2afbe7",
         "filename": "fs/loopback.go",
         "patchSetId": 5
@@ -32,6 +49,24 @@
       "side": 1,
       "message": "You are right. This is unsafe if OnForget runs concurrently with other FUSE operations. I *think* this can happen when unmounting a filesystem with a lot of activity.\n\nHow about letting the garbage collector figure it out, using runtime.SetFinalizer() on LoopbackRoot?",
       "parentUuid": "a68046d1_ef2afbe7",
+      "revId": "567d54d9242ba872977182054ff71dd8bbff4b39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ed6db224_4ea412d0",
+        "filename": "fs/loopback.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-03-23T21:13:20Z",
+      "side": 1,
+      "message": "On second though, this would mean sprinkling runtime.KeepAlive() across the code. Let\u0027s not.",
+      "parentUuid": "b24b707c_2108e044",
       "revId": "567d54d9242ba872977182054ff71dd8bbff4b39",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
