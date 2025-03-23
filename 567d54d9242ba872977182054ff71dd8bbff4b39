@@ -16,6 +16,24 @@
       "message": "if r.Fd !\u003d -1 ?\n\nwhat about locking. This looks safe , but I bet the race detector thinks otherwise.",
       "revId": "567d54d9242ba872977182054ff71dd8bbff4b39",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b24b707c_2108e044",
+        "filename": "fs/loopback.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-03-23T19:23:25Z",
+      "side": 1,
+      "message": "You are right. This is unsafe if OnForget runs concurrently with other FUSE operations. I *think* this can happen when unmounting a filesystem with a lot of activity.\n\nHow about letting the garbage collector figure it out, using runtime.SetFinalizer() on LoopbackRoot?",
+      "parentUuid": "a68046d1_ef2afbe7",
+      "revId": "567d54d9242ba872977182054ff71dd8bbff4b39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
