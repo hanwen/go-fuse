@@ -19,9 +19,15 @@ func TestWindowsEmulations(t *testing.T) {
 	mntDir := t.TempDir()
 	origDir := t.TempDir()
 
+	fd, err := syscall.Open(origDir, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_CLOEXEC, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	rootData := &fs.LoopbackRoot{
 		NewNode: newWindowsNode,
 		Path:    origDir,
+		Fd:      fd,
 	}
 	opts := fs.Options{}
 	opts.Debug = testutil.VerboseTest()
