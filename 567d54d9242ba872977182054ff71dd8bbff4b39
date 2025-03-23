@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a68046d1_ef2afbe7",
+        "filename": "fs/loopback.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-03-23T12:46:02Z",
+      "side": 1,
+      "message": "if r.Fd !\u003d -1 ?\n\nwhat about locking. This looks safe , but I bet the race detector thinks otherwise.",
+      "revId": "567d54d9242ba872977182054ff71dd8bbff4b39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
