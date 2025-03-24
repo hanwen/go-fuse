@@ -38,6 +38,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "a99a356c_0cfd6b42",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-03-24T07:25:04Z",
+      "side": 1,
+      "message": "could we take fd\u003d\u003d0 to mean to use the old code paths?",
+      "parentUuid": "74ee005d_00f0bb1f",
+      "revId": "567d54d9242ba872977182054ff71dd8bbff4b39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "a68046d1_ef2afbe7",
         "filename": "fs/loopback.go",
         "patchSetId": 5
@@ -85,6 +103,24 @@
       "side": 1,
       "message": "On second though, this would mean sprinkling runtime.KeepAlive() across the code. Let\u0027s not.",
       "parentUuid": "b24b707c_2108e044",
+      "revId": "567d54d9242ba872977182054ff71dd8bbff4b39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b0332951_002e51ba",
+        "filename": "fs/loopback.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-03-24T07:25:04Z",
+      "side": 1,
+      "message": "the onforget on unmount only runs concurrrently for singlereader\u003dfalse. hwoever, the loopbackroot may also be used as a child of other nodes, and then onforget runs concurrently with other things (but not operations involving the node, b/c the node needs to be alive to have an operation run on it).\n\n\u003e using runtime.SetFinalizer() on LoopbackRoot?\n\nthat may not fix our tests for resource leakage, as GC is non-deterministic.",
+      "parentUuid": "ed6db224_4ea412d0",
       "revId": "567d54d9242ba872977182054ff71dd8bbff4b39",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
