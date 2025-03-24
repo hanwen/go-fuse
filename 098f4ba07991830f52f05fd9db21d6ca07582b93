@@ -16,6 +16,24 @@
       "message": "BUG: Leaks one fd per mount\n\n\n    --- FAIL: TestPosix/FdLeak (0.02s)\n        test.go:239: found 50 open file descriptors for 100x ReadFile: [0r\u003d/dev/null 5rw\u003danon_inode:[eventfd] 6r\u003d/tmp/TestBridgeReaddirPlusVirtualEntries3704433403/001/orig (deleted) 7r\u003d/tmp/TestRenameNoOverwrite799719998/001/orig (deleted) 8r\u003d/tmp/TestXAttrSymlink1432647053/001/orig (deleted) 9r\u003d/tmp/TestCopyFileRange3740008710/001/orig (deleted) 10r\u003d/tmp/TestParallelDiropsHang3858679554/001/orig (deleted) 11r\u003d/tmp/TestRoMount3369651489/001/orig (deleted) 12r\u003d/tmp/TestDirectMount1143103594/001/orig (deleted) 13r\u003d/tmp/TestRenameExchange957161295/001/orig (deleted) 14r\u003d/tmp/TestLoopbackNonRoot2332780881/001 (deleted) 15r\u003d/tmp/TestLoopbackNonRoot2332780881/002 (deleted) 20w\u003d/dev/null 21r\u003d/tmp/TestBasic3309952528/001/orig (deleted) 22r\u003d/tmp/TestFileFdLeak3884111503/001/orig (deleted) 23r\u003d/tmp/TestNotifyEntry4099972394/001/orig (deleted) 24r\u003d/tmp/TestReadDirStress2859962097/001/orig (deleted) 25r\u003d/tmp/TestStatFs1121903069/001/orig (deleted) 26r\u003d/tmp/TestGetAttrParallel1593464778/001/orig (deleted) 27r\u003d/tmp/TestMknod2368108740/001/orig (deleted) 28r\u003d/tmp/TestPosixAppendWrite1637599050/001/orig (deleted) 29r\u003d/tmp/TestPosixFileBasic2615736723/001/orig (deleted) 30r\u003d/tmp/TestPosixMkdirRmdir3943844945/001/orig (deleted) 31r\u003d/tmp/TestPosixNlinkZero2053705933/001/orig (deleted) 32r\u003d/tmp/TestPosixXAttr1866995733/001/orig (deleted) 33r\u003d/tmp/TestPosixSymlinkReadlink1048587734/001/orig (deleted) 34r\u003d/tmp/TestPosixLseekEnxioCheck625061800/001/orig (deleted) 35r\u003d/tmp/TestPosixRenameOverwriteDestExist477913999/001/orig (deleted) 36r\u003d/tmp/TestPosixFstatDeleted1563662305/001/orig (deleted) 37r\u003d/tmp/TestPosixRenameOverwriteDestNoExist2366166846/001/orig (deleted) 38r\u003d/tmp/TestPosixReadDir2542889505/001/orig (deleted) 39r\u003d/tmp/TestPosixFallocate2469310721/001/orig (deleted) 40r\u003d/tmp/TestPosixLinkUnlinkRename933137413/001/orig (deleted) 41r\u003d/tmp/TestPosixDirectIO3445686902/001/orig (deleted) 42r\u003d/tmp/TestPosixDirSeek106098497/001/orig (deleted) 43r\u003d/tmp/TestPosixFcntlFlockSetLk1032569798/001/orig (deleted) 44r\u003d/tmp/TestPosixParallelFileOpen1687244326/001/orig (deleted) 45r\u003d/tmp/TestPosixRenameOpenDir1611358927/001/orig (deleted) 46r\u003d/tmp/TestPosixReadDirConsistency2117610198/001/orig (deleted) 47r\u003d/tmp/TestPosixOpenAt2452976642/001/orig (deleted) 48r\u003d/tmp/TestPosixTruncateFile130975852/001/orig (deleted) 49r\u003d/tmp/TestPosixTruncateNoFile940032281/001/orig (deleted) 50r\u003d/tmp/TestPosixLink1491008122/001/orig (deleted) 51r\u003d/tmp/TestPosixLseekHoleSeeksToEOF26412947/001/orig (deleted) 52r\u003d/tmp/TestPosixSetattrSymlink1645696061/001/orig (deleted) 53r\u003d/tmp/TestPosixOpenSymlinkRace2186277455/001/orig (deleted) 54r\u003d/tmp/TestPosixFdLeak4276012357/001/orig 55r\u003d/proc/96279/fd 58rw\u003d/dev/fuse (filtered: pipe:[253211], pipe:[253211], pipe:[254067], anon_inode:[eventpoll], pipe:[254134], pipe:[254134], pipe:[254135], pipe:[254135])]",
       "revId": "098f4ba07991830f52f05fd9db21d6ca07582b93",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "1a9094a6_c675b2f4",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 4
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-03-24T12:54:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "58bb261c_64e25dbf",
+      "revId": "098f4ba07991830f52f05fd9db21d6ca07582b93",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
