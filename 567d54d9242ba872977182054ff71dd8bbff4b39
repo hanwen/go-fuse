@@ -56,6 +56,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "afb59641_2111891b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-03-24T11:45:23Z",
+      "side": 1,
+      "message": "The wrinkle here is that Fd\u003d0 could be a valid and intended Fd. But I can just document this limitation and how a caller can work around it. Caller will have to open their dir again to get another fd number.",
+      "parentUuid": "a99a356c_0cfd6b42",
+      "revId": "567d54d9242ba872977182054ff71dd8bbff4b39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "a68046d1_ef2afbe7",
         "filename": "fs/loopback.go",
         "patchSetId": 5
