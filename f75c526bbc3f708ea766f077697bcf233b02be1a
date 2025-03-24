@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "0d766117_f77ae61f",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 7
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-03-24T12:53:30Z",
+      "side": 1,
+      "message": "Ready to go without a persistent Fd and without API breakage.",
+      "revId": "f75c526bbc3f708ea766f077697bcf233b02be1a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}

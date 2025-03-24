@@ -103,6 +103,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "e296f0f1_57a89f66",
+        "filename": "fs/loopback.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-03-24T12:53:30Z",
+      "side": 1,
+      "message": "Dropped",
+      "parentUuid": "746744a1_e5daa273",
+      "range": {
+        "startLine": 26,
+        "startChar": 4,
+        "endLine": 26,
+        "endChar": 10
+      },
+      "revId": "630f8fceaf7ce624be529e55d63697df42a027fb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "52bbb9fb_5c6bb9a2",
         "filename": "fs/loopback.go",
         "patchSetId": 2
@@ -215,6 +239,30 @@
       "side": 1,
       "message": "I\u0027ll get that working this week, then we\u0027ll submit the whole bunch together.",
       "parentUuid": "256f71b3_643e3c75",
+      "range": {
+        "startLine": 555,
+        "startChar": 2,
+        "endLine": 555,
+        "endChar": 4
+      },
+      "revId": "630f8fceaf7ce624be529e55d63697df42a027fb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "de705113_6a608ec6",
+        "filename": "fs/loopback.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 555,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-03-24T12:53:30Z",
+      "side": 1,
+      "message": "Fd dropped, OnForget no longer needed here, but I would like to use it in gocryptfs.",
+      "parentUuid": "586b862b_2c8677b6",
       "range": {
         "startLine": 555,
         "startChar": 2,
