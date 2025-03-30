@@ -20,6 +20,23 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "69af2230_c8066b65",
+        "filename": "posixtest/test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 980,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-03-30T12:35:02Z",
+      "side": 1,
+      "message": "here.",
+      "revId": "156abf4443284912c8b97f85a431dfa9cf48791f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "9f0eeb8b_0f4c3b29",
         "filename": "posixtest/test.go",
         "patchSetId": 1
@@ -85,6 +102,24 @@
       "side": 1,
       "message": "Or /dev/null, for darwin compatibility.",
       "parentUuid": "4a63e5b2_017ff17d",
+      "revId": "156abf4443284912c8b97f85a431dfa9cf48791f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "df20e809_027742a3",
+        "filename": "posixtest/test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1014,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-03-30T12:35:02Z",
+      "side": 1,
+      "message": "I think you\u0027d have to use O_NOFOLLOW above (marked) for the test to truly test what it claims to test. The test whether `/etc/passwd` was opened should check the f.Stat() result against the Inode/dev pair for `/etc/passwd`",
+      "parentUuid": "cd0ef76c_77accede",
       "revId": "156abf4443284912c8b97f85a431dfa9cf48791f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
