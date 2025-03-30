@@ -193,6 +193,24 @@
       "parentUuid": "77321669_a33257a3",
       "revId": "156abf4443284912c8b97f85a431dfa9cf48791f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1a779ac7_4d748cee",
+        "filename": "posixtest/test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1014,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-03-30T14:15:10Z",
+      "side": 1,
+      "message": "\u003e The test whether /etc/passwd was opened should check the f.Stat() result against the Inode/dev pair for /etc/passwd\n\nTried this - unfortunately does not work because rawBridge overrides Ino here:\n\nhttps://github.com/hanwen/go-fuse/blob/156abf4443284912c8b97f85a431dfa9cf48791f/fs/bridge.go#L577",
+      "parentUuid": "15151796_85c9d3d4",
+      "revId": "156abf4443284912c8b97f85a431dfa9cf48791f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ],
   "submitRequirementResults": []
