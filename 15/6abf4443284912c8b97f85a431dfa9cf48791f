@@ -1,0 +1,10 @@
+Code-Review+1: Jakob Unterwurzacher <jakobunt@gmail.com>
+Verified+1: Han-Wen Nienhuys <hanwenn@gmail.com>
+Code-Review+2: Han-Wen Nienhuys <hanwenn@gmail.com>
+Submitted-by: Han-Wen Nienhuys <hanwenn@gmail.com>
+Submitted-at: Sun, 30 Mar 2025 13:30:15 +0000
+Reviewed-on: https://review.gerrithub.io/c/hanwen/go-fuse/+/1212434
+Comments-Total: 10
+Comments-Unresolved: 2
+Project: hanwen/go-fuse
+Branch: refs/heads/master
