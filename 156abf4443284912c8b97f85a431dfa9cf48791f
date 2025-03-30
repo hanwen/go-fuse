@@ -157,6 +157,24 @@
       "parentUuid": "df20e809_027742a3",
       "revId": "156abf4443284912c8b97f85a431dfa9cf48791f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "77321669_a33257a3",
+        "filename": "posixtest/test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1014,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-03-30T13:28:41Z",
+      "side": 1,
+      "message": "did you try? I think O_FOLLOW would be filtered in the VFS, and does not reach the FUSE daemon.",
+      "parentUuid": "4a4da743_5305a08b",
+      "revId": "156abf4443284912c8b97f85a431dfa9cf48791f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
