@@ -33,6 +33,24 @@
       "message": "The point here is that the ** go-fuse filesystem ** (as opposed to this test) has opened /etc/passwd. This should never happen.",
       "revId": "156abf4443284912c8b97f85a431dfa9cf48791f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5fb89647_51530955",
+        "filename": "posixtest/test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1014,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-03-30T11:13:41Z",
+      "side": 1,
+      "message": "I know what the point is, but this directory holds test that should pass against a posix compliant FS. In the way the test is currently written, it fails against a normal file system, see https://github.com/hanwen/go-fuse/actions/runs/14147410375",
+      "parentUuid": "9f0eeb8b_0f4c3b29",
+      "revId": "156abf4443284912c8b97f85a431dfa9cf48791f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
