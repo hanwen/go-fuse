@@ -122,6 +122,24 @@
       "parentUuid": "cd0ef76c_77accede",
       "revId": "156abf4443284912c8b97f85a431dfa9cf48791f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4a4da743_5305a08b",
+        "filename": "posixtest/test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1014,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-03-30T12:51:22Z",
+      "side": 1,
+      "message": "When you pass O_NOFOLLOW you cannot trigger this race in loopback.",
+      "parentUuid": "df20e809_027742a3",
+      "revId": "156abf4443284912c8b97f85a431dfa9cf48791f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
