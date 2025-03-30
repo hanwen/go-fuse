@@ -175,6 +175,24 @@
       "parentUuid": "4a4da743_5305a08b",
       "revId": "156abf4443284912c8b97f85a431dfa9cf48791f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "15151796_85c9d3d4",
+        "filename": "posixtest/test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1014,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-03-30T13:48:24Z",
+      "side": 1,
+      "message": "I think I did. Let\u0027s check again. Without O_NOFOLLOW:\n\n130 jakob@brikett:~/code/go-fuse/fs$ go test -run TestPosix/OpenSymlinkRace -v | grep \": OPEN\" | head\n15:46:28.196959 rx 8: OPEN n18446744073709551615 {LARGEFILE} p21369\n15:46:28.197485 rx 24: OPEN n2 {LARGEFILE} p21369\n15:46:28.197618 rx 30: OPEN n2 {LARGEFILE} p21369\n15:46:28.198030 rx 36: OPEN n2 {LARGEFILE} p21369\n15:46:28.198231 rx 46: OPEN n2 {LARGEFILE} p21369\n15:46:28.198527 rx 56: OPEN n2 {LARGEFILE} p21369\n15:46:28.198746 rx 62: OPEN n2 {LARGEFILE} p21369\n15:46:28.199069 rx 74: OPEN n2 {LARGEFILE} p21369\n15:46:28.199138 rx 80: OPEN n2 {LARGEFILE} p21369\n15:46:28.199308 rx 90: OPEN n3 {LARGEFILE} p21369\n\nWith O_NOFOLLOW:\n\n\n\n130 jakob@brikett:~/code/go-fuse/fs$ go test -run TestPosix/OpenSymlinkRace -v | grep \": OPEN\" | head\n15:46:20.725530 rx 8: OPEN n18446744073709551615 {LARGEFILE} p21139\n15:46:20.726270 rx 28: OPEN n2 {LARGEFILE,0x20000} p21142\n15:46:20.726436 rx 34: OPEN n2 {LARGEFILE,0x20000} p21142\n15:46:20.726697 rx 44: OPEN n2 {LARGEFILE,0x20000} p21142\n15:46:20.727272 rx 64: OPEN n3 {LARGEFILE,0x20000} p21151\n15:46:20.728097 rx 92: OPEN n7 {LARGEFILE,0x20000} p21142\n15:46:20.728798 rx 130: OPEN n11 {LARGEFILE,0x20000} p21142\n15:46:20.729397 rx 164: OPEN n15 {LARGEFILE,0x20000} p21142\n15:46:20.729616 rx 182: OPEN n15 {LARGEFILE,0x20000} p21142\n15:46:20.729736 rx 190: OPEN n15 {LARGEFILE,0x20000} p21142\n\n\nNote:\n\n\tO_NOFOLLOW                       \u003d 0x20000",
+      "parentUuid": "77321669_a33257a3",
+      "revId": "156abf4443284912c8b97f85a431dfa9cf48791f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ],
   "submitRequirementResults": []
