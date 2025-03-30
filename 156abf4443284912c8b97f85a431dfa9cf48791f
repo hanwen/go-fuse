@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "375bf638_8863009d",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-03-30T10:20:10Z",
+      "side": 1,
+      "message": "No that\u0027s the point of the test.\n\nA user should never be able to trick the filesystem (!) into opening /etc/passwd.",
+      "revId": "156abf4443284912c8b97f85a431dfa9cf48791f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
