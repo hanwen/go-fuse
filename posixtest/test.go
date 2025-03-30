@@ -1011,7 +1011,7 @@ func OpenSymlinkRace(t *testing.T, mnt string) {
 			if st.Dev != fuseMountDev {
 				stats.resolvedSymlink++
 			} else {
-				// go-fuse has opened /etc/passwd
+				// opened /etc/passwd
 				t.Errorf("opener: successful symlink attack in iteration %d. We tricked go-fuse into opening /etc/passwd.", i)
 				return
 			}
