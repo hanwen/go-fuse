@@ -18,6 +18,23 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "44ffca3e_58c1fc18",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-03-30T13:01:18Z",
+      "side": 1,
+      "message": "Ack for the quick fix.\n\nSorry for the breakage, I did not see this failure locally. \n\nI can improve OpenSymlinkRace later and re-enable. Maybe I should also increase the iterations.",
+      "revId": "156abf4443284912c8b97f85a431dfa9cf48791f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "69af2230_c8066b65",
