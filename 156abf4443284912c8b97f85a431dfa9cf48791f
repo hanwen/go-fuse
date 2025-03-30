@@ -69,6 +69,24 @@
       "parentUuid": "5fb89647_51530955",
       "revId": "156abf4443284912c8b97f85a431dfa9cf48791f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "cd0ef76c_77accede",
+        "filename": "posixtest/test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1014,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-03-30T11:53:27Z",
+      "side": 1,
+      "message": "Or /dev/null, for darwin compatibility.",
+      "parentUuid": "4a63e5b2_017ff17d",
+      "revId": "156abf4443284912c8b97f85a431dfa9cf48791f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
