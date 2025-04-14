@@ -22,6 +22,30 @@
       },
       "revId": "85a3e68a70201058e5aca2d923cec4a2212b0ba4",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5f0a752a_be1a27d5",
+        "filename": "fs/dirstream_darwin.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1038587
+      },
+      "writtenOn": "2025-04-14T22:16:57Z",
+      "side": 1,
+      "message": "Hi Han-Wen, that will cause `ls` to always return no entries.",
+      "parentUuid": "2e5f0f09_05c83bc3",
+      "range": {
+        "startLine": 16,
+        "startChar": 30,
+        "endLine": 16,
+        "endChar": 34
+      },
+      "revId": "85a3e68a70201058e5aca2d923cec4a2212b0ba4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
