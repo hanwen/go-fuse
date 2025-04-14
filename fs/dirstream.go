@@ -57,7 +57,7 @@ func NewLoopbackDirStream(name string) (DirStream, syscall.Errno) {
 	if err != nil {
 		return nil, ToErrno(err)
 	}
-	return NewLoopbackDirStreamFd(fd)
+	return NewLoopbackDirStreamFd(fd, name)
 }
 
 // NewListDirStream wraps a slice of DirEntry as a DirStream.
