@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2e5f0f09_05c83bc3",
+        "filename": "fs/dirstream_darwin.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-04-14T22:04:55Z",
+      "side": 1,
+      "message": "this change is not backward compatible. What happens if you specify \"\" on darwin?",
+      "range": {
+        "startLine": 16,
+        "startChar": 30,
+        "endLine": 16,
+        "endChar": 34
+      },
+      "revId": "85a3e68a70201058e5aca2d923cec4a2212b0ba4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
