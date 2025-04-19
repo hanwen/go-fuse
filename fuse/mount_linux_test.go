@@ -151,6 +151,11 @@ func TestDirectMount(t *testing.T) {
 		{FsName: "a,b"},
 		{FsName: `a\b`},
 		{FsName: `a\,b`},
+
+		{Options: []string{"exec"}},
+		{Options: []string{"noexec"}},
+		{Options: []string{"exec", "noexec"}},
+		{Options: []string{"noexec", "exec"}},
 	}
 	for _, opts := range optsTable {
 		opts.Debug = testutil.VerboseTest()
@@ -177,6 +182,54 @@ fusermount:  %#v`, o2, o1)
 DirectMountStrict: %#v
 fusermount:        %#v`, o3, o1)
 			}
+		}
+	}
+}
+
+// TestDirectMountDevSuid checks that [no]dev/suid works with DirectMount and DirectMountStrict
+// and show the same effective mount options in /proc/self/mounts
+func TestDirectMountDevSuid(t *testing.T) {
+	if os.Geteuid() != 0 {
+		t.Skip("this test requires root permissions")
+	}
+
+	optsTable := []MountOptions{
+		{},
+
+		{Options: []string{"dev"}},
+		{Options: []string{"dev", "nodev"}},
+		{Options: []string{"nodev", "dev"}},
+
+		{Options: []string{"suid"}},
+		{Options: []string{"suid", "nosuid"}},
+		{Options: []string{"nosuid", "suid"}},
+
+		{Options: []string{"dev", "suid"}},
+		{Options: []string{"nodev", "nosuid"}},
+	}
+	for _, opts := range optsTable {
+		opts.Debug = testutil.VerboseTest()
+		// Without DirectMount - i.e. using fusermount
+		o1 := mountCheckOptions(t, opts)
+		// With DirectMount
+		opts.DirectMount = true
+		o2 := mountCheckOptions(t, opts)
+		if o2 != o1 {
+			t.Errorf(`DirectMount effective mount options mismatch:
+DirectMount: %#v
+fusermount:  %#v`, o2, o1)
+
+			// When this already fails then DirectMountStrict will fail the same way.
+			// Skip it for less noise in the logs.
+			continue
+		}
+		// With DirectMountStrict
+		opts.DirectMountStrict = true
+		o3 := mountCheckOptions(t, opts)
+		if o3 != o1 {
+			t.Errorf(`DirectMountStrict effective mount options mismatch:
+DirectMountStrict: %#v
+fusermount:        %#v`, o3, o1)
 		}
 	}
 }
