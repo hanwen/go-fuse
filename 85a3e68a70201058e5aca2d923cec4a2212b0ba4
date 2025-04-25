@@ -70,6 +70,30 @@
       },
       "revId": "85a3e68a70201058e5aca2d923cec4a2212b0ba4",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ea909d4f_493faf8e",
+        "filename": "fs/dirstream_darwin.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-04-25T17:43:02Z",
+      "side": 1,
+      "message": "can you try the change  in https://review.gerrithub.io/c/hanwen/go-fuse/+/1214093/ ?\n\ndownload it with \u0027git fetch https://review.gerrithub.io/hanwen/go-fuse refs/changes/93/1214093/1 \u0026\u0026 git checkout FETCH_HEAD\u0027",
+      "parentUuid": "8998abd3_30bfee9e",
+      "range": {
+        "startLine": 16,
+        "startChar": 30,
+        "endLine": 16,
+        "endChar": 34
+      },
+      "revId": "85a3e68a70201058e5aca2d923cec4a2212b0ba4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
