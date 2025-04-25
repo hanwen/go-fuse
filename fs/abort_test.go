@@ -30,7 +30,6 @@ func (n *hangingRootNode) OpendirHandle(ctx context.Context, flags uint32) (fh F
 		n.mu.Unlock()
 		return nil, 0, syscall.EINTR
 	}
-	return nil, 0, 0
 }
 
 func TestAbort(t *testing.T) {
