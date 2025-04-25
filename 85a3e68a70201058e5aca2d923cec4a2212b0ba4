@@ -46,6 +46,30 @@
       },
       "revId": "85a3e68a70201058e5aca2d923cec4a2212b0ba4",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "8998abd3_30bfee9e",
+        "filename": "fs/dirstream_darwin.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-04-25T16:34:49Z",
+      "side": 1,
+      "message": "I have opened https://github.com/hanwen/go-fuse/issues/566\n\nThe `os` package is really too high-level for this code.",
+      "parentUuid": "5f0a752a_be1a27d5",
+      "range": {
+        "startLine": 16,
+        "startChar": 30,
+        "endLine": 16,
+        "endChar": 34
+      },
+      "revId": "85a3e68a70201058e5aca2d923cec4a2212b0ba4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
