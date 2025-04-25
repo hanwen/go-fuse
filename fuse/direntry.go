@@ -5,7 +5,6 @@
 package fuse
 
 import (
-	"bytes"
 	"fmt"
 	"unsafe"
 )
@@ -46,9 +45,14 @@ func (d *DirEntry) Parse(buf []byte) int {
 	nameBytes := buf[off : off+uintptr(de.NameLength())]
 	n := de.Reclen
 
-	l := bytes.IndexByte(nameBytes, 0)
-	if l >= 0 {
-		nameBytes = nameBytes[:l]
+	l := len(nameBytes)
+	for l > 0 {
+		if nameBytes[l-1] == 0 {
+			nameBytes = nameBytes[:l-1]
+		} else {
+			break
+		}
+		l--
 	}
 	*d = DirEntry{
 		Ino:  de.Ino,
