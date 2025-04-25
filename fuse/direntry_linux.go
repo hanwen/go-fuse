@@ -6,7 +6,9 @@ package fuse
 
 import "unsafe"
 
-// Like syscall.Dirent, but without the [256]byte name.
+// Like syscall.Dirent, but without the [256]byte name. This is
+// equivalent to the linux_dirent64 struct, returned from the
+// getdents64 syscall.
 type dirent struct {
 	Ino    uint64
 	Off    int64
