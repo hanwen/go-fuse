@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"sync"
 	"syscall"
@@ -231,7 +230,7 @@ func TestSymlinkCaching(t *testing.T) {
 	if l, err := os.Readlink(mnt + "/link"); err != nil {
 		t.Fatal(err)
 	} else if l != want[:1] {
-		log.Printf("got %q want %q", l, want[:1])
+		t.Logf("got %q want %q", l, want[:1])
 	}
 	if c := link.count(); c != 2 {
 		t.Errorf("got %d want 2", c)
