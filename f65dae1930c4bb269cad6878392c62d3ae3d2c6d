@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "933b1c05_db30e555",
+        "filename": "fs/dirstream_darwin.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-04-26T08:55:12Z",
+      "side": 1,
+      "message": "Delete?",
+      "revId": "f65dae1930c4bb269cad6878392c62d3ae3d2c6d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "11e1e46a_741bfebb",
+        "filename": "fs/dirstream_darwin.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-04-26T08:55:12Z",
+      "side": 1,
+      "message": "import \"golang.org/x/sys/unix\"",
+      "revId": "f65dae1930c4bb269cad6878392c62d3ae3d2c6d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ac487e14_22761e22",
+        "filename": "fs/dirstream_darwin.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-04-26T08:55:12Z",
+      "side": 1,
+      "message": "fd int",
+      "revId": "f65dae1930c4bb269cad6878392c62d3ae3d2c6d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
