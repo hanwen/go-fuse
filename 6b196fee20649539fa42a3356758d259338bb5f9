@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "64622d35_d9bae328",
+        "filename": "fuse/direntry.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-04-27T21:52:58Z",
+      "side": 1,
+      "message": "Not sure about this.\n\nGo stdlib, x/sys/unix and glibc all search for a null byte, but they search from the beginning, not the end.\n\nSearching from the end fails if there are multiple null bytes interspersed with non-null bytes.\n\nCan this happen? I don\u0027t know. But it seems like something is strange here, because if you can rely on reclen, then you don\u0027t need any of this. I guess the kernel may add padding after the name? Then, is guaranteed that only null bytes are used as padding?",
+      "revId": "6b196fee20649539fa42a3356758d259338bb5f9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "05e8367b_45f2ddc5",
+        "filename": "fuse/direntry_linux.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-04-27T21:52:58Z",
+      "side": 1,
+      "message": "Yep, this is what confused me.",
+      "revId": "6b196fee20649539fa42a3356758d259338bb5f9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
