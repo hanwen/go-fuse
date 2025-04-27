@@ -69,6 +69,24 @@
       "parentUuid": "2c5cbf43_f3701ec6",
       "revId": "bcc155867e38737ab7fbde7c35e30e6952ce90bc",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "75b6ad1d_09fece22",
+        "filename": "fuse/direntry_linux.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-04-27T19:40:06Z",
+      "side": 1,
+      "message": "I\u0027ll leave this as is, as to not change more than one thing at a time, and address the -2 in a follow-up change.",
+      "parentUuid": "d266f1e2_9e64bc07",
+      "revId": "bcc155867e38737ab7fbde7c35e30e6952ce90bc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
