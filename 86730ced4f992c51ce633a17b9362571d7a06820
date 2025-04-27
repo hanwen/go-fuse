@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7c612324_4260516c",
+        "filename": "all.bash",
+        "patchSetId": 1
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-04-27T09:04:51Z",
+      "side": 1,
+      "message": "-run already matches on substrings?",
+      "range": {
+        "startLine": 24,
+        "startChar": 52,
+        "endLine": 24,
+        "endChar": 53
+      },
+      "revId": "86730ced4f992c51ce633a17b9362571d7a06820",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
