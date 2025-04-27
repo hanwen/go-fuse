@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "545ac7ac_3cc82c43",
+        "filename": "fuse/direntry.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-04-27T11:29:01Z",
+      "side": 1,
+      "message": "I\u0027m suprised you can index a slice using uintptr. But it obviously works and is allowed ( https://go.dev/ref/spec#Index_expressions ).",
+      "revId": "bcc155867e38737ab7fbde7c35e30e6952ce90bc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ffb75313_68e20e23",
+        "filename": "fuse/direntry_linux.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-04-27T11:29:01Z",
+      "side": 1,
+      "message": "Are we missing \"- 2\" here? From https://man7.org/linux/man-pages/man2/getdents.2.html :\n\n               char           d_name[];  /* Filename (null-terminated) */\n                                 /* length is actually (d_reclen - 2 -\n                                    offsetof(struct linux_dirent, d_name)) */\n\nMaybe transplant the test from https://github.com/rfjakob/gocryptfs/blob/master/internal/syscallcompat/getdents_test.go ?",
+      "revId": "bcc155867e38737ab7fbde7c35e30e6952ce90bc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
