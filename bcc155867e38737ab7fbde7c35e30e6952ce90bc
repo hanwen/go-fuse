@@ -33,6 +33,24 @@
       "message": "Are we missing \"- 2\" here? From https://man7.org/linux/man-pages/man2/getdents.2.html :\n\n               char           d_name[];  /* Filename (null-terminated) */\n                                 /* length is actually (d_reclen - 2 -\n                                    offsetof(struct linux_dirent, d_name)) */\n\nMaybe transplant the test from https://github.com/rfjakob/gocryptfs/blob/master/internal/syscallcompat/getdents_test.go ?",
       "revId": "bcc155867e38737ab7fbde7c35e30e6952ce90bc",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "2c5cbf43_f3701ec6",
+        "filename": "fuse/direntry_linux.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-04-27T13:13:28Z",
+      "side": 1,
+      "message": "probably! this is probably why we need the \\0 trimming, see https://review.gerrithub.io/c/hanwen/go-fuse/+/1214094\n\nbut let\u0027s discuss there.",
+      "parentUuid": "ffb75313_68e20e23",
+      "revId": "bcc155867e38737ab7fbde7c35e30e6952ce90bc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
