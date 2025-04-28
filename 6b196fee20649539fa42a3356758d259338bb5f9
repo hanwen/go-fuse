@@ -18,6 +18,24 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": true,
+      "key": {
+        "uuid": "2526784a_48402377",
+        "filename": "fuse/direntry.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-04-28T06:32:44Z",
+      "side": 1,
+      "message": "it\u0027s primarily padding\n\n```\ngo test -run DirentType \n--- FAIL: TestDirentType (0.01s)\n    dirstream_test.go:94: unknown name \"ggggggg\\x00\\x00\\x00\\x00\\x00\\x00\"\n    dirstream_test.go:94: unknown name \"a\\x00\\x00\\x00\\x00\"\n    dirstream_test.go:94: unknown name \"bb\\x00\\x00\\x00\"\n    dirstream_test.go:94: unknown name \"ccc\\x00\\x00\"\n    dirstream_test.go:94: unknown name \"dddd\\x00\"\n    dirstream_test.go:94: unknown name \"eeeee\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\"\n    dirstream_test.go:94: unknown name \"ffffff\\x00\\x00\\x00\\x00\\x00\\x00\\x00\"\nFAIL\nexit status 1\n```\n\nI think the risk is that the kernel extends the API by adding something at then end (like how they added the \u0027type\u0027 field at the end of the original dirent).",
+      "parentUuid": "64622d35_d9bae328",
+      "revId": "6b196fee20649539fa42a3356758d259338bb5f9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": false,
       "key": {
         "uuid": "05e8367b_45f2ddc5",
