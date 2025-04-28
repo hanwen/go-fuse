@@ -114,14 +114,14 @@ type forgetTestRootNode struct {
 	Inode
 
 	mu            sync.Mutex
-	onForgetCount atomic.Int32
+	onForgetCount uint32
 
 	fileNode *forgetTestSubNode
 	dirNode  *forgetTestSubNode
 }
 
 func (n *forgetTestRootNode) OnForget() {
-	n.onForgetCount.Add(1)
+	atomic.AddUint32(&n.onForgetCount, 1)
 }
 
 type forgetTestSubNode struct {
@@ -194,12 +194,12 @@ func TestOnForget(t *testing.T) {
 	// The kernel issues FORGET immediately, but it takes a bit to
 	// process the request.
 	time.Sleep(time.Millisecond)
-	if got := root.onForgetCount.Load(); got != 0 {
+	if got := atomic.LoadUint32(&root.onForgetCount); got != 0 {
 		t.Errorf("got count %d, want 0", got)
 	}
 
 	root.fileNode.ForgetPersistent()
-	if got := root.onForgetCount.Load(); got != 2 {
+	if got := atomic.LoadUint32(&root.onForgetCount); got != 2 {
 		t.Errorf("got count %d, want 2", got)
 	}
 
@@ -207,7 +207,7 @@ func TestOnForget(t *testing.T) {
 		t.Errorf("Unmount: %v", err)
 	}
 
-	if got := root.onForgetCount.Load(); got != 3 {
+	if got := atomic.LoadUint32(&root.onForgetCount); got != 3 {
 		t.Errorf("got count %d, want 3", got)
 	}
 }
