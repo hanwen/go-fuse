@@ -386,8 +386,11 @@ func (ms *Server) readRequest(exitIdle bool) (req *requestAlloc, code Status) {
 	if !gobbled {
 		ms.readPool.Put(destIface)
 	}
+	ms.reqMu.Lock()
 	ms.reqReaders--
-	if !ms.singleReader && ms.reqReaders <= 0 && !needsBackPressure {
+	readers := ms.reqReaders
+	ms.reqMu.Unlock()
+	if !ms.singleReader && readers <= 0 && !needsBackPressure {
 		ms.loops.Add(1)
 		go ms.loop(true)
 	}
