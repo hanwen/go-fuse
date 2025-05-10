@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"testing"
 	"time"
+	"unsafe"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
 	"github.com/hanwen/go-fuse/v2/internal/testutil"
@@ -272,4 +273,51 @@ func TestDirectMount(t *testing.T) {
 		opts.directMountStrict = true
 	}
 	newTestCase(t, opts)
+}
+
+const FS_NOATIME_FL = 0x00000080
+const FS_IOC_GETFLAGS = 0x80086601
+const FS_IOC_SETFLAGS = 0x40086602
+
+func flipNoAtime(fd uintptr) (bool, error) {
+	var flags uint32
+	_, _, errno := syscall.Syscall(syscall.SYS_IOCTL, fd, FS_IOC_GETFLAGS, uintptr(unsafe.Pointer(&flags)))
+	if errno != 0 {
+		return false, errno
+	}
+
+	before := (flags & FS_NOATIME_FL) != 0
+	flags ^= FS_NOATIME_FL
+	_, _, errno = syscall.Syscall(syscall.SYS_IOCTL, uintptr(fd), FS_IOC_SETFLAGS, uintptr(unsafe.Pointer(&flags)))
+	if errno != 0 {
+		return false, errno
+	}
+
+	return before, nil
+}
+
+func TestIoctlLoopback(t *testing.T) {
+	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
+
+	f, err := os.Create(tc.origDir + "/file")
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, err := flipNoAtime(f.Fd())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	f.Close()
+
+	f, err = os.Open(tc.mntDir + "/file")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	after, err := flipNoAtime(f.Fd())
+
+	if after != !before {
+		t.Fatalf("didn't work: after %v, before %v", after, before)
+	}
 }
