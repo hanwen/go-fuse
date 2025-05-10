@@ -1255,6 +1255,24 @@ func (b *rawBridge) CopyFileRange(cancel <-chan struct{}, in *fuse.CopyFileRange
 	return sz, errnoToStatus(errno)
 }
 
+func (b *rawBridge) Ioctl(cancel <-chan struct{}, in *fuse.IoctlIn, inbuf []byte, out *fuse.IoctlOut, outbuf []byte) (code fuse.Status) {
+	n, f := b.inode(in.NodeId, in.Fh)
+	nio, ok := n.ops.(NodeIoctler)
+	if ok {
+		ctx := &fuse.Context{Caller: in.Caller, Cancel: cancel}
+		result, errno := nio.Ioctl(ctx, f, in.Cmd, in.Arg, inbuf, outbuf)
+		out.Result = result
+		return errnoToStatus(errno)
+	}
+	if fio, ok := f.file.(FileIoctler); ok {
+		ctx := &fuse.Context{Caller: in.Caller, Cancel: cancel}
+		result, errno := fio.Ioctl(ctx, in.Cmd, in.Arg, inbuf, outbuf)
+		out.Result = result
+		return errnoToStatus(errno)
+	}
+	return fuse.Status(syscall.ENOTTY)
+}
+
 func (b *rawBridge) Lseek(cancel <-chan struct{}, in *fuse.LseekIn, out *fuse.LseekOut) fuse.Status {
 	n, f := b.inode(in.NodeId, in.Fh)
 

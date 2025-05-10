@@ -225,6 +225,8 @@ func parseRequest(in []byte, kernelSettings *InitIn) (h *operationHandler, inSiz
 		outPayloadSize = int(((*ReadIn)(inData)).Size)
 	case _OP_GETXATTR, _OP_LISTXATTR:
 		outPayloadSize = int(((*GetXAttrIn)(inData)).Size)
+	case _OP_IOCTL:
+		outPayloadSize = int(((*IoctlIn)(inData)).OutSize)
 	}
 
 	outSize = int(h.OutputSize)
