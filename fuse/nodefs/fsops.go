@@ -511,3 +511,7 @@ func (fs *rawBridge) Statx(cancel <-chan struct{}, in *fuse.StatxIn, out *fuse.S
 func (fs *rawBridge) OnUnmount() {
 
 }
+
+func (fs *rawBridge) Ioctl(cancel <-chan struct{}, input *fuse.IoctlIn, inbuf []byte, output *fuse.IoctlOut, outbuf []byte) (code fuse.Status) {
+	return fuse.ENOSYS
+}

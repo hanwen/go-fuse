@@ -437,6 +437,10 @@ type NodeSetlkwer interface {
 	Setlkw(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) syscall.Errno
 }
 
+type NodeIoctler interface {
+	Ioctl(ctx context.Context, f FileHandle, cmd uint32, arg uint64, input []byte, output []byte) (result int32, errno syscall.Errno)
+}
+
 // OnForget is called when the node becomes unreachable. This can
 // happen because the kernel issues a FORGET request,
 // ForgetPersistent() is called on the inode, the last child of the
@@ -664,6 +668,11 @@ type FileSetattrer interface {
 // See NodeAllocater.
 type FileAllocater interface {
 	Allocate(ctx context.Context, off uint64, size uint64, mode uint32) syscall.Errno
+}
+
+// See NodeIoctler.
+type FileIoctler interface {
+	Ioctl(ctx context.Context, cmd uint32, arg uint64, input []byte, output []byte) (result int32, errno syscall.Errno)
 }
 
 // Opens a directory. This supersedes NodeOpendirer, allowing to pass
