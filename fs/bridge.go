@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v2/fuse/ioctl"
 	"github.com/hanwen/go-fuse/v2/internal"
 )
 
@@ -1253,6 +1254,19 @@ func (b *rawBridge) CopyFileRange(cancel <-chan struct{}, in *fuse.CopyFileRange
 	sz, errno := cfr.CopyFileRange(&fuse.Context{Caller: in.Caller, Cancel: cancel},
 		f1.file, in.OffIn, n2, f2.file, in.OffOut, in.Len, in.Flags)
 	return sz, errnoToStatus(errno)
+}
+
+func (b *rawBridge) Ioctl(cancel <-chan struct{}, in *fuse.IoctlIn, inbuf []byte, out *fuse.IoctlOut, outbuf []byte) (code fuse.Status) {
+	n, f := b.inode(in.NodeId, in.Fh)
+	nio, ok := n.ops.(NodeIoctler)
+	if ok {
+		ctx := &fuse.Context{Caller: in.Caller, Cancel: cancel}
+		result, errno := nio.Ioctl(ctx, f, ioctl.Command(in.Cmd), in.Arg, inbuf, outbuf)
+		out.Result = result
+		return errnoToStatus(errno)
+	}
+
+	return fuse.Status(syscall.ENOTTY)
 }
 
 func (b *rawBridge) Lseek(cancel <-chan struct{}, in *fuse.LseekIn, out *fuse.LseekOut) fuse.Status {

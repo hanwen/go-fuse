@@ -384,23 +384,36 @@ type _BmapOut struct {
 }
 
 const (
-	FUSE_IOCTL_COMPAT       = (1 << 0)
-	FUSE_IOCTL_UNRESTRICTED = (1 << 1)
-	FUSE_IOCTL_RETRY        = (1 << 2)
+	IOCTL_COMPAT       = (1 << 0)
+	IOCTL_UNRESTRICTED = (1 << 1)
+	IOCTL_RETRY        = (1 << 2)
+	IOCTL_DIR          = (1 << 4)
 )
 
-type _IoctlIn struct {
+type IoctlIn struct {
 	InHeader
-	Fh      uint64
-	Flags   uint32
-	Cmd     uint32
-	Arg     uint64
-	InSize  uint32
+	Fh    uint64
+	Flags uint32
+
+	// The command, consisting of 16-bits metadata (direction + size) and 16-bits to encode the ioctl number
+	Cmd uint32
+
+	// The uint64 argument. If there is a payload, this is the
+	// payload address in the caller, and should not be used.
+	Arg uint64
+
+	// Size for the payload
+	InSize uint32
+
+	// This is typically the same
 	OutSize uint32
 }
 
-type _IoctlOut struct {
-	Result  int32
+type IoctlOut struct {
+	Result int32
+
+	// The following fields are used for unrestricted ioctls,
+	// which are only enabled on CUSE.
 	Flags   uint32
 	InIovs  uint32
 	OutIovs uint32
