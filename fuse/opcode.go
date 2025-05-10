@@ -444,7 +444,8 @@ func doStatFs(server *protocolServer, req *request) {
 }
 
 func doIoctl(server *protocolServer, req *request) {
-	req.status = Status(syscall.ENOTTY)
+	req.status = server.fileSystem.Ioctl(req.cancel, (*IoctlIn)(req.inData()), req.inPayload, (*IoctlOut)(req.outData()),
+		req.outPayload)
 }
 
 func doDestroy(server *protocolServer, req *request) {
@@ -649,7 +650,7 @@ func init() {
 		_OP_GETLK:                 LkOut{},
 		_OP_GETXATTR:              GetXAttrOut{},
 		_OP_INIT:                  InitOut{},
-		_OP_IOCTL:                 _IoctlOut{},
+		_OP_IOCTL:                 IoctlOut{},
 		_OP_LINK:                  EntryOut{},
 		_OP_LISTXATTR:             GetXAttrOut{},
 		_OP_LOOKUP:                EntryOut{},
@@ -690,7 +691,7 @@ func init() {
 		_OP_GETXATTR:        GetXAttrIn{},
 		_OP_INIT:            InitIn{},
 		_OP_INTERRUPT:       InterruptIn{},
-		_OP_IOCTL:           _IoctlIn{},
+		_OP_IOCTL:           IoctlIn{},
 		_OP_LINK:            LinkIn{},
 		_OP_LISTXATTR:       GetXAttrIn{},
 		_OP_LSEEK:           LseekIn{},

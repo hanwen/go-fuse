@@ -437,6 +437,10 @@ type NodeSetlkwer interface {
 	Setlkw(ctx context.Context, f FileHandle, owner uint64, lk *fuse.FileLock, flags uint32) syscall.Errno
 }
 
+type NodeIoctler interface {
+	Ioctl(ctx context.Context, f FileHandle, cmd uint32, arg uint64, input []byte, output []byte) (result int32, errno syscall.Errno)
+}
+
 // OnForget is called when the node becomes unreachable. This can
 // happen because the kernel issues a FORGET request,
 // ForgetPersistent() is called on the inode, the last child of the
