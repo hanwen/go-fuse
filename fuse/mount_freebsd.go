@@ -3,7 +3,6 @@ package fuse
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 	"syscall"
 )
@@ -13,32 +12,65 @@ func callMountFuseFs(mountPoint string, opts *MountOptions) (fd int, err error) 
 	if err != nil {
 		return 0, err
 	}
-	f, err := os.OpenFile("/dev/fuse", os.O_RDWR, 0o000)
+
+	// Use syscall.Open instead of os.OpenFile to avoid Go garbage collecting an
+	// [os.File], which will close the FD later, but we need to keep it open for
+	// the life of the FUSE mount.
+	fd, err = syscall.Open("/dev/fuse", syscall.O_RDWR, 0)
 	if err != nil {
 		return -1, err
 	}
-	cmd := exec.Command(
+
+	// In case of error, close the file descriptor.
+	closeFd := func() {
+		if fd != -1 {
+			syscall.Close(fd)
+			fd = -1
+		}
+	}
+
+	// Use syscall.ForkExec directly instead of exec.Command because we need to
+	// pass raw file descriptors to the child, rather than a garbage collected
+	// os.File.
+	env := []string{"MOUNT_FUSEFS_CALL_BY_LIB=1"}
+	argv := []string{
 		bin,
 		"--safe",
 		"-o", strings.Join(opts.optionsStrings(), ","),
 		"3",
 		mountPoint,
-	)
-	cmd.Env = []string{"MOUNT_FUSEFS_CALL_BY_LIB=1"}
-	cmd.ExtraFiles = []*os.File{f}
-
-	if err := cmd.Start(); err != nil {
-		f.Close()
-		return -1, fmt.Errorf("mount_fusefs: %v", err)
+	}
+	fds := []uintptr{
+		uintptr(os.Stdin.Fd()),
+		uintptr(os.Stdout.Fd()),
+		uintptr(os.Stderr.Fd()),
+		uintptr(fd),
+	}
+	pid, err := syscall.ForkExec(bin, argv, &syscall.ProcAttr{
+		Env:   env,
+		Files: fds,
+	})
+	if err != nil {
+		closeFd()
+		return -1, fmt.Errorf("failed to fork mount_fusefs: %w", err)
 	}
 
-	if err := cmd.Wait(); err != nil {
-		// see if we have a better error to report
-		f.Close()
-		return -1, fmt.Errorf("mount_fusefs: %v", err)
+	// Wait for the child process to complete and handle failure
+	var ws syscall.WaitStatus
+	_, err = syscall.Wait4(pid, &ws, 0, nil)
+	if err != nil {
+		closeFd()
+		return -1, fmt.Errorf(
+			"failed to wait for exit status of mount_fusefs: %w", err)
+	}
+	if ws.ExitStatus() != 0 {
+		closeFd()
+		return -1, fmt.Errorf(
+			"mount_fusefs: exited with status %d", ws.ExitStatus())
 	}
 
-	return int(f.Fd()), nil
+	// Success; return the raw FD.
+	return fd, nil
 }
 
 func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, err error) {
@@ -71,7 +103,7 @@ func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, e
 	}
 	// golang sets CLOEXEC on file descriptors when they are
 	// acquired through normal operations (e.g. open).
-	// Buf for fd, we have to set CLOEXEC manually
+	// However, for raw FDs, we have to set CLOEXEC manually.
 	syscall.CloseOnExec(fd)
 
 	close(ready)
