@@ -1,0 +1,67 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9b9c945d_6e5bba97",
+        "filename": "fuse/mount_freebsd.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-05-20T12:53:37Z",
+      "side": 1,
+      "message": "use defer , eg.\n\n```\ncloseMe :\u003d fd\ndefer func() {  if closeMe \u003e\u003d 0 { syscall.Close(closeMe) }}()\n\n....\ncloseMe \u003d -1\nreturn fd, nil\n\n```",
+      "revId": "67824cea0882386e1d72e73d3e6e15a92ec00ee8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "22943834_6fdc03cb",
+        "filename": "fuse/mount_freebsd.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-05-20T12:53:37Z",
+      "side": 1,
+      "message": "can anything good come from this?",
+      "range": {
+        "startLine": 44,
+        "startChar": 13,
+        "endLine": 44,
+        "endChar": 18
+      },
+      "revId": "67824cea0882386e1d72e73d3e6e15a92ec00ee8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5846e97a_5884e4dc",
+        "filename": "fuse/mount_freebsd.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-05-20T12:53:37Z",
+      "side": 1,
+      "message": "this and below comment are superfluous.",
+      "range": {
+        "startLine": 58,
+        "startChar": 31,
+        "endLine": 58,
+        "endChar": 33
+      },
+      "revId": "67824cea0882386e1d72e73d3e6e15a92ec00ee8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
