@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 	"testing"
 	"time"
 
@@ -20,13 +21,15 @@ import (
 func BenchmarkGoFuseMemoryRead(b *testing.B) {
 	root := &readFS{}
 	mnt := setupFS(root, b.N, b)
-	benchmarkRead(mnt, b, 32, "direct")
+	benchmarkRead(mnt, b, "direct")
 }
 
-const blockSize = 64 * 1024
+const blockSize = 128 * 1024 // Fuse default request size 128k
 
-func benchmarkRead(mnt string, b *testing.B, readers int, ddflag string) {
+func benchmarkRead(mnt string, b *testing.B, ddflag string) {
 	var cmds []*exec.Cmd
+	readers := runtime.GOMAXPROCS(0)
+
 	for i := 0; i < readers; i++ {
 		cmd := exec.Command("dd",
 			fmt.Sprintf("if=%s/foo.txt", mnt),
@@ -87,7 +90,7 @@ func BenchmarkGoFuseFDRead(b *testing.B) {
 		b.Fatal(err)
 	}
 	mnt := setupFS(root, b.N, b)
-	benchmarkRead(mnt, b, 1, "")
+	benchmarkRead(mnt, b, "")
 }
 
 var libfusePath = flag.String("passthrough_hp", "", "path to libfuse's passthrough_hp")
@@ -130,5 +133,5 @@ func BenchmarkLibfuseHP(b *testing.B) {
 		}
 	}
 
-	benchmarkRead(mnt, b, 1, "")
+	benchmarkRead(mnt, b, "")
 }
