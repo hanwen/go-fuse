@@ -272,6 +272,14 @@ func (r *request) serializeHeader(outPayloadSize int) {
 			dataLength = 0
 		}
 	}
+	// The InitOut structure has 24 bytes in fuse version <= 22.
+	// https://john-millikin.com/the-fuse-protocol#FUSE_INIT
+	if r.inHeader().Opcode == _OP_INIT {
+		out := (*InitOut)(r.outData())
+		if out.Minor <= 22 {
+			dataLength = 24
+		}
+	}
 
 	o := r.outHeader()
 	o.Unique = r.inHeader().Unique
