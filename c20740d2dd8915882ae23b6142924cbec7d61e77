@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "c2f0d1bf_517e9877",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1038838
+      },
+      "writtenOn": "2025-05-30T18:05:54Z",
+      "side": 1,
+      "message": "Take a look now; I believe I satisfied the spirit of what you commented about.",
+      "revId": "c20740d2dd8915882ae23b6142924cbec7d61e77",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}

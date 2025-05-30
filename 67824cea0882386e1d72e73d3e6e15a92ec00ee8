@@ -35,6 +35,24 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "7d00b277_06c2f60b",
+        "filename": "fuse/mount_freebsd.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1038838
+      },
+      "writtenOn": "2025-05-30T18:05:54Z",
+      "side": 1,
+      "message": "Acknowledged",
+      "parentUuid": "9b9c945d_6e5bba97",
+      "revId": "67824cea0882386e1d72e73d3e6e15a92ec00ee8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "22943834_6fdc03cb",
@@ -58,6 +76,30 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "b73dc151_1332e54a",
+        "filename": "fuse/mount_freebsd.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1038838
+      },
+      "writtenOn": "2025-05-30T18:05:54Z",
+      "side": 1,
+      "message": "Acknowledged",
+      "parentUuid": "22943834_6fdc03cb",
+      "range": {
+        "startLine": 44,
+        "startChar": 13,
+        "endLine": 44,
+        "endChar": 18
+      },
+      "revId": "67824cea0882386e1d72e73d3e6e15a92ec00ee8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "5846e97a_5884e4dc",
@@ -71,6 +113,30 @@
       "writtenOn": "2025-05-20T12:53:37Z",
       "side": 1,
       "message": "this and below comment are superfluous.",
+      "range": {
+        "startLine": 58,
+        "startChar": 31,
+        "endLine": 58,
+        "endChar": 33
+      },
+      "revId": "67824cea0882386e1d72e73d3e6e15a92ec00ee8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "6d138ded_4a6a80f6",
+        "filename": "fuse/mount_freebsd.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1038838
+      },
+      "writtenOn": "2025-05-30T18:05:54Z",
+      "side": 1,
+      "message": "Acknowledged",
+      "parentUuid": "5846e97a_5884e4dc",
       "range": {
         "startLine": 58,
         "startChar": 31,
