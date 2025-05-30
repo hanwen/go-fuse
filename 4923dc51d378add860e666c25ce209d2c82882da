@@ -16,6 +16,24 @@
       "message": "not sure about the ioctl package. What do you think?",
       "revId": "4923dc51d378add860e666c25ce209d2c82882da",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "6f0b748f_7fcf4b36",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2025-05-30T20:00:39Z",
+      "side": 1,
+      "message": "Looks useful, no harm while it lives in internal.\n\nHow to decode? Cast to Command?",
+      "parentUuid": "250eee9a_aaed0df5",
+      "revId": "4923dc51d378add860e666c25ce209d2c82882da",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
