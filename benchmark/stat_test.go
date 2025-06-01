@@ -29,26 +29,7 @@ func setupFS(node fs.InodeEmbedder, N int, tb testing.TB) string {
 	if err != nil {
 		tb.Fatalf("cannot mount %v", err)
 	}
-	lmap := NewLatencyMap()
-	if testutil.VerboseTest() {
-		server.RecordLatencies(lmap)
-	}
 	tb.Cleanup(func() {
-		if testutil.VerboseTest() {
-			var total time.Duration
-			for _, n := range []string{"LOOKUP", "GETATTR", "OPENDIR", "READDIR",
-				"READDIRPLUS", "RELEASEDIR", "FLUSH",
-			} {
-				if count, dt := lmap.Get(n); count > 0 {
-					total += dt
-					log.Printf("%s %v/call n=%d", n,
-						dt/time.Duration(count), count)
-				}
-			}
-
-			log.Printf("total %v, %v/bench op", total, total/time.Duration(N))
-		}
-
 		err := server.Unmount()
 		if err != nil {
 			log.Println("error during unmount", err)
@@ -205,13 +186,6 @@ func TestingBOnePass(b *testing.B, threads int, filelist, mountPoint string) err
 			after.NumGC-before.NumGC, (after.PauseTotalNs-before.PauseTotalNs)/uint64(b.N))
 	}
 	return nil
-}
-
-// Add this so we can estimate impact on latency numbers.
-func BenchmarkTimeNow(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		time.Now()
-	}
 }
 
 func BenchmarkLibfuseHighlevelThreadedStat(b *testing.B) {
