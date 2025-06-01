@@ -13,6 +13,14 @@ systems
 
 ## Release notes
 
+v2.8 (unreleased)
+
+* fuse, fs: support IOCTL
+* fuse: add RawFileSystem.OnUnmount
+* fs: symlink safety for fs.LoopbackRoot
+* fuse: ID mapped mounts
+* fs: NewLoopbackDirStreamFd
+
 v2.7
 
 * fuse, fs: support STATX
