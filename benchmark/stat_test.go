@@ -106,7 +106,7 @@ func TestNewStatFs(t *testing.T) {
 	}
 }
 
-func BenchmarkGoFuseStat(b *testing.B) {
+func BenchmarkGoFSStat(b *testing.B) {
 	b.StopTimer()
 	fs := &StatFS{}
 
@@ -140,7 +140,7 @@ func readdir(d string) error {
 	return f.Close()
 }
 
-func BenchmarkGoFuseReaddir(b *testing.B) {
+func BenchmarkGoFSReaddir(b *testing.B) {
 	b.StopTimer()
 	fs := &StatFS{}
 
@@ -214,7 +214,7 @@ func BenchmarkTimeNow(b *testing.B) {
 	}
 }
 
-func BenchmarkCFuseThreadedStat(b *testing.B) {
+func BenchmarkLibfuseHighlevelThreadedStat(b *testing.B) {
 	b.StopTimer()
 
 	wd, _ := os.Getwd()
