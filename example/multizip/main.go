@@ -42,5 +42,5 @@ func main() {
 		os.Exit(1)
 	}
 
-	server.Serve()
+	server.Wait()
 }
