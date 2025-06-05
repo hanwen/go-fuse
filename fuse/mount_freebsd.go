@@ -81,9 +81,10 @@ func callMountFuseFs(mountPoint string, opts *MountOptions) (devFuseFd int, err 
 }
 
 func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, err error) {
-	if opts.DirectMount {
-		return -1, fmt.Errorf("option DirectMount not supported on FreeBSD")
-	}
+	// Note: opts.DirectMount is not supported in FreeBSD, but the intended
+	// behavior is to *attempt* a direct mount when it's set, not to return an
+	// error. So in this case, we just ignore it and use the binary from
+	// fusermountBinary().
 
 	// Using the same logic from libfuse to prevent chaos
 	for {
