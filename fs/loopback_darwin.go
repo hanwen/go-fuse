@@ -34,3 +34,9 @@ func doCopyFileRange(fdIn int, offIn int64, fdOut int, offOut int64,
 func intDev(dev uint32) int {
 	return int(dev)
 }
+
+// MacOS doesn't support the O_DIRECT flag: 'undefined: syscall.O_DIRECT'.
+// Here, it does nothing, just returns the original flags.
+func checkODirectFlag(path string, flags uint32) (uint32, syscall.Errno) {
+	return flags, OK
+}

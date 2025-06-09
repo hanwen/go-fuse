@@ -240,8 +240,15 @@ func (n *LoopbackNode) Rename(ctx context.Context, name string, newParent InodeE
 var _ = (NodeCreater)((*LoopbackNode)(nil))
 
 func (n *LoopbackNode) Create(ctx context.Context, name string, flags uint32, mode uint32, out *fuse.EntryOut) (inode *Inode, fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
+	var errNo syscall.Errno
+
 	p := filepath.Join(n.path(), name)
 	flags = flags &^ syscall.O_APPEND
+	flags, errNo = checkODirectFlag(n.RootData.Path, flags)
+	if errNo != OK {
+		return nil, nil, 0, errNo
+	}
+
 	fd, err := syscall.Open(p, int(flags)|os.O_CREATE, mode)
 	if err != nil {
 		return nil, nil, 0, ToErrno(err)
@@ -358,7 +365,13 @@ var _ = (NodeOpener)((*LoopbackNode)(nil))
 
 // Symlink-safe through use of OpenSymlinkAware.
 func (n *LoopbackNode) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
+	var errNo syscall.Errno
+
 	flags = flags &^ syscall.O_APPEND
+	flags, errNo = checkODirectFlag(n.RootData.Path, flags)
+	if errNo != OK {
+		return nil, 0, errNo
+	}
 
 	f, err := openat.OpenSymlinkAware(n.RootData.Path, n.relativePath(), int(flags), 0)
 	if err != nil {

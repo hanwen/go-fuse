@@ -78,3 +78,9 @@ func (n *LoopbackNode) Listxattr(ctx context.Context, dest []byte) (uint32, sysc
 	}
 	return uint32(sz), ToErrno(err)
 }
+
+// Although FreeBSD supports the O_DIRECT flag, currently don't know which filesystems
+// don't support it yet. Here, it does nothing, just returns the original flags.
+func checkODirectFlag(path string, flags uint32) (uint32, syscall.Errno) {
+	return flags, OK
+}

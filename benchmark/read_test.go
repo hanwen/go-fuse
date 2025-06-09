@@ -21,23 +21,49 @@ import (
 func BenchmarkGoFuseMemoryRead(b *testing.B) {
 	root := &readFS{}
 	mnt := setupFS(root, b.N, b)
-	benchmarkRead(mnt, b, "direct")
+	doBenchmark(mnt, b, "direct", opRead)
 }
 
-const blockSize = 128 * 1024 // Fuse default request size 128k
+const blockSize = 4 * 1024 * 1024 // 4M
+const libfuseNumThreads = 32      // Number of libfuse worker threads
+type ioOpType int
 
-func benchmarkRead(mnt string, b *testing.B, ddflag string) {
+const (
+	opRead ioOpType = iota
+	opWrite
+)
+
+func doBenchmark(mnt string, b *testing.B, ddflag string, op ioOpType) {
+	var inFile, outFile, bs, count, ioFlag string
 	var cmds []*exec.Cmd
-	readers := runtime.GOMAXPROCS(0)
+	parallelNum := runtime.GOMAXPROCS(0)
 
-	for i := 0; i < readers; i++ {
+	switch op {
+	case opRead:
+		inFile = fmt.Sprintf("if=%s/foo.txt", mnt)
+		outFile = "of=/dev/null"
+		ioFlag = "iflag=" + ddflag
+	case opWrite:
+		inFile = "if=/dev/zero"
+		ioFlag = "oflag=" + ddflag
+	default:
+		b.Errorf("Unsupported IO operate type: %v", op)
+	}
+
+	bs = fmt.Sprintf("bs=%d", blockSize)
+	count = fmt.Sprintf("count=%d", b.N)
+
+	for i := 0; i < parallelNum; i++ {
+		if op == opWrite {
+			outFile = fmt.Sprintf("of=%s/foo_%d.txt", mnt, i)
+		}
 		cmd := exec.Command("dd",
-			fmt.Sprintf("if=%s/foo.txt", mnt),
-			"of=/dev/null",
-			fmt.Sprintf("bs=%d", blockSize),
-			fmt.Sprintf("count=%d", b.N))
+			inFile,
+			outFile,
+			bs,
+			count)
 		if ddflag != "" {
-			cmd.Args = append(cmd.Args, "iflag="+ddflag)
+			cmd.Args = append(cmd.Args, ioFlag)
 		}
 		if testutil.VerboseTest() {
 			cmd.Stderr = os.Stderr
@@ -50,11 +76,11 @@ func benchmarkRead(mnt string, b *testing.B, ddflag string) {
 		cmds = append(cmds, cmd)
 	}
 
-	b.SetBytes(int64(readers * blockSize))
+	b.SetBytes(int64(parallelNum * blockSize))
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	result := make(chan error, readers)
+	result := make(chan error, parallelNum)
 	for _, cmd := range cmds {
 		go func(cmd *exec.Cmd) {
 			err := cmd.Run()
@@ -72,30 +98,38 @@ func benchmarkRead(mnt string, b *testing.B, ddflag string) {
 		}
 	}
 	if failures > 0 {
-		b.Errorf("%d out of %d commands", failures, readers)
+		b.Errorf("%d out of %d commands", failures, parallelNum)
 	}
 	b.StopTimer()
 }
 
-func BenchmarkGoFuseFDRead(b *testing.B) {
+func setupLoopbackFs(b *testing.B, createReadFile bool) string {
 	orig := b.TempDir()
-	fn := orig + "/foo.txt"
 
-	data := bytes.Repeat([]byte{42}, blockSize*b.N)
-	if err := os.WriteFile(fn, data, 0666); err != nil {
-		b.Fatal(err)
+	if createReadFile {
+		fn := orig + "/foo.txt"
+		data := bytes.Repeat([]byte{42}, blockSize*b.N)
+		if err := os.WriteFile(fn, data, 0666); err != nil {
+			b.Fatal(err)
+		}
 	}
+
 	root, err := fs.NewLoopbackRoot(orig)
 	if err != nil {
 		b.Fatal(err)
 	}
 	mnt := setupFS(root, b.N, b)
-	benchmarkRead(mnt, b, "")
+	return mnt
+}
+
+func BenchmarkGoFuseFDRead(b *testing.B) {
+	mnt := setupLoopbackFs(b, true)
+	doBenchmark(mnt, b, "direct", opRead)
 }
 
 var libfusePath = flag.String("passthrough_hp", "", "path to libfuse's passthrough_hp")
 
-func BenchmarkLibfuseHP(b *testing.B) {
+func setupLibfuseFs(b *testing.B, createReadFile bool) string {
 	orig := b.TempDir()
 	mnt := b.TempDir()
 	if *libfusePath == "" {
@@ -103,12 +137,22 @@ func BenchmarkLibfuseHP(b *testing.B) {
 	}
 
 	origFN := orig + "/foo.txt"
-	data := bytes.Repeat([]byte{42}, blockSize*b.N)
-	if err := os.WriteFile(origFN, data, 0666); err != nil {
-		b.Fatal(err)
-	}
 	fn := mnt + "/foo.txt"
-	cmd := exec.Command(*libfusePath, "--foreground")
+
+	if createReadFile {
+		data := bytes.Repeat([]byte{42}, blockSize*b.N)
+		if err := os.WriteFile(origFN, data, 0666); err != nil {
+			b.Fatal(err)
+		}
+	} else { // create an empty file
+		if _, err := os.Create(origFN); err != nil {
+			b.Fatal(err)
+		}
+	}
+
+	cmd := exec.Command(*libfusePath, "--foreground",
+		fmt.Sprintf("--num-threads=%d", libfuseNumThreads),
+		"--direct-io")
 	if testutil.VerboseTest() {
 		cmd.Args = append(cmd.Args, "--debug", "--debug-fuse")
 	}
@@ -133,5 +177,10 @@ func BenchmarkLibfuseHP(b *testing.B) {
 		}
 	}
 
-	benchmarkRead(mnt, b, "")
+	return mnt
+}
+
+func BenchmarkLibfuseHPRead(b *testing.B) {
+	mnt := setupLibfuseFs(b, true)
+	doBenchmark(mnt, b, "", opRead)
 }
