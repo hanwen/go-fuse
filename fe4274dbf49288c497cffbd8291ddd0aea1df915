@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "363c2648_8562b537",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-06-09T20:18:41Z",
+      "side": 1,
+      "message": "I have 2 issues with your change:\n\n1. It introduces functionality (the checkDirectIO stufF) for the sake of a benchmark. Note that you do not add tests or documentation for your new code.\n2. by basing on loopback, you cannot benchmark go-fuse separate from the underlying file system.\n\nCoincidentally, I was thinking over the weekend about redoing some of the benchmarks.\n\nHere are my ideas:\n* instead of dd, use fio to generate the multithreaded load.\n* instead of a \"nop\" benchmark, benchmark something based on fs.MemRegularFile",
+      "revId": "fe4274dbf49288c497cffbd8291ddd0aea1df915",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
