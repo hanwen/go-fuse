@@ -347,6 +347,10 @@ type MountOptions struct {
 	// FUSE will send the mapped UID/GIDs. For all other requests, FUSE
 	// will send "-1".
 	IDMappedMount bool
+
+	// MaxLoopNum is the maximum number of loop() goroutines
+	// reading and handling requests
+	MaxLoopNum int
 }
 
 // RawFileSystem is an interface close to the FUSE wire protocol.
