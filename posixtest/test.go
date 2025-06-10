@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -25,6 +26,7 @@ import (
 
 // All holds a map of all test functions
 var All = map[string]func(*testing.T, string){
+	"Allocate":                   Allocate,
 	"AppendWrite":                AppendWrite,
 	"SymlinkReadlink":            SymlinkReadlink,
 	"FileBasic":                  FileBasic,
@@ -53,6 +55,31 @@ var All = map[string]func(*testing.T, string){
 	"SetattrSymlink":             SetattrSymlink,
 	"XAttr":                      XAttr,
 	"OpenSymlinkRace":            OpenSymlinkRace,
+}
+
+func Allocate(t *testing.T, mnt string) {
+	f, err := os.Create(mnt + "/file")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	data := bytes.Repeat([]byte{42}, 100)
+	if _, err := f.Write(data); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := syscall.Fallocate(int(f.Fd()), unix.FALLOC_FL_KEEP_SIZE, 0, 10240); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := f.Seek(0, io.SeekStart); err != nil {
+		t.Fatal(err)
+	}
+
+	roundtrip, _ := io.ReadAll(f)
+	if !bytes.Equal(roundtrip, data) {
+		t.Fatalf("roundtrip not equal %q != %q", roundtrip, data)
+	}
 }
 
 func SetattrSymlink(t *testing.T, mnt string) {
