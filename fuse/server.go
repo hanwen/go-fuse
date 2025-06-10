@@ -31,8 +31,8 @@ const (
 	// defaultMaxWrite is the default value for MountOptions.MaxWrite
 	defaultMaxWrite = 128 * 1024 // 128 kiB
 
-	minMaxReaders = 2
-	maxMaxReaders = 16
+	defMinReaders = 2
+	defMaxReaders = 32
 )
 
 // Server contains the logic for reading from the FUSE device and
@@ -190,11 +190,14 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		o.Name = strings.Replace(name[:l], ",", ";", -1)
 	}
 
-	maxReaders := runtime.GOMAXPROCS(0)
-	if maxReaders < minMaxReaders {
-		maxReaders = minMaxReaders
-	} else if maxReaders > maxMaxReaders {
-		maxReaders = maxMaxReaders
+	maxReaders := o.MaxReqReaders
+	if maxReaders == 0 {
+		maxReaders = runtime.GOMAXPROCS(0)
+		if maxReaders < defMinReaders {
+			maxReaders = defMinReaders
+		} else if maxReaders > defMaxReaders {
+			maxReaders = defMaxReaders
+		}
 	}
 
 	ms := &Server{
@@ -253,6 +256,7 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 	// This prepares for Serve being called somewhere, either
 	// synchronously or asynchronously.
 	ms.loops.Add(1)
+	ms.reqReaders = 1 // First loop, no need locking
 	return ms, nil
 }
 
@@ -313,7 +317,7 @@ func (ms *Server) DebugData() string {
 	r = ms.reqReaders
 	ms.reqMu.Unlock()
 
-	return fmt.Sprintf("readers: %d", r)
+	return fmt.Sprintf("reqReaders: %d", r)
 }
 
 // handleEINTR retries the given function until it doesn't return syscall.EINTR.
@@ -338,14 +342,6 @@ func handleEINTR(fn func() error) (err error) {
 // Returns a new request, or error. Returns
 // nil, OK if we have too many readers already.
 func (ms *Server) readRequest() (req *requestAlloc, code Status) {
-	ms.reqMu.Lock()
-	if ms.reqReaders > ms.maxReaders {
-		ms.reqMu.Unlock()
-		return nil, OK
-	}
-	ms.reqReaders++
-	ms.reqMu.Unlock()
-
 	reqIface := ms.reqPool.Get()
 	req = reqIface.(*requestAlloc)
 	destIface := ms.readPool.Get()
@@ -360,17 +356,13 @@ func (ms *Server) readRequest() (req *requestAlloc, code Status) {
 	if err != nil {
 		code = ToStatus(err)
 		ms.reqPool.Put(reqIface)
-		ms.reqMu.Lock()
-		ms.reqReaders--
-		ms.reqMu.Unlock()
 		return nil, code
 	}
 
 	if ms.latencies != nil {
 		req.startTime = time.Now()
 	}
-	ms.reqMu.Lock()
-	defer ms.reqMu.Unlock()
+
 	gobbled := req.setInput(dest[:n])
 	if len(req.inputBuf) < int(unsafe.Sizeof(InHeader{})) {
 		log.Printf("Short read for input header: %v", req.inputBuf)
@@ -386,9 +378,12 @@ func (ms *Server) readRequest() (req *requestAlloc, code Status) {
 	if !gobbled {
 		ms.readPool.Put(destIface)
 	}
-	ms.reqReaders--
-	if !ms.singleReader && ms.reqReaders <= 0 && !needsBackPressure {
+
+	ms.reqMu.Lock()
+	defer ms.reqMu.Unlock()
+	if !ms.singleReader && ms.reqReaders < ms.maxReaders && !needsBackPressure {
 		ms.loops.Add(1)
+		ms.reqReaders++
 		go ms.loop()
 	}
 
@@ -523,16 +518,21 @@ func (ms *Server) handleInit() Status {
 // BenchmarkGoFuseStat-2          	    9310	    121332 ns/op
 // BenchmarkGoFuseReaddir         	    4074	    361568 ns/op
 // BenchmarkGoFuseReaddir-2       	    3511	    319765 ns/op
+func deferLoop(ms *Server) {
+	ms.reqMu.Lock()
+	ms.reqReaders--
+	ms.reqMu.Unlock()
+
+	ms.loops.Done()
+}
+
 func (ms *Server) loop() {
-	defer ms.loops.Done()
+	defer deferLoop(ms)
 exit:
 	for {
 		req, errNo := ms.readRequest()
 		switch errNo {
 		case OK:
-			if req == nil {
-				break exit
-			}
 		case ENOENT:
 			continue
 		case ENODEV:
@@ -549,11 +549,7 @@ exit:
 			break exit
 		}
 
-		if ms.singleReader {
-			go ms.handleRequest(req)
-		} else {
-			ms.handleRequest(req)
-		}
+		go ms.handleRequest(req)
 	}
 }
 
