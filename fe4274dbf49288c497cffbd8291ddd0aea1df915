@@ -34,6 +34,23 @@
       "parentUuid": "363c2648_8562b537",
       "revId": "fe4274dbf49288c497cffbd8291ddd0aea1df915",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "6e0a97d2_e4dd6b1b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-06-10T08:20:56Z",
+      "side": 1,
+      "message": "see https://review.gerrithub.io/c/hanwen/go-fuse/+/1216703 . I submitted just now.",
+      "revId": "fe4274dbf49288c497cffbd8291ddd0aea1df915",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
