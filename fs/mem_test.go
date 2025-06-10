@@ -349,3 +349,55 @@ func TestReaddirplusConsistency(t *testing.T) {
 
 	posixtest.ReadDirConsistency(t, mnt)
 }
+
+type memDir struct {
+	Inode
+}
+
+func (md *memDir) Create(ctx context.Context, name string, flags uint32, mode uint32, out *fuse.EntryOut) (node *Inode, fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
+	mrf := MemRegularFile{}
+	ch := md.NewInode(ctx, &mrf, StableAttr{Mode: fuse.S_IFREG})
+	md.AddChild(name, ch, true)
+
+	return ch, nil, 0, 0
+}
+
+func TestMemPosix(t *testing.T) {
+	for _, nm := range []string{
+		"AppendWrite",
+		"DirectIO",
+		"Fallocate",
+		"FallocateKeepSize",
+		"FcntlFlockSetLk",
+		"FdLeak",
+		"FstatDeleted",
+		"LseekEnxioCheck",
+		"LseekHoleSeeksToEOF",
+		"ParallelFileOpen",
+		"ReadDir",
+		"ReadDirConsistency",
+		"TruncateFile",
+		"TruncateNoFile",
+	} {
+		fn := posixtest.All[nm]
+		t.Run(nm, func(t *testing.T) {
+			root := &memDir{}
+			mnt := t.TempDir()
+
+			opts := Options{}
+			opts.Debug = testutil.VerboseTest()
+			ttl := 100 * time.Second
+			opts.EntryTimeout = &ttl
+			opts.AttrTimeout = &ttl
+			srv, err := Mount(mnt, root, &opts)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() {
+				srv.Unmount()
+			})
+			srv.WaitMount()
+			fn(t, mnt)
+		})
+	}
+}
