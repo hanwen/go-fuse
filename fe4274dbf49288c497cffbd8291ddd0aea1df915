@@ -16,6 +16,24 @@
       "message": "I have 2 issues with your change:\n\n1. It introduces functionality (the checkDirectIO stufF) for the sake of a benchmark. Note that you do not add tests or documentation for your new code.\n2. by basing on loopback, you cannot benchmark go-fuse separate from the underlying file system.\n\nCoincidentally, I was thinking over the weekend about redoing some of the benchmarks.\n\nHere are my ideas:\n* instead of dd, use fio to generate the multithreaded load.\n* instead of a \"nop\" benchmark, benchmark something based on fs.MemRegularFile",
       "revId": "fe4274dbf49288c497cffbd8291ddd0aea1df915",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ad8aba93_96b8e6a7",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1038847
+      },
+      "writtenOn": "2025-06-10T02:16:34Z",
+      "side": 1,
+      "message": "Hi Han-Wen Nienhuys, thanks for your comments. I found that the latency of the page cache(before the kernel fuse driver) impacts performance a lot. That\u0027s why I want to do Direct IO to bypass it when benchmarking.\nAnd your ideas look cool. Hope the write test is included. Looking forward to your patch.",
+      "parentUuid": "363c2648_8562b537",
+      "revId": "fe4274dbf49288c497cffbd8291ddd0aea1df915",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
