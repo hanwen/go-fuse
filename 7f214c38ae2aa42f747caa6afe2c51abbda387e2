@@ -20,6 +20,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "249f3646_5b4481c6",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 2
+      },
+      "lineNbr": 30,
+      "author": {
+        "id": 1038847
+      },
+      "writtenOn": "2025-06-11T06:58:46Z",
+      "side": 1,
+      "message": "The Go-fuse BenchmarkGoFuseFDWrite also shows a ~1.25x gain for Arm64. This write test can be found here: https://review.gerrithub.io/c/hanwen/go-fuse/+/1216636\nAnd see the test results here: https://github.com/hanwen/go-fuse/issues/565#issuecomment-2961209380",
+      "parentUuid": "1e07edb3_7c0de567",
+      "revId": "7f214c38ae2aa42f747caa6afe2c51abbda387e2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "74d23a86_50aabc11",
         "filename": "/COMMIT_MSG",
         "patchSetId": 2
@@ -31,6 +49,30 @@
       "writtenOn": "2025-06-11T06:21:32Z",
       "side": 1,
       "message": "it makes the logic simple, but if your file system is network backed, requests can take arbitarily long to finish. So if you have a multithreaded load on the FS with MaxLoopNum parallel requests, and there is a network hiccup, then nothing is serving the FUSE device, and all further access to the filesystem will hang. This is not acceptable.",
+      "range": {
+        "startLine": 32,
+        "startChar": 0,
+        "endLine": 36,
+        "endChar": 28
+      },
+      "revId": "7f214c38ae2aa42f747caa6afe2c51abbda387e2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2e8c5c51_23f61c92",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 2
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1038847
+      },
+      "writtenOn": "2025-06-11T06:58:46Z",
+      "side": 1,
+      "message": "I think the current Go-fuse also will encounter the same issue in that case(hanleRequst() runs for a long time/or gets stuck). As in that case, no idle loops(they got stuck) reading FUSE and no more loops are created later.",
+      "parentUuid": "74d23a86_50aabc11",
       "range": {
         "startLine": 32,
         "startChar": 0,
