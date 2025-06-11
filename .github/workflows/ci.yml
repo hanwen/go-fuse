@@ -18,6 +18,7 @@ jobs:
           - "1.21.x" # Golang upstream stable
           - "1.22.x" # Golang upstream stable
           - "1.23.x" # Golang upstream stable
+          - "1.24.x" # Golang upstream stable
         GOMAXPROCS:
           - ""  # Use all cpus (default).
           - "1" # Single-cpu mode. Some failures are only visible like this.
