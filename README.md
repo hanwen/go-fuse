@@ -13,7 +13,7 @@ systems
 
 ## Release notes
 
-v2.8 (unreleased)
+v2.8
 
 * fuse, fs: support IOCTL
 * fuse: add RawFileSystem.OnUnmount
