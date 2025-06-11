@@ -36,7 +36,7 @@ jobs:
         fetch-depth: 0 # Make "git describe" work
 
     # CI platform specific setup steps happen here
-    - run: sudo apt-get install -qq fuse3 libssl-dev libfuse-dev
+    - run: sudo apt-get install -qq fuse3 libssl-dev libfuse-dev fio
     - run: echo user_allow_other | sudo tee -a /etc/fuse.conf
 
     # Actual test steps are in all.bash
