@@ -10,7 +10,6 @@ import (
 	"syscall"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
-	"golang.org/x/sys/unix"
 )
 
 // MemRegularFile is a filesystem node that holds a data
@@ -39,7 +38,7 @@ func (f *MemRegularFile) Allocate(ctx context.Context, fh FileHandle, off uint64
 		copy(n, f.Data)
 		f.Data = n
 	}
-	if mode&unix.FALLOC_FL_KEEP_SIZE != 0 {
+	if keepSizeMode(mode) {
 		f.Data = f.Data[:oldSz]
 	} else if len(f.Data) < int(off+size) {
 		f.Data = f.Data[:off+size]
