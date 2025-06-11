@@ -38,6 +38,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "c5574e9e_f74fa4f3",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 2
+      },
+      "lineNbr": 30,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-06-11T07:22:13Z",
+      "side": 1,
+      "message": "as discussed on the change, I moved this to use fio. Can you reproduce the speedup in the new fio based tests? If so with what settings?",
+      "parentUuid": "249f3646_5b4481c6",
+      "revId": "7f214c38ae2aa42f747caa6afe2c51abbda387e2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "74d23a86_50aabc11",
         "filename": "/COMMIT_MSG",
         "patchSetId": 2
@@ -73,6 +91,30 @@
       "side": 1,
       "message": "I think the current Go-fuse also will encounter the same issue in that case(hanleRequst() runs for a long time/or gets stuck). As in that case, no idle loops(they got stuck) reading FUSE and no more loops are created later.",
       "parentUuid": "74d23a86_50aabc11",
+      "range": {
+        "startLine": 32,
+        "startChar": 0,
+        "endLine": 36,
+        "endChar": 28
+      },
+      "revId": "7f214c38ae2aa42f747caa6afe2c51abbda387e2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e942eb93_96a00cef",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 2
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-06-11T07:22:13Z",
+      "side": 1,
+      "message": "That would be a bug. Can you reproduce this scenario? In server.go we have `if .. ms.reqReaders \u003c\u003d 0 ..`, so we always spawn a new reader if nothing is reading the device.",
+      "parentUuid": "2e8c5c51_23f61c92",
       "range": {
         "startLine": 32,
         "startChar": 0,
