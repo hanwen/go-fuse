@@ -335,9 +335,9 @@ func handleEINTR(fn func() error) (err error) {
 	return
 }
 
-// Returns a new request, or error. In case exitIdle is given, returns
+// Returns a new request, or error. Returns
 // nil, OK if we have too many readers already.
-func (ms *Server) readRequest(exitIdle bool) (req *requestAlloc, code Status) {
+func (ms *Server) readRequest() (req *requestAlloc, code Status) {
 	ms.reqMu.Lock()
 	if ms.reqReaders > ms.maxReaders {
 		ms.reqMu.Unlock()
@@ -389,7 +389,7 @@ func (ms *Server) readRequest(exitIdle bool) (req *requestAlloc, code Status) {
 	ms.reqReaders--
 	if !ms.singleReader && ms.reqReaders <= 0 && !needsBackPressure {
 		ms.loops.Add(1)
-		go ms.loop(true)
+		go ms.loop()
 	}
 
 	return req, OK
@@ -438,7 +438,7 @@ func (ms *Server) Serve() {
 	}
 	ms.serving = true
 
-	ms.loop(false)
+	ms.loop()
 	ms.loops.Wait()
 
 	ms.writeMu.Lock()
@@ -476,7 +476,7 @@ func (ms *Server) handleInit() Status {
 	// and don't spawn new readers.
 	orig := ms.singleReader
 	ms.singleReader = true
-	req, errNo := ms.readRequest(false)
+	req, errNo := ms.readRequest()
 	ms.singleReader = orig
 
 	if errNo != OK || req == nil {
@@ -523,11 +523,11 @@ func (ms *Server) handleInit() Status {
 // BenchmarkGoFuseStat-2          	    9310	    121332 ns/op
 // BenchmarkGoFuseReaddir         	    4074	    361568 ns/op
 // BenchmarkGoFuseReaddir-2       	    3511	    319765 ns/op
-func (ms *Server) loop(exitIdle bool) {
+func (ms *Server) loop() {
 	defer ms.loops.Done()
 exit:
 	for {
-		req, errNo := ms.readRequest(exitIdle)
+		req, errNo := ms.readRequest()
 		switch errNo {
 		case OK:
 			if req == nil {
