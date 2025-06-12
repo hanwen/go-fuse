@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "cd28d0f2_a541e081",
+        "filename": "fuse/request.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 277,
+      "author": {
+        "id": 1038884
+      },
+      "writtenOn": "2025-06-12T02:39:48Z",
+      "side": 1,
+      "message": "Let\u0027s continue previous discussion from [1].\n\n\u003e\u003e there is similar code in https://github.com/hanwen/go-fuse/blob/master/fuse/protocol-server.go#L70, can you investigate why it is not working?\n\nI investigated into this issue.  The reason protocol-server.go#L70 [2] not working, is that \"req.outHeader().Length\" is not actually used and overwritten later in request.serializeHeader() [3].\n\nI also tested that, after removing the hack code at [2] and apply this MR, it continues to work on kernel 3.10.  I think we should do so.  Any suggestions?\n\n[1] https://github.com/hanwen/go-fuse/pull/575/commits/fdce6923194c06e3ac00abc80ce7f96c1694caa0\n[2] https://github.com/hanwen/go-fuse/blob/master/fuse/protocol-server.go#L7\n[3] https://github.com/hanwen/go-fuse/blob/master/fuse/request.go#L279",
+      "revId": "e1f9d978c3b2c2a5573a8f5270219879cdc01553",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
