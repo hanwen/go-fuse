@@ -706,47 +706,51 @@ type FileReleasedirer interface {
 	Releasedir(ctx context.Context, releaseFlags uint32)
 }
 
-// Options sets options for the entire filesystem
+// Options are options for the entire filesystem.
 type Options struct {
-	// MountOptions contain the options for mounting the fuse server
+	// MountOptions contain the options for mounting the fuse server.
 	fuse.MountOptions
 
-	// If set to nonnil, this defines the overall entry timeout
-	// for the file system. See fuse.EntryOut for more information.
+	// EntryTimeout, if non-nil, defines the overall entry timeout
+	// for the file system. See [fuse.EntryOut] for more information.
 	EntryTimeout *time.Duration
 
-	// If set to nonnil, this defines the overall attribute
-	// timeout for the file system. See fuse.EntryOut for more
+	// AttrTimeout, if non-nil, defines the overall attribute
+	// timeout for the file system. See [fuse.AttrOut] for more
 	// information.
 	AttrTimeout *time.Duration
 
-	// If set to nonnil, this defines the overall entry timeout
-	// for failed lookups (fuse.ENOENT). See fuse.EntryOut for
+	// NegativeTimeout, if non-nil, defines the overall entry timeout
+	// for failed lookups (fuse.ENOENT). See [fuse.EntryOut] for
 	// more information.
 	NegativeTimeout *time.Duration
 
-	// Automatic inode numbers are handed out sequentially
-	// starting from this number. If unset, use 2^63.
+	// FirstAutomaticIno is start of the automatic inode numbers that are handed
+	// out sequentially.
+	//
+	// If unset, the default is 2^63.
 	FirstAutomaticIno uint64
 
-	// OnAdd is an alternative way to specify the OnAdd
+	// OnAdd, if non-nil, is an alternative way to specify the OnAdd
 	// functionality of the root node.
 	OnAdd func(ctx context.Context)
 
-	// NullPermissions if set, leaves null file permissions
+	// NullPermissions, if set, leaves null file permissions
 	// alone. Otherwise, they are set to 755 (dirs) or 644 (other
 	// files.), which is necessary for doing a chdir into the FUSE
 	// directories.
 	NullPermissions bool
 
-	// If nonzero, replace default (zero) UID with the given UID
+	// UID, if nonzero, is the default UID to use instead of the
+	// zero (zero) UID.
 	UID uint32
 
-	// If nonzero, replace default (zero) GID with the given GID
+	// GID, if nonzero, is the default GID to use instead of the
+	// zero (zero) GID.
 	GID uint32
 
-	// ServerCallbacks can be provided to stub out notification
-	// functions for testing a filesystem without mounting it.
+	// ServerCallbacks are optional callbacks to stub out notification functions
+	// for testing a filesystem without mounting it.
 	ServerCallbacks ServerCallbacks
 
 	// Logger is a sink for diagnostic messages. Diagnostic
