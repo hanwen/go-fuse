@@ -377,11 +377,13 @@ type MountOptions struct {
 // API call, any incoming request data it wants to reference should be
 // copied over.
 //
-// If a FUSE API call is canceled (which is signaled by closing the
-// `cancel` channel), the API call should return EINTR. In this case,
-// the outstanding request data is not reused, so the API call may
-// return EINTR without ensuring that child contexts have successfully
-// completed.
+// If a FS operation is interrupted, the `cancel` channel is
+// closed. The fileystem can honor this request by returning EINTR. In
+// this case, the outstanding request data is not reused. Interrupts
+// occur if the process accessing the file system receives any signal
+// that is not ignored. In particular, the Go runtime uses signals to
+// manage goroutine preemption, so Go programs under load naturally
+// generate interupt opcodes when they access a FUSE filesystem.
 type RawFileSystem interface {
 	String() string
 
