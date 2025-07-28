@@ -83,11 +83,11 @@
 // File descriptor: a handle returned to opening a file. File
 // descriptors always refer to a single inode.
 //
-// Dirent: a dirent maps (parent inode number, name string) tuple to
+// Dentry: a dirent maps (parent inode number, name string) tuple to
 // child inode, thus representing a parent/child relation (or the
-// absense thereof). Dirents do not have an equivalent type inside
+// absense thereof). Dentries do not have an equivalent type inside
 // Go-FUSE, but the result of Lookup operation essentially is a
-// dirent, which the kernel puts in a cache.
+// dentry, which the kernel puts in a cache.
 //
 // # Kernel caching
 //
@@ -101,11 +101,11 @@
 // attribute timeout fields in fuse.AttrOut and fuse.EntryOut, which
 // get be populated from Getattr and Lookup
 //
-// 3. Directory entries (parent/child relations in the FS tree):
+// 3. Dentries (parent/child relations in the FS tree):
 // controlled with the timeout fields in fuse.EntryOut, and
 // invalidated with Inode.NotifyEntry and Inode.NotifyDelete.
 //
-// Without Directory Entry timeouts, every operation on file "a/b/c"
+// Without entry timeouts, every operation on file "a/b/c"
 // must first do lookups for "a", "a/b" and "a/b/c", which is
 // expensive because of context switches between the kernel and the
 // FUSE process.
@@ -202,6 +202,10 @@
 //			break
 //		}
 //	}
+//
+// The library tries to reserve fd 3, because FUSE mounts are created
+// by calling "fusermount" with an inherited file descriptor, but the
+// same problem may occur for other file descriptors.
 //
 // 2. The Go runtime uses the epoll system call to understand which
 // goroutines can respond to I/O.  The runtime assumes that epoll does
@@ -302,7 +306,7 @@ type NodeAccesser interface {
 // is assumed, and the 'blocks' field is set accordingly. The 'f'
 // argument is provided for consistency, however, in practice the
 // kernel never sends a file handle, even if the Getattr call
-// originated from a fstat system call.
+// originated from an fstat system call.
 type NodeGetattrer interface {
 	Getattr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno
 }
