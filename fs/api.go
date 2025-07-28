@@ -124,6 +124,16 @@
 //	  AttrTimeout: &sec,
 //	}
 //
+// # Interrupts
+//
+// If the process accessing a FUSE file system is interrupted, the
+// kernel sends an interrupt message, which cancels the context passed
+// to the NodeXxxxx methods. If the file system chooses to honor this
+// cancellation, the method must return [syscall.EINTR].  All unmasked
+// signals generate an interrupt. In particular, the SIGURG signal
+// (which the Go runtime uses for managing goroutine preemption) also
+// generates an interrupt.
+//
 // # Locking
 //
 // Locks for networked filesystems are supported through the suite of
