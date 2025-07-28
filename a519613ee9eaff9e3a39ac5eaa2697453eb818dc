@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "349ae123_9ea51db4",
+        "filename": "fuse/api.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 385,
+      "author": {
+        "id": 1006835
+      },
+      "writtenOn": "2025-07-28T19:15:30Z",
+      "side": 0,
+      "message": "I did eventually happen upon this paragraph when reading the code top-down, but not when I was just reading the godoc for the first time, because I was only reading the InodeEmbedded-related docs, and not implementing a raw filesystem so never thought to read this.\n\nMaybe the high level methods should map errors to EINTR if the context is closed?",
+      "range": {
+        "startLine": 380,
+        "startChar": 0,
+        "endLine": 385,
+        "endChar": 0
+      },
+      "revId": "a519613ee9eaff9e3a39ac5eaa2697453eb818dc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
