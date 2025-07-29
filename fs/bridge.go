@@ -97,6 +97,7 @@ type rawBridge struct {
 	//
 	// A simple incrementing counter is used as the NodeID (see `nextNodeID`).
 	kernelNodeIds map[uint64]*Inode
+
 	// nextNodeID is the next free NodeID. Increment after copying the value.
 	nextNodeId uint64
 	// nodeCountHigh records the highest number of entries we had in the
