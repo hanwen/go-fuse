@@ -283,16 +283,18 @@ type NodeStatfser interface {
 
 // Access should return if the caller can access the file with the
 // given mode.  This is used for two purposes: to determine if a user
-// may enter a directory, and to answer to implement the access system
+// may enter a directory, and to implement the access system
 // call.  In the latter case, the context has data about the real
 // UID. For example, a root-SUID binary called by user susan gets the
 // UID and GID for susan here.
 //
 // If not defined, a default implementation will check traditional
-// unix permissions of the Getattr result agains the caller. If so, it
-// is necessary to either return permissions from GetAttr/Lookup or
-// set Options.DefaultPermissions in order to allow chdir into the
-// FUSE mount.
+// unix permissions of the Getattr result agains the caller. If access
+// permissions must be obeyed precisely, the filesystem should return
+// permissions from GetAttr/Lookup, and set [Options.NullPermissions].
+// Without [Options.NullPermissions], a missing permission (mode =
+// 0000) is interpreted as 0755 for directories, and chdir is always
+// allowed.
 type NodeAccesser interface {
 	Access(ctx context.Context, mask uint32) syscall.Errno
 }
