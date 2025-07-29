@@ -1,4 +1,28 @@
 {
-  "comments": [],
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b28177e1_167eb300",
+        "filename": "fs/api.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 132,
+      "author": {
+        "id": 1006835
+      },
+      "writtenOn": "2025-07-29T13:51:50Z",
+      "side": 1,
+      "message": "Great, thanks!",
+      "range": {
+        "startLine": 131,
+        "startChar": 29,
+        "endLine": 132,
+        "endChar": 56
+      },
+      "revId": "82b04317040fc828429fcbe440e776a7f1112f4a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ],
   "submitRequirementResults": []
 }
