@@ -22,6 +22,30 @@
       },
       "revId": "a519613ee9eaff9e3a39ac5eaa2697453eb818dc",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5a2d1e84_5d9f7d4d",
+        "filename": "fuse/api.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 385,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-07-29T10:11:58Z",
+      "side": 0,
+      "message": "I added a note to the `fs` package too. \n\n\u003e Maybe the high level methods should map errors to EINTR if the context is closed?\n\nno. if there is an error, we should return the error unchanged. Implementors may have their own reasons for choosing a particular error code, and we should not mess with that. Also, EINTR should be safe to retry the operation; that may not be the case for other error codes.",
+      "parentUuid": "349ae123_9ea51db4",
+      "range": {
+        "startLine": 380,
+        "startChar": 0,
+        "endLine": 385,
+        "endChar": 0
+      },
+      "revId": "a519613ee9eaff9e3a39ac5eaa2697453eb818dc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
