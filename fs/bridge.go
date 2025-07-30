@@ -782,7 +782,7 @@ func (b *rawBridge) addBackingID(n *Inode, f FileHandle, out *fuse.OpenOut) {
 
 	if n.backingID == 0 {
 		fd, ok := pth.PassthroughFd()
-		if !ok {
+		if !ok || fd <= 0 {
 			return
 		}
 		m := fuse.BackingMap{
