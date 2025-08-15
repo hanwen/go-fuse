@@ -16,6 +16,24 @@
       "message": "Abandoned.\nAfter adding maxLoopRunningNum printing, I noticed the current logic dynamically creates process loops based on request load. This is better than the patch\u0027s approach, which creates a fixed number of loops. See below printing log:\n\n\"\n[root@server5 go-fuse2]# go test ./benchmark -test.bench BenchmarkGoFuseFDRead  -test.benchtime 120s\n10:34:55.748119 Serve(): First loop created, maxReaders: 16, reqReaders: 0, reqNum: 1, loopCreateNum: 1, loopExitNum: 0, loopRunningNum: 1, maxLoopRunningNum: 1\n10:34:55.767066 readRequest():               maxReaders: 16, reqReaders: 1, reqNum: 31, loopCreateNum: 16, loopExitNum: 0, loopRunningNum: 16, maxLoopRunningNum: 16  （loopCreateNum\u003d\u003d16）\n10:37:05.717798 Exit... DebugData():         maxReaders: 16, reqReaders: 17, reqNum: 22648518, loopCreateNum: 459467, loopExitNum: 459450, loopRunningNum: 17, maxLoopRunningNum: 319\n\"\n\nAnd it seems that the overhead of frequently creating and destroying process loop goroutines is negligible on the x86 platform, it is non-negligible on Arm64.",
       "revId": "eace91174f890af20a60e2772db6c8f61d7ef5fd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "0af62344_7b17cf42",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1038847
+      },
+      "writtenOn": "2025-08-15T03:18:58Z",
+      "side": 1,
+      "message": "This indicates that we should seek improvement within Go itself for Arm64.\n Found a related issue: https://github.com/golang/go/issues/68399\n Which shows that we can use fewer CPU cores to minimize this performance impact. \nAnd have verified that through numactl binding numas(GOMAXPROCS\u003d48 numactl --cpunodebind\u003d2,3 --membind\u003d2,3  juicefs mount), it can get similar better performance numbers as this patch for downstream JuiceFS.",
+      "parentUuid": "5bb4f473_d70d005d",
+      "revId": "eace91174f890af20a60e2772db6c8f61d7ef5fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ],
   "submitRequirementResults": []
