@@ -1,4 +1,22 @@
 {
-  "comments": [],
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "5bb4f473_d70d005d",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1038847
+      },
+      "writtenOn": "2025-08-15T03:03:33Z",
+      "side": 1,
+      "message": "Abandoned.\nAfter adding maxLoopRunningNum printing, I noticed the current logic dynamically creates process loops based on request load. This is better than the patch\u0027s approach, which creates a fixed number of loops. See below printing log:\n\n\"\n[root@server5 go-fuse2]# go test ./benchmark -test.bench BenchmarkGoFuseFDRead  -test.benchtime 120s\n10:34:55.748119 Serve(): First loop created, maxReaders: 16, reqReaders: 0, reqNum: 1, loopCreateNum: 1, loopExitNum: 0, loopRunningNum: 1, maxLoopRunningNum: 1\n10:34:55.767066 readRequest():               maxReaders: 16, reqReaders: 1, reqNum: 31, loopCreateNum: 16, loopExitNum: 0, loopRunningNum: 16, maxLoopRunningNum: 16  （loopCreateNum\u003d\u003d16）\n10:37:05.717798 Exit... DebugData():         maxReaders: 16, reqReaders: 17, reqNum: 22648518, loopCreateNum: 459467, loopExitNum: 459450, loopRunningNum: 17, maxLoopRunningNum: 319\n\"\n\nAnd it seems that the overhead of frequently creating and destroying process loop goroutines is negligible on the x86 platform, it is non-negligible on Arm64.",
+      "revId": "eace91174f890af20a60e2772db6c8f61d7ef5fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ],
   "submitRequirementResults": []
 }
