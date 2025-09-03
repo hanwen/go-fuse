@@ -132,6 +132,10 @@ func doInit(server *protocolServer, req *request) {
 	}
 	kernelFlags |= dataCacheMode
 
+	if server.opts.EnableWritebackCaching {
+	    kernelFlags |= CAP_WRITEBACK_CACHE
+	}
+
 	// maxPages is the maximum request size we want the kernel to use, in units of
 	// memory pages (usually 4kiB). Linux v4.19 and older ignore this and always use
 	// 128kiB.

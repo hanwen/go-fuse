@@ -332,6 +332,25 @@ type MountOptions struct {
 
 	// Disable splicing from files to the FUSE device.
 	DisableSplice bool
+
+    // If EnableWritebackCaching is enabled, writes go to the page cache only,
+    // which means that the write(2) syscall can often complete very fast
+    // when compared with FUSE's default write-through mode.
+    // If a partial page is written, then the page contents need to be first
+    // read from userspace. Thus, it is possible that READ requests generated
+    // by the kernel reach the FUSE server even for files opened as O_WRONLY.
+    //
+    // IMPORTANT:
+    // This mode can be useful to improve the throughput of small writes because
+    // fewer context switches and data copies need to be made between kernel
+    // and userspace. Do note, however, that this mode assumes that all changes
+    // to the filesystem go through the FUSE kernel module, so it's generally
+    // not suitable for network filesystems where strong consistency is a
+    // requirement.
+    //
+    // Refer to https://www.kernel.org/doc/Documentation/filesystems/fuse-io.txt
+    // for more information.
+	EnableWritebackCaching bool
 }
 
 // RawFileSystem is an interface close to the FUSE wire protocol.
