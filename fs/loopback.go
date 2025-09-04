@@ -359,6 +359,12 @@ var _ = (NodeOpener)((*LoopbackNode)(nil))
 // Symlink-safe through use of OpenSymlinkAware.
 func (n *LoopbackNode) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
 	flags = flags &^ syscall.O_APPEND
+	// Linux kernel transfers FMODE_EXEC (0x20) that is not defined in
+	// syscall package.
+	if flags & 0x20 != 0 {
+		flags = flags &^ 0x20
+		flags = flags | syscall.O_CLOEXEC
+	}
 
 	f, err := openat.OpenSymlinkAware(n.RootData.Path, n.relativePath(), int(flags), 0)
 	if err != nil {
