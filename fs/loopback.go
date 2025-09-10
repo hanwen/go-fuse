@@ -226,8 +226,8 @@ func (n *LoopbackNode) Rename(ctx context.Context, name string, newParent InodeE
 		return syscall.EXDEV
 	}
 
-	if flags&RENAME_EXCHANGE != 0 {
-		return n.renameExchange(name, e2.loopbackNode(), newName)
+	if flags != 0 {
+		return n.rename2(name, e2.loopbackNode(), newName, flags)
 	}
 
 	p1 := filepath.Join(n.path(), name)
@@ -261,7 +261,7 @@ func (n *LoopbackNode) Create(ctx context.Context, name string, flags uint32, mo
 	return ch, lf, 0, 0
 }
 
-func (n *LoopbackNode) renameExchange(name string, newParent *LoopbackNode, newName string) syscall.Errno {
+func (n *LoopbackNode) rename2(name string, newParent *LoopbackNode, newName string, flags uint32) syscall.Errno {
 	fd1, err := syscall.Open(n.path(), syscall.O_DIRECTORY, 0)
 	if err != nil {
 		return ToErrno(err)
@@ -291,7 +291,7 @@ func (n *LoopbackNode) renameExchange(name string, newParent *LoopbackNode, newN
 		return syscall.EBUSY
 	}
 
-	return ToErrno(renameat.Renameat(fd1, name, fd2, newName, renameat.RENAME_EXCHANGE))
+	return ToErrno(renameat.Renameat(fd1, name, fd2, newName, uint(flags)))
 }
 
 var _ = (NodeSymlinker)((*LoopbackNode)(nil))

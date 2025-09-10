@@ -45,6 +45,51 @@ func TestRenameNoOverwrite(t *testing.T) {
 	}
 }
 
+func TestRenameWhiteOut(t *testing.T) {
+	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
+
+	if err := os.Mkdir(tc.origDir+"/dir", 0755); err != nil {
+		t.Fatalf("Mkdir: %v", err)
+	}
+	tc.writeOrig("file", "hello", 0644)
+
+	f1, err := syscall.Open(tc.mntDir+"/", syscall.O_DIRECTORY, 0)
+	if err != nil {
+		t.Fatalf("open 1: %v", err)
+	}
+	defer syscall.Close(f1)
+	f2, err := syscall.Open(tc.mntDir+"/dir", syscall.O_DIRECTORY, 0)
+	if err != nil {
+		t.Fatalf("open 2: %v", err)
+	}
+	defer syscall.Close(f2)
+
+	if err := unix.Renameat2(f1, "file", f2, "file", unix.RENAME_WHITEOUT); err != nil {
+		t.Errorf("rename WHITEOUT: %v", err)
+	}
+
+	fi, err := os.Stat(tc.mntDir + "/file")
+	if err != nil {
+		t.Fatalf("Stat: %v", err)
+	}
+	st := fi.Sys().(*syscall.Stat_t)
+	if st.Mode&syscall.S_IFMT != unix.S_IFCHR {
+		t.Errorf("old file is not a whiteout")
+	}
+	if st.Rdev != 0 {
+		t.Errorf("old file is not a whiteout")
+	}
+
+	fi, err = os.Stat(tc.mntDir + "/dir/file")
+	if err != nil {
+		t.Fatalf("Stat: %v", err)
+	}
+	st = fi.Sys().(*syscall.Stat_t)
+	if st.Mode&syscall.S_IFMT != unix.S_IFREG {
+		t.Errorf("new file is not a regular file")
+	}
+}
+
 // TestXAttrSymlink verifies that we did not forget to use Lgetxattr instead
 // of Getxattr. This test is Linux-specific because it depends on the behavoir
 // of the `security` namespace.
