@@ -96,6 +96,11 @@ var (
 	getAttrFlagNames = newFlagNames([]flagNameEntry{
 		{FUSE_GETATTR_FH, "FH"},
 	})
+	renameFlagNames = newFlagNames([]flagNameEntry{
+		{1, "NOREPLACE"},
+		{2, "EXCHANGE"},
+		{4, "WHITEOUT"},
+	})
 )
 
 // flagNames associate flag bits to their names.
@@ -176,7 +181,7 @@ func (in *Rename1In) string() string {
 }
 
 func (in *RenameIn) string() string {
-	return fmt.Sprintf("{i%d %x}", in.Newdir, in.Flags)
+	return fmt.Sprintf("{i%d %s}", in.Newdir, flagString(renameFlagNames, int64(in.Flags), "0"))
 }
 
 func (in *SetAttrIn) string() string {
