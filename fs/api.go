@@ -207,6 +207,11 @@
 // by calling "fusermount" with an inherited file descriptor, but the
 // same problem may occur for other file descriptors.
 //
+// 1c. If the executable is on the FUSE mount. In this case, the child
+// calls exec, which reads the file to execute, which triggers an OPEN
+// opcode. This can be worked around by invoking the subprocess
+// through a wrapper, eg `bash -c file/on/fuse-mount`.
+//
 // 2. The Go runtime uses the epoll system call to understand which
 // goroutines can respond to I/O.  The runtime assumes that epoll does
 // not block, but if files are on a FUSE filesystem, the kernel will

@@ -173,7 +173,7 @@ func TestExec(t *testing.T) {
 	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
 	tc.writeOrig("test.sh", "#!/bin/sh\ntrue\n", 0755)
 	fn := tc.mntDir + "/test.sh"
-	if err := exec.Command(fn).Run(); err != nil {
+	if err := exec.Command("bash", "-c", fn).Run(); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
 }
