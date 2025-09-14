@@ -36,5 +36,9 @@ const (
 
 	O_ANYWRITE = uint32(os.O_WRONLY | os.O_RDWR | os.O_APPEND | os.O_CREATE | os.O_TRUNC)
 
+	// FMODE_EXEC is a flag passed from the kernel to open when executing a file.
+	// This is not defined in the syscall package.
+	FMODE_EXEC = 0x20
+
 	logicalBlockSize = 512
 )

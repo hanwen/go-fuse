@@ -360,6 +360,12 @@ var _ = (NodeOpener)((*LoopbackNode)(nil))
 func (n *LoopbackNode) Open(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
 	flags = flags &^ syscall.O_APPEND
 
+	// Linux kernel transfers FMODE_EXEC that is not defined in
+	// syscall package.
+	if flags&fuse.FMODE_EXEC != 0 {
+		flags = flags &^ fuse.FMODE_EXEC
+	}
+
 	f, err := openat.OpenSymlinkAware(n.RootData.Path, n.relativePath(), int(flags), 0)
 	if err != nil {
 		return nil, 0, ToErrno(err)
