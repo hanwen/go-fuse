@@ -207,6 +207,9 @@ func TestOnForget(t *testing.T) {
 		t.Errorf("Unmount: %v", err)
 	}
 
+	// The FORGET processing is not synchronized, so goroutine
+	// scheduling may cause it happen after the unmount fully completes.
+	time.Sleep(time.Millisecond)
 	if got := atomic.LoadUint32(&root.onForgetCount); got != 3 {
 		t.Errorf("got count %d, want 3", got)
 	}
