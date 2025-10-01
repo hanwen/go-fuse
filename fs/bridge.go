@@ -97,7 +97,6 @@ type rawBridge struct {
 	//
 	// A simple incrementing counter is used as the NodeID (see `nextNodeID`).
 	kernelNodeIds map[uint64]*Inode
-
 	// nextNodeID is the next free NodeID. Increment after copying the value.
 	nextNodeId uint64
 	// nodeCountHigh records the highest number of entries we had in the
@@ -1100,11 +1099,11 @@ func (b *rawBridge) readDirMaybeLookup(cancel <-chan struct{}, input *fuse.ReadI
 				todo := f.lastRead[i+1:]
 				todo = make([]fuse.DirEntry, len(todo))
 				copy(todo, f.lastRead[i+1:])
-				getdent = func(context.Context) (*fuse.DirEntry, syscall.Errno) {
+				getdent = func(context.Context) (HasDirEntry, syscall.Errno) {
 					if len(todo) > 0 {
 						de := &todo[0]
 						todo = todo[1:]
-						return de, 0
+						return SimpleDirEntry{de}, 0
 					}
 					return nil, 0
 				}
@@ -1135,16 +1134,16 @@ func (b *rawBridge) readDirMaybeLookup(cancel <-chan struct{}, input *fuse.ReadI
 	first := true
 	f.lastRead = f.lastRead[:0]
 	for {
-		var de *fuse.DirEntry
+		var hde HasDirEntry
 		var errno syscall.Errno
 		if f.hasOverflow && !interruptedRead {
 			f.hasOverflow = false
 			if f.overflowErrno != 0 {
 				return errnoToStatus(f.overflowErrno)
 			}
-			de = &f.overflow
+			hde = SimpleDirEntry{&f.overflow}
 		} else {
-			de, errno = getdent(ctx)
+			hde, errno = getdent(ctx)
 			if errno != 0 {
 				if first {
 					return errnoToStatus(errno)
@@ -1156,9 +1155,12 @@ func (b *rawBridge) readDirMaybeLookup(cancel <-chan struct{}, input *fuse.ReadI
 			}
 		}
 
-		if de == nil {
+		if hde == nil {
 			break
 		}
+
+		var de fuse.DirEntry
+		hde.GetDirEntry(&de)
 
 		first = false
 		if de.Off == 0 {
@@ -1166,23 +1168,23 @@ func (b *rawBridge) readDirMaybeLookup(cancel <-chan struct{}, input *fuse.ReadI
 			de.Off = out.Offset + 1
 		}
 		if !lookup {
-			if !out.AddDirEntry(*de) {
-				f.overflow = *de
+			if !out.AddDirEntry(de) {
+				f.overflow = de
 				f.hasOverflow = true
 				return fuse.OK
 			}
 
-			f.lastRead = append(f.lastRead, *de)
+			f.lastRead = append(f.lastRead, de)
 			continue
 		}
 
-		entryOut := out.AddDirLookupEntry(*de)
+		entryOut := out.AddDirLookupEntry(de)
 		if entryOut == nil {
-			f.overflow = *de
+			f.overflow = de
 			f.hasOverflow = true
 			return fuse.OK
 		}
-		f.lastRead = append(f.lastRead, *de)
+		f.lastRead = append(f.lastRead, de)
 
 		// Virtual entries "." and ".." should be part of the
 		// directory listing, but not part of the filesystem tree.
@@ -1193,7 +1195,12 @@ func (b *rawBridge) readDirMaybeLookup(cancel <-chan struct{}, input *fuse.ReadI
 			continue
 		}
 
-		child, errno := b.lookup(ctx, n, de.Name, entryOut)
+		var child *Inode
+		if lu, ok := hde.(DirEntryLookuper); ok {
+			child, errno = lu.Lookup(ctx, n, entryOut)
+		} else {
+			child, errno = b.lookup(ctx, n, de.Name, entryOut)
+		}
 		if errno != 0 {
 			if b.options.NegativeTimeout != nil {
 				entryOut.SetEntryTimeout(*b.options.NegativeTimeout)
