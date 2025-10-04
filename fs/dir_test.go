@@ -115,13 +115,13 @@ type listDirEntries struct {
 
 var _ = (FileReaddirenter)((*listDirEntries)(nil))
 
-func (l *listDirEntries) Readdirent(ctx context.Context) (*fuse.DirEntry, syscall.Errno) {
+func (l *listDirEntries) Readdirent(ctx context.Context) (HasDirEntry, syscall.Errno) {
 	if l.next >= len(l.entries) {
 		return nil, 0
 	}
 	de := &l.entries[l.next]
 	l.next++
-	return de, 0
+	return SimpleDirEntry{de}, 0
 }
 
 var _ = (FileSeekdirer)((*listDirEntries)(nil))
@@ -223,7 +223,7 @@ type syncDir struct {
 	node *syncNode
 }
 
-func (d *syncDir) Readdirent(ctx context.Context) (*fuse.DirEntry, syscall.Errno) {
+func (d *syncDir) Readdirent(ctx context.Context) (HasDirEntry, syscall.Errno) {
 	return nil, 0
 }
 

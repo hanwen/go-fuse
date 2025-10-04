@@ -703,10 +703,26 @@ type NodeOpendirHandler interface {
 	OpendirHandle(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, errno syscall.Errno)
 }
 
+type HasDirEntry interface {
+	GetDirEntry(out *fuse.DirEntry)
+}
+
+type DirEntryLookuper interface {
+	Lookup(ctx context.Context, parent *Inode, out *fuse.EntryOut) (*Inode, syscall.Errno)
+}
+
+type SimpleDirEntry struct {
+	DirEntry *fuse.DirEntry
+}
+
+func (sde SimpleDirEntry) GetDirEntry(out *fuse.DirEntry) {
+	*out = *sde.DirEntry
+}
+
 // FileReaddirenter is a directory that supports reading.
 type FileReaddirenter interface {
 	// Read a single directory entry.
-	Readdirent(ctx context.Context) (*fuse.DirEntry, syscall.Errno)
+	Readdirent(ctx context.Context) (HasDirEntry, syscall.Errno)
 }
 
 // FileFsyncer is a directory that supports fsyncdir.

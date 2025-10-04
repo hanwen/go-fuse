@@ -29,7 +29,7 @@ type countingReaddirenter struct {
 	*dirCacheTestNode
 }
 
-func (r *countingReaddirenter) Readdirent(ctx context.Context) (*fuse.DirEntry, syscall.Errno) {
+func (r *countingReaddirenter) Readdirent(ctx context.Context) (HasDirEntry, syscall.Errno) {
 	de, errno := r.FileReaddirenter.Readdirent(ctx)
 	r.dirCacheTestNode.mu.Lock()
 	defer r.dirCacheTestNode.mu.Unlock()
