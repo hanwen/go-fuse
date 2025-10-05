@@ -709,6 +709,17 @@ type FileReaddirenter interface {
 	Readdirent(ctx context.Context) (*fuse.DirEntry, syscall.Errno)
 }
 
+// FileLookuper is a directory handle that supports lookup. If this is
+// defined, FileLookuper.Lookup on the directory is called for
+// READDIRPLUS calls, rather than NodeLookuper.Lookup. The name passed
+// in will always be the last name produced by Readdirent. If a child
+// with the given name already exists, that should be returned. In
+// case of directory seeks that straddle response boundaries,
+// Readdirent may be called without a subsequent Lookup call.
+type FileLookuper interface {
+	Lookup(ctx context.Context, name string, out *fuse.EntryOut) (child *Inode, errno syscall.Errno)
+}
+
 // FileFsyncer is a directory that supports fsyncdir.
 type FileFsyncdirer interface {
 	Fsyncdir(ctx context.Context, flags uint32) syscall.Errno
