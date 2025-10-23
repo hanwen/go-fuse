@@ -14,9 +14,10 @@ systems
 ## Release notes
 
 
-next:
+v2.9:
 
 * fs: NodeWrapChilder interface
+* fs: FileLookuper interface
 
 v2.8
 

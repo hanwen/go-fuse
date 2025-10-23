@@ -518,11 +518,11 @@ type NodeLookuper interface {
 	Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno)
 }
 
-// NodeWrapChilder wraps inode implementation in another one. If
+// NodeWrapChilder wraps a FS node implementation in another one. If
 // defined, it is called automatically from NewInode and
-// NewPersistentInode. Thus, existing file system implementations can
-// be customized by wrapping them.  The following example is a
-// loopback file system that forbids deletions.
+// NewPersistentInode. Thus, existing file system implementations,
+// even from other packages, can be customized by wrapping them.  The
+// following example is a loopback file system that forbids deletions.
 //
 //	type NoDelete struct {
 //	   *fs.LoopbackNode
