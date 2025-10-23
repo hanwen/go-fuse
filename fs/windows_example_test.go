@@ -19,10 +19,18 @@ import (
 // WindowsNode emulates Windows FS semantics, which forbids deleting open files.
 type WindowsNode struct {
 	// WindowsNode inherits most functionality from LoopbackNode.
-	fs.LoopbackNode
+	*fs.LoopbackNode
 
 	mu        sync.Mutex
 	openCount int
+}
+
+var _ = (fs.NodeWrapChilder)((*WindowsNode)(nil))
+
+func (n *WindowsNode) WrapChild(ctx context.Context, ops fs.InodeEmbedder) fs.InodeEmbedder {
+	return &WindowsNode{
+		LoopbackNode: ops.(*fs.LoopbackNode),
+	}
 }
 
 var _ = (fs.NodeOpener)((*WindowsNode)(nil))
@@ -89,15 +97,6 @@ func (n *WindowsNode) Unlink(ctx context.Context, name string) syscall.Errno {
 	return n.LoopbackNode.Unlink(ctx, name)
 }
 
-func newWindowsNode(rootData *fs.LoopbackRoot, parent *fs.Inode, name string, st *syscall.Stat_t) fs.InodeEmbedder {
-	n := &WindowsNode{
-		LoopbackNode: fs.LoopbackNode{
-			RootData: rootData,
-		},
-	}
-	return n
-}
-
 // ExampleLoopbackReuse shows how to build a file system on top of the
 // loopback file system.
 func Example_loopbackReuse() {
@@ -105,8 +104,7 @@ func Example_loopbackReuse() {
 	origDir := "/tmp/orig"
 
 	rootData := &fs.LoopbackRoot{
-		NewNode: newWindowsNode,
-		Path:    origDir,
+		Path: origDir,
 	}
 
 	sec := time.Second
@@ -115,7 +113,12 @@ func Example_loopbackReuse() {
 		EntryTimeout: &sec,
 	}
 
-	server, err := fs.Mount(mntDir, newWindowsNode(rootData, nil, "", nil), opts)
+	root := &WindowsNode{
+		LoopbackNode: &fs.LoopbackNode{
+			RootData: rootData,
+		},
+	}
+	server, err := fs.Mount(mntDir, root, opts)
 	if err != nil {
 		log.Fatalf("Mount fail: %v\n", err)
 	}

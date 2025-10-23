@@ -13,6 +13,11 @@ systems
 
 ## Release notes
 
+
+next:
+
+* fs: NodeWrapChilder interface
+
 v2.8
 
 * fuse, fs: support IOCTL

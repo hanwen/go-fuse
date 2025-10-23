@@ -518,6 +518,15 @@ type NodeLookuper interface {
 	Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno)
 }
 
+// NodeWrapChilder wraps inode implementation in another one. If
+// defined, it is called automatically from NewInode and
+// NewPersistentInode. Thus, existing file system implementations can
+// be customized by wrapping them.  See also the LoopbackReuse example
+// for a practical application.
+type NodeWrapChilder interface {
+	WrapChild(ctx context.Context, ops InodeEmbedder) InodeEmbedder
+}
+
 // OpenDir opens a directory Inode for reading its
 // contents. The actual reading is driven from Readdir, so
 // this method is just for performing sanity/permission

@@ -20,12 +20,16 @@ func TestWindowsEmulations(t *testing.T) {
 	origDir := t.TempDir()
 
 	rootData := &fs.LoopbackRoot{
-		NewNode: newWindowsNode,
-		Path:    origDir,
+		Path: origDir,
+	}
+	root := &WindowsNode{
+		LoopbackNode: &fs.LoopbackNode{
+			RootData: rootData,
+		},
 	}
 	opts := fs.Options{}
 	opts.Debug = testutil.VerboseTest()
-	server, err := fs.Mount(mntDir, newWindowsNode(rootData, nil, "", nil), &opts)
+	server, err := fs.Mount(mntDir, root, &opts)
 	if err != nil {
 		t.Fatal(err)
 	}
