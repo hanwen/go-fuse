@@ -111,18 +111,6 @@ func doInit(server *protocolServer, req *request) {
 	if server.opts.EnableAcl {
 		kernelFlags |= CAP_POSIX_ACL
 	}
-	if server.opts.SyncRead {
-		// Clear CAP_ASYNC_READ
-		kernelFlags &= ^uint64(CAP_ASYNC_READ)
-	}
-	if server.opts.DisableReadDirPlus {
-		// Clear CAP_READDIRPLUS
-		kernelFlags &= ^uint64(CAP_READDIRPLUS)
-	}
-	if !server.opts.IDMappedMount {
-		// Clear CAP_ALLOW_IDMAP
-		kernelFlags &= ^uint64(CAP_ALLOW_IDMAP)
-	}
 
 	if server.opts.ExplicitDataCacheControl {
 		// we don't want CAP_AUTO_INVAL_DATA even if we cannot go into fully explicit mode
@@ -130,6 +118,8 @@ func doInit(server *protocolServer, req *request) {
 	} else {
 		kernelFlags |= input.Flags64() & CAP_AUTO_INVAL_DATA
 	}
+
+	kernelFlags = kernelFlags &^ server.opts.DisabledCapabilities
 
 	// maxPages is the maximum request size we want the kernel to use, in units of
 	// memory pages (usually 4kiB). Linux v4.19 and older ignore this and always use

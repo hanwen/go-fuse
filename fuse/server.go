@@ -193,6 +193,19 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		o.Name = strings.Replace(name[:l], ",", ";", -1)
 	}
 
+	for _, s := range []struct {
+		flag bool
+		mask uint64
+	}{
+		{o.SyncRead, CAP_ASYNC_READ},
+		{o.DisableReadDirPlus, CAP_READDIRPLUS},
+		{!o.IDMappedMount, CAP_ALLOW_IDMAP},
+	} {
+		if s.flag {
+			o.DisabledCapabilities |= s.mask
+		}
+	}
+
 	maxReaders := runtime.GOMAXPROCS(0)
 	if maxReaders < minMaxReaders {
 		maxReaders = minMaxReaders
