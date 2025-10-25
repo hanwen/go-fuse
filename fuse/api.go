@@ -354,6 +354,10 @@ type MountOptions struct {
 	// checks to the kernel. For requests that create new inodes, FUSE will send
 	// the mapped UID/GIDs. For all other requests, FUSE will send "-1".
 	IDMappedMount bool
+
+	// DisabledCapabilities is a bitmask, containing capablities (the CAP_* bitmasks) that
+	// must be disabled for the entire mount.
+	DisabledCapabilities uint64
 }
 
 // RawFileSystem is an interface close to the FUSE wire protocol.
