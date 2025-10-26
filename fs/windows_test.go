@@ -15,18 +15,16 @@ import (
 	"github.com/hanwen/go-fuse/v2/internal/testutil"
 )
 
-func TestWindowsEmulations(t *testing.T) {
+func TestWindowsEmulation(t *testing.T) {
 	mntDir := t.TempDir()
 	origDir := t.TempDir()
 
 	rootData := &fs.LoopbackRoot{
 		Path: origDir,
 	}
-	root := &WindowsNode{
-		LoopbackNode: &fs.LoopbackNode{
-			RootData: rootData,
-		},
-	}
+	root := NewWindowsNode(&fs.LoopbackNode{
+		RootData: rootData,
+	})
 	opts := fs.Options{}
 	opts.Debug = testutil.VerboseTest()
 	server, err := fs.Mount(mntDir, root, &opts)
@@ -43,7 +41,7 @@ func TestWindowsEmulations(t *testing.T) {
 
 	if got, err := os.ReadFile(nm); err != nil {
 		t.Fatal(err)
-	} else if bytes.Compare(got, data) != 0 {
+	} else if !bytes.Equal(got, data) {
 		t.Fatalf("got %q want %q", got, data)
 	}
 
