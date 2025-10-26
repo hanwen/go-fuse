@@ -376,6 +376,9 @@ func (n *Inode) NewInode(ctx context.Context, node InodeEmbedder, id StableAttr)
 func (n *Inode) newInode(ctx context.Context, ops InodeEmbedder, id StableAttr, persistent bool) *Inode {
 	if wc, ok := n.ops.(NodeWrapChilder); ok {
 		ops = wc.WrapChild(ctx, ops)
+	} else {
+		// DO NOT SUBMIT
+		ops = &NodeWrapper{ops}
 	}
 	return n.bridge.newInode(ctx, ops, id, persistent)
 }

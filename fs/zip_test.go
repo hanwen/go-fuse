@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/hanwen/go-fuse/v2/fs"
+	"github.com/hanwen/go-fuse/v2/internal/testutil"
 )
 
 var testData = map[string]string{
@@ -71,7 +72,9 @@ func TestZipFS(t *testing.T) {
 
 	root := &zipRoot{zr: r}
 	mntDir := t.TempDir()
-	server, err := fs.Mount(mntDir, root, nil)
+	opts := fs.Options{}
+	opts.MountOptions.Debug = testutil.VerboseTest()
+	server, err := fs.Mount(mntDir, root, &opts)
 	if err != nil {
 		t.Fatal(err)
 	}
