@@ -18,6 +18,7 @@ v2.9:
 
 * fs: NodeWrapChilder interface
 * fs: FileLookuper interface
+* fs: NodeWrapper type
 
 v2.8
 
