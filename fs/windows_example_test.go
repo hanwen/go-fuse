@@ -18,25 +18,32 @@ import (
 
 // WindowsNode emulates Windows FS semantics, which forbids deleting open files.
 type WindowsNode struct {
-	// WindowsNode inherits most functionality from LoopbackNode.
-	*fs.LoopbackNode
+	fs.NodeWrapper
 
 	mu        sync.Mutex
 	openCount int
 }
 
+// NewWindowsNode layers functionality to forbid deleting open files
+// over any existing file system.
+func NewWindowsNode(ops fs.InodeEmbedder) *WindowsNode {
+	return &WindowsNode{
+		NodeWrapper: fs.NodeWrapper{
+			ops,
+		},
+	}
+}
+
 var _ = (fs.NodeWrapChilder)((*WindowsNode)(nil))
 
 func (n *WindowsNode) WrapChild(ctx context.Context, ops fs.InodeEmbedder) fs.InodeEmbedder {
-	return &WindowsNode{
-		LoopbackNode: ops.(*fs.LoopbackNode),
-	}
+	return NewWindowsNode(ops)
 }
 
 var _ = (fs.NodeOpener)((*WindowsNode)(nil))
 
 func (n *WindowsNode) Open(ctx context.Context, flags uint32) (fs.FileHandle, uint32, syscall.Errno) {
-	fh, flags, errno := n.LoopbackNode.Open(ctx, flags)
+	fh, flags, errno := n.NodeWrapper.Open(ctx, flags)
 	if errno == 0 {
 		n.mu.Lock()
 		defer n.mu.Unlock()
@@ -49,7 +56,7 @@ func (n *WindowsNode) Open(ctx context.Context, flags uint32) (fs.FileHandle, ui
 var _ = (fs.NodeCreater)((*WindowsNode)(nil))
 
 func (n *WindowsNode) Create(ctx context.Context, name string, flags uint32, mode uint32, out *fuse.EntryOut) (*fs.Inode, fs.FileHandle, uint32, syscall.Errno) {
-	inode, fh, flags, errno := n.LoopbackNode.Create(ctx, name, flags, mode, out)
+	inode, fh, flags, errno := n.NodeWrapper.Create(ctx, name, flags, mode, out)
 	if errno == 0 {
 		wn := inode.Operations().(*WindowsNode)
 		wn.openCount++
@@ -94,7 +101,7 @@ func (n *WindowsNode) Unlink(ctx context.Context, name string) syscall.Errno {
 		return syscall.EBUSY
 	}
 
-	return n.LoopbackNode.Unlink(ctx, name)
+	return n.NodeWrapper.Unlink(ctx, name)
 }
 
 // ExampleLoopbackReuse shows how to build a file system on top of the
@@ -113,11 +120,7 @@ func Example_loopbackReuse() {
 		EntryTimeout: &sec,
 	}
 
-	root := &WindowsNode{
-		LoopbackNode: &fs.LoopbackNode{
-			RootData: rootData,
-		},
-	}
+	root := NewWindowsNode(&fs.LoopbackNode{RootData: rootData})
 	server, err := fs.Mount(mntDir, root, opts)
 	if err != nil {
 		log.Fatalf("Mount fail: %v\n", err)
