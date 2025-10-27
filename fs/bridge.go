@@ -1267,7 +1267,7 @@ func (b *rawBridge) Ioctl(cancel <-chan struct{}, in *fuse.IoctlIn, inbuf []byte
 	n, f := b.inode(in.NodeId, in.Fh)
 	if nio, ok := n.ops.(NodeIoctler); ok {
 		ctx := &fuse.Context{Caller: in.Caller, Cancel: cancel}
-		result, errno := nio.Ioctl(ctx, f, in.Cmd, in.Arg, inbuf, outbuf)
+		result, errno := nio.Ioctl(ctx, f.file, in.Cmd, in.Arg, inbuf, outbuf)
 		out.Result = result
 		return errnoToStatus(errno)
 	}
