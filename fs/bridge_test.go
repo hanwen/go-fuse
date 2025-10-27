@@ -95,9 +95,16 @@ func TestTypeChange(t *testing.T) {
 	mnt, _ := testMount(t, &rootNode, nil)
 
 	for i := 0; i < 100; i++ {
-		fi, _ := os.Stat(mnt + "/file")
+		fi, err := os.Stat(mnt + "/file")
+		if err != nil {
+			t.Fatalf("Stat(file): %v", err)
+		}
+
 		syscall.Unlink(mnt + "/file")
-		fi, _ = os.Stat(mnt + "/dir")
+		fi, err = os.Stat(mnt + "/dir")
+		if err != nil {
+			t.Fatalf("Stat(dir): %v", err)
+		}
 		if !fi.IsDir() {
 			t.Fatal("should be a dir now")
 		}
@@ -185,8 +192,10 @@ func (n *testDeletedIno) Lookup(ctx context.Context, name string, out *fuse.Entr
 	return child, syscall.F_OK
 }
 
-func (n *testDeletedIno) Opendir(ctx context.Context) syscall.Errno {
-	return OK
+var _ NodeOpendirHandler = (*testDeletedIno)(nil)
+
+func (n *testDeletedIno) OpendirHandle(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
+	return &struct{}{}, 0, OK
 }
 
 func (n *testDeletedIno) Getattr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno {
