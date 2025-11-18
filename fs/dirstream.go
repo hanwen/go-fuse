@@ -8,8 +8,10 @@ import (
 	"context"
 	"sync"
 	"syscall"
+	"unsafe"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v2/internal/ioctl"
 	"golang.org/x/sys/unix"
 )
 
@@ -200,6 +202,24 @@ func (ds *loopbackDirStream) Next() (fuse.DirEntry, syscall.Errno) {
 		ds.load()
 	}
 	return res, 0
+}
+
+var _ = (FileIoctler)((*loopbackDirStream)(nil))
+
+func (ds *loopbackDirStream) Ioctl(ctx context.Context, cmd uint32, arg uint64, input []byte, output []byte) (result int32, errno syscall.Errno) {
+	ds.mu.Lock()
+	defer ds.mu.Unlock()
+
+	argWord := uintptr(arg)
+	ioc := ioctl.Command(cmd)
+	if ioc.Read() {
+		argWord = uintptr(unsafe.Pointer(&input[0]))
+	} else if ioc.Write() {
+		argWord = uintptr(unsafe.Pointer(&output[0]))
+	}
+
+	res, _, errno := syscall.Syscall(syscall.SYS_IOCTL, uintptr(ds.fd), uintptr(cmd), argWord)
+	return int32(res), errno
 }
 
 func (ds *loopbackDirStream) load() {
