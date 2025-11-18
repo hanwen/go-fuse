@@ -341,7 +341,7 @@ func flipNoAtime(fd uintptr) (bool, error) {
 	return before, nil
 }
 
-func TestIoctlLoopback(t *testing.T) {
+func TestIoctlLoopbackFile(t *testing.T) {
 	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
 
 	f, err := os.Create(tc.origDir + "/file")
@@ -361,6 +361,36 @@ func TestIoctlLoopback(t *testing.T) {
 	}
 	defer f.Close()
 	after, err := flipNoAtime(f.Fd())
+
+	if after != !before {
+		t.Fatalf("didn't work: after %v, before %v", after, before)
+	}
+}
+
+func TestIoctlLoopbackDir(t *testing.T) {
+	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
+
+	err := os.Mkdir(tc.origDir+"/dir", 0777)
+	if err != nil {
+		t.Fatal(err)
+	}
+	d, err := os.Open(tc.origDir + "/dir")
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, err := flipNoAtime(d.Fd())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	d.Close()
+
+	d, err = os.Open(tc.mntDir + "/dir")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	after, err := flipNoAtime(d.Fd())
 
 	if after != !before {
 		t.Fatalf("didn't work: after %v, before %v", after, before)
