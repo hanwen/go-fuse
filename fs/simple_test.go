@@ -267,28 +267,35 @@ func TestReadDirStress(t *testing.T) {
 
 }
 
-// This test is racy. If an external process consumes space while this
-// runs, we may see spurious differences between the two statfs() calls.
 func TestStatFs(t *testing.T) {
 	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
-
-	empty := syscall.Statfs_t{}
-	orig := empty
-	if err := syscall.Statfs(tc.origDir, &orig); err != nil {
-		t.Fatal("statfs orig", err)
+	var before, after, mnt syscall.Statfs_t
+	if err := syscall.Statfs(tc.origDir, &before); err != nil {
+		t.Fatal("statfs before", err)
 	}
 
-	mnt := syscall.Statfs_t{}
 	if err := syscall.Statfs(tc.mntDir, &mnt); err != nil {
 		t.Fatal("statfs mnt", err)
 	}
 
-	var mntFuse, origFuse fuse.StatfsOut
-	mntFuse.FromStatfsT(&mnt)
-	origFuse.FromStatfsT(&orig)
+	if err := syscall.Statfs(tc.origDir, &after); err != nil {
+		t.Fatal("statfs before", err)
+	}
 
-	if !reflect.DeepEqual(mntFuse, origFuse) {
-		t.Errorf("Got %#v, want %#v", mntFuse, origFuse)
+	var beforeFuse, afterFuse, mntFuse fuse.StatfsOut
+	mntFuse.FromStatfsT(&mnt)
+	beforeFuse.FromStatfsT(&before)
+	afterFuse.FromStatfsT(&after)
+
+	if !reflect.DeepEqual(beforeFuse, afterFuse) {
+		// This test is racy. If an external process consumes
+		// space while this runs, we may see spurious
+		// differences between the two statfs() calls.
+		t.Skipf("FS changed during test run, %v != %v", beforeFuse, afterFuse)
+	}
+
+	if !reflect.DeepEqual(mntFuse, beforeFuse) {
+		t.Errorf("Got %#v, want %#v", mntFuse, beforeFuse)
 	}
 }
 
