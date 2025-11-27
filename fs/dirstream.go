@@ -120,6 +120,7 @@ type loopbackDirStream struct {
 	todo      []byte
 	todoErrno syscall.Errno
 	fd        int
+	inited    bool
 }
 
 // NewLoopbackDirStreamFd reads the directory opened at file descriptor fd as
@@ -129,7 +130,6 @@ func NewLoopbackDirStreamFd(fd int) (DirStream, syscall.Errno) {
 		buf: make([]byte, 4096),
 		fd:  fd,
 	}
-	ds.load()
 	return ds, OK
 }
 
@@ -161,6 +161,7 @@ func (ds *loopbackDirStream) Seekdir(ctx context.Context, off uint64) syscall.Er
 	ds.todo = nil
 	ds.todoErrno = 0
 	ds.load()
+	ds.inited = true
 	return 0
 }
 
@@ -175,6 +176,10 @@ func (ds *loopbackDirStream) Fsyncdir(ctx context.Context, flags uint32) syscall
 func (ds *loopbackDirStream) HasNext() bool {
 	ds.mu.Lock()
 	defer ds.mu.Unlock()
+	if !ds.inited {
+		ds.load()
+		ds.inited = true
+	}
 	return len(ds.todo) > 0 || ds.todoErrno != 0
 }
 
@@ -191,6 +196,11 @@ func (ds *loopbackDirStream) Readdirent(ctx context.Context) (*fuse.DirEntry, sy
 func (ds *loopbackDirStream) Next() (fuse.DirEntry, syscall.Errno) {
 	ds.mu.Lock()
 	defer ds.mu.Unlock()
+
+	if !ds.inited {
+		ds.load()
+		ds.inited = true
+	}
 
 	if ds.todoErrno != 0 {
 		return fuse.DirEntry{}, ds.todoErrno
