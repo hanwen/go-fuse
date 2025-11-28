@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5e810883_21ce12c1",
+        "filename": "fs/dirstream.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-11-28T11:25:55Z",
+      "side": 1,
+      "message": "you could defer the alloc as well, and use (buf !\u003d nil) to mean \u0027initialized\u0027.",
+      "revId": "ec8c56c9c0ae15216984cf7a06779f76f600e27f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
