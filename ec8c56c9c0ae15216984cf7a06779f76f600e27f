@@ -34,6 +34,24 @@
       "parentUuid": "5e810883_21ce12c1",
       "revId": "ec8c56c9c0ae15216984cf7a06779f76f600e27f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "a60a824e_9b8d6c4b",
+        "filename": "fs/dirstream.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1039112
+      },
+      "writtenOn": "2025-12-03T03:50:43Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "66f411ff_dc74493d",
+      "revId": "ec8c56c9c0ae15216984cf7a06779f76f600e27f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
