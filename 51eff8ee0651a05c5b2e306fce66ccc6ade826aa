@@ -16,6 +16,24 @@
       "message": "could you take a look when you have time?",
       "revId": "51eff8ee0651a05c5b2e306fce66ccc6ade826aa",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "bde16b1b_e71b699c",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2025-12-03T07:28:55Z",
+      "side": 1,
+      "message": "```\n--- FAIL: TestDirStreamError (0.00s)\n    --- FAIL: TestDirStreamError/disableReaddirplus\u003dfalse (0.00s)\npanic: runtime error: index out of range [0] with length 0 [recovered, repanicked]\n\ngoroutine 45 [running]:\ntesting.tRunner.func1.2({0x6423e0, 0xc000100228})\n\t/usr/lib/golang/src/testing/testing.go:1872 +0x237\ntesting.tRunner.func1()\n\t/usr/lib/golang/src/testing/testing.go:1875 +0x35b\npanic({0x6423e0?, 0xc000100228?})\n\t/usr/lib/golang/src/runtime/panic.go:783 +0x132\ngithub.com/hanwen/go-fuse/v2/fuse.(*DirEntry).Parse(0xc0000c4280?, {0xc000105000?, 0x0?, 0x4a?})\n\t/home/hanwen/vc/hanwen/go-fuse/fuse/direntry.go:44 +0x197\ngithub.com/hanwen/go-fuse/v2/fs.(*loopbackDirStream).Next(0xc0000c4280)\n\t/home/hanwen/vc/hanwen/go-fuse/fs/dirstream.go:199 +0xf4\ngithub.com/hanwen/go-fuse/v2/fs.TestDirStreamError.func1(0xc000225500)\n\t/home/hanwen/vc/hanwen/go-fuse/fs/dir_test.go:99 +0x3a2\ntesting.tRunner(0xc000225500, 0xc00002e390)\n\t/usr/lib/golang/src/testing/testing.go:1934 +0xea\ncreated by testing.(*T).Run in goroutine 44\n\t/usr/lib/golang/src/testing/testing.go:1997 +0x465\n\n```",
+      "parentUuid": "8269da3c_e0f88f88",
+      "revId": "51eff8ee0651a05c5b2e306fce66ccc6ade826aa",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
