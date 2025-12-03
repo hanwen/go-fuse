@@ -126,10 +126,8 @@ type loopbackDirStream struct {
 // a DirStream
 func NewLoopbackDirStreamFd(fd int) (DirStream, syscall.Errno) {
 	ds := &loopbackDirStream{
-		buf: make([]byte, 4096),
-		fd:  fd,
+		fd: fd,
 	}
-	ds.load()
 	return ds, OK
 }
 
@@ -175,6 +173,7 @@ func (ds *loopbackDirStream) Fsyncdir(ctx context.Context, flags uint32) syscall
 func (ds *loopbackDirStream) HasNext() bool {
 	ds.mu.Lock()
 	defer ds.mu.Unlock()
+	ds.load()
 	return len(ds.todo) > 0 || ds.todoErrno != 0
 }
 
@@ -192,15 +191,13 @@ func (ds *loopbackDirStream) Next() (fuse.DirEntry, syscall.Errno) {
 	ds.mu.Lock()
 	defer ds.mu.Unlock()
 
+	ds.load()
 	if ds.todoErrno != 0 {
 		return fuse.DirEntry{}, ds.todoErrno
 	}
 	var res fuse.DirEntry
 	n := res.Parse(ds.todo)
 	ds.todo = ds.todo[n:]
-	if len(ds.todo) == 0 {
-		ds.load()
-	}
 	return res, 0
 }
 
@@ -223,10 +220,12 @@ func (ds *loopbackDirStream) Ioctl(ctx context.Context, cmd uint32, arg uint64, 
 }
 
 func (ds *loopbackDirStream) load() {
-	if len(ds.todo) > 0 {
+	if len(ds.todo) > 0 || ds.todoErrno != 0 {
 		return
 	}
-
+	if ds.buf == nil {
+		ds.buf = make([]byte, 4096)
+	}
 	n, err := getdents(ds.fd, ds.buf)
 	if n < 0 {
 		n = 0
