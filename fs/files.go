@@ -43,6 +43,7 @@ var _ = (FileFsyncer)((*loopbackFile)(nil))
 var _ = (FileSetattrer)((*loopbackFile)(nil))
 var _ = (FileAllocater)((*loopbackFile)(nil))
 var _ = (FilePassthroughFder)((*loopbackFile)(nil))
+var _ = (FileIoctler)((*loopbackFile)(nil))
 
 func (f *loopbackFile) PassthroughFd() (int, bool) {
 	// This Fd is not accessed concurrently, but lock anyway for uniformity.
