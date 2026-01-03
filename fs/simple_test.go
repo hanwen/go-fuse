@@ -886,3 +886,16 @@ func TestStatx(t *testing.T) {
 		t.Errorf("got, want: %s", diff)
 	}
 }
+
+func TestLChown(t *testing.T) {
+	tc := newTestCase(t, &testOptions{attrCache: false, entryCache: false})
+	// A dangling symlink should not cause lchown to fail with ENOENT.
+	// This is used in apt-get install.
+	if err := os.Symlink("file", tc.origDir+"/link"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.Lchown(tc.mntDir+"/link", 1000, 1000); err != nil {
+		t.Fatal(err)
+	}
+}
