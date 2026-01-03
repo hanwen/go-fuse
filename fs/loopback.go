@@ -437,7 +437,7 @@ func (n *LoopbackNode) Setattr(ctx context.Context, f FileHandle, in *fuse.SetAt
 			if gok {
 				sgid = int(gid)
 			}
-			if err := syscall.Chown(p, suid, sgid); err != nil {
+			if err := syscall.Lchown(p, suid, sgid); err != nil {
 				return ToErrno(err)
 			}
 		}
