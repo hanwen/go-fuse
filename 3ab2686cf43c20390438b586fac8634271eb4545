@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "cf5ec63c_592a3c5d",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2026-01-04T18:46:53Z",
+      "side": 1,
+      "message": "This looks plausible, but it is a long time ago that I wrote this, and I can\u0027t remember why this code is there. Can you write a test that demonstrates that this change works as intended? You\u0027ll need to run the test as root (see `all.bash`).\n\nAlso, should this use fchownat() maybe?",
+      "revId": "3ab2686cf43c20390438b586fac8634271eb4545",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
