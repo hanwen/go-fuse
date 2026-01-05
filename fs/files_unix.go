@@ -11,7 +11,7 @@ import (
 )
 
 // Utimens - file handle based version of loopbackFileSystem.Utimens()
-func (f *loopbackFile) utimens(a *time.Time, m *time.Time) syscall.Errno {
+func (f *LoopbackFile) utimens(a *time.Time, m *time.Time) syscall.Errno {
 	var ts [2]syscall.Timespec
 	ts[0] = fuse.UtimeToTimespec(a)
 	ts[1] = fuse.UtimeToTimespec(m)
