@@ -32,7 +32,7 @@ func setStatxBlocks(out *fuse.Statx) {
 	out.Blocks = pages * 8
 }
 
-func (f *loopbackFile) Statx(ctx context.Context, flags uint32, mask uint32, out *fuse.StatxOut) syscall.Errno {
+func (f *LoopbackFile) Statx(ctx context.Context, flags uint32, mask uint32, out *fuse.StatxOut) syscall.Errno {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	st := unix.Statx_t{}
