@@ -514,11 +514,11 @@ var _ = (NodeCopyFileRanger)((*LoopbackNode)(nil))
 func (n *LoopbackNode) CopyFileRange(ctx context.Context, fhIn FileHandle,
 	offIn uint64, out *Inode, fhOut FileHandle, offOut uint64,
 	len uint64, flags uint64) (uint32, syscall.Errno) {
-	lfIn, ok := fhIn.(*loopbackFile)
+	lfIn, ok := fhIn.(*LoopbackFile)
 	if !ok {
 		return 0, unix.ENOTSUP
 	}
-	lfOut, ok := fhOut.(*loopbackFile)
+	lfOut, ok := fhOut.(*LoopbackFile)
 	if !ok {
 		return 0, unix.ENOTSUP
 	}
