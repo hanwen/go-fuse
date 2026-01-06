@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d4e30edd_9fef7928",
+        "filename": "fs/files.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2026-01-06T10:56:25Z",
+      "side": 1,
+      "message": "Overall, the change is welcome (I\u0027ve struggled with this recently as well), but this line here is not quite backward compatible. would you be OK with leaving this out? You could still get the effect by doing `NewLoopbackFile(fd).(*fs.LoopbackFile)`",
+      "revId": "b927a0e5bf11f4eff50cf1e9ed5912d437b86c98",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
