@@ -287,17 +287,14 @@ type MountOptions struct {
 	// invalidating data cache.
 	ExplicitDataCacheControl bool
 
-	// SyncRead, if set, makes go-fuse enable the
-	// FUSE_CAP_ASYNC_READ capability.
-	// The kernel then submits multiple concurrent reads to service
-	// userspace requests and kernel readahead.
-	//
-	// Setting SyncRead disables the FUSE_CAP_ASYNC_READ capability.
-	// The kernel then only sends one read request per file handle at a time,
-	// and orders the requests by offset.
-	//
-	// This is useful if reading out of order or concurrently is expensive for
+	// SyncRead disables the CAP_ASYNC_READ capability.  The
+	// kernel then only sends one read request per file handle at
+	// a time, and orders the requests by offset.  This is useful
+	// if reading out of order or concurrently is expensive for
 	// (example: Amazon Cloud Drive).
+	//
+	// If unset, multiple concurrent reads may be issued to
+	// service userspace requests and kernel readahead.
 	//
 	// See the comment to FUSE_CAP_ASYNC_READ in
 	// https://github.com/libfuse/libfuse/blob/master/include/fuse_common.h
