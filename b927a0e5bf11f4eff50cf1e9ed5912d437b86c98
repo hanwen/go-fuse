@@ -3,6 +3,29 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "33870beb_b1a5f701",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 1
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2026-01-06T11:13:18Z",
+      "side": 1,
+      "message": "`fs: make LoopbackFile public`.",
+      "range": {
+        "startLine": 7,
+        "startChar": 5,
+        "endLine": 7,
+        "endChar": 19
+      },
+      "revId": "b927a0e5bf11f4eff50cf1e9ed5912d437b86c98",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "d4e30edd_9fef7928",
         "filename": "fs/files.go",
         "patchSetId": 1
