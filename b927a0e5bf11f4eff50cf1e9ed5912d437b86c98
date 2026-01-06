@@ -24,6 +24,30 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "43af1d15_9746930d",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 1
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 1039173
+      },
+      "writtenOn": "2026-01-06T19:49:52Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "33870beb_b1a5f701",
+      "range": {
+        "startLine": 7,
+        "startChar": 5,
+        "endLine": 7,
+        "endChar": 19
+      },
+      "revId": "b927a0e5bf11f4eff50cf1e9ed5912d437b86c98",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "d4e30edd_9fef7928",
@@ -37,6 +61,24 @@
       "writtenOn": "2026-01-06T10:56:25Z",
       "side": 1,
       "message": "Overall, the change is welcome (I\u0027ve struggled with this recently as well), but this line here is not quite backward compatible. would you be OK with leaving this out? You could still get the effect by doing `NewLoopbackFile(fd).(*fs.LoopbackFile)`",
+      "revId": "b927a0e5bf11f4eff50cf1e9ed5912d437b86c98",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "febeb78b_b0abe1a2",
+        "filename": "fs/files.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1039173
+      },
+      "writtenOn": "2026-01-06T19:49:52Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "d4e30edd_9fef7928",
       "revId": "b927a0e5bf11f4eff50cf1e9ed5912d437b86c98",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
