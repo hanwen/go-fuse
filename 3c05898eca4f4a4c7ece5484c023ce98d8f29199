@@ -16,6 +16,24 @@
       "message": "this needs a doc comment now. Also mention how to create an instance",
       "revId": "3c05898eca4f4a4c7ece5484c023ce98d8f29199",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "230f8bff_19657797",
+        "filename": "fs/files.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1039173
+      },
+      "writtenOn": "2026-01-07T20:47:59Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "480bf01d_add51e29",
+      "revId": "3c05898eca4f4a4c7ece5484c023ce98d8f29199",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
