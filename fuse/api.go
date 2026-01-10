@@ -352,9 +352,14 @@ type MountOptions struct {
 	// the mapped UID/GIDs. For all other requests, FUSE will send "-1".
 	IDMappedMount bool
 
-	// DisabledCapabilities is a bitmask, containing capablities (the CAP_* bitmasks) that
-	// must be disabled for the entire mount.
+	// DisabledCapabilities is a bitmask, containing capablities
+	// (the CAP_* bitmasks) that must be disabled for the entire
+	// mount.
 	DisabledCapabilities uint64
+
+	// ExtraCapabilities is a bitmask of capabilities which
+	// must be enabled in addition to the defaults.
+	ExtraCapabilities uint64
 }
 
 // RawFileSystem is an interface close to the FUSE wire protocol.

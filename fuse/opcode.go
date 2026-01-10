@@ -100,7 +100,8 @@ func doInit(server *protocolServer, req *request) {
 	kernelFlags := input.Flags64()
 	server.kernelSettings = *input
 	kernelFlags &= (CAP_ASYNC_READ | CAP_BIG_WRITES | CAP_FILE_OPS |
-		CAP_READDIRPLUS | CAP_NO_OPEN_SUPPORT | CAP_PARALLEL_DIROPS | CAP_MAX_PAGES | CAP_RENAME_SWAP | CAP_PASSTHROUGH | CAP_ALLOW_IDMAP)
+		CAP_READDIRPLUS | CAP_NO_OPEN_SUPPORT | CAP_PARALLEL_DIROPS | CAP_MAX_PAGES | CAP_RENAME_SWAP | CAP_PASSTHROUGH | CAP_ALLOW_IDMAP |
+		server.opts.ExtraCapabilities)
 
 	if server.opts.EnableLocks {
 		kernelFlags |= CAP_FLOCK_LOCKS | CAP_POSIX_LOCKS
