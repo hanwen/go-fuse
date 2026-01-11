@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "6ffc2071_1d4232d6",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2026-01-11T16:07:31Z",
+      "side": 1,
+      "message": "can we exercise this in an appropriate test? Maybe most tests can actually run with options\u003d\u003dnil?",
+      "revId": "65c93687c45d592b13bcabe6d14e011306d10189",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
