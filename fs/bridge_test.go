@@ -279,3 +279,8 @@ func TestNegativeLookupCache(t *testing.T) {
 		}
 	}
 }
+
+// NewNodeFS should not crash with opts=nil
+func TestNewNodeFSNilOpts(t *testing.T) {
+	NewNodeFS(&Inode{}, nil)
+}
