@@ -286,24 +286,26 @@ func (b *rawBridge) setAttrTimeout(out *fuse.AttrOut) {
 
 // NewNodeFS creates a node based filesystem based on the
 // InodeEmbedder instance for the root of the tree.
+// If nil is given as opts, default settings are
+// applied, which are 1 second entry and attribute timeout.
 func NewNodeFS(root InodeEmbedder, opts *Options) fuse.RawFileSystem {
+	if opts == nil {
+		oneSec := time.Second
+		opts = &Options{
+			EntryTimeout: &oneSec,
+			AttrTimeout:  &oneSec,
+		}
+	}
 	bridge := &rawBridge{
 		automaticIno: opts.FirstAutomaticIno,
 		server:       opts.ServerCallbacks,
 		nextNodeId:   2, // the root node has nodeid 1
 		stableAttrs:  make(map[StableAttr]*Inode),
+		options:      *opts,
 	}
 
 	if bridge.automaticIno == 0 {
 		bridge.automaticIno = 1 << 63
-	}
-
-	if opts != nil {
-		bridge.options = *opts
-	} else {
-		oneSec := time.Second
-		bridge.options.EntryTimeout = &oneSec
-		bridge.options.AttrTimeout = &oneSec
 	}
 
 	stableAttr := StableAttr{
