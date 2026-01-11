@@ -10,7 +10,6 @@ import (
 	"runtime/debug"
 	"sync"
 	"syscall"
-	"time"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
 	"github.com/hanwen/go-fuse/v2/internal"
@@ -290,11 +289,7 @@ func (b *rawBridge) setAttrTimeout(out *fuse.AttrOut) {
 // applied, which are 1 second entry and attribute timeout.
 func NewNodeFS(root InodeEmbedder, opts *Options) fuse.RawFileSystem {
 	if opts == nil {
-		oneSec := time.Second
-		opts = &Options{
-			EntryTimeout: &oneSec,
-			AttrTimeout:  &oneSec,
-		}
+		opts = DefaultOptions()
 	}
 	bridge := &rawBridge{
 		automaticIno: opts.FirstAutomaticIno,
@@ -305,7 +300,7 @@ func NewNodeFS(root InodeEmbedder, opts *Options) fuse.RawFileSystem {
 	}
 
 	if bridge.automaticIno == 0 {
-		bridge.automaticIno = 1 << 63
+		bridge.automaticIno = DefaultOptions().FirstAutomaticIno
 	}
 
 	stableAttr := StableAttr{

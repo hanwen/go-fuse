@@ -244,8 +244,7 @@ func (n *syncNode) OpendirHandle(ctx context.Context, flags uint32) (FileHandle,
 
 func TestFsyncDir(t *testing.T) {
 	root := &syncNode{}
-	opts := Options{}
-	mnt, _ := testMount(t, root, &opts)
+	mnt, _ := testMount(t, root, nil)
 
 	fd, err := syscall.Open(mnt, syscall.O_DIRECTORY, 0)
 	if err != nil {
