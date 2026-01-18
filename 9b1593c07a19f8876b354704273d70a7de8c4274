@@ -16,6 +16,24 @@
       "message": "I now wonder if EntryTimeout and AttrTimeout should default to one second if nil.\n\nBut right now, AFAICS in the code, nil is equivalent to zero.\n\nChanging this would be an API change.",
       "revId": "9b1593c07a19f8876b354704273d70a7de8c4274",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "81dbc7f7_f7129406",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2026-01-18T16:20:41Z",
+      "side": 1,
+      "message": "\u003eBut right now, AFAICS in the code, nil is equivalent to zero.\n\nI don\u0027t remember why it\u0027s like this.  My best guess is that I wanted to do this all along, but then I forgot the bit of actually setting it to one if it is nil.\n\nIf we changed it in this way, we could also avoid the DefaultSettings() that your other change has.",
+      "parentUuid": "eb1973df_6cd46563",
+      "revId": "9b1593c07a19f8876b354704273d70a7de8c4274",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
