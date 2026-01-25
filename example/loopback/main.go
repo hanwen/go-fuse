@@ -16,7 +16,6 @@ import (
 	"path"
 	"runtime/pprof"
 	"syscall"
-	"time"
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
@@ -92,13 +91,7 @@ func main() {
 		log.Fatalf("NewLoopbackRoot(%s): %v\n", orig, err)
 	}
 
-	sec := time.Second
 	opts := &fs.Options{
-		// The timeout options are to be compatible with libfuse defaults,
-		// making benchmarking easier.
-		AttrTimeout:  &sec,
-		EntryTimeout: &sec,
-
 		NullPermissions: true, // Leave file permissions on "000" files as-is
 
 		MountOptions: fuse.MountOptions{
