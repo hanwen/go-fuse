@@ -113,9 +113,8 @@
 // Unsuccessful entry lookups can also be cached by setting an entry
 // timeout when Lookup returns ENOENT.
 //
-// The libfuse C library specifies 1 second timeouts for both
-// attribute and directory entries, but no timeout for negative
-// entries. by default. This can be achieve in go-fuse by setting
+// The default is 1 second timeouts for both attribute and directory
+// entries, but no timeout for negative entries. This is default for
 // options on mount, eg.
 //
 //	sec := time.Second
@@ -766,18 +765,19 @@ type Options struct {
 	fuse.MountOptions
 
 	// EntryTimeout, if non-nil, defines the overall entry timeout
-	// for the file system. See [fuse.EntryOut] for more information.
+	// for the file system. See [fuse.EntryOut] for more
+	// information. If nil, a default 1 second timeout is used.
 	EntryTimeout *time.Duration
 
 	// AttrTimeout, if non-nil, defines the overall attribute
 	// timeout for the file system. See [fuse.AttrOut] for more
-	// information.
+	// information.  If nil, a default 1 second timeout is used.
 	AttrTimeout *time.Duration
 
 	// NegativeTimeout, if non-nil, defines the overall entry timeout
 	// for failed lookups (fuse.ENOENT). See [fuse.EntryOut] for
 	// more information.
-	NegativeTimeout *time.Duration
+	NegativeTimeout *time.Duration // wart: this could have been pointerless.
 
 	// FirstAutomaticIno is start of the automatic inode numbers that are handed
 	// out sequentially.

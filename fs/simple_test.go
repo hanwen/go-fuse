@@ -94,15 +94,13 @@ func newTestCase(t *testing.T, opts *testOptions) *testCase {
 		t.Fatalf("NewLoopback: %v", err)
 	}
 
-	oneSec := time.Second
-
-	attrDT := &oneSec
+	var attrDT, entryDT *time.Duration
+	var zero time.Duration
 	if !opts.attrCache {
-		attrDT = nil
+		attrDT = &zero
 	}
-	entryDT := &oneSec
 	if !opts.entryCache {
-		entryDT = nil
+		entryDT = &zero
 	}
 	tc.rawFS = NewNodeFS(tc.loopback, &Options{
 		EntryTimeout: entryDT,

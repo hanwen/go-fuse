@@ -290,11 +290,15 @@ func (b *rawBridge) setAttrTimeout(out *fuse.AttrOut) {
 // applied, which are 1 second entry and attribute timeout.
 func NewNodeFS(root InodeEmbedder, opts *Options) fuse.RawFileSystem {
 	if opts == nil {
-		oneSec := time.Second
-		opts = &Options{
-			EntryTimeout: &oneSec,
-			AttrTimeout:  &oneSec,
-		}
+		opts = &Options{}
+	}
+
+	oneSec := time.Second
+	if opts.EntryTimeout == nil {
+		opts.EntryTimeout = &oneSec
+	}
+	if opts.AttrTimeout == nil {
+		opts.AttrTimeout = &oneSec
 	}
 	bridge := &rawBridge{
 		automaticIno: opts.FirstAutomaticIno,
