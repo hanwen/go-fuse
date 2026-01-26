@@ -355,6 +355,9 @@ type MountOptions struct {
 	// DisabledCapabilities is a bitmask, containing capablities (the CAP_* bitmasks) that
 	// must be disabled for the entire mount.
 	DisabledCapabilities uint64
+
+	// LatencyMap, if set, enables latency tracking for various operations.
+	LatencyMap LatencyMap
 }
 
 // RawFileSystem is an interface close to the FUSE wire protocol.
