@@ -218,6 +218,7 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 			fileSystem:  fs,
 			retrieveTab: make(map[uint64]*retrieveCacheRequest),
 			opts:        &o,
+			latencies:   o.LatencyMap,
 		},
 		opts:         &o,
 		maxReaders:   maxReaders,

@@ -360,6 +360,9 @@ type MountOptions struct {
 	// ExtraCapabilities is a bitmask of capabilities which
 	// must be enabled in addition to the defaults.
 	ExtraCapabilities uint64
+
+	// LatencyMap, if set, enables latency tracking for various operations.
+	LatencyMap LatencyMap
 }
 
 // RawFileSystem is an interface close to the FUSE wire protocol.
