@@ -35,6 +35,24 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "6576e9f2_6f4ac37c",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2026-01-31T21:41:54Z",
+      "side": 1,
+      "message": "I was worried about an edge case, but it\u0027s not a problem; documented in the commit message.",
+      "parentUuid": "f4a5ddbc_63a9e56d",
+      "revId": "5021fcf299afc20c147c895201663bd102e4458e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "b7250e49_b3706a79",
@@ -48,6 +66,24 @@
       "writtenOn": "2026-01-25T19:02:47Z",
       "side": 1,
       "message": "Drop oneSec, start with attrDT\u003dnil?",
+      "revId": "5021fcf299afc20c147c895201663bd102e4458e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "bf25da51_e3177190",
+        "filename": "fs/simple_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 99,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2026-01-31T21:41:54Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b7250e49_b3706a79",
       "revId": "5021fcf299afc20c147c895201663bd102e4458e",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
