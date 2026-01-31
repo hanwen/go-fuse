@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9c06b93e_9b57451e",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2026-01-31T21:18:24Z",
+      "side": 1,
+      "message": "you are right that `RecordLatencies()` is unsound, but I am unhappy about the feature overall, and would rather leave it alone. Do you really need this? You could track at the fuse.RawFilesystem level instead.",
+      "revId": "0294901a4df052c88a44ce5bbc91b15b88c12bb0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
