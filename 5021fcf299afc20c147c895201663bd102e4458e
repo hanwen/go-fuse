@@ -53,6 +53,24 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "f65efb52_959f05e0",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007981
+      },
+      "writtenOn": "2026-02-01T20:59:44Z",
+      "side": 1,
+      "message": "Oh, right.\n\nCan\u0027t we populate fuse.EntryOut with the default before passing it to the fs? Then the fs can overwrite the default selectively.",
+      "parentUuid": "6576e9f2_6f4ac37c",
+      "revId": "5021fcf299afc20c147c895201663bd102e4458e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "b7250e49_b3706a79",
