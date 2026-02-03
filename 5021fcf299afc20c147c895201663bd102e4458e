@@ -71,6 +71,24 @@
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "d4b04dbc_46cf6ebb",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2026-02-03T07:44:27Z",
+      "side": 1,
+      "message": "that would wreak havoc with the negative TTL: if lookup() returns ENOENT, you have to overwrite the TTL, but we don\u0027t know if it was put in on purpose, or just the untouched default.",
+      "parentUuid": "f65efb52_959f05e0",
+      "revId": "5021fcf299afc20c147c895201663bd102e4458e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "b7250e49_b3706a79",
