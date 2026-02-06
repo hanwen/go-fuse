@@ -270,7 +270,7 @@ func maxPageLimit() (lim int) {
 		return lim
 	}
 
-	newLim, err := strconv.Atoi(string(d))
+	newLim, err := strconv.Atoi(strings.TrimSpace(string(d)))
 	if err != nil {
 		return lim
 	}
