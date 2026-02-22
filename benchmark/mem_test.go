@@ -45,6 +45,10 @@ func (md *memDir) Create(ctx context.Context, name string, flags uint32, mode ui
 }
 
 func TestBenchmarkMemFSFio(t *testing.T) {
+	fioBin, err := exec.LookPath("fio")
+	if err != nil {
+		t.Skipf("fio not found: %v", err)
+	}
 	root := &memDir{}
 	mnt := t.TempDir()
 
@@ -63,7 +67,7 @@ func TestBenchmarkMemFSFio(t *testing.T) {
 	srv.WaitMount()
 
 	mode := "read"
-	cmd := exec.Command("fio", "--directory="+mnt,
+	cmd := exec.Command(fioBin, "--directory="+mnt,
 		"--rw="+mode, "--name="+mode,
 		"--bs=128k", "--size=1G", "--direct=1")
 	cmd.Stdout = os.Stdout
