@@ -1082,7 +1082,23 @@ func (b *rawBridge) readDirMaybeLookup(cancel <-chan struct{}, input *fuse.ReadI
 	n, f := b.inode(input.NodeId, input.Fh)
 
 	direnter, ok := f.file.(FileReaddirenter)
-	if !ok {
+	if input.Fh == 0 {
+		// When filesystems opt out of OPENDIR/RELEASEDIR by returning
+		// ENOSYS to OPENDIR, the kernel sends READDIR/READDIRPLUS with fh=0.
+		var ctor func(context.Context) (DirStream, syscall.Errno)
+		if nrd, nrdOk := n.ops.(NodeReaddirer); nrdOk {
+			ctor = func(ctx context.Context) (DirStream, syscall.Errno) {
+				return nrd.Readdir(ctx)
+			}
+		} else {
+			ctor = func(ctx context.Context) (DirStream, syscall.Errno) {
+				return n.childrenAsDirstream(), 0
+			}
+		}
+		dsf := &dirStreamAsFile{creator: ctor}
+		direnter = dsf
+		f = &fileEntry{file: dsf}
+	} else if !ok {
 		return fuse.OK
 	}
 	getdent := direnter.Readdirent
