@@ -875,3 +875,7 @@ func (o *StatxOut) SetTimeout(dt time.Duration) {
 	o.AttrValidNsec = uint32(ns % 1e9)
 	o.AttrValid = uint64(ns / 1e9)
 }
+
+type CopyFileRangeOut struct {
+	BytesCopied uint64
+}

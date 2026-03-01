@@ -60,11 +60,12 @@ const (
 	_OP_LSEEK           = uint32(46) // protocol version 24
 	_OP_COPY_FILE_RANGE = uint32(47) // protocol version 28.
 
-	_OP_SETUPMAPPING  = 48
-	_OP_REMOVEMAPPING = 49
-	_OP_SYNCFS        = 50
-	_OP_TMPFILE       = 51
-	_OP_STATX         = 52
+	_OP_SETUPMAPPING       = 48
+	_OP_REMOVEMAPPING      = 49
+	_OP_SYNCFS             = 50
+	_OP_TMPFILE            = 51
+	_OP_STATX              = 52
+	_OP_COPY_FILE_RANGE_64 = 53
 
 	// The following entries don't have to be compatible across Go-FUSE versions.
 	_OP_NOTIFY_INVAL_ENTRY    = uint32(100)
@@ -592,6 +593,7 @@ func init() {
 		_OP_REMOVEMAPPING:         "REMOVEMAPPING",
 		_OP_SYNCFS:                "SYNCFS",
 		_OP_TMPFILE:               "TMPFILE",
+		_OP_COPY_FILE_RANGE_64:    "COPY_FILE_RANGE64",
 	} {
 		operationHandlers[op].Name = v
 	}
@@ -673,6 +675,7 @@ func init() {
 		_OP_STATFS:                StatfsOut{},
 		_OP_SYMLINK:               EntryOut{},
 		_OP_WRITE:                 WriteOut{},
+		_OP_COPY_FILE_RANGE_64:    CopyFileRangeOut{},
 	} {
 		operationHandlers[op].OutType = f
 		operationHandlers[op].OutputSize = typSize(f)
@@ -680,43 +683,44 @@ func init() {
 
 	// Inputs.
 	for op, f := range map[uint32]interface{}{
-		_OP_ACCESS:          AccessIn{},
-		_OP_BATCH_FORGET:    _BatchForgetIn{},
-		_OP_BMAP:            _BmapIn{},
-		_OP_COPY_FILE_RANGE: CopyFileRangeIn{},
-		_OP_CREATE:          CreateIn{},
-		_OP_FALLOCATE:       FallocateIn{},
-		_OP_FLUSH:           FlushIn{},
-		_OP_FORGET:          ForgetIn{},
-		_OP_FSYNC:           FsyncIn{},
-		_OP_FSYNCDIR:        FsyncIn{},
-		_OP_GETATTR:         GetAttrIn{},
-		_OP_GETLK:           LkIn{},
-		_OP_GETXATTR:        GetXAttrIn{},
-		_OP_INIT:            InitIn{},
-		_OP_INTERRUPT:       InterruptIn{},
-		_OP_IOCTL:           IoctlIn{},
-		_OP_LINK:            LinkIn{},
-		_OP_LISTXATTR:       GetXAttrIn{},
-		_OP_LSEEK:           LseekIn{},
-		_OP_MKDIR:           MkdirIn{},
-		_OP_MKNOD:           MknodIn{},
-		_OP_NOTIFY_REPLY:    NotifyRetrieveIn{},
-		_OP_OPEN:            OpenIn{},
-		_OP_OPENDIR:         OpenIn{},
-		_OP_POLL:            _PollIn{},
-		_OP_READ:            ReadIn{},
-		_OP_READDIR:         ReadIn{},
-		_OP_READDIRPLUS:     ReadIn{},
-		_OP_RELEASE:         ReleaseIn{},
-		_OP_RELEASEDIR:      ReleaseIn{},
-		_OP_RENAME2:         RenameIn{},
-		_OP_RENAME:          Rename1In{},
-		_OP_SETATTR:         SetAttrIn{},
-		_OP_SETLK:           LkIn{},
-		_OP_SETLKW:          LkIn{},
-		_OP_SETXATTR:        SetXAttrIn{},
-		_OP_WRITE:           WriteIn{},
+		_OP_ACCESS:             AccessIn{},
+		_OP_BATCH_FORGET:       _BatchForgetIn{},
+		_OP_BMAP:               _BmapIn{},
+		_OP_COPY_FILE_RANGE:    CopyFileRangeIn{},
+		_OP_CREATE:             CreateIn{},
+		_OP_FALLOCATE:          FallocateIn{},
+		_OP_FLUSH:              FlushIn{},
+		_OP_FORGET:             ForgetIn{},
+		_OP_FSYNC:              FsyncIn{},
+		_OP_FSYNCDIR:           FsyncIn{},
+		_OP_GETATTR:            GetAttrIn{},
+		_OP_GETLK:              LkIn{},
+		_OP_GETXATTR:           GetXAttrIn{},
+		_OP_INIT:               InitIn{},
+		_OP_INTERRUPT:          InterruptIn{},
+		_OP_IOCTL:              IoctlIn{},
+		_OP_LINK:               LinkIn{},
+		_OP_LISTXATTR:          GetXAttrIn{},
+		_OP_LSEEK:              LseekIn{},
+		_OP_MKDIR:              MkdirIn{},
+		_OP_MKNOD:              MknodIn{},
+		_OP_NOTIFY_REPLY:       NotifyRetrieveIn{},
+		_OP_OPEN:               OpenIn{},
+		_OP_OPENDIR:            OpenIn{},
+		_OP_POLL:               _PollIn{},
+		_OP_READ:               ReadIn{},
+		_OP_READDIR:            ReadIn{},
+		_OP_READDIRPLUS:        ReadIn{},
+		_OP_RELEASE:            ReleaseIn{},
+		_OP_RELEASEDIR:         ReleaseIn{},
+		_OP_RENAME2:            RenameIn{},
+		_OP_RENAME:             Rename1In{},
+		_OP_SETATTR:            SetAttrIn{},
+		_OP_SETLK:              LkIn{},
+		_OP_SETLKW:             LkIn{},
+		_OP_SETXATTR:           SetXAttrIn{},
+		_OP_WRITE:              WriteIn{},
+		_OP_COPY_FILE_RANGE_64: CopyFileRangeIn{},
 	} {
 		operationHandlers[op].InType = f
 		sz := typSize(f)
