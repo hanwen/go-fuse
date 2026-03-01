@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
@@ -650,6 +651,7 @@ func newNotifyRequest(opcode uint32) *request {
 			_OP_NOTIFY_STORE_CACHE:    NOTIFY_STORE_CACHE,
 			_OP_NOTIFY_RETRIEVE_CACHE: NOTIFY_RETRIEVE_CACHE,
 			_OP_NOTIFY_DELETE:         NOTIFY_DELETE,
+			_OP_NOTIFY_PRUNE:          NOTIFY_PRUNE,
 		}[opcode],
 	}
 	r.inHeader().Opcode = opcode
@@ -669,6 +671,27 @@ func (ms *Server) InodeNotify(node uint64, off int64, length int64) Status {
 	entry.Ino = node
 	entry.Off = off
 	entry.Length = length
+
+	return ms.notifyWrite(req)
+}
+
+func (ms *Server) PruneNotify(nodes []uint64) Status {
+	if !ms.kernelSettings.SupportsNotify(NOTIFY_INVAL_INODE) {
+		return ENOSYS
+	}
+
+	req := newNotifyRequest(_OP_NOTIFY_PRUNE)
+
+	entry := (*NotifyPruneOut)(req.outData())
+	entry.Count = uint32(len(nodes))
+
+	h := &reflect.SliceHeader{
+		Data: uintptr(unsafe.Pointer(&nodes[0])),
+		Len:  int(8 * entry.Count),
+		Cap:  int(8 * entry.Count),
+	}
+
+	req.outPayload = *(*[]byte)(unsafe.Pointer(h))
 
 	return ms.notifyWrite(req)
 }
@@ -899,6 +922,8 @@ func (in *InitIn) SupportsNotify(notifyType int) bool {
 		return in.SupportsVersion(7, 15)
 	case NOTIFY_DELETE:
 		return in.SupportsVersion(7, 18)
+	case NOTIFY_PRUNE:
+		return in.SupportsVersion(7, 45)
 	}
 	return false
 }

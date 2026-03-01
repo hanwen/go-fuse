@@ -72,8 +72,9 @@ const (
 	_OP_NOTIFY_STORE_CACHE    = uint32(102)
 	_OP_NOTIFY_RETRIEVE_CACHE = uint32(103)
 	_OP_NOTIFY_DELETE         = uint32(104) // protocol version 18
+	_OP_NOTIFY_PRUNE          = uint32(105) // protocol version 45
 
-	_OPCODE_COUNT = uint32(105)
+	_OPCODE_COUNT = uint32(106)
 
 	// Constants from Linux kernel fs/fuse/fuse_i.h
 	// Default MaxPages value in all kernel versions
@@ -653,6 +654,7 @@ func init() {
 		_OP_NOTIFY_INVAL_INODE:    NotifyInvalInodeOut{},
 		_OP_NOTIFY_RETRIEVE_CACHE: NotifyRetrieveOut{},
 		_OP_NOTIFY_STORE_CACHE:    NotifyStoreOut{},
+		_OP_NOTIFY_PRUNE:          NotifyPruneOut{},
 		_OP_OPEN:                  OpenOut{},
 		_OP_OPENDIR:               OpenOut{},
 		_OP_POLL:                  _PollOut{},

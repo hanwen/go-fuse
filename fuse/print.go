@@ -327,6 +327,10 @@ func (i *NotifyRetrieveIn) string() string {
 	return fmt.Sprintf("{[%d +%d)}", i.Offset, i.Size)
 }
 
+func (o *NotifyPruneOut) string() string {
+	return fmt.Sprintf("{%d}", o.Count)
+}
+
 func (f *FallocateIn) string() string {
 	return fmt.Sprintf("{Fh %d [%d +%d) mod 0%o}",
 		f.Fh, f.Offset, f.Length, f.Mode)

@@ -229,6 +229,50 @@ func TestNotifyEntry(t *testing.T) {
 	}
 }
 
+type forgetNode struct {
+	Inode
+	forgetCalled uint32
+}
+
+func (n *forgetNode) OnForget() {
+	atomic.AddUint32(&n.forgetCalled, 1)
+}
+
+func TestNotifyPrune(t *testing.T) {
+	mnt := t.TempDir()
+	root := &Inode{}
+	forgetter := &forgetNode{}
+	opts := &Options{
+		OnAdd: func(ctx context.Context) {
+			child := root.NewInode(ctx, forgetter, StableAttr{})
+			root.AddChild("file", child, true)
+		},
+	}
+
+	opts.Debug = testutil.VerboseTest()
+	srv, err := Mount(mnt, root, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	st := syscall.Stat_t{}
+	fn := filepath.Join(mnt, "file")
+	if err := syscall.Lstat(fn, &st); err != nil {
+		t.Fatalf("Lstat before: %v", err)
+	}
+
+	if errno := root.NotifyPrune([]*Inode{forgetter.EmbeddedInode()}); errno != 0 {
+		t.Errorf("notify failed: %v", errno)
+	}
+	time.Sleep(10 * time.Millisecond)
+	if err := srv.Unmount(); err != nil {
+		t.Fatal(err)
+	}
+	if forgetter.forgetCalled != 1 {
+		t.Errorf("forgetCalled=%d", forgetter.forgetCalled)
+	}
+}
+
 func TestReadDirStress(t *testing.T) {
 	tc := newTestCase(t, &testOptions{suppressDebug: true, attrCache: true, entryCache: true})
 

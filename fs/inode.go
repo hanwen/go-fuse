@@ -734,6 +734,19 @@ func (n *Inode) NotifyEntry(name string) syscall.Errno {
 	return syscall.Errno(status)
 }
 
+// NotifyPrune instructs the kernel to forget the inodes passed as
+// argument. The kernel will issue FORGET requests as far as possible
+// in response.  If the receiver Inode must be forgotten too it must
+// be included in the argument separately.
+func (n *Inode) NotifyPrune(nodes []*Inode) syscall.Errno {
+	ids := make([]uint64, 0, len(nodes))
+	for _, n := range nodes {
+		ids = append(ids, n.nodeId)
+	}
+	status := n.bridge.server.(*fuse.Server).PruneNotify(ids)
+	return syscall.Errno(status)
+}
+
 // NotifyDelete notifies the kernel that the given inode was removed
 // from this directory as entry under the given name. It is equivalent
 // to NotifyEntry, but also sends an event to inotify watchers.
