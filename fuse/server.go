@@ -646,7 +646,17 @@ func (ms *Server) writev(iov [][]byte) (int, syscall.Errno) {
 	ms.writeMu.Lock()
 	defer ms.writeMu.Unlock()
 	n, err := unix.Writev(ms.mountFd, iov)
-	return n, err.(syscall.Errno)
+
+	var errno syscall.Errno
+	if err != nil {
+		errno = err.(syscall.Errno)
+		if errno == syscall.EINVAL {
+			// Detail: the kernel returns EINVAL for unsupported
+			// notify methods.
+			errno = syscall.ENOSYS
+		}
+	}
+	return n, errno
 }
 
 func (ms *Server) notifyWrite(req *request) Status {
@@ -674,10 +684,6 @@ func newNotifyRequest(opcode uint32) *request {
 // InodeNotify invalidates the information associated with the inode
 // (ie. data cache, attributes, etc.)
 func (ms *Server) InodeNotify(node uint64, off int64, length int64) Status {
-	if !ms.kernelSettings.SupportsNotify(NOTIFY_INVAL_INODE) {
-		return ENOSYS
-	}
-
 	req := newNotifyRequest(_OP_NOTIFY_INVAL_INODE)
 
 	entry := (*NotifyInvalInodeOut)(req.outData())
@@ -714,10 +720,6 @@ func (ms *Server) PruneNotify(nodes []uint64) Status {
 // This call is similar to InodeNotify, but instead of only invalidating a data
 // region, it gives updated data directly to the kernel.
 func (ms *Server) InodeNotifyStoreCache(node uint64, offset int64, data []byte) Status {
-	if !ms.kernelSettings.SupportsNotify(NOTIFY_STORE_CACHE) {
-		return ENOSYS
-	}
-
 	for len(data) > 0 {
 		size := len(data)
 		if size > math.MaxInt32 {
@@ -794,10 +796,6 @@ func (ms *Server) InodeRetrieveCache(node uint64, offset int64, dest []byte) (n 
 // inodeRetrieveCache1 is internal worker for InodeRetrieveCache which
 // actually talks to kernel and retrieves chunks not larger than ms.opts.MaxWrite.
 func (ms *Server) inodeRetrieveCache1(node uint64, offset int64, dest []byte) (n int, st Status) {
-	if !ms.kernelSettings.SupportsNotify(NOTIFY_RETRIEVE_CACHE) {
-		return 0, ENOSYS
-	}
-
 	req := newNotifyRequest(_OP_NOTIFY_RETRIEVE_CACHE)
 
 	// retrieve up to 2GB not to overflow uint32 size in NotifyRetrieveOut.
@@ -874,10 +872,6 @@ type retrieveCacheRequest struct {
 // some process. You should not hold any FUSE filesystem locks, as that
 // can lead to deadlock.
 func (ms *Server) DeleteNotify(parent uint64, child uint64, name string) Status {
-	if ms.kernelSettings.Minor < 18 {
-		return ms.EntryNotify(parent, name)
-	}
-
 	req := newNotifyRequest(_OP_NOTIFY_DELETE)
 
 	entry := (*NotifyInvalDeleteOut)(req.outData())
@@ -899,9 +893,6 @@ func (ms *Server) DeleteNotify(parent uint64, child uint64, name string) Status 
 // within a directory changes. You should not hold any FUSE filesystem
 // locks, as that can lead to deadlock.
 func (ms *Server) EntryNotify(parent uint64, name string) Status {
-	if !ms.kernelSettings.SupportsNotify(NOTIFY_INVAL_ENTRY) {
-		return ENOSYS
-	}
 	req := newNotifyRequest(_OP_NOTIFY_INVAL_ENTRY)
 	entry := (*NotifyInvalEntryOut)(req.outData())
 	entry.Parent = parent
