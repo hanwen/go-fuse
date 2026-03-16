@@ -326,7 +326,7 @@ func TestStatFs(t *testing.T) {
 	}
 
 	if err := syscall.Statfs(tc.origDir, &after); err != nil {
-		t.Fatal("statfs before", err)
+		t.Fatal("statfs after", err)
 	}
 
 	var beforeFuse, afterFuse, mntFuse fuse.StatfsOut
