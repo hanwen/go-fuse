@@ -19,6 +19,8 @@ import (
 	"syscall"
 	"time"
 	"unsafe"
+
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -622,23 +624,34 @@ func (ms *Server) handleRequest(req *requestAlloc) Status {
 	return errno
 }
 
-func (ms *Server) notifyWrite(req *request) Status {
+func notifyWrite(writev func([][]byte) (int, syscall.Errno), opts *MountOptions, req *request) Status {
 	req.serializeHeader(req.outPayloadSize())
 
-	if ms.opts.Debug {
-		ms.opts.Logger.Println(req.OutputDebug())
+	if opts.Debug {
+		opts.Logger.Println(req.OutputDebug())
 	}
 
+	_, errno := writev([][]byte{req.outputBuf, req.outPayload})
+
+	if opts.Debug {
+		h := getHandler(req.inHeader().Opcode)
+		opts.Logger.Printf("Response %s: %v", h.Name, errno)
+	}
+
+	return Status(errno)
+}
+
+func (ms *Server) writev(iov [][]byte) (int, syscall.Errno) {
 	// Protect against concurrent close.
 	ms.writeMu.Lock()
-	result := ms.write(req)
-	ms.writeMu.Unlock()
+	defer ms.writeMu.Unlock()
+	n, err := unix.Writev(ms.mountFd, iov)
+	return n, err.(syscall.Errno)
+}
 
-	if ms.opts.Debug {
-		h := getHandler(req.inHeader().Opcode)
-		ms.opts.Logger.Printf("Response %s: %v", h.Name, result)
-	}
-	return result
+func (ms *Server) notifyWrite(req *request) Status {
+	errno := notifyWrite(ms.writev, ms.opts, req)
+	return Status(errno)
 }
 
 func newNotifyRequest(opcode uint32) *request {
