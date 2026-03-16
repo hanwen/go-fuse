@@ -6,6 +6,8 @@ package fuse
 
 import (
 	"syscall"
+
+	"golang.org/x/sys/unix"
 )
 
 const useSingleReader = false
@@ -32,7 +34,7 @@ func (ms *Server) write(req *request) Status {
 		req.serializeHeader(len(req.outPayload))
 	}
 
-	_, err := writev(ms.mountFd, [][]byte{req.outputBuf, req.outPayload})
+	_, err := unix.Writev(ms.mountFd, [][]byte{req.outputBuf, req.outPayload})
 	if req.readResult != nil {
 		req.readResult.Done()
 	}
