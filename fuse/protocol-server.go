@@ -6,11 +6,14 @@ package fuse
 
 import (
 	"sync"
+	"syscall"
 )
 
 // protocolServer bridges from the FUSE datatypes to a RawFileSystem
 type protocolServer struct {
 	fileSystem RawFileSystem
+
+	writev func([][]byte) (int, syscall.Errno)
 
 	interruptMu    sync.Mutex
 	reqInflight    []*request
