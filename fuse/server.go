@@ -227,6 +227,8 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		singleReader: useSingleReader,
 		ready:        make(chan error, 1),
 	}
+
+	ms.protocolServer.writev = ms.writev
 	ms.reqPool.New = func() interface{} {
 		return &requestAlloc{
 			request: request{
@@ -659,7 +661,10 @@ func (ms *Server) writev(iov [][]byte) (int, syscall.Errno) {
 	return n, errno
 }
 
-func (ms *Server) notifyWrite(req *request) Status {
+func (ms *protocolServer) notifyWrite(req *request) Status {
+	if ms.writev == nil {
+		return ENOSYS
+	}
 	errno := notifyWrite(ms.writev, ms.opts, req)
 	return Status(errno)
 }
@@ -683,7 +688,7 @@ func newNotifyRequest(opcode uint32) *request {
 
 // InodeNotify invalidates the information associated with the inode
 // (ie. data cache, attributes, etc.)
-func (ms *Server) InodeNotify(node uint64, off int64, length int64) Status {
+func (ms *protocolServer) InodeNotify(node uint64, off int64, length int64) Status {
 	req := newNotifyRequest(_OP_NOTIFY_INVAL_INODE)
 
 	entry := (*NotifyInvalInodeOut)(req.outData())
@@ -719,7 +724,7 @@ func (ms *Server) PruneNotify(nodes []uint64) Status {
 //
 // This call is similar to InodeNotify, but instead of only invalidating a data
 // region, it gives updated data directly to the kernel.
-func (ms *Server) InodeNotifyStoreCache(node uint64, offset int64, data []byte) Status {
+func (ms *protocolServer) InodeNotifyStoreCache(node uint64, offset int64, data []byte) Status {
 	for len(data) > 0 {
 		size := len(data)
 		if size > math.MaxInt32 {
@@ -743,7 +748,7 @@ func (ms *Server) InodeNotifyStoreCache(node uint64, offset int64, data []byte) 
 
 // inodeNotifyStoreCache32 is internal worker for InodeNotifyStoreCache which
 // handles data chunks not larger than 2GB.
-func (ms *Server) inodeNotifyStoreCache32(node uint64, offset int64, data []byte) Status {
+func (ms *protocolServer) inodeNotifyStoreCache32(node uint64, offset int64, data []byte) Status {
 	req := newNotifyRequest(_OP_NOTIFY_STORE_CACHE)
 
 	store := (*NotifyStoreOut)(req.outData())
@@ -765,7 +770,7 @@ func (ms *Server) inodeNotifyStoreCache32(node uint64, offset int64, data []byte
 //
 // The kernel returns ENOENT if it does not currently have entry for this inode
 // in its dentry cache.
-func (ms *Server) InodeRetrieveCache(node uint64, offset int64, dest []byte) (n int, st Status) {
+func (ms *protocolServer) InodeRetrieveCache(node uint64, offset int64, dest []byte) (n int, st Status) {
 	// the kernel won't send us in one go more then what we negotiated as MaxWrite.
 	// retrieve the data in chunks.
 	// TODO spawn some number of readahead retrievers in parallel.
@@ -795,7 +800,7 @@ func (ms *Server) InodeRetrieveCache(node uint64, offset int64, dest []byte) (n 
 
 // inodeRetrieveCache1 is internal worker for InodeRetrieveCache which
 // actually talks to kernel and retrieves chunks not larger than ms.opts.MaxWrite.
-func (ms *Server) inodeRetrieveCache1(node uint64, offset int64, dest []byte) (n int, st Status) {
+func (ms *protocolServer) inodeRetrieveCache1(node uint64, offset int64, dest []byte) (n int, st Status) {
 	req := newNotifyRequest(_OP_NOTIFY_RETRIEVE_CACHE)
 
 	// retrieve up to 2GB not to overflow uint32 size in NotifyRetrieveOut.
@@ -871,7 +876,7 @@ type retrieveCacheRequest struct {
 // except when the directory is in use, eg. as working directory of
 // some process. You should not hold any FUSE filesystem locks, as that
 // can lead to deadlock.
-func (ms *Server) DeleteNotify(parent uint64, child uint64, name string) Status {
+func (ms *protocolServer) DeleteNotify(parent uint64, child uint64, name string) Status {
 	req := newNotifyRequest(_OP_NOTIFY_DELETE)
 
 	entry := (*NotifyInvalDeleteOut)(req.outData())
@@ -892,7 +897,7 @@ func (ms *Server) DeleteNotify(parent uint64, child uint64, name string) Status 
 // EntryNotify should be used if the existence status of an entry
 // within a directory changes. You should not hold any FUSE filesystem
 // locks, as that can lead to deadlock.
-func (ms *Server) EntryNotify(parent uint64, name string) Status {
+func (ms *protocolServer) EntryNotify(parent uint64, name string) Status {
 	req := newNotifyRequest(_OP_NOTIFY_INVAL_ENTRY)
 	entry := (*NotifyInvalEntryOut)(req.outData())
 	entry.Parent = parent
