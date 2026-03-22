@@ -676,7 +676,7 @@ func (ms *Server) InodeNotify(node uint64, off int64, length int64) Status {
 }
 
 func (ms *Server) PruneNotify(nodes []uint64) Status {
-	if !ms.kernelSettings.SupportsNotify(NOTIFY_INVAL_INODE) {
+	if !ms.kernelSettings.SupportsNotify(NOTIFY_PRUNE) {
 		return ENOSYS
 	}
 

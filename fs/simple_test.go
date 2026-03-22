@@ -261,7 +261,9 @@ func TestNotifyPrune(t *testing.T) {
 		t.Fatalf("Lstat before: %v", err)
 	}
 
-	if errno := root.NotifyPrune([]*Inode{forgetter.EmbeddedInode()}); errno != 0 {
+	if errno := root.NotifyPrune([]*Inode{forgetter.EmbeddedInode()}); errno == syscall.ENOSYS {
+		t.Skip("notify not supported")
+	} else if errno != 0 {
 		t.Errorf("notify failed: %v", errno)
 	}
 	time.Sleep(10 * time.Millisecond)
