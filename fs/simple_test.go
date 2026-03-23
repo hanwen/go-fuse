@@ -254,6 +254,7 @@ func TestNotifyPrune(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer srv.Unmount()
 
 	st := syscall.Stat_t{}
 	fn := filepath.Join(mnt, "file")
