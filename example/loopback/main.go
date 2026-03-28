@@ -16,7 +16,6 @@ import (
 	"path"
 	"runtime/pprof"
 	"syscall"
-	"time"
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
@@ -92,24 +91,16 @@ func main() {
 		log.Fatalf("NewLoopbackRoot(%s): %v\n", orig, err)
 	}
 
-	sec := time.Second
-	opts := &fs.Options{
-		// The timeout options are to be compatible with libfuse defaults,
-		// making benchmarking easier.
-		AttrTimeout:  &sec,
-		EntryTimeout: &sec,
-
-		NullPermissions: true, // Leave file permissions on "000" files as-is
-
-		MountOptions: fuse.MountOptions{
-			AllowOther:        *other,
-			Debug:             *debug,
-			DirectMount:       *directmount,
-			DirectMountStrict: *directmountstrict,
-			IDMappedMount:     *idmap,
-			FsName:            orig,       // First column in "df -T": original dir
-			Name:              "loopback", // Second column in "df -T" will be shown as "fuse." + Name
-		},
+	opts := fs.DefaultOptions()
+	opts.NullPermissions = true // Leave file permissions on "000" files as-is
+	opts.MountOptions = fuse.MountOptions{
+		AllowOther:        *other,
+		Debug:             *debug,
+		DirectMount:       *directmount,
+		DirectMountStrict: *directmountstrict,
+		IDMappedMount:     *idmap,
+		FsName:            orig,       // First column in "df -T": original dir
+		Name:              "loopback", // Second column in "df -T" will be shown as "fuse." + Name
 	}
 	if opts.AllowOther {
 		// Make the kernel check file permissions for us

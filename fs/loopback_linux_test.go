@@ -10,7 +10,6 @@ import (
 	"sync"
 	"syscall"
 	"testing"
-	"time"
 	"unsafe"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
@@ -287,11 +286,7 @@ func TestParallelDiropsHang(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewLoopbackRoot(%s): %v\n", orig, err)
 	}
-	sec := time.Second
-	opts := &Options{
-		AttrTimeout:  &sec,
-		EntryTimeout: &sec,
-	}
+	opts := DefaultOptions()
 	opts.Debug = testutil.VerboseTest()
 
 	rawFS := NewNodeFS(loopbackRoot, opts)

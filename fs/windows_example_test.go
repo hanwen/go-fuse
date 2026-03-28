@@ -10,7 +10,6 @@ import (
 	"log"
 	"sync"
 	"syscall"
-	"time"
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
@@ -107,11 +106,7 @@ func Example_loopbackReuse() {
 		Path: origDir,
 	}
 
-	sec := time.Second
-	opts := &fs.Options{
-		AttrTimeout:  &sec,
-		EntryTimeout: &sec,
-	}
+	opts := fs.DefaultOptions()
 
 	root := &WindowsNode{
 		LoopbackNode: &fs.LoopbackNode{
