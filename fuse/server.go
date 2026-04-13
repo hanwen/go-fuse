@@ -73,6 +73,11 @@ type Server struct {
 	loops        sync.WaitGroup
 	serving      bool // for preventing duplicate Serve() calls
 
+	// shutdownOnce guards the forceful teardown path in Shutdown against
+	// double-close of mountFd when the caller invokes Shutdown multiple
+	// times or races with Serve's own final Close.
+	shutdownOnce sync.Once
+
 	// Used to implement WaitMount on macos.
 	ready chan error
 
@@ -146,6 +151,45 @@ func (ms *Server) Unmount() (err error) {
 	ms.loops.Wait()
 	ms.mountPoint = ""
 	return err
+}
+
+// Shutdown forces a teardown of the FUSE mount in the caller's namespace
+// without waiting for the reader loops to exit. Unlike Unmount, it never
+// hangs waiting for the kernel to release the FUSE superblock — the
+// motivating case is an overlayfs lower layer that keeps the FUSE
+// superblock referenced long after plain unmount(2) "succeeds".
+//
+// Shutdown performs a lazy unmount (MNT_DETACH on linux) and closes the
+// FUSE channel file descriptor under writeMu. The kernel drops the mount
+// from the current namespace immediately and will finish cleaning up
+// when the last reference drops.
+//
+// Reader goroutines stuck in syscall.Read on /dev/fuse are NOT woken by
+// the fd close — the kernel keeps the underlying file reference alive
+// until the kernel-side unmount completes, which only happens when the
+// last external reference (e.g. the overlay) drops. Callers must
+// therefore expect the go-fuse reader goroutines and their duplicated
+// mount fd to leak for the remaining lifetime of the process, with no
+// fixed upper bound. Bound the leak at the process level (for example,
+// by recycling worker processes after a fixed number of mount cycles);
+// do not rely on any per-mount lifetime guarantee.
+//
+// Shutdown is safe to call multiple times. After it returns, the Server
+// must not be reused.
+func (ms *Server) Shutdown() error {
+	ms.shutdownOnce.Do(func() {
+		if ms.mountPoint != "" {
+			_ = detachUnmount(ms.mountPoint)
+			ms.mountPoint = ""
+		}
+		ms.writeMu.Lock()
+		if ms.mountFd >= 0 {
+			syscall.Close(ms.mountFd)
+			ms.mountFd = -1
+		}
+		ms.writeMu.Unlock()
+	})
+	return nil
 }
 
 // alignSlice ensures that the byte at alignedByte is aligned with the
@@ -459,7 +503,10 @@ func (ms *Server) Serve() {
 	ms.loops.Wait()
 
 	ms.writeMu.Lock()
-	syscall.Close(ms.mountFd)
+	if ms.mountFd >= 0 {
+		syscall.Close(ms.mountFd)
+		ms.mountFd = -1
+	}
 	ms.writeMu.Unlock()
 
 	// shutdown in-flight cache retrieves.
