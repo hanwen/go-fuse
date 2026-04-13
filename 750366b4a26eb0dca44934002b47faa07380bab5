@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "4db8c632_61388076",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2026-04-13T09:20:26Z",
+      "side": 1,
+      "message": "I understand what this change is trying to do, but why can\u0027t you simply unmmount the overlayfs first?",
+      "revId": "750366b4a26eb0dca44934002b47faa07380bab5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    }
+  ]
+}
