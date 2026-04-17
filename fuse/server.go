@@ -592,8 +592,10 @@ func (ms *Server) handleRequest(req *requestAlloc) Status {
 	req.suppressReply = h.SuppressReply
 	req.inPayload = req.inputBuf[inSize:]
 	req.inputBuf = req.inputBuf[:inSize]
-	req.outputBuf = req.outBuf[:outSize+int(sizeOfOutHeader)]
-	copy(req.outputBuf, zeroOutBuf[:])
+	req.outHeaderBuf = req.outHeaderInline[:]
+	req.outDataBuf = req.outDataInline[:outSize]
+	copy(req.outHeaderBuf, zeroOutBuf[:])
+	copy(req.outDataBuf, zeroOutBuf[:])
 	if outPayloadSize > 0 {
 		req.outPayload = ms.buffers.AllocBuffer(uint32(outPayloadSize))
 		req.bufferPoolOutputBuf = req.outPayload
@@ -632,7 +634,7 @@ func notifyWrite(writev func([][]byte) (int, syscall.Errno), opts *MountOptions,
 		opts.Logger.Println(req.OutputDebug())
 	}
 
-	_, errno := writev([][]byte{req.outputBuf, req.outPayload})
+	_, errno := writev([][]byte{req.outHeaderBuf, req.outDataBuf, req.outPayload})
 
 	if opts.Debug {
 		h := getHandler(req.inHeader().Opcode)
@@ -670,8 +672,9 @@ func (ms *protocolServer) notifyWrite(req *request) Status {
 
 func newNotifyRequest(opcode uint32) *request {
 	r := &request{
-		inputBuf:  make([]byte, unsafe.Sizeof(InHeader{})),
-		outputBuf: make([]byte, sizeOfOutHeader+getHandler(opcode).OutputSize),
+		inputBuf:     make([]byte, unsafe.Sizeof(InHeader{})),
+		outHeaderBuf: make([]byte, sizeOfOutHeader),
+		outDataBuf:   make([]byte, getHandler(opcode).OutputSize),
 		status: map[uint32]Status{
 			_OP_NOTIFY_INVAL_INODE:    NOTIFY_INVAL_INODE,
 			_OP_NOTIFY_INVAL_ENTRY:    NOTIFY_INVAL_ENTRY,

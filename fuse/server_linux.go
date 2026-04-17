@@ -4,16 +4,14 @@
 
 package fuse
 
-import (
-	"syscall"
-)
+import ()
 
 const useSingleReader = false
 
 func (ms *Server) write(req *request) Status {
 	if req.outPayloadSize() == 0 {
 		err := handleEINTR(func() error {
-			_, err := syscall.Write(ms.mountFd, req.outputBuf)
+			_, err := writev(ms.mountFd, [][]byte{req.outHeaderBuf, req.outDataBuf})
 			return err
 		})
 		return ToStatus(err)
@@ -32,7 +30,7 @@ func (ms *Server) write(req *request) Status {
 		req.serializeHeader(len(req.outPayload))
 	}
 
-	_, err := writev(ms.mountFd, [][]byte{req.outputBuf, req.outPayload})
+	_, err := writev(ms.mountFd, [][]byte{req.outHeaderBuf, req.outDataBuf, req.outPayload})
 	if req.readResult != nil {
 		req.readResult.Done()
 	}

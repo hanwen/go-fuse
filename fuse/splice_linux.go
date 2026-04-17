@@ -63,19 +63,19 @@ func (ms *Server) trySplice(req *request, fdData *readResultFd) error {
 	// Grow pipe to header + actually read size + one extra page
 	// Without the extra page the kernel will block once the pipe is almost full
 	req.serializeHeader(payloadLen)
-	total := len(req.outputBuf) + payloadLen
+	total := len(req.outHeaderBuf) + len(req.outDataBuf) + payloadLen
 	pair2Sz := total + os.Getpagesize()
 	if err := pair2.Grow(pair2Sz); err != nil {
 		return err
 	}
 
 	// Write header into pair2
-	n, err := pair2.Write(req.outputBuf)
+	n, err := writev(int(pair2.WriteFd()), [][]byte{req.outHeaderBuf, req.outDataBuf})
 	if err != nil {
 		return err
 	}
-	if n != len(req.outputBuf) {
-		return fmt.Errorf("Short write into splice: wrote %d, want %d", n, len(req.outputBuf))
+	if want := len(req.outHeaderBuf) + len(req.outDataBuf); n != want {
+		return fmt.Errorf("Short write into splice: wrote %d, want %d", n, want)
 	}
 
 	// Write data into pair2

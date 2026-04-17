@@ -2,9 +2,7 @@
 
 package fuse
 
-import (
-	"golang.org/x/sys/unix"
-)
+import ()
 
 // OSX and FreeBSD has races when multiple routines read
 // from the FUSE device: on unmount, sometime some reads
@@ -14,7 +12,7 @@ const useSingleReader = true
 func (ms *Server) write(req *request) Status {
 	if req.outPayloadSize() == 0 {
 		err := handleEINTR(func() error {
-			_, err := unix.Write(ms.mountFd, req.outputBuf)
+			_, err := writev(int(ms.mountFd), [][]byte{req.outHeaderBuf, req.outDataBuf})
 			return err
 		})
 		return ToStatus(err)
@@ -25,7 +23,7 @@ func (ms *Server) write(req *request) Status {
 		req.serializeHeader(len(req.outPayload))
 	}
 
-	_, err := writev(int(ms.mountFd), [][]byte{req.outputBuf, req.outPayload})
+	_, err := writev(int(ms.mountFd), [][]byte{req.outHeaderBuf, req.outDataBuf, req.outPayload})
 	if req.readResult != nil {
 		req.readResult.Done()
 	}
