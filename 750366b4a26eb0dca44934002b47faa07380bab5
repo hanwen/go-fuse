@@ -34,6 +34,24 @@
       "parentUuid": "4db8c632_61388076",
       "revId": "750366b4a26eb0dca44934002b47faa07380bab5",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "c3d21371_dcaed015",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1039356
+      },
+      "writtenOn": "2026-04-17T05:32:32Z",
+      "side": 1,
+      "message": "I tried a lazy unmount but I had no way of closing the underlying file descriptor that the server manages.\n\nAvoiding to leak the goroutines is also part of what I\u0027m trying to do.",
+      "parentUuid": "48d05c5c_2eb6178a",
+      "revId": "750366b4a26eb0dca44934002b47faa07380bab5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
