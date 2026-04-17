@@ -13,6 +13,15 @@ systems
 
 ## Release notes
 
+v2.10:
+
+* fs: LoopbackFile is now public.
+* fuse: ReadResultPipe allows more flexibility for zero-copy read results, eg. concatenate data from multiple files at the same time. 
+* fuse: Options.ExtraCapabilities/DisabledCapabilities allows generically en/disabling kernel features 
+* fuse, fs: PruneNotify support. This lets the file system force the kernel to forget nodes.
+* fuse: type ProtocolServer. This enables running the FUSE protocol over transports that are not the standard kernel connection
+* virtiofs: serve FUSE file system to VMs directly as virtiofs servers.
+* general: require go 1.21
 
 v2.9:
 
