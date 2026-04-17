@@ -5,6 +5,7 @@
 package fuse
 
 import (
+	"log"
 	"sync"
 	"syscall"
 )
@@ -188,16 +189,42 @@ func (ps *ProtocolServer) HandleRequest(in [][]byte,
 		return 0, errno
 	}
 	req := request{
-		cancel:       make(chan struct{}),
-		inputBuf:     inTogether[:inSize],
-		outHeaderBuf: make([]byte, sizeOfOutHeader),
-		outDataBuf:   make([]byte, outSize),
-		outPayload:   make([]byte, outPayloadSize), // todo: use IOV passed-in here.
-		inPayload:    inTogether[inSize:],
+		cancel:        make(chan struct{}),
+		inputBuf:      inTogether[:inSize],
+		inPayload:     inTogether[inSize:],
+		suppressReply: h.SuppressReply,
+	}
+
+	startOut := out
+	if !h.SuppressReply {
+		if len(out) > 0 && len(out[0]) == int(sizeOfOutHeader) {
+			req.outHeaderBuf = out[0]
+			out = out[1:]
+		} else {
+			log.Panicf("op %v: got %v, out iov should start with 16 bytes", h.Name, iovLens(startOut))
+		}
+
+		if outSize > 0 {
+			if len(out) > 0 && len(out[0]) == outSize {
+				req.outDataBuf = out[0]
+				out = out[1:]
+			} else {
+				log.Panicf("op %v: got %v, outData iov should have %d bytes", h.Name, iovLens(startOut), outSize)
+			}
+		}
+
+		if len(out) > 0 {
+			if len(out[0]) < outPayloadSize {
+				log.Panicf("op %s: got %v, payload iov should have %d bytes", h.Name, iovLens(startOut), outPayloadSize)
+			}
+			req.outPayload = out[0]
+			out = out[1:]
+		} else if outPayloadSize != 0 {
+			log.Panicf("got %v, payload iov should have %d bytes", iovLens(startOut), outPayloadSize)
+		}
 	}
 	ps.protocolServer.handleRequest(h, &req)
-	n := iovCopy(out, [][]byte{req.outHeaderBuf, req.outDataBuf, req.outPayload})
-	return n, 0
+	return iovLen(startOut), 0
 }
 
 func iovLens(in [][]byte) []int {

@@ -14,7 +14,8 @@ import (
 	"unsafe"
 )
 
-var sizeOfOutHeader = unsafe.Sizeof(OutHeader{})
+const sizeOfOutHeader = unsafe.Sizeof(OutHeader{})
+
 var zeroOutBuf [outputDataSize]byte
 
 type request struct {
