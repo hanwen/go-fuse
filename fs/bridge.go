@@ -926,6 +926,9 @@ func (b *rawBridge) Release(cancel <-chan struct{}, input *fuse.ReleaseIn) {
 
 func (b *rawBridge) ReleaseDir(input *fuse.ReleaseIn) {
 	n, f := b.releaseFileEntry(input.NodeId, input.Fh)
+	if f == nil {
+		return
+	}
 	f.wg.Wait()
 
 	if frd, ok := f.file.(FileReleasedirer); ok {
