@@ -51,8 +51,6 @@ func (ms *protocolServer) handleRequest(h *operationHandler, req *request) {
 
 	// Forget/NotifyReply do not wait for reply from filesystem server.
 	switch req.inHeader().Opcode {
-	case _OP_FORGET, _OP_BATCH_FORGET, _OP_NOTIFY_REPLY:
-		req.suppressReply = true
 	case _OP_INTERRUPT:
 		// ? what other status can interrupt generate?
 		if req.status.Ok() {

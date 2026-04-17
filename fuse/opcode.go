@@ -484,15 +484,17 @@ type operationFunc func(*protocolServer, *request)
 type castPointerFunc func(unsafe.Pointer) interface{}
 
 type operationHandler struct {
+	OpCode     int
 	Name       string
 	Func       operationFunc
 	InputSize  uintptr
 	OutputSize uintptr
 
-	InType      interface{}
-	OutType     interface{}
-	FileNames   int
-	FileNameOut bool
+	InType        interface{}
+	OutType       interface{}
+	FileNames     int
+	FileNameOut   bool
+	SuppressReply bool
 }
 
 var operationHandlers []*operationHandler
@@ -518,12 +520,18 @@ var maxInputSize uintptr
 func init() {
 	operationHandlers = make([]*operationHandler, _OPCODE_COUNT)
 	for i := range operationHandlers {
-		operationHandlers[i] = &operationHandler{Name: fmt.Sprintf("OPCODE-%d", i)}
+		operationHandlers[i] = &operationHandler{
+			OpCode: i,
+			Name:   fmt.Sprintf("OPCODE-%d", i),
+		}
 	}
 
 	fileOps := []uint32{_OP_READLINK, _OP_NOTIFY_INVAL_ENTRY, _OP_NOTIFY_DELETE}
 	for _, op := range fileOps {
 		operationHandlers[op].FileNameOut = true
+	}
+	for _, op := range []uint32{_OP_FORGET, _OP_BATCH_FORGET, _OP_NOTIFY_REPLY} {
+		operationHandlers[op].SuppressReply = true
 	}
 
 	for op, v := range map[uint32]string{

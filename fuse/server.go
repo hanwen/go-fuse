@@ -589,6 +589,7 @@ func (ms *Server) handleRequest(req *requestAlloc) Status {
 		return code
 	}
 
+	req.suppressReply = h.SuppressReply
 	req.inPayload = req.inputBuf[inSize:]
 	req.inputBuf = req.inputBuf[:inSize]
 	req.outputBuf = req.outBuf[:outSize+int(sizeOfOutHeader)]
