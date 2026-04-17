@@ -13,6 +13,14 @@ systems
 
 ## Release notes
 
+v2.10:
+
+* fs: LoopbackFile is now public.
+* fuse: Options.ExtraCapabilities
+* fuse, fs: PruneNotify support
+* fuse: type ProtocolServer
+* virtiofs: new sub-package
+* general: require go 1.21
 
 v2.9:
 
