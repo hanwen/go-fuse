@@ -946,6 +946,9 @@ func (b *rawBridge) releaseFileEntry(nid uint64, fh uint64) (*Inode, *fileEntry)
 	defer b.mu.Unlock()
 
 	n := b.kernelNodeIds[nid]
+	if n == nil {
+		log.Panicf("releaseFileEntry: unknown node %d", nid)
+	}
 	var entry *fileEntry
 	if fh > 0 {
 		last := len(n.openFiles) - 1
