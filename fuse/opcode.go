@@ -303,10 +303,14 @@ func doForget(server *protocolServer, req *request) {
 func doBatchForget(server *protocolServer, req *request) {
 	in := (*_BatchForgetIn)(req.inData())
 	wantBytes := uintptr(in.Count) * unsafe.Sizeof(_ForgetOne{})
+	if in.Count == 0 {
+		return
+	}
 	if uintptr(len(req.inPayload)) < wantBytes {
 		// We have no return value to complain, so log an error.
 		server.opts.Logger.Printf("Too few bytes for batch forget. Got %d bytes, want %d (%d entries)",
 			len(req.inPayload), wantBytes, in.Count)
+		return
 	}
 
 	forgets := unsafe.Slice((*_ForgetOne)(unsafe.Pointer(&req.inPayload[0])), in.Count)
