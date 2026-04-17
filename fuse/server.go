@@ -11,7 +11,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
@@ -705,19 +704,16 @@ func (ms *Server) PruneNotify(nodes []uint64) Status {
 	if !ms.kernelSettings.SupportsNotify(NOTIFY_PRUNE) {
 		return ENOSYS
 	}
+	if len(nodes) == 0 {
+		return OK
+	}
 
 	req := newNotifyRequest(_OP_NOTIFY_PRUNE)
 
 	entry := (*NotifyPruneOut)(req.outData())
 	entry.Count = uint32(len(nodes))
 
-	h := &reflect.SliceHeader{
-		Data: uintptr(unsafe.Pointer(&nodes[0])),
-		Len:  int(8 * entry.Count),
-		Cap:  int(8 * entry.Count),
-	}
-
-	req.outPayload = *(*[]byte)(unsafe.Pointer(h))
+	req.outPayload = unsafe.Slice((*byte)(unsafe.Pointer(&nodes[0])), 8*len(nodes))
 
 	return ms.notifyWrite(req)
 }
