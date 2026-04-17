@@ -52,6 +52,24 @@
       "parentUuid": "48d05c5c_2eb6178a",
       "revId": "750366b4a26eb0dca44934002b47faa07380bab5",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "fc48f853_524a45d1",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1007980
+      },
+      "writtenOn": "2026-04-17T07:29:18Z",
+      "side": 1,
+      "message": "Why can\u0027t the overlayfs mount be unmounted? \n\n\u003eI tried a lazy unmount but I had no way of closing the underlying file descriptor that the server manages.\n\nbut you don\u0027t have that here either. whatever is preventing the unmount has to disappear first.",
+      "parentUuid": "c3d21371_dcaed015",
+      "revId": "750366b4a26eb0dca44934002b47faa07380bab5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735"
     }
   ]
 }
