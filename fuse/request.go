@@ -248,6 +248,9 @@ func (r *request) filename() string {
 
 func (r *request) filenames() (string, string) {
 	i1 := bytes.IndexByte(r.inPayload, 0)
+	if i1 < 0 || i1+1 >= len(r.inPayload) {
+		return "", ""
+	}
 	s1 := string(r.inPayload[:i1])
 	s2 := string(r.inPayload[i1+1 : len(r.inPayload)-1])
 	return s1, s2

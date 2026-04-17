@@ -391,6 +391,10 @@ func doFsyncDir(server *protocolServer, req *request) {
 
 func doSetXAttr(server *protocolServer, req *request) {
 	i := bytes.IndexByte(req.inPayload, 0)
+	if i < 0 {
+		req.status = EINVAL
+		return
+	}
 	req.status = server.fileSystem.SetXAttr(req.cancel, (*SetXAttrIn)(req.inData()), string(req.inPayload[:i]), req.inPayload[i+1:])
 }
 
