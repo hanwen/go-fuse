@@ -14,8 +14,7 @@ import (
 	"unsafe"
 )
 
-var sizeOfOutHeader = unsafe.Sizeof(OutHeader{})
-var zeroOutBuf [outputDataSize]byte
+const sizeOfOutHeader = unsafe.Sizeof(OutHeader{})
 
 type request struct {
 	inflightIndex int
