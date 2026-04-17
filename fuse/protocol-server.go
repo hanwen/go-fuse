@@ -5,9 +5,6 @@
 package fuse
 
 import (
-	"fmt"
-	"log"
-	"strings"
 	"sync"
 	"syscall"
 )
@@ -191,40 +188,42 @@ func (ps *ProtocolServer) HandleRequest(in [][]byte,
 		return 0, errno
 	}
 	req := request{
-		cancel:     make(chan struct{}),
-		inputBuf:   inTogether[:inSize],
-		outputBuf:  make([]byte, outSize+int(sizeOfOutHeader)),
-		outPayload: make([]byte, outPayloadSize), // todo: use IOV passed-in here.
-		inPayload:  inTogether[inSize:],
+		cancel:       make(chan struct{}),
+		inputBuf:     inTogether[:inSize],
+		outHeaderBuf: make([]byte, sizeOfOutHeader),
+		outDataBuf:   make([]byte, outSize),
+		outPayload:   make([]byte, outPayloadSize), // todo: use IOV passed-in here.
+		inPayload:    inTogether[inSize:],
 	}
 	ps.protocolServer.handleRequest(h, &req)
-	return iovCopy(out, [][]byte{req.outputBuf, req.outPayload}), 0
+	n := iovCopy(out, [][]byte{req.outHeaderBuf, req.outDataBuf, req.outPayload})
+	return n, 0
 }
 
-func iovDumpLen(name string, in [][]byte) {
-	b := &strings.Builder{}
-	b.WriteString(name + ": ")
-	for _, i := range in {
-		fmt.Fprintf(b, "%d ", len(i))
+func iovLens(in [][]byte) []int {
+	var lens []int
+	for _, b := range in {
+		lens = append(lens, len(b))
 	}
-
-	log.Println(b.String())
+	return lens
 }
 
 func iovCopy(dest [][]byte, src [][]byte) int {
 	var s, d []byte
 	var copied int
 	for {
-		if len(src) == 0 || len(dest) == 0 {
+		if len(s)+len(src) == 0 || len(d)+len(dest) == 0 {
 			break
 		}
 		if len(s) == 0 {
 			s = src[0]
 			src = src[1:]
+			continue
 		}
 		if len(d) == 0 {
 			d = dest[0]
 			dest = dest[1:]
+			continue
 		}
 		n := copy(d, s)
 		d = d[n:]

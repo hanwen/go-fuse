@@ -15,7 +15,7 @@ import (
 )
 
 var sizeOfOutHeader = unsafe.Sizeof(OutHeader{})
-var zeroOutBuf [outputHeaderSize]byte
+var zeroOutBuf [outputDataSize]byte
 
 type request struct {
 	inflightIndex int
@@ -30,8 +30,11 @@ type request struct {
 	// inHeader + opcode specific data
 	inputBuf []byte
 
-	// outHeader + opcode specific data.
-	outputBuf []byte
+	// Output header (OutHeader).
+	outHeaderBuf []byte
+
+	// Opcode-specific structured output data.
+	outDataBuf []byte
 
 	// Unstructured input (filenames, data for WRITE call)
 	inPayload []byte
@@ -61,11 +64,13 @@ type requestAlloc struct {
 	bufferPoolInputBuf  []byte
 	bufferPoolOutputBuf []byte
 
-	// For small pieces of data, we use the following inlines
-	// arrays:
-	//
-	// Output header and structured data.
-	outBuf [outputHeaderSize]byte
+	// For small pieces of data, we use the following inline arrays:
+
+	// Fixed-size output header storage.
+	outHeaderInline [unsafe.Sizeof(OutHeader{})]byte
+
+	// Opcode-specific structured output data storage.
+	outDataInline [uintptr(outputDataSize)]byte
 
 	// Input, if small enough to fit here.
 	smallInputBuf [128]byte
@@ -76,14 +81,15 @@ func (r *request) inHeader() *InHeader {
 }
 
 func (r *request) outHeader() *OutHeader {
-	return (*OutHeader)(unsafe.Pointer(&r.outputBuf[0]))
+	return (*OutHeader)(unsafe.Pointer(&r.outHeaderBuf[0]))
 }
 
 // TODO - benchmark to see if this is necessary?
 func (r *request) clear() {
 	r.suppressReply = false
 	r.inputBuf = nil
-	r.outputBuf = nil
+	r.outHeaderBuf = nil
+	r.outDataBuf = nil
 	r.inPayload = nil
 	r.status = OK
 	r.outPayload = nil
@@ -133,7 +139,7 @@ func (r *request) InputDebug() string {
 func (r *request) OutputDebug() string {
 	var dataStr string
 	h := getHandler(r.inHeader().Opcode)
-	if h != nil && h.OutType != nil && len(r.outputBuf) > int(sizeOfOutHeader) {
+	if h != nil && h.OutType != nil && len(r.outDataBuf) > 0 {
 		dataStr = Print(asType(r.outData(), h.OutType))
 	}
 
@@ -234,7 +240,7 @@ func parseRequest(in []byte, kernelSettings *InitIn) (h *operationHandler, inSiz
 }
 
 func (r *request) outData() unsafe.Pointer {
-	return unsafe.Pointer(&r.outputBuf[sizeOfOutHeader])
+	return unsafe.Pointer(&r.outDataBuf[0])
 }
 
 func (r *request) filename() string {
@@ -289,7 +295,7 @@ func (r *request) serializeHeader(outPayloadSize int) {
 	o.Length = uint32(
 		int(sizeOfOutHeader) + int(dataLength) + outPayloadSize)
 
-	r.outputBuf = r.outputBuf[:dataLength+sizeOfOutHeader]
+	r.outDataBuf = r.outDataBuf[:dataLength]
 	if r.outPayload != nil {
 		r.outPayload = r.outPayload[:outPayloadSize]
 	}

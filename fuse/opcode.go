@@ -747,10 +747,9 @@ func init() {
 
 func checkFixedBufferSize() {
 	var r requestAlloc
-	sizeOfOutHeader := unsafe.Sizeof(OutHeader{})
 	for code, h := range operationHandlers {
-		if h.OutputSize+sizeOfOutHeader > unsafe.Sizeof(r.outBuf) {
-			log.Panicf("request output buffer too small: code %v, sz %d + %d %v", code, h.OutputSize, sizeOfOutHeader, h)
+		if h.OutputSize > unsafe.Sizeof(r.outDataInline) {
+			log.Panicf("request output buffer too small: code %v, sz %d %v", code, h.OutputSize, h)
 		}
 	}
 }
