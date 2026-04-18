@@ -5,92 +5,73 @@
 package fuse
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
 	"github.com/hanwen/go-fuse/v2/splice"
 )
 
+// errShortSplice is returned by trySplice when the file had fewer bytes than
+// expected (EOF short read). The caller should fall back to Pread without
+// logging, since this is a normal condition for files whose size changes.
+var errShortSplice = errors.New("short splice")
+
 func (s *Server) setSplice() {
 	s.canSplice = splice.Resizable() && !s.opts.DisableSplice
 }
 
-// trySplice:  Zero-copy read from fdData.Fd into /dev/fuse
+// trySplice: Zero-copy read from fdData.Fd into /dev/fuse
 //
-// This is a four-step process:
+// Optimistic fast path: assumes fdData.Sz bytes are available (no short
+// read). The caller has already serialized the reply header with that size.
+// File data is copied into a pipe only once:
 //
-//  1. Splice data form fdData.Fd into the "pair1" pipe buffer --> pair1: [payload]
-//     Now we know the actual payload length and can
-//     construct the reply header
-//  2. Write header into the "pair2" pipe buffer               --> pair2: [header]
-//  4. Splice data from "pair1" into "pair2"                   --> pair2: [header][payload]
-//  3. Splice the data from "pair2" into /dev/fuse
+//  1. Write pre-serialized header into pipe  --> pipe: [header]
+//  2. Splice file data directly into pipe    --> pipe: [header][payload]
+//  3. Splice pipe into /dev/fuse
 //
-// This dance is necessary because header and payload cannot be split across
-// two splices and we cannot seek in a pipe buffer.
+// If a short read occurs (payloadLen < fdData.Sz), the header in the pipe
+// would carry the wrong total length, so we return an error and let the
+// caller fall back to a Pread-based path.
 func (ms *Server) trySplice(req *request, fdData *readResultFd) error {
-	var err error
+	// The caller (handleRequest) already called req.serializeHeader with
+	// fdData.Sz, so req.outHeaderBuf is correct for the optimistic case.
+	total := len(req.outHeaderBuf) + len(req.outDataBuf) + fdData.Sz
 
-	// Get a pair of connected pipes
-	pair1, err := splice.Get()
+	pair, err := splice.Get()
 	if err != nil {
 		return err
 	}
-	defer splice.Done(pair1)
+	defer splice.Done(pair)
 
-	// Grow buffer pipe to requested size + one extra page
-	// Without the extra page the kernel will block once the pipe is almost full
-	pair1Sz := fdData.Size() + os.Getpagesize()
-	if err := pair1.Grow(pair1Sz); err != nil {
+	// Grow pipe to header + payload + one extra page.
+	// Without the extra page the kernel will block once the pipe is almost full.
+	if err := pair.Grow(total + os.Getpagesize()); err != nil {
 		return err
 	}
 
-	// Read data from file
-	payloadLen, err := pair1.LoadFromAt(fdData.Fd, fdData.Size(), fdData.Off)
-
-	if err != nil {
-		// TODO - extract the data from splice.
-		return err
-	}
-
-	// Get another pair of connected pipes
-	pair2, err := splice.Get()
-	if err != nil {
-		return err
-	}
-	defer splice.Done(pair2)
-
-	// Grow pipe to header + actually read size + one extra page
-	// Without the extra page the kernel will block once the pipe is almost full
-	req.serializeHeader(payloadLen)
-	total := len(req.outHeaderBuf) + len(req.outDataBuf) + payloadLen
-	pair2Sz := total + os.Getpagesize()
-	if err := pair2.Grow(pair2Sz); err != nil {
-		return err
-	}
-
-	// Write header into pair2
-	n, err := writev(int(pair2.WriteFd()), [][]byte{req.outHeaderBuf, req.outDataBuf})
+	// Write header into pipe.
+	n, err := writev(int(pair.WriteFd()), [][]byte{req.outHeaderBuf, req.outDataBuf})
 	if err != nil {
 		return err
 	}
 	if want := len(req.outHeaderBuf) + len(req.outDataBuf); n != want {
-		return fmt.Errorf("Short write into splice: wrote %d, want %d", n, want)
+		return fmt.Errorf("short write into splice: wrote %d, want %d", n, want)
 	}
 
-	// Write data into pair2
-	n, err = pair2.LoadFrom(pair1.ReadFd(), payloadLen)
+	// Splice file data directly into pipe (single copy).
+	payloadLen, err := pair.LoadFromAt(fdData.Fd, fdData.Sz, fdData.Off)
 	if err != nil {
 		return err
 	}
-	if n != payloadLen {
-		return fmt.Errorf("Short splice: wrote %d, want %d", n, payloadLen)
+	if payloadLen != fdData.Sz {
+		// Short read at EOF: the header carries the wrong total length.
+		// Return errShortSplice so the caller falls back without logging.
+		return errShortSplice
 	}
 
-	// Write header + data to /dev/fuse
-	_, err = pair2.WriteTo(uintptr(ms.mountFd), total)
-	if err != nil {
-		return err
-	}
-	return nil
+	// Write header + payload to /dev/fuse.
+	_, err = pair.WriteTo(uintptr(ms.mountFd), total)
+	return err
 }

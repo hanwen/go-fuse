@@ -23,7 +23,9 @@ func (ms *Server) write(req *request) Status {
 				req.readResult.Done()
 				return OK
 			}
-			ms.opts.Logger.Println("trySplice:", err)
+			if err != errShortSplice {
+				ms.opts.Logger.Println("trySplice:", err)
+			}
 		}
 
 		req.outPayload, req.status = req.fdData.Bytes(req.outPayload)
