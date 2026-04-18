@@ -12,10 +12,9 @@ import (
 	"github.com/hanwen/go-fuse/v2/splice"
 )
 
-// errShortSplice is returned by trySplice when the file had fewer bytes than
-// expected (EOF short read). The caller should fall back to Pread without
-// logging, since this is a normal condition for files whose size changes.
-var errShortSplice = errors.New("short splice")
+// errRecoverSplice is returned by trySplice when the caller should
+// fall back to to pread/read without logging.
+var errRecoverSplice = errors.New("splice failed; must fallback")
 
 func (s *Server) setSplice() {
 	s.canSplice = splice.Resizable() && !s.opts.DisableSplice
@@ -34,10 +33,10 @@ func (s *Server) setSplice() {
 // If a short read occurs (payloadLen < fdData.Sz), the header in the pipe
 // would carry the wrong total length, so we return an error and let the
 // caller fall back to a Pread-based path.
-func (ms *Server) trySplice(req *request, fdData *readResultFd) error {
+func (ms *Server) trySplice(req *request, readResult ReadResult) error {
 	// The caller (handleRequest) already called req.serializeHeader with
-	// fdData.Sz, so req.outHeaderBuf is correct for the optimistic case.
-	total := len(req.outHeaderBuf) + len(req.outDataBuf) + fdData.Sz
+	// readResult.Size(), so req.outHeaderBuf is correct for the optimistic case.
+	total := len(req.outHeaderBuf) + len(req.outDataBuf) + readResult.Size()
 
 	pair, err := splice.Get()
 	if err != nil {
@@ -61,14 +60,28 @@ func (ms *Server) trySplice(req *request, fdData *readResultFd) error {
 	}
 
 	// Splice file data directly into pipe (single copy).
-	payloadLen, err := pair.LoadFromAt(fdData.Fd, fdData.Sz, fdData.Off)
+	var payloadLen int
+	var fd uintptr
+	var sz int
+	var off int64
+	if seekable, ok := readResult.(seekableResult); ok {
+		fd, off, sz = seekable.Seekable()
+		payloadLen, err = pair.LoadFromAt(fd, sz, off)
+	} else if stateful, ok := readResult.(statefulResult); ok {
+		fd, sz = stateful.Stateful()
+		payloadLen, err = pair.LoadFrom(fd, sz)
+	} else {
+		return errRecoverSplice
+	}
+
 	if err != nil {
 		return err
 	}
-	if payloadLen != fdData.Sz {
+
+	if payloadLen != sz {
 		// Short read at EOF: the header carries the wrong total length.
 		// Return errShortSplice so the caller falls back without logging.
-		return errShortSplice
+		return errRecoverSplice
 	}
 
 	// Write header + payload to /dev/fuse.
