@@ -68,9 +68,10 @@ func (ms *protocolServer) handleRequest(h *operationHandler, req *request) {
 	if req.suppressReply {
 		return
 	}
-	if req.fdData != nil && ms.opts.DisableSplice {
-		req.outPayload, req.status = req.fdData.Bytes(req.outPayload)
-		req.fdData = nil
+	if req.readResult != nil && ms.opts.DisableSplice {
+		req.outPayload, req.status = req.readResult.Bytes(req.outPayload)
+		req.readResult.Done()
+		req.readResult = nil
 	}
 
 	req.serializeHeader(req.outPayloadSize())

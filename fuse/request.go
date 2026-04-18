@@ -43,10 +43,6 @@ type request struct {
 
 	// Unstructured output. Only one of these is non-nil.
 	outPayload []byte
-	fdData     *readResultFd
-
-	// In case of read, keep read result here so we can call
-	// Done() on it.
 	readResult ReadResult
 
 	// Start timestamp for timing info.
@@ -92,7 +88,6 @@ func (r *request) clear() {
 	r.inPayload = nil
 	r.status = OK
 	r.outPayload = nil
-	r.fdData = nil
 	r.startTime = time.Time{}
 	r.readResult = nil
 }
@@ -154,8 +149,12 @@ func (r *request) OutputDebug() string {
 			flatStr = fmt.Sprintf(" %q", s)
 		} else {
 			spl := ""
-			if r.fdData != nil {
-				spl = " (fd data)"
+
+			if r.readResult != nil {
+				_, fdOK := r.readResult.(*readResultFd)
+				if fdOK {
+					spl = fmt.Sprintf(" (fd %d data)", r.readResult.Size())
+				}
 			} else {
 				l := len(r.outPayload)
 				s := ""
@@ -304,8 +303,8 @@ func (r *request) serializeHeader(outPayloadSize int) {
 }
 
 func (r *request) outPayloadSize() int {
-	if r.fdData != nil {
-		return r.fdData.Size()
+	if r.readResult != nil {
+		return r.readResult.Size()
 	}
 	return len(r.outPayload)
 }
