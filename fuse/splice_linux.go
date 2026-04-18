@@ -88,3 +88,32 @@ func (ms *Server) trySplice(req *request, readResult ReadResult) error {
 	_, err = pair.WriteTo(uintptr(ms.mountFd), total)
 	return err
 }
+
+type pipeReadResult struct {
+	pair *splice.Pair
+	size int
+}
+
+func (r *pipeReadResult) Done() {
+	splice.Done(r.pair)
+	r.pair = nil
+}
+
+func (r *pipeReadResult) Bytes(buf []byte) ([]byte, Status) {
+	n, err := r.pair.Read(buf)
+	return buf[:n], ToStatus(err)
+}
+
+func (r *pipeReadResult) Size() int {
+	return r.size
+}
+
+func (r *pipeReadResult) Stateful() (fd uintptr, sz int) {
+	return r.pair.ReadFd(), r.size
+}
+
+// ReadResultPipe is a read result that was preloaded into the given pipe.
+// The pipe is discarded with splice.Done() after the read completes.
+func ReadResultPipe(pipe *splice.Pair, size int) ReadResult {
+	return &pipeReadResult{pipe, size}
+}
