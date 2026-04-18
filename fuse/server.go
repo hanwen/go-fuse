@@ -5,6 +5,7 @@
 package fuse
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -970,3 +971,7 @@ func parseFuseFd(mountPoint string) (fd int) {
 	}
 	return fd
 }
+
+// errRecoverSplice is returned by trySplice when the caller should
+// fall back to to pread/read without logging.
+var errRecoverSplice = errors.New("splice failed; must fallback")

@@ -2,8 +2,6 @@
 
 package fuse
 
-import ()
-
 // OSX and FreeBSD has races when multiple routines read
 // from the FUSE device: on unmount, sometime some reads
 // do not error-out, meaning that unmount will hang.
@@ -18,9 +16,11 @@ func (ms *Server) write(req *request) Status {
 		return ToStatus(err)
 	}
 
-	if req.fdData != nil {
-		req.outPayload, req.status = req.fdData.Bytes(req.outPayload)
+	if req.readResult != nil {
+		req.outPayload, req.status = req.readResult.Bytes(req.outPayload)
 		req.serializeHeader(len(req.outPayload))
+		req.readResult.Done()
+		req.readResult = nil
 	}
 
 	_, err := writev(int(ms.mountFd), [][]byte{req.outHeaderBuf, req.outDataBuf, req.outPayload})
