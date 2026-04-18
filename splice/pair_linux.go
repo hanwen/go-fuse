@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"syscall"
+	"unsafe"
 )
 
 func (p *Pair) LoadFromAt(fd uintptr, sz int, off int64) (int, error) {
@@ -37,18 +38,30 @@ func (p *Pair) WriteTo(fd uintptr, n int) (int, error) {
 	return int(m), err
 }
 
-const _SPLICE_F_NONBLOCK = 0x2
+const (
+	_SPLICE_F_NONBLOCK = 0x2
+	_FIONREAD          = 0x541b
+)
 
 func (p *Pair) discard() {
-	_, err := syscall.Splice(p.r, nil, devNullFD(), nil, int(p.size), _SPLICE_F_NONBLOCK)
-	if err == syscall.EAGAIN {
-		// all good.
-	} else if err != nil {
-		errR := syscall.Close(p.r)
-		errW := syscall.Close(p.w)
+	for {
+		_, err := syscall.Splice(p.r, nil, devNullFD(), nil, int(p.size), _SPLICE_F_NONBLOCK)
+		if err != nil && err != syscall.EAGAIN {
+			errR := syscall.Close(p.r)
+			errW := syscall.Close(p.w)
 
-		// This can happen if something closed our fd
-		// inadvertently (eg. double close)
-		log.Panicf("splicing into /dev/null: %v (close R %d '%v', close W %d '%v')", err, p.r, errR, p.w, errW)
+			// This can happen if something closed our fd
+			// inadvertently (eg. double close)
+			log.Panicf("splicing into /dev/null: %v (close R %d '%v', close W %d '%v')", err, p.r, errR, p.w, errW)
+		}
+
+		// Verify the pipe is empty before returning it to the pool.
+		var n int32
+		if _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, uintptr(p.r), _FIONREAD, uintptr(unsafe.Pointer(&n))); errno != 0 {
+			log.Panicf("FIONREAD on pipe: %v", errno)
+		}
+		if n == 0 {
+			return
+		}
 	}
 }
