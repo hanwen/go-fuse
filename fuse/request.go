@@ -151,8 +151,9 @@ func (r *request) OutputDebug() string {
 			spl := ""
 
 			if r.readResult != nil {
-				_, fdOK := r.readResult.(*readResultFd)
-				if fdOK {
+				_, pipeOK := r.readResult.(statefulResult)
+				_, fdOK := r.readResult.(seekableResult)
+				if fdOK || pipeOK {
 					spl = fmt.Sprintf(" (fd %d data)", r.readResult.Size())
 				}
 			} else {
