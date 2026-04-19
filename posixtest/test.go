@@ -123,18 +123,19 @@ func DirectIO(t *testing.T, mnt string) {
 
 // SymlinkReadlink tests basic symlink functionality
 func SymlinkReadlink(t *testing.T, mnt string) {
-	err := os.Symlink("/foobar", mnt+"/link")
+	target := "/foobar"
+	err := os.Symlink(target, mnt+"/link")
 	if err != nil {
 		t.Fatalf("Symlink: %v", err)
 	}
 
-	val, err := os.Readlink(mnt + "/link")
+	got, err := os.Readlink(mnt + "/link")
 	if err != nil {
 		t.Fatalf("Readlink: %v", err)
 	}
 
-	if val != "/foobar" {
-		t.Errorf("symlink mismatch: %v", val)
+	if got != target {
+		t.Errorf("got %q want %q", got, target)
 	}
 }
 
