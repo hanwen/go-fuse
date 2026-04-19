@@ -111,23 +111,34 @@ func (r *request) InputDebug() string {
 
 	names := ""
 	if h.FileNames == 1 {
-		names = fmt.Sprintf(" %q", r.filename())
+		name := r.filename()
+
+		rest := r.inPayload[len(name)+1:]
+		names = fmt.Sprintf(" %q %s", name, summarizePayload(rest))
 	} else if h.FileNames == 2 {
 		n1, n2 := r.filenames()
 		names = fmt.Sprintf(" %q %q", n1, n2)
-	} else if l := len(r.inPayload); l > 0 {
+	} else {
+		names = summarizePayload(r.inPayload)
+	}
+
+	return fmt.Sprintf("rx %d: %s n%d %s%s p%d",
+		hdr.Unique, operationName(hdr.Opcode), hdr.NodeId,
+		val, names, hdr.Caller.Pid)
+}
+
+func summarizePayload(p []byte) string {
+	l := len(p)
+	if l > 0 {
 		dots := ""
 		if l > 8 {
 			l = 8
 			dots = "..."
 		}
 
-		names = fmt.Sprintf("%q%s %db", r.inPayload[:l], dots, len(r.inPayload))
+		return fmt.Sprintf("%q%s %db", p[:l], dots, len(p))
 	}
-
-	return fmt.Sprintf("rx %d: %s n%d %s%s p%d",
-		hdr.Unique, operationName(hdr.Opcode), hdr.NodeId,
-		val, names, hdr.Caller.Pid)
+	return ""
 }
 
 func (r *request) OutputDebug() string {
@@ -243,7 +254,13 @@ func (r *request) outData() unsafe.Pointer {
 }
 
 func (r *request) filename() string {
-	return string(r.inPayload[:len(r.inPayload)-1])
+	idx := bytes.IndexByte(r.inPayload, 0)
+
+	name := r.inPayload
+	if idx >= 0 {
+		name = name[:idx]
+	}
+	return string(name)
 }
 
 func (r *request) filenames() (string, string) {
