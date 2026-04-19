@@ -4,7 +4,14 @@
 
 package posixtest
 
-import "testing"
+import (
+	"flag"
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+var probeDir = flag.String("posixdir", "", "dir to test")
 
 func TestAll(t *testing.T) {
 	for k, fn := range All {
@@ -16,9 +23,17 @@ func TestAll(t *testing.T) {
 		if k == "OpenSymlinkRace" {
 			continue
 		}
+		dir := *probeDir
+		if dir == "" {
+			dir = t.TempDir()
+		}
 		t.Run(k, func(t *testing.T) {
-			dir := t.TempDir()
-			fn(t, dir)
+			sub := filepath.Join(dir, k)
+			if err := os.MkdirAll(sub, 0755); err != nil {
+				t.Fatalf("MkdirAll: %v", err)
+			}
+
+			fn(t, sub)
 		})
 	}
 }

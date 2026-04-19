@@ -109,7 +109,7 @@ ls /mnt/killme.txt
 reboot -n -f
 `
 
-	if err := mkinitRam(ramdisk, testAssets.busybox, testAssets.modules, []byte(initScript)); err != nil {
+	if err := mkinitRam(ramdisk, testAssets.busybox, testAssets.modules, []byte(initScript), nil); err != nil {
 		t.Fatal(err)
 	}
 	defer os.Remove(ramdisk)
