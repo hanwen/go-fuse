@@ -104,9 +104,8 @@ func (n *linearRaidNode) Read(ctx context.Context, fh fs.FileHandle, dest []byte
 func Example_linearRaid() {
 	const (
 		chunkSize = 64 * 1024 // 64 KiB
-		numChunks = 4
+		totalSize = 4*chunkSize - 42
 	)
-	totalSize := int64(chunkSize * numChunks)
 
 	// Write chunk files with distinct, recognisable content.
 	chunkDir, err := os.MkdirTemp("", "chunks")
@@ -117,14 +116,18 @@ func Example_linearRaid() {
 
 	var chunks []string
 	var want []byte
-	for i := 0; i < numChunks; i++ {
-		data := bytes.Repeat([]byte{byte(i + 1)}, chunkSize)
+
+	left := totalSize
+	for left > 0 {
+		i := len(chunks)
+		data := bytes.Repeat([]byte{byte(i) + 1}, min(chunkSize, left))
 		want = append(want, data...)
 		p := filepath.Join(chunkDir, fmt.Sprintf("chunk%d", i))
 		if err := os.WriteFile(p, data, 0644); err != nil {
 			log.Fatal(err)
 		}
 		chunks = append(chunks, p)
+		left -= len(data)
 	}
 
 	mntDir, err := os.MkdirTemp("", "mnt")

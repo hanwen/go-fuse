@@ -6,7 +6,9 @@ package fuse
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"syscall"
 
 	"github.com/hanwen/go-fuse/v2/splice"
 )
@@ -46,12 +48,12 @@ func (ms *Server) trySplice(req *request, readResult ReadResult) error {
 	}
 
 	// Write header into pipe.
-	n, err := writev(int(pair.WriteFd()), [][]byte{req.outHeaderBuf, req.outDataBuf})
+	headerSz, err := writev(int(pair.WriteFd()), [][]byte{req.outHeaderBuf, req.outDataBuf})
 	if err != nil {
 		return err
 	}
-	if want := len(req.outHeaderBuf) + len(req.outDataBuf); n != want {
-		return fmt.Errorf("short write into splice: wrote %d, want %d", n, want)
+	if want := len(req.outHeaderBuf) + len(req.outDataBuf); headerSz != want {
+		return fmt.Errorf("short write into splice: wrote %d, want %d", headerSz, want)
 	}
 
 	// Splice file data directly into pipe (single copy).
@@ -75,8 +77,20 @@ func (ms *Server) trySplice(req *request, readResult ReadResult) error {
 
 	if payloadLen != sz {
 		// Short read at EOF: the header carries the wrong total length.
-		// Return errShortSplice so the caller falls back without logging.
-		return errRecoverSplice
+
+		// drain header
+		_, err := pair.Read(make([]byte, headerSz))
+		if err != nil {
+			return fmt.Errorf("fallback drain: %w", err)
+		}
+
+		if ms.opts.Debug {
+			log.Printf("tx %d:     OK fixup fd %db data", req.inHeader().Unique, payloadLen)
+		}
+		// New length.
+		req.serializeHeader(payloadLen)
+
+		return ms.trySplice(req, ReadResultPipe(pair, payloadLen))
 	}
 
 	// Write header + payload to /dev/fuse.
@@ -96,6 +110,9 @@ func (r *pipeReadResult) Done() {
 
 func (r *pipeReadResult) Bytes(buf []byte) ([]byte, Status) {
 	n, err := r.pair.Read(buf)
+	if n == -1 && err == syscall.EAGAIN {
+		return nil, 0
+	}
 	return buf[:n], ToStatus(err)
 }
 

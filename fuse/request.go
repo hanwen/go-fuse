@@ -154,7 +154,7 @@ func (r *request) OutputDebug() string {
 				_, pipeOK := r.readResult.(statefulResult)
 				_, fdOK := r.readResult.(seekableResult)
 				if fdOK || pipeOK {
-					spl = fmt.Sprintf(" (fd %d data)", r.readResult.Size())
+					spl = fmt.Sprintf(" (fd %db data)", r.readResult.Size())
 				}
 			} else {
 				l := len(r.outPayload)
