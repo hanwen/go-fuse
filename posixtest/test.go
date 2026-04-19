@@ -859,11 +859,12 @@ func XAttr(t *testing.T, mntDir string) {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	if _, err := unix.Getxattr(fn, attr, buf); err == unix.ENOTSUP {
+	_, err := unix.Getxattr(fn, attr, buf)
+	if err == unix.ENOTSUP {
 		t.Skipf("filesystem for %s does not support xattrs. Rerun this test with a $TMPDIR override", fn)
 	}
 
-	if _, err := unix.Getxattr(fn, attr, buf); err != xattr.ENOATTR {
+	if err != xattr.ENOATTR {
 		t.Fatalf("got %v want ENOATTR", err)
 	}
 	value := []byte("value")
@@ -893,11 +894,19 @@ func XAttr(t *testing.T, mntDir string) {
 		}
 	}
 
+	sz, err = unix.Getxattr(fn, attr, nil)
+	if err != nil {
+		t.Fatalf("Getxattr(nil): %v", err)
+	} else if sz != len(value) {
+		t.Errorf("Getxattr(nil): got %d want %d", sz, len(value))
+	}
+
+	buf = make([]byte, sz)
 	sz, err = unix.Getxattr(fn, attr, buf)
 	if err != nil {
 		t.Fatalf("Getxattr: %v", err)
 	}
-	if bytes.Compare(buf[:sz], value) != 0 {
+	if !bytes.Equal(buf[:sz], value) {
 		t.Fatalf("Getxattr got %q want %q", buf[:sz], value)
 	}
 	if err := unix.Removexattr(fn, attr); err != nil {
