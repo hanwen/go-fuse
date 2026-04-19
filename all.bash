@@ -23,5 +23,9 @@ $GO_TEST ./...
 # The following tests need to run as root
 sudo env PATH=$PATH $GO_TEST -run 'Test(DirectMount|Forget|Passthrough|IDMappedMount)' ./fs ./fuse
 
+# Run virtiofs tests (including posixtest inside a VM) if QEMU and KVM are available.
+# These are skipped automatically by TestMain when assets cannot be prepared.
+$GO_TEST -timeout 2m -run 'Test(Basic|Posixtest)' ./virtiofs
+
 make -C benchmark
 go test ./benchmark -test.bench '.*' -test.cpu 1,2

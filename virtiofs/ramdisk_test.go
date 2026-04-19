@@ -39,7 +39,9 @@ func stripCompression(name string) string {
 // mkinitRam builds a gzipped cpio initrd at path.  modules is an optional
 // list of host kernel module paths (.ko/.ko.xz/.ko.zst) to embed at /lib/;
 // they are decompressed so that busybox insmod can load them.
-func mkinitRam(path, busybox string, modules []string, initContent []byte) error {
+// extraFiles maps initrd destination paths to host source paths for
+// additional binaries or data files to embed (e.g. "/posixtest.test" → "/tmp/...").
+func mkinitRam(path, busybox string, modules []string, initContent []byte, extraFiles map[string]string) error {
 	dirs := []string{"etc", "lib", "sys", "proc", "mnt",
 		"bin", "sbin", "usr", "usr/sbin", "usr/bin"}
 
@@ -482,6 +484,23 @@ udhcpd`, "\n"),
 			return err
 		}
 		files = append(files, "lib/"+base)
+	}
+
+	// Embed extra files (e.g. test binaries).
+	for dest, src := range extraFiles {
+		dest = strings.TrimPrefix(dest, "/")
+		destPath := filepath.Join(dir, dest)
+		if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+			return err
+		}
+		data, err := os.ReadFile(src)
+		if err != nil {
+			return fmt.Errorf("extra file %s: %w", src, err)
+		}
+		if err := os.WriteFile(destPath, data, 0755); err != nil {
+			return err
+		}
+		files = append(files, dest)
 	}
 
 	for _, d := range dirs {
