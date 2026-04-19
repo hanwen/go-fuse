@@ -236,16 +236,23 @@ func parseRequest(in []byte, kernelSettings *InitIn) (h *operationHandler, inSiz
 		return
 	}
 
+	outSize = int(h.OutputSize)
+
 	switch hdr.Opcode {
 	case _OP_READDIR, _OP_READDIRPLUS, _OP_READ:
 		outPayloadSize = int(((*ReadIn)(inData)).Size)
 	case _OP_GETXATTR, _OP_LISTXATTR:
+		// [GET|LIST]XATTR is two opcodes in one: get/list xattr size (return
+		// structured GetXAttrOut, no flat data) and get/list xattr data
+		// (return no structured data, but only flat data)
 		outPayloadSize = int(((*GetXAttrIn)(inData)).Size)
+		if outPayloadSize > 0 {
+			outSize = 0
+		}
 	case _OP_IOCTL:
 		outPayloadSize = int(((*IoctlIn)(inData)).OutSize)
 	}
 
-	outSize = int(h.OutputSize)
 	return
 }
 
@@ -276,26 +283,11 @@ func (r *request) filenames() (string, string) {
 // serializeHeader serializes the response header. The header points
 // to an internal buffer of the receiver.
 func (r *request) serializeHeader(outPayloadSize int) {
-	var dataLength uintptr
-
-	h := getHandler(r.inHeader().Opcode)
-	if h != nil {
-		dataLength = h.OutputSize
-	}
 	if r.status > OK {
 		// only do this for positive status; negative status
 		// is used for notification.
-		dataLength = 0
+		r.outDataBuf = nil
 		outPayloadSize = 0
-	}
-
-	// [GET|LIST]XATTR is two opcodes in one: get/list xattr size (return
-	// structured GetXAttrOut, no flat data) and get/list xattr data
-	// (return no structured data, but only flat data)
-	if r.inHeader().Opcode == _OP_GETXATTR || r.inHeader().Opcode == _OP_LISTXATTR {
-		if (*GetXAttrIn)(r.inData()).Size != 0 {
-			dataLength = 0
-		}
 	}
 
 	// The InitOut structure has 24 bytes (ie. TimeGran and
@@ -304,7 +296,7 @@ func (r *request) serializeHeader(outPayloadSize int) {
 	if r.inHeader().Opcode == _OP_INIT {
 		out := (*InitOut)(r.outData())
 		if out.Minor <= 22 {
-			dataLength = 24
+			r.outDataBuf = r.outDataBuf[:24]
 		}
 	}
 
@@ -312,9 +304,8 @@ func (r *request) serializeHeader(outPayloadSize int) {
 	o.Unique = r.inHeader().Unique
 	o.Status = int32(-r.status)
 	o.Length = uint32(
-		int(sizeOfOutHeader) + int(dataLength) + outPayloadSize)
+		int(sizeOfOutHeader) + len(r.outDataBuf) + outPayloadSize)
 
-	r.outDataBuf = r.outDataBuf[:dataLength]
 	if r.outPayload != nil {
 		r.outPayload = r.outPayload[:outPayloadSize]
 	}

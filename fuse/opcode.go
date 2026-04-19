@@ -259,8 +259,6 @@ func doGetXAttr(server *protocolServer, req *request) {
 	}
 
 	input := (*GetXAttrIn)(req.inData())
-	out := (*GetXAttrOut)(req.outData())
-
 	var n uint32
 	switch req.inHeader().Opcode {
 	case _OP_GETXATTR:
@@ -271,9 +269,13 @@ func doGetXAttr(server *protocolServer, req *request) {
 		req.status = ENOSYS
 	}
 
-	if input.Size == 0 && req.status == ERANGE {
-		// For input.size==0, returning ERANGE is an error.
-		req.status = OK
+	if input.Size == 0 {
+		if req.status == ERANGE {
+			// For input.size==0, returning ERANGE is an error.
+			req.status = OK
+		}
+
+		out := (*GetXAttrOut)(req.outData())
 		out.Size = n
 	} else if req.status.Ok() {
 		// ListXAttr called with an empty buffer returns the current size of
@@ -281,7 +283,6 @@ func doGetXAttr(server *protocolServer, req *request) {
 		if len(req.outPayload) > 0 {
 			req.outPayload = req.outPayload[:n]
 		}
-		out.Size = n
 	} else {
 		req.outPayload = req.outPayload[:0]
 	}
