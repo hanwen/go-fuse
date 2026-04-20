@@ -13,6 +13,11 @@ systems
 
 ## Release notes
 
+
+v2.11:
+
+* fuse: added MountOptions.PanicHandler; panics no longer crash the server.
+
 v2.10:
 
 * fs: LoopbackFile is now public.

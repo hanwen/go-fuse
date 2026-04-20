@@ -156,18 +156,7 @@ func alignSlice(buf []byte, alignedByte, blockSize, size uintptr) []byte {
 	return buf[:size]
 }
 
-// NewServer creates a FUSE server and attaches ("mounts") it to the
-// `mountPoint` directory.
-//
-// See the "Mount styles" section in the package documentation if you want to
-// know about the inner workings of the mount process. Usually you do not.
-func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server, error) {
-	if opts == nil {
-		opts = &MountOptions{
-			MaxBackground: _DEFAULT_BACKGROUND_TASKS,
-		}
-	}
-	o := *opts
+func (o *MountOptions) setDefaults(fs RawFileSystem) {
 	if o.Logger == nil {
 		o.Logger = log.Default()
 	}
@@ -192,6 +181,12 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		}
 		o.Name = strings.Replace(name[:l], ",", ";", -1)
 	}
+	if o.PanicHandler == nil {
+		l := o.Logger
+		o.PanicHandler = func(obj any) Status {
+			return defaultPanicHandler(l, obj)
+		}
+	}
 
 	for _, s := range []struct {
 		flag bool
@@ -205,6 +200,29 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 			o.DisabledCapabilities |= s.mask
 		}
 	}
+}
+
+func defaultPanicHandler(logger *log.Logger, obj any) Status {
+	const size = 64 << 10
+	buf := make([]byte, size)
+	buf = buf[:runtime.Stack(buf, false)]
+	logger.Printf("panic in FS handler: %v\n%s", obj, buf)
+	return EIO
+}
+
+// NewServer creates a FUSE server and attaches ("mounts") it to the
+// `mountPoint` directory.
+//
+// See the "Mount styles" section in the package documentation if you want to
+// know about the inner workings of the mount process. Usually you do not.
+func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server, error) {
+	if opts == nil {
+		opts = &MountOptions{
+			MaxBackground: _DEFAULT_BACKGROUND_TASKS,
+		}
+	}
+	o := *opts
+	o.setDefaults(fs)
 
 	maxReaders := runtime.GOMAXPROCS(0)
 	if maxReaders < minMaxReaders {

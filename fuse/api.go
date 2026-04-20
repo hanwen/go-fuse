@@ -335,6 +335,11 @@ type MountOptions struct {
 	// DisableSplice, if set, disables splicing from files to the FUSE device.
 	DisableSplice bool
 
+	// PanicHandler is called if an FS routine panics. The handler
+	// should return a nonzero status. If not set, the default is
+	// to print a stack trace and return EIO.
+	PanicHandler func(any) Status
+
 	// MaxStackDepth is the maximum stacking depth for passthrough files.
 	// If unset, the default is 1.
 	MaxStackDepth int

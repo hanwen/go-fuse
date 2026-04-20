@@ -5,7 +5,6 @@
 package fuse
 
 import (
-	"log"
 	"sync"
 	"syscall"
 )
@@ -47,7 +46,17 @@ func (ms *protocolServer) handleRequest(h *operationHandler, req *request) {
 		ms.opts.Logger.Printf("Unimplemented opcode %v", operationName(req.inHeader().Opcode))
 		req.status = ENOSYS
 	} else if req.status.Ok() {
-		h.Func(ms, req)
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					req.status = ms.opts.PanicHandler(r)
+					if req.status == 0 {
+						req.status = EIO
+					}
+				}
+			}()
+			h.Func(ms, req)
+		}()
 	}
 
 	// Forget/NotifyReply do not wait for reply from filesystem server.
@@ -145,10 +154,9 @@ func NewProtocolServer(fs RawFileSystem, opts *MountOptions) *ProtocolServer {
 	// ProtocolServer has no pipe, so splicing READ results to the
 	// caller is not possible; force the in-process READ path.
 	optsCopy := *opts
+	optsCopy.setDefaults(fs)
 	optsCopy.DisableSplice = true
-	if optsCopy.Logger == nil {
-		optsCopy.Logger = log.Default()
-	}
+
 	return &ProtocolServer{
 		protocolServer: protocolServer{
 			fileSystem:  fs,
