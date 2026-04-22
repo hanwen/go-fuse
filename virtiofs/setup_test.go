@@ -11,11 +11,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
 
 // busyboxURL is the official static x86-64 busybox binary from busybox.net.
+// TODO: support arm64 as well.
 const busyboxURL = "https://busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox"
 
 // testBinDir is where downloaded/detected assets are cached across runs.
@@ -23,6 +25,7 @@ var testBinDir = filepath.Join(os.Getenv("HOME"), ".cache", "go-fuse-virtiofs")
 
 // testAssets holds the paths resolved by TestMain.
 var testAssets struct {
+	qemuBin string
 	busybox string
 	kernel  string
 	// modules is the ordered list of host .ko paths to embed in the initrd.
@@ -39,6 +42,21 @@ func TestMain(m *testing.M) {
 }
 
 func prepareAssets() error {
+	byArch := map[string]string{
+		"amd64": "qemu-system-x86_64",
+		"arm64": "qemu-system-aarch64",
+	}
+	bin, ok := byArch[runtime.GOARCH]
+	if !ok {
+		return fmt.Errorf("not supported: %s", runtime.GOARCH)
+	}
+
+	var err error
+	testAssets.qemuBin, err = exec.LookPath(bin)
+	if err != nil {
+		return err
+	}
+
 	if err := os.MkdirAll(testBinDir, 0755); err != nil {
 		return err
 	}
@@ -154,4 +172,3 @@ func moduleInsmodLines(modules []string) string {
 	}
 	return sb.String()
 }
-

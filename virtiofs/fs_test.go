@@ -113,7 +113,7 @@ reboot -n -f
 	}
 	defer os.Remove(ramdisk)
 
-	cmd := exec.Command("qemu-system-x86_64",
+	cmd := exec.Command(testAssets.qemuBin,
 		"-M", "pc", "-m", "4G", "-cpu", "host", "-smp", "2",
 		"-enable-kvm",
 		"-chardev", "socket,id=char0,path="+sockpath,
