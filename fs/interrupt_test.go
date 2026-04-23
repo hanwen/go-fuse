@@ -54,11 +54,7 @@ func (o *interruptOps) Open(ctx context.Context, flags uint32) (FileHandle, uint
 func TestInterrupt(t *testing.T) {
 	root := &interruptRoot{}
 
-	oneSec := time.Second
-	mntDir, server := testMount(t, root, &Options{
-		EntryTimeout: &oneSec,
-		AttrTimeout:  &oneSec,
-	})
+	mntDir, server := testMount(t, root, DefaultOptions())
 
 	cmd := exec.Command("cat", mntDir+"/file")
 	if err := cmd.Start(); err != nil {

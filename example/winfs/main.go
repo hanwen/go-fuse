@@ -142,11 +142,7 @@ func main() {
 		Path:    orig,
 	}
 
-	sec := time.Second
-	opts := &fs.Options{
-		AttrTimeout:  &sec,
-		EntryTimeout: &sec,
-	}
+	opts := fs.DefaultOptions()
 	opts.Debug = *debug
 	opts.MountOptions.Options = append(opts.MountOptions.Options, "fsname="+orig)
 	opts.MountOptions.Name = "winfs"
