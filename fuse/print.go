@@ -103,6 +103,9 @@ var (
 		{2, "EXCHANGE"},
 		{4, "WHITEOUT"},
 	})
+	lockFlagNames = newFlagNames([]flagNameEntry{
+		{(1 << 0), "FLOCK"},
+	})
 )
 
 // flagNames associate flag bits to their names.
@@ -416,4 +419,16 @@ func (o *IoctlOut) string() string {
 		o.Result,
 		flagString(ioctlFlagNames, int64(o.Flags), ""),
 		o.InIovs, o.OutIovs)
+}
+
+func (l *LkIn) string() string {
+	return fmt.Sprintf("{Fh %d Owner %d %s %s}", l.Owner, l.Owner, l.Lk.string(), flagString(lockFlagNames, int64(l.LkFlags), ""))
+}
+
+func (lk *FileLock) string() string {
+	return fmt.Sprintf("{[%d,%d) t%d p%d}", lk.Start, lk.End, lk.Typ, lk.Pid)
+}
+
+func (l *LkOut) string() string {
+	return l.Lk.string()
 }

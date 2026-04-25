@@ -457,6 +457,8 @@ type FileLock struct {
 	Pid   uint32
 }
 
+const LK_FLOCK = (1 << 0)
+
 type LkIn struct {
 	InHeader
 	Fh      uint64
