@@ -320,6 +320,8 @@ func FstatDeleted(t *testing.T, mnt string) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		clearStatRevision(&st)
+
 		// Open
 		fd, err := syscall.Open(path, syscall.O_RDONLY, 0)
 		if err != nil {
@@ -345,9 +347,10 @@ func FstatDeleted(t *testing.T, mnt string) {
 		st.Ctim = unix.Timespec{}
 		// Nlink value should have dropped to zero
 		v.st.Nlink = 0
+		clearStatRevision(&st)
 		// Rest should stay the same
 		if v.st != st {
-			t.Errorf("stat mismatch: want=%v\n have=%v", v.st, st)
+			t.Errorf("stat mismatch:\n  got=%#v\n want=%#v", st, v.st)
 		}
 	}
 }
@@ -833,14 +836,14 @@ func XAttr(t *testing.T, mntDir string) {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	_, err := unix.Getxattr(fn, attr, buf)
-	if err == unix.ENOTSUP {
+	if n, err := unix.Getxattr(fn, attr, buf); err == nil {
+		t.Errorf("got result %q, want empty", buf[:n])
+	} else if err == unix.ENOTSUP {
 		t.Skipf("filesystem for %s does not support xattrs. Rerun this test with a $TMPDIR override", fn)
-	}
-
-	if err != xattr.ENOATTR {
+	} else if err != xattr.ENOATTR {
 		t.Fatalf("got %v want ENOATTR", err)
 	}
+
 	value := []byte("value")
 	if err := unix.Setxattr(fn, attr, value, 0); err != nil {
 		t.Fatalf("Setxattr: %v", err)
@@ -857,14 +860,14 @@ func XAttr(t *testing.T, mntDir string) {
 		attributes := xattr.ParseAttrNames(buf[:sz])
 		found := false
 		for _, a := range attributes {
-			if string(a) == attr || attrNameSpace+string(a) == attr {
+			if string(a) == attr || attrNameSpace+"."+string(a) == attr {
 				found = true
 				break
 			}
 		}
 
 		if !found {
-			t.Fatalf("Listxattr: %q (not found: %q", attributes, attr)
+			t.Fatalf("Listxattr: %q (not found: %q)", attributes, attr)
 		}
 	}
 
