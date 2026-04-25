@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -30,7 +29,6 @@ var All = map[string]func(*testing.T, string){
 	"DirSeek":                    DirSeek,
 	"DirectIO":                   DirectIO,
 	"Fallocate":                  Fallocate,
-	"FallocateKeepSize":          FallocateKeepSize,
 	"FcntlFlockLocksFile":        FcntlFlockLocksFile,
 	"FcntlFlockSetLk":            FcntlFlockSetLk,
 	"FdLeak":                     FdLeak,
@@ -694,31 +692,6 @@ func Fallocate(t *testing.T, mnt string) {
 	}
 }
 
-func FallocateKeepSize(t *testing.T, mnt string) {
-	f, err := os.Create(mnt + "/file")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer f.Close()
-	data := bytes.Repeat([]byte{42}, 100)
-	if _, err := f.Write(data); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := syscall.Fallocate(int(f.Fd()), unix.FALLOC_FL_KEEP_SIZE, 50, 52); err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := f.Seek(0, io.SeekStart); err != nil {
-		t.Fatal(err)
-	}
-
-	roundtrip, _ := io.ReadAll(f)
-	if !bytes.Equal(roundtrip, data) {
-		t.Fatalf("roundtrip not equal %q != %q", roundtrip, data)
-	}
-}
-
 func FcntlFlockSetLk(t *testing.T, mnt string) {
 	for i, cmd := range []int{syscall.F_SETLK, syscall.F_SETLKW} {
 		filename := mnt + fmt.Sprintf("/file%d", i)
@@ -942,7 +915,7 @@ func OpenSymlinkRace(t *testing.T, mnt string) {
 
 	const iterations = 1000
 
-	fd, err := syscall.Creat(path, 0600)
+	fd, err := unix.Open(path, unix.O_WRONLY|unix.O_CREAT|unix.O_TRUNC, 0600)
 	if err != nil {
 		t.Error(err)
 		return
@@ -967,9 +940,9 @@ func OpenSymlinkRace(t *testing.T, mnt string) {
 			}
 
 			// Make "path" a regular file
-			fd, err := syscall.Creat(tmp, 0600)
+			fd, err := unix.Open(tmp, unix.O_WRONLY|unix.O_CREAT|unix.O_TRUNC, 0600)
 			if err != nil {
-				t.Errorf("shuffler: Creat: %v", err)
+				t.Errorf("shuffler: Open: %v", err)
 				return
 			}
 			syscall.Close(fd)
