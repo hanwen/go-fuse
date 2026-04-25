@@ -380,6 +380,9 @@ func TestMemPosix(t *testing.T) {
 		"TruncateNoFile",
 	} {
 		fn := posixtest.All[nm]
+		if fn == nil {
+			t.Skipf("could not find test %q", nm)
+		}
 		t.Run(nm, func(t *testing.T) {
 			root := &memDir{}
 			mnt := t.TempDir()

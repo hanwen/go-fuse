@@ -172,7 +172,7 @@ func TestExec(t *testing.T) {
 	tc := newTestCase(t, &testOptions{attrCache: true, entryCache: true})
 	tc.writeOrig("test.sh", "#!/bin/sh\ntrue\n", 0755)
 	fn := tc.mntDir + "/test.sh"
-	if err := exec.Command("bash", "-c", fn).Run(); err != nil {
+	if err := exec.Command("/bin/sh", "-c", fn).Run(); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
 }
@@ -659,7 +659,7 @@ func TestFsstress(t *testing.T) {
 		log.Panicf("shell injection attempt? mntDir=%q", tc.mntDir)
 	}
 	// --color=always enables xattr lookups for extra stress
-	cmd := exec.Command("bash", "-c", "while true ; do ls -l --color=always '"+tc.mntDir+"'; done")
+	cmd := exec.Command("/bin/sh", "-c", "while true ; do ls -l --color=always '"+tc.mntDir+"'; done")
 	err := cmd.Start()
 	if err != nil {
 		t.Fatal(err)

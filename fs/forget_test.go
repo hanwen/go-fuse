@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -64,6 +65,9 @@ func (n *allChildrenNode) Readdir(ctx context.Context) (DirStream, syscall.Errno
 func TestForget(t *testing.T) {
 	if os.Geteuid() != 0 {
 		t.Skip("must run test as root")
+	}
+	if runtime.GOOS != "linux" {
+		t.Skip("test needs linux")
 	}
 	root := &allChildrenNode{
 		depth: 2,

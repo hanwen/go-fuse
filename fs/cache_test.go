@@ -194,6 +194,9 @@ func TestSymlinkCaching(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer server.Unmount()
+	if server.KernelSettings().Flags64()&fuse.CAP_CACHE_SYMLINKS == 0 {
+		t.Skipf("symlink caching not supported")
+	}
 
 	for i := 0; i < 2; i++ {
 		if got, err := os.Readlink(mnt + "/link"); err != nil {

@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"runtime"
 	"sync"
 	"syscall"
 	"testing"
@@ -33,6 +34,9 @@ func (n *hangingRootNode) OpendirHandle(ctx context.Context, flags uint32) (fh F
 }
 
 func TestAbort(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("needs linux")
+	}
 	hr := &hangingRootNode{
 		openCalled: make(chan struct{}, 0),
 	}
