@@ -106,13 +106,13 @@ func doInit(server *protocolServer, req *request) {
 		server.opts.ExtraCapabilities)
 
 	if server.opts.EnableLocks {
-		kernelFlags |= CAP_FLOCK_LOCKS | CAP_POSIX_LOCKS
+		kernelFlags |= input.Flags64() & (CAP_FLOCK_LOCKS | CAP_POSIX_LOCKS)
 	}
 	if server.opts.EnableSymlinkCaching {
-		kernelFlags |= CAP_CACHE_SYMLINKS
+		kernelFlags |= input.Flags64() & CAP_CACHE_SYMLINKS
 	}
 	if server.opts.EnableAcl {
-		kernelFlags |= CAP_POSIX_ACL
+		kernelFlags |= input.Flags64() & CAP_POSIX_ACL
 	}
 
 	if server.opts.ExplicitDataCacheControl {
