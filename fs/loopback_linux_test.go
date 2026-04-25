@@ -7,6 +7,7 @@ package fs
 import (
 	"bytes"
 	"os"
+	"path/filepath"
 	"sync"
 	"syscall"
 	"testing"
@@ -394,5 +395,40 @@ func TestIoctlLoopbackDir(t *testing.T) {
 
 	if after != !before {
 		t.Fatalf("didn't work: after %v, before %v", after, before)
+	}
+}
+
+func TestMknod(t *testing.T) {
+	tc := newTestCase(t, &testOptions{})
+
+	modes := map[string]uint32{
+		"regular": syscall.S_IFREG,
+		"socket":  syscall.S_IFSOCK,
+		"fifo":    syscall.S_IFIFO,
+	}
+
+	for nm, mode := range modes {
+		t.Run(nm, func(t *testing.T) {
+			p := filepath.Join(tc.mntDir, nm)
+			// This doesn't work on FreeBSD: fifos must be made with mkfifo for example
+			err := syscall.Mknod(p, mode|0755, (8<<8)|0)
+			if err != nil {
+				t.Fatalf("mknod(%s): %v", nm, err)
+			}
+
+			var st syscall.Stat_t
+			if err := syscall.Stat(p, &st); err != nil {
+				got := st.Mode &^ 07777
+				if want := uint(mode); want != uint(got) {
+					t.Fatalf("stat(%s): got %o want %o", nm, got, want)
+				}
+			}
+
+			// We could test if the files can be
+			// read/written but: The kernel handles FIFOs
+			// without talking to FUSE at all. Presumably,
+			// this also holds for sockets.  Regular files
+			// are tested extensively elsewhere.
+		})
 	}
 }
