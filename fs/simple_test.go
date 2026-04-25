@@ -426,7 +426,9 @@ func TestMknod(t *testing.T) {
 func TestMknodNotSupported(t *testing.T) {
 	mountPoint := t.TempDir()
 
-	server, err := Mount(mountPoint, &Inode{}, nil)
+	opts := Options{}
+	opts.MountOptions.Debug = testutil.VerboseTest()
+	server, err := Mount(mountPoint, &Inode{}, &opts)
 	if err != nil {
 		t.Fatalf("cannot mount: %v", err)
 	}
