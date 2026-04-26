@@ -147,7 +147,7 @@ func TestLoopbackNonRoot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadFile: %v", err)
 	}
-	if bytes.Compare(data, content) != 0 {
+	if !bytes.Equal(data, content) {
 		t.Errorf("got %q, want %q", data, content)
 	}
 }

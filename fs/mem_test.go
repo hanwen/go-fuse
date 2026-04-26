@@ -171,7 +171,7 @@ func TestDataFile(t *testing.T) {
 
 	if gotBytes, err := os.ReadFile(mntDir + "/file"); err != nil {
 		t.Fatalf("ReadFile: %v", err)
-	} else if bytes.Compare(replace, gotBytes) != 0 {
+	} else if !bytes.Equal(replace, gotBytes) {
 		t.Fatalf("read: got %q want %q", gotBytes, replace)
 	}
 }

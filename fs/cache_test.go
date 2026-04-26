@@ -106,7 +106,7 @@ func TestKeepCache(t *testing.T) {
 		t.Fatalf("read keep 2: %v", err)
 	}
 
-	if bytes.Compare(c1, c2) != 0 {
+	if !bytes.Equal(c1, c2) {
 		t.Errorf("keep read 2 got %q want read 1 %q", c2, c1)
 	}
 
@@ -118,7 +118,7 @@ func TestKeepCache(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read keep 3: %v", err)
 	}
-	if bytes.Compare(c2, c3) == 0 {
+	if bytes.Equal(c2, c3) {
 		t.Errorf("keep read 3 got %q want different", c3)
 	}
 
@@ -132,7 +132,7 @@ func TestKeepCache(t *testing.T) {
 		t.Fatalf("read keep 2: %v", err)
 	}
 
-	if bytes.Compare(nc1, nc2) == 0 {
+	if bytes.Equal(nc1, nc2) {
 		t.Errorf("nokeep read 2 got %q want read 1 %q", c2, c1)
 	}
 }

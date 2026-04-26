@@ -43,7 +43,7 @@ func TestWindowsEmulations(t *testing.T) {
 
 	if got, err := os.ReadFile(nm); err != nil {
 		t.Fatal(err)
-	} else if bytes.Compare(got, data) != 0 {
+	} else if !bytes.Equal(got, data) {
 		t.Fatalf("got %q want %q", got, data)
 	}
 

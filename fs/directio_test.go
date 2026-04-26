@@ -70,7 +70,7 @@ func TestFUSEDirectIO(t *testing.T) {
 	}
 	want := bytes.Repeat([]byte{'0'}, 10)
 	got := buf[:n]
-	if bytes.Compare(got, want) != 0 {
+	if !bytes.Equal(got, want) {
 		t.Errorf("got %q want %q", got, want)
 	}
 
@@ -89,7 +89,7 @@ func TestFUSEDirectIO(t *testing.T) {
 	}
 	want = []byte(fmt.Sprintf("%010d", 1024))
 	got = buf[:n]
-	if bytes.Compare(got, want) != 0 {
+	if !bytes.Equal(got, want) {
 		t.Errorf("got %q want %q", got, want)
 	}
 }
