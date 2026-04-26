@@ -74,6 +74,7 @@ func TestDirCacheFlag(t *testing.T) {
 	if errno != 0 {
 		t.Fatalf("NewLoopbackDirStream: %v", errno)
 	}
+	defer s.Close()
 
 	want, errno := readDirStream(s)
 	if errno != 0 {
@@ -85,6 +86,7 @@ func TestDirCacheFlag(t *testing.T) {
 	if errno != 0 {
 		t.Fatalf("NewLoopbackDirStream: %v", errno)
 	}
+	defer s.Close()
 	got, errno := readDirStream(s)
 	if errno != 0 {
 		t.Fatalf("NewLoopbackDirStream: %v", errno)
