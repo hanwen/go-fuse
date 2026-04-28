@@ -178,6 +178,16 @@ type MountOptions struct {
 	// is still allowed through.
 	MaxInflightRequestBytes int
 
+	// CongestionThreshold is the in-flight async-request count at which
+	// the kernel marks the FUSE backing-dev as congested, throttling new
+	// submissions. It corresponds to
+	// /sys/fs/fuse/connections/<id>/congestion_threshold.
+	//
+	// If 0, go-fuse falls back to the kernel-FUSE convention of
+	// 3/4 * MaxBackground. The value is silently clamped by the kernel
+	// to MaxBackground if it is set higher.
+	CongestionThreshold int
+
 	// MaxWrite is the max size for read and write requests. If 0, use
 	// go-fuse default (currently 64 kiB).
 	// This number is internally capped at MAX_KERNEL_WRITE (higher values don't make

@@ -129,13 +129,18 @@ func doInit(server *protocolServer, req *request) {
 	// 128kiB.
 	maxPages := (server.opts.MaxWrite-1)/syscall.Getpagesize() + 1 // Round up
 
+	congestionThreshold := server.opts.CongestionThreshold
+	if congestionThreshold <= 0 {
+		congestionThreshold = server.opts.MaxBackground * 3 / 4
+	}
+
 	out := (*InitOut)(req.outData())
 	*out = InitOut{
 		Major:               _FUSE_KERNEL_VERSION,
 		Minor:               _OUR_MINOR_VERSION,
 		MaxReadAhead:        input.MaxReadAhead,
 		MaxWrite:            uint32(server.opts.MaxWrite),
-		CongestionThreshold: uint16(server.opts.MaxBackground * 3 / 4),
+		CongestionThreshold: uint16(congestionThreshold),
 		MaxBackground:       uint16(server.opts.MaxBackground),
 		MaxPages:            uint16(maxPages),
 		MaxStackDepth:       uint32(server.opts.MaxStackDepth),
