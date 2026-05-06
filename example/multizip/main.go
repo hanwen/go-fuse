@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/zipfs"
@@ -30,13 +29,9 @@ func main() {
 	}
 
 	root := &zipfs.MultiZipFs{}
-	sec := time.Second
-	opts := fs.Options{
-		EntryTimeout: &sec,
-		AttrTimeout:  &sec,
-	}
+	opts := fs.DefaultOptions()
 	opts.Debug = *debug
-	server, err := fs.Mount(flag.Arg(0), root, &opts)
+	server, err := fs.Mount(flag.Arg(0), root, opts)
 	if err != nil {
 		fmt.Printf("Mount fail: %v\n", err)
 		os.Exit(1)
