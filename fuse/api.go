@@ -167,6 +167,17 @@ type MountOptions struct {
 	// Concurrency for synchronous I/O is not limited.
 	MaxBackground int
 
+	// MaxInflightRequestBytes controls the number of bytes used for
+	// request structs and input buffers checked out by go-fuse. This
+	// includes buffers used by readers waiting on the kernel and requests
+	// being processed concurrently.
+	//
+	// It also applies to requests that do not expect a reply, such as
+	// FORGET and BATCH_FORGET. If unset, it defaults to math.MaxInt. If
+	// set smaller than the bytes needed for a single request, one request
+	// is still allowed through.
+	MaxInflightRequestBytes int
+
 	// MaxWrite is the max size for read and write requests. If 0, use
 	// go-fuse default (currently 64 kiB).
 	// This number is internally capped at MAX_KERNEL_WRITE (higher values don't make

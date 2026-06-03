@@ -61,9 +61,15 @@ type Server struct {
 
 	// Pool for request structs.
 	reqPool sync.Pool
+	// reqAllocBytes is constant after NewServer, so it can be used for accounting.
+	reqAllocBytes int
 
 	// Pool for raw requests data
-	readPool   sync.Pool
+	readPool sync.Pool
+	// readBufBytes is constant after NewServer, so it can be used for accounting.
+	readBufBytes         int
+	inflightRequestBytes int
+
 	reqMu      sync.Mutex
 	reqReaders int
 
@@ -170,6 +176,9 @@ func (o *MountOptions) setDefaults(fs RawFileSystem) {
 	if o.MaxWrite > kernelMaxWrite {
 		o.MaxWrite = kernelMaxWrite
 	}
+	if o.MaxInflightRequestBytes <= 0 {
+		o.MaxInflightRequestBytes = math.MaxInt
+	}
 	if o.MaxStackDepth == 0 {
 		o.MaxStackDepth = 1
 	}
@@ -231,16 +240,20 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		maxReaders = maxMaxReaders
 	}
 
+	readBufSize, readBufBytes, reqAllocBytes := requestAccountingSizes(o.MaxWrite)
+
 	ms := &Server{
 		protocolServer: protocolServer{
 			fileSystem:  fs,
 			retrieveTab: make(map[uint64]*retrieveCacheRequest),
 			opts:        &o,
 		},
-		opts:         &o,
-		maxReaders:   maxReaders,
-		singleReader: useSingleReader,
-		ready:        make(chan error, 1),
+		opts:          &o,
+		maxReaders:    maxReaders,
+		reqAllocBytes: reqAllocBytes,
+		readBufBytes:  readBufBytes,
+		singleReader:  useSingleReader,
+		ready:         make(chan error, 1),
 	}
 
 	ms.protocolServer.writev = ms.writev
@@ -252,16 +265,12 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		}
 	}
 	ms.readPool.New = func() interface{} {
-		targetSize := o.MaxWrite + int(maxInputSize)
-		if targetSize < _FUSE_MIN_READ_BUFFER {
-			targetSize = _FUSE_MIN_READ_BUFFER
-		}
 		// O_DIRECT typically requires buffers aligned to
 		// blocksize (see man 2 open), but requirements vary
 		// across file systems. Presumably, we could also fix
 		// this by reading the requests using readv.
-		buf := make([]byte, targetSize+logicalBlockSize)
-		buf = alignSlice(buf, unsafe.Sizeof(WriteIn{}), logicalBlockSize, uintptr(targetSize))
+		buf := make([]byte, readBufBytes)
+		buf = alignSlice(buf, unsafe.Sizeof(WriteIn{}), logicalBlockSize, uintptr(readBufSize))
 		return buf
 	}
 	mountPoint = filepath.Clean(mountPoint)
@@ -290,6 +299,16 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 	// synchronously or asynchronously.
 	ms.loops.Add(1)
 	return ms, nil
+}
+
+func requestAccountingSizes(maxWrite int) (readBufSize, readBufBytes, reqAllocBytes int) {
+	readBufSize = maxWrite + int(maxInputSize)
+	if readBufSize < _FUSE_MIN_READ_BUFFER {
+		readBufSize = _FUSE_MIN_READ_BUFFER
+	}
+	readBufBytes = readBufSize + logicalBlockSize
+	reqAllocBytes = int(unsafe.Sizeof(requestAlloc{}))
+	return
 }
 
 func escape(optionValue string) string {
@@ -372,20 +391,18 @@ func handleEINTR(fn func() error) (err error) {
 }
 
 // Returns a new request, or error. Returns
-// nil, OK if we have too many readers already.
+// nil, OK if we have too many readers or request bytes already.
 func (ms *Server) readRequest() (req *requestAlloc, code Status) {
 	ms.reqMu.Lock()
-	if ms.reqReaders > ms.maxReaders {
+	if ms.reqReaders > ms.maxReaders || !ms.reserveRequestBytes() {
 		ms.reqMu.Unlock()
 		return nil, OK
 	}
 	ms.reqReaders++
 	ms.reqMu.Unlock()
 
-	reqIface := ms.reqPool.Get()
-	req = reqIface.(*requestAlloc)
-	destIface := ms.readPool.Get()
-	dest := destIface.([]byte)
+	req = ms.reqPool.Get().(*requestAlloc)
+	dest := ms.readPool.Get().([]byte)
 
 	var n int
 	err := handleEINTR(func() error {
@@ -394,9 +411,9 @@ func (ms *Server) readRequest() (req *requestAlloc, code Status) {
 		return err
 	})
 	if err != nil {
-		ms.reqPool.Put(reqIface)
-		ms.readPool.Put(destIface)
 		ms.reqMu.Lock()
+		ms.putReadBuf(dest)
+		ms.putReq(req)
 		ms.reqReaders--
 		ms.reqMu.Unlock()
 		return nil, ToStatus(err)
@@ -410,6 +427,9 @@ func (ms *Server) readRequest() (req *requestAlloc, code Status) {
 	gobbled := req.setInput(dest[:n])
 	if len(req.inputBuf) < int(unsafe.Sizeof(InHeader{})) {
 		log.Printf("Short read for input header: %v", req.inputBuf)
+		ms.putReadBuf(dest)
+		ms.putReq(req)
+		ms.reqReaders--
 		return nil, EINVAL
 	}
 	opCode := ((*InHeader)(unsafe.Pointer(&req.inputBuf[0]))).Opcode
@@ -420,7 +440,7 @@ func (ms *Server) readRequest() (req *requestAlloc, code Status) {
 	needsBackPressure := (opCode == _OP_FORGET || opCode == _OP_BATCH_FORGET)
 
 	if !gobbled {
-		ms.readPool.Put(destIface)
+		ms.putReadBuf(dest)
 	}
 	ms.reqReaders--
 	if !ms.singleReader && ms.reqReaders <= 0 && !needsBackPressure {
@@ -429,6 +449,33 @@ func (ms *Server) readRequest() (req *requestAlloc, code Status) {
 	}
 
 	return req, OK
+}
+
+func (ms *Server) reserveRequestBytes() bool {
+	if !ms.canReserveRequestBytes() {
+		return false
+	}
+	ms.inflightRequestBytes += ms.requestBytes()
+	return true
+}
+
+func (ms *Server) canReserveRequestBytes() bool {
+	return ms.inflightRequestBytes == 0 ||
+		ms.requestBytes() <= ms.opts.MaxInflightRequestBytes-ms.inflightRequestBytes
+}
+
+func (ms *Server) requestBytes() int {
+	return ms.reqAllocBytes + ms.readBufBytes
+}
+
+func (ms *Server) putReadBuf(buf []byte) {
+	ms.readPool.Put(buf)
+	ms.inflightRequestBytes -= ms.readBufBytes
+}
+
+func (ms *Server) putReq(req *requestAlloc) {
+	ms.reqPool.Put(req)
+	ms.inflightRequestBytes -= ms.reqAllocBytes
 }
 
 // returnRequest returns a request to the pool of unused requests.
@@ -445,11 +492,13 @@ func (ms *Server) returnRequest(req *requestAlloc) {
 	}
 	req.clear()
 
+	ms.reqMu.Lock()
 	if p := req.bufferPoolInputBuf; p != nil {
 		req.bufferPoolInputBuf = nil
-		ms.readPool.Put(p)
+		ms.putReadBuf(p)
 	}
-	ms.reqPool.Put(req)
+	ms.putReq(req)
+	ms.reqMu.Unlock()
 }
 
 func (ms *Server) recordStats(req *request) {
@@ -586,10 +635,15 @@ exit:
 		}
 
 		if ms.singleReader {
-			go ms.handleRequest(req)
-		} else {
-			ms.handleRequest(req)
+			ms.reqMu.Lock()
+			canReserve := ms.canReserveRequestBytes()
+			ms.reqMu.Unlock()
+			if canReserve {
+				go ms.handleRequest(req)
+				continue
+			}
 		}
+		ms.handleRequest(req)
 	}
 }
 
