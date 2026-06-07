@@ -394,12 +394,12 @@ func (ms *Server) readRequest() (req *requestAlloc, code Status) {
 		return err
 	})
 	if err != nil {
-		code = ToStatus(err)
 		ms.reqPool.Put(reqIface)
+		ms.readPool.Put(destIface)
 		ms.reqMu.Lock()
 		ms.reqReaders--
 		ms.reqMu.Unlock()
-		return nil, code
+		return nil, ToStatus(err)
 	}
 
 	if ms.latencies != nil {
