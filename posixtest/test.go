@@ -222,6 +222,11 @@ func TruncateNoFile(t *testing.T, mnt string) {
 }
 
 func FdLeak(t *testing.T, mnt string) {
+	var before []string
+	if runtime.GOOS == "linux" {
+		before = listFds(0, "")
+	}
+
 	fn := mnt + "/file"
 
 	if err := os.WriteFile(fn, []byte("hello world"), 0755); err != nil {
@@ -235,9 +240,20 @@ func FdLeak(t *testing.T, mnt string) {
 	}
 
 	if runtime.GOOS == "linux" {
-		infos := listFds(0, "")
-		if len(infos) > 15 {
-			t.Errorf("found %d open file descriptors for 100x ReadFile: %v", len(infos), infos)
+		after := listFds(0, "")
+		asmap := map[string]bool{}
+		for _, b := range before {
+			asmap[b] = true
+		}
+
+		filtered := []string{}
+		for _, a := range after {
+			if !asmap[a] {
+				filtered = append(filtered, a)
+			}
+		}
+		if len(filtered) > 15 {
+			t.Errorf("found %d open file descriptors for 100x ReadFile: %v", len(filtered), filtered)
 		}
 	}
 }
