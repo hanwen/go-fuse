@@ -356,6 +356,14 @@ type MountOptions struct {
 	// DisableSplice, if set, disables splicing from files to the FUSE device.
 	DisableSplice bool
 
+	// EnableIoUring, if set, asks the kernel to use FUSE-over-io_uring as the
+	// request/reply transport (kernel ≥6.10, CAP_OVER_IO_URING). When the
+	// kernel does not advertise the capability the server falls back to the
+	// classic /dev/fuse read/write loop.
+	//
+	// EXPERIMENTAL: not subject to API stability.
+	EnableIoUring bool
+
 	// PanicHandler is called if an FS routine panics. The handler
 	// should return a nonzero status. If not set, the default is
 	// to print a stack trace and return EIO.

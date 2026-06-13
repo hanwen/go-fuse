@@ -114,6 +114,9 @@ func doInit(server *protocolServer, req *request) {
 	if server.opts.EnableAcl {
 		kernelFlags |= input.Flags64() & CAP_POSIX_ACL
 	}
+	if server.opts.EnableIoUring {
+		kernelFlags |= input.Flags64() & CAP_OVER_IO_URING
+	}
 
 	if server.opts.ExplicitDataCacheControl {
 		// we don't want CAP_AUTO_INVAL_DATA even if we cannot go into fully explicit mode
