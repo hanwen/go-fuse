@@ -29,6 +29,15 @@ type uringEntry struct {
 	// learn the buffer addresses. Kept alive on the entry to stop the
 	// GC from moving it.
 	iov [2]syscall.Iovec
+
+	// opOutScratch is a private write target for the op-specific
+	// reply struct (EntryOut, AttrOut, ...). The kernel reads the
+	// reply from e.payload, but request and reply alias there: the
+	// kernel writes the LOOKUP name into payload, and handlers expect
+	// a zero-init output buffer per the go-fuse API contract. We let
+	// the handler write into this scratch (zeroed each cycle), then
+	// memcpy it into payload before COMMIT_AND_FETCH.
+	opOutScratch [outputDataSize]byte
 }
 
 // uringQueue owns one io_uring instance plus its per-entry buffer set.
@@ -228,43 +237,68 @@ func (q *uringQueue) handle(idx int) error {
 		opInLen = 0
 	}
 	inSz := e.header.RingEntInOut.PayloadSz
+	// Pass inBuf (our own copy of InHeader+op_in) rather than the
+	// live e.header.InOut slice: handleIov re-copies in[0]/in[1] for
+	// the handler, and we are about to clear headerSlice[:16] for
+	// OutHeader. Reading the (now-zeroed) InHeader through that slice
+	// would corrupt the request.
 	inIov := [][]byte{
-		headerSlice[:inHdrLen],
-		e.header.OpIn[:opInLen],
+		inBuf[:inHdrLen],
+		inBuf[inHdrLen : inHdrLen+opInLen],
 	}
 	if inSz > 0 {
 		inIov = append(inIov, e.payload[:inSz])
 	}
 
-	// Carve the reply buffer: op-out reply at e.payload[0..outSize],
-	// trailing data at e.payload[outSize..outSize+outPayloadSize].
-	// HandleRequest expects out[0] = 16-byte OutHeader slot, out[1] =
-	// outSize-byte op-out slot, out[2] = outPayloadSize-byte trailing
-	// payload buffer. Sizes are exact — handlers slice req.outPayload
-	// down to actual bytes written before HandleRequest returns.
+	// Carve the reply buffer. Request and reply alias e.payload (the
+	// kernel wrote any variable input here, and the kernel will read
+	// the reply back from the same region), so we can't hand the
+	// handler a slice of e.payload as its op-out slot — it would
+	// either see the input still in place, or our pre-clear would
+	// destroy the input before the handler reads it. We use a
+	// per-entry scratch instead and copy it into e.payload after
+	// dispatch.
 	//
-	// For ops with variable-length string output (READLINK, etc.) the
+	// HandleRequest expects out[0] = 16-byte OutHeader slot, out[1] =
+	// outSize-byte op-out slot, out[2] = outPayloadSize-byte payload
+	// buffer. Sizes are exact — handlers slice req.outPayload down to
+	// actual bytes written before HandleRequest returns. Both
+	// OutHeader and op-out slots must be zero per the go-fuse API
+	// contract (handlers leave untouched fields zero).
+	//
+	// For ops with variable-length string output (READLINK, ...) the
 	// handler reassigns req.outPayload to a freshly-allocated slice
 	// rather than writing into our slot. HandleRequest's copy-back
 	// step lands the bytes in our buffer iff we passed a non-empty
-	// payload slot. So advertise the full remainder for those ops.
+	// payload slot. So advertise the full payload region for those.
 	outHeaderSlot := headerSlice[:sizeOfOutHeader]
+	clear(outHeaderSlot)
 	outIov := [][]byte{outHeaderSlot}
 	if outSize > 0 {
-		outIov = append(outIov, e.payload[:outSize])
+		clear(e.opOutScratch[:outSize])
+		outIov = append(outIov, e.opOutScratch[:outSize])
 	}
 	payloadCap := outPayloadSize
 	if h.FileNameOut {
-		payloadCap = len(e.payload) - outSize
+		payloadCap = len(e.payload)
 	}
 	if payloadCap > 0 {
-		outIov = append(outIov, e.payload[outSize:outSize+payloadCap])
+		outIov = append(outIov, e.payload[:payloadCap])
 	}
 
 	n, status := q.ps.handleIov(inIov, outIov)
 	if status != OK {
 		q.tracef("handleIov entry=%d status=%v", idx, status)
 		return q.commitError(idx, status)
+	}
+
+	// Land the op-out struct (written into our scratch) at the start
+	// of e.payload, where the kernel reads the reply args from. Ops
+	// with outSize > 0 always have outPayloadSize == 0 (see
+	// parseRequest), so we never have to interleave op-out and bulk
+	// data in the same buffer.
+	if outSize > 0 {
+		copy(e.payload[:outSize], e.opOutScratch[:outSize])
 	}
 
 	// Kernel expects payload_sz to count the args bytes only (op-out +

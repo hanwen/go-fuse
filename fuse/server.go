@@ -583,7 +583,7 @@ func (ms *Server) handleInit() Status {
 		// in-process Bytes() path. See fuse/uring-plan.md.
 		ms.opts.DisableSplice = true
 	}
-	if ms.kernelSettings.Minor >= 13 {
+	if ms.kernelSettings.Minor >= 13 && !ms.uringEnabled() {
 		ms.setSplice()
 	}
 	if ms.uringEnabled() {

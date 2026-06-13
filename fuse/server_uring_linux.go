@@ -5,11 +5,13 @@
 package fuse
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"golang.org/x/sys/unix"
 )
@@ -80,9 +82,9 @@ func (ms *Server) startUring() error {
 		if err != nil {
 			return fmt.Errorf("uring queue %d: %w", qid, err)
 		}
-		if ms.opts.Debug {
-			q.debugf = ms.opts.Logger.Printf
-		}
+		// q.debugf is intentionally left nil. The uring transport's
+		// per-CQE tracing is noisy and only useful when debugging the
+		// transport itself; it is not gated by MountOptions.Debug.
 		ms.uringQueues = append(ms.uringQueues, q)
 
 		ms.loops.Add(1)
@@ -102,7 +104,10 @@ func (ms *Server) startUring() error {
 			if err := unix.SchedSetaffinity(0, &set); err != nil {
 				ms.opts.Logger.Printf("uring queue %d: sched_setaffinity: %v", q.qid, err)
 			}
-			if err := q.Run(); err != nil {
+			err := q.Run()
+			// ENOTCONN / ENODEV are how the kernel signals normal
+			// teardown after unmount; not worth logging.
+			if err != nil && !errors.Is(err, syscall.ENOTCONN) && !errors.Is(err, syscall.ENODEV) {
 				ms.opts.Logger.Printf("uring queue %d exit: %v", q.qid, err)
 			}
 		}()
