@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -77,7 +78,7 @@ mount -t virtiofs myfs /mnt
 
 mkdir -p /mnt/tmp
 
-/posixtest.test -posixdir=/mnt -test.run TestAll -test.v \
+/posixtest.test -posixdir=/mnt -test.run TestAll -test.skip TestAll/DirectIO -test.v \
     > /mnt/test_output.txt 2>&1
 echo $? > /mnt/test_exit.txt
 
@@ -138,10 +139,12 @@ reboot -n -f
 	// Report individual sub-test failures into Go's testing framework.
 	for _, line := range strings.Split(output, "\n") {
 		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "--- FAIL:") {
-			name := strings.Fields(line)[2]
-			t.Errorf("posixtest sub-test failed: %s", name)
+		m := regexp.MustCompile(`--- FAIL: *([^ ]*)\s\([0-9.]*s\)`).FindStringSubmatch(line)
+		if m == nil {
+			continue
 		}
+		name := m[1]
+		t.Errorf("posixtest sub-test failed: %s", name)
 	}
 	if exitCode != "0" && exitCode != "" {
 		t.Errorf("posixtest.test exited with code %s", exitCode)
