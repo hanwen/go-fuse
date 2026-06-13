@@ -83,6 +83,11 @@ type Server struct {
 
 	// for implementing single threaded processing.
 	requestProcessingMu sync.Mutex
+
+	// uringQueues holds the FUSE-over-io_uring transport, when negotiated
+	// at INIT. nil on non-Linux platforms and when the kernel does not
+	// advertise CAP_OVER_IO_URING.
+	uringQueues []*uringQueue
 }
 
 // SetDebug is deprecated. Use MountOptions.Debug instead.
@@ -571,8 +576,19 @@ func (ms *Server) handleInit() Status {
 		return code
 	}
 
+	if ms.uringEnabled() {
+		// No fd to splice the reply into; READ falls back to the
+		// in-process Bytes() path. See fuse/uring-plan.md.
+		ms.opts.DisableSplice = true
+	}
 	if ms.kernelSettings.Minor >= 13 {
 		ms.setSplice()
+	}
+	if ms.uringEnabled() {
+		if err := ms.startUring(); err != nil {
+			ms.opts.Logger.Printf("startUring: %v", err)
+			return ToStatus(err)
+		}
 	}
 
 	// INIT is handled. Init the file system, but don't accept

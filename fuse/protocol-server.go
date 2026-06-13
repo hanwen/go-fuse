@@ -181,6 +181,12 @@ func iovLen(iov [][]byte) int {
 //
 // EXPERIMENTAL: not subject to API stability.
 func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, Status) {
+	return ps.protocolServer.handleIov(in, out)
+}
+
+// handleIov is the iov-based dispatch entry point used by alternative
+// transports (virtiofs via ProtocolServer, FUSE-over-io_uring directly).
+func (ps *protocolServer) handleIov(in [][]byte, out [][]byte) (int, Status) {
 	// for virtiofs, we get
 	//
 	// 2026/04/17 13:34:40 in: 40 32
@@ -248,7 +254,7 @@ func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, Status)
 	}
 
 	beforePayload := req.outPayload
-	ps.protocolServer.handleRequest(h, &req)
+	ps.handleRequest(h, &req)
 	if len(req.outPayload) > 0 && len(beforePayload) > 0 &&
 		&beforePayload[0] != &req.outPayload[0] {
 		n := copy(beforePayload, req.outPayload)
