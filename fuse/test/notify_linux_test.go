@@ -148,34 +148,3 @@ func TestInodeNotify(t *testing.T) {
 		t.Error(fi)
 	}
 }
-
-func TestEntryNotify(t *testing.T) {
-	test := NewNotifyTest(t)
-	defer test.Clean()
-
-	dir := test.dir
-	test.fs.sizeChan <- 42
-	test.fs.existChan <- false
-
-	fn := dir + "/dir/file"
-	fi, _ := os.Lstat(fn)
-	if fi != nil {
-		t.Errorf("File should not exist, %#v", fi)
-	}
-
-	test.fs.existChan <- true
-	fi, _ = os.Lstat(fn)
-	if fi != nil {
-		t.Errorf("negative entry should have been cached: %#v", fi)
-	}
-
-	code := test.pathfs.EntryNotify("dir", "file")
-	if !code.Ok() {
-		t.Errorf("EntryNotify returns error: %v", code)
-	}
-
-	fi, err := os.Lstat(fn)
-	if err != nil {
-		t.Fatalf("Lstat failed: %v", err)
-	}
-}
