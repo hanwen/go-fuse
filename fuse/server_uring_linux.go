@@ -7,8 +7,11 @@ package fuse
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
+
+	"golang.org/x/sys/unix"
 )
 
 // numPossibleCPUs returns the kernel's num_possible_cpus(). The FUSE
@@ -85,6 +88,20 @@ func (ms *Server) startUring() error {
 		ms.loops.Add(1)
 		go func() {
 			defer ms.loops.Done()
+			// Pin to the qid's CPU. The kernel routes requests by
+			// task_cpu(current) and defers CQE delivery onto the
+			// submitting task via io_uring_cmd_complete_in_task.
+			// Without pinning, a goroutine that migrates between
+			// submit and the deferred completion runs that
+			// completion on a different CPU than the kernel
+			// expected — racy under load.
+			runtime.LockOSThread()
+			defer runtime.UnlockOSThread()
+			var set unix.CPUSet
+			set.Set(int(q.qid))
+			if err := unix.SchedSetaffinity(0, &set); err != nil {
+				ms.opts.Logger.Printf("uring queue %d: sched_setaffinity: %v", q.qid, err)
+			}
 			if err := q.Run(); err != nil {
 				ms.opts.Logger.Printf("uring queue %d exit: %v", q.qid, err)
 			}

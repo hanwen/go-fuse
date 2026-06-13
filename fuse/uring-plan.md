@@ -55,8 +55,13 @@ Per-CPU ring lifecycle:
   kernel's per-entry payload cap, which currently bounds `MaxWrite`).
 - Allocate + register the entry buffer region; mmap it.
 - On ring startup: submit N `FUSE_URING_REQ_FETCH` SQEs.
-- Goroutine per ring, ideally with `runtime.LockOSThread` + CPU affinity so
-  the kernel's per-CPU routing pays off.
+- Goroutine per ring, pinned with `runtime.LockOSThread` +
+  `sched_setaffinity` to its qid's CPU. This is **required for
+  correctness**, not just perf: `io_uring_cmd_complete_in_task` defers
+  CQE dispatch onto the submitting task, so a goroutine migrating
+  between SQE submit and the deferred completion runs that completion
+  on a CPU the kernel did not expect — racy under load and the cause
+  of non-deterministic hangs we hit during posixtest.
 
 Hot path per CQE:
 1. Slice the entry's mmap region into the `[][]byte` shape
@@ -145,8 +150,9 @@ Right factoring: keep `internal/vhostuser/` as-is, put uring code in
   path remains the supported transport.
 - Per-entry payload cap in the current kernel bounds `MaxWrite` when uring
   is on; need to clamp during INIT.
-- CPU pinning interacts with Go's scheduler; needs measurement before
-  committing to `LockOSThread`.
+- ~~CPU pinning interacts with Go's scheduler; needs measurement before
+  committing to `LockOSThread`.~~ Resolved: pinning is required for
+  correctness (see Phase 2).
 - Notification path (still on /dev/fuse) and uring request path share the
   same `Server`; the existing `writeMu` already serializes notify writes
   and is unaffected.

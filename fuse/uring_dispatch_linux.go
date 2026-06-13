@@ -133,54 +133,32 @@ func (q *uringQueue) tracef(format string, args ...any) {
 // Run drives the fetch/commit cycle until stop is signalled. It is
 // expected to run on its own goroutine, ideally pinned to a CPU
 // corresponding to qid.
+//
+// Invariant: every loop iteration calls ioUringEnter exactly once with
+// (pending, 1, GETEVENTS). This atomically submits all SQEs queued by
+// the previous iteration's handlers AND waits for at least one new
+// completion. Splitting submit and wait races: if a request lands while
+// we are about to wait without having flushed our reply SQEs, the
+// kernel waits for us and we wait for the kernel — deadlock.
 func (q *uringQueue) Run() error {
-	// Prime: register every entry.
 	for i := range q.entries {
 		if err := q.submitFetch(i); err != nil {
 			return err
 		}
 	}
-	q.tracef("priming %d REGISTER SQEs", len(q.entries))
-	n, err := ioUringEnter(q.ring.fd, uint32(len(q.entries)), 0, 0)
-	if err != nil {
-		return fmt.Errorf("uring_enter prime: %w", err)
-	}
-	q.tracef("prime submitted=%d", n)
-
-	// Drain any immediate-error CQEs (e.g., EINVAL on bad SQE shape) so
-	// we surface them instead of blocking forever.
-	for {
-		cqe := q.ring.peekCqe()
-		if cqe == nil {
-			break
-		}
-		res := cqe.Res
-		idx := int(cqe.UserData)
-		q.ring.advanceCq()
-		if res < 0 {
-			return fmt.Errorf("REGISTER entry %d failed: %w",
-				idx, syscall.Errno(-res))
-		}
-		// res >= 0 here would be unusual for REGISTER — it normally
-		// only completes when a FUSE request lands. Treat as a normal
-		// completion.
-		q.tracef("unexpected immediate CQE entry=%d res=%d", idx, res)
-		if err := q.handle(idx); err != nil {
-			return err
-		}
-	}
+	pending := uint32(len(q.entries))
+	q.tracef("priming %d REGISTER SQEs", pending)
 
 	for {
-		// Block for at least one completion.
-		_, err := ioUringEnter(q.ring.fd, 0, 1, _IORING_ENTER_GETEVENTS)
+		_, err := ioUringEnter(q.ring.fd, pending, 1, _IORING_ENTER_GETEVENTS)
 		if err != nil {
 			if err == syscall.EINTR {
 				continue
 			}
 			return fmt.Errorf("uring_enter: %w", err)
 		}
+		pending = 0
 
-		var pending int
 		for {
 			cqe := q.ring.peekCqe()
 			if cqe == nil {
@@ -202,11 +180,6 @@ func (q *uringQueue) Run() error {
 				return err
 			}
 			pending++
-		}
-		if pending > 0 {
-			if _, err := ioUringEnter(q.ring.fd, uint32(pending), 0, 0); err != nil {
-				return fmt.Errorf("uring_enter submit: %w", err)
-			}
 		}
 	}
 }
@@ -269,13 +242,23 @@ func (q *uringQueue) handle(idx int) error {
 	// outSize-byte op-out slot, out[2] = outPayloadSize-byte trailing
 	// payload buffer. Sizes are exact — handlers slice req.outPayload
 	// down to actual bytes written before HandleRequest returns.
+	//
+	// For ops with variable-length string output (READLINK, etc.) the
+	// handler reassigns req.outPayload to a freshly-allocated slice
+	// rather than writing into our slot. HandleRequest's copy-back
+	// step lands the bytes in our buffer iff we passed a non-empty
+	// payload slot. So advertise the full remainder for those ops.
 	outHeaderSlot := headerSlice[:sizeOfOutHeader]
 	outIov := [][]byte{outHeaderSlot}
 	if outSize > 0 {
 		outIov = append(outIov, e.payload[:outSize])
 	}
-	if outPayloadSize > 0 {
-		outIov = append(outIov, e.payload[outSize:outSize+outPayloadSize])
+	payloadCap := outPayloadSize
+	if h.FileNameOut {
+		payloadCap = len(e.payload) - outSize
+	}
+	if payloadCap > 0 {
+		outIov = append(outIov, e.payload[outSize:outSize+payloadCap])
 	}
 
 	n, status := q.ps.handleIov(inIov, outIov)

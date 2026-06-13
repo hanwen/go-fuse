@@ -63,6 +63,7 @@ type testOptions struct {
 	directMountStrict bool // sets MountOptions.DirectMountStrict
 	disableSplice     bool // sets MountOptions.DisableSplice
 	idMappedMount     bool // sets MountOptions.IDMappedMount
+	ioUring           bool
 }
 
 // newTestCase creates the directories `orig` and `mnt` inside a temporary
@@ -115,6 +116,7 @@ func newTestCase(t *testing.T, opts *testOptions) *testCase {
 		EnableLocks:       opts.enableLocks,
 		DisableSplice:     opts.disableSplice,
 		IDMappedMount:     opts.idMappedMount,
+		EnableIoUring:     opts.ioUring,
 	}
 	if !opts.suppressDebug {
 		mOpts.Debug = testutil.VerboseTest()
@@ -413,18 +415,24 @@ func TestPosix(t *testing.T) {
 		"ParallelFileOpen": true,
 		"ReadDir":          true,
 	}
+	_ = noisy
+	for _, iou := range []bool{false, true} {
+		for nm, fn := range posixtest.All {
+			if iou {
+				nm += ",iouring"
+			}
+			t.Run(nm, func(t *testing.T) {
+				tc := newTestCase(t, &testOptions{
+					suppressDebug: noisy[nm],
+					attrCache:     true,
+					entryCache:    true,
+					enableLocks:   true,
+					ioUring:       iou,
+				})
 
-	for nm, fn := range posixtest.All {
-		t.Run(nm, func(t *testing.T) {
-			tc := newTestCase(t, &testOptions{
-				suppressDebug: noisy[nm],
-				attrCache:     true,
-				entryCache:    true,
-				enableLocks:   true,
+				fn(t, tc.mntDir)
 			})
-
-			fn(t, tc.mntDir)
-		})
+		}
 	}
 }
 

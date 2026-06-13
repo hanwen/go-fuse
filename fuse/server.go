@@ -531,6 +531,8 @@ func (ms *Server) Serve() {
 	ms.loop()
 	ms.loops.Wait()
 
+	ms.stopUring()
+
 	ms.writeMu.Lock()
 	syscall.Close(ms.mountFd)
 	ms.writeMu.Unlock()
