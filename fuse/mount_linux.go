@@ -26,6 +26,18 @@ func unixgramSocketpair() (l, r *os.File, err error) {
 	return
 }
 
+// filterEnv returns a copy of env with any entries starting with key+"=" removed.
+func filterEnv(env []string, key string) []string {
+	prefix := key + "="
+	result := make([]string, 0, len(env))
+	for _, e := range env {
+		if !strings.HasPrefix(e, prefix) {
+			result = append(result, e)
+		}
+	}
+	return result
+}
+
 // Create a FUSE FS on the specified mount point without using
 // fusermount.
 func mountDirect(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, err error) {
@@ -142,7 +154,7 @@ func callFusermount(mountPoint string, opts *MountOptions) (fd int, err error) {
 	proc, err := os.StartProcess(bin,
 		cmd,
 		&os.ProcAttr{
-			Env:   []string{"_FUSE_COMMFD=3"},
+			Env:   append(filterEnv(os.Environ(), "_FUSE_COMMFD"), "_FUSE_COMMFD=3"),
 			Files: []*os.File{os.Stdin, os.Stdout, os.Stderr, remote}})
 
 	if err != nil {
