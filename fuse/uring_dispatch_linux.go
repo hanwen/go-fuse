@@ -15,6 +15,7 @@ package fuse
 import (
 	"fmt"
 	"syscall"
+	"time"
 	"unsafe"
 )
 
@@ -52,12 +53,39 @@ type uringQueue struct {
 	// debugf is optional. When set, the dispatch loop traces its
 	// activity for diagnosis of ABI/protocol mismatches.
 	debugf func(format string, args ...any)
+
+	// stats accumulates dispatch counters for this queue. Read at
+	// teardown via Stats(); the queue's only writer is its Run
+	// goroutine, so no atomics needed.
+	stats uringQueueStats
+}
+
+// uringQueueStats summarizes one queue's lifetime activity. Dispatched
+// by stopUring so we can compare against the classic transport.
+type uringQueueStats struct {
+	Enters     uint64        // io_uring_enter calls
+	CQEs       uint64        // CQEs drained
+	WaitNanos  time.Duration // nanos blocked in io_uring_enter
+	HandleNanos time.Duration // nanos in handle() (parse + dispatch + commit submit)
 }
 
 const (
 	// uringDefaultEntries is the number of in-flight requests per ring.
 	// One ring per CPU; total in-flight requests = NCPU * this.
-	uringDefaultEntries = 4
+	//
+	// Each entry pre-allocates a payload buffer sized to the negotiated
+	// MaxWrite (typically 128 KiB, up to 1 MiB), plus ~600 B of header
+	// and op-out scratch. Total resident memory is therefore roughly
+	//
+	//   uringDefaultEntries * num_possible_cpus * (MaxWrite + ~600 B)
+	//
+	// e.g. 32 entries * 8 CPUs * 128 KiB ≈ 32 MiB pinned for the
+	// lifetime of the server (the kernel uses these as copy_to_user
+	// targets, so they sit in RSS regardless of load). The ceiling on
+	// achievable CQE/enter batching equals this number, so raising it
+	// pays off for bursty metadata workloads but wastes memory on
+	// idle mounts.
+	uringDefaultEntries = 32
 )
 
 // newUringQueue creates a queue for one CPU/qid. The entry payload size
@@ -159,7 +187,10 @@ func (q *uringQueue) Run() error {
 	q.tracef("priming %d REGISTER SQEs", pending)
 
 	for {
+		enterStart := time.Now()
 		_, err := ioUringEnter(q.ring.fd, pending, 1, _IORING_ENTER_GETEVENTS)
+		q.stats.WaitNanos += time.Since(enterStart)
+		q.stats.Enters++
 		if err != nil {
 			if err == syscall.EINTR {
 				continue
@@ -184,9 +215,13 @@ func (q *uringQueue) Run() error {
 				return syscall.Errno(-res)
 			}
 			q.tracef("CQE entry=%d res=%d", idx, res)
+			q.stats.CQEs++
 
-			if err := q.handle(idx); err != nil {
-				return err
+			handleStart := time.Now()
+			herr := q.handle(idx)
+			q.stats.HandleNanos += time.Since(handleStart)
+			if herr != nil {
+				return herr
 			}
 			pending++
 		}

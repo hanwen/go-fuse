@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go build *)",
+      "Bash(jj st *)",
+      "Bash(jj log *)"
+    ]
+  }
+}

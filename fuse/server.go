@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 	"unsafe"
@@ -88,6 +89,15 @@ type Server struct {
 	// at INIT. nil on non-Linux platforms and when the kernel does not
 	// advertise CAP_OVER_IO_URING.
 	uringQueues []*uringQueue
+
+	// Counters comparing classic /dev/fuse vs uring dispatch. All
+	// updated atomically; readNanos and handleNanos accumulate
+	// wall-clock spent in syscall.Read and ms.handleRequest
+	// respectively.
+	classicReads      atomic.Uint64
+	classicReadNanos  atomic.Uint64
+	classicHandleNanos atomic.Uint64
+	classicReadersHWM atomic.Uint64
 }
 
 // SetDebug is deprecated. Use MountOptions.Debug instead.
@@ -404,17 +414,27 @@ func (ms *Server) readRequest() (req *requestAlloc, code Status) {
 		return nil, OK
 	}
 	ms.reqReaders++
+	readers := uint64(ms.reqReaders)
+	for {
+		hwm := ms.classicReadersHWM.Load()
+		if readers <= hwm || ms.classicReadersHWM.CompareAndSwap(hwm, readers) {
+			break
+		}
+	}
 	ms.reqMu.Unlock()
 
 	req = ms.reqPool.Get().(*requestAlloc)
 	dest := ms.readPool.Get().([]byte)
 
 	var n int
+	readStart := time.Now()
 	err := handleEINTR(func() error {
 		var err error
 		n, err = syscall.Read(ms.mountFd, dest)
 		return err
 	})
+	ms.classicReadNanos.Add(uint64(time.Since(readStart)))
+	ms.classicReads.Add(1)
 	if err != nil {
 		ms.reqMu.Lock()
 		ms.putReadBuf(dest)
@@ -531,6 +551,17 @@ func (ms *Server) Serve() {
 	ms.loop()
 	ms.loops.Wait()
 
+	if ms.opts.DebugTransportStats {
+		if reads := ms.classicReads.Load(); reads > 0 {
+			readNanos := ms.classicReadNanos.Load()
+			handleNanos := ms.classicHandleNanos.Load()
+			ms.opts.Logger.Printf("classic: %d reads, read=%s handle=%s (%dns/req), readers HWM=%d",
+				reads,
+				time.Duration(readNanos), time.Duration(handleNanos),
+				int64(handleNanos)/int64(reads),
+				ms.classicReadersHWM.Load())
+		}
+	}
 	ms.stopUring()
 
 	ms.writeMu.Lock()
@@ -666,6 +697,10 @@ exit:
 }
 
 func (ms *Server) handleRequest(req *requestAlloc) Status {
+	handleStart := time.Now()
+	defer func() {
+		ms.classicHandleNanos.Add(uint64(time.Since(handleStart)))
+	}()
 	defer ms.returnRequest(req)
 	if ms.opts.SingleThreaded {
 		ms.requestProcessingMu.Lock()

@@ -364,6 +364,11 @@ type MountOptions struct {
 	// EXPERIMENTAL: not subject to API stability.
 	EnableIoUring bool
 
+	// DebugTransportStats, if set, makes the server log per-transport
+	// dispatch counters (read/CQE counts, wait vs handle nanos,
+	// concurrency high-water marks) when it tears down.
+	DebugTransportStats bool
+
 	// PanicHandler is called if an FS routine panics. The handler
 	// should return a nonzero status. If not set, the default is
 	// to print a stack trace and return EIO.

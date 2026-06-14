@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"golang.org/x/sys/unix"
 )
@@ -117,8 +118,36 @@ func (ms *Server) startUring() error {
 
 // stopUring tears down all uring queues. Safe to call multiple times.
 func (ms *Server) stopUring() {
+	var totalCQEs, totalEnters uint64
+	var totalWait, totalHandle time.Duration
 	for _, q := range ms.uringQueues {
+		s := q.stats
+		totalCQEs += s.CQEs
+		totalEnters += s.Enters
+		totalWait += s.WaitNanos
+		totalHandle += s.HandleNanos
+		if ms.opts.DebugTransportStats && s.CQEs > 0 {
+			ms.opts.Logger.Printf("uring q%d: %d CQEs in %d enters (%.2f cqe/enter), wait=%s handle=%s (%dns/req)",
+				q.qid, s.CQEs, s.Enters,
+				float64(s.CQEs)/float64(max64(s.Enters, 1)),
+				s.WaitNanos, s.HandleNanos,
+				s.HandleNanos.Nanoseconds()/int64(max64(s.CQEs, 1)))
+		}
 		q.Close()
 	}
+	if ms.opts.DebugTransportStats && totalCQEs > 0 {
+		ms.opts.Logger.Printf("uring total: %d CQEs in %d enters (%.2f cqe/enter), wait=%s handle=%s (%dns/req)",
+			totalCQEs, totalEnters,
+			float64(totalCQEs)/float64(max64(totalEnters, 1)),
+			totalWait, totalHandle,
+			totalHandle.Nanoseconds()/int64(max64(totalCQEs, 1)))
+	}
 	ms.uringQueues = nil
+}
+
+func max64(a, b uint64) uint64 {
+	if a > b {
+		return a
+	}
+	return b
 }

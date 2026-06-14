@@ -6,6 +6,7 @@ package benchmark
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os/exec"
 	"path/filepath"
@@ -19,6 +20,12 @@ import (
 	"github.com/hanwen/go-fuse/v2/fuse"
 	"github.com/hanwen/go-fuse/v2/internal/testutil"
 )
+
+// transportStats enables the per-mount transport counters printed when
+// the server tears down. Off by default so benchmark output stays
+// machine-parseable; set -transport-stats to inspect dispatch behavior.
+var transportStats = flag.Bool("transport-stats", false,
+	"log per-transport dispatch stats (CQEs, reads, wait/handle nanos) at mount teardown")
 
 // countingFile is a regular file whose Getattr bumps a shared counter.
 // Used to verify the kernel is actually round-tripping each stat to us
@@ -74,6 +81,12 @@ func (r *flatRoot) OnAdd(ctx context.Context) {
 }
 
 func setupTree(tb testing.TB, leaves, parallel int, ioUring bool, counter *atomic.Int64) string {
+	return setupTreeOpts(tb, leaves, parallel, ioUring, time.Second, counter)
+}
+
+// setupTreeOpts is setupTree with an explicit cache timeout, for
+// benchmarks that need to force every stat to round-trip to the server.
+func setupTreeOpts(tb testing.TB, leaves, parallel int, ioUring bool, cacheTTL time.Duration, counter *atomic.Int64) string {
 	root := &flatRoot{
 		leaves:   leaves,
 		parallel: parallel,
@@ -82,11 +95,11 @@ func setupTree(tb testing.TB, leaves, parallel int, ioUring bool, counter *atomi
 	opts := &fs.Options{}
 	opts.Debug = testutil.VerboseTest()
 	opts.EnableIoUring = ioUring
+	opts.DebugTransportStats = *transportStats
 	opts.DisableReadDirPlus = true
-	sec := time.Second
-	opts.AttrTimeout = &sec
-	opts.EntryTimeout = &sec
-	opts.NegativeTimeout = &sec
+	opts.AttrTimeout = &cacheTTL
+	opts.EntryTimeout = &cacheTTL
+	opts.NegativeTimeout = &cacheTTL
 
 	mnt := tb.TempDir()
 	srv, err := fs.Mount(mnt, root, opts)
@@ -110,7 +123,7 @@ func setupTree(tb testing.TB, leaves, parallel int, ioUring bool, counter *atomi
 // round-trip.
 func BenchmarkFindSize(b *testing.B) {
 	for _, iou := range []bool{false, true} {
-		for _, p := range []int{1, 2, 4, 8} {
+		for _, p := range []int{16, 32} { // 1, 2, 4, 8} {
 			nm := ""
 			if iou {
 				nm += "uring,"
@@ -139,6 +152,68 @@ func BenchmarkFindSize(b *testing.B) {
 					}
 				}
 				b.Logf("b.N=%d P=%d Getattr calls: %d", b.N, p, counter.Load())
+			})
+		}
+	}
+}
+
+// BenchmarkStatDepth issues b.N Lstat calls across `depth` goroutines
+// running in lockstep — each goroutine submits a stat, waits for the
+// reply, submits the next. The kernel therefore sees ~depth requests
+// in flight at all times, mimicking `fio --iodepth=N` for metadata.
+//
+// Unlike BenchmarkFindSize (where each `find` process serializes its
+// own stats and yields to the kernel between calls), the in-process
+// goroutine model keeps the request pipe saturated. That's the regime
+// where uring's per-syscall amortization can pay off: CQE/enter should
+// climb above 1 as depth grows.
+//
+// Run with -transport-stats to see the per-queue counters.
+func BenchmarkStatDepth(b *testing.B) {
+	// Pool of files large enough that consecutive stats from one
+	// goroutine touch distinct inodes (no kernel attr-cache hit
+	// short-circuit even with positive AttrTimeout).
+	const fileCount = 8192
+	for _, iou := range []bool{false, true} {
+		for _, depth := range []int{1, 4, 16, 64, 256} {
+			nm := ""
+			if iou {
+				nm += "uring,"
+			}
+			nm += fmt.Sprintf("depth=%d", depth)
+			b.Run(nm, func(b *testing.B) {
+				var counter atomic.Int64
+				// Zero cache TTL: every stat round-trips. With
+				// AttrTimeout>0 the kernel attr cache short-
+				// circuits repeat stats of the same file, which
+				// masks transport throughput differences.
+				mnt := setupTreeOpts(b, fileCount, 1, iou, 0, &counter)
+				sub := filepath.Join(mnt, "p0")
+
+				per := b.N / depth
+				if per < 1 {
+					per = 1
+				}
+				b.ResetTimer()
+				var wg sync.WaitGroup
+				for w := 0; w < depth; w++ {
+					wg.Add(1)
+					go func(seed int) {
+						defer wg.Done()
+						var st syscall.Stat_t
+						for j := 0; j < per; j++ {
+							// 1009 is coprime with fileCount=8192/2,
+							// so seeds spread evenly across the dir.
+							idx := (seed*1009 + j) % fileCount
+							_ = syscall.Stat(
+								filepath.Join(sub, fmt.Sprintf("f%d", idx)),
+								&st)
+						}
+					}(w)
+				}
+				wg.Wait()
+				b.StopTimer()
+				b.Logf("b.N=%d depth=%d per=%d stat-replies=%d", b.N, depth, per, counter.Load())
 			})
 		}
 	}
