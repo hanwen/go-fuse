@@ -818,4 +818,12 @@ type Options struct {
 	// RootStableAttr is an optional way to set e.g. Ino and/or Gen for
 	// the root directory when calling fs.Mount(), Mode is ignored.
 	RootStableAttr *StableAttr
+
+	// ExternalNodeID, if set, uses StableAttr.Ino - which the
+	// caller controls - as the FUSE nodeID, instead of one
+	// allocated internally. This is a prerequisite for exporting
+	// the file system over NFS. In this case, it is important to
+	// ensure StableAttr.Gen is increased each time the same inode
+	// number is reused.
+	ExternalNodeID bool
 }

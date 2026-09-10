@@ -27,15 +27,15 @@ type StableAttr struct {
 
 	// The inode number must be unique among the currently live
 	// objects in the file system. It is used to communicate to
-	// the kernel about this file object. The value uint64(-1)
-	// is reserved. When using Ino==0, a unique, sequential
-	// number is assigned (starting at 2^63 by default) on Inode creation.
+	// the kernel about this file object. The value uint64(-1), 0
+	// and 1 are reserved. When using Ino==0, a unique, sequential
+	// number is assigned (starting at 2^63 by default) on Inode
+	// creation.
 	Ino uint64
 
 	// When reusing a previously used inode number for a new
 	// object, the new object must have a different Gen
-	// number. This is irrelevant if the FS is not exported over
-	// NFS
+	// number.
 	Gen uint64
 }
 
