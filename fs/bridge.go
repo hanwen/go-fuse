@@ -123,6 +123,12 @@ func (b *rawBridge) newInodeUnlocked(ops InodeEmbedder, id StableAttr, persisten
 		// Find free inode number.
 		for {
 			id.Ino = b.ids.nextAutomaticIno()
+			if id.Ino == fuse.FUSE_ROOT_ID && b.options.ExternalNodeID {
+				continue
+			}
+			if id.Ino == 0 || id.Ino == ^uint64(0) {
+				continue
+			}
 			if b.ids.findByAttr(id) == nil {
 				break
 			}
