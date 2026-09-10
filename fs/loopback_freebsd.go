@@ -35,6 +35,24 @@ func intDev(dev uint32) uint64 {
 	return uint64(dev)
 }
 
+func lstat(path string, st *syscall.Stat_t, btime *syscall.Timespec) error {
+	err := syscall.Lstat(path, st)
+	*btime = st.Birthtimespec
+	return err
+}
+
+func stat(path string, st *syscall.Stat_t, btime *syscall.Timespec) error {
+	err := syscall.Stat(path, st)
+	*btime = st.Birthtimespec
+	return err
+}
+
+func fstatFd(fd int, st *syscall.Stat_t, btime *syscall.Timespec) error {
+	err := syscall.Fstat(fd, st)
+	*btime = st.Birthtimespec
+	return err
+}
+
 // Since FUSE on FreeBSD expect Linux flavor data format of
 // listxattr, we should reconstruct it with data returned by
 // FreeBSD's syscall. And here we have added a "user." prefix

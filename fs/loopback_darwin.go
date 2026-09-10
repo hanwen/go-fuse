@@ -34,3 +34,21 @@ func doCopyFileRange(fdIn int, offIn int64, fdOut int, offOut int64,
 func intDev(dev uint32) int {
 	return int(dev)
 }
+
+func lstat(path string, st *syscall.Stat_t, btime *syscall.Timespec) error {
+	err := syscall.Lstat(path, st)
+	*btime = st.Birthtimespec
+	return err
+}
+
+func stat(path string, st *syscall.Stat_t, btime *syscall.Timespec) error {
+	err := syscall.Stat(path, st)
+	*btime = st.Birthtimespec
+	return err
+}
+
+func fstatFd(fd int, st *syscall.Stat_t, btime *syscall.Timespec) error {
+	err := syscall.Fstat(fd, st)
+	*btime = st.Birthtimespec
+	return err
+}
