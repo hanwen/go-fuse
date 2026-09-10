@@ -109,8 +109,9 @@ func TestTypeChange(t *testing.T) {
 			t.Fatal("should be a dir now")
 		}
 		syscall.Rmdir(mnt + "/dir")
-		fi, _ = os.Stat(mnt + "/file")
-		if fi.IsDir() {
+		if fi, err := os.Stat(mnt + "/file"); err != nil {
+			t.Fatalf("Stat after rmdir: %v", err)
+		} else if fi.IsDir() {
 			t.Fatal("should be a file now")
 		}
 	}
