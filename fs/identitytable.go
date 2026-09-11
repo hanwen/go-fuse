@@ -54,13 +54,16 @@ type nodeEntry struct {
 type mapIdentityTable struct {
 	mu sync.Mutex
 
-	// stableAttrs is used to detect already-known nodes and hard links
-	// by looking at:
-	// 1) file type ......... StableAttr.Mode
-	// 2) inode number ...... StableAttr.Ino
-	// 3) generation number . StableAttr.Gen
+	// stableAttrs is used to detect already-known nodes and hard links,
+	// keyed by dedupKey(id) - which is id itself (Mode, Ino and Gen all
+	// significant) unless externalNodeID is set, in which case it is id
+	// with Mode and Gen flattened out, leaving only Ino. See dedupKey.
 	stableAttrs  map[StableAttr]*Inode
 	automaticIno uint64
+
+	// externalNodeID mirrors Options.ExternalNodeID: under it, nodeid
+	// == Ino
+	externalNodeID bool
 
 	// The *Node ID* is an arbitrary uint64 identifier chosen by the FUSE
 	// library. It is used to identify *nodes* (files/directories/symlinks/...)
@@ -85,15 +88,25 @@ type mapIdentityTable struct {
 // initIdentityTable prepares a zero-value mapIdentityTable for use.
 // The pointer receiver ensures the embedding rawBridge - and its
 // mutex - is never copied.
-func (t *mapIdentityTable) initIdentityTable(firstAutomaticIno uint64) {
+func (t *mapIdentityTable) initIdentityTable(firstAutomaticIno uint64, externalNodeID bool) {
 	t.automaticIno = firstAutomaticIno
 	if t.automaticIno == 0 {
 		t.automaticIno = 1 << 63
 	}
+	t.externalNodeID = externalNodeID
 	t.stableAttrs = make(map[StableAttr]*Inode)
 	t.nodes = make(map[uint64]*nodeEntry)
 	// Fh 0 means no file handle.
 	t.files = []*fileEntry{{}}
+}
+
+// dedupKey returns the key under which id is looked up/stored in
+// stableAttrs.
+func (t *mapIdentityTable) dedupKey(id StableAttr) StableAttr {
+	if t.externalNodeID {
+		return StableAttr{Ino: id.Ino}
+	}
+	return id
 }
 
 func (t *mapIdentityTable) registerRoot(root *Inode) {
@@ -122,7 +135,7 @@ func (t *mapIdentityTable) allocateNodeID() uint64 {
 func (t *mapIdentityTable) findByAttr(id StableAttr) *Inode {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	return t.stableAttrs[id]
+	return t.stableAttrs[t.dedupKey(id)]
 }
 
 // registerNew atomically checks for an existing node under id and, if
@@ -136,9 +149,24 @@ func (t *mapIdentityTable) registerNew(id StableAttr, child *Inode, exclusive bo
 	defer t.mu.Unlock()
 
 	if !exclusive {
-		if old := t.stableAttrs[id]; old != nil && old != child {
+		if old := t.stableAttrs[t.dedupKey(id)]; old != nil && old != child && old.stableAttr == id {
+			// Exact same identity found via a racing lookup (eg. two
+			// dirs linking to the same file, both losing to the same
+			// winner). Comparing the full StableAttr (rather than
+			// trusting the map hit alone) matters specifically under
+			// ExternalNodeID, where dedupKey flattens Mode/Gen: without
+			// it, a lookup that only shares Ino with old - but is
+			// actually a nodeid/generation reuse - would be mistaken
+			// for the same identity here instead of falling through to
+			// the nodeID-keyed arbiter below.
 			return old, t.nodes[old.nodeId]
 		}
+		// If old != nil but old.stableAttr != id (Mode and/or Gen
+		// differ), this is not by itself a reason to reuse old: without
+		// Options.ExternalNodeID a reused Ino under a new Gen
+		// legitimately gets its own independent nodeID and coexists
+		// with old. Fall through to the nodeID-keyed check below, which
+		// is the actual arbiter.
 	}
 
 	e := t.nodes[child.nodeId]
@@ -153,7 +181,7 @@ func (t *mapIdentityTable) registerNew(id StableAttr, child *Inode, exclusive bo
 		}
 	}
 	// Any node that might be there is overwritten - it is obsolete now.
-	t.stableAttrs[id] = child
+	t.stableAttrs[t.dedupKey(id)] = child
 	return child, e
 }
 
@@ -172,7 +200,7 @@ func (t *mapIdentityTable) forget(n *Inode) {
 	// Dropping the node from stableAttrs guarantees that no new
 	// references to this node are handed out to the kernel, hence we
 	// can also safely delete it from nodes.
-	delete(t.stableAttrs, n.stableAttr)
+	delete(t.stableAttrs, t.dedupKey(n.stableAttr))
 	delete(t.nodes, n.nodeId)
 }
 

@@ -264,7 +264,7 @@ func NewNodeFS(root InodeEmbedder, opts *Options) fuse.RawFileSystem {
 		server:  opts.ServerCallbacks,
 		options: *opts,
 	}
-	bridge.ids.initIdentityTable(opts.FirstAutomaticIno)
+	bridge.ids.initIdentityTable(opts.FirstAutomaticIno, opts.ExternalNodeID)
 
 	stableAttr := StableAttr{
 		Ino:  root.embed().StableAttr().Ino,
