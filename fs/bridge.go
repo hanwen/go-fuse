@@ -22,6 +22,14 @@ func errnoToStatus(errno syscall.Errno) fuse.Status {
 type fileEntry struct {
 	file FileHandle
 
+	// inode is the *Inode this handle was opened against, captured at
+	// registerFile time. It may differ from the node currently
+	// registered under this handle's nodeid (nodeEntry.inode) if the
+	// nodeid was reused for a new incarnation while this handle was
+	// still open - RELEASE must dispatch against inode, not the
+	// nodeEntry's current state.
+	inode *Inode
+
 	// index into nodeEntry.openFiles
 	nodeIndex int
 
@@ -792,7 +800,7 @@ func (b *rawBridge) Release(cancel <-chan struct{}, input *fuse.ReleaseIn) {
 	if f == nil {
 		return
 	}
-	n := e.inode
+	n := f.inode
 
 	f.wg.Wait()
 

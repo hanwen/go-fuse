@@ -234,6 +234,7 @@ func (t *mapIdentityTable) registerFile(e *nodeEntry, f FileHandle, flags uint32
 	}
 	fe.nodeIndex = len(e.openFiles)
 	fe.file = f
+	fe.inode = e.inode
 	e.openFiles = append(e.openFiles, fe.fh)
 
 	return fe
