@@ -47,6 +47,12 @@ type withSlice interface {
 	Slices() ([][]byte, Status)
 }
 
+// withSpliceFlags is a ReadResult carrying splice(2) flags for the write to
+// /dev/fuse.
+type withSpliceFlags interface {
+	SpliceFlags() int
+}
+
 // ReadResultFd is the read return for zero-copy file data.
 type readResultFd struct {
 	// Splice from the following file.

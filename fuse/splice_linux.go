@@ -35,6 +35,11 @@ func (r *fuseFD) trySplice(req *request, readResult ReadResult) error {
 	// readResult.Size(), so req.outHeaderBuf is correct for the optimistic case.
 	total := len(req.outHeaderBuf) + len(req.outDataBuf) + readResult.Size()
 
+	spliceFlags := 0
+	if f, ok := readResult.(withSpliceFlags); ok {
+		spliceFlags = f.SpliceFlags()
+	}
+
 	pair, err := splice.Get()
 	if err != nil {
 		return err
@@ -90,12 +95,12 @@ func (r *fuseFD) trySplice(req *request, readResult ReadResult) error {
 		// New length.
 		req.serializeHeader(payloadLen)
 
-		return r.trySplice(req, ReadResultPipe(pair, payloadLen))
+		return r.trySplice(req, ReadResultPipeFlags(pair, payloadLen, spliceFlags))
 	}
 
 	// Write header + payload to /dev/fuse.
 	if cerr := r.withFD(func(fd int) {
-		_, err = pair.WriteTo(uintptr(fd), total)
+		_, err = pair.WriteToFlags(uintptr(fd), total, spliceFlags)
 	}); cerr != nil {
 		return cerr
 	}
@@ -103,8 +108,9 @@ func (r *fuseFD) trySplice(req *request, readResult ReadResult) error {
 }
 
 type pipeReadResult struct {
-	pair *splice.Pair
-	size int
+	pair  *splice.Pair
+	size  int
+	flags int
 }
 
 func (r *pipeReadResult) Done() {
@@ -128,9 +134,19 @@ func (r *pipeReadResult) Stateful() (fd uintptr, sz int) {
 	return r.pair.ReadFd(), r.size
 }
 
+func (r *pipeReadResult) SpliceFlags() int { return r.flags }
+
 // ReadResultPipe returns a [ReadResult] of `size` bytes that was preloaded
 // into the given pipe.  The pipe is discarded with splice.Done()
 // after the read completes.
 func ReadResultPipe(pipe *splice.Pair, size int) ReadResult {
-	return &pipeReadResult{pipe, size}
+	return &pipeReadResult{pair: pipe, size: size}
+}
+
+// ReadResultPipeFlags is [ReadResultPipe] with splice(2) flags. Only
+// SPLICE_F_MOVE has an effect on /dev/fuse: it moves each page out of the
+// source file's page cache, after waiting on its writeback, so use it only for
+// pages the filesystem can lose. Only readahead reads are eligible.
+func ReadResultPipeFlags(pipe *splice.Pair, size, flags int) ReadResult {
+	return &pipeReadResult{pair: pipe, size: size, flags: flags}
 }

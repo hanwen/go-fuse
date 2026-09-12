@@ -69,11 +69,17 @@ func (p *Pair) LoadFrom(fd uintptr, sz int) (int, error) {
 }
 
 func (p *Pair) WriteTo(fd uintptr, n int) (int, error) {
+	return p.WriteToFlags(fd, n, 0)
+}
+
+// WriteToFlags is WriteTo with splice(2) flags. /dev/fuse acts on SPLICE_F_MOVE
+// even though the generic pipe-to-file path ignores it.
+func (p *Pair) WriteToFlags(fd uintptr, n int, flags int) (int, error) {
 	var m int
 	var err error
 	p.rConn.Control(func(rfd uintptr) {
 		var sm int64
-		sm, err = syscall.Splice(int(rfd), nil, int(fd), nil, n, 0)
+		sm, err = syscall.Splice(int(rfd), nil, int(fd), nil, n, flags)
 		m = int(sm)
 	})
 	if err != nil {
