@@ -234,6 +234,32 @@ fusermount:        %#v`, o3, o1)
 	}
 }
 
+func TestFilterEnv(t *testing.T) {
+	env := []string{"FOO=bar", "_FUSE_COMMFD=99", "PATH=/usr/bin", "_FUSE_COMMFD=other"}
+	got := filterEnv(env, "_FUSE_COMMFD")
+	want := []string{"FOO=bar", "PATH=/usr/bin"}
+	if len(got) != len(want) {
+		t.Fatalf("filterEnv: got %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("filterEnv[%d]: got %q, want %q", i, got[i], want[i])
+		}
+	}
+
+	// Key not present — should return all entries.
+	got2 := filterEnv(env, "NOTEXIST")
+	if len(got2) != len(env) {
+		t.Fatalf("filterEnv(NOTEXIST): got %d entries, want %d", len(got2), len(env))
+	}
+
+	// Empty env.
+	got3 := filterEnv(nil, "_FUSE_COMMFD")
+	if len(got3) != 0 {
+		t.Fatalf("filterEnv(nil): got %v, want empty", got3)
+	}
+}
+
 // TestEscapedMountOption tests that fusermount doesn't exit when when using commas or backslashs in options.
 // It also tests that commas or backslashs in options are correctly propagated to /proc/mounts.
 func TestEscapedMountOption(t *testing.T) {
