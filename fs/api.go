@@ -518,6 +518,16 @@ type NodeLookuper interface {
 	Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno)
 }
 
+// NodeLookupNoder looks up a node ID without path context. It is only
+// called on the root node. This is called on files exported as NFS,
+// if a client holds a reference predating the start of this file
+// system, e.g. in case of server reboot.
+//
+// LookupNode must return a node whose StableAttr.Ino == id.
+type NodeLookupNoder interface {
+	LookupNode(ctx context.Context, id uint64, out *fuse.EntryOut) (*Inode, syscall.Errno)
+}
+
 // NodeWrapChilder wraps a FS node implementation in another one. If
 // defined, it is called automatically from NewInode and
 // NewPersistentInode. Thus, existing file system implementations,

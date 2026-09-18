@@ -183,7 +183,8 @@ func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file F
 
 // addNewNode registers child and returns the node to use for it, which is child unless another lookup registered a
 // node for the same identity first. An empty name registers a node which is in no directory, as a file created
-// with O_TMPFILE is until it is linked into place.
+// with O_TMPFILE is until it is linked into place, or a node resolved by nodeid alone (LOOKUP of "."), in which case
+// parent may be nil.
 func (b *rawBridge) addNewNode(parent *Inode, name string, child *Inode, file FileHandle, fileFlags uint32, out *fuse.EntryOut) (selected *Inode, fe *fileEntry, entry *nodeEntry) {
 	// the same node can be looked up through 2 paths in parallel, eg.
 	//
@@ -342,8 +343,11 @@ func (b *rawBridge) inode(id uint64, fh uint64) (*Inode, *fileEntry) {
 }
 
 func (b *rawBridge) Lookup(cancel <-chan struct{}, header *fuse.InHeader, name string, out *fuse.EntryOut) fuse.Status {
-	parent, _ := b.inode(header.NodeId, 0)
 	ctx := &fuse.Context{Caller: header.Caller, Cancel: cancel}
+	if name == "." {
+		return b.lookupDot(ctx, header.NodeId, out)
+	}
+	parent, _ := b.inode(header.NodeId, 0)
 	child, errno := b.lookup(ctx, parent, name, out)
 
 	if errno != 0 {
@@ -355,6 +359,47 @@ func (b *rawBridge) Lookup(cancel <-chan struct{}, header *fuse.InHeader, name s
 	}
 
 	child, _, _ = b.addNewChild(parent, name, child, nil, 0, out)
+	child.setEntryOut(out)
+	b.setEntryOutTimeout(out)
+	return fuse.OK
+}
+
+// lookupDot handles a LOOKUP with name=="." against nodeID, sent by the
+// kernel when it wants to revive a dentry/filehandle purely from its
+// nodeid, with no path context - notably fuse_get_dentry ->
+// fuse_lookup_name(nodeid, ".") in fs/fuse/inode.c, which is how the
+// kernel resolves a stale NFS filehandle after a reconnect.
+func (b *rawBridge) lookupDot(ctx *fuse.Context, nodeID uint64, out *fuse.EntryOut) fuse.Status {
+	if e, _ := b.ids.node(nodeID, 0); e != nil {
+		// Known nodeid: our identity table still has it, even though
+		// the kernel's own dentry cache dropped it. Resolve to
+		// ourselves rather than treating this as a reconnect.
+		self := e.inode.Load()
+		if ga, ok := self.ops.(NodeGetattrer); ok {
+			var a fuse.AttrOut
+			if errno := ga.Getattr(ctx, nil, &a); errno == 0 {
+				out.Attr = a.Attr
+			}
+		}
+		self, _, _ = b.addNewNode(nil, "", self, nil, 0, out)
+		self.setEntryOut(out)
+		b.setEntryOutTimeout(out)
+		return fuse.OK
+	}
+
+	lu, ok := b.root.ops.(NodeLookupNoder)
+	if !ok {
+		return errnoToStatus(syscall.ESTALE)
+	}
+	child, errno := lu.LookupNode(ctx, nodeID, out)
+	if errno != 0 {
+		return errnoToStatus(errno)
+	}
+	if child.stableAttr.Ino != nodeID {
+		log.Panicf("NodeLookupNoder.LookupNode(%d) returned inode with Ino %d", nodeID, child.stableAttr.Ino)
+	}
+
+	child, _, _ = b.addNewNode(nil, "", child, nil, 0, out)
 	child.setEntryOut(out)
 	b.setEntryOutTimeout(out)
 	return fuse.OK
