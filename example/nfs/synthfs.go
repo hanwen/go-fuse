@@ -23,6 +23,9 @@ type synthEntry struct {
 	children map[string]uint64
 }
 
+// synthTree is the shared backing store behind every mount of the test
+// filesystem: root=1, "a"=2, "a/b"=3, "a/b/file.txt"=4. Two directory
+// levels ensure that ".." resolution passes through a non-root parent.
 type synthTree struct {
 	mu      sync.Mutex
 	entries map[uint64]*synthEntry
@@ -31,9 +34,10 @@ type synthTree struct {
 func newSynthTree(fileData []byte) *synthTree {
 	return &synthTree{
 		entries: map[uint64]*synthEntry{
-			1: {mode: syscall.S_IFDIR, children: map[string]uint64{"dir": 2}},
-			2: {mode: syscall.S_IFDIR, children: map[string]uint64{"file.txt": 3}},
-			3: {mode: syscall.S_IFREG, data: fileData},
+			1: {mode: syscall.S_IFDIR, children: map[string]uint64{"a": 2}},
+			2: {mode: syscall.S_IFDIR, children: map[string]uint64{"b": 3}},
+			3: {mode: syscall.S_IFDIR, children: map[string]uint64{"file.txt": 4}},
+			4: {mode: syscall.S_IFREG, data: fileData},
 		},
 	}
 }
@@ -67,6 +71,26 @@ func (n *synthNode) LookupNode(ctx context.Context, id uint64, out *fuse.EntryOu
 		return nil, syscall.ENOENT
 	}
 	return n.newChild(ctx, id, out), 0
+}
+
+var _ = (fs.NodeLookupParenter)((*synthNode)(nil))
+
+// LookupParent scans for the entry listing n.ino as a child; a real
+// filesystem would track parents directly.
+func (n *synthNode) LookupParent(ctx context.Context, out *fuse.EntryOut) (*fs.Inode, string, syscall.Errno) {
+	n.tree.mu.Lock()
+	defer n.tree.mu.Unlock()
+	for parentIno, e := range n.tree.entries {
+		for name, childIno := range e.children {
+			if childIno == n.ino {
+				fillAttr(&out.Attr, n.tree.entries[parentIno])
+				ops := &synthNode{tree: n.tree, ino: parentIno}
+				parent := n.NewInode(ctx, ops, fs.StableAttr{Mode: n.tree.entries[parentIno].mode, Ino: parentIno})
+				return parent, name, 0
+			}
+		}
+	}
+	return nil, "", syscall.ENOENT
 }
 
 func (n *synthNode) newChild(ctx context.Context, ino uint64, out *fuse.EntryOut) *fs.Inode {

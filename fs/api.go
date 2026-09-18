@@ -528,6 +528,18 @@ type NodeLookupNoder interface {
 	LookupNode(ctx context.Context, id uint64, out *fuse.EntryOut) (*Inode, syscall.Errno)
 }
 
+// NodeLookupParenter resolves the parent directory of a node without
+// path context; it is the ".." counterpart of NodeLookupNoder. It is
+// called on a node without a known parent (eg. one returned by
+// LookupNode) when the kernel reconnects an NFS filehandle for a
+// directory, or for an export without no_subtree_check.
+//
+// LookupParent must return the parent directory and the name of the
+// receiver in it, and fill out with the parent's attributes.
+type NodeLookupParenter interface {
+	LookupParent(ctx context.Context, out *fuse.EntryOut) (parent *Inode, name string, errno syscall.Errno)
+}
+
 // NodeWrapChilder wraps a FS node implementation in another one. If
 // defined, it is called automatically from NewInode and
 // NewPersistentInode. Thus, existing file system implementations,

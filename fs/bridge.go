@@ -347,6 +347,9 @@ func (b *rawBridge) Lookup(cancel <-chan struct{}, header *fuse.InHeader, name s
 	if name == "." {
 		return b.lookupDot(ctx, header.NodeId, out)
 	}
+	if name == ".." {
+		return b.lookupDotDot(ctx, header.NodeId, out)
+	}
 	parent, _ := b.inode(header.NodeId, 0)
 	child, errno := b.lookup(ctx, parent, name, out)
 
@@ -401,6 +404,35 @@ func (b *rawBridge) lookupDot(ctx *fuse.Context, nodeID uint64, out *fuse.EntryO
 
 	child, _, _ = b.addNewNode(nil, "", child, nil, 0, out)
 	child.setEntryOut(out)
+	b.setEntryOutTimeout(out)
+	return fuse.OK
+}
+
+// lookupDotDot handles a LOOKUP with name==".." against nodeID, sent
+// by fuse_get_parent while reconnecting a disconnected dentry's
+// ancestors (see NodeLookupParenter).
+func (b *rawBridge) lookupDotDot(ctx *fuse.Context, nodeID uint64, out *fuse.EntryOut) fuse.Status {
+	e, _ := b.ids.node(nodeID, 0)
+	if e == nil {
+		return errnoToStatus(syscall.ESTALE)
+	}
+	child := e.inode.Load()
+
+	lp, ok := child.ops.(NodeLookupParenter)
+	if !ok {
+		return errnoToStatus(syscall.ESTALE)
+	}
+	parent, name, errno := lp.LookupParent(ctx, out)
+	if errno != 0 {
+		return errnoToStatus(errno)
+	}
+	if parent.stableAttr.Mode&syscall.S_IFDIR == 0 {
+		log.Panicf("NodeLookupParenter.LookupParent(%d) returned non-directory parent", nodeID)
+	}
+
+	parent, _, _ = b.addNewNode(nil, "", parent, nil, 0, out)
+	parent.AddChild(name, child, true)
+	parent.setEntryOut(out)
 	b.setEntryOutTimeout(out)
 	return fuse.OK
 }

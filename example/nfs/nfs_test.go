@@ -57,7 +57,8 @@ func requireReconnectTestEnv(t *testing.T) {
 }
 
 // export manages one exportfs entry across the abort+remount in
-// TestNFSExportReconnect.
+// TestNFSExportReconnect. It omits no_subtree_check, so nfsd
+// revalidates a reconnected file's ancestry, issuing ".." LOOKUPs.
 type export struct {
 	t    *testing.T
 	spec string // "host:path", passed to exportfs
@@ -78,7 +79,7 @@ func newExport(t *testing.T, dir string) *export {
 func (e *export) export() {
 	e.t.Helper()
 	cmd := exec.Command("exportfs", "-i", "-o",
-		"rw,insecure,no_subtree_check,no_root_squash,fsid="+e.fsid,
+		"rw,insecure,no_root_squash,fsid="+e.fsid,
 		e.spec)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		e.t.Skipf("exportfs failed: %v: %s\nrpcbind and/or rpc.mountd are probably not running - %s", err, out, rpcSetupHint)
@@ -199,17 +200,22 @@ func TestNFSExportReconnect(t *testing.T) {
 	defer cleanupClient()
 	t.Log("mounted export via NFS client")
 
-	f, err := target.Open(filepath.Join("dir", "file.txt"))
+	f, err := target.Open(filepath.Join("a", "b", "file.txt"))
 	if err != nil {
-		t.Fatalf("Open(dir/file.txt): %v", err)
+		t.Fatalf("Open(a/b/file.txt): %v", err)
 	}
 	defer f.Close()
-	t.Log("opened dir/file.txt via NFS")
+	t.Log("opened a/b/file.txt via NFS")
 
 	if got := string(readAll(t, f, make([]byte, 64))); got != fileContent {
 		t.Fatalf("initial Read = %q, want %q", got, fileContent)
 	}
 	t.Log("initial read via NFS OK")
+
+	_, bFH, err := target.Lookup(filepath.Join("a", "b"))
+	if err != nil {
+		t.Fatalf("Lookup(a/b): %v", err)
+	}
 
 	exp.unexport()
 	if err := abortConnection(dir); err != nil {
@@ -240,4 +246,14 @@ func TestNFSExportReconnect(t *testing.T) {
 		t.Fatalf("Read after reconnect = %q, want %q", got, fileContent)
 	}
 	t.Log("read after reconnect OK - filehandle survived the restart")
+
+	// Reconnecting a/b resolves its parent "a" via LookupParent; the
+	// GETATTR then fails if "a" was not registered.
+	bAttr, err := target.GetAttr(bFH)
+	if err != nil {
+		t.Fatalf("GetAttr(a/b) after reconnect: %v", err)
+	}
+	if !bAttr.IsDir() {
+		t.Fatalf("GetAttr(a/b) after reconnect: mode %v, want a directory", bAttr.Mode())
+	}
 }
