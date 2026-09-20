@@ -28,6 +28,7 @@ func testMount(t *testing.T, root InodeEmbedder, opts *Options) (string, *fuse.S
 	if opts == nil {
 		opts = &Options{
 			FirstAutomaticIno: 1,
+			ExternalNodeID:    true,
 		}
 	}
 	opts.Debug = testutil.VerboseTest()

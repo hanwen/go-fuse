@@ -192,6 +192,7 @@ func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file F
 		log.Panicf("%#v", id)
 	}
 	exclusive := fileFlags&syscall.O_EXCL != 0
+	var evicted *Inode
 	for {
 		lockNodes(parent, child)
 		// registerNew atomically re-checks for an existing node under
@@ -199,18 +200,15 @@ func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file F
 		// (someone else registered a different node under id between
 		// our last check and now), retry with that node instead - it
 		// may be the node we should use, or the race may repeat.
-		winner, winnerEntry := b.ids.registerNew(id, child, exclusive)
+		winner, winnerEntry, ev := b.ids.registerNew(id, child, exclusive)
 		if winner == child {
 			entry = winnerEntry
+			evicted = ev
 			break
 		}
 		unlockNodes(parent, child)
 		child = winner
 	}
-
-	child.hasKernelRef = true
-	child.changeCounter++
-	b.ids.addLookup(entry)
 
 	if file != nil {
 		fe = b.ids.registerFile(entry, file, fileFlags)
@@ -223,6 +221,12 @@ func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file F
 	out.Attr.Ino = child.stableAttr.Ino
 
 	unlockNodes(parent, child)
+
+	if evicted != nil {
+		// eviction has no kernel interfacing. Just remove the
+		// node from the tree on our side.
+		evicted.removeRef(0, true)
+	}
 
 	return child, fe, entry
 }

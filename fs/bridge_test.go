@@ -92,7 +92,10 @@ func TestBridgeReaddirPlusVirtualEntries(t *testing.T) {
 // we just have not received the FORGET yet.
 func TestTypeChange(t *testing.T) {
 	rootNode := testTypeChangeIno{}
-	mnt, _ := testMount(t, &rootNode, nil)
+	opts := Options{
+		ExternalNodeID: true,
+	}
+	mnt, _ := testMount(t, &rootNode, &opts)
 
 	for i := 0; i < 100; i++ {
 		fi, err := os.Stat(mnt + "/file")
@@ -217,7 +220,10 @@ func (n *testDeletedIno) Getattr(ctx context.Context, f FileHandle, out *fuse.At
 //	panic: using reserved ID 1 for inode number
 func TestIno1(t *testing.T) {
 	rootNode := testIno1{}
-	mnt, _ := testMount(t, &rootNode, nil)
+	opts := &Options{
+		FirstAutomaticIno: 1,
+	}
+	mnt, _ := testMount(t, &rootNode, opts)
 
 	var st syscall.Stat_t
 	err := syscall.Stat(mnt+"/ino1", &st)

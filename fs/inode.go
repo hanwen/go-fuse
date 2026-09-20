@@ -88,8 +88,9 @@ type Inode struct {
 
 	// hasKernelRef records whether the kernel currently holds at
 	// least one lookup reference to this Inode. This is derived
-	// from lookupCount, but protected by mu. When you change
-	// this, you MUST increment changeCounter.
+	// from lookupCount (which is protected by a different
+	// mutex). When you change this, you MUST increment
+	// changeCounter.
 	hasKernelRef bool
 
 	// Children of this Inode.
@@ -418,20 +419,15 @@ func (n *Inode) removeRefInner(nlookup uint64, dropPersistence bool, inputUnused
 	beforeKernelRef = n.hasKernelRef
 	beforePersistent = n.persistent
 	beforeChildren = n.children.len() > 0
-	// The n.hasKernelRef check is not just an optimization: it is what
-	// makes the decLookup call safe. forget() deletes the nodeEntry
-	// exactly when hasKernelRef drops to false, so a node that still
-	// has a kernel ref is guaranteed to still be registered.
-	if nlookup > 0 && n.hasKernelRef {
-		// The lookup count must be decremented here, under n.mu,
-		// rather than by the caller: addNewChild bumps it (addLookup)
-		// and sets hasKernelRef under this same lock, so deciding
-		// "reached zero" anywhere else lets a LOOKUP that revives the
-		// node between the FORGET arriving and here go unnoticed. We
-		// would then drop a nodeid the kernel just got handed again,
-		// and the next request naming it fails the lookup in
-		// rawBridge.entry.
-		if _, reachedZero := n.bridge.ids.decLookup(n.nodeId, nlookup); reachedZero {
+	if n.hasKernelRef {
+		reachedZero := false
+		if nlookup > 0 {
+			// The lookup count must be decremented here,
+			// under n.mu, to keep hasKernelRef in sync
+			// with the node ID's lookup count.
+			_, reachedZero = n.bridge.ids.decLookup(n.nodeId, nlookup)
+		}
+		if reachedZero {
 			n.hasKernelRef = false
 			n.changeCounter++
 		}

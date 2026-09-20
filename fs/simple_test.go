@@ -105,9 +105,10 @@ func newTestCase(t *testing.T, opts *testOptions) *testCase {
 		entryDT = nil
 	}
 	fsOpts := &Options{
-		EntryTimeout: entryDT,
-		AttrTimeout:  attrDT,
-		Logger:       log.New(os.Stderr, "", 0),
+		EntryTimeout:   entryDT,
+		AttrTimeout:    attrDT,
+		Logger:         log.New(os.Stderr, "", 0),
+		ExternalNodeID: true,
 	}
 	if opts.suppressDebug {
 		fsOpts.Logger = log.New(io.Discard, "", 0)
@@ -253,6 +254,7 @@ func TestNotifyPrune(t *testing.T) {
 	root := &Inode{}
 	forgetter := &forgetNode{}
 	opts := &Options{
+		ExternalNodeID: true,
 		OnAdd: func(ctx context.Context) {
 			child := root.NewInode(ctx, forgetter, StableAttr{})
 			root.AddChild("file", child, true)

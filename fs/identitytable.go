@@ -146,13 +146,12 @@ func (t *mapIdentityTable) findByAttr(id StableAttr) *Inode {
 	return t.stableAttrs[t.dedupKey(id)]
 }
 
-// registerNew atomically checks for an existing node under id and, if
-// none is registered yet (or it is already child), registers child and
-// returns it along with its nodeEntry. If a different node is already
-// registered under id, it is returned unchanged (with its own entry)
-// and child is not registered. If exclusive is true, the existing-node
-// check is skipped and child is unconditionally (re-)registered.
-func (t *mapIdentityTable) registerNew(id StableAttr, child *Inode, exclusive bool) (*Inode, *nodeEntry) {
+// registerNew tries to register `child` under `id`. The following results are possible:
+// * winner == child: normal case
+// * winner == other node: racy lookup, retry call with the winner
+//
+// If `evicted` is returned, its bookkeeping must be updated must be under lock.
+func (t *mapIdentityTable) registerNew(id StableAttr, child *Inode, exclusive bool) (winner *Inode, e *nodeEntry, evicted *Inode) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -160,24 +159,12 @@ func (t *mapIdentityTable) registerNew(id StableAttr, child *Inode, exclusive bo
 		if old := t.stableAttrs[t.dedupKey(id)]; old != nil && old != child && old.stableAttr == id {
 			// Exact same identity found via a racing lookup (eg. two
 			// dirs linking to the same file, both losing to the same
-			// winner). Comparing the full StableAttr (rather than
-			// trusting the map hit alone) matters specifically under
-			// ExternalNodeID, where dedupKey flattens Mode/Gen: without
-			// it, a lookup that only shares Ino with old - but is
-			// actually a nodeid/generation reuse - would be mistaken
-			// for the same identity here instead of falling through to
-			// the nodeID-keyed arbiter below.
-			return old, t.nodes[old.nodeId]
+			// winner). We don't hold its lock, so we can't change it
+			return old, t.nodes[old.nodeId], nil
 		}
-		// If old != nil but old.stableAttr != id (Mode and/or Gen
-		// differ), this is not by itself a reason to reuse old: without
-		// Options.ExternalNodeID a reused Ino under a new Gen
-		// legitimately gets its own independent nodeID and coexists
-		// with old. Fall through to the nodeID-keyed check below, which
-		// is the actual arbiter.
 	}
 
-	e := t.nodes[child.nodeId]
+	e = t.nodes[child.nodeId]
 	if e == nil {
 		// Fresh node: create its entry. If child was already
 		// registered (the old == child case above), its entry - and
@@ -188,34 +175,32 @@ func (t *mapIdentityTable) registerNew(id StableAttr, child *Inode, exclusive bo
 		if len(t.nodes) > t.nodeCountHigh {
 			t.nodeCountHigh = len(t.nodes)
 		}
-	} else if e.inode.Load() != child {
-		// The nodeid is already registered, but for a
-		// different Inode.  The kernel will detects the
-		// generation mismatch, and evicts its own cached VFS
-		// inode before routing any new request against this
-		// nodeid to the new object.
+	} else if old := e.inode.Load(); old != child {
+		// we must have a different StableAttr now.
+		evicted = old
 		e.inode.Store(child)
 	}
 	// Any node that might be there is overwritten - it is obsolete now.
 	t.stableAttrs[t.dedupKey(id)] = child
-	return child, e
-}
 
-// addLookup credits e with a fresh kernel lookup reference (eg. from a
-// successful LOOKUP/CREATE/MKNOD reply).
-func (t *mapIdentityTable) addLookup(e *nodeEntry) {
-	t.mu.Lock()
+	// child is kept as the definitive occupant of id/child.nodeId from
+	// here on, and the caller holds child.mu for the duration of this
+	// call - so crediting it now, atomically with the publish above, is
+	// both safe and required (see the doc comment above).
+	child.hasKernelRef = true
+	child.changeCounter++
 	e.lookupCount++
-	t.mu.Unlock()
+
+	return child, e, evicted
 }
 
 // decLookup applies a FORGET to nodeID, and reports whether that node ID
 // lookup count reached zero.
 //
 // The caller must hold the Inode's mu: lookupCount and the Inode's
-// hasKernelRef have to be updated together (addLookup is called under
-// that lock too), or a LOOKUP racing with a FORGET can leave the
-// kernel holding a nodeid we already dropped
+// hasKernelRef have to be updated together (registerNew credits them
+// under that lock too), or a LOOKUP racing with a FORGET can leave the
+// kernel holding a nodeid we already dropped.
 func (t *mapIdentityTable) decLookup(nodeID uint64, nlookup uint64) (n *Inode, reachedZero bool) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -242,11 +227,14 @@ func (t *mapIdentityTable) node(nodeID uint64, fh uint64) (*nodeEntry, *fileEntr
 func (t *mapIdentityTable) forget(n *Inode) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	// Dropping the node from stableAttrs guarantees that no new
-	// references to this node are handed out to the kernel, hence we
-	// can also safely delete it from nodes.
-	delete(t.stableAttrs, t.dedupKey(n.stableAttr))
-	delete(t.nodes, n.nodeId)
+	key := t.dedupKey(n.stableAttr)
+	stillCurrent := t.stableAttrs[key] == n
+	if stillCurrent {
+		delete(t.stableAttrs, key)
+	}
+	if e, ok := t.nodes[n.nodeId]; ok && e.inode.Load() == n && stillCurrent {
+		delete(t.nodes, n.nodeId)
+	}
 }
 
 // compact tries to free memory that was previously used by forgotten
