@@ -16,6 +16,29 @@ import (
 
 const unix_UTIME_OMIT = unix.UTIME_OMIT
 
+var _ = (NodeTmpfiler)((*LoopbackNode)(nil))
+
+func (n *LoopbackNode) Tmpfile(ctx context.Context, flags uint32, mode uint32, out *fuse.EntryOut) (*Inode, FileHandle, uint32, syscall.Errno) {
+	flags = flags &^ syscall.O_APPEND
+	fd, err := syscall.Open(n.path(), int(flags)|unix.O_TMPFILE, mode)
+	if err != nil {
+		return nil, nil, 0, ToErrno(err)
+	}
+
+	var st syscall.Stat_t
+	var btime syscall.Timespec
+	if err := fstatFd(fd, &st, &btime); err != nil {
+		syscall.Close(fd)
+		return nil, nil, 0, ToErrno(err)
+	}
+
+	node := n.RootData.newNode(n.EmbeddedInode(), "", &st)
+	ch := n.NewInode(ctx, node, n.RootData.idFromStat(&st, genFromBtime(&btime)))
+
+	out.FromStat(&st)
+	return ch, NewLoopbackFile(fd), 0, 0
+}
+
 func doCopyFileRange(fdIn int, offIn int64, fdOut int, offOut int64,
 	len int, flags int) (uint32, syscall.Errno) {
 	count, err := unix.CopyFileRange(fdIn, &offIn, fdOut, &offOut, len, flags)

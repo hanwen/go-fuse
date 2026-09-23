@@ -341,6 +341,12 @@ func (n *LoopbackNode) Link(ctx context.Context, target InodeEmbedder, name stri
 		return nil, syscall.EXDEV
 	}
 
+	// The target is in no directory, so the loopback has no path to link it from. A file created with O_TMPFILE is
+	// named only by its descriptor, and LINK does not carry one.
+	if _, parent := target.EmbeddedInode().Parent(); parent == nil {
+		return nil, syscall.EXDEV
+	}
+
 	p := filepath.Join(n.path(), name)
 	err := syscall.Link(e2.loopbackNode().path(), p)
 	if err != nil {

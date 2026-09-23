@@ -464,7 +464,7 @@ func TestIoctlFIEMAP(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
- 	defer f.Close()
+	defer f.Close()
 
 	req := fiemap{
 		Length: ^uint64(0),

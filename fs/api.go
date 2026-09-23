@@ -598,6 +598,16 @@ type NodeCreater interface {
 	Create(ctx context.Context, name string, flags uint32, mode uint32, out *fuse.EntryOut) (node *Inode, fh FileHandle, fuseFlags uint32, errno syscall.Errno)
 }
 
+// Tmpfile creates a file in this directory which has no name, as open(2) with O_TMPFILE does. It is answered like
+// Create, with a node and an open file handle, but the node is not added to the directory: the file gets a name
+// only if the caller links it into place, through /proc/self/fd of the descriptor it holds. A directory which does
+// not implement this interface answers EOPNOTSUPP. A filesystem which never supports it can implement the interface
+// and answer ENOSYS, which the kernel remembers for the whole mount: it then fails O_TMPFILE without sending another
+// request.
+type NodeTmpfiler interface {
+	Tmpfile(ctx context.Context, flags uint32, mode uint32, out *fuse.EntryOut) (node *Inode, fh FileHandle, fuseFlags uint32, errno syscall.Errno)
+}
+
 // Unlink should remove a child from this directory.  If the
 // return status is OK, the Inode is removed as child in the
 // FS tree automatically. Default is to return success.

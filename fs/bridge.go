@@ -175,7 +175,16 @@ func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file F
 	if name == "." || name == ".." {
 		log.Panicf("BUG: tried to add virtual entry %q to the actual tree", name)
 	}
+	if name == "" {
+		log.Panicf("BUG: tried to add an entry with no name to the actual tree")
+	}
+	return b.addNewNode(parent, name, child, file, fileFlags, out)
+}
 
+// addNewNode registers child and returns the node to use for it, which is child unless another lookup registered a
+// node for the same identity first. An empty name registers a node which is in no directory, as a file created
+// with O_TMPFILE is until it is linked into place.
+func (b *rawBridge) addNewNode(parent *Inode, name string, child *Inode, file FileHandle, fileFlags uint32, out *fuse.EntryOut) (selected *Inode, fe *fileEntry, entry *nodeEntry) {
 	// the same node can be looked up through 2 paths in parallel, eg.
 	//
 	//	    root
@@ -214,7 +223,9 @@ func (b *rawBridge) addNewChild(parent *Inode, name string, child *Inode, file F
 		fe = b.ids.registerFile(entry, file, fileFlags)
 	}
 
-	parent.setEntry(name, child)
+	if name != "" {
+		parent.setEntry(name, child)
+	}
 
 	out.NodeId = child.nodeId
 	out.Generation = child.stableAttr.Gen
@@ -462,6 +473,34 @@ func (b *rawBridge) Create(cancel <-chan struct{}, input *fuse.CreateIn, name st
 	}
 
 	child, fe, entry := b.addNewChild(parent, name, child, f, input.Flags|syscall.O_CREAT|syscall.O_EXCL, &out.EntryOut)
+	if fe != nil {
+		out.Fh = uint64(fe.fh)
+	}
+	out.OpenFlags = flags
+
+	b.backingMu.Lock()
+	b.addBackingID(entry, f, &out.OpenOut)
+	b.backingMu.Unlock()
+	child.setEntryOut(&out.EntryOut)
+	b.setEntryOutTimeout(&out.EntryOut)
+	return fuse.OK
+}
+
+func (b *rawBridge) Tmpfile(cancel <-chan struct{}, input *fuse.CreateIn, out *fuse.CreateOut) fuse.Status {
+	parent, _ := b.inode(input.NodeId, 0)
+
+	mops, ok := parent.ops.(NodeTmpfiler)
+	if !ok {
+		return fuse.ENOTSUP
+	}
+	ctx := &fuse.Context{Caller: input.Caller, Cancel: cancel}
+	child, f, flags, errno := mops.Tmpfile(ctx, input.Flags, input.Mode, &out.EntryOut)
+
+	if errno != 0 {
+		return errnoToStatus(errno)
+	}
+
+	child, fe, entry := b.addNewNode(parent, "", child, f, input.Flags|syscall.O_CREAT|syscall.O_EXCL, &out.EntryOut)
 	if fe != nil {
 		out.Fh = uint64(fe.fh)
 	}

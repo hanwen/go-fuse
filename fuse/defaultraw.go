@@ -109,6 +109,10 @@ func (fs *defaultRawFileSystem) Create(cancel <-chan struct{}, input *CreateIn, 
 	return ENOSYS
 }
 
+func (fs *defaultRawFileSystem) Tmpfile(cancel <-chan struct{}, input *CreateIn, out *CreateOut) (code Status) {
+	return ENOSYS
+}
+
 func (fs *defaultRawFileSystem) OpenDir(cancel <-chan struct{}, input *OpenIn, out *OpenOut) (status Status) {
 	return ENOSYS
 }

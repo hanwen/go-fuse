@@ -181,6 +181,14 @@ func doCreate(server *protocolServer, req *request) {
 	req.status = status
 }
 
+// doTmpfile answers a request for a file with no name. The kernel sends the name of the anonymous dentry it made
+// for it, which is "/" and means nothing, so it is not passed on.
+func doTmpfile(server *protocolServer, req *request) {
+	out := (*CreateOut)(req.outData())
+	status := server.fileSystem.Tmpfile(req.cancel, (*CreateIn)(req.inData()), out)
+	req.status = status
+}
+
 func doReadDir(server *protocolServer, req *request) {
 	in := (*ReadIn)(req.inData())
 	out := NewDirEntryList(req.outPayload, uint64(in.Offset))
@@ -632,6 +640,7 @@ func init() {
 		_OP_WRITE:           doWrite,
 		_OP_OPENDIR:         doOpenDir,
 		_OP_CREATE:          doCreate,
+		_OP_TMPFILE:         doTmpfile,
 		_OP_SETATTR:         doSetattr,
 		_OP_GETXATTR:        doGetXAttr,
 		_OP_LISTXATTR:       doGetXAttr,
@@ -680,6 +689,7 @@ func init() {
 		_OP_BMAP:                  _BmapOut{},
 		_OP_COPY_FILE_RANGE:       WriteOut{},
 		_OP_CREATE:                CreateOut{},
+		_OP_TMPFILE:               CreateOut{},
 		_OP_GETATTR:               AttrOut{},
 		_OP_GETLK:                 LkOut{},
 		_OP_GETXATTR:              GetXAttrOut{},
@@ -717,6 +727,7 @@ func init() {
 		_OP_BMAP:               _BmapIn{},
 		_OP_COPY_FILE_RANGE:    CopyFileRangeIn{},
 		_OP_CREATE:             CreateIn{},
+		_OP_TMPFILE:            CreateIn{},
 		_OP_FALLOCATE:          FallocateIn{},
 		_OP_FLUSH:              FlushIn{},
 		_OP_FORGET:             ForgetIn{},
@@ -757,7 +768,10 @@ func init() {
 
 	// File name args.
 	for op, count := range map[uint32]int{
-		_OP_CREATE:      1,
+		_OP_CREATE: 1,
+		// TMPFILE goes through the same kernel code as CREATE, so it carries a name as well: the name of the
+		// anonymous dentry the kernel makes for the file, which is always "/" and names nothing.
+		_OP_TMPFILE:     1,
 		_OP_SETXATTR:    1,
 		_OP_GETXATTR:    1,
 		_OP_LINK:        1,

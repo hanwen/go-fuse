@@ -348,6 +348,10 @@ func (c *rawBridge) Access(cancel <-chan struct{}, input *fuse.AccessIn) (code f
 	return n.fsInode.Access(input.Mask, &fuse.Context{Caller: input.Caller, Cancel: cancel})
 }
 
+func (c *rawBridge) Tmpfile(cancel <-chan struct{}, input *fuse.CreateIn, out *fuse.CreateOut) fuse.Status {
+	return fuse.ENOSYS
+}
+
 func (c *rawBridge) Create(cancel <-chan struct{}, input *fuse.CreateIn, name string, out *fuse.CreateOut) (code fuse.Status) {
 	parent := c.toInode(input.NodeId)
 	f, child, code := parent.fsInode.Create(name, uint32(input.Flags), input.Mode, &fuse.Context{Caller: input.Caller, Cancel: cancel})

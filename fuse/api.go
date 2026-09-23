@@ -473,6 +473,7 @@ type RawFileSystem interface {
 
 	// File handling.
 	Create(cancel <-chan struct{}, input *CreateIn, name string, out *CreateOut) (code Status)
+	Tmpfile(cancel <-chan struct{}, input *CreateIn, out *CreateOut) (code Status)
 	Open(cancel <-chan struct{}, input *OpenIn, out *OpenOut) (status Status)
 	Read(cancel <-chan struct{}, input *ReadIn, buf []byte) (ReadResult, Status)
 	Lseek(cancel <-chan struct{}, in *LseekIn, out *LseekOut) Status
