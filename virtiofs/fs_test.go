@@ -90,7 +90,6 @@ func TestBasic(t *testing.T) {
 	opts.Debug = true
 	opts.Logger = log.Default()
 	opts.MountOptions.Logger = opts.Logger
-
 	r := &killNotifyRoot{
 		LoopbackNode: root.(*fs.LoopbackNode),
 	}
