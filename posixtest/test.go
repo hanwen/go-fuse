@@ -33,6 +33,7 @@ var All = map[string]func(*testing.T, string){
 	"FcntlFlockSetLk":            FcntlFlockSetLk,
 	"FdLeak":                     FdLeak,
 	"FileBasic":                  FileBasic,
+	"FileLarge":                  FileLarge,
 	"FstatDeleted":               FstatDeleted,
 	"Link":                       Link,
 	"LinkUnlinkRename":           LinkUnlinkRename,
@@ -173,6 +174,29 @@ func FileBasic(t *testing.T, mnt string) {
 	if err := f.Close(); err != nil {
 		t.Errorf("Close: %v", err)
 	}
+}
+
+
+func FileLarge(t *testing.T, mnt string) {
+	content := bytes.Repeat([]byte("hello world"), 4096)
+	fn := mnt + "/file"
+
+	if err := os.WriteFile(fn, content, 0755); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	if got, err := os.ReadFile(fn); err != nil {
+		t.Fatalf("ReadFile: %v", err)
+	} else if bytes.Compare(got, content) != 0 {
+		t.Errorf("ReadFile: got %q, want %q", got, content)
+	}
+
+	f, err := os.Open(fn)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+
+	f.Close()
 }
 
 func TruncateFile(t *testing.T, mnt string) {
