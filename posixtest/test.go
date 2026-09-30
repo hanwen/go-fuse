@@ -176,7 +176,6 @@ func FileBasic(t *testing.T, mnt string) {
 	}
 }
 
-
 func FileLarge(t *testing.T, mnt string) {
 	content := bytes.Repeat([]byte("hello world"), 4096)
 	fn := mnt + "/file"
@@ -1014,6 +1013,7 @@ func OpenSymlinkRace(t *testing.T, mnt string) {
 		EINVAL          int
 		ENOENT          int
 		ELOOP           int
+		EIO             int
 		empty           int
 		resolvedSymlink int
 	}
@@ -1053,6 +1053,13 @@ func OpenSymlinkRace(t *testing.T, mnt string) {
 			}
 			err = syscall.Fstat(fd, &st)
 			syscall.Close(fd)
+			if err == syscall.EIO {
+				// Inode reuse has invalidated the
+				// file descriptor. This can happen if
+				// using loopback FUSE over ext4.
+				stats.EIO++
+				continue
+			}
 			if err != nil {
 				t.Errorf("opener: Fstat: %v", err)
 				return
