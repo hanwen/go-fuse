@@ -27,6 +27,8 @@ func (me *CreateIn) string() string {
 
 func (me *GetAttrIn) string() string { return "" }
 
+func (a *Attr) flagsString() string { return "" }
+
 func (me *MknodIn) string() string {
 	return fmt.Sprintf("{0%o, %d}", me.Mode, me.Rdev)
 }

@@ -244,8 +244,15 @@ type ReleaseIn struct {
 type OpenIn struct {
 	InHeader
 	Flags uint32
-	Mode  uint32
+
+	// Mode holds open_flags (OPEN_*), not a file mode.
+	Mode uint32
 }
+
+const (
+	// OpenIn.Mode, CreateIn.OpenFlags: O_TRUNC by an unprivileged caller; clear suid/sgid (CAP_HANDLE_KILLPRIV_V2).
+	OPEN_KILL_SUIDGID = (1 << 0)
+)
 
 const (
 	// OpenOut.Flags
@@ -339,7 +346,7 @@ type InitOut struct {
 	MaxWrite            uint32
 	TimeGran            uint32
 	MaxPages            uint16
-	Padding             uint16
+	MapAlignment        uint16
 	Flags2              uint32
 	MaxStackDepth       uint32
 	RequestTimeout      uint16
@@ -508,8 +515,15 @@ type NotifyInvalInodeOut struct {
 type NotifyInvalEntryOut struct {
 	Parent  uint64
 	NameLen uint32
-	Padding uint32
+	Flags   uint32
 }
+
+const (
+	// NotifyInvalEntryOut.Flags: only expire the entry's timeout,
+	// rather than dropping it from the dcache. Needs
+	// CAP_HAS_EXPIRE_ONLY.
+	EXPIRE_ONLY = (1 << 0)
+)
 
 type NotifyInvalDeleteOut struct {
 	Parent  uint64
@@ -668,7 +682,8 @@ type InHeader struct {
 	Unique uint64
 	NodeId uint64
 	Caller
-	Padding uint32
+	TotalExtlen uint16 // in 8-byte units
+	Padding     uint16
 }
 
 type StatfsOut struct {
@@ -779,8 +794,9 @@ type CreateIn struct {
 	Mode uint32
 
 	// Umask used for this create call.
-	Umask   uint32
-	Padding uint32
+	Umask uint32
+
+	OpenFlags uint32
 }
 
 type ReadIn struct {

@@ -21,8 +21,16 @@ type Attr struct {
 
 	// Blksize is the preferred size for file system operations.
 	Blksize uint32
-	Padding uint32
+
+	Flags uint32
 }
+
+const (
+	// Attr.Flags: directory is the root of a server-side submount; virtio-fs automounts it (CAP_SUBMOUNTS).
+	ATTR_SUBMOUNT = (1 << 0)
+	// Attr.Flags: map the file through the virtio-fs DAX window (CAP_HAS_INODE_DAX, dax=inode).
+	ATTR_DAX = (1 << 1)
+)
 
 type SetAttrIn struct {
 	SetAttrInCommon
