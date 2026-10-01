@@ -54,9 +54,6 @@ type Server struct {
 	// maxReaders is the maximum number of goroutines reading requests
 	maxReaders int
 
-	// Pools for []byte
-	buffers bufferPool
-
 	// Pool for request structs.
 	reqPool sync.Pool
 
