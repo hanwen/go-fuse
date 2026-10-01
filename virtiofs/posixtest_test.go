@@ -49,7 +49,6 @@ func TestPosixtest(t *testing.T) {
 	opts := &fs.Options{}
 	opts.Logger = log.Default()
 	opts.MountOptions.Logger = opts.Logger
-	opts.MountOptions.MaxWrite = 4096
 
 	r := &killNotifyRoot{
 		LoopbackNode: root.(*fs.LoopbackNode),

@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -54,6 +55,7 @@ var All = map[string]func(*testing.T, string){
 	"TruncateFile":               TruncateFile,
 	"TruncateNoFile":             TruncateNoFile,
 	"XAttr":                      XAttr,
+	"XAttrLarge":                 XAttrLarge,
 }
 
 func SetattrSymlink(t *testing.T, mnt string) {
@@ -176,26 +178,52 @@ func FileBasic(t *testing.T, mnt string) {
 	}
 }
 
+func largeContent() []byte {
+	content := make([]byte, 128<<10+123)
+	for i := range content {
+		content[i] = byte(i * 7 / 3)
+	}
+	return content
+}
+
 func FileLarge(t *testing.T, mnt string) {
-	content := bytes.Repeat([]byte("hello world"), 4096)
+	content := largeContent()
 	fn := mnt + "/file"
 
-	if err := os.WriteFile(fn, content, 0755); err != nil {
-		t.Fatalf("WriteFile: %v", err)
+	f, err := os.Create(fn)
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if n, err := f.Write(content); err != nil || n != len(content) {
+		t.Fatalf("Write: %d, %v", n, err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
 	}
 
-	if got, err := os.ReadFile(fn); err != nil {
-		t.Fatalf("ReadFile: %v", err)
-	} else if bytes.Compare(got, content) != 0 {
-		t.Errorf("ReadFile: got %q, want %q", got, content)
-	}
-
-	f, err := os.Open(fn)
+	f, err = os.Open(fn)
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
+	defer f.Close()
 
-	f.Close()
+	// Short read at EOF.
+	buf := make([]byte, len(content)+1000)
+	n, err := io.ReadFull(f, buf)
+	if err != io.ErrUnexpectedEOF {
+		t.Fatalf("ReadFull: %d, %v", n, err)
+	}
+	if !bytes.Equal(buf[:n], content) {
+		t.Errorf("Read: got %d bytes, want %d", n, len(content))
+	}
+
+	off := 4096 + 7
+	buf = make([]byte, 64<<10+5)
+	if n, err := f.ReadAt(buf, int64(off)); err != nil {
+		t.Fatalf("ReadAt: %d, %v", n, err)
+	} else if !bytes.Equal(buf, content[off:off+len(buf)]) {
+		t.Errorf("ReadAt: data mismatch")
+	}
 }
 
 func TruncateFile(t *testing.T, mnt string) {
@@ -860,6 +888,35 @@ func LseekEnxioCheck(t *testing.T, mnt string) {
 				t.Errorf("Failed test case: %s; got %v, want %v", tc.name, err, syscall.ENXIO)
 			}
 		}
+	}
+}
+
+func XAttrLarge(t *testing.T, mntDir string) {
+	attr := "user.large"
+	fn := mntDir + "/file"
+	if err := os.WriteFile(fn, []byte{}, 0666); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	value := largeContent()[:8<<10+123]
+	if err := unix.Setxattr(fn, attr, value, 0); err == unix.ENOTSUP || err == unix.ENOSPC || err == unix.E2BIG {
+		t.Skipf("Setxattr: %v; backing filesystem does not support large xattrs", err)
+	} else if err != nil {
+		t.Fatalf("Setxattr: %v", err)
+	}
+
+	sz, err := unix.Getxattr(fn, attr, nil)
+	if err != nil {
+		t.Fatalf("Getxattr(nil): %v", err)
+	} else if sz != len(value) {
+		t.Errorf("Getxattr(nil): got %d want %d", sz, len(value))
+	}
+
+	buf := make([]byte, sz)
+	if n, err := unix.Getxattr(fn, attr, buf); err != nil {
+		t.Fatalf("Getxattr: %v", err)
+	} else if !bytes.Equal(buf[:n], value) {
+		t.Errorf("Getxattr: got %d bytes, data mismatch", n)
 	}
 }
 
