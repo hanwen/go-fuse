@@ -5,6 +5,7 @@
 package virtiofs
 
 import (
+	"bytes"
 	"log"
 	"os"
 	"os/exec"
@@ -14,7 +15,25 @@ import (
 	"testing"
 
 	"github.com/hanwen/go-fuse/v2/fs"
+	"github.com/hanwen/go-fuse/v2/fuse"
 )
+
+type lockedBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *lockedBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *lockedBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
+}
 
 // buildStaticPosixtest compiles the posixtest package into a static test binary
 // and returns its path.  The binary is placed in a temp file owned by the
@@ -36,7 +55,8 @@ func buildStaticPosixtest(t *testing.T) string {
 
 // TestPosixtest runs the posixtest suite inside a QEMU VM against a virtiofs
 // mount backed by a host loopback, exercising the full virtiofs + go-fuse
-// stack end-to-end.
+// stack end-to-end. With CAP_SECURITY_CTX, the kernel sends a request
+// extension for every create-type op, even without an LSM.
 func TestPosixtest(t *testing.T) {
 	posixBin := buildStaticPosixtest(t)
 
@@ -46,9 +66,17 @@ func TestPosixtest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	var logBuf lockedBuffer
 	opts := &fs.Options{}
-	opts.Logger = log.Default()
+	opts.Debug = true
+	opts.Logger = log.New(&logBuf, "", 0)
 	opts.MountOptions.Logger = opts.Logger
+	opts.MountOptions.ExtraCapabilities = fuse.CAP_SECURITY_CTX
+	t.Cleanup(func() {
+		if t.Failed() {
+			t.Logf("debug log:\n%s", logBuf.String())
+		}
+	})
 
 	r := &killNotifyRoot{
 		LoopbackNode: root.(*fs.LoopbackNode),
@@ -80,6 +108,9 @@ mkdir -p /mnt/tmp
 /posixtest.test -posixdir=/mnt -test.run TestAll -test.skip TestAll/DirectIO -test.v \
     > /mnt/test_output.txt 2>&1
 echo $? > /mnt/test_exit.txt
+
+# posixtest has no MKNOD.
+mkfifo /mnt/fifo
 
 ls /mnt/killme.txt
 reboot -n -f
@@ -148,4 +179,30 @@ reboot -n -f
 		t.Error("guest did not signal completion (killme.txt not looked up)")
 	}
 
+	if fi, err := os.Lstat(orig + "/fifo"); err != nil {
+		t.Errorf("Lstat: %v", err)
+	} else if fi.Mode().Type() != os.ModeNamedPipe {
+		t.Errorf("Lstat(fifo): got type %v", fi.Mode().Type())
+	}
+
+	debugLog := logBuf.String()
+	if !strings.Contains(debugLog, "SECURITY_CTX") {
+		t.Log("guest kernel does not support CAP_SECURITY_CTX")
+		return
+	}
+	for _, op := range []string{"SYMLINK", "MKDIR", "MKNOD", "CREATE"} {
+		found := false
+		for _, l := range strings.Split(debugLog, "\n") {
+			if strings.HasPrefix(l, "rx ") && strings.Contains(l, ": "+op+" ") {
+				found = true
+				if !strings.Contains(l, " ext{") {
+					t.Errorf("%s request has no extension: %s", op, l)
+					break
+				}
+			}
+		}
+		if !found {
+			t.Errorf("no %s request in log", op)
+		}
+	}
 }
