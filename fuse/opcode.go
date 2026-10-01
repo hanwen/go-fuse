@@ -444,8 +444,11 @@ func doAccess(server *protocolServer, req *request) {
 
 func doSymlink(server *protocolServer, req *request) {
 	out := (*EntryOut)(req.outData())
-	n1, n2 := req.filenames()
-
+	n1, n2, code := req.filenames()
+	if !code.Ok() {
+		req.status = code
+		return
+	}
 	req.status = server.fileSystem.Symlink(req.cancel, req.inHeader(), n2, n1, out)
 }
 
@@ -459,12 +462,20 @@ func doRename(server *protocolServer, req *request) {
 		InHeader: in1.InHeader,
 		Newdir:   in1.Newdir,
 	}
-	n1, n2 := req.filenames()
+	n1, n2, code := req.filenames()
+	if !code.Ok() {
+		req.status = code
+		return
+	}
 	req.status = server.fileSystem.Rename(req.cancel, &in, n1, n2)
 }
 
 func doRename2(server *protocolServer, req *request) {
-	n1, n2 := req.filenames()
+	n1, n2, code := req.filenames()
+	if !code.Ok() {
+		req.status = code
+		return
+	}
 	req.status = server.fileSystem.Rename(req.cancel, (*RenameIn)(req.inData()), n1, n2)
 }
 

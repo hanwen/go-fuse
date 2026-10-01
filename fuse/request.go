@@ -38,6 +38,9 @@ type request struct {
 	// Unstructured input (filenames, data for WRITE call)
 	inPayload []byte
 
+	// nil if the request has no extension.
+	ext *requestExt
+
 	// Output data.
 	status Status
 
@@ -69,6 +72,8 @@ type requestAlloc struct {
 
 	// Input, if small enough to fit here.
 	smallInputBuf [128]byte
+
+	extInline requestExt
 }
 
 func (r *request) inHeader() *InHeader {
@@ -86,6 +91,7 @@ func (r *request) clear() {
 	r.outHeaderBuf = nil
 	r.outDataBuf = nil
 	r.inPayload = nil
+	r.ext = nil
 	r.status = OK
 	r.outPayload = nil
 	r.startTime = time.Time{}
@@ -113,18 +119,23 @@ func (r *request) InputDebug() string {
 	if h.FileNames == 1 {
 		name := r.filename()
 
-		rest := r.inPayload[len(name)+1:]
+		rest := r.inPayload[min(len(name)+1, len(r.inPayload)):]
 		names = fmt.Sprintf(" %q %s", name, summarizePayload(rest))
 	} else if h.FileNames == 2 {
-		n1, n2 := r.filenames()
+		n1, n2, _ := r.filenames()
 		names = fmt.Sprintf(" %q %q", n1, n2)
 	} else {
 		names = summarizePayload(r.inPayload)
 	}
 
-	return fmt.Sprintf("rx %d: %s n%d %s%s p%d",
+	ext := ""
+	if r.ext != nil {
+		ext = " " + r.ext.String()
+	}
+
+	return fmt.Sprintf("rx %d: %s n%d %s%s%s p%d",
 		hdr.Unique, operationName(hdr.Opcode), hdr.NodeId,
-		val, names, hdr.Caller.Pid)
+		val, names, ext, hdr.Caller.Pid)
 }
 
 func summarizePayload(p []byte) string {
@@ -204,6 +215,28 @@ func (r *requestAlloc) setInput(input []byte) bool {
 	return true
 }
 
+func (r *request) splitPayload(inSize int, storage *requestExt) Status {
+	r.inPayload = r.inputBuf[inSize:]
+	r.inputBuf = r.inputBuf[:inSize]
+	return r.splitExt(storage)
+}
+
+// splitExt parses the extension, if any, into storage.
+func (r *request) splitExt(storage *requestExt) Status {
+	extLen := int(r.inHeader().TotalExtlen) * 8
+	if extLen == 0 {
+		return OK
+	}
+	if extLen > len(r.inPayload) {
+		return EIO
+	}
+	split := len(r.inPayload) - extLen
+	b := r.inPayload[split:]
+	r.inPayload = r.inPayload[:split]
+	r.ext = storage
+	return storage.parse(b)
+}
+
 func (r *request) inData() unsafe.Pointer {
 	return unsafe.Pointer(&r.inputBuf[0])
 }
@@ -275,14 +308,17 @@ func (r *request) filename() string {
 	return string(name)
 }
 
-func (r *request) filenames() (string, string) {
+func (r *request) filenames() (string, string, Status) {
 	i1 := bytes.IndexByte(r.inPayload, 0)
-	if i1 < 0 || i1+1 >= len(r.inPayload) {
-		return "", ""
+	if i1 < 0 {
+		return "", "", EIO
 	}
-	s1 := string(r.inPayload[:i1])
-	s2 := string(r.inPayload[i1+1 : len(r.inPayload)-1])
-	return s1, s2
+	rest := r.inPayload[i1+1:]
+	i2 := bytes.IndexByte(rest, 0)
+	if i2 < 0 {
+		return string(r.inPayload[:i1]), "", EIO
+	}
+	return string(r.inPayload[:i1]), string(rest[:i2]), OK
 }
 
 // serializeHeader serializes the response header. The header points

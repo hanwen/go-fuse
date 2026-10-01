@@ -507,8 +507,12 @@ func (ms *Server) handleRequest(req *requestAlloc) Status {
 	if !code.Ok() && code != ENOSYS {
 		ms.opts.Logger.Printf("parseRequest: %v", code)
 	}
-	req.inPayload = req.inputBuf[inSize:]
-	req.inputBuf = req.inputBuf[:inSize]
+	if code.Ok() {
+		req.request.status = req.splitPayload(inSize, &req.extInline)
+		if !req.request.status.Ok() {
+			ms.opts.Logger.Printf("op %s: bad request extension: %v", h.Name, req.request.status)
+		}
+	}
 	req.outHeaderBuf = req.outHeaderInline[:]
 	req.outDataBuf = req.outDataInline[:outSize]
 	clear(req.outHeaderBuf)

@@ -46,10 +46,12 @@ func (ms *protocolServer) handleRequest(h *operationHandler, req *request) {
 			ms.opts.Logger.Printf("Unimplemented opcode %v", operationName(c))
 		}
 		req.status = ENOSYS
+	} else if !req.status.Ok() {
+		// Reply with the error from parsing the request.
 	} else if req.inHeader().NodeId == pollHackInode ||
 		req.inHeader().NodeId == FUSE_ROOT_ID && h.FileNames > 0 && req.filename() == pollHackName {
 		doPollHackLookup(ms, req)
-	} else if req.status.Ok() {
+	} else {
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -223,6 +225,11 @@ func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, Status)
 		req.inPayload = in[2]
 	} else {
 		req.inPayload = inTogether[inSize:]
+	}
+	var ext requestExt
+	req.status = req.splitExt(&ext)
+	if !req.status.Ok() {
+		ps.opts.Logger.Printf("op %s: bad request extension: %v", h.Name, req.status)
 	}
 
 	startOut := out
