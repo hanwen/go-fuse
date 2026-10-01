@@ -26,6 +26,10 @@ func (r *readResultData) Bytes(buf []byte) ([]byte, Status) {
 	return r.Data, OK
 }
 
+func (r *readResultData) Readv(dst [][]byte) (int, Status) {
+	return copyToIov(dst, r.Data), OK
+}
+
 func ReadResultData(b []byte) ReadResult {
 	return &readResultData{b}
 }
@@ -45,6 +49,12 @@ type statefulResult interface {
 type withSlice interface {
 	// Slices may be called more than once and must return the same data each time.
 	Slices() ([][]byte, Status)
+}
+
+// withReadv is a ReadResult that can write directly into a scatter
+// list, e.g. virtiofs guest memory.
+type withReadv interface {
+	Readv(dst [][]byte) (int, Status)
 }
 
 // withSpliceFlags is a ReadResult carrying splice(2) flags for the write to
@@ -114,6 +124,10 @@ func (r *readResultVector) Bytes(buf []byte) ([]byte, Status) {
 		buf = append(buf, v...)
 	}
 	return buf, OK
+}
+
+func (r *readResultVector) Readv(dst [][]byte) (int, Status) {
+	return copyToIov(dst, r.vecs...), OK
 }
 
 func (r *readResultVector) Slices() ([][]byte, Status) {

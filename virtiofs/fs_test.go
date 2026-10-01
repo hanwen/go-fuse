@@ -52,6 +52,9 @@ type killNotifyRoot struct {
 	seenKill  bool
 	seenStart bool
 	notify    *sync.Cond
+
+	// Files served at the root, next to the loopback contents.
+	mem map[string]*fs.MemRegularFile
 }
 
 var _ = (fs.NodeCreater)((*killNotifyRoot)(nil))
@@ -70,6 +73,13 @@ func (r *killNotifyRoot) Lookup(ctx context.Context, name string, out *fuse.Entr
 		r.seenKill = true
 		r.notify.Broadcast()
 		r.mu.Unlock()
+	}
+
+	if f, ok := r.mem[name]; ok {
+		var a fuse.AttrOut
+		f.Getattr(ctx, nil, &a)
+		out.Attr = a.Attr
+		return f.EmbeddedInode(), 0
 	}
 
 	return r.LoopbackNode.Lookup(ctx, name, out)

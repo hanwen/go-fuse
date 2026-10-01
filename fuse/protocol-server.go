@@ -22,6 +22,12 @@ type protocolServer struct {
 
 	kernelSettings InitIn
 
+	// If set, handleRequest does not flatten withReadv results
+	// with Bytes(), but leaves them in req.readResult, so
+	// ProtocolServer.HandleRequest can Readv them straight into
+	// the reply iov.
+	useReadv bool
+
 	// Capabilities sent in InitOut.
 	negotiatedFlags uint64
 
@@ -94,7 +100,8 @@ func (ms *protocolServer) handleRequest(h *operationHandler, req *request) {
 	}
 	if req.readResult != nil && ms.opts.DisableSplice {
 		_, vectored := req.readResult.(withSlice)
-		if !vectored {
+		_, readv := req.readResult.(withReadv)
+		if !vectored && !(readv && ms.useReadv) {
 			req.outPayload, req.status = req.readResult.Bytes(req.outPayload)
 			req.readResult.Done()
 			req.readResult = nil
@@ -183,6 +190,7 @@ func NewProtocolServer(fs RawFileSystem, opts *MountOptions) *ProtocolServer {
 			fileSystem:  fs,
 			retrieveTab: make(map[uint64]*retrieveCacheRequest),
 			opts:        &optsCopy,
+			useReadv:    true,
 		},
 	}
 }
@@ -378,17 +386,27 @@ func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, Status)
 	// chain. Returning more  inflates the live-migration dirty-page
 	// log and violates the spec.
 	w := iovWriter{dst: out}
-	w.write(req.outHeaderBuf)
-	w.write(req.outDataBuf)
 	if req.readResult != nil {
-		// withSlice results are left for us by handleRequest.
-		slices, _ := req.readResult.(withSlice).Slices()
-		for _, s := range slices {
-			w.write(s)
-		}
+		// The size is only known after the read, so redo the header.
+		payloadOff := int(sizeOfOutHeader) + len(req.outDataBuf)
+		dst := sliceIov(out, payloadOff, req.readResult.Size())
+		n, code := readIntoIov(req.readResult, dst)
 		req.readResult.Done()
 		req.readResult = nil
-	} else if len(req.outPayload) > 0 && len(direct) > 0 && &req.outPayload[0] == &direct[0] {
+		if !code.Ok() {
+			req.status = code
+			n = 0
+		}
+		req.serializeHeader(n)
+		w.write(req.outHeaderBuf)
+		w.write(req.outDataBuf)
+		w.skip(n)
+		return w.written, OK
+	}
+
+	w.write(req.outHeaderBuf)
+	w.write(req.outDataBuf)
+	if len(req.outPayload) > 0 && len(direct) > 0 && &req.outPayload[0] == &direct[0] {
 		// The filesystem filled the out iov in place; count
 		// the bytes without copying.
 		w.skip(len(req.outPayload))
@@ -396,6 +414,20 @@ func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, Status)
 		w.write(req.outPayload)
 	}
 	return w.written, OK
+}
+
+func readIntoIov(rr ReadResult, dst [][]byte) (int, Status) {
+	switch r := rr.(type) {
+	case withReadv:
+		return r.Readv(dst)
+	case withSlice:
+		slices, code := r.Slices()
+		if !code.Ok() {
+			return 0, code
+		}
+		return copyToIov(dst, slices...), OK
+	}
+	return 0, EIO
 }
 
 func iovLens(in [][]byte) []int {

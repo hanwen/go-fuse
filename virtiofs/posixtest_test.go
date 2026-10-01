@@ -6,6 +6,7 @@ package virtiofs
 
 import (
 	"bytes"
+	"context"
 	"log"
 	"os"
 	"os/exec"
@@ -78,10 +79,24 @@ func TestPosixtest(t *testing.T) {
 		}
 	})
 
+	// MemRegularFile returns ReadResultData, and has no Writev.
+	content := make([]byte, 128<<10+123)
+	for i := range content {
+		content[i] = byte(i * 7 / 3)
+	}
 	r := &killNotifyRoot{
 		LoopbackNode: root.(*fs.LoopbackNode),
+		mem: map[string]*fs.MemRegularFile{
+			"src.bin": {Data: content},
+			"dst.bin": {},
+		},
 	}
 	r.notify = sync.NewCond(&r.mu)
+	opts.OnAdd = func(ctx context.Context) {
+		for _, f := range r.mem {
+			r.NewPersistentInode(ctx, f, fs.StableAttr{})
+		}
+	}
 
 	rawFS := fs.NewNodeFS(r, opts)
 
@@ -111,6 +126,8 @@ echo $? > /mnt/test_exit.txt
 
 # posixtest has no MKNOD.
 mkfifo /mnt/fifo
+
+cat /mnt/src.bin > /mnt/dst.bin
 
 ls /mnt/killme.txt
 reboot -n -f
@@ -183,6 +200,10 @@ reboot -n -f
 		t.Errorf("Lstat: %v", err)
 	} else if fi.Mode().Type() != os.ModeNamedPipe {
 		t.Errorf("Lstat(fifo): got type %v", fi.Mode().Type())
+	}
+
+	if dst := r.mem["dst.bin"].Data; !bytes.Equal(dst, content) {
+		t.Errorf("dst.bin: got %d bytes, want %d", len(dst), len(content))
 	}
 
 	debugLog := logBuf.String()
