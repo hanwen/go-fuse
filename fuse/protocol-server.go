@@ -73,6 +73,7 @@ func (ms *protocolServer) handleRequest(h *operationHandler, req *request) {
 					}
 				}
 			}()
+			req.ctx = Context{Caller: req.inHeader().Caller, Cancel: req.cancel}
 			h.Func(ms, req)
 		}()
 	}

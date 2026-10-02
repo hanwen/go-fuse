@@ -132,7 +132,10 @@
 // the Dev field in the Stat_t result for a file in the mount.
 package fuse
 
-import "log"
+import (
+	"context"
+	"log"
+)
 
 // Types for users to implement.
 
@@ -408,14 +411,14 @@ type MountOptions struct {
 // following requests, and reading/writing the request data will lead
 // to race conditions.  If you spawn a background routine from a FUSE
 // API call, any incoming request data it wants to reference should be
-// copied over.
+// copied over. This also applies to the `ctx` argument.
 //
-// If a FS operation is interrupted, the `cancel` channel is
-// closed. The fileystem can honor this request by returning EINTR. In
-// this case, the outstanding request data is not reused. Interrupts
-// occur if the process accessing the file system receives any signal
-// that is not ignored. In particular, the Go runtime uses signals to
-// manage goroutine preemption, so Go programs under load naturally
+// If a FS operation is interrupted, `ctx` is canceled. The fileystem
+// can honor this request by returning EINTR. In this case, the
+// outstanding request data is not reused. Interrupts occur if the
+// process accessing the file system receives any signal that is not
+// ignored. In particular, the Go runtime uses signals to manage
+// goroutine preemption, so Go programs under load naturally
 // generate interupt opcodes when they access a FUSE filesystem.
 type RawFileSystem interface {
 	String() string
@@ -424,84 +427,84 @@ type RawFileSystem interface {
 	// about a file inside a directory. Many lookup calls can
 	// occur in parallel, but only one call happens for each (dir,
 	// name) pair.
-	Lookup(cancel <-chan struct{}, header *InHeader, name string, out *EntryOut) (status Status)
+	Lookup(ctx context.Context, header *InHeader, name string, out *EntryOut) (status Status)
 
 	// Forget is called when the kernel discards entries from its
-	// dentry cache. This happens on unmount, and when the kernel
-	// is short on memory. Since it is not guaranteed to occur at
-	// any moment, and since there is no return value, Forget
-	// should not do I/O, as there is no channel to report back
-	// I/O errors.
+	// dentry cache. This happens on unmount, deletion, and when
+	// the kernel is short on memory. Since it is not guaranteed
+	// to occur at any moment, and since there is no return value,
+	// Forget should not do I/O, as there is no channel to report
+	// back I/O errors.
 	Forget(nodeid, nlookup uint64)
 
 	// Attributes.
-	GetAttr(cancel <-chan struct{}, input *GetAttrIn, out *AttrOut) (code Status)
-	SetAttr(cancel <-chan struct{}, input *SetAttrIn, out *AttrOut) (code Status)
+	GetAttr(ctx context.Context, input *GetAttrIn, out *AttrOut) (code Status)
+	SetAttr(ctx context.Context, input *SetAttrIn, out *AttrOut) (code Status)
 
 	// Modifying structure.
-	Mknod(cancel <-chan struct{}, input *MknodIn, name string, out *EntryOut) (code Status)
-	Mkdir(cancel <-chan struct{}, input *MkdirIn, name string, out *EntryOut) (code Status)
-	Unlink(cancel <-chan struct{}, header *InHeader, name string) (code Status)
-	Rmdir(cancel <-chan struct{}, header *InHeader, name string) (code Status)
-	Rename(cancel <-chan struct{}, input *RenameIn, oldName string, newName string) (code Status)
-	Link(cancel <-chan struct{}, input *LinkIn, filename string, out *EntryOut) (code Status)
+	Mknod(ctx context.Context, input *MknodIn, name string, out *EntryOut) (code Status)
+	Mkdir(ctx context.Context, input *MkdirIn, name string, out *EntryOut) (code Status)
+	Unlink(ctx context.Context, header *InHeader, name string) (code Status)
+	Rmdir(ctx context.Context, header *InHeader, name string) (code Status)
+	Rename(ctx context.Context, input *RenameIn, oldName string, newName string) (code Status)
+	Link(ctx context.Context, input *LinkIn, filename string, out *EntryOut) (code Status)
 
-	Symlink(cancel <-chan struct{}, header *InHeader, pointedTo string, linkName string, out *EntryOut) (code Status)
-	Readlink(cancel <-chan struct{}, header *InHeader) (out []byte, code Status)
-	Access(cancel <-chan struct{}, input *AccessIn) (code Status)
+	Symlink(ctx context.Context, header *InHeader, pointedTo string, linkName string, out *EntryOut) (code Status)
+	Readlink(ctx context.Context, header *InHeader) (out []byte, code Status)
+	Access(ctx context.Context, input *AccessIn) (code Status)
 
 	// Extended attributes.
 
 	// GetXAttr reads an extended attribute, and should return the
 	// number of bytes. If the buffer is too small, return ERANGE,
 	// with the required buffer size.
-	GetXAttr(cancel <-chan struct{}, header *InHeader, attr string, dest []byte) (sz uint32, code Status)
+	GetXAttr(ctx context.Context, header *InHeader, attr string, dest []byte) (sz uint32, code Status)
 
 	// ListXAttr lists extended attributes as '\0' delimited byte
 	// slice, and return the number of bytes. If the buffer is too
 	// small, return ERANGE, with the required buffer size.
-	ListXAttr(cancel <-chan struct{}, header *InHeader, dest []byte) (uint32, Status)
+	ListXAttr(ctx context.Context, header *InHeader, dest []byte) (uint32, Status)
 
 	// SetAttr writes an extended attribute.
-	SetXAttr(cancel <-chan struct{}, input *SetXAttrIn, attr string, data []byte) Status
+	SetXAttr(ctx context.Context, input *SetXAttrIn, attr string, data []byte) Status
 
 	// RemoveXAttr removes an extended attribute.
-	RemoveXAttr(cancel <-chan struct{}, header *InHeader, attr string) (code Status)
+	RemoveXAttr(ctx context.Context, header *InHeader, attr string) (code Status)
 
 	// File handling.
-	Create(cancel <-chan struct{}, input *CreateIn, name string, out *CreateOut) (code Status)
-	Tmpfile(cancel <-chan struct{}, input *CreateIn, out *CreateOut) (code Status)
-	Open(cancel <-chan struct{}, input *OpenIn, out *OpenOut) (status Status)
-	Read(cancel <-chan struct{}, input *ReadIn, buf []byte) (ReadResult, Status)
-	Lseek(cancel <-chan struct{}, in *LseekIn, out *LseekOut) Status
+	Create(ctx context.Context, input *CreateIn, name string, out *CreateOut) (code Status)
+	Tmpfile(ctx context.Context, input *CreateIn, out *CreateOut) (code Status)
+	Open(ctx context.Context, input *OpenIn, out *OpenOut) (status Status)
+	Read(ctx context.Context, input *ReadIn, buf []byte) (ReadResult, Status)
+	Lseek(ctx context.Context, in *LseekIn, out *LseekOut) Status
 
 	// File locking
-	GetLk(cancel <-chan struct{}, input *LkIn, out *LkOut) (code Status)
-	SetLk(cancel <-chan struct{}, input *LkIn) (code Status)
-	SetLkw(cancel <-chan struct{}, input *LkIn) (code Status)
+	GetLk(ctx context.Context, input *LkIn, out *LkOut) (code Status)
+	SetLk(ctx context.Context, input *LkIn) (code Status)
+	SetLkw(ctx context.Context, input *LkIn) (code Status)
 
-	Release(cancel <-chan struct{}, input *ReleaseIn)
-	Write(cancel <-chan struct{}, input *WriteIn, data []byte) (written uint32, code Status)
+	Release(ctx context.Context, input *ReleaseIn)
+	Write(ctx context.Context, input *WriteIn, data []byte) (written uint32, code Status)
 
-	// Writev is called for WRITE. On ENOSYS, Write is called.
-	Writev(cancel <-chan struct{}, input *WriteIn, data [][]byte) (written uint32, code Status)
-	CopyFileRange(cancel <-chan struct{}, input *CopyFileRangeIn) (written uint32, code Status)
-	Ioctl(cancel <-chan struct{}, input *IoctlIn, inbuf []byte, output *IoctlOut, outbuf []byte) (code Status)
+	// Writev is called for WRITE. On ENOSYS fallback to Write
+	Writev(ctx context.Context, input *WriteIn, data [][]byte) (written uint32, code Status)
+	CopyFileRange(ctx context.Context, input *CopyFileRangeIn) (written uint32, code Status)
+	Ioctl(ctx context.Context, input *IoctlIn, inbuf []byte, output *IoctlOut, outbuf []byte) (code Status)
 
-	Flush(cancel <-chan struct{}, input *FlushIn) Status
-	Fsync(cancel <-chan struct{}, input *FsyncIn) (code Status)
-	Fallocate(cancel <-chan struct{}, input *FallocateIn) (code Status)
+	Flush(ctx context.Context, input *FlushIn) Status
+	Fsync(ctx context.Context, input *FsyncIn) (code Status)
+	Fallocate(ctx context.Context, input *FallocateIn) (code Status)
 
 	// Directory handling
-	OpenDir(cancel <-chan struct{}, input *OpenIn, out *OpenOut) (status Status)
-	ReadDir(cancel <-chan struct{}, input *ReadIn, out *DirEntryList) Status
-	ReadDirPlus(cancel <-chan struct{}, input *ReadIn, out *DirEntryList) Status
+	OpenDir(ctx context.Context, input *OpenIn, out *OpenOut) (status Status)
+	ReadDir(ctx context.Context, input *ReadIn, out *DirEntryList) Status
+	ReadDirPlus(ctx context.Context, input *ReadIn, out *DirEntryList) Status
 	ReleaseDir(input *ReleaseIn)
-	FsyncDir(cancel <-chan struct{}, input *FsyncIn) (code Status)
+	FsyncDir(ctx context.Context, input *FsyncIn) (code Status)
 
-	StatFs(cancel <-chan struct{}, input *InHeader, out *StatfsOut) (code Status)
+	StatFs(ctx context.Context, input *InHeader, out *StatfsOut) (code Status)
 
-	Statx(cancel <-chan struct{}, input *StatxIn, out *StatxOut) (code Status)
+	Statx(ctx context.Context, input *StatxIn, out *StatxOut) (code Status)
 	// This is called on processing the first request. The
 	// filesystem implementation can use the server argument to
 	// talk back to the kernel (through notify methods).

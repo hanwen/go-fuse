@@ -20,6 +20,10 @@ type request struct {
 
 	cancel chan struct{}
 
+	// ctx is passed to the RawFileSystem. It is filled in from
+	// the header and cancel just before dispatching.
+	ctx Context
+
 	suppressReply bool
 
 	// written under Server.interruptMu
@@ -97,6 +101,7 @@ func (r *request) clear() {
 	r.status = OK
 	r.outPayload = nil
 	r.readResult = nil
+	r.ctx = Context{}
 }
 
 func asType(ptr unsafe.Pointer, typ any) any {

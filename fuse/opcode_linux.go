@@ -10,7 +10,7 @@ func doStatx(server *protocolServer, req *request) {
 	in := (*StatxIn)(req.inData())
 	out := (*StatxOut)(req.outData())
 
-	req.status = server.fileSystem.Statx(req.cancel, in, out)
+	req.status = server.fileSystem.Statx(&req.ctx, in, out)
 }
 
 func init() {

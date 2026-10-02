@@ -12,6 +12,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"slices"
 	"strconv"
@@ -151,7 +152,7 @@ func (o *MountOptions) setDefaults(fs RawFileSystem) {
 		o.MaxStackDepth = 1
 	}
 	if o.Name == "" {
-		name := fs.String()
+		name := reflect.TypeOf(fs).Name()
 		l := min(len(name), _MAX_NAME_LEN)
 		o.Name = strings.Replace(name[:l], ",", ";", -1)
 	}

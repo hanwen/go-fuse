@@ -6,6 +6,7 @@ package fuse
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"log"
 	"sync"
@@ -35,7 +36,7 @@ func (f *blockingWriteFS) unblock() {
 	})
 }
 
-func (f *blockingWriteFS) Lookup(cancel <-chan struct{}, header *InHeader, name string, out *EntryOut) (code Status) {
+func (f *blockingWriteFS) Lookup(ctx context.Context, header *InHeader, name string, out *EntryOut) (code Status) {
 	if name != "file" {
 		return ENOENT
 	}
@@ -50,7 +51,7 @@ func (f *blockingWriteFS) Lookup(cancel <-chan struct{}, header *InHeader, name 
 	return OK
 }
 
-func (f *blockingWriteFS) GetAttr(cancel <-chan struct{}, input *GetAttrIn, out *AttrOut) (code Status) {
+func (f *blockingWriteFS) GetAttr(ctx context.Context, input *GetAttrIn, out *AttrOut) (code Status) {
 	out.Attr = Attr{
 		Ino:   input.NodeId,
 		Mode:  S_IFREG | 0644,
@@ -60,7 +61,7 @@ func (f *blockingWriteFS) GetAttr(cancel <-chan struct{}, input *GetAttrIn, out 
 	return OK
 }
 
-func (f *blockingWriteFS) Open(cancel <-chan struct{}, input *OpenIn, out *OpenOut) (status Status) {
+func (f *blockingWriteFS) Open(ctx context.Context, input *OpenIn, out *OpenOut) (status Status) {
 	if input.NodeId != 2 {
 		return ENOENT
 	}
@@ -69,7 +70,7 @@ func (f *blockingWriteFS) Open(cancel <-chan struct{}, input *OpenIn, out *OpenO
 	return OK
 }
 
-func (f *blockingWriteFS) Write(cancel <-chan struct{}, input *WriteIn, data []byte) (written uint32, code Status) {
+func (f *blockingWriteFS) Write(ctx context.Context, input *WriteIn, data []byte) (written uint32, code Status) {
 	if len(data) < len(requestAlloc{}.smallInputBuf) {
 		return 0, EINVAL
 	}
@@ -81,7 +82,7 @@ func (f *blockingWriteFS) Write(cancel <-chan struct{}, input *WriteIn, data []b
 
 	select {
 	case <-f.release:
-	case <-cancel:
+	case <-ctx.Done():
 		return 0, EINTR
 	}
 

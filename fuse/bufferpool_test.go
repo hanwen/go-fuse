@@ -5,6 +5,7 @@
 package fuse
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -28,7 +29,7 @@ type readFS struct {
 	defaultRawFileSystem
 }
 
-func (fs *readFS) Open(cancel <-chan struct{}, input *OpenIn, out *OpenOut) (status Status) {
+func (fs *readFS) Open(ctx context.Context, input *OpenIn, out *OpenOut) (status Status) {
 	if input.NodeId != 2 {
 		return ENOENT
 	}
@@ -36,7 +37,7 @@ func (fs *readFS) Open(cancel <-chan struct{}, input *OpenIn, out *OpenOut) (sta
 	return OK
 }
 
-func (fs *readFS) Read(cancel <-chan struct{}, input *ReadIn, buf []byte) (ReadResult, Status) {
+func (fs *readFS) Read(ctx context.Context, input *ReadIn, buf []byte) (ReadResult, Status) {
 	if input.NodeId != 2 {
 		return nil, ENOENT
 	}
@@ -49,7 +50,7 @@ func (fs *readFS) Read(cancel <-chan struct{}, input *ReadIn, buf []byte) (ReadR
 	return ReadResultData(dest), OK
 }
 
-func (f *readFS) Lookup(cancel <-chan struct{}, header *InHeader, name string, out *EntryOut) (code Status) {
+func (f *readFS) Lookup(ctx context.Context, header *InHeader, name string, out *EntryOut) (code Status) {
 	if name != "file" {
 		return ENOENT
 	}

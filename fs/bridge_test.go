@@ -29,7 +29,8 @@ func TestBridgeReaddirPlusVirtualEntries(t *testing.T) {
 	openIn := fuse.OpenIn{}
 	openIn.NodeId = 1 // root node always has id 1 and always exists
 	openOut := fuse.OpenOut{}
-	status := rb.OpenDir(nil, &openIn, &openOut)
+	ctx := fuse.NewContext(context.Background(), &openIn.Caller)
+	status := rb.OpenDir(ctx, &openIn, &openOut)
 	if !status.Ok() {
 		t.Fatal(status)
 	}
@@ -45,7 +46,7 @@ func TestBridgeReaddirPlusVirtualEntries(t *testing.T) {
 	readIn.Fh = openOut.Fh
 	buf := make([]byte, 400)
 	dirents := fuse.NewDirEntryList(buf, 0)
-	status = rb.ReadDirPlus(nil, &readIn, dirents)
+	status = rb.ReadDirPlus(ctx, &readIn, dirents)
 	if !status.Ok() {
 		t.Fatal(status)
 	}

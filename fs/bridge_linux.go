@@ -1,6 +1,7 @@
 package fs
 
 import (
+	"context"
 	"syscall"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
@@ -30,14 +31,12 @@ func (b *rawBridge) setStatxTimeout(out *fuse.StatxOut) {
 	}
 }
 
-func (b *rawBridge) Statx(cancel <-chan struct{}, in *fuse.StatxIn, out *fuse.StatxOut) fuse.Status {
+func (b *rawBridge) Statx(ctx context.Context, in *fuse.StatxIn, out *fuse.StatxOut) fuse.Status {
 	n, fe := b.inode(in.NodeId, in.Fh)
 	var fh FileHandle
 	if fe != nil {
 		fh = fe.file
 	}
-
-	ctx := &fuse.Context{Caller: in.Caller, Cancel: cancel}
 
 	errno := syscall.ENOSYS
 	if sx, ok := n.ops.(NodeStatxer); ok {

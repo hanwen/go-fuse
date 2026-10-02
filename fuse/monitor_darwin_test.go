@@ -6,6 +6,7 @@ package fuse
 
 import (
 	"bytes"
+	"context"
 	"log"
 	"os"
 	"strings"
@@ -19,7 +20,7 @@ type monitorTestRoot struct {
 	RawFileSystem
 }
 
-func (fs *monitorTestRoot) GetAttr(cancel <-chan struct{}, input *GetAttrIn, out *AttrOut) Status {
+func (fs *monitorTestRoot) GetAttr(ctx context.Context, input *GetAttrIn, out *AttrOut) Status {
 	out.Mode = S_IFDIR | 0755
 	out.Nlink = 2
 	return OK

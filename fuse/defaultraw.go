@@ -5,6 +5,7 @@
 package fuse
 
 import (
+	"context"
 	"os"
 )
 
@@ -27,159 +28,159 @@ func (fs *defaultRawFileSystem) String() string {
 	return os.Args[0]
 }
 
-func (fs *defaultRawFileSystem) StatFs(cancel <-chan struct{}, header *InHeader, out *StatfsOut) Status {
+func (fs *defaultRawFileSystem) StatFs(ctx context.Context, header *InHeader, out *StatfsOut) Status {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) Lookup(cancel <-chan struct{}, header *InHeader, name string, out *EntryOut) (code Status) {
+func (fs *defaultRawFileSystem) Lookup(ctx context.Context, header *InHeader, name string, out *EntryOut) (code Status) {
 	return ENOSYS
 }
 
 func (fs *defaultRawFileSystem) Forget(nodeID, nlookup uint64) {
 }
 
-func (fs *defaultRawFileSystem) GetAttr(cancel <-chan struct{}, input *GetAttrIn, out *AttrOut) (code Status) {
+func (fs *defaultRawFileSystem) GetAttr(ctx context.Context, input *GetAttrIn, out *AttrOut) (code Status) {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) Open(cancel <-chan struct{}, input *OpenIn, out *OpenOut) (status Status) {
+func (fs *defaultRawFileSystem) Open(ctx context.Context, input *OpenIn, out *OpenOut) (status Status) {
 	return OK
 }
 
-func (fs *defaultRawFileSystem) SetAttr(cancel <-chan struct{}, input *SetAttrIn, out *AttrOut) (code Status) {
+func (fs *defaultRawFileSystem) SetAttr(ctx context.Context, input *SetAttrIn, out *AttrOut) (code Status) {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) Readlink(cancel <-chan struct{}, header *InHeader) (out []byte, code Status) {
+func (fs *defaultRawFileSystem) Readlink(ctx context.Context, header *InHeader) (out []byte, code Status) {
 	return nil, ENOSYS
 }
 
-func (fs *defaultRawFileSystem) Mknod(cancel <-chan struct{}, input *MknodIn, name string, out *EntryOut) (code Status) {
+func (fs *defaultRawFileSystem) Mknod(ctx context.Context, input *MknodIn, name string, out *EntryOut) (code Status) {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) Mkdir(cancel <-chan struct{}, input *MkdirIn, name string, out *EntryOut) (code Status) {
+func (fs *defaultRawFileSystem) Mkdir(ctx context.Context, input *MkdirIn, name string, out *EntryOut) (code Status) {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) Unlink(cancel <-chan struct{}, header *InHeader, name string) (code Status) {
+func (fs *defaultRawFileSystem) Unlink(ctx context.Context, header *InHeader, name string) (code Status) {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) Rmdir(cancel <-chan struct{}, header *InHeader, name string) (code Status) {
+func (fs *defaultRawFileSystem) Rmdir(ctx context.Context, header *InHeader, name string) (code Status) {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) Symlink(cancel <-chan struct{}, header *InHeader, pointedTo string, linkName string, out *EntryOut) (code Status) {
+func (fs *defaultRawFileSystem) Symlink(ctx context.Context, header *InHeader, pointedTo string, linkName string, out *EntryOut) (code Status) {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) Rename(cancel <-chan struct{}, input *RenameIn, oldName string, newName string) (code Status) {
+func (fs *defaultRawFileSystem) Rename(ctx context.Context, input *RenameIn, oldName string, newName string) (code Status) {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) Link(cancel <-chan struct{}, input *LinkIn, name string, out *EntryOut) (code Status) {
+func (fs *defaultRawFileSystem) Link(ctx context.Context, input *LinkIn, name string, out *EntryOut) (code Status) {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) GetXAttr(cancel <-chan struct{}, header *InHeader, attr string, dest []byte) (size uint32, code Status) {
+func (fs *defaultRawFileSystem) GetXAttr(ctx context.Context, header *InHeader, attr string, dest []byte) (size uint32, code Status) {
 	return 0, ENOSYS
 }
 
-func (fs *defaultRawFileSystem) SetXAttr(cancel <-chan struct{}, input *SetXAttrIn, attr string, data []byte) Status {
+func (fs *defaultRawFileSystem) SetXAttr(ctx context.Context, input *SetXAttrIn, attr string, data []byte) Status {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) ListXAttr(cancel <-chan struct{}, header *InHeader, dest []byte) (n uint32, code Status) {
+func (fs *defaultRawFileSystem) ListXAttr(ctx context.Context, header *InHeader, dest []byte) (n uint32, code Status) {
 	return 0, ENOSYS
 }
 
-func (fs *defaultRawFileSystem) RemoveXAttr(cancel <-chan struct{}, header *InHeader, attr string) Status {
+func (fs *defaultRawFileSystem) RemoveXAttr(ctx context.Context, header *InHeader, attr string) Status {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) Access(cancel <-chan struct{}, input *AccessIn) (code Status) {
+func (fs *defaultRawFileSystem) Access(ctx context.Context, input *AccessIn) (code Status) {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) Create(cancel <-chan struct{}, input *CreateIn, name string, out *CreateOut) (code Status) {
+func (fs *defaultRawFileSystem) Create(ctx context.Context, input *CreateIn, name string, out *CreateOut) (code Status) {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) Tmpfile(cancel <-chan struct{}, input *CreateIn, out *CreateOut) (code Status) {
+func (fs *defaultRawFileSystem) Tmpfile(ctx context.Context, input *CreateIn, out *CreateOut) (code Status) {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) OpenDir(cancel <-chan struct{}, input *OpenIn, out *OpenOut) (status Status) {
+func (fs *defaultRawFileSystem) OpenDir(ctx context.Context, input *OpenIn, out *OpenOut) (status Status) {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) Read(cancel <-chan struct{}, input *ReadIn, buf []byte) (ReadResult, Status) {
+func (fs *defaultRawFileSystem) Read(ctx context.Context, input *ReadIn, buf []byte) (ReadResult, Status) {
 	return nil, ENOSYS
 }
 
-func (fs *defaultRawFileSystem) GetLk(cancel <-chan struct{}, in *LkIn, out *LkOut) (code Status) {
+func (fs *defaultRawFileSystem) GetLk(ctx context.Context, in *LkIn, out *LkOut) (code Status) {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) SetLk(cancel <-chan struct{}, in *LkIn) (code Status) {
+func (fs *defaultRawFileSystem) SetLk(ctx context.Context, in *LkIn) (code Status) {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) SetLkw(cancel <-chan struct{}, in *LkIn) (code Status) {
+func (fs *defaultRawFileSystem) SetLkw(ctx context.Context, in *LkIn) (code Status) {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) Release(cancel <-chan struct{}, input *ReleaseIn) {
+func (fs *defaultRawFileSystem) Release(ctx context.Context, input *ReleaseIn) {
 }
 
-func (fs *defaultRawFileSystem) Write(cancel <-chan struct{}, input *WriteIn, data []byte) (written uint32, code Status) {
+func (fs *defaultRawFileSystem) Write(ctx context.Context, input *WriteIn, data []byte) (written uint32, code Status) {
 	return 0, ENOSYS
 }
 
-func (fs *defaultRawFileSystem) Writev(cancel <-chan struct{}, input *WriteIn, data [][]byte) (written uint32, code Status) {
+func (fs *defaultRawFileSystem) Writev(ctx context.Context, input *WriteIn, data [][]byte) (written uint32, code Status) {
 	return 0, ENOSYS
 }
 
-func (fs *defaultRawFileSystem) Flush(cancel <-chan struct{}, input *FlushIn) Status {
+func (fs *defaultRawFileSystem) Flush(ctx context.Context, input *FlushIn) Status {
 	return OK
 }
 
-func (fs *defaultRawFileSystem) Fsync(cancel <-chan struct{}, input *FsyncIn) (code Status) {
+func (fs *defaultRawFileSystem) Fsync(ctx context.Context, input *FsyncIn) (code Status) {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) ReadDir(cancel <-chan struct{}, input *ReadIn, l *DirEntryList) Status {
+func (fs *defaultRawFileSystem) ReadDir(ctx context.Context, input *ReadIn, l *DirEntryList) Status {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) ReadDirPlus(cancel <-chan struct{}, input *ReadIn, l *DirEntryList) Status {
+func (fs *defaultRawFileSystem) ReadDirPlus(ctx context.Context, input *ReadIn, l *DirEntryList) Status {
 	return ENOSYS
 }
 
 func (fs *defaultRawFileSystem) ReleaseDir(input *ReleaseIn) {
 }
 
-func (fs *defaultRawFileSystem) FsyncDir(cancel <-chan struct{}, input *FsyncIn) (code Status) {
+func (fs *defaultRawFileSystem) FsyncDir(ctx context.Context, input *FsyncIn) (code Status) {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) Fallocate(cancel <-chan struct{}, in *FallocateIn) (code Status) {
+func (fs *defaultRawFileSystem) Fallocate(ctx context.Context, in *FallocateIn) (code Status) {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) CopyFileRange(cancel <-chan struct{}, input *CopyFileRangeIn) (written uint32, code Status) {
+func (fs *defaultRawFileSystem) CopyFileRange(ctx context.Context, input *CopyFileRangeIn) (written uint32, code Status) {
 	return 0, ENOSYS
 }
 
-func (fs *defaultRawFileSystem) Ioctl(cancel <-chan struct{}, input *IoctlIn, inbuf []byte, output *IoctlOut, outbuf []byte) (code Status) {
+func (fs *defaultRawFileSystem) Ioctl(ctx context.Context, input *IoctlIn, inbuf []byte, output *IoctlOut, outbuf []byte) (code Status) {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) Lseek(cancel <-chan struct{}, in *LseekIn, out *LseekOut) Status {
+func (fs *defaultRawFileSystem) Lseek(ctx context.Context, in *LseekIn, out *LseekOut) Status {
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) Statx(cancel <-chan struct{}, input *StatxIn, out *StatxOut) (code Status) {
+func (fs *defaultRawFileSystem) Statx(ctx context.Context, input *StatxIn, out *StatxOut) (code Status) {
 	return ENOSYS
 }
