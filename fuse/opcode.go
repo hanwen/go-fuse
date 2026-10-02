@@ -237,10 +237,9 @@ func doWrite(server *protocolServer, req *request) {
 	server.writevCopyOnce.Do(func() {
 		server.opts.Logger.Printf("Writev not implemented; copying split WRITE data")
 	})
-	buf := make([]byte, 0, iovLen(data))
-	for _, d := range data {
-		buf = append(buf, d...)
-	}
+	buf := server.buffers.AllocBuffer(uint32(iovLen(data)))
+	defer server.buffers.FreeBuffer(buf)
+	copyFromIov(buf, data, 0)
 	o.Size, req.status = server.fileSystem.Write(req.cancel, in, buf)
 }
 
