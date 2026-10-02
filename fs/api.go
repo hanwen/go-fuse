@@ -384,6 +384,11 @@ type NodeWriter interface {
 	Write(ctx context.Context, f FileHandle, data []byte, off int64) (written uint32, errno syscall.Errno)
 }
 
+// Writev is like Write, for data split over several slices.
+type NodeWritever interface {
+	Writev(ctx context.Context, f FileHandle, data [][]byte, off int64) (written uint32, errno syscall.Errno)
+}
+
 // Fsync is a signal to ensure writes to the Inode are flushed
 // to stable storage.
 type NodeFsyncer interface {
@@ -703,6 +708,11 @@ type FileReader interface {
 // See NodeWriter.
 type FileWriter interface {
 	Write(ctx context.Context, data []byte, off int64) (written uint32, errno syscall.Errno)
+}
+
+// See NodeWritever.
+type FileWritever interface {
+	Writev(ctx context.Context, data [][]byte, off int64) (written uint32, errno syscall.Errno)
 }
 
 // See NodeGetlker.

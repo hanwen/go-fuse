@@ -140,6 +140,10 @@ func (fs *defaultRawFileSystem) Write(cancel <-chan struct{}, input *WriteIn, da
 	return 0, ENOSYS
 }
 
+func (fs *defaultRawFileSystem) Writev(cancel <-chan struct{}, input *WriteIn, data [][]byte) (written uint32, code Status) {
+	return 0, ENOSYS
+}
+
 func (fs *defaultRawFileSystem) Flush(cancel <-chan struct{}, input *FlushIn) Status {
 	return OK
 }

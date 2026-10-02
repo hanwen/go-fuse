@@ -435,6 +435,10 @@ func (c *rawBridge) ListXAttr(cancel <-chan struct{}, header *fuse.InHeader, des
 ////////////////
 // files.
 
+func (c *rawBridge) Writev(cancel <-chan struct{}, input *fuse.WriteIn, data [][]byte) (written uint32, code fuse.Status) {
+	return 0, fuse.ENOSYS
+}
+
 func (c *rawBridge) Write(cancel <-chan struct{}, input *fuse.WriteIn, data []byte) (written uint32, code fuse.Status) {
 	node := c.toInode(input.NodeId)
 	opened := node.mount.getOpenedFile(input.Fh)

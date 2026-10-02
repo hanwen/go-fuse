@@ -26,6 +26,8 @@ type protocolServer struct {
 
 	opts *MountOptions
 
+	writevCopyOnce sync.Once
+
 	// in-flight notify-retrieve queries
 	retrieveMu   sync.Mutex
 	retrieveNext uint64
@@ -221,7 +223,9 @@ func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, Status)
 		suppressReply: h.SuppressReply,
 	}
 
-	if len(in) > 2 {
+	if len(in) > 2 && req.inHeader().Opcode == _OP_WRITE {
+		req.inPayloadIov = in[2:]
+	} else if len(in) > 2 {
 		req.inPayload = in[2]
 	} else {
 		req.inPayload = inTogether[inSize:]

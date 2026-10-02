@@ -485,6 +485,9 @@ type RawFileSystem interface {
 
 	Release(cancel <-chan struct{}, input *ReleaseIn)
 	Write(cancel <-chan struct{}, input *WriteIn, data []byte) (written uint32, code Status)
+
+	// Writev is called for WRITE. On ENOSYS, Write is called.
+	Writev(cancel <-chan struct{}, input *WriteIn, data [][]byte) (written uint32, code Status)
 	CopyFileRange(cancel <-chan struct{}, input *CopyFileRangeIn) (written uint32, code Status)
 	Ioctl(cancel <-chan struct{}, input *IoctlIn, inbuf []byte, output *IoctlOut, outbuf []byte) (code Status)
 

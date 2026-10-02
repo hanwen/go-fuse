@@ -44,3 +44,15 @@ func (f *LoopbackFile) Statx(ctx context.Context, flags uint32, mask uint32, out
 		return OK
 	})
 }
+
+var _ = (FileWritever)((*LoopbackFile)(nil))
+
+func (f *LoopbackFile) Writev(ctx context.Context, data [][]byte, off int64) (uint32, syscall.Errno) {
+	var n int
+	errno := f.withFd(func(fd int) syscall.Errno {
+		var err error
+		n, err = unix.Pwritev(fd, data, off)
+		return ToErrno(err)
+	})
+	return uint32(max(n, 0)), errno
+}

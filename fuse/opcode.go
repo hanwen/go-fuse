@@ -219,10 +219,29 @@ func doSetattr(server *protocolServer, req *request) {
 }
 
 func doWrite(server *protocolServer, req *request) {
-	n, status := server.fileSystem.Write(req.cancel, (*WriteIn)(req.inData()), req.inPayload)
+	in := (*WriteIn)(req.inData())
 	o := (*WriteOut)(req.outData())
-	o.Size = n
-	req.status = status
+	data := req.inPayloadIov
+	if data == nil {
+		req.inPayloadOne[0] = req.inPayload
+		data = req.inPayloadOne[:]
+	}
+	o.Size, req.status = server.fileSystem.Writev(req.cancel, in, data)
+	if req.status != ENOSYS {
+		return
+	}
+	if len(data) == 1 {
+		o.Size, req.status = server.fileSystem.Write(req.cancel, in, data[0])
+		return
+	}
+	server.writevCopyOnce.Do(func() {
+		server.opts.Logger.Printf("Writev not implemented; copying split WRITE data")
+	})
+	buf := make([]byte, 0, iovLen(data))
+	for _, d := range data {
+		buf = append(buf, d...)
+	}
+	o.Size, req.status = server.fileSystem.Write(req.cancel, in, buf)
 }
 
 func doNotifyReply(server *protocolServer, req *request) {

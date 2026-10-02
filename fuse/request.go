@@ -38,6 +38,10 @@ type request struct {
 	// Unstructured input (filenames, data for WRITE call)
 	inPayload []byte
 
+	// WRITE data, if not contiguous.
+	inPayloadIov [][]byte
+	inPayloadOne [1][]byte
+
 	// nil if the request has no extension.
 	ext *requestExt
 
@@ -91,6 +95,8 @@ func (r *request) clear() {
 	r.outHeaderBuf = nil
 	r.outDataBuf = nil
 	r.inPayload = nil
+	r.inPayloadIov = nil
+	r.inPayloadOne[0] = nil
 	r.ext = nil
 	r.status = OK
 	r.outPayload = nil
@@ -124,6 +130,8 @@ func (r *request) InputDebug() string {
 	} else if h.FileNames == 2 {
 		n1, n2, _ := r.filenames()
 		names = fmt.Sprintf(" %q %q", n1, n2)
+	} else if r.inPayloadIov != nil {
+		names = fmt.Sprintf(" %db in %d segments", iovLen(r.inPayloadIov), len(r.inPayloadIov))
 	} else {
 		names = summarizePayload(r.inPayload)
 	}

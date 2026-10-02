@@ -977,17 +977,57 @@ func (b *rawBridge) releaseFileEntry(nid uint64, fh uint64) (*nodeEntry, *fileEn
 
 func (b *rawBridge) Write(cancel <-chan struct{}, input *fuse.WriteIn, data []byte) (written uint32, status fuse.Status) {
 	n, f := b.inode(input.NodeId, input.Fh)
-
 	ctx := &fuse.Context{Caller: input.Caller, Cancel: cancel}
-	if wr, ok := n.ops.(NodeWriter); ok {
-		w, errno := wr.Write(ctx, f.file, data, int64(input.Offset))
-		return w, errnoToStatus(errno)
+	return b.write(ctx, n, f, data, nil, int64(input.Offset))
+}
+
+func (b *rawBridge) Writev(cancel <-chan struct{}, input *fuse.WriteIn, data [][]byte) (written uint32, status fuse.Status) {
+	n, f := b.inode(input.NodeId, input.Fh)
+	ctx := &fuse.Context{Caller: input.Caller, Cancel: cancel}
+	if len(data) == 1 {
+		return b.write(ctx, n, f, data[0], nil, int64(input.Offset))
 	}
-	if fr, ok := f.file.(FileWriter); ok {
-		w, errno := fr.Write(ctx, data, int64(input.Offset))
+	return b.write(ctx, n, f, nil, data, int64(input.Offset))
+}
+
+// write prefers Write for contiguous data, so overriding Write in a
+// type that embeds LoopbackFile works.
+func (b *rawBridge) write(ctx *fuse.Context, n *Inode, f *fileEntry, data []byte, iov [][]byte, off int64) (uint32, fuse.Status) {
+	nw, okW := n.ops.(NodeWriter)
+	nwv, okWv := n.ops.(NodeWritever)
+	switch {
+	case okW && iov == nil:
+		w, errno := nw.Write(ctx, f.file, data, off)
 		return w, errnoToStatus(errno)
+	case okWv:
+		if iov == nil {
+			iov = [][]byte{data}
+		}
+		w, errno := nwv.Writev(ctx, f.file, iov, off)
+		return w, errnoToStatus(errno)
+	case okW:
+		return 0, fuse.ENOSYS
 	}
 
+	fw, okW := f.file.(FileWriter)
+	fwv, okWv := f.file.(FileWritever)
+	switch {
+	case okW && iov == nil:
+		w, errno := fw.Write(ctx, data, off)
+		return w, errnoToStatus(errno)
+	case okWv:
+		if iov == nil {
+			iov = [][]byte{data}
+		}
+		w, errno := fwv.Writev(ctx, iov, off)
+		return w, errnoToStatus(errno)
+	case okW:
+		return 0, fuse.ENOSYS
+	}
+
+	if iov != nil {
+		return 0, fuse.ENOSYS
+	}
 	return 0, fuse.ENOTSUP
 }
 
