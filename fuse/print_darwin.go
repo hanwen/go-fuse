@@ -29,6 +29,10 @@ func (me *GetAttrIn) string() string { return "" }
 
 func (a *Attr) flagsString() string { return "" }
 
+func (in *SetXAttrIn) string() string {
+	return fmt.Sprintf("{sz %d f%o}", in.Size, in.Flags)
+}
+
 func (me *MknodIn) string() string {
 	return fmt.Sprintf("{0%o, %d}", me.Mode, me.Rdev)
 }

@@ -21,6 +21,9 @@ type protocolServer struct {
 
 	kernelSettings InitIn
 
+	// Capabilities sent in InitOut.
+	negotiatedFlags uint64
+
 	opts *MountOptions
 
 	// in-flight notify-retrieve queries
@@ -206,7 +209,7 @@ func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, Status)
 	if len(in) > 1 {
 		copy(inTogether[len(in[0]):], in[1])
 	}
-	h, inSize, outSize, outPayloadSize, errno := parseRequest(inTogether, &ps.kernelSettings)
+	h, inSize, outSize, outPayloadSize, errno := parseRequest(inTogether, &ps.kernelSettings, ps.negotiatedFlags)
 	if errno != 0 {
 		return 0, errno
 	}

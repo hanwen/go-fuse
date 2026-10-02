@@ -2,6 +2,8 @@
 
 package fuse
 
+import "unsafe"
+
 type Attr struct {
 	Ino  uint64
 	Size uint64
@@ -40,6 +42,23 @@ type SetXAttrIn struct {
 	InHeader
 	Size  uint32
 	Flags uint32
+
+	SetXAttrFlags uint32
+	Padding       uint32
+}
+
+const (
+	// SetXAttrIn.SetXAttrFlags: setting system.posix_acl_access must clear sgid.
+	SETXATTR_ACL_KILL_SGID = (1 << 0)
+)
+
+const compatSetXAttrInSize = int(unsafe.Sizeof(InHeader{})) + 8
+
+func setXAttrInSize(negotiated uint64) int {
+	if negotiated&CAP_SETXATTR_EXT == 0 {
+		return compatSetXAttrInSize
+	}
+	return int(unsafe.Sizeof(SetXAttrIn{}))
 }
 
 type GetXAttrIn struct {

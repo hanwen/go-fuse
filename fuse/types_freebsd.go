@@ -18,6 +18,8 @@ const (
 
 	// CAP_EXPLICIT_INVAL_DATA is not supported on FreeBSD.
 	CAP_EXPLICIT_INVAL_DATA = 0x0
+
+	CAP_SETXATTR_EXT = 0x0
 )
 
 func (s *StatfsOut) FromStatfsT(statfs *syscall.Statfs_t) {

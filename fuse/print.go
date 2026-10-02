@@ -273,10 +273,6 @@ func (s *FsyncIn) string() string {
 	return fmt.Sprintf("{Fh %d Flags %x}", s.Fh, s.FsyncFlags)
 }
 
-func (in *SetXAttrIn) string() string {
-	return fmt.Sprintf("{sz %d f%o}", in.Size, in.Flags)
-}
-
 func (in *GetXAttrIn) string() string {
 	return fmt.Sprintf("{sz %d}", in.Size)
 }

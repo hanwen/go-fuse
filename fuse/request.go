@@ -209,7 +209,7 @@ func (r *request) inData() unsafe.Pointer {
 }
 
 // note: outSize is without OutHeader
-func parseRequest(in []byte, kernelSettings *InitIn) (h *operationHandler, inSize, outSize, outPayloadSize int, errno Status) {
+func parseRequest(in []byte, kernelSettings *InitIn, negotiated uint64) (h *operationHandler, inSize, outSize, outPayloadSize int, errno Status) {
 	inSize = int(unsafe.Sizeof(InHeader{}))
 	if len(in) < inSize {
 		errno = EIO
@@ -227,6 +227,9 @@ func parseRequest(in []byte, kernelSettings *InitIn) (h *operationHandler, inSiz
 	}
 	if hdr.Opcode == _OP_RENAME && kernelSettings.supportsRenameSwap() {
 		inSize = int(unsafe.Sizeof(RenameIn{}))
+	}
+	if hdr.Opcode == _OP_SETXATTR {
+		inSize = setXAttrInSize(negotiated)
 	}
 	if hdr.Opcode == _OP_INIT && inSize > len(in) {
 		// Minor version 36 extended the size of InitIn struct

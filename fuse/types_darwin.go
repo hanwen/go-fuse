@@ -6,6 +6,7 @@ package fuse
 
 import (
 	"syscall"
+	"unsafe"
 )
 
 const (
@@ -68,6 +69,10 @@ type SetXAttrIn struct {
 	Flags    uint32
 	Position uint32
 	Padding  uint32
+}
+
+func setXAttrInSize(negotiated uint64) int {
+	return int(unsafe.Sizeof(SetXAttrIn{}))
 }
 
 type GetXAttrIn struct {

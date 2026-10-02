@@ -9,6 +9,9 @@ var (
 		{ATTR_SUBMOUNT, "SUBMOUNT"},
 		{ATTR_DAX, "DAX"},
 	})
+	setXAttrFlagNames = newFlagNames([]flagNameEntry{
+		{SETXATTR_ACL_KILL_SGID, "ACL_KILL_SGID"},
+	})
 )
 
 func (in *CreateIn) string() string {
@@ -20,6 +23,11 @@ func (in *CreateIn) string() string {
 
 func (a *Attr) flagsString() string {
 	return optFlagString(attrFlagNames, int64(a.Flags))
+}
+
+func (in *SetXAttrIn) string() string {
+	return fmt.Sprintf("{sz %d f%o%s}", in.Size, in.Flags,
+		optFlagString(setXAttrFlagNames, int64(in.SetXAttrFlags)))
 }
 
 func (in *GetAttrIn) string() string {

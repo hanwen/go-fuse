@@ -156,6 +156,7 @@ func doInit(server *protocolServer, req *request) {
 		MaxStackDepth:       uint32(server.opts.MaxStackDepth),
 	}
 	out.setFlags(kernelFlags)
+	server.negotiatedFlags = out.Flags64()
 	if server.opts.MaxReadAhead != 0 && uint32(server.opts.MaxReadAhead) < out.MaxReadAhead {
 		out.MaxReadAhead = uint32(server.opts.MaxReadAhead)
 	}
@@ -419,7 +420,14 @@ func doSetXAttr(server *protocolServer, req *request) {
 		req.status = EINVAL
 		return
 	}
-	req.status = server.fileSystem.SetXAttr(req.cancel, (*SetXAttrIn)(req.inData()), string(req.inPayload[:i]), req.inPayload[i+1:])
+	input := (*SetXAttrIn)(req.inData())
+	if len(req.inputBuf) < int(unsafe.Sizeof(SetXAttrIn{})) {
+		// Zero-extend the struct sent without CAP_SETXATTR_EXT.
+		var extended SetXAttrIn
+		copy(unsafe.Slice((*byte)(unsafe.Pointer(&extended)), unsafe.Sizeof(extended)), req.inputBuf)
+		input = &extended
+	}
+	req.status = server.fileSystem.SetXAttr(req.cancel, input, string(req.inPayload[:i]), req.inPayload[i+1:])
 }
 
 func doRemoveXAttr(server *protocolServer, req *request) {
