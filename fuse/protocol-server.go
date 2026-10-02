@@ -368,9 +368,6 @@ func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, Status)
 				direct = b
 				req.outPayload = b
 			} else {
-				// TODO: investigate a Readv() method for
-				// RawFileSystem, so READ can fill the out iov
-				// directly, without this buffer.
 				req.outPayload = ps.buffers.AllocBuffer(uint32(outPayloadSize))
 				defer ps.buffers.FreeBuffer(req.outPayload)
 			}
