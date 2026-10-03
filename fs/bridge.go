@@ -605,8 +605,6 @@ func (b *rawBridge) Forget(nodeid, nlookup uint64) {
 	}
 }
 
-func (b *rawBridge) SetDebug(debug bool) {}
-
 func (b *rawBridge) GetAttr(cancel <-chan struct{}, input *fuse.GetAttrIn, out *fuse.AttrOut) fuse.Status {
 	e, fEntry := b.entry(input.NodeId, input.Fh())
 	n := e.inode.Load()

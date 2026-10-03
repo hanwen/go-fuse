@@ -71,12 +71,6 @@ type Server struct {
 	requestProcessingMu sync.Mutex
 }
 
-// SetDebug is deprecated. Use MountOptions.Debug instead.
-func (ms *Server) SetDebug(dbg bool) {
-	// This will typically trigger the race detector.
-	ms.opts.Debug = dbg
-}
-
 // KernelSettings returns the Init message from the kernel, so
 // filesystems can adapt to availability of features of the kernel
 // driver. The message should not be altered.

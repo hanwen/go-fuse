@@ -420,9 +420,6 @@ type MountOptions struct {
 type RawFileSystem interface {
 	String() string
 
-	// If called, provide debug output through the log package.
-	SetDebug(debug bool)
-
 	// Lookup is called by the kernel when the VFS wants to know
 	// about a file inside a directory. Many lookup calls can
 	// occur in parallel, but only one call happens for each (dir,

@@ -27,9 +27,6 @@ func (fs *defaultRawFileSystem) String() string {
 	return os.Args[0]
 }
 
-func (fs *defaultRawFileSystem) SetDebug(dbg bool) {
-}
-
 func (fs *defaultRawFileSystem) StatFs(cancel <-chan struct{}, header *InHeader, out *StatfsOut) Status {
 	return ENOSYS
 }
