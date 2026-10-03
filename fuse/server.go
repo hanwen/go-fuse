@@ -88,15 +88,6 @@ func (ms *Server) KernelSettings() *InitIn {
 
 const _MAX_NAME_LEN = 20
 
-// This type is deprecated.
-type LatencyMap interface {
-	Add(name string, dt time.Duration)
-}
-
-// RecordLatencies is deprecated. It is provided for backward compatibility but does not do anything.
-func (ms *Server) RecordLatencies(l LatencyMap) {
-}
-
 // Unmount calls fusermount -u on the mount. This has the effect of
 // shutting down the filesystem. After the Server is unmounted, it
 // should be discarded.  This function is idempotent.

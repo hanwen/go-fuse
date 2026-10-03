@@ -10,7 +10,6 @@ import (
 	"log"
 	"reflect"
 	"strings"
-	"time"
 	"unsafe"
 )
 
@@ -51,9 +50,6 @@ type request struct {
 	// Unstructured output. Only one of outPayload and readResult is non-nil.
 	outPayload []byte
 	readResult ReadResult
-
-	// Start timestamp for timing info.
-	startTime time.Time
 }
 
 // requestAlloc holds the request, plus I/O buffers, which are
@@ -100,7 +96,6 @@ func (r *request) clear() {
 	r.ext = nil
 	r.status = OK
 	r.outPayload = nil
-	r.startTime = time.Time{}
 	r.readResult = nil
 }
 
