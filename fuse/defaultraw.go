@@ -158,7 +158,7 @@ func (fs *defaultRawFileSystem) ReadDirPlus(ctx context.Context, input *ReadIn, 
 	return ENOSYS
 }
 
-func (fs *defaultRawFileSystem) ReleaseDir(input *ReleaseIn) {
+func (fs *defaultRawFileSystem) ReleaseDir(ctx context.Context, input *ReleaseIn) {
 }
 
 func (fs *defaultRawFileSystem) FsyncDir(ctx context.Context, input *FsyncIn) (code Status) {

@@ -411,7 +411,7 @@ func doFsync(server *protocolServer, req *request) {
 }
 
 func doReleaseDir(server *protocolServer, req *request) {
-	server.fileSystem.ReleaseDir((*ReleaseIn)(req.inData()))
+	server.fileSystem.ReleaseDir(&req.ctx, (*ReleaseIn)(req.inData()))
 }
 
 func doFsyncDir(server *protocolServer, req *request) {

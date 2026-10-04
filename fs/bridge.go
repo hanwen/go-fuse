@@ -942,7 +942,7 @@ func (b *rawBridge) Release(ctx context.Context, input *fuse.ReleaseIn) {
 	b.ids.recycleFile(uint32(input.Fh))
 }
 
-func (b *rawBridge) ReleaseDir(input *fuse.ReleaseIn) {
+func (b *rawBridge) ReleaseDir(ctx context.Context, input *fuse.ReleaseIn) {
 	e, f := b.releaseFileEntry(input.NodeId, input.Fh)
 	if f == nil {
 		return
@@ -950,7 +950,7 @@ func (b *rawBridge) ReleaseDir(input *fuse.ReleaseIn) {
 	f.wg.Wait()
 
 	if frd, ok := f.file.(FileReleasedirer); ok {
-		frd.Releasedir(context.Background(), input.ReleaseFlags)
+		frd.Releasedir(ctx, input.ReleaseFlags)
 	}
 
 	b.backingMu.Lock()

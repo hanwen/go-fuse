@@ -38,7 +38,7 @@ func TestBridgeReaddirPlusVirtualEntries(t *testing.T) {
 		Fh: openOut.Fh,
 	}
 	releaseIn.NodeId = 1
-	defer rb.ReleaseDir(&releaseIn)
+	defer rb.ReleaseDir(ctx, &releaseIn)
 
 	// We only populate what rawBridge.ReadDirPlus() actually looks at.
 	readIn := fuse.ReadIn{}

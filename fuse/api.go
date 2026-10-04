@@ -483,6 +483,10 @@ type RawFileSystem interface {
 	SetLk(ctx context.Context, input *LkIn) (code Status)
 	SetLkw(ctx context.Context, input *LkIn) (code Status)
 
+	// Release and ReleaseDir drop a file handle returned by a successful
+	// Open/Create or OpenDir. The kernel ignores the result and sends no
+	// credentials, so the Caller in ctx is zero, and ctx is normally only
+	// canceled when the connection goes away.
 	Release(ctx context.Context, input *ReleaseIn)
 	Write(ctx context.Context, input *WriteIn, data []byte) (written uint32, code Status)
 
@@ -499,7 +503,7 @@ type RawFileSystem interface {
 	OpenDir(ctx context.Context, input *OpenIn, out *OpenOut) (status Status)
 	ReadDir(ctx context.Context, input *ReadIn, out *DirEntryList) Status
 	ReadDirPlus(ctx context.Context, input *ReadIn, out *DirEntryList) Status
-	ReleaseDir(input *ReleaseIn)
+	ReleaseDir(ctx context.Context, input *ReleaseIn)
 	FsyncDir(ctx context.Context, input *FsyncIn) (code Status)
 
 	StatFs(ctx context.Context, input *InHeader, out *StatfsOut) (code Status)
