@@ -86,6 +86,7 @@ type mapIdentityTable struct {
 	// 1), this is also a good estimate for stableAttrs.
 	nodeCountHigh int
 
+	// files[fh] is nil if fh is free. files[0] is a dummy.
 	files []*fileEntry
 	// indices of files that are not allocated.
 	freeFiles []uint32
@@ -345,5 +346,6 @@ func (t *mapIdentityTable) detachFile(nodeID uint64, fh uint64) (*nodeEntry, *fi
 func (t *mapIdentityTable) recycleFile(fh uint32) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
+	t.files[fh] = nil
 	t.freeFiles = append(t.freeFiles, fh)
 }

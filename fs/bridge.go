@@ -334,6 +334,12 @@ func (b *rawBridge) entry(nodeID uint64, fh uint64) (*nodeEntry, *fileEntry) {
 	if e == nil {
 		log.Panicf("unknown node %d", nodeID)
 	}
+	if f == nil {
+		// The kernel sends RELEASE only after every request that
+		// carries the handle has completed, so a released handle here
+		// is a protocol error.
+		log.Panicf("unknown file handle %d", fh)
+	}
 	return e, f
 }
 
