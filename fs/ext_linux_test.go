@@ -5,13 +5,11 @@
 package fs
 
 import (
-	"bytes"
-	"fmt"
-	"io"
-	"log"
+	"context"
 	"os"
 	"path/filepath"
-	"strings"
+	"slices"
+	"sync"
 	"syscall"
 	"testing"
 
@@ -19,56 +17,98 @@ import (
 	"github.com/hanwen/go-fuse/v2/internal/testutil"
 )
 
+type extRecord struct {
+	ok     bool
+	groups []uint32
+	secctx []fuse.SecCtx
+}
+
+type extRecorder struct {
+	mu      sync.Mutex
+	records map[string][]extRecord
+}
+
+func (r *extRecorder) record(ctx context.Context, op string) {
+	var rec extRecord
+	if call, ok := fuse.CallFromContext(ctx); ok {
+		var gok, sok bool
+		rec.groups, gok = call.SuppGroups()
+		rec.secctx, sok = call.SecCtx()
+		rec.ok = gok && sok
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.records[op] = append(r.records[op], rec)
+}
+
+type extNode struct {
+	*LoopbackNode
+	rec *extRecorder
+}
+
+var _ = (NodeWrapChilder)((*extNode)(nil))
+
+func (n *extNode) WrapChild(ctx context.Context, ops InodeEmbedder) InodeEmbedder {
+	return &extNode{ops.(*LoopbackNode), n.rec}
+}
+
+func (n *extNode) Symlink(ctx context.Context, target, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
+	n.rec.record(ctx, "SYMLINK")
+	return n.LoopbackNode.Symlink(ctx, target, name, out)
+}
+
+func (n *extNode) Mkdir(ctx context.Context, name string, mode uint32, out *fuse.EntryOut) (*Inode, syscall.Errno) {
+	n.rec.record(ctx, "MKDIR")
+	return n.LoopbackNode.Mkdir(ctx, name, mode, out)
+}
+
+func (n *extNode) Mknod(ctx context.Context, name string, mode, rdev uint32, out *fuse.EntryOut) (*Inode, syscall.Errno) {
+	n.rec.record(ctx, "MKNOD")
+	return n.LoopbackNode.Mknod(ctx, name, mode, rdev, out)
+}
+
+func (n *extNode) Create(ctx context.Context, name string, flags uint32, mode uint32, out *fuse.EntryOut) (*Inode, FileHandle, uint32, syscall.Errno) {
+	n.rec.record(ctx, "CREATE")
+	return n.LoopbackNode.Create(ctx, name, flags, mode, out)
+}
+
 type extTestCase struct {
 	origDir string
 	mntDir  string
-	server  *fuse.Server
-	logBuf  bytes.Buffer
+	rec     extRecorder
 }
 
 func mountExt(t *testing.T, capability uint64, setup func(origDir string)) *extTestCase {
 	tc := &extTestCase{
 		origDir: t.TempDir(),
 		mntDir:  t.TempDir(),
+		rec:     extRecorder{records: map[string][]extRecord{}},
 	}
 	if setup != nil {
 		setup(tc.origDir)
 	}
-	root, err := NewLoopbackRoot(tc.origDir)
+	lroot, err := NewLoopbackRoot(tc.origDir)
 	if err != nil {
 		t.Fatal(err)
 	}
+	root := &extNode{lroot.(*LoopbackNode), &tc.rec}
+	root.RootData.RootNode = root
 
-	var w io.Writer = &tc.logBuf
-	if testutil.VerboseTest() {
-		w = io.MultiWriter(w, os.Stderr)
-	}
-	logger := log.New(w, "", 0)
-	opts := &Options{
-		Logger: logger,
-	}
-	opts.Debug = true
-	opts.MountOptions.Logger = logger
+	opts := &Options{}
+	opts.Debug = testutil.VerboseTest()
 	opts.ExtraCapabilities = capability
 
-	tc.server, err = Mount(tc.mntDir, root, opts)
+	server, err := Mount(tc.mntDir, root, opts)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		tc.server.Unmount()
+		server.Unmount()
 	})
-	if tc.server.KernelSettings().Flags64()&capability == 0 {
+	if server.KernelSettings().Flags64()&capability == 0 {
 		t.Skipf("kernel does not support capability %x", capability)
 	}
 	return tc
-}
-
-func (tc *extTestCase) unmount(t *testing.T) string {
-	if err := tc.server.Unmount(); err != nil {
-		t.Fatal(err)
-	}
-	return tc.logBuf.String()
 }
 
 func createAll(t *testing.T, tc *extTestCase, subdir string) {
@@ -115,14 +155,19 @@ func createAll(t *testing.T, tc *extTestCase, subdir string) {
 
 var createOps = []string{"SYMLINK", "MKDIR", "MKNOD", "CREATE"}
 
-func extLines(debugLog string, op string) []string {
-	var r []string
-	for _, l := range strings.Split(debugLog, "\n") {
-		if strings.HasPrefix(l, "rx ") && strings.Contains(l, ": "+op+" ") {
-			r = append(r, l)
+func (tc *extTestCase) records(t *testing.T, op string) []extRecord {
+	tc.rec.mu.Lock()
+	defer tc.rec.mu.Unlock()
+	recs := tc.rec.records[op]
+	if len(recs) == 0 {
+		t.Errorf("no %s requests", op)
+	}
+	for _, r := range recs {
+		if !r.ok {
+			t.Errorf("%s: no Call, or Call expired during the request", op)
 		}
 	}
-	return r
+	return recs
 }
 
 func TestExtSuppGroup(t *testing.T) {
@@ -152,17 +197,12 @@ func TestExtSuppGroup(t *testing.T) {
 	})
 
 	createAll(t, tc, "sub")
-	debugLog := tc.unmount(t)
 
-	want := fmt.Sprintf("ext{groups=[%d]}", gid)
+	want := []uint32{uint32(gid)}
 	for _, op := range createOps {
-		lines := extLines(debugLog, op)
-		if len(lines) == 0 {
-			t.Errorf("no %s requests in log", op)
-		}
-		for _, l := range lines {
-			if !strings.Contains(l, want) {
-				t.Errorf("%s request does not contain %q: %s", op, want, l)
+		for _, r := range tc.records(t, op) {
+			if !slices.Equal(r.groups, want) {
+				t.Errorf("%s: got groups %v, want %v", op, r.groups, want)
 			}
 		}
 	}
@@ -176,51 +216,17 @@ func lsmActive() bool {
 func TestExtSecurityCtx(t *testing.T) {
 	tc := mountExt(t, fuse.CAP_SECURITY_CTX, nil)
 	createAll(t, tc, "")
-	debugLog := tc.unmount(t)
 
 	for _, op := range createOps {
-		lines := extLines(debugLog, op)
-		if len(lines) == 0 {
-			t.Errorf("no %s requests in log", op)
-		}
-		for _, l := range lines {
-			if !strings.Contains(l, " ext{") {
-				t.Errorf("%s request has no extension: %s", op, l)
+		for _, r := range tc.records(t, op) {
+			if !lsmActive() {
+				continue
 			}
-			if lsmActive() && !strings.Contains(l, "secctx=[security.selinux:") {
-				t.Errorf("%s request has no SELinux context: %s", op, l)
+			if !slices.ContainsFunc(r.secctx, func(s fuse.SecCtx) bool {
+				return s.Name == "security.selinux" && len(s.Value) > 0
+			}) {
+				t.Errorf("%s: no SELinux context in %v", op, r.secctx)
 			}
 		}
-	}
-}
-
-func TestCallSecCtx(t *testing.T) {
-	root := &callRecorderNode{}
-	opts := &Options{}
-	opts.ExtraCapabilities = fuse.CAP_SECURITY_CTX
-	mnt, server := testMount(t, root, opts)
-	if server.KernelSettings().Flags64()&fuse.CAP_SECURITY_CTX == 0 {
-		t.Skip("kernel does not support CAP_SECURITY_CTX")
-	}
-	if !lsmActive() {
-		t.Skip("no LSM active")
-	}
-	if err := os.Mkdir(filepath.Join(mnt, "dir"), 0755); err != nil {
-		t.Fatalf("Mkdir: %v", err)
-	}
-
-	root.mu.Lock()
-	defer root.mu.Unlock()
-	if len(root.records) != 1 {
-		t.Fatalf("got %d Mkdir calls, want 1", len(root.records))
-	}
-	found := false
-	for _, s := range root.records[0].secctx {
-		if s.Name == "security.selinux" && len(s.Value) > 0 {
-			found = true
-		}
-	}
-	if !found {
-		t.Errorf("no SELinux context in %v", root.records[0].secctx)
 	}
 }
