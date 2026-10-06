@@ -10,6 +10,7 @@ import (
 	"log"
 	"reflect"
 	"strings"
+	"sync"
 	"unsafe"
 )
 
@@ -19,6 +20,10 @@ type request struct {
 	inflightIndex int
 
 	ctx *requestContext
+
+	// mu protects against reading outdated data through the Call accessors.
+	mu  sync.Mutex
+	gen uint64
 
 	suppressReply bool
 
@@ -95,6 +100,12 @@ func (r *request) clear() {
 	r.outPayload = nil
 	r.readResult = nil
 	r.ctx = nil
+}
+
+func (r *request) finish() {
+	r.mu.Lock()
+	r.gen++
+	r.mu.Unlock()
 }
 
 func asType(ptr unsafe.Pointer, typ any) any {

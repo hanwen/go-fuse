@@ -47,7 +47,10 @@ type protocolServer struct {
 func (ms *protocolServer) handleRequest(h *operationHandler, req *request) {
 	req.ctx = newRequestContext(req)
 	ms.addInflight(req)
-	defer ms.dropInflight(req)
+	defer func() {
+		ms.dropInflight(req)
+		req.finish()
+	}()
 
 	if req.status.Ok() && ms.opts.Debug {
 		ms.opts.Logger.Println(req.InputDebug())

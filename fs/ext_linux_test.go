@@ -193,3 +193,34 @@ func TestExtSecurityCtx(t *testing.T) {
 		}
 	}
 }
+
+func TestCallSecCtx(t *testing.T) {
+	root := &callRecorderNode{}
+	opts := &Options{}
+	opts.ExtraCapabilities = fuse.CAP_SECURITY_CTX
+	mnt, server := testMount(t, root, opts)
+	if server.KernelSettings().Flags64()&fuse.CAP_SECURITY_CTX == 0 {
+		t.Skip("kernel does not support CAP_SECURITY_CTX")
+	}
+	if !lsmActive() {
+		t.Skip("no LSM active")
+	}
+	if err := os.Mkdir(filepath.Join(mnt, "dir"), 0755); err != nil {
+		t.Fatalf("Mkdir: %v", err)
+	}
+
+	root.mu.Lock()
+	defer root.mu.Unlock()
+	if len(root.records) != 1 {
+		t.Fatalf("got %d Mkdir calls, want 1", len(root.records))
+	}
+	found := false
+	for _, s := range root.records[0].secctx {
+		if s.Name == "security.selinux" && len(s.Value) > 0 {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("no SELinux context in %v", root.records[0].secctx)
+	}
+}

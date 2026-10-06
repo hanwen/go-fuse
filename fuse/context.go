@@ -6,19 +6,37 @@ package fuse
 
 import (
 	"context"
+	"reflect"
 	"sync"
 	"sync/atomic"
 	"time"
+	"unsafe"
 )
 
-// requestContext is canceled on interrupt. Interrupts are rare, so
-// the cancelable context is created lazily by Done().
-type requestContext struct {
-	caller   Caller
-	canceled atomic.Bool
+// Call describes a FUSE request. Caller remains valid after the
+// request finishes; the other accessors return false once the
+// RawFileSystem method has returned.
+type Call struct {
+	// We copy this data: since it contains a UID/GID, it can be
+	// considered a credential, and must be propagated in
+	// contexts, even if the request has already been canceled.
+	caller Caller
 
-	mu    sync.Mutex
-	state atomic.Pointer[cancelState]
+	// The rest may be larger, so don't copy the data; access it under lock instead
+	req *request
+	gen uint64
+}
+
+// requestContext is the context.Context passed to RawFileSystem
+// methods. It is canceled on interrupt.
+type requestContext struct {
+	call Call
+
+	// Interrupts are rare, so the cancelable context is created
+	// lazily by Done().
+	canceled atomic.Bool
+	mu       sync.Mutex
+	state    atomic.Pointer[cancelState]
 }
 
 type cancelState struct {
@@ -27,7 +45,92 @@ type cancelState struct {
 }
 
 func newRequestContext(req *request) *requestContext {
-	return &requestContext{caller: req.inHeader().Caller}
+	return &requestContext{
+		call: Call{
+			caller: req.inHeader().Caller,
+			req:    req,
+			gen:    req.gen,
+		},
+	}
+}
+
+// CallFromContext returns the Call of the FUSE request.
+func CallFromContext(ctx context.Context) (*Call, bool) {
+	c, ok := ctx.Value(callKey).(*Call)
+	return c, ok
+}
+
+func (c *Call) Caller() Caller {
+	return c.caller
+}
+
+// SuppGroups returns the supplementary group sent with
+// CAP_CREATE_SUPP_GROUP.
+func (c *Call) SuppGroups() (groups []uint32, ok bool) {
+	ok = c.withRequest(func(r *request) {
+		if r.ext != nil {
+			groups = append([]uint32(nil), r.ext.suppGroups...)
+		}
+	})
+	return groups, ok
+}
+
+// SecCtx is a security context sent with CAP_SECURITY_CTX.
+type SecCtx struct {
+	Name  string
+	Value []byte
+}
+
+func (c *Call) SecCtx() (ctxs []SecCtx, ok bool) {
+	ok = c.withRequest(func(r *request) {
+		if r.ext == nil {
+			return
+		}
+		for _, s := range r.ext.secctx {
+			ctxs = append(ctxs, SecCtx{
+				Name:  string(s.name),
+				Value: append([]byte(nil), s.value...),
+			})
+		}
+	})
+	return ctxs, ok
+}
+
+func (h *InHeader) inHeader() *InHeader {
+	return h
+}
+
+// input is implemented by the XxxIn structs, which embed InHeader.
+type input interface {
+	inHeader() *InHeader
+}
+
+// Input copies the request's input struct into dst. It returns
+// false if dst does not have the input type of the opcode.
+func Input[T any, PT interface {
+	*T
+	input
+}](c *Call, dst PT) bool {
+	var ok bool
+	return c.withRequest(func(r *request) {
+		h := getHandler(r.inHeader().Opcode)
+		if h == nil || h.InType == nil || reflect.TypeOf(h.InType) != reflect.TypeOf(dst).Elem() {
+			return
+		}
+		// Inputs from older kernels may be shorter.
+		copy(unsafe.Slice((*byte)(unsafe.Pointer(dst)), unsafe.Sizeof(*dst)), r.inputBuf)
+		ok = true
+	}) && ok
+}
+
+func (c *Call) withRequest(f func(r *request)) bool {
+	c.req.mu.Lock()
+	defer c.req.mu.Unlock()
+	if c.req.gen != c.gen {
+		return false
+	}
+	f(c.req)
+	return true
 }
 
 func (c *requestContext) interrupt() {
@@ -74,8 +177,11 @@ func (c *requestContext) Err() error {
 // Deferring to the cancelCtx lets context.WithCancel attach derived
 // contexts without starting a goroutine.
 func (c *requestContext) Value(key any) any {
-	if key == callerKey {
-		return &c.caller
+	switch key {
+	case callKey:
+		return &c.call
+	case callerKey:
+		return &c.call.caller
 	}
 	if s := c.state.Load(); s != nil {
 		return s.ctx.Value(key)
@@ -83,9 +189,12 @@ func (c *requestContext) Value(key any) any {
 	return nil
 }
 
-type callerKeyType struct{}
+type contextKey int
 
-var callerKey callerKeyType
+const (
+	callKey contextKey = iota
+	callerKey
+)
 
 // FromContext returns the Caller of the FUSE request.
 func FromContext(ctx context.Context) (Caller, bool) {
