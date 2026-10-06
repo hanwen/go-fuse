@@ -18,16 +18,9 @@ const sizeOfOutHeader = unsafe.Sizeof(OutHeader{})
 type request struct {
 	inflightIndex int
 
-	cancel chan struct{}
-
-	// ctx is passed to the RawFileSystem. It is filled in from
-	// the header and cancel just before dispatching.
-	ctx Context
+	ctx *requestContext
 
 	suppressReply bool
-
-	// written under Server.interruptMu
-	interrupted bool
 
 	// inHeader + opcode specific data
 	inputBuf []byte
@@ -101,7 +94,7 @@ func (r *request) clear() {
 	r.status = OK
 	r.outPayload = nil
 	r.readResult = nil
-	r.ctx = Context{}
+	r.ctx = nil
 }
 
 func asType(ptr unsafe.Pointer, typ any) any {

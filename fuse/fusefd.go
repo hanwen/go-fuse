@@ -166,10 +166,6 @@ func (r *fuseFD) returnRequest(req *requestAlloc) {
 		r.buffers.FreeBuffer(req.bufferPoolOutputBuf)
 		req.bufferPoolOutputBuf = nil
 	}
-	if req.interrupted {
-		req.interrupted = false
-		req.cancel = make(chan struct{}, 0)
-	}
 	req.clear()
 
 	r.reqMu.Lock()

@@ -45,6 +45,7 @@ type protocolServer struct {
 }
 
 func (ms *protocolServer) handleRequest(h *operationHandler, req *request) {
+	req.ctx = newRequestContext(req)
 	ms.addInflight(req)
 	defer ms.dropInflight(req)
 
@@ -73,7 +74,6 @@ func (ms *protocolServer) handleRequest(h *operationHandler, req *request) {
 					}
 				}
 			}()
-			req.ctx = Context{Caller: req.inHeader().Caller, Cancel: req.cancel}
 			h.Func(ms, req)
 		}()
 	}
@@ -145,9 +145,8 @@ func (ms *protocolServer) interruptRequest(unique uint64) Status {
 
 	// This is slow, but this operation is rare.
 	for _, inflight := range ms.reqInflight {
-		if unique == inflight.inHeader().Unique && !inflight.interrupted {
-			close(inflight.cancel)
-			inflight.interrupted = true
+		if unique == inflight.inHeader().Unique && !inflight.ctx.canceled.Load() {
+			inflight.ctx.interrupt()
 			return OK
 		}
 	}
@@ -160,10 +159,7 @@ func (ms *protocolServer) cancelAll() {
 	defer ms.interruptMu.Unlock()
 	ms.connectionDead = true
 	for _, req := range ms.reqInflight {
-		if !req.interrupted {
-			close(req.cancel)
-			req.interrupted = true
-		}
+		req.ctx.interrupt()
 	}
 	// Leave ms.reqInflight alone, or dropInflight will barf.
 }
@@ -311,11 +307,7 @@ func copyToIov(dst [][]byte, src ...[]byte) int {
 //
 // EXPERIMENTAL: not subject to API stability.
 func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, Status) {
-	req := &requestAlloc{
-		request: request{
-			cancel: make(chan struct{}),
-		},
-	}
+	req := &requestAlloc{}
 
 	total := iovLen(in)
 	n := copyFromIov(req.smallInputBuf[:min(total, len(req.smallInputBuf))], in, 0)

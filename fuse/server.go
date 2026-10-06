@@ -229,11 +229,7 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		ready:        make(chan error, 1),
 	}
 	ms.reqPool.New = func() any {
-		return &requestAlloc{
-			request: request{
-				cancel: make(chan struct{}),
-			},
-		}
+		return &requestAlloc{}
 	}
 	ms.readPool.New = func() any {
 		// O_DIRECT typically requires buffers aligned to

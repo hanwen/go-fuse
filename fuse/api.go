@@ -411,11 +411,10 @@ type MountOptions struct {
 // following requests, and reading/writing the request data will lead
 // to race conditions.  If you spawn a background routine from a FUSE
 // API call, any incoming request data it wants to reference should be
-// copied over. This also applies to the `ctx` argument.
+// copied over. The `ctx` argument may be retained.
 //
 // If a FS operation is interrupted, `ctx` is canceled. The fileystem
-// can honor this request by returning EINTR. In this case, the
-// outstanding request data is not reused. Interrupts occur if the
+// can honor this request by returning EINTR. Interrupts occur if the
 // process accessing the file system receives any signal that is not
 // ignored. In particular, the Go runtime uses signals to manage
 // goroutine preemption, so Go programs under load naturally
