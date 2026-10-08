@@ -288,8 +288,8 @@ func parseRequest(in []byte, kernelSettings *InitIn, negotiated uint64) (h *oper
 	if h.InputSize > 0 {
 		inSize = int(h.InputSize)
 	}
-	if hdr.Opcode == _OP_RENAME && kernelSettings.supportsRenameSwap() {
-		inSize = int(unsafe.Sizeof(RenameIn{}))
+	if hdr.Opcode == _OP_RENAME {
+		inSize = renameInSize(kernelSettings)
 	}
 	if hdr.Opcode == _OP_SETXATTR {
 		inSize = setXAttrInSize(negotiated)

@@ -188,10 +188,6 @@ func (in *MkdirIn) string() string {
 	return fmt.Sprintf("{0%o (mask 0%o)}", in.Mode, in.Umask)
 }
 
-func (in *Rename1In) string() string {
-	return fmt.Sprintf("{i%d}", in.Newdir)
-}
-
 func (in *RenameIn) string() string {
 	return fmt.Sprintf("{i%d %s}", in.Newdir, flagString(renameFlagNames, int64(in.Flags), "0"))
 }

@@ -454,24 +454,6 @@ func doSymlink(server *protocolServer, req *request) {
 }
 
 func doRename(server *protocolServer, req *request) {
-	if server.kernelSettings.supportsRenameSwap() {
-		doRename2(server, req)
-		return
-	}
-	in1 := (*Rename1In)(req.inData())
-	in := RenameIn{
-		InHeader: in1.InHeader,
-		Newdir:   in1.Newdir,
-	}
-	n1, n2, code := req.filenames()
-	if !code.Ok() {
-		req.status = code
-		return
-	}
-	req.status = server.fileSystem.Rename(req.cancel, &in, n1, n2)
-}
-
-func doRename2(server *protocolServer, req *request) {
 	n1, n2, code := req.filenames()
 	if !code.Ok() {
 		req.status = code
@@ -696,7 +678,7 @@ func init() {
 		_OP_NOTIFY_REPLY:    doNotifyReply,
 		_OP_FALLOCATE:       doFallocate,
 		_OP_READDIRPLUS:     doReadDirPlus,
-		_OP_RENAME2:         doRename2,
+		_OP_RENAME2:         doRename,
 		_OP_INTERRUPT:       doInterrupt,
 		_OP_COPY_FILE_RANGE: doCopyFileRange,
 		_OP_LSEEK:           doLseek,
@@ -774,7 +756,7 @@ func init() {
 		_OP_RELEASE:            ReleaseIn{},
 		_OP_RELEASEDIR:         ReleaseIn{},
 		_OP_RENAME2:            RenameIn{},
-		_OP_RENAME:             Rename1In{},
+		_OP_RENAME:             RenameIn{},
 		_OP_SETATTR:            SetAttrIn{},
 		_OP_SETLK:              LkIn{},
 		_OP_SETLKW:             LkIn{},

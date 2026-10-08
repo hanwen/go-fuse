@@ -8,6 +8,7 @@ import (
 	"io"
 	"syscall"
 	"time"
+	"unsafe"
 )
 
 const (
@@ -100,16 +101,20 @@ type MkdirIn struct {
 	Umask uint32
 }
 
-type Rename1In struct {
-	InHeader
-	Newdir uint64
-}
-
 type RenameIn struct {
 	InHeader
 	Newdir  uint64
 	Flags   uint32
 	Padding uint32
+}
+
+const compatRenameInSize = int(unsafe.Sizeof(InHeader{})) + 8
+
+func renameInSize(kernelSettings *InitIn) int {
+	if !kernelSettings.supportsRenameSwap() {
+		return compatRenameInSize
+	}
+	return int(unsafe.Sizeof(RenameIn{}))
 }
 
 type LinkIn struct {
