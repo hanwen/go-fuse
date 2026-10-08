@@ -13,7 +13,6 @@ import (
 	"syscall"
 	"testing"
 	"time"
-	"unsafe"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
 )
@@ -51,32 +50,17 @@ func TestBridgeReaddirPlusVirtualEntries(t *testing.T) {
 		t.Fatal(status)
 	}
 
-	// Parse the output buffer. Looks like this in memory:
-	// 1) fuse.EntryOut
-	// 2) fuse._Dirent
-	// 3) Name (null-terminated)
-	// 4) Padding to align to 8 bytes
-	// [repeat]
-	const entryOutSize = int(unsafe.Sizeof(fuse.EntryOut{}))
-	// = unsafe.Sizeof(fuse._Dirent{}), see fuse/types.go
-	const direntSize = 24
-	// Round up to 8.
-	const entry2off = (entryOutSize + direntSize + len(".\x00") + 7) / 8 * 8
+	entries, outs, err := fuse.ParseDirLookupEntries(dirents.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	names := map[string]*fuse.EntryOut{}
-	// 1st entry should be "."
-	entry1 := (*fuse.EntryOut)(unsafe.Pointer(&buf[0]))
-	name1 := string(buf[entryOutSize+direntSize : entryOutSize+direntSize+2])
-	names[name1] = entry1
-
-	// 2nd entry should be ".."
-	entry2 := (*fuse.EntryOut)(unsafe.Pointer(&buf[entry2off]))
-	name2 := string(buf[entry2off+entryOutSize+direntSize : entry2off+entryOutSize+direntSize+2])
-
-	names[name2] = entry2
-
-	if len(names) != 2 || names[".\000"] == nil || names[".."] == nil {
-		t.Fatalf(`got %v, want {".\\0", ".."}`, names)
+	for i, e := range entries {
+		names[e.Name] = &outs[i]
+	}
+	if len(names) != 2 || names["."] == nil || names[".."] == nil {
+		t.Fatalf(`got %v, want {".", ".."}`, names)
 	}
 
 	for k, v := range names {

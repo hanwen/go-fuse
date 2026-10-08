@@ -166,7 +166,6 @@ func (l *DirEntryList) AddDirLookupEntry(e DirEntry) *EntryOut {
 
 	// TODO: should take pointer as argument.
 	l.setReaddirPlus(true)
-	const entryOutSize = int(unsafe.Sizeof(EntryOut{}))
 	oldLen := len(l.buf)
 	ok := l.addDirEntry(&e, entryOutSize)
 	if !ok {
@@ -195,6 +194,71 @@ func (l *DirEntryList) FixMode(mode uint32) {
 	l.lastDirent.Typ = modeToType(mode)
 }
 
-func (l *DirEntryList) bytes() []byte {
+// Bytes returns the serialized entries.
+func (l *DirEntryList) Bytes() []byte {
 	return l.buf
+}
+
+const entryOutSize = int(unsafe.Sizeof(EntryOut{}))
+
+// ParseDirEntries parses READDIR output.
+func ParseDirEntries(buf []byte) ([]DirEntry, error) {
+	var result []DirEntry
+	for len(buf) > 0 {
+		var e DirEntry
+		n, err := parseDirent(buf, &e)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, e)
+		buf = buf[n:]
+	}
+	return result, nil
+}
+
+// ParseDirLookupEntries parses READDIRPLUS output.
+func ParseDirLookupEntries(buf []byte) ([]DirEntry, []EntryOut, error) {
+	var entries []DirEntry
+	var outs []EntryOut
+	for len(buf) > 0 {
+		if len(buf) < entryOutSize {
+			return nil, nil, fmt.Errorf("short EntryOut: %d bytes", len(buf))
+		}
+		var out EntryOut
+		copy(unsafe.Slice((*byte)(unsafe.Pointer(&out)), entryOutSize), buf)
+		buf = buf[entryOutSize:]
+
+		var e DirEntry
+		n, err := parseDirent(buf, &e)
+		if err != nil {
+			return nil, nil, err
+		}
+		entries = append(entries, e)
+		outs = append(outs, out)
+		buf = buf[n:]
+	}
+	return entries, outs, nil
+}
+
+func parseDirent(buf []byte, e *DirEntry) (int, error) {
+	if len(buf) < direntSize {
+		return 0, fmt.Errorf("short dirent: %d bytes", len(buf))
+	}
+	var d _Dirent
+	copy(unsafe.Slice((*byte)(unsafe.Pointer(&d)), direntSize), buf)
+	nameEnd := direntSize + int(d.NameLen)
+	if nameEnd > len(buf) {
+		return 0, fmt.Errorf("dirent name length %d exceeds buffer (%d bytes)", d.NameLen, len(buf))
+	}
+	n := (nameEnd + 7) &^ 7
+	if n > len(buf) {
+		return 0, fmt.Errorf("dirent padding exceeds buffer: need %d, have %d bytes", n, len(buf))
+	}
+	*e = DirEntry{
+		Ino:  d.Ino,
+		Off:  d.Off,
+		Mode: d.Typ << 12,
+		Name: string(buf[direntSize:nameEnd]),
+	}
+	return n, nil
 }
