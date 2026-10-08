@@ -343,6 +343,7 @@ func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, Status)
 			req.inPayload = make([]byte, payloadLen)
 			copyFromIov(req.inPayload, in, inSize)
 		}
+		req.extendInput(int(h.InputSize))
 		req.status = req.splitExt(&req.extInline)
 		if !req.status.Ok() {
 			ps.opts.Logger.Printf("op %s: bad request extension: %v", h.Name, req.status)

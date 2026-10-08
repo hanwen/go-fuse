@@ -87,17 +87,7 @@ const (
 ////////////////////////////////////////////////////////////////
 
 func doInit(server *protocolServer, req *request) {
-	var input *InitIn
-	if len(req.inputBuf) < int(unsafe.Sizeof(InitIn{})) {
-		// Kernels predating protocol 7.36 send a 16-byte INIT
-		// payload; zero-extend it so the full struct can be
-		// read safely.
-		var extended InitIn
-		copy(unsafe.Slice((*byte)(unsafe.Pointer(&extended)), unsafe.Sizeof(extended)), req.inputBuf)
-		input = &extended
-	} else {
-		input = (*InitIn)(req.inData())
-	}
+	input := (*InitIn)(req.inData())
 	if input.Major != _FUSE_KERNEL_VERSION {
 		log.Printf("Major versions does not match. Given %d, want %d\n", input.Major, _FUSE_KERNEL_VERSION)
 		req.status = EIO
@@ -438,14 +428,7 @@ func doSetXAttr(server *protocolServer, req *request) {
 		req.status = EINVAL
 		return
 	}
-	input := (*SetXAttrIn)(req.inData())
-	if len(req.inputBuf) < int(unsafe.Sizeof(SetXAttrIn{})) {
-		// Zero-extend the struct sent without CAP_SETXATTR_EXT.
-		var extended SetXAttrIn
-		copy(unsafe.Slice((*byte)(unsafe.Pointer(&extended)), unsafe.Sizeof(extended)), req.inputBuf)
-		input = &extended
-	}
-	req.status = server.fileSystem.SetXAttr(req.cancel, input, string(req.inPayload[:i]), req.inPayload[i+1:])
+	req.status = server.fileSystem.SetXAttr(req.cancel, (*SetXAttrIn)(req.inData()), string(req.inPayload[:i]), req.inPayload[i+1:])
 }
 
 func doRemoveXAttr(server *protocolServer, req *request) {

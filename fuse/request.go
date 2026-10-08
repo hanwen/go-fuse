@@ -223,10 +223,32 @@ func (r *requestAlloc) setInput(input []byte) bool {
 	return true
 }
 
-func (r *request) splitPayload(inSize int, storage *requestExt) Status {
+func (r *requestAlloc) splitPayload(inSize, structSize int) Status {
 	r.inPayload = r.inputBuf[inSize:]
 	r.inputBuf = r.inputBuf[:inSize]
-	return r.splitExt(storage)
+	r.extendInput(structSize)
+	return r.splitExt(&r.extInline)
+}
+
+func (r *requestAlloc) extendInput(size int) {
+	n := len(r.inputBuf)
+	if n >= size {
+		return
+	}
+	payloadInline := len(r.inPayload) > 0 && unsafe.SliceData(r.inPayload) == &r.smallInputBuf[n]
+	if payloadInline && size+len(r.inPayload) > len(r.smallInputBuf) {
+		buf := make([]byte, size)
+		copy(buf, r.inputBuf)
+		r.inputBuf = buf
+		return
+	}
+	if payloadInline {
+		r.inPayload = r.smallInputBuf[size : size+copy(r.smallInputBuf[size:], r.inPayload)]
+	} else if unsafe.SliceData(r.inputBuf) != &r.smallInputBuf[0] {
+		copy(r.smallInputBuf[:], r.inputBuf)
+	}
+	clear(r.smallInputBuf[n:size])
+	r.inputBuf = r.smallInputBuf[:size]
 }
 
 // splitExt parses the extension, if any, into storage.

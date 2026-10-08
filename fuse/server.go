@@ -505,7 +505,7 @@ func (ms *Server) handleRequest(req *requestAlloc) Status {
 		ms.opts.Logger.Printf("parseRequest: %v", code)
 	}
 	if code.Ok() {
-		req.request.status = req.splitPayload(inSize, &req.extInline)
+		req.request.status = req.splitPayload(inSize, int(h.InputSize))
 		if !req.request.status.Ok() {
 			ms.opts.Logger.Printf("op %s: bad request extension: %v", h.Name, req.request.status)
 		}
