@@ -73,6 +73,15 @@ type DirEntryList struct {
 
 	// pointer to the last serialized _Dirent. Used by FixMode().
 	lastDirent *_Dirent
+
+	readdirPlus bool
+}
+
+func (l *DirEntryList) setReaddirPlus(plus bool) {
+	if len(l.buf) > 0 && l.readdirPlus != plus {
+		panic("DirEntryList: cannot mix AddDirEntry and AddDirLookupEntry")
+	}
+	l.readdirPlus = plus
 }
 
 // NewDirEntryList creates a DirEntryList with the given data buffer
@@ -90,6 +99,7 @@ func NewDirEntryList(data []byte, off uint64) *DirEntryList {
 // the last offset + 1.
 func (l *DirEntryList) AddDirEntry(e DirEntry) bool {
 	// TODO: take pointer arg, merge with AddDirLookupEntry.
+	l.setReaddirPlus(false)
 	return l.addDirEntry(&e, 0)
 }
 
@@ -138,6 +148,7 @@ func (l *DirEntryList) Add(prefix int, name string, inode uint64, mode uint32) b
 		Off:  l.Offset + 1,
 		Ino:  inode,
 	}
+	l.setReaddirPlus(prefix != 0)
 	return l.addDirEntry(&e, prefix)
 }
 
@@ -154,6 +165,7 @@ func (l *DirEntryList) AddDirLookupEntry(e DirEntry) *EntryOut {
 	// [repeat]
 
 	// TODO: should take pointer as argument.
+	l.setReaddirPlus(true)
 	const entryOutSize = int(unsafe.Sizeof(EntryOut{}))
 	oldLen := len(l.buf)
 	ok := l.addDirEntry(&e, entryOutSize)
