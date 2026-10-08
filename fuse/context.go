@@ -64,6 +64,28 @@ func (c *Call) Caller() Caller {
 	return c.caller
 }
 
+// KillSuidgid reports whether the file system should clear the
+// suid/sgid bits (CAP_HANDLE_KILLPRIV_V2). It is set for WRITE, OPEN
+// and CREATE with *_KILL_SUIDGID, and for SETATTR with
+// FATTR_KILL_SUIDGID. The kernel sets these when the caller lacks
+// CAP_FSETID, regardless of the file's mode.
+func (c *Call) KillSuidgid() (kill bool, ok bool) {
+	ok = c.withRequest(func(r *request) {
+		in := r.inData()
+		switch r.inHeader().Opcode {
+		case _OP_WRITE:
+			kill = (*WriteIn)(in).WriteFlags&WRITE_KILL_SUIDGID != 0
+		case _OP_OPEN:
+			kill = (*OpenIn)(in).Mode&OPEN_KILL_SUIDGID != 0
+		case _OP_SETATTR:
+			kill = (*SetAttrIn)(in).Valid&FATTR_KILL_SUIDGID != 0
+		case _OP_CREATE, _OP_TMPFILE:
+			kill = (*CreateIn)(in).OpenFlags&OPEN_KILL_SUIDGID != 0
+		}
+	})
+	return kill, ok
+}
+
 // SuppGroups returns the supplementary group sent with
 // CAP_CREATE_SUPP_GROUP.
 func (c *Call) SuppGroups() (groups []uint32, ok bool) {
