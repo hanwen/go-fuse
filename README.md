@@ -13,6 +13,19 @@ systems
 
 ## Release notes
 
+v2.12
+
+* fuse: DirEntryList supports roundtrip testing
+* virtiofs: support reads beyond 4k.
+* virtiofs: I/O vector write support
+* fuse, fs: support tmp file creation (O_TMPFILE flag, TMPFILE opcode)
+* fuse: support I/O vectors in ReadResult
+* fuse: support SPLICE_F_MOVE in ReadResult
+* fs: NFS export support through Options.ExternalNodeID
+    - LoopbackFile uses birthtime as generation
+    - NodeLookupNoder: support lookup for NFS server reconnect
+    - NodeLookupParenter: support parent dir lookup for NFS server reconnect
+
 v2.11:
 
 * fuse: added MountOptions.PanicHandler; panics no longer crash the server.
