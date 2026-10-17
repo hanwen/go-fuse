@@ -42,6 +42,75 @@ func TestDirSeek(t *testing.T) {
 	testDirSeek(t, mountDir)
 }
 
+type rewindDirNode struct {
+	Inode
+	mu      sync.Mutex
+	entries []string
+}
+
+var _ = (NodeReaddirer)((*rewindDirNode)(nil))
+
+func (n *rewindDirNode) Readdir(ctx context.Context) (DirStream, syscall.Errno) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	list := make([]fuse.DirEntry, len(n.entries))
+	for i, name := range n.entries {
+		list[i] = fuse.DirEntry{
+			Name: name,
+			Mode: fuse.S_IFREG,
+			Ino:  uint64(i + 100),
+		}
+	}
+	return NewListDirStream(list), 0
+}
+
+func (n *rewindDirNode) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	for i, entry := range n.entries {
+		if entry == name {
+			stable := StableAttr{
+				Mode: fuse.S_IFREG | 0644,
+				Ino:  uint64(i + 100),
+			}
+			return n.NewPersistentInode(ctx, &MemRegularFile{}, stable), 0
+		}
+	}
+	return nil, syscall.ENOENT
+}
+
+// TestDirRewind checks that rewinddir on a NodeReaddirer directory
+// refreshes the listing instead of replaying the old DirStream.
+func TestDirRewind(t *testing.T) {
+	root := &rewindDirNode{entries: []string{"a"}}
+	mntDir, _ := testMount(t, root, nil)
+
+	f, err := os.Open(mntDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	if names, err := f.Readdirnames(-1); err != nil || len(names) != 1 || names[0] != "a" {
+		t.Fatalf("got %v, %v, want [a]", names, err)
+	}
+
+	root.mu.Lock()
+	root.entries = append(root.entries, "b")
+	root.mu.Unlock()
+
+	if _, err := f.Seek(0, io.SeekStart); err != nil {
+		t.Fatal(err)
+	}
+	names, err := f.Readdirnames(-1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(names) != 2 || names[0] != "a" || names[1] != "b" {
+		t.Errorf("after rewind: got %v, want [a b]", names)
+	}
+}
+
 type rewindHandleNode struct {
 	Inode
 	mu      sync.Mutex

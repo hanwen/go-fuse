@@ -98,6 +98,10 @@ func (d *dirStreamAsFile) Readdirent(ctx context.Context) (de *fuse.DirEntry, er
 }
 
 func (d *dirStreamAsFile) Seekdir(ctx context.Context, off uint64) syscall.Errno {
+	if off == 0 && d.ds != nil {
+		d.ds.Close()
+		d.ds = nil
+	}
 	if d.ds == nil {
 		var errno syscall.Errno
 		d.ds, errno = d.creator(ctx)
