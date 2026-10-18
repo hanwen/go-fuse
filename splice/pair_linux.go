@@ -27,9 +27,9 @@ func (p *Pair) SpliceFrom(src *Pair, sz int) (int, error) {
 	var err error
 	src.rConn.Control(func(rfd uintptr) {
 		p.wConn.Control(func(wfd uintptr) {
-			var sn int64
-			sn, err = syscall.Splice(int(rfd), nil, int(wfd), nil, sz, 0)
+			sn, e := syscall.Splice(int(rfd), nil, int(wfd), nil, sz, 0)
 			n = int(sn)
+			err = e
 		})
 	})
 	if err != nil {
@@ -42,9 +42,9 @@ func (p *Pair) LoadFromAt(fd uintptr, sz int, off int64) (int, error) {
 	var n int
 	var err error
 	p.wConn.Control(func(wfd uintptr) {
-		var sn int64
-		sn, err = syscall.Splice(int(fd), &off, int(wfd), nil, sz, 0)
+		sn, e := syscall.Splice(int(fd), &off, int(wfd), nil, sz, 0)
 		n = int(sn)
+		err = e
 	})
 	return n, err
 }
@@ -58,9 +58,9 @@ func (p *Pair) LoadFrom(fd uintptr, sz int) (int, error) {
 	var n int
 	var err error
 	p.wConn.Control(func(wfd uintptr) {
-		var sn int64
-		sn, err = syscall.Splice(int(fd), nil, int(wfd), nil, sz, 0)
+		sn, e := syscall.Splice(int(fd), nil, int(wfd), nil, sz, 0)
 		n = int(sn)
+		err = e
 	})
 	if err != nil {
 		err = os.NewSyscallError("Splice load from", err)
@@ -78,9 +78,9 @@ func (p *Pair) WriteToFlags(fd uintptr, n int, flags int) (int, error) {
 	var m int
 	var err error
 	p.rConn.Control(func(rfd uintptr) {
-		var sm int64
-		sm, err = syscall.Splice(int(rfd), nil, int(fd), nil, n, flags)
+		sm, e := syscall.Splice(int(rfd), nil, int(fd), nil, n, flags)
 		m = int(sm)
+		err = e
 	})
 	if err != nil {
 		err = os.NewSyscallError("Splice write", err)
