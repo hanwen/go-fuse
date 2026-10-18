@@ -152,7 +152,16 @@ func (o *MountOptions) setDefaults(fs RawFileSystem) {
 		o.MaxStackDepth = 1
 	}
 	if o.Name == "" {
-		name := reflect.TypeOf(fs).Name()
+		var name string
+		if s, ok := fs.(fmt.Stringer); ok {
+			name = s.String()
+		} else {
+			t := reflect.TypeOf(fs)
+			for t.Kind() == reflect.Pointer {
+				t = t.Elem()
+			}
+			name = t.Name()
+		}
 		l := min(len(name), _MAX_NAME_LEN)
 		o.Name = strings.Replace(name[:l], ",", ";", -1)
 	}
