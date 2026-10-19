@@ -67,6 +67,16 @@ func prepareAssets() error {
 	}
 	testAssets.busybox = busybox
 
+	// GO_FUSE_VIRTIOFS_KERNEL selects a guest kernel with virtiofs built
+	// in, eg. from kernel/build.bash.
+	if k := os.Getenv("GO_FUSE_VIRTIOFS_KERNEL"); k != "" {
+		if _, err := os.Stat(k); err != nil {
+			return fmt.Errorf("GO_FUSE_VIRTIOFS_KERNEL: %w", err)
+		}
+		testAssets.kernel = k
+		return nil
+	}
+
 	kernel, err := findHostKernel()
 	if err != nil {
 		return fmt.Errorf("kernel: %w", err)

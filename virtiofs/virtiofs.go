@@ -17,13 +17,16 @@ import (
 // Linux kernel virtio-fs driver implement unsolicited device-to-driver
 // notifications. Notification calls will return ENOSYS.
 func ServeFS(sockpath string, rawFS fuse.RawFileSystem, opts *fuse.MountOptions) {
+	opts.DisableSplice = true
+	serveProtocol(sockpath, fuse.NewProtocolServer(rawFS, opts))
+}
+
+func serveProtocol(sockpath string, ps *fuse.ProtocolServer) {
 	l, err := net.ListenUnix("unix", &net.UnixAddr{Name: sockpath, Net: "unix"})
 	if err != nil {
 		log.Fatal("Listen", err)
 	}
 
-	opts.DisableSplice = true
-	ps := fuse.NewProtocolServer(rawFS, opts)
 	for {
 		conn, err := l.AcceptUnix()
 		if err != nil {

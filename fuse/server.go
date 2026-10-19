@@ -75,7 +75,7 @@ type Server struct {
 // KernelSettings returns the Init message from the kernel, so
 // filesystems can adapt to availability of features of the kernel
 // driver. The message should not be altered.
-func (ms *Server) KernelSettings() *InitIn {
+func (ms *protocolServer) KernelSettings() *InitIn {
 	s := ms.kernelSettings
 
 	return &s

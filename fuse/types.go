@@ -269,6 +269,7 @@ const (
 	FOPEN_NOFLUSH                = (1 << 5)
 	FOPEN_PARALLEL_DIRECT_WRITES = (1 << 6)
 	FOPEN_PASSTHROUGH            = (1 << 7)
+	FOPEN_COMPLETE_DIR           = (1 << 9)
 )
 
 type OpenOut struct {
@@ -313,17 +314,19 @@ const (
 
 	/* bits 24..31 differ across linux and mac */
 	/* bits 32..63 get shifted down 32 bits into the Flags2 field */
-	CAP_SECURITY_CTX         = (1 << 32)
-	CAP_HAS_INODE_DAX        = (1 << 33)
-	CAP_CREATE_SUPP_GROUP    = (1 << 34)
-	CAP_HAS_EXPIRE_ONLY      = (1 << 35)
-	CAP_DIRECT_IO_ALLOW_MMAP = (1 << 36)
-	CAP_PASSTHROUGH          = (1 << 37)
-	CAP_NO_EXPORT_SUPPORT    = (1 << 38)
-	CAP_HAS_RESEND           = (1 << 39)
-	CAP_ALLOW_IDMAP          = (1 << 40)
-	CAP_OVER_IO_URING        = (1 << 41)
-	CAP_REQUEST_TIMEOUT      = (1 << 42)
+	CAP_SECURITY_CTX           = (1 << 32)
+	CAP_HAS_INODE_DAX          = (1 << 33)
+	CAP_CREATE_SUPP_GROUP      = (1 << 34)
+	CAP_HAS_EXPIRE_ONLY        = (1 << 35)
+	CAP_DIRECT_IO_ALLOW_MMAP   = (1 << 36)
+	CAP_PASSTHROUGH            = (1 << 37)
+	CAP_NO_EXPORT_SUPPORT      = (1 << 38)
+	CAP_HAS_RESEND             = (1 << 39)
+	CAP_ALLOW_IDMAP            = (1 << 40)
+	CAP_OVER_IO_URING          = (1 << 41)
+	CAP_REQUEST_TIMEOUT        = (1 << 42)
+	CAP_HAS_COMPLETE_DIR       = (1 << 44)
+	CAP_HAS_NOTIFY_READDIRPLUS = (1 << 45)
 )
 
 type InitIn struct {
