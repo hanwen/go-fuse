@@ -121,6 +121,43 @@ func readdir(d string) error {
 	return f.Close()
 }
 
+func BenchmarkGoFSParallelReaddir(b *testing.B) {
+	root := &StatFS{}
+	for i := 0; i < 16; i++ {
+		root.AddFile(fmt.Sprintf("file%02d", i), fuse.Attr{Mode: syscall.S_IFREG})
+	}
+	mnt := setupFS(root, b.N, b)
+	b.ReportAllocs()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		// Avoid client-side allocations for directory entry names.
+		buf := make([]byte, 32768)
+		run := func() (err error) {
+			fd, err := syscall.Open(mnt, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_CLOEXEC, 0)
+			if err != nil {
+				return err
+			}
+			defer syscall.Close(fd)
+			for {
+				n, err := syscall.ReadDirent(fd, buf)
+				if err != nil {
+					return err
+				}
+				if n == 0 {
+					return nil
+				}
+			}
+		}
+		for pb.Next() {
+			if err := run(); err != nil {
+				b.Error(err)
+				return
+			}
+		}
+	})
+	b.StopTimer()
+}
+
 func BenchmarkGoFSReaddir(b *testing.B) {
 	b.StopTimer()
 	fs := &StatFS{}
