@@ -819,7 +819,10 @@ type Options struct {
 
 	// NegativeTimeout, if non-nil, defines the overall entry timeout
 	// for failed lookups (fuse.ENOENT). See [fuse.EntryOut] for
-	// more information.
+	// more information. It is also the lifetime of a complete
+	// directory listing (fuse.FOPEN_COMPLETE_DIR). If it is zero, a
+	// listing lasts as long as its shortest entry timeout, and an
+	// empty directory gets no listing.
 	NegativeTimeout *time.Duration
 
 	// FirstAutomaticIno is start of the automatic inode numbers that are handed
