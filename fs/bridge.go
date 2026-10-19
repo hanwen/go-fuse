@@ -19,6 +19,22 @@ func errnoToStatus(errno syscall.Errno) fuse.Status {
 	return fuse.Status(errno)
 }
 
+const (
+	initialDirEntryCapacity = 100
+	maxPooledDirEntries     = 2048
+)
+
+var dirEntryPool = sync.Pool{
+	New: func() interface{} { return make([]fuse.DirEntry, 0, initialDirEntryCapacity) },
+}
+
+func putDirEntries(entries []fuse.DirEntry) {
+	if entries == nil || cap(entries) > maxPooledDirEntries {
+		return
+	}
+	dirEntryPool.Put(entries[:0])
+}
+
 type fileEntry struct {
 	file FileHandle
 
@@ -970,6 +986,9 @@ func (b *rawBridge) ReleaseDir(input *fuse.ReleaseIn) {
 	if frd, ok := f.file.(FileReleasedirer); ok {
 		frd.Releasedir(context.Background(), input.ReleaseFlags)
 	}
+
+	putDirEntries(f.lastRead)
+	f.lastRead = nil
 
 	b.backingMu.Lock()
 	defer b.backingMu.Unlock()

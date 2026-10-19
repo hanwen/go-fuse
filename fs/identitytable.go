@@ -292,7 +292,7 @@ func (t *mapIdentityTable) registerFile(e *nodeEntry, f FileHandle, flags uint32
 	}
 
 	if _, ok := f.(FileReaddirenter); ok {
-		fe.lastRead = make([]fuse.DirEntry, 0, 100)
+		fe.lastRead = dirEntryPool.Get().([]fuse.DirEntry)
 	}
 	fe.nodeIndex = len(e.openFiles)
 	fe.file = f
