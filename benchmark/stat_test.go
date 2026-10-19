@@ -166,13 +166,15 @@ func BenchmarkGoFSParallelReaddir(b *testing.B) {
 	b.StopTimer()
 }
 
-func BenchmarkReadDirEnt(b *testing.B) {
+// BenchmarkReadDirEntCompleteDir lists a directory opened with
+// FOPEN_COMPLETE_DIR, so every pass is READDIRPLUS and builds a listing.
+func BenchmarkReadDirEntCompleteDir(b *testing.B) {
 	const N = 500
 	root := &StatFS{}
 	for i := 0; i < N; i++ {
 		root.AddFile(fmt.Sprintf("file%03d", i), fuse.Attr{Mode: syscall.S_IFREG})
 	}
-	mnt := setupFS(root, b.N, b)
+	mnt, _ := setupCompleteDirFS(root, b)
 
 	b.ResetTimer()
 	total := 0
@@ -248,15 +250,7 @@ func (c *completeDirFS) OpenDir(ctx context.Context, input *fuse.OpenIn, out *fu
 	return st
 }
 
-// BenchmarkNegStatUncachedDir stats absent names in a directory that was
-// listed with FOPEN_COMPLETE_DIR. Kernels that support CAP_HAS_COMPLETE_DIR
-// answer these without sending LOOKUP.
-func BenchmarkNegStatUncachedDir(b *testing.B) {
-	const N = 500
-	root := &StatFS{}
-	for i := 0; i < N; i++ {
-		root.AddFile(fmt.Sprintf("file%03d", i), fuse.Attr{Mode: syscall.S_IFREG})
-	}
+func setupCompleteDirFS(root fs.InodeEmbedder, b *testing.B) (string, *completeDirFS) {
 	dt := time.Hour
 	opts := &fs.Options{
 		EntryTimeout: &dt,
@@ -283,6 +277,19 @@ func BenchmarkNegStatUncachedDir(b *testing.B) {
 	if server.KernelSettings().Flags64()&fuse.CAP_HAS_COMPLETE_DIR == 0 {
 		b.Log("kernel does not support CAP_HAS_COMPLETE_DIR")
 	}
+	return mnt, cfs
+}
+
+// BenchmarkNegStatUncachedDir stats absent names in a directory that was
+// listed with FOPEN_COMPLETE_DIR. Kernels that support CAP_HAS_COMPLETE_DIR
+// answer these without sending LOOKUP.
+func BenchmarkNegStatUncachedDir(b *testing.B) {
+	const N = 500
+	root := &StatFS{}
+	for i := 0; i < N; i++ {
+		root.AddFile(fmt.Sprintf("file%03d", i), fuse.Attr{Mode: syscall.S_IFREG})
+	}
+	mnt, cfs := setupCompleteDirFS(root, b)
 
 	if _, err := os.ReadDir(mnt); err != nil {
 		b.Fatal(err)

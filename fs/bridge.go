@@ -1122,7 +1122,10 @@ func (b *rawBridge) OpenDir(ctx context.Context, input *fuse.OpenIn, out *fuse.O
 
 func (n *Inode) childrenAsDirstream() DirStream {
 	lst := n.childrenList()
-	r := make([]fuse.DirEntry, 0, len(lst))
+	r := make([]fuse.DirEntry, 0, len(lst)+1)
+	// "." carries the entry timeout that makes an empty listing
+	// complete (FOPEN_COMPLETE_DIR).
+	r = append(r, fuse.DirEntry{Mode: syscall.S_IFDIR, Name: ".", Ino: n.StableAttr().Ino})
 	for _, e := range lst {
 		r = append(r, fuse.DirEntry{Mode: e.Inode.Mode(),
 			Name: e.Name,

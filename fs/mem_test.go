@@ -344,8 +344,8 @@ func TestReaddirplusParallel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(want) != N {
-		t.Fatalf("read back %d entries, want %d", len(want), N)
+	if len(want) != N+1 { // including "."
+		t.Fatalf("read back %d entries, want %d", len(want), N+1)
 	}
 	var wg sync.WaitGroup
 	for i := 0; i < P; i++ {
