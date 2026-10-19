@@ -269,6 +269,7 @@ const (
 	FOPEN_NOFLUSH                = (1 << 5)
 	FOPEN_PARALLEL_DIRECT_WRITES = (1 << 6)
 	FOPEN_PASSTHROUGH            = (1 << 7)
+	FOPEN_COMPLETE_DIR           = (1 << 9)
 )
 
 type OpenOut struct {
@@ -324,6 +325,7 @@ const (
 	CAP_ALLOW_IDMAP          = (1 << 40)
 	CAP_OVER_IO_URING        = (1 << 41)
 	CAP_REQUEST_TIMEOUT      = (1 << 42)
+	CAP_HAS_COMPLETE_DIR     = (1 << 46)
 )
 
 type InitIn struct {

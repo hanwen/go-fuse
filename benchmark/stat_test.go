@@ -5,6 +5,7 @@
 package benchmark
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -12,6 +13,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
+	"sync/atomic"
 	"syscall"
 	"testing"
 	"time"
@@ -213,6 +216,76 @@ func BenchmarkNegStatCached(b *testing.B) {
 	benchmarkNegStat(b, &fs.Options{
 		NegativeTimeout: &dt,
 	})
+}
+
+// completeDirFS marks all directories with FOPEN_COMPLETE_DIR and counts
+// LOOKUPs.
+type completeDirFS struct {
+	fuse.RawFileSystem
+	lookups atomic.Int64
+}
+
+func (c *completeDirFS) Lookup(ctx context.Context, header *fuse.InHeader, name string, out *fuse.EntryOut) fuse.Status {
+	c.lookups.Add(1)
+	return c.RawFileSystem.Lookup(ctx, header, name, out)
+}
+
+func (c *completeDirFS) OpenDir(ctx context.Context, input *fuse.OpenIn, out *fuse.OpenOut) fuse.Status {
+	st := c.RawFileSystem.OpenDir(ctx, input, out)
+	if st.Ok() {
+		out.OpenFlags |= fuse.FOPEN_COMPLETE_DIR
+	}
+	return st
+}
+
+// BenchmarkNegStatUncachedDir stats absent names in a directory that was
+// listed with FOPEN_COMPLETE_DIR. Kernels that support CAP_HAS_COMPLETE_DIR
+// answer these without sending LOOKUP.
+func BenchmarkNegStatUncachedDir(b *testing.B) {
+	const N = 500
+	root := &StatFS{}
+	for i := 0; i < N; i++ {
+		root.AddFile(fmt.Sprintf("file%03d", i), fuse.Attr{Mode: syscall.S_IFREG})
+	}
+	dt := time.Hour
+	opts := &fs.Options{
+		EntryTimeout: &dt,
+		AttrTimeout:  &dt,
+	}
+	opts.Debug = testutil.VerboseTest()
+	opts.MountOptions.ExtraCapabilities = fuse.CAP_HAS_COMPLETE_DIR
+	cfs := &completeDirFS{RawFileSystem: fs.NewNodeFS(root, opts)}
+
+	mnt := b.TempDir()
+	server, err := fuse.NewServer(cfs, mnt, &opts.MountOptions)
+	if err != nil {
+		b.Fatal(err)
+	}
+	go server.Serve()
+	if err := server.WaitMount(); err != nil {
+		b.Fatal(err)
+	}
+	b.Cleanup(func() { server.Unmount() })
+	if server.KernelSettings().Flags64()&fuse.CAP_HAS_COMPLETE_DIR == 0 {
+		b.Log("kernel does not support CAP_HAS_COMPLETE_DIR")
+	}
+
+	if _, err := os.ReadDir(mnt); err != nil {
+		b.Fatal(err)
+	}
+
+	prefix := mnt + "/nonexistent"
+	var st syscall.Stat_t
+	before := cfs.lookups.Load()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		fn := prefix + strconv.Itoa(i)
+		if err := syscall.Stat(fn, &st); err != syscall.ENOENT {
+			b.Fatalf("got %v, want ENOENT", err)
+		}
+	}
+	b.StopTimer()
+	b.ReportMetric(float64(cfs.lookups.Load()-before)/float64(b.N), "lookups/op")
 }
 
 func TestingBOnePass(b *testing.B, threads int, filelist, mountPoint string) error {
