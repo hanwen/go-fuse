@@ -6,6 +6,7 @@ package fs
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -18,10 +19,19 @@ import (
 )
 
 // TestBridgeReaddirPlusVirtualEntries looks at "." and ".." in the ReadDirPlus
-// output. They should exist, but the NodeId should be zero.
+// output. They should exist, but ".." has NodeId zero. With an entry timeout,
+// "." carries the directory's NodeId and the timeout, for FOPEN_COMPLETE_DIR.
 func TestBridgeReaddirPlusVirtualEntries(t *testing.T) {
+	for _, entryCache := range []bool{false, true} {
+		t.Run(fmt.Sprintf("entryCache=%v", entryCache), func(t *testing.T) {
+			testBridgeReaddirPlusVirtualEntries(t, entryCache)
+		})
+	}
+}
+
+func testBridgeReaddirPlusVirtualEntries(t *testing.T, entryCache bool) {
 	// Set suppressDebug as we do our own logging
-	tc := newTestCase(t, &testOptions{suppressDebug: true})
+	tc := newTestCase(t, &testOptions{suppressDebug: true, entryCache: entryCache})
 
 	rb := tc.rawFS.(*rawBridge)
 
@@ -64,10 +74,16 @@ func TestBridgeReaddirPlusVirtualEntries(t *testing.T) {
 		t.Fatalf(`got %v, want {".", ".."}`, names)
 	}
 
-	for k, v := range names {
-		if v.NodeId != 0 {
-			t.Errorf("entry %q NodeId should be 0, but is %d", k, v.NodeId)
-		}
+	if v := names[".."]; v.NodeId != 0 {
+		t.Errorf(`entry ".." NodeId should be 0, but is %d`, v.NodeId)
+	}
+	wantID, wantTimeout := uint64(0), time.Duration(0)
+	if entryCache {
+		wantID, wantTimeout = 1, time.Second
+	}
+	if v := names["."]; v.NodeId != wantID || v.EntryTimeout() != wantTimeout {
+		t.Errorf(`entry "." got NodeId %d, timeout %v, want %d, %v`,
+			v.NodeId, v.EntryTimeout(), wantID, wantTimeout)
 	}
 }
 

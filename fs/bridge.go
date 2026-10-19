@@ -1225,10 +1225,20 @@ func (b *rawBridge) readDirMaybeLookup(ctx context.Context, input *fuse.ReadIn, 
 
 		// Virtual entries "." and ".." should be part of the
 		// directory listing, but not part of the filesystem tree.
-		// The values in EntryOut are ignored by Linux
-		// (see fuse_direntplus_link() in linux/fs/fuse/readdir.c), so leave
-		// them at zero-value.
-		if de.Name == "." || de.Name == ".." {
+		// Linux never takes a lookup reference for them (see
+		// fuse_direntplus_link() in linux/fs/fuse/readdir.c). The
+		// entry timeout of "." bounds how long a complete listing
+		// (FOPEN_COMPLETE_DIR) is valid, which covers empty
+		// directories.
+		if de.Name == "." {
+			if b.options.EntryTimeout != nil && *b.options.EntryTimeout > 0 {
+				entryOut.NodeId = n.nodeId
+				entryOut.Generation = n.stableAttr.Gen
+				entryOut.SetEntryTimeout(*b.options.EntryTimeout)
+			}
+			continue
+		}
+		if de.Name == ".." {
 			continue
 		}
 
