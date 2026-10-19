@@ -56,6 +56,9 @@ type request struct {
 
 // requestAlloc holds the request, plus I/O buffers, which are
 // reused across requests.
+//
+// As of Oct 2026, memory recycling decreases walltime on metadata
+// heavy loads by ~9%.
 type requestAlloc struct {
 	request
 
