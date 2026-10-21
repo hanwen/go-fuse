@@ -71,6 +71,9 @@ type fileEntry struct {
 	// directory seek has taken place.
 	dirOffset uint64
 
+	// dirRead distinguishes a rewound empty listing from a fresh one.
+	dirRead bool
+
 	// We try to associate a file for stat() calls, but the kernel
 	// can issue a RELEASE and GETATTR in parallel. This waitgroup
 	// avoids that the RELEASE will invalidate the file descriptor
@@ -1172,7 +1175,7 @@ func (b *rawBridge) readDirMaybeLookup(ctx context.Context, input *fuse.ReadIn, 
 		}
 	}
 
-	if input.Offset != f.dirOffset {
+	if input.Offset != f.dirOffset || (input.Offset == 0 && f.dirRead) {
 		if sd, ok := f.file.(FileSeekdirer); ok {
 			errno := sd.Seekdir(ctx, input.Offset)
 			if errno != 0 {
@@ -1185,6 +1188,7 @@ func (b *rawBridge) readDirMaybeLookup(ctx context.Context, input *fuse.ReadIn, 
 			return fuse.ENOTSUP
 		}
 	}
+	f.dirRead = true
 
 	defer func() {
 		f.dirOffset = out.Offset
