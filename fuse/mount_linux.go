@@ -188,6 +188,12 @@ func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, e
 		if opts.Debug {
 			opts.Logger.Printf("mount: magic mountpoint %q, using fd %d", mountPoint, fd)
 		}
+	} else if _, lookErr := fusermountBinary(); lookErr != nil {
+		fd, err = mountDirect(mountPoint, opts, ready)
+		if err != nil {
+			return -1, fmt.Errorf("%v; direct mount: %w", lookErr, err)
+		}
+		return fd, nil
 	} else {
 		// Usual case: mount via the `fusermount` suid helper
 		fd, err = callFusermount(mountPoint, opts)
@@ -217,7 +223,10 @@ func unmount(mountPoint string, opts *MountOptions) (err error) {
 
 	bin, err := fusermountBinary()
 	if err != nil {
-		return err
+		if uerr := syscall.Unmount(mountPoint, 0); uerr != nil {
+			return fmt.Errorf("%v; direct unmount: %w", err, uerr)
+		}
+		return nil
 	}
 	errBuf := bytes.Buffer{}
 	cmd := exec.Command(bin, "-u", mountPoint)

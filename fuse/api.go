@@ -93,7 +93,8 @@
 // setuid-root helper to call `mount(2)` for us. This is the default.
 // Does not need root permissions but needs `fusermount` installed.
 //
-// 2) If `MountOptions.DirectMount` is set, go-fuse calls `mount(2)` itself.
+// 2) If `MountOptions.DirectMount` is set, or if `fusermount` is not
+// installed, go-fuse calls `mount(2)` itself.
 // Needs root permissions, but works without `fusermount`.
 //
 // 3) If `mountPoint` has the magic `/dev/fd/N` syntax, it means that that a
