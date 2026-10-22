@@ -8,11 +8,18 @@
 package fs
 
 import (
+	"context"
 	"syscall"
 	"time"
 )
 
 const unix_UTIME_OMIT = 0x0
+
+func aclKillSgid(ctx context.Context) bool { return false }
+
+func setxattrKillSgid(root, rel, attr string, data []byte, flags int) syscall.Errno {
+	return syscall.ENOTSUP
+}
 
 // timeToTimeval - Convert time.Time to syscall.Timeval
 //

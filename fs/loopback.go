@@ -529,6 +529,9 @@ func (n *LoopbackNode) Getxattr(ctx context.Context, attr string, dest []byte) (
 var _ = (NodeSetxattrer)((*LoopbackNode)(nil))
 
 func (n *LoopbackNode) Setxattr(ctx context.Context, attr string, data []byte, flags uint32) syscall.Errno {
+	if aclKillSgid(ctx) {
+		return setxattrKillSgid(n.RootData.Path, n.relativePath(), attr, data, int(flags))
+	}
 	err := unix.Lsetxattr(n.path(), attr, data, int(flags))
 	return ToErrno(err)
 }

@@ -8,13 +8,50 @@ package fs
 
 import (
 	"context"
+	"fmt"
 	"syscall"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v2/internal/openat"
 	"golang.org/x/sys/unix"
 )
 
 const unix_UTIME_OMIT = unix.UTIME_OMIT
+
+func aclKillSgid(ctx context.Context) bool {
+	call, ok := fuse.CallFromContext(ctx)
+	if !ok {
+		return false
+	}
+	var in fuse.SetXAttrIn
+	return fuse.Input(call, &in) && in.SetXAttrFlags&fuse.SETXATTR_ACL_KILL_SGID != 0
+}
+
+// The underlying filesystem checks CAP_FSETID against our
+// credentials, so clear setgid ourselves.
+func setxattrKillSgid(root, rel, attr string, data []byte, flags int) syscall.Errno {
+	if rel == "" {
+		rel = "."
+	}
+	fd, err := openat.OpenSymlinkAware(root, rel, unix.O_PATH|unix.O_NOFOLLOW, 0)
+	if err != nil {
+		return ToErrno(err)
+	}
+	defer unix.Close(fd)
+	// safely call unix.Setxattr
+	procPath := fmt.Sprintf("/proc/self/fd/%d", fd)
+	if err := unix.Setxattr(procPath, attr, data, flags); err != nil {
+		return ToErrno(err)
+	}
+	var st unix.Stat_t
+	if err := unix.Fstat(fd, &st); err != nil {
+		return ToErrno(err)
+	}
+	if st.Mode&unix.S_ISGID != 0 {
+		return ToErrno(unix.Chmod(procPath, st.Mode&07777&^unix.S_ISGID))
+	}
+	return OK
+}
 
 var _ = (NodeTmpfiler)((*LoopbackNode)(nil))
 
