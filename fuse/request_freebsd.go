@@ -2,6 +2,8 @@ package fuse
 
 const outputDataSize = 144
 
+const inputDataSize = 128
+
 const (
 	_FUSE_KERNEL_VERSION   = 7
 	_MINIMUM_MINOR_VERSION = 12

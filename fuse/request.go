@@ -76,7 +76,7 @@ type requestAlloc struct {
 	outDataInline [uintptr(outputDataSize)]byte
 
 	// Input, if small enough to fit here.
-	smallInputBuf [128]byte
+	smallInputBuf [uintptr(inputDataSize)]byte
 
 	extInline requestExt
 }

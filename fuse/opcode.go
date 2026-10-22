@@ -799,6 +799,9 @@ func checkFixedBufferSize() {
 		if h.OutputSize > unsafe.Sizeof(r.outDataInline) {
 			log.Panicf("request output buffer too small: code %v, sz %d %v", code, h.OutputSize, h)
 		}
+		if h.InputSize > unsafe.Sizeof(r.smallInputBuf) {
+			log.Panicf("request input buffer too small: code %v, sz %d %v", code, h.InputSize, h)
+		}
 		if maxInputSize < h.InputSize {
 			maxInputSize = h.InputSize
 		}
