@@ -22,7 +22,10 @@ import (
 )
 
 func setupFS(node fs.InodeEmbedder, N int, tb testing.TB) string {
-	opts := &fs.Options{}
+	return setupFSWithOptions(node, &fs.Options{}, tb)
+}
+
+func setupFSWithOptions(node fs.InodeEmbedder, opts *fs.Options, tb testing.TB) string {
 	opts.Debug = testutil.VerboseTest()
 	mountPoint := tb.TempDir()
 	server, err := fs.Mount(mountPoint, node, opts)
@@ -110,15 +113,17 @@ func BenchmarkGoFSStat(b *testing.B) {
 	}
 }
 
-func readdir(d string) error {
+func readdir(d string) (int, error) {
 	f, err := os.Open(d)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	if _, err := f.Readdirnames(-1); err != nil {
-		return err
+	names, err := f.Readdirnames(-1)
+	if err != nil {
+		f.Close()
+		return 0, err
 	}
-	return f.Close()
+	return len(names), f.Close()
 }
 
 func BenchmarkGoFSParallelReaddir(b *testing.B) {
@@ -158,38 +163,56 @@ func BenchmarkGoFSParallelReaddir(b *testing.B) {
 	b.StopTimer()
 }
 
-func BenchmarkGoFSReaddir(b *testing.B) {
-	b.StopTimer()
-	fs := &StatFS{}
-
-	wd, _ := os.Getwd()
-	dirSet := map[string]struct{}{}
-
-	for _, fn := range ReadLines(wd + "/testpaths.txt") {
-		fs.AddFile(fn, fuse.Attr{Mode: syscall.S_IFREG})
-		dirSet[filepath.Dir(fn)] = struct{}{}
+func BenchmarkReadDirEnt(b *testing.B) {
+	const N = 500
+	root := &StatFS{}
+	for i := 0; i < N; i++ {
+		root.AddFile(fmt.Sprintf("file%03d", i), fuse.Attr{Mode: syscall.S_IFREG})
 	}
+	mnt := setupFS(root, b.N, b)
 
-	mnt := setupFS(fs, b.N, b)
-
-	var dirs []string
-	for dir := range dirSet {
-		dirs = append(dirs, filepath.Join(mnt, dir))
-	}
-	b.StartTimer()
-	todo := b.N
-	for todo > 0 {
-		if len(dirs) > todo {
-			dirs = dirs[:todo]
+	b.ResetTimer()
+	total := 0
+	for total < b.N {
+		n, err := readdir(mnt)
+		if err != nil {
+			b.Fatal(err)
 		}
-		for _, d := range dirs {
-			if err := readdir(d); err != nil {
-				b.Fatal(err)
-			}
+		if n != N {
+			b.Fatalf("got %d entries, want %d", n, N)
 		}
-		todo -= len(dirs)
+		total += n
 	}
 	b.StopTimer()
+	b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(total), "ns/op")
+}
+
+func benchmarkNegStat(b *testing.B, opts *fs.Options) {
+	mnt := setupFSWithOptions(&StatFS{}, opts, b)
+	fn := mnt + "/nonexistent"
+
+	var st syscall.Stat_t
+	if err := syscall.Stat(fn, &st); err != syscall.ENOENT {
+		b.Fatalf("got %v, want ENOENT", err)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if err := syscall.Stat(fn, &st); err != syscall.ENOENT {
+			b.Fatalf("got %v, want ENOENT", err)
+		}
+	}
+	b.StopTimer()
+}
+
+func BenchmarkNegStatUncached(b *testing.B) {
+	benchmarkNegStat(b, &fs.Options{})
+}
+
+func BenchmarkNegStatCached(b *testing.B) {
+	dt := time.Hour
+	benchmarkNegStat(b, &fs.Options{
+		NegativeTimeout: &dt,
+	})
 }
 
 func TestingBOnePass(b *testing.B, threads int, filelist, mountPoint string) error {
