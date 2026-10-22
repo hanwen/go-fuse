@@ -218,10 +218,11 @@ func lockNodes(ns ...*Inode) {
 	}
 }
 
-// lockNode2 locks a and b in order consistent with lockNodes.
+// lockNode2 locks a and b in order consistent with lockNodes. a may
+// be nil.
 func lockNode2(a, b *Inode) {
-	if a == b {
-		a.mu.Lock()
+	if a == b || a == nil {
+		b.mu.Lock()
 	} else if nodeLess(a, b) {
 		a.mu.Lock()
 		b.mu.Lock()
@@ -233,8 +234,8 @@ func lockNode2(a, b *Inode) {
 
 // unlockNode2 unlocks a and b
 func unlockNode2(a, b *Inode) {
-	if a == b {
-		a.mu.Unlock()
+	if a == b || a == nil {
+		b.mu.Unlock()
 	} else {
 		a.mu.Unlock()
 		b.mu.Unlock()

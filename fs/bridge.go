@@ -223,7 +223,7 @@ func (b *rawBridge) addNewNode(parent *Inode, name string, child *Inode, file Fi
 	exclusive := fileFlags&syscall.O_EXCL != 0
 	var evicted *Inode
 	for {
-		lockNodes(parent, child)
+		lockNode2(parent, child)
 		// registerNew atomically re-checks for an existing node under
 		// id and registers child if it wins. If it lost the race
 		// (someone else registered a different node under id between
@@ -235,7 +235,7 @@ func (b *rawBridge) addNewNode(parent *Inode, name string, child *Inode, file Fi
 			evicted = ev
 			break
 		}
-		unlockNodes(parent, child)
+		unlockNode2(parent, child)
 		child = winner
 	}
 
@@ -251,7 +251,7 @@ func (b *rawBridge) addNewNode(parent *Inode, name string, child *Inode, file Fi
 	out.Generation = child.stableAttr.Gen
 	out.Attr.Ino = child.stableAttr.Ino
 
-	unlockNodes(parent, child)
+	unlockNode2(parent, child)
 
 	if evicted != nil {
 		// eviction has no kernel interfacing. Just remove the
