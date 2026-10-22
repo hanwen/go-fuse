@@ -375,7 +375,7 @@ func (b *rawBridge) Lookup(ctx context.Context, header *fuse.InHeader, name stri
 		return b.lookupDotDot(ctx, header.NodeId, out)
 	}
 	parent, _ := b.inode(header.NodeId, 0)
-	child, errno := b.lookup(ctx, parent, name, out)
+	child, errno := b.lookup(ctx, parent, name, out, &fuse.AttrOut{})
 
 	if errno != 0 {
 		if errno == syscall.ENOENT && b.options.NegativeTimeout != nil && out.EntryTimeout() == 0 {
@@ -461,7 +461,8 @@ func (b *rawBridge) lookupDotDot(ctx context.Context, nodeID uint64, out *fuse.E
 	return fuse.OK
 }
 
-func (b *rawBridge) lookup(ctx context.Context, parent *Inode, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
+// lookup uses attr as scratch space for Getattr.
+func (b *rawBridge) lookup(ctx context.Context, parent *Inode, name string, out *fuse.EntryOut, attr *fuse.AttrOut) (*Inode, syscall.Errno) {
 	if lu, ok := parent.ops.(NodeLookuper); ok {
 		return lu.Lookup(ctx, name, out)
 	}
@@ -472,10 +473,10 @@ func (b *rawBridge) lookup(ctx context.Context, parent *Inode, name string, out 
 	}
 
 	if ga, ok := child.ops.(NodeGetattrer); ok {
-		var a fuse.AttrOut
-		errno := ga.Getattr(ctx, nil, &a)
+		*attr = fuse.AttrOut{}
+		errno := ga.Getattr(ctx, nil, attr)
 		if errno == 0 {
-			out.Attr = a.Attr
+			out.Attr = attr.Attr
 		}
 	}
 
@@ -1196,6 +1197,7 @@ func (b *rawBridge) readDirMaybeLookup(ctx context.Context, input *fuse.ReadIn, 
 
 	first := true
 	f.lastRead = f.lastRead[:0]
+	var attr fuse.AttrOut
 	for {
 		var de *fuse.DirEntry
 		var errno syscall.Errno
@@ -1260,7 +1262,7 @@ func (b *rawBridge) readDirMaybeLookup(ctx context.Context, input *fuse.ReadIn, 
 		if fileLookupper, ok := f.file.(FileLookuper); ok {
 			child, errno = fileLookupper.Lookup(ctx, e.Name, entryOut)
 		} else {
-			child, errno = b.lookup(ctx, n, e.Name, entryOut)
+			child, errno = b.lookup(ctx, n, e.Name, entryOut, &attr)
 		}
 
 		if errno != 0 {
