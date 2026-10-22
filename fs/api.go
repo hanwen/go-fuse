@@ -768,7 +768,9 @@ type NodeOpendirHandler interface {
 
 // FileReaddirenter is a directory that supports reading.
 type FileReaddirenter interface {
-	// Read a single directory entry.
+	// Read a single directory entry. The caller does not use the
+	// returned entry after the next call to Readdirent, so
+	// implementations can reuse its storage.
 	Readdirent(ctx context.Context) (*fuse.DirEntry, syscall.Errno)
 }
 

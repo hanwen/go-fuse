@@ -1223,43 +1223,44 @@ func (b *rawBridge) readDirMaybeLookup(ctx context.Context, input *fuse.ReadIn, 
 		}
 
 		first = false
-		if de.Off == 0 {
+		e := *de
+		if e.Off == 0 {
 			// This logic is dup from fuse.DirEntryList, but we need the offset here so it is part of lastRead
-			de.Off = out.Offset + 1
+			e.Off = out.Offset + 1
 		}
 		if !lookup {
-			if !out.AddDirEntry(*de) {
-				f.overflow = *de
+			if !out.AddDirEntry(e) {
+				f.overflow = e
 				f.hasOverflow = true
 				return fuse.OK
 			}
 
-			f.lastRead = append(f.lastRead, *de)
+			f.lastRead = append(f.lastRead, e)
 			continue
 		}
 
-		entryOut := out.AddDirLookupEntry(*de)
+		entryOut := out.AddDirLookupEntry(e)
 		if entryOut == nil {
-			f.overflow = *de
+			f.overflow = e
 			f.hasOverflow = true
 			return fuse.OK
 		}
-		f.lastRead = append(f.lastRead, *de)
+		f.lastRead = append(f.lastRead, e)
 
 		// Virtual entries "." and ".." should be part of the
 		// directory listing, but not part of the filesystem tree.
 		// The values in EntryOut are ignored by Linux
 		// (see fuse_direntplus_link() in linux/fs/fuse/readdir.c), so leave
 		// them at zero-value.
-		if de.Name == "." || de.Name == ".." {
+		if e.Name == "." || e.Name == ".." {
 			continue
 		}
 
 		var child *Inode
 		if fileLookupper, ok := f.file.(FileLookuper); ok {
-			child, errno = fileLookupper.Lookup(ctx, de.Name, entryOut)
+			child, errno = fileLookupper.Lookup(ctx, e.Name, entryOut)
 		} else {
-			child, errno = b.lookup(ctx, n, de.Name, entryOut)
+			child, errno = b.lookup(ctx, n, e.Name, entryOut)
 		}
 
 		if errno != 0 {
@@ -1271,10 +1272,10 @@ func (b *rawBridge) readDirMaybeLookup(ctx context.Context, input *fuse.ReadIn, 
 			}
 			// TODO: should break?
 		} else {
-			child, _, _ = b.addNewChild(n, de.Name, child, nil, 0, entryOut)
+			child, _, _ = b.addNewChild(n, e.Name, child, nil, 0, entryOut)
 			child.setEntryOut(entryOut)
 			b.setEntryOutTimeout(entryOut)
-			if de.Mode&syscall.S_IFMT != child.stableAttr.Mode&syscall.S_IFMT {
+			if e.Mode&syscall.S_IFMT != child.stableAttr.Mode&syscall.S_IFMT {
 				// The file type has changed behind our back. Use the new value.
 				out.FixMode(child.stableAttr.Mode)
 			}
