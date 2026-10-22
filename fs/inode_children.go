@@ -76,6 +76,9 @@ func (c *inodeChildren) compact() {
 
 func (c *inodeChildren) set(parent *Inode, name string, ch *Inode) {
 	idx, ok := c.childrenMap[name]
+	if ok && c.children[idx].Inode == ch && ch.parents.newest == (parentData{name, parent}) {
+		return
+	}
 	if !ok {
 		if cap(c.children) == len(c.children) {
 			c.compact()

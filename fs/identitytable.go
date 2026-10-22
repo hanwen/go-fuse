@@ -156,12 +156,14 @@ func (t *mapIdentityTable) registerNew(id StableAttr, child *Inode, exclusive bo
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
+	key := t.dedupKey(id)
+	prev := t.stableAttrs[key]
 	if !exclusive {
-		if old := t.stableAttrs[t.dedupKey(id)]; old != nil && old != child && old.stableAttr == id {
+		if prev != nil && prev != child && prev.stableAttr == id {
 			// Exact same identity found via a racing lookup (eg. two
 			// dirs linking to the same file, both losing to the same
 			// winner). We don't hold its lock, so we can't change it
-			return old, t.nodes[old.nodeId], nil
+			return prev, t.nodes[prev.nodeId], nil
 		}
 	}
 
@@ -182,7 +184,9 @@ func (t *mapIdentityTable) registerNew(id StableAttr, child *Inode, exclusive bo
 		e.inode.Store(child)
 	}
 	// Any node that might be there is overwritten - it is obsolete now.
-	t.stableAttrs[t.dedupKey(id)] = child
+	if prev != child {
+		t.stableAttrs[key] = child
+	}
 
 	// child is kept as the definitive occupant of id/child.nodeId from
 	// here on, and the caller holds child.mu for the duration of this
