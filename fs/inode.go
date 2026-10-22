@@ -292,9 +292,9 @@ func (n *Inode) Path(root *Inode) string {
 		// the caller won't use the "path" string under lock anyway.
 		p.mu.Lock()
 		// Get last known parent
-		pd := p.parents.get()
+		pd, ok := p.parents.get()
 		p.mu.Unlock()
-		if pd == nil {
+		if !ok {
 			p = nil
 			break
 		}
@@ -563,8 +563,8 @@ func (n *Inode) childrenList() []childEntry {
 func (n *Inode) Parent() (string, *Inode) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
-	p := n.parents.get()
-	if p == nil {
+	p, ok := n.parents.get()
+	if !ok {
 		return "", nil
 	}
 	return p.name, p.parent

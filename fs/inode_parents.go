@@ -11,8 +11,8 @@ package fs
 // concurrent access.
 type inodeParents struct {
 	// newest is the most-recently add()'ed parent.
-	// nil when we don't have any parents.
-	newest *parentData
+	// newest.parent is nil when we don't have any parents.
+	newest parentData
 	// other are parents in addition to the newest.
 	// nil or empty when we have <= 1 parents.
 	other map[parentData]struct{}
@@ -21,27 +21,28 @@ type inodeParents struct {
 // add adds a parent to the store.
 func (p *inodeParents) add(n parentData) {
 	// one and only parent
-	if p.newest == nil {
-		p.newest = &n
+	if p.newest.parent == nil {
+		p.newest = n
+		return
 	}
 	// already known as `newest`
-	if *p.newest == n {
+	if p.newest == n {
 		return
 	}
 	// old `newest` gets displaced into `other`
 	if p.other == nil {
 		p.other = make(map[parentData]struct{})
 	}
-	p.other[*p.newest] = struct{}{}
+	p.other[p.newest] = struct{}{}
 	// new parent becomes `newest` (possibly moving up from `other`)
 	delete(p.other, n)
-	p.newest = &n
+	p.newest = n
 }
 
-// get returns the most recent parent
-// or nil if there is no parent at all.
-func (p *inodeParents) get() *parentData {
-	return p.newest
+// get returns the most recent parent, and false if there is no parent
+// at all.
+func (p *inodeParents) get() (parentData, bool) {
+	return p.newest, p.newest.parent != nil
 }
 
 // all returns all known parents
@@ -52,7 +53,7 @@ func (p *inodeParents) all() []parentData {
 		return nil
 	}
 	out := make([]parentData, 0, count)
-	out = append(out, *p.newest)
+	out = append(out, p.newest)
 	for i := range p.other {
 		out = append(out, i)
 	}
@@ -61,35 +62,34 @@ func (p *inodeParents) all() []parentData {
 
 func (p *inodeParents) delete(n parentData) {
 	// We have zero parents, so we can't delete any.
-	if p.newest == nil {
+	if p.newest.parent == nil {
 		return
 	}
 	// If it's not the `newest` it must be in `other` (or nowhere).
-	if *p.newest != n {
+	if p.newest != n {
 		delete(p.other, n)
 		return
 	}
 	// We want to delete `newest`, but there is no other to replace it.
 	if len(p.other) == 0 {
-		p.newest = nil
+		p.newest = parentData{}
 		return
 	}
 	// Move random entry from `other` over `newest`.
-	var i parentData
-	for i = range p.other {
-		p.newest = &i
+	for i := range p.other {
+		p.newest = i
 		break
 	}
-	delete(p.other, i)
+	delete(p.other, p.newest)
 }
 
 func (p *inodeParents) clear() {
-	p.newest = nil
+	p.newest = parentData{}
 	p.other = nil
 }
 
 func (p *inodeParents) count() int {
-	if p.newest == nil {
+	if p.newest.parent == nil {
 		return 0
 	}
 	return 1 + len(p.other)

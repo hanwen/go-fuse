@@ -29,8 +29,8 @@ func TestInodeParents(t *testing.T) {
 		if count := p.count(); count != i+1 {
 			t.Errorf("want=%d have=%d", i+1, count)
 		}
-		last := p.get()
-		if *last != v {
+		last, _ := p.get()
+		if last != v {
 			t.Error("get did not give us last-known parent")
 		}
 	}
@@ -42,8 +42,8 @@ func TestInodeParents(t *testing.T) {
 		if count := p.count(); count != len(all) {
 			t.Errorf("want=%d have=%d", len(all), count)
 		}
-		last := p.get()
-		if *last != v {
+		last, _ := p.get()
+		if last != v {
 			t.Error("get did not give us last-known parent")
 		}
 	}
