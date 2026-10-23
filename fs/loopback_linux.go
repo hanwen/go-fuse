@@ -180,7 +180,7 @@ func (n *LoopbackNode) Statx(ctx context.Context, f FileHandle,
 	p := n.path()
 
 	st := unix.Statx_t{}
-	err := unix.Statx(unix.AT_FDCWD, p, int(flags), int(mask), &st)
+	err := unix.Statx(unix.AT_FDCWD, p, int(flags)|unix.AT_SYMLINK_NOFOLLOW, int(mask), &st)
 	if err != nil {
 		return ToErrno(err)
 	}

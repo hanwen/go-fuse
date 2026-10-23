@@ -80,7 +80,28 @@ func Tmpfile(t *testing.T, mnt string) {
 	}
 }
 
+// StatxSymlink checks that statx on a symlink describes the link,
+// also when the kernel forwards the call as FUSE_STATX.
+func StatxSymlink(t *testing.T, mnt string) {
+	if err := os.WriteFile(mnt+"/file", []byte("hello"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	p := mnt + "/link"
+	if err := os.Symlink("file", p); err != nil {
+		t.Fatal(err)
+	}
+	var st unix.Statx_t
+	if err := unix.Statx(unix.AT_FDCWD, p, unix.AT_SYMLINK_NOFOLLOW|unix.AT_STATX_FORCE_SYNC,
+		unix.STATX_BASIC_STATS|unix.STATX_BTIME, &st); err != nil {
+		t.Fatalf("Statx: %v", err)
+	}
+	if st.Mode&unix.S_IFMT != unix.S_IFLNK || st.Size != uint64(len("file")) {
+		t.Errorf("got mode %o size %d, want symlink of size %d", st.Mode, st.Size, len("file"))
+	}
+}
+
 func init() {
 	All["FallocateKeepSize"] = FallocateKeepSize
+	All["StatxSymlink"] = StatxSymlink
 	All["Tmpfile"] = Tmpfile
 }
