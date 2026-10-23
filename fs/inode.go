@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"sort"
 	"strings"
 	"sync"
 	"syscall"
@@ -185,10 +184,15 @@ func (n *Inode) String() string {
 //
 // See lockNodes where this property is used to avoid deadlock when taking
 // locks on inode group.
+//
+// This uses insertion sort, because ns has only a few entries, and
+// sort.Slice allocates.
 func sortNodes(ns []*Inode) {
-	sort.Slice(ns, func(i, j int) bool {
-		return nodeLess(ns[i], ns[j])
-	})
+	for i := 1; i < len(ns); i++ {
+		for j := i; j > 0 && nodeLess(ns[j], ns[j-1]); j-- {
+			ns[j], ns[j-1] = ns[j-1], ns[j]
+		}
+	}
 }
 
 func nodeLess(a, b *Inode) bool {
