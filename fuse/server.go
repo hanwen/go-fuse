@@ -573,6 +573,7 @@ func newNotifyRequest(opcode uint32) *request {
 			_OP_NOTIFY_RETRIEVE_CACHE: NOTIFY_RETRIEVE_CACHE,
 			_OP_NOTIFY_DELETE:         NOTIFY_DELETE,
 			_OP_NOTIFY_PRUNE:          NOTIFY_PRUNE,
+			_OP_NOTIFY_READDIRPLUS:    NOTIFY_READDIRPLUS,
 		}[opcode],
 	}
 	r.inHeader().Opcode = opcode
@@ -607,6 +608,23 @@ func (ms *Server) PruneNotify(nodes []uint64) Status {
 
 	req.outPayload = unsafe.Slice((*byte)(unsafe.Pointer(&nodes[0])), 8*len(nodes))
 
+	return ms.notifyWrite(req)
+}
+
+// ReaddirplusNotify asks the kernel to read the directory with
+// READDIRPLUS in the background (see FOPEN_COMPLETE_DIR). It does not
+// wait for the read, so it may be called from inside a request handler,
+// eg. LOOKUP. It returns EALREADY if a listing is valid or being read,
+// and EBUSY if too many directories are being read; in both cases the
+// hint can be dropped. The OPENDIR and READDIRPLUS requests of the pass
+// carry INVALID_UIDGID as uid and gid.
+func (ms *Server) ReaddirplusNotify(node uint64) Status {
+	if !ms.kernelSettings.SupportsNotify(NOTIFY_READDIRPLUS) {
+		return ENOSYS
+	}
+	req := newNotifyRequest(_OP_NOTIFY_READDIRPLUS)
+	entry := (*NotifyReaddirplusOut)(req.outData())
+	entry.Nodeid = node
 	return ms.notifyWrite(req)
 }
 
@@ -815,6 +833,8 @@ func (in *InitIn) SupportsNotify(notifyType int) bool {
 		return in.SupportsVersion(7, 18)
 	case NOTIFY_PRUNE:
 		return in.SupportsVersion(7, 45)
+	case NOTIFY_READDIRPLUS:
+		return in.Flags64()&CAP_HAS_COMPLETE_DIR != 0
 	}
 	return false
 }

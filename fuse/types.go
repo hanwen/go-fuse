@@ -570,6 +570,12 @@ type NotifyPruneOut struct {
 	_spare   uint64
 }
 
+type NotifyReaddirplusOut struct {
+	Nodeid   uint64
+	Flags    uint32
+	_padding uint32
+}
+
 const (
 	NOTIFY_POLL           = -1 // notify kernel that a poll waiting for IO on a file handle should wake up
 	NOTIFY_INVAL_INODE    = -2 // notify kernel that an inode should be invalidated
@@ -580,6 +586,7 @@ const (
 	NOTIFY_RESEND         = -7
 	NOTIFY_INC_EPOCH      = -8
 	NOTIFY_PRUNE          = -9
+	NOTIFY_READDIRPLUS    = -12
 )
 
 type FlushIn struct {

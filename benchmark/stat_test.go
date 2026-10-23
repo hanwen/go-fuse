@@ -222,7 +222,17 @@ func BenchmarkNegStatCached(b *testing.B) {
 // LOOKUPs.
 type completeDirFS struct {
 	fuse.RawFileSystem
-	lookups atomic.Int64
+	server   *fuse.Server
+	lookups  atomic.Int64
+	released chan struct{}
+}
+
+func (c *completeDirFS) ReleaseDir(ctx context.Context, input *fuse.ReleaseIn) {
+	c.RawFileSystem.ReleaseDir(ctx, input)
+	select {
+	case c.released <- struct{}{}:
+	default:
+	}
 }
 
 func (c *completeDirFS) Lookup(ctx context.Context, header *fuse.InHeader, name string, out *fuse.EntryOut) fuse.Status {
@@ -254,13 +264,17 @@ func BenchmarkNegStatUncachedDir(b *testing.B) {
 	}
 	opts.Debug = testutil.VerboseTest()
 	opts.MountOptions.ExtraCapabilities = fuse.CAP_HAS_COMPLETE_DIR
-	cfs := &completeDirFS{RawFileSystem: fs.NewNodeFS(root, opts)}
+	cfs := &completeDirFS{
+		RawFileSystem: fs.NewNodeFS(root, opts),
+		released:      make(chan struct{}, 1),
+	}
 
 	mnt := b.TempDir()
 	server, err := fuse.NewServer(cfs, mnt, &opts.MountOptions)
 	if err != nil {
 		b.Fatal(err)
 	}
+	cfs.server = server
 	go server.Serve()
 	if err := server.WaitMount(); err != nil {
 		b.Fatal(err)
@@ -286,6 +300,42 @@ func BenchmarkNegStatUncachedDir(b *testing.B) {
 	}
 	b.StopTimer()
 	b.ReportMetric(float64(cfs.lookups.Load()-before)/float64(b.N), "lookups/op")
+}
+
+// BenchmarkReaddirplusHint drops the listing of a directory, and has the
+// kernel read it again with FUSE_NOTIFY_READDIRPLUS. The ns/op metric is
+// per entry.
+func BenchmarkReaddirplusHint(b *testing.B) {
+	const N = 500
+	root := &StatFS{}
+	for i := 0; i < N; i++ {
+		root.AddFile(fmt.Sprintf("file%03d", i), fuse.Attr{Mode: syscall.S_IFREG})
+	}
+	_, cfs := setupCompleteDirFS(root, b)
+	if !cfs.server.KernelSettings().SupportsNotify(fuse.NOTIFY_READDIRPLUS) {
+		b.Skip("kernel does not support NOTIFY_READDIRPLUS")
+	}
+
+	b.ResetTimer()
+	total := 0
+	for total < b.N {
+		if st := cfs.server.InodeNotify(fuse.FUSE_ROOT_ID, 0, 0); !st.Ok() {
+			b.Fatalf("InodeNotify: %v", st)
+		}
+		// EALREADY until the previous read has finished in the
+		// kernel, which is after it sent RELEASEDIR.
+		st := cfs.server.ReaddirplusNotify(fuse.FUSE_ROOT_ID)
+		for st == fuse.Status(syscall.EALREADY) {
+			st = cfs.server.ReaddirplusNotify(fuse.FUSE_ROOT_ID)
+		}
+		if !st.Ok() {
+			b.Fatalf("ReaddirplusNotify: %v", st)
+		}
+		<-cfs.released
+		total += N
+	}
+	b.StopTimer()
+	b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(total), "ns/op")
 }
 
 func TestingBOnePass(b *testing.B, threads int, filelist, mountPoint string) error {

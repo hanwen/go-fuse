@@ -761,6 +761,15 @@ func (n *Inode) NotifyPrune(nodes []*Inode) syscall.Errno {
 	return syscall.Errno(status)
 }
 
+// NotifyReaddirplus is [fuse.Server.ReaddirplusNotify] for this directory.
+func (n *Inode) NotifyReaddirplus() syscall.Errno {
+	server, ok := n.bridge.server.(*fuse.Server)
+	if !ok {
+		return syscall.ENOSYS
+	}
+	return syscall.Errno(server.ReaddirplusNotify(n.nodeId))
+}
+
 // NotifyDelete notifies the kernel that the given inode was removed
 // from this directory as entry under the given name. It is equivalent
 // to NotifyEntry, but also sends an event to inotify watchers.

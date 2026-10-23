@@ -14,6 +14,11 @@ const (
 
 	FUSE_UNKNOWN_INO = 0xffffffff
 
+	// INVALID_UIDGID is the uid and gid of requests not made on
+	// behalf of a process, eg. the background pass of
+	// NOTIFY_READDIRPLUS.
+	INVALID_UIDGID = 0xffffffff
+
 	CUSE_UNRESTRICTED_IOCTL = (1 << 0)
 
 	FUSE_LK_FLOCK = (1 << 0)

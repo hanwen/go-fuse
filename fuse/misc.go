@@ -26,6 +26,7 @@ var notifyNames = []string{
 	"NOTIFY_RESEND",
 	"NOTIFY_INC_EPOCH",
 	"NOTIFY_PRUNE",
+	"NOTIFY_READDIRPLUS",
 }
 
 func (code Status) String() string {
