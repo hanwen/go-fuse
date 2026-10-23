@@ -10,6 +10,7 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fuse"
 	"github.com/hanwen/go-fuse/v2/internal/renameat"
+	"github.com/hanwen/go-fuse/v2/internal/testutil"
 	"github.com/kylelemons/godebug/pretty"
 	"golang.org/x/sys/unix"
 )
@@ -169,5 +170,48 @@ func TestLoopbackNonRoot(t *testing.T) {
 
 	if err := syscall.Link(fn2, mnt+"/differentRoot/link"); err != syscall.EXDEV {
 		t.Errorf("cross-root Link: got %v, want EXDEV", err)
+	}
+}
+
+func TestLoopbackRootClose(t *testing.T) {
+	backing := t.TempDir()
+	if err := os.WriteFile(backing+"/file", []byte("hello"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	root, err := NewLoopbackRoot(backing)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootData := root.(*LoopbackNode).RootData
+	isOpen := func() bool {
+		rootData.rootMu.RLock()
+		defer rootData.rootMu.RUnlock()
+		return rootData.rootFile != nil
+	}
+
+	mnt := t.TempDir()
+	opts := &Options{}
+	opts.Debug = testutil.VerboseTest()
+	opts.PanicHandler = testutil.PanicHandler(t, fuse.EIO)
+	server, err := Mount(mnt, root, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := rootData.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := os.ReadFile(mnt + "/file"); err != nil || string(got) != "hello" {
+		t.Fatalf("ReadFile after Close: %q, %v", got, err)
+	}
+	if !isOpen() {
+		t.Fatal("root not reopened")
+	}
+
+	if err := server.Unmount(); err != nil {
+		t.Fatal(err)
+	}
+	if isOpen() {
+		t.Error("root still open after unmount")
 	}
 }

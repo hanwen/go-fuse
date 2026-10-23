@@ -9,30 +9,41 @@ package fs
 import (
 	"context"
 	"syscall"
-
-	"golang.org/x/sys/unix"
 )
 
 var _ = (NodeGetxattrer)((*LoopbackNode)(nil))
 
 func (n *LoopbackNode) Getxattr(ctx context.Context, attr string, dest []byte) (uint32, syscall.Errno) {
-	sz, err := unix.Lgetxattr(n.path(), attr, dest)
+	dirfd, name, errno := n.parentFd()
+	if errno != 0 {
+		return 0, errno
+	}
+	defer syscall.Close(dirfd)
+	sz, err := getxattrAt(dirfd, name, attr, dest)
 	return uint32(sz), ToErrno(err)
 }
 
 var _ = (NodeSetxattrer)((*LoopbackNode)(nil))
 
 func (n *LoopbackNode) Setxattr(ctx context.Context, attr string, data []byte, flags uint32) syscall.Errno {
-	if aclKillSgid(ctx) {
-		return setxattrKillSgid(n.RootData.Path, n.relativePath(), attr, data, int(flags))
+	dirfd, name, errno := n.parentFd()
+	if errno != 0 {
+		return errno
 	}
-	err := unix.Lsetxattr(n.path(), attr, data, int(flags))
-	return ToErrno(err)
+	defer syscall.Close(dirfd)
+	if aclKillSgid(ctx) {
+		return setxattrKillSgid(dirfd, name, attr, data, int(flags))
+	}
+	return ToErrno(setxattrAt(dirfd, name, attr, data, int(flags)))
 }
 
 var _ = (NodeRemovexattrer)((*LoopbackNode)(nil))
 
 func (n *LoopbackNode) Removexattr(ctx context.Context, attr string) syscall.Errno {
-	err := unix.Lremovexattr(n.path(), attr)
-	return ToErrno(err)
+	dirfd, name, errno := n.parentFd()
+	if errno != 0 {
+		return errno
+	}
+	defer syscall.Close(dirfd)
+	return ToErrno(removexattrAt(dirfd, name, attr))
 }

@@ -9,14 +9,17 @@ package fs
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"syscall"
+	"unsafe"
 
 	"github.com/hanwen/go-fuse/v2/fuse"
-	"github.com/hanwen/go-fuse/v2/internal/openat"
 	"golang.org/x/sys/unix"
 )
 
 const unix_UTIME_OMIT = unix.UTIME_OMIT
+
+const dirOpenFlags = unix.O_PATH | unix.O_DIRECTORY
 
 func aclKillSgid(ctx context.Context) bool {
 	call, ok := fuse.CallFromContext(ctx)
@@ -27,20 +30,25 @@ func aclKillSgid(ctx context.Context) bool {
 	return fuse.Input(call, &in) && in.SetXAttrFlags&fuse.SETXATTR_ACL_KILL_SGID != 0
 }
 
+// openPath opens name without following it. Calls that do not accept
+// O_PATH descriptors go through /proc/self/fd.
+func openPath(dirfd int, name string) (int, string, error) {
+	fd, err := unix.Openat(dirfd, name, unix.O_PATH|unix.O_NOFOLLOW|unix.O_CLOEXEC, 0)
+	if err != nil {
+		return -1, "", err
+	}
+	return fd, fmt.Sprintf("/proc/self/fd/%d", fd), nil
+}
+
 // The underlying filesystem checks CAP_FSETID against our
 // credentials, so clear setgid ourselves.
-func setxattrKillSgid(root, rel, attr string, data []byte, flags int) syscall.Errno {
-	if rel == "" {
-		rel = "."
-	}
-	fd, err := openat.OpenSymlinkAware(root, rel, unix.O_PATH|unix.O_NOFOLLOW, 0)
+func setxattrKillSgid(dirfd int, name, attr string, data []byte, flags int) syscall.Errno {
+	fd, p, err := openPath(dirfd, name)
 	if err != nil {
 		return ToErrno(err)
 	}
 	defer unix.Close(fd)
-	// safely call unix.Setxattr
-	procPath := fmt.Sprintf("/proc/self/fd/%d", fd)
-	if err := unix.Setxattr(procPath, attr, data, flags); err != nil {
+	if err := unix.Setxattr(p, attr, data, flags); err != nil {
 		return ToErrno(err)
 	}
 	var st unix.Stat_t
@@ -48,18 +56,104 @@ func setxattrKillSgid(root, rel, attr string, data []byte, flags int) syscall.Er
 		return ToErrno(err)
 	}
 	if st.Mode&unix.S_ISGID != 0 {
-		return ToErrno(unix.Chmod(procPath, st.Mode&07777&^unix.S_ISGID))
+		return ToErrno(unix.Chmod(p, st.Mode&07777&^unix.S_ISGID))
 	}
 	return OK
+}
+
+// noFchmodat2 and noXattrat record that the kernel lacks fchmodat2
+// (6.6) or the *xattrat calls (6.13). Without them, we go through
+// /proc/self/fd.
+var noFchmodat2, noXattrat atomic.Bool
+
+func fchmodatNoFollow(dirfd int, name string, mode uint32) error {
+	if !noFchmodat2.Load() {
+		err := fchmodat2(dirfd, name, mode, unix.AT_SYMLINK_NOFOLLOW)
+		if err != unix.ENOSYS {
+			return err
+		}
+		noFchmodat2.Store(true)
+	}
+	fd, p, err := openPath(dirfd, name)
+	if err != nil {
+		return err
+	}
+	defer unix.Close(fd)
+	return unix.Chmod(p, mode)
+}
+
+func getxattrAt(dirfd int, name, attr string, dest []byte) (int, error) {
+	if !noXattrat.Load() {
+		sz, err := getxattrat(dirfd, name, unix.AT_SYMLINK_NOFOLLOW, attr, dest)
+		if err != unix.ENOSYS {
+			return sz, err
+		}
+		noXattrat.Store(true)
+	}
+	fd, p, err := openPath(dirfd, name)
+	if err != nil {
+		return 0, err
+	}
+	defer unix.Close(fd)
+	return unix.Getxattr(p, attr, dest)
+}
+
+func setxattrAt(dirfd int, name, attr string, data []byte, flags int) error {
+	if !noXattrat.Load() {
+		err := setxattrat(dirfd, name, unix.AT_SYMLINK_NOFOLLOW, attr, data, flags)
+		if err != unix.ENOSYS {
+			return err
+		}
+		noXattrat.Store(true)
+	}
+	fd, p, err := openPath(dirfd, name)
+	if err != nil {
+		return err
+	}
+	defer unix.Close(fd)
+	return unix.Setxattr(p, attr, data, flags)
+}
+
+func removexattrAt(dirfd int, name, attr string) error {
+	if !noXattrat.Load() {
+		err := removexattrat(dirfd, name, unix.AT_SYMLINK_NOFOLLOW, attr)
+		if err != unix.ENOSYS {
+			return err
+		}
+		noXattrat.Store(true)
+	}
+	fd, p, err := openPath(dirfd, name)
+	if err != nil {
+		return err
+	}
+	defer unix.Close(fd)
+	return unix.Removexattr(p, attr)
+}
+
+func listxattrAt(dirfd int, name string, dest []byte) (int, error) {
+	if !noXattrat.Load() {
+		sz, err := listxattrat(dirfd, name, unix.AT_SYMLINK_NOFOLLOW, dest)
+		if err != unix.ENOSYS {
+			return sz, err
+		}
+		noXattrat.Store(true)
+	}
+	fd, p, err := openPath(dirfd, name)
+	if err != nil {
+		return 0, err
+	}
+	defer unix.Close(fd)
+	return unix.Listxattr(p, dest)
 }
 
 var _ = (NodeTmpfiler)((*LoopbackNode)(nil))
 
 func (n *LoopbackNode) Tmpfile(ctx context.Context, flags uint32, mode uint32, out *fuse.EntryOut) (*Inode, FileHandle, uint32, syscall.Errno) {
 	flags = flags &^ syscall.O_APPEND
-	fd, err := syscall.Open(n.path(), int(flags)|unix.O_TMPFILE, mode)
-	if err != nil {
-		return nil, nil, 0, ToErrno(err)
+	// openat2 rejects the file type bits that the kernel sends.
+	fd, errno := n.RootData.openat(n.relativePath(), int(flags)|unix.O_TMPFILE, mode&07777)
+	if errno != 0 {
+		return nil, nil, 0, errno
 	}
 
 	var st syscall.Stat_t
@@ -94,12 +188,8 @@ func init() {
 	statxSupported = err != unix.ENOSYS
 }
 
-func lstat(path string, st *syscall.Stat_t, btime *syscall.Timespec) error {
-	return doStatx(unix.AT_FDCWD, path, unix.AT_SYMLINK_NOFOLLOW, st, btime)
-}
-
-func stat(path string, st *syscall.Stat_t, btime *syscall.Timespec) error {
-	return doStatx(unix.AT_FDCWD, path, 0, st, btime)
+func statAt(dirfd int, name string, st *syscall.Stat_t, btime *syscall.Timespec) error {
+	return doStatx(dirfd, name, unix.AT_SYMLINK_NOFOLLOW, st, btime)
 }
 
 func fstatFd(fd int, st *syscall.Stat_t, btime *syscall.Timespec) error {
@@ -124,18 +214,11 @@ func doStatx(dirfd int, path string, flags int, st *syscall.Stat_t, btime *sysca
 		}
 		// The init probe found statx(2) supported, but this particular
 		// call still says ENOSYS (e.g. a seccomp filter tightened after
-		// startup). Fall through to the plain syscalls below rather than
-		// failing outright.
+		// startup). Fall through to fstatat rather than failing
+		// outright.
 	}
 
-	switch {
-	case flags&unix.AT_EMPTY_PATH != 0:
-		return syscall.Fstat(dirfd, st)
-	case flags&unix.AT_SYMLINK_NOFOLLOW != 0:
-		return syscall.Lstat(path, st)
-	default:
-		return syscall.Stat(path, st)
-	}
+	return unix.Fstatat(dirfd, path, (*unix.Stat_t)(unsafe.Pointer(st)), flags)
 }
 
 // setNum assigns v to *dst, narrowing/widening to dst's element type.
@@ -177,10 +260,14 @@ func (n *LoopbackNode) Statx(ctx context.Context, f FileHandle,
 		}
 	}
 
-	p := n.path()
+	dirfd, name, errno := n.parentFd()
+	if errno != 0 {
+		return errno
+	}
+	defer syscall.Close(dirfd)
 
 	st := unix.Statx_t{}
-	err := unix.Statx(unix.AT_FDCWD, p, int(flags)|unix.AT_SYMLINK_NOFOLLOW, int(mask), &st)
+	err := unix.Statx(dirfd, name, int(flags)|unix.AT_SYMLINK_NOFOLLOW, int(mask), &st)
 	if err != nil {
 		return ToErrno(err)
 	}

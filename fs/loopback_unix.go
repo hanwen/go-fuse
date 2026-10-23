@@ -8,13 +8,16 @@ package fs
 import (
 	"context"
 	"syscall"
-
-	"golang.org/x/sys/unix"
 )
 
 var _ = (NodeListxattrer)((*LoopbackNode)(nil))
 
 func (n *LoopbackNode) Listxattr(ctx context.Context, dest []byte) (uint32, syscall.Errno) {
-	sz, err := unix.Llistxattr(n.path(), dest)
+	dirfd, name, errno := n.parentFd()
+	if errno != 0 {
+		return 0, errno
+	}
+	defer syscall.Close(dirfd)
+	sz, err := listxattrAt(dirfd, name, dest)
 	return uint32(sz), ToErrno(err)
 }

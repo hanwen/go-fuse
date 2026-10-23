@@ -1,35 +1,49 @@
 package openat
 
 import (
+	"strings"
+
 	"golang.org/x/sys/unix"
 )
 
-// OpenSymlinkAware is a symlink-aware syscall.Open replacement.
-//
-// What it does:
-//
-//  1. Open baseDir (usually an absolute path), following symlinks.
-//
-//     The user may have set up the directory tree with symlinks,
-//     that's not neccessarily malicous, but a normal use case.
-//
-//  2. Open path (must be a relative path) within baseDir, rejecting symlinks with ELOOP.
-//
-//     On Linux, it calls openat2(2) with RESOLVE_NO_SYMLINKS. This prevents following
-//     symlinks in any component of the path.
-//
-//     On other platforms, it calls openat(2) with O_NOFOLLOW.
-//     TODO: This is insecure as O_NOFOLLOW only affects the final path component.
-func OpenSymlinkAware(baseDir string, path string, flags int, mode uint32) (fd int, err error) {
-	// Passing an absolute path is a bug in the caller
-	if len(path) > 0 && path[0] == '/' {
+// Openat opens path relative to dirfd without following symlinks in
+// any component. The final component is opened with O_NOFOLLOW,
+// except on Darwin when flags has O_SYMLINK. path must be relative
+// and must not contain "..".
+func Openat(dirfd int, path string, flags int, mode uint32) (fd int, err error) {
+	if path == "" || path[0] == '/' {
 		return -1, unix.EINVAL
 	}
-	baseFd, err := unix.Open(baseDir, unix.O_RDONLY|unix.O_DIRECTORY|unix.O_CLOEXEC, 0)
-	if err != nil {
-		return -1, err
+	for _, c := range strings.Split(path, "/") {
+		if c == ".." {
+			return -1, unix.EINVAL
+		}
 	}
-	defer unix.Close(baseFd)
+	return openatNoSymlinks(dirfd, path, flags, mode)
+}
 
-	return openatNoSymlinks(baseFd, path, flags, mode)
+func walk(dirfd int, path string, flags int, mode uint32) (int, error) {
+	comps := strings.Split(path, "/")
+	cur := dirfd
+	for _, c := range comps[:len(comps)-1] {
+		if c == "" || c == "." {
+			continue
+		}
+		fd, err := unix.Openat(cur, c, searchFlags|unix.O_DIRECTORY|unix.O_NOFOLLOW|unix.O_CLOEXEC, 0)
+		if cur != dirfd {
+			unix.Close(cur)
+		}
+		if err != nil {
+			return -1, err
+		}
+		cur = fd
+	}
+	if cur != dirfd {
+		defer unix.Close(cur)
+	}
+	if flags&symlinkFlag == 0 {
+		flags |= unix.O_NOFOLLOW
+	}
+	// os/exec expects all fds to have O_CLOEXEC or it will leak them to subprocesses.
+	return unix.Openat(cur, comps[len(comps)-1], flags|unix.O_CLOEXEC, mode)
 }

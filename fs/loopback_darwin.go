@@ -9,15 +9,24 @@ package fs
 
 import (
 	"context"
+	"path/filepath"
 	"syscall"
 	"time"
+	"unsafe"
+
+	"golang.org/x/sys/unix"
 )
 
 const unix_UTIME_OMIT = 0x0
 
+const (
+	dirOpenFlags = unix.O_RDONLY | unix.O_DIRECTORY
+	nodeOpenFlag = unix.O_SYMLINK
+)
+
 func aclKillSgid(ctx context.Context) bool { return false }
 
-func setxattrKillSgid(root, rel, attr string, data []byte, flags int) syscall.Errno {
+func setxattrKillSgid(dirfd int, name, attr string, data []byte, flags int) syscall.Errno {
 	return syscall.ENOTSUP
 }
 
@@ -42,20 +51,28 @@ func intDev(dev uint32) int {
 	return int(dev)
 }
 
-func lstat(path string, st *syscall.Stat_t, btime *syscall.Timespec) error {
-	err := syscall.Lstat(path, st)
+func statAt(dirfd int, name string, st *syscall.Stat_t, btime *syscall.Timespec) error {
+	err := unix.Fstatat(dirfd, name, (*unix.Stat_t)(unsafe.Pointer(st)), unix.AT_SYMLINK_NOFOLLOW)
 	*btime = st.Birthtimespec
 	return err
 }
 
-func stat(path string, st *syscall.Stat_t, btime *syscall.Timespec) error {
-	err := syscall.Stat(path, st)
-	*btime = st.Birthtimespec
-	return err
+func fchmodatNoFollow(dirfd int, name string, mode uint32) error {
+	return unix.Fchmodat(dirfd, name, mode, unix.AT_SYMLINK_NOFOLLOW)
 }
 
 func fstatFd(fd int, st *syscall.Stat_t, btime *syscall.Timespec) error {
 	err := syscall.Fstat(fd, st)
 	*btime = st.Birthtimespec
 	return err
+}
+
+// path returns the absolute path to the node
+func (n *LoopbackNode) path() string {
+	return filepath.Join(n.RootData.Path, n.relativePath())
+}
+
+// Darwin has no mknodat.
+func (n *LoopbackNode) mknodat(dirfd int, name string, mode, rdev uint32) error {
+	return unix.Mknod(filepath.Join(n.path(), name), mode, intDev(rdev))
 }

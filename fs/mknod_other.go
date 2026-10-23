@@ -2,12 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build !openbsd
+//go:build !openbsd && !darwin
 
 package fs
 
-import "syscall"
+import "golang.org/x/sys/unix"
 
-func mknod(path string, mode, rdev uint32) error {
-	return syscall.Mknod(path, mode, intDev(rdev))
+func (n *LoopbackNode) mknodat(dirfd int, name string, mode, rdev uint32) error {
+	return unix.Mknodat(dirfd, name, mode, intDev(rdev))
 }

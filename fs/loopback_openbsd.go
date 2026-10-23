@@ -4,7 +4,11 @@
 
 package fs
 
-import "syscall"
+import (
+	"syscall"
+
+	"golang.org/x/sys/unix"
+)
 
 func doCopyFileRange(fdIn int, offIn int64, fdOut int, offOut int64,
 	len int, flags int) (uint32, syscall.Errno) {
@@ -15,18 +19,18 @@ func intDev(dev uint32) int {
 	return int(dev)
 }
 
-// mknod creates regular files too: fuse(4) creates files with
+// mknodat creates regular files too: fuse(4) creates files with
 // FUSE_MKNOD, but mknod(2) on OpenBSD only makes device nodes and
 // FIFOs.
-func mknod(path string, mode, rdev uint32) error {
+func (n *LoopbackNode) mknodat(dirfd int, name string, mode, rdev uint32) error {
 	if mode&syscall.S_IFMT != syscall.S_IFREG {
-		return syscall.Mknod(path, mode, intDev(rdev))
+		return unix.Mknodat(dirfd, name, mode, intDev(rdev))
 	}
-	fd, err := syscall.Open(path, syscall.O_CREAT|syscall.O_EXCL|syscall.O_WRONLY|syscall.O_CLOEXEC, mode&^syscall.S_IFMT)
+	fd, err := unix.Openat(dirfd, name, unix.O_CREAT|unix.O_EXCL|unix.O_WRONLY|unix.O_NOFOLLOW|unix.O_CLOEXEC, mode&^syscall.S_IFMT)
 	if err != nil {
 		return err
 	}
-	return syscall.Close(fd)
+	return unix.Close(fd)
 }
 
 func birthtime(st *syscall.Stat_t) syscall.Timespec {

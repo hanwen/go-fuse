@@ -4,6 +4,11 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+const (
+	searchFlags = unix.O_PATH
+	symlinkFlag = 0
+)
+
 func openatNoSymlinks(dirfd int, path string, flags int, mode uint32) (fd int, err error) {
 	how := unix.OpenHow{
 		// os/exec expects all fds to have O_CLOEXEC or it will leak them to subprocesses.
@@ -12,9 +17,8 @@ func openatNoSymlinks(dirfd int, path string, flags int, mode uint32) (fd int, e
 		Resolve: unix.RESOLVE_NO_SYMLINKS,
 	}
 	fd, err = unix.Openat2(dirfd, path, &how)
-	if err != nil && err == unix.ENOSYS {
-		flags |= unix.O_NOFOLLOW | unix.O_CLOEXEC
-		fd, err = unix.Openat(dirfd, path, flags, mode)
+	if err == unix.ENOSYS {
+		return walk(dirfd, path, flags, mode)
 	}
 	return fd, err
 }

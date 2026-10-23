@@ -12,6 +12,8 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+const nodeOpenFlag = unix.O_NOFOLLOW
+
 // FreeBSD has added copy_file_range(2) since FreeBSD 12. However,
 // golang.org/x/sys/unix hasn't add corresponding syscall constant or
 // wrap function. Here we define the syscall constant until sys/unix
@@ -57,13 +59,18 @@ var _ = (NodeListxattrer)((*LoopbackNode)(nil))
 func (n *LoopbackNode) Listxattr(ctx context.Context, dest []byte) (uint32, syscall.Errno) {
 	// In order to simulate same data format as Linux does,
 	// and the size of returned buf is required to match, we must
-	// call unix.Llistxattr twice.
-	sz, err := unix.Llistxattr(n.path(), nil)
+	// call listxattr twice.
+	dirfd, name, errno := n.parentFd()
+	if errno != 0 {
+		return 0, errno
+	}
+	defer syscall.Close(dirfd)
+	sz, err := listxattrAt(dirfd, name, nil)
 	if err != nil {
 		return uint32(sz), ToErrno(err)
 	}
 	rawBuf := make([]byte, sz)
-	sz, err = unix.Llistxattr(n.path(), rawBuf)
+	sz, err = listxattrAt(dirfd, name, rawBuf)
 	if err != nil {
 		return uint32(sz), ToErrno(err)
 	}
