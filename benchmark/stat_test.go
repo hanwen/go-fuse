@@ -252,6 +252,9 @@ func BenchmarkLibfuseHighlevelThreadedStat(b *testing.B) {
 	b.StopTimer()
 
 	wd, _ := os.Getwd()
+	if _, err := os.Stat(wd + "/cstatfs"); err != nil {
+		b.Skip(err)
+	}
 	fileList := wd + "/testpaths.txt"
 	lines := ReadLines(fileList)
 	unique := map[string]int{}

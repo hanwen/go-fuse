@@ -25,6 +25,9 @@ func TestHasAccess(t *testing.T) {
 
 	myIntId, _ := strconv.Atoi(u.Uid)
 	myUid := uint32(myIntId)
+	if myUid == 0 {
+		t.Skip("cases assume a non-root caller")
+	}
 	myIntGid, _ := strconv.Atoi(u.Gid)
 	myGid := uint32(myIntGid)
 

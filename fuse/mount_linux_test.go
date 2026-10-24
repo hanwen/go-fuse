@@ -16,6 +16,9 @@ import (
 // In this test, we simulate a privileged parent by using the `fusermount` suid
 // helper.
 func TestMountDevFd(t *testing.T) {
+	if _, err := fusermountBinary(); err != nil {
+		t.Skip(err)
+	}
 	realMountPoint := t.TempDir()
 
 	// Call the fusermount suid helper to obtain the file descriptor in place
