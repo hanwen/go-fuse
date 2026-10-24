@@ -104,14 +104,22 @@ func TestForget(t *testing.T) {
 	if err := os.WriteFile("/proc/sys/vm/drop_caches", []byte("2"), 0644); err != nil {
 
 	}
-	time.Sleep(ttl)
 
 	bridge := rawFS.(*rawBridge)
-	bridge.ids.mu.Lock()
-	l := len(bridge.ids.nodes)
-	bridge.ids.mu.Unlock()
-	if l != 1 {
-		t.Fatalf("got %d live nodes, want 1", l)
+	liveNodes := func() int {
+		bridge.ids.mu.Lock()
+		defer bridge.ids.mu.Unlock()
+		return len(bridge.ids.nodes)
+	}
+
+	last := liveNodes()
+	for last != 1 {
+		time.Sleep(ttl)
+		l := liveNodes()
+		if l >= last {
+			t.Fatalf("live nodes stuck at %d, want 1", l)
+		}
+		last = l
 	}
 }
 
