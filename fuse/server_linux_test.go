@@ -190,7 +190,14 @@ func testMaxInflightRequestBytesLargeWrites(t *testing.T, maxWrite, requestCount
 		fd := fds[i]
 		offset := int64(i * maxWrite)
 		go func() {
-			n, err := syscall.Pwrite(fd, payload, offset)
+			var n int
+			var err error
+			for {
+				n, err = syscall.Pwrite(fd, payload, offset)
+				if err != syscall.EINTR {
+					break
+				}
+			}
 			if err != nil {
 				writeResults <- err
 				return
