@@ -77,14 +77,25 @@ func benchmarkRead(mnt string, b *testing.B, ddflag string) {
 	b.StopTimer()
 }
 
-func BenchmarkGoFuseFDRead(b *testing.B) {
-	orig := b.TempDir()
-	fn := orig + "/foo.txt"
-
-	data := bytes.Repeat([]byte{42}, blockSize*b.N)
-	if err := os.WriteFile(fn, data, 0666); err != nil {
+func writeBlocks(b *testing.B, name string, n int) {
+	f, err := os.Create(name)
+	if err != nil {
 		b.Fatal(err)
 	}
+	block := bytes.Repeat([]byte{42}, blockSize)
+	for i := 0; i < n; i++ {
+		if _, err := f.Write(block); err != nil {
+			b.Fatal(err)
+		}
+	}
+	if err := f.Close(); err != nil {
+		b.Fatal(err)
+	}
+}
+
+func BenchmarkGoFuseFDRead(b *testing.B) {
+	orig := b.TempDir()
+	writeBlocks(b, orig+"/foo.txt", b.N)
 	root, err := fs.NewLoopbackRoot(orig)
 	if err != nil {
 		b.Fatal(err)
@@ -102,11 +113,7 @@ func BenchmarkLibfuseHP(b *testing.B) {
 		b.Skip("must set --passthrough_hp")
 	}
 
-	origFN := orig + "/foo.txt"
-	data := bytes.Repeat([]byte{42}, blockSize*b.N)
-	if err := os.WriteFile(origFN, data, 0666); err != nil {
-		b.Fatal(err)
-	}
+	writeBlocks(b, orig+"/foo.txt", b.N)
 	fn := mnt + "/foo.txt"
 	cmd := exec.Command(*libfusePath, "--foreground")
 	if testutil.VerboseTest() {
