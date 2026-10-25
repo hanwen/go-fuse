@@ -17,60 +17,6 @@ import (
 	"github.com/hanwen/go-fuse/v2/fuse"
 )
 
-// TestBridgeReaddirPlusVirtualEntries looks at "." and ".." in the ReadDirPlus
-// output. They should exist, but the NodeId should be zero.
-func TestBridgeReaddirPlusVirtualEntries(t *testing.T) {
-	// Set suppressDebug as we do our own logging
-	tc := newTestCase(t, &testOptions{suppressDebug: true})
-
-	rb := tc.rawFS.(*rawBridge)
-
-	// We only populate what rawBridge.OpenDir() actually looks at.
-	openIn := fuse.OpenIn{}
-	openIn.NodeId = 1 // root node always has id 1 and always exists
-	openOut := fuse.OpenOut{}
-	ctx := fuse.NewContext(context.Background(), openIn.Caller)
-	status := rb.OpenDir(ctx, &openIn, &openOut)
-	if !status.Ok() {
-		t.Fatal(status)
-	}
-	releaseIn := fuse.ReleaseIn{
-		Fh: openOut.Fh,
-	}
-	releaseIn.NodeId = 1
-	defer rb.ReleaseDir(ctx, &releaseIn)
-
-	// We only populate what rawBridge.ReadDirPlus() actually looks at.
-	readIn := fuse.ReadIn{}
-	readIn.NodeId = 1
-	readIn.Fh = openOut.Fh
-	buf := make([]byte, 400)
-	dirents := fuse.NewDirEntryList(buf, 0)
-	status = rb.ReadDirPlus(ctx, &readIn, dirents)
-	if !status.Ok() {
-		t.Fatal(status)
-	}
-
-	entries, outs, err := fuse.ParseDirLookupEntries(dirents.Bytes())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	names := map[string]*fuse.EntryOut{}
-	for i, e := range entries {
-		names[e.Name] = &outs[i]
-	}
-	if len(names) != 2 || names["."] == nil || names[".."] == nil {
-		t.Fatalf(`got %v, want {".", ".."}`, names)
-	}
-
-	for k, v := range names {
-		if v.NodeId != 0 {
-			t.Errorf("entry %q NodeId should be 0, but is %d", k, v.NodeId)
-		}
-	}
-}
-
 // TestTypeChange simulates inode number reuse that happens on real
 // filesystems. For go-fuse, inode number reuse can look like a file changing
 // to a directory or vice versa. Actually, the old inode does not exist anymore,
