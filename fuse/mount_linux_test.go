@@ -248,7 +248,7 @@ func TestEscapedMountOption(t *testing.T) {
 	fs := NewDefaultRawFileSystem()
 	srv, err := NewServer(fs, mnt, opts)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	go srv.Serve()
 	defer srv.Unmount()
