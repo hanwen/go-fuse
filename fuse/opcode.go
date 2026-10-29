@@ -154,7 +154,12 @@ func doInit(server *protocolServer, req *request) {
 	if out.Minor > input.Minor {
 		out.Minor = input.Minor
 	}
-	server.conn.out = *out
+
+	conn := server.conn
+	conn.out = *out
+	conn.notify = conn.notify.gate(input)
+	conn.backing = conn.backing.gate(input)
+	server.fileSystem.OnConnect(conn)
 
 	req.status = OK
 }
@@ -236,7 +241,11 @@ func doWrite(server *protocolServer, req *request) {
 }
 
 func doNotifyReply(server *protocolServer, req *request) {
-	server.conn.notifier.deliverReply((*NotifyRetrieveIn)(req.inData()), req.inPayload)
+	if server.conn.notify.notifier == nil {
+		server.opts.Logger.Printf("notify reply: no notifier - ignoring")
+		return
+	}
+	server.conn.notify.notifier.deliverReply((*NotifyRetrieveIn)(req.inData()), req.inPayload)
 }
 
 const _SECURITY_CAPABILITY = "security.capability"

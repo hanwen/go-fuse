@@ -288,6 +288,92 @@ func TestNotifyPrune(t *testing.T) {
 	}
 }
 
+type notifyWrapFS struct {
+	fuse.RawFileSystem
+	wrap func(*fuse.Conn)
+}
+
+func (fs *notifyWrapFS) OnConnect(c *fuse.Conn) {
+	fs.wrap(c)
+	fs.RawFileSystem.OnConnect(c)
+}
+
+func TestWrapNotify(t *testing.T) {
+	mnt := t.TempDir()
+	root := &Inode{}
+	var entryNotifies, inodeNotifies int32
+	var conn *fuse.Conn
+	sec := time.Second
+	opts := &Options{
+		EntryTimeout: &sec,
+		OnAdd: func(ctx context.Context) {
+			ch := root.NewPersistentInode(ctx, &Inode{}, StableAttr{})
+			root.AddChild("file", ch, true)
+		},
+	}
+	opts.Debug = testutil.VerboseTest()
+	rawFS := &notifyWrapFS{
+		RawFileSystem: NewNodeFS(root, opts),
+		wrap: func(c *fuse.Conn) {
+			conn = c
+			n := c.Notify()
+			entry := n.InvalEntry
+			n.InvalEntry = func(parent uint64, name string) fuse.Status {
+				atomic.AddInt32(&entryNotifies, 1)
+				return entry(parent, name)
+			}
+			inode := n.InvalInode
+			n.InvalInode = func(node uint64, off, length int64) fuse.Status {
+				atomic.AddInt32(&inodeNotifies, 1)
+				return inode(node, off, length)
+			}
+			n.Delete = func(uint64, uint64, string) fuse.Status { return fuse.ENOSYS }
+		},
+	}
+	srv, err := fuse.NewServer(rawFS, mnt, &opts.MountOptions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	go srv.Serve()
+	if err := srv.WaitMount(); err != nil {
+		t.Fatal(err)
+	}
+	defer srv.Unmount()
+
+	if out := conn.Out(); out.Major != 7 || out.MaxWrite == 0 {
+		t.Errorf("Conn.Out not set: %v", out)
+	}
+
+	fn := filepath.Join(mnt, "file")
+	var st syscall.Stat_t
+	if err := syscall.Lstat(fn, &st); err != nil {
+		t.Fatalf("Lstat before: %v", err)
+	}
+
+	ch := root.GetChild("file")
+	root.RmChild("file")
+	if errno := root.NotifyEntry("file"); errno != 0 {
+		t.Fatalf("NotifyEntry: %v", errno)
+	}
+	if got := atomic.LoadInt32(&entryNotifies); got != 1 {
+		t.Errorf("entryNotifies=%d, want 1", got)
+	}
+	if err := syscall.Lstat(fn, &st); err != syscall.ENOENT {
+		t.Errorf("Lstat after: got %v, want ENOENT", err)
+	}
+
+	if errno := root.NotifyDelete("file", ch); errno != syscall.ENOSYS {
+		t.Errorf("NotifyDelete: got %v, want ENOSYS", errno)
+	}
+
+	if st := srv.InodeNotify(fuse.FUSE_ROOT_ID, 0, 0); !st.Ok() {
+		t.Errorf("InodeNotify: %v", st)
+	}
+	if got := atomic.LoadInt32(&inodeNotifies); got != 1 {
+		t.Errorf("inodeNotifies=%d, want 1", got)
+	}
+}
+
 func TestReadDirStress(t *testing.T) {
 	tc := newTestCase(t, &testOptions{suppressDebug: true, attrCache: true, entryCache: true})
 

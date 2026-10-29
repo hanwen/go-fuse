@@ -393,6 +393,41 @@ type MountOptions struct {
 	ExtraCapabilities uint64
 }
 
+// Conn is the connection with the kernel, as negotiated by the INIT
+// request (struct fuse_conn in the kernel). It is passed to
+// RawFileSystem.OnConnect, and the file system may keep it for later
+// use.
+type Conn struct {
+	in      InitIn
+	out     InitOut
+	notify  *Notify
+	backing *Backing
+}
+
+// In returns the INIT request from the kernel.
+func (c *Conn) In() InitIn {
+	return c.in
+}
+
+// Out returns the reply to INIT, as sent to the kernel.
+func (c *Conn) Out() InitOut {
+	return c.out
+}
+
+// Notify returns the notifications to the kernel. OnConnect may replace
+// its functions, eg. to wrap them for metrics or testing; the Server
+// methods (EntryNotify, etc.) dispatch through the same struct. It
+// can be used once OnConnect has returned, but not from within OnConnect.
+func (c *Conn) Notify() *Notify {
+	return c.notify
+}
+
+// Backing returns the calls for managing backing files. OnConnect may
+// replace its functions, like for Notify.
+func (c *Conn) Backing() *Backing {
+	return c.backing
+}
+
 // RawFileSystem is an interface close to the FUSE wire protocol.
 //
 // Unless you really know what you are doing, you should not implement
@@ -509,10 +544,10 @@ type RawFileSystem interface {
 	StatFs(ctx context.Context, input *InHeader, out *StatfsOut) (code Status)
 
 	Statx(ctx context.Context, input *StatxIn, out *StatxOut) (code Status)
-	// OnConnect is called on processing the first request. The
-	// filesystem implementation can use the server argument to
-	// talk back to the kernel (through notify methods).
-	OnConnect(*Server)
+	// OnConnect is called when the connection with the kernel has
+	// been negotiated, before any request other than INIT is
+	// served. See Conn.
+	OnConnect(*Conn)
 
 	// Called after processing the last request.
 	OnUnmount()

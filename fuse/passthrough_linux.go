@@ -51,11 +51,18 @@ func (r *fuseFD) unregisterBackingFd(id int32) syscall.Errno {
 // Open/Create calls should coordinate to return a consistent backing
 // ID.
 func (ms *Server) RegisterBackingFd(m *BackingMap) (int32, syscall.Errno) {
-	return ms.fuseFD.registerBackingFd(m)
+	return ms.conn.backing.Open(m)
 }
 
 // UnregisterBackingFd unregisters the given ID in the kernel. The ID
 // should have been acquired before using RegisterBackingFd.
 func (ms *Server) UnregisterBackingFd(id int32) syscall.Errno {
-	return ms.fuseFD.unregisterBackingFd(id)
+	return ms.conn.backing.Close(id)
+}
+
+func (ms *Server) fdBacking() *Backing {
+	return &Backing{
+		Open:  ms.fuseFD.registerBackingFd,
+		Close: ms.fuseFD.unregisterBackingFd,
+	}
 }

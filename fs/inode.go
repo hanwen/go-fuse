@@ -737,10 +737,7 @@ retry:
 // tuple should be invalidated. On next access, a LOOKUP operation
 // will be started.
 func (n *Inode) NotifyEntry(name string) syscall.Errno {
-	if n.bridge.server == nil {
-		return syscall.ENOSYS
-	}
-	status := n.bridge.server.EntryNotify(n.nodeId, name)
+	status := n.bridge.notify.InvalEntry(n.nodeId, name)
 	return syscall.Errno(status)
 }
 
@@ -749,15 +746,11 @@ func (n *Inode) NotifyEntry(name string) syscall.Errno {
 // in response.  If the receiver Inode must be forgotten too it must
 // be included in the argument separately.
 func (n *Inode) NotifyPrune(nodes []*Inode) syscall.Errno {
-	server, ok := n.bridge.server.(*fuse.Server)
-	if !ok {
-		return syscall.ENOSYS
-	}
 	ids := make([]uint64, 0, len(nodes))
 	for _, n := range nodes {
 		ids = append(ids, n.nodeId)
 	}
-	status := server.PruneNotify(ids)
+	status := n.bridge.notify.Prune(ids)
 	return syscall.Errno(status)
 }
 
@@ -765,36 +758,24 @@ func (n *Inode) NotifyPrune(nodes []*Inode) syscall.Errno {
 // from this directory as entry under the given name. It is equivalent
 // to NotifyEntry, but also sends an event to inotify watchers.
 func (n *Inode) NotifyDelete(name string, child *Inode) syscall.Errno {
-	if n.bridge.server == nil {
-		return syscall.ENOSYS
-	}
 	// XXX arg ordering?
-	return syscall.Errno(n.bridge.server.DeleteNotify(n.nodeId, child.nodeId, name))
+	return syscall.Errno(n.bridge.notify.Delete(n.nodeId, child.nodeId, name))
 }
 
 // NotifyContent notifies the kernel that content under the given
 // inode should be flushed from buffers.
 func (n *Inode) NotifyContent(off, sz int64) syscall.Errno {
-	if n.bridge.server == nil {
-		return syscall.ENOSYS
-	}
 	// XXX how does this work for directories?
-	return syscall.Errno(n.bridge.server.InodeNotify(n.nodeId, off, sz))
+	return syscall.Errno(n.bridge.notify.InvalInode(n.nodeId, off, sz))
 }
 
 // WriteCache stores data in the kernel cache.
 func (n *Inode) WriteCache(offset int64, data []byte) syscall.Errno {
-	if n.bridge.server == nil {
-		return syscall.ENOSYS
-	}
-	return syscall.Errno(n.bridge.server.InodeNotifyStoreCache(n.nodeId, offset, data))
+	return syscall.Errno(n.bridge.notify.Store(n.nodeId, offset, data))
 }
 
 // ReadCache reads data from the kernel cache.
 func (n *Inode) ReadCache(offset int64, dest []byte) (count int, errno syscall.Errno) {
-	if n.bridge.server == nil {
-		return 0, syscall.ENOSYS
-	}
-	c, s := n.bridge.server.InodeRetrieveCache(n.nodeId, offset, dest)
+	c, s := n.bridge.notify.Retrieve(n.nodeId, offset, dest)
 	return c, syscall.Errno(s)
 }

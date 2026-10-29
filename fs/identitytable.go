@@ -37,7 +37,7 @@ type nodeEntry struct {
 
 	// backing-fd (passthrough) state. Protected by rawBridge.backingMu,
 	// not by mapIdentityTable.mu: addBackingID/releaseBackingIDRef
-	// (bridge.go) hold a lock across a call into ServerCallbacks to
+	// (bridge.go) hold a lock across a call into the kernel to
 	// register/unregister the backing fd, and mu - used for identity
 	// resolution across the whole filesystem - must not be held during
 	// that call. Callers reach these fields via the *nodeEntry returned

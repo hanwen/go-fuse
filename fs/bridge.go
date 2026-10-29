@@ -92,16 +92,34 @@ type ServerCallbacks interface {
 	InodeNotifyStoreCache(node uint64, offset int64, data []byte) fuse.Status
 }
 
-// TODO: fold serverBackingFdCallbacks into ServerCallbacks and bump API version
 type serverBackingFdCallbacks interface {
 	RegisterBackingFd(*fuse.BackingMap) (int32, syscall.Errno)
 	UnregisterBackingFd(id int32) syscall.Errno
 }
 
+func enosysNotify() *fuse.Notify {
+	return &fuse.Notify{
+		InvalInode: func(uint64, int64, int64) fuse.Status { return fuse.ENOSYS },
+		InvalEntry: func(uint64, string) fuse.Status { return fuse.ENOSYS },
+		Delete:     func(uint64, uint64, string) fuse.Status { return fuse.ENOSYS },
+		Prune:      func([]uint64) fuse.Status { return fuse.ENOSYS },
+		Store:      func(uint64, int64, []byte) fuse.Status { return fuse.ENOSYS },
+		Retrieve:   func(uint64, int64, []byte) (int, fuse.Status) { return 0, fuse.ENOSYS },
+	}
+}
+
+func enosysBacking() *fuse.Backing {
+	return &fuse.Backing{
+		Open:  func(*fuse.BackingMap) (int32, syscall.Errno) { return 0, syscall.ENOSYS },
+		Close: func(int32) syscall.Errno { return syscall.ENOSYS },
+	}
+}
+
 type rawBridge struct {
 	options Options
 	root    *Inode
-	server  ServerCallbacks
+	notify  *fuse.Notify
+	backing *fuse.Backing
 
 	// ids owns the nodeid <-> Inode and file handle <-> fileEntry
 	// tables, including each node's openFiles and backing-fd state
@@ -113,7 +131,7 @@ type rawBridge struct {
 	// backingMu protects the backingID/backingIDRefcount fields of the
 	// nodeEntry values ids hands out (see identitytable.go). It is
 	// separate from ids' own mutex because addBackingID/
-	// releaseBackingIDRef hold it across a call into ServerCallbacks.
+	// releaseBackingIDRef hold it across a call into the kernel.
 	// Locks for inodes must be taken before backingMu.
 	backingMu sync.Mutex
 
@@ -307,8 +325,20 @@ func NewNodeFS(root InodeEmbedder, opts *Options) fuse.RawFileSystem {
 		}
 	}
 	bridge := &rawBridge{
-		server:  opts.ServerCallbacks,
 		options: *opts,
+		notify:  enosysNotify(),
+		backing: enosysBacking(),
+	}
+	if sc := opts.ServerCallbacks; sc != nil {
+		bridge.notify.InvalInode = sc.InodeNotify
+		bridge.notify.InvalEntry = sc.EntryNotify
+		bridge.notify.Delete = sc.DeleteNotify
+		bridge.notify.Store = sc.InodeNotifyStoreCache
+		bridge.notify.Retrieve = sc.InodeRetrieveCache
+		if bc, ok := sc.(serverBackingFdCallbacks); ok {
+			bridge.backing.Open = bc.RegisterBackingFd
+			bridge.backing.Close = bc.UnregisterBackingFd
+		}
 	}
 	bridge.ids.initIdentityTable(opts.FirstAutomaticIno, opts.ExternalNodeID)
 
@@ -838,11 +868,6 @@ func (b *rawBridge) addBackingID(e *nodeEntry, f FileHandle, out *fuse.OpenOut) 
 		return
 	}
 
-	bc, ok := b.server.(serverBackingFdCallbacks)
-	if !ok {
-		b.disableBackingFiles = true
-		return
-	}
 	pth, ok := f.(FilePassthroughFder)
 	if !ok {
 		return
@@ -856,7 +881,7 @@ func (b *rawBridge) addBackingID(e *nodeEntry, f FileHandle, out *fuse.OpenOut) 
 		m := fuse.BackingMap{
 			Fd: int32(fd),
 		}
-		id, errno := bc.RegisterBackingFd(&m)
+		id, errno := b.backing.Open(&m)
 		if errno != 0 {
 			// This happens if we're not root or CAP_PASSTHROUGH is missing.
 			b.disableBackingFiles = true
@@ -881,7 +906,7 @@ func (b *rawBridge) releaseBackingIDRef(e *nodeEntry) {
 
 	e.backingIDRefcount--
 	if e.backingIDRefcount == 0 {
-		errno := b.server.(serverBackingFdCallbacks).UnregisterBackingFd(e.backingID)
+		errno := b.backing.Close(e.backingID)
 		if errno != 0 {
 			b.logf("UnregisterBackingFd: %v", errno)
 		}
@@ -1309,8 +1334,9 @@ func (b *rawBridge) StatFs(ctx context.Context, input *fuse.InHeader, out *fuse.
 	return fuse.OK
 }
 
-func (b *rawBridge) OnConnect(s *fuse.Server) {
-	b.server = s
+func (b *rawBridge) OnConnect(c *fuse.Conn) {
+	b.notify = c.Notify()
+	b.backing = c.Backing()
 }
 
 func (b *rawBridge) CopyFileRange(ctx context.Context, in *fuse.CopyFileRangeIn) (size uint32, status fuse.Status) {

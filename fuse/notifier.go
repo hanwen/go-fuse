@@ -22,11 +22,23 @@ type notifier struct {
 	retrieveTab  map[uint64]*retrieveCacheRequest // notifyUnique -> retrieve request
 }
 
-func newNotifier(writev func([][]byte) (int, syscall.Errno), opts *MountOptions) *notifier {
-	return &notifier{
+// newNotify returns a Notify that sends notifications by calling
+// writev with the serialized message. Replies to NOTIFY_RETRIEVE are
+// delivered by the server that the Notify is installed in.
+func newNotify(writev func([][]byte) (int, syscall.Errno), opts *MountOptions) *Notify {
+	n := &notifier{
 		writev:      writev,
 		opts:        opts,
 		retrieveTab: make(map[uint64]*retrieveCacheRequest),
+	}
+	return &Notify{
+		InvalInode: n.InodeNotify,
+		InvalEntry: n.EntryNotify,
+		Delete:     n.DeleteNotify,
+		Prune:      n.PruneNotify,
+		Store:      n.InodeNotifyStoreCache,
+		Retrieve:   n.InodeRetrieveCache,
+		notifier:   n,
 	}
 }
 
@@ -105,9 +117,6 @@ func notifyWrite(writev func([][]byte) (int, syscall.Errno), opts *MountOptions,
 }
 
 func (ms *notifier) notifyWrite(req *request) Status {
-	if ms.writev == nil {
-		return ENOSYS
-	}
 	return notifyWrite(ms.writev, ms.opts, req)
 }
 

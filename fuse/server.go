@@ -221,7 +221,7 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		protocolServer: protocolServer{
 			fileSystem: fs,
 			opts:       &o,
-			conn:       &conn{notifier: newNotifier(nil, &o)},
+			conn:       &Conn{},
 		},
 		opts:         &o,
 		maxReaders:   maxReaders,
@@ -258,7 +258,8 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 	if err != nil {
 		return nil, err
 	}
-	ms.conn.notifier.writev = ms.fuseFD.writev
+	ms.conn.notify = newNotify(ms.fuseFD.writev, &o)
+	ms.conn.backing = ms.fdBacking()
 
 	if code := ms.handleInit(); !code.Ok() {
 		ms.fuseFD.close()
@@ -372,7 +373,9 @@ func (ms *Server) Serve() {
 	ms.fuseFD.close()
 
 	// shutdown in-flight cache retrieves.
-	ms.conn.notifier.abort()
+	if ms.conn.notify.notifier != nil {
+		ms.conn.notify.notifier.abort()
+	}
 
 	ms.fileSystem.OnUnmount()
 }
@@ -402,9 +405,6 @@ func (ms *Server) handleInit() Status {
 		ms.setSplice()
 	}
 
-	// INIT is handled. Init the file system, but don't accept
-	// incoming requests, so the file system can setup itself.
-	ms.fileSystem.OnConnect(ms)
 	return OK
 }
 
@@ -520,56 +520,6 @@ func (ms *Server) handleRequest(req *requestAlloc) Status {
 		}
 	}
 	return errno
-}
-
-// InodeNotify invalidates the information associated with the inode
-// (ie. data cache, attributes, etc.)
-func (ms *protocolServer) InodeNotify(node uint64, off int64, length int64) Status {
-	return ms.conn.notifier.InodeNotify(node, off, length)
-}
-
-func (ms *Server) PruneNotify(nodes []uint64) Status {
-	if !ms.conn.in.SupportsNotify(NOTIFY_PRUNE) {
-		return ENOSYS
-	}
-	return ms.conn.notifier.PruneNotify(nodes)
-}
-
-// InodeNotifyStoreCache tells kernel to store data into inode's cache.
-//
-// This call is similar to InodeNotify, but instead of only invalidating a data
-// region, it gives updated data directly to the kernel.
-func (ms *protocolServer) InodeNotifyStoreCache(node uint64, offset int64, data []byte) Status {
-	return ms.conn.notifier.InodeNotifyStoreCache(node, offset, data)
-}
-
-// InodeRetrieveCache retrieves data from kernel's inode cache.
-//
-// InodeRetrieveCache asks kernel to return data from its cache for inode at
-// [offset:offset+len(dest)) and waits for corresponding reply. If kernel cache
-// has fewer consecutive data starting at offset, that fewer amount is returned.
-// In particular if inode data at offset is not cached (0, OK) is returned.
-//
-// The kernel returns ENOENT if it does not currently have entry for this inode
-// in its dentry cache.
-func (ms *protocolServer) InodeRetrieveCache(node uint64, offset int64, dest []byte) (n int, st Status) {
-	return ms.conn.notifier.InodeRetrieveCache(node, offset, dest)
-}
-
-// DeleteNotify notifies the kernel that an entry is removed from a
-// directory.  In many cases, this is equivalent to EntryNotify,
-// except when the directory is in use, eg. as working directory of
-// some process. You should not hold any FUSE filesystem locks, as that
-// can lead to deadlock.
-func (ms *protocolServer) DeleteNotify(parent uint64, child uint64, name string) Status {
-	return ms.conn.notifier.DeleteNotify(parent, child, name)
-}
-
-// EntryNotify should be used if the existence status of an entry
-// within a directory changes. You should not hold any FUSE filesystem
-// locks, as that can lead to deadlock.
-func (ms *protocolServer) EntryNotify(parent uint64, name string) Status {
-	return ms.conn.notifier.EntryNotify(parent, name)
 }
 
 // SupportsVersion returns true if the kernel supports the given

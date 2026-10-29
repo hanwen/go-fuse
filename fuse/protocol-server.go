@@ -11,23 +11,14 @@ import (
 	"github.com/hanwen/go-fuse/v2/internal/iov"
 )
 
-// conn is the state of the connection with the kernel, as negotiated
-// by the INIT request (struct fuse_conn in the kernel).
-type conn struct {
-	// in is the INIT request from the kernel.
-	in InitIn
-
-	// out is the reply to INIT.
-	out InitOut
-
-	notifier *notifier
-}
-
 // protocolServer bridges from the FUSE datatypes to a RawFileSystem
 type protocolServer struct {
 	fileSystem RawFileSystem
 
-	conn *conn
+	// Before INIT, notify and backing are as supplied by the
+	// transport; afterwards, they are gated by the kernel version
+	// and possibly wrapped by RawFileSystem.OnConnect.
+	conn *Conn
 
 	interruptMu    sync.Mutex
 	reqInflight    []*request
@@ -193,7 +184,10 @@ func NewProtocolServer(fs RawFileSystem, opts *MountOptions) *ProtocolServer {
 			fileSystem: fs,
 			opts:       &optsCopy,
 			useReadv:   true,
-			conn:       &conn{notifier: newNotifier(nil, &optsCopy)},
+			conn: &Conn{
+				notify:  enosysNotify(),
+				backing: enosysBacking(),
+			},
 		},
 	}
 }
