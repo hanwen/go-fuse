@@ -21,7 +21,7 @@ func getFDHugepagesize(fd int) int {
 		}
 	}
 
-	if err == nil && fs.Type == _HUGETLBFS_MAGIC {
+	if err == nil && uint32(fs.Type) == _HUGETLBFS_MAGIC {
 		return int(fs.Bsize)
 	}
 	return 0

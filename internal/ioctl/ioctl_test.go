@@ -15,7 +15,7 @@ func TestKernelEncoding(t *testing.T) {
 
 	// FS_IOC_GETFLAGS = _IOR('f', 1, long): userspace reads.
 	if got := New(READ, 'f', 1, sz); uint32(got) != uint32(unix.FS_IOC_GETFLAGS) {
-		t.Errorf("New(READ, 'f', 1, %d) = %#x, want FS_IOC_GETFLAGS %#x", sz, got, unix.FS_IOC_GETFLAGS)
+		t.Errorf("New(READ, 'f', 1, %d) = %#x, want FS_IOC_GETFLAGS %#x", sz, got, uint32(unix.FS_IOC_GETFLAGS))
 	}
 	c := Command(unix.FS_IOC_GETFLAGS)
 	if !c.Read() || c.Write() {
