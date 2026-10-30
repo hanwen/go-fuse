@@ -17,7 +17,6 @@ import (
 )
 
 // busyboxURL is the official static x86-64 busybox binary from busybox.net.
-// TODO: support arm64 as well.
 const busyboxURL = "https://busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox"
 
 // testBinDir is where downloaded/detected assets are cached across runs.
@@ -42,9 +41,9 @@ func TestMain(m *testing.M) {
 }
 
 func prepareAssets() error {
+	// TODO: arm64 needs an aarch64 busybox and a non-"pc" machine type.
 	byArch := map[string]string{
 		"amd64": "qemu-system-x86_64",
-		"arm64": "qemu-system-aarch64",
 	}
 	bin, ok := byArch[runtime.GOARCH]
 	if !ok {
