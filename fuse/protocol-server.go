@@ -6,7 +6,6 @@ package fuse
 
 import (
 	"sync"
-	"syscall"
 	"unsafe"
 )
 
@@ -14,7 +13,7 @@ import (
 type protocolServer struct {
 	fileSystem RawFileSystem
 
-	writev func([][]byte) (int, syscall.Errno)
+	notifier *notifier
 
 	interruptMu    sync.Mutex
 	reqInflight    []*request
@@ -37,11 +36,6 @@ type protocolServer struct {
 	buffers bufferPool
 
 	writevCopyOnce sync.Once
-
-	// in-flight notify-retrieve queries
-	retrieveMu   sync.Mutex
-	retrieveNext uint64
-	retrieveTab  map[uint64]*retrieveCacheRequest // notifyUnique -> retrieve request
 }
 
 func (ms *protocolServer) handleRequest(h *operationHandler, req *request) {
@@ -187,10 +181,10 @@ func NewProtocolServer(fs RawFileSystem, opts *MountOptions) *ProtocolServer {
 
 	return &ProtocolServer{
 		protocolServer: protocolServer{
-			fileSystem:  fs,
-			retrieveTab: make(map[uint64]*retrieveCacheRequest),
-			opts:        &optsCopy,
-			useReadv:    true,
+			fileSystem: fs,
+			opts:       &optsCopy,
+			useReadv:   true,
+			notifier:   newNotifier(nil, &optsCopy),
 		},
 	}
 }

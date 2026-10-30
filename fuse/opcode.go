@@ -234,41 +234,7 @@ func doWrite(server *protocolServer, req *request) {
 }
 
 func doNotifyReply(server *protocolServer, req *request) {
-	reply := (*NotifyRetrieveIn)(req.inData())
-	server.retrieveMu.Lock()
-	reading := server.retrieveTab[reply.Unique]
-	delete(server.retrieveTab, reply.Unique)
-	server.retrieveMu.Unlock()
-
-	badf := func(format string, argv ...any) {
-		server.opts.Logger.Printf("notify reply: "+format, argv...)
-	}
-
-	if reading == nil {
-		badf("unexpected unique - ignoring")
-		return
-	}
-
-	reading.n = 0
-	reading.st = EIO
-	defer close(reading.ready)
-
-	if reading.nodeid != reply.NodeId {
-		badf("inode mismatch: expected %s, got %s", reading.nodeid, reply.NodeId)
-		return
-	}
-
-	if reading.offset != reply.Offset {
-		badf("offset mismatch: expected @%d, got @%d", reading.offset, reply.Offset)
-		return
-	}
-
-	if len(reading.dest) < len(req.inPayload) {
-		badf("too much data: requested %db, got %db (will use only %db)", len(reading.dest), len(req.inPayload), len(reading.dest))
-	}
-
-	reading.n = copy(reading.dest, req.inPayload)
-	reading.st = OK
+	server.notifier.deliverReply((*NotifyRetrieveIn)(req.inData()), req.inPayload)
 }
 
 const _SECURITY_CAPABILITY = "security.capability"
