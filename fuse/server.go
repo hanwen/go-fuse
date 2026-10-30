@@ -76,7 +76,7 @@ type Server struct {
 // filesystems can adapt to availability of features of the kernel
 // driver. The message should not be altered.
 func (ms *Server) KernelSettings() *InitIn {
-	s := ms.kernelSettings
+	s := ms.conn.in
 
 	return &s
 }
@@ -221,7 +221,7 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		protocolServer: protocolServer{
 			fileSystem: fs,
 			opts:       &o,
-			notifier:   newNotifier(nil, &o),
+			conn:       &conn{notifier: newNotifier(nil, &o)},
 		},
 		opts:         &o,
 		maxReaders:   maxReaders,
@@ -258,7 +258,7 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 	if err != nil {
 		return nil, err
 	}
-	ms.notifier.writev = ms.fuseFD.writev
+	ms.conn.notifier.writev = ms.fuseFD.writev
 
 	if code := ms.handleInit(); !code.Ok() {
 		ms.fuseFD.close()
@@ -372,7 +372,7 @@ func (ms *Server) Serve() {
 	ms.fuseFD.close()
 
 	// shutdown in-flight cache retrieves.
-	ms.notifier.abort()
+	ms.conn.notifier.abort()
 
 	ms.fileSystem.OnUnmount()
 }
@@ -398,7 +398,7 @@ func (ms *Server) handleInit() Status {
 		return code
 	}
 
-	if ms.kernelSettings.Minor >= 13 {
+	if ms.conn.in.Minor >= 13 {
 		ms.setSplice()
 	}
 
@@ -476,7 +476,7 @@ func (ms *Server) handleRequest(req *requestAlloc) Status {
 		defer ms.requestProcessingMu.Unlock()
 	}
 
-	h, inSize, outSize, outPayloadSize, code := parseRequest(req.inputBuf, ms.negotiatedFlags)
+	h, inSize, outSize, outPayloadSize, code := parseRequest(req.inputBuf, ms.conn.out.Flags64())
 	req.request.status = code
 	if !code.Ok() && code != ENOSYS {
 		ms.opts.Logger.Printf("parseRequest: %v", code)
@@ -525,14 +525,14 @@ func (ms *Server) handleRequest(req *requestAlloc) Status {
 // InodeNotify invalidates the information associated with the inode
 // (ie. data cache, attributes, etc.)
 func (ms *protocolServer) InodeNotify(node uint64, off int64, length int64) Status {
-	return ms.notifier.InodeNotify(node, off, length)
+	return ms.conn.notifier.InodeNotify(node, off, length)
 }
 
 func (ms *Server) PruneNotify(nodes []uint64) Status {
-	if !ms.kernelSettings.SupportsNotify(NOTIFY_PRUNE) {
+	if !ms.conn.in.SupportsNotify(NOTIFY_PRUNE) {
 		return ENOSYS
 	}
-	return ms.notifier.PruneNotify(nodes)
+	return ms.conn.notifier.PruneNotify(nodes)
 }
 
 // InodeNotifyStoreCache tells kernel to store data into inode's cache.
@@ -540,7 +540,7 @@ func (ms *Server) PruneNotify(nodes []uint64) Status {
 // This call is similar to InodeNotify, but instead of only invalidating a data
 // region, it gives updated data directly to the kernel.
 func (ms *protocolServer) InodeNotifyStoreCache(node uint64, offset int64, data []byte) Status {
-	return ms.notifier.InodeNotifyStoreCache(node, offset, data)
+	return ms.conn.notifier.InodeNotifyStoreCache(node, offset, data)
 }
 
 // InodeRetrieveCache retrieves data from kernel's inode cache.
@@ -553,7 +553,7 @@ func (ms *protocolServer) InodeNotifyStoreCache(node uint64, offset int64, data 
 // The kernel returns ENOENT if it does not currently have entry for this inode
 // in its dentry cache.
 func (ms *protocolServer) InodeRetrieveCache(node uint64, offset int64, dest []byte) (n int, st Status) {
-	return ms.notifier.InodeRetrieveCache(node, offset, dest)
+	return ms.conn.notifier.InodeRetrieveCache(node, offset, dest)
 }
 
 // DeleteNotify notifies the kernel that an entry is removed from a
@@ -562,14 +562,14 @@ func (ms *protocolServer) InodeRetrieveCache(node uint64, offset int64, dest []b
 // some process. You should not hold any FUSE filesystem locks, as that
 // can lead to deadlock.
 func (ms *protocolServer) DeleteNotify(parent uint64, child uint64, name string) Status {
-	return ms.notifier.DeleteNotify(parent, child, name)
+	return ms.conn.notifier.DeleteNotify(parent, child, name)
 }
 
 // EntryNotify should be used if the existence status of an entry
 // within a directory changes. You should not hold any FUSE filesystem
 // locks, as that can lead to deadlock.
 func (ms *protocolServer) EntryNotify(parent uint64, name string) Status {
-	return ms.notifier.EntryNotify(parent, name)
+	return ms.conn.notifier.EntryNotify(parent, name)
 }
 
 // SupportsVersion returns true if the kernel supports the given

@@ -9,26 +9,33 @@ import (
 	"unsafe"
 )
 
+// conn is the state of the connection with the kernel, as negotiated
+// by the INIT request (struct fuse_conn in the kernel).
+type conn struct {
+	// in is the INIT request from the kernel.
+	in InitIn
+
+	// out is the reply to INIT.
+	out InitOut
+
+	notifier *notifier
+}
+
 // protocolServer bridges from the FUSE datatypes to a RawFileSystem
 type protocolServer struct {
 	fileSystem RawFileSystem
 
-	notifier *notifier
+	conn *conn
 
 	interruptMu    sync.Mutex
 	reqInflight    []*request
 	connectionDead bool
-
-	kernelSettings InitIn
 
 	// If set, handleRequest does not flatten withReadv results
 	// with Bytes(), but leaves them in req.readResult, so
 	// ProtocolServer.HandleRequest can Readv them straight into
 	// the reply iov.
 	useReadv bool
-
-	// Capabilities sent in InitOut.
-	negotiatedFlags uint64
 
 	opts *MountOptions
 
@@ -184,7 +191,7 @@ func NewProtocolServer(fs RawFileSystem, opts *MountOptions) *ProtocolServer {
 			fileSystem: fs,
 			opts:       &optsCopy,
 			useReadv:   true,
-			notifier:   newNotifier(nil, &optsCopy),
+			conn:       &conn{notifier: newNotifier(nil, &optsCopy)},
 		},
 	}
 }
@@ -312,7 +319,7 @@ func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, Status)
 		ps.opts.Logger.Printf("request too short: %v", iovLens(in))
 		return 0, EIO
 	}
-	h, inSize, outSize, outPayloadSize, code := parseRequest(req.smallInputBuf[:n], ps.negotiatedFlags)
+	h, inSize, outSize, outPayloadSize, code := parseRequest(req.smallInputBuf[:n], ps.conn.out.Flags64())
 	if !code.Ok() && code != ENOSYS {
 		ps.opts.Logger.Printf("parseRequest: %v", code)
 	}

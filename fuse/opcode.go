@@ -100,7 +100,7 @@ func doInit(server *protocolServer, req *request) {
 	}
 
 	kernelFlags := input.Flags64()
-	server.kernelSettings = *input
+	server.conn.in = *input
 	kernelFlags &= (CAP_ASYNC_READ | CAP_BIG_WRITES | CAP_FILE_OPS |
 		CAP_READDIRPLUS | CAP_NO_OPEN_SUPPORT | CAP_PARALLEL_DIROPS | CAP_MAX_PAGES | CAP_RENAME_SWAP | CAP_PASSTHROUGH | CAP_ALLOW_IDMAP |
 		server.opts.ExtraCapabilities)
@@ -146,13 +146,13 @@ func doInit(server *protocolServer, req *request) {
 		MaxStackDepth:       uint32(server.opts.MaxStackDepth),
 	}
 	out.setFlags(kernelFlags)
-	server.negotiatedFlags = out.Flags64()
 	if server.opts.MaxReadAhead != 0 && uint32(server.opts.MaxReadAhead) < out.MaxReadAhead {
 		out.MaxReadAhead = uint32(server.opts.MaxReadAhead)
 	}
 	if out.Minor > input.Minor {
 		out.Minor = input.Minor
 	}
+	server.conn.out = *out
 
 	req.status = OK
 }
@@ -234,7 +234,7 @@ func doWrite(server *protocolServer, req *request) {
 }
 
 func doNotifyReply(server *protocolServer, req *request) {
-	server.notifier.deliverReply((*NotifyRetrieveIn)(req.inData()), req.inPayload)
+	server.conn.notifier.deliverReply((*NotifyRetrieveIn)(req.inData()), req.inPayload)
 }
 
 const _SECURITY_CAPABILITY = "security.capability"
