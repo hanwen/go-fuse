@@ -6,7 +6,6 @@ package vhostuser
 
 import (
 	"fmt"
-	"log"
 	"sync"
 	"syscall"
 )
@@ -86,22 +85,55 @@ func (d *Device) SetLogBase(fd int, log *VhostUserLog) error {
 	return nil
 }
 
+// vq returns the virtqueue at index, which comes from the front-end.
+func (d *Device) vq(index uint64) (*Virtq, error) {
+	if index >= uint64(len(d.vqs)) {
+		return nil, fmt.Errorf("vring index %d out of range (%d queues)", index, len(d.vqs))
+	}
+	return d.vqs[index], nil
+}
+
+// vqForFD is vq for the messages that pass a file descriptor. Bit 8 of
+// the index means that there is no fd, and the queue should be polled.
+func (d *Device) vqForFD(index uint64) (*Virtq, error) {
+	if index&(1<<8) != 0 {
+		return nil, fmt.Errorf("vring %d: polling mode not supported", index&0xff)
+	}
+	return d.vq(index)
+}
+
 func (d *Device) SetVringAddr(addr *VhostVringAddr) error {
-	return d.vqs[addr.Index].SetVringAddr(addr)
+	vq, err := d.vq(uint64(addr.Index))
+	if err != nil {
+		return err
+	}
+	return vq.SetVringAddr(addr)
 }
 
-func (d *Device) SetVringNum(state *VhostVringState) {
-	d.vqs[state.Index].Vring.Num = int(state.Num)
+func (d *Device) SetVringNum(state *VhostVringState) error {
+	vq, err := d.vq(uint64(state.Index))
+	if err != nil {
+		return err
+	}
+	vq.Vring.Num = int(state.Num)
+	return nil
 }
 
-func (d *Device) SetVringBase(state *VhostVringState) {
-	p := d.vqs[state.Index]
-	p.ShadowAvailIdx = uint16(state.Num)
-	p.LastAvailIdx = uint16(state.Num)
+func (d *Device) SetVringBase(state *VhostVringState) error {
+	vq, err := d.vq(uint64(state.Index))
+	if err != nil {
+		return err
+	}
+	vq.ShadowAvailIdx = uint16(state.Num)
+	vq.LastAvailIdx = uint16(state.Num)
+	return nil
 }
 
-func (d *Device) SetVringEnable(state *VhostVringState) {
-	vq := d.vqs[state.Index]
+func (d *Device) SetVringEnable(state *VhostVringState) error {
+	vq, err := d.vq(uint64(state.Index))
+	if err != nil {
+		return err
+	}
 
 	enable := uint(state.Num) != 0
 	if enable {
@@ -109,6 +141,7 @@ func (d *Device) SetVringEnable(state *VhostVringState) {
 	} else {
 		vq.SetEnable(nil)
 	}
+	return nil
 }
 
 type VirtqElem struct {
@@ -148,11 +181,13 @@ func (d *Device) logWrite(address, sz uint64) {
 // before SET_VRING_ENABLE, so a well-behaved driver never hits this path
 // twice; we reject it explicitly rather than rely on that assumption.
 func (d *Device) SetVringKick(fd int, index uint64) error {
-	if index&(1<<8) != 0 {
-		log.Panic("not supported")
+	vq, err := d.vqForFD(index)
+	if err != nil {
+		syscall.Close(fd)
+		return err
 	}
-	vq := d.vqs[index]
 	if vq.control != nil {
+		syscall.Close(fd)
 		return fmt.Errorf("SET_VRING_KICK after vring %d enabled", index)
 	}
 	if old := vq.KickFD; old >= 0 {
@@ -168,30 +203,36 @@ func (d *Device) SetVringKick(fd int, index uint64) error {
 }
 
 // SetVringErr sets the error eventfd.
-func (d *Device) SetVringErr(fd int, index uint64) {
-	if index&(1<<8) != 0 {
-		log.Panic("not supported")
+func (d *Device) SetVringErr(fd int, index uint64) error {
+	vq, err := d.vqForFD(index)
+	if err != nil {
+		syscall.Close(fd)
+		return err
 	}
 
-	if old := d.vqs[index].ErrFD; old >= 0 {
+	if old := vq.ErrFD; old >= 0 {
 		syscall.Close(old)
 	}
 
-	d.vqs[index].ErrFD = fd
+	vq.ErrFD = fd
 
 	// no need to change blocking status: we only write to this fd.
+	return nil
 }
 
 // SetVringCall sets the call eventfd.
-func (d *Device) SetVringCall(fd int, index uint64) {
-	if index&(1<<8) != 0 {
-		log.Panic("not supported")
+func (d *Device) SetVringCall(fd int, index uint64) error {
+	vq, err := d.vqForFD(index)
+	if err != nil {
+		syscall.Close(fd)
+		return err
 	}
-	if old := d.vqs[index].CallFD; old >= 0 {
+	if old := vq.CallFD; old >= 0 {
 		syscall.Close(old)
 	}
-	d.vqs[index].CallFD = fd
+	vq.CallFD = fd
 	// no need to change blocking status: we only write to this fd.
+	return nil
 }
 
 func (d *Device) SetOwner() {

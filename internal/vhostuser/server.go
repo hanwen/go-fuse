@@ -330,10 +330,10 @@ func (s *Server) oneRequest() error {
 		s.device.SetOwner()
 	case REQ_SET_VRING_CALL:
 		req := (*U64Payload)(inPayloadPtr)
-		s.device.SetVringCall(inFDs[0], req.Num)
+		deviceErr = s.device.SetVringCall(inFDs[0], req.Num)
 	case REQ_SET_VRING_ERR:
 		req := (*U64Payload)(inPayloadPtr)
-		s.device.SetVringErr(inFDs[0], req.Num)
+		deviceErr = s.device.SetVringErr(inFDs[0], req.Num)
 	case REQ_SET_VRING_KICK:
 		req := (*U64Payload)(inPayloadPtr)
 		deviceErr = s.device.SetVringKick(inFDs[0], req.Num)
@@ -343,13 +343,13 @@ func (s *Server) oneRequest() error {
 		deviceErr = s.device.regions.AddMemReg(inFDs[0], &req.Region)
 	case REQ_SET_VRING_NUM:
 		req := (*VhostVringState)(inPayloadPtr)
-		s.device.SetVringNum(req)
+		deviceErr = s.device.SetVringNum(req)
 	case REQ_SET_VRING_BASE:
 		req := (*VhostVringState)(inPayloadPtr)
-		s.device.SetVringBase(req)
+		deviceErr = s.device.SetVringBase(req)
 	case REQ_SET_VRING_ENABLE:
 		req := (*VhostVringState)(inPayloadPtr)
-		s.device.SetVringEnable(req)
+		deviceErr = s.device.SetVringEnable(req)
 	case REQ_SET_VRING_ADDR:
 		req := (*VhostVringAddr)(inPayloadPtr)
 		deviceErr = s.device.SetVringAddr(req)
