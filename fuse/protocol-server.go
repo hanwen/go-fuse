@@ -318,7 +318,7 @@ func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, Status)
 		ps.opts.Logger.Printf("request too short: %v", iovLens(in))
 		return 0, EIO
 	}
-	h, inSize, outSize, outPayloadSize, code := parseRequest(req.smallInputBuf[:n], &ps.kernelSettings, ps.negotiatedFlags)
+	h, inSize, outSize, outPayloadSize, code := parseRequest(req.smallInputBuf[:n], ps.negotiatedFlags)
 	if !code.Ok() && code != ENOSYS {
 		ps.opts.Logger.Printf("parseRequest: %v", code)
 	}

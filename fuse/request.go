@@ -279,7 +279,7 @@ func (r *request) inData() unsafe.Pointer {
 }
 
 // note: outSize is without OutHeader
-func parseRequest(in []byte, kernelSettings *InitIn, negotiated uint64) (h *operationHandler, inSize, outSize, outPayloadSize int, errno Status) {
+func parseRequest(in []byte, negotiated uint64) (h *operationHandler, inSize, outSize, outPayloadSize int, errno Status) {
 	inSize = int(unsafe.Sizeof(InHeader{}))
 	if len(in) < inSize {
 		errno = EIO
@@ -296,7 +296,7 @@ func parseRequest(in []byte, kernelSettings *InitIn, negotiated uint64) (h *oper
 		inSize = int(h.InputSize)
 	}
 	if hdr.Opcode == _OP_RENAME {
-		inSize = renameInSize(kernelSettings)
+		inSize = renameInSize(negotiated)
 	}
 	if hdr.Opcode == _OP_SETXATTR {
 		inSize = setXAttrInSize(negotiated)

@@ -110,8 +110,8 @@ type RenameIn struct {
 
 const compatRenameInSize = int(unsafe.Sizeof(InHeader{})) + 8
 
-func renameInSize(kernelSettings *InitIn) int {
-	if !kernelSettings.supportsRenameSwap() {
+func renameInSize(negotiated uint64) int {
+	if negotiated&CAP_RENAME_SWAP == 0 {
 		return compatRenameInSize
 	}
 	return int(unsafe.Sizeof(RenameIn{}))

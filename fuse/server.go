@@ -490,7 +490,7 @@ func (ms *Server) handleRequest(req *requestAlloc) Status {
 		defer ms.requestProcessingMu.Unlock()
 	}
 
-	h, inSize, outSize, outPayloadSize, code := parseRequest(req.inputBuf, &ms.kernelSettings, ms.negotiatedFlags)
+	h, inSize, outSize, outPayloadSize, code := parseRequest(req.inputBuf, ms.negotiatedFlags)
 	req.request.status = code
 	if !code.Ok() && code != ENOSYS {
 		ms.opts.Logger.Printf("parseRequest: %v", code)
@@ -817,12 +817,6 @@ func (in *InitIn) SupportsNotify(notifyType int) bool {
 		return in.SupportsVersion(7, 45)
 	}
 	return false
-}
-
-// supportsRenameSwap returns whether the kernel supports the
-// renamex_np(2) syscall. This is only supported on OS X.
-func (in *InitIn) supportsRenameSwap() bool {
-	return in.Flags&CAP_RENAME_SWAP != 0
 }
 
 // WaitMount waits for the first request to be served. Use this to
