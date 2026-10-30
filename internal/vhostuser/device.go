@@ -50,14 +50,16 @@ func (d *Device) Close() error {
 	return retErr
 }
 
+// maxQueues is the number of virtqueues the device supports: the hiprio
+// queue plus request queues. GetQueueNum() reports it as the maximum; the
+// front-end decides how many it uses (QEMU's num-request-queues).
+const maxQueues = 64
+
 // NewDevice creates a new virtio device. The handler should return
 // the number of response bytes written.
 func NewDevice(handle func(*VirtqElem) int) *Device {
 	d := &Device{
-		// TODO: queue count should be configurable; 2 is hardcoded (hiprio +
-		// one request queue). GetQueueNum() reports this count to the driver,
-		// so they must stay in sync.
-		vqs: make([]*Virtq, 2),
+		vqs: make([]*Virtq, maxQueues),
 	}
 	for i := range d.vqs {
 		d.vqs[i] = newVirtq(d)
@@ -136,6 +138,12 @@ func (d *Device) SetVringEnable(state *VhostVringState) error {
 	}
 
 	enable := uint(state.Num) != 0
+	if enable && vq.KickFD < 0 {
+		// QEMU enables all its queues, including ones the guest did
+		// not set up, for example because it has fewer CPUs than
+		// request queues. Without a kick fd there is nothing to read.
+		return nil
+	}
 	if enable {
 		vq.SetEnable(d.handle)
 	} else {

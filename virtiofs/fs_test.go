@@ -26,7 +26,7 @@ func newQemuCmd(sockpath, ramdisk string) *exec.Cmd {
 		"-M", "pc", "-m", "4G", "-cpu", "host", "-smp", "2",
 		"-enable-kvm",
 		"-chardev", "socket,id=char0,path="+sockpath,
-		"-device", "vhost-user-fs-pci,queue-size=1024,chardev=char0,tag=myfs",
+		"-device", "vhost-user-fs-pci,queue-size=1024,num-request-queues=2,chardev=char0,tag=myfs",
 		"-object", "memory-backend-file,id=mem,size=4G,mem-path=/dev/shm,share=on",
 		"-numa", "node,memdev=mem",
 		"-kernel", testAssets.kernel,
