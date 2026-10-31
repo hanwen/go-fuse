@@ -7,12 +7,9 @@ package fuse
 // do not error-out, meaning that unmount will hang.
 const useSingleReader = true
 
-func (r *fuseFD) write(req *request) Status {
+func (r *fuseFD) write(req *requestAlloc) Status {
 	if req.outPayloadSize() == 0 {
-		err := handleEINTR(func() error {
-			_, err := r.writevFD([][]byte{req.outHeaderBuf, req.outDataBuf})
-			return err
-		})
+		_, err := req.call.writev(req.outHeaderBuf, req.outDataBuf)
 		return ToStatus(err)
 	}
 	if req.readResult != nil {
@@ -21,13 +18,13 @@ func (r *fuseFD) write(req *request) Status {
 			req.readResult = nil
 		}()
 		if ws, ok := req.readResult.(withSlice); ok {
-			return r.writeWithSlice(req, ws)
+			return r.writeWithSlice(&req.request, ws)
 		}
 
 		req.outPayload, req.status = req.readResult.Bytes(req.outPayload)
 		req.serializeHeader(len(req.outPayload))
 	}
 
-	_, err := r.writevFD([][]byte{req.outHeaderBuf, req.outDataBuf, req.outPayload})
+	_, err := req.call.writev(req.outHeaderBuf, req.outDataBuf, req.outPayload)
 	return ToStatus(err)
 }

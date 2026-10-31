@@ -81,6 +81,8 @@ type requestAlloc struct {
 	smallInputBuf [uintptr(inputDataSize)]byte
 
 	extInline requestExt
+
+	call fdCall
 }
 
 func (r *request) inHeader() *InHeader {

@@ -96,6 +96,71 @@ func (r *fuseFD) writevFD(iov [][]byte) (int, error) {
 	return n, err
 }
 
+// fdCall is a read or write on the FUSE fd. It is part of the pooled
+// requestAlloc, so the functions passed to RawConn.Control are
+// allocated once, rather than a closure for every call.
+type fdCall struct {
+	fuseFD *fuseFD
+
+	buf       []byte
+	iov       [][]byte
+	iovInline [3][]byte
+	n         int
+	err       error
+
+	readFn  func(fd uintptr)
+	writeFn func(fd uintptr)
+}
+
+func (c *fdCall) doRead(fd uintptr) {
+	c.n, c.err = syscall.Read(int(fd), c.buf)
+}
+
+func (c *fdCall) doWrite(fd uintptr) {
+	c.n, c.err = writev(int(fd), c.iov)
+}
+
+// read reads into buf, retrying on EINTR.
+func (c *fdCall) read(buf []byte) (int, error) {
+	if c.readFn == nil {
+		c.readFn = c.doRead
+	}
+	c.buf = buf
+	for {
+		if err := c.fuseFD.conn.Control(c.readFn); err != nil {
+			c.err = err
+			break
+		}
+		if c.err != syscall.EINTR {
+			break
+		}
+	}
+	n, err := c.n, c.err
+	c.buf, c.n, c.err = nil, 0, nil
+	return n, err
+}
+
+// writev writes bufs, retrying on EINTR.
+func (c *fdCall) writev(bufs ...[]byte) (int, error) {
+	if c.writeFn == nil {
+		c.writeFn = c.doWrite
+	}
+	c.iov = append(c.iovInline[:0], bufs...)
+	for {
+		if err := c.fuseFD.conn.Control(c.writeFn); err != nil {
+			c.err = err
+			break
+		}
+		if c.err != syscall.EINTR {
+			break
+		}
+	}
+	n, err := c.n, c.err
+	clear(c.iovInline[:])
+	c.iov, c.n, c.err = nil, 0, nil
+	return n, err
+}
+
 // readRequest reads one request from the kernel. Returns nil, OK if
 // there are too many concurrent readers or insufficient request-bytes
 // budget.
@@ -112,16 +177,8 @@ func (r *fuseFD) readRequest() (req *requestAlloc, code Status) {
 	req = r.reqPool.Get().(*requestAlloc)
 	dest := r.readPool.Get().([]byte)
 
-	var n int
-	err := handleEINTR(func() error {
-		var err error
-		if cerr := r.withFD(func(fd int) {
-			n, err = syscall.Read(fd, dest)
-		}); cerr != nil {
-			return cerr
-		}
-		return err
-	})
+	req.call.fuseFD = r
+	n, err := req.call.read(dest)
 	if err != nil {
 		r.reqMu.Lock()
 		r.putReadBuf(dest)

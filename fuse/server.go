@@ -499,7 +499,7 @@ func (ms *Server) handleRequest(req *requestAlloc) Status {
 	if req.suppressReply {
 		return OK
 	}
-	errno := ms.fuseFD.write(&req.request)
+	errno := ms.fuseFD.write(req)
 	if errno != 0 {
 		// Ignore ENOENT for INTERRUPT responses which
 		// indicates that the referred request is no longer
