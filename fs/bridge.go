@@ -1334,6 +1334,9 @@ func (b *rawBridge) StatFs(ctx context.Context, input *fuse.InHeader, out *fuse.
 	return fuse.OK
 }
 
+func (b *rawBridge) Init(in *fuse.InitIn, out *fuse.InitOut) {
+}
+
 func (b *rawBridge) OnConnect(c *fuse.Conn) {
 	b.notify = c.Notify()
 	b.backing = c.Backing()

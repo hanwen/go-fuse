@@ -366,6 +366,11 @@ type MountOptions struct {
 	// to print a stack trace and return EIO.
 	PanicHandler func(any) Status
 
+	// InitHandler, if set, is called with the reply to the
+	// kernel's INIT request after RawFileSystem.Init, and may
+	// modify it. See RawFileSystem.Init for the limits.
+	InitHandler func(in *InitIn, out *InitOut)
+
 	// MaxStackDepth is the maximum stacking depth for passthrough files.
 	// If unset, the default is 1.
 	MaxStackDepth int
@@ -544,9 +549,17 @@ type RawFileSystem interface {
 	StatFs(ctx context.Context, input *InHeader, out *StatfsOut) (code Status)
 
 	Statx(ctx context.Context, input *StatxIn, out *StatxOut) (code Status)
+	// Init is called with the kernel's INIT request and the
+	// proposed reply, and may modify the reply before it is sent.
+	// Major and Minor cannot be changed, flags are limited to
+	// those the kernel offered, and MaxWrite and MaxPages can
+	// only be lowered. It is only called when a new connection
+	// is negotiated.
+	Init(in *InitIn, out *InitOut)
+
 	// OnConnect is called when the connection with the kernel has
-	// been negotiated, before any request other than INIT is
-	// served. See Conn.
+	// been negotiated, after Init and MountOptions.InitHandler,
+	// and before any request other than INIT is served. See Conn.
 	OnConnect(*Conn)
 
 	// Called after processing the last request.

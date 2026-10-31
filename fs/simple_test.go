@@ -290,7 +290,13 @@ func TestNotifyPrune(t *testing.T) {
 
 type notifyWrapFS struct {
 	fuse.RawFileSystem
+	init func(*fuse.InitIn, *fuse.InitOut)
 	wrap func(*fuse.Conn)
+}
+
+func (fs *notifyWrapFS) Init(in *fuse.InitIn, out *fuse.InitOut) {
+	fs.init(in, out)
+	fs.RawFileSystem.Init(in, out)
 }
 
 func (fs *notifyWrapFS) OnConnect(c *fuse.Conn) {
@@ -312,8 +318,16 @@ func TestWrapNotify(t *testing.T) {
 		},
 	}
 	opts.Debug = testutil.VerboseTest()
+	var handlerMaxWrite uint32
+	opts.InitHandler = func(in *fuse.InitIn, out *fuse.InitOut) {
+		handlerMaxWrite = out.MaxWrite
+		out.MaxBackground = 7
+	}
 	rawFS := &notifyWrapFS{
 		RawFileSystem: NewNodeFS(root, opts),
+		init: func(in *fuse.InitIn, out *fuse.InitOut) {
+			out.MaxWrite = 8192
+		},
 		wrap: func(c *fuse.Conn) {
 			conn = c
 			n := c.Notify()
@@ -340,8 +354,11 @@ func TestWrapNotify(t *testing.T) {
 	}
 	defer srv.Unmount()
 
-	if out := conn.Out(); out.Major != 7 || out.MaxWrite == 0 {
-		t.Errorf("Conn.Out not set: %v", out)
+	if handlerMaxWrite != 8192 {
+		t.Errorf("InitHandler saw MaxWrite %d, want 8192 set by Init", handlerMaxWrite)
+	}
+	if out := conn.Out(); out.MaxWrite != 8192 || out.MaxBackground != 7 {
+		t.Errorf("Conn.Out() = %v, want MaxWrite 8192, MaxBackground 7", out)
 	}
 
 	fn := filepath.Join(mnt, "file")

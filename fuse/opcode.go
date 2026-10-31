@@ -155,6 +155,25 @@ func doInit(server *protocolServer, req *request) {
 		out.Minor = input.Minor
 	}
 
+	want := *out
+	in := *input
+	server.fileSystem.Init(&in, out)
+	if server.opts.InitHandler != nil {
+		server.opts.InitHandler(&in, out)
+	}
+
+	// The file system may tune the reply, but not beyond what the
+	// kernel offered and our buffers can hold.
+	out.Major = want.Major
+	out.Minor = want.Minor
+	out.setFlags(out.Flags64() & input.Flags64())
+	if out.MaxWrite == 0 || out.MaxWrite > want.MaxWrite {
+		out.MaxWrite = want.MaxWrite
+	}
+	if out.MaxPages == 0 || out.MaxPages > want.MaxPages {
+		out.MaxPages = want.MaxPages
+	}
+
 	conn := server.conn
 	conn.out = *out
 	conn.notify = conn.notify.gate(input)

@@ -17,6 +17,9 @@ func NewDefaultRawFileSystem() RawFileSystem {
 
 type defaultRawFileSystem struct{}
 
+func (fs *defaultRawFileSystem) Init(*InitIn, *InitOut) {
+}
+
 func (fs *defaultRawFileSystem) OnConnect(*Conn) {
 }
 
