@@ -109,6 +109,14 @@ func (r *fuseFD) stopReading() {
 	r.reqMu.Unlock()
 }
 
+// startReading undoes stopReading.
+func (r *fuseFD) startReading() {
+	r.reqMu.Lock()
+	r.stopped = false
+	r.unwake()
+	r.reqMu.Unlock()
+}
+
 // withFD runs f with the underlying FUSE file descriptor, holding a
 // reference on it for the duration so the fd cannot be closed (and its
 // number reused) while f runs. This is what lets concurrent writers and

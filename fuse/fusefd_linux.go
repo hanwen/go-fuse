@@ -39,6 +39,15 @@ func (r *fuseFD) wake() {
 	syscall.Write(r.wakeFD, one[:])
 }
 
+// unwake undoes wake. Called with reqMu held.
+func (r *fuseFD) unwake() {
+	if r.wakeFD < 0 {
+		return
+	}
+	var buf [8]byte
+	syscall.Read(r.wakeFD, buf[:])
+}
+
 // readFD reads a request from fd, which is non-blocking. If no request
 // is queued, the reader waits in epoll_wait(2), on an epoll fd of its
 // own. The FUSE fd is added with EPOLLEXCLUSIVE, so a request wakes

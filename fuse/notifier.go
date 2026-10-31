@@ -5,6 +5,7 @@
 package fuse
 
 import (
+	"context"
 	"math"
 	"sync"
 	"syscall"
@@ -24,6 +25,38 @@ type notifier struct {
 	retrieveMu   sync.Mutex
 	retrieveNext uint64
 	retrieveTab  map[uint64]*retrieveCacheRequest // notifyUnique -> retrieve request
+
+	// retrieveIdle is closed when retrieveTab becomes empty.
+	retrieveIdle chan struct{}
+}
+
+// deleteRetrieveLocked removes a retrieve from the table.
+func (ms *notifier) deleteRetrieveLocked(unique uint64) {
+	delete(ms.retrieveTab, unique)
+	if len(ms.retrieveTab) == 0 && ms.retrieveIdle != nil {
+		close(ms.retrieveIdle)
+		ms.retrieveIdle = nil
+	}
+}
+
+// waitRetrieves waits until no retrieve waits for a reply.
+func (ms *notifier) waitRetrieves(ctx context.Context) error {
+	ms.retrieveMu.Lock()
+	if len(ms.retrieveTab) == 0 {
+		ms.retrieveMu.Unlock()
+		return nil
+	}
+	if ms.retrieveIdle == nil {
+		ms.retrieveIdle = make(chan struct{})
+	}
+	ch := ms.retrieveIdle
+	ms.retrieveMu.Unlock()
+	select {
+	case <-ch:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 // newNotify returns a Notify that sends notifications by calling
@@ -52,7 +85,7 @@ func newNotify(writev func([][]byte) (int, syscall.Errno), opts *MountOptions) *
 func (ms *notifier) deliverReply(reply *NotifyRetrieveIn, payload []byte) {
 	ms.retrieveMu.Lock()
 	reading := ms.retrieveTab[reply.Unique]
-	delete(ms.retrieveTab, reply.Unique)
+	ms.deleteRetrieveLocked(reply.Unique)
 	ms.retrieveMu.Unlock()
 
 	badf := func(format string, argv ...any) {
@@ -96,6 +129,10 @@ func (ms *notifier) abort() {
 	// retrieve attempts might be erroneously tried even after close
 	// we have to keep retrieveTab !nil not to panic.
 	ms.retrieveTab = make(map[uint64]*retrieveCacheRequest)
+	if ms.retrieveIdle != nil {
+		close(ms.retrieveIdle)
+		ms.retrieveIdle = nil
+	}
 	ms.retrieveMu.Unlock()
 	for _, reading := range rtab {
 		reading.n = 0
@@ -281,7 +318,7 @@ func (ms *notifier) inodeRetrieveCache1(node uint64, offset int64, dest []byte) 
 		ms.retrieveMu.Lock()
 		r := ms.retrieveTab[q.NotifyUnique]
 		if r == reading {
-			delete(ms.retrieveTab, q.NotifyUnique)
+			ms.deleteRetrieveLocked(q.NotifyUnique)
 		} else if r == nil {
 			// ok - might be dequeued by umount
 		} else {

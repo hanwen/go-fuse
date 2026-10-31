@@ -15,6 +15,8 @@ func (r *fuseFD) initWake(fd int) error {
 
 func (r *fuseFD) wake() {}
 
+func (r *fuseFD) unwake() {}
+
 func (r *fuseFD) readFD(fd int, dest []byte) (int, error) {
 	return syscall.Read(fd, dest)
 }

@@ -59,16 +59,28 @@ type Server struct {
 	singleReader bool
 	serving      atomic.Bool // for preventing duplicate Serve() calls
 
-	// stateMu protects loops and loopsZero.
+	// lifeMu serializes Start, Stop and Shutdown.
+	lifeMu sync.Mutex
+
+	// stateMu protects state, loops, loopsZero and dead.
 	stateMu sync.Mutex
+	state   serverState
 
 	// loops counts goroutines reading or serving requests. loopsZero
 	// is closed when it drops to zero.
 	loops     int
 	loopsZero chan struct{}
 
-	// done is closed when Serve has finished tearing down.
+	// dead is set when reading failed, eg. after unmount.
+	dead bool
+
+	// done is closed when the server is closed.
 	done chan struct{}
+
+	// notifyStopped makes notifications fail with EINTR. Kernel
+	// operations that a notification waits for may be blocked by a
+	// request that nobody reads.
+	notifyStopped atomic.Bool
 
 	// Used to implement WaitMount on macos.
 	ready <-chan error
@@ -98,6 +110,9 @@ func (ms *Server) Unmount() error {
 	if err := ms.mount.Unmount(); err != nil {
 		return err
 	}
+	// The kernel has aborted the connection.
+	ms.cancelAll()
+	ms.markDead()
 	<-ms.done
 	return nil
 }
@@ -243,7 +258,7 @@ func newServerFromDev(fs RawFileSystem, d *Dev, m *Mount, o *MountOptions) (*Ser
 		return nil, err
 	}
 	ms.setMaxWrite(o.MaxWrite)
-	ms.conn.notify = newNotify(ms.fuseFD.writev, o)
+	ms.conn.notify = newNotify(ms.writeNotify, o)
 	ms.conn.backing = ms.fdBacking()
 
 	if code := ms.handleInit(); !code.Ok() {
@@ -251,10 +266,6 @@ func newServerFromDev(fs RawFileSystem, d *Dev, m *Mount, o *MountOptions) (*Ser
 		// TODO - unmount as well?
 		return nil, fmt.Errorf("init: %s", code)
 	}
-
-	// This prepares for Serve being called somewhere, either
-	// synchronously or asynchronously.
-	ms.loops = 1
 	return ms, nil
 }
 
@@ -366,9 +377,10 @@ func handleEINTR(fn func() error) (err error) {
 	return
 }
 
-// Serve initiates the FUSE loop. Normally, callers should run Serve()
-// and wait for it to exit, but tests will want to run this in a
-// goroutine.
+// Serve starts serving requests, and waits until the server is
+// closed: when the file system is unmounted, or by Shutdown. Normally,
+// callers should run Serve() and wait for it to exit, but tests will
+// want to run this in a goroutine.
 //
 // Each filesystem operation executes in a separate goroutine.
 func (ms *Server) Serve() {
@@ -378,25 +390,108 @@ func (ms *Server) Serve() {
 		// Catch it early.
 		log.Panic("Serve() must only be called once, you have called it a second time")
 	}
-
-	ms.loop()
-	ms.waitLoopsZero(context.Background())
-
-	ms.fuseFD.close()
-
-	// shutdown in-flight cache retrieves.
-	if ms.conn.notify.notifier != nil {
-		ms.conn.notify.notifier.abort()
+	if err := ms.Start(); err != nil {
+		ms.opts.Logger.Printf("Serve: %v", err)
 	}
-
-	ms.fileSystem.OnUnmount()
-	close(ms.done)
+	ms.Wait()
 }
 
-// Wait waits for Serve to exit. This should only be called
-// after Serve has been called, or it will hang indefinitely.
+// Wait waits until the server is closed.
 func (ms *Server) Wait() {
 	<-ms.done
+}
+
+type serverState int
+
+const (
+	stateStopped serverState = iota
+	stateRunning
+	stateClosing
+	stateClosed
+)
+
+var errServerClosed = errors.New("fuse: server closed")
+
+// Start starts reading requests, or resumes after Stop.
+func (ms *Server) Start() error {
+	ms.lifeMu.Lock()
+	defer ms.lifeMu.Unlock()
+	ms.stateMu.Lock()
+	defer ms.stateMu.Unlock()
+	switch ms.state {
+	case stateRunning:
+		return nil
+	case stateClosing, stateClosed:
+		return errServerClosed
+	}
+	if ms.dead {
+		return errServerClosed
+	}
+	ms.fuseFD.startReading()
+	ms.state = stateRunning
+	ms.notifyStopped.Store(false)
+	ms.loops++
+	go ms.loop()
+	return nil
+}
+
+// Stop stops reading requests, and waits until every request that
+// was read has been answered. The connection stays open, so the
+// kernel queues new requests until Start is called, or another
+// server takes over the connection. While stopped, notifications
+// return EINTR.
+//
+// Before reading stops, Stop waits for pending NOTIFY_RETRIEVE
+// replies. If ctx expires, the server stays stopped, and Stop
+// returns the context's error.
+//
+// On platforms other than Linux, a reader blocked in read(2) only
+// returns with the next request, so Stop may wait for it.
+func (ms *Server) Stop(ctx context.Context) error {
+	ms.lifeMu.Lock()
+	defer ms.lifeMu.Unlock()
+	return ms.stop(ctx)
+}
+
+func (ms *Server) stop(ctx context.Context) error {
+	ms.stateMu.Lock()
+	switch ms.state {
+	case stateClosing, stateClosed:
+		ms.stateMu.Unlock()
+		return errServerClosed
+	}
+	ms.state = stateStopped
+	ms.notifyStopped.Store(true)
+	ms.stateMu.Unlock()
+
+	var err error
+	if n := ms.conn.notify.notifier; n != nil {
+		err = n.waitRetrieves(ctx)
+	}
+	ms.fuseFD.stopReading()
+	if err == nil {
+		err = ms.waitLoopsZero(ctx)
+	}
+	return err
+}
+
+// Shutdown stops the server as Stop does, and then closes it: it
+// closes this server's file descriptor, and calls
+// RawFileSystem.OnUnmount. It does not unmount the file system; if
+// no other process has the FUSE device open, the kernel aborts the
+// connection. If Stop fails, the server stays stopped.
+func (ms *Server) Shutdown(ctx context.Context) error {
+	ms.lifeMu.Lock()
+	defer ms.lifeMu.Unlock()
+	if err := ms.stop(ctx); err != nil {
+		if err == errServerClosed {
+			<-ms.done
+			return nil
+		}
+		return err
+	}
+	ms.finish()
+	return nil
 }
 
 // addLoop counts a goroutine that reads or serves requests. The
@@ -411,20 +506,38 @@ func (ms *Server) addLoop() {
 func (ms *Server) loopDone() {
 	ms.stateMu.Lock()
 	ms.loops--
-	ms.checkLoopsZeroLocked()
+	finish := ms.checkLoopsZeroLocked()
 	ms.stateMu.Unlock()
+	if finish {
+		ms.finish()
+	}
+}
+
+// markDead marks reading as failed for good, so readers exit, and
+// the server closes once they have.
+func (ms *Server) markDead() {
+	ms.stateMu.Lock()
+	ms.dead = true
+	ms.fuseFD.stopReading()
+	finish := ms.checkLoopsZeroLocked()
+	ms.stateMu.Unlock()
+	if finish {
+		ms.finish()
+	}
 }
 
 // checkLoopsZeroLocked closes loopsZero if no goroutine reads or serves
-// requests.
-func (ms *Server) checkLoopsZeroLocked() {
+// requests. It returns whether the server should then be closed,
+// because reading has failed.
+func (ms *Server) checkLoopsZeroLocked() bool {
 	if ms.loops > 0 {
-		return
+		return false
 	}
 	if ms.loopsZero != nil {
 		close(ms.loopsZero)
 		ms.loopsZero = nil
 	}
+	return ms.dead
 }
 
 // waitLoopsZero waits until no goroutine reads or serves requests.
@@ -445,6 +558,39 @@ func (ms *Server) waitLoopsZero(ctx context.Context) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	}
+}
+
+// finish closes the server once. It must be called with no request
+// being read or served.
+func (ms *Server) finish() {
+	ms.stateMu.Lock()
+	if ms.state == stateClosing || ms.state == stateClosed {
+		ms.stateMu.Unlock()
+		<-ms.done
+		return
+	}
+	ms.state = stateClosing
+	ms.stateMu.Unlock()
+
+	ms.fuseFD.close()
+	// shutdown in-flight cache retrieves.
+	if n := ms.conn.notify.notifier; n != nil {
+		n.abort()
+	}
+	ms.fileSystem.OnUnmount()
+
+	ms.stateMu.Lock()
+	ms.state = stateClosed
+	ms.stateMu.Unlock()
+	close(ms.done)
+}
+
+// writeNotify writes a notification.
+func (ms *Server) writeNotify(iov [][]byte) (int, syscall.Errno) {
+	if ms.notifyStopped.Load() {
+		return 0, syscall.EINTR
+	}
+	return ms.fuseFD.writev(iov)
 }
 
 func (ms *Server) handleInit() Status {
@@ -502,15 +648,17 @@ exit:
 			continue
 		case ENODEV:
 			// Mount was killed. The obvious place to
-			// cancel outstanding requests is at the end
-			// of Serve, but that reader might be blocked.
+			// cancel outstanding requests is when the
+			// server closes, but that reader might be blocked.
 			ms.cancelAll()
 			if ms.opts.Debug {
 				ms.opts.Logger.Printf("received ENODEV (unmount request), thread exiting")
 			}
+			ms.markDead()
 			break exit
 		default: // some other error?
 			ms.opts.Logger.Printf("Failed to read from fuse conn: %v", errNo)
+			ms.markDead()
 			break exit
 		}
 

@@ -76,44 +76,128 @@ func serveBlockingGetAttr(t *testing.T, fs *blockingGetAttrFS) (*Server, string,
 	return srv, mnt, served
 }
 
-func TestStopReading(t *testing.T) {
-	t.Run("idle", func(t *testing.T) { testStopReading(t, false) })
-	t.Run("inflight", func(t *testing.T) { testStopReading(t, true) })
+func statAsync(path string) chan error {
+	ch := make(chan error, 1)
+	go func() {
+		var st syscall.Stat_t
+		ch <- syscall.Stat(path, &st)
+	}()
+	return ch
 }
 
-func testStopReading(t *testing.T, inflight bool) {
+func expectBlocked(t *testing.T, ch chan error) {
+	t.Helper()
+	select {
+	case err := <-ch:
+		t.Fatalf("stat returned %v while the server is stopped", err)
+	case <-time.After(100 * time.Millisecond):
+	}
+}
+
+func TestServerStop(t *testing.T) {
+	t.Run("idle", func(t *testing.T) { testServerStop(t, false) })
+	t.Run("inflight", func(t *testing.T) { testServerStop(t, true) })
+}
+
+// testServerStop checks that requests queue while the server is
+// stopped, and are served after Start.
+func testServerStop(t *testing.T, inflight bool) {
 	fs := newBlockingGetAttrFS(1)
 	srv, mnt, served := serveBlockingGetAttr(t, fs)
-
-	statErr := make(chan error, 1)
-	if inflight {
-		go func() {
-			var st syscall.Stat_t
-			statErr <- syscall.Stat(mnt+"/file", &st)
-		}()
-		<-fs.entered
-	} else if _, err := os.Stat(mnt); err != nil {
+	if _, err := os.Stat(mnt); err != nil {
 		t.Fatal(err)
 	}
 
-	srv.fuseFD.stopReading()
+	var inflightErr chan error
+	if inflight {
+		inflightErr = statAsync(mnt + "/inflight")
+		<-fs.entered
+	}
 
+	stopErr := make(chan error, 1)
+	go func() { stopErr <- srv.Stop(context.Background()) }()
 	if inflight {
 		select {
-		case <-served:
-			t.Fatal("Serve returned with a request in flight")
+		case err := <-stopErr:
+			t.Fatalf("Stop returned %v with a request in flight", err)
 		case <-time.After(100 * time.Millisecond):
 		}
 		close(fs.release)
-		if err := <-statErr; err != nil {
+		if err := <-inflightErr; err != nil {
 			t.Errorf("stat: %v", err)
 		}
 	}
+	if err := <-stopErr; err != nil {
+		t.Fatalf("Stop: %v", err)
+	}
 
+	queued := statAsync(mnt + "/queued")
+	expectBlocked(t, queued)
+	select {
+	case <-served:
+		t.Fatal("Serve returned after Stop")
+	default:
+	}
+
+	if !inflight {
+		close(fs.release)
+	}
+	if err := srv.Start(); err != nil {
+		t.Fatal(err)
+	}
+	if err := <-queued; err != nil {
+		t.Fatalf("stat after Start: %v", err)
+	}
+}
+
+// TestServerStopTimeout checks that a server whose Stop timed out can
+// be started again.
+func TestServerStopTimeout(t *testing.T) {
+	fs := newBlockingGetAttrFS(1)
+	srv, mnt, _ := serveBlockingGetAttr(t, fs)
+
+	inflightErr := statAsync(mnt + "/inflight")
+	<-fs.entered
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	if err := srv.Stop(ctx); err != context.DeadlineExceeded {
+		t.Fatalf("Stop: got %v, want %v", err, context.DeadlineExceeded)
+	}
+	queued := statAsync(mnt + "/queued")
+	expectBlocked(t, queued)
+
+	close(fs.release)
+	if err := <-inflightErr; err != nil {
+		t.Errorf("stat: %v", err)
+	}
+	if err := srv.Start(); err != nil {
+		t.Fatal(err)
+	}
+	if err := <-queued; err != nil {
+		t.Fatalf("stat after Start: %v", err)
+	}
+}
+
+func TestServerShutdown(t *testing.T) {
+	fs := newBlockingGetAttrFS(1)
+	close(fs.release)
+	srv, mnt, served := serveBlockingGetAttr(t, fs)
+	if _, err := os.Stat(mnt + "/file"); err != nil {
+		t.Fatal(err)
+	}
+	if err := srv.Shutdown(context.Background()); err != nil {
+		t.Fatal(err)
+	}
 	select {
 	case <-served:
 	case <-time.After(5 * time.Second):
-		t.Fatal("Serve did not return after stopReading")
+		t.Fatal("Serve did not return after Shutdown")
+	}
+	// No process has the device open, so the kernel aborted the
+	// connection.
+	var st syscall.Stat_t
+	if err := syscall.Stat(mnt+"/file2", &st); err != syscall.ENOTCONN {
+		t.Errorf("stat after Shutdown: got %v, want ENOTCONN", err)
 	}
 }
 
@@ -160,10 +244,10 @@ func TestIdleReadersStop(t *testing.T) {
 		t.Fatalf("stat after idle: %v", err)
 	}
 
-	r.stopReading()
-	select {
-	case <-served:
-	case <-time.After(5 * time.Second):
-		t.Fatal("Serve did not return after stopReading")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		t.Fatalf("Shutdown: %v", err)
 	}
+	<-served
 }
