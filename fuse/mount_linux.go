@@ -209,31 +209,18 @@ func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, e
 	return fd, err
 }
 
-func unmount(mountPoint string, opts *MountOptions) (err error) {
-	if opts.DirectMount || opts.DirectMountStrict {
-		// Attempt to directly unmount, if fails fallback to fusermount method
-		err := syscall.Unmount(mountPoint, 0)
-		if err == nil {
-			return nil
-		}
-		if opts.DirectMountStrict {
-			return err
-		}
+func unmount(mountPoint string) error {
+	err := syscall.Unmount(mountPoint, 0)
+	if err != syscall.EPERM {
+		return err
 	}
-
-	bin, err := fusermountBinary()
-	if err != nil {
-		if uerr := syscall.Unmount(mountPoint, 0); uerr != nil {
-			return fmt.Errorf("%v; direct unmount: %w", err, uerr)
-		}
-		return nil
+	bin, ferr := fusermountBinary()
+	if ferr != nil {
+		return fmt.Errorf("%w; %v", err, ferr)
 	}
 	errBuf := bytes.Buffer{}
 	cmd := exec.Command(bin, "-u", mountPoint)
 	cmd.Stderr = &errBuf
-	if opts.Debug {
-		opts.Logger.Printf("unmount: executing %q", cmd.Args)
-	}
 	err = cmd.Run()
 	if errBuf.Len() > 0 {
 		return fmt.Errorf("%s (code %v)\n",

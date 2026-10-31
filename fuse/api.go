@@ -330,8 +330,7 @@ type MountOptions struct {
 	// DirectMount, if set, makes go-fuse first attempt to use syscall.Mount instead of
 	// fusermount to mount the filesystem. This will not update /etc/mtab
 	// but might be needed if fusermount is not available.
-	// Also, Server.Unmount will attempt syscall.Unmount before calling
-	// fusermount.
+	// Unmounting does not depend on it; see Mount.Unmount.
 	DirectMount bool
 
 	// DirectMountStrict, if set, is like DirectMount but no fallback to fusermount is

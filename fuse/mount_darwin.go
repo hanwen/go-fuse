@@ -94,8 +94,8 @@ func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, e
 	return fd, err
 }
 
-func unmount(dir string, opts *MountOptions) error {
-	return syscall.Unmount(dir, 0)
+func unmount(mountPoint string) error {
+	return syscall.Unmount(mountPoint, 0)
 }
 
 func fusermountBinary() (string, error) {

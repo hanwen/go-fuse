@@ -9,9 +9,7 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"os"
 	"path"
-	"path/filepath"
 	"reflect"
 	"runtime"
 	"slices"
@@ -20,7 +18,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"syscall"
-	"time"
 	"unsafe"
 )
 
@@ -46,7 +43,7 @@ type Server struct {
 	protocolServer
 
 	// Empty if unmounted.
-	mountPoint string
+	mount *Mount
 
 	fuseFD *fuseFD
 
@@ -66,7 +63,7 @@ type Server struct {
 	serving      atomic.Bool // for preventing duplicate Serve() calls
 
 	// Used to implement WaitMount on macos.
-	ready chan error
+	ready <-chan error
 
 	// for implementing single threaded processing.
 	requestProcessingMu sync.Mutex
@@ -83,43 +80,19 @@ func (ms *Server) KernelSettings() *InitIn {
 
 const _MAX_NAME_LEN = 20
 
-// Unmount calls fusermount -u on the mount. This has the effect of
-// shutting down the filesystem. After the Server is unmounted, it
-// should be discarded.  This function is idempotent.
-//
-// Does not work when we were mounted with the magic /dev/fd/N mountpoint syntax,
-// as we do not know the real mountpoint. Unmount using
-//
-//	fusermount -u /path/to/real/mountpoint
-//
-// in this case.
-func (ms *Server) Unmount() (err error) {
-	if ms.mountPoint == "" {
-		return nil
+// Unmount unmounts the file system (see Mount.Unmount), and
+// waits for the server to exit. After the Server is unmounted, it
+// should be discarded. This function is idempotent.
+func (ms *Server) Unmount() error {
+	if ms.mount == nil {
+		return errors.New("fuse: server has no mount")
 	}
-	if parseFuseFd(ms.mountPoint) >= 0 {
-		return fmt.Errorf("Cannot unmount magic mountpoint %q. Please use `fusermount -u REALMOUNTPOINT` instead.", ms.mountPoint)
-	}
-	delay := time.Duration(0)
-	for try := 0; try < 5; try++ {
-		err = unmount(ms.mountPoint, ms.opts)
-		if err == nil {
-			break
-		}
-
-		// Sleep for a bit. This is not pretty, but there is
-		// no way we can be certain that the kernel thinks all
-		// open files have already been closed.
-		delay = 2*delay + 5*time.Millisecond
-		time.Sleep(delay)
-	}
-	if err != nil {
-		return
+	if err := ms.mount.Unmount(); err != nil {
+		return err
 	}
 	// Wait for event loops to exit.
 	ms.fuseFD.loops.Wait()
-	ms.mountPoint = ""
-	return err
+	return nil
 }
 
 // alignSlice ensures that the byte at alignedByte is aligned with the
@@ -151,7 +124,7 @@ func (o *MountOptions) setDefaults(fs RawFileSystem) {
 	if o.MaxStackDepth == 0 {
 		o.MaxStackDepth = 1
 	}
-	if o.Name == "" {
+	if o.Name == "" && fs != nil {
 		var name string
 		if s, ok := fs.(fmt.Stringer); ok {
 			name = s.String()
@@ -194,20 +167,47 @@ func defaultPanicHandler(logger *log.Logger, obj any) Status {
 	return EIO
 }
 
+func defaultMountOptions(opts *MountOptions) MountOptions {
+	if opts == nil {
+		return MountOptions{
+			MaxBackground: _DEFAULT_BACKGROUND_TASKS,
+		}
+	}
+	return *opts
+}
+
 // NewServer creates a FUSE server and attaches ("mounts") it to the
-// `mountPoint` directory.
+// `mountPoint` directory. It is NewMount and Mount.Mount, followed by
+// NewServerFromDev.
 //
 // See the "Mount styles" section in the package documentation if you want to
 // know about the inner workings of the mount process. Usually you do not.
 func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server, error) {
-	if opts == nil {
-		opts = &MountOptions{
-			MaxBackground: _DEFAULT_BACKGROUND_TASKS,
-		}
-	}
-	o := *opts
+	o := defaultMountOptions(opts)
 	o.setDefaults(fs)
+	m, err := NewMount(mountPoint)
+	if err != nil {
+		return nil, err
+	}
+	d, err := m.Mount(&o)
+	if err != nil {
+		return nil, err
+	}
+	return newServerFromDev(fs, d, m, &o)
+}
 
+// NewServerFromDev creates a server for the FUSE device d, and negotiates
+// the connection with the kernel. It takes ownership of d, also if it
+// fails. m is where d is mounted, for Unmount and WaitMount. It may
+// be nil; Unmount then fails. The fields of opts that only apply to
+// mounting are ignored.
+func NewServerFromDev(fs RawFileSystem, d *Dev, m *Mount, opts *MountOptions) (*Server, error) {
+	o := defaultMountOptions(opts)
+	o.setDefaults(fs)
+	return newServerFromDev(fs, d, m, &o)
+}
+
+func newServerFromDev(fs RawFileSystem, d *Dev, m *Mount, o *MountOptions) (*Server, error) {
 	maxReaders := runtime.GOMAXPROCS(0)
 	if maxReaders < minMaxReaders {
 		maxReaders = minMaxReaders
@@ -218,37 +218,25 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 	ms := &Server{
 		protocolServer: protocolServer{
 			fileSystem: fs,
-			opts:       &o,
+			opts:       o,
 			conn:       &Conn{},
 		},
-		opts:         &o,
+		opts:         o,
+		mount:        m,
 		maxReaders:   maxReaders,
 		singleReader: useSingleReader,
-		ready:        make(chan error, 1),
+		ready:        d.ready,
 	}
 	ms.reqPool.New = func() any {
 		return &requestAlloc{}
 	}
-	mountPoint = filepath.Clean(mountPoint)
-	if !filepath.IsAbs(mountPoint) {
-		cwd, err := os.Getwd()
-		if err != nil {
-			return nil, err
-		}
-		mountPoint = filepath.Clean(filepath.Join(cwd, mountPoint))
-	}
-	fd, err := mount(mountPoint, &o, ms.ready)
-	if err != nil {
-		return nil, err
-	}
-
-	ms.mountPoint = mountPoint
-	ms.fuseFD, err = ms.newFuseFD(fd)
+	var err error
+	ms.fuseFD, err = ms.newFuseFD(d.release())
 	if err != nil {
 		return nil, err
 	}
 	ms.setMaxWrite(o.MaxWrite)
-	ms.conn.notify = newNotify(ms.fuseFD.writev, &o)
+	ms.conn.notify = newNotify(ms.fuseFD.writev, o)
 	ms.conn.backing = ms.fdBacking()
 
 	if code := ms.handleInit(); !code.Ok() {
@@ -567,12 +555,12 @@ func (ms *Server) WaitMount() error {
 	if err != nil {
 		return err
 	}
-	if parseFuseFd(ms.mountPoint) >= 0 {
-		// Magic `/dev/fd/N` mountpoint. We don't know the real mountpoint, so
-		// we cannot run the poll hack.
+	if ms.mount == nil || ms.mount.magic() {
+		// We don't know the real mountpoint, so we cannot run
+		// the poll hack.
 		return nil
 	}
-	return pollHack(ms.mountPoint)
+	return pollHack(ms.mount.path)
 }
 
 // parseFuseFd checks if `mountPoint` is the special form /dev/fd/N (with N >= 0),

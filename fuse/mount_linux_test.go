@@ -56,12 +56,12 @@ func TestMountDevFd(t *testing.T) {
 		t.Errorf("expected ENOSYS, got %v", err)
 	}
 
-	// Cleanup is somewhat tricky because `srv` does not know about
-	// `realMountPoint`, so `srv.Unmount()` cannot work.
-	//
-	// A normal user has to call `fusermount -u` for themselves to unmount.
-	// But in this test we can monkey-patch `srv.mountPoint`.
-	srv.mountPoint = realMountPoint
+	// `srv` does not know about `realMountPoint`, so tell it.
+	m, err := NewMount(realMountPoint)
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv.mount = m
 	if err := srv.Unmount(); err != nil {
 		t.Error(err)
 	}

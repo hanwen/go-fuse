@@ -126,8 +126,7 @@ func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, e
 	return fd, err
 }
 
-func unmount(mountPoint string, opts *MountOptions) (err error) {
-	_ = opts
+func unmount(mountPoint string) error {
 	return syscall.Unmount(mountPoint, 0)
 }
 
