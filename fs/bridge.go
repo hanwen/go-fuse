@@ -1309,7 +1309,7 @@ func (b *rawBridge) StatFs(ctx context.Context, input *fuse.InHeader, out *fuse.
 	return fuse.OK
 }
 
-func (b *rawBridge) Init(s *fuse.Server) {
+func (b *rawBridge) OnConnect(s *fuse.Server) {
 	b.server = s
 }
 

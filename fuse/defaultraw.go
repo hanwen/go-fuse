@@ -17,7 +17,7 @@ func NewDefaultRawFileSystem() RawFileSystem {
 
 type defaultRawFileSystem struct{}
 
-func (fs *defaultRawFileSystem) Init(*Server) {
+func (fs *defaultRawFileSystem) OnConnect(*Server) {
 }
 
 func (fs *defaultRawFileSystem) OnUnmount() {

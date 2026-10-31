@@ -404,7 +404,7 @@ func (ms *Server) handleInit() Status {
 
 	// INIT is handled. Init the file system, but don't accept
 	// incoming requests, so the file system can setup itself.
-	ms.fileSystem.Init(ms)
+	ms.fileSystem.OnConnect(ms)
 	return OK
 }
 

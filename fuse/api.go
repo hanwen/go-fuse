@@ -509,10 +509,10 @@ type RawFileSystem interface {
 	StatFs(ctx context.Context, input *InHeader, out *StatfsOut) (code Status)
 
 	Statx(ctx context.Context, input *StatxIn, out *StatxOut) (code Status)
-	// This is called on processing the first request. The
+	// OnConnect is called on processing the first request. The
 	// filesystem implementation can use the server argument to
 	// talk back to the kernel (through notify methods).
-	Init(*Server)
+	OnConnect(*Server)
 
 	// Called after processing the last request.
 	OnUnmount()
