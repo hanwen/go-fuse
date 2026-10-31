@@ -109,7 +109,7 @@ func BenchmarkGoFSStat(b *testing.B) {
 
 	threads := runtime.GOMAXPROCS(0)
 	if err := TestingBOnePass(b, threads, fileList, mnt); err != nil {
-		b.Fatalf("TestingBOnePass %v8", err)
+		b.Fatalf("TestingBOnePass: %v", err)
 	}
 }
 
