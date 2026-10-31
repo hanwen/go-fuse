@@ -1,6 +1,7 @@
 module github.com/hanwen/go-fuse/v2
 
 require (
+	github.com/ebitengine/purego v0.10.0
 	github.com/kylelemons/godebug v1.1.0
 	github.com/moby/sys/mountinfo v0.7.2
 	golang.org/x/sync v0.10.0
