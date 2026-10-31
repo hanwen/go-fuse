@@ -81,7 +81,9 @@ func findRegionByGuestAddr(regs []deviceRegion, guestAddr uint64) int {
 		})
 }
 
+// AddMemReg adds a region. It takes ownership of fd.
 func (d *deviceRegions) AddMemReg(fd int, reg *VhostUserMemoryRegion) error {
+	defer syscall.Close(fd)
 	if hps := getFDHugepagesize(fd); hps != 0 {
 		return fmt.Errorf("huge pages")
 	}
