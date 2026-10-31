@@ -56,7 +56,7 @@ type fuseFD struct {
 	readPool *sync.Pool
 	buffers  *bufferPool
 
-	// Accounting constants, set once at server construction.
+	// Accounting constants, set by Server.setMaxWrite.
 	reqAllocBytes int
 	readBufBytes  int
 }
@@ -71,7 +71,7 @@ func (ms *Server) newFuseFD(fd int) (*fuseFD, error) {
 		file.Close()
 		return nil, err
 	}
-	_, readBufBytes, reqAllocBytes := requestAccountingSizes(ms.opts.MaxWrite)
+	_, _, reqAllocBytes := requestAccountingSizes(0)
 	r := &fuseFD{
 		server:        ms,
 		file:          file,
@@ -80,7 +80,6 @@ func (ms *Server) newFuseFD(fd int) (*fuseFD, error) {
 		readPool:      &ms.readPool,
 		buffers:       &ms.buffers,
 		reqAllocBytes: reqAllocBytes,
-		readBufBytes:  readBufBytes,
 		wakeFD:        -1,
 	}
 	// After os.NewFile, so the runtime poller does not pick up the

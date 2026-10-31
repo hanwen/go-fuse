@@ -215,8 +215,6 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 		maxReaders = maxMaxReaders
 	}
 
-	readBufSize, readBufBytes, _ := requestAccountingSizes(o.MaxWrite)
-
 	ms := &Server{
 		protocolServer: protocolServer{
 			fileSystem: fs,
@@ -230,15 +228,6 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 	}
 	ms.reqPool.New = func() any {
 		return &requestAlloc{}
-	}
-	ms.readPool.New = func() any {
-		// O_DIRECT typically requires buffers aligned to
-		// blocksize (see man 2 open), but requirements vary
-		// across file systems. Presumably, we could also fix
-		// this by reading the requests using readv.
-		buf := make([]byte, readBufBytes)
-		buf = alignSlice(buf, unsafe.Sizeof(WriteIn{}), logicalBlockSize, uintptr(readBufSize))
-		return buf
 	}
 	mountPoint = filepath.Clean(mountPoint)
 	if !filepath.IsAbs(mountPoint) {
@@ -258,6 +247,7 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 	if err != nil {
 		return nil, err
 	}
+	ms.setMaxWrite(o.MaxWrite)
 	ms.conn.notify = newNotify(ms.fuseFD.writev, &o)
 	ms.conn.backing = ms.fdBacking()
 
@@ -271,6 +261,33 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 	// synchronously or asynchronously.
 	ms.fuseFD.loops.Add(1)
 	return ms, nil
+}
+
+// setMaxWrite sizes the read buffers for requests carrying up to
+// maxWrite bytes of data. It must be called while no request is read.
+func (ms *Server) setMaxWrite(maxWrite int) {
+	readBufSize, readBufBytes, _ := requestAccountingSizes(maxWrite)
+	ms.readPool = sync.Pool{
+		New: func() any {
+			// O_DIRECT typically requires buffers aligned to
+			// blocksize (see man 2 open), but requirements vary
+			// across file systems. Presumably, we could also fix
+			// this by reading the requests using readv.
+			buf := make([]byte, readBufBytes)
+			buf = alignSlice(buf, unsafe.Sizeof(WriteIn{}), logicalBlockSize, uintptr(readBufSize))
+			return buf
+		},
+	}
+	ms.fuseFD.readBufBytes = readBufBytes
+}
+
+// applyNegotiated sizes the read buffers and enables splice for
+// the negotiated connection.
+func (ms *Server) applyNegotiated() {
+	ms.setMaxWrite(int(ms.conn.out.MaxWrite))
+	if ms.conn.out.Minor >= 13 {
+		ms.setSplice()
+	}
 }
 
 func requestAccountingSizes(maxWrite int) (readBufSize, readBufBytes, reqAllocBytes int) {
@@ -400,11 +417,7 @@ func (ms *Server) handleInit() Status {
 	if code := ms.handleRequest(req); !code.Ok() {
 		return code
 	}
-
-	if ms.conn.in.Minor >= 13 {
-		ms.setSplice()
-	}
-
+	ms.applyNegotiated()
 	return OK
 }
 

@@ -17,6 +17,10 @@ type notifier struct {
 	writev func([][]byte) (int, syscall.Errno)
 	opts   *MountOptions
 
+	// maxWrite is the negotiated MaxWrite, which bounds
+	// NOTIFY_RETRIEVE chunks. Set before OnConnect.
+	maxWrite int
+
 	retrieveMu   sync.Mutex
 	retrieveNext uint64
 	retrieveTab  map[uint64]*retrieveCacheRequest // notifyUnique -> retrieve request
@@ -29,6 +33,7 @@ func newNotify(writev func([][]byte) (int, syscall.Errno), opts *MountOptions) *
 	n := &notifier{
 		writev:      writev,
 		opts:        opts,
+		maxWrite:    opts.MaxWrite,
 		retrieveTab: make(map[uint64]*retrieveCacheRequest),
 	}
 	return &Notify{
@@ -220,7 +225,7 @@ func (ms *notifier) InodeRetrieveCache(node uint64, offset int64, dest []byte) (
 	// TODO spawn some number of readahead retrievers in parallel.
 	ntotal := 0
 	for {
-		chunkSize := min(len(dest), ms.opts.MaxWrite)
+		chunkSize := min(len(dest), ms.maxWrite)
 		n, st = ms.inodeRetrieveCache1(node, offset, dest[:chunkSize])
 		if st != OK || n == 0 {
 			break
@@ -240,7 +245,7 @@ func (ms *notifier) InodeRetrieveCache(node uint64, offset int64, dest []byte) (
 }
 
 // inodeRetrieveCache1 is internal worker for InodeRetrieveCache which
-// actually talks to kernel and retrieves chunks not larger than ms.opts.MaxWrite.
+// actually talks to kernel and retrieves chunks not larger than the negotiated MaxWrite.
 func (ms *notifier) inodeRetrieveCache1(node uint64, offset int64, dest []byte) (n int, st Status) {
 	req := newNotifyRequest(_OP_NOTIFY_RETRIEVE_CACHE)
 
@@ -248,7 +253,7 @@ func (ms *notifier) inodeRetrieveCache1(node uint64, offset int64, dest []byte) 
 	// see InodeNotifyStoreCache in similar place for why it is only 2GB, not 4GB.
 	//
 	// ( InodeRetrieveCache calls us with chunks not larger than
-	//   ms.opts.MaxWrite, but MaxWrite is int, so let's be extra cautious )
+	//   MaxWrite, but let's be extra cautious )
 	size := min(len(dest), math.MaxInt32)
 	dest = dest[:size]
 

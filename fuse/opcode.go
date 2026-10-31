@@ -176,6 +176,9 @@ func doInit(server *protocolServer, req *request) {
 
 	conn := server.conn
 	conn.out = *out
+	if n := conn.notify.notifier; n != nil {
+		n.maxWrite = int(out.MaxWrite)
+	}
 	conn.notify = conn.notify.gate(input)
 	conn.backing = conn.backing.gate(input)
 	server.fileSystem.OnConnect(conn)
