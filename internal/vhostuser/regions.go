@@ -10,6 +10,7 @@ import (
 	"sort"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"unsafe"
 )
 
@@ -104,6 +105,49 @@ func (d *deviceRegions) AddMemReg(fd int, reg *VhostUserMemoryRegion) error {
 	newRegs[idx] = dr
 	copy(newRegs[idx+1:], old[idx:])
 	d.regions.Store(&newRegs)
+	return nil
+}
+
+// SetMemTable replaces all regions. It takes ownership of fds.
+func (d *deviceRegions) SetMemTable(fds []int, mem *VhostUserMemory) error {
+	defer func() {
+		for _, fd := range fds {
+			syscall.Close(fd)
+		}
+	}()
+	if int(mem.Nregions) > len(mem.Regions) {
+		return fmt.Errorf("got %d regions, max %d", mem.Nregions, len(mem.Regions))
+	}
+	if int(mem.Nregions) != len(fds) {
+		return fmt.Errorf("got %d fds for %d regions", len(fds), mem.Nregions)
+	}
+
+	newRegs := make([]deviceRegion, 0, len(fds))
+	for i, fd := range fds {
+		var dr deviceRegion
+		err := fmt.Errorf("huge pages")
+		if getFDHugepagesize(fd) == 0 {
+			err = dr.configure(fd, &mem.Regions[i])
+		}
+		if err != nil {
+			for _, r := range newRegs {
+				r.Close()
+			}
+			return err
+		}
+		newRegs = append(newRegs, dr)
+	}
+	sort.Slice(newRegs, func(i, j int) bool {
+		return newRegs[i].GuestPhysAddr < newRegs[j].GuestPhysAddr
+	})
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	old := d.load()
+	d.regions.Store(&newRegs)
+	for _, r := range old {
+		r.Close()
+	}
 	return nil
 }
 

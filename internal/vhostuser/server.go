@@ -282,7 +282,8 @@ func (s *Server) oneRequest() error {
 		log.Printf("rx %-2d %s %s %sFDs %v", inHeader.Request, reqName, inDebug, flagStr, inFDs)
 	}
 
-	if c := inFDCount[inHeader.Request]; c != len(inFDs) {
+	// SET_MEM_TABLE has one fd per region; SetMemTable checks the count.
+	if c := inFDCount[inHeader.Request]; c != len(inFDs) && inHeader.Request != REQ_SET_MEM_TABLE {
 		return fmt.Errorf("got %d fds for %s, want %d", len(inFDs), reqName, c)
 	}
 
@@ -341,6 +342,16 @@ func (s *Server) oneRequest() error {
 		// req can also be u64 if in postcopy mode (sigh).
 		req := (*VhostUserMemRegMsg)(inPayloadPtr)
 		deviceErr = s.device.regions.AddMemReg(inFDs[0], &req.Region)
+	case REQ_SET_MEM_TABLE:
+		req := (*VhostUserMemory)(inPayloadPtr)
+		if want := 8 + uint64(req.Nregions)*uint64(unsafe.Sizeof(VhostUserMemoryRegion{})); uint64(inHeader.Size) < want {
+			deviceErr = fmt.Errorf("SET_MEM_TABLE: payload %d bytes, want %d", inHeader.Size, want)
+			for _, fd := range inFDs {
+				syscall.Close(fd)
+			}
+		} else {
+			deviceErr = s.device.regions.SetMemTable(inFDs, req)
+		}
 	case REQ_SET_VRING_NUM:
 		req := (*VhostVringState)(inPayloadPtr)
 		deviceErr = s.device.SetVringNum(req)

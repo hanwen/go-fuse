@@ -244,6 +244,7 @@ type GetFeaturesReply struct {
 
 var decodeIn = map[uint32]func(unsafe.Pointer) any{
 	REQ_ADD_MEM_REG:           func(p unsafe.Pointer) any { return (*VhostUserMemRegMsg)(p) },
+	REQ_SET_MEM_TABLE:         func(p unsafe.Pointer) any { return (*VhostUserMemory)(p) },
 	REQ_SET_FEATURES:          func(p unsafe.Pointer) any { return (*SetFeaturesRequest)(p) },
 	REQ_SET_PROTOCOL_FEATURES: func(p unsafe.Pointer) any { return (*SetProtocolFeaturesRequest)(p) },
 	REQ_SET_VRING_ADDR:        func(p unsafe.Pointer) any { return (*VhostVringAddr)(p) },
@@ -426,6 +427,15 @@ type VhostUserMemory struct {
 	Nregions uint32
 	Padding  uint32
 	Regions  [VHOST_MEMORY_BASELINE_NREGIONS]VhostUserMemoryRegion
+}
+
+func (m *VhostUserMemory) String() string {
+	n := min(int(m.Nregions), len(m.Regions))
+	var regs []string
+	for i := 0; i < n; i++ {
+		regs = append(regs, m.Regions[i].String())
+	}
+	return fmt.Sprintf("{%s}", strings.Join(regs, ", "))
 }
 
 type VhostUserMemRegMsg struct {
