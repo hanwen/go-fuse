@@ -18,11 +18,38 @@ import (
 	"github.com/hanwen/go-fuse/v2/fuse"
 )
 
-// newQemuCmd builds the qemu invocation shared by the virtiofs tests: a VM
-// booting testAssets.kernel/ramdisk with a vhost-user-fs-pci device backed
-// by the vhost-user socket at sockpath.
+// newVMCmd builds the VMM invocation shared by the virtiofs tests: a VM
+// booting testAssets.kernel/ramdisk with a virtiofs device (tag "myfs")
+// backed by the vhost-user socket at sockpath.
+func newVMCmd(sockpath, ramdisk string) *exec.Cmd {
+	var cmd *exec.Cmd
+	switch testAssets.vmm {
+	case vmmCloudHypervisor:
+		cmd = newCloudHypervisorCmd(sockpath, ramdisk)
+	default:
+		cmd = newQemuCmd(sockpath, ramdisk)
+	}
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd
+}
+
+func newCloudHypervisorCmd(sockpath, ramdisk string) *exec.Cmd {
+	return exec.Command(testAssets.vmmBin,
+		"--cpus", "boot=2",
+		"--memory", "size=4G,shared=on",
+		"--fs", "tag=myfs,socket="+sockpath+",num_queues=2,queue_size=1024",
+		"--kernel", testAssets.kernel,
+		"--initramfs", ramdisk,
+		"--cmdline", "console=ttyS0",
+		"--serial", "tty",
+		"--console", "off",
+	)
+}
+
 func newQemuCmd(sockpath, ramdisk string) *exec.Cmd {
-	cmd := exec.Command(testAssets.qemuBin,
+	return exec.Command(testAssets.vmmBin,
 		"-M", "pc", "-m", "4G", "-cpu", "host", "-smp", "2",
 		"-enable-kvm",
 		"-chardev", "socket,id=char0,path="+sockpath,
@@ -38,14 +65,10 @@ func newQemuCmd(sockpath, ramdisk string) *exec.Cmd {
 		"-no-reboot",
 		"-append", "console=ttyS0",
 	)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd
 }
 
 // This is for the guest to signal it's finished. This is because I am
-// unable to make QEMU exit when the guest calls poweroff.
+// unable to make the VMM exit when the guest calls poweroff.
 type killNotifyRoot struct {
 	*fs.LoopbackNode
 	mu        sync.Mutex
@@ -148,7 +171,7 @@ reboot -n -f
 	}
 	defer os.Remove(ramdisk)
 
-	cmd := newQemuCmd(sockpath, ramdisk)
+	cmd := newVMCmd(sockpath, ramdisk)
 	log.Println("running", cmd.Args)
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
@@ -165,7 +188,7 @@ reboot -n -f
 			r.notify.Wait()
 		}
 		r.mu.Unlock()
-		log.Println("killing qemu..")
+		log.Println("killing VM..")
 		cmd.Process.Kill()
 		log.Println("killed")
 	}()

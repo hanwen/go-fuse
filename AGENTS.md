@@ -35,7 +35,8 @@ Both cross-builds must keep passing. `all.bash` is what CI runs. Tests
 mount real FUSE filesystems, so they need `/dev/fuse` and `fusermount3`.
 Some tests need root (see the `sudo` lines in `all.bash`) and skip
 otherwise. CI also runs with `GOMAXPROCS=1`; some races only show up
-there. `virtiofs` tests need QEMU/KVM and skip silently without them.
+there. `virtiofs` tests need KVM and QEMU or cloud-hypervisor (pick with
+`GO_FUSE_VMM=qemu|cloud-hypervisor`), and skip silently without them.
 `test-freebsd.bash` runs `posixtest` and `fs` in a FreeBSD VM.
 
 Almost all tests should be mounting an actual file system against

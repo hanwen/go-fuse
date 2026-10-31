@@ -54,7 +54,7 @@ func buildStaticPosixtest(t *testing.T) string {
 	return bin
 }
 
-// TestPosixtest runs the posixtest suite inside a QEMU VM against a virtiofs
+// TestPosixtest runs the posixtest suite inside a VM against a virtiofs
 // mount backed by a host loopback, exercising the full virtiofs + go-fuse
 // stack end-to-end. With CAP_SECURITY_CTX, the kernel sends a request
 // extension for every create-type op, even without an LSM.
@@ -140,7 +140,7 @@ reboot -n -f
 		t.Fatal(err)
 	}
 
-	cmd := newQemuCmd(sockpath, ramdisk)
+	cmd := newVMCmd(sockpath, ramdisk)
 	log.Println("running", cmd.Args)
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
@@ -152,7 +152,7 @@ reboot -n -f
 			r.notify.Wait()
 		}
 		r.mu.Unlock()
-		log.Println("killing qemu..")
+		log.Println("killing VM..")
 		cmd.Process.Kill()
 	}()
 	cmd.Wait()
