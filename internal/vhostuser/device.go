@@ -28,6 +28,10 @@ type Device struct {
 	// FUSE request processing runs without any lock (matching virtiofsd's
 	// vu_dispatch_rwlock design).
 	dispatchMu sync.RWMutex
+
+	// inflight counts requests popped from a vring and not yet pushed
+	// back. Guest memory must stay mapped until they finish.
+	inflight sync.WaitGroup
 }
 
 func (d *Device) Close() error {
@@ -38,6 +42,7 @@ func (d *Device) Close() error {
 		}
 	}
 
+	d.inflight.Wait()
 	if err := d.regions.Close(); err != nil && retErr == nil {
 		retErr = err
 	}
@@ -84,6 +89,24 @@ func (d *Device) SetLogBase(fd int, log *VhostUserLog) error {
 	}
 
 	d.logTable = data
+	return nil
+}
+
+// SetMemTable replaces the guest memory regions. The caller must hold
+// dispatchMu, so no new requests are popped. It takes ownership of fds.
+func (d *Device) SetMemTable(fds []int, mem *VhostUserMemory) error {
+	d.inflight.Wait()
+	if err := d.regions.SetMemTable(fds, mem); err != nil {
+		return err
+	}
+	for i, vq := range d.vqs {
+		if vq.Vring.Desc == nil {
+			continue
+		}
+		if err := vq.mapRingAddr(); err != nil {
+			return fmt.Errorf("vring %d: %w", i, err)
+		}
+	}
 	return nil
 }
 

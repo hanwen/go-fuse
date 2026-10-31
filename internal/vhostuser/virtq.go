@@ -19,6 +19,7 @@ type Virtq struct {
 
 	regions    *deviceRegions
 	dispatchMu *sync.RWMutex
+	inflight   *sync.WaitGroup
 
 	// mu protects all mutable vring state: avail-side (LastAvailIdx,
 	// ShadowAvailIdx, inuse), used-side (UsedIdx, SignaledUsed,
@@ -84,11 +85,22 @@ func (vq *Virtq) SetEnable(handle func(*VirtqElem) int) {
 			done:   make(chan struct{}, 1),
 		}
 		go vq.readLoop(handle)
-	} else if vq.control != nil {
-		close(vq.control.cancel)
-		<-vq.control.done
-		vq.control = nil
+	} else {
+		vq.stopReadLoop()
 	}
+}
+
+// stopReadLoop stops the readLoop goroutine, if any.
+func (vq *Virtq) stopReadLoop() {
+	if vq.control == nil {
+		return
+	}
+	close(vq.control.cancel)
+	// readLoop is blocked reading the kick eventfd; wake it up.
+	one := [8]byte{1}
+	syscall.Write(vq.KickFD, one[:])
+	<-vq.control.done
+	vq.control = nil
 }
 
 // popBatch drains the avail ring under the dispatch read lock and returns all
@@ -110,6 +122,9 @@ func (vq *Virtq) popBatch() []*VirtqElem {
 		}
 		batch = append(batch, data)
 	}
+	// Count under the lock, so SetMemTable can't unmap memory before
+	// the batch is processed.
+	vq.inflight.Add(len(batch))
 	return batch
 }
 
@@ -360,7 +375,23 @@ func (vq *Virtq) SetVringAddr(addr *VhostVringAddr) error {
 	vq.Vring.Flags = uint32(addr.Flags)
 
 	vq.Vring.LogGuestAddr = addr.LogGuestAddr
+	if err := vq.mapRingAddr(); err != nil {
+		return err
+	}
 
+	vq.UsedIdx = vq.Vring.Used.Idx
+	if vq.LastAvailIdx != vq.UsedIdx {
+		// device->processed_in_order()
+		vq.ShadowAvailIdx = vq.UsedIdx
+		vq.LastAvailIdx = vq.UsedIdx
+	}
+	return nil
+}
+
+// mapRingAddr points the vring at guest memory, using the addresses
+// from SET_VRING_ADDR.
+func (vq *Virtq) mapRingAddr() error {
+	addr := &vq.Addr
 	du := vq.regions.FromDriverAddr(addr.DescUserAddr)
 	av := vq.regions.FromDriverAddr(addr.AvailUserAddr)
 	uu := vq.regions.FromDriverAddr(addr.UsedUserAddr)
@@ -374,13 +405,6 @@ func (vq *Virtq) SetVringAddr(addr *VhostVringAddr) error {
 		return fmt.Errorf("could not map UsedUserAddr %x", addr.UsedUserAddr)
 	}
 	vq.MapRing(du, av, uu)
-
-	vq.UsedIdx = vq.Vring.Used.Idx
-	if vq.LastAvailIdx != vq.UsedIdx {
-		// device->processed_in_order()
-		vq.ShadowAvailIdx = vq.UsedIdx
-		vq.LastAvailIdx = vq.UsedIdx
-	}
 	return nil
 }
 
@@ -389,6 +413,7 @@ func newVirtq(dev *Device) *Virtq {
 		Notification: true,
 		regions:      &dev.regions,
 		dispatchMu:   &dev.dispatchMu,
+		inflight:     &dev.inflight,
 		Debug:        &dev.Debug,
 		KickFD:       -1,
 		ErrFD:        -1,
@@ -397,11 +422,7 @@ func newVirtq(dev *Device) *Virtq {
 }
 
 func (vq *Virtq) Close() error {
-	if vq.control != nil {
-		close(vq.control.cancel)
-		<-vq.control.done
-		vq.control = nil
-	}
+	vq.stopReadLoop()
 
 	for _, fd := range []*int{&vq.KickFD, &vq.ErrFD, &vq.CallFD} {
 		if *fd >= 0 {

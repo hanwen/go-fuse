@@ -13,6 +13,7 @@ import (
 	"sync"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
@@ -210,5 +211,82 @@ new.txt
 `)
 	if !bytes.Equal(got, want) {
 		t.Errorf("got %q want %q", got, want)
+	}
+}
+
+// TestReconnect boots two VMs in turn against one ServeFS, so the device
+// must be torn down when the first VM disconnects. The second VM starts a
+// new FUSE session (with its own INIT) on the same RawFileSystem; state
+// that the first session left behind is not cleaned up, see ServeFS.
+func TestReconnect(t *testing.T) {
+	orig := t.TempDir()
+	if err := os.WriteFile(orig+"/file.txt", []byte("hello\n"), 0666); err != nil {
+		t.Fatal(err)
+	}
+	root, err := fs.NewLoopbackRoot(orig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := &killNotifyRoot{
+		LoopbackNode: root.(*fs.LoopbackNode),
+	}
+	r.notify = sync.NewCond(&r.mu)
+	opts := &fs.Options{}
+	rawFS := fs.NewNodeFS(r, opts)
+
+	tmpDir := t.TempDir()
+	sockpath := tmpDir + "/virtiofs.socket"
+	ramdisk := tmpDir + "/initrd.cpio.gz"
+	go ServeFS(sockpath, rawFS, &opts.MountOptions)
+
+	initScript := "#!/bin/sh\n" +
+		"mount -t proc none /proc\n" +
+		"mount -t sysfs none /sys\n" +
+		moduleInsmodLines(testAssets.modules) +
+		`
+set -x
+mount -t virtiofs myfs /mnt
+cat /mnt/file.txt >> /mnt/out.txt
+ls /mnt/killme.txt
+reboot -n -f
+`
+	if err := mkinitRam(ramdisk, testAssets.busybox, testAssets.modules, []byte(initScript), nil); err != nil {
+		t.Fatal(err)
+	}
+
+	for i := 0; i < 2; i++ {
+		r.mu.Lock()
+		r.seenKill = false
+		r.mu.Unlock()
+
+		cmd := newVMCmd(sockpath, ramdisk)
+		if err := cmd.Start(); err != nil {
+			t.Fatal(err)
+		}
+		done := make(chan struct{})
+		go func() {
+			r.mu.Lock()
+			for !r.seenKill {
+				r.notify.Wait()
+			}
+			r.mu.Unlock()
+			close(done)
+		}()
+		select {
+		case <-done:
+		case <-time.After(30 * time.Second):
+			t.Errorf("boot %d: guest did not finish", i)
+		}
+		cmd.Process.Kill()
+		cmd.Wait()
+		if t.Failed() {
+			return
+		}
+	}
+
+	if got, err := os.ReadFile(orig + "/out.txt"); err != nil {
+		t.Fatal(err)
+	} else if want := "hello\nhello\n"; string(got) != want {
+		t.Errorf("got %q, want %q", got, want)
 	}
 }

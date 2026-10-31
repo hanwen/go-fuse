@@ -23,6 +23,9 @@ func ServeFS(sockpath string, rawFS fuse.RawFileSystem, opts *fuse.MountOptions)
 	}
 
 	opts.DisableSplice = true
+	// TODO: each connection is a new FUSE session, but they share rawFS
+	// and ps. A guest that disconnects without RELEASE/FORGET (eg. it
+	// was killed) leaks its inode references and open files.
 	ps := fuse.NewProtocolServer(rawFS, opts)
 	for {
 		conn, err := l.AcceptUnix()

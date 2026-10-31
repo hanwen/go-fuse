@@ -49,7 +49,7 @@ sudo env PATH=$PATH $GO_TEST -run TestNFSExportReconnect ./example/nfs
 
 # Run virtiofs tests (including posixtest inside a VM) if QEMU or cloud-hypervisor, and KVM are available.
 # These are skipped automatically by TestMain when assets cannot be prepared.
-$GO_TEST -timeout 2m -run 'Test(Basic|Posixtest)' ./virtiofs
+$GO_TEST -timeout 2m -run 'Test(Basic|Posixtest|Reconnect)' ./virtiofs
 
 make -C benchmark
 go test ./benchmark -test.bench '.*' -test.cpu 1,2

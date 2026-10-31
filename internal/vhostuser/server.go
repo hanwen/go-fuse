@@ -350,7 +350,7 @@ func (s *Server) oneRequest() error {
 				syscall.Close(fd)
 			}
 		} else {
-			deviceErr = s.device.regions.SetMemTable(inFDs, req)
+			deviceErr = s.device.SetMemTable(inFDs, req)
 		}
 	case REQ_SET_VRING_NUM:
 		req := (*VhostVringState)(inPayloadPtr)

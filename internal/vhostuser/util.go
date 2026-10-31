@@ -46,7 +46,8 @@ func composeMask(fs []int) uint64 {
 //   - The lock is released before spawning request goroutines, so
 //     control-plane messages can be processed concurrently with in-flight
 //     FUSE requests.  That is safe because ADD_MEM_REG only adds regions
-//     and never invalidates pointers already held by a request.
+//     and never invalidates pointers already held by a request, and
+//     SET_MEM_TABLE waits for in-flight requests before unmapping.
 func (vq *Virtq) readLoop(handle func(data *VirtqElem) int) {
 	defer close(vq.control.done)
 	for {
@@ -62,11 +63,17 @@ func (vq *Virtq) readLoop(handle func(data *VirtqElem) int) {
 			log.Printf("read: %v", err)
 			return
 		}
+		select {
+		case <-vq.control.cancel:
+			return
+		default:
+		}
 
 		// Process the batch without holding any lock.
 		for _, data := range vq.popBatch() {
 			data := data // TODO: unnecessary starting go1.22
 			go func() {
+				defer vq.inflight.Done()
 				for _, e := range data.Write {
 					clear(e)
 				}

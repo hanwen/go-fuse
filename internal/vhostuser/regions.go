@@ -35,12 +35,15 @@ func (d *deviceRegions) dumpRegions() {
 }
 
 func (d *deviceRegions) Close() error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	var retErr error
 	for _, r := range d.load() {
 		if err := r.Close(); err != nil && retErr == nil {
 			retErr = err
 		}
 	}
+	d.regions.Store(nil)
 	return retErr
 }
 
@@ -98,6 +101,7 @@ func (d *deviceRegions) AddMemReg(fd int, reg *VhostUserMemoryRegion) error {
 
 	old := d.load()
 	if len(old) == int(d.GetMaxMemslots()) {
+		dr.Close()
 		return fmt.Errorf("out of memory slots")
 	}
 
