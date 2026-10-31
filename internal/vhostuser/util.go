@@ -7,6 +7,8 @@ package vhostuser
 import (
 	"log"
 	"syscall"
+
+	"github.com/hanwen/go-fuse/v2/internal/iov"
 )
 
 const _HUGETLBFS_MAGIC = 0x958458f6
@@ -73,11 +75,7 @@ func (vq *Virtq) readLoop(handle func(data *VirtqElem) int) {
 					for i, e := range data.Read {
 						log.Printf("read %d: %q (%d)", i, e, len(e))
 					}
-					outlens := []int{}
-					for _, e := range data.Write {
-						outlens = append(outlens, len(e))
-					}
-					log.Printf("id %d: write space: %v", data.index, outlens)
+					log.Printf("id %d: write space: %v", data.index, iov.Lens(data.Write))
 				}
 				var n int
 				if handle != nil {

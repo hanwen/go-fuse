@@ -7,6 +7,8 @@ package fuse
 import (
 	"sync"
 	"unsafe"
+
+	"github.com/hanwen/go-fuse/v2/internal/iov"
 )
 
 // conn is the state of the connection with the kernel, as negotiated
@@ -196,115 +198,6 @@ func NewProtocolServer(fs RawFileSystem, opts *MountOptions) *ProtocolServer {
 	}
 }
 
-func iovLen(iov [][]byte) int {
-	var r int
-	for _, e := range iov {
-		r += len(e)
-	}
-	return r
-}
-
-// iovSlice returns iov[off:off+n] if it lies within one element.
-func iovSlice(iov [][]byte, off, n int) ([]byte, bool) {
-	for _, e := range iov {
-		if off < len(e) {
-			if off+n <= len(e) {
-				return e[off : off+n], true
-			}
-			return nil, false
-		}
-		off -= len(e)
-	}
-	return nil, n == 0
-}
-
-func copyFromIov(dst []byte, iov [][]byte, off int) int {
-	var n int
-	for _, e := range iov {
-		if len(dst) == n {
-			break
-		}
-		if off >= len(e) {
-			off -= len(e)
-			continue
-		}
-		n += copy(dst[n:], e[off:])
-		off = 0
-	}
-	return n
-}
-
-type iovWriter struct {
-	dst     [][]byte
-	i, off  int
-	written int
-}
-
-func (w *iovWriter) next(n int) []byte {
-	for w.i < len(w.dst) && w.off == len(w.dst[w.i]) {
-		w.i++
-		w.off = 0
-	}
-	if w.i == len(w.dst) {
-		return nil
-	}
-	chunk := w.dst[w.i][w.off:]
-	chunk = chunk[:min(len(chunk), n)]
-	w.off += len(chunk)
-	w.written += len(chunk)
-	return chunk
-}
-
-func (w *iovWriter) write(src []byte) int {
-	var n int
-	for n < len(src) {
-		chunk := w.next(len(src) - n)
-		if chunk == nil {
-			break
-		}
-		n += copy(chunk, src[n:])
-	}
-	return n
-}
-
-func (w *iovWriter) skip(n int) {
-	for n > 0 {
-		chunk := w.next(n)
-		if chunk == nil {
-			break
-		}
-		n -= len(chunk)
-	}
-}
-
-// sliceIov returns the iov for bytes [off, off+n).
-func sliceIov(iov [][]byte, off, n int) [][]byte {
-	var r [][]byte
-	for _, e := range iov {
-		if n == 0 {
-			break
-		}
-		if off >= len(e) {
-			off -= len(e)
-			continue
-		}
-		e = e[off:]
-		off = 0
-		e = e[:min(len(e), n)]
-		n -= len(e)
-		r = append(r, e)
-	}
-	return r
-}
-
-func copyToIov(dst [][]byte, src ...[]byte) int {
-	w := iovWriter{dst: dst}
-	for _, s := range src {
-		w.write(s)
-	}
-	return w.written
-}
-
 // HandleRequest parses the iov in `in`, calls into the raw
 // filesystem, and puts the result in `out`. The iovs are treated
 // as byte streams. The return value is the number of bytes written.
@@ -313,10 +206,10 @@ func copyToIov(dst [][]byte, src ...[]byte) int {
 func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, Status) {
 	req := &requestAlloc{}
 
-	total := iovLen(in)
-	n := copyFromIov(req.smallInputBuf[:min(total, len(req.smallInputBuf))], in, 0)
+	total := iov.Len(in)
+	n := iov.CopyFrom(req.smallInputBuf[:min(total, len(req.smallInputBuf))], in, 0)
 	if n < int(unsafe.Sizeof(InHeader{})) {
-		ps.opts.Logger.Printf("request too short: %v", iovLens(in))
+		ps.opts.Logger.Printf("request too short: %v", iov.Lens(in))
 		return 0, EIO
 	}
 	h, inSize, outSize, outPayloadSize, code := parseRequest(req.smallInputBuf[:n], ps.conn.out.Flags64())
@@ -328,17 +221,17 @@ func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, Status)
 	if code.Ok() {
 		req.inputBuf = req.inputBuf[:inSize]
 		payloadLen := total - inSize
-		if b, ok := iovSlice(in, inSize, payloadLen); ok {
+		if b, ok := iov.Slice(in, inSize, payloadLen); ok {
 			req.inPayload = b
 		} else if req.inHeader().Opcode == _OP_WRITE {
-			req.inPayloadIov = sliceIov(in, inSize, payloadLen)
+			req.inPayloadIov = iov.Subslice(in, inSize, payloadLen)
 		} else {
 			// IOCTL data comes in one element per page. Other
 			// payloads (names, xattr values, BATCH_FORGET
 			// entries, extensions) are only split if they
 			// cross a guest memory region boundary.
 			req.inPayload = make([]byte, payloadLen)
-			copyFromIov(req.inPayload, in, inSize)
+			iov.CopyFrom(req.inPayload, in, inSize)
 		}
 		req.extendInput(int(h.InputSize))
 		req.status = req.splitExt(&req.extInline)
@@ -356,12 +249,12 @@ func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, Status)
 	suppressReply := h != nil && h.SuppressReply
 	if !suppressReply && req.status.Ok() {
 		need := int(sizeOfOutHeader) + outSize + outPayloadSize
-		if iovLen(out) < need {
-			ps.opts.Logger.Printf("op %v: got out iov %v, need %d bytes", h.Name, iovLens(out), need)
+		if iov.Len(out) < need {
+			ps.opts.Logger.Printf("op %v: got out iov %v, need %d bytes", h.Name, iov.Lens(out), need)
 			return 0, EIO
 		}
 		if outPayloadSize > 0 {
-			if b, ok := iovSlice(out, int(sizeOfOutHeader)+outSize, outPayloadSize); ok {
+			if b, ok := iov.Slice(out, int(sizeOfOutHeader)+outSize, outPayloadSize); ok {
 				direct = b
 				req.outPayload = b
 			} else {
@@ -380,11 +273,11 @@ func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, Status)
 	// number of bytes the device wrote to the descriptor
 	// chain. Returning more  inflates the live-migration dirty-page
 	// log and violates the spec.
-	w := iovWriter{dst: out}
+	w := iov.Writer{Dst: out}
 	if req.readResult != nil {
 		// The size is only known after the read, so redo the header.
 		payloadOff := int(sizeOfOutHeader) + len(req.outDataBuf)
-		dst := sliceIov(out, payloadOff, req.readResult.Size())
+		dst := iov.Subslice(out, payloadOff, req.readResult.Size())
 		n, code := readIntoIov(req.readResult, dst)
 		req.readResult.Done()
 		req.readResult = nil
@@ -393,22 +286,22 @@ func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, Status)
 			n = 0
 		}
 		req.serializeHeader(n)
-		w.write(req.outHeaderBuf)
-		w.write(req.outDataBuf)
-		w.skip(n)
-		return w.written, OK
+		w.Write(req.outHeaderBuf)
+		w.Write(req.outDataBuf)
+		w.Skip(n)
+		return w.Written, OK
 	}
 
-	w.write(req.outHeaderBuf)
-	w.write(req.outDataBuf)
+	w.Write(req.outHeaderBuf)
+	w.Write(req.outDataBuf)
 	if len(req.outPayload) > 0 && len(direct) > 0 && &req.outPayload[0] == &direct[0] {
 		// The filesystem filled the out iov in place; count
 		// the bytes without copying.
-		w.skip(len(req.outPayload))
+		w.Skip(len(req.outPayload))
 	} else {
-		w.write(req.outPayload)
+		w.Write(req.outPayload)
 	}
-	return w.written, OK
+	return w.Written, OK
 }
 
 func readIntoIov(rr ReadResult, dst [][]byte) (int, Status) {
@@ -420,15 +313,7 @@ func readIntoIov(rr ReadResult, dst [][]byte) (int, Status) {
 		if !code.Ok() {
 			return 0, code
 		}
-		return copyToIov(dst, slices...), OK
+		return iov.CopyTo(dst, slices...), OK
 	}
 	return 0, EIO
-}
-
-func iovLens(in [][]byte) []int {
-	var lens []int
-	for _, b := range in {
-		lens = append(lens, len(b))
-	}
-	return lens
 }

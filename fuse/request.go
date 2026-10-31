@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"unsafe"
+
+	"github.com/hanwen/go-fuse/v2/internal/iov"
 )
 
 const sizeOfOutHeader = unsafe.Sizeof(OutHeader{})
@@ -138,7 +140,7 @@ func (r *request) InputDebug() string {
 		n1, n2, _ := r.filenames()
 		names = fmt.Sprintf(" %q %q", n1, n2)
 	} else if r.inPayloadIov != nil {
-		names = fmt.Sprintf(" %db in %d segments", iovLen(r.inPayloadIov), len(r.inPayloadIov))
+		names = fmt.Sprintf(" %db in %d segments", iov.Len(r.inPayloadIov), len(r.inPayloadIov))
 	} else {
 		names = summarizePayload(r.inPayload)
 	}

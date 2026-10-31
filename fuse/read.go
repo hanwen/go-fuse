@@ -7,6 +7,8 @@ package fuse
 import (
 	"io"
 	"syscall"
+
+	"github.com/hanwen/go-fuse/v2/internal/iov"
 )
 
 // ReadResultData is the read return for returning bytes directly.
@@ -27,7 +29,7 @@ func (r *readResultData) Bytes(buf []byte) ([]byte, Status) {
 }
 
 func (r *readResultData) Readv(dst [][]byte) (int, Status) {
-	return copyToIov(dst, r.Data), OK
+	return iov.CopyTo(dst, r.Data), OK
 }
 
 func ReadResultData(b []byte) ReadResult {
@@ -112,7 +114,7 @@ type readResultVector struct {
 }
 
 func (r *readResultVector) Size() int {
-	return iovLen(r.vecs)
+	return iov.Len(r.vecs)
 }
 
 func (r *readResultVector) Done() {}
@@ -127,7 +129,7 @@ func (r *readResultVector) Bytes(buf []byte) ([]byte, Status) {
 }
 
 func (r *readResultVector) Readv(dst [][]byte) (int, Status) {
-	return copyToIov(dst, r.vecs...), OK
+	return iov.CopyTo(dst, r.vecs...), OK
 }
 
 func (r *readResultVector) Slices() ([][]byte, Status) {

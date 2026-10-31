@@ -11,6 +11,8 @@ import (
 	"runtime"
 	"syscall"
 	"unsafe"
+
+	"github.com/hanwen/go-fuse/v2/internal/iov"
 )
 
 const (
@@ -227,9 +229,9 @@ func doWrite(server *protocolServer, req *request) {
 	server.writevCopyOnce.Do(func() {
 		server.opts.Logger.Printf("Writev not implemented; copying split WRITE data")
 	})
-	buf := server.buffers.AllocBuffer(uint32(iovLen(data)))
+	buf := server.buffers.AllocBuffer(uint32(iov.Len(data)))
 	defer server.buffers.FreeBuffer(buf)
-	copyFromIov(buf, data, 0)
+	iov.CopyFrom(buf, data, 0)
 	o.Size, req.status = server.fileSystem.Write(req.ctx, in, buf)
 }
 

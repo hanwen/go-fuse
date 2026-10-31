@@ -4,10 +4,13 @@
 
 package fuse
 
-import "golang.org/x/sys/unix"
+import (
+	"github.com/hanwen/go-fuse/v2/internal/iov"
+	"golang.org/x/sys/unix"
+)
 
 func (r *readResultFd) Readv(dst [][]byte) (int, Status) {
-	dst = sliceIov(dst, 0, r.Sz)
+	dst = iov.Subslice(dst, 0, r.Sz)
 	var n int
 	var err error
 	if r.Off == -1 {
