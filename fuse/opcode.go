@@ -174,16 +174,37 @@ func doInit(server *protocolServer, req *request) {
 		out.MaxPages = want.MaxPages
 	}
 
-	conn := server.conn
+	server.connect(input, out)
+	req.status = OK
+}
+
+// connect sets up the connection negotiated by in and out, and calls
+// OnConnect.
+func (ms *protocolServer) connect(in *InitIn, out *InitOut) {
+	conn := ms.conn
+	conn.in = *in
 	conn.out = *out
 	if n := conn.notify.notifier; n != nil {
 		n.maxWrite = int(out.MaxWrite)
 	}
-	conn.notify = conn.notify.gate(input)
-	conn.backing = conn.backing.gate(input)
-	server.fileSystem.OnConnect(conn)
+	conn.notify = conn.notify.gate(in)
+	conn.backing = conn.backing.gate(in)
+	ms.fileSystem.OnConnect(conn)
+}
 
-	req.status = OK
+// checkSession returns an error if this version cannot serve a
+// connection negotiated with in and out, possibly by another version.
+func checkSession(in *InitIn, out *InitOut) error {
+	if in.Major != _FUSE_KERNEL_VERSION || out.Major != _FUSE_KERNEL_VERSION {
+		return fmt.Errorf("protocol version %d, want %d", out.Major, _FUSE_KERNEL_VERSION)
+	}
+	if out.Minor < _MINIMUM_MINOR_VERSION || out.Minor > _OUR_MINOR_VERSION || out.Minor > in.Minor {
+		return fmt.Errorf("protocol minor version %d, want %d to %d", out.Minor, _MINIMUM_MINOR_VERSION, min(in.Minor, _OUR_MINOR_VERSION))
+	}
+	if unknown := out.Flags64() &^ knownCapabilities; unknown != 0 {
+		return fmt.Errorf("unknown capabilities %#x", unknown)
+	}
+	return nil
 }
 
 func doOpen(server *protocolServer, req *request) {

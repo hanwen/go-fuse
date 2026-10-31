@@ -218,11 +218,20 @@ func NewServer(fs RawFileSystem, mountPoint string, opts *MountOptions) (*Server
 	return newServerFromDev(fs, d, m, &o)
 }
 
-// NewServerFromDev creates a server for the FUSE device d, and negotiates
-// the connection with the kernel. It takes ownership of d, also if it
-// fails. m is where d is mounted, for Unmount and WaitMount. It may
-// be nil; Unmount then fails. The fields of opts that only apply to
-// mounting are ignored.
+// NewServerFromDev creates a server for the FUSE device d. If the
+// connection was not negotiated yet, it reads INIT from the kernel, and
+// calls RawFileSystem.Init, MountOptions.InitHandler and OnConnect.
+// For a device from Server.Dev, it uses the connection as negotiated
+// before, and only calls OnConnect. It fails if this version of
+// go-fuse cannot serve that connection. MountOptions only affect
+// local behavior then. The fields of opts that only apply to mounting
+// are always ignored.
+//
+// m is where d is mounted, for Unmount and WaitMount. It may be nil;
+// Unmount then fails.
+//
+// The server is returned stopped; Start or Serve starts it.
+// NewServerFromDev takes ownership of d, also if it fails.
 func NewServerFromDev(fs RawFileSystem, d *Dev, m *Mount, opts *MountOptions) (*Server, error) {
 	o := defaultMountOptions(opts)
 	o.setDefaults(fs)
@@ -252,6 +261,12 @@ func newServerFromDev(fs RawFileSystem, d *Dev, m *Mount, o *MountOptions) (*Ser
 	ms.reqPool.New = func() any {
 		return &requestAlloc{}
 	}
+	if d.negotiated() {
+		if err := checkSession(&d.in, &d.out); err != nil {
+			d.Close()
+			return nil, err
+		}
+	}
 	var err error
 	ms.fuseFD, err = ms.newFuseFD(d.release(), maxReaders)
 	if err != nil {
@@ -261,7 +276,10 @@ func newServerFromDev(fs RawFileSystem, d *Dev, m *Mount, o *MountOptions) (*Ser
 	ms.conn.notify = newNotify(ms.writeNotify, o)
 	ms.conn.backing = ms.fdBacking()
 
-	if code := ms.handleInit(); !code.Ok() {
+	if d.negotiated() {
+		ms.connect(&d.in, &d.out)
+		ms.applyNegotiated()
+	} else if code := ms.handleInit(); !code.Ok() {
 		ms.fuseFD.close()
 		// TODO - unmount as well?
 		return nil, fmt.Errorf("init: %s", code)

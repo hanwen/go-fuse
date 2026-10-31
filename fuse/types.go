@@ -324,6 +324,10 @@ const (
 	CAP_ALLOW_IDMAP          = (1 << 40)
 	CAP_OVER_IO_URING        = (1 << 41)
 	CAP_REQUEST_TIMEOUT      = (1 << 42)
+
+	// knownCapabilities has the capability bits that this
+	// version has names for.
+	knownCapabilities = CAP_REQUEST_TIMEOUT<<1 - 1
 )
 
 type InitIn struct {
