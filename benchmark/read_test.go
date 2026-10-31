@@ -24,9 +24,21 @@ func BenchmarkGoFuseMemoryRead(b *testing.B) {
 	benchmarkRead(mnt, b, "direct")
 }
 
+func BenchmarkGoFuseMemoryWrite(b *testing.B) {
+	root := &readFS{}
+	mnt := setupFS(root, b.N, b)
+	benchmarkDD(mnt, b, true, "direct")
+}
+
 const blockSize = 128 * 1024 // Fuse default request size 128k
 
 func benchmarkRead(mnt string, b *testing.B, ddflag string) {
+	benchmarkDD(mnt, b, false, ddflag)
+}
+
+// benchmarkDD runs GOMAXPROCS dd processes in parallel, each reading
+// or writing b.N blocks of a file in mnt.
+func benchmarkDD(mnt string, b *testing.B, write bool, ddflag string) {
 	var cmds []*exec.Cmd
 	readers := runtime.GOMAXPROCS(0)
 
@@ -36,7 +48,14 @@ func benchmarkRead(mnt string, b *testing.B, ddflag string) {
 			"of=/dev/null",
 			fmt.Sprintf("bs=%d", blockSize),
 			fmt.Sprintf("count=%d", b.N))
-		if ddflag != "" {
+		if write {
+			cmd.Args[1] = "if=/dev/zero"
+			cmd.Args[2] = fmt.Sprintf("of=%s/foo%d.txt", mnt, i)
+			cmd.Args = append(cmd.Args, "conv=notrunc")
+			if ddflag != "" {
+				cmd.Args = append(cmd.Args, "oflag="+ddflag)
+			}
+		} else if ddflag != "" {
 			cmd.Args = append(cmd.Args, "iflag="+ddflag)
 		}
 		if testutil.VerboseTest() {

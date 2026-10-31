@@ -16,7 +16,8 @@ import (
 const fileSize = 2 << 60
 
 // readFS is a filesystem that always and immediately returns zeros on read
-// operations. Useful when benchmarking the raw throughput with go-fuse.
+// operations, and discards writes. Useful when benchmarking the raw
+// throughput with go-fuse.
 type readFS struct {
 	fs.Inode
 }
@@ -46,4 +47,11 @@ var _ = (fs.FileReader)((*readFS)(nil))
 
 func (n *readFS) Read(ctx context.Context, dest []byte, offset int64) (fuse.ReadResult, syscall.Errno) {
 	return fuse.ReadResultData(dest), fs.OK
+}
+
+var _ = (fs.FileWriter)((*readFS)(nil))
+
+// Write discards the data.
+func (n *readFS) Write(ctx context.Context, data []byte, off int64) (uint32, syscall.Errno) {
+	return uint32(len(data)), fs.OK
 }
