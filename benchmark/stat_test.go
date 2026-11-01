@@ -133,34 +133,7 @@ func BenchmarkGoFSParallelReaddir(b *testing.B) {
 	}
 	mnt := setupFS(root, b.N, b)
 	b.ReportAllocs()
-	b.ResetTimer()
-	b.RunParallel(func(pb *testing.PB) {
-		// Avoid client-side allocations for directory entry names.
-		buf := make([]byte, 32768)
-		run := func() (err error) {
-			fd, err := syscall.Open(mnt, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_CLOEXEC, 0)
-			if err != nil {
-				return err
-			}
-			defer syscall.Close(fd)
-			for {
-				n, err := syscall.ReadDirent(fd, buf)
-				if err != nil {
-					return err
-				}
-				if n == 0 {
-					return nil
-				}
-			}
-		}
-		for pb.Next() {
-			if err := run(); err != nil {
-				b.Error(err)
-				return
-			}
-		}
-	})
-	b.StopTimer()
+	runBulkstat(b, "-mode=readdir", runtime.GOMAXPROCS(0), b.N, mnt)
 }
 
 func BenchmarkReadDirEnt(b *testing.B) {
@@ -170,30 +143,31 @@ func BenchmarkReadDirEnt(b *testing.B) {
 		root.AddFile(fmt.Sprintf("file%03d", i), fuse.Attr{Mode: syscall.S_IFREG})
 	}
 	mnt := setupFS(root, b.N, b)
-
-	b.ResetTimer()
-	total := 0
-	for total < b.N {
-		n, err := readdir(mnt)
-		if err != nil {
-			b.Fatal(err)
-		}
-		if n != N {
-			b.Fatalf("got %d entries, want %d", n, N)
-		}
-		total += n
+	if n, err := readdir(mnt); err != nil {
+		b.Fatal(err)
+	} else if n != N {
+		b.Fatalf("got %d entries, want %d", n, N)
 	}
-	b.StopTimer()
-	b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(total), "ns/op")
+
+	// Report time per directory entry.
+	reads := (b.N + N - 1) / N
+	b.ReportAllocs()
+	runBulkstat(b, "-mode=readdir", 1, reads, mnt)
+	b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(reads*N), "ns/op")
 }
 
-func benchmarkNegStat(b *testing.B, opts *fs.Options) {
+func benchmarkNegStat(b *testing.B, opts *fs.Options, inProcess bool) {
 	mnt := setupFSWithOptions(&StatFS{}, opts, b)
 	fn := mnt + "/nonexistent"
 
 	var st syscall.Stat_t
 	if err := syscall.Stat(fn, &st); err != syscall.ENOENT {
 		b.Fatalf("got %v, want ENOENT", err)
+	}
+	b.ReportAllocs()
+	if !inProcess {
+		runBulkstat(b, "-mode=negstat", 1, b.N, mnt)
+		return
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -205,14 +179,48 @@ func benchmarkNegStat(b *testing.B, opts *fs.Options) {
 }
 
 func BenchmarkNegStatUncached(b *testing.B) {
-	benchmarkNegStat(b, &fs.Options{})
+	benchmarkNegStat(b, &fs.Options{}, false)
+}
+
+// BenchmarkNegStatUncachedInProcess stats from the server's process,
+// so client and server share the Go runtime.
+func BenchmarkNegStatUncachedInProcess(b *testing.B) {
+	benchmarkNegStat(b, &fs.Options{}, true)
 }
 
 func BenchmarkNegStatCached(b *testing.B) {
 	dt := time.Hour
 	benchmarkNegStat(b, &fs.Options{
 		NegativeTimeout: &dt,
-	})
+	}, false)
+}
+
+// runBulkstat times bulkstat.bin running n operations of the given
+// mode against prefix. The client runs in a separate process, so its
+// CPU time and allocations are not attributed to the FUSE server.
+func runBulkstat(b *testing.B, mode string, threads, n int, prefix string, args ...string) {
+	b.Helper()
+	if err := bulkstat(b, mode, threads, n, prefix, args...); err != nil {
+		b.Fatalf("bulkstat %s: %v", mode, err)
+	}
+}
+
+func bulkstat(b *testing.B, mode string, threads, n int, prefix string, args ...string) error {
+	cmd := exec.Command("./bulkstat.bin",
+		mode,
+		fmt.Sprintf("-cpu=%d", threads),
+		fmt.Sprintf("-prefix=%s", prefix),
+		fmt.Sprintf("-N=%d", n),
+		fmt.Sprintf("-quiet=%v", !testutil.VerboseTest()))
+	cmd.Args = append(cmd.Args, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	b.ResetTimer()
+	b.StartTimer()
+	err := cmd.Run()
+	b.StopTimer()
+	return err
 }
 
 func TestingBOnePass(b *testing.B, threads int, filelist, mountPoint string) error {
@@ -220,22 +228,7 @@ func TestingBOnePass(b *testing.B, threads int, filelist, mountPoint string) err
 	var before, after runtime.MemStats
 	runtime.ReadMemStats(&before)
 
-	// We shell out to an external program, so the time spent by
-	// the part stat'ing doesn't interfere with the time spent by
-	// the FUSE server.
-	cmd := exec.Command("./bulkstat.bin",
-		fmt.Sprintf("-cpu=%d", threads),
-		fmt.Sprintf("-prefix=%s", mountPoint),
-		fmt.Sprintf("-N=%d", b.N),
-		fmt.Sprintf("-quiet=%v", !testutil.VerboseTest()),
-		filelist)
-
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	b.StartTimer()
-	err := cmd.Run()
-	b.StopTimer()
+	err := bulkstat(b, "-mode=stat", threads, b.N, mountPoint, filelist)
 	runtime.ReadMemStats(&after)
 	if err != nil {
 		return err
