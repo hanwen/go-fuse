@@ -102,6 +102,30 @@ func negStat(fn string) func([]byte) error {
 	}
 }
 
+// statFiles has goroutine i of parallelism stat prefix/file<i>, n
+// times in total.
+func statFiles(parallelism, n int, prefix string) {
+	var wg sync.WaitGroup
+	for i := 0; i < parallelism; i++ {
+		count := n / parallelism
+		if i < n%parallelism {
+			count++
+		}
+		fn := filepath.Join(prefix, fmt.Sprintf("file%d", i))
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			var st syscall.Stat_t
+			for j := 0; j < count; j++ {
+				if err := syscall.Stat(fn, &st); err != nil {
+					log.Fatalf("stat %s: %v", fn, err)
+				}
+			}
+		}()
+	}
+	wg.Wait()
+}
+
 // readDir reads the full contents of directory dir.
 func readDir(dir string) func([]byte) error {
 	return func(buf []byte) error {
@@ -177,7 +201,7 @@ func main() {
 	prefix := flag.String("prefix", "", "mount point")
 	quiet := flag.Bool("quiet", false, "be quiet")
 	mode := flag.String("mode", "stat", "stat: lstat the files listed in the argument; "+
-		"negstat: stat nonexistent file in prefix; readdir: read directory prefix; "+
+		"negstat: stat nonexistent file in prefix; getattr: stat prefix/file<thread>; readdir: read directory prefix; "+
 		"read, write: read or write N blocks per thread of the file named by the argument")
 	bs := flag.Int("bs", 128*1024, "block size for read and write")
 	direct := flag.Bool("direct", false, "use O_DIRECT for read and write")
@@ -187,6 +211,9 @@ func main() {
 	case "stat":
 	case "negstat":
 		runParallel(*cpu, *N, negStat(filepath.Join(*prefix, "nonexistent")))
+		return
+	case "getattr":
+		statFiles(*cpu, *N, *prefix)
 		return
 	case "readdir":
 		runParallel(*cpu, *N, readDir(*prefix))

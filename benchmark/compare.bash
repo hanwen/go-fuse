@@ -26,7 +26,7 @@ repo=$(cd "$(dirname "$0")/.." && pwd)
 base_rev=${1:-@-}
 count=${COUNT:-6}
 cpu=${CPU:-1,2,4}
-bench=${BENCH:-'BenchmarkGoFuseMemoryRead|BenchmarkGoFuseMemoryWrite|BenchmarkGoFuseFDRead|BenchmarkGoFSStat|BenchmarkGoFSParallelReaddir|BenchmarkNegStat'}
+bench=${BENCH:-'BenchmarkGoFuseMemoryRead|BenchmarkGoFuseMemoryWrite|BenchmarkGoFuseFDRead|BenchmarkGoFSStat|BenchmarkGoFSParallelReaddir|BenchmarkNegStat|BenchmarkBlockingGetAttr'}
 out=${OUT:-$(mktemp -d)}
 cache=${CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/go-fuse-bench}
 
