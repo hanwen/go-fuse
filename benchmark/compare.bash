@@ -4,9 +4,11 @@
 #
 #   benchmark/compare.bash [BASE_REV]
 #
-# Results are cached per commit ID, CPU frequency and benchmark
-# parameters, so revisions that were already measured are not run
-# again.
+# Results are cached by their inputs (commit ID, benchmark parameters,
+# machine, CPU frequency, Go and kernel version), so revisions that
+# were already measured are not run again. Each result is stored as
+# <hash>.txt next to <hash>.json, which holds the inputs; <hash> is
+# the SHA-256 of that JSON. Requires jq.
 #
 # Environment: COUNT (rounds, default 6), BENCH (regexp), CPU (-cpu
 # list, default 1,2,4), OUT (output dir, default a new temp dir),
@@ -14,6 +16,11 @@
 # ignore cached results, ALLOW_FREQ_SCALING=1 to skip the CPU
 # frequency check.
 set -euo pipefail
+
+if ! command -v jq >/dev/null; then
+	echo "$0: needs jq" >&2
+	exit 1
+fi
 
 repo=$(cd "$(dirname "$0")/.." && pwd)
 base_rev=${1:-@-}
@@ -55,12 +62,32 @@ cd "$repo"
 base_id=$(jj log --no-graph -r "$base_rev" -T commit_id)
 new_id=$(jj log --no-graph -r @ -T commit_id)
 
-# Results depend on the machine, CPU frequency and the benchmark
-# parameters too.
-params=$(printf '%s\n' "$(hostname)" "$freqs" "$count" "$cpu" "$bench" | sha1sum | cut -c1-12)
+# inputs prints the JSON describing everything that the result of
+# benchmarking commit $1 depends on.
+inputs() {
+	jq -n -S -c \
+		--arg commit "$1" \
+		--arg bench "$bench" \
+		--arg count "$count" \
+		--arg cpu "$cpu" \
+		--arg host "$(hostname)" \
+		--arg cpu_model "$(grep -m1 '^model name' /proc/cpuinfo | cut -d: -f2- | sed 's/^ *//')" \
+		--arg freqs "$freqs" \
+		--arg kernel "$(uname -r)" \
+		--arg go "$(go env GOVERSION)" \
+		--arg goflags "$(go env GOFLAGS)" \
+		--arg goexperiment "$(go env GOEXPERIMENT)" \
+		--arg goamd64 "$(go env GOAMD64)" \
+		'$ARGS.named'
+}
+
 mkdir -p "$cache" "$out"
-old_cache=$cache/$base_id-$params.txt
-new_cache=$cache/$new_id-$params.txt
+old_inputs=$(inputs "$base_id")
+new_inputs=$(inputs "$new_id")
+old_hash=$(printf '%s\n' "$old_inputs" | shasum -a 256 | cut -d' ' -f1)
+new_hash=$(printf '%s\n' "$new_inputs" | shasum -a 256 | cut -d' ' -f1)
+old_cache=$cache/$old_hash.txt
+new_cache=$cache/$new_hash.txt
 
 run_old=1
 run_new=1
@@ -104,9 +131,11 @@ fi
 
 # Only complete runs are cached.
 if [ "$run_old" = 1 ]; then
+	printf '%s\n' "$old_inputs" >"$cache/$old_hash.json"
 	cp "$tmp/old.txt" "$old_cache"
 fi
 if [ "$run_new" = 1 ]; then
+	printf '%s\n' "$new_inputs" >"$cache/$new_hash.json"
 	cp "$tmp/new.txt" "$new_cache"
 fi
 cp "$old_cache" "$out/old.txt"
