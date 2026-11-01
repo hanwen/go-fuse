@@ -21,79 +21,35 @@ import (
 func BenchmarkGoFuseMemoryRead(b *testing.B) {
 	root := &readFS{}
 	mnt := setupFS(root, b.N, b)
-	benchmarkRead(mnt, b, "direct")
+	benchmarkIO(mnt, b, false, true)
 }
 
 func BenchmarkGoFuseMemoryWrite(b *testing.B) {
 	root := &readFS{}
 	mnt := setupFS(root, b.N, b)
-	benchmarkDD(mnt, b, true, "direct")
+	benchmarkIO(mnt, b, true, true)
 }
 
 const blockSize = 128 * 1024 // Fuse default request size 128k
 
-func benchmarkRead(mnt string, b *testing.B, ddflag string) {
-	benchmarkDD(mnt, b, false, ddflag)
+func benchmarkRead(mnt string, b *testing.B, direct bool) {
+	benchmarkIO(mnt, b, false, direct)
 }
 
-// benchmarkDD runs GOMAXPROCS dd processes in parallel, each reading
-// or writing b.N blocks of a file in mnt.
-func benchmarkDD(mnt string, b *testing.B, write bool, ddflag string) {
-	var cmds []*exec.Cmd
-	readers := runtime.GOMAXPROCS(0)
-
-	for i := 0; i < readers; i++ {
-		cmd := exec.Command("dd",
-			fmt.Sprintf("if=%s/foo.txt", mnt),
-			"of=/dev/null",
-			fmt.Sprintf("bs=%d", blockSize),
-			fmt.Sprintf("count=%d", b.N))
-		if write {
-			cmd.Args[1] = "if=/dev/zero"
-			cmd.Args[2] = fmt.Sprintf("of=%s/foo%d.txt", mnt, i)
-			cmd.Args = append(cmd.Args, "conv=notrunc")
-			if ddflag != "" {
-				cmd.Args = append(cmd.Args, "oflag="+ddflag)
-			}
-		} else if ddflag != "" {
-			cmd.Args = append(cmd.Args, "iflag="+ddflag)
-		}
-		if testutil.VerboseTest() {
-			cmd.Stderr = os.Stderr
-			cmd.Stdout = os.Stdout
-		} else {
-			buf := &bytes.Buffer{}
-			cmd.Stderr = buf
-			cmd.Stdout = buf
-		}
-		cmds = append(cmds, cmd)
+// benchmarkIO has GOMAXPROCS threads each read b.N blocks of
+// foo.txt, or write b.N blocks to their own file, in mnt.
+func benchmarkIO(mnt string, b *testing.B, write, direct bool) {
+	threads := runtime.GOMAXPROCS(0)
+	mode, name := "-mode=read", "foo.txt"
+	if write {
+		mode, name = "-mode=write", "foo%d.txt"
 	}
-
-	b.SetBytes(int64(readers * blockSize))
+	b.SetBytes(int64(threads * blockSize))
 	b.ReportAllocs()
-	b.ResetTimer()
-
-	result := make(chan error, readers)
-	for _, cmd := range cmds {
-		go func(cmd *exec.Cmd) {
-			err := cmd.Run()
-			if buf, ok := cmd.Stdout.(*bytes.Buffer); ok && err != nil {
-				err = fmt.Errorf("%v: output=%s", err, buf.String())
-			}
-			result <- err
-		}(cmd)
-	}
-	failures := 0
-	for range cmds {
-		if err := <-result; err != nil {
-			b.Errorf("dd failed: %v", err)
-			failures++
-		}
-	}
-	if failures > 0 {
-		b.Errorf("%d out of %d commands", failures, readers)
-	}
-	b.StopTimer()
+	runBulkstat(b, mode, threads, b.N, mnt,
+		fmt.Sprintf("-bs=%d", blockSize),
+		fmt.Sprintf("-direct=%v", direct),
+		name)
 }
 
 func writeBlocks(b *testing.B, name string, n int) {
@@ -120,7 +76,7 @@ func BenchmarkGoFuseFDRead(b *testing.B) {
 		b.Fatal(err)
 	}
 	mnt := setupFS(root, b.N, b)
-	benchmarkRead(mnt, b, "")
+	benchmarkRead(mnt, b, false)
 }
 
 var libfusePath = flag.String("passthrough_hp", "", "path to libfuse's passthrough_hp")
@@ -159,5 +115,5 @@ func BenchmarkLibfuseHP(b *testing.B) {
 		}
 	}
 
-	benchmarkRead(mnt, b, "")
+	benchmarkRead(mnt, b, false)
 }
