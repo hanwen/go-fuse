@@ -169,3 +169,40 @@ func TestFSKitIntegration(t *testing.T) {
 		t.Fatalf("got %d, want %d", len(big), 512*1024)
 	}
 }
+
+func TestFSKitChannelInterruptRetry(t *testing.T) {
+	if !Available() {
+		t.Skip("FSKit / macFUSE 5.3.0+ not available on this machine")
+	}
+
+	mnt, err := os.MkdirTemp("", "fskit-interrupt-*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(mnt)
+
+	root := &fskitTestRoot{}
+	opts := &fs.Options{
+		MountOptions: fuse.MountOptions{
+			Debug: false,
+		},
+	}
+
+	server, err := MountFS(mnt, root, opts)
+	if err != nil {
+		t.Skipf("FSKit mount not permitted or failed in this environment: %v", err)
+	}
+	defer server.Unmount()
+
+	if !server.api.channelInterrupt(server.mfChannel) {
+		t.Fatal("MFChannelInterrupt returned false")
+	}
+
+	content, err := os.ReadFile(filepath.Join(mnt, "hello.txt"))
+	if err != nil {
+		t.Fatalf("reading hello.txt after interrupt failed: %v", err)
+	}
+	if string(content) != "hello fskit\n" {
+		t.Fatalf("got %q, want %q", string(content), "hello fskit\n")
+	}
+}

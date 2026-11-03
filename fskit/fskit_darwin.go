@@ -333,7 +333,7 @@ func (s *Server) serve() {
 
 		msg, _, rawErr := purego.SyscallN(s.api.symCopyNextMessage, s.mfChannel)
 		if msg == 0 {
-			errNo := syscall.Errno(rawErr)
+			errNo := syscall.Errno(uint32(rawErr))
 			if errNo == syscall.ENOENT || errNo == syscall.EINTR || errNo == syscall.EAGAIN {
 				continue
 			}
@@ -418,7 +418,7 @@ func (s *Server) sendMessage(outHdr, outPayload []byte, n int) {
 	r1, _, rawErr := purego.SyscallN(s.api.symSendMessage, s.mfChannel, uintptr(unsafe.Pointer(&diovs[0])), uintptr(len(diovs)))
 	res := int(r1)
 	if res < 0 {
-		errNo := syscall.Errno(rawErr)
+		errNo := syscall.Errno(uint32(rawErr))
 		if errNo == syscall.ENOENT {
 			return
 		}
