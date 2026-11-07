@@ -5,6 +5,7 @@
 package fuse
 
 import (
+	"errors"
 	"log"
 	"os"
 	"sync"
@@ -35,6 +36,18 @@ type fuseFD struct {
 	reqReaders           int
 	inflightRequestBytes int
 
+	// stopped is set by stopReading. Protected by reqMu.
+	stopped bool
+
+	// epollFDs are epoll fds that no reader is waiting in.
+	// Protected by reqMu.
+	epollFDs []int
+
+	// wakeFD becomes readable on stopReading, and wakes readers
+	// waiting for the FUSE fd. -1 if reads cannot be interrupted, or
+	// after close. Changes under reqMu.
+	wakeFD int
+
 	// loops tracks reader goroutines servicing fd.
 	loops sync.WaitGroup
 
@@ -59,7 +72,7 @@ func (ms *Server) newFuseFD(fd int) (*fuseFD, error) {
 		return nil, err
 	}
 	_, readBufBytes, reqAllocBytes := requestAccountingSizes(ms.opts.MaxWrite)
-	return &fuseFD{
+	r := &fuseFD{
 		server:        ms,
 		file:          file,
 		conn:          conn,
@@ -68,7 +81,29 @@ func (ms *Server) newFuseFD(fd int) (*fuseFD, error) {
 		buffers:       &ms.buffers,
 		reqAllocBytes: reqAllocBytes,
 		readBufBytes:  readBufBytes,
-	}, nil
+		wakeFD:        -1,
+	}
+	// After os.NewFile, so the runtime poller does not pick up the
+	// fd: readers poll it themselves.
+	if err := r.initWake(fd); err != nil {
+		file.Close()
+		return nil, err
+	}
+	return r, nil
+}
+
+// errStopped is returned by readFD when stopReading interrupted it.
+var errStopped = errors.New("fuse: reading stopped")
+
+// stopReading makes readers return without a request, including
+// readers waiting for one. On platforms where reads cannot be
+// interrupted, a reader blocked in read(2) returns with the next
+// request.
+func (r *fuseFD) stopReading() {
+	r.reqMu.Lock()
+	r.stopped = true
+	r.wake()
+	r.reqMu.Unlock()
 }
 
 // withFD runs f with the underlying FUSE file descriptor, holding a
@@ -113,7 +148,7 @@ type fdCall struct {
 }
 
 func (c *fdCall) doRead(fd uintptr) {
-	c.n, c.err = syscall.Read(int(fd), c.buf)
+	c.n, c.err = c.fuseFD.readFD(int(fd), c.buf)
 }
 
 func (c *fdCall) doWrite(fd uintptr) {
@@ -162,12 +197,12 @@ func (c *fdCall) writev(bufs ...[]byte) (int, error) {
 }
 
 // readRequest reads one request from the kernel. Returns nil, OK if
-// there are too many concurrent readers or insufficient request-bytes
-// budget.
+// reading was stopped, there are too many concurrent readers or
+// insufficient request-bytes budget.
 func (r *fuseFD) readRequest() (req *requestAlloc, code Status) {
 	ms := r.server
 	r.reqMu.Lock()
-	if r.reqReaders > ms.maxReaders || !r.reserveRequestBytes() {
+	if r.stopped || r.reqReaders > ms.maxReaders || !r.reserveRequestBytes() {
 		r.reqMu.Unlock()
 		return nil, OK
 	}
@@ -185,6 +220,9 @@ func (r *fuseFD) readRequest() (req *requestAlloc, code Status) {
 		r.putReq(req)
 		r.reqReaders--
 		r.reqMu.Unlock()
+		if err == errStopped {
+			return nil, OK
+		}
 		return nil, ToStatus(err)
 	}
 
@@ -271,8 +309,20 @@ func (r *fuseFD) putReq(req *requestAlloc) {
 
 // close closes the underlying FUSE fd. The *os.File waits for in-flight
 // RawConn operations (reads, writes, ioctls) before releasing the fd.
+// Readers must have exited.
 func (r *fuseFD) close() error {
-	return r.file.Close()
+	err := r.file.Close()
+	r.reqMu.Lock()
+	if r.wakeFD >= 0 {
+		syscall.Close(r.wakeFD)
+		r.wakeFD = -1
+	}
+	for _, efd := range r.epollFDs {
+		syscall.Close(efd)
+	}
+	r.epollFDs = nil
+	r.reqMu.Unlock()
+	return err
 }
 
 func (r *fuseFD) writev(iov [][]byte) (int, syscall.Errno) {

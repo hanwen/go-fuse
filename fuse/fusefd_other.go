@@ -2,10 +2,22 @@
 
 package fuse
 
+import "syscall"
+
 // OSX and FreeBSD has races when multiple routines read
 // from the FUSE device: on unmount, sometime some reads
 // do not error-out, meaning that unmount will hang.
 const useSingleReader = true
+
+func (r *fuseFD) initWake(fd int) error {
+	return nil
+}
+
+func (r *fuseFD) wake() {}
+
+func (r *fuseFD) readFD(fd int, dest []byte) (int, error) {
+	return syscall.Read(fd, dest)
+}
 
 func (r *fuseFD) write(req *requestAlloc) Status {
 	if req.outPayloadSize() == 0 {
