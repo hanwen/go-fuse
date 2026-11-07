@@ -60,7 +60,10 @@ func (fn *randomTypeTest) Readdir(ctx context.Context) (DirStream, syscall.Errno
 func TestReaddirTypeFixup(t *testing.T) {
 	root := &randomTypeTest{}
 
-	mntDir, _ := testMount(t, root, nil)
+	mntDir, server := testMount(t, root, nil)
+	if server.KernelSettings().Flags64()&fuse.CAP_READDIRPLUS == 0 {
+		t.Skip("kernel does not support READDIRPLUS")
+	}
 
 	f, err := os.Open(mntDir)
 	if err != nil {
