@@ -424,16 +424,16 @@ func TestMemPosix(t *testing.T) {
 		"LseekEnxioCheck",
 		"LseekHoleSeeksToEOF",
 		"ParallelFileOpen",
-		"ReadDir",
+		"ReadDirBasic",
 		"ReadDirConsistency",
 		"TruncateFile",
 		"TruncateNoFile",
 	} {
 		fn := posixtest.All[nm]
-		if fn == nil {
-			t.Skipf("could not find test %q", nm)
-		}
 		t.Run(nm, func(t *testing.T) {
+			if fn == nil {
+				t.Skipf("posixtest %q not available on this platform", nm)
+			}
 			root := &memDir{}
 			mnt := t.TempDir()
 
