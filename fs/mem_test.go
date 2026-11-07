@@ -459,7 +459,7 @@ func TestInodeParentsHardlink(t *testing.T) {
 	root := &Inode{}
 	file := &MemRegularFile{Data: []byte("hello")}
 	var fileInode *Inode
-	testMount(t, root, &Options{
+	mntDir, _ := testMount(t, root, &Options{
 		OnAdd: func(ctx context.Context) {
 			fileInode = root.NewPersistentInode(ctx, file, StableAttr{Mode: syscall.S_IFREG})
 			root.AddChild("a", fileInode, false)
@@ -475,5 +475,15 @@ func TestInodeParentsHardlink(t *testing.T) {
 	}
 	if len(got) != 2 || !got["a"] || !got["b"] {
 		t.Errorf("Parents: got %v, want a and b", got)
+	}
+
+	for _, fn := range []string{"a", "dir/b"} {
+		var st syscall.Stat_t
+		if err := syscall.Stat(mntDir+"/"+fn, &st); err != nil {
+			t.Fatal(err)
+		}
+		if st.Nlink != 2 {
+			t.Errorf("%s: got Nlink %d, want 2", fn, st.Nlink)
+		}
 	}
 }

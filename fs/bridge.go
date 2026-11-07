@@ -682,6 +682,7 @@ func (b *rawBridge) getattr(ctx context.Context, n *Inode, f FileHandle, out *fu
 		}
 		out.Ino = n.stableAttr.Ino
 		out.Mode = (out.Attr.Mode & 07777) | n.stableAttr.Mode
+		n.defaultNlink(&out.Attr)
 		b.setAttr(&out.Attr)
 		b.setAttrTimeout(out)
 	}

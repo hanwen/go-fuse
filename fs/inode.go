@@ -129,6 +129,7 @@ func (n *Inode) setEntryOut(out *fuse.EntryOut) {
 	out.NodeId = n.nodeId
 	out.Ino = n.stableAttr.Ino
 	out.Mode = (out.Attr.Mode & 07777) | n.stableAttr.Mode
+	n.defaultNlink(&out.Attr)
 }
 
 // StableAttr returns the (Ino, Gen) tuple for this node.
@@ -577,7 +578,9 @@ type InodeParent struct {
 }
 
 // Parents returns all (name, parent) pairs under which this Inode is
-// known, the most recent first.
+// known, the most recent first. For non-directories, the length is a
+// suitable value for Attr.Nlink, and it is used as default if the
+// file system leaves Nlink unset.
 func (n *Inode) Parents() []InodeParent {
 	n.mu.Lock()
 	defer n.mu.Unlock()
@@ -590,6 +593,17 @@ func (n *Inode) Parents() []InodeParent {
 		out = append(out, InodeParent{Name: p.name, Parent: p.parent})
 	}
 	return out
+}
+
+// defaultNlink sets Nlink of a non-directory to len(n.Parents()), if
+// the file system left it unset.
+func (n *Inode) defaultNlink(out *fuse.Attr) {
+	if out.Nlink != 0 || n.stableAttr.Mode&syscall.S_IFMT == syscall.S_IFDIR {
+		return
+	}
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	out.Nlink = uint32(n.parents.count())
 }
 
 // RmAllChildren recursively drops a tree, forgetting all persistent
