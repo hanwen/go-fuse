@@ -533,6 +533,9 @@ func TestPosix(t *testing.T) {
 
 	for nm, fn := range posixtest.All {
 		t.Run(nm, func(t *testing.T) {
+			if nm == "NlinkZero" && runtime.GOOS == "freebsd" {
+				t.Skip("FreeBSD keeps cached attributes of a file replaced by rename")
+			}
 			tc := newTestCase(t, &testOptions{
 				suppressDebug: noisy[nm],
 				attrCache:     true,
