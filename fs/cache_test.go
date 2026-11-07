@@ -296,6 +296,9 @@ func TestAutoInvalData(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer srv.Unmount()
+	if srv.KernelSettings().Flags64()&fuse.CAP_AUTO_INVAL_DATA == 0 {
+		t.Skip("kernel does not support AUTO_INVAL_DATA")
+	}
 	f, err := os.Open(mnt + "/file")
 	if err != nil {
 		t.Fatal(err)
