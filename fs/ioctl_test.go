@@ -9,6 +9,7 @@ import (
 	"context"
 	"os"
 	"reflect"
+	"runtime"
 	"syscall"
 	"testing"
 	"unsafe"
@@ -30,6 +31,9 @@ func (n *ioctlNode) Ioctl(ctx context.Context, f FileHandle, cmd uint32, arg uin
 }
 
 func TestIoctl(t *testing.T) {
+	if runtime.GOOS == "freebsd" {
+		t.Skip("FreeBSD does not implement FUSE_IOCTL")
+	}
 	root := &ioctlNode{}
 	mntDir, _ := testMount(t, root, nil)
 	f, err := os.Open(mntDir)
