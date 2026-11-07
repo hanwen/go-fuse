@@ -94,7 +94,12 @@ func (r *keepCacheRoot) OnAdd(ctx context.Context) {
 // change content but no metadata.
 func TestKeepCache(t *testing.T) {
 	root := &keepCacheRoot{}
-	mntDir, _ := testMount(t, root, nil)
+	entryTimeout := time.Hour
+	mntDir, _ := testMount(t, root, &Options{
+		FirstAutomaticIno: 1,
+		ExternalNodeID:    true,
+		EntryTimeout:      &entryTimeout,
+	})
 
 	c1, err := os.ReadFile(mntDir + "/keep")
 	if err != nil {
