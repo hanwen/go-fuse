@@ -34,14 +34,18 @@ func (r *interruptRoot) Lookup(ctx context.Context, name string, out *fuse.Entry
 
 type interruptOps struct {
 	Inode
+	opened      chan struct{}
+	done        chan struct{}
 	interrupted bool
 }
 
 var _ = (NodeOpener)((*interruptOps)(nil))
 
 func (o *interruptOps) Open(ctx context.Context, flags uint32) (FileHandle, uint32, syscall.Errno) {
+	close(o.opened)
+	defer close(o.done)
 	select {
-	case <-time.After(100 * time.Millisecond):
+	case <-time.After(10 * time.Second):
 		return nil, 0, syscall.EIO
 	case <-ctx.Done():
 		o.interrupted = true
@@ -53,6 +57,8 @@ func (o *interruptOps) Open(ctx context.Context, flags uint32) (FileHandle, uint
 // INTERRUPT opcodes are handled.
 func TestInterrupt(t *testing.T) {
 	root := &interruptRoot{}
+	root.child.opened = make(chan struct{})
+	root.child.done = make(chan struct{})
 
 	oneSec := time.Second
 	mntDir, server := testMount(t, root, &Options{
@@ -65,10 +71,17 @@ func TestInterrupt(t *testing.T) {
 		t.Fatalf("run %v: %v", cmd, err)
 	}
 
-	time.Sleep(10 * time.Millisecond)
+	select {
+	case <-root.child.opened:
+	case <-time.After(10 * time.Second):
+		cmd.Process.Kill()
+		t.Fatal("timed out waiting for OPEN")
+	}
 	if err := cmd.Process.Kill(); err != nil {
 		t.Errorf("Kill: %v", err)
 	}
+	cmd.Wait()
+	<-root.child.done
 	server.Unmount()
 
 	if !root.child.interrupted {
