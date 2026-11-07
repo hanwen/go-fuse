@@ -12,16 +12,6 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func setBlocks(out *fuse.Attr) {
-	if out.Blksize > 0 {
-		return
-	}
-
-	out.Blksize = 4096
-	pages := (out.Size + 4095) / 4096
-	out.Blocks = pages * 8
-}
-
 func setStatxBlocks(out *fuse.Statx) {
 	if out.Blksize > 0 {
 		return
