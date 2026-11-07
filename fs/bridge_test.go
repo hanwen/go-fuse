@@ -134,6 +134,11 @@ func (n *testDeletedIno) OpendirHandle(ctx context.Context, flags uint32) (fh Fi
 }
 
 func (n *testDeletedIno) Getattr(ctx context.Context, f FileHandle, out *fuse.AttrOut) syscall.Errno {
+	root := n.Root().Operations().(*testDeletedIno)
+	if n.IsRoot() || atomic.LoadInt32(&root.deleted) == 0 {
+		out.Mode = syscall.S_IFDIR | 0755
+		return OK
+	}
 	prefix := ".go-fuse"
 	p := n.Path(n.Root())
 	if strings.HasPrefix(p, prefix) {
