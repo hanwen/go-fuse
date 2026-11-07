@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"runtime"
 	"sync"
 	"syscall"
 	"testing"
@@ -68,6 +69,9 @@ func TestDirCacheFlag(t *testing.T) {
 
 	if !server.KernelSettings().SupportsVersion(7, 28) {
 		t.Skip("need v7.28 for directory caching")
+	}
+	if runtime.GOOS == "freebsd" {
+		t.Skip("FreeBSD does not implement FOPEN_CACHE_DIR")
 	}
 
 	s, errno := NewLoopbackDirStream(mnt)
