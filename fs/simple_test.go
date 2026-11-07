@@ -519,7 +519,7 @@ func TestMknodNotSupported(t *testing.T) {
 
 	name := filepath.Join(mountPoint, "foo")
 
-	if got, want := syscall.Mknod(name, syscall.S_IFREG|0755, (8<<8)|0), syscall.ENOTSUP; got != want {
+	if got, want := syscall.Mknod(name, syscall.S_IFIFO|0755, 0), syscall.ENOTSUP; got != want {
 		t.Fatalf("mknod: got %v, want %v", got, want)
 	}
 }
