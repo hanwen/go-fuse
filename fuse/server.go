@@ -61,6 +61,9 @@ type Server struct {
 	// loops tracks goroutines reading or serving requests.
 	loops sync.WaitGroup
 
+	// done is closed when Serve has finished tearing down.
+	done chan struct{}
+
 	// Used to implement WaitMount on macos.
 	ready <-chan error
 
@@ -89,8 +92,7 @@ func (ms *Server) Unmount() error {
 	if err := ms.mount.Unmount(); err != nil {
 		return err
 	}
-	// Wait for event loops to exit.
-	ms.loops.Wait()
+	<-ms.done
 	return nil
 }
 
@@ -224,6 +226,7 @@ func newServerFromDev(fs RawFileSystem, d *Dev, m *Mount, o *MountOptions) (*Ser
 		mount:        m,
 		singleReader: useSingleReader,
 		ready:        d.ready,
+		done:         make(chan struct{}),
 	}
 	ms.reqPool.New = func() any {
 		return &requestAlloc{}
@@ -381,12 +384,13 @@ func (ms *Server) Serve() {
 	}
 
 	ms.fileSystem.OnUnmount()
+	close(ms.done)
 }
 
-// Wait waits for the serve loop to exit. This should only be called
+// Wait waits for Serve to exit. This should only be called
 // after Serve has been called, or it will hang indefinitely.
 func (ms *Server) Wait() {
-	ms.loops.Wait()
+	<-ms.done
 }
 
 func (ms *Server) handleInit() Status {
