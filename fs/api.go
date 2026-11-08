@@ -66,6 +66,9 @@
 //	  \  /
 //	  file
 //
+// Only non-directories can be hard-linked: the kernel's directory
+// cache allows only one name for a directory inode at a time.
+//
 // Inode: ("index node") points to the file content, and stores
 // metadata (size, timestamps) about a file or directory. Each
 // inode has a type (directory, symlink, regular file, etc.) and

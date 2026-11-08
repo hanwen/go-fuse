@@ -332,9 +332,11 @@ func (n *Inode) Path(root *Inode) string {
 // created and only one goroutine keeps referencing it.
 func (iparent *Inode) setEntry(name string, ichild *Inode) {
 	if ichild.stableAttr.Mode == syscall.S_IFDIR {
-		// Directories cannot have more than one parent. Clear the map.
-		// This special-case is neccessary because ichild may still have a
-		// parent that was forgotten (i.e. removed from bridge.inoMap).
+		// Directories cannot have more than one parent, as the
+		// kernel dcache allows only one dentry per directory
+		// inode. Clear the map. This is also necessary because
+		// ichild may still have a parent that was forgotten
+		// (i.e. removed from bridge.inoMap).
 		ichild.parents.clear()
 	}
 	iparent.children.set(iparent, name, ichild)
@@ -507,6 +509,12 @@ func (n *Inode) GetChild(name string) *Inode {
 
 // AddChild adds a child to this node. If overwrite is false, fail if
 // the destination already exists.
+//
+// A non-directory may be added under several names, which makes it a
+// hard link. A directory can only have one parent, because the kernel
+// allows only one dentry per directory inode, and moves that dentry
+// when it finds the directory under a new name. Use MvChild to move a
+// directory, or RmChild it before adding it elsewhere.
 func (n *Inode) AddChild(name string, ch *Inode, overwrite bool) (success bool) {
 	if len(name) == 0 {
 		log.Panic("empty name for inode")
@@ -578,7 +586,8 @@ type InodeParent struct {
 }
 
 // Parents returns all (name, parent) pairs under which this Inode is
-// known, the most recent first. For non-directories, the length is a
+// known, the most recent first. A directory has at most one parent;
+// see AddChild. For non-directories, the length is a
 // suitable value for Attr.Nlink, and it is used as default if the
 // file system leaves Nlink unset.
 func (n *Inode) Parents() []InodeParent {
