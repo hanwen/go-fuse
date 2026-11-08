@@ -454,3 +454,26 @@ func TestMemPosix(t *testing.T) {
 		})
 	}
 }
+
+func TestInodeParentsHardlink(t *testing.T) {
+	root := &Inode{}
+	file := &MemRegularFile{Data: []byte("hello")}
+	var fileInode *Inode
+	testMount(t, root, &Options{
+		OnAdd: func(ctx context.Context) {
+			fileInode = root.NewPersistentInode(ctx, file, StableAttr{Mode: syscall.S_IFREG})
+			root.AddChild("a", fileInode, false)
+			dir := root.NewPersistentInode(ctx, &Inode{}, StableAttr{Mode: syscall.S_IFDIR})
+			root.AddChild("dir", dir, false)
+			dir.AddChild("b", fileInode, false)
+		},
+	})
+
+	got := map[string]bool{}
+	for _, p := range fileInode.Parents() {
+		got[p.Name] = true
+	}
+	if len(got) != 2 || !got["a"] || !got["b"] {
+		t.Errorf("Parents: got %v, want a and b", got)
+	}
+}

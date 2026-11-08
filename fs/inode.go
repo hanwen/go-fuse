@@ -558,7 +558,7 @@ func (n *Inode) childrenList() []childEntry {
 	return n.children.list()
 }
 
-// Parents returns a parent of this Inode, or nil if this Inode is
+// Parent returns a parent of this Inode, or nil if this Inode is
 // deleted or is the root
 func (n *Inode) Parent() (string, *Inode) {
 	n.mu.Lock()
@@ -568,6 +568,28 @@ func (n *Inode) Parent() (string, *Inode) {
 		return "", nil
 	}
 	return p.name, p.parent
+}
+
+// InodeParent is a (name, parent) pair under which an Inode is known.
+type InodeParent struct {
+	Name   string
+	Parent *Inode
+}
+
+// Parents returns all (name, parent) pairs under which this Inode is
+// known, the most recent first.
+func (n *Inode) Parents() []InodeParent {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	all := n.parents.all()
+	if all == nil {
+		return nil
+	}
+	out := make([]InodeParent, 0, len(all))
+	for _, p := range all {
+		out = append(out, InodeParent{Name: p.name, Parent: p.parent})
+	}
+	return out
 }
 
 // RmAllChildren recursively drops a tree, forgetting all persistent
