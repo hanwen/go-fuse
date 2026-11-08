@@ -1,6 +1,7 @@
 package fuse
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"syscall"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/internal/testutil"
 	"github.com/moby/sys/mountinfo"
+	"golang.org/x/sys/unix"
 )
 
 // TestMountDevFd tests the special `/dev/fd/N` mountpoint syntax, where a
@@ -262,5 +264,32 @@ func TestEscapedMountOption(t *testing.T) {
 	m := *mounts[0]
 	if m.Source != fsname {
 		t.Errorf("mountinfo(%q): got %q want %q", mnt, m.Source, fsname)
+	}
+}
+
+func TestUnmountBusy(t *testing.T) {
+	dir := t.TempDir()
+	srv, err := NewServer(NewDefaultRawFileSystem(), dir, &MountOptions{
+		Debug: testutil.VerboseTest(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	go srv.Serve()
+	if err := srv.WaitMount(); err != nil {
+		t.Fatal(err)
+	}
+
+	fd, err := syscall.Open(dir, unix.O_PATH, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = srv.Unmount()
+	syscall.Close(fd)
+	if !errors.Is(err, syscall.EBUSY) {
+		t.Errorf("Unmount with open fd: got %v, want EBUSY", err)
+	}
+	if err := srv.Unmount(); err != nil {
+		t.Fatalf("Unmount: %v", err)
 	}
 }

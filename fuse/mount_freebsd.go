@@ -48,7 +48,7 @@ func callMountFuseFs(mountPoint string, opts *MountOptions) (devFuseFd int, err 
 	// Use syscall.ForkExec directly instead of exec.Command because we need to
 	// pass raw file descriptors to the child, rather than a garbage collected
 	// os.File.
-	env := []string{"MOUNT_FUSEFS_CALL_BY_LIB=1"}
+	env := helperEnv("MOUNT_FUSEFS_CALL_BY_LIB=1")
 	argv := []string{
 		bin,
 		"--safe",

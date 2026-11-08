@@ -142,7 +142,7 @@ func callFusermount(mountPoint string, opts *MountOptions) (fd int, err error) {
 	proc, err := os.StartProcess(bin,
 		cmd,
 		&os.ProcAttr{
-			Env:   []string{"_FUSE_COMMFD=3"},
+			Env:   helperEnv("_FUSE_COMMFD=3"),
 			Files: []*os.File{os.Stdin, os.Stdout, os.Stderr, remote}})
 
 	if err != nil {
@@ -221,10 +221,15 @@ func unmount(mountPoint string) error {
 	errBuf := bytes.Buffer{}
 	cmd := exec.Command(bin, "-u", mountPoint)
 	cmd.Stderr = &errBuf
+	cmd.Env = helperEnv()
 	err = cmd.Run()
 	if errBuf.Len() > 0 {
-		return fmt.Errorf("%s (code %v)\n",
-			errBuf.String(), err)
+		msg := strings.TrimSpace(errBuf.String())
+		// fusermount reports errno only through strerror(3).
+		if strings.Contains(msg, "Device or resource busy") {
+			return fmt.Errorf("%s: %w", msg, syscall.EBUSY)
+		}
+		return fmt.Errorf("%s (code %v)", msg, err)
 	}
 	return err
 }

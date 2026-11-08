@@ -1,10 +1,12 @@
 package fuse
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -90,24 +92,43 @@ func (m *Mount) Unmount() (err error) {
 	if m.magic() {
 		return fmt.Errorf("Cannot unmount magic mountpoint %q. Please use `fusermount -u REALMOUNTPOINT` instead.", m.path)
 	}
-	delay := time.Duration(0)
-	for try := 0; try < 5; try++ {
+	// The kernel may still hold references to the mount, eg. for
+	// files that were just closed, so retry EBUSY for a while.
+	deadline := time.Now().Add(time.Second)
+	delay := 5 * time.Millisecond
+	for {
 		err = unmount(m.path)
-		if err == nil {
+		if !errors.Is(err, syscall.EBUSY) || time.Now().After(deadline) {
 			break
 		}
-
-		// Sleep for a bit. This is not pretty, but there is
-		// no way we can be certain that the kernel thinks all
-		// open files have already been closed.
-		delay = 2*delay + 5*time.Millisecond
 		time.Sleep(delay)
+		delay = min(2*delay, 100*time.Millisecond)
 	}
 	if err != nil {
 		return err
 	}
 	m.unmounted = true
 	return nil
+}
+
+// helperEnv returns the environment for running a mount helper: the
+// caller's, with LC_ALL=C so errors are not translated, and set, a
+// list of KEY=VALUE, overriding existing values.
+func helperEnv(set ...string) []string {
+	set = append([]string{"LC_ALL=C"}, set...)
+	keys := map[string]bool{}
+	for _, kv := range set {
+		k, _, _ := strings.Cut(kv, "=")
+		keys[k] = true
+	}
+	var env []string
+	for _, kv := range os.Environ() {
+		k, _, _ := strings.Cut(kv, "=")
+		if !keys[k] {
+			env = append(env, kv)
+		}
+	}
+	return append(env, set...)
 }
 
 var reservedFDs []*os.File

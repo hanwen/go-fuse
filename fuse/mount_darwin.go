@@ -49,7 +49,7 @@ func mount(mountPoint string, opts *MountOptions, ready chan<- error) (fd int, e
 		"-o", fmt.Sprintf("iosize=%d", opts.MaxWrite),
 		mountPoint)
 	cmd.ExtraFiles = []*os.File{remote} // fd would be (index + 3)
-	cmd.Env = append(os.Environ(),
+	cmd.Env = helperEnv(
 		"_FUSE_CALL_BY_LIB=",
 		"_FUSE_DAEMON_PATH="+os.Args[0],
 		"_FUSE_COMMFD=3",
