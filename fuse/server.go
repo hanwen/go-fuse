@@ -58,7 +58,7 @@ type Server struct {
 	singleReader bool
 	serving      atomic.Bool // for preventing duplicate Serve() calls
 
-	// loops tracks reader goroutines.
+	// loops tracks goroutines reading or serving requests.
 	loops sync.WaitGroup
 
 	// Used to implement WaitMount on macos.
@@ -461,7 +461,11 @@ exit:
 			go ms.loop()
 		}
 		if ms.singleReader && ms.fuseFD.canAcceptAnother() {
-			go ms.handleRequest(req)
+			ms.loops.Add(1)
+			go func() {
+				defer ms.loops.Done()
+				ms.handleRequest(req)
+			}()
 			continue
 		}
 		ms.handleRequest(req)
