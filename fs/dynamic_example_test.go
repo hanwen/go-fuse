@@ -6,9 +6,12 @@ package fs_test
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/hanwen/go-fuse/v2/fs"
@@ -118,26 +121,53 @@ func (n *numberNode) Lookup(ctx context.Context, name string, out *fuse.EntryOut
 	return child, 0
 }
 
-// ExampleDynamic is a whimsical example of a dynamically discovered
+// Example_dynamic is a whimsical example of a dynamically discovered
 // file system.
 func Example_dynamic() {
-	// This is where we'll mount the FS
-	mntDir := "/tmp/x"
-	os.Mkdir(mntDir, 0755)
-	root := &numberNode{num: 10}
-	server, err := fs.Mount(mntDir, root, &fs.Options{
-		MountOptions: fuse.MountOptions{
-			// Set to true to see how the file system works.
-			Debug: true,
-		},
-	})
+	mntDir, err := os.MkdirTemp("", "dynamic")
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
+	defer os.RemoveAll(mntDir)
 
-	log.Printf("Mounted on %s", mntDir)
-	log.Printf("Unmount by calling 'fusermount -u %s'", mntDir)
+	root := &numberNode{num: 10}
+	opts := &fs.Options{}
+	// Uncomment to see how the file system works.
+	// opts.Debug = true
+	server, err := fs.Mount(mntDir, root, opts)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer server.Unmount()
 
-	// Wait until unmount before exiting
-	server.Wait()
+	entries, err := os.ReadDir(filepath.Join(mntDir, "6"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	var names []string
+	for _, e := range entries {
+		name := e.Name()
+		if e.IsDir() {
+			name += "/"
+		}
+		names = append(names, name)
+	}
+	fmt.Println("6:", strings.Join(names, " "))
+
+	ino := func(name string) uint64 {
+		var st syscall.Stat_t
+		if err := syscall.Stat(filepath.Join(mntDir, name), &st); err != nil {
+			log.Fatal(err)
+		}
+		return uint64(st.Ino)
+	}
+	fmt.Println("inode of 2:", ino("2"))
+	fmt.Println("inode of 8/6/4/2:", ino("8/6/4/2"))
+	fmt.Println("6/4 and 8/4 share an inode:", ino("6/4") == ino("8/4"))
+
+	// Output:
+	// 6: 2 3 4/ 5
+	// inode of 2: 2
+	// inode of 8/6/4/2: 2
+	// 6/4 and 8/4 share an inode: false
 }
