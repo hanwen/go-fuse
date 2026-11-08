@@ -13,11 +13,10 @@ import (
 	"unsafe"
 )
 
-// fuseFD owns the per-FUSE-fd state: the fd itself, the read-side
-// bookkeeping (reqReaders, inflightRequestBytes), and the WaitGroup
-// tracking reader goroutines on this fd. The pools are shared with the
-// owning Server via pointers, and a back pointer to the Server gives the
-// per-fd methods access to shared configuration and callbacks.
+// fuseFD owns the per-FUSE-fd state: the fd itself and the read-side
+// bookkeeping (reqReaders, inflightRequestBytes). The pools are shared
+// with the owning Server via pointers, and a back pointer to the Server
+// gives the per-fd methods access to shared configuration.
 //
 // Today a Server has a single fuseFD; this struct exists so that adding
 // support for FUSE_DEV_IOC_CLONE'd fds is a matter of widening the field
@@ -47,9 +46,6 @@ type fuseFD struct {
 	// waiting for the FUSE fd. -1 if reads cannot be interrupted, or
 	// after close. Changes under reqMu.
 	wakeFD int
-
-	// loops tracks reader goroutines servicing fd.
-	loops sync.WaitGroup
 
 	// Shared pools owned by Server.
 	reqPool  *sync.Pool
@@ -197,13 +193,15 @@ func (c *fdCall) writev(bufs ...[]byte) (int, error) {
 
 // readRequest reads one request from the kernel. Returns nil, OK if
 // reading was stopped, there are too many concurrent readers or
-// insufficient request-bytes budget.
-func (r *fuseFD) readRequest() (req *requestAlloc, code Status) {
+// insufficient request-bytes budget. needReader is set if no other
+// reader is waiting for a request, and the request is one that the
+// kernel expects a reply for.
+func (r *fuseFD) readRequest() (req *requestAlloc, needReader bool, code Status) {
 	ms := r.server
 	r.reqMu.Lock()
 	if r.stopped || r.reqReaders > ms.maxReaders || !r.reserveRequestBytes() {
 		r.reqMu.Unlock()
-		return nil, OK
+		return nil, false, OK
 	}
 	r.reqReaders++
 	r.reqMu.Unlock()
@@ -220,9 +218,9 @@ func (r *fuseFD) readRequest() (req *requestAlloc, code Status) {
 		r.reqReaders--
 		r.reqMu.Unlock()
 		if err == errStopped {
-			return nil, OK
+			return nil, false, OK
 		}
-		return nil, ToStatus(err)
+		return nil, false, ToStatus(err)
 	}
 
 	r.reqMu.Lock()
@@ -233,7 +231,7 @@ func (r *fuseFD) readRequest() (req *requestAlloc, code Status) {
 		r.putReadBuf(dest)
 		r.putReq(req)
 		r.reqReaders--
-		return nil, EINVAL
+		return nil, false, EINVAL
 	}
 	opCode := ((*InHeader)(unsafe.Pointer(&req.inputBuf[0]))).Opcode
 	/* These messages don't expect reply, so they cost nothing for
@@ -246,12 +244,7 @@ func (r *fuseFD) readRequest() (req *requestAlloc, code Status) {
 		r.putReadBuf(dest)
 	}
 	r.reqReaders--
-	if !ms.singleReader && r.reqReaders <= 0 && !needsBackPressure {
-		r.loops.Add(1)
-		go ms.loop()
-	}
-
-	return req, OK
+	return req, r.reqReaders <= 0 && !needsBackPressure, OK
 }
 
 // returnRequest returns a request to the pool of unused requests.

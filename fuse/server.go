@@ -62,6 +62,9 @@ type Server struct {
 	canSplice    bool
 	serving      atomic.Bool // for preventing duplicate Serve() calls
 
+	// loops tracks reader goroutines.
+	loops sync.WaitGroup
+
 	// Used to implement WaitMount on macos.
 	ready <-chan error
 
@@ -91,7 +94,7 @@ func (ms *Server) Unmount() error {
 		return err
 	}
 	// Wait for event loops to exit.
-	ms.fuseFD.loops.Wait()
+	ms.loops.Wait()
 	return nil
 }
 
@@ -247,7 +250,7 @@ func newServerFromDev(fs RawFileSystem, d *Dev, m *Mount, o *MountOptions) (*Ser
 
 	// This prepares for Serve being called somewhere, either
 	// synchronously or asynchronously.
-	ms.fuseFD.loops.Add(1)
+	ms.loops.Add(1)
 	return ms, nil
 }
 
@@ -373,7 +376,7 @@ func (ms *Server) Serve() {
 	}
 
 	ms.loop()
-	ms.fuseFD.loops.Wait()
+	ms.loops.Wait()
 
 	ms.fuseFD.close()
 
@@ -388,16 +391,12 @@ func (ms *Server) Serve() {
 // Wait waits for the serve loop to exit. This should only be called
 // after Serve has been called, or it will hang indefinitely.
 func (ms *Server) Wait() {
-	ms.fuseFD.loops.Wait()
+	ms.loops.Wait()
 }
 
 func (ms *Server) handleInit() Status {
-	// The first request should be INIT; read it synchronously,
-	// and don't spawn new readers.
-	orig := ms.singleReader
-	ms.singleReader = true
-	req, errNo := ms.fuseFD.readRequest()
-	ms.singleReader = orig
+	// The first request should be INIT; read it synchronously.
+	req, _, errNo := ms.fuseFD.readRequest()
 
 	if errNo != OK || req == nil {
 		return errNo
@@ -437,10 +436,10 @@ func (ms *Server) handleInit() Status {
 // BenchmarkGoFuseReaddir         	    4074	    361568 ns/op
 // BenchmarkGoFuseReaddir-2       	    3511	    319765 ns/op
 func (ms *Server) loop() {
-	defer ms.fuseFD.loops.Done()
+	defer ms.loops.Done()
 exit:
 	for {
-		req, errNo := ms.fuseFD.readRequest()
+		req, needReader, errNo := ms.fuseFD.readRequest()
 		switch errNo {
 		case OK:
 			if req == nil {
@@ -462,6 +461,10 @@ exit:
 			break exit
 		}
 
+		if !ms.singleReader && needReader {
+			ms.loops.Add(1)
+			go ms.loop()
+		}
 		if ms.singleReader && ms.fuseFD.canAcceptAnother() {
 			go ms.handleRequest(req)
 			continue
