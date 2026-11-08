@@ -49,9 +49,6 @@ type Server struct {
 
 	opts *MountOptions
 
-	// maxReaders is the maximum number of goroutines reading requests
-	maxReaders int
-
 	// Pool for request structs.
 	reqPool sync.Pool
 
@@ -59,7 +56,6 @@ type Server struct {
 	readPool sync.Pool
 
 	singleReader bool
-	canSplice    bool
 	serving      atomic.Bool // for preventing duplicate Serve() calls
 
 	// loops tracks reader goroutines.
@@ -226,7 +222,6 @@ func newServerFromDev(fs RawFileSystem, d *Dev, m *Mount, o *MountOptions) (*Ser
 		},
 		opts:         o,
 		mount:        m,
-		maxReaders:   maxReaders,
 		singleReader: useSingleReader,
 		ready:        d.ready,
 	}
@@ -234,7 +229,7 @@ func newServerFromDev(fs RawFileSystem, d *Dev, m *Mount, o *MountOptions) (*Ser
 		return &requestAlloc{}
 	}
 	var err error
-	ms.fuseFD, err = ms.newFuseFD(d.release())
+	ms.fuseFD, err = ms.newFuseFD(d.release(), maxReaders)
 	if err != nil {
 		return nil, err
 	}

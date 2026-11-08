@@ -118,13 +118,13 @@ func (r *fuseFD) write(req *requestAlloc) Status {
 			return r.writeWithSlice(&req.request, ws)
 		}
 
-		if r.server.canSplice && !r.server.opts.DisableSplice {
+		if r.canSplice {
 			err := r.trySplice(&req.request, req.readResult)
 			if err == nil {
 				return OK
 			}
 			if err != errRecoverSplice {
-				r.server.opts.Logger.Println("trySplice:", err)
+				r.logger.Println("trySplice:", err)
 			}
 		}
 

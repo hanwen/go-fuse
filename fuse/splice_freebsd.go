@@ -1,7 +1,7 @@
 package fuse
 
 func (s *Server) setSplice() {
-	s.canSplice = false
+	s.fuseFD.canSplice = false
 }
 
 func (ms *Server) trySplice(header []byte, req *request, fdData *readResultFd) error {

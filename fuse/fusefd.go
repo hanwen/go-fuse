@@ -15,14 +15,19 @@ import (
 
 // fuseFD owns the per-FUSE-fd state: the fd itself and the read-side
 // bookkeeping (reqReaders, inflightRequestBytes). The pools are shared
-// with the owning Server via pointers, and a back pointer to the Server
-// gives the per-fd methods access to shared configuration.
+// with the owning Server via pointers, and settings are copied from it.
 //
 // Today a Server has a single fuseFD; this struct exists so that adding
 // support for FUSE_DEV_IOC_CLONE'd fds is a matter of widening the field
 // to a slice.
 type fuseFD struct {
-	server *Server
+	maxReaders              int
+	maxInflightRequestBytes int
+	debug                   bool
+	logger                  *log.Logger
+
+	// canSplice is set by Server.setSplice, after INIT.
+	canSplice bool
 
 	// I/O with kernel and daemon. file owns the FUSE fd; conn is its
 	// RawConn. Running syscalls through conn holds a reference on the
@@ -57,10 +62,10 @@ type fuseFD struct {
 	readBufBytes  int
 }
 
-// newFuseFD returns a fuseFD bound to ms and ready to read from fd.
+// newFuseFD returns a fuseFD for ms, ready to read from fd.
 // Ownership of fd passes to the returned fuseFD's *os.File. All shared
 // state (pools, buffer pool, accounting constants) is wired up here.
-func (ms *Server) newFuseFD(fd int) (*fuseFD, error) {
+func (ms *Server) newFuseFD(fd int, maxReaders int) (*fuseFD, error) {
 	file := os.NewFile(uintptr(fd), "/dev/fuse")
 	conn, err := file.SyscallConn()
 	if err != nil {
@@ -69,14 +74,17 @@ func (ms *Server) newFuseFD(fd int) (*fuseFD, error) {
 	}
 	_, _, reqAllocBytes := requestAccountingSizes(0)
 	r := &fuseFD{
-		server:        ms,
-		file:          file,
-		conn:          conn,
-		reqPool:       &ms.reqPool,
-		readPool:      &ms.readPool,
-		buffers:       &ms.buffers,
-		reqAllocBytes: reqAllocBytes,
-		wakeFD:        -1,
+		maxReaders:              maxReaders,
+		maxInflightRequestBytes: ms.opts.MaxInflightRequestBytes,
+		debug:                   ms.opts.Debug,
+		logger:                  ms.opts.Logger,
+		file:                    file,
+		conn:                    conn,
+		reqPool:                 &ms.reqPool,
+		readPool:                &ms.readPool,
+		buffers:                 &ms.buffers,
+		reqAllocBytes:           reqAllocBytes,
+		wakeFD:                  -1,
 	}
 	// After os.NewFile, so the runtime poller does not pick up the
 	// fd: readers poll it themselves.
@@ -197,9 +205,8 @@ func (c *fdCall) writev(bufs ...[]byte) (int, error) {
 // reader is waiting for a request, and the request is one that the
 // kernel expects a reply for.
 func (r *fuseFD) readRequest() (req *requestAlloc, needReader bool, code Status) {
-	ms := r.server
 	r.reqMu.Lock()
-	if r.stopped || r.reqReaders > ms.maxReaders || !r.reserveRequestBytes() {
+	if r.stopped || r.reqReaders > r.maxReaders || !r.reserveRequestBytes() {
 		r.reqMu.Unlock()
 		return nil, false, OK
 	}
@@ -274,7 +281,7 @@ func (r *fuseFD) reserveRequestBytes() bool {
 
 func (r *fuseFD) canReserveRequestBytes() bool {
 	return r.inflightRequestBytes == 0 ||
-		r.requestBytes() <= r.server.opts.MaxInflightRequestBytes-r.inflightRequestBytes
+		r.requestBytes() <= r.maxInflightRequestBytes-r.inflightRequestBytes
 }
 
 // canAcceptAnother wraps canReserveRequestBytes with reqMu, for callers

@@ -22,8 +22,8 @@ func (r *fuseFD) registerBackingFd(m *BackingMap) (int32, syscall.Errno) {
 	}); cerr != nil {
 		errno = syscall.EBADF
 	}
-	if r.server.opts.Debug {
-		r.server.opts.Logger.Printf("ioctl: BACKING_OPEN %v: id %d (%v)", m.string(), id, errno)
+	if r.debug {
+		r.logger.Printf("ioctl: BACKING_OPEN %v: id %d (%v)", m.string(), id, errno)
 	}
 	return int32(id), errno
 }
@@ -36,8 +36,8 @@ func (r *fuseFD) unregisterBackingFd(id int32) syscall.Errno {
 		errno = syscall.EBADF
 	}
 
-	if r.server.opts.Debug {
-		r.server.opts.Logger.Printf("ioctl: BACKING_CLOSE id %d: %v", id, errno)
+	if r.debug {
+		r.logger.Printf("ioctl: BACKING_CLOSE id %d: %v", id, errno)
 	}
 	return errno
 }

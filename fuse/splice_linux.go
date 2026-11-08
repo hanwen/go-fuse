@@ -14,7 +14,7 @@ import (
 )
 
 func (s *Server) setSplice() {
-	s.canSplice = splice.Resizable() && !s.opts.DisableSplice
+	s.fuseFD.canSplice = splice.Resizable() && !s.opts.DisableSplice
 }
 
 // trySplice: Zero-copy read from fdData.Fd into /dev/fuse
@@ -89,7 +89,7 @@ func (r *fuseFD) trySplice(req *request, readResult ReadResult) error {
 			return fmt.Errorf("fallback drain: %w", err)
 		}
 
-		if r.server.opts.Debug {
+		if r.debug {
 			log.Printf("tx %d:     OK fixup fd %db data", req.inHeader().Unique, payloadLen)
 		}
 		// New length.
