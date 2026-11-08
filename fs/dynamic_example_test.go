@@ -22,13 +22,17 @@ import (
 //	$ ls -F  /tmp/x/6
 //	2  3  4/  5
 //
-// the file system nodes are deduplicated using inode numbers. The
-// number 2 appears in many directories, but it is actually the represented
-// by the same numberNode{} object, with inode number 2.
+// Prime numbers are deduplicated using inode numbers. The number 2
+// appears in many directories, but it is actually represented by the
+// same numberNode{} object, with inode number 2, ie. it is hard-linked:
 //
 //	$ ls -i1  /tmp/x/2  /tmp/x/8/6/4/2
 //	2 /tmp/x/2
 //	2 /tmp/x/8/6/4/2
+//
+// Directories can have only one parent, so composite numbers are not
+// deduplicated: 4 in /tmp/x/6 and 4 in /tmp/x/8 are different
+// directories, with different inode numbers.
 type numberNode struct {
 	// Must embed an Inode for the struct to work as a node.
 	fs.Inode
@@ -45,6 +49,15 @@ func isPrime(n int) bool {
 		}
 	}
 	return true
+}
+
+// numberToIno returns the inode number for n: n itself for primes, so
+// they are hard-linked, and 0 (automatically assigned) for directories.
+func numberToIno(n int) uint64 {
+	if isPrime(n) {
+		return uint64(n)
+	}
+	return 0
 }
 
 func numberToMode(n int) uint32 {
@@ -65,7 +78,7 @@ func (n *numberNode) Readdir(ctx context.Context) (fs.DirStream, syscall.Errno) 
 	for i := 2; i < n.num; i++ {
 		d := fuse.DirEntry{
 			Name: strconv.Itoa(i),
-			Ino:  uint64(i),
+			Ino:  numberToIno(i),
 			Mode: numberToMode(i),
 		}
 		r = append(r, d)
@@ -89,10 +102,11 @@ func (n *numberNode) Lookup(ctx context.Context, name string, out *fuse.EntryOut
 
 	stable := fs.StableAttr{
 		Mode: numberToMode(i),
-		// The child inode is identified by its Inode number.
-		// If multiple concurrent lookups try to find the same
-		// inode, they are deduplicated on this key.
-		Ino: uint64(i),
+		// A prime is identified by its Inode number. If
+		// lookups in different directories find the same
+		// prime, they are deduplicated on this key. Composites
+		// get Ino 0, so each lookup creates a new directory.
+		Ino: numberToIno(i),
 	}
 	operations := &numberNode{num: i}
 
