@@ -141,16 +141,17 @@ func TestIdleReadersStop(t *testing.T) {
 
 	// The readers that served a request stay, waiting in epoll_wait.
 	r := srv.fuseFD
+	want := min(n, r.maxReaders)
 	deadline := time.Now().Add(5 * time.Second)
 	for {
 		r.reqMu.Lock()
 		readers := r.reqReaders
 		r.reqMu.Unlock()
-		if readers >= n {
+		if readers >= want {
 			break
 		}
 		if time.Now().After(deadline) {
-			t.Fatalf("got %d readers, want >= %d", readers, n)
+			t.Fatalf("got %d readers, want >= %d", readers, want)
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
