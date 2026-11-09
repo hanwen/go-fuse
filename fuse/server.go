@@ -5,6 +5,7 @@
 package fuse
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -58,8 +59,13 @@ type Server struct {
 	singleReader bool
 	serving      atomic.Bool // for preventing duplicate Serve() calls
 
-	// loops tracks goroutines reading or serving requests.
-	loops sync.WaitGroup
+	// stateMu protects loops and loopsZero.
+	stateMu sync.Mutex
+
+	// loops counts goroutines reading or serving requests. loopsZero
+	// is closed when it drops to zero.
+	loops     int
+	loopsZero chan struct{}
 
 	// done is closed when Serve has finished tearing down.
 	done chan struct{}
@@ -248,7 +254,7 @@ func newServerFromDev(fs RawFileSystem, d *Dev, m *Mount, o *MountOptions) (*Ser
 
 	// This prepares for Serve being called somewhere, either
 	// synchronously or asynchronously.
-	ms.loops.Add(1)
+	ms.loops = 1
 	return ms, nil
 }
 
@@ -374,7 +380,7 @@ func (ms *Server) Serve() {
 	}
 
 	ms.loop()
-	ms.loops.Wait()
+	ms.waitLoopsZero(context.Background())
 
 	ms.fuseFD.close()
 
@@ -391,6 +397,54 @@ func (ms *Server) Serve() {
 // after Serve has been called, or it will hang indefinitely.
 func (ms *Server) Wait() {
 	<-ms.done
+}
+
+// addLoop counts a goroutine that reads or serves requests. The
+// caller must be counted itself, so the count is not zero.
+func (ms *Server) addLoop() {
+	ms.stateMu.Lock()
+	ms.loops++
+	ms.stateMu.Unlock()
+}
+
+// loopDone is called when a goroutine counted by addLoop exits.
+func (ms *Server) loopDone() {
+	ms.stateMu.Lock()
+	ms.loops--
+	ms.checkLoopsZeroLocked()
+	ms.stateMu.Unlock()
+}
+
+// checkLoopsZeroLocked closes loopsZero if no goroutine reads or serves
+// requests.
+func (ms *Server) checkLoopsZeroLocked() {
+	if ms.loops > 0 {
+		return
+	}
+	if ms.loopsZero != nil {
+		close(ms.loopsZero)
+		ms.loopsZero = nil
+	}
+}
+
+// waitLoopsZero waits until no goroutine reads or serves requests.
+func (ms *Server) waitLoopsZero(ctx context.Context) error {
+	ms.stateMu.Lock()
+	if ms.loops == 0 {
+		ms.stateMu.Unlock()
+		return nil
+	}
+	if ms.loopsZero == nil {
+		ms.loopsZero = make(chan struct{})
+	}
+	ch := ms.loopsZero
+	ms.stateMu.Unlock()
+	select {
+	case <-ch:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func (ms *Server) handleInit() Status {
@@ -435,7 +489,7 @@ func (ms *Server) handleInit() Status {
 // BenchmarkGoFuseReaddir         	    4074	    361568 ns/op
 // BenchmarkGoFuseReaddir-2       	    3511	    319765 ns/op
 func (ms *Server) loop() {
-	defer ms.loops.Done()
+	defer ms.loopDone()
 exit:
 	for {
 		req, needReader, errNo := ms.fuseFD.readRequest()
@@ -461,13 +515,13 @@ exit:
 		}
 
 		if !ms.singleReader && needReader {
-			ms.loops.Add(1)
+			ms.addLoop()
 			go ms.loop()
 		}
 		if ms.singleReader && ms.fuseFD.canAcceptAnother() {
-			ms.loops.Add(1)
+			ms.addLoop()
 			go func() {
-				defer ms.loops.Done()
+				defer ms.loopDone()
 				ms.handleRequest(req)
 			}()
 			continue
