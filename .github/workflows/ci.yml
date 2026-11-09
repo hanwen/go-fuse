@@ -37,6 +37,19 @@ jobs:
     # CI platform specific setup steps happen here
     - run: sudo apt-get install -qq fuse3 libssl-dev libfuse-dev 
     - run: echo user_allow_other | sudo tee -a /etc/fuse.conf
+    # Ubuntu 25.10+ confines fusermount3 with an AppArmor profile that
+    # only allows a subset of mount options and mountpoints, so
+    # fusermount3 fails with "mount failed: Permission denied".
+    - name: Unconfine fusermount3
+      run: |
+        if [ -e /etc/apparmor.d/fusermount3 ]; then
+          sudo apparmor_parser -R /etc/apparmor.d/fusermount3
+          sudo ln -sf /etc/apparmor.d/fusermount3 /etc/apparmor.d/disable/
+        fi
 
     # Actual test steps are in all.bash
     - run: GOMAXPROCS="${{ matrix.GOMAXPROCS }}" ./all.bash
+
+    - name: Show AppArmor denials
+      if: failure()
+      run: sudo dmesg | grep -i 'apparmor="DENIED"' | tail -50 || true
