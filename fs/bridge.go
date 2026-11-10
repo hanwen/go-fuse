@@ -575,11 +575,36 @@ func (b *rawBridge) Mknod(ctx context.Context, input *fuse.MknodIn, name string,
 
 	mops, ok := parent.ops.(NodeMknoder)
 	if !ok {
+		if input.Mode&syscall.S_IFMT == syscall.S_IFREG {
+			if cops, ok := parent.ops.(NodeCreater); ok {
+				return b.mknodByCreate(ctx, parent, cops, input, name, out)
+			}
+			// Like Create.
+			return fuse.EROFS
+		}
 		return fuse.ENOTSUP
 	}
 	child, errno := mops.Mknod(ctx, name, input.Mode, input.Rdev, out)
 	if errno != 0 {
 		return errnoToStatus(errno)
+	}
+
+	child, _, _ = b.addNewChild(parent, name, child, nil, syscall.O_EXCL, out)
+	child.setEntryOut(out)
+	b.setEntryOutTimeout(out)
+	return fuse.OK
+}
+
+// mknodByCreate makes a regular file with NodeCreater. Kernels without
+// FUSE_CREATE, such as OpenBSD's, create files with FUSE_MKNOD and
+// then open them.
+func (b *rawBridge) mknodByCreate(ctx context.Context, parent *Inode, cops NodeCreater, input *fuse.MknodIn, name string, out *fuse.EntryOut) fuse.Status {
+	child, f, _, errno := cops.Create(ctx, name, syscall.O_WRONLY|syscall.O_CREAT|syscall.O_EXCL, input.Mode, out)
+	if errno != 0 {
+		return errnoToStatus(errno)
+	}
+	if r, ok := f.(FileReleaser); ok {
+		r.Release(ctx)
 	}
 
 	child, _, _ = b.addNewChild(parent, name, child, nil, syscall.O_EXCL, out)

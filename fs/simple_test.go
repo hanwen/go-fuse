@@ -926,6 +926,28 @@ func TestHandleLessCreate(t *testing.T) {
 	posixtest.FileBasic(t, dir)
 }
 
+func TestMknodByCreate(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("mknod(2) makes regular files only on Linux")
+	}
+	dir, _ := testMount(t, &handleLessCreateNode{}, nil)
+
+	fn := filepath.Join(dir, "file")
+	if err := syscall.Mknod(fn, syscall.S_IFREG|0644, 0); err != nil {
+		t.Fatalf("Mknod: %v", err)
+	}
+	var st syscall.Stat_t
+	if err := syscall.Lstat(fn, &st); err != nil {
+		t.Fatalf("Lstat: %v", err)
+	}
+	if st.Mode&syscall.S_IFMT != syscall.S_IFREG {
+		t.Errorf("got mode %o, want regular file", st.Mode)
+	}
+	if err := os.WriteFile(fn, []byte("hello"), 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+}
+
 // A dangling symlink should not cause lchown to fail with ENOENT.
 // This is used in apt-get install.
 func TestLChown(t *testing.T) {
