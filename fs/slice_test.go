@@ -38,7 +38,12 @@ func (f *vectorFile) Getattr(_ context.Context, _ FileHandle, out *fuse.AttrOut)
 	return OK
 }
 
-func (f *vectorFile) Read(context.Context, FileHandle, []byte, int64) (fuse.ReadResult, syscall.Errno) {
+func (f *vectorFile) Read(_ context.Context, _ FileHandle, _ []byte, off int64) (fuse.ReadResult, syscall.Errno) {
+	if off > 0 {
+		// Kernels without a page cache, like OpenBSD's, read until
+		// they get no data.
+		return fuse.ReadResultData(nil), OK
+	}
 	return fuse.ReadResultVector(f.vecs), OK
 }
 
