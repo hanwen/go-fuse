@@ -1,0 +1,11 @@
+# Added by go-fuse openbsd/test.bash: run tests from a CD if one is
+# attached.
+mkdir -p /mnt/gofuse
+if mount -t cd9660 -o ro /dev/cd0a /mnt/gofuse 2>/dev/null; then
+	if [ -f /mnt/gofuse/run.sh ]; then
+		cp /mnt/gofuse/run.sh /tmp/gofuse-run.sh
+		sh /tmp/gofuse-run.sh
+	else
+		umount /mnt/gofuse
+	fi
+fi
