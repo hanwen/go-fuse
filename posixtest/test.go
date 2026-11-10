@@ -84,8 +84,11 @@ func SetattrSymlink(t *testing.T, mnt string) {
 }
 
 func DirectIO(t *testing.T, mnt string) {
+	if o_DIRECT == 0 {
+		t.Skip("platform has no O_DIRECT")
+	}
 	fn := mnt + "/file.txt"
-	fd, err := syscall.Open(fn, syscall.O_TRUNC|syscall.O_CREAT|syscall.O_DIRECT|syscall.O_WRONLY, 0644)
+	fd, err := syscall.Open(fn, syscall.O_TRUNC|syscall.O_CREAT|o_DIRECT|syscall.O_WRONLY, 0644)
 	if err == syscall.EINVAL {
 		t.Skip("FS does not support O_DIRECT")
 	}
@@ -107,7 +110,7 @@ func DirectIO(t *testing.T, mnt string) {
 	if err != nil {
 		t.Fatalf("Close: %v", err)
 	}
-	fd, err = syscall.Open(fn, syscall.O_DIRECT|syscall.O_RDONLY, 0644)
+	fd, err = syscall.Open(fn, o_DIRECT|syscall.O_RDONLY, 0644)
 	if err != nil {
 		t.Fatalf("Open 2: %v", err)
 	}
@@ -749,7 +752,9 @@ func Fallocate(t *testing.T, mnt string) {
 	}
 	defer rwFile.Close()
 	err = fallocate.Fallocate(int(rwFile.Fd()), 0, 1024, 4096)
-	if err != nil {
+	if err == syscall.EOPNOTSUPP {
+		t.Skipf("Fallocate: %v", err)
+	} else if err != nil {
 		t.Fatalf("Fallocate failed: %v", err)
 	}
 	fi, err := os.Lstat(mnt + "/file")
@@ -785,7 +790,9 @@ func FcntlFlockSetLk(t *testing.T, mnt string) {
 		}
 		defer f2.Close()
 		lk := syscall.Flock_t{}
-		if err := sysFcntlFlockGetOFDLock(f2.Fd(), &lk); err != nil {
+		if err := sysFcntlFlockGetOFDLock(f2.Fd(), &lk); errors.Is(err, errors.ErrUnsupported) {
+			t.Skipf("FcntlFlock: %v", err)
+		} else if err != nil {
 			t.Errorf("FcntlFlock failed: %v", err)
 		}
 		if lk.Type != syscall.F_WRLCK {
@@ -795,6 +802,9 @@ func FcntlFlockSetLk(t *testing.T, mnt string) {
 }
 
 func FcntlFlockLocksFile(t *testing.T, mnt string) {
+	if kernelLocks {
+		t.Skip("locks of one process do not conflict")
+	}
 	filename := mnt + "/test"
 	f1, err := os.Create(filename)
 	if err != nil {
@@ -826,6 +836,9 @@ func FcntlFlockLocksFile(t *testing.T, mnt string) {
 }
 
 func LseekHoleSeeksToEOF(t *testing.T, mnt string) {
+	if seekHole < 0 {
+		t.Skip("platform has no SEEK_HOLE")
+	}
 	fn := filepath.Join(mnt, "file.bin")
 	content := bytes.Repeat([]byte("abcxyz\n"), 1024)
 	if err := os.WriteFile(fn, content, 0644); err != nil {
@@ -838,7 +851,7 @@ func LseekHoleSeeksToEOF(t *testing.T, mnt string) {
 	}
 	defer syscall.Close(fd)
 
-	off, err := unix.Seek(fd, int64(len(content)/2), unix.SEEK_HOLE)
+	off, err := unix.Seek(fd, int64(len(content)/2), seekHole)
 	if err != nil {
 		t.Fatalf("Seek: %v", err)
 	} else if off != int64(len(content)) {
@@ -847,6 +860,9 @@ func LseekHoleSeeksToEOF(t *testing.T, mnt string) {
 }
 
 func LseekEnxioCheck(t *testing.T, mnt string) {
+	if seekHole < 0 {
+		t.Skip("platform has no SEEK_HOLE")
+	}
 	fn := filepath.Join(mnt, "file.bin")
 	content := bytes.Repeat([]byte("abcxyz\n"), 1024)
 	if err := os.WriteFile(fn, content, 0644); err != nil {
@@ -867,17 +883,17 @@ func LseekEnxioCheck(t *testing.T, mnt string) {
 		{
 			name:   "Lseek SEEK_DATA where offset is at EOF returns ENXIO",
 			offset: int64(len(content)),
-			whence: unix.SEEK_DATA,
+			whence: seekData,
 		},
 		{
 			name:   "Lseek SEEK_DATA where offset greater than EOF returns ENXIO",
 			offset: int64(len(content)) + 1,
-			whence: unix.SEEK_DATA,
+			whence: seekData,
 		},
 		{
 			name:   "Lseek SEEK_HOLE where offset is greater than EOF returns ENXIO",
 			offset: int64(len(content)) + 1,
-			whence: unix.SEEK_HOLE,
+			whence: seekHole,
 		},
 	}
 
@@ -899,13 +915,13 @@ func XAttrLarge(t *testing.T, mntDir string) {
 	}
 
 	value := largeContent()[:8<<10+123]
-	if err := unix.Setxattr(fn, attr, value, 0); err == unix.ENOTSUP || err == unix.ENOSPC || err == unix.E2BIG {
+	if err := setxattr(fn, attr, value, 0); err == unix.ENOTSUP || err == unix.ENOSPC || err == unix.E2BIG {
 		t.Skipf("Setxattr: %v; backing filesystem does not support large xattrs", err)
 	} else if err != nil {
 		t.Fatalf("Setxattr: %v", err)
 	}
 
-	sz, err := unix.Getxattr(fn, attr, nil)
+	sz, err := getxattr(fn, attr, nil)
 	if err != nil {
 		t.Fatalf("Getxattr(nil): %v", err)
 	} else if sz != len(value) {
@@ -913,7 +929,7 @@ func XAttrLarge(t *testing.T, mntDir string) {
 	}
 
 	buf := make([]byte, sz)
-	if n, err := unix.Getxattr(fn, attr, buf); err != nil {
+	if n, err := getxattr(fn, attr, buf); err != nil {
 		t.Fatalf("Getxattr: %v", err)
 	} else if !bytes.Equal(buf[:n], value) {
 		t.Errorf("Getxattr: got %d bytes, data mismatch", n)
@@ -932,7 +948,7 @@ func XAttr(t *testing.T, mntDir string) {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
-	if n, err := unix.Getxattr(fn, attr, buf); err == nil {
+	if n, err := getxattr(fn, attr, buf); err == nil {
 		t.Errorf("got result %q, want empty", buf[:n])
 	} else if err == unix.ENOTSUP {
 		t.Skipf("filesystem for %s does not support xattrs. Rerun this test with a $TMPDIR override", fn)
@@ -941,16 +957,16 @@ func XAttr(t *testing.T, mntDir string) {
 	}
 
 	value := []byte("value")
-	if err := unix.Setxattr(fn, attr, value, 0); err != nil {
+	if err := setxattr(fn, attr, value, 0); err != nil {
 		t.Fatalf("Setxattr: %v", err)
 	}
 
-	sz, err := unix.Listxattr(fn, nil)
+	sz, err := listxattr(fn, nil)
 	if err != nil {
 		t.Fatalf("Listxattr: %v", err)
 	}
 	buf = make([]byte, sz)
-	if _, err := unix.Listxattr(fn, buf); err != nil {
+	if _, err := listxattr(fn, buf); err != nil {
 		t.Fatalf("Listxattr: %v", err)
 	} else {
 		attributes := xattr.ParseAttrNames(buf[:sz])
@@ -967,7 +983,7 @@ func XAttr(t *testing.T, mntDir string) {
 		}
 	}
 
-	sz, err = unix.Getxattr(fn, attr, nil)
+	sz, err = getxattr(fn, attr, nil)
 	if err != nil {
 		t.Fatalf("Getxattr(nil): %v", err)
 	} else if sz != len(value) {
@@ -975,18 +991,18 @@ func XAttr(t *testing.T, mntDir string) {
 	}
 
 	buf = make([]byte, sz)
-	sz, err = unix.Getxattr(fn, attr, buf)
+	sz, err = getxattr(fn, attr, buf)
 	if err != nil {
 		t.Fatalf("Getxattr: %v", err)
 	}
 	if !bytes.Equal(buf[:sz], value) {
 		t.Fatalf("Getxattr got %q want %q", buf[:sz], value)
 	}
-	if err := unix.Removexattr(fn, attr); err != nil {
+	if err := removexattr(fn, attr); err != nil {
 		t.Fatalf("Removexattr: %v", err)
 	}
 
-	if _, err := unix.Getxattr(fn, attr, buf); err != xattr.ENOATTR {
+	if _, err := getxattr(fn, attr, buf); err != xattr.ENOATTR {
 		t.Fatalf("got %v want ENOATTR", err)
 	}
 }

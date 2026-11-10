@@ -20,8 +20,8 @@ use language or library features newer than that.
 * `zipfs/`, `newunionfs/`, `example/` — example filesystems.
 
 Platform-specific code uses `_linux.go`, `_darwin.go`, `_freebsd.go`,
-`_unix.go` suffixes; `_bsd.go` files are shared by FreeBSD and
-OpenBSD. Keep the shared file free of OS-specific syscalls.
+`_openbsd.go`, `_unix.go` suffixes; `_bsd.go` files are shared by
+FreeBSD and OpenBSD. Keep the shared file free of OS-specific syscalls.
 
 ## Building and testing
 
@@ -29,10 +29,11 @@ OpenBSD. Keep the shared file free of OS-specific syscalls.
 go build ./...
 GOOS=darwin go build ./fs/... ./example/loopback/...
 GOOS=freebsd go build ./fs/... ./example/loopback/...
+GOOS=openbsd go build ./fs/... ./example/loopback/...
 go test -timeout 5m -p 1 -count 1 ./...
 ```
 
-Both cross-builds must keep passing. `all.bash` is what CI runs. Tests
+The cross-builds must keep passing. `all.bash` is what CI runs. Tests
 mount real FUSE filesystems, so they need `/dev/fuse` and `fusermount3`.
 Some tests need root (see the `sudo` lines in `all.bash`) and skip
 otherwise. CI also runs with `GOMAXPROCS=1`; some races only show up

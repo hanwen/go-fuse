@@ -1,4 +1,4 @@
-//go:build !linux
+//go:build darwin || freebsd
 
 // Copyright 2024 the Go-FUSE Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style

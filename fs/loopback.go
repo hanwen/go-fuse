@@ -165,7 +165,7 @@ var _ = (NodeMknoder)((*LoopbackNode)(nil))
 
 func (n *LoopbackNode) Mknod(ctx context.Context, name string, mode, rdev uint32, out *fuse.EntryOut) (*Inode, syscall.Errno) {
 	p := filepath.Join(n.path(), name)
-	err := syscall.Mknod(p, mode, intDev(rdev))
+	err := mknod(p, mode, rdev)
 	if err != nil {
 		return nil, ToErrno(err)
 	}
@@ -517,30 +517,6 @@ func (n *LoopbackNode) Setattr(ctx context.Context, f FileHandle, in *fuse.SetAt
 		out.FromStat(&st)
 	}
 	return OK
-}
-
-var _ = (NodeGetxattrer)((*LoopbackNode)(nil))
-
-func (n *LoopbackNode) Getxattr(ctx context.Context, attr string, dest []byte) (uint32, syscall.Errno) {
-	sz, err := unix.Lgetxattr(n.path(), attr, dest)
-	return uint32(sz), ToErrno(err)
-}
-
-var _ = (NodeSetxattrer)((*LoopbackNode)(nil))
-
-func (n *LoopbackNode) Setxattr(ctx context.Context, attr string, data []byte, flags uint32) syscall.Errno {
-	if aclKillSgid(ctx) {
-		return setxattrKillSgid(n.RootData.Path, n.relativePath(), attr, data, int(flags))
-	}
-	err := unix.Lsetxattr(n.path(), attr, data, int(flags))
-	return ToErrno(err)
-}
-
-var _ = (NodeRemovexattrer)((*LoopbackNode)(nil))
-
-func (n *LoopbackNode) Removexattr(ctx context.Context, attr string) syscall.Errno {
-	err := unix.Lremovexattr(n.path(), attr)
-	return ToErrno(err)
 }
 
 var _ = (NodeCopyFileRanger)((*LoopbackNode)(nil))
