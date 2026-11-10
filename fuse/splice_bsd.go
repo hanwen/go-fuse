@@ -1,3 +1,5 @@
+//go:build freebsd || openbsd
+
 package fuse
 
 func (s *Server) setSplice() {

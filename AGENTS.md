@@ -20,7 +20,8 @@ use language or library features newer than that.
 * `zipfs/`, `newunionfs/`, `example/` — example filesystems.
 
 Platform-specific code uses `_linux.go`, `_darwin.go`, `_freebsd.go`,
-`_unix.go` suffixes. Keep the shared file free of OS-specific syscalls.
+`_unix.go` suffixes; `_bsd.go` files are shared by FreeBSD and
+OpenBSD. Keep the shared file free of OS-specific syscalls.
 
 ## Building and testing
 

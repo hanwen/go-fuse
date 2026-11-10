@@ -1,3 +1,5 @@
+//go:build freebsd || openbsd
+
 package fuse
 
 const outputDataSize = 144

@@ -12,14 +12,6 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-const unix_UTIME_OMIT = unix.UTIME_OMIT
-
-func aclKillSgid(ctx context.Context) bool { return false }
-
-func setxattrKillSgid(root, rel, attr string, data []byte, flags int) syscall.Errno {
-	return syscall.ENOTSUP
-}
-
 // FreeBSD has added copy_file_range(2) since FreeBSD 12. However,
 // golang.org/x/sys/unix hasn't add corresponding syscall constant or
 // wrap function. Here we define the syscall constant until sys/unix
@@ -41,22 +33,8 @@ func intDev(dev uint32) uint64 {
 	return uint64(dev)
 }
 
-func lstat(path string, st *syscall.Stat_t, btime *syscall.Timespec) error {
-	err := syscall.Lstat(path, st)
-	*btime = st.Birthtimespec
-	return err
-}
-
-func stat(path string, st *syscall.Stat_t, btime *syscall.Timespec) error {
-	err := syscall.Stat(path, st)
-	*btime = st.Birthtimespec
-	return err
-}
-
-func fstatFd(fd int, st *syscall.Stat_t, btime *syscall.Timespec) error {
-	err := syscall.Fstat(fd, st)
-	*btime = st.Birthtimespec
-	return err
+func birthtime(st *syscall.Stat_t) syscall.Timespec {
+	return st.Birthtimespec
 }
 
 // Since FUSE on FreeBSD expect Linux flavor data format of

@@ -1,9 +1,11 @@
+//go:build freebsd || openbsd
+
 package renameat
 
 import "golang.org/x/sys/unix"
 
 const (
-	// Since FreeBSD does not currently privode renameat syscall
+	// Since the BSDs do not currently privode renameat syscall
 	// beyond POSIX standard like Linux and Darwin do, we borrow
 	// the defination from Linux but reject these non-POSIX flags.
 	RENAME_EXCHANGE = (1 << 1)
