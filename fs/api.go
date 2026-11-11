@@ -822,7 +822,7 @@ type Options struct {
 
 	// NegativeTimeout, if non-nil, defines the overall entry timeout
 	// for failed lookups (fuse.ENOENT). See [fuse.EntryOut] for
-	// more information.
+	// more information. It must not be positive on OpenBSD.
 	NegativeTimeout *time.Duration
 
 	// FirstAutomaticIno is start of the automatic inode numbers that are handed

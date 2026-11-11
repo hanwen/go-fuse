@@ -408,7 +408,7 @@ func (b *rawBridge) Lookup(ctx context.Context, header *fuse.InHeader, name stri
 	child, errno := b.lookup(ctx, parent, name, out, &fuse.AttrOut{})
 
 	if errno != 0 {
-		if errno == syscall.ENOENT && b.options.NegativeTimeout != nil && out.EntryTimeout() == 0 {
+		if errno == syscall.ENOENT && b.options.NegativeTimeout != nil && *b.options.NegativeTimeout > 0 && out.EntryTimeout() == 0 {
 			out.SetEntryTimeout(*b.options.NegativeTimeout)
 			errno = 0
 		}
