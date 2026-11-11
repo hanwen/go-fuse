@@ -4,8 +4,7 @@ require (
 	github.com/ebitengine/purego v0.10.0
 	github.com/kylelemons/godebug v1.1.0
 	github.com/moby/sys/mountinfo v0.7.2
-	golang.org/x/sync v0.10.0
-	golang.org/x/sys v0.28.0
+	golang.org/x/sys v0.45.0
 )
 
 require (
@@ -13,4 +12,4 @@ require (
 	github.com/willscott/go-nfs-client v0.0.0-20240104095149-b44639837b00
 )
 
-go 1.21
+go 1.25.0
