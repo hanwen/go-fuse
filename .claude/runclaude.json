@@ -1,0 +1,3 @@
+{
+    "expose": [ "/dev/kvm", "/dev/fuse" ]
+}
