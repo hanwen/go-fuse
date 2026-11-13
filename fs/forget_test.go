@@ -6,6 +6,7 @@ package fs
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -225,5 +226,104 @@ func TestOnForget(t *testing.T) {
 	time.Sleep(time.Millisecond)
 	if got := atomic.LoadUint32(&root.onForgetCount); got != 3 {
 		t.Errorf("got count %d, want 3", got)
+	}
+}
+
+// exclusiveForgetRoot simulates a backing store that reuses inode
+// numbers: once "a" has been deleted behind the kernel's back, a newly
+// created file gets a's inode number.
+type exclusiveForgetRoot struct {
+	Inode
+
+	mu        sync.Mutex
+	aExists   bool
+	forgotten chan struct{}
+}
+
+type exclusiveForgetFile struct {
+	Inode
+
+	forgotten chan struct{}
+}
+
+func (n *exclusiveForgetFile) OnForget() {
+	if n.forgotten != nil {
+		close(n.forgotten)
+	}
+}
+
+const exclusiveForgetIno = 42
+
+func (n *exclusiveForgetRoot) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	if name != "a" || !n.aExists {
+		return nil, syscall.ENOENT
+	}
+	ch := n.NewInode(ctx, &exclusiveForgetFile{forgotten: n.forgotten},
+		StableAttr{Mode: fuse.S_IFREG, Ino: exclusiveForgetIno})
+	return ch, 0
+}
+
+func (n *exclusiveForgetRoot) Create(ctx context.Context, name string, flags uint32, mode uint32, out *fuse.EntryOut) (*Inode, FileHandle, uint32, syscall.Errno) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	if n.aExists {
+		return nil, nil, 0, syscall.ENOSPC
+	}
+	ch := n.NewInode(ctx, &exclusiveForgetFile{},
+		StableAttr{Mode: fuse.S_IFREG, Ino: exclusiveForgetIno})
+	return ch, nil, 0, 0
+}
+
+// TestForgetAfterExclusiveRegistration checks that the nodeid of a node
+// whose StableAttr was taken over by an exclusive (O_EXCL) registration
+// is released when the kernel forgets it.
+func TestForgetAfterExclusiveRegistration(t *testing.T) {
+	root := &exclusiveForgetRoot{aExists: true, forgotten: make(chan struct{})}
+	// Without ExternalNodeID, so the O_EXCL node gets a fresh
+	// nodeid. Zero timeouts make the kernel revalidate "a".
+	mnt, _ := testMount(t, root, &Options{})
+
+	a := filepath.Join(mnt, "a")
+	if _, err := os.Lstat(a); err != nil {
+		t.Fatal(err)
+	}
+	n1 := root.GetChild("a")
+	if n1 == nil {
+		t.Fatal("a not in tree")
+	}
+
+	// "a" is deleted in the backing store, not through the mount.
+	root.mu.Lock()
+	root.aExists = false
+	root.mu.Unlock()
+
+	f, err := os.OpenFile(filepath.Join(mnt, "b"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+
+	if n2 := root.GetChild("b"); n2 == nil || n2 == n1 || n2.nodeId == n1.nodeId {
+		t.Fatalf("got b=%v, want a different node than a=%v", n2, n1)
+	}
+
+	// The failed revalidation makes the kernel drop a's nodeid.
+	if _, err := os.Lstat(a); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("Lstat(a): got %v, want ENOENT", err)
+	}
+	select {
+	case <-root.forgotten:
+	case <-time.After(5 * time.Second):
+		t.Fatal("kernel did not forget a")
+	}
+
+	bridge := root.EmbeddedInode().bridge
+	bridge.ids.mu.Lock()
+	_, ok := bridge.ids.nodes[n1.nodeId]
+	bridge.ids.mu.Unlock()
+	if ok {
+		t.Errorf("nodeid %d still registered after FORGET", n1.nodeId)
 	}
 }

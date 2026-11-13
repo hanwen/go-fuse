@@ -237,7 +237,7 @@ func (t *mapIdentityTable) forget(n *Inode) {
 	if stillCurrent {
 		delete(t.stableAttrs, key)
 	}
-	if e, ok := t.nodes[n.nodeId]; ok && e.inode.Load() == n && stillCurrent {
+	if e, ok := t.nodes[n.nodeId]; ok && e.inode.Load() == n {
 		delete(t.nodes, n.nodeId)
 	}
 }
