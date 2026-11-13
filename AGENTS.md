@@ -50,6 +50,21 @@ there. `virtiofs` tests need KVM and QEMU or cloud-hypervisor (pick with
 Almost all tests should be mounting an actual file system against
 /dev/fuse, and interact through the mountpoint.
 
+If `fusermount3` can't mount (e.g. in a sandbox where it isn't
+setuid-root), run the tests in a user+mount namespace and hide the
+helper, so go-fuse falls back to calling `mount(2)` directly:
+
+```
+unshare -rm sh -c 'mount --bind /dev/null /usr/bin/fusermount3 &&
+  go test -count 1 -run TestXxx ./fs'
+```
+
+Inside the namespace the euid is 0, so tests that check for root run
+instead of skipping. Expect failures from tests that need real
+privileges or other uids (eg. `TestForget`, `TestDefaultOwner`,
+`TestPassthrough`, `TestStatx`, `TestReconnectByFileHandle`); compare
+against a run without your change.
+
 Use `-v` to get FUSE protocol debug logging (`testutil.VerboseTest`).
 
 Run `gofmt` and `go vet` on changed packages.
