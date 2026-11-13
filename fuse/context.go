@@ -86,8 +86,12 @@ func (c *Call) KillSuidgid() (kill bool, ok bool) {
 	return kill, ok
 }
 
-// SuppGroups returns the supplementary group sent with
-// CAP_CREATE_SUPP_GROUP.
+// SuppGroups returns the FUSE_EXT_GROUPS extension, negotiated with
+// CAP_CREATE_SUPP_GROUP. The kernel only sends it for requests that
+// create entries, and then only the parent directory's gid, if the
+// caller is a member of that group but it is not the caller's fsgid.
+// An empty result says nothing about the caller's group memberships.
+// ok is false if the request has finished.
 func (c *Call) SuppGroups() (groups []uint32, ok bool) {
 	ok = c.withRequest(func(r *request) {
 		if r.ext != nil {
