@@ -17,14 +17,16 @@ use language or library features newer than that.
   vhost-user.
 * `splice/`, `internal/*` — platform helpers.
 * `fskit/` — serving FUSE through macOS FSKit.
+* `winfsp/` — serving FUSE on Windows through WinFsp. The callback
+  translation is tested on Linux; the mount tests run on Windows.
 * `internal/fuseclient` — an in-process FUSE "kernel" that sends
-  requests to a `fuse.ProtocolServer`; usable to drive file systems in
-  tests without a mount.
+  requests to a `fuse.ProtocolServer`; used by `winfsp`, and usable
+  to drive file systems in tests without a mount.
 * `zipfs/`, `newunionfs/`, `example/` — example filesystems.
 * `benchmark/` — benchmarks; `compare.bash` compares two revisions.
 * `kernel/` — run the tests against a custom Linux kernel in QEMU.
 * `docs/` — release notes (`v2.md`, `v3.md`), the v2 to v3 upgrade
-  skill (`skills/upgrade-go-fuse-v3/`), `macos.md` and
+  skill (`skills/upgrade-go-fuse-v3/`), `macos.md`, `windows.md` and
   `comparison.md`.
 
 Platform-specific code uses `_linux.go`, `_darwin.go`, `_freebsd.go`,

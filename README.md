@@ -75,6 +75,11 @@ with other FUSE libraries for Go.
 See [docs/macos.md](docs/macos.md) for macFUSE and FSKit support and
 their limitations.
 
+## Windows Support
+
+See [docs/windows.md](docs/windows.md) for mounting on Windows
+through WinFsp.
+
 ## Credits
 
 * Inspired by Taru Karttunen's package, https://bitbucket.org/taruti/go-extra.
