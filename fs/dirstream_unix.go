@@ -1,4 +1,4 @@
-//go:build !darwin
+//go:build !darwin && !windows
 
 // Copyright 2019 the Go-FUSE Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
