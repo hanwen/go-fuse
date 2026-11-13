@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/hanwen/go-fuse/v2/internal/testutil"
+	"github.com/hanwen/go-fuse/v3/internal/testutil"
 )
 
 // takeoverFS has a file for every name, all with node ID 2. The file

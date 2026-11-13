@@ -79,7 +79,7 @@
 // As said above this packages provides way to implement filesystems in terms of
 // raw FUSE protocol.
 //
-// Package github.com/hanwen/go-fuse/v2/fs provides way to implement
+// Package github.com/hanwen/go-fuse/v3/fs provides way to implement
 // filesystems in terms of paths and/or inodes.
 //
 // # Mount styles

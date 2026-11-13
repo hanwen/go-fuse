@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v3/fuse"
 	"github.com/willscott/go-nfs-client/nfs"
 	"github.com/willscott/go-nfs-client/nfs/rpc"
 	"golang.org/x/sys/unix"

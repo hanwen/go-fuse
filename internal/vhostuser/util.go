@@ -8,7 +8,7 @@ import (
 	"log"
 	"syscall"
 
-	"github.com/hanwen/go-fuse/v2/internal/iov"
+	"github.com/hanwen/go-fuse/v3/internal/iov"
 )
 
 const _HUGETLBFS_MAGIC = 0x958458f6

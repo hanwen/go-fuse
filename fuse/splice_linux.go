@@ -10,7 +10,7 @@ import (
 	"os"
 	"syscall"
 
-	"github.com/hanwen/go-fuse/v2/splice"
+	"github.com/hanwen/go-fuse/v3/splice"
 )
 
 func (s *Server) setSplice() {

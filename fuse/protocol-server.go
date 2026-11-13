@@ -8,7 +8,7 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/hanwen/go-fuse/v2/internal/iov"
+	"github.com/hanwen/go-fuse/v3/internal/iov"
 )
 
 // protocolServer bridges from the FUSE datatypes to a RawFileSystem

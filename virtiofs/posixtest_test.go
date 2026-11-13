@@ -15,8 +15,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/hanwen/go-fuse/v2/fs"
-	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v3/fs"
+	"github.com/hanwen/go-fuse/v3/fuse"
 )
 
 type lockedBuffer struct {
@@ -44,7 +44,7 @@ func buildStaticPosixtest(t *testing.T) string {
 	bin := t.TempDir() + "/posixtest.test"
 	cmd := exec.Command("go", "test", "-c",
 		"-o", bin,
-		"github.com/hanwen/go-fuse/v2/posixtest",
+		"github.com/hanwen/go-fuse/v3/posixtest",
 	)
 	cmd.Env = append(os.Environ(), "CGO_ENABLED=0")
 	out, err := cmd.CombinedOutput()

@@ -8,7 +8,7 @@ import (
 	"errors"
 	"runtime"
 
-	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v3/fuse"
 )
 
 // Mount mounts the given NodeFS on the directory, and starts serving

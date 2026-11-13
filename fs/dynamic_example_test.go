@@ -14,8 +14,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/hanwen/go-fuse/v2/fs"
-	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v3/fs"
+	"github.com/hanwen/go-fuse/v3/fuse"
 )
 
 // numberNode is a filesystem node representing an integer. Prime

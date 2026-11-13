@@ -11,9 +11,9 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/hanwen/go-fuse/v2/fuse"
-	"github.com/hanwen/go-fuse/v2/internal/openat"
-	"github.com/hanwen/go-fuse/v2/internal/renameat"
+	"github.com/hanwen/go-fuse/v3/fuse"
+	"github.com/hanwen/go-fuse/v3/internal/openat"
+	"github.com/hanwen/go-fuse/v3/internal/renameat"
 	"golang.org/x/sys/unix"
 )
 

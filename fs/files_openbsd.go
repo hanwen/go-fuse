@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v3/fuse"
 )
 
 // The syscall package has no futimens(2) on OpenBSD, and raw system

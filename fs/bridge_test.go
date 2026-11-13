@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v3/fuse"
 )
 
 // TestTypeChange simulates inode number reuse that happens on real

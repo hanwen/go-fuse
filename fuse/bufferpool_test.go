@@ -9,7 +9,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hanwen/go-fuse/v2/internal/testutil"
+	"github.com/hanwen/go-fuse/v3/internal/testutil"
 )
 
 func TestBufferPool(t *testing.T) {

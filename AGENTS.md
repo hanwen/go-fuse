@@ -1,7 +1,7 @@
 # Notes for coding agents
 
 Go bindings for the FUSE kernel protocol. Module path:
-`github.com/hanwen/go-fuse/v2`. Minimum Go version is in `go.mod`; don't
+`github.com/hanwen/go-fuse/v3`. Minimum Go version is in `go.mod`; don't
 use language or library features newer than that.
 
 ## Layout

@@ -4,8 +4,8 @@ import (
 	"log"
 	"net"
 
-	"github.com/hanwen/go-fuse/v2/fuse"
-	"github.com/hanwen/go-fuse/v2/internal/vhostuser"
+	"github.com/hanwen/go-fuse/v3/fuse"
+	"github.com/hanwen/go-fuse/v3/internal/vhostuser"
 )
 
 // ServeFS connects a FUSE filesystem to a virtio-fs device over a vhost-user

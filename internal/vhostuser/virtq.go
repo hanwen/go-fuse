@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/hanwen/go-fuse/v2/internal/barrier"
+	"github.com/hanwen/go-fuse/v3/internal/barrier"
 )
 
 type Virtq struct {

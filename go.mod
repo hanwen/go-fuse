@@ -1,4 +1,4 @@
-module github.com/hanwen/go-fuse/v2
+module github.com/hanwen/go-fuse/v3
 
 require (
 	github.com/ebitengine/purego v0.10.0

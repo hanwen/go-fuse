@@ -15,9 +15,9 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/hanwen/go-fuse/v2/fs"
-	"github.com/hanwen/go-fuse/v2/fuse"
-	"github.com/hanwen/go-fuse/v2/splice"
+	"github.com/hanwen/go-fuse/v3/fs"
+	"github.com/hanwen/go-fuse/v3/fuse"
+	"github.com/hanwen/go-fuse/v3/splice"
 )
 
 // linearRaidNode presents a single file assembled from fixed-size chunk files.

@@ -5,7 +5,7 @@ package fs
 import (
 	"context"
 
-	"github.com/hanwen/go-fuse/v2/fuse"
+	"github.com/hanwen/go-fuse/v3/fuse"
 )
 
 func (b *rawBridge) Statx(ctx context.Context, in *fuse.StatxIn, out *fuse.StatxOut) fuse.Status {

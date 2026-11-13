@@ -1,12 +1,12 @@
 # Go-FUSE
 
 [![CI](https://github.com/hanwen/go-fuse/actions/workflows/ci.yml/badge.svg)](https://github.com/hanwen/go-fuse/actions/workflows/ci.yml)
-[![GoDoc](https://godoc.org/github.com/hanwen/go-fuse/v2/fs?status.svg)](https://godoc.org/github.com/hanwen/go-fuse/v2/fs)
+[![GoDoc](https://pkg.go.dev/badge/github.com/hanwen/go-fuse/v3/fs.svg)](https://pkg.go.dev/github.com/hanwen/go-fuse/v3/fs)
 
 Go native bindings for the FUSE kernel module.
 
 Use
-[github.com/hanwen/go-fuse/v2/fs](https://godoc.org/github.com/hanwen/go-fuse/v2/fs)
+[github.com/hanwen/go-fuse/v3/fs](https://pkg.go.dev/github.com/hanwen/go-fuse/v3/fs)
 library.  It follows the wire protocol closely, but provides
 convenient abstractions for building both node and path based file
 systems

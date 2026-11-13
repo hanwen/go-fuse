@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hanwen/go-fuse/v2/internal/testutil"
+	"github.com/hanwen/go-fuse/v3/internal/testutil"
 )
 
 // blockingGetAttrFS has a file for every name. GETATTR on a file

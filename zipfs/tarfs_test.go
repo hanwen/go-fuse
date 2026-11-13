@@ -15,8 +15,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hanwen/go-fuse/v2/fs"
-	"github.com/hanwen/go-fuse/v2/internal/testutil"
+	"github.com/hanwen/go-fuse/v3/fs"
+	"github.com/hanwen/go-fuse/v3/internal/testutil"
 )
 
 var tarContents = map[string]string{

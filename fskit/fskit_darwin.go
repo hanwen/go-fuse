@@ -21,9 +21,9 @@ import (
 	"unsafe"
 
 	"github.com/ebitengine/purego"
-	"github.com/hanwen/go-fuse/v2/fs"
-	"github.com/hanwen/go-fuse/v2/fuse"
-	"github.com/hanwen/go-fuse/v2/internal/iov"
+	"github.com/hanwen/go-fuse/v3/fs"
+	"github.com/hanwen/go-fuse/v3/fuse"
+	"github.com/hanwen/go-fuse/v3/internal/iov"
 )
 
 // mfmountFrameworkPath is the canonical path to the macFUSE MFMount framework

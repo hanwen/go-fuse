@@ -8,7 +8,7 @@ import (
 	"io"
 	"syscall"
 
-	"github.com/hanwen/go-fuse/v2/internal/iov"
+	"github.com/hanwen/go-fuse/v3/internal/iov"
 )
 
 // ReadResultData is the read return for returning bytes directly.
