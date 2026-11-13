@@ -77,3 +77,27 @@ func (ms *Server) Dev() (*Dev, error) {
 		ready: ready,
 	}, nil
 }
+
+// Init returns the INIT negotiation of the connection. It is zero if
+// the connection has not been negotiated yet.
+func (d *Dev) Init() (InitIn, InitOut) {
+	return d.in, d.out
+}
+
+// NewDev returns a device for the FUSE file descriptor fd, and takes
+// ownership of it. in and out are the INIT negotiation from Init,
+// eg. received from another process along with fd. If they are nil,
+// the connection has not been negotiated yet, eg. for a device that a
+// privileged process opened and mounted.
+func NewDev(fd int, in *InitIn, out *InitOut) *Dev {
+	ready := make(chan error)
+	close(ready)
+	d := &Dev{fd: fd, ready: ready}
+	if in != nil {
+		d.in = *in
+	}
+	if out != nil {
+		d.out = *out
+	}
+	return d
+}

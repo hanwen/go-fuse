@@ -360,7 +360,7 @@ type InitOut struct {
 	MaxStackDepth       uint32
 	RequestTimeout      uint16
 
-	_Unused [11]uint16
+	Unused [11]uint16
 }
 
 func (o *InitOut) Flags64() uint64 {
