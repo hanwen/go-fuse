@@ -13,80 +13,33 @@ systems
 
 ## Release notes
 
-v2.12
+* [v3](docs/v3.md): changes in v3, and how to upgrade from v2.
+* [v2](docs/v2.md): v2.5 to v2.12.
 
-* fuse: DirEntryList supports roundtrip testing
-* virtiofs: support reads beyond 4k.
-* virtiofs: I/O vector write support
-* fuse, fs: support tmp file creation (O_TMPFILE flag, TMPFILE opcode)
-* fuse: support I/O vectors in ReadResult
-* fuse: support SPLICE_F_MOVE in ReadResult
-* fs: NFS export support through Options.ExternalNodeID
-    - LoopbackFile uses birthtime as generation
-    - NodeLookupNoder: support lookup for NFS server reconnect
-    - NodeLookupParenter: support parent dir lookup for NFS server reconnect
+## Notable users
 
-v2.11:
+Projects that use go-fuse, with their GitHub stars as of November 2026:
 
-* fuse: added MountOptions.PanicHandler; panics no longer crash the server.
-* fuse: expose CongestionThreshold as a separate MountOption
-* fuse: MountOption.MaxInflightRequestBytes
-* fs: NewLoopbackFileFromOS
-
-v2.10:
-
-* fs: LoopbackFile is now public.
-* fuse: ReadResultPipe allows more flexibility for zero-copy read results, eg. concatenate data from multiple files at the same time. 
-* fuse: Options.ExtraCapabilities/DisabledCapabilities allows generically en/disabling kernel features 
-* fuse, fs: PruneNotify support. This lets the file system force the kernel to forget nodes.
-* fuse: type ProtocolServer. This enables running the FUSE protocol over transports that are not the standard kernel connection
-* virtiofs: serve FUSE file system to VMs directly as virtiofs servers.
-* general: require go 1.21
-
-v2.9:
-
-* fs: NodeWrapChilder interface
-* fs: FileLookuper interface
-
-v2.8
-
-* fuse, fs: support IOCTL
-* fuse: add RawFileSystem.OnUnmount
-* fs: symlink safety for fs.LoopbackRoot
-* fuse: ID mapped mounts
-* fs: NewLoopbackDirStreamFd
-
-v2.7
-
-* fuse, fs: support STATX
-
-v2.6
-
-* general:
-  * drop support for go1.16 
-* fuse:
-  * FreeBSD support
-  * passthrough support for increased performance
-  * DirEntryList.Offset and DirEntry.Off are visible now; add DirEntry.Parse 
-* fs:
-  * new directory API, supporting caching and file handles for Readdir and FsyncDir 
-  * passthrough support for increased performance
-  * allow LoopbackNode to be used as non-root
-  * OnForget method
-
-v2.5
-
-* Support for RenameExchange on Darwin
-
+| Project | Stars | Use |
+|---------|------:|-----|
+| [rclone](https://github.com/rclone/rclone) | 61k | `rclone mount` for cloud storage |
+| [SeaweedFS](https://github.com/seaweedfs/seaweedfs) | 36k | `weed mount` (through a fork) |
+| [Kubo (IPFS)](https://github.com/ipfs/kubo) | 17k | mounting IPFS and IPNS |
+| [JuiceFS](https://github.com/juicedata/juicefs) | 15k | distributed POSIX file system (through a fork) |
+| [Kopia](https://github.com/kopia/kopia) | 15k | mounting backup snapshots |
+| [Pachyderm](https://github.com/pachyderm/pachyderm) | 6k | mounting data repositories |
+| [gocryptfs](https://github.com/rfjakob/gocryptfs) | 5k | encrypted overlay file system |
+| [Velociraptor](https://github.com/Velocidex/velociraptor) | 4k | mounting collected files |
+| [onedriver](https://github.com/jstaf/onedriver) | 2k | Microsoft OneDrive client |
+| [Stargz Snapshotter](https://github.com/containerd/stargz-snapshotter) | 2k | lazy pulling of container images |
+| [Cloud SQL Auth Proxy](https://github.com/GoogleCloudPlatform/cloud-sql-proxy) | 1k | Unix sockets for database instances |
+| [SOCI Snapshotter](https://github.com/awslabs/soci-snapshotter) | 1k | lazy pulling of container images |
+| [Buildbarn](https://github.com/buildbarn/bb-remote-execution) | 171 | virtual file system for remote build workers |
 
 ## Comparison with other FUSE libraries
 
-Further highlights of this library is
-
-* Comprehensive and up to date protocol support (up to 7.12.28).
-
-* Performance that is competitive with libfuse.
-
+See [docs/comparison.md](docs/comparison.md) for a feature comparison
+with other FUSE libraries for Go.
 
 ## Examples
 
@@ -119,19 +72,8 @@ Further highlights of this library is
 
 ## macOS Support
 
-The main developer (hanwen@) does not own a Mac to test, but accepts
-patches to make Go-FUSE work on Mac.
-
-* All of the limitations of OSXFUSE, including lack of support for
-  NOTIFY.
-
-* OSX issues STATFS calls continuously (leading to performance
-  concerns).
-
-* OSX has trouble with concurrent reads from the FUSE device, leading
-  to performance concerns.
-
-* Tests are expected to pass; report any failure as a bug!
+See [docs/macos.md](docs/macos.md) for macFUSE and FSKit support and
+their limitations.
 
 ## Credits
 

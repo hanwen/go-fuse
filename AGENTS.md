@@ -10,14 +10,19 @@ use language or library features newer than that.
   mounting. `RawFileSystem` is the low-level API.
 * `fs/` — the recommended high-level, inode-based API built on `fuse/`.
   Design rationale is in `fs/README.md`.
-* `fuse/nodefs`, `fuse/pathfs` — deprecated; only fix bugs there.
 * `posixtest/` — POSIX conformance tests, reused by `fs`, `virtiofs` and
   the FreeBSD run. Add filesystem-semantics tests here when they apply to
   any backend.
 * `virtiofs/`, `internal/vhostuser/` — serving FUSE to VMs over
   vhost-user.
 * `splice/`, `internal/*` — platform helpers.
+* `fskit/` — serving FUSE through macOS FSKit.
 * `zipfs/`, `newunionfs/`, `example/` — example filesystems.
+* `benchmark/` — benchmarks; `compare.bash` compares two revisions.
+* `kernel/` — run the tests against a custom Linux kernel in QEMU.
+* `docs/` — release notes (`v2.md`, `v3.md`), the v2 to v3 upgrade
+  skill (`skills/upgrade-go-fuse-v3/`), `macos.md` and
+  `comparison.md`.
 
 Platform-specific code uses `_linux.go`, `_darwin.go`, `_freebsd.go`,
 `_openbsd.go`, `_unix.go` suffixes; `_bsd.go` files are shared by
@@ -57,6 +62,12 @@ Run `gofmt` and `go vet` on changed packages.
   (copy the three lines from an existing file).
 * Match the kernel's names for protocol structs and fields
   (`include/uapi/linux/fuse.h`).
+
+## API changes
+
+Record user-visible API and behavior changes in `docs/v3.md`. If a
+change breaks v2 code, also add the fix to
+`docs/skills/upgrade-go-fuse-v3/SKILL.md`.
 
 ## Commits
 
