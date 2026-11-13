@@ -73,4 +73,8 @@ system. These tests are part of a normal `go test ./...`.
 
 `winfsp/winfsp_windows_test.go` mounts through WinFsp and uses the
 mount with the `os` package. These tests skip if WinFsp is not
-installed.
+installed. `winfsp/test.bash` runs them in a Windows VM under
+QEMU/KVM. The first run installs Windows unattended (by default the
+Windows Server 2025 evaluation) with WinFsp, which takes a while;
+later runs boot a throwaway copy of that image. See the script for
+its options.

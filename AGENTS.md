@@ -52,6 +52,8 @@ there. `virtiofs` tests need KVM and QEMU or cloud-hypervisor (pick with
 `GO_FUSE_VMM=qemu|cloud-hypervisor`), and skip silently without them.
 `test-freebsd.bash` runs `posixtest` and `fs` in a FreeBSD VM;
 `openbsd/test.bash` runs the `fs` TestPosix in an OpenBSD VM.
+`winfsp/test.bash` runs `winfsp` tests in a Windows VM with WinFsp
+(the first run installs Windows, which takes a while).
 
 Almost all tests should be mounting an actual file system against
 /dev/fuse, and interact through the mountpoint.
