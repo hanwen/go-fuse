@@ -27,7 +27,7 @@ func TestProtocolServerParse(t *testing.T) {
 	opts := MountOptions{}
 	opts.Debug = true
 	opts.Logger = log.New(&logBuf, "", 0)
-	ps := NewProtocolServer(NewDefaultRawFileSystem(), &opts)
+	ps := NewProtocolServer(NewDefaultRawFileSystem(), &opts, nil)
 	n, status := ps.HandleRequest(in, out)
 	if status != OK {
 		t.Fatalf("HandleRequest: status %v, want OK", status)

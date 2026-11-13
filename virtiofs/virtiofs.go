@@ -33,7 +33,7 @@ func serve(l *net.UnixListener, rawFS fuse.RawFileSystem, opts *fuse.MountOption
 	// TODO: each connection is a new FUSE session, but they share rawFS
 	// and ps. A guest that disconnects without RELEASE/FORGET (eg. it
 	// was killed) leaks its inode references and open files.
-	ps := fuse.NewProtocolServer(rawFS, opts)
+	ps := fuse.NewProtocolServer(rawFS, opts, nil)
 	for {
 		conn, err := l.AcceptUnix()
 		if err != nil {

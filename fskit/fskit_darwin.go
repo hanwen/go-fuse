@@ -239,7 +239,7 @@ func Mount(mountPoint string, rawFS fuse.RawFileSystem, opts *fuse.MountOptions)
 	maxPayload := max(optsCopy.MaxWrite, 1<<20)
 	s := &Server{
 		rawFS:      rawFS,
-		ps:         fuse.NewProtocolServer(rawFS, &optsCopy),
+		ps:         fuse.NewProtocolServer(rawFS, &optsCopy, nil),
 		mfChannel:  channel,
 		api:        api,
 		mountPoint: absMountPoint,

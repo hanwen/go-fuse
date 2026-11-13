@@ -171,8 +171,12 @@ type ProtocolServer struct {
 
 // NewProtocolServer creates a ProtocolServer for the RawFileSystem.
 //
+// Notify holds the notifications that the file system may send, for
+// transports that handle them in-process. If it is nil, or for nil
+// functions in it, notifications return ENOSYS.
+//
 // EXPERIMENTAL: not subject to API stability.
-func NewProtocolServer(fs RawFileSystem, opts *MountOptions) *ProtocolServer {
+func NewProtocolServer(fs RawFileSystem, opts *MountOptions, notify *Notify) *ProtocolServer {
 	// ProtocolServer has no pipe, so splicing READ results to the
 	// caller is not possible; force the in-process READ path.
 	optsCopy := *opts
@@ -185,11 +189,41 @@ func NewProtocolServer(fs RawFileSystem, opts *MountOptions) *ProtocolServer {
 			opts:       &optsCopy,
 			useReadv:   true,
 			conn: &Conn{
-				notify:  enosysNotify(),
+				notify:  inProcessNotify(notify),
 				backing: enosysBacking(),
 			},
 		},
 	}
+}
+
+// inProcessNotify returns a copy of n with nil functions replaced by
+// ENOSYS stubs.
+func inProcessNotify(n *Notify) *Notify {
+	stub := enosysNotify()
+	if n == nil {
+		return stub
+	}
+	c := *n
+	c.notifier = nil
+	if c.InvalInode == nil {
+		c.InvalInode = stub.InvalInode
+	}
+	if c.InvalEntry == nil {
+		c.InvalEntry = stub.InvalEntry
+	}
+	if c.Delete == nil {
+		c.Delete = stub.Delete
+	}
+	if c.Prune == nil {
+		c.Prune = stub.Prune
+	}
+	if c.Store == nil {
+		c.Store = stub.Store
+	}
+	if c.Retrieve == nil {
+		c.Retrieve = stub.Retrieve
+	}
+	return &c
 }
 
 // HandleRequest parses the iov in `in`, calls into the raw
