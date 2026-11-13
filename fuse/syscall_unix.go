@@ -1,4 +1,4 @@
-//go:build !linux && !darwin && !openbsd
+//go:build !linux && !darwin && !openbsd && !windows
 
 package fuse
 

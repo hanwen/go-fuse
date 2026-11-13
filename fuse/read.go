@@ -5,9 +5,6 @@
 package fuse
 
 import (
-	"io"
-	"syscall"
-
 	"github.com/hanwen/go-fuse/v3/internal/iov"
 )
 
@@ -80,23 +77,6 @@ type readResultFd struct {
 
 func (r *readResultFd) Seekable() (fd uintptr, off int64, sz int) {
 	return r.Fd, r.Off, r.Sz
-}
-
-// Reads raw bytes from file descriptor if necessary, using the passed
-// buffer as storage.
-func (r *readResultFd) Bytes(buf []byte) ([]byte, Status) {
-	sz := min(len(buf), r.Sz)
-
-	n, err := syscall.Pread(int(r.Fd), buf[:sz], r.Off)
-	if err == io.EOF {
-		err = nil
-	}
-
-	if n < 0 {
-		n = 0
-	}
-
-	return buf[:n], ToStatus(err)
 }
 
 func (r *readResultFd) Size() int {
