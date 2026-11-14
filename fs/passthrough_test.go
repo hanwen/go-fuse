@@ -39,7 +39,7 @@ func (n *rwRegisteringNode) Write(ctx context.Context, f FileHandle, data []byte
 }
 
 func TestPassthrough(t *testing.T) {
-	if os.Geteuid() != 0 {
+	if !testutil.RealRoot() {
 		t.Skip("passthrough requires CAP_SYS_ADMIN")
 	}
 

@@ -55,7 +55,7 @@ func minimalACL() []byte {
 }
 
 func TestSetXAttrKillSgid(t *testing.T) {
-	if os.Getuid() != 0 {
+	if !testutil.RealRoot() {
 		t.Skip("needs root")
 	}
 	const uid, gid = 65534, 12345

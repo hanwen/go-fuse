@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/hanwen/go-fuse/v3/fuse"
+	"github.com/hanwen/go-fuse/v3/internal/testutil"
 	"github.com/willscott/go-nfs-client/nfs"
 	"github.com/willscott/go-nfs-client/nfs/rpc"
 	"golang.org/x/sys/unix"
@@ -40,7 +41,7 @@ func requireReconnectTestEnv(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		t.Skip("test needs linux")
 	}
-	if os.Geteuid() != 0 {
+	if !testutil.RealRoot() {
 		t.Skip("test needs root (exportfs, mounting NFS, /sys/fs/fuse/connections/*/abort)")
 	}
 	if _, err := os.Stat("/sys/fs/fuse/connections"); err != nil {

@@ -47,6 +47,9 @@ func testMount(t *testing.T, root InodeEmbedder, opts *Options) (string, *fuse.S
 }
 
 func TestDefaultOwner(t *testing.T) {
+	if testutil.InUserNamespace() {
+		t.Skip("uid 42 may be unmapped in a user namespace")
+	}
 	want := "hello"
 	root := &Inode{}
 	mntDir, _ := testMount(t, root, &Options{

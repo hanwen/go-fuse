@@ -139,7 +139,7 @@ func TestReconnectByFileHandle(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		t.Skip("test needs linux")
 	}
-	if os.Geteuid() != 0 {
+	if !testutil.RealRoot() {
 		t.Skip("test needs root (CAP_DAC_READ_SEARCH, for name_to_handle_at/open_by_handle_at)")
 	}
 	if _, err := os.Stat("/sys/fs/fuse/connections"); err != nil {

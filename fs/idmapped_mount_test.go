@@ -15,12 +15,13 @@ import (
 	"testing"
 
 	"github.com/hanwen/go-fuse/v3/fuse"
+	"github.com/hanwen/go-fuse/v3/internal/testutil"
 	"golang.org/x/sys/unix"
 )
 
 func TestIDMappedMount(t *testing.T) {
 	// sys_open_tree requires CAP_SYS_ADMIN
-	if os.Geteuid() != 0 {
+	if !testutil.RealRoot() {
 		t.Skip("id-mapped mount requires CAP_SYS_ADMIN")
 	}
 

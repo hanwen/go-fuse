@@ -63,7 +63,7 @@ func (n *allChildrenNode) Readdir(ctx context.Context) (DirStream, syscall.Errno
 }
 
 func TestForget(t *testing.T) {
-	if os.Geteuid() != 0 {
+	if !testutil.RealRoot() {
 		t.Skip("must run test as root")
 	}
 	if runtime.GOOS != "linux" {
