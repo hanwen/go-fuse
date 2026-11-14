@@ -10,13 +10,14 @@ package fskit
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/hanwen/go-fuse/v3/fs"
 	"github.com/hanwen/go-fuse/v3/fuse"
 )
 
-// ErrUnsupported is returned when fskit is called on a non-Darwin OS.
-var ErrUnsupported = errors.New("fskit: macOS FSKit backend is only supported on darwin")
+// errUnsupported is returned when fskit is called on a non-Darwin OS.
+var errUnsupported = fmt.Errorf("fskit: macOS FSKit backend is only supported on darwin: %w", errors.ErrUnsupported)
 
 // Available reports whether the macFUSE FSKit framework is available.
 func Available() bool {
@@ -38,12 +39,14 @@ func (s *Server) Wait() {}
 // Unmount returns nil on non-Darwin platforms.
 func (s *Server) Unmount() error { return nil }
 
-// MountRaw returns ErrUnsupported on non-Darwin platforms.
+// MountRaw returns an error wrapping errors.ErrUnsupported on non-Darwin
+// platforms.
 func MountRaw(mountPoint string, rawFS fuse.RawFileSystem, opts *fuse.MountOptions) (*Server, error) {
-	return nil, ErrUnsupported
+	return nil, errUnsupported
 }
 
-// Mount returns ErrUnsupported on non-Darwin platforms.
+// Mount returns an error wrapping errors.ErrUnsupported on non-Darwin
+// platforms.
 func Mount(dir string, root fs.InodeEmbedder, options *fs.Options) (*Server, error) {
-	return nil, ErrUnsupported
+	return nil, errUnsupported
 }
