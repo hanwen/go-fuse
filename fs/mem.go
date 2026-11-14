@@ -168,5 +168,6 @@ var _ = (NodeGetattrer)((*MemSymlink)(nil))
 
 func (l *MemSymlink) Getattr(ctx context.Context, fh FileHandle, out *fuse.AttrOut) syscall.Errno {
 	out.Attr = l.Attr
+	out.Size = uint64(len(l.Data))
 	return OK
 }

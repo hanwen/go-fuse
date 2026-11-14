@@ -284,6 +284,12 @@ func TestDataSymlink(t *testing.T) {
 	} else if want := "target"; got != want {
 		t.Errorf("Readlink: got %q want %q", got, want)
 	}
+
+	if fi, err := os.Lstat(mntDir + "/link"); err != nil {
+		t.Fatalf("Lstat: %v", err)
+	} else if fi.Size() != int64(len("target")) {
+		t.Errorf("Lstat: got size %d, want %d", fi.Size(), len("target"))
+	}
 }
 
 func readDirStream(st DirStream) (result []fuse.DirEntry, errno syscall.Errno) {
