@@ -22,6 +22,11 @@ func ServeFS(sockpath string, rawFS fuse.RawFileSystem, opts *fuse.MountOptions)
 		log.Fatal("Listen", err)
 	}
 
+	serve(l, rawFS, opts)
+}
+
+// serve handles connections on l until it is closed.
+func serve(l *net.UnixListener, rawFS fuse.RawFileSystem, opts *fuse.MountOptions) {
 	opts.DisableSplice = true
 	// TODO: each connection is a new FUSE session, but they share rawFS
 	// and ps. A guest that disconnects without RELEASE/FORGET (eg. it
