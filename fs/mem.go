@@ -14,12 +14,20 @@ import (
 
 // MemRegularFile is a filesystem node that holds a data
 // slice in memory.
+//
+// Read returns slices of Data without copying, so Data must not be
+// modified in place after mounting; assign a new slice instead. Write
+// copies Data before modifying it if it was read since the last copy.
 type MemRegularFile struct {
 	Inode
 
 	mu   sync.Mutex
 	Data []byte
 	Attr fuse.Attr
+
+	// shared is set if a slice of Data may still be in use by a
+	// read result.
+	shared bool
 }
 
 var _ = (NodeOpener)((*MemRegularFile)(nil))
@@ -51,10 +59,11 @@ func (f *MemRegularFile) Write(ctx context.Context, fh FileHandle, data []byte, 
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	end := int64(len(data)) + off
-	if int64(len(f.Data)) < end {
-		n := make([]byte, end)
+	if f.shared || int64(len(f.Data)) < end {
+		n := make([]byte, max(end, int64(len(f.Data))))
 		copy(n, f.Data)
 		f.Data = n
+		f.shared = false
 	}
 
 	copy(f.Data[off:off+int64(len(data))], data)
@@ -98,6 +107,9 @@ func (f *MemRegularFile) Read(ctx context.Context, fh FileHandle, dest []byte, o
 	defer f.mu.Unlock()
 	off = min(off, int64(len(f.Data)))
 	end := min(int(off)+len(dest), len(f.Data))
+	if end > int(off) {
+		f.shared = true
+	}
 	return fuse.ReadResultData(f.Data[off:end]), OK
 }
 

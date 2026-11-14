@@ -487,3 +487,38 @@ func TestInodeParentsHardlink(t *testing.T) {
 		}
 	}
 }
+
+func TestMemFileReadCopyOnWrite(t *testing.T) {
+	f := &MemRegularFile{Data: []byte("hello")}
+	ctx := context.Background()
+	res, errno := f.Read(ctx, nil, make([]byte, 5), 0)
+	if errno != 0 {
+		t.Fatal(errno)
+	}
+	got, _ := res.Bytes(nil)
+	if &got[0] != &f.Data[0] {
+		t.Errorf("Read copied the data")
+	}
+
+	if _, errno := f.Write(ctx, nil, []byte("HE"), 0); errno != 0 {
+		t.Fatal(errno)
+	}
+	if string(got) != "hello" {
+		t.Errorf("read result after write: got %q, want %q", got, "hello")
+	}
+	if string(f.Data) != "HEllo" {
+		t.Errorf("data after write: got %q, want %q", f.Data, "HEllo")
+	}
+
+	// Without a read in between, writes modify Data in place.
+	data := f.Data
+	if _, errno := f.Write(ctx, nil, []byte("LL"), 2); errno != 0 {
+		t.Fatal(errno)
+	}
+	if &data[0] != &f.Data[0] {
+		t.Errorf("Write copied the data without an intervening read")
+	}
+	if string(f.Data) != "HELLo" {
+		t.Errorf("data after write: got %q, want %q", f.Data, "HELLo")
+	}
+}
