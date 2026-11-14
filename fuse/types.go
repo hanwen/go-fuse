@@ -163,48 +163,48 @@ type SetAttrInCommon struct {
 }
 
 // GetFh returns the file handle if available, or 0 if undefined.
-func (s *SetAttrInCommon) GetFh() (uint64, bool) {
-	if s.Valid&FATTR_FH != 0 {
-		return s.Fh, true
+func (in *SetAttrInCommon) GetFh() (uint64, bool) {
+	if in.Valid&FATTR_FH != 0 {
+		return in.Fh, true
 	}
 	return 0, false
 }
 
-func (s *SetAttrInCommon) GetMode() (uint32, bool) {
-	if s.Valid&FATTR_MODE != 0 {
-		return s.Mode & 07777, true
+func (in *SetAttrInCommon) GetMode() (uint32, bool) {
+	if in.Valid&FATTR_MODE != 0 {
+		return in.Mode & 07777, true
 	}
 	return 0, false
 }
 
-func (s *SetAttrInCommon) GetUID() (uint32, bool) {
-	if s.Valid&FATTR_UID != 0 {
-		return s.Uid, true
+func (in *SetAttrInCommon) GetUID() (uint32, bool) {
+	if in.Valid&FATTR_UID != 0 {
+		return in.Uid, true
 	}
 	return ^uint32(0), false
 }
 
-func (s *SetAttrInCommon) GetGID() (uint32, bool) {
-	if s.Valid&FATTR_GID != 0 {
-		return s.Gid, true
+func (in *SetAttrInCommon) GetGID() (uint32, bool) {
+	if in.Valid&FATTR_GID != 0 {
+		return in.Gid, true
 	}
 	return ^uint32(0), false
 }
 
-func (s *SetAttrInCommon) GetSize() (uint64, bool) {
-	if s.Valid&FATTR_SIZE != 0 {
-		return s.Size, true
+func (in *SetAttrInCommon) GetSize() (uint64, bool) {
+	if in.Valid&FATTR_SIZE != 0 {
+		return in.Size, true
 	}
 	return 0, false
 }
 
-func (s *SetAttrInCommon) GetMTime() (time.Time, bool) {
+func (in *SetAttrInCommon) GetMTime() (time.Time, bool) {
 	var t time.Time
-	if s.Valid&FATTR_MTIME != 0 {
-		if s.Valid&FATTR_MTIME_NOW != 0 {
+	if in.Valid&FATTR_MTIME != 0 {
+		if in.Valid&FATTR_MTIME_NOW != 0 {
 			t = time.Now()
 		} else {
-			t = time.Unix(int64(s.Mtime), int64(s.Mtimensec))
+			t = time.Unix(int64(in.Mtime), int64(in.Mtimensec))
 		}
 		return t, true
 	}
@@ -212,13 +212,13 @@ func (s *SetAttrInCommon) GetMTime() (time.Time, bool) {
 	return t, false
 }
 
-func (s *SetAttrInCommon) GetATime() (time.Time, bool) {
+func (in *SetAttrInCommon) GetATime() (time.Time, bool) {
 	var t time.Time
-	if s.Valid&FATTR_ATIME != 0 {
-		if s.Valid&FATTR_ATIME_NOW != 0 {
+	if in.Valid&FATTR_ATIME != 0 {
+		if in.Valid&FATTR_ATIME_NOW != 0 {
 			t = time.Now()
 		} else {
-			t = time.Unix(int64(s.Atime), int64(s.Atimensec))
+			t = time.Unix(int64(in.Atime), int64(in.Atimensec))
 		}
 		return t, true
 	}
@@ -226,10 +226,10 @@ func (s *SetAttrInCommon) GetATime() (time.Time, bool) {
 	return t, false
 }
 
-func (s *SetAttrInCommon) GetCTime() (time.Time, bool) {
+func (in *SetAttrInCommon) GetCTime() (time.Time, bool) {
 	var t time.Time
-	if s.Valid&FATTR_CTIME != 0 {
-		t = time.Unix(int64(s.Ctime), int64(s.Ctimensec))
+	if in.Valid&FATTR_CTIME != 0 {
+		t = time.Unix(int64(in.Ctime), int64(in.Ctimensec))
 		return t, true
 	}
 
@@ -341,8 +341,8 @@ type InitIn struct {
 	Unused       [11]uint32
 }
 
-func (i *InitIn) Flags64() uint64 {
-	return uint64(i.Flags) | uint64(i.Flags2)<<32
+func (in *InitIn) Flags64() uint64 {
+	return uint64(in.Flags) | uint64(in.Flags2)<<32
 }
 
 type InitOut struct {
@@ -775,14 +775,14 @@ type GetAttrIn struct {
 
 // Flags accesses the flags. This is a method, because OSXFuse does not
 // have GetAttrIn flags.
-func (g *GetAttrIn) Flags() uint32 {
-	return g.Flags_
+func (in *GetAttrIn) Flags() uint32 {
+	return in.Flags_
 }
 
 // Fh accesses the file handle. This is a method, because OSXFuse does not
 // have GetAttrIn flags.
-func (g *GetAttrIn) Fh() uint64 {
-	return g.Fh_
+func (in *GetAttrIn) Fh() uint64 {
+	return in.Fh_
 }
 
 type MknodIn struct {

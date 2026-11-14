@@ -52,7 +52,7 @@ func (fs *readFS) Read(ctx context.Context, input *ReadIn, buf []byte) (ReadResu
 	return ReadResultData(dest), OK
 }
 
-func (f *readFS) Lookup(ctx context.Context, header *InHeader, name string, out *EntryOut) (code Status) {
+func (fs *readFS) Lookup(ctx context.Context, header *InHeader, name string, out *EntryOut) (code Status) {
 	if name != "file" {
 		return ENOENT
 	}

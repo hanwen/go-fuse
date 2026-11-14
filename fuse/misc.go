@@ -15,18 +15,18 @@ import (
 	"time"
 )
 
-func (code Status) String() string {
-	if code == OK {
+func (s Status) String() string {
+	if s == OK {
 		return "OK"
 	}
-	if code < 0 {
-		return fmt.Sprintf("negative(%d)", code)
+	if s < 0 {
+		return fmt.Sprintf("negative(%d)", s)
 	}
-	return fmt.Sprintf("%d=%v", int(code), syscall.Errno(code))
+	return fmt.Sprintf("%d=%v", int(s), syscall.Errno(s))
 }
 
-func (code Status) Ok() bool {
-	return code == OK
+func (s Status) Ok() bool {
+	return s == OK
 }
 
 // ToStatus extracts an errno number from Go error objects.  If it

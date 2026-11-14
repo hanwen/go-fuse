@@ -54,15 +54,15 @@ func (d *Dev) release() int {
 	return fd
 }
 
-// Dev returns a device for the connection of ms, with a duplicate of
+// Dev returns a device for the connection of s, with a duplicate of
 // its file descriptor, eg. to pass to another process. NewServerFromDev
 // with this device serves the connection without negotiating it
 // again. Typically, the server is stopped first. The caller must
 // close the device, unless it is passed to NewServerFromDev.
-func (ms *Server) Dev() (*Dev, error) {
+func (s *Server) Dev() (*Dev, error) {
 	var nfd int
 	var err error
-	if cerr := ms.fuseFD.conn.Control(func(fd uintptr) {
+	if cerr := s.fuseFD.conn.Control(func(fd uintptr) {
 		nfd, err = unix.FcntlInt(fd, unix.F_DUPFD_CLOEXEC, 0)
 	}); cerr != nil {
 		return nil, cerr
@@ -74,8 +74,8 @@ func (ms *Server) Dev() (*Dev, error) {
 	close(ready)
 	return &Dev{
 		fd:    nfd,
-		in:    ms.conn.in,
-		out:   ms.conn.out,
+		in:    s.conn.in,
+		out:   s.conn.out,
 		ready: ready,
 	}, nil
 }

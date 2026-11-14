@@ -30,13 +30,13 @@ func newBlockingWriteFS() *blockingWriteFS {
 	}
 }
 
-func (f *blockingWriteFS) unblock() {
-	f.releaseOnce.Do(func() {
-		close(f.release)
+func (fs *blockingWriteFS) unblock() {
+	fs.releaseOnce.Do(func() {
+		close(fs.release)
 	})
 }
 
-func (f *blockingWriteFS) Lookup(ctx context.Context, header *InHeader, name string, out *EntryOut) (code Status) {
+func (fs *blockingWriteFS) Lookup(ctx context.Context, header *InHeader, name string, out *EntryOut) (code Status) {
 	if name != "file" {
 		return ENOENT
 	}
@@ -51,7 +51,7 @@ func (f *blockingWriteFS) Lookup(ctx context.Context, header *InHeader, name str
 	return OK
 }
 
-func (f *blockingWriteFS) GetAttr(ctx context.Context, input *GetAttrIn, out *AttrOut) (code Status) {
+func (fs *blockingWriteFS) GetAttr(ctx context.Context, input *GetAttrIn, out *AttrOut) (code Status) {
 	out.Attr = Attr{
 		Ino:   input.NodeId,
 		Mode:  S_IFREG | 0644,
@@ -61,7 +61,7 @@ func (f *blockingWriteFS) GetAttr(ctx context.Context, input *GetAttrIn, out *At
 	return OK
 }
 
-func (f *blockingWriteFS) Open(ctx context.Context, input *OpenIn, out *OpenOut) (status Status) {
+func (fs *blockingWriteFS) Open(ctx context.Context, input *OpenIn, out *OpenOut) (status Status) {
 	if input.NodeId != 2 {
 		return ENOENT
 	}
@@ -70,18 +70,18 @@ func (f *blockingWriteFS) Open(ctx context.Context, input *OpenIn, out *OpenOut)
 	return OK
 }
 
-func (f *blockingWriteFS) Write(ctx context.Context, input *WriteIn, data []byte) (written uint32, code Status) {
+func (fs *blockingWriteFS) Write(ctx context.Context, input *WriteIn, data []byte) (written uint32, code Status) {
 	if len(data) < len(requestAlloc{}.smallInputBuf) {
 		return 0, EINVAL
 	}
 
 	select {
-	case f.entered <- input.Unique:
+	case fs.entered <- input.Unique:
 	default:
 	}
 
 	select {
-	case <-f.release:
+	case <-fs.release:
 	case <-ctx.Done():
 		return 0, EINTR
 	}

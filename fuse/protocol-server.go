@@ -38,40 +38,40 @@ type protocolServer struct {
 	writevCopyOnce sync.Once
 }
 
-func (ms *protocolServer) handleRequest(h *operationHandler, req *request) {
+func (ps *protocolServer) handleRequest(h *operationHandler, req *request) {
 	req.ctx = newRequestContext(req)
-	ms.addInflight(req)
+	ps.addInflight(req)
 	defer func() {
-		ms.dropInflight(req)
+		ps.dropInflight(req)
 		req.finish()
 	}()
 
-	if req.status.Ok() && ms.opts.Debug {
-		ms.opts.Logger.Println(req.InputDebug())
+	if req.status.Ok() && ps.opts.Debug {
+		ps.opts.Logger.Println(req.InputDebug())
 	}
 
 	if h == nil || h.Func == nil {
 		c := req.inHeader().Opcode
 		if c != _OP_COPY_FILE_RANGE_64 { // _OP_COPY_FILE_RANGE_64 is intentionally not supported.
-			ms.opts.Logger.Printf("Unimplemented opcode %v", operationName(c))
+			ps.opts.Logger.Printf("Unimplemented opcode %v", operationName(c))
 		}
 		req.status = ENOSYS
 	} else if !req.status.Ok() {
 		// Reply with the error from parsing the request.
 	} else if req.inHeader().NodeId == pollHackInode ||
 		req.inHeader().NodeId == FUSE_ROOT_ID && h.FileNames > 0 && req.filename() == pollHackName {
-		doPollHackLookup(ms, req)
+		doPollHackLookup(ps, req)
 	} else {
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
-					req.status = ms.opts.PanicHandler(r)
+					req.status = ps.opts.PanicHandler(r)
 					if req.status == 0 {
 						req.status = EIO
 					}
 				}
 			}()
-			h.Func(ms, req)
+			h.Func(ps, req)
 		}()
 	}
 
@@ -86,9 +86,9 @@ func (ms *protocolServer) handleRequest(h *operationHandler, req *request) {
 		req.suppressReply = h != nil && h.SuppressReply
 	}
 	if req.status == EINTR {
-		ms.interruptMu.Lock()
-		dead := ms.connectionDead
-		ms.interruptMu.Unlock()
+		ps.interruptMu.Lock()
+		dead := ps.connectionDead
+		ps.interruptMu.Unlock()
 		if dead {
 			req.suppressReply = true
 		}
@@ -96,10 +96,10 @@ func (ms *protocolServer) handleRequest(h *operationHandler, req *request) {
 	if req.suppressReply {
 		return
 	}
-	if req.readResult != nil && ms.opts.DisableSplice {
+	if req.readResult != nil && ps.opts.DisableSplice {
 		_, vectored := req.readResult.(withSlice)
 		_, readv := req.readResult.(withReadv)
-		if !vectored && !(readv && ms.useReadv) {
+		if !vectored && !(readv && ps.useReadv) {
 			req.outPayload, req.status = req.readResult.Bytes(req.outPayload)
 			req.readResult.Done()
 			req.readResult = nil
@@ -112,36 +112,36 @@ func (ms *protocolServer) handleRequest(h *operationHandler, req *request) {
 
 	req.serializeHeader(req.outPayloadSize())
 
-	if ms.opts.Debug {
-		ms.opts.Logger.Println(req.OutputDebug())
+	if ps.opts.Debug {
+		ps.opts.Logger.Println(req.OutputDebug())
 	}
 }
 
-func (ms *protocolServer) addInflight(req *request) {
-	ms.interruptMu.Lock()
-	defer ms.interruptMu.Unlock()
-	req.inflightIndex = len(ms.reqInflight)
-	ms.reqInflight = append(ms.reqInflight, req)
+func (ps *protocolServer) addInflight(req *request) {
+	ps.interruptMu.Lock()
+	defer ps.interruptMu.Unlock()
+	req.inflightIndex = len(ps.reqInflight)
+	ps.reqInflight = append(ps.reqInflight, req)
 }
 
-func (ms *protocolServer) dropInflight(req *request) {
-	ms.interruptMu.Lock()
-	defer ms.interruptMu.Unlock()
+func (ps *protocolServer) dropInflight(req *request) {
+	ps.interruptMu.Lock()
+	defer ps.interruptMu.Unlock()
 	this := req.inflightIndex
-	last := len(ms.reqInflight) - 1
+	last := len(ps.reqInflight) - 1
 	if last != this {
-		ms.reqInflight[this] = ms.reqInflight[last]
-		ms.reqInflight[this].inflightIndex = this
+		ps.reqInflight[this] = ps.reqInflight[last]
+		ps.reqInflight[this].inflightIndex = this
 	}
-	ms.reqInflight = ms.reqInflight[:last]
+	ps.reqInflight = ps.reqInflight[:last]
 }
 
-func (ms *protocolServer) interruptRequest(unique uint64) Status {
-	ms.interruptMu.Lock()
-	defer ms.interruptMu.Unlock()
+func (ps *protocolServer) interruptRequest(unique uint64) Status {
+	ps.interruptMu.Lock()
+	defer ps.interruptMu.Unlock()
 
 	// This is slow, but this operation is rare.
-	for _, inflight := range ms.reqInflight {
+	for _, inflight := range ps.reqInflight {
 		if unique == inflight.inHeader().Unique && !inflight.ctx.canceled.Load() {
 			inflight.ctx.interrupt()
 			return OK
@@ -151,14 +151,14 @@ func (ms *protocolServer) interruptRequest(unique uint64) Status {
 	return EAGAIN
 }
 
-func (ms *protocolServer) cancelAll() {
-	ms.interruptMu.Lock()
-	defer ms.interruptMu.Unlock()
-	ms.connectionDead = true
-	for _, req := range ms.reqInflight {
+func (ps *protocolServer) cancelAll() {
+	ps.interruptMu.Lock()
+	defer ps.interruptMu.Unlock()
+	ps.connectionDead = true
+	for _, req := range ps.reqInflight {
 		req.ctx.interrupt()
 	}
-	// Leave ms.reqInflight alone, or dropInflight will barf.
+	// Leave ps.reqInflight alone, or dropInflight will barf.
 }
 
 // ProtocolServer bridges from FUSE request/response types to the

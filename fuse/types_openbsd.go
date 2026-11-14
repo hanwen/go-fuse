@@ -11,13 +11,13 @@ const (
 	ENODATA = Status(syscall.ENOATTR)
 )
 
-func (s *StatfsOut) FromStatfsT(statfs *syscall.Statfs_t) {
-	s.Blocks = statfs.F_blocks
-	s.Bsize = statfs.F_bsize
-	s.Bfree = statfs.F_bfree
-	s.Bavail = uint64(statfs.F_bavail)
-	s.Files = statfs.F_files
-	s.Ffree = statfs.F_ffree
-	s.Frsize = statfs.F_bsize
-	s.NameLen = statfs.F_namemax
+func (o *StatfsOut) FromStatfsT(statfs *syscall.Statfs_t) {
+	o.Blocks = statfs.F_blocks
+	o.Bsize = statfs.F_bsize
+	o.Bfree = statfs.F_bfree
+	o.Bavail = uint64(statfs.F_bavail)
+	o.Files = statfs.F_files
+	o.Ffree = statfs.F_ffree
+	o.Frsize = statfs.F_bsize
+	o.NameLen = statfs.F_namemax
 }

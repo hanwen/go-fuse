@@ -30,14 +30,14 @@ func (s *Server) setSplice() {
 // If a short read occurs (payloadLen < fdData.Sz), the header in the pipe
 // would carry the wrong total length, so we return an error and let the
 // caller fall back to a Pread-based path.
-func (r *fuseFD) trySplice(req *request, readResult ReadResult) error {
+func (f *fuseFD) trySplice(req *request, readResult ReadResult) error {
 	// The caller (handleRequest) already called req.serializeHeader with
 	// readResult.Size(), so req.outHeaderBuf is correct for the optimistic case.
 	total := len(req.outHeaderBuf) + len(req.outDataBuf) + readResult.Size()
 
 	spliceFlags := 0
-	if f, ok := readResult.(withSpliceFlags); ok {
-		spliceFlags = f.SpliceFlags()
+	if sf, ok := readResult.(withSpliceFlags); ok {
+		spliceFlags = sf.SpliceFlags()
 	}
 
 	pair, err := splice.Get()
@@ -89,17 +89,17 @@ func (r *fuseFD) trySplice(req *request, readResult ReadResult) error {
 			return fmt.Errorf("fallback drain: %w", err)
 		}
 
-		if r.debug {
+		if f.debug {
 			log.Printf("tx %d:     OK fixup fd %db data", req.inHeader().Unique, payloadLen)
 		}
 		// New length.
 		req.serializeHeader(payloadLen)
 
-		return r.trySplice(req, ReadResultPipeFlags(pair, payloadLen, spliceFlags))
+		return f.trySplice(req, ReadResultPipeFlags(pair, payloadLen, spliceFlags))
 	}
 
 	// Write header + payload to /dev/fuse.
-	if cerr := r.withFD(func(fd int) {
+	if cerr := f.withFD(func(fd int) {
 		_, err = pair.WriteToFlags(uintptr(fd), total, spliceFlags)
 	}); cerr != nil {
 		return cerr

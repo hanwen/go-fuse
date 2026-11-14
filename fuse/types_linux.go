@@ -37,15 +37,15 @@ const (
 	CAP_RENAME_SWAP = 0x0
 )
 
-func (s *StatfsOut) FromStatfsT(statfs *syscall.Statfs_t) {
-	s.Blocks = statfs.Blocks
-	s.Bsize = uint32(statfs.Bsize)
-	s.Bfree = statfs.Bfree
-	s.Bavail = statfs.Bavail
-	s.Files = statfs.Files
-	s.Ffree = statfs.Ffree
-	s.Frsize = uint32(statfs.Frsize)
-	s.NameLen = uint32(statfs.Namelen)
+func (o *StatfsOut) FromStatfsT(statfs *syscall.Statfs_t) {
+	o.Blocks = statfs.Blocks
+	o.Bsize = uint32(statfs.Bsize)
+	o.Bfree = statfs.Bfree
+	o.Bavail = statfs.Bavail
+	o.Files = statfs.Files
+	o.Ffree = statfs.Ffree
+	o.Frsize = uint32(statfs.Frsize)
+	o.NameLen = uint32(statfs.Namelen)
 }
 
 func (o *InitOut) setFlags(flags uint64) {

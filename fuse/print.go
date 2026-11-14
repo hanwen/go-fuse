@@ -238,13 +238,13 @@ func optFlagString(names *flagNames, fl int64) string {
 	return " [" + flagString(names, fl, "") + "]"
 }
 
-func (in *OpenOut) string() string {
+func (o *OpenOut) string() string {
 	backing := ""
-	if in.BackingID != 0 {
-		backing = fmt.Sprintf("backing=%d ", in.BackingID)
+	if o.BackingID != 0 {
+		backing = fmt.Sprintf("backing=%d ", o.BackingID)
 	}
-	return fmt.Sprintf("{Fh %d %s%s}", in.Fh, backing,
-		flagString(fuseOpenFlagNames, int64(in.OpenFlags), ""))
+	return fmt.Sprintf("{Fh %d %s%s}", o.Fh, backing,
+		flagString(fuseOpenFlagNames, int64(o.OpenFlags), ""))
 }
 
 func (in *InitIn) string() string {
@@ -265,8 +265,8 @@ func (o *InitOut) string() string {
 		o.TimeGran, o.MaxPages, o.MaxStackDepth, mapAlign)
 }
 
-func (s *FsyncIn) string() string {
-	return fmt.Sprintf("{Fh %d Flags %x}", s.Fh, s.FsyncFlags)
+func (in *FsyncIn) string() string {
+	return fmt.Sprintf("{Fh %d Flags %x}", in.Fh, in.FsyncFlags)
 }
 
 func (in *GetXAttrIn) string() string {
@@ -338,30 +338,30 @@ func (o *NotifyRetrieveOut) string() string {
 	return fmt.Sprintf("{> %d: n%d [%d +%d)}", o.NotifyUnique, o.Nodeid, o.Offset, o.Size)
 }
 
-func (i *NotifyRetrieveIn) string() string {
-	return fmt.Sprintf("{[%d +%d)}", i.Offset, i.Size)
+func (in *NotifyRetrieveIn) string() string {
+	return fmt.Sprintf("{[%d +%d)}", in.Offset, in.Size)
 }
 
 func (o *NotifyPruneOut) string() string {
 	return fmt.Sprintf("{%d}", o.Count)
 }
 
-func (f *FallocateIn) string() string {
+func (in *FallocateIn) string() string {
 	return fmt.Sprintf("{Fh %d [%d +%d) mod 0%o}",
-		f.Fh, f.Offset, f.Length, f.Mode)
+		in.Fh, in.Offset, in.Length, in.Mode)
 }
 
-func (f *LinkIn) string() string {
-	return fmt.Sprintf("{Oldnodeid: n%d}", f.Oldnodeid)
+func (in *LinkIn) string() string {
+	return fmt.Sprintf("{Oldnodeid: n%d}", in.Oldnodeid)
 }
 
 func (o *WriteOut) string() string {
 	return fmt.Sprintf("{%db }", o.Size)
 
 }
-func (i *CopyFileRangeIn) string() string {
+func (in *CopyFileRangeIn) string() string {
 	return fmt.Sprintf("{Fh %d [%d +%d) => n%d Fh %d [%d, %d)}",
-		i.FhIn, i.OffIn, i.Len, i.NodeIdOut, i.FhOut, i.OffOut, i.Len)
+		in.FhIn, in.OffIn, in.Len, in.NodeIdOut, in.FhOut, in.OffOut, in.Len)
 }
 
 func (in *InterruptIn) string() string {
@@ -385,8 +385,8 @@ func (o *LseekOut) string() string {
 	return fmt.Sprintf("{%d}", o.Offset)
 }
 
-func (p *_PollIn) string() string {
-	return fmt.Sprintf("Fh %d Kh %d Flags 0x%x", p.Fh, p.Kh, p.Flags)
+func (in *_PollIn) string() string {
+	return fmt.Sprintf("Fh %d Kh %d Flags 0x%x", in.Fh, in.Kh, in.Flags)
 }
 
 // Print pretty prints FUSE data types for kernel communication
@@ -419,11 +419,11 @@ func (m *BackingMap) string() string {
 	return fmt.Sprintf("{fd %d, flags 0x%x}", m.Fd, m.Flags)
 }
 
-func (o *IoctlIn) string() string {
+func (in *IoctlIn) string() string {
 	return fmt.Sprintf("{Fh %d Flags %s Cmd 0x%x Arg 0x%x, insz %d outsz %d}",
-		o.Fh,
-		flagString(ioctlFlagNames, int64(o.Flags), ""),
-		o.Cmd, o.Arg, o.InSize, o.OutSize)
+		in.Fh,
+		flagString(ioctlFlagNames, int64(in.Flags), ""),
+		in.Cmd, in.Arg, in.InSize, in.OutSize)
 }
 
 func (o *IoctlOut) string() string {
@@ -433,14 +433,14 @@ func (o *IoctlOut) string() string {
 		o.InIovs, o.OutIovs)
 }
 
-func (l *LkIn) string() string {
-	return fmt.Sprintf("{Fh %d Owner %d %s %s}", l.Owner, l.Owner, l.Lk.string(), flagString(lockFlagNames, int64(l.LkFlags), ""))
+func (in *LkIn) string() string {
+	return fmt.Sprintf("{Fh %d Owner %d %s %s}", in.Owner, in.Owner, in.Lk.string(), flagString(lockFlagNames, int64(in.LkFlags), ""))
 }
 
 func (lk *FileLock) string() string {
 	return fmt.Sprintf("{[%d,%d) t%d p%d}", lk.Start, lk.End, lk.Typ, lk.Pid)
 }
 
-func (l *LkOut) string() string {
-	return l.Lk.string()
+func (o *LkOut) string() string {
+	return o.Lk.string()
 }

@@ -180,8 +180,8 @@ func doInit(server *protocolServer, req *request) {
 
 // connect sets up the connection negotiated by in and out, and calls
 // OnConnect.
-func (ms *protocolServer) connect(in *InitIn, out *InitOut) {
-	conn := ms.conn
+func (ps *protocolServer) connect(in *InitIn, out *InitOut) {
+	conn := ps.conn
 	conn.in = *in
 	conn.out = *out
 	if n := conn.notify.notifier; n != nil {
@@ -189,7 +189,7 @@ func (ms *protocolServer) connect(in *InitIn, out *InitOut) {
 	}
 	conn.notify = conn.notify.gate(in)
 	conn.backing = conn.backing.gate(in)
-	ms.fileSystem.OnConnect(conn)
+	ps.fileSystem.OnConnect(conn)
 }
 
 // checkSession returns an error if this version cannot serve a

@@ -31,26 +31,26 @@ type notifier struct {
 }
 
 // deleteRetrieveLocked removes a retrieve from the table.
-func (ms *notifier) deleteRetrieveLocked(unique uint64) {
-	delete(ms.retrieveTab, unique)
-	if len(ms.retrieveTab) == 0 && ms.retrieveIdle != nil {
-		close(ms.retrieveIdle)
-		ms.retrieveIdle = nil
+func (n *notifier) deleteRetrieveLocked(unique uint64) {
+	delete(n.retrieveTab, unique)
+	if len(n.retrieveTab) == 0 && n.retrieveIdle != nil {
+		close(n.retrieveIdle)
+		n.retrieveIdle = nil
 	}
 }
 
 // waitRetrieves waits until no retrieve waits for a reply.
-func (ms *notifier) waitRetrieves(ctx context.Context) error {
-	ms.retrieveMu.Lock()
-	if len(ms.retrieveTab) == 0 {
-		ms.retrieveMu.Unlock()
+func (n *notifier) waitRetrieves(ctx context.Context) error {
+	n.retrieveMu.Lock()
+	if len(n.retrieveTab) == 0 {
+		n.retrieveMu.Unlock()
 		return nil
 	}
-	if ms.retrieveIdle == nil {
-		ms.retrieveIdle = make(chan struct{})
+	if n.retrieveIdle == nil {
+		n.retrieveIdle = make(chan struct{})
 	}
-	ch := ms.retrieveIdle
-	ms.retrieveMu.Unlock()
+	ch := n.retrieveIdle
+	n.retrieveMu.Unlock()
 	select {
 	case <-ch:
 		return nil
@@ -82,14 +82,14 @@ func newNotify(writev func([][]byte) (int, syscall.Errno), opts *MountOptions) *
 
 // deliverReply hands a NOTIFY_REPLY from the kernel to the waiting
 // Retrieve call.
-func (ms *notifier) deliverReply(reply *NotifyRetrieveIn, payload []byte) {
-	ms.retrieveMu.Lock()
-	reading := ms.retrieveTab[reply.Unique]
-	ms.deleteRetrieveLocked(reply.Unique)
-	ms.retrieveMu.Unlock()
+func (n *notifier) deliverReply(reply *NotifyRetrieveIn, payload []byte) {
+	n.retrieveMu.Lock()
+	reading := n.retrieveTab[reply.Unique]
+	n.deleteRetrieveLocked(reply.Unique)
+	n.retrieveMu.Unlock()
 
 	badf := func(format string, argv ...any) {
-		ms.opts.Logger.Printf("notify reply: "+format, argv...)
+		n.opts.Logger.Printf("notify reply: "+format, argv...)
 	}
 
 	if reading == nil {
@@ -120,20 +120,20 @@ func (ms *notifier) deliverReply(reply *NotifyRetrieveIn, payload []byte) {
 }
 
 // abort fails in-flight retrieves with ENODEV.
-func (ms *notifier) abort() {
+func (n *notifier) abort() {
 	// It is possible that umount comes in the middle - after retrieve
 	// request was sent to kernel, but corresponding kernel reply has not
 	// yet been read. We unblock all such readers and wake them up with ENODEV.
-	ms.retrieveMu.Lock()
-	rtab := ms.retrieveTab
+	n.retrieveMu.Lock()
+	rtab := n.retrieveTab
 	// retrieve attempts might be erroneously tried even after close
 	// we have to keep retrieveTab !nil not to panic.
-	ms.retrieveTab = make(map[uint64]*retrieveCacheRequest)
-	if ms.retrieveIdle != nil {
-		close(ms.retrieveIdle)
-		ms.retrieveIdle = nil
+	n.retrieveTab = make(map[uint64]*retrieveCacheRequest)
+	if n.retrieveIdle != nil {
+		close(n.retrieveIdle)
+		n.retrieveIdle = nil
 	}
-	ms.retrieveMu.Unlock()
+	n.retrieveMu.Unlock()
 	for _, reading := range rtab {
 		reading.n = 0
 		reading.st = ENODEV
@@ -158,8 +158,8 @@ func notifyWrite(writev func([][]byte) (int, syscall.Errno), opts *MountOptions,
 	return Status(errno)
 }
 
-func (ms *notifier) notifyWrite(req *request) Status {
-	return notifyWrite(ms.writev, ms.opts, req)
+func (n *notifier) notifyWrite(req *request) Status {
+	return notifyWrite(n.writev, n.opts, req)
 }
 
 func newNotifyRequest(opcode uint32) *request {
@@ -182,7 +182,7 @@ func newNotifyRequest(opcode uint32) *request {
 
 // InodeNotify invalidates the information associated with the inode
 // (ie. data cache, attributes, etc.)
-func (ms *notifier) InodeNotify(node uint64, off int64, length int64) Status {
+func (n *notifier) InodeNotify(node uint64, off int64, length int64) Status {
 	req := newNotifyRequest(_OP_NOTIFY_INVAL_INODE)
 
 	entry := (*NotifyInvalInodeOut)(req.outData())
@@ -190,10 +190,10 @@ func (ms *notifier) InodeNotify(node uint64, off int64, length int64) Status {
 	entry.Off = off
 	entry.Length = length
 
-	return ms.notifyWrite(req)
+	return n.notifyWrite(req)
 }
 
-func (ms *notifier) PruneNotify(nodes []uint64) Status {
+func (n *notifier) PruneNotify(nodes []uint64) Status {
 	if len(nodes) == 0 {
 		return OK
 	}
@@ -205,14 +205,14 @@ func (ms *notifier) PruneNotify(nodes []uint64) Status {
 
 	req.outPayload = unsafe.Slice((*byte)(unsafe.Pointer(&nodes[0])), 8*len(nodes))
 
-	return ms.notifyWrite(req)
+	return n.notifyWrite(req)
 }
 
 // InodeNotifyStoreCache tells kernel to store data into inode's cache.
 //
 // This call is similar to InodeNotify, but instead of only invalidating a data
 // region, it gives updated data directly to the kernel.
-func (ms *notifier) InodeNotifyStoreCache(node uint64, offset int64, data []byte) Status {
+func (n *notifier) InodeNotifyStoreCache(node uint64, offset int64, data []byte) Status {
 	for len(data) > 0 {
 		size := min(len(data),
 			// NotifyStoreOut has only uint32 for size.
@@ -220,7 +220,7 @@ func (ms *notifier) InodeNotifyStoreCache(node uint64, offset int64, data []byte
 			// platforms int has only 31-bit for positive range.
 			math.MaxInt32)
 
-		st := ms.inodeNotifyStoreCache32(node, offset, data[:size])
+		st := n.inodeNotifyStoreCache32(node, offset, data[:size])
 		if st != OK {
 			return st
 		}
@@ -234,7 +234,7 @@ func (ms *notifier) InodeNotifyStoreCache(node uint64, offset int64, data []byte
 
 // inodeNotifyStoreCache32 is internal worker for InodeNotifyStoreCache which
 // handles data chunks not larger than 2GB.
-func (ms *notifier) inodeNotifyStoreCache32(node uint64, offset int64, data []byte) Status {
+func (n *notifier) inodeNotifyStoreCache32(node uint64, offset int64, data []byte) Status {
 	req := newNotifyRequest(_OP_NOTIFY_STORE_CACHE)
 
 	store := (*NotifyStoreOut)(req.outData())
@@ -244,7 +244,7 @@ func (ms *notifier) inodeNotifyStoreCache32(node uint64, offset int64, data []by
 
 	req.outPayload = data
 
-	return ms.notifyWrite(req)
+	return n.notifyWrite(req)
 }
 
 // InodeRetrieveCache retrieves data from kernel's inode cache.
@@ -256,21 +256,23 @@ func (ms *notifier) inodeNotifyStoreCache32(node uint64, offset int64, data []by
 //
 // The kernel returns ENOENT if it does not currently have entry for this inode
 // in its dentry cache.
-func (ms *notifier) InodeRetrieveCache(node uint64, offset int64, dest []byte) (n int, st Status) {
+func (n *notifier) InodeRetrieveCache(node uint64, offset int64, dest []byte) (int, Status) {
 	// the kernel won't send us in one go more then what we negotiated as MaxWrite.
 	// retrieve the data in chunks.
 	// TODO spawn some number of readahead retrievers in parallel.
 	ntotal := 0
+	var st Status
 	for {
-		chunkSize := min(len(dest), ms.maxWrite)
-		n, st = ms.inodeRetrieveCache1(node, offset, dest[:chunkSize])
-		if st != OK || n == 0 {
+		chunkSize := min(len(dest), n.maxWrite)
+		var got int
+		got, st = n.inodeRetrieveCache1(node, offset, dest[:chunkSize])
+		if st != OK || got == 0 {
 			break
 		}
 
-		ntotal += n
-		offset += int64(n)
-		dest = dest[n:]
+		ntotal += got
+		offset += int64(got)
+		dest = dest[got:]
 	}
 
 	// if we could retrieve at least something - it is ok.
@@ -283,7 +285,7 @@ func (ms *notifier) InodeRetrieveCache(node uint64, offset int64, dest []byte) (
 
 // inodeRetrieveCache1 is internal worker for InodeRetrieveCache which
 // actually talks to kernel and retrieves chunks not larger than the negotiated MaxWrite.
-func (ms *notifier) inodeRetrieveCache1(node uint64, offset int64, dest []byte) (n int, st Status) {
+func (n *notifier) inodeRetrieveCache1(node uint64, offset int64, dest []byte) (int, Status) {
 	req := newNotifyRequest(_OP_NOTIFY_RETRIEVE_CACHE)
 
 	// retrieve up to 2GB not to overflow uint32 size in NotifyRetrieveOut.
@@ -306,19 +308,19 @@ func (ms *notifier) inodeRetrieveCache1(node uint64, offset int64, dest []byte) 
 		ready:  make(chan struct{}),
 	}
 
-	ms.retrieveMu.Lock()
-	q.NotifyUnique = ms.retrieveNext
-	ms.retrieveNext++
-	ms.retrieveTab[q.NotifyUnique] = reading
-	ms.retrieveMu.Unlock()
+	n.retrieveMu.Lock()
+	q.NotifyUnique = n.retrieveNext
+	n.retrieveNext++
+	n.retrieveTab[q.NotifyUnique] = reading
+	n.retrieveMu.Unlock()
 
 	// Protect against concurrent close.
-	result := ms.notifyWrite(req)
+	result := n.notifyWrite(req)
 	if result != OK {
-		ms.retrieveMu.Lock()
-		r := ms.retrieveTab[q.NotifyUnique]
+		n.retrieveMu.Lock()
+		r := n.retrieveTab[q.NotifyUnique]
 		if r == reading {
-			ms.deleteRetrieveLocked(q.NotifyUnique)
+			n.deleteRetrieveLocked(q.NotifyUnique)
 		} else if r == nil {
 			// ok - might be dequeued by umount
 		} else {
@@ -326,9 +328,9 @@ func (ms *notifier) inodeRetrieveCache1(node uint64, offset int64, dest []byte) 
 			// unexpected NotifyReply with our notifyUnique, then
 			// retrieveNext wraps, makes full cycle, and another
 			// retrieve request is made with the same notifyUnique.
-			ms.opts.Logger.Printf("W: INODE_RETRIEVE_CACHE: request with notifyUnique=%d mutated", q.NotifyUnique)
+			n.opts.Logger.Printf("W: INODE_RETRIEVE_CACHE: request with notifyUnique=%d mutated", q.NotifyUnique)
 		}
-		ms.retrieveMu.Unlock()
+		n.retrieveMu.Unlock()
 		return 0, result
 	}
 
@@ -356,7 +358,7 @@ type retrieveCacheRequest struct {
 // except when the directory is in use, eg. as working directory of
 // some process. You should not hold any FUSE filesystem locks, as that
 // can lead to deadlock.
-func (ms *notifier) DeleteNotify(parent uint64, child uint64, name string) Status {
+func (n *notifier) DeleteNotify(parent uint64, child uint64, name string) Status {
 	req := newNotifyRequest(_OP_NOTIFY_DELETE)
 
 	entry := (*NotifyInvalDeleteOut)(req.outData())
@@ -371,13 +373,13 @@ func (ms *notifier) DeleteNotify(parent uint64, child uint64, name string) Statu
 	nameBytes[len(nameBytes)-1] = '\000'
 	req.outPayload = nameBytes
 
-	return ms.notifyWrite(req)
+	return n.notifyWrite(req)
 }
 
 // EntryNotify should be used if the existence status of an entry
 // within a directory changes. You should not hold any FUSE filesystem
 // locks, as that can lead to deadlock.
-func (ms *notifier) EntryNotify(parent uint64, name string) Status {
+func (n *notifier) EntryNotify(parent uint64, name string) Status {
 	req := newNotifyRequest(_OP_NOTIFY_INVAL_ENTRY)
 	entry := (*NotifyInvalEntryOut)(req.outData())
 	entry.Parent = parent
@@ -390,5 +392,5 @@ func (ms *notifier) EntryNotify(parent uint64, name string) Status {
 	nameBytes[len(nameBytes)-1] = '\000'
 	req.outPayload = nameBytes
 
-	return ms.notifyWrite(req)
+	return n.notifyWrite(req)
 }

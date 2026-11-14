@@ -9,19 +9,19 @@ import "syscall"
 // do not error-out, meaning that unmount will hang.
 const useSingleReader = true
 
-func (r *fuseFD) initWake(fd int) error {
+func (f *fuseFD) initWake(fd int) error {
 	return nil
 }
 
-func (r *fuseFD) wake() {}
+func (f *fuseFD) wake() {}
 
-func (r *fuseFD) unwake() {}
+func (f *fuseFD) unwake() {}
 
-func (r *fuseFD) readFD(fd int, dest []byte) (int, error) {
+func (f *fuseFD) readFD(fd int, dest []byte) (int, error) {
 	return syscall.Read(fd, dest)
 }
 
-func (r *fuseFD) write(req *requestAlloc) Status {
+func (f *fuseFD) write(req *requestAlloc) Status {
 	if req.outPayloadSize() == 0 {
 		_, err := req.call.writev(req.outHeaderBuf, req.outDataBuf)
 		return ToStatus(err)
@@ -32,7 +32,7 @@ func (r *fuseFD) write(req *requestAlloc) Status {
 			req.readResult = nil
 		}()
 		if ws, ok := req.readResult.(withSlice); ok {
-			return r.writeWithSlice(&req.request, ws)
+			return f.writeWithSlice(&req.request, ws)
 		}
 
 		req.outPayload, req.status = req.readResult.Bytes(req.outPayload)

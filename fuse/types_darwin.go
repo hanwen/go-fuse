@@ -117,23 +117,23 @@ type MonitorIn struct {
 	Padding uint32
 }
 
-func (s *StatfsOut) FromStatfsT(statfs *syscall.Statfs_t) {
-	s.Blocks = statfs.Blocks
-	s.Bfree = statfs.Bfree
-	s.Bavail = statfs.Bavail
-	s.Files = statfs.Files
-	s.Ffree = statfs.Ffree
-	s.Bsize = uint32(statfs.Iosize) // Iosize translates to Bsize: the optimal transfer size.
-	s.Frsize = s.Bsize              // Bsize translates to Frsize: the minimum transfer size.
+func (o *StatfsOut) FromStatfsT(statfs *syscall.Statfs_t) {
+	o.Blocks = statfs.Blocks
+	o.Bfree = statfs.Bfree
+	o.Bavail = statfs.Bavail
+	o.Files = statfs.Files
+	o.Ffree = statfs.Ffree
+	o.Bsize = uint32(statfs.Iosize) // Iosize translates to Bsize: the optimal transfer size.
+	o.Frsize = o.Bsize              // Bsize translates to Frsize: the minimum transfer size.
 
 	// The block counts are in units of statfs.Bsize.
 	// If s.Bsize != statfs.Bsize, we have to recalculate the block counts
 	// accordingly (s.Bsize is usually 256*statfs.Bsize).
-	if s.Bsize > statfs.Bsize {
-		adj := uint64(s.Bsize / statfs.Bsize)
-		s.Blocks /= adj
-		s.Bfree /= adj
-		s.Bavail /= adj
+	if o.Bsize > statfs.Bsize {
+		adj := uint64(o.Bsize / statfs.Bsize)
+		o.Blocks /= adj
+		o.Bfree /= adj
+		o.Bavail /= adj
 	}
 }
 

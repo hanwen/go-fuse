@@ -14,13 +14,13 @@ const (
 	// Ref: https://cgit.freebsd.org/src/tree/sys/fs/fuse/fuse_kernel.h
 )
 
-func (s *StatfsOut) FromStatfsT(statfs *syscall.Statfs_t) {
-	s.Blocks = statfs.Blocks
-	s.Bsize = uint32(statfs.Bsize)
-	s.Bfree = statfs.Bfree
-	s.Bavail = uint64(statfs.Bavail)
-	s.Files = statfs.Files
-	s.Ffree = uint64(statfs.Ffree)
-	s.Frsize = uint32(statfs.Bsize)
-	s.NameLen = uint32(statfs.Namemax)
+func (o *StatfsOut) FromStatfsT(statfs *syscall.Statfs_t) {
+	o.Blocks = statfs.Blocks
+	o.Bsize = uint32(statfs.Bsize)
+	o.Bfree = statfs.Bfree
+	o.Bavail = uint64(statfs.Bavail)
+	o.Files = statfs.Files
+	o.Ffree = uint64(statfs.Ffree)
+	o.Frsize = uint32(statfs.Bsize)
+	o.NameLen = uint32(statfs.Namemax)
 }

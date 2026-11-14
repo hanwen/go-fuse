@@ -89,26 +89,26 @@ type Server struct {
 // KernelSettings returns the Init message from the kernel, so
 // filesystems can adapt to availability of features of the kernel
 // driver. The message should not be altered.
-func (ms *Server) KernelSettings() *InitIn {
-	s := ms.conn.in
+func (s *Server) KernelSettings() *InitIn {
+	in := s.conn.in
 
-	return &s
+	return &in
 }
 
 // Unmount unmounts the file system (see Mount.Unmount), and
 // waits for the server to exit. After the Server is unmounted, it
 // should be discarded. This function is idempotent.
-func (ms *Server) Unmount() error {
-	if ms.mount == nil {
+func (s *Server) Unmount() error {
+	if s.mount == nil {
 		return errors.New("fuse: server has no mount")
 	}
-	if err := ms.mount.Unmount(); err != nil {
+	if err := s.mount.Unmount(); err != nil {
 		return err
 	}
 	// The kernel has aborted the connection.
-	ms.cancelAll()
-	ms.markDead()
-	<-ms.done
+	s.cancelAll()
+	s.markDead()
+	<-s.done
 	return nil
 }
 
@@ -221,9 +221,9 @@ func newServerFromDev(fs RawFileSystem, d *Dev, m *Mount, o *MountOptions) (*Ser
 
 // setMaxWrite sizes the read buffers for requests carrying up to
 // maxWrite bytes of data. It must be called while no request is read.
-func (ms *Server) setMaxWrite(maxWrite int) {
+func (s *Server) setMaxWrite(maxWrite int) {
 	readBufSize, readBufBytes, _ := requestAccountingSizes(maxWrite)
-	ms.readPool = sync.Pool{
+	s.readPool = sync.Pool{
 		New: func() any {
 			// O_DIRECT typically requires buffers aligned to
 			// blocksize (see man 2 open), but requirements vary
@@ -234,15 +234,15 @@ func (ms *Server) setMaxWrite(maxWrite int) {
 			return buf
 		},
 	}
-	ms.fuseFD.readBufBytes = readBufBytes
+	s.fuseFD.readBufBytes = readBufBytes
 }
 
 // applyNegotiated sizes the read buffers and enables splice for
 // the negotiated connection.
-func (ms *Server) applyNegotiated() {
-	ms.setMaxWrite(int(ms.conn.out.MaxWrite))
-	if ms.conn.out.Minor >= 13 {
-		ms.setSplice()
+func (s *Server) applyNegotiated() {
+	s.setMaxWrite(int(s.conn.out.MaxWrite))
+	if s.conn.out.Minor >= 13 {
+		s.setSplice()
 	}
 }
 
@@ -299,11 +299,11 @@ func (o *MountOptions) containsOption(opt string) bool {
 
 // DebugData returns internal status information for debugging
 // purposes.
-func (ms *Server) DebugData() string {
+func (s *Server) DebugData() string {
 	var r int
-	ms.fuseFD.reqMu.Lock()
-	r = ms.fuseFD.reqReaders
-	ms.fuseFD.reqMu.Unlock()
+	s.fuseFD.reqMu.Lock()
+	r = s.fuseFD.reqReaders
+	s.fuseFD.reqMu.Unlock()
 
 	return fmt.Sprintf("readers: %d", r)
 }
@@ -333,22 +333,22 @@ func handleEINTR(fn func() error) (err error) {
 // want to run this in a goroutine.
 //
 // Each filesystem operation executes in a separate goroutine.
-func (ms *Server) Serve() {
-	if !ms.serving.CompareAndSwap(false, true) {
+func (s *Server) Serve() {
+	if !s.serving.CompareAndSwap(false, true) {
 		// Calling Serve() multiple times leads to a panic on unmount and fun
 		// debugging sessions ( https://github.com/hanwen/go-fuse/issues/512 ).
 		// Catch it early.
 		log.Panic("Serve() must only be called once, you have called it a second time")
 	}
-	if err := ms.Start(); err != nil {
-		ms.opts.Logger.Printf("Serve: %v", err)
+	if err := s.Start(); err != nil {
+		s.opts.Logger.Printf("Serve: %v", err)
 	}
-	ms.Wait()
+	s.Wait()
 }
 
 // Wait waits until the server is closed.
-func (ms *Server) Wait() {
-	<-ms.done
+func (s *Server) Wait() {
+	<-s.done
 }
 
 type serverState int
@@ -363,25 +363,25 @@ const (
 var errServerClosed = errors.New("fuse: server closed")
 
 // Start starts reading requests, or resumes after Stop.
-func (ms *Server) Start() error {
-	ms.lifeMu.Lock()
-	defer ms.lifeMu.Unlock()
-	ms.stateMu.Lock()
-	defer ms.stateMu.Unlock()
-	switch ms.state {
+func (s *Server) Start() error {
+	s.lifeMu.Lock()
+	defer s.lifeMu.Unlock()
+	s.stateMu.Lock()
+	defer s.stateMu.Unlock()
+	switch s.state {
 	case stateRunning:
 		return nil
 	case stateClosing, stateClosed:
 		return errServerClosed
 	}
-	if ms.dead {
+	if s.dead {
 		return errServerClosed
 	}
-	ms.fuseFD.startReading()
-	ms.state = stateRunning
-	ms.notifyStopped.Store(false)
-	ms.loops++
-	go ms.loop()
+	s.fuseFD.startReading()
+	s.state = stateRunning
+	s.notifyStopped.Store(false)
+	s.loops++
+	go s.loop()
 	return nil
 }
 
@@ -397,30 +397,30 @@ func (ms *Server) Start() error {
 //
 // On platforms other than Linux, a reader blocked in read(2) only
 // returns with the next request, so Stop may wait for it.
-func (ms *Server) Stop(ctx context.Context) error {
-	ms.lifeMu.Lock()
-	defer ms.lifeMu.Unlock()
-	return ms.stop(ctx)
+func (s *Server) Stop(ctx context.Context) error {
+	s.lifeMu.Lock()
+	defer s.lifeMu.Unlock()
+	return s.stop(ctx)
 }
 
-func (ms *Server) stop(ctx context.Context) error {
-	ms.stateMu.Lock()
-	switch ms.state {
+func (s *Server) stop(ctx context.Context) error {
+	s.stateMu.Lock()
+	switch s.state {
 	case stateClosing, stateClosed:
-		ms.stateMu.Unlock()
+		s.stateMu.Unlock()
 		return errServerClosed
 	}
-	ms.state = stateStopped
-	ms.notifyStopped.Store(true)
-	ms.stateMu.Unlock()
+	s.state = stateStopped
+	s.notifyStopped.Store(true)
+	s.stateMu.Unlock()
 
 	var err error
-	if n := ms.conn.notify.notifier; n != nil {
+	if n := s.conn.notify.notifier; n != nil {
 		err = n.waitRetrieves(ctx)
 	}
-	ms.fuseFD.stopReading()
+	s.fuseFD.stopReading()
 	if err == nil {
-		err = ms.waitLoopsZero(ctx)
+		err = s.waitLoopsZero(ctx)
 	}
 	return err
 }
@@ -430,78 +430,78 @@ func (ms *Server) stop(ctx context.Context) error {
 // RawFileSystem.OnUnmount. It does not unmount the file system; if
 // no other process has the FUSE device open, the kernel aborts the
 // connection. If Stop fails, the server stays stopped.
-func (ms *Server) Shutdown(ctx context.Context) error {
-	ms.lifeMu.Lock()
-	defer ms.lifeMu.Unlock()
-	if err := ms.stop(ctx); err != nil {
+func (s *Server) Shutdown(ctx context.Context) error {
+	s.lifeMu.Lock()
+	defer s.lifeMu.Unlock()
+	if err := s.stop(ctx); err != nil {
 		if err == errServerClosed {
-			<-ms.done
+			<-s.done
 			return nil
 		}
 		return err
 	}
-	ms.finish()
+	s.finish()
 	return nil
 }
 
 // addLoop counts a goroutine that reads or serves requests. The
 // caller must be counted itself, so the count is not zero.
-func (ms *Server) addLoop() {
-	ms.stateMu.Lock()
-	ms.loops++
-	ms.stateMu.Unlock()
+func (s *Server) addLoop() {
+	s.stateMu.Lock()
+	s.loops++
+	s.stateMu.Unlock()
 }
 
 // loopDone is called when a goroutine counted by addLoop exits.
-func (ms *Server) loopDone() {
-	ms.stateMu.Lock()
-	ms.loops--
-	finish := ms.checkLoopsZeroLocked()
-	ms.stateMu.Unlock()
+func (s *Server) loopDone() {
+	s.stateMu.Lock()
+	s.loops--
+	finish := s.checkLoopsZeroLocked()
+	s.stateMu.Unlock()
 	if finish {
-		ms.finish()
+		s.finish()
 	}
 }
 
 // markDead marks reading as failed for good, so readers exit, and
 // the server closes once they have.
-func (ms *Server) markDead() {
-	ms.stateMu.Lock()
-	ms.dead = true
-	ms.fuseFD.stopReading()
-	finish := ms.checkLoopsZeroLocked()
-	ms.stateMu.Unlock()
+func (s *Server) markDead() {
+	s.stateMu.Lock()
+	s.dead = true
+	s.fuseFD.stopReading()
+	finish := s.checkLoopsZeroLocked()
+	s.stateMu.Unlock()
 	if finish {
-		ms.finish()
+		s.finish()
 	}
 }
 
 // checkLoopsZeroLocked closes loopsZero if no goroutine reads or serves
 // requests. It returns whether the server should then be closed,
 // because reading has failed.
-func (ms *Server) checkLoopsZeroLocked() bool {
-	if ms.loops > 0 {
+func (s *Server) checkLoopsZeroLocked() bool {
+	if s.loops > 0 {
 		return false
 	}
-	if ms.loopsZero != nil {
-		close(ms.loopsZero)
-		ms.loopsZero = nil
+	if s.loopsZero != nil {
+		close(s.loopsZero)
+		s.loopsZero = nil
 	}
-	return ms.dead
+	return s.dead
 }
 
 // waitLoopsZero waits until no goroutine reads or serves requests.
-func (ms *Server) waitLoopsZero(ctx context.Context) error {
-	ms.stateMu.Lock()
-	if ms.loops == 0 {
-		ms.stateMu.Unlock()
+func (s *Server) waitLoopsZero(ctx context.Context) error {
+	s.stateMu.Lock()
+	if s.loops == 0 {
+		s.stateMu.Unlock()
 		return nil
 	}
-	if ms.loopsZero == nil {
-		ms.loopsZero = make(chan struct{})
+	if s.loopsZero == nil {
+		s.loopsZero = make(chan struct{})
 	}
-	ch := ms.loopsZero
-	ms.stateMu.Unlock()
+	ch := s.loopsZero
+	s.stateMu.Unlock()
 	select {
 	case <-ch:
 		return nil
@@ -512,48 +512,48 @@ func (ms *Server) waitLoopsZero(ctx context.Context) error {
 
 // finish closes the server once. It must be called with no request
 // being read or served.
-func (ms *Server) finish() {
-	ms.stateMu.Lock()
-	if ms.state == stateClosing || ms.state == stateClosed {
-		ms.stateMu.Unlock()
-		<-ms.done
+func (s *Server) finish() {
+	s.stateMu.Lock()
+	if s.state == stateClosing || s.state == stateClosed {
+		s.stateMu.Unlock()
+		<-s.done
 		return
 	}
-	ms.state = stateClosing
-	ms.stateMu.Unlock()
+	s.state = stateClosing
+	s.stateMu.Unlock()
 
-	ms.fuseFD.close()
+	s.fuseFD.close()
 	// shutdown in-flight cache retrieves.
-	if n := ms.conn.notify.notifier; n != nil {
+	if n := s.conn.notify.notifier; n != nil {
 		n.abort()
 	}
-	ms.fileSystem.OnUnmount()
+	s.fileSystem.OnUnmount()
 
-	ms.stateMu.Lock()
-	ms.state = stateClosed
-	ms.stateMu.Unlock()
-	close(ms.done)
+	s.stateMu.Lock()
+	s.state = stateClosed
+	s.stateMu.Unlock()
+	close(s.done)
 }
 
 // writeNotify writes a notification.
-func (ms *Server) writeNotify(iov [][]byte) (int, syscall.Errno) {
-	if ms.notifyStopped.Load() {
+func (s *Server) writeNotify(iov [][]byte) (int, syscall.Errno) {
+	if s.notifyStopped.Load() {
 		return 0, syscall.EINTR
 	}
-	return ms.fuseFD.writev(iov)
+	return s.fuseFD.writev(iov)
 }
 
-func (ms *Server) handleInit() Status {
+func (s *Server) handleInit() Status {
 	// The first request should be INIT; read it synchronously.
-	req, _, errNo := ms.fuseFD.readRequest()
+	req, _, errNo := s.fuseFD.readRequest()
 
 	if errNo != OK || req == nil {
 		return errNo
 	}
-	if code := ms.handleRequest(req); !code.Ok() {
+	if code := s.handleRequest(req); !code.Ok() {
 		return code
 	}
-	ms.applyNegotiated()
+	s.applyNegotiated()
 	return OK
 }
 
@@ -584,11 +584,11 @@ func (ms *Server) handleInit() Status {
 // BenchmarkGoFuseStat-2          	    9310	    121332 ns/op
 // BenchmarkGoFuseReaddir         	    4074	    361568 ns/op
 // BenchmarkGoFuseReaddir-2       	    3511	    319765 ns/op
-func (ms *Server) loop() {
-	defer ms.loopDone()
+func (s *Server) loop() {
+	defer s.loopDone()
 exit:
 	for {
-		req, needReader, errNo := ms.fuseFD.readRequest()
+		req, needReader, errNo := s.fuseFD.readRequest()
 		switch errNo {
 		case OK:
 			if req == nil {
@@ -600,50 +600,50 @@ exit:
 			// Mount was killed. The obvious place to
 			// cancel outstanding requests is when the
 			// server closes, but that reader might be blocked.
-			ms.cancelAll()
-			if ms.opts.Debug {
-				ms.opts.Logger.Printf("received ENODEV (unmount request), thread exiting")
+			s.cancelAll()
+			if s.opts.Debug {
+				s.opts.Logger.Printf("received ENODEV (unmount request), thread exiting")
 			}
-			ms.markDead()
+			s.markDead()
 			break exit
 		default: // some other error?
-			ms.opts.Logger.Printf("Failed to read from fuse conn: %v", errNo)
-			ms.markDead()
+			s.opts.Logger.Printf("Failed to read from fuse conn: %v", errNo)
+			s.markDead()
 			break exit
 		}
 
-		if !ms.singleReader && needReader {
-			ms.addLoop()
-			go ms.loop()
+		if !s.singleReader && needReader {
+			s.addLoop()
+			go s.loop()
 		}
-		if ms.singleReader && ms.fuseFD.canAcceptAnother() {
-			ms.addLoop()
+		if s.singleReader && s.fuseFD.canAcceptAnother() {
+			s.addLoop()
 			go func() {
-				defer ms.loopDone()
-				ms.handleRequest(req)
+				defer s.loopDone()
+				s.handleRequest(req)
 			}()
 			continue
 		}
-		ms.handleRequest(req)
+		s.handleRequest(req)
 	}
 }
 
-func (ms *Server) handleRequest(req *requestAlloc) Status {
-	defer ms.fuseFD.returnRequest(req)
-	if ms.opts.SingleThreaded {
-		ms.requestProcessingMu.Lock()
-		defer ms.requestProcessingMu.Unlock()
+func (s *Server) handleRequest(req *requestAlloc) Status {
+	defer s.fuseFD.returnRequest(req)
+	if s.opts.SingleThreaded {
+		s.requestProcessingMu.Lock()
+		defer s.requestProcessingMu.Unlock()
 	}
 
-	h, inSize, outSize, outPayloadSize, code := parseRequest(req.inputBuf, ms.conn.out.Flags64())
+	h, inSize, outSize, outPayloadSize, code := parseRequest(req.inputBuf, s.conn.out.Flags64())
 	req.request.status = code
 	if !code.Ok() && code != ENOSYS {
-		ms.opts.Logger.Printf("parseRequest: %v", code)
+		s.opts.Logger.Printf("parseRequest: %v", code)
 	}
 	if code.Ok() {
 		req.request.status = req.splitPayload(inSize, int(h.InputSize))
 		if !req.request.status.Ok() {
-			ms.opts.Logger.Printf("op %s: bad request extension: %v", h.Name, req.request.status)
+			s.opts.Logger.Printf("op %s: bad request extension: %v", h.Name, req.request.status)
 		}
 	}
 	req.outHeaderBuf = req.outHeaderInline[:]
@@ -651,14 +651,14 @@ func (ms *Server) handleRequest(req *requestAlloc) Status {
 	clear(req.outHeaderBuf)
 	clear(req.outDataBuf)
 	if outPayloadSize > 0 {
-		req.outPayload = ms.buffers.AllocBuffer(uint32(outPayloadSize))
+		req.outPayload = s.buffers.AllocBuffer(uint32(outPayloadSize))
 		req.bufferPoolOutputBuf = req.outPayload
 	}
-	ms.protocolServer.handleRequest(h, &req.request)
+	s.protocolServer.handleRequest(h, &req.request)
 	if req.suppressReply {
 		return OK
 	}
-	errno := ms.fuseFD.write(req)
+	errno := s.fuseFD.write(req)
 	if errno != 0 {
 		// Ignore ENOENT for INTERRUPT responses which
 		// indicates that the referred request is no longer
@@ -671,10 +671,10 @@ func (ms *Server) handleRequest(req *requestAlloc) Status {
 		// RELEASE. This is because RELEASE is analogous to
 		// FORGET, and is not synchronized with the calling
 		// process, but does require a response.
-		if ms.opts.Debug || !(errno == ENOENT && (req.inHeader().Opcode == _OP_INTERRUPT ||
+		if s.opts.Debug || !(errno == ENOENT && (req.inHeader().Opcode == _OP_INTERRUPT ||
 			req.inHeader().Opcode == _OP_RELEASEDIR ||
 			req.inHeader().Opcode == _OP_RELEASE)) {
-			ms.opts.Logger.Printf("writer: Write/Writev failed, err: %v. opcode: %v",
+			s.opts.Logger.Printf("writer: Write/Writev failed, err: %v. opcode: %v",
 				errno, operationName(req.inHeader().Opcode))
 		}
 	}
@@ -684,17 +684,17 @@ func (ms *Server) handleRequest(req *requestAlloc) Status {
 // WaitMount waits for the first request to be served. Use this to
 // avoid racing between accessing the (empty or not yet mounted)
 // mountpoint, and the OS trying to setup the user-space mount.
-func (ms *Server) WaitMount() error {
-	err := <-ms.ready
+func (s *Server) WaitMount() error {
+	err := <-s.ready
 	if err != nil {
 		return err
 	}
-	if ms.mount == nil || ms.mount.magic() {
+	if s.mount == nil || s.mount.magic() {
 		// We don't know the real mountpoint, so we cannot run
 		// the poll hack.
 		return nil
 	}
-	return pollHack(ms.mount.path)
+	return pollHack(s.mount.path)
 }
 
 // parseFuseFd checks if `mountPoint` is the special form /dev/fd/N (with N >= 0),

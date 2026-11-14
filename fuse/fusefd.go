@@ -64,10 +64,10 @@ type fuseFD struct {
 	readBufBytes  int
 }
 
-// newFuseFD returns a fuseFD for ms, ready to read from fd.
+// newFuseFD returns a fuseFD for s, ready to read from fd.
 // Ownership of fd passes to the returned fuseFD's *os.File. All shared
 // state (pools, buffer pool, accounting constants) is wired up here.
-func (ms *Server) newFuseFD(fd int, maxReaders int) (*fuseFD, error) {
+func (s *Server) newFuseFD(fd int, maxReaders int) (*fuseFD, error) {
 	file := os.NewFile(uintptr(fd), "/dev/fuse")
 	conn, err := file.SyscallConn()
 	if err != nil {
@@ -77,14 +77,14 @@ func (ms *Server) newFuseFD(fd int, maxReaders int) (*fuseFD, error) {
 	_, _, reqAllocBytes := requestAccountingSizes(0)
 	r := &fuseFD{
 		maxReaders:              maxReaders,
-		maxInflightRequestBytes: ms.opts.MaxInflightRequestBytes,
-		debug:                   ms.opts.Debug,
-		logger:                  ms.opts.Logger,
+		maxInflightRequestBytes: s.opts.MaxInflightRequestBytes,
+		debug:                   s.opts.Debug,
+		logger:                  s.opts.Logger,
 		file:                    file,
 		conn:                    conn,
-		reqPool:                 &ms.reqPool,
-		readPool:                &ms.readPool,
-		buffers:                 &ms.buffers,
+		reqPool:                 &s.reqPool,
+		readPool:                &s.readPool,
+		buffers:                 &s.buffers,
 		reqAllocBytes:           reqAllocBytes,
 		wakeFD:                  -1,
 	}
@@ -104,39 +104,39 @@ var errStopped = errors.New("fuse: reading stopped")
 // readers waiting for one. On platforms where reads cannot be
 // interrupted, a reader blocked in read(2) returns with the next
 // request.
-func (r *fuseFD) stopReading() {
-	r.reqMu.Lock()
-	r.stopped = true
-	r.wake()
-	r.reqMu.Unlock()
+func (f *fuseFD) stopReading() {
+	f.reqMu.Lock()
+	f.stopped = true
+	f.wake()
+	f.reqMu.Unlock()
 }
 
 // startReading undoes stopReading.
-func (r *fuseFD) startReading() {
-	r.reqMu.Lock()
-	r.stopped = false
-	r.unwake()
-	r.reqMu.Unlock()
+func (f *fuseFD) startReading() {
+	f.reqMu.Lock()
+	f.stopped = false
+	f.unwake()
+	f.reqMu.Unlock()
 }
 
 // withFD runs f with the underlying FUSE file descriptor, holding a
 // reference on it for the duration so the fd cannot be closed (and its
 // number reused) while f runs. This is what lets concurrent writers and
 // close() run without a serializing mutex. The error is non-nil only
-// when the fd is already closed, in which case f is not called.
-func (r *fuseFD) withFD(f func(fd int)) error {
-	return r.conn.Control(func(fd uintptr) {
-		f(int(fd))
+// when the fd is already closed, in which case fn is not called.
+func (f *fuseFD) withFD(fn func(fd int)) error {
+	return f.conn.Control(func(fd uintptr) {
+		fn(int(fd))
 	})
 }
 
 // writevFD writes iov to the FUSE fd, holding a reference against
 // concurrent close. The error is the underlying syscall error, or a
 // non-syscall error if the fd is already closed.
-func (r *fuseFD) writevFD(iov [][]byte) (int, error) {
+func (f *fuseFD) writevFD(iov [][]byte) (int, error) {
 	var n int
 	var err error
-	if cerr := r.withFD(func(fd int) {
+	if cerr := f.withFD(func(fd int) {
 		n, err = writev(fd, iov)
 	}); cerr != nil {
 		return 0, cerr
@@ -214,40 +214,40 @@ func (c *fdCall) writev(bufs ...[]byte) (int, error) {
 // insufficient request-bytes budget. needReader is set if no other
 // reader is waiting for a request, and the request is one that the
 // kernel expects a reply for.
-func (r *fuseFD) readRequest() (req *requestAlloc, needReader bool, code Status) {
-	r.reqMu.Lock()
-	if r.stopped || r.reqReaders > r.maxReaders || !r.reserveRequestBytes() {
-		r.reqMu.Unlock()
+func (f *fuseFD) readRequest() (req *requestAlloc, needReader bool, code Status) {
+	f.reqMu.Lock()
+	if f.stopped || f.reqReaders > f.maxReaders || !f.reserveRequestBytes() {
+		f.reqMu.Unlock()
 		return nil, false, OK
 	}
-	r.reqReaders++
-	r.reqMu.Unlock()
+	f.reqReaders++
+	f.reqMu.Unlock()
 
-	req = r.reqPool.Get().(*requestAlloc)
-	dest := r.readPool.Get().([]byte)
+	req = f.reqPool.Get().(*requestAlloc)
+	dest := f.readPool.Get().([]byte)
 
-	req.call.fuseFD = r
+	req.call.fuseFD = f
 	n, err := req.call.read(dest)
 	if err != nil {
-		r.reqMu.Lock()
-		r.putReadBuf(dest)
-		r.putReq(req)
-		r.reqReaders--
-		r.reqMu.Unlock()
+		f.reqMu.Lock()
+		f.putReadBuf(dest)
+		f.putReq(req)
+		f.reqReaders--
+		f.reqMu.Unlock()
 		if err == errStopped {
 			return nil, false, OK
 		}
 		return nil, false, ToStatus(err)
 	}
 
-	r.reqMu.Lock()
-	defer r.reqMu.Unlock()
+	f.reqMu.Lock()
+	defer f.reqMu.Unlock()
 	gobbled := req.setInput(dest[:n])
 	if len(req.inputBuf) < int(unsafe.Sizeof(InHeader{})) {
 		log.Printf("Short read for input header: %v", req.inputBuf)
-		r.putReadBuf(dest)
-		r.putReq(req)
-		r.reqReaders--
+		f.putReadBuf(dest)
+		f.putReq(req)
+		f.reqReaders--
 		return nil, false, EINVAL
 	}
 	opCode := ((*InHeader)(unsafe.Pointer(&req.inputBuf[0]))).Opcode
@@ -258,84 +258,84 @@ func (r *fuseFD) readRequest() (req *requestAlloc, needReader bool, code Status)
 	needsBackPressure := (opCode == _OP_FORGET || opCode == _OP_BATCH_FORGET)
 
 	if !gobbled {
-		r.putReadBuf(dest)
+		f.putReadBuf(dest)
 	}
-	r.reqReaders--
-	return req, r.reqReaders <= 0 && !needsBackPressure, OK
+	f.reqReaders--
+	return req, f.reqReaders <= 0 && !needsBackPressure, OK
 }
 
 // returnRequest returns a request to the pool of unused requests.
-func (r *fuseFD) returnRequest(req *requestAlloc) {
+func (f *fuseFD) returnRequest(req *requestAlloc) {
 	if req.bufferPoolOutputBuf != nil {
-		r.buffers.FreeBuffer(req.bufferPoolOutputBuf)
+		f.buffers.FreeBuffer(req.bufferPoolOutputBuf)
 		req.bufferPoolOutputBuf = nil
 	}
 	req.clear()
 
-	r.reqMu.Lock()
+	f.reqMu.Lock()
 	if p := req.bufferPoolInputBuf; p != nil {
 		req.bufferPoolInputBuf = nil
-		r.putReadBuf(p)
+		f.putReadBuf(p)
 	}
-	r.putReq(req)
-	r.reqMu.Unlock()
+	f.putReq(req)
+	f.reqMu.Unlock()
 }
 
-func (r *fuseFD) reserveRequestBytes() bool {
-	if !r.canReserveRequestBytes() {
+func (f *fuseFD) reserveRequestBytes() bool {
+	if !f.canReserveRequestBytes() {
 		return false
 	}
-	r.inflightRequestBytes += r.requestBytes()
+	f.inflightRequestBytes += f.requestBytes()
 	return true
 }
 
-func (r *fuseFD) canReserveRequestBytes() bool {
-	return r.inflightRequestBytes == 0 ||
-		r.requestBytes() <= r.maxInflightRequestBytes-r.inflightRequestBytes
+func (f *fuseFD) canReserveRequestBytes() bool {
+	return f.inflightRequestBytes == 0 ||
+		f.requestBytes() <= f.maxInflightRequestBytes-f.inflightRequestBytes
 }
 
 // canAcceptAnother wraps canReserveRequestBytes with reqMu, for callers
 // that don't already hold the lock.
-func (r *fuseFD) canAcceptAnother() bool {
-	r.reqMu.Lock()
-	defer r.reqMu.Unlock()
-	return r.canReserveRequestBytes()
+func (f *fuseFD) canAcceptAnother() bool {
+	f.reqMu.Lock()
+	defer f.reqMu.Unlock()
+	return f.canReserveRequestBytes()
 }
 
-func (r *fuseFD) requestBytes() int {
-	return r.reqAllocBytes + r.readBufBytes
+func (f *fuseFD) requestBytes() int {
+	return f.reqAllocBytes + f.readBufBytes
 }
 
-func (r *fuseFD) putReadBuf(buf []byte) {
-	r.readPool.Put(buf)
-	r.inflightRequestBytes -= r.readBufBytes
+func (f *fuseFD) putReadBuf(buf []byte) {
+	f.readPool.Put(buf)
+	f.inflightRequestBytes -= f.readBufBytes
 }
 
-func (r *fuseFD) putReq(req *requestAlloc) {
-	r.reqPool.Put(req)
-	r.inflightRequestBytes -= r.reqAllocBytes
+func (f *fuseFD) putReq(req *requestAlloc) {
+	f.reqPool.Put(req)
+	f.inflightRequestBytes -= f.reqAllocBytes
 }
 
 // close closes the underlying FUSE fd. The *os.File waits for in-flight
 // RawConn operations (reads, writes, ioctls) before releasing the fd.
 // Readers must have exited.
-func (r *fuseFD) close() error {
-	err := r.file.Close()
-	r.reqMu.Lock()
-	if r.wakeFD >= 0 {
-		syscall.Close(r.wakeFD)
-		r.wakeFD = -1
+func (f *fuseFD) close() error {
+	err := f.file.Close()
+	f.reqMu.Lock()
+	if f.wakeFD >= 0 {
+		syscall.Close(f.wakeFD)
+		f.wakeFD = -1
 	}
-	for _, efd := range r.epollFDs {
+	for _, efd := range f.epollFDs {
 		syscall.Close(efd)
 	}
-	r.epollFDs = nil
-	r.reqMu.Unlock()
+	f.epollFDs = nil
+	f.reqMu.Unlock()
 	return err
 }
 
-func (r *fuseFD) writev(iov [][]byte) (int, syscall.Errno) {
-	n, err := r.writevFD(iov)
+func (f *fuseFD) writev(iov [][]byte) (int, syscall.Errno) {
+	n, err := f.writevFD(iov)
 	if err == nil {
 		return n, 0
 	}
@@ -352,7 +352,7 @@ func (r *fuseFD) writev(iov [][]byte) (int, syscall.Errno) {
 	return n, errno
 }
 
-func (r *fuseFD) writeWithSlice(req *request, ws withSlice) Status {
+func (f *fuseFD) writeWithSlice(req *request, ws withSlice) Status {
 	slices, st := ws.Slices()
 	if !st.Ok() {
 		return st
@@ -360,6 +360,6 @@ func (r *fuseFD) writeWithSlice(req *request, ws withSlice) Status {
 	bufs := make([][]byte, 0, 2+len(slices))
 	bufs = append(bufs, req.outHeaderBuf, req.outDataBuf)
 	bufs = append(bufs, slices...)
-	_, err := r.writevFD(bufs)
+	_, err := f.writevFD(bufs)
 	return ToStatus(err)
 }

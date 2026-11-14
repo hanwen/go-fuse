@@ -19,13 +19,13 @@ func init() {
 	initFlagNames.set(CAP_CASE_INSENSITIVE, "CASE_INSENSITIVE")
 }
 
-func (me *CreateIn) string() string {
+func (in *CreateIn) string() string {
 	return fmt.Sprintf(
-		"{0%o [%s]}", me.Mode,
-		flagString(openFlagNames, int64(me.Flags), "O_RDONLY"))
+		"{0%o [%s]}", in.Mode,
+		flagString(openFlagNames, int64(in.Flags), "O_RDONLY"))
 }
 
-func (me *GetAttrIn) string() string { return "" }
+func (in *GetAttrIn) string() string { return "" }
 
 func (a *Attr) flagsString() string { return "" }
 
@@ -33,18 +33,18 @@ func (in *SetXAttrIn) string() string {
 	return fmt.Sprintf("{sz %d f%o}", in.Size, in.Flags)
 }
 
-func (me *MknodIn) string() string {
-	return fmt.Sprintf("{0%o, %d}", me.Mode, me.Rdev)
+func (in *MknodIn) string() string {
+	return fmt.Sprintf("{0%o, %d}", in.Mode, in.Rdev)
 }
 
-func (me *ReadIn) string() string {
+func (in *ReadIn) string() string {
 	return fmt.Sprintf("{Fh %d [%d +%d) %s}",
-		me.Fh, me.Offset, me.Size,
-		flagString(readFlagNames, int64(me.ReadFlags), ""))
+		in.Fh, in.Offset, in.Size,
+		flagString(readFlagNames, int64(in.ReadFlags), ""))
 }
 
-func (me *WriteIn) string() string {
+func (in *WriteIn) string() string {
 	return fmt.Sprintf("{Fh %d [%d +%d) %s}",
-		me.Fh, me.Offset, me.Size,
-		flagString(writeFlagNames, int64(me.WriteFlags), ""))
+		in.Fh, in.Offset, in.Size,
+		flagString(writeFlagNames, int64(in.WriteFlags), ""))
 }

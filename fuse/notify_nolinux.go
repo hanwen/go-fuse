@@ -6,6 +6,6 @@
 
 package fuse
 
-func (ms *Server) fdBacking() *Backing {
+func (s *Server) fdBacking() *Backing {
 	return enosysBacking()
 }

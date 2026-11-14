@@ -15,7 +15,7 @@ const useSingleReader = false
 
 // initWake makes fd non-blocking, so readers can wait for a request
 // in epoll_wait(2) together with wakeFD.
-func (r *fuseFD) initWake(fd int) error {
+func (f *fuseFD) initWake(fd int) error {
 	efd, err := unix.Eventfd(0, unix.EFD_CLOEXEC|unix.EFD_NONBLOCK)
 	if err != nil {
 		return err
@@ -24,28 +24,28 @@ func (r *fuseFD) initWake(fd int) error {
 		syscall.Close(efd)
 		return err
 	}
-	r.wakeFD = efd
+	f.wakeFD = efd
 	return nil
 }
 
 // wake makes wakeFD readable. It stays readable, so it wakes all
 // current and future readers. Called with reqMu held.
-func (r *fuseFD) wake() {
-	if r.wakeFD < 0 {
+func (f *fuseFD) wake() {
+	if f.wakeFD < 0 {
 		return
 	}
 	var one [8]byte
 	binary.NativeEndian.PutUint64(one[:], 1)
-	syscall.Write(r.wakeFD, one[:])
+	syscall.Write(f.wakeFD, one[:])
 }
 
 // unwake undoes wake. Called with reqMu held.
-func (r *fuseFD) unwake() {
-	if r.wakeFD < 0 {
+func (f *fuseFD) unwake() {
+	if f.wakeFD < 0 {
 		return
 	}
 	var buf [8]byte
-	syscall.Read(r.wakeFD, buf[:])
+	syscall.Read(f.wakeFD, buf[:])
 }
 
 // readFD reads a request from fd, which is non-blocking. If no request
@@ -53,16 +53,16 @@ func (r *fuseFD) unwake() {
 // own. The FUSE fd is added with EPOLLEXCLUSIVE, so a request wakes
 // one reader, like a blocking read(2) does. It returns errStopped if
 // wakeFD becomes readable while no request is queued.
-func (r *fuseFD) readFD(fd int, dest []byte) (int, error) {
+func (f *fuseFD) readFD(fd int, dest []byte) (int, error) {
 	n, err := syscall.Read(fd, dest)
 	if err != syscall.EAGAIN {
 		return n, err
 	}
-	epfd, err := r.getEpoll(fd)
+	epfd, err := f.getEpoll(fd)
 	if err != nil {
 		return 0, err
 	}
-	defer r.putEpoll(epfd)
+	defer f.putEpoll(epfd)
 	for {
 		var evs [2]unix.EpollEvent
 		k, err := unix.EpollWait(epfd, evs[:], -1)
@@ -70,7 +70,7 @@ func (r *fuseFD) readFD(fd int, dest []byte) (int, error) {
 			return 0, err
 		}
 		for _, ev := range evs[:max(k, 0)] {
-			if ev.Fd == int32(r.wakeFD) {
+			if ev.Fd == int32(f.wakeFD) {
 				return 0, errStopped
 			}
 		}
@@ -81,12 +81,12 @@ func (r *fuseFD) readFD(fd int, dest []byte) (int, error) {
 	}
 }
 
-func (r *fuseFD) getEpoll(fd int) (int, error) {
-	r.reqMu.Lock()
-	defer r.reqMu.Unlock()
-	if k := len(r.epollFDs); k > 0 {
-		epfd := r.epollFDs[k-1]
-		r.epollFDs = r.epollFDs[:k-1]
+func (f *fuseFD) getEpoll(fd int) (int, error) {
+	f.reqMu.Lock()
+	defer f.reqMu.Unlock()
+	if k := len(f.epollFDs); k > 0 {
+		epfd := f.epollFDs[k-1]
+		f.epollFDs = f.epollFDs[:k-1]
 		return epfd, nil
 	}
 
@@ -96,7 +96,7 @@ func (r *fuseFD) getEpoll(fd int) (int, error) {
 	}
 	for _, ev := range []unix.EpollEvent{
 		{Events: unix.EPOLLIN | unix.EPOLLEXCLUSIVE, Fd: int32(fd)},
-		{Events: unix.EPOLLIN, Fd: int32(r.wakeFD)},
+		{Events: unix.EPOLLIN, Fd: int32(f.wakeFD)},
 	} {
 		if err := unix.EpollCtl(epfd, unix.EPOLL_CTL_ADD, int(ev.Fd), &ev); err != nil {
 			syscall.Close(epfd)
@@ -106,13 +106,13 @@ func (r *fuseFD) getEpoll(fd int) (int, error) {
 	return epfd, nil
 }
 
-func (r *fuseFD) putEpoll(epfd int) {
-	r.reqMu.Lock()
-	r.epollFDs = append(r.epollFDs, epfd)
-	r.reqMu.Unlock()
+func (f *fuseFD) putEpoll(epfd int) {
+	f.reqMu.Lock()
+	f.epollFDs = append(f.epollFDs, epfd)
+	f.reqMu.Unlock()
 }
 
-func (r *fuseFD) write(req *requestAlloc) Status {
+func (f *fuseFD) write(req *requestAlloc) Status {
 	if req.outPayloadSize() == 0 {
 		_, err := req.call.writev(req.outHeaderBuf, req.outDataBuf)
 		return ToStatus(err)
@@ -124,16 +124,16 @@ func (r *fuseFD) write(req *requestAlloc) Status {
 			req.readResult = nil
 		}()
 		if ws, ok := req.readResult.(withSlice); ok {
-			return r.writeWithSlice(&req.request, ws)
+			return f.writeWithSlice(&req.request, ws)
 		}
 
-		if r.canSplice {
-			err := r.trySplice(&req.request, req.readResult)
+		if f.canSplice {
+			err := f.trySplice(&req.request, req.readResult)
 			if err == nil {
 				return OK
 			}
 			if err != errRecoverSplice {
-				r.logger.Println("trySplice:", err)
+				f.logger.Println("trySplice:", err)
 			}
 		}
 
