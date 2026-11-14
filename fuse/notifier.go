@@ -167,13 +167,13 @@ func newNotifyRequest(opcode uint32) *request {
 		inputBuf:     make([]byte, unsafe.Sizeof(InHeader{})),
 		outHeaderBuf: make([]byte, sizeOfOutHeader),
 		outDataBuf:   make([]byte, getHandler(opcode).OutputSize),
-		status: map[uint32]Status{
-			_OP_NOTIFY_INVAL_INODE:    NOTIFY_INVAL_INODE,
-			_OP_NOTIFY_INVAL_ENTRY:    NOTIFY_INVAL_ENTRY,
-			_OP_NOTIFY_STORE_CACHE:    NOTIFY_STORE_CACHE,
-			_OP_NOTIFY_RETRIEVE_CACHE: NOTIFY_RETRIEVE_CACHE,
-			_OP_NOTIFY_DELETE:         NOTIFY_DELETE,
-			_OP_NOTIFY_PRUNE:          NOTIFY_PRUNE,
+		notifyCode: map[uint32]notifyCode{
+			_OP_NOTIFY_INVAL_INODE:    notifyInvalInode,
+			_OP_NOTIFY_INVAL_ENTRY:    notifyInvalEntry,
+			_OP_NOTIFY_STORE_CACHE:    notifyStore,
+			_OP_NOTIFY_RETRIEVE_CACHE: notifyRetrieve,
+			_OP_NOTIFY_DELETE:         notifyDelete,
+			_OP_NOTIFY_PRUNE:          notifyPrune,
 		}[opcode],
 	}
 	r.inHeader().Opcode = opcode

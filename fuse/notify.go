@@ -65,22 +65,22 @@ func enosysBacking() *Backing {
 func (n *Notify) gate(k *InitIn) *Notify {
 	g := *n
 	stub := enosysNotify()
-	if !k.SupportsNotify(NOTIFY_INVAL_INODE) {
+	if !k.supportsNotify(notifyInvalInode) {
 		g.InvalInode = stub.InvalInode
 	}
-	if !k.SupportsNotify(NOTIFY_INVAL_ENTRY) {
+	if !k.supportsNotify(notifyInvalEntry) {
 		g.InvalEntry = stub.InvalEntry
 	}
-	if !k.SupportsNotify(NOTIFY_DELETE) {
+	if !k.supportsNotify(notifyDelete) {
 		g.Delete = stub.Delete
 	}
-	if !k.SupportsNotify(NOTIFY_PRUNE) {
+	if !k.supportsNotify(notifyPrune) {
 		g.Prune = stub.Prune
 	}
-	if !k.SupportsNotify(NOTIFY_STORE_CACHE) {
+	if !k.supportsNotify(notifyStore) {
 		g.Store = stub.Store
 	}
-	if !k.SupportsNotify(NOTIFY_RETRIEVE_CACHE) {
+	if !k.supportsNotify(notifyRetrieve) {
 		g.Retrieve = stub.Retrieve
 	}
 	return &g

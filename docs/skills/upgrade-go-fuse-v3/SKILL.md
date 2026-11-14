@@ -77,11 +77,23 @@ Skip this step if the code only uses the `fs` package.
 
    The methods on `*fuse.Server` still exist. Keep them if the code
    holds a `*fuse.Server` from `NewServer`.
-5. Remove `SetDebug` methods. Remove calls to `server.SetDebug`. Set
+5. Remove `KernelSettings().SupportsNotify(fuse.NOTIFY_*)` checks.
+   Call the notification and treat `fuse.ENOSYS` as unsupported. If
+   the check must happen before the call, use
+   `SupportsVersion(7, minor)`, but that only covers the kernel, not
+   the transport:
+
+   | v2 constant                                   | minor |
+   |-----------------------------------------------|-------|
+   | `NOTIFY_INVAL_INODE`, `NOTIFY_INVAL_ENTRY`    | 12    |
+   | `NOTIFY_STORE_CACHE`, `NOTIFY_RETRIEVE_CACHE` | 15    |
+   | `NOTIFY_DELETE`                               | 18    |
+
+6. Remove `SetDebug` methods. Remove calls to `server.SetDebug`. Set
    `MountOptions.Debug` before mounting instead.
-6. Remove calls to `server.RecordLatencies` and uses of
+7. Remove calls to `server.RecordLatencies` and uses of
    `fuse.LatencyMap`.
-7. If the code embeds `fuse.NewDefaultRawFileSystem()`, the new
+8. If the code embeds `fuse.NewDefaultRawFileSystem()`, the new
    `Init(*InitIn, *InitOut)` and `OnConnect(*Conn)` methods come from
    the default. Do not add empty versions.
 

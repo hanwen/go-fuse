@@ -51,6 +51,9 @@ type request struct {
 	// Output data.
 	status Status
 
+	// Nonzero for notifications to the kernel.
+	notifyCode notifyCode
+
 	// Unstructured output. Only one of outPayload and readResult is non-nil.
 	outPayload []byte
 	readResult ReadResult
@@ -104,6 +107,7 @@ func (r *request) clear() {
 	r.inPayloadOne[0] = nil
 	r.ext = nil
 	r.status = OK
+	r.notifyCode = 0
 	r.outPayload = nil
 	r.readResult = nil
 	r.ctx = nil
@@ -217,8 +221,12 @@ func (r *request) OutputDebug() string {
 	if extraStr != "" {
 		extraStr = ", " + extraStr
 	}
+	var st fmt.Stringer = r.status
+	if r.notifyCode != 0 {
+		st = r.notifyCode
+	}
 	return fmt.Sprintf("tx %d:     %v%s",
-		r.inHeader().Unique, r.status, extraStr)
+		r.inHeader().Unique, st, extraStr)
 }
 
 // setInput returns true if it takes ownership of the argument, false if not.
@@ -365,9 +373,7 @@ func (r *request) filenames() (string, string, Status) {
 // serializeHeader serializes the response header. The header points
 // to an internal buffer of the receiver.
 func (r *request) serializeHeader(outPayloadSize int) {
-	if r.status > OK {
-		// only do this for positive status; negative status
-		// is used for notification.
+	if r.status != OK {
 		r.outDataBuf = nil
 		outPayloadSize = 0
 	}
@@ -384,7 +390,11 @@ func (r *request) serializeHeader(outPayloadSize int) {
 
 	o := r.outHeader()
 	o.Unique = r.inHeader().Unique
-	o.Status = int32(-r.status)
+	if r.notifyCode != 0 {
+		o.Status = int32(r.notifyCode)
+	} else {
+		o.Status = int32(-r.status)
+	}
 	o.Length = uint32(
 		int(sizeOfOutHeader) + len(r.outDataBuf) + outPayloadSize)
 

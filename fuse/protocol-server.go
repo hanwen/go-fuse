@@ -105,7 +105,7 @@ func (ms *protocolServer) handleRequest(h *operationHandler, req *request) {
 			req.readResult = nil
 		}
 	}
-	if req.status > OK && req.readResult != nil {
+	if req.status != OK && req.readResult != nil {
 		req.readResult.Done()
 		req.readResult = nil
 	}

@@ -5,6 +5,7 @@
 package fuse
 
 import (
+	"fmt"
 	"syscall"
 	"time"
 	"unsafe"
@@ -571,17 +572,40 @@ type NotifyPruneOut struct {
 	_spare   uint64
 }
 
+// notifyCode is the kernel's enum fuse_notify_code. It goes in
+// OutHeader.Status of a message with Unique == 0.
+type notifyCode int32
+
 const (
-	NOTIFY_POLL           = -1 // notify kernel that a poll waiting for IO on a file handle should wake up
-	NOTIFY_INVAL_INODE    = -2 // notify kernel that an inode should be invalidated
-	NOTIFY_INVAL_ENTRY    = -3 // notify kernel that a directory entry should be invalidated
-	NOTIFY_STORE_CACHE    = -4 // store data into kernel cache of an inode
-	NOTIFY_RETRIEVE_CACHE = -5 // retrieve data from kernel cache of an inode
-	NOTIFY_DELETE         = -6 // notify kernel that a directory entry has been deleted
-	NOTIFY_RESEND         = -7
-	NOTIFY_INC_EPOCH      = -8
-	NOTIFY_PRUNE          = -9
+	notifyPoll       notifyCode = 1
+	notifyInvalInode notifyCode = 2
+	notifyInvalEntry notifyCode = 3
+	notifyStore      notifyCode = 4
+	notifyRetrieve   notifyCode = 5
+	notifyDelete     notifyCode = 6
+	notifyResend     notifyCode = 7
+	notifyIncEpoch   notifyCode = 8
+	notifyPrune      notifyCode = 9
 )
+
+var notifyNames = [...]string{
+	notifyPoll:       "NOTIFY_POLL",
+	notifyInvalInode: "NOTIFY_INVAL_INODE",
+	notifyInvalEntry: "NOTIFY_INVAL_ENTRY",
+	notifyStore:      "NOTIFY_STORE_CACHE",
+	notifyRetrieve:   "NOTIFY_RETRIEVE_CACHE",
+	notifyDelete:     "NOTIFY_DELETE",
+	notifyResend:     "NOTIFY_RESEND",
+	notifyIncEpoch:   "NOTIFY_INC_EPOCH",
+	notifyPrune:      "NOTIFY_PRUNE",
+}
+
+func (c notifyCode) String() string {
+	if c > 0 && int(c) < len(notifyNames) {
+		return notifyNames[c]
+	}
+	return fmt.Sprintf("notify(%d)", int32(c))
+}
 
 type FlushIn struct {
 	InHeader

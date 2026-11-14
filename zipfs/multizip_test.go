@@ -52,7 +52,7 @@ func TestMultiZipReadonly(t *testing.T) {
 }
 
 func TestMultiZipFs(t *testing.T) {
-	mountPoint, server, cleanup := setupMzfs(t)
+	mountPoint, _, cleanup := setupMzfs(t)
 	defer cleanup()
 
 	zipFile := testZipFile()
@@ -114,22 +114,17 @@ func TestMultiZipFs(t *testing.T) {
 		t.Fatalf("Remove failed: %v", err)
 	}
 
-	// If FUSE supports invalid inode notifications we expect this node to be gone. Otherwise we'll just make sure that it's not reachable.
-	if server.KernelSettings().SupportsNotify(fuse.NOTIFY_INVAL_INODE) {
-		fi, err = os.Stat(mountPoint + "/zipmount")
-		if err == nil {
-			t.Errorf("stat should fail after unmount, got %#v", fi)
-		}
-	} else {
-		entries, err = os.ReadDir(mountPoint)
-		if err != nil {
-			t.Fatalf("ReadDir failed: %v", err)
-		}
-		for _, e := range entries {
-			if e.Name() == "zipmount" {
-				t.Error("Should not have entry: ", e)
-			}
+	fi, err = os.Stat(mountPoint + "/zipmount")
+	if err == nil {
+		t.Errorf("stat should fail after unmount, got %#v", fi)
+	}
+	entries, err = os.ReadDir(mountPoint)
+	if err != nil {
+		t.Fatalf("ReadDir failed: %v", err)
+	}
+	for _, e := range entries {
+		if e.Name() == "zipmount" {
+			t.Error("Should not have entry: ", e)
 		}
 	}
-
 }
