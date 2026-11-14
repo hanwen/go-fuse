@@ -225,3 +225,54 @@ func TestDirAlias(t *testing.T) {
 
 	checkForgets(t, tree)
 }
+
+func TestWalkFollow(t *testing.T) {
+	root, onAdd := memTree()
+	tree := newTestTree(t, root, onAdd)
+	caller := &fuse.Caller{}
+
+	for path, want := range map[string]uint32{
+		"":                    fuse.S_IFDIR,
+		"/":                   fuse.S_IFDIR,
+		".":                   fuse.S_IFDIR,
+		"dir/sub/../..":       fuse.S_IFDIR,
+		"dir//up":             fuse.S_IFREG,
+		"dir/sub/../up":       fuse.S_IFREG,
+		"dirlink/":            fuse.S_IFDIR,
+		"dirlink/./deep":      fuse.S_IFREG,
+		"chain":               fuse.S_IFREG,
+		"dirlink/../sub/deep": fuse.S_IFREG,
+	} {
+		n, attr, errno := tree.WalkFollow(caller, path)
+		if errno != 0 {
+			t.Errorf("WalkFollow(%q): %v", path, errno)
+			continue
+		}
+		if got := attr.Mode & S_IFMT; got != want {
+			t.Errorf("WalkFollow(%q): got type %o, want %o", path, got, want)
+		}
+		tree.Unref(n)
+	}
+
+	for path, want := range map[string]syscall.Errno{
+		"missing":     syscall.ENOENT,
+		"file/":       syscall.ENOTDIR,
+		"chain/":      syscall.ENOTDIR,
+		"dir/up/":     syscall.ENOTDIR,
+		"file/x":      syscall.ENOTDIR,
+		"..":          syscall.EXDEV,
+		"dir/../..":   syscall.EXDEV,
+		"dir/\x00":    syscall.EINVAL,
+		"dir/sub/../": 0,
+	} {
+		n, _, errno := tree.WalkFollow(caller, path)
+		if errno != want {
+			t.Errorf("WalkFollow(%q): got %v, want %v", path, errno, want)
+		}
+		if errno == 0 {
+			tree.Unref(n)
+		}
+	}
+
+	checkForgets(t, tree)
+}

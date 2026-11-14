@@ -126,6 +126,102 @@ func (t *Tree) Walk(caller *fuse.Caller, path string) (n *Node, attr fuse.Attr, 
 	return n, attr, false, 0
 }
 
+// maxSymlinks is the number of symlinks that WalkFollow resolves
+// before failing with ELOOP, as MAXSYMLINKS in Linux.
+const maxSymlinks = 40
+
+// WalkFollow resolves a path like Walk, but follows symlinks in all
+// components, including the last, and handles "." and "..".
+// Symlink targets are relative to the directory holding the link;
+// absolute targets and paths that leave the root fail with EXDEV. A
+// trailing slash, also in a symlink target, requires a directory. The
+// returned node holds a temporary reference that must be dropped with
+// Unref.
+func (t *Tree) WalkFollow(caller *fuse.Caller, path string) (*Node, fuse.Attr, syscall.Errno) {
+	// stack holds the nodes leading to the current one; each
+	// entry except the root holds a reference.
+	stack := []*Node{t.root}
+	defer func() {
+		for _, n := range stack[1:] {
+			t.Unref(n)
+		}
+	}()
+
+	todo := splitDir(path)
+	links := 0
+	var attr fuse.Attr
+	haveAttr := false
+	for len(todo) > 0 {
+		c := todo[0]
+		todo = todo[1:]
+		switch c {
+		case ".":
+			continue
+		case "..":
+			if len(stack) == 1 {
+				return nil, fuse.Attr{}, syscall.EXDEV
+			}
+			t.Unref(stack[len(stack)-1])
+			stack = stack[:len(stack)-1]
+			haveAttr = false
+			continue
+		}
+
+		n, e, errno := t.lookup(caller, stack[len(stack)-1], c, true)
+		if errno != 0 {
+			return nil, fuse.Attr{}, errno
+		}
+		stack = append(stack, n)
+		switch e.Attr.Mode & S_IFMT {
+		case fuse.S_IFLNK:
+			links++
+			if links > maxSymlinks {
+				return nil, fuse.Attr{}, syscall.ELOOP
+			}
+			target, errno := t.Readlink(caller, n.ID)
+			if errno != 0 {
+				return nil, fuse.Attr{}, errno
+			}
+			if strings.HasPrefix(target, "/") {
+				return nil, fuse.Attr{}, syscall.EXDEV
+			}
+			stack = stack[:len(stack)-1]
+			t.Unref(n)
+			todo = append(splitDir(target), todo...)
+			continue
+		case fuse.S_IFDIR:
+		default:
+			if len(todo) > 0 {
+				return nil, fuse.Attr{}, syscall.ENOTDIR
+			}
+		}
+		attr = e.Attr
+		haveAttr = true
+	}
+
+	n := stack[len(stack)-1]
+	if !haveAttr {
+		out, errno := t.Getattr(caller, n.ID, nil)
+		if errno != 0 {
+			return nil, fuse.Attr{}, errno
+		}
+		attr = out.Attr
+	}
+	// The deferred function drops the stack's reference.
+	t.Ref(n)
+	return n, attr, 0
+}
+
+// splitDir splits a path like Split, but keeps a trailing slash as a
+// final "." component.
+func splitDir(path string) []string {
+	comps := Split(path)
+	if strings.HasSuffix(path, "/") {
+		comps = append(comps, ".")
+	}
+	return comps
+}
+
 // Lookup returns the child `name` of dir, from cache or by sending
 // LOOKUP. The returned node holds a temporary reference that must be
 // dropped with Unref. If the entry came from the cache, the
