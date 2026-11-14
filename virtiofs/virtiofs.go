@@ -1,6 +1,8 @@
 package virtiofs
 
 import (
+	"errors"
+	"io"
 	"log"
 	"net"
 
@@ -44,7 +46,7 @@ func serve(l *net.UnixListener, rawFS fuse.RawFileSystem, opts *fuse.MountOption
 		})
 		srv := vhostuser.NewServer(conn, dev)
 		srv.Debug = opts.Debug
-		if err := srv.Serve(); err != nil {
+		if err := srv.Serve(); err != nil && !errors.Is(err, io.EOF) {
 			log.Printf("Serve: %v %T", err, err)
 		}
 
