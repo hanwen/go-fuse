@@ -40,7 +40,7 @@ extension. It loads the framework at run time with
 [purego](https://github.com/ebitengine/purego), so it does not need
 cgo.
 
-Use `fskit.MountFS` for an `fs` tree, or `fskit.Mount` for a
+Use `fskit.Mount` for an `fs` tree, or `fskit.MountRaw` for a
 `fuse.RawFileSystem`. Use `fskit.Available` to check that the
 framework is installed.
 

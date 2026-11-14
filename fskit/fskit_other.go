@@ -38,12 +38,12 @@ func (s *Server) Wait() {}
 // Unmount returns nil on non-Darwin platforms.
 func (s *Server) Unmount() error { return nil }
 
-// Mount returns ErrUnsupported on non-Darwin platforms.
-func Mount(mountPoint string, rawFS fuse.RawFileSystem, opts *fuse.MountOptions) (*Server, error) {
+// MountRaw returns ErrUnsupported on non-Darwin platforms.
+func MountRaw(mountPoint string, rawFS fuse.RawFileSystem, opts *fuse.MountOptions) (*Server, error) {
 	return nil, ErrUnsupported
 }
 
-// MountFS returns ErrUnsupported on non-Darwin platforms.
-func MountFS(dir string, root fs.InodeEmbedder, options *fs.Options) (*Server, error) {
+// Mount returns ErrUnsupported on non-Darwin platforms.
+func Mount(dir string, root fs.InodeEmbedder, options *fs.Options) (*Server, error) {
 	return nil, ErrUnsupported
 }

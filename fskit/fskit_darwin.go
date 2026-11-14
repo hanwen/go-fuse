@@ -205,13 +205,13 @@ type Server struct {
 	handlersWg sync.WaitGroup
 }
 
-// Mount mounts rawFS on mountPoint using macOS FSKit (macFUSE 5.3.0+).
-// Mount blocks until the file system is successfully mounted and verified by
+// MountRaw mounts rawFS on mountPoint using macOS FSKit (macFUSE 5.3.0+).
+// MountRaw blocks until the file system is successfully mounted and verified by
 // macOS, or returns an error.
 //
 // FUSE notifications (e.g. EntryNotify, InodeNotify) are not supported by the
 // macFUSE FSKit backend and return ENOSYS.
-func Mount(mountPoint string, rawFS fuse.RawFileSystem, opts *fuse.MountOptions) (*Server, error) {
+func MountRaw(mountPoint string, rawFS fuse.RawFileSystem, opts *fuse.MountOptions) (*Server, error) {
 	absMountPoint, err := filepath.Abs(mountPoint)
 	if err != nil {
 		return nil, err
@@ -280,14 +280,15 @@ func Mount(mountPoint string, rawFS fuse.RawFileSystem, opts *fuse.MountOptions)
 	return s, nil
 }
 
-// MountFS mounts a node filesystem on dir using macOS FSKit.
-func MountFS(dir string, root fs.InodeEmbedder, options *fs.Options) (*Server, error) {
+// Mount mounts a node filesystem on dir using macOS FSKit. See
+// MountRaw.
+func Mount(dir string, root fs.InodeEmbedder, options *fs.Options) (*Server, error) {
 	rawFS := fs.NewNodeFS(root, options)
 	var mountOptions *fuse.MountOptions
 	if options != nil {
 		mountOptions = &options.MountOptions
 	}
-	return Mount(dir, rawFS, mountOptions)
+	return MountRaw(dir, rawFS, mountOptions)
 }
 
 // Wait blocks until the filesystem is unmounted.

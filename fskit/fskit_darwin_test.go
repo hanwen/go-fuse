@@ -142,7 +142,7 @@ func TestFSKitIntegration(t *testing.T) {
 		},
 	}
 
-	server, err := MountFS(mnt, root, opts)
+	server, err := Mount(mnt, root, opts)
 	if err != nil {
 		t.Skipf("FSKit mount not permitted or failed in this environment: %v", err)
 	}
@@ -188,7 +188,7 @@ func TestFSKitChannelInterruptRetry(t *testing.T) {
 		},
 	}
 
-	server, err := MountFS(mnt, root, opts)
+	server, err := Mount(mnt, root, opts)
 	if err != nil {
 		t.Skipf("FSKit mount not permitted or failed in this environment: %v", err)
 	}
