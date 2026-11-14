@@ -9,6 +9,7 @@ package fuse
 import (
 	"context"
 	"os"
+	"syscall"
 	"testing"
 
 	"github.com/hanwen/go-fuse/v3/internal/testutil"
@@ -31,7 +32,7 @@ type readFS struct {
 	defaultRawFileSystem
 }
 
-func (fs *readFS) Open(ctx context.Context, input *OpenIn, out *OpenOut) (status Status) {
+func (fs *readFS) Open(ctx context.Context, input *OpenIn, out *OpenOut) (status syscall.Errno) {
 	if input.NodeId != 2 {
 		return ENOENT
 	}
@@ -39,7 +40,7 @@ func (fs *readFS) Open(ctx context.Context, input *OpenIn, out *OpenOut) (status
 	return OK
 }
 
-func (fs *readFS) Read(ctx context.Context, input *ReadIn, buf []byte) (ReadResult, Status) {
+func (fs *readFS) Read(ctx context.Context, input *ReadIn, buf []byte) (ReadResult, syscall.Errno) {
 	if input.NodeId != 2 {
 		return nil, ENOENT
 	}
@@ -52,7 +53,7 @@ func (fs *readFS) Read(ctx context.Context, input *ReadIn, buf []byte) (ReadResu
 	return ReadResultData(dest), OK
 }
 
-func (fs *readFS) Lookup(ctx context.Context, header *InHeader, name string, out *EntryOut) (code Status) {
+func (fs *readFS) Lookup(ctx context.Context, header *InHeader, name string, out *EntryOut) (code syscall.Errno) {
 	if name != "file" {
 		return ENOENT
 	}

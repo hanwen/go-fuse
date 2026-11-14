@@ -6,16 +6,18 @@
 
 package fuse
 
+import "syscall"
+
 // InodeNotify invalidates the information associated with the inode
 // (ie. data cache, attributes, etc.)
-func (s *Server) InodeNotify(node uint64, off int64, length int64) Status {
+func (s *Server) InodeNotify(node uint64, off int64, length int64) syscall.Errno {
 	return s.conn.notify.InvalInode(node, off, length)
 }
 
 // EntryNotify should be used if the existence status of an entry
 // within a directory changes. You should not hold any FUSE filesystem
 // locks, as that can lead to deadlock.
-func (s *Server) EntryNotify(parent uint64, name string) Status {
+func (s *Server) EntryNotify(parent uint64, name string) syscall.Errno {
 	return s.conn.notify.InvalEntry(parent, name)
 }
 
@@ -24,12 +26,12 @@ func (s *Server) EntryNotify(parent uint64, name string) Status {
 // except when the directory is in use, eg. as working directory of
 // some process. You should not hold any FUSE filesystem locks, as that
 // can lead to deadlock.
-func (s *Server) DeleteNotify(parent uint64, child uint64, name string) Status {
+func (s *Server) DeleteNotify(parent uint64, child uint64, name string) syscall.Errno {
 	return s.conn.notify.Delete(parent, child, name)
 }
 
 // PruneNotify asks the kernel to forget the given nodes.
-func (s *Server) PruneNotify(nodes []uint64) Status {
+func (s *Server) PruneNotify(nodes []uint64) syscall.Errno {
 	return s.conn.notify.Prune(nodes)
 }
 
@@ -37,7 +39,7 @@ func (s *Server) PruneNotify(nodes []uint64) Status {
 //
 // This call is similar to InodeNotify, but instead of only invalidating a data
 // region, it gives updated data directly to the kernel.
-func (s *Server) InodeNotifyStoreCache(node uint64, offset int64, data []byte) Status {
+func (s *Server) InodeNotifyStoreCache(node uint64, offset int64, data []byte) syscall.Errno {
 	return s.conn.notify.Store(node, offset, data)
 }
 
@@ -50,6 +52,6 @@ func (s *Server) InodeNotifyStoreCache(node uint64, offset int64, data []byte) S
 //
 // The kernel returns ENOENT if it does not currently have entry for this inode
 // in its dentry cache.
-func (s *Server) InodeRetrieveCache(node uint64, offset int64, dest []byte) (n int, st Status) {
+func (s *Server) InodeRetrieveCache(node uint64, offset int64, dest []byte) (n int, st syscall.Errno) {
 	return s.conn.notify.Retrieve(node, offset, dest)
 }

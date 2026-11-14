@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"strings"
+	"syscall"
 )
 
 // Request extensions; see struct fuse_ext_header in linux/fuse.h.
@@ -50,7 +51,7 @@ func align8(n int) int {
 }
 
 // parse parses b into e, reusing e's slices.
-func (e *requestExt) parse(b []byte) Status {
+func (e *requestExt) parse(b []byte) syscall.Errno {
 	clear(e.secctx)
 	e.secctx = e.secctx[:0]
 	e.suppGroups = e.suppGroups[:0]

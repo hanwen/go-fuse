@@ -7,8 +7,8 @@ package fuse
 import "syscall"
 
 const (
-	ENOATTR = Status(syscall.ENOATTR)
-	ENODATA = Status(syscall.ENOATTR)
+	ENOATTR = syscall.ENOATTR
+	ENODATA = syscall.ENOATTR
 )
 
 func (o *StatfsOut) FromStatfsT(statfs *syscall.Statfs_t) {

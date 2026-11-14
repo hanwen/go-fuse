@@ -5,11 +5,13 @@
 package fuse
 
 import (
+	"syscall"
+
 	"github.com/hanwen/go-fuse/v3/internal/iov"
 	"golang.org/x/sys/unix"
 )
 
-func (r *readResultFd) Readv(dst [][]byte) (int, Status) {
+func (r *readResultFd) Readv(dst [][]byte) (int, syscall.Errno) {
 	dst = iov.Subslice(dst, 0, r.Sz)
 	var n int
 	var err error
@@ -21,5 +23,5 @@ func (r *readResultFd) Readv(dst [][]byte) (int, Status) {
 	if n < 0 {
 		n = 0
 	}
-	return n, ToStatus(err)
+	return n, ToErrno(err)
 }

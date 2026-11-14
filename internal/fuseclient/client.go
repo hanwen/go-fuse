@@ -133,7 +133,7 @@ func (c *Client) doN(op uint32, node uint64, caller *fuse.Caller,
 
 	n, st := c.ps.HandleRequest(inIov, outIov)
 	if st != 0 {
-		return 0, syscall.Errno(st)
+		return 0, st
 	}
 	if op == opForget {
 		return 0, 0

@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"syscall"
 	"testing"
 )
 
@@ -20,7 +21,7 @@ type monitorTestRoot struct {
 	RawFileSystem
 }
 
-func (fs *monitorTestRoot) GetAttr(ctx context.Context, input *GetAttrIn, out *AttrOut) Status {
+func (fs *monitorTestRoot) GetAttr(ctx context.Context, input *GetAttrIn, out *AttrOut) syscall.Errno {
 	out.Mode = S_IFDIR | 0755
 	out.Nlink = 2
 	return OK

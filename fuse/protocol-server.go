@@ -6,6 +6,7 @@ package fuse
 
 import (
 	"sync"
+	"syscall"
 	"unsafe"
 
 	"github.com/hanwen/go-fuse/v3/internal/iov"
@@ -46,7 +47,7 @@ func (ps *protocolServer) handleRequest(h *operationHandler, req *request) {
 		req.finish()
 	}()
 
-	if req.status.Ok() && ps.opts.Debug {
+	if req.status == OK && ps.opts.Debug {
 		ps.opts.Logger.Println(req.InputDebug())
 	}
 
@@ -56,7 +57,7 @@ func (ps *protocolServer) handleRequest(h *operationHandler, req *request) {
 			ps.opts.Logger.Printf("Unimplemented opcode %v", operationName(c))
 		}
 		req.status = ENOSYS
-	} else if !req.status.Ok() {
+	} else if req.status != OK {
 		// Reply with the error from parsing the request.
 	} else if req.inHeader().NodeId == pollHackInode ||
 		req.inHeader().NodeId == FUSE_ROOT_ID && h.FileNames > 0 && req.filename() == pollHackName {
@@ -79,7 +80,7 @@ func (ps *protocolServer) handleRequest(h *operationHandler, req *request) {
 	switch req.inHeader().Opcode {
 	case _OP_INTERRUPT:
 		// ? what other status can interrupt generate?
-		if req.status.Ok() {
+		if req.status == OK {
 			req.suppressReply = true
 		}
 	default:
@@ -136,7 +137,7 @@ func (ps *protocolServer) dropInflight(req *request) {
 	ps.reqInflight = ps.reqInflight[:last]
 }
 
-func (ps *protocolServer) interruptRequest(unique uint64) Status {
+func (ps *protocolServer) interruptRequest(unique uint64) syscall.Errno {
 	ps.interruptMu.Lock()
 	defer ps.interruptMu.Unlock()
 
@@ -231,7 +232,7 @@ func inProcessNotify(n *Notify) *Notify {
 // as byte streams. The return value is the number of bytes written.
 //
 // EXPERIMENTAL: not subject to API stability.
-func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, Status) {
+func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, syscall.Errno) {
 	req := &requestAlloc{}
 
 	total := iov.Len(in)
@@ -241,12 +242,12 @@ func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, Status)
 		return 0, EIO
 	}
 	h, inSize, outSize, outPayloadSize, code := parseRequest(req.smallInputBuf[:n], ps.conn.out.Flags64())
-	if !code.Ok() && code != ENOSYS {
+	if code != OK && code != ENOSYS {
 		ps.opts.Logger.Printf("parseRequest: %v", code)
 	}
 	req.inputBuf = req.smallInputBuf[:n]
 	req.status = code
-	if code.Ok() {
+	if code == OK {
 		req.inputBuf = req.inputBuf[:inSize]
 		payloadLen := total - inSize
 		if b, ok := iov.Slice(in, inSize, payloadLen); ok {
@@ -263,7 +264,7 @@ func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, Status)
 		}
 		req.extendInput(int(h.InputSize))
 		req.status = req.splitExt(&req.extInline)
-		if !req.status.Ok() {
+		if req.status != OK {
 			ps.opts.Logger.Printf("op %s: bad request extension: %v", h.Name, req.status)
 		}
 	}
@@ -275,7 +276,7 @@ func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, Status)
 
 	var direct []byte
 	suppressReply := h != nil && h.SuppressReply
-	if !suppressReply && req.status.Ok() {
+	if !suppressReply && req.status == OK {
 		need := int(sizeOfOutHeader) + outSize + outPayloadSize
 		if iov.Len(out) < need {
 			ps.opts.Logger.Printf("op %v: got out iov %v, need %d bytes", h.Name, iov.Lens(out), need)
@@ -309,7 +310,7 @@ func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, Status)
 		n, code := readIntoIov(req.readResult, dst)
 		req.readResult.Done()
 		req.readResult = nil
-		if !code.Ok() {
+		if code != OK {
 			req.status = code
 			n = 0
 		}
@@ -332,13 +333,13 @@ func (ps *ProtocolServer) HandleRequest(in [][]byte, out [][]byte) (int, Status)
 	return w.Written, OK
 }
 
-func readIntoIov(rr ReadResult, dst [][]byte) (int, Status) {
+func readIntoIov(rr ReadResult, dst [][]byte) (int, syscall.Errno) {
 	switch r := rr.(type) {
 	case withReadv:
 		return r.Readv(dst)
 	case withSlice:
 		slices, code := r.Slices()
-		if !code.Ok() {
+		if code != OK {
 			return 0, code
 		}
 		return iov.CopyTo(dst, slices...), OK

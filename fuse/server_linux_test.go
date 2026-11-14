@@ -36,7 +36,7 @@ func (fs *blockingWriteFS) unblock() {
 	})
 }
 
-func (fs *blockingWriteFS) Lookup(ctx context.Context, header *InHeader, name string, out *EntryOut) (code Status) {
+func (fs *blockingWriteFS) Lookup(ctx context.Context, header *InHeader, name string, out *EntryOut) (code syscall.Errno) {
 	if name != "file" {
 		return ENOENT
 	}
@@ -51,7 +51,7 @@ func (fs *blockingWriteFS) Lookup(ctx context.Context, header *InHeader, name st
 	return OK
 }
 
-func (fs *blockingWriteFS) GetAttr(ctx context.Context, input *GetAttrIn, out *AttrOut) (code Status) {
+func (fs *blockingWriteFS) GetAttr(ctx context.Context, input *GetAttrIn, out *AttrOut) (code syscall.Errno) {
 	out.Attr = Attr{
 		Ino:   input.NodeId,
 		Mode:  S_IFREG | 0644,
@@ -61,7 +61,7 @@ func (fs *blockingWriteFS) GetAttr(ctx context.Context, input *GetAttrIn, out *A
 	return OK
 }
 
-func (fs *blockingWriteFS) Open(ctx context.Context, input *OpenIn, out *OpenOut) (status Status) {
+func (fs *blockingWriteFS) Open(ctx context.Context, input *OpenIn, out *OpenOut) (status syscall.Errno) {
 	if input.NodeId != 2 {
 		return ENOENT
 	}
@@ -70,7 +70,7 @@ func (fs *blockingWriteFS) Open(ctx context.Context, input *OpenIn, out *OpenOut
 	return OK
 }
 
-func (fs *blockingWriteFS) Write(ctx context.Context, input *WriteIn, data []byte) (written uint32, code Status) {
+func (fs *blockingWriteFS) Write(ctx context.Context, input *WriteIn, data []byte) (written uint32, code syscall.Errno) {
 	if len(data) < len(requestAlloc{}.smallInputBuf) {
 		return 0, EINVAL
 	}

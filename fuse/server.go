@@ -211,7 +211,7 @@ func newServerFromDev(fs RawFileSystem, d *Dev, m *Mount, o *MountOptions) (*Ser
 	if d.negotiated() {
 		ms.connect(&d.in, &d.out)
 		ms.applyNegotiated()
-	} else if code := ms.handleInit(); !code.Ok() {
+	} else if code := ms.handleInit(); code != OK {
 		ms.fuseFD.close()
 		// TODO - unmount as well?
 		return nil, fmt.Errorf("init: %s", code)
@@ -543,14 +543,14 @@ func (s *Server) writeNotify(iov [][]byte) (int, syscall.Errno) {
 	return s.fuseFD.writev(iov)
 }
 
-func (s *Server) handleInit() Status {
+func (s *Server) handleInit() syscall.Errno {
 	// The first request should be INIT; read it synchronously.
 	req, _, errNo := s.fuseFD.readRequest()
 
 	if errNo != OK || req == nil {
 		return errNo
 	}
-	if code := s.handleRequest(req); !code.Ok() {
+	if code := s.handleRequest(req); code != OK {
 		return code
 	}
 	s.applyNegotiated()
@@ -628,7 +628,7 @@ exit:
 	}
 }
 
-func (s *Server) handleRequest(req *requestAlloc) Status {
+func (s *Server) handleRequest(req *requestAlloc) syscall.Errno {
 	defer s.fuseFD.returnRequest(req)
 	if s.opts.SingleThreaded {
 		s.requestProcessingMu.Lock()
@@ -637,12 +637,12 @@ func (s *Server) handleRequest(req *requestAlloc) Status {
 
 	h, inSize, outSize, outPayloadSize, code := parseRequest(req.inputBuf, s.conn.out.Flags64())
 	req.request.status = code
-	if !code.Ok() && code != ENOSYS {
+	if code != OK && code != ENOSYS {
 		s.opts.Logger.Printf("parseRequest: %v", code)
 	}
-	if code.Ok() {
+	if code == OK {
 		req.request.status = req.splitPayload(inSize, int(h.InputSize))
-		if !req.request.status.Ok() {
+		if req.request.status != OK {
 			s.opts.Logger.Printf("op %s: bad request extension: %v", h.Name, req.request.status)
 		}
 	}

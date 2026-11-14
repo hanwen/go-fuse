@@ -15,23 +15,17 @@ import (
 	"time"
 )
 
-func (s Status) String() string {
-	if s == OK {
+// errnoString formats e for debug output.
+func errnoString(e syscall.Errno) string {
+	if e == OK {
 		return "OK"
 	}
-	if s < 0 {
-		return fmt.Sprintf("negative(%d)", s)
-	}
-	return fmt.Sprintf("%d=%v", int(s), syscall.Errno(s))
+	return fmt.Sprintf("%d=%v", uintptr(e), e)
 }
 
-func (s Status) Ok() bool {
-	return s == OK
-}
-
-// ToStatus extracts an errno number from Go error objects.  If it
-// fails, it logs an error and returns ENOSYS.
-func ToStatus(err error) Status {
+// ToErrno extracts an errno number from Go error objects. If it
+// fails, it logs an error and returns ENOTSUP.
+func ToErrno(err error) syscall.Errno {
 	if err == nil {
 		return OK
 	}
@@ -40,7 +34,7 @@ func ToStatus(err error) Status {
 	case os.ErrPermission:
 		return EPERM
 	case os.ErrExist:
-		return Status(syscall.EEXIST)
+		return syscall.EEXIST
 	case os.ErrNotExist:
 		return ENOENT
 	case os.ErrInvalid:
@@ -49,7 +43,7 @@ func ToStatus(err error) Status {
 
 	var errno syscall.Errno
 	if errors.As(err, &errno) {
-		return Status(errno)
+		return errno
 	}
 	log.Println("can't convert error type:", err)
 	return ENOTSUP

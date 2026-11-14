@@ -5,6 +5,8 @@
 package fuse
 
 import (
+	"syscall"
+
 	"github.com/hanwen/go-fuse/v3/internal/iov"
 )
 
@@ -21,11 +23,11 @@ func (r *readResultData) Size() int {
 func (r *readResultData) Done() {
 }
 
-func (r *readResultData) Bytes(buf []byte) ([]byte, Status) {
+func (r *readResultData) Bytes(buf []byte) ([]byte, syscall.Errno) {
 	return r.Data, OK
 }
 
-func (r *readResultData) Readv(dst [][]byte) (int, Status) {
+func (r *readResultData) Readv(dst [][]byte) (int, syscall.Errno) {
 	return iov.CopyTo(dst, r.Data), OK
 }
 
@@ -47,13 +49,13 @@ type statefulResult interface {
 
 type withSlice interface {
 	// Slices may be called more than once and must return the same data each time.
-	Slices() ([][]byte, Status)
+	Slices() ([][]byte, syscall.Errno)
 }
 
 // withReadv is a ReadResult that can write directly into a scatter
 // list, e.g. virtiofs guest memory.
 type withReadv interface {
-	Readv(dst [][]byte) (int, Status)
+	Readv(dst [][]byte) (int, syscall.Errno)
 }
 
 // withSpliceFlags is a ReadResult carrying splice(2) flags for the write to
@@ -100,7 +102,7 @@ func (r *readResultVector) Size() int {
 func (r *readResultVector) Done() {}
 
 // Bytes concatenates the vector into buf, reusing its capacity.
-func (r *readResultVector) Bytes(buf []byte) ([]byte, Status) {
+func (r *readResultVector) Bytes(buf []byte) ([]byte, syscall.Errno) {
 	buf = buf[:0]
 	for _, v := range r.vecs {
 		buf = append(buf, v...)
@@ -108,11 +110,11 @@ func (r *readResultVector) Bytes(buf []byte) ([]byte, Status) {
 	return buf, OK
 }
 
-func (r *readResultVector) Readv(dst [][]byte) (int, Status) {
+func (r *readResultVector) Readv(dst [][]byte) (int, syscall.Errno) {
 	return iov.CopyTo(dst, r.vecs...), OK
 }
 
-func (r *readResultVector) Slices() ([][]byte, Status) {
+func (r *readResultVector) Slices() ([][]byte, syscall.Errno) {
 	return r.vecs, OK
 }
 

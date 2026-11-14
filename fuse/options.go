@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	"syscall"
 )
 
 const (
@@ -56,7 +57,7 @@ func (o *MountOptions) setDefaults(fs RawFileSystem) {
 	}
 	if o.PanicHandler == nil {
 		l := o.Logger
-		o.PanicHandler = func(obj any) Status {
+		o.PanicHandler = func(obj any) syscall.Errno {
 			return defaultPanicHandler(l, obj)
 		}
 	}
@@ -75,7 +76,7 @@ func (o *MountOptions) setDefaults(fs RawFileSystem) {
 	}
 }
 
-func defaultPanicHandler(logger *log.Logger, obj any) Status {
+func defaultPanicHandler(logger *log.Logger, obj any) syscall.Errno {
 	const size = 64 << 10
 	buf := make([]byte, size)
 	buf = buf[:runtime.Stack(buf, false)]

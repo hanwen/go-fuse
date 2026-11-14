@@ -23,14 +23,14 @@ type takeoverFS struct {
 	id uint64
 }
 
-func (fs *takeoverFS) Lookup(ctx context.Context, header *InHeader, name string, out *EntryOut) Status {
+func (fs *takeoverFS) Lookup(ctx context.Context, header *InHeader, name string, out *EntryOut) syscall.Errno {
 	out.NodeId = 2
 	out.Mode = syscall.S_IFREG | 0o644
 	out.Size = fs.id
 	return OK
 }
 
-func (fs *takeoverFS) GetAttr(ctx context.Context, in *GetAttrIn, out *AttrOut) Status {
+func (fs *takeoverFS) GetAttr(ctx context.Context, in *GetAttrIn, out *AttrOut) syscall.Errno {
 	if in.NodeId == FUSE_ROOT_ID {
 		out.Mode = syscall.S_IFDIR | 0o755
 		return OK
@@ -42,13 +42,13 @@ func (fs *takeoverFS) GetAttr(ctx context.Context, in *GetAttrIn, out *AttrOut) 
 
 const takeoverFh = 42
 
-func (fs *takeoverFS) Open(ctx context.Context, in *OpenIn, out *OpenOut) Status {
+func (fs *takeoverFS) Open(ctx context.Context, in *OpenIn, out *OpenOut) syscall.Errno {
 	out.Fh = takeoverFh
 	out.OpenFlags = FOPEN_DIRECT_IO
 	return OK
 }
 
-func (fs *takeoverFS) Read(ctx context.Context, in *ReadIn, buf []byte) (ReadResult, Status) {
+func (fs *takeoverFS) Read(ctx context.Context, in *ReadIn, buf []byte) (ReadResult, syscall.Errno) {
 	if in.Fh != takeoverFh {
 		return nil, EBADF
 	}

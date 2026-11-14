@@ -13,7 +13,7 @@ import (
 
 // Reads raw bytes from file descriptor if necessary, using the passed
 // buffer as storage.
-func (r *readResultFd) Bytes(buf []byte) ([]byte, Status) {
+func (r *readResultFd) Bytes(buf []byte) ([]byte, syscall.Errno) {
 	sz := min(len(buf), r.Sz)
 
 	n, err := syscall.Pread(int(r.Fd), buf[:sz], r.Off)
@@ -25,5 +25,5 @@ func (r *readResultFd) Bytes(buf []byte) ([]byte, Status) {
 		n = 0
 	}
 
-	return buf[:n], ToStatus(err)
+	return buf[:n], ToErrno(err)
 }

@@ -14,10 +14,10 @@ import (
 // winfsp), so the wire format follows Linux.
 
 const (
-	ENODATA = Status(syscall.ENODATA)
-	ENOATTR = Status(syscall.ENODATA)
+	ENODATA = syscall.ENODATA
+	ENOATTR = syscall.ENODATA
 
-	EREMOTEIO = Status(syscall.EIO)
+	EREMOTEIO = syscall.EIO
 )
 
 const (
@@ -82,7 +82,7 @@ func getMaxWrite() int {
 const MAX_KERNEL_WRITE = 1024 * 1024
 
 // Bytes reads from the file handle in r.Fd at r.Off.
-func (r *readResultFd) Bytes(buf []byte) ([]byte, Status) {
+func (r *readResultFd) Bytes(buf []byte) ([]byte, syscall.Errno) {
 	sz := min(len(buf), r.Sz)
 	if sz == 0 {
 		return buf[:0], OK
@@ -95,5 +95,5 @@ func (r *readResultFd) Bytes(buf []byte) ([]byte, Status) {
 	if err == windows.ERROR_HANDLE_EOF {
 		err = nil
 	}
-	return buf[:n], ToStatus(err)
+	return buf[:n], ToErrno(err)
 }

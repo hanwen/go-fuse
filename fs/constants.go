@@ -16,8 +16,7 @@ var OK = syscall.Errno(0)
 
 // ToErrno exhumes the syscall.Errno error from wrapped error values.
 func ToErrno(err error) syscall.Errno {
-	s := fuse.ToStatus(err)
-	return syscall.Errno(s)
+	return fuse.ToErrno(err)
 }
 
 // RENAME_EXCHANGE is a flag argument for renameat2()

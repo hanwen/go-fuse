@@ -3,8 +3,8 @@ package fuse
 import "syscall"
 
 const (
-	ENOATTR = Status(syscall.ENOATTR)
-	ENODATA = Status(syscall.EIO)
+	ENOATTR = syscall.ENOATTR
+	ENODATA = syscall.EIO
 )
 
 const (

@@ -16,12 +16,12 @@ import "syscall"
 // All functions are non-nil. Operations that the kernel does not
 // support return ENOSYS. Replacements must be non-nil too.
 type Notify struct {
-	InvalInode func(node uint64, off int64, length int64) Status
-	InvalEntry func(parent uint64, name string) Status
-	Delete     func(parent uint64, child uint64, name string) Status
-	Prune      func(nodes []uint64) Status
-	Store      func(node uint64, offset int64, data []byte) Status
-	Retrieve   func(node uint64, offset int64, dest []byte) (n int, st Status)
+	InvalInode func(node uint64, off int64, length int64) syscall.Errno
+	InvalEntry func(parent uint64, name string) syscall.Errno
+	Delete     func(parent uint64, child uint64, name string) syscall.Errno
+	Prune      func(nodes []uint64) syscall.Errno
+	Store      func(node uint64, offset int64, data []byte) syscall.Errno
+	Retrieve   func(node uint64, offset int64, dest []byte) (n int, st syscall.Errno)
 
 	// set if created by newNotify; receives NOTIFY_REPLY.
 	notifier *notifier
@@ -44,12 +44,12 @@ type Backing struct {
 
 func enosysNotify() *Notify {
 	return &Notify{
-		InvalInode: func(uint64, int64, int64) Status { return ENOSYS },
-		InvalEntry: func(uint64, string) Status { return ENOSYS },
-		Delete:     func(uint64, uint64, string) Status { return ENOSYS },
-		Prune:      func([]uint64) Status { return ENOSYS },
-		Store:      func(uint64, int64, []byte) Status { return ENOSYS },
-		Retrieve:   func(uint64, int64, []byte) (int, Status) { return 0, ENOSYS },
+		InvalInode: func(uint64, int64, int64) syscall.Errno { return ENOSYS },
+		InvalEntry: func(uint64, string) syscall.Errno { return ENOSYS },
+		Delete:     func(uint64, uint64, string) syscall.Errno { return ENOSYS },
+		Prune:      func([]uint64) syscall.Errno { return ENOSYS },
+		Store:      func(uint64, int64, []byte) syscall.Errno { return ENOSYS },
+		Retrieve:   func(uint64, int64, []byte) (int, syscall.Errno) { return 0, ENOSYS },
 	}
 }
 

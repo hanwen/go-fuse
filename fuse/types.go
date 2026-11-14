@@ -15,62 +15,61 @@ const (
 	_DEFAULT_BACKGROUND_TASKS = 12
 )
 
-// Status is the errno number that a FUSE call returns to the kernel.
-type Status int32
-
+// Errno values for convenience. Any syscall.Errno can be returned.
 const (
-	OK = Status(0)
+	// OK indicates success.
+	OK = syscall.Errno(0)
 
 	// EACCESS Permission denied
-	EACCES = Status(syscall.EACCES)
+	EACCES = syscall.EACCES
 
 	// EBUSY Device or resource busy
-	EBUSY = Status(syscall.EBUSY)
+	EBUSY = syscall.EBUSY
 
 	// EAGAIN Resource temporarily unavailable
-	EAGAIN = Status(syscall.EAGAIN)
+	EAGAIN = syscall.EAGAIN
 
 	// EINTR Call was interrupted
-	EINTR = Status(syscall.EINTR)
+	EINTR = syscall.EINTR
 
 	// EINVAL Invalid argument
-	EINVAL = Status(syscall.EINVAL)
+	EINVAL = syscall.EINVAL
 
 	// EIO I/O error
-	EIO = Status(syscall.EIO)
+	EIO = syscall.EIO
 
 	// ENOENT No such file or directory
-	ENOENT = Status(syscall.ENOENT)
+	ENOENT = syscall.ENOENT
 
 	// ENOSYS Function not implemented
-	ENOSYS = Status(syscall.ENOSYS)
+	ENOSYS = syscall.ENOSYS
 
 	// ENOTDIR Not a directory
-	ENOTDIR = Status(syscall.ENOTDIR)
+	ENOTDIR = syscall.ENOTDIR
 
 	// ENOTSUP Not supported
-	ENOTSUP = Status(syscall.ENOTSUP)
+	ENOTSUP = syscall.ENOTSUP
 
 	// EISDIR Is a directory
-	EISDIR = Status(syscall.EISDIR)
+	EISDIR = syscall.EISDIR
 
 	// EPERM Operation not permitted
-	EPERM = Status(syscall.EPERM)
+	EPERM = syscall.EPERM
 
 	// ERANGE Math result not representable
-	ERANGE = Status(syscall.ERANGE)
+	ERANGE = syscall.ERANGE
 
 	// EXDEV Cross-device link
-	EXDEV = Status(syscall.EXDEV)
+	EXDEV = syscall.EXDEV
 
 	// EBADF Bad file number
-	EBADF = Status(syscall.EBADF)
+	EBADF = syscall.EBADF
 
 	// ENODEV No such device
-	ENODEV = Status(syscall.ENODEV)
+	ENODEV = syscall.ENODEV
 
 	// EROFS Read-only file system
-	EROFS = Status(syscall.EROFS)
+	EROFS = syscall.EROFS
 )
 
 type ForgetIn struct {

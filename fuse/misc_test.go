@@ -10,20 +10,20 @@ import (
 	"testing"
 )
 
-func TestToStatus(t *testing.T) {
-	errNo := ToStatus(os.ErrPermission)
+func TestToErrno(t *testing.T) {
+	errNo := ToErrno(os.ErrPermission)
 	if errNo != EPERM {
 		t.Errorf("Wrong conversion %v != %v", errNo, syscall.EPERM)
 	}
 
 	e := os.NewSyscallError("syscall", syscall.EPERM)
-	errNo = ToStatus(e)
+	errNo = ToErrno(e)
 	if errNo != EPERM {
 		t.Errorf("Wrong conversion %v != %v", errNo, syscall.EPERM)
 	}
 
 	e = os.Remove("this-file-surely-does-not-exist")
-	errNo = ToStatus(e)
+	errNo = ToErrno(e)
 	if errNo != ENOENT {
 		t.Errorf("Wrong conversion %v != %v", errNo, syscall.ENOENT)
 	}

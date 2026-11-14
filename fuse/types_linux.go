@@ -11,11 +11,11 @@ import (
 )
 
 const (
-	ENODATA = Status(syscall.ENODATA)
-	ENOATTR = Status(syscall.ENODATA) // On Linux, ENOATTR is an alias for ENODATA.
+	ENODATA = syscall.ENODATA
+	ENOATTR = syscall.ENODATA // On Linux, ENOATTR is an alias for ENODATA.
 
 	// EREMOTEIO Remote I/O error
-	EREMOTEIO = Status(syscall.EREMOTEIO)
+	EREMOTEIO = syscall.EREMOTEIO
 )
 
 // To be set in InitIn/InitOut.Flags.

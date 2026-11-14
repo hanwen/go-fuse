@@ -214,7 +214,7 @@ func (c *fdCall) writev(bufs ...[]byte) (int, error) {
 // insufficient request-bytes budget. needReader is set if no other
 // reader is waiting for a request, and the request is one that the
 // kernel expects a reply for.
-func (f *fuseFD) readRequest() (req *requestAlloc, needReader bool, code Status) {
+func (f *fuseFD) readRequest() (req *requestAlloc, needReader bool, code syscall.Errno) {
 	f.reqMu.Lock()
 	if f.stopped || f.reqReaders > f.maxReaders || !f.reserveRequestBytes() {
 		f.reqMu.Unlock()
@@ -237,7 +237,7 @@ func (f *fuseFD) readRequest() (req *requestAlloc, needReader bool, code Status)
 		if err == errStopped {
 			return nil, false, OK
 		}
-		return nil, false, ToStatus(err)
+		return nil, false, ToErrno(err)
 	}
 
 	f.reqMu.Lock()
@@ -352,14 +352,14 @@ func (f *fuseFD) writev(iov [][]byte) (int, syscall.Errno) {
 	return n, errno
 }
 
-func (f *fuseFD) writeWithSlice(req *request, ws withSlice) Status {
+func (f *fuseFD) writeWithSlice(req *request, ws withSlice) syscall.Errno {
 	slices, st := ws.Slices()
-	if !st.Ok() {
+	if st != OK {
 		return st
 	}
 	bufs := make([][]byte, 0, 2+len(slices))
 	bufs = append(bufs, req.outHeaderBuf, req.outDataBuf)
 	bufs = append(bufs, slices...)
 	_, err := f.writevFD(bufs)
-	return ToStatus(err)
+	return ToErrno(err)
 }

@@ -782,8 +782,7 @@ retry:
 // tuple should be invalidated. On next access, a LOOKUP operation
 // will be started.
 func (n *Inode) NotifyEntry(name string) syscall.Errno {
-	status := n.bridge.notify.InvalEntry(n.nodeId, name)
-	return syscall.Errno(status)
+	return n.bridge.notify.InvalEntry(n.nodeId, name)
 }
 
 // NotifyPrune instructs the kernel to forget the inodes passed as
@@ -795,8 +794,7 @@ func (n *Inode) NotifyPrune(nodes []*Inode) syscall.Errno {
 	for _, n := range nodes {
 		ids = append(ids, n.nodeId)
 	}
-	status := n.bridge.notify.Prune(ids)
-	return syscall.Errno(status)
+	return n.bridge.notify.Prune(ids)
 }
 
 // NotifyDelete notifies the kernel that the given inode was removed
@@ -804,23 +802,22 @@ func (n *Inode) NotifyPrune(nodes []*Inode) syscall.Errno {
 // to NotifyEntry, but also sends an event to inotify watchers.
 func (n *Inode) NotifyDelete(name string, child *Inode) syscall.Errno {
 	// XXX arg ordering?
-	return syscall.Errno(n.bridge.notify.Delete(n.nodeId, child.nodeId, name))
+	return n.bridge.notify.Delete(n.nodeId, child.nodeId, name)
 }
 
 // NotifyContent notifies the kernel that content under the given
 // inode should be flushed from buffers.
 func (n *Inode) NotifyContent(off, sz int64) syscall.Errno {
 	// XXX how does this work for directories?
-	return syscall.Errno(n.bridge.notify.InvalInode(n.nodeId, off, sz))
+	return n.bridge.notify.InvalInode(n.nodeId, off, sz)
 }
 
 // WriteCache stores data in the kernel cache.
 func (n *Inode) WriteCache(offset int64, data []byte) syscall.Errno {
-	return syscall.Errno(n.bridge.notify.Store(n.nodeId, offset, data))
+	return n.bridge.notify.Store(n.nodeId, offset, data)
 }
 
 // ReadCache reads data from the kernel cache.
 func (n *Inode) ReadCache(offset int64, dest []byte) (count int, errno syscall.Errno) {
-	c, s := n.bridge.notify.Retrieve(n.nodeId, offset, dest)
-	return c, syscall.Errno(s)
+	return n.bridge.notify.Retrieve(n.nodeId, offset, dest)
 }

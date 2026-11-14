@@ -141,7 +141,7 @@ func (n *notifier) abort() {
 	}
 }
 
-func notifyWrite(writev func([][]byte) (int, syscall.Errno), opts *MountOptions, req *request) Status {
+func notifyWrite(writev func([][]byte) (int, syscall.Errno), opts *MountOptions, req *request) syscall.Errno {
 	req.serializeHeader(req.outPayloadSize())
 
 	if opts.Debug {
@@ -155,10 +155,10 @@ func notifyWrite(writev func([][]byte) (int, syscall.Errno), opts *MountOptions,
 		opts.Logger.Printf("Response %s: %v", h.Name, errno)
 	}
 
-	return Status(errno)
+	return errno
 }
 
-func (n *notifier) notifyWrite(req *request) Status {
+func (n *notifier) notifyWrite(req *request) syscall.Errno {
 	return notifyWrite(n.writev, n.opts, req)
 }
 
@@ -182,7 +182,7 @@ func newNotifyRequest(opcode uint32) *request {
 
 // InodeNotify invalidates the information associated with the inode
 // (ie. data cache, attributes, etc.)
-func (n *notifier) InodeNotify(node uint64, off int64, length int64) Status {
+func (n *notifier) InodeNotify(node uint64, off int64, length int64) syscall.Errno {
 	req := newNotifyRequest(_OP_NOTIFY_INVAL_INODE)
 
 	entry := (*NotifyInvalInodeOut)(req.outData())
@@ -193,7 +193,7 @@ func (n *notifier) InodeNotify(node uint64, off int64, length int64) Status {
 	return n.notifyWrite(req)
 }
 
-func (n *notifier) PruneNotify(nodes []uint64) Status {
+func (n *notifier) PruneNotify(nodes []uint64) syscall.Errno {
 	if len(nodes) == 0 {
 		return OK
 	}
@@ -212,7 +212,7 @@ func (n *notifier) PruneNotify(nodes []uint64) Status {
 //
 // This call is similar to InodeNotify, but instead of only invalidating a data
 // region, it gives updated data directly to the kernel.
-func (n *notifier) InodeNotifyStoreCache(node uint64, offset int64, data []byte) Status {
+func (n *notifier) InodeNotifyStoreCache(node uint64, offset int64, data []byte) syscall.Errno {
 	for len(data) > 0 {
 		size := min(len(data),
 			// NotifyStoreOut has only uint32 for size.
@@ -234,7 +234,7 @@ func (n *notifier) InodeNotifyStoreCache(node uint64, offset int64, data []byte)
 
 // inodeNotifyStoreCache32 is internal worker for InodeNotifyStoreCache which
 // handles data chunks not larger than 2GB.
-func (n *notifier) inodeNotifyStoreCache32(node uint64, offset int64, data []byte) Status {
+func (n *notifier) inodeNotifyStoreCache32(node uint64, offset int64, data []byte) syscall.Errno {
 	req := newNotifyRequest(_OP_NOTIFY_STORE_CACHE)
 
 	store := (*NotifyStoreOut)(req.outData())
@@ -256,12 +256,12 @@ func (n *notifier) inodeNotifyStoreCache32(node uint64, offset int64, data []byt
 //
 // The kernel returns ENOENT if it does not currently have entry for this inode
 // in its dentry cache.
-func (n *notifier) InodeRetrieveCache(node uint64, offset int64, dest []byte) (int, Status) {
+func (n *notifier) InodeRetrieveCache(node uint64, offset int64, dest []byte) (int, syscall.Errno) {
 	// the kernel won't send us in one go more then what we negotiated as MaxWrite.
 	// retrieve the data in chunks.
 	// TODO spawn some number of readahead retrievers in parallel.
 	ntotal := 0
-	var st Status
+	var st syscall.Errno
 	for {
 		chunkSize := min(len(dest), n.maxWrite)
 		var got int
@@ -285,7 +285,7 @@ func (n *notifier) InodeRetrieveCache(node uint64, offset int64, dest []byte) (i
 
 // inodeRetrieveCache1 is internal worker for InodeRetrieveCache which
 // actually talks to kernel and retrieves chunks not larger than the negotiated MaxWrite.
-func (n *notifier) inodeRetrieveCache1(node uint64, offset int64, dest []byte) (int, Status) {
+func (n *notifier) inodeRetrieveCache1(node uint64, offset int64, dest []byte) (int, syscall.Errno) {
 	req := newNotifyRequest(_OP_NOTIFY_RETRIEVE_CACHE)
 
 	// retrieve up to 2GB not to overflow uint32 size in NotifyRetrieveOut.
@@ -349,7 +349,7 @@ type retrieveCacheRequest struct {
 
 	// reply status
 	n     int
-	st    Status
+	st    syscall.Errno
 	ready chan struct{}
 }
 
@@ -358,7 +358,7 @@ type retrieveCacheRequest struct {
 // except when the directory is in use, eg. as working directory of
 // some process. You should not hold any FUSE filesystem locks, as that
 // can lead to deadlock.
-func (n *notifier) DeleteNotify(parent uint64, child uint64, name string) Status {
+func (n *notifier) DeleteNotify(parent uint64, child uint64, name string) syscall.Errno {
 	req := newNotifyRequest(_OP_NOTIFY_DELETE)
 
 	entry := (*NotifyInvalDeleteOut)(req.outData())
@@ -379,7 +379,7 @@ func (n *notifier) DeleteNotify(parent uint64, child uint64, name string) Status
 // EntryNotify should be used if the existence status of an entry
 // within a directory changes. You should not hold any FUSE filesystem
 // locks, as that can lead to deadlock.
-func (n *notifier) EntryNotify(parent uint64, name string) Status {
+func (n *notifier) EntryNotify(parent uint64, name string) syscall.Errno {
 	req := newNotifyRequest(_OP_NOTIFY_INVAL_ENTRY)
 	entry := (*NotifyInvalEntryOut)(req.outData())
 	entry.Parent = parent

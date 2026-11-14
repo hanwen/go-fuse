@@ -136,6 +136,7 @@ package fuse
 import (
 	"context"
 	"log"
+	"syscall"
 )
 
 // Types for users to implement.
@@ -149,7 +150,7 @@ type ReadResult interface {
 	// Returns the raw bytes for the read, possibly using the
 	// passed buffer. The buffer should be larger than the return
 	// value from Size.
-	Bytes(buf []byte) ([]byte, Status)
+	Bytes(buf []byte) ([]byte, syscall.Errno)
 
 	// Size returns how many bytes this return value takes at most.
 	Size() int
@@ -363,7 +364,7 @@ type MountOptions struct {
 	// PanicHandler is called if an FS routine panics. The handler
 	// should return a nonzero status. If not set, the default is
 	// to print a stack trace and return EIO.
-	PanicHandler func(any) Status
+	PanicHandler func(any) syscall.Errno
 
 	// InitHandler, if set, is called with the reply to the
 	// kernel's INIT request after RawFileSystem.Init, and may
@@ -466,7 +467,7 @@ type RawFileSystem interface {
 	// about a file inside a directory. Many lookup calls can
 	// occur in parallel, but only one call happens for each (dir,
 	// name) pair.
-	Lookup(ctx context.Context, header *InHeader, name string, out *EntryOut) (status Status)
+	Lookup(ctx context.Context, header *InHeader, name string, out *EntryOut) (status syscall.Errno)
 
 	// Forget is called when the kernel discards entries from its
 	// dentry cache. This happens on unmount, deletion, and when
@@ -477,77 +478,77 @@ type RawFileSystem interface {
 	Forget(nodeid, nlookup uint64)
 
 	// Attributes.
-	GetAttr(ctx context.Context, input *GetAttrIn, out *AttrOut) (code Status)
-	SetAttr(ctx context.Context, input *SetAttrIn, out *AttrOut) (code Status)
+	GetAttr(ctx context.Context, input *GetAttrIn, out *AttrOut) (code syscall.Errno)
+	SetAttr(ctx context.Context, input *SetAttrIn, out *AttrOut) (code syscall.Errno)
 
 	// Modifying structure.
-	Mknod(ctx context.Context, input *MknodIn, name string, out *EntryOut) (code Status)
-	Mkdir(ctx context.Context, input *MkdirIn, name string, out *EntryOut) (code Status)
-	Unlink(ctx context.Context, header *InHeader, name string) (code Status)
-	Rmdir(ctx context.Context, header *InHeader, name string) (code Status)
-	Rename(ctx context.Context, input *RenameIn, oldName string, newName string) (code Status)
-	Link(ctx context.Context, input *LinkIn, filename string, out *EntryOut) (code Status)
+	Mknod(ctx context.Context, input *MknodIn, name string, out *EntryOut) (code syscall.Errno)
+	Mkdir(ctx context.Context, input *MkdirIn, name string, out *EntryOut) (code syscall.Errno)
+	Unlink(ctx context.Context, header *InHeader, name string) (code syscall.Errno)
+	Rmdir(ctx context.Context, header *InHeader, name string) (code syscall.Errno)
+	Rename(ctx context.Context, input *RenameIn, oldName string, newName string) (code syscall.Errno)
+	Link(ctx context.Context, input *LinkIn, filename string, out *EntryOut) (code syscall.Errno)
 
-	Symlink(ctx context.Context, header *InHeader, pointedTo string, linkName string, out *EntryOut) (code Status)
-	Readlink(ctx context.Context, header *InHeader) (out []byte, code Status)
-	Access(ctx context.Context, input *AccessIn) (code Status)
+	Symlink(ctx context.Context, header *InHeader, pointedTo string, linkName string, out *EntryOut) (code syscall.Errno)
+	Readlink(ctx context.Context, header *InHeader) (out []byte, code syscall.Errno)
+	Access(ctx context.Context, input *AccessIn) (code syscall.Errno)
 
 	// Extended attributes.
 
 	// GetXAttr reads an extended attribute, and should return the
 	// number of bytes. If the buffer is too small, return ERANGE,
 	// with the required buffer size.
-	GetXAttr(ctx context.Context, header *InHeader, attr string, dest []byte) (sz uint32, code Status)
+	GetXAttr(ctx context.Context, header *InHeader, attr string, dest []byte) (sz uint32, code syscall.Errno)
 
 	// ListXAttr lists extended attributes as '\0' delimited byte
 	// slice, and return the number of bytes. If the buffer is too
 	// small, return ERANGE, with the required buffer size.
-	ListXAttr(ctx context.Context, header *InHeader, dest []byte) (uint32, Status)
+	ListXAttr(ctx context.Context, header *InHeader, dest []byte) (uint32, syscall.Errno)
 
 	// SetAttr writes an extended attribute.
-	SetXAttr(ctx context.Context, input *SetXAttrIn, attr string, data []byte) Status
+	SetXAttr(ctx context.Context, input *SetXAttrIn, attr string, data []byte) syscall.Errno
 
 	// RemoveXAttr removes an extended attribute.
-	RemoveXAttr(ctx context.Context, header *InHeader, attr string) (code Status)
+	RemoveXAttr(ctx context.Context, header *InHeader, attr string) (code syscall.Errno)
 
 	// File handling.
-	Create(ctx context.Context, input *CreateIn, name string, out *CreateOut) (code Status)
-	Tmpfile(ctx context.Context, input *CreateIn, out *CreateOut) (code Status)
-	Open(ctx context.Context, input *OpenIn, out *OpenOut) (status Status)
-	Read(ctx context.Context, input *ReadIn, buf []byte) (ReadResult, Status)
-	Lseek(ctx context.Context, in *LseekIn, out *LseekOut) Status
+	Create(ctx context.Context, input *CreateIn, name string, out *CreateOut) (code syscall.Errno)
+	Tmpfile(ctx context.Context, input *CreateIn, out *CreateOut) (code syscall.Errno)
+	Open(ctx context.Context, input *OpenIn, out *OpenOut) (status syscall.Errno)
+	Read(ctx context.Context, input *ReadIn, buf []byte) (ReadResult, syscall.Errno)
+	Lseek(ctx context.Context, in *LseekIn, out *LseekOut) syscall.Errno
 
 	// File locking
-	GetLk(ctx context.Context, input *LkIn, out *LkOut) (code Status)
-	SetLk(ctx context.Context, input *LkIn) (code Status)
-	SetLkw(ctx context.Context, input *LkIn) (code Status)
+	GetLk(ctx context.Context, input *LkIn, out *LkOut) (code syscall.Errno)
+	SetLk(ctx context.Context, input *LkIn) (code syscall.Errno)
+	SetLkw(ctx context.Context, input *LkIn) (code syscall.Errno)
 
 	// Release and ReleaseDir drop a file handle returned by a successful
 	// Open/Create or OpenDir. The kernel ignores the result and sends no
 	// credentials, so the Caller in ctx is zero, and ctx is normally only
 	// canceled when the connection goes away.
 	Release(ctx context.Context, input *ReleaseIn)
-	Write(ctx context.Context, input *WriteIn, data []byte) (written uint32, code Status)
+	Write(ctx context.Context, input *WriteIn, data []byte) (written uint32, code syscall.Errno)
 
 	// Writev is called for WRITE. On ENOSYS fallback to Write
-	Writev(ctx context.Context, input *WriteIn, data [][]byte) (written uint32, code Status)
-	CopyFileRange(ctx context.Context, input *CopyFileRangeIn) (written uint32, code Status)
-	Ioctl(ctx context.Context, input *IoctlIn, inbuf []byte, output *IoctlOut, outbuf []byte) (code Status)
+	Writev(ctx context.Context, input *WriteIn, data [][]byte) (written uint32, code syscall.Errno)
+	CopyFileRange(ctx context.Context, input *CopyFileRangeIn) (written uint32, code syscall.Errno)
+	Ioctl(ctx context.Context, input *IoctlIn, inbuf []byte, output *IoctlOut, outbuf []byte) (code syscall.Errno)
 
-	Flush(ctx context.Context, input *FlushIn) Status
-	Fsync(ctx context.Context, input *FsyncIn) (code Status)
-	Fallocate(ctx context.Context, input *FallocateIn) (code Status)
+	Flush(ctx context.Context, input *FlushIn) syscall.Errno
+	Fsync(ctx context.Context, input *FsyncIn) (code syscall.Errno)
+	Fallocate(ctx context.Context, input *FallocateIn) (code syscall.Errno)
 
 	// Directory handling
-	OpenDir(ctx context.Context, input *OpenIn, out *OpenOut) (status Status)
-	ReadDir(ctx context.Context, input *ReadIn, out *DirEntryList) Status
-	ReadDirPlus(ctx context.Context, input *ReadIn, out *DirEntryList) Status
+	OpenDir(ctx context.Context, input *OpenIn, out *OpenOut) (status syscall.Errno)
+	ReadDir(ctx context.Context, input *ReadIn, out *DirEntryList) syscall.Errno
+	ReadDirPlus(ctx context.Context, input *ReadIn, out *DirEntryList) syscall.Errno
 	ReleaseDir(ctx context.Context, input *ReleaseIn)
-	FsyncDir(ctx context.Context, input *FsyncIn) (code Status)
+	FsyncDir(ctx context.Context, input *FsyncIn) (code syscall.Errno)
 
-	StatFs(ctx context.Context, input *InHeader, out *StatfsOut) (code Status)
+	StatFs(ctx context.Context, input *InHeader, out *StatfsOut) (code syscall.Errno)
 
-	Statx(ctx context.Context, input *StatxIn, out *StatxOut) (code Status)
+	Statx(ctx context.Context, input *StatxIn, out *StatxOut) (code syscall.Errno)
 	// Init is called with the kernel's INIT request and the
 	// proposed reply, and may modify the reply before it is sent.
 	// Major and Minor cannot be changed, flags are limited to

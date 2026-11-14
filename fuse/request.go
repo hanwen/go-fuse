@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"syscall"
 	"unsafe"
 
 	"github.com/hanwen/go-fuse/v3/internal/iov"
@@ -49,7 +50,7 @@ type request struct {
 	ext *requestExt
 
 	// Output data.
-	status Status
+	status syscall.Errno
 
 	// Nonzero for notifications to the kernel.
 	notifyCode notifyCode
@@ -221,9 +222,9 @@ func (r *request) OutputDebug() string {
 	if extraStr != "" {
 		extraStr = ", " + extraStr
 	}
-	var st fmt.Stringer = r.status
+	st := errnoString(r.status)
 	if r.notifyCode != 0 {
-		st = r.notifyCode
+		st = r.notifyCode.String()
 	}
 	return fmt.Sprintf("tx %d:     %v%s",
 		r.inHeader().Unique, st, extraStr)
@@ -242,7 +243,7 @@ func (r *requestAlloc) setInput(input []byte) bool {
 	return true
 }
 
-func (r *requestAlloc) splitPayload(inSize, structSize int) Status {
+func (r *requestAlloc) splitPayload(inSize, structSize int) syscall.Errno {
 	r.inPayload = r.inputBuf[inSize:]
 	r.inputBuf = r.inputBuf[:inSize]
 	r.extendInput(structSize)
@@ -271,7 +272,7 @@ func (r *requestAlloc) extendInput(size int) {
 }
 
 // splitExt parses the extension, if any, into storage.
-func (r *request) splitExt(storage *requestExt) Status {
+func (r *request) splitExt(storage *requestExt) syscall.Errno {
 	extLen := int(r.inHeader().TotalExtlen) * 8
 	if extLen == 0 {
 		return OK
@@ -291,7 +292,7 @@ func (r *request) inData() unsafe.Pointer {
 }
 
 // note: outSize is without OutHeader
-func parseRequest(in []byte, negotiated uint64) (h *operationHandler, inSize, outSize, outPayloadSize int, errno Status) {
+func parseRequest(in []byte, negotiated uint64) (h *operationHandler, inSize, outSize, outPayloadSize int, errno syscall.Errno) {
 	inSize = int(unsafe.Sizeof(InHeader{}))
 	if len(in) < inSize {
 		errno = EIO
@@ -357,7 +358,7 @@ func (r *request) filename() string {
 	return string(name)
 }
 
-func (r *request) filenames() (string, string, Status) {
+func (r *request) filenames() (string, string, syscall.Errno) {
 	i1 := bytes.IndexByte(r.inPayload, 0)
 	if i1 < 0 {
 		return "", "", EIO
@@ -381,7 +382,7 @@ func (r *request) serializeHeader(outPayloadSize int) {
 	// The InitOut structure has 24 bytes (ie. TimeGran and
 	// further fields not available) in fuse version <= 22.
 	// https://john-millikin.com/the-fuse-protocol#FUSE_INIT
-	if r.status.Ok() && r.inHeader().Opcode == _OP_INIT {
+	if r.status == OK && r.inHeader().Opcode == _OP_INIT {
 		out := (*InitOut)(r.outData())
 		if out.Minor <= 22 {
 			r.outDataBuf = r.outDataBuf[:24]
@@ -393,7 +394,7 @@ func (r *request) serializeHeader(outPayloadSize int) {
 	if r.notifyCode != 0 {
 		o.Status = int32(r.notifyCode)
 	} else {
-		o.Status = int32(-r.status)
+		o.Status = -int32(r.status)
 	}
 	o.Length = uint32(
 		int(sizeOfOutHeader) + len(r.outDataBuf) + outPayloadSize)

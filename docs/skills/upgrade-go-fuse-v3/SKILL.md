@@ -56,14 +56,22 @@ These changes apply to both the `fs` and the `fuse` APIs.
 
 Skip this step if the code only uses the `fs` package.
 
-1. In every `RawFileSystem` method, change the first parameter
+1. Replace `fuse.Status` with `syscall.Errno` everywhere, including
+   `RawFileSystem` method results, `ReadResult.Bytes` and
+   `MountOptions.PanicHandler`. Add the `syscall` import. Replace
+   `st.Ok()` with `st == fuse.OK`, `!st.Ok()` with `st != fuse.OK`,
+   and `fuse.ToStatus` with `fuse.ToErrno`. Remove conversions
+   such as `fuse.Status(errno)` and `syscall.Errno(status)`. Code
+   that prints a status with `%v` now gets the error text, and
+   `errno 0` for OK.
+2. In every `RawFileSystem` method, change the first parameter
    `cancel <-chan struct{}` to `ctx context.Context`. Replace
    `<-cancel` with `<-ctx.Done()`. Add the `context` import.
-2. Change `ReleaseDir(input *fuse.ReleaseIn)` to
+3. Change `ReleaseDir(input *fuse.ReleaseIn)` to
    `ReleaseDir(ctx context.Context, input *fuse.ReleaseIn)`.
-3. Rename `Init(server *fuse.Server)` to `OnConnect(conn *fuse.Conn)`.
+4. Rename `Init(server *fuse.Server)` to `OnConnect(conn *fuse.Conn)`.
    Store `conn` instead of the server, if notifications are needed.
-4. Replace notification calls on the stored server or
+5. Replace notification calls on the stored server or
    `ProtocolServer` with `conn.Notify()`:
 
    | v2                                   | v3                               |
@@ -77,7 +85,7 @@ Skip this step if the code only uses the `fs` package.
 
    The methods on `*fuse.Server` still exist. Keep them if the code
    holds a `*fuse.Server` from `NewServer`.
-5. Remove `KernelSettings().SupportsNotify(fuse.NOTIFY_*)` checks.
+6. Remove `KernelSettings().SupportsNotify(fuse.NOTIFY_*)` checks.
    Call the notification and treat `fuse.ENOSYS` as unsupported. If
    the check must happen before the call, use
    `SupportsVersion(7, minor)`, but that only covers the kernel, not
@@ -89,11 +97,11 @@ Skip this step if the code only uses the `fs` package.
    | `NOTIFY_STORE_CACHE`, `NOTIFY_RETRIEVE_CACHE` | 15    |
    | `NOTIFY_DELETE`                               | 18    |
 
-6. Remove `SetDebug` methods. Remove calls to `server.SetDebug`. Set
+7. Remove `SetDebug` methods. Remove calls to `server.SetDebug`. Set
    `MountOptions.Debug` before mounting instead.
-7. Remove calls to `server.RecordLatencies` and uses of
+8. Remove calls to `server.RecordLatencies` and uses of
    `fuse.LatencyMap`.
-8. If the code embeds `fuse.NewDefaultRawFileSystem()`, the new
+9. If the code embeds `fuse.NewDefaultRawFileSystem()`, the new
    `Init(*InitIn, *InitOut)` and `OnConnect(*Conn)` methods come from
    the default. Do not add empty versions.
 

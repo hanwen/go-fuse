@@ -332,16 +332,16 @@ func TestWrapNotify(t *testing.T) {
 			conn = c
 			n := c.Notify()
 			entry := n.InvalEntry
-			n.InvalEntry = func(parent uint64, name string) fuse.Status {
+			n.InvalEntry = func(parent uint64, name string) syscall.Errno {
 				atomic.AddInt32(&entryNotifies, 1)
 				return entry(parent, name)
 			}
 			inode := n.InvalInode
-			n.InvalInode = func(node uint64, off, length int64) fuse.Status {
+			n.InvalInode = func(node uint64, off, length int64) syscall.Errno {
 				atomic.AddInt32(&inodeNotifies, 1)
 				return inode(node, off, length)
 			}
-			n.Delete = func(uint64, uint64, string) fuse.Status { return fuse.ENOSYS }
+			n.Delete = func(uint64, uint64, string) syscall.Errno { return fuse.ENOSYS }
 		},
 	}
 	srv, err := fuse.NewServer(rawFS, mnt, &opts.MountOptions)
@@ -383,7 +383,7 @@ func TestWrapNotify(t *testing.T) {
 		t.Errorf("NotifyDelete: got %v, want ENOSYS", errno)
 	}
 
-	if st := srv.InodeNotify(fuse.FUSE_ROOT_ID, 0, 0); !st.Ok() {
+	if st := srv.InodeNotify(fuse.FUSE_ROOT_ID, 0, 0); st != OK {
 		t.Errorf("InodeNotify: %v", st)
 	}
 	if got := atomic.LoadInt32(&inodeNotifies); got != 1 {

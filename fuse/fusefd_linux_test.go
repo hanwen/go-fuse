@@ -35,7 +35,7 @@ func newBlockingGetAttrFS(n int) *blockingGetAttrFS {
 	return fs
 }
 
-func (fs *blockingGetAttrFS) GetAttr(ctx context.Context, in *GetAttrIn, out *AttrOut) Status {
+func (fs *blockingGetAttrFS) GetAttr(ctx context.Context, in *GetAttrIn, out *AttrOut) syscall.Errno {
 	if in.NodeId == FUSE_ROOT_ID {
 		out.Mode = syscall.S_IFDIR | 0o755
 		return OK
@@ -46,7 +46,7 @@ func (fs *blockingGetAttrFS) GetAttr(ctx context.Context, in *GetAttrIn, out *At
 	return OK
 }
 
-func (fs *blockingGetAttrFS) Lookup(ctx context.Context, header *InHeader, name string, out *EntryOut) Status {
+func (fs *blockingGetAttrFS) Lookup(ctx context.Context, header *InHeader, name string, out *EntryOut) syscall.Errno {
 	out.NodeId = fs.lastID.Add(1)
 	out.Mode = syscall.S_IFREG | 0o644
 	return OK

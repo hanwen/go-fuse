@@ -31,7 +31,7 @@ func (b *rawBridge) setStatxTimeout(out *fuse.StatxOut) {
 	}
 }
 
-func (b *rawBridge) Statx(ctx context.Context, in *fuse.StatxIn, out *fuse.StatxOut) fuse.Status {
+func (b *rawBridge) Statx(ctx context.Context, in *fuse.StatxIn, out *fuse.StatxOut) syscall.Errno {
 	n, fe := b.inode(in.NodeId, in.Fh)
 	var fh FileHandle
 	if fe != nil {
@@ -55,5 +55,5 @@ func (b *rawBridge) Statx(ctx context.Context, in *fuse.StatxIn, out *fuse.Statx
 		b.setStatxTimeout(out)
 	}
 
-	return errnoToStatus(errno)
+	return errno
 }

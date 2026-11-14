@@ -118,12 +118,12 @@ func (r *pipeReadResult) Done() {
 	r.pair = nil
 }
 
-func (r *pipeReadResult) Bytes(buf []byte) ([]byte, Status) {
+func (r *pipeReadResult) Bytes(buf []byte) ([]byte, syscall.Errno) {
 	n, err := r.pair.Read(buf)
 	if n == -1 && err == syscall.EAGAIN {
 		return nil, 0
 	}
-	return buf[:n], ToStatus(err)
+	return buf[:n], ToErrno(err)
 }
 
 func (r *pipeReadResult) Size() int {

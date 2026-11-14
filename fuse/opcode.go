@@ -329,7 +329,7 @@ func doGetXAttr(server *protocolServer, req *request) {
 
 		out := (*GetXAttrOut)(req.outData())
 		out.Size = n
-	} else if req.status.Ok() {
+	} else if req.status == OK {
 		// ListXAttr called with an empty buffer returns the current size of
 		// the list but does not touch the buffer (see man 2 listxattr).
 		if len(req.outPayload) > 0 {
@@ -466,7 +466,7 @@ func doAccess(server *protocolServer, req *request) {
 func doSymlink(server *protocolServer, req *request) {
 	out := (*EntryOut)(req.outData())
 	n1, n2, code := req.filenames()
-	if !code.Ok() {
+	if code != OK {
 		req.status = code
 		return
 	}
@@ -475,7 +475,7 @@ func doSymlink(server *protocolServer, req *request) {
 
 func doRename(server *protocolServer, req *request) {
 	n1, n2, code := req.filenames()
-	if !code.Ok() {
+	if code != OK {
 		req.status = code
 		return
 	}

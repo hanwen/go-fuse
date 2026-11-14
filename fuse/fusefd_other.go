@@ -21,10 +21,10 @@ func (f *fuseFD) readFD(fd int, dest []byte) (int, error) {
 	return syscall.Read(fd, dest)
 }
 
-func (f *fuseFD) write(req *requestAlloc) Status {
+func (f *fuseFD) write(req *requestAlloc) syscall.Errno {
 	if req.outPayloadSize() == 0 {
 		_, err := req.call.writev(req.outHeaderBuf, req.outDataBuf)
-		return ToStatus(err)
+		return ToErrno(err)
 	}
 	if req.readResult != nil {
 		defer func() {
@@ -40,5 +40,5 @@ func (f *fuseFD) write(req *requestAlloc) Status {
 	}
 
 	_, err := req.call.writev(req.outHeaderBuf, req.outDataBuf, req.outPayload)
-	return ToStatus(err)
+	return ToErrno(err)
 }

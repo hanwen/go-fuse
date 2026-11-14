@@ -112,10 +112,10 @@ func (f *fuseFD) putEpoll(epfd int) {
 	f.reqMu.Unlock()
 }
 
-func (f *fuseFD) write(req *requestAlloc) Status {
+func (f *fuseFD) write(req *requestAlloc) syscall.Errno {
 	if req.outPayloadSize() == 0 {
 		_, err := req.call.writev(req.outHeaderBuf, req.outDataBuf)
-		return ToStatus(err)
+		return ToErrno(err)
 	}
 
 	if req.readResult != nil {
@@ -142,5 +142,5 @@ func (f *fuseFD) write(req *requestAlloc) Status {
 	}
 
 	_, err := req.call.writev(req.outHeaderBuf, req.outDataBuf, req.outPayload)
-	return ToStatus(err)
+	return ToErrno(err)
 }
