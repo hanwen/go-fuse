@@ -406,32 +406,32 @@ func TestReaddirplusConsistency(t *testing.T) {
 	posixtest.ReadDirConsistency(t, mnt)
 }
 
-type memDir struct {
-	Inode
-}
-
-func (md *memDir) Create(ctx context.Context, name string, flags uint32, mode uint32, out *fuse.EntryOut) (node *Inode, fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
-	mrf := MemRegularFile{}
-	ch := md.NewInode(ctx, &mrf, StableAttr{Mode: fuse.S_IFREG})
-	md.AddChild(name, ch, true)
-
-	return ch, nil, 0, 0
-}
-
 func TestMemPosix(t *testing.T) {
 	for _, nm := range []string{
 		"AppendWrite",
+		"DirSeek",
 		"DirectIO",
 		"Fallocate",
 		"FallocateKeepSize",
 		"FcntlFlockSetLk",
 		"FdLeak",
+		"FileBasic",
+		"FileLarge",
 		"FstatDeleted",
+		"Link",
+		"LinkUnlinkRename",
 		"LseekEnxioCheck",
 		"LseekHoleSeeksToEOF",
+		"MkdirRmdir",
+		"NlinkZero",
+		"OpenAt",
 		"ParallelFileOpen",
 		"ReadDirBasic",
 		"ReadDirConsistency",
+		"RenameOpenDir",
+		"RenameOverwriteDestExist",
+		"RenameOverwriteDestNoExist",
+		"SymlinkReadlink",
 		"TruncateFile",
 		"TruncateNoFile",
 	} {
@@ -440,7 +440,7 @@ func TestMemPosix(t *testing.T) {
 			if fn == nil {
 				t.Skipf("posixtest %q not available on this platform", nm)
 			}
-			root := &memDir{}
+			root := &MemDir{Attr: fuse.Attr{Mode: 0755}}
 			mnt := t.TempDir()
 
 			opts := Options{}
