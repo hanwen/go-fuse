@@ -522,3 +522,42 @@ func TestMemFileReadCopyOnWrite(t *testing.T) {
 		t.Errorf("data after write: got %q, want %q", f.Data, "HELLo")
 	}
 }
+
+func TestMemFileSetattr(t *testing.T) {
+	root := &Inode{}
+	mntDir, _ := testMount(t, root, &Options{
+		OnAdd: func(ctx context.Context) {
+			ch := root.NewPersistentInode(ctx,
+				&MemRegularFile{Attr: fuse.Attr{Mode: 0644}},
+				StableAttr{Mode: syscall.S_IFREG})
+			root.AddChild("file", ch, false)
+		},
+	})
+	fn := mntDir + "/file"
+
+	if err := os.Chmod(fn, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chown(fn, os.Getuid(), os.Getgid()); err != nil {
+		t.Fatal(err)
+	}
+	mtime := time.Unix(2000, 2)
+	if err := os.Chtimes(fn, time.Unix(1000, 1), mtime); err != nil {
+		t.Fatal(err)
+	}
+
+	fi, err := os.Stat(fn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := fi.Mode().Perm(); got != 0600 {
+		t.Errorf("mode: got %o, want 0600", got)
+	}
+	st := fi.Sys().(*syscall.Stat_t)
+	if int(st.Uid) != os.Getuid() || int(st.Gid) != os.Getgid() {
+		t.Errorf("owner: got %d:%d, want %d:%d", st.Uid, st.Gid, os.Getuid(), os.Getgid())
+	}
+	if got := fi.ModTime(); !got.Equal(mtime) {
+		t.Errorf("mtime: got %v, want %v", got, mtime)
+	}
+}

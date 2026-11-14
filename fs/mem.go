@@ -93,9 +93,32 @@ func (f *MemRegularFile) Setattr(ctx context.Context, fh FileHandle, in *fuse.Se
 			f.Data = n
 		}
 	}
+	setAttrMetadata(&f.Attr, in)
 	out.Attr = f.Attr
 	out.Size = uint64(len(f.Data))
 	return OK
+}
+
+// setAttrMetadata applies the mode, owner and time changes of in to a.
+func setAttrMetadata(a *fuse.Attr, in *fuse.SetAttrIn) {
+	if m, ok := in.GetMode(); ok {
+		a.Mode = a.Mode&^07777 | m
+	}
+	if uid, ok := in.GetUID(); ok {
+		a.Uid = uid
+	}
+	if gid, ok := in.GetGID(); ok {
+		a.Gid = gid
+	}
+	if t, ok := in.GetATime(); ok {
+		a.SetTimes(&t, nil, nil)
+	}
+	if t, ok := in.GetMTime(); ok {
+		a.SetTimes(nil, &t, nil)
+	}
+	if t, ok := in.GetCTime(); ok {
+		a.SetTimes(nil, nil, &t)
+	}
 }
 
 func (f *MemRegularFile) Flush(ctx context.Context, fh FileHandle) syscall.Errno {
