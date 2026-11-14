@@ -47,6 +47,23 @@ func clearStatx(st *unix.Statx_t, mask uint32) {
 		st.Mtime = unix.StatxTimestamp{}
 	}
 
+	if mask&unix.STATX_DIOALIGN == 0 {
+		st.Dio_mem_align = 0
+		st.Dio_offset_align = 0
+	}
+	if mask&unix.STATX_SUBVOL == 0 {
+		st.Subvol = 0
+	}
+	if mask&unix.STATX_WRITE_ATOMIC == 0 {
+		st.Atomic_write_unit_min = 0
+		st.Atomic_write_unit_max = 0
+		st.Atomic_write_segments_max = 0
+		st.Atomic_write_unit_max_opt = 0
+	}
+	if mask&unix.STATX_DIO_READ_ALIGN == 0 {
+		st.Dio_read_offset_align = 0
+	}
+
 	st.Dev_minor = 0
 	st.Dev_major = 0
 	st.Mnt_id = 0
