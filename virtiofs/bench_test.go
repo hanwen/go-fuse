@@ -9,6 +9,7 @@ import (
 	"flag"
 	"fmt"
 	"io/fs"
+	"math"
 	"math/rand/v2"
 	"net"
 	"os"
@@ -73,17 +74,8 @@ func genSrcTree(dir string, n int) error {
 		if err := os.MkdirAll(sub, 0755); err != nil {
 			return err
 		}
-		var sz int
-		switch r := rng.IntN(100); {
-		case r < 50:
-			sz = 512 + rng.IntN(4<<10)
-		case r < 80:
-			sz = 4<<10 + rng.IntN(12<<10)
-		case r < 95:
-			sz = 16<<10 + rng.IntN(48<<10)
-		default:
-			sz = 64<<10 + rng.IntN(448<<10)
-		}
+		// Lognormal, median 4 KiB, like files in a source tree.
+		sz := min(int(4096*math.Exp(1.5*rng.NormFloat64())), len(data)-1)
 		off := rng.IntN(len(data) - sz)
 		if err := os.WriteFile(filepath.Join(sub, fmt.Sprintf("f%05d.c", i)), data[off:off+sz], 0644); err != nil {
 			return err
