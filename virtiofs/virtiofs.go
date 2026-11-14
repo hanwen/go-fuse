@@ -42,9 +42,8 @@ func serve(l *net.UnixListener, rawFS fuse.RawFileSystem, opts *fuse.MountOption
 			n, _ := ps.HandleRequest(vqe.Read, vqe.Write)
 			return n
 		})
-		//dev.Debug = true
 		srv := vhostuser.NewServer(conn, dev)
-		srv.Debug = true
+		srv.Debug = opts.Debug
 		if err := srv.Serve(); err != nil {
 			log.Printf("Serve: %v %T", err, err)
 		}
