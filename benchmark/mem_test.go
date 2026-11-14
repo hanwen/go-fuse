@@ -21,15 +21,10 @@ type memFile struct {
 }
 
 var _ = (fs.NodeGetxattrer)((*memFile)(nil))
-var _ = (fs.NodeFsyncer)((*memFile)(nil))
 
 func (mf *memFile) Getxattr(ctx context.Context, attr string, dest []byte) (uint32, syscall.Errno) {
 	// Suppress security attribute reads
 	return 0, syscall.ENOSYS
-}
-
-func (mf *memFile) Fsync(context.Context, fs.FileHandle, uint32) syscall.Errno {
-	return 0
 }
 
 type memDir struct {

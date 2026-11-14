@@ -52,6 +52,16 @@ func TestMemDir(t *testing.T) {
 	if err := os.WriteFile(fn, []byte("hello"), 0644); err != nil {
 		t.Fatal(err)
 	}
+	for _, p := range []string{fn, dir} {
+		f, err := os.Open(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := f.Sync(); err != nil {
+			t.Errorf("Sync(%s): %v", p, err)
+		}
+		f.Close()
+	}
 	if err := os.Remove(dir); err == nil {
 		t.Errorf("rmdir of non-empty directory succeeded")
 	}

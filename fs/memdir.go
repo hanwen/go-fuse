@@ -59,6 +59,7 @@ var (
 	_ = (NodeUnlinker)((*MemDir)(nil))
 	_ = (NodeRmdirer)((*MemDir)(nil))
 	_ = (NodeRenamer)((*MemDir)(nil))
+	_ = (NodeFsyncer)((*MemDir)(nil))
 )
 
 func (d *MemDir) Getattr(ctx context.Context, fh FileHandle, out *fuse.AttrOut) syscall.Errno {
@@ -82,6 +83,10 @@ func (d *MemDir) Setattr(ctx context.Context, fh FileHandle, in *fuse.SetAttrIn,
 	setAttrMetadata(&d.Attr, in)
 	d.mu.Unlock()
 	return d.Getattr(ctx, fh, out)
+}
+
+func (d *MemDir) Fsync(ctx context.Context, fh FileHandle, flags uint32) syscall.Errno {
+	return 0
 }
 
 func (d *MemDir) touch() {

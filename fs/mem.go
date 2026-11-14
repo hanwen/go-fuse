@@ -140,6 +140,12 @@ func (f *MemRegularFile) Flush(ctx context.Context, fh FileHandle) syscall.Errno
 	return 0
 }
 
+var _ = (NodeFsyncer)((*MemRegularFile)(nil))
+
+func (f *MemRegularFile) Fsync(ctx context.Context, fh FileHandle, flags uint32) syscall.Errno {
+	return 0
+}
+
 func (f *MemRegularFile) Read(ctx context.Context, fh FileHandle, dest []byte, off int64) (fuse.ReadResult, syscall.Errno) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
