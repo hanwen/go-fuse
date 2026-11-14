@@ -57,9 +57,16 @@ var (
 		{CAP_ALLOW_IDMAP, "ALLOW_IDMAP"},
 		{CAP_OVER_IO_URING, "IO_URING"},
 		{CAP_REQUEST_TIMEOUT, "REQUEST_TIMEOUT"},
+		{CAP_HAS_IO_URING_BUFPOOL, "HAS_IO_URING_BUFPOOL"},
+		{CAP_HAS_SYNCFS, "HAS_SYNCFS"},
+		{CAP_PASSTHROUGH_V2, "PASSTHROUGH_V2"},
 	})
 	releaseFlagNames = newFlagNames([]flagNameEntry{
 		{RELEASE_FLUSH, "FLUSH"},
+		{RELEASE_FLOCK_UNLOCK, "FLOCK_UNLOCK"},
+	})
+	fsyncFlagNames = newFlagNames([]flagNameEntry{
+		{FSYNC_FDATASYNC, "FDATASYNC"},
 	})
 	openFlagNames = newFlagNames([]flagNameEntry{
 		{int64(os.O_WRONLY), "WRONLY"},
@@ -84,6 +91,7 @@ var (
 		{FOPEN_NOFLUSH, "NOFLUSH"},
 		{FOPEN_PARALLEL_DIRECT_WRITES, "PARALLEL_DIRECT_WRITES"},
 		{FOPEN_PASSTHROUGH, "PASSTHROUGH"},
+		{FOPEN_IO_URING_ZERO_COPY, "IO_URING_ZERO_COPY"},
 	})
 	fuseOpenInFlagNames = newFlagNames([]flagNameEntry{
 		{OPEN_KILL_SUIDGID, "KILL_SUIDGID"},
@@ -95,7 +103,9 @@ var (
 		{IOCTL_COMPAT, "COMPAT"},
 		{IOCTL_UNRESTRICTED, "UNRESTRICTED"},
 		{IOCTL_RETRY, "RETRY"},
+		{IOCTL_32BIT, "32BIT"},
 		{IOCTL_DIR, "DIR"},
+		{IOCTL_COMPAT_X32, "COMPAT_X32"},
 	})
 	accessFlagName = newFlagNames([]flagNameEntry{
 		{X_OK, "x"},
@@ -266,7 +276,7 @@ func (o *InitOut) string() string {
 }
 
 func (in *FsyncIn) string() string {
-	return fmt.Sprintf("{Fh %d Flags %x}", in.Fh, in.FsyncFlags)
+	return fmt.Sprintf("{Fh %d %s}", in.Fh, flagString(fsyncFlagNames, int64(in.FsyncFlags), ""))
 }
 
 func (in *GetXAttrIn) string() string {

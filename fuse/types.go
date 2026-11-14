@@ -235,7 +235,10 @@ func (in *SetAttrInCommon) GetCTime() (time.Time, bool) {
 	return t, false
 }
 
-const RELEASE_FLUSH = (1 << 0)
+const (
+	RELEASE_FLUSH        = (1 << 0)
+	RELEASE_FLOCK_UNLOCK = (1 << 1)
+)
 
 type ReleaseIn struct {
 	InHeader
@@ -268,6 +271,7 @@ const (
 	FOPEN_NOFLUSH                = (1 << 5)
 	FOPEN_PARALLEL_DIRECT_WRITES = (1 << 6)
 	FOPEN_PASSTHROUGH            = (1 << 7)
+	FOPEN_IO_URING_ZERO_COPY     = (1 << 8)
 )
 
 type OpenOut struct {
@@ -323,10 +327,13 @@ const (
 	CAP_ALLOW_IDMAP          = (1 << 40)
 	CAP_OVER_IO_URING        = (1 << 41)
 	CAP_REQUEST_TIMEOUT      = (1 << 42)
+	CAP_HAS_IO_URING_BUFPOOL = (1 << 43)
+	CAP_HAS_SYNCFS           = (1 << 44)
+	CAP_PASSTHROUGH_V2       = (1 << 45)
 
 	// knownCapabilities has the capability bits that this
 	// version has names for.
-	knownCapabilities = CAP_REQUEST_TIMEOUT<<1 - 1
+	knownCapabilities = CAP_PASSTHROUGH_V2<<1 - 1
 )
 
 type InitIn struct {
@@ -406,7 +413,9 @@ const (
 	IOCTL_COMPAT       = (1 << 0)
 	IOCTL_UNRESTRICTED = (1 << 1)
 	IOCTL_RETRY        = (1 << 2)
+	IOCTL_32BIT        = (1 << 3)
 	IOCTL_DIR          = (1 << 4)
+	IOCTL_COMPAT_X32   = (1 << 5)
 )
 
 type IoctlIn struct {
@@ -501,6 +510,9 @@ type AccessIn struct {
 	Padding uint32
 }
 
+// FsyncIn.FsyncFlags
+const FSYNC_FDATASYNC = (1 << 0)
+
 type FsyncIn struct {
 	InHeader
 	Fh         uint64
@@ -585,6 +597,9 @@ const (
 	notifyResend     notifyCode = 7
 	notifyIncEpoch   notifyCode = 8
 	notifyPrune      notifyCode = 9
+
+	notifyBackingRemove notifyCode = 10
+	notifyBackingMap    notifyCode = 11
 )
 
 var notifyNames = [...]string{
@@ -597,6 +612,9 @@ var notifyNames = [...]string{
 	notifyResend:     "NOTIFY_RESEND",
 	notifyIncEpoch:   "NOTIFY_INC_EPOCH",
 	notifyPrune:      "NOTIFY_PRUNE",
+
+	notifyBackingRemove: "NOTIFY_BACKING_REMOVE",
+	notifyBackingMap:    "NOTIFY_BACKING_MAP",
 }
 
 func (c notifyCode) String() string {
@@ -830,6 +848,28 @@ type WriteIn struct {
 }
 
 // Data for registering a file as backing an inode.
+const (
+	// Flags for FUSE_NOTIFY_BACKING_MAP.
+	BACKING_MAP_CREATE = (1 << 0)
+	BACKING_MAP_CYCLIC = (1 << 1)
+
+	// MAX_EXTENTS is the maximum number of extents in a
+	// FUSE_NOTIFY_BACKING_MAP message.
+	MAX_EXTENTS = 1365
+
+	// Flags for FUSE_SETUPMAPPING.
+	SETUPMAPPING_FLAG_WRITE = (1 << 0)
+	SETUPMAPPING_FLAG_READ  = (1 << 1)
+
+	// INVALID_UIDGID is sent as uid/gid if the caller's ID has no
+	// mapping in the mount's idmap (CAP_ALLOW_IDMAP).
+	INVALID_UIDGID = ^uint32(0)
+
+	// _UNIQUE_RESEND is set in InHeader.Unique for requests
+	// resent after FUSE_NOTIFY_RESEND.
+	_UNIQUE_RESEND = (1 << 63)
+)
+
 type BackingMap struct {
 	Fd      int32
 	Flags   uint32

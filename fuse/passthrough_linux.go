@@ -10,8 +10,11 @@ import (
 )
 
 const (
-	_DEV_IOC_BACKING_OPEN  = 0x4010e501
-	_DEV_IOC_BACKING_CLOSE = 0x4004e502
+	_DEV_IOC_CLONE          = 0x8004e500
+	_DEV_IOC_BACKING_OPEN   = 0x4010e501
+	_DEV_IOC_BACKING_CLOSE  = 0x4004e502
+	_DEV_IOC_SYNC_INIT      = 0xe503
+	_DEV_IOC_BACKING_CREATE = 0x4020e504
 )
 
 func (f *fuseFD) registerBackingFd(m *BackingMap) (int32, syscall.Errno) {

@@ -55,7 +55,7 @@ const inputDataSize = 128
 const (
 	_FUSE_KERNEL_VERSION   = 7
 	_MINIMUM_MINOR_VERSION = 12
-	_OUR_MINOR_VERSION     = 28
+	_OUR_MINOR_VERSION     = 47
 )
 
 // dirent is linux_dirent64, without the name.
