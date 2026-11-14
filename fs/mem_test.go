@@ -561,3 +561,34 @@ func TestMemFileSetattr(t *testing.T) {
 		t.Errorf("mtime: got %v, want %v", got, mtime)
 	}
 }
+
+func TestMemFileWriteUpdatesMtime(t *testing.T) {
+	old := time.Unix(1000, 0)
+	f := &MemRegularFile{}
+	f.Attr.SetTimes(&old, &old, &old)
+	root := &Inode{}
+	mntDir, _ := testMount(t, root, &Options{
+		OnAdd: func(ctx context.Context) {
+			ch := root.NewPersistentInode(ctx, f, StableAttr{Mode: syscall.S_IFREG})
+			root.AddChild("file", ch, false)
+		},
+	})
+	fn := mntDir + "/file"
+
+	fd, err := os.OpenFile(fn, os.O_WRONLY, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fd.Close()
+	if _, err := fd.Write([]byte("hello")); err != nil {
+		t.Fatal(err)
+	}
+
+	fi, err := os.Stat(fn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !fi.ModTime().After(old) {
+		t.Errorf("mtime after write: got %v, want later than %v", fi.ModTime(), old)
+	}
+}

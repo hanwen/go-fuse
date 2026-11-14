@@ -8,6 +8,7 @@ import (
 	"context"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/hanwen/go-fuse/v3/fuse"
 )
@@ -47,6 +48,7 @@ func (f *MemRegularFile) Allocate(ctx context.Context, fh FileHandle, off uint64
 		n := make([]byte, end)
 		copy(n, f.Data)
 		f.Data = n
+		touchModified(&f.Attr)
 	}
 	return 0
 }
@@ -67,6 +69,7 @@ func (f *MemRegularFile) Write(ctx context.Context, fh FileHandle, data []byte, 
 	}
 
 	copy(f.Data[off:off+int64(len(data))], data)
+	touchModified(&f.Attr)
 
 	return uint32(len(data)), 0
 }
@@ -92,6 +95,7 @@ func (f *MemRegularFile) Setattr(ctx context.Context, fh FileHandle, in *fuse.Se
 			copy(n, f.Data)
 			f.Data = n
 		}
+		touchModified(&f.Attr)
 	}
 	setAttrMetadata(&f.Attr, in)
 	out.Attr = f.Attr
@@ -99,8 +103,19 @@ func (f *MemRegularFile) Setattr(ctx context.Context, fh FileHandle, in *fuse.Se
 	return OK
 }
 
-// setAttrMetadata applies the mode, owner and time changes of in to a.
+// touchModified sets mtime and ctime to now.
+func touchModified(a *fuse.Attr) {
+	now := time.Now()
+	a.SetTimes(nil, &now, &now)
+}
+
+// setAttrMetadata applies the mode, owner and time changes of in to a,
+// and updates ctime.
 func setAttrMetadata(a *fuse.Attr, in *fuse.SetAttrIn) {
+	if in.Valid&(fuse.FATTR_MODE|fuse.FATTR_UID|fuse.FATTR_GID|fuse.FATTR_ATIME|fuse.FATTR_MTIME) != 0 {
+		now := time.Now()
+		a.SetTimes(nil, nil, &now)
+	}
 	if m, ok := in.GetMode(); ok {
 		a.Mode = a.Mode&^07777 | m
 	}
