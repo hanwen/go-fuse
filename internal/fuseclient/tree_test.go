@@ -8,6 +8,9 @@ package fuseclient
 
 import (
 	"context"
+	"maps"
+	"slices"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -275,4 +278,179 @@ func TestWalkFollow(t *testing.T) {
 	}
 
 	checkForgets(t, tree)
+}
+
+// releaseCounter counts RELEASE, RELEASEDIR, FORGET and OnUnmount.
+type releaseCounter struct {
+	fuse.RawFileSystem
+
+	mu                sync.Mutex
+	releases, relDirs int
+	unmounts          int
+	forgot            map[uint64]uint64
+}
+
+func (c *releaseCounter) Forget(nodeid, nlookup uint64) {
+	c.mu.Lock()
+	c.forgot[nodeid] += nlookup
+	c.mu.Unlock()
+	c.RawFileSystem.Forget(nodeid, nlookup)
+}
+
+func (c *releaseCounter) Release(ctx context.Context, in *fuse.ReleaseIn) {
+	c.mu.Lock()
+	c.releases++
+	c.mu.Unlock()
+	c.RawFileSystem.Release(ctx, in)
+}
+
+func (c *releaseCounter) ReleaseDir(ctx context.Context, in *fuse.ReleaseIn) {
+	c.mu.Lock()
+	c.relDirs++
+	c.mu.Unlock()
+	c.RawFileSystem.ReleaseDir(ctx, in)
+}
+
+func (c *releaseCounter) OnUnmount() {
+	c.mu.Lock()
+	c.unmounts++
+	c.mu.Unlock()
+	c.RawFileSystem.OnUnmount()
+}
+
+// TestClose checks that Close releases the handles that are still
+// open, but not those that were released, forgets all nodes, and
+// unmounts once.
+func TestClose(t *testing.T) {
+	root, onAdd := memTree()
+	c := &releaseCounter{
+		RawFileSystem: gofs.NewNodeFS(root, &gofs.Options{OnAdd: onAdd}),
+		forgot:        map[uint64]uint64{},
+	}
+	cl, err := New(c, &fuse.MountOptions{Debug: testutil.VerboseTest()}, fuse.Notify{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tree := NewTree(cl)
+	fsys := NewFS(tree, fuse.Caller{})
+
+	closed, err := fsys.Open("file")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := closed.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fsys.Open("file"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fsys.Open("dir/sub/deep"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fsys.Open("dir"); err != nil {
+		t.Fatal(err)
+	}
+	c.releases, c.relDirs = 0, 0
+	c.forgot = map[uint64]uint64{}
+	lookups := tree.Lookups()
+	if len(lookups) == 0 {
+		t.Fatal("no lookups")
+	}
+
+	tree.Close()
+	tree.Close()
+	if c.releases != 2 || c.relDirs != 1 {
+		t.Errorf("got %d releases, %d releasedirs; want 2, 1", c.releases, c.relDirs)
+	}
+	if c.unmounts != 1 {
+		t.Errorf("OnUnmount called %d times, want 1", c.unmounts)
+	}
+	if l := tree.Lookups(); len(l) != 0 {
+		t.Errorf("lookups left: %v", l)
+	}
+	if !maps.Equal(c.forgot, lookups) {
+		t.Errorf("forgot %v, want %v", c.forgot, lookups)
+	}
+}
+
+// constFh returns the same file handle for every open.
+type constFh struct {
+	fuse.RawFileSystem
+
+	mu           sync.Mutex
+	releases     int
+	releaseFlags []uint32
+}
+
+func (c *constFh) Create(ctx context.Context, in *fuse.CreateIn, name string, out *fuse.CreateOut) syscall.Errno {
+	out.NodeId = 2
+	out.Fh = 7
+	return 0
+}
+
+func (c *constFh) Open(ctx context.Context, in *fuse.OpenIn, out *fuse.OpenOut) syscall.Errno {
+	out.Fh = 7
+	return 0
+}
+
+func (c *constFh) Release(ctx context.Context, in *fuse.ReleaseIn) {
+	c.mu.Lock()
+	c.releases++
+	c.releaseFlags = append(c.releaseFlags, in.Flags)
+	c.mu.Unlock()
+}
+
+// TestReleaseFlags checks that RELEASE has the open flags without the
+// ones that only apply while opening, as from the kernel.
+func TestReleaseFlags(t *testing.T) {
+	raw := &constFh{RawFileSystem: fuse.NewDefaultRawFileSystem()}
+	c, err := New(raw, &fuse.MountOptions{Debug: testutil.VerboseTest()}, fuse.Notify{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, h, errno := c.Create(nil, fuse.FUSE_ROOT_ID, "f", syscall.O_CREAT|syscall.O_EXCL|syscall.O_RDWR|syscall.O_APPEND, 0644)
+	if errno != 0 {
+		t.Fatal(errno)
+	}
+	c.Release(h)
+	h, errno = c.Open(nil, 2, syscall.O_WRONLY|syscall.O_TRUNC|syscall.O_NOCTTY)
+	if errno != 0 {
+		t.Fatal(errno)
+	}
+	c.Release(h)
+	want := []uint32{syscall.O_RDWR | syscall.O_APPEND, syscall.O_WRONLY}
+	if !slices.Equal(raw.releaseFlags, want) {
+		t.Errorf("RELEASE flags %#o, want %#o", raw.releaseFlags, want)
+	}
+}
+
+// TestSameFh checks that handles are tracked per open, not by the
+// file system's file handle, which is opaque and may be reused.
+func TestSameFh(t *testing.T) {
+	raw := &constFh{RawFileSystem: fuse.NewDefaultRawFileSystem()}
+	c, err := New(raw, &fuse.MountOptions{Debug: testutil.VerboseTest()}, fuse.Notify{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var hs []*Handle
+	for _, flags := range []uint32{syscall.O_RDONLY, syscall.O_RDWR, syscall.O_RDONLY} {
+		h, errno := c.Open(nil, fuse.FUSE_ROOT_ID, flags)
+		if errno != 0 {
+			t.Fatal(errno)
+		}
+		hs = append(hs, h)
+	}
+	c.Release(hs[0])
+	c.Release(hs[0])
+	if raw.releases != 1 {
+		t.Errorf("got %d releases, want 1", raw.releases)
+	}
+	c.Close()
+	if raw.releases != 3 {
+		t.Errorf("got %d releases after Close, want 3", raw.releases)
+	}
+	c.Release(hs[1])
+	if raw.releases != 3 {
+		t.Errorf("release after Close sent RELEASE")
+	}
 }

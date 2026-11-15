@@ -447,6 +447,27 @@ func (t *Tree) ForgetAll() {
 	t.sendForgets(forgets)
 }
 
+// Close releases the handles that are still open, forgets all nodes,
+// including referenced ones, and sends DESTROY, as the kernel does
+// when the file system is unmounted. The Tree must not be used
+// afterwards.
+func (t *Tree) Close() {
+	t.releaseAll()
+	t.mu.Lock()
+	var forgets []forget
+	for id, n := range t.nodes {
+		if n != t.root && n.lookups > 0 {
+			forgets = append(forgets, forget{id, n.lookups})
+			n.lookups = 0
+		}
+	}
+	t.nodes = map[uint64]*Node{t.root.ID: t.root}
+	t.root.children = nil
+	t.mu.Unlock()
+	t.sendForgets(forgets)
+	t.Client.Close()
+}
+
 type forget struct {
 	id, n uint64
 }

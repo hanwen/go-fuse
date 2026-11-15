@@ -10,6 +10,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"syscall"
 	"unsafe"
@@ -41,6 +42,7 @@ const (
 	opReaddir     = 28
 	opReleasedir  = 29
 	opCreate      = 35
+	opDestroy     = 38
 	opReaddirplus = 44
 )
 
@@ -53,6 +55,55 @@ type Client struct {
 	ps     *fuse.ProtocolServer
 	unique atomic.Uint64
 	init   fuse.InitOut
+
+	// open holds the handles that were not released yet, so
+	// Close can release them.
+	openMu sync.Mutex
+	open   map[*Handle]struct{}
+}
+
+// Handle is an open file or directory, like the kernel's struct
+// fuse_file. The file system's file handle is opaque: a file system
+// may return the same one for different opens.
+type Handle struct {
+	node  uint64
+	fh    uint64
+	flags uint32 // open flags, for RELEASE
+	dir   bool
+}
+
+// openOnlyFlags only apply while opening. The kernel clears them from
+// the file's flags (in do_dentry_open), so they are not in RELEASE.
+const openOnlyFlags = syscall.O_CREAT | syscall.O_EXCL | syscall.O_NOCTTY | syscall.O_TRUNC
+
+func (c *Client) newHandle(node uint64, out *fuse.OpenOut, flags uint32, dir bool) *Handle {
+	h := &Handle{node: node, fh: out.Fh, flags: flags &^ openOnlyFlags, dir: dir}
+	c.openMu.Lock()
+	defer c.openMu.Unlock()
+	if c.open != nil {
+		c.open[h] = struct{}{}
+	}
+	return h
+}
+
+// Close releases the handles that are still open, and sends DESTROY,
+// as the kernel does when the file system is unmounted. The Client
+// must not be used afterwards. See also Tree.Close.
+func (c *Client) Close() {
+	c.releaseAll()
+	var in fuse.InHeader
+	c.do(opDestroy, 0, nil, unsafe.Pointer(&in), unsafe.Sizeof(in), nil, nil, 0, nil)
+}
+
+// releaseAll releases the handles that are still open.
+func (c *Client) releaseAll() {
+	c.openMu.Lock()
+	open := c.open
+	c.open = nil
+	c.openMu.Unlock()
+	for h := range open {
+		c.release(h)
+	}
 }
 
 // New creates a ProtocolServer for fs, and sends INIT to it.
@@ -62,7 +113,8 @@ func New(fs fuse.RawFileSystem, opts *fuse.MountOptions, notify fuse.Notify) (*C
 		opts = &fuse.MountOptions{}
 	}
 	c := &Client{
-		ps: fuse.NewProtocolServer(fs, opts, &notify),
+		ps:   fuse.NewProtocolServer(fs, opts, &notify),
+		open: map[*Handle]struct{}{},
 	}
 
 	in := fuse.InitIn{
@@ -191,12 +243,12 @@ func (c *Client) Forget(node uint64, nlookup uint64) {
 	c.do(opForget, node, nil, unsafe.Pointer(&in), unsafe.Sizeof(in), nil, nil, 0, nil)
 }
 
-// Getattr sends GETATTR, with the file handle if fh is non-nil.
-func (c *Client) Getattr(caller *fuse.Caller, node uint64, fh *uint64) (fuse.AttrOut, syscall.Errno) {
+// Getattr sends GETATTR, with the file handle if h is non-nil.
+func (c *Client) Getattr(caller *fuse.Caller, node uint64, h *Handle) (fuse.AttrOut, syscall.Errno) {
 	var in fuse.GetAttrIn
-	if fh != nil {
+	if h != nil {
 		in.Flags_ = fuse.FUSE_GETATTR_FH
-		in.Fh_ = *fh
+		in.Fh_ = h.fh
 	}
 	var out fuse.AttrOut
 	errno := c.do(opGetattr, node, caller, unsafe.Pointer(&in), unsafe.Sizeof(in), nil,
@@ -204,8 +256,13 @@ func (c *Client) Getattr(caller *fuse.Caller, node uint64, fh *uint64) (fuse.Att
 	return out, errno
 }
 
-// Setattr sends SETATTR. The header in `in` is overwritten.
-func (c *Client) Setattr(caller *fuse.Caller, node uint64, in *fuse.SetAttrIn) (fuse.AttrOut, syscall.Errno) {
+// Setattr sends SETATTR, with the file handle if h is non-nil. The
+// header in `in` is overwritten.
+func (c *Client) Setattr(caller *fuse.Caller, node uint64, h *Handle, in *fuse.SetAttrIn) (fuse.AttrOut, syscall.Errno) {
+	if h != nil {
+		in.Valid |= fuse.FATTR_FH
+		in.Fh = h.fh
+	}
 	var out fuse.AttrOut
 	errno := c.do(opSetattr, node, caller, unsafe.Pointer(in), unsafe.Sizeof(*in), nil,
 		unsafe.Pointer(&out), unsafe.Sizeof(out), nil)
@@ -281,26 +338,32 @@ func (c *Client) Rename(caller *fuse.Caller, parent uint64, name string, newPare
 	return c.do(opRename, parent, caller, unsafe.Pointer(&in), size, payload, nil, 0, nil)
 }
 
-// Open sends OPEN.
-func (c *Client) Open(caller *fuse.Caller, node uint64, flags uint32) (fuse.OpenOut, syscall.Errno) {
+// Open sends OPEN. The handle must be released with Release.
+func (c *Client) Open(caller *fuse.Caller, node uint64, flags uint32) (*Handle, syscall.Errno) {
 	in := fuse.OpenIn{Flags: flags}
 	var out fuse.OpenOut
 	errno := c.do(opOpen, node, caller, unsafe.Pointer(&in), unsafe.Sizeof(in), nil,
 		unsafe.Pointer(&out), unsafe.Sizeof(out), nil)
-	return out, errno
+	if errno != 0 {
+		return nil, errno
+	}
+	return c.newHandle(node, &out, flags, false), 0
 }
 
-// Opendir sends OPENDIR.
-func (c *Client) Opendir(caller *fuse.Caller, node uint64) (fuse.OpenOut, syscall.Errno) {
+// Opendir sends OPENDIR. The handle must be released with Release.
+func (c *Client) Opendir(caller *fuse.Caller, node uint64) (*Handle, syscall.Errno) {
 	in := fuse.OpenIn{}
 	var out fuse.OpenOut
 	errno := c.do(opOpendir, node, caller, unsafe.Pointer(&in), unsafe.Sizeof(in), nil,
 		unsafe.Pointer(&out), unsafe.Sizeof(out), nil)
-	return out, errno
+	if errno != 0 {
+		return nil, errno
+	}
+	return c.newHandle(node, &out, 0, true), 0
 }
 
-// Create sends CREATE.
-func (c *Client) Create(caller *fuse.Caller, parent uint64, name string, flags, mode uint32) (fuse.EntryOut, fuse.OpenOut, syscall.Errno) {
+// Create sends CREATE. The handle must be released with Release.
+func (c *Client) Create(caller *fuse.Caller, parent uint64, name string, flags, mode uint32) (fuse.EntryOut, *Handle, syscall.Errno) {
 	in := fuse.CreateIn{Flags: flags, Mode: mode}
 	var out struct {
 		fuse.EntryOut
@@ -308,20 +371,23 @@ func (c *Client) Create(caller *fuse.Caller, parent uint64, name string, flags, 
 	}
 	payload, errno := cstr(name)
 	if errno != 0 {
-		return out.EntryOut, out.OpenOut, errno
+		return out.EntryOut, nil, errno
 	}
 	errno = c.do(opCreate, parent, caller, unsafe.Pointer(&in), unsafe.Sizeof(in), payload,
 		unsafe.Pointer(&out), unsafe.Sizeof(out), nil)
-	return out.EntryOut, out.OpenOut, errno
+	if errno != 0 {
+		return out.EntryOut, nil, errno
+	}
+	return out.EntryOut, c.newHandle(out.NodeId, &out.OpenOut, flags, false), 0
 }
 
 // Read sends READ requests to fill dest, stopping at a short read.
-func (c *Client) Read(caller *fuse.Caller, node, fh uint64, off uint64, dest []byte) (int, syscall.Errno) {
+func (c *Client) Read(caller *fuse.Caller, h *Handle, off uint64, dest []byte) (int, syscall.Errno) {
 	total := 0
 	for total < len(dest) {
 		chunk := dest[total:min(len(dest), total+c.MaxWrite())]
-		in := fuse.ReadIn{Fh: fh, Offset: off + uint64(total), Size: uint32(len(chunk))}
-		n, errno := c.doN(opRead, node, caller, unsafe.Pointer(&in), unsafe.Sizeof(in), nil, nil, 0, chunk)
+		in := fuse.ReadIn{Fh: h.fh, Offset: off + uint64(total), Size: uint32(len(chunk))}
+		n, errno := c.doN(opRead, h.node, caller, unsafe.Pointer(&in), unsafe.Sizeof(in), nil, nil, 0, chunk)
 		if errno != 0 {
 			if total > 0 {
 				break
@@ -337,13 +403,13 @@ func (c *Client) Read(caller *fuse.Caller, node, fh uint64, off uint64, dest []b
 }
 
 // Write sends WRITE requests for data.
-func (c *Client) Write(caller *fuse.Caller, node, fh uint64, off uint64, data []byte) (int, syscall.Errno) {
+func (c *Client) Write(caller *fuse.Caller, h *Handle, off uint64, data []byte) (int, syscall.Errno) {
 	total := 0
 	for total < len(data) {
 		chunk := data[total:min(len(data), total+c.MaxWrite())]
-		in := fuse.WriteIn{Fh: fh, Offset: off + uint64(total), Size: uint32(len(chunk))}
+		in := fuse.WriteIn{Fh: h.fh, Offset: off + uint64(total), Size: uint32(len(chunk))}
 		var out fuse.WriteOut
-		errno := c.do(opWrite, node, caller, unsafe.Pointer(&in), unsafe.Sizeof(in), chunk,
+		errno := c.do(opWrite, h.node, caller, unsafe.Pointer(&in), unsafe.Sizeof(in), chunk,
 			unsafe.Pointer(&out), unsafe.Sizeof(out), nil)
 		if errno != 0 {
 			if total > 0 {
@@ -369,27 +435,36 @@ func (c *Client) Statfs(caller *fuse.Caller, node uint64) (fuse.StatfsOut, sysca
 }
 
 // Flush sends FLUSH.
-func (c *Client) Flush(caller *fuse.Caller, node, fh uint64) syscall.Errno {
-	in := fuse.FlushIn{Fh: fh}
-	return c.do(opFlush, node, caller, unsafe.Pointer(&in), unsafe.Sizeof(in), nil, nil, 0, nil)
+func (c *Client) Flush(caller *fuse.Caller, h *Handle) syscall.Errno {
+	in := fuse.FlushIn{Fh: h.fh}
+	return c.do(opFlush, h.node, caller, unsafe.Pointer(&in), unsafe.Sizeof(in), nil, nil, 0, nil)
 }
 
 // Fsync sends FSYNC.
-func (c *Client) Fsync(caller *fuse.Caller, node, fh uint64) syscall.Errno {
-	in := fuse.FsyncIn{Fh: fh}
-	return c.do(opFsync, node, caller, unsafe.Pointer(&in), unsafe.Sizeof(in), nil, nil, 0, nil)
+func (c *Client) Fsync(caller *fuse.Caller, h *Handle) syscall.Errno {
+	in := fuse.FsyncIn{Fh: h.fh}
+	return c.do(opFsync, h.node, caller, unsafe.Pointer(&in), unsafe.Sizeof(in), nil, nil, 0, nil)
 }
 
-// Release sends RELEASE.
-func (c *Client) Release(node, fh uint64, flags uint32) {
-	in := fuse.ReleaseIn{Fh: fh, Flags: flags}
-	c.do(opRelease, node, nil, unsafe.Pointer(&in), unsafe.Sizeof(in), nil, nil, 0, nil)
+// Release sends RELEASE, or RELEASEDIR for a directory. Releasing a
+// handle again, or after Close, does nothing.
+func (c *Client) Release(h *Handle) {
+	c.openMu.Lock()
+	_, ok := c.open[h]
+	delete(c.open, h)
+	c.openMu.Unlock()
+	if ok {
+		c.release(h)
+	}
 }
 
-// Releasedir sends RELEASEDIR.
-func (c *Client) Releasedir(node, fh uint64) {
-	in := fuse.ReleaseIn{Fh: fh}
-	c.do(opReleasedir, node, nil, unsafe.Pointer(&in), unsafe.Sizeof(in), nil, nil, 0, nil)
+func (c *Client) release(h *Handle) {
+	in := fuse.ReleaseIn{Fh: h.fh, Flags: h.flags}
+	op := uint32(opRelease)
+	if h.dir {
+		op = opReleasedir
+	}
+	c.do(op, h.node, nil, unsafe.Pointer(&in), unsafe.Sizeof(in), nil, nil, 0, nil)
 }
 
 // DirEntry is an entry from READDIR or READDIRPLUS. Entry is only
@@ -402,14 +477,14 @@ type DirEntry struct {
 
 // Readdir sends one READDIR or READDIRPLUS request, starting at
 // off. An empty result marks the end of the directory.
-func (c *Client) Readdir(caller *fuse.Caller, node, fh uint64, off uint64, plus bool) ([]DirEntry, syscall.Errno) {
+func (c *Client) Readdir(caller *fuse.Caller, h *Handle, off uint64, plus bool) ([]DirEntry, syscall.Errno) {
 	op := uint32(opReaddir)
 	if plus {
 		op = opReaddirplus
 	}
-	in := fuse.ReadIn{Fh: fh, Offset: off, Size: 64 * 1024}
+	in := fuse.ReadIn{Fh: h.fh, Offset: off, Size: 64 * 1024}
 	buf := make([]byte, in.Size)
-	n, errno := c.doN(op, node, caller, unsafe.Pointer(&in), unsafe.Sizeof(in), nil, nil, 0, buf)
+	n, errno := c.doN(op, h.node, caller, unsafe.Pointer(&in), unsafe.Sizeof(in), nil, nil, 0, buf)
 	if errno != 0 {
 		return nil, errno
 	}

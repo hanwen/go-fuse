@@ -50,19 +50,19 @@ func (fsys *FS) Open(name string) (fs.File, error) {
 	}
 	info := &fileInfo{name: path.Base(name), attr: attr}
 	if attr.Mode&S_IFMT == fuse.S_IFDIR {
-		out, errno := fsys.tree.Opendir(&fsys.caller, n.ID)
+		h, errno := fsys.tree.Opendir(&fsys.caller, n.ID)
 		if errno != 0 {
 			fsys.tree.Unref(n)
 			return nil, pathError("open", name, errno)
 		}
-		return &dir{fsys: fsys, node: n, fh: out.Fh, name: name, info: info}, nil
+		return &dir{fsys: fsys, node: n, h: h, name: name, info: info}, nil
 	}
-	out, errno := fsys.tree.Client.Open(&fsys.caller, n.ID, syscall.O_RDONLY)
+	h, errno := fsys.tree.Client.Open(&fsys.caller, n.ID, syscall.O_RDONLY)
 	if errno != 0 {
 		fsys.tree.Unref(n)
 		return nil, pathError("open", name, errno)
 	}
-	return &file{fsys: fsys, node: n, fh: out.Fh, name: name}, nil
+	return &file{fsys: fsys, node: n, h: h, name: name}, nil
 }
 
 func (fsys *FS) Stat(name string) (fs.FileInfo, error) {
@@ -134,7 +134,7 @@ func (fsys *FS) ReadLink(name string) (string, error) {
 type file struct {
 	fsys *FS
 	node *Node
-	fh   uint64
+	h    *Handle
 	name string
 
 	mu     sync.Mutex
@@ -153,7 +153,7 @@ func (f *file) Stat() (fs.FileInfo, error) {
 	if f.closed {
 		return nil, &fs.PathError{Op: "stat", Path: f.name, Err: fs.ErrClosed}
 	}
-	out, errno := f.fsys.tree.Getattr(&f.fsys.caller, f.node.ID, &f.fh)
+	out, errno := f.fsys.tree.Getattr(&f.fsys.caller, f.node.ID, f.h)
 	if errno != 0 {
 		return nil, pathError("stat", f.name, errno)
 	}
@@ -170,7 +170,7 @@ func (f *file) readAt(op string, p []byte, off int64) (int, error) {
 	if len(p) == 0 {
 		return 0, nil
 	}
-	n, errno := f.fsys.tree.Client.Read(&f.fsys.caller, f.node.ID, f.fh, uint64(off), p)
+	n, errno := f.fsys.tree.Client.Read(&f.fsys.caller, f.h, uint64(off), p)
 	if errno != 0 {
 		return n, pathError(op, f.name, errno)
 	}
@@ -208,7 +208,7 @@ func (f *file) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekCurrent:
 		offset += f.off
 	case io.SeekEnd:
-		out, errno := f.fsys.tree.Getattr(&f.fsys.caller, f.node.ID, &f.fh)
+		out, errno := f.fsys.tree.Getattr(&f.fsys.caller, f.node.ID, f.h)
 		if errno != 0 {
 			return 0, pathError("seek", f.name, errno)
 		}
@@ -231,8 +231,8 @@ func (f *file) Close() error {
 		return &fs.PathError{Op: "close", Path: f.name, Err: fs.ErrClosed}
 	}
 	f.closed = true
-	errno := f.fsys.tree.Flush(&f.fsys.caller, f.node.ID, f.fh)
-	f.fsys.tree.Release(f.node.ID, f.fh, syscall.O_RDONLY)
+	errno := f.fsys.tree.Flush(&f.fsys.caller, f.h)
+	f.fsys.tree.Release(f.h)
 	f.fsys.tree.Unref(f.node)
 	if errno != 0 && errno != syscall.ENOSYS {
 		return pathError("close", f.name, errno)
@@ -244,7 +244,7 @@ func (f *file) Close() error {
 type dir struct {
 	fsys *FS
 	node *Node
-	fh   uint64
+	h    *Handle
 	name string
 	info *fileInfo
 
@@ -276,7 +276,7 @@ func (d *dir) Read([]byte) (int, error) {
 
 // fill reads one batch of entries.
 func (d *dir) fill() error {
-	ents, errno := d.fsys.tree.Readdir(&d.fsys.caller, d.node.ID, d.fh, d.off, false)
+	ents, errno := d.fsys.tree.Readdir(&d.fsys.caller, d.h, d.off, false)
 	if errno != 0 {
 		return pathError("readdir", d.name, errno)
 	}
@@ -333,7 +333,7 @@ func (d *dir) Close() error {
 		return &fs.PathError{Op: "close", Path: d.name, Err: fs.ErrClosed}
 	}
 	d.closed = true
-	d.fsys.tree.Releasedir(d.node.ID, d.fh)
+	d.fsys.tree.Release(d.h)
 	d.fsys.tree.Unref(d.node)
 	return nil
 }
