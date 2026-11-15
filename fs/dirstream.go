@@ -95,6 +95,10 @@ func (d *dirStreamAsFile) Seekdir(ctx context.Context, off uint64) syscall.Errno
 			return errno
 		}
 	}
+	if off == 0 {
+		// A new stream starts at the beginning.
+		return 0
+	}
 	if sd, ok := d.ds.(FileSeekdirer); ok {
 		return sd.Seekdir(ctx, off)
 	}

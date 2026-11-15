@@ -7,7 +7,10 @@ package fs
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
 	"reflect"
+	"slices"
 	"sync"
 	"syscall"
 	"testing"
@@ -262,4 +265,51 @@ func TestFsyncDir(t *testing.T) {
 		t.Errorf("got %d, want 1", root.syncDirCount)
 	}
 
+}
+
+// noSeekDirNode returns a DirStream that does not implement Seekdir.
+type noSeekDirNode struct {
+	Inode
+}
+
+var _ = (NodeReaddirer)((*noSeekDirNode)(nil))
+
+func (n *noSeekDirNode) Readdir(ctx context.Context) (DirStream, syscall.Errno) {
+	es := []fuse.DirEntry{
+		{Name: "a", Mode: fuse.S_IFREG, Ino: 2},
+		{Name: "b", Mode: fuse.S_IFREG, Ino: 3},
+	}
+	// Hide the Seekdir method of the list stream.
+	return struct{ DirStream }{NewListDirStream(es)}, 0
+}
+
+// TestDirStreamRewind checks that a directory stream without Seekdir
+// can be read again after rewinding to the start.
+func TestDirStreamRewind(t *testing.T) {
+	for _, rdp := range []bool{false, true} {
+		t.Run(fmt.Sprintf("readdirplus=%v", rdp), func(t *testing.T) {
+			opts := Options{}
+			opts.DisableReadDirPlus = !rdp
+			mnt, _ := testMount(t, &noSeekDirNode{}, &opts)
+
+			f, err := os.Open(mnt)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer f.Close()
+			for i := range 2 {
+				names, err := f.Readdirnames(-1)
+				if err != nil {
+					t.Fatalf("read %d: %v", i, err)
+				}
+				slices.Sort(names)
+				if want := []string{"a", "b"}; !slices.Equal(names, want) {
+					t.Fatalf("read %d: got %v, want %v", i, names, want)
+				}
+				if _, err := f.Seek(0, io.SeekStart); err != nil {
+					t.Fatalf("rewind: %v", err)
+				}
+			}
+		})
+	}
 }
