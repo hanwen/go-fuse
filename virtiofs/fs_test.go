@@ -75,6 +75,7 @@ type killNotifyRoot struct {
 	mu        sync.Mutex
 	seenKill  bool
 	seenStart bool
+	unmounts  int
 	notify    *sync.Cond
 
 	// Files served at the root, next to the loopback contents.
@@ -214,10 +215,25 @@ new.txt
 	}
 }
 
+// unmountNotify counts OnUnmount calls in r.unmounts.
+type unmountNotify struct {
+	fuse.RawFileSystem
+	r *killNotifyRoot
+}
+
+func (u *unmountNotify) OnUnmount() {
+	u.r.mu.Lock()
+	u.r.unmounts++
+	u.r.notify.Broadcast()
+	u.r.mu.Unlock()
+	u.RawFileSystem.OnUnmount()
+}
+
 // TestReconnect boots two VMs in turn against one ServeFS, so the device
 // must be torn down when the first VM disconnects. The second VM starts a
 // new FUSE session (with its own INIT) on the same RawFileSystem; state
 // that the first session left behind is not cleaned up, see ServeFS.
+// Each guest unmounts, which sends DESTROY and must call OnUnmount.
 func TestReconnect(t *testing.T) {
 	orig := t.TempDir()
 	if err := os.WriteFile(orig+"/file.txt", []byte("hello\n"), 0666); err != nil {
@@ -232,7 +248,7 @@ func TestReconnect(t *testing.T) {
 	}
 	r.notify = sync.NewCond(&r.mu)
 	opts := &fs.Options{}
-	rawFS := fs.NewNodeFS(r, opts)
+	rawFS := &unmountNotify{fs.NewNodeFS(r, opts), r}
 
 	tmpDir := t.TempDir()
 	sockpath := tmpDir + "/virtiofs.socket"
@@ -247,7 +263,7 @@ func TestReconnect(t *testing.T) {
 set -x
 mount -t virtiofs myfs /mnt
 cat /mnt/file.txt >> /mnt/out.txt
-ls /mnt/killme.txt
+umount /mnt
 reboot -n -f
 `
 	if err := mkinitRam(ramdisk, testAssets.busybox, testAssets.modules, []byte(initScript), nil); err != nil {
@@ -255,10 +271,6 @@ reboot -n -f
 	}
 
 	for i := 0; i < 2; i++ {
-		r.mu.Lock()
-		r.seenKill = false
-		r.mu.Unlock()
-
 		cmd := newVMCmd(sockpath, ramdisk)
 		if err := cmd.Start(); err != nil {
 			t.Fatal(err)
@@ -266,7 +278,7 @@ reboot -n -f
 		done := make(chan struct{})
 		go func() {
 			r.mu.Lock()
-			for !r.seenKill {
+			for r.unmounts <= i {
 				r.notify.Wait()
 			}
 			r.mu.Unlock()
@@ -275,7 +287,7 @@ reboot -n -f
 		select {
 		case <-done:
 		case <-time.After(30 * time.Second):
-			t.Errorf("boot %d: guest did not finish", i)
+			t.Errorf("boot %d: guest did not unmount (no OnUnmount)", i)
 		}
 		cmd.Process.Kill()
 		cmd.Wait()

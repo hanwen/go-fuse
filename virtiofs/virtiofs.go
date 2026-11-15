@@ -30,15 +30,19 @@ func ServeFS(sockpath string, rawFS fuse.RawFileSystem, opts *fuse.MountOptions)
 // serve handles connections on l until it is closed.
 func serve(l *net.UnixListener, rawFS fuse.RawFileSystem, opts *fuse.MountOptions) {
 	opts.DisableSplice = true
-	// TODO: each connection is a new FUSE session, but they share rawFS
-	// and ps. A guest that disconnects without RELEASE/FORGET (eg. it
-	// was killed) leaks its inode references and open files.
-	ps := fuse.NewProtocolServer(rawFS, opts, nil)
 	for {
 		conn, err := l.AcceptUnix()
 		if err != nil {
 			break
 		}
+
+		// Each connection is a new FUSE session, with its own
+		// INIT, and DESTROY when the guest unmounts.
+		//
+		// TODO: the sessions share rawFS. A guest that
+		// disconnects without RELEASE/FORGET (eg. it was killed)
+		// leaks its inode references and open files.
+		ps := fuse.NewProtocolServer(rawFS, opts, nil)
 
 		dev := vhostuser.NewDevice(func(vqe *vhostuser.VirtqElem) int {
 			n, _ := ps.HandleRequest(vqe.Read, vqe.Write)
