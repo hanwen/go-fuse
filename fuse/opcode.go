@@ -503,6 +503,7 @@ func doPoll(server *protocolServer, req *request) {
 }
 
 func doDestroy(server *protocolServer, req *request) {
+	server.onUnmount()
 	req.status = OK
 }
 

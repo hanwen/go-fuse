@@ -37,6 +37,13 @@ type protocolServer struct {
 	buffers bufferPool
 
 	writevCopyOnce sync.Once
+
+	unmountOnce sync.Once
+}
+
+// onUnmount calls RawFileSystem.OnUnmount, once.
+func (ps *protocolServer) onUnmount() {
+	ps.unmountOnce.Do(ps.fileSystem.OnUnmount)
 }
 
 func (ps *protocolServer) handleRequest(h *operationHandler, req *request) {

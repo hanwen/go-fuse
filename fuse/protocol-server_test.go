@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"log"
 	"testing"
+	"unsafe"
 )
 
 func TestProtocolServerParse(t *testing.T) {
@@ -44,5 +45,31 @@ func TestProtocolServerParse(t *testing.T) {
 	gotStatus := int32(binary.LittleEndian.Uint32(out[0][4:8]))
 	if gotStatus != -int32(ENOSYS) {
 		t.Errorf("OutHeader.Status = %d, want %d", gotStatus, -int32(ENOSYS))
+	}
+}
+
+type unmountCounter struct {
+	RawFileSystem
+	unmounts int
+}
+
+func (c *unmountCounter) OnUnmount() { c.unmounts++ }
+
+// TestProtocolServerDestroy checks that DESTROY calls OnUnmount, once.
+func TestProtocolServerDestroy(t *testing.T) {
+	fs := &unmountCounter{RawFileSystem: NewDefaultRawFileSystem()}
+	ps := NewProtocolServer(fs, &MountOptions{}, nil)
+	for i := range 2 {
+		in := InHeader{Length: uint32(unsafe.Sizeof(InHeader{})), Opcode: _OP_DESTROY, Unique: uint64(i + 1)}
+		out := [][]byte{make([]byte, sizeOfOutHeader)}
+		if _, status := ps.HandleRequest([][]byte{unsafe.Slice((*byte)(unsafe.Pointer(&in)), unsafe.Sizeof(in))}, out); status != OK {
+			t.Fatalf("HandleRequest: %v", status)
+		}
+		if got := int32(binary.LittleEndian.Uint32(out[0][4:8])); got != 0 {
+			t.Errorf("DESTROY status %d", got)
+		}
+	}
+	if fs.unmounts != 1 {
+		t.Errorf("OnUnmount called %d times, want 1", fs.unmounts)
 	}
 }

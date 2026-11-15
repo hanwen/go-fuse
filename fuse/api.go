@@ -562,6 +562,7 @@ type RawFileSystem interface {
 	// and before any request other than INIT is served. See Conn.
 	OnConnect(*Conn)
 
-	// Called after processing the last request.
+	// Called once, after processing the last request: when the
+	// kernel sends DESTROY, or when the Server shuts down.
 	OnUnmount()
 }

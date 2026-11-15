@@ -527,7 +527,7 @@ func (s *Server) finish() {
 	if n := s.conn.notify.notifier; n != nil {
 		n.abort()
 	}
-	s.fileSystem.OnUnmount()
+	s.onUnmount()
 
 	s.stateMu.Lock()
 	s.state = stateClosed
