@@ -464,3 +464,122 @@ func TestAfterClose(t *testing.T) {
 		t.Errorf("Getattr: got %v, want ENOTCONN", errno)
 	}
 }
+
+// blockingFS blocks OPEN and LOOKUP until unblock is closed. Each
+// sends on entered when it starts.
+type blockingFS struct {
+	fuse.RawFileSystem
+	entered chan struct{}
+	unblock chan struct{}
+
+	mu       sync.Mutex
+	releases int
+	forgot   map[uint64]uint64
+}
+
+func newBlockingFS() *blockingFS {
+	return &blockingFS{
+		RawFileSystem: fuse.NewDefaultRawFileSystem(),
+		entered:       make(chan struct{}, 1),
+		unblock:       make(chan struct{}),
+		forgot:        map[uint64]uint64{},
+	}
+}
+
+func (b *blockingFS) Open(ctx context.Context, in *fuse.OpenIn, out *fuse.OpenOut) syscall.Errno {
+	b.entered <- struct{}{}
+	<-b.unblock
+	out.Fh = 7
+	return 0
+}
+
+func (b *blockingFS) Lookup(ctx context.Context, header *fuse.InHeader, name string, out *fuse.EntryOut) syscall.Errno {
+	b.entered <- struct{}{}
+	<-b.unblock
+	out.NodeId = 2
+	out.Attr.Mode = fuse.S_IFREG | 0644
+	return 0
+}
+
+func (b *blockingFS) Release(ctx context.Context, in *fuse.ReleaseIn) {
+	b.mu.Lock()
+	b.releases++
+	b.mu.Unlock()
+}
+
+func (b *blockingFS) Forget(nodeid, nlookup uint64) {
+	b.mu.Lock()
+	b.forgot[nodeid] += nlookup
+	b.mu.Unlock()
+}
+
+// closeDuring starts op, waits until the file system is in it, and
+// calls closeFn while it blocks. It checks that closeFn waits for op.
+func closeDuring(t *testing.T, b *blockingFS, op func(), closeFn func()) {
+	t.Helper()
+	opDone := make(chan struct{})
+	go func() {
+		op()
+		close(opDone)
+	}()
+	<-b.entered
+	closed := make(chan struct{})
+	go func() {
+		closeFn()
+		close(closed)
+	}()
+	select {
+	case <-closed:
+		t.Error("Close did not wait for the request in flight")
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(b.unblock)
+	<-opDone
+	<-closed
+}
+
+// TestCloseWaitsForOpen checks that an OPEN in flight during Close
+// gets a handle that Close releases.
+func TestCloseWaitsForOpen(t *testing.T) {
+	b := newBlockingFS()
+	c, err := New(b, &fuse.MountOptions{Debug: testutil.VerboseTest()}, fuse.Notify{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var h *Handle
+	var errno syscall.Errno
+	closeDuring(t, b, func() {
+		h, errno = c.Open(nil, fuse.FUSE_ROOT_ID, syscall.O_RDONLY)
+	}, c.Close)
+	if errno != 0 || h == nil {
+		t.Fatalf("Open: %v", errno)
+	}
+	if b.releases != 1 {
+		t.Errorf("got %d releases, want 1", b.releases)
+	}
+}
+
+// TestCloseWaitsForLookup checks that a LOOKUP in flight during Close
+// is forgotten.
+func TestCloseWaitsForLookup(t *testing.T) {
+	b := newBlockingFS()
+	c, err := New(b, &fuse.MountOptions{Debug: testutil.VerboseTest()}, fuse.Notify{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tree := NewTree(c)
+	var errno syscall.Errno
+	closeDuring(t, b, func() {
+		var n *Node
+		n, _, _, errno = tree.Walk(&fuse.Caller{}, "f")
+		if n != nil {
+			tree.Unref(n)
+		}
+	}, tree.Close)
+	if errno != 0 {
+		t.Fatalf("Walk: %v", errno)
+	}
+	if want := map[uint64]uint64{2: 1}; !maps.Equal(b.forgot, want) {
+		t.Errorf("forgot %v, want %v", b.forgot, want)
+	}
+}

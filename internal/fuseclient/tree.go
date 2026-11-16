@@ -265,6 +265,12 @@ func (t *Tree) lookup(caller *fuse.Caller, dir *Node, name string, needAttr bool
 		return n, fuse.EntryOut{NodeId: n.ID, Attr: out.Attr}, 0
 	}
 
+	// Close must not run between the reply and Add, or the
+	// lookup would never be forgotten.
+	if !t.begin() {
+		return nil, fuse.EntryOut{}, syscall.ENOTCONN
+	}
+	defer t.end()
 	out, errno := t.Client.Lookup(caller, dir.ID, name)
 	if errno != 0 {
 		if errno == syscall.ENOENT {
@@ -447,12 +453,15 @@ func (t *Tree) ForgetAll() {
 	t.sendForgets(forgets)
 }
 
-// Close releases the handles that are still open, forgets all nodes,
-// including referenced ones, and sends DESTROY, as the kernel does
-// when the file system is unmounted. Afterwards, requests fail with
-// ENOTCONN, as for Client.Close.
+// Close waits for the requests in progress, releases the handles that
+// are still open, forgets all nodes, including referenced ones, and
+// sends DESTROY, as the kernel does when the file system is unmounted.
+// Afterwards, requests fail with ENOTCONN, as for Client.Close.
+//
+// Entries from CREATE, MKDIR, SYMLINK or READDIRPLUS that the caller
+// has not passed to Add yet when Close runs are not forgotten.
 func (t *Tree) Close() {
-	if !t.closed.CompareAndSwap(false, true) {
+	if !t.shutdown() {
 		return
 	}
 	t.releaseAll()

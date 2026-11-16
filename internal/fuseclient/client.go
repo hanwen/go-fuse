@@ -63,7 +63,42 @@ type Client struct {
 
 	// closed is set by Close. Afterwards, requests fail with
 	// ENOTCONN, as from the kernel after the connection is gone.
-	closed atomic.Bool
+	// inflight holds the operations in progress, which Close
+	// waits for. closedMu orders inflight.Add before setting
+	// closed, so no Add races with Close's Wait.
+	closedMu sync.Mutex
+	closed   bool
+	inflight sync.WaitGroup
+}
+
+// begin starts an operation, which Close waits for. It returns false
+// after Close. Operations may nest.
+func (c *Client) begin() bool {
+	c.closedMu.Lock()
+	defer c.closedMu.Unlock()
+	if c.closed {
+		return false
+	}
+	c.inflight.Add(1)
+	return true
+}
+
+// end ends an operation started by begin.
+func (c *Client) end() {
+	c.inflight.Done()
+}
+
+// shutdown marks the Client closed, and waits for the operations in
+// progress. It returns false if the Client was already closed.
+func (c *Client) shutdown() bool {
+	c.closedMu.Lock()
+	first := !c.closed
+	c.closed = true
+	c.closedMu.Unlock()
+	if first {
+		c.inflight.Wait()
+	}
+	return first
 }
 
 // Handle is an open file or directory, like the kernel's struct
@@ -90,12 +125,13 @@ func (c *Client) newHandle(node uint64, out *fuse.OpenOut, flags uint32, dir boo
 	return h
 }
 
-// Close releases the handles that are still open, and sends DESTROY,
-// as the kernel does when the file system is unmounted. Afterwards,
-// requests fail with ENOTCONN, and Release does nothing. Closing again
-// does nothing. See also Tree.Close.
+// Close waits for the requests in progress, releases the handles that
+// are still open, and sends DESTROY, as the kernel does when the file
+// system is unmounted. Requests that start after Close fail with
+// ENOTCONN, and Release does nothing. Closing again does nothing. See
+// also Tree.Close.
 func (c *Client) Close() {
-	if !c.closed.CompareAndSwap(false, true) {
+	if !c.shutdown() {
 		return
 	}
 	c.releaseAll()
@@ -173,9 +209,10 @@ func (c *Client) do(op uint32, node uint64, caller *fuse.Caller,
 func (c *Client) doN(op uint32, node uint64, caller *fuse.Caller,
 	in unsafe.Pointer, inSize uintptr, inPayload []byte,
 	out unsafe.Pointer, outSize uintptr, outPayload []byte) (int, syscall.Errno) {
-	if c.closed.Load() {
+	if !c.begin() {
 		return 0, syscall.ENOTCONN
 	}
+	defer c.end()
 	return c.send(op, node, caller, in, inSize, inPayload, out, outSize, outPayload)
 }
 
@@ -263,7 +300,8 @@ func (c *Client) Lookup(caller *fuse.Caller, parent uint64, name string) (fuse.E
 
 // Forget sends FORGET.
 func (c *Client) Forget(node uint64, nlookup uint64) {
-	if !c.closed.Load() {
+	if c.begin() {
+		defer c.end()
 		c.forget(node, nlookup)
 	}
 }
@@ -370,6 +408,11 @@ func (c *Client) Rename(caller *fuse.Caller, parent uint64, name string, newPare
 
 // Open sends OPEN. The handle must be released with Release.
 func (c *Client) Open(caller *fuse.Caller, node uint64, flags uint32) (*Handle, syscall.Errno) {
+	// Close must not run between the reply and newHandle.
+	if !c.begin() {
+		return nil, syscall.ENOTCONN
+	}
+	defer c.end()
 	in := fuse.OpenIn{Flags: flags}
 	var out fuse.OpenOut
 	errno := c.do(opOpen, node, caller, unsafe.Pointer(&in), unsafe.Sizeof(in), nil,
@@ -382,6 +425,10 @@ func (c *Client) Open(caller *fuse.Caller, node uint64, flags uint32) (*Handle, 
 
 // Opendir sends OPENDIR. The handle must be released with Release.
 func (c *Client) Opendir(caller *fuse.Caller, node uint64) (*Handle, syscall.Errno) {
+	if !c.begin() {
+		return nil, syscall.ENOTCONN
+	}
+	defer c.end()
 	in := fuse.OpenIn{}
 	var out fuse.OpenOut
 	errno := c.do(opOpendir, node, caller, unsafe.Pointer(&in), unsafe.Sizeof(in), nil,
@@ -394,6 +441,10 @@ func (c *Client) Opendir(caller *fuse.Caller, node uint64) (*Handle, syscall.Err
 
 // Create sends CREATE. The handle must be released with Release.
 func (c *Client) Create(caller *fuse.Caller, parent uint64, name string, flags, mode uint32) (fuse.EntryOut, *Handle, syscall.Errno) {
+	if !c.begin() {
+		return fuse.EntryOut{}, nil, syscall.ENOTCONN
+	}
+	defer c.end()
 	in := fuse.CreateIn{Flags: flags, Mode: mode}
 	var out struct {
 		fuse.EntryOut
