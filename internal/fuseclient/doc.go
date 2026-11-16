@@ -6,6 +6,6 @@
 // in-process, acting as a small FUSE kernel without a mount. It is
 // used to serve WinFsp, and can drive file systems in tests.
 //
-// It speaks the Linux variant of the protocol, so it is only built on
-// Linux and Windows.
+// It speaks the Linux variant of the protocol. It is not built on
+// macOS, whose FUSE protocol differs.
 package fuseclient
