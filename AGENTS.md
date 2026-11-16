@@ -17,6 +17,9 @@ use language or library features newer than that.
   vhost-user.
 * `splice/`, `internal/*` — platform helpers.
 * `fskit/` — serving FUSE through macOS FSKit.
+* `internal/fuseclient` — an in-process FUSE "kernel" that sends
+  requests to a `fuse.ProtocolServer`; usable to drive file systems in
+  tests without a mount.
 * `zipfs/`, `newunionfs/`, `example/` — example filesystems.
 * `benchmark/` — benchmarks; `compare.bash` compares two revisions.
 * `kernel/` — run the tests against a custom Linux kernel in QEMU.
