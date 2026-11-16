@@ -160,6 +160,8 @@ func (f *MemRegularFile) Read(ctx context.Context, fh FileHandle, dest []byte, o
 // MemSymlink is an inode holding a symlink in memory.
 type MemSymlink struct {
 	Inode
+
+	mu   sync.Mutex
 	Attr fuse.Attr
 	Data []byte
 }
@@ -173,7 +175,27 @@ func (l *MemSymlink) Readlink(ctx context.Context) ([]byte, syscall.Errno) {
 var _ = (NodeGetattrer)((*MemSymlink)(nil))
 
 func (l *MemSymlink) Getattr(ctx context.Context, fh FileHandle, out *fuse.AttrOut) syscall.Errno {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	out.Attr = l.Attr
 	out.Size = uint64(len(l.Data))
 	return OK
+}
+
+var _ = (NodeSetattrer)((*MemSymlink)(nil))
+
+// Setattr changes the owner and times. As on Linux, the permission
+// bits of a symlink cannot be changed (EOPNOTSUPP), and a symlink
+// cannot be truncated (EINVAL).
+func (l *MemSymlink) Setattr(ctx context.Context, fh FileHandle, in *fuse.SetAttrIn, out *fuse.AttrOut) syscall.Errno {
+	if _, ok := in.GetMode(); ok {
+		return syscall.EOPNOTSUPP
+	}
+	if _, ok := in.GetSize(); ok {
+		return syscall.EINVAL
+	}
+	l.mu.Lock()
+	setAttrMetadata(&l.Attr, in)
+	l.mu.Unlock()
+	return l.Getattr(ctx, fh, out)
 }

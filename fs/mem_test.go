@@ -19,6 +19,7 @@ import (
 	"github.com/hanwen/go-fuse/v3/fuse"
 	"github.com/hanwen/go-fuse/v3/internal/testutil"
 	"github.com/hanwen/go-fuse/v3/posixtest"
+	"golang.org/x/sys/unix"
 )
 
 func testMount(t *testing.T, root InodeEmbedder, opts *Options) (string, *fuse.Server) {
@@ -292,6 +293,59 @@ func TestDataSymlink(t *testing.T) {
 		t.Fatalf("Lstat: %v", err)
 	} else if fi.Size() != int64(len("target")) {
 		t.Errorf("Lstat: got size %d, want %d", fi.Size(), len("target"))
+	}
+}
+
+// TestMemSymlinkSetattr checks that the owner and times of a
+// symlink can be changed without following it.
+func TestMemSymlinkSetattr(t *testing.T) {
+	root := &Inode{}
+	mntDir, _ := testMount(t, root, &Options{
+		OnAdd: func(ctx context.Context) {
+			ch := root.NewPersistentInode(ctx,
+				&MemSymlink{Data: []byte("target"), Attr: fuse.Attr{Mode: 0777}},
+				StableAttr{Mode: syscall.S_IFLNK})
+			root.AddChild("link", ch, false)
+		},
+	})
+	link := mntDir + "/link"
+
+	mtime := time.Unix(2000, 2)
+	ts := []unix.Timespec{unix.NsecToTimespec(time.Unix(1000, 1).UnixNano()), unix.NsecToTimespec(mtime.UnixNano())}
+	if err := unix.UtimesNanoAt(unix.AT_FDCWD, link, ts, unix.AT_SYMLINK_NOFOLLOW); err != nil {
+		t.Fatalf("UtimesNanoAt: %v", err)
+	}
+	if err := os.Lchown(link, os.Getuid(), os.Getgid()); err != nil {
+		t.Fatalf("Lchown: %v", err)
+	}
+	fi, err := os.Lstat(link)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := fi.ModTime(); !got.Equal(mtime) {
+		t.Errorf("mtime: got %v, want %v", got, mtime)
+	}
+	st := fi.Sys().(*syscall.Stat_t)
+	if int(st.Uid) != os.Getuid() || int(st.Gid) != os.Getgid() {
+		t.Errorf("owner: got %d:%d, want %d:%d", st.Uid, st.Gid, os.Getuid(), os.Getgid())
+	}
+
+	// The kernel does not send these, but other clients may.
+	l := &MemSymlink{Attr: fuse.Attr{Mode: 0777}}
+	var out fuse.AttrOut
+	in := fuse.SetAttrIn{}
+	in.Valid = fuse.FATTR_MODE
+	in.Mode = 0555
+	if errno := l.Setattr(context.Background(), nil, &in, &out); errno != syscall.EOPNOTSUPP {
+		t.Errorf("chmod: got %v, want EOPNOTSUPP", errno)
+	}
+	in = fuse.SetAttrIn{}
+	in.Valid = fuse.FATTR_SIZE
+	if errno := l.Setattr(context.Background(), nil, &in, &out); errno != syscall.EINVAL {
+		t.Errorf("truncate: got %v, want EINVAL", errno)
+	}
+	if l.Attr.Mode != 0777 {
+		t.Errorf("mode changed to %o", l.Attr.Mode)
 	}
 }
 
