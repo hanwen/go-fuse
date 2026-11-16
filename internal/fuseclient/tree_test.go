@@ -454,3 +454,13 @@ func TestSameFh(t *testing.T) {
 		t.Errorf("release after Close sent RELEASE")
 	}
 }
+
+// TestAfterClose checks that requests after Close fail with ENOTCONN.
+func TestAfterClose(t *testing.T) {
+	root, onAdd := memTree()
+	tree := newTestTree(t, root, onAdd)
+	tree.Close()
+	if _, errno := tree.Getattr(&fuse.Caller{}, fuse.FUSE_ROOT_ID, nil); errno != syscall.ENOTCONN {
+		t.Errorf("Getattr: got %v, want ENOTCONN", errno)
+	}
+}

@@ -449,9 +449,12 @@ func (t *Tree) ForgetAll() {
 
 // Close releases the handles that are still open, forgets all nodes,
 // including referenced ones, and sends DESTROY, as the kernel does
-// when the file system is unmounted. The Tree must not be used
-// afterwards.
+// when the file system is unmounted. Afterwards, requests fail with
+// ENOTCONN, as for Client.Close.
 func (t *Tree) Close() {
+	if !t.closed.CompareAndSwap(false, true) {
+		return
+	}
 	t.releaseAll()
 	t.mu.Lock()
 	var forgets []forget
@@ -464,8 +467,10 @@ func (t *Tree) Close() {
 	t.nodes = map[uint64]*Node{t.root.ID: t.root}
 	t.root.children = nil
 	t.mu.Unlock()
-	t.sendForgets(forgets)
-	t.Client.Close()
+	for _, f := range forgets {
+		t.forget(f.id, f.n)
+	}
+	t.destroy()
 }
 
 type forget struct {

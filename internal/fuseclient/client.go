@@ -60,6 +60,10 @@ type Client struct {
 	// Close can release them.
 	openMu sync.Mutex
 	open   map[*Handle]struct{}
+
+	// closed is set by Close. Afterwards, requests fail with
+	// ENOTCONN, as from the kernel after the connection is gone.
+	closed atomic.Bool
 }
 
 // Handle is an open file or directory, like the kernel's struct
@@ -87,12 +91,21 @@ func (c *Client) newHandle(node uint64, out *fuse.OpenOut, flags uint32, dir boo
 }
 
 // Close releases the handles that are still open, and sends DESTROY,
-// as the kernel does when the file system is unmounted. The Client
-// must not be used afterwards. See also Tree.Close.
+// as the kernel does when the file system is unmounted. Afterwards,
+// requests fail with ENOTCONN, and Release does nothing. Closing again
+// does nothing. See also Tree.Close.
 func (c *Client) Close() {
+	if !c.closed.CompareAndSwap(false, true) {
+		return
+	}
 	c.releaseAll()
+	c.destroy()
+}
+
+// destroy sends DESTROY.
+func (c *Client) destroy() {
 	var in fuse.InHeader
-	c.do(opDestroy, 0, nil, unsafe.Pointer(&in), unsafe.Sizeof(in), nil, nil, 0, nil)
+	c.send(opDestroy, 0, nil, unsafe.Pointer(&in), unsafe.Sizeof(in), nil, nil, 0, nil)
 }
 
 // releaseAll releases the handles that are still open.
@@ -158,6 +171,17 @@ func (c *Client) do(op uint32, node uint64, caller *fuse.Caller,
 }
 
 func (c *Client) doN(op uint32, node uint64, caller *fuse.Caller,
+	in unsafe.Pointer, inSize uintptr, inPayload []byte,
+	out unsafe.Pointer, outSize uintptr, outPayload []byte) (int, syscall.Errno) {
+	if c.closed.Load() {
+		return 0, syscall.ENOTCONN
+	}
+	return c.send(op, node, caller, in, inSize, inPayload, out, outSize, outPayload)
+}
+
+// send is doN without the check for Close, for the requests that
+// Close itself sends.
+func (c *Client) send(op uint32, node uint64, caller *fuse.Caller,
 	in unsafe.Pointer, inSize uintptr, inPayload []byte,
 	out unsafe.Pointer, outSize uintptr, outPayload []byte) (int, syscall.Errno) {
 	h := (*fuse.InHeader)(in)
@@ -239,8 +263,14 @@ func (c *Client) Lookup(caller *fuse.Caller, parent uint64, name string) (fuse.E
 
 // Forget sends FORGET.
 func (c *Client) Forget(node uint64, nlookup uint64) {
+	if !c.closed.Load() {
+		c.forget(node, nlookup)
+	}
+}
+
+func (c *Client) forget(node uint64, nlookup uint64) {
 	in := fuse.ForgetIn{Nlookup: nlookup}
-	c.do(opForget, node, nil, unsafe.Pointer(&in), unsafe.Sizeof(in), nil, nil, 0, nil)
+	c.send(opForget, node, nil, unsafe.Pointer(&in), unsafe.Sizeof(in), nil, nil, 0, nil)
 }
 
 // Getattr sends GETATTR, with the file handle if h is non-nil.
@@ -464,7 +494,7 @@ func (c *Client) release(h *Handle) {
 	if h.dir {
 		op = opReleasedir
 	}
-	c.do(op, h.node, nil, unsafe.Pointer(&in), unsafe.Sizeof(in), nil, nil, 0, nil)
+	c.send(op, h.node, nil, unsafe.Pointer(&in), unsafe.Sizeof(in), nil, nil, 0, nil)
 }
 
 // DirEntry is an entry from READDIR or READDIRPLUS. Entry is only
