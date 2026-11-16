@@ -39,7 +39,13 @@ var _ = (FileWritever)((*LoopbackFile)(nil))
 
 func (f *LoopbackFile) Writev(ctx context.Context, data [][]byte, off int64) (uint32, syscall.Errno) {
 	var n int
+	kill := killSuidgidRequested(ctx)
 	errno := f.withFd(func(fd int) syscall.Errno {
+		if kill {
+			if errno := killSuidgidFd(fd); errno != 0 {
+				return errno
+			}
+		}
 		var err error
 		n, err = unix.Pwritev(fd, data, off)
 		return ToErrno(err)

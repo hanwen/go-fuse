@@ -1362,6 +1362,9 @@ func (b *rawBridge) Init(in *fuse.InitIn, out *fuse.InitOut) {
 func (b *rawBridge) OnConnect(c *fuse.Conn) {
 	b.notify = c.Notify()
 	b.backing = c.Backing()
+	if passthroughUnsafe(c) {
+		b.disableBackingFiles = true
+	}
 }
 
 func (b *rawBridge) CopyFileRange(ctx context.Context, in *fuse.CopyFileRangeIn) (size uint32, status syscall.Errno) {

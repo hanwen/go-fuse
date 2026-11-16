@@ -12,3 +12,7 @@ import (
 func (b *rawBridge) Statx(ctx context.Context, in *fuse.StatxIn, out *fuse.StatxOut) syscall.Errno {
 	return fuse.ENOSYS
 }
+
+func passthroughUnsafe(c *fuse.Conn) bool {
+	return false
+}

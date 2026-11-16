@@ -98,7 +98,13 @@ func (f *LoopbackFile) Read(ctx context.Context, buf []byte, off int64) (res fus
 
 func (f *LoopbackFile) Write(ctx context.Context, data []byte, off int64) (uint32, syscall.Errno) {
 	var n int
+	kill := killSuidgidRequested(ctx)
 	errno := f.withFd(func(fd int) syscall.Errno {
+		if kill {
+			if errno := killSuidgidFd(fd); errno != 0 {
+				return errno
+			}
+		}
 		var err error
 		n, err = syscall.Pwrite(fd, data, off)
 		return ToErrno(err)
@@ -244,6 +250,12 @@ func (f *LoopbackFile) setAttr(ctx context.Context, in *fuse.SetAttrIn) syscall.
 	// clobbered by the truncate.
 	if sz, ok := in.GetSize(); ok {
 		if errno := f.ftruncate(sz); errno != 0 {
+			return errno
+		}
+	}
+
+	if _, ok := in.GetMode(); !ok && killSuidgidRequested(ctx) {
+		if errno := f.withFd(killSuidgidFd); errno != 0 {
 			return errno
 		}
 	}

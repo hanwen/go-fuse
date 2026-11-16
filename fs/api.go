@@ -685,6 +685,8 @@ type FileHandle any
 // be called once when processing the Create or Open operation, so
 // there is no concern about concurrent access to the Fd. If the
 // function returns false, passthrough will not be used for this file.
+// Passthrough is not used with CAP_HANDLE_KILLPRIV_V2, because the
+// kernel then does not clear suid/sgid on passthrough writes.
 type FilePassthroughFder interface {
 	PassthroughFd() (int, bool)
 }

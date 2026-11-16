@@ -365,6 +365,57 @@ func (n *LoopbackNode) Rename(ctx context.Context, name string, newParent InodeE
 	return ToErrno(unix.Renameat(fd1, name, fd2, newName))
 }
 
+// killSuidgidRequested reports whether the kernel asks to clear
+// suid/sgid for this request (CAP_HANDLE_KILLPRIV_V2).
+func killSuidgidRequested(ctx context.Context) bool {
+	call, ok := fuse.CallFromContext(ctx)
+	if !ok {
+		return false
+	}
+	kill, _ := call.KillSuidgid()
+	return kill
+}
+
+// killSuidgidMode returns the mode with suid cleared, and sgid if
+// the file is group-executable, as the VFS does on a write by a
+// caller without CAP_FSETID. We need to do this ourselves, because
+// the server may have CAP_FSETID.
+func killSuidgidMode(mode uint32) (uint32, bool) {
+	if mode&unix.S_IFMT != unix.S_IFREG {
+		return 0, false
+	}
+	kill := uint32(unix.S_ISUID)
+	if mode&unix.S_IXGRP != 0 {
+		kill |= unix.S_ISGID
+	}
+	if mode&kill == 0 {
+		return 0, false
+	}
+	return mode & 07777 &^ kill, true
+}
+
+func killSuidgidFd(fd int) syscall.Errno {
+	var st syscall.Stat_t
+	if err := syscall.Fstat(fd, &st); err != nil {
+		return ToErrno(err)
+	}
+	if m, ok := killSuidgidMode(uint32(st.Mode)); ok {
+		return ToErrno(syscall.Fchmod(fd, m))
+	}
+	return OK
+}
+
+func killSuidgidAt(dirfd int, name string) syscall.Errno {
+	var st unix.Stat_t
+	if err := unix.Fstatat(dirfd, name, &st, unix.AT_SYMLINK_NOFOLLOW); err != nil {
+		return ToErrno(err)
+	}
+	if m, ok := killSuidgidMode(uint32(st.Mode)); ok {
+		return ToErrno(fchmodatNoFollow(dirfd, name, m))
+	}
+	return OK
+}
+
 var _ = (NodeCreater)((*LoopbackNode)(nil))
 
 func (n *LoopbackNode) Create(ctx context.Context, name string, flags uint32, mode uint32, out *fuse.EntryOut) (inode *Inode, fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
@@ -374,9 +425,23 @@ func (n *LoopbackNode) Create(ctx context.Context, name string, flags uint32, mo
 	}
 	defer syscall.Close(dirfd)
 	flags = flags &^ syscall.O_APPEND
+
+	// The kernel asks to kill suid/sgid for any O_TRUNC create,
+	// but only a truncated existing file should lose them.
+	kill := false
+	if flags&syscall.O_TRUNC != 0 && killSuidgidRequested(ctx) {
+		var st unix.Stat_t
+		kill = unix.Fstatat(dirfd, name, &st, unix.AT_SYMLINK_NOFOLLOW) == nil
+	}
 	fd, err := unix.Openat(dirfd, name, int(flags)|unix.O_CREAT|unix.O_NOFOLLOW|unix.O_CLOEXEC, mode)
 	if err != nil {
 		return nil, nil, 0, ToErrno(err)
+	}
+	if kill {
+		if errno := killSuidgidFd(fd); errno != 0 {
+			syscall.Close(fd)
+			return nil, nil, 0, errno
+		}
 	}
 	n.preserveOwner(ctx, dirfd, name)
 	var st syscall.Stat_t
@@ -527,6 +592,12 @@ func (n *LoopbackNode) Open(ctx context.Context, flags uint32) (fh FileHandle, f
 	if errno != 0 {
 		return nil, 0, errno
 	}
+	if flags&syscall.O_TRUNC != 0 && killSuidgidRequested(ctx) {
+		if errno := killSuidgidFd(fd); errno != 0 {
+			syscall.Close(fd)
+			return nil, 0, errno
+		}
+	}
 	lf := NewLoopbackFile(fd)
 	return lf, 0, 0
 }
@@ -628,6 +699,12 @@ func (n *LoopbackNode) Setattr(ctx context.Context, f FileHandle, in *fuse.SetAt
 			syscall.Close(fd)
 			if err != nil {
 				return ToErrno(err)
+			}
+		}
+
+		if _, ok := in.GetMode(); !ok && killSuidgidRequested(ctx) {
+			if errno := killSuidgidAt(dirfd, name); errno != 0 {
+				return errno
 			}
 		}
 

@@ -57,3 +57,11 @@ func (b *rawBridge) Statx(ctx context.Context, in *fuse.StatxIn, out *fuse.Statx
 
 	return errno
 }
+
+// With CAP_HANDLE_KILLPRIV_V2, a passthrough write clears suid/sgid
+// nowhere: the kernel skips its own SETATTR, and the server never
+// sees the WRITE.
+func passthroughUnsafe(c *fuse.Conn) bool {
+	out := c.Out()
+	return out.Flags64()&fuse.CAP_HANDLE_KILLPRIV_V2 != 0
+}

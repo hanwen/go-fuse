@@ -46,7 +46,7 @@ if [[ -n "$GOARCH32" ]]; then
   rm -f $probe
 fi
 # The following tests need to run as root
-sudo env PATH=$PATH $GO_TEST -run 'Test(DirectMount|Forget|Passthrough|IDMappedMount|ReconnectByFileHandle|SetXAttrKillSgid)' ./fs ./fuse
+sudo env PATH=$PATH $GO_TEST -run 'Test(DirectMount|Forget|Passthrough|IDMappedMount|ReconnectByFileHandle|SetXAttrKillSgid|LoopbackKillSuidgid)' ./fs ./fuse
 
 # NFS export reconnect test: needs root (for name_to_handle_at-adjacent
 # privileges and exportfs) plus rpcbind/rpc.mountd/nfsd
