@@ -105,10 +105,17 @@ func (c *Client) shutdown() bool {
 // fuse_file. The file system's file handle is opaque: a file system
 // may return the same one for different opens.
 type Handle struct {
-	node  uint64
-	fh    uint64
-	flags uint32 // open flags, for RELEASE
-	dir   bool
+	node      uint64
+	fh        uint64
+	openFlags uint32 // open(2) flags, for RELEASE
+	fopen     uint32 // FOPEN_* flags from the reply
+	dir       bool
+}
+
+// Flags returns the FOPEN_* flags of the OPEN, OPENDIR or CREATE reply,
+// such as fuse.FOPEN_DIRECT_IO.
+func (h *Handle) Flags() uint32 {
+	return h.fopen
 }
 
 // openOnlyFlags only apply while opening. The kernel clears them from
@@ -116,7 +123,7 @@ type Handle struct {
 const openOnlyFlags = syscall.O_CREAT | syscall.O_EXCL | syscall.O_NOCTTY | syscall.O_TRUNC
 
 func (c *Client) newHandle(node uint64, out *fuse.OpenOut, flags uint32, dir bool) *Handle {
-	h := &Handle{node: node, fh: out.Fh, flags: flags &^ openOnlyFlags, dir: dir}
+	h := &Handle{node: node, fh: out.Fh, openFlags: flags &^ openOnlyFlags, fopen: out.OpenFlags, dir: dir}
 	c.openMu.Lock()
 	defer c.openMu.Unlock()
 	if c.open != nil {
@@ -540,7 +547,7 @@ func (c *Client) Release(h *Handle) {
 }
 
 func (c *Client) release(h *Handle) {
-	in := fuse.ReleaseIn{Fh: h.fh, Flags: h.flags}
+	in := fuse.ReleaseIn{Fh: h.fh, Flags: h.openFlags}
 	op := uint32(opRelease)
 	if h.dir {
 		op = opReleasedir

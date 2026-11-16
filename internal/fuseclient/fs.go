@@ -130,7 +130,11 @@ func (fsys *FS) ReadLink(name string) (string, error) {
 	return target, nil
 }
 
-// file is an open non-directory.
+// file is an open non-directory. It honors the FOPEN flags as the
+// kernel does: FOPEN_NONSEEKABLE and FOPEN_STREAM files cannot seek or
+// read at an offset, a FOPEN_STREAM file reads at offset 0, and a
+// FOPEN_NOFLUSH file is not flushed on Close. The flags for the page
+// cache do not apply, as there is no cache.
 type file struct {
 	fsys *FS
 	node *Node
@@ -177,10 +181,20 @@ func (f *file) readAt(op string, p []byte, off int64) (int, error) {
 	return n, nil
 }
 
+// seekable reports whether the file has offsets.
+func (f *file) seekable() bool {
+	return f.h.Flags()&(fuse.FOPEN_NONSEEKABLE|fuse.FOPEN_STREAM) == 0
+}
+
 func (f *file) Read(p []byte) (int, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	n, err := f.readAt("read", p, f.off)
+	off := f.off
+	if f.h.Flags()&fuse.FOPEN_STREAM != 0 {
+		// A stream has no position.
+		off = 0
+	}
+	n, err := f.readAt("read", p, off)
 	f.off += int64(n)
 	if err == nil && n == 0 && len(p) > 0 {
 		err = io.EOF
@@ -191,6 +205,9 @@ func (f *file) Read(p []byte) (int, error) {
 func (f *file) ReadAt(p []byte, off int64) (int, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if !f.seekable() {
+		return 0, pathError("read", f.name, syscall.ESPIPE)
+	}
 	n, err := f.readAt("read", p, off)
 	if err == nil && n < len(p) {
 		err = io.EOF
@@ -203,6 +220,9 @@ func (f *file) Seek(offset int64, whence int) (int64, error) {
 	defer f.mu.Unlock()
 	if f.closed {
 		return 0, &fs.PathError{Op: "seek", Path: f.name, Err: fs.ErrClosed}
+	}
+	if !f.seekable() {
+		return 0, pathError("seek", f.name, syscall.ESPIPE)
 	}
 	switch whence {
 	case io.SeekCurrent:
@@ -231,7 +251,10 @@ func (f *file) Close() error {
 		return &fs.PathError{Op: "close", Path: f.name, Err: fs.ErrClosed}
 	}
 	f.closed = true
-	errno := f.fsys.tree.Flush(&f.fsys.caller, f.h)
+	var errno syscall.Errno
+	if f.h.Flags()&fuse.FOPEN_NOFLUSH == 0 {
+		errno = f.fsys.tree.Flush(&f.fsys.caller, f.h)
+	}
 	f.fsys.tree.Release(f.h)
 	f.fsys.tree.Unref(f.node)
 	if errno != 0 && errno != syscall.ENOSYS {
