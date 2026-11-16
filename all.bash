@@ -38,7 +38,7 @@ arm64) GOARCH32=arm ;;
 esac
 if [[ -n "$GOARCH32" ]]; then
   probe=$(mktemp)
-  if GOARCH=$GOARCH32 CGO_ENABLED=0 go test -c -o $probe ./splice && $probe -test.run '^$'; then
+  if GOARCH=$GOARCH32 CGO_ENABLED=0 go test -c -o $probe ./splice && $probe -test.run '^$' >/dev/null 2>&1; then
     GOARCH=$GOARCH32 CGO_ENABLED=0 $GO_TEST ./fuse/... ./fs/... ./posixtest ./splice ./zipfs ./newunionfs
   else
     echo "cannot run GOARCH=$GOARCH32 binaries; skipping 32-bit tests"
