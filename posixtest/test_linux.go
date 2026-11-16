@@ -105,3 +105,13 @@ func init() {
 	All["StatxSymlink"] = StatxSymlink
 	All["Tmpfile"] = Tmpfile
 }
+
+// uncachedMtime returns the mtime of path. AT_STATX_FORCE_SYNC makes
+// FUSE fetch the attributes, rather than use its cache.
+func uncachedMtime(path string) (sec, nsec int64, err error) {
+	var stx unix.Statx_t
+	if err := unix.Statx(unix.AT_FDCWD, path, unix.AT_STATX_FORCE_SYNC, unix.STATX_MTIME, &stx); err != nil {
+		return 0, 0, err
+	}
+	return stx.Mtime.Sec, int64(stx.Mtime.Nsec), nil
+}

@@ -58,9 +58,19 @@ var All = map[string]func(*testing.T, string){
 	"XAttrLarge":                 XAttrLarge,
 }
 
+// SetattrSymlink checks that the times and owner of a symlink can be
+// changed, without changing its target.
 func SetattrSymlink(t *testing.T, mnt string) {
+	target := filepath.Join(mnt, "target")
+	if err := os.WriteFile(target, []byte("hello"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	sec, nsec, err := uncachedMtime(target)
+	if err != nil {
+		t.Fatalf("stat: %v", err)
+	}
 	l := filepath.Join(mnt, "link")
-	if err := os.Symlink("doesnotexist", l); err != nil {
+	if err := os.Symlink("target", l); err != nil {
 		t.Fatalf("symlink: %v", err)
 	}
 
@@ -71,15 +81,28 @@ func SetattrSymlink(t *testing.T, mnt string) {
 	if err := unix.Lutimes(l, tvs); err != nil {
 		t.Fatalf("Lutimes: %v", err)
 	}
+	if err := os.Lchown(l, os.Getuid(), os.Getgid()); err != nil {
+		t.Fatalf("Lchown: %v", err)
+	}
 
 	var st unix.Stat_t
 	if err := unix.Lstat(l, &st); err != nil {
 		t.Fatalf("Lstat: %v", err)
 	}
-
 	if st.Mtim.Sec != 43 {
 		// Can't check atime; it's hard to prevent implicit readlink calls.
-		t.Fatalf("got mtime %v, want 43", st.Mtim)
+		t.Errorf("got mtime %v, want 43", st.Mtim)
+	}
+	if int(st.Uid) != os.Getuid() || int(st.Gid) != os.Getgid() {
+		t.Errorf("owner: got %d:%d, want %d:%d", st.Uid, st.Gid, os.Getuid(), os.Getgid())
+	}
+
+	sec2, nsec2, err := uncachedMtime(target)
+	if err != nil {
+		t.Fatalf("stat: %v", err)
+	}
+	if sec2 != sec || nsec2 != nsec {
+		t.Errorf("target mtime changed from %d.%09d to %d.%09d", sec, nsec, sec2, nsec2)
 	}
 }
 
