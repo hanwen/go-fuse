@@ -7,6 +7,7 @@ package fs
 import (
 	"context"
 	"fmt"
+	"syscall"
 	"testing"
 	"time"
 
@@ -90,5 +91,43 @@ func TestDefaultOwner(t *testing.T) {
 	}
 	if out.Uid != 42 || out.Gid != 43 {
 		t.Errorf("Getattr: got owner %d, %d, want 42, 43", out.Uid, out.Gid)
+	}
+}
+
+// TestMemSymlinkSetattr checks what a symlink's Setattr refuses. The
+// kernel does not send these; posixtest.SetattrSymlink covers what it
+// does send.
+func TestMemSymlinkSetattr(t *testing.T) {
+	root := &Inode{}
+	l := &MemSymlink{Attr: fuse.Attr{Mode: 0777}, Data: []byte("target")}
+	tree, _ := newClientTree(t, root, &Options{
+		OnAdd: func(ctx context.Context) {
+			ch := root.NewPersistentInode(ctx, l, StableAttr{Mode: syscall.S_IFLNK})
+			root.AddChild("link", ch, false)
+		},
+	})
+	n, _, _, errno := tree.Walk(nil, "link")
+	if errno != 0 {
+		t.Fatalf("Walk: %v", errno)
+	}
+	defer tree.Unref(n)
+
+	in := fuse.SetAttrIn{}
+	in.Valid = fuse.FATTR_MODE
+	in.Mode = 0555
+	if _, errno := tree.Setattr(nil, n.ID, nil, &in); errno != syscall.EOPNOTSUPP {
+		t.Errorf("chmod: got %v, want EOPNOTSUPP", errno)
+	}
+	in = fuse.SetAttrIn{}
+	in.Valid = fuse.FATTR_SIZE
+	if _, errno := tree.Setattr(nil, n.ID, nil, &in); errno != syscall.EINVAL {
+		t.Errorf("truncate: got %v, want EINVAL", errno)
+	}
+	out, errno := tree.Getattr(nil, n.ID, nil)
+	if errno != 0 {
+		t.Fatalf("Getattr: %v", errno)
+	}
+	if out.Mode&07777 != 0777 {
+		t.Errorf("mode changed to %o", out.Mode)
 	}
 }

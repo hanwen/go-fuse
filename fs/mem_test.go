@@ -265,28 +265,6 @@ func TestDataSymlink(t *testing.T) {
 	}
 }
 
-// TestMemSymlinkSetattr checks what a symlink's Setattr refuses. The
-// kernel does not send these; posixtest.SetattrSymlink covers what it
-// does send.
-func TestMemSymlinkSetattr(t *testing.T) {
-	l := &MemSymlink{Attr: fuse.Attr{Mode: 0777}}
-	var out fuse.AttrOut
-	in := fuse.SetAttrIn{}
-	in.Valid = fuse.FATTR_MODE
-	in.Mode = 0555
-	if errno := l.Setattr(context.Background(), nil, &in, &out); errno != syscall.EOPNOTSUPP {
-		t.Errorf("chmod: got %v, want EOPNOTSUPP", errno)
-	}
-	in = fuse.SetAttrIn{}
-	in.Valid = fuse.FATTR_SIZE
-	if errno := l.Setattr(context.Background(), nil, &in, &out); errno != syscall.EINVAL {
-		t.Errorf("truncate: got %v, want EINVAL", errno)
-	}
-	if l.Attr.Mode != 0777 {
-		t.Errorf("mode changed to %o", l.Attr.Mode)
-	}
-}
-
 func readDirStream(st DirStream) (result []fuse.DirEntry, errno syscall.Errno) {
 	for st.HasNext() {
 		var de fuse.DirEntry
