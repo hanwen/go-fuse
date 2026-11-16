@@ -36,7 +36,9 @@ func setupZipfs(t *testing.T) (mountPoint string, cleanup func()) {
 	opts := &fs.Options{}
 	opts.Debug = testutil.VerboseTest()
 	server, err := fs.Mount(mountPoint, root, opts)
-
+	if err != nil {
+		t.Fatalf("Mount: %v", err)
+	}
 	return mountPoint, func() {
 		server.Unmount()
 	}

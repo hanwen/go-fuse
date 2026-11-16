@@ -71,7 +71,7 @@ func TestTar(t *testing.T) {
 	opts.Debug = testutil.VerboseTest()
 	s, err := fs.Mount(mnt, root, opts)
 	if err != nil {
-		t.Errorf("Mount: %v", err)
+		t.Fatalf("Mount: %v", err)
 	}
 	defer s.Unmount()
 

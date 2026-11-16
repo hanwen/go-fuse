@@ -162,6 +162,9 @@ func TestCopyFileRange(t *testing.T) {
 	}
 	opt.Debug = testutil.VerboseTest()
 	srv, err := Mount(mnt, root, opt)
+	if err != nil {
+		t.Fatalf("Mount: %v", err)
+	}
 	defer srv.Unmount()
 
 	if !srv.KernelSettings().SupportsVersion(7, 28) {
