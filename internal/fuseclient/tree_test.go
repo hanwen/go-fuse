@@ -147,10 +147,10 @@ func TestNameWithNUL(t *testing.T) {
 	if _, errno := tree.Client.Lookup(caller, fuse.FUSE_ROOT_ID, "file\x00junk"); errno != syscall.EINVAL {
 		t.Errorf("Lookup: got %v, want EINVAL", errno)
 	}
-	if _, _, errno := tree.Create(caller, fuse.FUSE_ROOT_ID, "f\x00", 0, 0644); errno != syscall.EINVAL {
+	if _, _, _, errno := tree.Create(caller, tree.Root(), "f\x00", 0, 0644); errno != syscall.EINVAL {
 		t.Errorf("Create: got %v, want EINVAL", errno)
 	}
-	if _, errno := tree.Symlink(caller, fuse.FUSE_ROOT_ID, "l", "t\x00"); errno != syscall.EINVAL {
+	if _, _, errno := tree.Symlink(caller, tree.Root(), "l", "t\x00"); errno != syscall.EINVAL {
 		t.Errorf("Symlink: got %v, want EINVAL", errno)
 	}
 	if errno := tree.Rename(caller, fuse.FUSE_ROOT_ID, "file", fuse.FUSE_ROOT_ID, "x\x00"); errno != syscall.EINVAL {
@@ -493,6 +493,15 @@ func (b *blockingFS) Open(ctx context.Context, in *fuse.OpenIn, out *fuse.OpenOu
 	return 0
 }
 
+func (b *blockingFS) Create(ctx context.Context, in *fuse.CreateIn, name string, out *fuse.CreateOut) syscall.Errno {
+	b.entered <- struct{}{}
+	<-b.unblock
+	out.NodeId = 2
+	out.Attr.Mode = fuse.S_IFREG | 0644
+	out.Fh = 7
+	return 0
+}
+
 func (b *blockingFS) Lookup(ctx context.Context, header *fuse.InHeader, name string, out *fuse.EntryOut) syscall.Errno {
 	b.entered <- struct{}{}
 	<-b.unblock
@@ -582,4 +591,64 @@ func TestCloseWaitsForLookup(t *testing.T) {
 	if want := map[uint64]uint64{2: 1}; !maps.Equal(b.forgot, want) {
 		t.Errorf("forgot %v, want %v", b.forgot, want)
 	}
+}
+
+// TestCloseWaitsForCreate checks that a CREATE in flight during Close
+// is released and forgotten.
+func TestCloseWaitsForCreate(t *testing.T) {
+	b := newBlockingFS()
+	c, err := New(b, &fuse.MountOptions{Debug: testutil.VerboseTest()}, fuse.Notify{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tree := NewTree(c)
+	var errno syscall.Errno
+	closeDuring(t, b, func() {
+		var n *Node
+		var h *Handle
+		n, _, h, errno = tree.Create(&fuse.Caller{}, tree.Root(), "f", syscall.O_RDWR, 0644)
+		if n != nil {
+			tree.Unref(n)
+			tree.Release(h)
+		}
+	}, tree.Close)
+	if errno != 0 {
+		t.Fatalf("Create: %v", errno)
+	}
+	if b.releases != 1 {
+		t.Errorf("got %d releases, want 1", b.releases)
+	}
+	if want := map[uint64]uint64{2: 1}; !maps.Equal(b.forgot, want) {
+		t.Errorf("forgot %v, want %v", b.forgot, want)
+	}
+}
+
+// TestReaddirplus checks that Readdir records the entries of
+// READDIRPLUS, so they are forgotten.
+func TestReaddirplus(t *testing.T) {
+	root, onAdd := memTree()
+	tree := newTestTree(t, root, onAdd)
+	caller := &fuse.Caller{}
+	h, errno := tree.Opendir(caller, fuse.FUSE_ROOT_ID)
+	if errno != 0 {
+		t.Fatal(errno)
+	}
+	ents, errno := tree.Readdir(caller, tree.Root(), h, 0, true)
+	tree.Release(h)
+	if errno != 0 {
+		t.Fatal(errno)
+	}
+	var plus int
+	for _, e := range ents {
+		if e.Entry.NodeId != 0 && e.Name != "." && e.Name != ".." {
+			plus++
+		}
+	}
+	if plus == 0 {
+		t.Fatal("no READDIRPLUS entries")
+	}
+	if got := len(tree.Lookups()); got != plus {
+		t.Errorf("got %d nodes, want %d", got, plus)
+	}
+	checkForgets(t, tree)
 }

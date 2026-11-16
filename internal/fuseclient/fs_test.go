@@ -64,13 +64,9 @@ func TestFSMem(t *testing.T) {
 		"escape": "../outside",
 		"abs":    "/etc/passwd",
 	} {
-		out, errno := tree.Symlink(&fsys.caller, fuse.FUSE_ROOT_ID, name, target)
+		n, _, errno := tree.Symlink(&fsys.caller, tree.Root(), name, target)
 		if errno != 0 {
 			t.Fatalf("Symlink(%q): %v", name, errno)
-		}
-		n, errno := tree.Add(tree.Root(), name, &out)
-		if errno != 0 {
-			t.Fatalf("Add(%q): %v", name, errno)
 		}
 		tree.Unref(n)
 	}

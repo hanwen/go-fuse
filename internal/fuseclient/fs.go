@@ -276,7 +276,7 @@ func (d *dir) Read([]byte) (int, error) {
 
 // fill reads one batch of entries.
 func (d *dir) fill() error {
-	ents, errno := d.fsys.tree.Readdir(&d.fsys.caller, d.h, d.off, false)
+	ents, errno := d.fsys.tree.Readdir(&d.fsys.caller, d.node, d.h, d.off, false)
 	if errno != 0 {
 		return pathError("readdir", d.name, errno)
 	}

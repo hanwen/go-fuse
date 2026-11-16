@@ -22,8 +22,8 @@ type Node struct {
 	// protected by Tree.mu
 	mode    uint32 // file type bits
 	lookups uint64
-	// refs counts the references from Walk, Lookup, Add and
-	// Ref. A node with references is not forgotten.
+	// refs counts the references from Walk, Lookup, Create, Mkdir,
+	// Symlink and Ref. A node with references is not forgotten.
 	refs     int
 	children map[string]*dentry
 	// parent and name are the last link that we resolved; used
@@ -265,7 +265,7 @@ func (t *Tree) lookup(caller *fuse.Caller, dir *Node, name string, needAttr bool
 		return n, fuse.EntryOut{NodeId: n.ID, Attr: out.Attr}, 0
 	}
 
-	// Close must not run between the reply and Add, or the
+	// Close must not run between the reply and addEntry, or the
 	// lookup would never be forgotten.
 	if !t.begin() {
 		return nil, fuse.EntryOut{}, syscall.ENOTCONN
@@ -278,22 +278,98 @@ func (t *Tree) lookup(caller *fuse.Caller, dir *Node, name string, needAttr bool
 		}
 		return nil, out, errno
 	}
-	n, errno := t.Add(dir, name, &out)
+	n, errno := t.addEntry(dir, name, &out)
 	if errno != 0 {
 		return nil, fuse.EntryOut{}, errno
 	}
 	return n, out, 0
 }
 
-// Add records an entry returned by LOOKUP, CREATE, MKDIR, SYMLINK or
-// READDIRPLUS, which counts as one lookup. It returns the node with a
-// temporary reference.
+// Create sends CREATE in dir, and records the entry. The node holds a
+// temporary reference that must be dropped with Unref, and the handle
+// must be released.
+func (t *Tree) Create(caller *fuse.Caller, dir *Node, name string, flags, mode uint32) (*Node, fuse.EntryOut, *Handle, syscall.Errno) {
+	if !t.begin() {
+		return nil, fuse.EntryOut{}, nil, syscall.ENOTCONN
+	}
+	defer t.end()
+	out, h, errno := t.Client.Create(caller, dir.ID, name, flags, mode)
+	if errno != 0 {
+		return nil, out, nil, errno
+	}
+	n, errno := t.addEntry(dir, name, &out)
+	if errno != 0 {
+		t.Release(h)
+		return nil, out, nil, errno
+	}
+	return n, out, h, 0
+}
+
+// Mkdir sends MKDIR in dir, and records the entry. The node holds a
+// temporary reference that must be dropped with Unref.
+func (t *Tree) Mkdir(caller *fuse.Caller, dir *Node, name string, mode uint32) (*Node, fuse.EntryOut, syscall.Errno) {
+	if !t.begin() {
+		return nil, fuse.EntryOut{}, syscall.ENOTCONN
+	}
+	defer t.end()
+	out, errno := t.Client.Mkdir(caller, dir.ID, name, mode)
+	if errno != 0 {
+		return nil, out, errno
+	}
+	n, errno := t.addEntry(dir, name, &out)
+	return n, out, errno
+}
+
+// Symlink sends SYMLINK in dir, and records the entry. The node holds
+// a temporary reference that must be dropped with Unref.
+func (t *Tree) Symlink(caller *fuse.Caller, dir *Node, name, target string) (*Node, fuse.EntryOut, syscall.Errno) {
+	if !t.begin() {
+		return nil, fuse.EntryOut{}, syscall.ENOTCONN
+	}
+	defer t.end()
+	out, errno := t.Client.Symlink(caller, dir.ID, name, target)
+	if errno != 0 {
+		return nil, out, errno
+	}
+	n, errno := t.addEntry(dir, name, &out)
+	return n, out, errno
+}
+
+// Readdir sends READDIR or READDIRPLUS on h, an open handle of dir. It
+// records the entries of READDIRPLUS. An entry that cannot be recorded
+// is still returned, as the kernel lists it.
+func (t *Tree) Readdir(caller *fuse.Caller, dir *Node, h *Handle, off uint64, plus bool) ([]DirEntry, syscall.Errno) {
+	if !t.begin() {
+		return nil, syscall.ENOTCONN
+	}
+	defer t.end()
+	ents, errno := t.Client.Readdir(caller, h, off, plus)
+	if errno != 0 || !plus {
+		return ents, errno
+	}
+	for i := range ents {
+		e := &ents[i]
+		if e.Entry.NodeId == 0 || e.Name == "." || e.Name == ".." {
+			// "." and ".." do not count as lookups.
+			continue
+		}
+		if n, errno := t.addEntry(dir, e.Name, &e.Entry); errno == 0 {
+			t.Unref(n)
+		}
+	}
+	return ents, 0
+}
+
+// addEntry records an entry returned by LOOKUP, CREATE, MKDIR, SYMLINK
+// or READDIRPLUS, which counts as one lookup. It returns the node with
+// a temporary reference. The caller must hold begin, so that Close
+// forgets the lookup.
 //
 // Like the kernel's d_splice_alias, a directory has at most one
 // entry: if it is cached under another name, that entry moves. If
-// the directory is dir or one of its ancestors, Add forgets the
+// the directory is dir or one of its ancestors, addEntry forgets the
 // lookup and fails with ELOOP.
-func (t *Tree) Add(dir *Node, name string, out *fuse.EntryOut) (*Node, syscall.Errno) {
+func (t *Tree) addEntry(dir *Node, name string, out *fuse.EntryOut) (*Node, syscall.Errno) {
 	n, forgets, errno := t.add(dir, name, out)
 	t.sendForgets(forgets)
 	return n, errno
@@ -354,7 +430,8 @@ func (t *Tree) Ref(n *Node) {
 	n.refs++
 }
 
-// Unref drops a reference from Lookup, Add or Ref.
+// Unref drops a reference from Walk, Lookup, Create, Mkdir, Symlink
+// or Ref.
 func (t *Tree) Unref(n *Node) {
 	t.mu.Lock()
 	n.refs--
@@ -457,9 +534,6 @@ func (t *Tree) ForgetAll() {
 // are still open, forgets all nodes, including referenced ones, and
 // sends DESTROY, as the kernel does when the file system is unmounted.
 // Afterwards, requests fail with ENOTCONN, as for Client.Close.
-//
-// Entries from CREATE, MKDIR, SYMLINK or READDIRPLUS that the caller
-// has not passed to Add yet when Close runs are not forgotten.
 func (t *Tree) Close() {
 	if !t.shutdown() {
 		return
