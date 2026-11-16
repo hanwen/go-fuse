@@ -74,6 +74,14 @@ func SetattrSymlink(t *testing.T, mnt string) {
 		t.Fatalf("symlink: %v", err)
 	}
 
+	// Chown to the current owner, which the caller need not be,
+	// eg. root in a VM against a non-root server.
+	var st unix.Stat_t
+	if err := unix.Lstat(l, &st); err != nil {
+		t.Fatalf("Lstat: %v", err)
+	}
+	uid, gid := int(st.Uid), int(st.Gid)
+
 	tvs := []unix.Timeval{
 		{Sec: 42, Usec: 1},
 		{Sec: 43, Usec: 2},
@@ -81,11 +89,10 @@ func SetattrSymlink(t *testing.T, mnt string) {
 	if err := unix.Lutimes(l, tvs); err != nil {
 		t.Fatalf("Lutimes: %v", err)
 	}
-	if err := os.Lchown(l, os.Getuid(), os.Getgid()); err != nil {
+	if err := os.Lchown(l, uid, gid); err != nil {
 		t.Fatalf("Lchown: %v", err)
 	}
 
-	var st unix.Stat_t
 	if err := unix.Lstat(l, &st); err != nil {
 		t.Fatalf("Lstat: %v", err)
 	}
@@ -93,8 +100,8 @@ func SetattrSymlink(t *testing.T, mnt string) {
 		// Can't check atime; it's hard to prevent implicit readlink calls.
 		t.Errorf("got mtime %v, want 43", st.Mtim)
 	}
-	if int(st.Uid) != os.Getuid() || int(st.Gid) != os.Getgid() {
-		t.Errorf("owner: got %d:%d, want %d:%d", st.Uid, st.Gid, os.Getuid(), os.Getgid())
+	if int(st.Uid) != uid || int(st.Gid) != gid {
+		t.Errorf("owner: got %d:%d, want %d:%d", st.Uid, st.Gid, uid, gid)
 	}
 
 	sec2, nsec2, err := uncachedMtime(target)
