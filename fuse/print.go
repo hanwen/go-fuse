@@ -238,7 +238,7 @@ func (in *ReleaseIn) string() string {
 
 func (in *OpenIn) string() string {
 	return fmt.Sprintf("{%s%s}", flagString(openFlagNames, int64(in.Flags), "O_RDONLY"),
-		optFlagString(fuseOpenInFlagNames, int64(in.Mode)))
+		optFlagString(fuseOpenInFlagNames, int64(in.OpenFlags)))
 }
 
 func optFlagString(names *flagNames, fl int64) string {

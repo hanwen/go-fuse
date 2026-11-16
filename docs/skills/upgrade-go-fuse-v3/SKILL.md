@@ -101,7 +101,8 @@ Skip this step if the code only uses the `fs` package.
    `MountOptions.Debug` before mounting instead.
 8. Remove calls to `server.RecordLatencies` and uses of
    `fuse.LatencyMap`.
-9. If the code embeds `fuse.NewDefaultRawFileSystem()`, the new
+9. Rename `OpenIn.Mode` and `CreateIn.Padding` to `OpenFlags`.
+10. If the code embeds `fuse.NewDefaultRawFileSystem()`, the new
    `Init(*InitIn, *InitOut)` and `OnConnect(*Conn)` methods come from
    the default. Do not add empty versions.
 

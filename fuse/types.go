@@ -250,14 +250,12 @@ type ReleaseIn struct {
 
 type OpenIn struct {
 	InHeader
-	Flags uint32
-
-	// Mode holds open_flags (OPEN_*), not a file mode.
-	Mode uint32
+	Flags     uint32
+	OpenFlags uint32
 }
 
 const (
-	// OpenIn.Mode, CreateIn.OpenFlags: O_TRUNC by an unprivileged caller; clear suid/sgid (CAP_HANDLE_KILLPRIV_V2).
+	// OpenIn.OpenFlags, CreateIn.OpenFlags: O_TRUNC by an unprivileged caller; clear suid/sgid (CAP_HANDLE_KILLPRIV_V2).
 	OPEN_KILL_SUIDGID = (1 << 0)
 )
 

@@ -64,11 +64,17 @@ func (c *Call) Caller() Caller {
 	return c.caller
 }
 
-// KillSuidgid reports whether the file system should clear the
-// suid/sgid bits (CAP_HANDLE_KILLPRIV_V2). It is set for WRITE, OPEN
-// and CREATE with *_KILL_SUIDGID, and for SETATTR with
-// FATTR_KILL_SUIDGID. The kernel sets these when the caller lacks
-// CAP_FSETID, regardless of the file's mode.
+// KillSuidgid reports whether the kernel asks the file system to
+// clear the suid/sgid bits (CAP_HANDLE_KILLPRIV_V2). It is set for
+// WRITE, OPEN and CREATE with *_KILL_SUIDGID, and for SETATTR with
+// FATTR_KILL_SUIDGID. For write, truncate and O_TRUNC the kernel sets
+// it when the caller lacks CAP_FSETID, without looking at the file's
+// mode; the file system should then clear suid, and sgid only if the
+// file is group-executable. For chown of a non-directory it is always
+// set, and both bits are cleared.
+//
+// The file system must also remove security.capability on every
+// write, truncate and chown; the kernel sends no flag for that.
 func (c *Call) KillSuidgid() (kill bool, ok bool) {
 	ok = c.withRequest(func(r *request) {
 		in := r.inData()
@@ -76,7 +82,7 @@ func (c *Call) KillSuidgid() (kill bool, ok bool) {
 		case _OP_WRITE:
 			kill = (*WriteIn)(in).WriteFlags&WRITE_KILL_SUIDGID != 0
 		case _OP_OPEN:
-			kill = (*OpenIn)(in).Mode&OPEN_KILL_SUIDGID != 0
+			kill = (*OpenIn)(in).OpenFlags&OPEN_KILL_SUIDGID != 0
 		case _OP_SETATTR:
 			kill = (*SetAttrIn)(in).Valid&FATTR_KILL_SUIDGID != 0
 		case _OP_CREATE, _OP_TMPFILE:
