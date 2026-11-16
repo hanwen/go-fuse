@@ -5,6 +5,7 @@
 package fs
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -62,5 +63,32 @@ func TestForgetClient(t *testing.T) {
 	tree.ForgetAll()
 	if got := liveNodes(); got != 1 {
 		t.Errorf("got %d live nodes after forget, want 1", got)
+	}
+}
+
+func TestDefaultOwner(t *testing.T) {
+	root := &Inode{}
+	tree, _ := newClientTree(t, root, &Options{
+		OnAdd: func(ctx context.Context) {
+			ch := root.NewPersistentInode(ctx, &MemRegularFile{Data: []byte("hello")}, StableAttr{})
+			root.AddChild("file", ch, false)
+		},
+		UID: 42,
+		GID: 43,
+	})
+	n, attr, _, errno := tree.Walk(nil, "file")
+	if errno != 0 {
+		t.Fatalf("Walk: %v", errno)
+	}
+	defer tree.Unref(n)
+	if attr.Uid != 42 || attr.Gid != 43 {
+		t.Errorf("got owner %d, %d, want 42, 43", attr.Uid, attr.Gid)
+	}
+	out, errno := tree.Getattr(nil, n.ID, nil)
+	if errno != 0 {
+		t.Fatalf("Getattr: %v", errno)
+	}
+	if out.Uid != 42 || out.Gid != 43 {
+		t.Errorf("Getattr: got owner %d, %d, want 42, 43", out.Uid, out.Gid)
 	}
 }

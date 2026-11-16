@@ -46,36 +46,6 @@ func testMount(t *testing.T, root InodeEmbedder, opts *Options) (string, *fuse.S
 	return mntDir, server
 }
 
-func TestDefaultOwner(t *testing.T) {
-	if testutil.InUserNamespace() {
-		t.Skip("uid 42 may be unmapped in a user namespace")
-	}
-	want := "hello"
-	root := &Inode{}
-	mntDir, _ := testMount(t, root, &Options{
-		FirstAutomaticIno: 1,
-		OnAdd: func(ctx context.Context) {
-			n := root.EmbeddedInode()
-			ch := n.NewPersistentInode(
-				ctx,
-				&MemRegularFile{
-					Data: []byte(want),
-				},
-				StableAttr{})
-			n.AddChild("file", ch, false)
-		},
-		UID: 42,
-		GID: 43,
-	})
-
-	var st syscall.Stat_t
-	if err := syscall.Lstat(mntDir+"/file", &st); err != nil {
-		t.Fatalf("Lstat: %v", err)
-	} else if st.Uid != 42 || st.Gid != 43 {
-		t.Fatalf("Got Lstat %d, %d want 42,43", st.Uid, st.Gid)
-	}
-}
-
 func TestRootInode(t *testing.T) {
 	var rootIno uint64 = 42
 	root := &Inode{}
