@@ -193,13 +193,13 @@ func (ps *protocolServer) connect(in *InitIn, out *InitOut) {
 }
 
 // checkSession returns an error if this version cannot serve a
-// connection negotiated with in and out, possibly by another version.
-func checkSession(in *InitIn, out *InitOut) error {
-	if in.Major != _FUSE_KERNEL_VERSION || out.Major != _FUSE_KERNEL_VERSION {
+// connection negotiated as out, possibly by another version.
+func checkSession(out *InitOut) error {
+	if out.Major != _FUSE_KERNEL_VERSION {
 		return fmt.Errorf("protocol version %d, want %d", out.Major, _FUSE_KERNEL_VERSION)
 	}
-	if out.Minor < _MINIMUM_MINOR_VERSION || out.Minor > _OUR_MINOR_VERSION || out.Minor > in.Minor {
-		return fmt.Errorf("protocol minor version %d, want %d to %d", out.Minor, _MINIMUM_MINOR_VERSION, min(in.Minor, _OUR_MINOR_VERSION))
+	if out.Minor < _MINIMUM_MINOR_VERSION || out.Minor > _OUR_MINOR_VERSION {
+		return fmt.Errorf("protocol minor version %d, want %d to %d", out.Minor, _MINIMUM_MINOR_VERSION, _OUR_MINOR_VERSION)
 	}
 	if unknown := out.Flags64() &^ knownCapabilities; unknown != 0 {
 		return fmt.Errorf("unknown capabilities %#x", unknown)

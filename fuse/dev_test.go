@@ -25,15 +25,14 @@ func TestNewServerFromDevIncompatible(t *testing.T) {
 		d.out.Minor = _OUR_MINOR_VERSION
 		return d
 	}
-	if err := checkSession(&compatible().in, &compatible().out); err != nil {
+	if err := checkSession(&compatible().out); err != nil {
 		t.Fatalf("compatible session: %v", err)
 	}
 
 	for name, mod := range map[string]func(d *Dev){
-		"major":        func(d *Dev) { d.out.Major++ },
-		"minor":        func(d *Dev) { d.out.Minor = _OUR_MINOR_VERSION + 1 },
-		"kernel minor": func(d *Dev) { d.in.Minor = d.out.Minor - 1 },
-		"capability":   func(d *Dev) { d.out.Flags2 |= 1 << 31 },
+		"major":      func(d *Dev) { d.out.Major++ },
+		"minor":      func(d *Dev) { d.out.Minor = _OUR_MINOR_VERSION + 1 },
+		"capability": func(d *Dev) { d.out.Flags2 |= 1 << 31 },
 	} {
 		t.Run(name, func(t *testing.T) {
 			d := compatible()

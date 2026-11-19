@@ -194,7 +194,7 @@ func newServerFromDev(fs RawFileSystem, d *Dev, m *Mount, o *MountOptions) (*Ser
 		return &requestAlloc{}
 	}
 	if d.negotiated() {
-		if err := checkSession(&d.in, &d.out); err != nil {
+		if err := checkSession(&d.out); err != nil {
 			d.Close()
 			return nil, err
 		}
