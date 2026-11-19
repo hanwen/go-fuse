@@ -17,8 +17,8 @@ November 2026. A "?" means the documentation does not say.
   supports Linux and macOS (FUSE-T and macFUSE). Google Cloud Storage
   FUSE (gcsfuse) uses it.
 * [winfsp/cgofuse](https://github.com/winfsp/cgofuse) wraps the C
-  libraries libfuse, macFUSE and WinFsp with cgo. It is the only
-  option that supports Windows. rclone uses it.
+  libraries libfuse, macFUSE and WinFsp with cgo. On Windows it
+  loads WinFsp without cgo. rclone uses it.
 * [rsc/fuse](https://code.google.com/archive/p/rsc/) is
   an early library by Russ Cox, from around 2011. It is described
   below under "History".
@@ -34,7 +34,7 @@ November 2026. A "?" means the documentation does not say.
 | macOS                        | macFUSE, FSKit | no | macFUSE, FUSE-T | macFUSE | no |
 | FreeBSD                      | yes     | yes   | ?       | yes     | no       |
 | OpenBSD                      | yes     | no    | no      | yes     | yes      |
-| Windows                      | no      | no    | no      | yes (WinFsp) | no  |
+| Windows                      | WinFsp  | no    | no      | WinFsp  | no       |
 | Raw protocol API             | yes     | yes   | yes (ops) | no    | no       |
 | Inode-based API              | yes     | yes   | no      | no      | no       |
 | Path-based API               | no      | no    | no      | yes     | yes (`fs.FS`) |
@@ -67,8 +67,9 @@ December 2010.
 * `fs.LoopbackRoot` for loopback file systems that are safe against
   symlink races.
 * NFS export support, ID-mapped mounts, `STATX`, `IOCTL`, `O_TMPFILE`.
-* Serving to virtual machines over vhost-user (`virtiofs`), and to
-  macOS FSKit (`fskit`).
+* Serving to virtual machines over vhost-user (`virtiofs`), to
+  macOS FSKit (`fskit`), and to Windows through WinFsp (`winfsp`),
+  without cgo.
 * Handing a live mount to another process, for upgrades without
   unmounting (`Server.Dev`, `NewServerFromDev`).
 * POSIX conformance tests (`posixtest`) that run on every supported
