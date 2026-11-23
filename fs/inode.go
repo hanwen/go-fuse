@@ -780,7 +780,8 @@ retry:
 
 // NotifyEntry notifies the kernel that data for a (directory, name)
 // tuple should be invalidated. On next access, a LOOKUP operation
-// will be started.
+// will be started. Unused cached entries below it are dropped too; see
+// "Memory use" in the package documentation.
 func (n *Inode) NotifyEntry(name string) syscall.Errno {
 	return n.bridge.notify.InvalEntry(n.nodeId, name)
 }

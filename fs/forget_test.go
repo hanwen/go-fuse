@@ -327,3 +327,60 @@ func TestForgetAfterExclusiveRegistration(t *testing.T) {
 		t.Errorf("nodeid %d still registered after FORGET", n1.nodeId)
 	}
 }
+
+func TestNotifyEntryForgetsSubtree(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("test needs linux")
+	}
+	root := &allChildrenNode{depth: 2}
+	ttl := time.Hour
+	mnt, _ := testMount(t, root, &Options{EntryTimeout: &ttl})
+
+	for _, d := range []string{"0", "1"} {
+		entries, err := os.ReadDir(filepath.Join(mnt, d))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, e := range entries {
+			if _, err := os.Lstat(filepath.Join(mnt, d, e.Name())); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	f, err := os.Open(filepath.Join(mnt, "1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	bridge := root.EmbeddedInode().bridge
+	liveNodes := func() int {
+		bridge.ids.mu.Lock()
+		defer bridge.ids.mu.Unlock()
+		return len(bridge.ids.nodes)
+	}
+	if got, want := liveNodes(), 203; got != want {
+		t.Fatalf("got %d live nodes, want %d", got, want)
+	}
+
+	for name := range root.Children() {
+		if errno := root.NotifyEntry(name); errno != 0 {
+			t.Fatalf("NotifyEntry(%q): %v", name, errno)
+		}
+	}
+
+	// Left are the root and the open directory; the children of the
+	// open directory are not in use.
+	want := 2
+	deadline := time.Now().Add(5 * time.Second)
+	for liveNodes() != want {
+		if time.Now().After(deadline) {
+			t.Fatalf("got %d live nodes, want %d", liveNodes(), want)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if _, err := f.Stat(); err != nil {
+		t.Errorf("Stat open directory: %v", err)
+	}
+}

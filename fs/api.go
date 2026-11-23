@@ -127,6 +127,61 @@
 //	  AttrTimeout: &sec,
 //	}
 //
+// # Memory use
+//
+// Every node the kernel has looked up is held in the kernel's dentry
+// and inode caches, and the kernel's reference keeps the matching
+// Inode (and the node type embedding it) alive in the FUSE process.
+// It is released only when the kernel evicts the inode and sends
+// FORGET. When a dentry stops being used and its entry timeout has
+// already expired, the kernel drops it right away. A dentry that
+// expires later stays cached until it is reclaimed.
+//
+// The kernel reclaims dentries under memory pressure, either
+// system-wide or within a memory cgroup. Dentries and FUSE inodes are
+// charged to the cgroup of the process whose access created them,
+// which is not necessarily the cgroup of the FUSE server. The memory
+// of the FUSE server itself cannot be reclaimed by the kernel; it is
+// freed only after FORGET, once the Go garbage collector has run. On
+// a machine with ample memory, a workload that walks large trees
+// (find, grep -r) can thus grow the FUSE process without bound.
+//
+// Ways to limit this:
+//
+//   - With a zero entry timeout, nothing beyond what is in use stays
+//     cached, at the cost of a LOOKUP for every path component.
+//
+//   - The vm.vfs_cache_pressure sysctl makes the kernel favor
+//     reclaiming dentries and inodes over page cache. It applies to
+//     the whole machine.
+//
+//   - A memory limit on the cgroup that accesses the file system
+//     causes its dentries to be reclaimed when the limit is reached.
+//
+//   - [Inode.NotifyPrune] (Linux 6.18 and later) asks the kernel to
+//     forget specific nodes.
+//
+//   - GOMEMLIMIT makes the Go runtime return freed memory to the
+//     operating system sooner.
+//
+//   - [Inode.NotifyEntry] works on all kernels; see below.
+//
+// Invalidating an entry with [Inode.NotifyEntry] unhashes its dentry,
+// and also frees all unused dentries below it. Invalidating a
+// directory therefore forgets its whole subtree, except for the parts
+// in use (open files, working directories). Invalidating every entry
+// of the root drops everything not in use:
+//
+//	for name := range root.Children() {
+//		root.NotifyEntry(name)
+//	}
+//
+// This can be done periodically, or when the number of live nodes
+// (tracked with Lookup and [NodeOnForgetter]) passes a threshold.
+// Afterwards, the kernel must look up entries again, and the page
+// cache of evicted files is lost. Do not call it while handling a
+// request for the same directory.
+//
 // # Interrupts
 //
 // If the process accessing a FUSE file system is interrupted, the
