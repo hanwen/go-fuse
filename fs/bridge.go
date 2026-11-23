@@ -511,13 +511,11 @@ func (b *rawBridge) lookup(ctx context.Context, parent *Inode, name string, out 
 
 func (b *rawBridge) Rmdir(ctx context.Context, header *fuse.InHeader, name string) syscall.Errno {
 	parent, _ := b.inode(header.NodeId, 0)
-	var errno syscall.Errno
-	if mops, ok := parent.ops.(NodeRmdirer); ok {
-		errno = mops.Rmdir(ctx, name)
+	mops, ok := parent.ops.(NodeRmdirer)
+	if !ok {
+		return fuse.EROFS
 	}
-
-	// TODO - this should not succeed silently.
-
+	errno := mops.Rmdir(ctx, name)
 	if errno == 0 {
 		parent.RmChild(name)
 	}
@@ -526,13 +524,11 @@ func (b *rawBridge) Rmdir(ctx context.Context, header *fuse.InHeader, name strin
 
 func (b *rawBridge) Unlink(ctx context.Context, header *fuse.InHeader, name string) syscall.Errno {
 	parent, _ := b.inode(header.NodeId, 0)
-	var errno syscall.Errno
-	if mops, ok := parent.ops.(NodeUnlinker); ok {
-		errno = mops.Unlink(ctx, name)
+	mops, ok := parent.ops.(NodeUnlinker)
+	if !ok {
+		return fuse.EROFS
 	}
-
-	// TODO - this should not succeed silently.
-
+	errno := mops.Unlink(ctx, name)
 	if errno == 0 {
 		parent.RmChild(name)
 	}

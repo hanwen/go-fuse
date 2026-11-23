@@ -129,6 +129,10 @@ func (n *testDeletedIno) Lookup(ctx context.Context, name string, out *fuse.Entr
 
 var _ NodeOpendirHandler = (*testDeletedIno)(nil)
 
+func (n *testDeletedIno) Rmdir(ctx context.Context, name string) syscall.Errno {
+	return 0
+}
+
 func (n *testDeletedIno) OpendirHandle(ctx context.Context, flags uint32) (fh FileHandle, fuseFlags uint32, errno syscall.Errno) {
 	return &struct{}{}, 0, OK
 }

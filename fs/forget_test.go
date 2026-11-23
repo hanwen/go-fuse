@@ -164,6 +164,10 @@ func (n *forgetTestSubNode) OnAdd(ctx context.Context) {
 	n.AddChild("child", ch, true)
 }
 
+func (n *forgetTestRootNode) Rmdir(ctx context.Context, name string) syscall.Errno {
+	return 0
+}
+
 func (n *forgetTestRootNode) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
 	if name != "subdir" {
 		return nil, syscall.ENOENT

@@ -119,6 +119,14 @@ These compile, but may change behavior. Read the code for each one.
   sees the number of parents.
 * Code that adds one directory under two parents is wrong. Use
   `MvChild`, or `RmChild` before `AddChild`.
+* Directory nodes without `Unlink` or `Rmdir` methods now return
+  `EROFS` for unlink and rmdir. If removal should work, as it did in
+  v2, add methods that return 0:
+
+  ```go
+  func (n *MyNode) Unlink(ctx context.Context, name string) syscall.Errno { return 0 }
+  func (n *MyNode) Rmdir(ctx context.Context, name string) syscall.Errno  { return 0 }
+  ```
 
 ## 6. Verify
 

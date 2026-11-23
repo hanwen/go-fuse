@@ -695,13 +695,13 @@ type NodeTmpfiler interface {
 
 // Unlink should remove a child from this directory.  If the
 // return status is OK, the Inode is removed as child in the
-// FS tree automatically. Default is to return success.
+// FS tree automatically. Default is to return EROFS.
 type NodeUnlinker interface {
 	Unlink(ctx context.Context, name string) syscall.Errno
 }
 
 // Rmdir is like Unlink but for directories.
-// Default is to return success.
+// Default is to return EROFS.
 type NodeRmdirer interface {
 	Rmdir(ctx context.Context, name string) syscall.Errno
 }
